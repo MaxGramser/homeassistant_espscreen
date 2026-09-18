@@ -5,17 +5,25 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
-REFS = {'cyd': 'main', 'guition': 'main'}
+REFS = {'cyd': 'main', 'guition': 'main', 'jc8012p4a1': 'main'}
 
 def generate(board, text=None):
-    source = ROOT / ('home-like-2432s028.yaml' if board == 'cyd' else 'guition-4848s040.yaml')
+    source = ROOT / {
+        'cyd': 'home-like-2432s028.yaml',
+        'guition': 'guition-4848s040.yaml',
+        'jc8012p4a1': 'jc8012p4a1.yaml',
+    }[board]
     s = source.read_text() if text is None else text
     # The owner's wizard YAML supplies wifi/API/OTA credentials. No shared keys.
     s = re.sub(r'^  encryption:\n    key: !secret api_encryption_key\n', '', s, flags=re.M)
     s = re.sub(r'^ota:\n.*?(?=^\w)', '', s, flags=re.M | re.S)
     s = re.sub(r'^wifi:\n.*?(?=^\w)', '', s, flags=re.M | re.S)
     # Fonts are fetched over HTTPS; the headers come with the external component.
-    components = '[xpt2046, smart_display]' if board == 'cyd' else '[smart_display]'
+    components = {
+        'cyd': '[xpt2046, smart_display]',
+        'guition': '[smart_display]',
+        'jc8012p4a1': '[smart_display, mipi_dsi, gsl3680]',
+    }[board]
     external = f'''external_components:
   - source:
       type: git
@@ -42,7 +50,11 @@ def main():
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
     for board in REFS:
-        source = ROOT / ('home-like-2432s028.yaml' if board == 'cyd' else 'guition-4848s040.yaml')
+        source = ROOT / {
+            'cyd': 'home-like-2432s028.yaml',
+            'guition': 'guition-4848s040.yaml',
+            'jc8012p4a1': 'jc8012p4a1.yaml',
+        }[board]
         if not source.exists(): continue
         path = ROOT / 'packages' / f'{board}.yaml'
         expected = generate(board)

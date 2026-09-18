@@ -85,7 +85,7 @@ export const pageTilesRepeat = computed(() => {
   return typeof repeat === "boolean" ? repeat : supports(0, 2, 65);
 });
 export const repeatable = (id: string) => pageTilesRepeat.value && pageTarget(id) > 0;
-export const isGuition = computed(() => currentScreen.value?.board === "guition");
+export const isGuition = computed(() => ["guition", "jc8012p4a1"].includes(currentScreen.value?.board || ""));
 export const barMetrics = computed(() => BAR_METRICS[isGuition.value ? "guition" : "cyd"]);
 export const currentTile = computed<Tile | undefined>(() =>
   state.selectedTile && state.layout?.tiles.includes(state.selectedTile) ? state.selectedTile : undefined);

@@ -137,6 +137,7 @@ also be changed on the screen or by an automation, and your own YAML for one scr
 | --- | --- | --- |
 | CYD ESP32-2432S028 | 320 × 240 | ILI9341 / resistive XPT2046 |
 | Guition ESP32-S3-4848S040, 4 inch | 480 × 480 | ST7701S RGB / capacitive GT911 |
+| Guition JC8012P4A1, 10.1 inch | 1280 × 800 | MIPI-DSI / capacitive GSL3680 |
 
 Use these exact board variants: similar-looking product names can have different
 controllers or connectors. Wallbox relays are not controlled.
@@ -178,7 +179,7 @@ For Home Assistant OS with Apps/Add-ons on **aarch64 or amd64**:
 2. Install **ESP Screen Manager**, start the app, and open **ESP Screens**.
    ESPHome Device Builder is optional: the ESPHome CLI is already in this app.
 3. Connect the screen with a USB data cable to the **Home Assistant machine**
-   and choose **New screen** in the sidebar: CYD or Guition, a name, the USB port, and
+   and choose **New screen** in the sidebar: CYD, 4-inch Guition, or 10.1-inch JC8012P4A1, a name, the USB port, and
    **Install**. If Wi-Fi is missing from the ESPHome `secrets.yaml`, the window
    asks for it once and ESP Screens only adds the missing lines. The profile
    with unique API and OTA keys goes into the ESPHome folder; the build
@@ -188,7 +189,8 @@ For Home Assistant OS with Apps/Add-ons on **aarch64 or amd64**:
    Choose **Download** under **Install via**: ESP Screens builds the firmware, and you put it
    on the screen from your own computer with [ESPHome Web](https://web.esphome.io) in Chrome
    or Edge. After that, updates go over Wi-Fi as usual.
-4. **CYD:** go through the calibration on the screen. **Guition:** uses GT911
+4. **CYD:** go through the calibration on the screen. **4-inch Guition:** uses GT911.
+   **JC8012P4A1:** uses GSL3680. Both Guition variants report pixel coordinates
    without resistive calibration. Then pair the discovered ESPHome device in
    **Settings → Devices & services** using the API key the window
    shows after installation (copy button). Grant the device permission to
