@@ -5,7 +5,11 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BOARDS = {'cyd': 'home-like-2432s028.yaml', 'guition': 'guition-4848s040.yaml'}
+BOARDS = {
+    'cyd': 'home-like-2432s028.yaml',
+    'guition': 'guition-4848s040.yaml',
+    'jc8012p4a1': 'jc8012p4a1.yaml',
+}
 # The old manual profile bound tiles to fixed entities in the YAML. ESP Screens sends the tiles now, so
 # none of this may come back: the fixed subscriptions, its tap handlers and scripts, its own vacuum card.
 GONE = ['ha_state_tile1', 'tile1_brightness', 'tile6_climate_humidity', 'tile6_cover_state', 'smartdisplay_action',

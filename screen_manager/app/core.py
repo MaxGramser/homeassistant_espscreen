@@ -35,7 +35,7 @@ TWENTY_TILES_MIN_FIRMWARE = (0, 2, 7)
 FIRST_MAX_TILES = 10
 WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
-REFS = {'cyd': 'main', 'guition': 'main'}
+REFS = {'cyd': 'main', 'guition': 'main', 'jc8012p4a1': 'main'}
 # Firmware shipped with this app release; screens below it get an update offer.
 FIRMWARE_VERSION = '0.2.70'
 # The Auto standby switch a screen offers Home Assistant automations.
@@ -180,9 +180,10 @@ def resolve_controls(tile):
 NAME_TILE_SETTINGS = ('Tile settings', 'Tegelinstellingen')
 NAME_SCREEN_FIRMWARE = ('Screen firmware', 'Schermfirmware')
 NAME_GUITION_TYPE = ('Guition screen type', 'Guition schermtype')
+NAME_JC8012_TYPE = ('JC8012P4A1 screen type',)
 NAME_DEVICE_NAME = ('Device name', 'Apparaatnaam')
 NAME_IP_ADDRESS = ('IP address', 'IP-adres')
-SCREEN_ENTITY_NAMES = frozenset(NAME_TILE_SETTINGS + NAME_SCREEN_FIRMWARE + NAME_GUITION_TYPE + NAME_DEVICE_NAME + NAME_IP_ADDRESS)
+SCREEN_ENTITY_NAMES = frozenset(NAME_TILE_SETTINGS + NAME_SCREEN_FIRMWARE + NAME_GUITION_TYPE + NAME_JC8012_TYPE + NAME_DEVICE_NAME + NAME_IP_ADDRESS)
 
 def parse_firmware(text):
     """(major, minor, patch) of a screen firmware version such as "0.2.63"; None for anything else. Strict on purpose:
@@ -1355,7 +1356,9 @@ ALERT_FIELDS = (
     ('flash', 'bool', 'Blinking', 'On makes the backlight blink four times when the alert arrives; the screen then just stays on.', True),
 )
 # Bytes per field the firmware keeps (the profiles' ALERT_*_MAX); an accented letter takes two.
-ALERT_LIMITS = {'cyd': {'title': 48, 'subtitle': 160, 'button_text': 12}, 'guition': {'title': 64, 'subtitle': 240, 'button_text': 16}}
+ALERT_LIMITS = {'cyd': {'title': 48, 'subtitle': 160, 'button_text': 12},
+                'guition': {'title': 64, 'subtitle': 240, 'button_text': 16},
+                'jc8012p4a1': {'title': 64, 'subtitle': 240, 'button_text': 16}}
 ALERT_SUGGESTED_ICONS = ('doorbell', 'bell', 'bell-ring', 'alert-outline', 'alarm-light', 'lock', 'lock-open-variant', 'door-open',
                          'window-closed-variant', 'motion-sensor', 'cctv', 'smoke-detector', 'water-alert', 'fire', 'mailbox', 'car',
                          'account', 'account-group', 'washing-machine', 'robot-vacuum', 'timer-outline', 'check')
@@ -1474,6 +1477,8 @@ def discover_screens(registry, states, devices, areas):
                 if item.get('platform') == 'esphome' and item.get('original_name') in NAME_SCREEN_FIRMWARE}
     boards = {item.get("device_id"): "guition" for item in registry
               if item.get("platform") == "esphome" and item.get("original_name") in NAME_GUITION_TYPE}
+    boards.update({item.get("device_id"): "jc8012p4a1" for item in registry
+                   if item.get("platform") == "esphome" and item.get("original_name") in NAME_JC8012_TYPE})
     def diagnostic(names, pattern):
         found = {}
         for item in registry:

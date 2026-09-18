@@ -2,7 +2,7 @@
 // The pages side by side, like swiping on the screen, and the library on the right.
 import { computed } from "vue";
 import { entriesOf, hasGaps, MAX_PAGES, pageCount } from "../model/layout";
-import { addPage, closeInspector, currentScreen, pageReachWarning, pagesShown, state, supports, tileLimit } from "../store";
+import { addPage, closeInspector, currentScreen, isGuition, pageReachWarning, pagesShown, state, supports, tileLimit } from "../store";
 import DevicePage from "./DevicePage.vue";
 import Library from "./Library.vue";
 
@@ -36,7 +36,7 @@ function onCanvasClick(e: MouseEvent) {
       <DevicePage v-for="page in shown" :key="page" :page="page - 1" :entries="entries" :pages="pages" :moving="state.drag.moving" />
       <div class="page ghost" :class="{ disabled: !canAdd }">
         <div class="page-label"><span>Page {{ shown + 1 }}</span></div>
-        <div class="device" :class="{ cyd: currentScreen?.board !== 'guition' }" id="add-page" role="button" :tabindex="canAdd ? 0 : -1" @click="canAdd && addPage()" @keydown.enter.prevent="canAdd && addPage()">
+        <div class="device" :class="{ cyd: !isGuition }" id="add-page" role="button" :tabindex="canAdd ? 0 : -1" @click="canAdd && addPage()" @keydown.enter.prevent="canAdd && addPage()">
           {{ canAdd ? "+ Add page" : `${MAX_PAGES} pages is the most` }}
         </div>
       </div>
