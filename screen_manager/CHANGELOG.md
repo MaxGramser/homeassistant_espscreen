@@ -1,3 +1,10 @@
+## 0.2.90 (firmware 0.2.75)
+
+The 10.1-inch Guition JC8012P4A1 is now supported.
+
+- ESP Screens can create, build, and install a JC8012P4A1 profile with its native MIPI-DSI display and GSL3680 touch controller.
+- The existing CYD and 4-inch Guition profiles remain unchanged.
+
 ## 0.2.89 (firmware 0.2.75)
 
 ESPHome 2026.9 in ESP Screens, updates that no longer start from scratch without reason, and 94 KB more room on a CYD.

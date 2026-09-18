@@ -195,6 +195,7 @@ onBeforeUnmount(() => clearInterval(poll));
         <div class="boards">
           <label class="board"><input type="radio" name="board" value="cyd" v-model="form.board" /><span><b>CYD · 2.8 inch</b><small>ESP32-2432S028 · 320 × 240</small></span></label>
           <label class="board"><input type="radio" name="board" value="guition" v-model="form.board" /><span><b>Guition · 4 inch</b><small>ESP32-S3-4848S040 · 480 × 480 · GT911</small></span></label>
+          <label class="board"><input type="radio" name="board" value="jc8012p4a1" v-model="form.board" /><span><b>Guition · 10.1 inch</b><small>JC8012P4A1 · 1280 × 800 · MIPI-DSI · GSL3680</small></span></label>
         </div>
       </fieldset>
       <div class="field">
