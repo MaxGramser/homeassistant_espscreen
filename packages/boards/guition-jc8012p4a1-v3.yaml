@@ -30,7 +30,6 @@ packages:
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "jc8012p4a1v3"
-  SCREEN_FIRMWARE_VERSION: "0.6.1"   # a fix for this board alone (docs/BOARD_RELEASES.md)
   DEVICE_NAME: "jc8012p4a1v3-new"
   DEVICE_FRIENDLY_NAME: "My Guition 10 V3"
 

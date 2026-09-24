@@ -77,7 +77,7 @@ export type BoardCatalog = {
 };
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
-  width: number; height: number; dpi: number; camera: boolean; dimmable: boolean; can_standby: boolean;
+  width: number; height: number; dpi: number; look?: string; camera: boolean; dimmable: boolean; can_standby: boolean;
   // The chip its firmware is built for, as esptool names it ("ESP32-S3"): the browser flasher checks the board on the cable.
   chip?: string | null;
 };
@@ -96,6 +96,7 @@ export type FeedbackView = {
 export type Screen = {
   // name: the editor's own name when one is set (app 0.4.2); ha_name: what Home Assistant calls the screen.
   id: string; name: string; ha_name?: string; online: boolean; area?: string; firmware?: string; board?: string;
+  virtual?: boolean;
   layout: Layout; update?: UpdateInfo; settings?: SettingsView; delivery?: string; status?: string;
   page_document?: PageDocument | PendingMigration | null;
   source_grid?: PageGrid | null;
@@ -127,6 +128,7 @@ export type Screen = {
   // Whether its board draws pictures: camera tiles, an alert's snapshot, an album cover (app 0.2.94).
   pictures?: boolean;
 };
+export type ScreenShape = NonNullable<Screen["shape"]>;
 // Language & region of the screens (app 0.2.90): the language setting ("auto" follows Home Assistant), the language that
 // gives, Home Assistant's own, and every language there is, by its own name; the time and number format, each "auto"
 // (as the language writes it) or a choice, and what that gives.

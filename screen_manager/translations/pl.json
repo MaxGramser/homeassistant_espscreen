@@ -2376,6 +2376,34 @@
       "group_ha": "Podłączony do komputera z Home Assistant",
       "group_here": "Podłączony do tego komputera",
       "group_wifi": "Przez Wi-Fi"
+    },
+    "preview": {
+      "type": "Typ nowego ekranu",
+      "physical": "Ekran fizyczny",
+      "virtual": "Podgląd wirtualny",
+      "intro": "Zaprojektuj ekran z encjami Home Assistant bez parowania sprzętu. Podglądy są zapisywane w tej przeglądarce; dotknięcia w podglądzie firmware sterują Home Assistant.",
+      "profile": "Płytka / profil",
+      "design_only": "Tylko profil podglądu. Nie dodaje obsługi firmware dla fizycznej płytki.",
+      "override": "Zmień rozdzielczość lub siatkę",
+      "width": "Szerokość (piksele)",
+      "height": "Wysokość (piksele)",
+      "columns": "Kolumny",
+      "rows": "Wiersze",
+      "name": "Nazwa podglądu",
+      "name_placeholder": "Podgląd Waveshare 4B",
+      "create": "Utwórz urządzenie wirtualne",
+      "created": "Utworzono urządzenie wirtualne \"{name}\".",
+      "invalid_shape": "Wybierz nazwę, obsługiwany profil, siatkę 1–8 kolumn/wierszy i obszar 160–2560 pikseli.",
+      "editor": "Edytor kafelków",
+      "firmware": "Podgląd firmware",
+      "canvas": "Podgląd firmware LVGL",
+      "controls": "{width} × {height} pikseli · Steruje Home Assistant",
+      "packet_error": "Firmware odrzuciło pakiet podglądu: {message}",
+      "stopped": "Podgląd firmware zatrzymany: {message}",
+      "action_error": "Polecenie Home Assistant nie powiodło się: {message}",
+      "remove": "Podgląd i jego układ zapisany w tej przeglądarce.",
+      "save": "Zapisz podgląd",
+      "saved": "Zapisano w tej przeglądarce"
     }
   }
 }

@@ -95,7 +95,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
         <button type="button" class="nav-item" :aria-current="isSelected(screen) ? 'true' : 'false'" @click="choose(screen)">
           <span class="board-icon">
             <span class="mdi">{{ boardIcon(screen) }}</span>
-            <span class="led" :class="light(screen)" role="img" :aria-label="screen.online ? t('editor.common.online') : t('editor.common.offline')"></span>
+            <span class="led" :class="light(screen)" role="img" :aria-label="screen.virtual ? t('editor.preview.virtual') : screen.online ? t('editor.common.online') : t('editor.common.offline')"></span>
           </span>
           <span class="txt">
             <span class="name">{{ screen.name }}</span>
@@ -113,9 +113,9 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
           <div class="screen-remove">
             <strong>{{ t("editor.sidebar.remove.title", { name: screen.name }) }}</strong>
             <ul>
-              <li>{{ t("editor.sidebar.remove.ha") }}</li>
+              <li v-if="!screen.virtual">{{ t("editor.sidebar.remove.ha") }}</li>
               <li v-if="screen.update?.profile">{{ t("editor.sidebar.remove.profile", { file: screen.update.profile }) }}</li>
-              <li>{{ t("editor.sidebar.remove.layout") }}</li>
+              <li>{{ t(screen.virtual ? "editor.preview.remove" : "editor.sidebar.remove.layout") }}</li>
             </ul>
             <small v-if="screen.online" class="warn">{{ t("editor.sidebar.remove.online") }}</small>
             <div class="screen-actions">

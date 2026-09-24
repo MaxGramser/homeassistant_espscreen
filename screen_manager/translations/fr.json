@@ -2376,6 +2376,34 @@
       "group_ha": "Branché sur la machine Home Assistant",
       "group_here": "Branché sur cet ordinateur",
       "group_wifi": "Par Wi-Fi"
+    },
+    "preview": {
+      "type": "Type du nouvel écran",
+      "physical": "Écran physique",
+      "virtual": "Aperçu virtuel",
+      "intro": "Créez un écran avec des entités Home Assistant sans associer de matériel. Les aperçus sont enregistrés dans ce navigateur ; les appuis dans l’aperçu du firmware commandent Home Assistant.",
+      "profile": "Carte / profil",
+      "design_only": "Profil d’aperçu uniquement. Cela n’ajoute pas de prise en charge du firmware physique pour cette carte.",
+      "override": "Modifier la résolution ou la grille",
+      "width": "Largeur (pixels)",
+      "height": "Hauteur (pixels)",
+      "columns": "Colonnes",
+      "rows": "Lignes",
+      "name": "Nom de l’aperçu",
+      "name_placeholder": "Aperçu Waveshare 4B",
+      "create": "Créer un appareil virtuel",
+      "created": "Appareil virtuel \"{name}\" créé.",
+      "invalid_shape": "Choisissez un nom, un profil compatible, une grille de 1–8 colonnes/lignes et une surface de 160–2560 pixels.",
+      "editor": "Éditeur de tuiles",
+      "firmware": "Aperçu du firmware",
+      "canvas": "Aperçu du firmware LVGL",
+      "controls": "{width} × {height} pixels · Commande Home Assistant",
+      "packet_error": "Le firmware a refusé un paquet d’aperçu : {message}",
+      "stopped": "Aperçu du firmware arrêté : {message}",
+      "action_error": "Échec de la commande Home Assistant : {message}",
+      "remove": "L’aperçu et sa disposition enregistrée dans ce navigateur.",
+      "save": "Enregistrer l’aperçu",
+      "saved": "Enregistré dans ce navigateur"
     }
   }
 }

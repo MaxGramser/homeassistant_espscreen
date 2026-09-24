@@ -2376,6 +2376,34 @@
       "group_ha": "Am Home-Assistant-Rechner angeschlossen",
       "group_here": "An diesem Computer angeschlossen",
       "group_wifi": "Über WLAN"
+    },
+    "preview": {
+      "type": "Typ des neuen Bildschirms",
+      "physical": "Physischer Bildschirm",
+      "virtual": "Virtuelle Vorschau",
+      "intro": "Gestalte einen Bildschirm mit Home Assistant-Entitäten, ohne Hardware zu koppeln. Vorschauen werden in diesem Browser gespeichert; Tippen in der Firmware-Vorschau steuert Home Assistant.",
+      "profile": "Board / Profil",
+      "design_only": "Nur ein Vorschauprofil. Damit wird keine Unterstützung für die physische Firmware dieses Boards hinzugefügt.",
+      "override": "Auflösung oder Raster anpassen",
+      "width": "Breite (Pixel)",
+      "height": "Höhe (Pixel)",
+      "columns": "Spalten",
+      "rows": "Zeilen",
+      "name": "Name der Vorschau",
+      "name_placeholder": "Waveshare 4B-Vorschau",
+      "create": "Virtuelles Gerät erstellen",
+      "created": "Virtuelles Gerät \"{name}\" erstellt.",
+      "invalid_shape": "Wähle einen Namen, ein unterstütztes Profil, ein Raster mit 1–8 Spalten/Zeilen und eine Zeichenfläche mit 160–2560 Pixeln.",
+      "editor": "Kacheleditor",
+      "firmware": "Firmware-Vorschau",
+      "canvas": "LVGL-Firmware-Vorschau",
+      "controls": "{width} × {height} Pixel · Steuert Home Assistant",
+      "packet_error": "Die Firmware hat ein Vorschaupaket abgelehnt: {message}",
+      "stopped": "Firmware-Vorschau angehalten: {message}",
+      "action_error": "Home Assistant-Befehl fehlgeschlagen: {message}",
+      "remove": "Die Vorschau und ihr gespeichertes Layout in diesem Browser.",
+      "save": "Vorschau speichern",
+      "saved": "In diesem Browser gespeichert"
     }
   }
 }

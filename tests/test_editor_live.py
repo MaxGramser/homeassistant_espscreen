@@ -173,6 +173,88 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(states['sensor.t']['a']['unit_of_measurement'], '°C')
         self.assertIn('word', states['light.a'])
 
+    async def test_firmware_preview_uses_device_packets_without_saving_or_actions(self):
+        from core import Grid
+        from page_layout import compile_tiles, bar_items
+        import page_delivery
+        legacy = {'title': 'Preview', 'pages': 2, 'tiles': [
+            {'entity': 'light.a', 'name': 'Desk', 'slot': 0, 'options': {'background': 'green'}},
+            {'entity': 'sensor.t', 'name': 'Temperature', 'slot': 6}]}
+        before = dict(self.manager.layouts)
+        imported = await self.client.post('/api/firmware-preview/import', json={
+            'document': legacy, 'sourceGrid': {'columns': 2, 'rows': 3}}, headers=self.headers)
+        self.assertEqual(imported.status, 200, await imported.text())
+        record = await imported.json()
+        data = {'shape': {'width': 720, 'height': 720, 'columns': 2, 'rows': 3}, 'layout': record['layout']}
+        response = await self.client.post('/api/firmware-preview', json=data, headers=self.headers)
+        self.assertEqual(response.status, 200, await response.text())
+        bundle = await response.json()
+        values = [await self.manager.tile_message(i, tile, lamps=True)
+                  for i, tile in enumerate(compile_tiles(record['layout'], Grid(2, 3)))]
+        bars = [self.manager.header_message({'header': {'items': bar_items(page)}})['items']
+                for page in record['layout']['pages']]
+        region = self.manager.page_region()
+        begin, tiles, pages, states = page_delivery.prepare('', record, region, values, bars)
+        self.assertEqual(bundle['revision'], page_delivery.configuration(record, region))
+        self.assertEqual(bundle['configuration'], [begin, *pages, *tiles, {'op': 'commit'}])
+        self.assertEqual(bundle['values'], [*states, *[page_delivery.page_message(page, i, bar, initial=False)
+            for i, (page, bar) in enumerate(zip(record['layout']['pages'], bars))]])
+        self.assertEqual(len(pages), 2)
+        self.assertEqual([tile['slot'] for tile in tiles], [0, 6])
+        self.assertEqual(self.manager.layouts, before)
+        self.assertEqual(self.ha.calls, [])
+        data['shape']['columns'] = 0
+        response = await self.client.post('/api/firmware-preview', json=data, headers=self.headers)
+        self.assertEqual(response.status, 400)
+
+    async def test_preview_policy_allows_wasm_without_javascript_eval(self):
+        response = await self.client.get('/')
+        policy = response.headers['Content-Security-Policy']
+        self.assertIn("script-src 'self' 'wasm-unsafe-eval'", policy)
+        self.assertNotIn("'unsafe-eval'", policy)
+        self.assertNotIn("'unsafe-inline'", policy)
+
+    async def test_preview_relays_entity_commands_and_returns_ha_errors(self):
+        from server import Refused
+        async def entity_actions(entity):
+            return {'light.turn_on', 'light.turn_off'}
+        self.ha.entity_actions = entity_actions
+        command = {'service': 'light.turn_on', 'call_id': 42, 'event': False,
+                   'data': {'entity_id': 'light.a', 'brightness': '180'}, 'templates': {}}
+        response = await self.client.post('/api/firmware-preview/action', json=command, headers=self.headers)
+        self.assertEqual(response.status, 200, await response.text())
+        self.assertEqual(await response.json(), {'success': True})
+        self.assertEqual(self.ha.calls, [('light.turn_on', command['data'])])
+        self.assertFalse(self.manager.layouts, 'commands never save a preview layout')
+
+        async def refused(*args):
+            raise Refused('The device rejected this value')
+        self.ha.call = refused
+        response = await self.client.post('/api/firmware-preview/action', json=command, headers=self.headers)
+        self.assertEqual(response.status, 400)
+        self.assertIn('The device rejected this value', (await response.json())['error'])
+
+        async def disconnected(*args):
+            raise ConnectionError()
+        self.ha.call = disconnected
+        response = await self.client.post('/api/firmware-preview/action', json=command, headers=self.headers)
+        self.assertEqual(response.status, 503)
+
+    async def test_preview_commands_require_csrf_and_an_action_for_an_existing_entity(self):
+        async def entity_actions(entity):
+            return {'light.turn_on'}
+        self.ha.entity_actions = entity_actions
+        command = {'service': 'light.turn_on', 'data': {'entity_id': 'light.a'}}
+        response = await self.client.post('/api/firmware-preview/action', json=command)
+        self.assertEqual(response.status, 403)
+        for invalid in [None, {}, {**command, 'service': 'homeassistant.restart'},
+                        {**command, 'data': {'entity_id': 'light.missing'}},
+                        {**command, 'data': {'entity_id': ['light.a']}},
+                        {**command, 'event': True}, {**command, 'templates': {'brightness': '{{ 1 }}'}}]:
+            response = await self.client.post('/api/firmware-preview/action', json=invalid, headers=self.headers)
+            self.assertEqual(response.status, 400, await response.text())
+        self.assertEqual(self.ha.calls, [])
+
     async def test_identify_blinks_the_screen_through_its_alert_action(self):
         response = await self.client.post(f"/api/screens/{self.screen['id']}/identify", headers=self.headers)
         self.assertEqual(response.status, 200, await response.text())

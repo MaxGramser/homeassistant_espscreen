@@ -2376,6 +2376,34 @@
       "group_ha": "Collegato al computer di Home Assistant",
       "group_here": "Collegato a questo computer",
       "group_wifi": "Via Wi-Fi"
+    },
+    "preview": {
+      "type": "Tipo di nuovo schermo",
+      "physical": "Schermo fisico",
+      "virtual": "Anteprima virtuale",
+      "intro": "Progetta uno schermo con entità di Home Assistant senza associare hardware. Le anteprime vengono salvate in questo browser; i tocchi nell’anteprima del firmware controllano Home Assistant.",
+      "profile": "Scheda / profilo",
+      "design_only": "Solo profilo di anteprima. Non aggiunge il supporto firmware per questa scheda fisica.",
+      "override": "Modifica risoluzione o griglia",
+      "width": "Larghezza (pixel)",
+      "height": "Altezza (pixel)",
+      "columns": "Colonne",
+      "rows": "Righe",
+      "name": "Nome dell’anteprima",
+      "name_placeholder": "Anteprima Waveshare 4B",
+      "create": "Crea dispositivo virtuale",
+      "created": "Dispositivo virtuale \"{name}\" creato.",
+      "invalid_shape": "Scegli un nome, un profilo supportato, una griglia di 1–8 colonne/righe e un’area di 160–2560 pixel.",
+      "editor": "Editor dei riquadri",
+      "firmware": "Anteprima del firmware",
+      "canvas": "Anteprima del firmware LVGL",
+      "controls": "{width} × {height} pixel · Controlla Home Assistant",
+      "packet_error": "Il firmware ha rifiutato un pacchetto di anteprima: {message}",
+      "stopped": "Anteprima del firmware interrotta: {message}",
+      "action_error": "Comando Home Assistant non riuscito: {message}",
+      "remove": "L’anteprima e il suo layout salvato in questo browser.",
+      "save": "Salva anteprima",
+      "saved": "Salvato in questo browser"
     }
   }
 }

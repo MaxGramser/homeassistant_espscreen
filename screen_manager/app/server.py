@@ -5,6 +5,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 from pathlib import Path
 import secrets
 import time
@@ -2400,7 +2401,9 @@ def create_app(manager, development=False):
             return response  # streamed (SSE) responses set their headers before prepare()
         response.headers['Cache-Control'] = 'no-store'
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'"
+        # The LVGL preview compiles the bundled WASM module. Allow that narrowly;
+        # JavaScript eval and inline scripts remain disallowed.
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'"
         return response
 
     # A layout of 48 tiles with actions on their taps passes 16 KB, the limit from the twenty-tile days; the largest the
@@ -2535,7 +2538,7 @@ def create_app(manager, development=False):
                                                               getattr(manager.ha, 'state_words', None))})
     async def import_document(request):
         """Validate an export into a draft; importing never saves or sends it."""
-        if manager.screen(request.match_info['inbox']) is None:
+        if 'inbox' in request.match_info and manager.screen(request.match_info['inbox']) is None:
             raise LayoutError(t('addon.errors.not_paired'))
         data = await request.json()
         if not isinstance(data, dict) or set(data) != {'document', 'sourceGrid'}:
@@ -2779,6 +2782,55 @@ def create_app(manager, development=False):
             result[eid] = {'state': message['state'], 'a': attributes,
                            'word': state_word(eid, state.get('state'), state.get('attributes'), entry, getattr(manager.ha, 'state_words', None))}
         return web.json_response({'states': result})
+    async def firmware_preview(request):
+        """The device's normal packets, for an unsaved layout. No device registration or HA actions."""
+        from core import Grid
+        data = await request.json()
+        if not isinstance(data, dict) or not isinstance(data.get('shape'), dict):
+            raise ValueError('A preview shape is required.')
+        shape = data['shape']
+        columns, rows = shape.get('columns'), shape.get('rows')
+        if any(type(n) is not int or n < 1 or n > 8 for n in (columns, rows)) or columns * rows > 64:
+            raise ValueError('Invalid preview grid.')
+        record = {'format': PAGE_FORMAT, 'sourceGrid': {'columns': columns, 'rows': rows},
+                  'layout': validate_document(data.get('layout'), Grid(columns, rows))}
+        tiles = compile_tiles(record['layout'], grid_of_record(record))
+        values = [await manager.tile_message(index, tile, lamps=True) for index, tile in enumerate(tiles)]
+        bars = [manager.header_message({'header': {'items': bar_items(page)}})['items']
+                for page in record['layout']['pages']]
+        region = manager.page_region()
+        begin, initial_tiles, initial_bars, states = page_delivery.prepare('', record, region, values, bars)
+        return web.json_response({'revision': page_delivery.configuration(record, region),
+            'configuration': [begin, *initial_bars, *initial_tiles, {'op': 'commit'}],
+            'values': [*states, *[page_delivery.page_message(page, index, items, initial=False)
+                for index, (page, items) in enumerate(zip(record['layout']['pages'], bars))]]})
+
+    async def firmware_preview_action(request):
+        """Relay the firmware's ESPHome service request through this manager's HA connection."""
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError('A firmware command is required.')
+        service, fields = data.get('service'), data.get('data')
+        if not isinstance(service, str) or len(service) > 120 or not re.fullmatch(r'[a-z0-9_]+\.[a-z0-9_]+', service):
+            raise ValueError('Invalid Home Assistant action.')
+        if data.get('event') or data.get('templates'):
+            raise ValueError('Preview event requests and templated actions are not supported yet.')
+        if not isinstance(fields, dict) or len(fields) > 32 or any(
+                not isinstance(k, str) or not re.fullmatch(r'[a-z0-9_]{1,64}', k) or
+                not isinstance(v, str) or len(v) > 4096 for k, v in fields.items()):
+            raise ValueError('Invalid Home Assistant action data.')
+        target = fields.get('entity_id')
+        if not entity_id(target) or target not in manager.ha.states:
+            raise ValueError('The command must target an existing Home Assistant entity.')
+        # Keep this endpoint scoped to entity controls, not arbitrary HA administration.
+        actions = await manager.ha.entity_actions(target)
+        if actions is None:
+            raise ConnectionError('Home Assistant actions are not available yet.')
+        if service not in actions:
+            raise ValueError('Home Assistant does not offer this action for that entity.')
+        await asyncio.wait_for(manager.ha.call(service, fields), timeout=5)
+        return web.json_response({'success': True})
+
     def one_alert_target(inbox):
         screen = manager.screen(inbox)
         if screen is None:
@@ -2936,6 +2988,9 @@ def create_app(manager, development=False):
     app.router.add_get('/api/history-preview', preview_history)
     app.router.add_get('/api/media-art', media_art_preview)
     app.router.add_get('/api/camera-preview', camera_preview)
+    app.router.add_post('/api/firmware-preview', firmware_preview)
+    app.router.add_post('/api/firmware-preview/import', import_document)
+    app.router.add_post('/api/firmware-preview/action', firmware_preview_action)
     app.router.add_post('/api/screens/{inbox}/identify', identify)
     app.router.add_post('/api/screens/{inbox}/calibrate', calibrate)
     app.router.add_post('/api/alerts/test', test_alert)

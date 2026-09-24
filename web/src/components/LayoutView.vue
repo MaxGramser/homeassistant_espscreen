@@ -11,6 +11,7 @@ import { entriesOf } from "../model/layout";
 import { closeInspector, currentScreen, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, redo, reviewScreenGrid, setEditorMode, startUpdate, state, supports, tileLimit, undo } from "../store";
 import PageWizard from "./PageWizard.vue";
 import DevicePage from "./DevicePage.vue";
+import FirmwarePreview from "./FirmwarePreview.vue";
 import Library from "./Library.vue";
 import PageMap from "./PageMap.vue";
 import NavigationPreview from './NavigationPreview.vue';
@@ -20,6 +21,7 @@ import type { IconName } from '../model/ui-icons';
 import { dismissMigrationNote, resolveLayoutConflict, startFreshLayout } from '../store';
 import { titleOf } from '../model/pages';
 const preview = ref(false);
+const firmwarePreview = ref(false);
 const pageWizard = ref(false);
 const droppedTiles = computed(() => currentScreen.value?.page_document?.format === 'pages-v2'
   ? currentScreen.value.page_document.migration?.droppedTiles || [] : []);
@@ -73,6 +75,9 @@ function onCanvasClick(e: MouseEvent) {
         <button type="button" class="icon-btn" :disabled="!state.redoCount" :aria-label="t('editor.pages.redo')" :title="`${t('editor.pages.redo')} · ⇧⌘Z`" @click="redo"><Icon name="redo" /></button>
       </div>
       <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="preview = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
+      <button v-if="currentScreen?.virtual" type="button" class="btn quiet" id="firmware-preview-toggle" @click="firmwarePreview = !firmwarePreview">
+        {{ t(firmwarePreview ? 'editor.preview.editor' : 'editor.preview.firmware') }}
+      </button>
       <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="pageWizard = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
       <span class="spacer"></span>
       <span id="count" class="toolbar-count">{{ t("editor.layout.count", { tiles: layout.tiles.length, limit: tileLimit }, pages) }}</span>
@@ -113,7 +118,11 @@ function onCanvasClick(e: MouseEvent) {
     <div v-if="positionsHint" id="positions-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ positionsHint }}</span></div>
     <div v-if="reachHint" id="page-reach-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ reachHint }}</span></div>
     <div v-if="!layout.tiles.length" id="no-tiles" class="notice" role="status"><Icon name="plus" /><span class="notice-text">{{ t("editor.layout.no_tiles") }}</span></div>
-    <template v-if="state.editorMode === 'advanced' && focused >= 0">
+    <FirmwarePreview v-if="firmwarePreview && currentScreen?.virtual && currentScreen.shape" :width="currentScreen.shape.width" :height="currentScreen.shape.height"
+      :key="`${currentScreen.id}:${JSON.stringify(currentScreen.shape)}`"
+      :dpi="currentScreen.shape.dpi" :columns="currentScreen.shape.columns" :rows="currentScreen.shape.rows"
+      :pages="pages" :tiles="entries.map(entry => entry.tile)" />
+    <template v-else-if="state.editorMode === 'advanced' && focused >= 0">
       <button type="button" class="btn quiet back-map" @click="state.focusedPageId = null"><Icon name="arrow-left" />{{ t('editor.pages.back_map') }}</button>
       <div class="pages focused-page"><DevicePage :page="focused" :entries="entries" :pages="pages" :moving="state.drag.moving" map /></div>
     </template>

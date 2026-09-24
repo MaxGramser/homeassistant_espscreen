@@ -1,5 +1,18 @@
 #pragma once
 #include "runtime_model.h"
+#ifdef ESP_SCREEN_HOST
+#include "host_shims.h"
+#else
+#include "esphome/core/preferences.h"
+#include "esphome/components/json/json_util.h"
+#include "esphome/components/api/api_server.h"
+#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
+#include "esphome/components/api/homeassistant_service.h"
+#endif
+#include "esphome/core/hal.h"
+#include "esphome/core/util.h"
+#include "esphome/core/time.h"
+#endif
 #include "header_bar.h"
 #include "page_header.h"
 #include "tile_palette.h"
@@ -11,7 +24,6 @@
 #include "tile_icon.h"
 #include "screen_settings.h"
 #include "settings_screen.h"
-#include "esphome/core/preferences.h"
 #include "climate_card.h"
 #include "screen_input.h"
 #include "light_controls.h"
@@ -28,15 +40,6 @@
 #include "forecast_tile.h"
 #include "climate_tile.h"
 #include "swipe_profile.h"
-#include "esphome/components/json/json_util.h"
-#include "esphome/components/api/api_server.h"
-#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
-// ActionResponse (watch_call): main.cpp had it through esphome.h, page_receiver.cpp only has what this file includes.
-#include "esphome/components/api/homeassistant_service.h"
-#endif
-#include "esphome/core/hal.h"
-#include "esphome/core/util.h"
-#include "esphome/core/time.h"
 #include "lvgl.h"
 #include <functional>
 #include <algorithm>
