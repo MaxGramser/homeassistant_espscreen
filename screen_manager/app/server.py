@@ -7,6 +7,7 @@ import logging
 import os
 from pathlib import Path
 import secrets
+import ssl
 import time
 from datetime import datetime, timedelta, timezone
 import math
@@ -18,7 +19,7 @@ import light_effects
 import tile_icons
 from updates import Updater
 
-from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
+from aiohttp import ClientConnectorCertificateError, ClientError, ClientSession, ClientTimeout, WSMsgType, web
 from core import ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_data, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
 from core import calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
 from core import (PAGE_TILE_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
@@ -105,8 +106,11 @@ def rounded(value):
 class HomeAssistant:
     registry_interval = 600
 
-    def __init__(self, session, base, token):
+    def __init__(self, session, base, token, tls=True):
         self.session, self.base, self.token = session, base.rstrip('/'), token
+        # How requests to Home Assistant check its certificate on https (ha_tls, docs/DOCKER.md): only these requests,
+        # never a picture from elsewhere.
+        self.tls = tls
         self.ws = None
         self.next_id = 0
         self.pending = {}
@@ -372,7 +376,7 @@ class HomeAssistant:
         while True:
             reader, connected = None, None
             try:
-                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=16*1024*1024) as ws:
+                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=16*1024*1024, ssl=self.tls) as ws:
                     self.ws = ws
                     await ws.receive_json(timeout=15)
                     await ws.send_json({'type': 'auth', 'access_token': self.token})
@@ -426,6 +430,11 @@ class HomeAssistant:
                         await self.registries()
                         fetched = time.monotonic()
                         self.changed.set()
+            except ClientConnectorCertificateError as error:
+                # A self-signed certificate never passes by waiting; say what to set.
+                LOG.warning('Home Assistant temporarily unavailable (%s: %s). Its certificate is not trusted: set HA_CA_FILE '
+                            'to that certificate, or HA_VERIFY_SSL to "0" (docs/DOCKER.md)', type(error).__name__,
+                            error.certificate_error)
             except (ConnectionError, TimeoutError, OSError, ValueError) as error:
                 LOG.warning('Home Assistant temporarily unavailable (%s)%s', type(error).__name__, self.describe_close(connected))
             except Exception as error:
@@ -471,7 +480,7 @@ class HomeAssistant:
         """The picture of a camera or image entity as Home Assistant hands it to its own frontend."""
         path = 'camera_proxy' if entity.startswith('camera.') else 'image_proxy'
         async with self.session.get(f'{self.base}/{path}/{entity}', headers={'Authorization': 'Bearer ' + self.token},
-                                    timeout=ClientTimeout(total=camera_feed.FETCH_SECONDS)) as response:
+                                    timeout=ClientTimeout(total=camera_feed.FETCH_SECONDS), ssl=self.tls) as response:
             response.raise_for_status()
             if (response.content_length or 0) > camera_feed.MAX_SNAPSHOT_BYTES:
                 raise ValueError('image too large')
@@ -496,12 +505,12 @@ class HomeAssistant:
             raise ValueError('no picture')
         root = self.base[:-4] if self.base.endswith('/api') else self.base
         if picture.startswith('/'):
-            url, headers = f'{root}{picture}', {'Authorization': 'Bearer ' + self.token}
+            url, headers, tls = f'{root}{picture}', {'Authorization': 'Bearer ' + self.token}, self.tls
         elif picture.startswith(('http://', 'https://')):
-            url, headers = picture, {}
+            url, headers, tls = picture, {}, True
         else:
             raise ValueError('unknown picture address')
-        async with self.session.get(url, headers=headers, timeout=ClientTimeout(total=camera_feed.FETCH_SECONDS)) as response:
+        async with self.session.get(url, headers=headers, timeout=ClientTimeout(total=camera_feed.FETCH_SECONDS), ssl=tls) as response:
             response.raise_for_status()
             if (response.content_length or 0) > camera_feed.MAX_SNAPSHOT_BYTES:
                 raise ValueError('picture too large')
@@ -521,7 +530,7 @@ class HomeAssistant:
         command for that, so this goes over the REST API with the same token."""
         async with self.session.post(f'{self.base}/states/{entity_id}',
                                      headers={'Authorization': 'Bearer ' + self.token},
-                                     json={'state': state, 'attributes': attributes}) as response:
+                                     json={'state': state, 'attributes': attributes}, ssl=self.tls) as response:
             response.raise_for_status()
 
     async def esphome_entries(self):
@@ -535,7 +544,7 @@ class HomeAssistant:
         goes, not the device. Over REST with the same token; the websocket has no command for it."""
         async with self.session.delete(f'{self.base}/config/config_entries/entry/{entry_id}',
                                        headers={'Authorization': 'Bearer ' + self.token},
-                                       timeout=ClientTimeout(total=60)) as response:
+                                       timeout=ClientTimeout(total=60), ssl=self.tls) as response:
             if response.status in (401, 403):
                 raise Refused(t('addon.errors.remove.not_allowed'))
             if response.status == 404:
@@ -547,7 +556,7 @@ class HomeAssistant:
     async def remove_state(self, entity_id):
         """A state this app published itself (a screen's layout sensor), gone with the screen it described."""
         async with self.session.delete(f'{self.base}/states/{entity_id}',
-                                       headers={'Authorization': 'Bearer ' + self.token}) as response:
+                                       headers={'Authorization': 'Bearer ' + self.token}, ssl=self.tls) as response:
             return response.status < 300
 
     async def forecast(self, entity, kind='daily'):
@@ -586,7 +595,7 @@ class HomeAssistant:
         start = (datetime.now(timezone.utc)-timedelta(hours=hours)).isoformat()
         async with self.session.get(self.base+'/history/period/'+start,
                 params={'filter_entity_id':entity,'minimal_response':'','no_attributes':''},
-                headers={'Authorization':'Bearer '+self.token}) as response:
+                headers={'Authorization':'Bearer '+self.token}, ssl=self.tls) as response:
             response.raise_for_status()
             raw = bytearray()
             async for chunk in response.content.iter_chunked(65536):
@@ -2097,7 +2106,7 @@ def create_app(manager, development=False):
         # one address the app answers besides Home Assistant's, it says nothing but "ok", and it changes nothing.
         if request.path == '/health' and request.method in {'GET', 'HEAD'}:
             return web.Response(text='ok\n', content_type='text/plain', headers={'Cache-Control': 'no-store'})
-        allowed = {'127.0.0.1', '::1'} if development else {'172.30.32.2'}
+        allowed = {'127.0.0.1', '::1', *ingress_from()} if development else {'172.30.32.2'}
         if request.remote not in allowed:
             raise web.HTTPForbidden(text=t('addon.errors.open_through_ha'))
         if request.method not in {'GET', 'HEAD'} and request.headers.get('X-Screen-CSRF') != csrf:
@@ -2460,6 +2469,26 @@ def create_app(manager, development=False):
     app.router.add_static('/assets/', static / 'assets')
     return app
 
+def ha_tls(environ=os.environ):
+    """How requests to Home Assistant check its certificate when HA_API is https (Docker, docs/DOCKER.md).
+    The default is the system's list, which a self-signed certificate is not on. HA_CA_FILE trusts that certificate (or
+    the CA that signed it) for Home Assistant; HA_VERIFY_SSL "0" checks nothing, the last resort for a certificate
+    that doesn't name the address in HA_API."""
+    if environ.get('HA_VERIFY_SSL', '').strip().lower() in {'0', 'false', 'no', 'off'}:
+        return False
+    cafile = environ.get('HA_CA_FILE', '').strip()
+    if not cafile:
+        return True
+    context = ssl.create_default_context(cafile=cafile)
+    # Python 3.13 made the default strict, which turns down many self-signed certificates made years ago.
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    return context
+
+def ingress_from(environ=os.environ):
+    """Home Assistant's own address when it runs on another machine than this container (Docker, docs/DOCKER.md): its
+    sidebar panel then opens the page over the network, and only from there."""
+    return {address.strip() for address in environ.get('SCREEN_INGRESS_FROM', '').split(',') if address.strip()}
+
 async def main():
     development = os.environ.get('SCREEN_DEV') == '1'
     token = os.environ.get('SUPERVISOR_TOKEN', '')
@@ -2468,13 +2497,13 @@ async def main():
     if not token:
         raise SystemExit('No Home Assistant access. Start the app via Supervisor.')
     async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-        ha = HomeAssistant(session, os.environ.get('HA_API', 'http://supervisor/core/api'), token)
+        ha = HomeAssistant(session, os.environ.get('HA_API', 'http://supervisor/core/api'), token, ha_tls())
         manager = Manager(ha, Path(os.environ.get('SCREEN_DATA', '/data')) / 'screens.json')
         # handle_signals: SIGTERM (the Supervisor stopping the app, `docker stop`) and SIGINT end the app through the
         # cleanup below, which also stops a running build, instead of waiting ten seconds for SIGKILL (app 0.2.78).
         runner = web.AppRunner(create_app(manager, development), access_log=None, handle_signals=True)
         await runner.setup()
-        await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
+        await web.TCPSite(runner, '127.0.0.1' if development and not ingress_from() else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
         cameras = web.AppRunner(camera_feed.web_app(manager.camera), access_log=None)
         await cameras.setup()

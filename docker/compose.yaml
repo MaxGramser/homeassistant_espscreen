@@ -19,10 +19,16 @@ services:
       SCREEN_DEV: "1"                    # outside the Supervisor: token from HA_TOKEN_FILE, page on 127.0.0.1 only
       HA_API: http://127.0.0.1:8123/api  # Home Assistant's address, ending in /api
       HA_TOKEN_FILE: /run/secrets/ha_token
+      # Home Assistant on https with a self-signed certificate: put that certificate next to this file (docs/DOCKER.md).
+      # HA_CA_FILE: /run/secrets/ha_cert
+      # HA_VERIFY_SSL: "0"               # last resort: don't check Home Assistant's certificate at all
+      # Home Assistant on another machine: its address, so its sidebar panel may open the page over the network.
+      # SCREEN_INGRESS_FROM: 192.168.1.10
       ESPHOME_CONFIG: /config            # not /esphome: that holds the ESPHome CLI itself
       SCREEN_DATA: /data
     secrets:
       - ha_token
+      # - ha_cert
     volumes:
       - ./esphome:/config                # device profiles and secrets.yaml; or your ESPHome Device Builder folder
       - ./data:/data                     # layouts, update settings and build caches
@@ -37,3 +43,5 @@ services:
 secrets:
   ha_token:
     file: ./ha_token
+  # ha_cert:
+  #   file: ./ha_cert.pem

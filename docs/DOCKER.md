@@ -12,7 +12,8 @@ This route is new. If something doesn't work on your setup, please
 
 - Home Assistant Container on a Linux host (aarch64 or amd64) with host networking,
   as in the Home Assistant installation docs.
-- Docker with Compose on the same host.
+- Docker with Compose, best on the same host. Home Assistant on another machine works too, see
+  [Home Assistant on another machine](#home-assistant-on-another-machine).
 - The ESPHome integration in Home Assistant, to pair the screens. ESPHome Device Builder
   is optional: the ESPHome CLI is already in this image.
 
@@ -35,7 +36,28 @@ This route is new. If something doesn't work on your setup, please
    ```
 
    The first build downloads the official ESPHome image. `docker compose logs -f` shows
-   `Home Assistant connected` once the token works.
+   `Home Assistant connected` once the token works. Until then the screens show
+   *Waiting for ESP Screens*.
+
+## Home Assistant on https with its own certificate
+
+With `HA_API` on `https://`, the app checks Home Assistant's certificate like a browser does.
+A self-signed certificate isn't on that list, so the log repeats
+`Home Assistant temporarily unavailable (ClientConnectorCertificateError ...)` and nothing
+connects. Other clients that work, such as the Companion app, were told to trust it once;
+the app needs that too (app 0.2.134+):
+
+1. Copy the certificate Home Assistant uses (the file after `ssl_certificate:` in its
+   `configuration.yaml`, not the key) next to `compose.yaml` as `ha_cert.pem`.
+2. In `compose.yaml`, uncomment `HA_CA_FILE: /run/secrets/ha_cert`, `- ha_cert` under the
+   service's `secrets:`, and the `ha_cert:` entry at the bottom.
+3. `docker compose up -d`.
+
+The certificate has to name the address in `HA_API`: a certificate made for
+`homeassistant.lan` doesn't cover `https://192.168.1.10:8123`. The log then says
+`IP address mismatch` or `Hostname mismatch`; use the name in the certificate in `HA_API`.
+If the certificate names neither, `HA_VERIFY_SSL: "0"` connects without checking it. That
+is only reasonable on your own network: the token then goes to whoever answers at that address.
 
 ## Open ESP Screens
 
@@ -55,16 +77,38 @@ ingress:
     url: http://127.0.0.1:8099
 ```
 
-Home Assistant then handles the login, like the app panel on Home Assistant OS.
+Home Assistant then handles the login, like the app panel on Home Assistant OS. The
+`127.0.0.1` in `url` is Home Assistant's own machine, so this works as is only when Home
+Assistant runs on the Docker host; otherwise see below.
 
-**Through an SSH tunnel.** From your computer:
+**On the Docker host itself.** Open `http://localhost:8099` in a browser there. No tunnel needed.
+
+**Through an SSH tunnel.** From another computer, when the Docker host runs an SSH server
+(`Connection refused` means it doesn't: install `openssh-server` there, or use one of the
+other ways):
 
 ```sh
 ssh -L 8099:127.0.0.1:8099 you@docker-host
 ```
 
-Then open `http://localhost:8099`. The **Open Devices & services** button only works in
-the sidebar panel; here, open Home Assistant yourself.
+`you` is your login on the Docker host, not your Home Assistant user. Then open
+`http://localhost:8099`. The **Open Devices & services** button only works in the sidebar
+panel; here, open Home Assistant yourself.
+
+### Home Assistant on another machine
+
+For example Home Assistant in a virtual machine and Docker on the machine around it. The app
+only listens on `127.0.0.1` of the Docker host, which Home Assistant can't reach from there.
+
+1. In `compose.yaml`, set `HA_API` to Home Assistant's address as the Docker host reaches it,
+   such as `https://192.168.1.10:8123/api`, and uncomment `SCREEN_INGRESS_FROM` with Home
+   Assistant's address as the Docker host sees it, such as `192.168.1.10` (app 0.2.134+). The
+   page then listens on the network too, but answers only that address and the Docker host itself.
+2. In hass_ingress, use the Docker host's address in `url`, such as `http://192.168.1.20:8099`.
+3. `docker compose up -d` and restart Home Assistant.
+
+Anyone who can send from Home Assistant's address can open the page, so only do this on a
+network you trust.
 
 ## Using it
 
@@ -103,9 +147,12 @@ After an update, ESP Screens shows per screen whether newer firmware is availabl
 
 | Setting | What it does |
 | --- | --- |
-| `SCREEN_DEV: "1"` | Runs the app outside the Supervisor: it reads the token from `HA_TOKEN_FILE` and serves its page on 127.0.0.1 only (camera images still on port 8098 for the screens) |
+| `SCREEN_DEV: "1"` | Runs the app outside the Supervisor: it reads the token from `HA_TOKEN_FILE` and serves its page on 127.0.0.1 only, unless `SCREEN_INGRESS_FROM` is set (camera images still on port 8098 for the screens) |
 | `HA_API` | Home Assistant's address, ending in `/api` |
 | `HA_TOKEN_FILE` | The token file inside the container (the `ha_token` secret) |
+| `HA_CA_FILE` | Optional: the certificate (or its CA) to trust for Home Assistant on https, such as a self-signed one |
+| `HA_VERIFY_SSL` | Optional: `"0"` doesn't check Home Assistant's certificate; the last resort when it doesn't name the address in `HA_API` |
+| `SCREEN_INGRESS_FROM` | Optional: Home Assistant's address when it runs on another machine; the page then also listens on the network, for that address only |
 | `ESPHOME_CONFIG` | The ESPHome folder inside the container |
 | `SCREEN_DATA` | Layouts, update settings, and build caches |
 | `SCREEN_CAMERA_URL` | Optional: where screens load camera images, such as `http://192.168.1.20:8098`; by default Home Assistant's own LAN address |

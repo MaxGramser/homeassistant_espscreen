@@ -1,3 +1,12 @@
+## 0.2.134 (firmware 0.2.104)
+
+Docker: Home Assistant on https with a self-signed certificate, and Home Assistant on another machine.
+
+- With `HA_API` on https and a self-signed certificate, the log repeated `Home Assistant temporarily unavailable (ClientConnectorCertificateError)` and the screens stayed on *Waiting for ESP Screens*. `HA_CA_FILE` trusts that certificate for Home Assistant; `HA_VERIFY_SSL: "0"` is the last resort when the certificate doesn't name the address in `HA_API`. Only requests to Home Assistant use them, and the log now says what to set.
+- `SCREEN_INGRESS_FROM`: when Home Assistant runs on another machine than the container, such as in a virtual machine, its sidebar panel can open the page over the network, for that address only.
+- docs/DOCKER.md explains both, and when the SSH tunnel is needed at all.
+- Nothing changes on Home Assistant OS, and nothing to do for your screens: the firmware is unchanged at 0.2.104.
+
 ## 0.2.133 (firmware 0.2.104)
 
 An alert with a camera picture on one screen (GitHub #35).
