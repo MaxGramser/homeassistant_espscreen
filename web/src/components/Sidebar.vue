@@ -25,6 +25,7 @@ const languageOnly = (screen: Screen) => {
   return Boolean(u.language) && (!u.target || versionAtLeast(firmwareVersion(screen), u.target));
 };
 function updateState(screen: Screen) {
+  if (screen.virtual) return null;
   const u = screen.update || {};
   if (u.state === "running" || state.updating.includes(screen.id)) return { kind: "running", text: phaseText(u.phase) };
   if (u.state === "queued") return { kind: "queued", text: t("editor.sidebar.update.queued") };
@@ -39,12 +40,14 @@ function updateState(screen: Screen) {
 }
 // The light beside the icon: green when all is well, amber when an update waits or runs, red when the screen is away.
 const light = (screen: Screen) => {
+  if (screen.virtual) return "virtual";
   if (!screen.online) return "down";
   const kind = updateState(screen)?.kind;
   return kind === "available" || kind === "blocked" || kind === "running" || kind === "queued" ? "update" : kind === "failed" ? "down" : "ok";
 };
 // One quiet line under the name, only when there is something to say; a healthy screen shows its name alone.
 const subline = (screen: Screen) => {
+  if (screen.virtual) return { kind: "virtual", text: t("editor.preview.virtual") };
   if (!screen.online) return { kind: "down", text: t("editor.common.offline") };
   const u = updateState(screen);
   // An update nothing here can build is still an update: the line names it, the details say why it waits.
@@ -102,7 +105,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
         <button type="button" class="nav-item" :aria-current="isSelected(screen) ? 'true' : 'false'" :aria-expanded="isOpen(screen) ? 'true' : 'false'" @click="choose(screen)">
           <span class="board-icon">
             <span class="mdi">{{ boardIcon(screen) }}</span>
-            <span class="led" :class="light(screen)" role="img" :aria-label="screen.online ? t('editor.common.online') : t('editor.common.offline')"></span>
+            <span class="led" :class="light(screen)" role="img" :aria-label="screen.virtual ? t('editor.preview.virtual') : screen.online ? t('editor.common.online') : t('editor.common.offline')"></span>
           </span>
           <span class="txt">
             <span class="name">{{ screen.name }}</span>
@@ -115,9 +118,9 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
           <div class="screen-remove">
             <strong>{{ t("editor.sidebar.remove.title", { name: screen.name }) }}</strong>
             <ul>
-              <li>{{ t("editor.sidebar.remove.ha") }}</li>
+              <li v-if="!screen.virtual">{{ t("editor.sidebar.remove.ha") }}</li>
               <li v-if="screen.update?.profile">{{ t("editor.sidebar.remove.profile", { file: screen.update.profile }) }}</li>
-              <li>{{ t("editor.sidebar.remove.layout") }}</li>
+              <li>{{ t(screen.virtual ? "editor.preview.remove" : "editor.sidebar.remove.layout") }}</li>
             </ul>
             <small v-if="screen.online" class="warn">{{ t("editor.sidebar.remove.online") }}</small>
             <div class="screen-actions">

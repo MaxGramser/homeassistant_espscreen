@@ -1,0 +1,170 @@
+"""Generate the host's LVGL setup with ESPHome, using the firmware YAML.
+
+Only the display/touch transport and action wiring are host-owned. Styles, widgets,
+font bitmaps and font rasterization come from the same sources as the device.
+Unknown ESPHome code-generation shapes fail the build instead of silently falling
+back to a second renderer.
+"""
+import copy
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+import yaml
+import esphome
+from importlib.metadata import version
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'tools'))
+sys.path.insert(0, str(ROOT / 'components/smart_display'))
+import profiles
+import screen_text_gen
+from preview_profiles import variants
+
+OUT = ROOT / 'web/wasm/generated'
+WORK = ROOT / '.esphome/wasm-codegen'
+
+
+def section(text, key):
+    return re.search(r'^' + key + r':\n.*?(?=^[a-z_]+:|\Z)', text, re.M | re.S)[0]
+
+
+def generate(dpi, look, profile):
+    global OUT, WORK
+    OUT = ROOT / f"web/wasm/generated/{look}_{dpi}"
+    WORK = ROOT / f".esphome/wasm-codegen/{look}_{dpi}"
+    OUT.mkdir(parents=True, exist_ok=True)
+    WORK.mkdir(parents=True, exist_ok=True)
+    # The standard look is density-derived. Resolve it at the browser target's
+    # density; canvas dimensions and number of cells remain runtime inputs.
+    raw = profiles.raw_substitutions(ROOT / profile)
+    raw['DISPLAY_DPI'] = str(dpi)
+    values = profiles.evaluate(raw)
+    values.update(CAMERA_PAINT_FILL='', CALIBRATION_PAINT_FILL='')
+    core = profiles.resolve(profiles.CORE.read_text(), values)
+    fonts = yaml.safe_load(section(core, 'font'))['font']
+    for font in fonts:
+        font['file'] = str((ROOT / profile).parent / font['file'])
+    class Loader(yaml.SafeLoader):
+        pass
+    for tag in ('!extend', '!lambda'):
+        Loader.add_constructor(tag, lambda loader, node: loader.construct_scalar(node))
+    lvgl = yaml.load(section(core, 'lvgl'), Loader=Loader)['lvgl']
+    home = copy.deepcopy(next(p for p in lvgl['pages'] if p['id'] == 'home_page'))
+    keep = {'lbl_room', 'lbl_time', 'tile_scroll', 'page_prev', 'page_number', 'page_next'}
+    home['widgets'] = [w for w in home['widgets'] if next(iter(w.values())).get('id') in keep]
+    # Use ESPHome's first cell verbatim as a prototype. The host creates as many
+    # identical firmware cells as the selected runtime grid requires.
+    cells = profiles.resolve((ROOT / 'packages/cells/6.yaml').read_text(), values)
+    cell = yaml.load(cells, Loader=Loader)['lvgl']['pages'][0]['widgets'][0]['obj']['widgets'][0]
+    for widget in home['widgets']:
+        data = next(iter(widget.values()))
+        data.pop('on_click', None)  # host connects the same firmware navigation guard
+        if data['id'] == 'tile_scroll':
+            data['widgets'] = [cell]
+    project = {
+        'esphome': {'name': 'wasm-ui', 'build_path': str(WORK / 'build')},
+        'host': {},
+        'display': [{'platform': 'sdl', 'id': 'host_display', 'dimensions': {'width': 720, 'height': 720}}],
+        'font': fonts,
+        'lvgl': {'id': 'screen_lvgl', 'displays': ['host_display'], 'default_font': lvgl['default_font'],
+                 'theme': lvgl['theme'], 'style_definitions': lvgl['style_definitions'], 'pages': [home]},
+    }
+    config = WORK / 'host.yaml'
+    config.write_text(yaml.safe_dump(project, sort_keys=False, allow_unicode=True))
+    subprocess.run([sys.executable, '-m', 'esphome', 'compile', str(config), '--only-generate'], check=True)
+    src = (WORK / 'build/src/main.cpp').read_text()
+
+    # Keep ESPHome's font renderer itself, including its bitmap stride and baseline
+    # calculations. Only its unused hardware includes are replaced for the host.
+    esp = Path(esphome.__file__).parent
+    font_h = (esp / 'components/font/font.h').read_text()
+    font_cpp = (esp / 'components/font/font.cpp').read_text()
+    helpers = (esp / 'core/helpers.h').read_text()
+    vector = re.search(r'template<typename T> class ConstVector \{.*?\n\};', helpers, re.S)[0]
+    font_h = re.sub(r'#include "esphome/[^\n]+\n', '', font_h)
+    font_cpp = re.sub(r'#include "esphome/[^\n]+\n', '', font_cpp)
+    (OUT.parent / 'font.h').write_text('#include <cstdint>\n#include <cstring>\n#include <cstddef>\n#include <algorithm>\n'
+                              '#define USE_LVGL_FONT\nnamespace esphome {\n' + vector + '\n}\n' + font_h)
+    (OUT.parent / 'font.cpp').write_text('#include "../../../components/smart_display/host_shims.h"\n' + font_cpp)
+
+    arrays = re.findall(r'(?:alignas\([^\n]+\) )?static constexpr uint8_t \w+\[\] PROGMEM = \{.*?\};', src, re.S)
+    glyphs = re.findall(r'static const font::Glyph \w+\[\] = \{.*?\};', src, re.S)
+    constructors = re.findall(r'new\((\w+)\) font::Font\(([^;]+)\);', src)
+    if len(constructors) != len(fonts) or len(glyphs) != len(fonts) or len(arrays) != len(fonts):
+        raise RuntimeError('ESPHome font codegen changed: check arrays and constructors')
+    font_data = ['// Generated by ESPHome from packages/core.yaml; do not edit.', '#include "../font.h"', 'using namespace esphome;']
+    font_data.extend(a.replace(' PROGMEM', '') for a in arrays)
+    font_data.extend(glyphs)
+    font_data.extend(f'static font::Font font_{name}({args});\nstatic const lv_font_t *{name} = font_{name}.get_lv_font();' for name, args in constructors)
+    (OUT / 'fonts.h').write_text('\n'.join(font_data) + '\n')
+
+    start = src.index('new(_lv_theme_style_obj_main_default)')
+    end = src.index('screen_lvgl->set_page_wrap', start)
+    styles = src[start:end]
+    style_names = re.findall(r'new\((\w+)\) lv_style_t\(\);', styles)
+    styles = re.sub(r'new\((\w+)\) lv_style_t\(\);', '', styles)
+    start = src.index('lv_obj_add_style(home_page->obj', end)
+    # The final object is page_next's chevron; the next statements wire the
+    # display/input transport, which belongs to the host.
+    end = src.index('lv_label_set_text(', src.index('page_next = lv_obj_create', start))
+    end = src.index(';', end) + 1
+    setup = src[start:end].replace('home_page->obj', 'root')
+    setup = re.sub(r'^\s*#line[^\n]*\n', '\n', setup, flags=re.M)
+    cell_start = setup.index('tile1 = lv_obj_create')
+    cell_end = setup.index('page_prev = lv_obj_create')
+    cell_setup = setup[cell_start:cell_end]
+    setup = setup[:cell_start] + setup[cell_end:]
+    objects = re.findall(r'(\w+) = lv_\w+_create\(', setup)
+    cell_objects = re.findall(r'(\w+) = lv_\w+_create\(', cell_setup)
+    if not all(name in objects for name in keep) or len(cell_objects) != 5:
+        raise RuntimeError('ESPHome widget codegen changed: check home/cell boundary')
+    # Font assignments in current ESPHome use LVGL's proxy; the host calls LVGL
+    # directly, so use the very same Font object's get_lv_font() above.
+    output = ['// Generated from the firmware YAML by ESPHome. No host tile renderer.', '#include "fonts.h"',
+              *[f'static lv_style_t storage_{n}; static lv_style_t *{n} = &storage_{n};' for n in style_names],
+              *[f'static lv_obj_t *{n};' for n in objects],
+              'static void setup_firmware_ui(lv_obj_t *root) {', styles, setup, '}',
+              'static void setup_firmware_cell(size_t index) {',
+              *[f'lv_obj_t *{n};' for n in cell_objects], cell_setup,
+              'runtime_tiles::bind(index, tile1, t1_title, t1_value, tile1_icon_circle, tile1_icon_lbl);', '}']
+    # Read the paint mapping and font bindings rather than maintaining a second
+    # list: these are the actual on_boot statements from the shared core.
+    paints = re.search(r'theme::paints = \[\]\(\) \{(.*?)\n\s*\};', core, re.S)[1]
+    paints = re.sub(r'id\((\w+)\)', r'\1', paints)
+    bindings = re.findall(r'runtime_tiles::\w+ = id\(\w+\)->get_lv_font\(\);', core)
+    touch = re.findall(r'screen_input::(?:touch_guard|edge_swipe)\.configure\([^;]+\);|screen_input::edge_snap_band = [^;]+;', values.get('BOOT_TOUCH', ''))
+    output += ['static void bind_firmware_ui() {', 'theme::paints = []() {' + paints + '};', 'theme::paints();',
+               *[re.sub(r'id\((\w+)\)->get_lv_font\(\)', r'\1', b) for b in bindings],
+               *touch,
+               'lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_CLICKABLE);',
+               'lv_obj_remove_flag(tile_scroll, LV_OBJ_FLAG_CLICKABLE);',
+               f'runtime_tiles::grid_bind(tile_scroll, {values["GRID_MARGIN"]}, {values["PAGE_BAR_H"]});', '}']
+    (OUT / 'ui.h').write_text('\n'.join(line.rstrip() for line in '\n'.join(output).splitlines()) + '\n')
+    _, translations = screen_text_gen.definitions('en')
+    (OUT.parent / 'text.h').write_text(translations)
+    print('Generated firmware UI, translations and all', len(fonts), 'ESPHome fonts')
+
+
+if __name__ == '__main__':
+    expected = re.search(r'FROM ghcr.io/esphome/esphome:([^\s]+)', (ROOT / 'screen_manager/Dockerfile').read_text())[1]
+    if version('esphome') != expected:
+        raise SystemExit(f'Use ESPHome {expected}, matching the add-on, to regenerate the preview.')
+    targets = variants()
+    for dpi, look, profile in targets:
+        generate(dpi, look, profile)
+    lines = ['// Generated firmware profile dispatch.', '#include "font.h"',
+             'struct FirmwareUi { lv_obj_t *room, *time, *prev, *next, *number; void (*bind)(); void (*cell)(size_t); const char *look; };']
+    if len({dpi for dpi, _, _ in targets}) != len(targets):
+        raise RuntimeError('Multiple looks at the same density: extend the host profile selector before building.')
+    for dpi, look, _ in targets:
+        ns = f'{look}_{dpi}'
+        lines += [f'namespace {ns} {{', f'#include "{ns}/ui.h"', '}']
+    lines += ['static FirmwareUi setup_firmware_ui(lv_obj_t *root, int dpi) {']
+    for dpi, look, _ in targets:
+        ns = f'{look}_{dpi}'
+        lines += [f'if (dpi == {dpi}) {{ using namespace {ns}; setup_firmware_ui(root);',
+                  f'return {{lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cell, "{look}"}}; }}']
+    lines += ['return {};', '}']
+    (OUT.parent / 'profiles.h').write_text('\n'.join(lines) + '\n')

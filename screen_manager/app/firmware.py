@@ -66,7 +66,7 @@ def profile_meta(text):
 # (core.shape_of).
 def _board_choice(shape):
     return {'square': shape['width'] == shape['height'], 'orientations': shape.get('orientations', {}),
-            'width': shape['width'], 'height': shape['height'], 'dpi': shape.get('dpi'),
+            'width': shape['width'], 'height': shape['height'], 'dpi': shape.get('dpi'), 'look': shape.get('look', 'standard'),
             'camera': bool(shape.get('camera')), 'dimmable': shape.get('dimmable', True),
             'can_standby': shape.get('can_standby', True), **shape.get('catalog', {})}
 

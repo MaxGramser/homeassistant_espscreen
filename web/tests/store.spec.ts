@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addTile, canAlert, copyLayoutFrom, copyText, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage, moveTileToPage,
   pageReachWarning, pageTilesRepeat, phaseText, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports,
-  tileLimit, topbarItems, topbarView, updateProgress, whatsNew,
+  tileLimit, topbarItems, topbarView, updateProgress, whatsNew, refresh, createVirtualScreen, removeScreen,
 } from "../src/store";
+import { customPreview } from "../src/model/preview";
+import renderer from "../src/wasm/renderer.json";
 import type { Inventory, Screen } from "../src/types";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => ({
@@ -37,6 +39,12 @@ function inventory(): Inventory {
 }
 
 beforeEach(() => {
+  const storage = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => storage.set(key, value),
+    removeItem: (key: string) => storage.delete(key),
+  });
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
   vi.spyOn(window, "confirm").mockReturnValue(true);
   state.inventory = inventory();
@@ -99,6 +107,44 @@ describe("selecting and editing", () => {
 });
 
 describe("live values", () => {
+  it("saves an overridden virtual grid and layout locally without writing to Home Assistant", async () => {
+    const virtual = createVirtualScreen("Custom panel", { ...customPreview, shape: { ...customPreview.shape, width: 800, columns: 3, rows: 4 } });
+    addTile("light.b");
+    await save();
+    expect(state.dirty).toBe(false);
+    const saved = JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!)[0];
+    expect(saved.shape).toMatchObject({ width: 800, columns: 3, rows: 4 });
+    expect(saved.layout.tiles[0].entity).toBe("light.b");
+    expect(virtual.firmware_known).toBe(renderer.firmware);
+    expect(vi.mocked(fetch).mock.calls.some(([, init]) => ["PUT", "DELETE"].includes(init?.method || ""))).toBe(false);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ screens: [] }), { status: 200 })));
+    await refresh(false);
+    expect(state.inventory.screens[0].shape).toEqual(saved.shape);
+    expect(await removeScreen(state.inventory.screens[0])).toBe(true);
+    expect(JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!)).toEqual([]);
+    expect(state.selected).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("keeps edits unsaved when local storage is full", async () => {
+    const virtual = createVirtualScreen("Panel preview", customPreview);
+    addTile("light.b");
+    vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("Storage full"); });
+    await save();
+    expect(state.dirty).toBe(true);
+    expect(virtual.layout.tiles).toHaveLength(0);
+    expect(state.toast?.message).toBe("Storage full");
+  });
+  it("keeps the virtual screen and catalogue through a light inventory poll", async () => {
+    const virtual = createVirtualScreen("Panel preview", customPreview);
+    const entities = state.inventory.entities;
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ screens: [] }), { status: 200 })));
+    await refresh(false);
+    expect(state.inventory.entities).toEqual(entities);
+    expect(state.inventory.screens.map((screen) => screen.id)).toEqual([virtual.id]);
+    await refresh(false);
+    expect(state.inventory.screens).toHaveLength(1);
+    expect(state.selected).toBe(virtual.id);
+  });
   it("falls back to what the inventory knew", () => {
     expect(liveOf("light.a")).toEqual({ state: "on", word: null, a: {} });
     state.liveStates["light.a"] = { state: "off", word: "Off", a: { brightness: 0 } };

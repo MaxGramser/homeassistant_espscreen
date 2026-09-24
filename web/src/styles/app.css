@@ -82,6 +82,7 @@ a:hover { text-decoration: underline; }
 .led { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); }
 .led::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid currentColor; opacity: 0; animation: sonar 3s ease-out infinite; }
 .led.ok { background: var(--good); color: var(--good); }
+.led.virtual { background: var(--accent); color: var(--accent); }
 .led.update { background: var(--led-update); color: var(--led-update); }
 .led.down { background: var(--danger); color: var(--danger); }
 .led.down::after { animation: none; }
@@ -159,6 +160,8 @@ a:hover { text-decoration: underline; }
 .canvas-head b { color: var(--ink); font-weight: 600; font-size: 13px; }
 .canvas-head .warn { color: var(--warn); }
 .pages { display: flex; gap: 18px; align-items: flex-start; }
+.firmware-preview { position: relative; width: min(100%, 720px); margin: 10px 0 18px; border: 1px solid var(--line); overflow: hidden; touch-action: none; user-select: none; }
+.firmware-preview canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
 .page { flex: 0 0 var(--mockup-width, 292px); display: grid; gap: 8px; }
 .page-label { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--muted); padding: 0 4px; min-height: 22px; }
 /* The cells in use and, from app 0.2.123, Remove page beside them: a page leaves whether it is empty or not, so
