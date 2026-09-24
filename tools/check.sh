@@ -138,6 +138,14 @@ translations_check() { cd "$ROOT" && "$PYTHON" tools/i18n.py check > "$WORK/i18n
 editor_install() { cd "$ROOT/web" && npm ci --no-audit --no-fund; }
 editor_tests() { cd "$ROOT/web" && npm test; }
 editor_types() { cd "$ROOT/web" && npm run check; }
+firmware_preview() {
+  cd "$ROOT" || return 1
+  "$PYTHON" web/wasm/generate_renderer_manifest.py --check || return 1
+  node web/wasm/test_profiles.mjs || return 1
+  node web/wasm/test_runtime.mjs || return 1
+  PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs || return 1
+  PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs || return 1
+}
 editor_build() { cd "$ROOT/web" && npm run build; }
 
 # The add-on serves the committed bundle, so it must be what the committed web/src builds to (Vite names every file
@@ -332,6 +340,7 @@ if ((want_fast)); then
   run "Editor: npm ci" editor_install
   if ((last_ok)); then
     run "Editor: tests (Vitest)" editor_tests
+    run "Firmware preview: WASM" firmware_preview
     run "Editor: types (vue-tsc)" editor_types
     run "Editor: build" editor_build
     if ((last_ok)); then run "Editor: bundle in Git is fresh" editor_bundle; else skip "Editor: bundle in Git is fresh" "no build"; fi

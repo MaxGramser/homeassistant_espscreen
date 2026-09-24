@@ -24,14 +24,15 @@ const tryForm = reactive({
 });
 const trying = ref(false);
 const tryResult = ref("");
-const readyScreens = computed(() => state.inventory.screens.filter((s) => canAlert(s) && s.online));
+const physicalScreens = computed(() => state.inventory.screens.filter(s => !s.virtual));
+const readyScreens = computed(() => physicalScreens.value.filter((s) => canAlert(s) && s.online));
 async function tryAlert() {
   trying.value = true;
   tryResult.value = "";
   try {
     const { screen, ...data } = tryForm;
     const result = await sendTestAlert(screen, data);
-    const name = state.inventory.screens.find((s) => s.id === screen)?.name;
+    const name = physicalScreens.value.find((s) => s.id === screen)?.name;
     const sent = screen === "all"
       ? t("editor.alerts.try.sent_all", result.sent)
       : name ? t("editor.alerts.try.sent_to", { name }) : t("editor.alerts.try.sent_one");
@@ -50,7 +51,7 @@ const exampleAction = ref("");
 const iconQuery = ref("");
 const yamlString = (text: unknown) => `"${String(text).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 const fieldValue = (f: any) => f.type === "string" ? (/^[a-z][a-z0-9-]*$/.test(f.example) ? f.example : yamlString(f.example)) : f.example === true ? "true" : f.example === false ? "false" : String(f.example);
-const screensWithAction = computed(() => state.inventory.screens.filter((s) => s.alert_action));
+const screensWithAction = computed(() => physicalScreens.value.filter((s) => s.alert_action));
 const chosenAction = computed(() => exampleAction.value || screensWithAction.value[0]?.alert_action || "");
 const exampleYaml = computed(() => {
   const lines = (alerts.value?.fields || []).map((f: any) => `  ${f.name}: ${fieldValue(f)}`);
@@ -99,8 +100,8 @@ const yamlName = (text: string) => (/^[a-z][a-z0-9_-]*$/.test(text) ? text : yam
 const oneScreenId = ref("");
 // The example starts at the screen that is open in the editor, else the first in the list.
 const oneScreen = computed(() => {
-  const [first] = state.inventory.screens;
-  return state.inventory.screens.find((s) => s.id === (oneScreenId.value || state.selected)) || first;
+  const [first] = physicalScreens.value;
+  return physicalScreens.value.find((s) => s.id === (oneScreenId.value || state.selected)) || first;
 });
 const oneYaml = computed(() => {
   const screen = oneScreen.value;
@@ -159,7 +160,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <div class="field"><label class="f-label" for="try-screen">{{ t("editor.alerts.try.screen") }}</label>
             <select id="try-screen" v-model="tryForm.screen">
               <option value="all">{{ t("editor.alerts.try.all", { ready: readyScreens.length }) }}</option>
-              <option v-for="screen in state.inventory.screens" :key="screen.id" :value="screen.id" :disabled="!canAlert(screen) || !screen.online">{{ canAlert(screen) && screen.online ? screen.name : t("editor.alerts.try.not_ready", { name: screen.name }) }}</option>
+              <option v-for="screen in physicalScreens" :key="screen.id" :value="screen.id" :disabled="!canAlert(screen) || !screen.online">{{ canAlert(screen) && screen.online ? screen.name : t("editor.alerts.try.not_ready", { name: screen.name }) }}</option>
             </select></div>
           <div class="field"><label class="f-label" for="try-title">{{ t("editor.alerts.try.title") }}</label><input id="try-title" v-model="tryForm.title" maxlength="64" /></div>
           <div class="field"><label class="f-label" for="try-subtitle">{{ t("editor.alerts.try.subtitle") }}</label><input id="try-subtitle" v-model="tryForm.subtitle" maxlength="240" /></div>
@@ -182,8 +183,8 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <template #version><code id="alerts-min-firmware">{{ alerts.min_firmware }}</code></template>
         </i18n-t>
         <div id="alerts-screen-list" class="options">
-          <p v-if="!state.inventory.screens.length" class="hint">{{ t("editor.alerts.screens.none") }}</p>
-          <div v-for="screen in state.inventory.screens" :key="screen.id" class="alert-screen">
+          <p v-if="!physicalScreens.length" class="hint">{{ t("editor.alerts.screens.none") }}</p>
+          <div v-for="screen in physicalScreens" :key="screen.id" class="alert-screen">
             <div class="alert-screen-head">
               <strong>{{ screen.name }}</strong>
               <span class="chip" :class="versionAtLeast(firmwareVersion(screen), alerts.min_firmware) && screen.alert_action ? 'good' : 'update'">
@@ -255,23 +256,23 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         <div class="table-scroll">
           <table id="alerts-one-table">
             <tr><th>{{ t("editor.alerts.one.value") }}</th><th>{{ t("editor.alerts.one.name") }}</th><th>{{ t("editor.alerts.one.room") }}</th><th>{{ t("editor.alerts.one.picture") }}</th></tr>
-            <tr v-for="screen in state.inventory.screens" :key="screen.id">
+            <tr v-for="screen in physicalScreens" :key="screen.id">
               <td><span class="copy-line"><code>{{ screenValue(screen) }}</code>
                 <button type="button" class="btn quiet mini" @click="copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button></span></td>
               <td>{{ screen.name }}</td>
               <td>{{ screen.area || "—" }}</td>
               <td>{{ screen.pictures ? t("editor.alerts.one.picture_yes") : t("editor.alerts.one.picture_no") }}</td>
             </tr>
-            <tr v-if="!state.inventory.screens.length"><td colspan="4" class="hint">{{ t("editor.alerts.one.none") }}</td></tr>
+            <tr v-if="!physicalScreens.length"><td colspan="4" class="hint">{{ t("editor.alerts.one.none") }}</td></tr>
           </table>
         </div>
         <i18n-t keypath="editor.alerts.one.more" tag="p" scope="global">
-          <template #list><code>screen: [{{ state.inventory.screens.slice(0, 2).map(screenValue).join(", ") || "kitchen-screen, hallway" }}]</code></template>
+          <template #list><code>screen: [{{ physicalScreens.slice(0, 2).map(screenValue).join(", ") || "kitchen-screen, hallway" }}]</code></template>
         </i18n-t>
-        <div v-if="state.inventory.screens.length" class="field">
+        <div v-if="physicalScreens.length" class="field">
           <label class="f-label" for="alerts-one-screen">{{ t("editor.alerts.howto.example_for") }}</label>
           <select id="alerts-one-screen" :value="oneScreen?.id" style="max-width: 360px" @change="oneScreenId = ($event.target as HTMLSelectElement).value">
-            <option v-for="screen in state.inventory.screens" :key="screen.id" :value="screen.id">{{ screen.name }}</option>
+            <option v-for="screen in physicalScreens" :key="screen.id" :value="screen.id">{{ screen.name }}</option>
           </select>
         </div>
         <div class="copy-line">

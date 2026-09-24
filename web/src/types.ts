@@ -47,10 +47,12 @@ export type BoardCatalog = {
 };
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
-  width: number; height: number; dpi: number; camera: boolean; dimmable: boolean; can_standby: boolean;
+  width: number; height: number; dpi: number; look?: string; camera: boolean; dimmable: boolean; can_standby: boolean;
 };
 export type Screen = {
   id: string; name: string; online: boolean; area?: string; firmware?: string; board?: string;
+  // A local design target created by the editor; it has no Home Assistant device or firmware connection.
+  virtual?: boolean;
   layout: Layout; update?: UpdateInfo; settings?: SettingsView; delivery?: string; status?: string;
   // The layout is out and the screen holds it (app 0.2.108): the editor then shows no delivery line.
   in_sync?: boolean;
@@ -73,6 +75,7 @@ export type Screen = {
   // Whether its board draws pictures: camera tiles, an alert's snapshot, an album cover (app 0.2.94).
   pictures?: boolean;
 };
+export type ScreenShape = NonNullable<Screen["shape"]>;
 // Language & region of the screens (app 0.2.90): the language setting ("auto" follows Home Assistant), the language that
 // gives, Home Assistant's own, and every language there is, by its own name; the time and number format, each "auto"
 // (as the language writes it) or a choice, and what that gives.

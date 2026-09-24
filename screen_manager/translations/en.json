@@ -1969,6 +1969,34 @@
     "mockup": {
       "home": "Home",
       "unknown": "Unknown"
+    },
+    "preview": {
+      "type": "New screen type",
+      "physical": "Physical screen",
+      "virtual": "Virtual preview",
+      "intro": "Design a screen using Home Assistant entities without pairing hardware. Previews are saved in this browser; taps in the firmware preview control Home Assistant.",
+      "profile": "Board / profile",
+      "design_only": "Preview profile only. This does not add physical firmware support for this board.",
+      "override": "Override resolution or grid",
+      "width": "Width (pixels)",
+      "height": "Height (pixels)",
+      "columns": "Columns",
+      "rows": "Rows",
+      "name": "Preview name",
+      "name_placeholder": "Waveshare 4B preview",
+      "create": "Create virtual device",
+      "created": "Virtual device \"{name}\" created.",
+      "invalid_shape": "Choose a name, a supported profile, a 1–8 column/row grid and a 160–2560 pixel canvas.",
+      "editor": "Tile editor",
+      "firmware": "Firmware preview",
+      "canvas": "LVGL firmware preview",
+      "controls": "{width} × {height} pixels · Controls Home Assistant",
+      "packet_error": "Firmware rejected a preview packet: {message}",
+      "stopped": "Firmware preview stopped: {message}",
+      "action_error": "Home Assistant command failed: {message}",
+      "remove": "The preview and its saved layout in this browser.",
+      "save": "Save preview",
+      "saved": "Saved in this browser"
     }
   }
 }

@@ -1,0 +1,6 @@
+# Generated sources/assets ship with the add-on; review the generator and firmware inputs.
+web/wasm/generated/** linguist-generated=true
+web/src/wasm/firmware_preview.js linguist-generated=true
+web/src/wasm/firmware_preview.wasm linguist-generated=true
+web/src/wasm/renderer.json linguist-generated=true
+screen_manager/app/static/** linguist-generated=true

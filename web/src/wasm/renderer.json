@@ -1,0 +1,29 @@
+{
+  "firmware": "0.2.104",
+  "profiles": [
+    {
+      "dpi": 133,
+      "look": "standard"
+    },
+    {
+      "dpi": 143,
+      "look": "compact"
+    },
+    {
+      "dpi": 149,
+      "look": "standard"
+    },
+    {
+      "dpi": 170,
+      "look": "standard"
+    },
+    {
+      "dpi": 217,
+      "look": "standard"
+    },
+    {
+      "dpi": 254,
+      "look": "standard"
+    }
+  ]
+}

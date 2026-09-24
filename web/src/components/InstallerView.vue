@@ -3,7 +3,8 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
-import { copyText, go, openIntegrations, toast } from "../store";
+import { copyText, createVirtualScreen, go, openIntegrations, toast } from "../store";
+import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import type { BoardChoice, BoardOrientation, Orientation } from "../types";
 
@@ -11,6 +12,7 @@ import type { BoardChoice, BoardOrientation, Orientation } from "../types";
 // browser flasher; this address opens it with its hint for a downloaded project (as ESPHome Device Builder does).
 const ESPHOME_WEB = "https://web.esphome.io/?dashboard_install";
 const form = reactive({ board: "", orientation: "landscape" as Orientation, choices: {} as Record<string, string>, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
+const mode = ref<"physical" | "virtual">("physical");
 const installer = reactive({
   view: "setup" as "setup" | "progress" | "done", file: null as string | null, friendly: "", calibrate: false, target: "",
   apiKey: null as string | null, nodeEdited: false, jobState: null as string | null, picked: false, action: null as string | null,
@@ -41,6 +43,10 @@ watch(() => form.friendly_name, () => { if (!installer.nodeEdited) form.name = s
 // boards.json): the list, each board's glass drawn to one scale, its abilities, its choices. Nothing here names a board.
 const boards = computed<Record<string, BoardChoice>>(() => data.value?.boards || {});
 const boardRows = computed(() => boardList(boards.value));
+const previews = computed(() => previewProfiles(boards.value));
+const previewForm = reactive({ profile: customPreview.key, width: 720, height: 720, columns: 2, rows: 3 });
+const previewProfile = computed(() => previews.value.find(profile => profile.key === previewForm.profile) || customPreview);
+watch(() => previewForm.profile, () => Object.assign(previewForm, previewProfile.value.shape));
 const chosen = computed(() => boards.value[form.board]);
 // Each board's glass in its own proportions with the cells of one page, all at the same height: the size itself is in
 // the words beside it (inches), and a small board drawn to scale would be too small to read.
@@ -171,8 +177,18 @@ const progressDetail = computed(() => installer.view === "done"
 const image = computed(() => ({ href: `api/firmware/profiles/${encodeURIComponent(installer.file || "")}/download`, name: (installer.file || "").replace(/\.yaml$/, "") + ".factory.bin" }));
 async function submit(event: Event) {
   const element = event.target as HTMLFormElement;
-  if (!installer.nodeEdited) form.name = slug(form.friendly_name);
   if (!element.reportValidity()) return;
+  if (mode.value === "virtual") {
+    try {
+      const { width, height, columns, rows } = previewForm;
+      createVirtualScreen(form.friendly_name, { ...previewProfile.value,
+        shape: { ...previewProfile.value.shape, width, height, columns, rows } });
+      toast(t("editor.preview.created", { name: form.friendly_name.trim() }));
+      go("");
+    } catch (err: any) { status.value = err.message; }
+    return;
+  }
+  if (!installer.nodeEdited) form.name = slug(form.friendly_name);
   submitting.value = true;
   status.value = "";
   try {
@@ -208,6 +224,7 @@ async function retry() {
   }
 }
 function reset() {
+  mode.value = "physical";
   Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, jobState: null, target: "", picked: false, action: null });
   Object.assign(form, { board: boardRows.value[0]?.key || "", orientation: "landscape", choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
   nodeVisible.value = false; job.value = null; logs.value = []; status.value = ""; note.value = ""; logOpen.value = false;
@@ -232,6 +249,12 @@ onBeforeUnmount(() => clearInterval(poll));
       <button type="button" class="btn quiet" id="close-install" :aria-label="t('editor.common.close')" @click="close">{{ t("editor.common.back") }}</button>
     </div>
     <form v-if="installer.view === 'setup'" id="install-form" class="card" @submit.prevent="submit">
+      <div class="seg install-mode" role="group" :aria-label="t('editor.preview.type')">
+        <button type="button" :aria-pressed="mode === 'physical'" @click="mode = 'physical'">{{ t("editor.preview.physical") }}</button>
+        <button type="button" :aria-pressed="mode === 'virtual'" @click="mode = 'virtual'">{{ t("editor.preview.virtual") }}</button>
+      </div>
+      <p v-if="mode === 'virtual'" class="hint">{{ t("editor.preview.intro") }}</p>
+      <template v-if="mode === 'physical'">
       <fieldset>
         <legend>{{ t("editor.installer.board") }}</legend>
         <div class="boards">
@@ -313,6 +336,34 @@ onBeforeUnmount(() => clearInterval(poll));
         <button type="submit" class="btn primary" id="install-go" :disabled="goDisabled">{{ goLabel }}</button>
         <span id="install-status" class="status-line error" role="status">{{ status }}</span>
       </div>
+      </template>
+      <template v-else>
+        <div class="field">
+          <label class="f-label" for="virtual-profile">{{ t("editor.preview.profile") }}</label>
+          <select id="virtual-profile" v-model="previewForm.profile">
+            <option v-for="profile in previews" :key="profile.key" :value="profile.key">
+              {{ profile.name }} · {{ profile.shape.width }} × {{ profile.shape.height }} · {{ t(`editor.installer.orientation_${profile.orientation}`) }}
+            </option>
+          </select>
+          <small v-if="previewForm.profile === customPreview.key">{{ t("editor.preview.design_only") }}</small>
+        </div>
+        <details>
+          <summary>{{ t("editor.preview.override") }}</summary>
+          <div v-for="axis in (['width', 'height', 'columns', 'rows'] as const)" :key="axis" class="field">
+            <label class="f-label" :for="`virtual-${axis}`">{{ t(`editor.preview.${axis}`) }}</label>
+            <input :id="`virtual-${axis}`" type="number" v-model.number="previewForm[axis]" required step="1"
+              :min="axis === 'width' || axis === 'height' ? 160 : 1" :max="axis === 'width' || axis === 'height' ? 2560 : 8" />
+          </div>
+        </details>
+        <div class="field">
+          <label class="f-label" for="virtual-name">{{ t("editor.preview.name") }}</label>
+          <input id="virtual-name" v-model="form.friendly_name" required maxlength="60" :placeholder="t('editor.preview.name_placeholder')" autocomplete="off" />
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn primary" id="virtual-create">{{ t("editor.preview.create") }}</button>
+          <span class="status-line error" role="status">{{ status }}</span>
+        </div>
+      </template>
     </form>
     <div v-else id="install-progress" class="card">
       <div class="progress-head">

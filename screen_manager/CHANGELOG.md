@@ -1,3 +1,13 @@
+## 0.2.134 (firmware 0.2.104)
+
+Design and try a screen before pairing hardware.
+
+- **New screen → Virtual preview** creates a browser-local screen using a board profile, with optional resolution and grid overrides. Add entities in the existing tile editor, and export/import layouts as usual.
+- **Firmware preview** runs the shared firmware UI and ESPHome-generated fonts/widgets in WebAssembly. One canvas displays LVGL's output and forwards taps and swipes to the firmware.
+- Preview taps can control entities in the Home Assistant instance connected to Screen Manager. Firmware requests, Home Assistant responses and live state updates follow the same command and tile protocol as physical screens.
+- The preview ships compiled with the add-on. Source fingerprints and runtime checks detect stale builds after firmware changes. Hardware, camera transport and some device-only overlays are not emulated; see `web/wasm/README.md` in the repository.
+- Physical firmware remains at 0.2.104; no device update is required.
+
 ## 0.2.133 (firmware 0.2.104)
 
 An alert with a camera picture on one screen (GitHub #35).

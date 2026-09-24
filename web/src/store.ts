@@ -10,6 +10,8 @@ import {
 } from "./model/layout";
 import { agoText, barMetricsFor, clockText, dateText, itemKey, type ItemView, whenBarFontsLoad } from "./model/topbar";
 import { versionAtLeast } from "./model/layout";
+import { validPreviewShape, type PreviewProfile } from "./model/preview";
+import renderer from "./wasm/renderer.json";
 import type { Capability, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, Screen, Tile } from "./types";
 
 export type Inspector =
@@ -71,6 +73,36 @@ export const state = reactive({
   palette: false,
   firmwareJob: null as null | { job: any; logs: string[] },
 });
+
+const VIRTUAL_SCREENS_KEY = "esp-screens.virtual-screens";
+function virtualScreens(): Screen[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(VIRTUAL_SCREENS_KEY) || "[]");
+    if (!Array.isArray(value)) return [];
+    return value.filter((s) => s?.virtual && typeof s.id === "string" && s.id.startsWith("virtual.")
+      && s.shape && validPreviewShape(s.shape) && Array.isArray(s.layout?.tiles))
+      .map((s) => ({ ...s, firmware: renderer.firmware, firmware_known: renderer.firmware }));
+  } catch { return []; }
+}
+function persistVirtualScreens(screens = state.inventory.screens) {
+  localStorage.setItem(VIRTUAL_SCREENS_KEY, JSON.stringify(screens.filter((s) => s.virtual)));
+}
+export function createVirtualScreen(name: string, profile: PreviewProfile) {
+  if (!name.trim() || !validPreviewShape(profile.shape)) throw new Error(t("editor.preview.invalid_shape"));
+  const { board, orientation } = profile;
+  const shape = JSON.parse(JSON.stringify(profile.shape));
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "preview";
+  const id = `virtual.${slug}-${Date.now().toString(36)}`;
+  const screen: Screen = {
+    id, name: name.trim(), online: false, virtual: true, board, orientation,
+    firmware: renderer.firmware, firmware_known: renderer.firmware, tile_limit: 64, full_page: true,
+    page_tiles_repeat: true, in_sync: true, shape, layout: { title: name.trim(), tiles: [], pages: 1 },
+  };
+  persistVirtualScreens([...state.inventory.screens, screen]);
+  state.inventory.screens.push(screen);
+  select(id);
+  return screen;
+}
 
 export const currentScreen = computed<Screen | undefined>(() => state.inventory.screens.find((s) => s.id === state.selected));
 // The firmware version a screen's features go by, as the add-on works it out (firmware_known, app 0.2.78; null when it
@@ -584,6 +616,18 @@ export function closeInspector() {
 // ---- Save ----
 export async function save() {
   if (state.busy || !state.layout || !state.selected) return;
+  if (currentScreen.value?.virtual) {
+    const screen = currentScreen.value;
+    const layout = JSON.parse(JSON.stringify(state.layout));
+    try {
+      persistVirtualScreens(state.inventory.screens.map(s => s.id === screen.id ? { ...s, layout } : s));
+      screen.layout = layout;
+      state.dirty = false;
+      state.saved = Date.now();
+      toast(t("editor.screen_view.saved.current"));
+    } catch (e: any) { toast(e.message); }
+    return;
+  }
   state.busy = true;
   // The layout as it leaves: a drag, the drawer or Add still work while the request is on its way (the add-on's check
   // can take seconds after Copy or Import), and those changes aren't in it (app 0.2.78).
@@ -637,6 +681,14 @@ export async function calibrateTouch(screen: Screen) {
 // before it asks; here only what came back is shown.
 export async function removeScreen(screen: Screen) {
   if (state.removing) return false;
+  if (screen.virtual) {
+    const remaining = state.inventory.screens.filter((s) => s.id !== screen.id);
+    try { persistVirtualScreens(remaining); } catch (e: any) { toast(e.message); return false; }
+    if (state.selected === screen.id) forgetOpenScreen();
+    state.inventory.screens = remaining;
+    toast(t("editor.sidebar.remove.done", { name: screen.name }));
+    return true;
+  }
   state.removing = screen.id;
   try {
     const result = await send<{ name?: string; kept?: string[] }>(`screens/${encodeURIComponent(screen.id)}`, "DELETE");
@@ -1105,6 +1157,7 @@ export async function refresh(full = true) {
     const data = await getJson(full ? "inventory" : "inventory?light=1");
     // A light poll carries only screens and update status; keep the catalogues we have.
     state.inventory = full ? data : { ...state.inventory, ...data };
+    state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtualScreens()];
     if (data.csrf) setCsrf(data.csrf);
     state.connected = Boolean(state.inventory.connected);
     state.reachable = true;
@@ -1116,6 +1169,7 @@ export async function refresh(full = true) {
 }
 function applyLive(data: Partial<Inventory>) {
   state.inventory = { ...state.inventory, ...data } as Inventory;
+  state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtualScreens()];
   state.connected = Boolean(state.inventory.connected);
   for (const screen of state.inventory.screens) if (screen.update?.state === "running") state.updating = state.updating.filter((id) => id !== screen.id);
   if (state.selected) settleSettings();

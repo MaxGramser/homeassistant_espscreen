@@ -89,8 +89,10 @@ inline Grid grid{GRID_COLS, GRID_ROWS};
 // Pick the grid from the canvas LVGL draws on. A square canvas counts as lying down, as LVGL's own orientation
 // does, so a square board answers the same grid either way.
 inline void grid_select(int canvas_width, int canvas_height) {
+#ifndef ESP_SCREEN_HOST
   const bool upright = canvas_height > canvas_width;
   grid = upright ? Grid{GRID_COLS_PORTRAIT, GRID_ROWS_PORTRAIT} : Grid{GRID_COLS, GRID_ROWS};
+#endif
 }
 constexpr uint64_t tile_bit(size_t index) { return index < 64 ? uint64_t{1} << index : 0; }
 // A navigation tile (screen.page_<n>, firmware 0.2.62+).

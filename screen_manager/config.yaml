@@ -1,5 +1,5 @@
 name: ESP Screen Manager
-version: "0.2.133"
+version: "0.2.134"
 slug: esp_screen_manager
 description: Choose tiles for your ESP32 touch screens, 2.8 to 10.1 inch, without reflashing.
 url: https://github.com/MaxGramser/homeassistant_espscreen

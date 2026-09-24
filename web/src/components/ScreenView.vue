@@ -10,7 +10,7 @@ import SettingsTab from "./SettingsTab.vue";
 import Drawer from "./Drawer.vue";
 
 const screen = computed(() => currentScreen.value!);
-const statusText = computed(() => screen.value.online
+const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
   ? `${screen.value.delivery} · ${screen.value.status}`
   : t("editor.screen_view.offline"));
 const updateReady = computed(() => needsUpdate(screen.value) && screen.value.online && screen.value.update?.profile && screen.value.update?.host);
@@ -70,12 +70,12 @@ onBeforeUnmount(() => { document.removeEventListener("keydown", onKey); document
     <div class="head-right">
       <div class="seg" role="tablist">
         <button type="button" id="tab-layout" role="tab" :aria-pressed="state.tab === 'layout' ? 'true' : 'false'" @click="state.tab = 'layout'">{{ t("editor.screen_view.tabs.layout") }}</button>
-        <button type="button" id="tab-settings" role="tab" :aria-pressed="state.tab === 'settings' ? 'true' : 'false'" @click="state.tab = 'settings'; closeInspector()">{{ t("editor.screen_view.tabs.settings") }}</button>
+        <button v-if="!screen.virtual" type="button" id="tab-settings" role="tab" :aria-pressed="state.tab === 'settings' ? 'true' : 'false'" @click="state.tab = 'settings'; closeInspector()">{{ t("editor.screen_view.tabs.settings") }}</button>
       </div>
-      <span v-if="!state.dirty" id="dirty" class="chip" :class="{ sent: state.saved }">{{ state.saved ? t("editor.screen_view.sent") : t("editor.screen_view.all_saved") }}</span>
+      <span v-if="!state.dirty" id="dirty" class="chip" :class="{ sent: state.saved }">{{ state.saved ? t(screen.virtual ? "editor.preview.saved" : "editor.screen_view.sent") : t("editor.screen_view.all_saved") }}</span>
       <span v-else id="dirty" class="chip dirty">{{ t("editor.common.unsaved") }}</span>
       <button v-if="state.dirty" id="save" type="button" class="btn primary" :disabled="state.busy" title="⌘S" @click="save()">
-        <span v-if="state.busy" class="spin small"></span>{{ state.busy ? t("editor.common.saving") : t("editor.common.save_send") }}
+        <span v-if="state.busy" class="spin small"></span>{{ state.busy ? t("editor.common.saving") : t(screen.virtual ? "editor.preview.save" : "editor.common.save_send") }}
       </button>
       <button id="more" type="button" class="icon-btn" :aria-label="t('editor.screen_view.more')" aria-haspopup="menu" :aria-expanded="state.menuOpen ? 'true' : 'false'" @click.stop="state.menuOpen = !state.menuOpen; copyOpen = false">···</button>
       <div v-if="state.menuOpen" class="menu" role="menu">
