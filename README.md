@@ -14,7 +14,7 @@
   <a href="https://tessera-maxgramser.on-forge.com/community/share?type=installation">My screen works</a>
 </p>
 
-<p align="center"><sub>Tessera is the new name for ESP Screens. In Home Assistant the app is still called ESP Screen Manager and its panel ESP Screens; the repository, the add-on and your screens stay exactly as they are.</sub></p>
+<p align="center"><sub>Tessera is the new name for ESP Screens. In Home Assistant the app is called Tessera Screen Manager and its panel Tessera (app 0.3.18); the repository, the add-on and your screens stay exactly as they are.</sub></p>
 
 Thank you! I work on this project with a lot of love, and every bit of support helps. I truly love the Home Assistant community.
 

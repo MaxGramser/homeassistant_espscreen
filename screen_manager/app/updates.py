@@ -286,7 +286,7 @@ class Updater:
     async def notify(self, message):
         try:
             await self.manager.ha.request('call_service', domain='persistent_notification', service='create',
-                                          service_data={'notification_id': 'esp_screens_update', 'title': 'ESP Screens', 'message': message})
+                                          service_data={'notification_id': 'esp_screens_update', 'title': 'Tessera', 'message': message})
         except Exception as error:
             LOG.warning('Notifying Home Assistant failed (%s)', type(error).__name__)
 

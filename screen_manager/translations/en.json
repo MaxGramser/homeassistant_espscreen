@@ -101,11 +101,11 @@
     },
     "status": {
       "connecting": "Connecting to Home Assistant",
-      "waiting": "Waiting for ESP Screens",
+      "waiting": "Waiting for Tessera",
       "loading_tiles": "Loading tiles...",
       "preparing_pages": "Preparing pages {n}/{total}",
       "ha_not_connected": "HA not connected",
-      "manager_not_active": "ESP Screens not active",
+      "manager_not_active": "Tessera not active",
       "choose_tiles": "Choose tiles in HA",
       "home": "Home",
       "no_network": "No network",
@@ -612,7 +612,7 @@
         "override_symlink": "The local override is a symbolic link; replace it with a regular file first.",
         "other_include": "This profile already has a different local_overrides include.",
         "profile_invalid": "The screen profile isn't valid YAML; fix it before adding an override.",
-        "no_packages": "This profile has no packages section that ESP Screens can extend.",
+        "no_packages": "This profile has no packages section that Tessera can extend.",
         "override_invalid": "Invalid override data.",
         "yaml_needed": "Enter YAML text first.",
         "override_too_large": "The override is too large. Keep it below 12 KB.",
@@ -620,11 +620,11 @@
         "yaml_error": "YAML error: {problem}.",
         "invalid_yaml": "invalid YAML",
         "override_object": "The override must contain a YAML object, for example display: or substitutions:.",
-        "sections_managed": "These sections stay managed by ESP Screens: {names}.",
-        "substitutions_managed": "These substitutions stay managed by ESP Screens: {names}.",
+        "sections_managed": "These sections stay managed by Tessera: {names}.",
+        "substitutions_managed": "These substitutions stay managed by Tessera: {names}.",
         "substitutions_in_profile": "{names} is set in this screen's own YAML (chosen under New screen), which wins over the override. Change it there instead.",
         "orientation": "Choose whether the screen hangs lying down or standing up.",
-        "orientation_managed": "Which way a screen hangs is chosen when it is built, under New screen, so LVGL_ROTATION stays managed by ESP Screens.",
+        "orientation_managed": "Which way a screen hangs is chosen when it is built, under New screen, so LVGL_ROTATION stays managed by Tessera.",
         "usb_port": "Choose the connected USB port from the list.",
         "busy_wait": "A build or installation is already running. Wait for it to finish.",
         "busy": "A build or installation is already running.",
@@ -699,7 +699,7 @@
         "comment": "Keep the note under 1000 characters.",
         "unknown_board": "Feedback isn't available for this board yet.",
         "deleting": "Your shared answer is still being deleted. Answer again once that's done.",
-        "storage": "Feedback is off: its saved data was written by another version of ESP Screens."
+        "storage": "Feedback is off: its saved data was written by another version of Tessera."
       }
     },
     "status": {
@@ -881,7 +881,7 @@
         },
         "screen": {
           "label": "Screen",
-          "help": "Which screen gets the alert: its device name (such as kitchen-screen), the name Home Assistant shows, or a room, which reaches every screen in it. A list, such as [kitchen-screen, hallway], reaches several. Leave it out for every screen. A name that matches no screen sends nothing; the ESP Screen Manager log names the screens it knows. Only through the esp_screens_show_alert and esp_screens_dismiss_alert events."
+          "help": "Which screen gets the alert: its device name (such as kitchen-screen), the name Home Assistant shows, or a room, which reaches every screen in it. A list, such as [kitchen-screen, hallway], reaches several. Leave it out for every screen. A name that matches no screen sends nothing; the Tessera Screen Manager log names the screens it knows. Only through the esp_screens_show_alert and esp_screens_dismiss_alert events."
         },
         "button_color": {
           "label": "Button color",
@@ -1084,7 +1084,7 @@
       },
       "identify": {
         "title": "This is {name}",
-        "subtitle": "Identify, from ESP Screens"
+        "subtitle": "Identify, from Tessera"
       },
       "script_running": "Running",
       "states": {
@@ -1319,7 +1319,7 @@
       "page_taken": "This screen already has a tile that goes to page {page}.",
       "copied": "Layout of {name} copied. Save & send when it looks right.",
       "imported": "Layout imported. Save & send when it looks right.",
-      "not_json": "That isn't JSON. Export a layout first, or paste one from another ESP Screens.",
+      "not_json": "That isn't JSON. Export a layout first, or paste one from another Tessera.",
       "count": "{n} page · {tiles} / {limit} tiles | {n} pages · {tiles} / {limit} tiles",
       "no_tiles": "Add your first light, scene, or device from the library.",
       "how_to": "Tap the top bar or a tile to change it. Drag to move; drop on the next page for a new one.",
@@ -1746,7 +1746,7 @@
       "claude": {
         "installed": "Skill installed. Claude Code picks it up right away.",
         "installed_restart": "Skill installed. Restart Claude Code once so it finds the new skills folder.",
-        "text": "Teach Claude about ESP Screens, then ask: \"Show an alert on all my screens when the mailbox is full.\" Claude knows the alert events, every field, color, and icon.",
+        "text": "Teach Claude about Tessera, then ask: \"Show an alert on all my screens when the mailbox is full.\" Claude knows the alert events, every field, color, and icon.",
         "install": "Install for Claude Code",
         "install_again": "Install again",
         "update": "Update the skill",
@@ -1793,7 +1793,7 @@
     },
     "firmware": {
       "title": "Build and install screen firmware",
-      "intro": "The built-in ESPHome CLI uses your own profile (YAML with keys) and secrets. Choose the screen's profile, then a USB port (screen connected to the Home Assistant machine), {ota} with the hostname, or {download} to put the firmware on the screen from your own computer. {check} only validates, {build} compiles, {install} puts the firmware on the screen. Your tiles stay as they are in ESP Screens. Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal.",
+      "intro": "The built-in ESPHome CLI uses your own profile (YAML with keys) and secrets. Choose the screen's profile, then a USB port (screen connected to the Home Assistant machine), {ota} with the hostname, or {download} to put the firmware on the screen from your own computer. {check} only validates, {build} compiles, {install} puts the firmware on the screen. Your tiles stay as they are in Tessera. Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal.",
       "ota": "Wi-Fi / OTA",
       "download": "Download",
       "check": "Check",
@@ -1819,7 +1819,7 @@
         "done": "Done.",
         "failed": "That didn't work."
       },
-      "intro": "ESP Screens creates the screen's own profile with unique keys and builds the firmware. Connect the screen with a USB data cable to the machine running Home Assistant, or to the computer you're using now.",
+      "intro": "Tessera creates the screen's own profile with unique keys and builds the firmware. Connect the screen with a USB data cable to the machine running Home Assistant, or to the computer you're using now.",
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
       "status": {
@@ -1863,8 +1863,8 @@
         "title": "Wi-Fi",
         "ssid": "Wi-Fi name (2.4 GHz)",
         "password": "Wi-Fi password",
-        "new": "Fill in once: ESP Screens saves this in ESPHome secrets.yaml, later screens use it automatically.",
-        "missing": "Your ESPHome secrets.yaml is still missing Wi-Fi details. ESP Screens only fills in the missing lines.",
+        "new": "Fill in once: Tessera saves this in ESPHome secrets.yaml, later screens use it automatically.",
+        "missing": "Your ESPHome secrets.yaml is still missing Wi-Fi details. Tessera only fills in the missing lines.",
         "ready": "Wi-Fi comes from your ESPHome secrets.yaml.",
         "invalid": "secrets.yaml in the ESPHome folder isn't valid YAML. Fix the file first; it won't be overwritten."
       },
@@ -1912,13 +1912,13 @@
       "download_keep": "The file holds your Wi-Fi password and the screen's keys: keep it to yourself.",
       "api_key": "API key",
       "pairing": {
-        "ha": "{bold} This happens outside ESP Screens. Home Assistant discovers {name} as an ESPHome device; click Add. Not discovered? Add ESPHome manually with the screen's IP address.",
+        "ha": "{bold} This happens outside Tessera. Home Assistant discovers {name} as an ESPHome device; click Add. Not discovered? Add ESPHome manually with the screen's IP address.",
         "ha_bold": "Go to Home Assistant → Settings → Devices & services.",
         "key": "{bold} (under “Show the API key” below) if Home Assistant asks for an encryption key. With the ESPHome Device Builder app installed, Home Assistant often fills it in by itself.",
         "key_bold": "Paste the API key",
         "actions": "{bold} ESPHome integration → Configure → “Allow the device to perform Home Assistant actions”. Without this, the screen sees everything but controls nothing.",
         "actions_bold": "Allow HA actions:",
-        "tiles": "{bold} Back in ESP Screens, the screen appears in the list on the left within about thirty seconds; until then it's shown there as “not yet in Home Assistant”.",
+        "tiles": "{bold} Back in Tessera, the screen appears in the list on the left within about thirty seconds; until then it's shown there as “not yet in Home Assistant”.",
         "tiles_bold": "Choose your tiles."
       },
       "log": "ESPHome log",
@@ -1999,7 +1999,7 @@
       "copy_yaml": "Copy YAML",
       "all": {
         "title": "All screens at once",
-        "text": "Fire the event {show} with the same fields, and ESP Screens passes the alert on to every screen that is online, including screens you add later. {dismiss} clears it everywhere. In an automation, add the {event} action or paste the example under {edit}. Leave out the fields you don't use. ESP Screens has to be running for this.",
+        "text": "Fire the event {show} with the same fields, and Tessera passes the alert on to every screen that is online, including screens you add later. {dismiss} clears it everywhere. In an automation, add the {event} action or paste the example under {edit}. Leave out the fields you don't use. Tessera has to be running for this.",
         "event": "Fire manual event"
       },
       "fields": {
@@ -2062,7 +2062,7 @@
         "button_bold": "custom button text",
         "resolve": "For an alert that resolves itself (the door opens, the laundry gets taken out) close it in the same automation with {dismiss}.",
         "every": "Every screen? Fire {event} once (see All screens at once). The screens still work independently and each reports with its own {screen}.",
-        "claude": "Rather {bold} for the automation? Install the ESP Screens skill under Settings → Claude.",
+        "claude": "Rather {bold} for the automation? Install the Tessera skill under Settings → Claude.",
         "claude_bold": "ask Claude"
       },
       "wait_yaml": {
@@ -2072,7 +2072,7 @@
       "one": {
         "title": "One screen, with a camera or a button action",
         "text": "Add {screen} to the same event and only that screen gets the alert. That is how a single screen shows a {camera} picture or runs an {action} from its button: the screen's own action has no fields for those. After {screen} comes one of the values in the list below.",
-        "more": "A few screens? Give a list, such as {list}. A room works too and reaches every screen in it. A name that matches no screen sends nothing; the ESP Screen Manager log then names the screens it knows.",
+        "more": "A few screens? Give a list, such as {list}. A room works too and reaches every screen in it. A name that matches no screen sends nothing; the Tessera Screen Manager log then names the screens it knows.",
         "value": "After screen:",
         "name": "Name in Home Assistant",
         "room": "Room",
@@ -2092,7 +2092,7 @@
       "eyebrow": "Advanced · local override",
       "title": "Override YAML",
       "title_named": "Override YAML · {name}",
-      "intro": "This small file is yours. It is loaded after the shared screen package and stays in place when ESP Screens updates. Change hardware-specific details here, such as a display model.",
+      "intro": "This small file is yours. It is loaded after the shared screen package and stays in place when Tessera updates. Change hardware-specific details here, such as a display model.",
       "safe_title": "What is safe to change?",
       "safe_text": "Display, touchscreen, substitutions, pins and other device details. Name, Wi-Fi, API, OTA and package links remain managed.",
       "active": "Active",
@@ -2250,15 +2250,15 @@
         "model": "The screen model: {model}",
         "answer": "Your answer, the problems you chose and your note",
         "firmware": "The screen's firmware version: {version}",
-        "addon": "The ESP Screens version: {version}",
+        "addon": "The Tessera version: {version}",
         "nothing_else": "Nothing else: no name, account, entities, logs or Home Assistant settings. Each screen shares under its own random key."
       },
       "privacy": "Privacy"
     },
     "webflash": {
       "target": "Install from this browser (Chrome or Edge)",
-      "hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. After that, updates go over Wi-Fi.",
-      "firmware_hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. The screen keeps its settings and touch calibration. This also rescues a screen that keeps restarting and never comes online.",
+      "hint": "Plug the screen into this computer with a USB data cable. Tessera builds the firmware, then this page puts it on the screen, in Chrome or Edge. After that, updates go over Wi-Fi.",
+      "firmware_hint": "Plug the screen into this computer with a USB data cable. Tessera builds the firmware, then this page puts it on the screen, in Chrome or Edge. The screen keeps its settings and touch calibration. This also rescues a screen that keeps restarting and never comes online.",
       "go": "Connect & install",
       "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. Keep this tab open and the screen plugged in: this page installs the firmware as soon as it's ready.",
       "keep_open": "Keep this tab open and the USB cable plugged in until it's done.",
@@ -2270,7 +2270,7 @@
         "picking": "Choose the screen's USB port in the window your browser shows.",
         "connecting": "Connecting to the board…",
         "waiting": "Connected to the board ({chip}). The firmware goes on as soon as it's built.",
-        "downloading": "Fetching the firmware from ESP Screens…",
+        "downloading": "Fetching the firmware from Tessera…",
         "erasing": "Erasing the board's memory…",
         "writing": "Installing… {percent}%",
         "restarting": "Restarting the screen…",
@@ -2282,9 +2282,9 @@
         "busy": "The screen's port is in use by another program or tab, such as a serial monitor or ESPHome Web. Close it and try again.",
         "connect": "The board didn't answer. Hold the BOOT button on the board while you choose the port, until the installation starts, and try again. Unplugging and plugging in the cable can help too.",
         "wrong_chip": "The board on the cable has an {found} chip, but this screen's firmware is for an {expected}. Plug in the right screen, or choose its board.",
-        "wrong_image": "The firmware ESP Screens built is for an {expected}, but the board on the cable has an {found}. Nothing was written.",
+        "wrong_image": "The firmware Tessera built is for an {expected}, but the board on the cable has an {found}. Nothing was written.",
         "disconnected": "The screen was disconnected. Plug it in again and try again.",
-        "download": "Couldn't fetch the firmware from ESP Screens: {error}",
+        "download": "Couldn't fetch the firmware from Tessera: {error}",
         "failed": "Installing didn't work: {error}"
       },
       "hints": {

@@ -101,11 +101,11 @@
     },
     "status": {
       "connecting": "A ligar ao Home Assistant",
-      "waiting": "À espera do ESP Screens",
+      "waiting": "À espera do Tessera",
       "loading_tiles": "A carregar mosaicos...",
       "preparing_pages": "A preparar páginas {n}/{total}",
       "ha_not_connected": "HA sem ligação",
-      "manager_not_active": "ESP Screens inativo",
+      "manager_not_active": "Tessera inativo",
       "choose_tiles": "Escolha os mosaicos no HA",
       "home": "Casa",
       "no_network": "Sem rede",
@@ -612,7 +612,7 @@
         "override_symlink": "O YAML personalizado local é uma ligação simbólica; substitua-o primeiro por um ficheiro normal.",
         "other_include": "Este perfil já tem outro include de local_overrides.",
         "profile_invalid": "O perfil do ecrã não é YAML válido; corrija-o antes de adicionar um YAML personalizado.",
-        "no_packages": "Este perfil não tem uma secção packages que o ESP Screens possa expandir.",
+        "no_packages": "Este perfil não tem uma secção packages que o Tessera possa expandir.",
         "override_invalid": "Dados do YAML personalizado inválidos.",
         "yaml_needed": "Introduza primeiro o texto YAML.",
         "override_too_large": "O YAML personalizado é demasiado grande. Mantenha-o abaixo de 12 KB.",
@@ -620,11 +620,11 @@
         "yaml_error": "Erro de YAML: {problem}.",
         "invalid_yaml": "YAML inválido",
         "override_object": "O YAML personalizado tem de conter um objeto YAML, por exemplo display: ou substitutions:.",
-        "sections_managed": "Estas secções continuam a ser geridas pelo ESP Screens: {names}.",
-        "substitutions_managed": "Estas substitutions continuam a ser geridas pelo ESP Screens: {names}.",
+        "sections_managed": "Estas secções continuam a ser geridas pelo Tessera: {names}.",
+        "substitutions_managed": "Estas substitutions continuam a ser geridas pelo Tessera: {names}.",
         "substitutions_in_profile": "{names} está definido no YAML próprio deste ecrã (escolhido em Novo ecrã), que prevalece sobre o override. Altere-o lá.",
         "orientation": "Escolha se o ecrã fica na horizontal ou na vertical.",
-        "orientation_managed": "O sentido em que um ecrã fica pendurado escolhe-se quando é compilado, em Novo ecrã; por isso o LVGL_ROTATION continua a ser gerido pelo ESP Screens.",
+        "orientation_managed": "O sentido em que um ecrã fica pendurado escolhe-se quando é compilado, em Novo ecrã; por isso o LVGL_ROTATION continua a ser gerido pelo Tessera.",
         "usb_port": "Escolha da lista a porta USB ligada.",
         "busy_wait": "Já está a decorrer uma compilação ou instalação. Aguarde que termine.",
         "busy": "Já está a decorrer uma compilação ou instalação.",
@@ -699,7 +699,7 @@
         "comment": "Mantenha a nota abaixo de 1000 caracteres.",
         "unknown_board": "O feedback ainda não está disponível para esta placa.",
         "deleting": "A sua resposta partilhada ainda está a ser eliminada. Responda de novo quando terminar.",
-        "storage": "O feedback está desligado: os dados guardados foram escritos por outra versão do ESP Screens."
+        "storage": "O feedback está desligado: os dados guardados foram escritos por outra versão do Tessera."
       }
     },
     "status": {
@@ -881,7 +881,7 @@
         },
         "screen": {
           "label": "Ecrã",
-          "help": "Que ecrã recebe o alerta: o nome do dispositivo (como kitchen-screen), o nome que o Home Assistant mostra, ou uma divisão, que chega a cada ecrã nela. Uma lista, como [kitchen-screen, hallway], chega a vários. Omita-o para todos os ecrãs. Um nome que não corresponde a nenhum ecrã não envia nada; o registo do ESP Screen Manager indica então os ecrãs que conhece. Apenas através dos eventos esp_screens_show_alert e esp_screens_dismiss_alert."
+          "help": "Que ecrã recebe o alerta: o nome do dispositivo (como kitchen-screen), o nome que o Home Assistant mostra, ou uma divisão, que chega a cada ecrã nela. Uma lista, como [kitchen-screen, hallway], chega a vários. Omita-o para todos os ecrãs. Um nome que não corresponde a nenhum ecrã não envia nada; o registo do Tessera Screen Manager indica então os ecrãs que conhece. Apenas através dos eventos esp_screens_show_alert e esp_screens_dismiss_alert."
         },
         "button_color": {
           "label": "Cor do botão",
@@ -1084,7 +1084,7 @@
       },
       "identify": {
         "title": "Este é {name}",
-        "subtitle": "Identificar, a partir do ESP Screens"
+        "subtitle": "Identificar, a partir do Tessera"
       },
       "script_running": "Em curso",
       "states": {
@@ -1319,7 +1319,7 @@
       "page_taken": "Este ecrã já tem um mosaico que leva à página {page}.",
       "copied": "Layout de {name} copiado. Prima Guardar e enviar quando estiver bem.",
       "imported": "Layout importado. Prima Guardar e enviar quando estiver bem.",
-      "not_json": "Isso não é JSON. Exporte primeiro um layout ou cole um de outro ESP Screens.",
+      "not_json": "Isso não é JSON. Exporte primeiro um layout ou cole um de outro Tessera.",
       "count": "{n} página · {tiles} / {limit} mosaicos | {n} páginas · {tiles} / {limit} mosaicos",
       "no_tiles": "Adicione a primeira luz, cena ou dispositivo a partir da biblioteca.",
       "how_to": "Toque na barra superior ou num mosaico para o alterar. Arraste para mover; largue na página seguinte para criar uma nova.",
@@ -1746,7 +1746,7 @@
       "claude": {
         "installed": "Habilidade instalada. O Claude Code deteta-a de imediato.",
         "installed_restart": "Habilidade instalada. Reinicie o Claude Code uma vez para que encontre a nova pasta de habilidades.",
-        "text": "Ensine o Claude a usar o ESP Screens e depois peça: «Mostra um alerta em todos os meus ecrãs quando a caixa do correio estiver cheia.» O Claude conhece os eventos de alerta e todos os campos, cores e ícones.",
+        "text": "Ensine o Claude a usar o Tessera e depois peça: «Mostra um alerta em todos os meus ecrãs quando a caixa do correio estiver cheia.» O Claude conhece os eventos de alerta e todos os campos, cores e ícones.",
         "install": "Instalar para o Claude Code",
         "install_again": "Instalar novamente",
         "update": "Atualizar a habilidade",
@@ -1793,7 +1793,7 @@
     },
     "firmware": {
       "title": "Compilar e instalar o firmware dos ecrãs",
-      "intro": "A CLI do ESPHome integrada usa o seu próprio perfil (YAML com chaves) e os seus segredos. Escolha o perfil do ecrã e depois uma porta USB (ecrã ligado à máquina do Home Assistant), {ota} com o nome do anfitrião, ou {download} para instalar o firmware no ecrã a partir do seu próprio computador. {check} só valida, {build} compila e {install} instala o firmware no ecrã. Os seus mosaicos ficam como estão no ESP Screens. A primeira compilação demora alguns minutos.",
+      "intro": "A CLI do ESPHome integrada usa o seu próprio perfil (YAML com chaves) e os seus segredos. Escolha o perfil do ecrã e depois uma porta USB (ecrã ligado à máquina do Home Assistant), {ota} com o nome do anfitrião, ou {download} para instalar o firmware no ecrã a partir do seu próprio computador. {check} só valida, {build} compila e {install} instala o firmware no ecrã. Os seus mosaicos ficam como estão no Tessera. A primeira compilação demora alguns minutos.",
       "ota": "Wi-Fi / OTA",
       "download": "Descarregar",
       "check": "Verificar",
@@ -1819,7 +1819,7 @@
         "done": "Concluído.",
         "failed": "Não funcionou."
       },
-      "intro": "O ESP Screens cria o perfil próprio do ecrã com chaves únicas e compila o firmware. Ligue o ecrã com um cabo USB de dados à máquina onde corre o Home Assistant, ou ao computador que está a usar agora.",
+      "intro": "O Tessera cria o perfil próprio do ecrã com chaves únicas e compila o firmware. Ligue o ecrã com um cabo USB de dados à máquina onde corre o Home Assistant, ou ao computador que está a usar agora.",
       "board": "Que ecrã tem?",
       "board_title": "{name} · {inch} polegadas",
       "status": {
@@ -1863,8 +1863,8 @@
         "title": "Wi-Fi",
         "ssid": "Nome da rede Wi-Fi (2,4 GHz)",
         "password": "Palavra-passe da rede Wi-Fi",
-        "new": "Preencha só uma vez: o ESP Screens guarda isto no secrets.yaml do ESPHome e os ecrãs seguintes usam-no automaticamente.",
-        "missing": "Ainda faltam os dados de Wi-Fi no seu secrets.yaml do ESPHome. O ESP Screens só preenche as linhas em falta.",
+        "new": "Preencha só uma vez: o Tessera guarda isto no secrets.yaml do ESPHome e os ecrãs seguintes usam-no automaticamente.",
+        "missing": "Ainda faltam os dados de Wi-Fi no seu secrets.yaml do ESPHome. O Tessera só preenche as linhas em falta.",
         "ready": "A rede Wi-Fi vem do seu secrets.yaml do ESPHome.",
         "invalid": "O secrets.yaml na pasta do ESPHome não é YAML válido. Corrija primeiro o ficheiro; não vai ser substituído."
       },
@@ -1912,13 +1912,13 @@
       "download_keep": "O ficheiro contém a sua palavra-passe de Wi-Fi e as chaves do ecrã: não o partilhe.",
       "api_key": "Chave API",
       "pairing": {
-        "ha": "{bold} Isto acontece fora do ESP Screens. O Home Assistant descobre {name} como dispositivo ESPHome; clique em Adicionar. Não foi descoberto? Adicione o ESPHome manualmente com o endereço IP do ecrã.",
+        "ha": "{bold} Isto acontece fora do Tessera. O Home Assistant descobre {name} como dispositivo ESPHome; clique em Adicionar. Não foi descoberto? Adicione o ESPHome manualmente com o endereço IP do ecrã.",
         "ha_bold": "Vá ao Home Assistant → Configuração → Dispositivos & serviços.",
         "key": "{bold} (em «Mostrar a chave API», abaixo) se o Home Assistant pedir uma chave de encriptação. Com a app ESPHome Device Builder instalada, o Home Assistant costuma preenchê-la sozinho.",
         "key_bold": "Cole a chave API",
         "actions": "{bold} integração ESPHome → Configurar → «Permitir que o dispositivo execute ações do Home Assistant». Sem isto, o ecrã vê tudo mas não controla nada.",
         "actions_bold": "Permita as ações do HA:",
-        "tiles": "{bold} De volta ao ESP Screens, o ecrã aparece na lista à esquerda em cerca de trinta segundos; até lá, aparece aí como «ainda não está no Home Assistant».",
+        "tiles": "{bold} De volta ao Tessera, o ecrã aparece na lista à esquerda em cerca de trinta segundos; até lá, aparece aí como «ainda não está no Home Assistant».",
         "tiles_bold": "Escolha os seus mosaicos."
       },
       "log": "Registo do ESPHome",
@@ -1999,7 +1999,7 @@
       "copy_yaml": "Copiar YAML",
       "all": {
         "title": "Todos os ecrãs de uma vez",
-        "text": "Dispare o evento {show} com os mesmos campos e o ESP Screens passa o alerta a todos os ecrãs online, incluindo os que adicionar mais tarde. {dismiss} remove-o em todo o lado. Numa automatização, adicione a ação {event} ou cole o exemplo em {edit}. Omita os campos que não usar. Para isto, o ESP Screens tem de estar em execução.",
+        "text": "Dispare o evento {show} com os mesmos campos e o Tessera passa o alerta a todos os ecrãs online, incluindo os que adicionar mais tarde. {dismiss} remove-o em todo o lado. Numa automatização, adicione a ação {event} ou cole o exemplo em {edit}. Omita os campos que não usar. Para isto, o Tessera tem de estar em execução.",
         "event": "Dispara evento manual"
       },
       "fields": {
@@ -2062,7 +2062,7 @@
         "button_bold": "texto de botão personalizado",
         "resolve": "Para um alerta que se resolve sozinho (a porta abre-se, alguém tira a roupa da máquina), feche-o na mesma automatização com {dismiss}.",
         "every": "Todos os ecrãs? Dispare {event} uma vez (ver «Todos os ecrãs de uma vez»). Os ecrãs continuam a funcionar de forma independente e cada um reporta com o seu próprio {screen}.",
-        "claude": "Prefere {bold} que faça a automatização? Instale a habilidade do ESP Screens em Definições → Claude.",
+        "claude": "Prefere {bold} que faça a automatização? Instale a habilidade do Tessera em Definições → Claude.",
         "claude_bold": "pedir ao Claude"
       },
       "wait_yaml": {
@@ -2072,7 +2072,7 @@
       "one": {
         "title": "Um ecrã, com câmara ou ação do botão",
         "text": "Adicione {screen} ao mesmo evento e só esse ecrã recebe o alerta. É assim que um único ecrã mostra uma imagem de {camera} ou executa uma {action} a partir do botão: a ação própria do ecrã não tem campos para isso. Depois de {screen} vem um dos valores da lista abaixo.",
-        "more": "Alguns ecrãs? Indique uma lista, como {list}. Uma divisão também funciona e chega a cada ecrã nela. Um nome que não corresponde a nenhum ecrã não envia nada; o registo do ESP Screen Manager indica então os ecrãs que conhece.",
+        "more": "Alguns ecrãs? Indique uma lista, como {list}. Uma divisão também funciona e chega a cada ecrã nela. Um nome que não corresponde a nenhum ecrã não envia nada; o registo do Tessera Screen Manager indica então os ecrãs que conhece.",
         "value": "Depois de screen:",
         "name": "Nome no Home Assistant",
         "room": "Divisão",
@@ -2092,9 +2092,9 @@
       "eyebrow": "Avançado · personalização local",
       "title": "YAML personalizado",
       "title_named": "YAML personalizado · {name}",
-      "intro": "Este pequeno ficheiro é seu. É carregado depois do pacote partilhado dos ecrãs e mantém-se quando o ESP Screens é atualizado. Altere aqui detalhes específicos do hardware, como o modelo do ecrã.",
+      "intro": "Este pequeno ficheiro é seu. É carregado depois do pacote partilhado dos ecrãs e mantém-se quando o Tessera é atualizado. Altere aqui detalhes específicos do hardware, como o modelo do ecrã.",
       "safe_title": "O que é seguro alterar?",
-      "safe_text": "As secções display, touchscreen e substitutions, os pinos e outros detalhes do dispositivo. O nome, a rede Wi-Fi, a API, a OTA e as ligações aos pacotes continuam a ser geridos pelo ESP Screens.",
+      "safe_text": "As secções display, touchscreen e substitutions, os pinos e outros detalhes do dispositivo. O nome, a rede Wi-Fi, a API, a OTA e as ligações aos pacotes continuam a ser geridos pelo Tessera.",
       "active": "Ativo",
       "ready": "Pronto para associar",
       "editor_label": "YAML personalizado local",
@@ -2250,15 +2250,15 @@
         "model": "O modelo do ecrã: {model}",
         "answer": "A sua resposta, os problemas escolhidos e a sua nota",
         "firmware": "A versão de firmware do ecrã: {version}",
-        "addon": "A versão do ESP Screens: {version}",
+        "addon": "A versão do Tessera: {version}",
         "nothing_else": "Mais nada: nem nome, conta, entidades, registos ou definições do Home Assistant. Cada ecrã partilha com a sua própria chave aleatória."
       },
       "privacy": "Privacidade"
     },
     "webflash": {
       "target": "Instalar a partir deste navegador (Chrome ou Edge)",
-      "hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. Depois disso, as atualizações vão por Wi-Fi.",
-      "firmware_hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. O ecrã mantém as definições e a calibração do toque. Assim também recupera um ecrã que reinicia sem parar e nunca fica online.",
+      "hint": "Ligue o ecrã a este computador com um cabo USB de dados. O Tessera compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. Depois disso, as atualizações vão por Wi-Fi.",
+      "firmware_hint": "Ligue o ecrã a este computador com um cabo USB de dados. O Tessera compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. O ecrã mantém as definições e a calibração do toque. Assim também recupera um ecrã que reinicia sem parar e nunca fica online.",
       "go": "Ligar e instalar",
       "building": "A compilação pode demorar 20 minutos ou mais num computador do Home Assistant, como um Raspberry Pi, sobretudo da primeira vez. É normal. Mantenha este separador aberto e o ecrã ligado: esta página instala o firmware assim que estiver pronto.",
       "keep_open": "Mantenha este separador aberto e o cabo USB ligado até terminar.",
@@ -2270,7 +2270,7 @@
         "picking": "Escolha a porta USB do ecrã na janela que o navegador mostra.",
         "connecting": "A ligar à placa…",
         "waiting": "Ligado à placa ({chip}). O firmware é instalado assim que estiver compilado.",
-        "downloading": "A obter o firmware do ESP Screens…",
+        "downloading": "A obter o firmware do Tessera…",
         "erasing": "A apagar a memória da placa…",
         "writing": "A instalar… {percent}%",
         "restarting": "A reiniciar o ecrã…",
@@ -2282,9 +2282,9 @@
         "busy": "A porta do ecrã está a ser usada por outro programa ou separador, como um monitor série ou o ESPHome Web. Feche-o e tente novamente.",
         "connect": "A placa não respondeu. Mantenha premido o botão BOOT da placa enquanto escolhe a porta, até a instalação começar, e tente novamente. Desligar e voltar a ligar o cabo também pode ajudar.",
         "wrong_chip": "A placa ligada tem um chip {found}, mas o firmware deste ecrã é para um {expected}. Ligue o ecrã certo ou escolha a sua placa.",
-        "wrong_image": "O firmware compilado pelo ESP Screens é para um {expected}, mas a placa ligada tem um {found}. Nada foi escrito.",
+        "wrong_image": "O firmware compilado pelo Tessera é para um {expected}, mas a placa ligada tem um {found}. Nada foi escrito.",
         "disconnected": "O ecrã foi desligado. Volte a ligá-lo e tente novamente.",
-        "download": "Não foi possível obter o firmware do ESP Screens: {error}",
+        "download": "Não foi possível obter o firmware do Tessera: {error}",
         "failed": "A instalação não funcionou: {error}"
       },
       "hints": {

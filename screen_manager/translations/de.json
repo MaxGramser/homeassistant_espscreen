@@ -101,11 +101,11 @@
     },
     "status": {
       "connecting": "Verbinde mit Home Assistant",
-      "waiting": "Warte auf ESP Screens",
+      "waiting": "Warte auf Tessera",
       "loading_tiles": "Kacheln werden geladen...",
       "preparing_pages": "Seiten werden vorbereitet {n}/{total}",
       "ha_not_connected": "HA nicht verbunden",
-      "manager_not_active": "ESP Screens nicht aktiv",
+      "manager_not_active": "Tessera nicht aktiv",
       "choose_tiles": "Kacheln in HA wählen",
       "home": "Zuhause",
       "no_network": "Kein Netzwerk",
@@ -612,7 +612,7 @@
         "override_symlink": "Die lokale Anpassung ist ein symbolischer Link; ersetze sie zuerst durch eine normale Datei.",
         "other_include": "Dieses Profil bindet schon eine andere local_overrides-Datei ein.",
         "profile_invalid": "Das Bildschirmprofil ist kein gültiges YAML; korrigiere es, bevor du eine Anpassung hinzufügst.",
-        "no_packages": "Dieses Profil hat keinen packages-Abschnitt, den ESP Screens erweitern kann.",
+        "no_packages": "Dieses Profil hat keinen packages-Abschnitt, den Tessera erweitern kann.",
         "override_invalid": "Ungültige Anpassungsdaten.",
         "yaml_needed": "Gib zuerst YAML-Text ein.",
         "override_too_large": "Die Anpassung ist zu groß. Halte sie unter 12 KB.",
@@ -620,11 +620,11 @@
         "yaml_error": "YAML-Fehler: {problem}.",
         "invalid_yaml": "ungültiges YAML",
         "override_object": "Die Anpassung muss ein YAML-Objekt enthalten, zum Beispiel display: oder substitutions:.",
-        "sections_managed": "Diese Abschnitte verwaltet weiterhin ESP Screens: {names}.",
-        "substitutions_managed": "Diese Substitutions verwaltet weiterhin ESP Screens: {names}.",
+        "sections_managed": "Diese Abschnitte verwaltet weiterhin Tessera: {names}.",
+        "substitutions_managed": "Diese Substitutions verwaltet weiterhin Tessera: {names}.",
         "substitutions_in_profile": "{names} steht in der eigenen YAML dieses Bildschirms (unter Neuer Bildschirm gewählt) und hat Vorrang vor dem Override. Ändere es stattdessen dort.",
         "orientation": "Wähle, ob der Bildschirm quer oder hochkant hängt.",
-        "orientation_managed": "Wie ein Bildschirm hängt, wird beim Erstellen unter „Neuer Bildschirm“ gewählt; darum verwaltet ESP Screens LVGL_ROTATION weiterhin.",
+        "orientation_managed": "Wie ein Bildschirm hängt, wird beim Erstellen unter „Neuer Bildschirm“ gewählt; darum verwaltet Tessera LVGL_ROTATION weiterhin.",
         "usb_port": "Wähle den angeschlossenen USB-Port aus der Liste.",
         "busy_wait": "Es wird schon eine Firmware erstellt oder installiert. Warte, bis das fertig ist.",
         "busy": "Es wird schon eine Firmware erstellt oder installiert.",
@@ -699,7 +699,7 @@
         "comment": "Halte die Anmerkung unter 1000 Zeichen.",
         "unknown_board": "Feedback ist für dieses Board noch nicht verfügbar.",
         "deleting": "Deine geteilte Antwort wird noch gelöscht. Antworte erneut, sobald das erledigt ist.",
-        "storage": "Feedback ist aus: Die gespeicherten Daten stammen von einer anderen Version von ESP Screens."
+        "storage": "Feedback ist aus: Die gespeicherten Daten stammen von einer anderen Version von Tessera."
       }
     },
     "status": {
@@ -881,7 +881,7 @@
         },
         "screen": {
           "label": "Bildschirm",
-          "help": "Welcher Bildschirm die Meldung bekommt: sein Gerätename (etwa kitchen-screen), der Name, den Home Assistant anzeigt, oder ein Raum, der jeden Bildschirm darin erreicht. Eine Liste wie [kitchen-screen, hallway] erreicht mehrere. Weglassen für alle Bildschirme. Ein Name, der zu keinem Bildschirm passt, sendet nichts; das Log von ESP Screen Manager nennt dann die Bildschirme, die es kennt. Nur über die Events esp_screens_show_alert und esp_screens_dismiss_alert."
+          "help": "Welcher Bildschirm die Meldung bekommt: sein Gerätename (etwa kitchen-screen), der Name, den Home Assistant anzeigt, oder ein Raum, der jeden Bildschirm darin erreicht. Eine Liste wie [kitchen-screen, hallway] erreicht mehrere. Weglassen für alle Bildschirme. Ein Name, der zu keinem Bildschirm passt, sendet nichts; das Log von Tessera Screen Manager nennt dann die Bildschirme, die es kennt. Nur über die Events esp_screens_show_alert und esp_screens_dismiss_alert."
         },
         "button_color": {
           "label": "Tastenfarbe",
@@ -1084,7 +1084,7 @@
       },
       "identify": {
         "title": "Das ist {name}",
-        "subtitle": "Identifizieren in ESP Screens"
+        "subtitle": "Identifizieren in Tessera"
       },
       "script_running": "Läuft",
       "states": {
@@ -1319,7 +1319,7 @@
       "page_taken": "Dieser Bildschirm hat schon eine Kachel, die zu Seite {page} führt.",
       "copied": "Layout von {name} kopiert. Drücke „Speichern & senden“, wenn alles passt.",
       "imported": "Layout importiert. Drücke „Speichern & senden“, wenn alles passt.",
-      "not_json": "Das ist kein JSON. Exportiere zuerst ein Layout oder füge eines aus einer anderen ESP Screens-Installation ein.",
+      "not_json": "Das ist kein JSON. Exportiere zuerst ein Layout oder füge eines aus einer anderen Tessera-Installation ein.",
       "count": "{n} Seite · {tiles} / {limit} Kacheln | {n} Seiten · {tiles} / {limit} Kacheln",
       "no_tiles": "Füge aus der Bibliothek deine erste Leuchte, Szene oder dein erstes Gerät hinzu.",
       "how_to": "Tippe auf die Kopfleiste oder eine Kachel, um sie zu ändern. Ziehen verschiebt; Ablegen auf der nächsten Seite legt eine neue an.",
@@ -1746,7 +1746,7 @@
       "claude": {
         "installed": "Skill installiert. Claude Code nutzt ihn sofort.",
         "installed_restart": "Skill installiert. Starte Claude Code einmal neu, damit es den neuen Skills-Ordner findet.",
-        "text": "Bring Claude ESP Screens bei und frag dann: „Zeig eine Meldung auf allen meinen Bildschirmen, wenn der Briefkasten voll ist.“ Claude kennt die Meldungs-Ereignisse und jedes Feld, jede Farbe und jedes Symbol.",
+        "text": "Bring Claude Tessera bei und frag dann: „Zeig eine Meldung auf allen meinen Bildschirmen, wenn der Briefkasten voll ist.“ Claude kennt die Meldungs-Ereignisse und jedes Feld, jede Farbe und jedes Symbol.",
         "install": "Für Claude Code installieren",
         "install_again": "Erneut installieren",
         "update": "Skill aktualisieren",
@@ -1793,7 +1793,7 @@
     },
     "firmware": {
       "title": "Bildschirm-Firmware erstellen und installieren",
-      "intro": "Die eingebaute ESPHome CLI nutzt dein eigenes Profil (YAML mit Schlüsseln) und deine Secrets. Wähle das Profil des Bildschirms, dann einen USB-Port (Bildschirm am Home Assistant-Rechner angeschlossen), {ota} mit dem Hostnamen oder {download}, um die Firmware von deinem eigenen Computer aus auf den Bildschirm zu spielen. {check} validiert nur, {build} kompiliert, {install} spielt die Firmware auf den Bildschirm. Deine Kacheln bleiben in ESP Screens, wie sie sind. Das erste Erstellen dauert ein paar Minuten.",
+      "intro": "Die eingebaute ESPHome CLI nutzt dein eigenes Profil (YAML mit Schlüsseln) und deine Secrets. Wähle das Profil des Bildschirms, dann einen USB-Port (Bildschirm am Home Assistant-Rechner angeschlossen), {ota} mit dem Hostnamen oder {download}, um die Firmware von deinem eigenen Computer aus auf den Bildschirm zu spielen. {check} validiert nur, {build} kompiliert, {install} spielt die Firmware auf den Bildschirm. Deine Kacheln bleiben in Tessera, wie sie sind. Das erste Erstellen dauert ein paar Minuten.",
       "ota": "Wi-Fi / OTA",
       "download": "Download",
       "check": "Prüfen",
@@ -1819,7 +1819,7 @@
         "done": "Fertig.",
         "failed": "Das hat nicht geklappt."
       },
-      "intro": "ESP Screens legt das eigene Profil des Bildschirms mit eindeutigen Schlüsseln an und erstellt die Firmware. Schließe den Bildschirm mit einem USB-Datenkabel an den Rechner an, auf dem Home Assistant läuft, oder an den Computer, an dem du gerade sitzt.",
+      "intro": "Tessera legt das eigene Profil des Bildschirms mit eindeutigen Schlüsseln an und erstellt die Firmware. Schließe den Bildschirm mit einem USB-Datenkabel an den Rechner an, auf dem Home Assistant läuft, oder an den Computer, an dem du gerade sitzt.",
       "board": "Welchen Bildschirm hast du?",
       "board_title": "{name} · {inch} Zoll",
       "status": {
@@ -1863,8 +1863,8 @@
         "title": "Wi-Fi",
         "ssid": "Wi-Fi-Name (2,4 GHz)",
         "password": "Wi-Fi-Passwort",
-        "new": "Einmal ausfüllen: ESP Screens speichert das in der secrets.yaml von ESPHome, weitere Bildschirme nutzen es automatisch.",
-        "missing": "In deiner secrets.yaml von ESPHome fehlen noch Wi-Fi-Angaben. ESP Screens ergänzt nur die fehlenden Zeilen.",
+        "new": "Einmal ausfüllen: Tessera speichert das in der secrets.yaml von ESPHome, weitere Bildschirme nutzen es automatisch.",
+        "missing": "In deiner secrets.yaml von ESPHome fehlen noch Wi-Fi-Angaben. Tessera ergänzt nur die fehlenden Zeilen.",
         "ready": "Die Wi-Fi-Daten kommen aus deiner secrets.yaml von ESPHome.",
         "invalid": "Die secrets.yaml im ESPHome-Ordner ist kein gültiges YAML. Korrigiere zuerst die Datei; sie wird nicht überschrieben."
       },
@@ -1912,13 +1912,13 @@
       "download_keep": "Die Datei enthält dein Wi-Fi-Passwort und die Schlüssel des Bildschirms: Behalte sie für dich.",
       "api_key": "API-Schlüssel",
       "pairing": {
-        "ha": "{bold} Das passiert außerhalb von ESP Screens. Home Assistant entdeckt {name} als ESPHome-Gerät; klicke auf „Hinzufügen“. Nicht entdeckt? Füge ESPHome manuell mit der IP-Adresse des Bildschirms hinzu.",
+        "ha": "{bold} Das passiert außerhalb von Tessera. Home Assistant entdeckt {name} als ESPHome-Gerät; klicke auf „Hinzufügen“. Nicht entdeckt? Füge ESPHome manuell mit der IP-Adresse des Bildschirms hinzu.",
         "ha_bold": "Öffne in Home Assistant Einstellungen → Geräte & Dienste.",
         "key": "{bold} (unter „API-Schlüssel anzeigen“ unten), falls Home Assistant nach einem Verschlüsselungsschlüssel fragt. Mit der ESPHome Device Builder App trägt Home Assistant ihn oft selbst ein.",
         "key_bold": "Füge den API-Schlüssel von oben ein",
         "actions": "{bold} ESPHome-Integration → Konfigurieren → „Dem Gerät erlauben, Home Assistant-Aktionen auszuführen“. Ohne das sieht der Bildschirm alles, steuert aber nichts.",
         "actions_bold": "HA-Aktionen erlauben:",
-        "tiles": "{bold} Zurück in ESP Screens erscheint der Bildschirm innerhalb von etwa dreißig Sekunden links in der Liste; bis dahin steht er dort als „noch nicht in Home Assistant“.",
+        "tiles": "{bold} Zurück in Tessera erscheint der Bildschirm innerhalb von etwa dreißig Sekunden links in der Liste; bis dahin steht er dort als „noch nicht in Home Assistant“.",
         "tiles_bold": "Wähle deine Kacheln."
       },
       "log": "ESPHome-Protokoll",
@@ -1999,7 +1999,7 @@
       "copy_yaml": "YAML kopieren",
       "all": {
         "title": "Alle Bildschirme auf einmal",
-        "text": "Löse das Ereignis {show} mit denselben Feldern aus, und ESP Screens gibt die Meldung an jeden Bildschirm weiter, der online ist, auch an später hinzugefügte. {dismiss} entfernt sie überall. Nimm in einer Automation die Aktion {event} oder füge das Beispiel unter {edit} ein. Lass die Felder weg, die du nicht brauchst. Dafür muss ESP Screens laufen.",
+        "text": "Löse das Ereignis {show} mit denselben Feldern aus, und Tessera gibt die Meldung an jeden Bildschirm weiter, der online ist, auch an später hinzugefügte. {dismiss} entfernt sie überall. Nimm in einer Automation die Aktion {event} oder füge das Beispiel unter {edit} ein. Lass die Felder weg, die du nicht brauchst. Dafür muss Tessera laufen.",
         "event": "Manuelles Ereignis auslösen"
       },
       "fields": {
@@ -2062,7 +2062,7 @@
         "button_bold": "eigener Tastentext",
         "resolve": "Eine Meldung, die sich von selbst erledigt (die Tür geht auf, die Wäsche wird herausgenommen), schließt du in derselben Automation mit {dismiss}.",
         "every": "Alle Bildschirme? Löse {event} einmal aus (siehe „Alle Bildschirme auf einmal“). Die Bildschirme arbeiten trotzdem unabhängig, und jeder meldet sich mit seinem eigenen {screen}.",
-        "claude": "Für die Automation lieber {bold}? Installiere den ESP Screens-Skill unter Einstellungen → Claude.",
+        "claude": "Für die Automation lieber {bold}? Installiere den Tessera-Skill unter Einstellungen → Claude.",
         "claude_bold": "Claude fragen"
       },
       "wait_yaml": {
@@ -2072,7 +2072,7 @@
       "one": {
         "title": "Ein Bildschirm, mit Kamera oder Tastenaktion",
         "text": "Füge {screen} zum selben Event hinzu, und nur dieser Bildschirm bekommt die Meldung. So zeigt ein einzelner Bildschirm ein Bild von {camera} oder führt über seine Taste eine {action} aus: Die eigene Aktion des Bildschirms hat dafür keine Felder. Nach {screen} kommt einer der Werte aus der Liste unten.",
-        "more": "Mehrere Bildschirme? Gib eine Liste an, etwa {list}. Ein Raum geht auch und erreicht jeden Bildschirm darin. Ein Name, der zu keinem Bildschirm passt, sendet nichts; das Log von ESP Screen Manager nennt dann die Bildschirme, die es kennt.",
+        "more": "Mehrere Bildschirme? Gib eine Liste an, etwa {list}. Ein Raum geht auch und erreicht jeden Bildschirm darin. Ein Name, der zu keinem Bildschirm passt, sendet nichts; das Log von Tessera Screen Manager nennt dann die Bildschirme, die es kennt.",
         "value": "Nach screen:",
         "name": "Name in Home Assistant",
         "room": "Raum",
@@ -2092,9 +2092,9 @@
       "eyebrow": "Erweitert · lokale Anpassung",
       "title": "YAML-Anpassung",
       "title_named": "YAML-Anpassung · {name}",
-      "intro": "Diese kleine Datei gehört dir. Sie wird nach dem gemeinsamen Bildschirm-Paket geladen und bleibt erhalten, wenn ESP Screens aktualisiert wird. Ändere hier hardwarespezifische Details, etwa ein Display-Modell.",
+      "intro": "Diese kleine Datei gehört dir. Sie wird nach dem gemeinsamen Bildschirm-Paket geladen und bleibt erhalten, wenn Tessera aktualisiert wird. Ändere hier hardwarespezifische Details, etwa ein Display-Modell.",
       "safe_title": "Was kann ich gefahrlos ändern?",
-      "safe_text": "Display, Touchscreen, Substitutions, Pins und andere Gerätedetails. Name, Wi-Fi, API, OTA und Paket-Links bleiben von ESP Screens verwaltet.",
+      "safe_text": "Display, Touchscreen, Substitutions, Pins und andere Gerätedetails. Name, Wi-Fi, API, OTA und Paket-Links bleiben von Tessera verwaltet.",
       "active": "Aktiv",
       "ready": "Bereit zum Einbinden",
       "editor_label": "Lokale YAML-Anpassung",
@@ -2250,15 +2250,15 @@
         "model": "Das Bildschirmmodell: {model}",
         "answer": "Deine Antwort, die gewählten Probleme und deine Anmerkung",
         "firmware": "Die Firmware-Version des Bildschirms: {version}",
-        "addon": "Die Version von ESP Screens: {version}",
+        "addon": "Die Version von Tessera: {version}",
         "nothing_else": "Sonst nichts: kein Name, kein Konto, keine Entitäten, Logs oder Home-Assistant-Einstellungen. Jeder Bildschirm teilt unter einem eigenen zufälligen Schlüssel."
       },
       "privacy": "Datenschutz"
     },
     "webflash": {
       "target": "Aus diesem Browser installieren (Chrome oder Edge)",
-      "hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Danach laufen Updates über WLAN.",
-      "firmware_hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Der Bildschirm behält seine Einstellungen und Touch-Kalibrierung. So rettest du auch einen Bildschirm, der ständig neu startet und nie online kommt.",
+      "hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. Tessera erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Danach laufen Updates über WLAN.",
+      "firmware_hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. Tessera erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Der Bildschirm behält seine Einstellungen und Touch-Kalibrierung. So rettest du auch einen Bildschirm, der ständig neu startet und nie online kommt.",
       "go": "Verbinden & installieren",
       "building": "Das Bauen kann auf einem Home-Assistant-Rechner wie einem Raspberry Pi 20 Minuten oder länger dauern, besonders beim ersten Mal. Das ist normal. Lass diesen Tab offen und den Bildschirm angeschlossen: Diese Seite installiert die Firmware, sobald sie fertig ist.",
       "keep_open": "Lass diesen Tab offen und das USB-Kabel eingesteckt, bis es fertig ist.",
@@ -2270,7 +2270,7 @@
         "picking": "Wähle den USB-Anschluss des Bildschirms im Fenster, das dein Browser zeigt.",
         "connecting": "Verbindung zum Board wird hergestellt…",
         "waiting": "Mit dem Board verbunden ({chip}). Die Firmware wird aufgespielt, sobald sie erstellt ist.",
-        "downloading": "Firmware wird von ESP Screens geholt…",
+        "downloading": "Firmware wird von Tessera geholt…",
         "erasing": "Speicher des Boards wird gelöscht…",
         "writing": "Installation… {percent} %",
         "restarting": "Bildschirm wird neu gestartet…",
@@ -2282,9 +2282,9 @@
         "busy": "Der Anschluss des Bildschirms wird von einem anderen Programm oder Tab benutzt, etwa einem seriellen Monitor oder ESPHome Web. Schließe es und versuche es erneut.",
         "connect": "Das Board hat nicht geantwortet. Halte die BOOT-Taste auf dem Board gedrückt, während du den Anschluss wählst, bis die Installation beginnt, und versuche es erneut. Kabel ab- und wieder anstecken hilft auch manchmal.",
         "wrong_chip": "Das Board am Kabel hat einen {found}-Chip, aber die Firmware dieses Bildschirms ist für einen {expected}. Schließe den richtigen Bildschirm an oder wähle sein Board.",
-        "wrong_image": "Die Firmware von ESP Screens ist für einen {expected}, aber das Board am Kabel hat einen {found}. Es wurde nichts geschrieben.",
+        "wrong_image": "Die Firmware von Tessera ist für einen {expected}, aber das Board am Kabel hat einen {found}. Es wurde nichts geschrieben.",
         "disconnected": "Der Bildschirm wurde getrennt. Schließe ihn wieder an und versuche es erneut.",
-        "download": "Die Firmware konnte nicht von ESP Screens geholt werden: {error}",
+        "download": "Die Firmware konnte nicht von Tessera geholt werden: {error}",
         "failed": "Die Installation hat nicht geklappt: {error}"
       },
       "hints": {

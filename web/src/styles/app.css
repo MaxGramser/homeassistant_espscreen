@@ -44,7 +44,7 @@ a:hover { text-decoration: underline; }
 /* Sidebar */
 .side { background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px; gap: 4px; min-height: 0; overflow: auto; position: sticky; top: 0; height: 100vh; }
 .brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 6px; font-weight: 600; font-size: 13px; }
-.brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--ink); color: var(--surface); display: grid; place-items: center; font-size: 14px; line-height: 1; }
+.brand .mark { width: 22px; height: 22px; flex: none; }
 /* Only while something is wrong: unreachable, or reconnecting. Connected says nothing. */
 .conn { display: block; padding: 0 8px 8px; font-size: 11px; color: var(--warn); }
 .conn::before { content: "●"; margin-right: 6px; }

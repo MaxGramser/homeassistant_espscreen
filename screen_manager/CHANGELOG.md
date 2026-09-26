@@ -1,3 +1,10 @@
+## 0.3.18 (firmware 0.3.9)
+
+The app is called Tessera now, with the mosaic logo.
+
+- **Tessera Screen Manager.** The app in the App store, its page there and the panel in the sidebar carry the Tessera name and the mosaic mark, like the website and a screen that is starting. The store page links to the website, the quick start and the supported screens. The texts of the editor say Tessera where they said ESP Screens. The app's slug is unchanged, so this is the same app: your screens, layouts and profiles stay exactly as they are, and the `esp_screens_show_alert` and `esp_screens_dismiss_alert` events keep their names.
+- Update the Tessera Screen Manager app to get this; the screens need no new firmware.
+
 ## 0.3.17 (firmware 0.3.9)
 
 The API key steps back.

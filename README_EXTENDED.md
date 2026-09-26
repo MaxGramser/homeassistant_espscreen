@@ -1,6 +1,6 @@
 # Tessera: the full reference
 
-<sub>Tessera is the new name for ESP Screens. Home Assistant still shows the app as ESP Screen Manager and its panel as ESP Screens, so this page uses those names. More on the [Tessera website](https://tessera-maxgramser.on-forge.com).</sub>
+<sub>Tessera is the new name for ESP Screens. Since app 0.3.18 Home Assistant shows the app as Tessera Screen Manager and its panel as Tessera; where this page says ESP Screens, read Tessera. More on the [Tessera website](https://tessera-maxgramser.on-forge.com).</sub>
 
 The [README](README.md) shows what ESP Screens is and how to install it. This page has the rest:
 every card and setting, what an automation can do with a screen, the top bar, the settings page

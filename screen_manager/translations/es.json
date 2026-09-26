@@ -101,11 +101,11 @@
     },
     "status": {
       "connecting": "Conectando con Home Assistant",
-      "waiting": "Esperando a ESP Screens",
+      "waiting": "Esperando a Tessera",
       "loading_tiles": "Cargando mosaicos...",
       "preparing_pages": "Preparando páginas {n}/{total}",
       "ha_not_connected": "HA no conectado",
-      "manager_not_active": "ESP Screens no activo",
+      "manager_not_active": "Tessera no activo",
       "choose_tiles": "Elige los mosaicos en HA",
       "home": "Casa",
       "no_network": "Sin red",
@@ -612,7 +612,7 @@
         "override_symlink": "El YAML personalizado local es un enlace simbólico; sustitúyelo antes por un archivo normal.",
         "other_include": "Este perfil ya tiene otro include de local_overrides.",
         "profile_invalid": "El perfil de la pantalla no es un YAML válido; corrígelo antes de añadir un YAML personalizado.",
-        "no_packages": "Este perfil no tiene una sección packages que ESP Screens pueda ampliar.",
+        "no_packages": "Este perfil no tiene una sección packages que Tessera pueda ampliar.",
         "override_invalid": "Datos del YAML personalizado no válidos.",
         "yaml_needed": "Escribe antes el texto YAML.",
         "override_too_large": "El YAML personalizado es demasiado grande. Mantenlo por debajo de 12 KB.",
@@ -620,11 +620,11 @@
         "yaml_error": "Error de YAML: {problem}.",
         "invalid_yaml": "YAML no válido",
         "override_object": "El YAML personalizado debe contener un objeto YAML, por ejemplo display: o substitutions:.",
-        "sections_managed": "Estas secciones las sigue gestionando ESP Screens: {names}.",
-        "substitutions_managed": "Estas substitutions las sigue gestionando ESP Screens: {names}.",
+        "sections_managed": "Estas secciones las sigue gestionando Tessera: {names}.",
+        "substitutions_managed": "Estas substitutions las sigue gestionando Tessera: {names}.",
         "substitutions_in_profile": "{names} está en el YAML propio de esta pantalla (elegido en Nueva pantalla), que tiene prioridad sobre el override. Cámbialo allí.",
         "orientation": "Elige si la pantalla queda en horizontal o en vertical.",
-        "orientation_managed": "Cómo queda colgada una pantalla se elige al compilarla, en Nueva pantalla; por eso ESP Screens sigue gestionando LVGL_ROTATION.",
+        "orientation_managed": "Cómo queda colgada una pantalla se elige al compilarla, en Nueva pantalla; por eso Tessera sigue gestionando LVGL_ROTATION.",
         "usb_port": "Elige de la lista el puerto USB conectado.",
         "busy_wait": "Ya hay una compilación o instalación en curso. Espera a que termine.",
         "busy": "Ya hay una compilación o instalación en curso.",
@@ -699,7 +699,7 @@
         "comment": "La nota debe tener menos de 1000 caracteres.",
         "unknown_board": "Los comentarios aún no están disponibles para esta placa.",
         "deleting": "Tu respuesta compartida aún se está eliminando. Vuelve a responder cuando termine.",
-        "storage": "Los comentarios están desactivados: sus datos guardados los escribió otra versión de ESP Screens."
+        "storage": "Los comentarios están desactivados: sus datos guardados los escribió otra versión de Tessera."
       }
     },
     "status": {
@@ -881,7 +881,7 @@
         },
         "screen": {
           "label": "Pantalla",
-          "help": "Qué pantalla recibe la alerta: su nombre de dispositivo (como kitchen-screen), el nombre que muestra Home Assistant, o una habitación, que llega a cada pantalla que haya en ella. Una lista, como [kitchen-screen, hallway], llega a varias. Omítelo para todas las pantallas. Un nombre que no coincide con ninguna pantalla no envía nada; el registro de ESP Screen Manager nombra entonces las pantallas que conoce. Solo mediante los eventos esp_screens_show_alert y esp_screens_dismiss_alert."
+          "help": "Qué pantalla recibe la alerta: su nombre de dispositivo (como kitchen-screen), el nombre que muestra Home Assistant, o una habitación, que llega a cada pantalla que haya en ella. Una lista, como [kitchen-screen, hallway], llega a varias. Omítelo para todas las pantallas. Un nombre que no coincide con ninguna pantalla no envía nada; el registro de Tessera Screen Manager nombra entonces las pantallas que conoce. Solo mediante los eventos esp_screens_show_alert y esp_screens_dismiss_alert."
         },
         "button_color": {
           "label": "Color del botón",
@@ -1084,7 +1084,7 @@
       },
       "identify": {
         "title": "Esta es {name}",
-        "subtitle": "Identificar, desde ESP Screens"
+        "subtitle": "Identificar, desde Tessera"
       },
       "script_running": "En curso",
       "states": {
@@ -1319,7 +1319,7 @@
       "page_taken": "Esta pantalla ya tiene un mosaico que lleva a la página {page}.",
       "copied": "Diseño de {name} copiado. Pulsa Guardar y enviar cuando te parezca bien.",
       "imported": "Diseño importado. Pulsa Guardar y enviar cuando te parezca bien.",
-      "not_json": "Eso no es JSON. Exporta antes un diseño o pega uno de otro ESP Screens.",
+      "not_json": "Eso no es JSON. Exporta antes un diseño o pega uno de otro Tessera.",
       "count": "{n} página · {tiles} / {limit} mosaicos | {n} páginas · {tiles} / {limit} mosaicos",
       "no_tiles": "Añade tu primera luz, escena o dispositivo desde la biblioteca.",
       "how_to": "Toca la barra superior o un mosaico para cambiarlo. Arrastra para mover; suelta en la página siguiente para crear una nueva.",
@@ -1746,7 +1746,7 @@
       "claude": {
         "installed": "Habilidad instalada. Claude Code la detecta al momento.",
         "installed_restart": "Habilidad instalada. Reinicia Claude Code una vez para que encuentre la nueva carpeta de habilidades.",
-        "text": "Enseña a Claude a usar ESP Screens y luego pídele: «Muestra una alerta en todas mis pantallas cuando el buzón esté lleno». Claude conoce los eventos de alerta y cada campo, color e icono.",
+        "text": "Enseña a Claude a usar Tessera y luego pídele: «Muestra una alerta en todas mis pantallas cuando el buzón esté lleno». Claude conoce los eventos de alerta y cada campo, color e icono.",
         "install": "Instalar para Claude Code",
         "install_again": "Volver a instalar",
         "update": "Actualizar la habilidad",
@@ -1793,7 +1793,7 @@
     },
     "firmware": {
       "title": "Compilar e instalar el firmware de las pantallas",
-      "intro": "La CLI de ESPHome integrada usa tu propio perfil (YAML con claves) y tus secretos. Elige el perfil de la pantalla y luego un puerto USB (pantalla conectada al equipo de Home Assistant), {ota} con el nombre de host, o {download} para instalar el firmware en la pantalla desde tu propio ordenador. {check} solo valida, {build} compila y {install} instala el firmware en la pantalla. Tus mosaicos se quedan como están en ESP Screens. La primera compilación tarda unos minutos.",
+      "intro": "La CLI de ESPHome integrada usa tu propio perfil (YAML con claves) y tus secretos. Elige el perfil de la pantalla y luego un puerto USB (pantalla conectada al equipo de Home Assistant), {ota} con el nombre de host, o {download} para instalar el firmware en la pantalla desde tu propio ordenador. {check} solo valida, {build} compila y {install} instala el firmware en la pantalla. Tus mosaicos se quedan como están en Tessera. La primera compilación tarda unos minutos.",
       "ota": "Wi-Fi / OTA",
       "download": "Descargar",
       "check": "Comprobar",
@@ -1819,7 +1819,7 @@
         "done": "Hecho.",
         "failed": "No ha funcionado."
       },
-      "intro": "ESP Screens crea el perfil propio de la pantalla con claves únicas y compila el firmware. Conecta la pantalla con un cable USB de datos al equipo donde se ejecuta Home Assistant, o al ordenador que estás usando ahora.",
+      "intro": "Tessera crea el perfil propio de la pantalla con claves únicas y compila el firmware. Conecta la pantalla con un cable USB de datos al equipo donde se ejecuta Home Assistant, o al ordenador que estás usando ahora.",
       "board": "¿Qué pantalla tienes?",
       "board_title": "{name} · {inch} pulgadas",
       "status": {
@@ -1863,8 +1863,8 @@
         "title": "Wi-Fi",
         "ssid": "Nombre de la red Wi-Fi (2,4 GHz)",
         "password": "Contraseña de la Wi-Fi",
-        "new": "Rellénalo una sola vez: ESP Screens lo guarda en el secrets.yaml de ESPHome y las siguientes pantallas lo usan automáticamente.",
-        "missing": "A tu secrets.yaml de ESPHome aún le faltan los datos de la Wi-Fi. ESP Screens solo rellena las líneas que faltan.",
+        "new": "Rellénalo una sola vez: Tessera lo guarda en el secrets.yaml de ESPHome y las siguientes pantallas lo usan automáticamente.",
+        "missing": "A tu secrets.yaml de ESPHome aún le faltan los datos de la Wi-Fi. Tessera solo rellena las líneas que faltan.",
         "ready": "La Wi-Fi se toma de tu secrets.yaml de ESPHome.",
         "invalid": "El secrets.yaml de la carpeta de ESPHome no es un YAML válido. Corrige antes el archivo; no se sobrescribirá."
       },
@@ -1912,13 +1912,13 @@
       "download_keep": "El archivo contiene tu contraseña de Wi-Fi y las claves de la pantalla: no lo compartas.",
       "api_key": "Clave API",
       "pairing": {
-        "ha": "{bold} Esto se hace fuera de ESP Screens. Home Assistant descubre {name} como dispositivo ESPHome; haz clic en Añadir. ¿No aparece? Añade ESPHome manualmente con la dirección IP de la pantalla.",
+        "ha": "{bold} Esto se hace fuera de Tessera. Home Assistant descubre {name} como dispositivo ESPHome; haz clic en Añadir. ¿No aparece? Añade ESPHome manualmente con la dirección IP de la pantalla.",
         "ha_bold": "Ve a Home Assistant → Configuración → Dispositivos y servicios.",
         "key": "{bold} (en «Mostrar la clave API», abajo) si Home Assistant pide una clave de cifrado. Con la app ESPHome Device Builder instalada, Home Assistant suele rellenarla solo.",
         "key_bold": "Pega la clave API",
         "actions": "{bold} integración ESPHome → Configurar → «Permite que el dispositivo realice acciones de Home Assistant». Sin esto, la pantalla lo ve todo pero no controla nada.",
         "actions_bold": "Permite las acciones de HA:",
-        "tiles": "{bold} De vuelta en ESP Screens, la pantalla aparece en la lista de la izquierda en unos treinta segundos; hasta entonces se muestra ahí como «aún no está en Home Assistant».",
+        "tiles": "{bold} De vuelta en Tessera, la pantalla aparece en la lista de la izquierda en unos treinta segundos; hasta entonces se muestra ahí como «aún no está en Home Assistant».",
         "tiles_bold": "Elige tus mosaicos."
       },
       "log": "Registro de ESPHome",
@@ -1999,7 +1999,7 @@
       "copy_yaml": "Copiar YAML",
       "all": {
         "title": "Todas las pantallas a la vez",
-        "text": "Dispara el evento {show} con los mismos campos y ESP Screens pasa la alerta a todas las pantallas en línea, incluidas las que añadas más tarde. {dismiss} la quita en todas. En una automatización, añade la acción {event} o pega el ejemplo en {edit}. Omite los campos que no uses. Para esto, ESP Screens tiene que estar en marcha.",
+        "text": "Dispara el evento {show} con los mismos campos y Tessera pasa la alerta a todas las pantallas en línea, incluidas las que añadas más tarde. {dismiss} la quita en todas. En una automatización, añade la acción {event} o pega el ejemplo en {edit}. Omite los campos que no uses. Para esto, Tessera tiene que estar en marcha.",
         "event": "Disparar evento manual"
       },
       "fields": {
@@ -2062,7 +2062,7 @@
         "button_bold": "texto de botón propio",
         "resolve": "Para una alerta que se resuelve sola (se abre la puerta, alguien saca la ropa de la lavadora), ciérrala en la misma automatización con {dismiss}.",
         "every": "¿Todas las pantallas? Dispara {event} una vez (consulta «Todas las pantallas a la vez»). Las pantallas siguen funcionando por separado y cada una informa con su propio {screen}.",
-        "claude": "¿Prefieres {bold} que te haga la automatización? Instala la habilidad de ESP Screens en Configuración → Claude.",
+        "claude": "¿Prefieres {bold} que te haga la automatización? Instala la habilidad de Tessera en Configuración → Claude.",
         "claude_bold": "pedirle a Claude"
       },
       "wait_yaml": {
@@ -2072,7 +2072,7 @@
       "one": {
         "title": "Una pantalla, con cámara o acción del botón",
         "text": "Añade {screen} al mismo evento y solo esa pantalla recibe la alerta. Así una sola pantalla muestra una imagen de {camera} o ejecuta una {action} desde su botón: la acción propia de la pantalla no tiene campos para eso. Después de {screen} va uno de los valores de la lista de abajo.",
-        "more": "¿Varias pantallas? Da una lista, como {list}. Una habitación también sirve y llega a cada pantalla que haya en ella. Un nombre que no coincide con ninguna pantalla no envía nada; el registro de ESP Screen Manager nombra entonces las pantallas que conoce.",
+        "more": "¿Varias pantallas? Da una lista, como {list}. Una habitación también sirve y llega a cada pantalla que haya en ella. Un nombre que no coincide con ninguna pantalla no envía nada; el registro de Tessera Screen Manager nombra entonces las pantallas que conoce.",
         "value": "Después de screen:",
         "name": "Nombre en Home Assistant",
         "room": "Habitación",
@@ -2092,9 +2092,9 @@
       "eyebrow": "Avanzado · personalización local",
       "title": "YAML personalizado",
       "title_named": "YAML personalizado · {name}",
-      "intro": "Este pequeño archivo es tuyo. Se carga después del paquete común de las pantallas y se mantiene cuando ESP Screens se actualiza. Cambia aquí detalles propios del hardware, como el modelo de pantalla.",
+      "intro": "Este pequeño archivo es tuyo. Se carga después del paquete común de las pantallas y se mantiene cuando Tessera se actualiza. Cambia aquí detalles propios del hardware, como el modelo de pantalla.",
       "safe_title": "¿Qué se puede cambiar sin riesgo?",
-      "safe_text": "Las secciones display, touchscreen y substitutions, los pines y otros detalles del dispositivo. El nombre, la Wi-Fi, la API, OTA y los enlaces a los paquetes los sigue gestionando ESP Screens.",
+      "safe_text": "Las secciones display, touchscreen y substitutions, los pines y otros detalles del dispositivo. El nombre, la Wi-Fi, la API, OTA y los enlaces a los paquetes los sigue gestionando Tessera.",
       "active": "Activo",
       "ready": "Listo para vincular",
       "editor_label": "YAML personalizado local",
@@ -2250,15 +2250,15 @@
         "model": "El modelo de pantalla: {model}",
         "answer": "Tu respuesta, los problemas elegidos y tu nota",
         "firmware": "La versión de firmware de la pantalla: {version}",
-        "addon": "La versión de ESP Screens: {version}",
+        "addon": "La versión de Tessera: {version}",
         "nothing_else": "Nada más: ni nombre, ni cuenta, ni entidades, registros o configuración de Home Assistant. Cada pantalla comparte con su propia clave aleatoria."
       },
       "privacy": "Privacidad"
     },
     "webflash": {
       "target": "Instalar desde este navegador (Chrome o Edge)",
-      "hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
-      "firmware_hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. La pantalla conserva sus ajustes y su calibración táctil. Así también rescatas una pantalla que se reinicia sin parar y nunca se conecta.",
+      "hint": "Conecta la pantalla a este ordenador con un cable USB de datos. Tessera compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
+      "firmware_hint": "Conecta la pantalla a este ordenador con un cable USB de datos. Tessera compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. La pantalla conserva sus ajustes y su calibración táctil. Así también rescatas una pantalla que se reinicia sin parar y nunca se conecta.",
       "go": "Conectar e instalar",
       "building": "La compilación puede tardar 20 minutos o más en un equipo de Home Assistant como una Raspberry Pi, sobre todo la primera vez. Es normal. Deja esta pestaña abierta y la pantalla conectada: esta página instala el firmware en cuanto esté listo.",
       "keep_open": "Deja esta pestaña abierta y el cable USB conectado hasta que termine.",
@@ -2270,7 +2270,7 @@
         "picking": "Elige el puerto USB de la pantalla en la ventana que muestra tu navegador.",
         "connecting": "Conectando con la placa…",
         "waiting": "Conectado a la placa ({chip}). El firmware se instala en cuanto esté compilado.",
-        "downloading": "Obteniendo el firmware de ESP Screens…",
+        "downloading": "Obteniendo el firmware de Tessera…",
         "erasing": "Borrando la memoria de la placa…",
         "writing": "Instalando… {percent} %",
         "restarting": "Reiniciando la pantalla…",
@@ -2282,9 +2282,9 @@
         "busy": "El puerto de la pantalla lo usa otro programa o pestaña, como un monitor serie o ESPHome Web. Ciérralo y vuelve a intentarlo.",
         "connect": "La placa no respondió. Mantén pulsado el botón BOOT de la placa mientras eliges el puerto, hasta que empiece la instalación, y vuelve a intentarlo. Desconectar y volver a conectar el cable también puede ayudar.",
         "wrong_chip": "La placa conectada tiene un chip {found}, pero el firmware de esta pantalla es para un {expected}. Conecta la pantalla correcta o elige su placa.",
-        "wrong_image": "El firmware que compiló ESP Screens es para un {expected}, pero la placa conectada tiene un {found}. No se escribió nada.",
+        "wrong_image": "El firmware que compiló Tessera es para un {expected}, pero la placa conectada tiene un {found}. No se escribió nada.",
         "disconnected": "La pantalla se desconectó. Vuelve a conectarla e inténtalo de nuevo.",
-        "download": "No se pudo obtener el firmware de ESP Screens: {error}",
+        "download": "No se pudo obtener el firmware de Tessera: {error}",
         "failed": "La instalación no funcionó: {error}"
       },
       "hints": {
