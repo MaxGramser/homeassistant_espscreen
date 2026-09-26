@@ -1438,7 +1438,7 @@ class Manager:
         if tile['entity'].startswith('cover.'):
             return tuple(cover_related(tile['entity'], self.device_entries(tile['entity']), self.ha.states).values())
         if tile['entity'].startswith('light.'):
-            # The selects and numbers of its device (effects page), and a group's lamps (lamp page, app 0.3.15).
+            # The selects and numbers of its device (effects page), and a group's lamps (lamp page, app 0.3.16).
             return (tuple(light_effects.related(tile['entity'], self.device_entries(tile['entity']), self.ha.states)) +
                     tuple(light_groups.lamp_ids(tile['entity'], self.ha.states)))
         return ()
@@ -1680,7 +1680,7 @@ class Manager:
         word=ha_catalogue.screen_word(tile['entity'],message['state'],state.get('attributes'),entry,getattr(self.ha,'state_words',None))
         if word:
             message.setdefault('x',{})['w']=word
-        # A light group's lamps for its lamp page (app 0.3.15), to a screen that takes them.
+        # A light group's lamps for its lamp page (app 0.3.16), to a screen that takes them.
         if lamps and light:
             members=light_groups.lamps(tile['entity'],self.ha.states)
             if members:

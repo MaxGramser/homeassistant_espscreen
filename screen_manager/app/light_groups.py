@@ -1,4 +1,4 @@
-"""A light group's lamps (app 0.3.15 / firmware 0.3.9): what the screen's lamp page shows of each lamp of a group.
+"""A light group's lamps (app 0.3.16 / firmware 0.3.9): what the screen's lamp page shows of each lamp of a group.
 
 Home Assistant lists a group's lamps in the group's `entity_id` attribute (the light group helper and the old group
 platform both do). Each lamp travels with its name as Home Assistant shows it, whether it is on, its brightness, and

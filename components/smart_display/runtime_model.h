@@ -169,7 +169,7 @@ struct Choice {
 // options it has, and a number entity with its range; the names and icons are Home Assistant's, through the add-on.
 struct OptionRow { std::string entity, name, current; uint16_t count = 0; uint32_t icon = 0; };
 struct NumberRow { std::string entity, name; float value = NAN, low = 0, high = 100, step = 1; uint32_t icon = 0; };
-// A lamp of a light group (firmware 0.3.9+, app 0.3.15+): what the group's lamp page shows of it and may change. The
+// A lamp of a light group (firmware 0.3.9+, app 0.3.16+): what the group's lamp page shows of it and may change. The
 // add-on reads the group's members from Home Assistant and sends at most MAX_LAMPS of them, only to a screen that
 // said it takes them (`group_lamps` in its hello). `level` is 1-100 while it is on; `hue` and the kelvins are the
 // lamp's own, 0 when it has none.

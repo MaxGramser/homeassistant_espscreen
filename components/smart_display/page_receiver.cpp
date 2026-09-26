@@ -619,7 +619,7 @@ std::string receive(const std::string &payload) {
       row.icon = tile_icon::codepoint(string(r["i"], 8));
       next.number_rows.push_back(std::move(row));
     }
-    // A light group's lamps (app 0.3.15+, firmware 0.3.9+): what its lamp page shows, in Home Assistant's order.
+    // A light group's lamps (app 0.3.16+, firmware 0.3.9+): what its lamp page shows, in Home Assistant's order.
     if (tile.domain() == "light" && extra["lamps"].is<JsonArray>()) for (JsonVariant l : extra["lamps"].as<JsonArray>()) {
       if (next.lamps.size() == MAX_LAMPS) break;
       Lamp lamp; lamp.entity = string(l["e"], 120);

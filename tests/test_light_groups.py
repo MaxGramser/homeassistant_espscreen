@@ -1,4 +1,4 @@
-"""A light group's lamps (app 0.3.15 / firmware 0.3.9): what the lamp page of a group gets in its state message.
+"""A light group's lamps (app 0.3.16 / firmware 0.3.9): what the lamp page of a group gets in its state message.
 
 The shapes below are what Home Assistant 2026.9 reports for light groups of mixed lamps: a group lists its lamps in
 `entity_id`, a lamp says what it can take in `supported_color_modes` (onoff, brightness, color_temp, xy, rgb), an off

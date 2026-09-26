@@ -1,5 +1,5 @@
 #pragma once
-// A light group's lamp page (firmware 0.3.9+, app 0.3.15+): the lamps of the group, one card per lamp, reached from the
+// A light group's lamp page (firmware 0.3.9+, app 0.3.16+): the lamps of the group, one card per lamp, reached from the
 // lamps key beside the sparkles key on the group's colour card.
 //
 // Every part is one the screens already draw: the top bar and the cards of the effects page, the colour card's

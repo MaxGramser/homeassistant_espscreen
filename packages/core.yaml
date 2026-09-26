@@ -548,7 +548,7 @@ api:
                     root["protocol"] = page_protocol::VERSION;
                     root["bar_values"] = 1;
                     root["appearance_updates"] = 1;
-                    // A light group's lamps in its state message (firmware 0.3.9+, app 0.3.15+).
+                    // A light group's lamps in its state message (firmware 0.3.9+, app 0.3.16+).
                     root["group_lamps"] = 1;
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)

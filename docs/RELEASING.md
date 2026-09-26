@@ -455,7 +455,7 @@ Tile colours as Home Assistant draws them. No protocol, storage or editor change
 - App: `header_bar.ALARM_CLASSES` is Home Assistant's list of eleven red classes, the same list the firmware uses.
 - The editor's mockup still draws icons in one colour. Details: docs/TEST_RESULTS_0285.md.
 
-### Compatibility 0.3.15 / firmware 0.3.9
+### Compatibility 0.3.16 / firmware 0.3.9
 
 A light group's lamp page. Negotiated like `bar_values`; storage unchanged.
 
