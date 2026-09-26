@@ -74,6 +74,7 @@ binary_sensor:
     pin:
       ch422g: expander
       number: 0
+      inverted: true
       mode:
         input: true
     filters: 
@@ -84,6 +85,7 @@ binary_sensor:
     pin:
       ch422g: expander
       number: 5
+      inverted: true
       mode:
         input: true
     filters: 
