@@ -11,6 +11,7 @@ widths in the editor match the screen. The fonts live in packages/core.yaml, sha
 """
 import argparse
 import io
+import json
 import re
 import sys
 from pathlib import Path
@@ -28,8 +29,10 @@ PROFILES = [ROOT / 'packages/core.yaml']  # the fonts every board shares (app 0.
 WEB_FONT = ROOT / 'web/src/assets/tile-icons.woff'
 BAR_FONTS = {weight: ROOT / f'web/src/assets/bar-roboto-{weight}.woff' for weight in (400, 500)}
 NAME_TABLE = ROOT / 'components/smart_display/tile_icon_names.h'
-# Glyphs only the editor draws (the board icon in the screens list); the firmware's fonts leave them out.
-WEB_EXTRA = {'tablet-dashboard': 'F0ECE', 'cellphone': 'F011C', 'monitor-dashboard': 'F0A07', 'drag': 'F01DB'}
+# Glyphs only the editor draws: its own controls (web/src/model/ui-icons.json, app 0.3.19), such as the board icon in the
+# screens list and the keys of the toolbar, menus and inspector. The firmware's fonts leave them out.
+UI_ICONS = ROOT / 'web/src/model/ui-icons.json'
+WEB_EXTRA = {name: code for name, code in json.loads(UI_ICONS.read_text()).items() if not name.startswith('_')}
 # Four bits per pixel: the default of one draws a thin ring like mdi:power as a lumpy circle on the CYD.
 FONT_BLOCK = re.compile(r"(  - file: \"\$\{FONT_DIR\}/materialdesignicons-webfont\.ttf\"\n    id: \w+\n    size: [^\n]+\n    bpp: 4\n)    glyphs:.*\n(?:      .*\n)*")
 
@@ -46,6 +49,9 @@ def verify():
         if code in seen:
             raise SystemExit(f'Duplicate glyph {code}')
         seen.add(code)
+    for name, code in WEB_EXTRA.items():
+        if codepoints.get(name) != int(code, 16):
+            raise SystemExit(f'{UI_ICONS.name}: {name} is not {code} in {TTF.name}')
     if len(tile_icons.ICONS) != sum(len(icons) for _, icons in tile_icons.GROUPS):
         raise SystemExit('An icon appears in more than one group')
 

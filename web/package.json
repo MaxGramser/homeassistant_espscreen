@@ -21,6 +21,7 @@
   "dependencies": {
     "esptool-js": "^0.6.1",
     "floating-vue": "^5.4.0",
+    "reka-ui": "^2.10.5",
     "vue": "^3.5.18",
     "vue-i18n": "^11.4.12"
   },

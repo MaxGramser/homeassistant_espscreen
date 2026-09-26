@@ -1152,7 +1152,6 @@
       "results": "{n} resultado. Continue a escrever para filtrar. | {n} resultados. Continue a escrever para filtrar.",
       "close": "Fechar",
       "remove": "Remover",
-      "change": "Alterar",
       "loading": "A carregar…",
       "back": "← Voltar",
       "copy": "Copiar"
@@ -1299,7 +1298,6 @@
         "identify": "Identificar",
         "identify_hint": "faz piscar o ecrã",
         "identify_needs": "Precisa do firmware 0.2.31 ou mais recente",
-        "inspect_hint": "do Home Assistant",
         "copy": "Copiar layout de…",
         "copy_screens": "{n} ecrã | {n} ecrãs",
         "copy_none": "nenhum outro ecrã",
@@ -1307,10 +1305,13 @@
         "export": "Exportar layout",
         "import": "Importar layout…",
         "override": "YAML personalizado",
-        "override_hint": "avançado",
         "override_none": "Não foi encontrado nenhum perfil ESPHome para este ecrã",
-        "update": "Atualizar firmware"
-      }
+        "update": "Atualizar firmware",
+        "group_screen": "Este ecrã",
+        "group_layout": "Disposição",
+        "group_advanced": "Avançado"
+      },
+      "sending": "A enviar"
     },
     "layout": {
       "removed": "Removido: {name}",
@@ -1322,20 +1323,31 @@
       "not_json": "Isso não é JSON. Exporte primeiro um layout ou cole um de outro Tessera.",
       "count": "{n} página · {tiles} / {limit} mosaicos | {n} páginas · {tiles} / {limit} mosaicos",
       "no_tiles": "Adicione a primeira luz, cena ou dispositivo a partir da biblioteca.",
-      "how_to": "Toque na barra superior ou num mosaico para o alterar. Arraste para mover; largue na página seguinte para criar uma nova.",
-      "how_to_pages": "Arraste uma página pela sua etiqueta para mover a página inteira.",
       "page_removed": "A página {page} desapareceu.",
       "page_removed_tiles": "A página {page} e um mosaico desapareceram. | A página {page} e {n} mosaicos desapareceram.",
       "positions_hint": "Os espaços vazios e as posições fixas funcionam a partir do firmware 0.2.26. Até essa atualização, este ecrã (firmware {firmware}) sobe os mosaicos para o primeiro espaço livre.",
       "aria": "Layout do ecrã",
-      "add_page": "+ Adicionar página",
-      "max_pages": "No máximo {n} página | No máximo {n} páginas"
+      "add_page": "Adicionar página",
+      "max_pages": "No máximo {n} página | No máximo {n} páginas",
+      "help": {
+        "title": "Como funciona",
+        "change_label": "Alterar",
+        "change": "Clique num mosaico ou numa barra superior.",
+        "add_label": "Adicionar",
+        "add": "Clique num espaço vazio e depois em algo da biblioteca. Ou arraste-o para a página.",
+        "move_label": "Mover",
+        "move": "Arraste um mosaico. Largue-o na página seguinte para uma página nova.",
+        "pages_label": "Páginas",
+        "pages": "Arraste uma página pelo número. O resto está no menu ···.",
+        "map_label": "Mapa",
+        "map": "Mostra para onde leva cada mosaico Ir para a página.",
+        "preview_label": "Pré-visualizar",
+        "preview": "Experimente deslizar e os mosaicos de página. Nada muda em casa."
+      }
     },
     "page": {
       "label": "Página {page}",
       "remove": "Remover página",
-      "remove_title": "A página sai com os seus mosaicos; as páginas seguintes sobem uma posição",
-      "remove_aria": "Remover a página {page}",
       "edit_bar": "Editar barra superior",
       "move_title": "Arraste esta página para outro lugar da fila, ou use ← e →",
       "move_aria": "Mover a página {page}",
@@ -1537,8 +1549,6 @@
       },
       "slider": {
         "label": "Controlo deslizante pequeno no mosaico",
-        "no": "Não",
-        "yes": "Sim, controlo direto",
         "nothing": "O Home Assistant não tem nada que um controlo deslizante possa alterar nesta entidade. Escolha Não."
       },
       "history": {
@@ -1552,6 +1562,13 @@
       "resize": {
         "columns": "Alterar largura (setas esquerda/direita)",
         "rows": "Alterar altura (setas cima/baixo)"
+      },
+      "sections": {
+        "text": "Texto",
+        "look": "Aspeto",
+        "place": "Tamanho e lugar",
+        "controls": "Controlos",
+        "style": "Ícone e cor"
       }
     },
     "tile_card": {
@@ -1603,20 +1620,17 @@
       "already": "Isto já está na barra superior.",
       "title": "Barra superior",
       "aria": "Barra superior: {name}",
-      "builtin": "Do próprio ecrã; também funciona sem o Home Assistant",
       "items": "{used} de {n} elemento | {used} de {n} elementos",
       "name": "Título acima da página",
       "name_placeholder": "Por exemplo: Sala de estar",
       "screen_name": "Título do ecrã",
       "screen_name_hint": "Todas as páginas sem título próprio mostram este.",
-      "page_name": "Título acima da página {page}",
-      "page_name_hint": "Deixe vazio e esta página mostra o título do ecrã.",
       "right": "Direita: hora, sensores ou um relógio",
       "item_label": "{name}, espaço {slot}. Enter: configurar; setas: mover",
       "remove_named": "Remover {name} da barra superior",
       "max": "No máximo {n} elemento | No máximo {n} elementos",
       "add_title": "Adicione a hora, a data, o relógio analógico ou uma entidade",
-      "add_button": "＋ Adicionar hora, data ou uma entidade",
+      "add_button": "Adicionar hora, data ou uma entidade",
       "hint": {
         "overflow": "Nem tudo cabe ao lado do nome: o ecrã omite os elementos tracejados. Remova um ou escolha um nome mais curto.",
         "reorder": "Arraste para reordenar; toque num elemento para o configurar.",
@@ -1646,8 +1660,8 @@
       "clock_12": "Relógio de 12 horas · altere em {settings}",
       "clock_settings": "Definições → Idioma e região",
       "date_hint": "Hoje: {date}. A data segue o relógio do próprio ecrã.",
-      "up": "↑ Subir",
-      "down": "↓ Descer",
+      "up": "Subir",
+      "down": "Descer",
       "add": {
         "title": "Adicionar à barra superior",
         "slots": "{used} de {n} espaço usado | {used} de {n} espaços usados",
@@ -1658,7 +1672,9 @@
         "search": "Procure por nome, divisão ou entidade, p. ex. temperatura ou porta",
         "search_label": "Procurar uma entidade para a barra superior",
         "none_found": "Nenhuma entidade encontrada."
-      }
+      },
+      "left": "Esquerda",
+      "left_hint": "Título e casa: nas definições da página"
     },
     "screen_settings": {
       "groups": {
@@ -2201,7 +2217,23 @@
       "selected_full": "Esta página está cheia. Selecione uma célula vazia noutra página.",
       "choose_page": "Página",
       "all_connections": "Todas as ligações",
-      "migration_adjusted": "As definições antigas inválidas foram substituídas pelos valores predefinidos: {fields}. Os originais permanecem na cópia de migração."
+      "migration_adjusted": "As definições antigas inválidas foram substituídas pelos valores predefinidos: {fields}. Os originais permanecem na cópia de migração.",
+      "view_row": "Fila",
+      "view_map": "Mapa",
+      "preview": "Pré-visualizar",
+      "page_menu": "Página {page}: mais",
+      "home_chip": "Início",
+      "detail_chip": "Por um mosaico",
+      "cells_used": "Espaços usados",
+      "tiles_go": "Sai 1 mosaico | Saem {n} mosaicos",
+      "connections": "Ligações",
+      "connections_selected": "Seleção",
+      "sections": {
+        "title": "Título",
+        "navigation": "Navegação"
+      },
+      "home_hint": "A tecla de casa e deslizar para cima levam aqui.",
+      "bar_entities": "Também à direita"
     },
     "feedback": {
       "question": "O seu ecrã funciona como espera?",

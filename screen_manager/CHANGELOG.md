@@ -1,3 +1,14 @@
+## 0.3.19 (firmware 0.3.9)
+
+A calmer editor: every setting has one place, and the pages and panels read at a glance.
+
+- **One toolbar above the pages.** Choose **Row** (the pages side by side) or **Map** (where the page tiles lead), with Undo and Redo, **Preview**, **Add page** and a **?** that explains the rest in six short lines.
+- **One menu per page.** A page's header shows its number, its title and a Home label on the Home page. Everything you do to a page is in its **···** menu: its settings, its top bar, Set as Home, copies and Remove page.
+- **A page's title lives in its own settings.** The page settings are three groups: Title, Navigation and Top bar. The screen title that every page without its own shows is one click under the page title. The top bar's panel is about what stands on the right, and leads to the page for the rest.
+- **A tile's settings in five groups:** Text, Look, Size and place, Controls, and Icon and color. Sizes show the shape they take on the grid, the pastel colors are round swatches, and the head leads back to the tile's page.
+- **Switches instead of checkboxes**, menus and lists that open where they fit, and Home Assistant's own icons on every key. An explanation is a small tooltip beside the label where the words alone don't say it; warnings stay in sight.
+- Update the Tessera Screen Manager app to get this; the screens need no new firmware.
+
 ## 0.3.18 (firmware 0.3.9)
 
 The app is called Tessera now, with the mosaic logo.

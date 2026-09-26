@@ -3,19 +3,24 @@ import { editorLayout } from "../store";
 const { grid, pageCount, pageOf } = editorLayout;
 
 import { tileSizeChoices } from "../store";
-import HelpTip from "./HelpTip.vue";
 // One tile's settings. Every change applies live, so the card on the mockup shows the result while you pick.
 import { computed, ref, toRaw } from "vue";
 import { t } from "../i18n";
 import { beginFieldEdit, endFieldEdit } from '../store';
 import { domainInfo, entriesOf, inlineControlKind, pageTarget, SLIDER_DOMAINS, TOGGLE_BEFORE } from "../model/layout";
 import { glyph } from "../model/topbar";
-import { currentScreen, automaticIcon, closeInspector, entityName, fullPage, loadSubtitleValues, setTileName, moveTileToPage, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
+import { currentScreen, automaticIcon, entityName, openPage, fullPage, loadSubtitleValues, setTileName, moveTileToPage, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
 import type { Tile } from "../types";
 import ActionPicker from "./ActionPicker.vue";
 import IconPicker from "./IconPicker.vue";
 import { coverPrimary, hasCoverTilt, withCoverTilt } from "../model/tall-controls";
 import Segmented from "./Segmented.vue";
+import Icon from "./ui/Icon.vue";
+import InspectorHead from "./ui/InspectorHead.vue";
+import Section from "./ui/Section.vue";
+import SwitchRow from "./ui/SwitchRow.vue";
+import HelpTip from "./HelpTip.vue";
+import UiSelect from "./ui/UiSelect.vue";
 import { textDraft } from '../model/text-draft';
 import rules from "../model/page-rules.json";
 
@@ -165,105 +170,119 @@ const showIcon = computed(() => Boolean(state.inventory.icons) && (domain.value 
 function inspect() {
   state.inspector = { kind: "inspect", entity: props.tile.entity };
 }
+// The way up in the head: the page the tile stands on opens that page's settings.
+const pageId = computed(() => state.document?.pages.find((page) => page.tiles.some((item) => item.id === props.tile.id))?.id);
+const crumbs = computed(() => [
+  { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => openPage(pageId.value!) : undefined },
+  { text: props.tile.entity, mono: true },
+]);
+// The sizes as the shape they take on the grid, so the choice reads at a glance.
+const SHAPES: Record<string, [number, number]> = { single: [1, 1], wide: [2, 1], tall: [1, 2], square: [2, 2], full: [2, 2] };
+const lookShown = computed(() => !goesTo.value && (props.tile.entity !== "screen.settings" || display.value === "live" || domain.value === "sensor"));
+const controlsShown = computed(() => (domain.value !== "screen" && !goesTo.value) || Boolean(catalogue.value && ["wide", "tall", "square", "full"].includes(size.value) && !goesTo.value) || (showSlider.value && !goesTo.value));
+const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.options?.background || "auto"]?.label || "");
 </script>
 
 <template>
-  <div class="dr-head">
-    <span class="av mdi" :style="{ color: domainInfo(tile.entity)[2], background: domainInfo(tile.entity)[3] }">{{ glyph(tileIconCp(tile)) }}</span>
-    <span class="tx"><b>{{ tile.name || name }}</b><small class="mono">{{ tile.entity }}</small></span>
-    <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="closeInspector">✕</button>
-  </div>
+  <InspectorHead :title="tile.name || name" :code="tileIconCp(tile)" :tone="{ color: domainInfo(tile.entity)[2], background: domainInfo(tile.entity)[3] }" :crumbs="crumbs" />
   <div class="dr-body">
-    <div class="f">
-      <label class="f-label" for="tile-name">{{ t("editor.tile.name") }}</label>
-      <input id="tile-name" :value="nameDraft.value.value" :placeholder="name" maxlength="60"
-        @focus="beginFieldEdit(`tile:${tile.id}`); nameDraft.focus()" @blur="endFieldEdit(); nameDraft.blur()"
-        @input="nameDraft.input(($event.target as HTMLInputElement).value)" />
-    </div>
-    <IconPicker v-if="showIcon" :selected="tile.options?.icon || 'auto'" :automatic="automaticIcon(tile.entity)"
-      :auto-label="t(fromHA ? 'editor.tile.icon.auto_ha' : 'editor.tile.icon.auto_default')"
-      :note="supports(0, 2, 18) ? '' : t('editor.tile.icon.needs_firmware')"
-      @pick="(n) => setTileOption(tile, 'icon', n)" />
-    <div v-if="goesTo" class="f">
-      <span class="f-label">{{ t("editor.tile.goes_to.label") }}</span>
-      <Segmented :choices="pages" :value="goesTo" @pick="(v) => retargetPageTile(tile, Number(v))" />
-      <template v-if="goesToHint"><small v-if="goesToHint.warn" class="warn">{{ goesToHint.text }}</small><HelpTip v-else :text="goesToHint.text" /></template>
-    </div>
-    <div v-else-if="tile.entity !== 'screen.settings'" class="f">
-      <span class="f-label">{{ t("editor.tile.display.label") }}</span>
-      <Segmented :choices="displays" :value="display" @pick="(v) => setTileOption(tile, 'display', v)" />
-      <small v-if="displayHint" :class="{ warn: displayWarns }">{{ displayHint }}</small>
-    </div>
-    <div v-if="display === 'live'" class="f">
-      <span class="f-label">{{ t("editor.tile.refresh.label") }}</span>
-      <Segmented :choices="rules.refresh.map((seconds) => [seconds, t('editor.tile.refresh.seconds', { n: seconds })] as [number, string])" :value="refresh" @pick="(v) => setTileOption(tile, 'refresh', Number(v))" />
-    </div>
-    <div v-if="pictureCard" class="f">
-      <span class="f-label">{{ t("editor.tile.picture.fit.label") }}</span>
-      <Segmented :choices="pictureChoices('fit')" :value="current('fit', 'fill')" @pick="(v) => setTileOption(tile, 'fit', v)" />
-    </div>
-    <div v-if="pictureCard" class="f">
-      <span class="f-label">{{ t("editor.tile.picture.overlay.label") }}</span>
-      <Segmented :choices="pictureChoices('overlay')" :value="current('overlay', 'name')" @pick="(v) => setTileOption(tile, 'overlay', v)" />
-    </div>
-    <div class="f">
-      <span class="f-label">{{ t("editor.tile.size.label") }}</span>
-      <Segmented :choices="sizes" :value="size" @pick="(v) => setTileOption(tile, 'size', v)" />
-      <HelpTip v-if="sizeHint" :text="sizeHint" />
-    </div>
-    <div v-if="onPage.length > 1" class="f">
-      <span class="f-label">{{ t("editor.tile.page.label") }}</span>
-      <Segmented :choices="onPage" :value="pageHere" @pick="(v) => moveTileToPage(tile, Number(v) - 1)" />
-    </div>
-    <div v-if="catalogue && ['wide', 'tall', 'square', 'full'].includes(size) && !goesTo" class="f">
-      <span class="f-label">{{ t("editor.tile.controls.label") }}</span>
-      <Segmented :choices="controlChoices" :value="primaryControl" @pick="pickControl" />
-      <template v-if="controlHint"><small v-if="controlHint.warn" class="warn">{{ controlHint.text }}</small><HelpTip v-else :text="controlHint.text" /></template>
-    </div>
-    <div v-if="offerTilt" class="f">
-      <label class="check tilt-choice"><input type="checkbox" :checked="tiltSelected" @change="setTileOption(tile, 'controls', withCoverTilt(primaryControl, !tiltSelected))" /> {{ t('editor.tile.controls.tilt') }}</label>
-      <HelpTip :text="t('editor.tile.controls.tilt_hint')" />
-    </div>
-    <div v-if="domain !== 'screen' && !goesTo" class="f">
-      <span class="f-label">{{ t("editor.tile.tap.label") }}</span>
-      <Segmented :choices="taps" :value="tap" @pick="(v) => setTileOption(tile, 'tap', v)" />
-      <template v-if="tapHint"><small v-if="tapHint.warn" class="warn">{{ tapHint.text }}</small><HelpTip v-else :text="tapHint.text" /></template>
-    </div>
-    <ActionPicker v-if="domain !== 'screen' && !goesTo && tap === 'action'" :tile="tile" />
-    <div class="f">
-      <span class="f-label">{{ t("editor.tile.sub.label") }}</span>
-      <Segmented :choices="subChoices" :value="subKind" @pick="pickSubKind" />
-      <select v-if="subKind === 'attr'" class="sub-value" :value="subAttribute"
-        :aria-label="t('editor.tile.sub.value_aria')" @change="setTileOption(tile, 'sub', `attr:${($event.target as HTMLSelectElement).value}`)">
-        <option v-for="value in subValues" :key="value.key" :value="value.key">{{ value.name }}</option>
-      </select>
-      <input v-if="subKind === 'text'" class="sub-text" :value="subText" maxlength="60"
-        :placeholder="t('editor.tile.sub.text_placeholder')" :aria-label="t('editor.tile.sub.text_aria')"
-        @input="writeSubText(($event.target as HTMLInputElement).value)" />
-      <HelpTip :text="t(`editor.tile.sub.hint_${subKind}`)" />
-    </div>
-    <div v-if="showSlider && !goesTo" class="f">
-      <span class="f-label">{{ t("editor.tile.slider.label") }}</span>
-      <Segmented :choices="[['none', t('editor.tile.slider.no')], ['slider', t('editor.tile.slider.yes')]]" :value="inline" @pick="(v) => setTileOption(tile, 'inline', v)" />
-      <small v-if="sliderWarn" class="warn">{{ t("editor.tile.slider.nothing") }}</small>
-    </div>
-    <div v-if="domain === 'sensor' && !goesTo" class="f">
-      <span class="f-label">{{ t("editor.tile.history.label") }}</span>
-      <Segmented :choices="[1, 6, 24].map((hours) => [hours, t('editor.tile.history.hours', hours)] as [number, string])" :value="history" @pick="(v) => setTileOption(tile, 'history_hours', Number(v))" />
-    </div>
-    <div class="f">
-      <span class="f-label">{{ t("editor.tile.background.label") }}</span>
-      <div class="sw">
-        <button v-for="[key, choice] in backgrounds" :key="key" type="button" :aria-label="t('editor.tile.background.aria', { name: choice.label })"
-          :aria-pressed="(tile.options?.background || 'auto') === key ? 'true' : 'false'" @click="setTileOption(tile, 'background', key)">
-          <i :class="choice.color ? '' : key === 'none' ? 'none' : 'auto'" :style="choice.color ? { background: choice.color } : undefined"></i>{{ choice.label }}
-        </button>
+    <Section :title="t('editor.tile.sections.text')" icon="text-short">
+      <div class="f">
+        <label class="f-label" for="tile-name">{{ t("editor.tile.name") }}</label>
+        <input id="tile-name" :value="nameDraft.value.value" :placeholder="name" maxlength="60"
+          @focus="beginFieldEdit(`tile:${tile.id}`); nameDraft.focus()" @blur="endFieldEdit(); nameDraft.blur()"
+          @input="nameDraft.input(($event.target as HTMLInputElement).value)" />
       </div>
-    </div>
+      <div class="f">
+        <span class="f-label">{{ t("editor.tile.sub.label") }}<HelpTip :text="t(`editor.tile.sub.hint_${subKind}`)" /></span>
+        <Segmented :choices="subChoices" :value="subKind" @pick="pickSubKind" />
+        <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
+          :aria-label="t('editor.tile.sub.value_aria')" @update:model-value="(key) => setTileOption(tile, 'sub', `attr:${key}`)" />
+        <input v-if="subKind === 'text'" class="sub-text" :value="subText" maxlength="60"
+          :placeholder="t('editor.tile.sub.text_placeholder')" :aria-label="t('editor.tile.sub.text_aria')"
+          @input="writeSubText(($event.target as HTMLInputElement).value)" />
+      </div>
+    </Section>
+
+    <Section v-if="lookShown" :title="t('editor.tile.sections.look')" icon="eye-outline">
+      <div v-if="tile.entity !== 'screen.settings'" class="f">
+        <span class="f-label">{{ t("editor.tile.display.label") }}<HelpTip v-if="displayHint && !displayWarns" :text="displayHint" /></span>
+        <Segmented :choices="displays" :value="display" @pick="(v) => setTileOption(tile, 'display', v)" />
+        <small v-if="displayHint && displayWarns" class="help warn">{{ displayHint }}</small>
+      </div>
+      <div v-if="display === 'live'" class="f">
+        <span class="f-label">{{ t("editor.tile.refresh.label") }}</span>
+        <Segmented :choices="rules.refresh.map((seconds) => [seconds, t('editor.tile.refresh.seconds', { n: seconds })] as [number, string])" :value="refresh" @pick="(v) => setTileOption(tile, 'refresh', Number(v))" />
+      </div>
+      <div v-if="pictureCard" class="f">
+        <span class="f-label">{{ t("editor.tile.picture.fit.label") }}</span>
+        <Segmented :choices="pictureChoices('fit')" :value="current('fit', 'fill')" @pick="(v) => setTileOption(tile, 'fit', v)" />
+      </div>
+      <div v-if="pictureCard" class="f">
+        <span class="f-label">{{ t("editor.tile.picture.overlay.label") }}</span>
+        <Segmented :choices="pictureChoices('overlay')" :value="current('overlay', 'name')" @pick="(v) => setTileOption(tile, 'overlay', v)" />
+      </div>
+      <div v-if="domain === 'sensor'" class="f">
+        <span class="f-label">{{ t("editor.tile.history.label") }}</span>
+        <Segmented :choices="[1, 6, 24].map((hours) => [hours, t('editor.tile.history.hours', hours)] as [number, string])" :value="history" @pick="(v) => setTileOption(tile, 'history_hours', Number(v))" />
+      </div>
+    </Section>
+
+    <Section :title="t('editor.tile.sections.place')" icon="resize">
+      <div class="f">
+        <span class="f-label">{{ t("editor.tile.size.label") }}<HelpTip v-if="sizeHint" :text="sizeHint" /></span>
+        <Segmented :choices="sizes" :value="size" :shapes="SHAPES" @pick="(v) => setTileOption(tile, 'size', v)" />
+      </div>
+      <div v-if="goesTo" class="f">
+        <span class="f-label">{{ t("editor.tile.goes_to.label") }}<HelpTip v-if="goesToHint && !goesToHint.warn" :text="goesToHint.text" /></span>
+        <Segmented :choices="pages" :value="goesTo" @pick="(v) => retargetPageTile(tile, Number(v))" />
+        <small v-if="goesToHint?.warn" class="help warn">{{ goesToHint.text }}</small>
+      </div>
+      <div v-if="onPage.length > 1" class="f">
+        <span class="f-label">{{ t("editor.tile.page.label") }}</span>
+        <Segmented :choices="onPage" :value="pageHere" @pick="(v) => moveTileToPage(tile, Number(v) - 1)" />
+      </div>
+    </Section>
+
+    <Section v-if="controlsShown" :title="t('editor.tile.sections.controls')" icon="gesture-tap">
+      <div v-if="domain !== 'screen' && !goesTo" class="f">
+        <span class="f-label">{{ t("editor.tile.tap.label") }}<HelpTip v-if="tapHint && !tapHint.warn" :text="tapHint.text" /></span>
+        <Segmented :choices="taps" :value="tap" @pick="(v) => setTileOption(tile, 'tap', v)" />
+        <small v-if="tapHint?.warn" class="help warn">{{ tapHint.text }}</small>
+      </div>
+      <ActionPicker v-if="domain !== 'screen' && !goesTo && tap === 'action'" :tile="tile" />
+      <div v-if="catalogue && ['wide', 'tall', 'square', 'full'].includes(size) && !goesTo" class="f">
+        <span class="f-label">{{ t("editor.tile.controls.label") }}<HelpTip v-if="controlHint && !controlHint.warn" :text="controlHint.text" /></span>
+        <Segmented :choices="controlChoices" :value="primaryControl" @pick="pickControl" />
+        <small v-if="controlHint?.warn" class="help warn">{{ controlHint.text }}</small>
+      </div>
+      <SwitchRow v-if="offerTilt" class="tilt-choice" :label="t('editor.tile.controls.tilt')" :description="t('editor.tile.controls.tilt_hint')"
+        :model-value="tiltSelected" @update:model-value="(on) => setTileOption(tile, 'controls', withCoverTilt(primaryControl, on))" />
+      <SwitchRow v-if="showSlider && !goesTo" class="slider-choice" :label="t('editor.tile.slider.label')"
+        :model-value="inline === 'slider'" @update:model-value="(on) => setTileOption(tile, 'inline', on ? 'slider' : 'none')">
+        <small v-if="sliderWarn" class="warn">{{ t("editor.tile.slider.nothing") }}</small>
+      </SwitchRow>
+    </Section>
+
+    <Section :title="t('editor.tile.sections.style')" icon="palette-outline">
+      <IconPicker v-if="showIcon" :selected="tile.options?.icon || 'auto'" :automatic="automaticIcon(tile.entity)"
+        :auto-label="t(fromHA ? 'editor.tile.icon.auto_ha' : 'editor.tile.icon.auto_default')"
+        :note="supports(0, 2, 18) ? '' : t('editor.tile.icon.needs_firmware')"
+        @pick="(n) => setTileOption(tile, 'icon', n)" />
+      <div class="f">
+        <span class="f-label">{{ t("editor.tile.background.label") }} <span class="f-value">{{ backgroundName }}</span></span>
+        <div class="sw">
+          <button v-for="[key, choice] in backgrounds" :key="key" type="button" :aria-label="t('editor.tile.background.aria', { name: choice.label })" :title="choice.label"
+            :aria-pressed="(tile.options?.background || 'auto') === key ? 'true' : 'false'" @click="setTileOption(tile, 'background', key)">
+            <i :class="choice.color ? '' : key === 'none' ? 'none' : 'auto'" :style="choice.color ? { background: choice.color } : undefined"></i>
+          </button>
+        </div>
+      </div>
+    </Section>
   </div>
   <div class="dr-foot">
-    <button type="button" class="btn danger" @click="removeTile(tile)">{{ t("editor.common.remove") }}</button>
+    <button type="button" class="btn danger" @click="removeTile(tile)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>
     <span class="spacer"></span>
-    <button v-if="domain !== 'screen'" type="button" class="btn quiet" @click="inspect">{{ t("editor.common.read_current_data") }}</button>
+    <button v-if="domain !== 'screen'" type="button" class="btn quiet" @click="inspect"><Icon name="database-search-outline" />{{ t("editor.common.read_current_data") }}</button>
   </div>
 </template>

@@ -1152,7 +1152,6 @@
       "results": "1 result. Keep typing to narrow it down. | {n} results. Keep typing to narrow it down.",
       "close": "Close",
       "remove": "Remove",
-      "change": "Change",
       "loading": "Loading…",
       "back": "← Back",
       "copy": "Copy"
@@ -1299,7 +1298,6 @@
         "identify": "Identify",
         "identify_hint": "blink the screen",
         "identify_needs": "Needs firmware 0.2.31 or newer",
-        "inspect_hint": "from Home Assistant",
         "copy": "Copy layout from…",
         "copy_screens": "{n} screen | {n} screens",
         "copy_none": "no other screen",
@@ -1307,10 +1305,13 @@
         "export": "Export layout",
         "import": "Import layout…",
         "override": "Override YAML",
-        "override_hint": "advanced",
         "override_none": "No ESPHome profile found for this screen",
-        "update": "Update firmware"
-      }
+        "update": "Update firmware",
+        "group_screen": "This screen",
+        "group_layout": "Layout",
+        "group_advanced": "Advanced"
+      },
+      "sending": "Sending"
     },
     "layout": {
       "removed": "{name} removed",
@@ -1322,20 +1323,31 @@
       "not_json": "That isn't JSON. Export a layout first, or paste one from another Tessera.",
       "count": "{n} page · {tiles} / {limit} tiles | {n} pages · {tiles} / {limit} tiles",
       "no_tiles": "Add your first light, scene, or device from the library.",
-      "how_to": "Tap the top bar or a tile to change it. Drag to move; drop on the next page for a new one.",
-      "how_to_pages": "Drag a page by its label to move the whole page.",
       "page_removed": "Page {page} is gone.",
       "page_removed_tiles": "Page {page} and one tile are gone. | Page {page} and {n} tiles are gone.",
       "positions_hint": "Empty slots and fixed positions work from firmware 0.2.26. This screen (firmware {firmware}) shifts the tiles up to the first free slot until that update.",
       "aria": "Screen layout",
-      "add_page": "+ Add page",
-      "max_pages": "1 page is the most | {n} pages is the most"
+      "add_page": "Add page",
+      "max_pages": "1 page is the most | {n} pages is the most",
+      "help": {
+        "title": "How it works",
+        "change_label": "Change",
+        "change": "Click a tile or a top bar.",
+        "add_label": "Add",
+        "add": "Click an empty spot, then something in the library. Or drag it onto the page.",
+        "move_label": "Move",
+        "move": "Drag a tile. Drop it on the next page for a new page.",
+        "pages_label": "Pages",
+        "pages": "Drag a page by its number. Its ··· menu has the rest.",
+        "map_label": "Map",
+        "map": "Shows where each Go to page tile leads.",
+        "preview_label": "Preview",
+        "preview": "Try swiping and the page tiles. Nothing at home switches."
+      }
     },
     "page": {
       "label": "Page {page}",
       "remove": "Remove page",
-      "remove_title": "The page goes with its tiles; the pages after it move up one slot",
-      "remove_aria": "Remove page {page}",
       "edit_bar": "Edit top bar",
       "move_title": "Drag this page to another place in the row, or use ← and →",
       "move_aria": "Move page {page}",
@@ -1537,8 +1549,6 @@
       },
       "slider": {
         "label": "Small slider on the tile",
-        "no": "No",
-        "yes": "Yes, control directly",
         "nothing": "Home Assistant has nothing a slider can change for this entity. Choose No."
       },
       "history": {
@@ -1552,6 +1562,13 @@
       "resize": {
         "columns": "Resize width (left/right arrow keys)",
         "rows": "Resize height (up/down arrow keys)"
+      },
+      "sections": {
+        "text": "Text",
+        "look": "Look",
+        "place": "Size and place",
+        "controls": "Controls",
+        "style": "Icon and color"
       }
     },
     "tile_card": {
@@ -1603,20 +1620,17 @@
       "already": "This is already in the top bar.",
       "title": "Top bar",
       "aria": "Top bar: {name}",
-      "builtin": "From the screen itself, also works without Home Assistant",
       "items": "{used} of {n} item | {used} of {n} items",
       "name": "Title above the page",
       "name_placeholder": "For example: Living room",
       "screen_name": "Screen title",
       "screen_name_hint": "Every page without a title of its own says this.",
-      "page_name": "Title above page {page}",
-      "page_name_hint": "Leave empty and this page says the screen's title.",
       "right": "Right: time, sensors, or a clock",
       "item_label": "{name}, slot {slot}. Enter: configure, arrows: move",
       "remove_named": "Remove {name} from the top bar",
       "max": "Maximum 1 item | Maximum {n} items",
       "add_title": "Add the time, date, analog clock, or an entity",
-      "add_button": "＋ Add time, date, or an entity",
+      "add_button": "Add time, date, or an entity",
       "hint": {
         "overflow": "Not everything fits next to the name: the screen drops the dashed items. Remove one or choose a shorter name.",
         "reorder": "Drag to reorder; tap an item to configure it.",
@@ -1646,8 +1660,8 @@
       "clock_12": "12 hour clock · change under {settings}",
       "clock_settings": "Settings → Language & region",
       "date_hint": "{date} today. The date follows the screen's own clock.",
-      "up": "↑ Up",
-      "down": "↓ Down",
+      "up": "Up",
+      "down": "Down",
       "add": {
         "title": "Add to the top bar",
         "slots": "{used} of {n} slot used | {used} of {n} slots used",
@@ -1658,7 +1672,9 @@
         "search": "Search by name, room, or entity, e.g. temperature or door",
         "search_label": "Search for an entity for the top bar",
         "none_found": "No entities found."
-      }
+      },
+      "left": "Left",
+      "left_hint": "Title and house key: in the page settings"
     },
     "screen_settings": {
       "groups": {
@@ -2201,7 +2217,23 @@
       "selected_full": "This page is full. Select an empty cell on another page.",
       "choose_page": "Page",
       "all_connections": "All connections",
-      "migration_adjusted": "Invalid legacy settings were replaced with defaults: {fields}. The originals remain in the migration backup."
+      "migration_adjusted": "Invalid legacy settings were replaced with defaults: {fields}. The originals remain in the migration backup.",
+      "view_row": "Row",
+      "view_map": "Map",
+      "preview": "Preview",
+      "page_menu": "Page {page}: more",
+      "home_chip": "Home",
+      "detail_chip": "Via a tile",
+      "cells_used": "Cells in use",
+      "tiles_go": "One tile goes with it | {n} tiles go with it",
+      "connections": "Connections",
+      "connections_selected": "Selected",
+      "sections": {
+        "title": "Title",
+        "navigation": "Navigation"
+      },
+      "home_hint": "The house key and a swipe up lead here.",
+      "bar_entities": "Also on the right"
     },
     "feedback": {
       "question": "Does your screen work as you expect?",

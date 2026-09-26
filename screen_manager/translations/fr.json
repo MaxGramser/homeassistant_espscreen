@@ -1152,7 +1152,6 @@
       "results": "{n} résultat. Continuez la saisie pour affiner la liste. | {n} résultats. Continuez la saisie pour affiner la liste.",
       "close": "Fermer",
       "remove": "Retirer",
-      "change": "Modifier",
       "loading": "Chargement…",
       "back": "← Retour",
       "copy": "Copier"
@@ -1299,7 +1298,6 @@
         "identify": "Identifier",
         "identify_hint": "faire clignoter l'écran",
         "identify_needs": "Nécessite le firmware 0.2.31 ou plus récent",
-        "inspect_hint": "depuis Home Assistant",
         "copy": "Copier la mise en page de…",
         "copy_screens": "{n} écran | {n} écrans",
         "copy_none": "aucun autre écran",
@@ -1307,10 +1305,13 @@
         "export": "Exporter la mise en page",
         "import": "Importer une mise en page…",
         "override": "YAML personnalisé",
-        "override_hint": "avancé",
         "override_none": "Aucun profil ESPHome trouvé pour cet écran",
-        "update": "Mettre à jour le firmware"
-      }
+        "update": "Mettre à jour le firmware",
+        "group_screen": "Cet écran",
+        "group_layout": "Disposition",
+        "group_advanced": "Avancé"
+      },
+      "sending": "Envoi"
     },
     "layout": {
       "removed": "Tuile retirée : {name}",
@@ -1322,20 +1323,31 @@
       "not_json": "Ce n'est pas du JSON. Exportez d'abord une mise en page, ou collez-en une d'un autre Tessera.",
       "count": "{n} page · {tiles} / {limit} tuiles | {n} pages · {tiles} / {limit} tuiles",
       "no_tiles": "Ajoutez votre première lumière, scène ou appareil depuis la bibliothèque.",
-      "how_to": "Appuyez sur la barre supérieure ou sur une tuile pour la modifier. Faites glisser pour déplacer ; déposez sur la page suivante pour en créer une nouvelle.",
-      "how_to_pages": "Faites glisser une page par son intitulé pour déplacer la page entière.",
       "page_removed": "La page {page} a disparu.",
       "page_removed_tiles": "La page {page} et une tuile ont disparu. | La page {page} et {n} tuiles ont disparu.",
       "positions_hint": "Les emplacements vides et les positions fixes fonctionnent à partir du firmware 0.2.26. D'ici cette mise à jour, cet écran (firmware {firmware}) décale les tuiles vers le premier emplacement libre.",
       "aria": "Mise en page de l'écran",
-      "add_page": "+ Ajouter une page",
-      "max_pages": "{n} page au maximum | {n} pages au maximum"
+      "add_page": "Ajouter une page",
+      "max_pages": "{n} page au maximum | {n} pages au maximum",
+      "help": {
+        "title": "Comment ça marche",
+        "change_label": "Modifier",
+        "change": "Cliquez sur une tuile ou une barre supérieure.",
+        "add_label": "Ajouter",
+        "add": "Cliquez sur un emplacement vide, puis sur un élément de la bibliothèque. Ou faites-le glisser sur la page.",
+        "move_label": "Déplacer",
+        "move": "Faites glisser une tuile. Déposez-la sur la page suivante pour une nouvelle page.",
+        "pages_label": "Pages",
+        "pages": "Faites glisser une page par son numéro. Le reste est dans son menu ···.",
+        "map_label": "Carte",
+        "map": "Montre où mène chaque tuile Aller à la page.",
+        "preview_label": "Aperçu",
+        "preview": "Essayez de balayer et les tuiles de page. Rien ne s’allume à la maison."
+      }
     },
     "page": {
       "label": "Page {page}",
       "remove": "Supprimer la page",
-      "remove_title": "La page part avec ses tuiles ; les pages suivantes remontent d'un rang",
-      "remove_aria": "Supprimer la page {page}",
       "edit_bar": "Modifier la barre supérieure",
       "move_title": "Faites glisser cette page ailleurs dans la rangée, ou utilisez ← et →",
       "move_aria": "Déplacer la page {page}",
@@ -1537,8 +1549,6 @@
       },
       "slider": {
         "label": "Petit curseur sur la tuile",
-        "no": "Non",
-        "yes": "Oui, commande directe",
         "nothing": "Home Assistant n'a rien qu'un curseur puisse régler pour cette entité. Choisissez Non."
       },
       "history": {
@@ -1552,6 +1562,13 @@
       "resize": {
         "columns": "Redimensionner la largeur (flèches gauche/droite)",
         "rows": "Redimensionner la hauteur (flèches haut/bas)"
+      },
+      "sections": {
+        "text": "Texte",
+        "look": "Apparence",
+        "place": "Taille et place",
+        "controls": "Commandes",
+        "style": "Icône et couleur"
       }
     },
     "tile_card": {
@@ -1603,20 +1620,17 @@
       "already": "C'est déjà dans la barre supérieure.",
       "title": "Barre supérieure",
       "aria": "Barre supérieure : {name}",
-      "builtin": "Fourni par l'écran lui-même, fonctionne aussi sans Home Assistant",
       "items": "{used} sur {n} élément | {used} sur {n} éléments",
       "name": "Titre au-dessus de la page",
       "name_placeholder": "Par exemple : Salon",
       "screen_name": "Titre de l'écran",
       "screen_name_hint": "Chaque page sans titre propre affiche celui-ci.",
-      "page_name": "Titre au-dessus de la page {page}",
-      "page_name_hint": "Laissez vide et cette page affiche le titre de l'écran.",
       "right": "Droite : heure, capteurs ou horloge",
       "item_label": "{name}, emplacement {slot}. Enter : configurer, flèches : déplacer",
       "remove_named": "Retirer {name} de la barre supérieure",
       "max": "{n} élément au maximum | {n} éléments au maximum",
       "add_title": "Ajouter l'heure, la date, l'horloge analogique ou une entité",
-      "add_button": "＋ Ajouter l'heure, la date ou une entité",
+      "add_button": "Ajouter l'heure, la date ou une entité",
       "hint": {
         "overflow": "Tout ne tient pas à côté du nom : l'écran laisse de côté les éléments en pointillés. Retirez-en un ou choisissez un nom plus court.",
         "reorder": "Faites glisser pour réorganiser ; appuyez sur un élément pour le configurer.",
@@ -1646,8 +1660,8 @@
       "clock_12": "Horloge 12 heures · à modifier dans {settings}",
       "clock_settings": "Paramètres → Langue et région",
       "date_hint": "Aujourd'hui : {date}. La date suit l'horloge propre à l'écran.",
-      "up": "↑ Monter",
-      "down": "↓ Descendre",
+      "up": "Monter",
+      "down": "Descendre",
       "add": {
         "title": "Ajouter à la barre supérieure",
         "slots": "{used} sur {n} emplacement utilisé | {used} sur {n} emplacements utilisés",
@@ -1658,7 +1672,9 @@
         "search": "Rechercher par nom, pièce ou entité, p. ex. température ou porte",
         "search_label": "Rechercher une entité pour la barre supérieure",
         "none_found": "Aucune entité trouvée."
-      }
+      },
+      "left": "Gauche",
+      "left_hint": "Titre et maison : dans les réglages de la page"
     },
     "screen_settings": {
       "groups": {
@@ -2201,7 +2217,23 @@
       "selected_full": "Cette page est pleine. Sélectionnez une cellule vide sur une autre page.",
       "choose_page": "Page",
       "all_connections": "Toutes les connexions",
-      "migration_adjusted": "Les anciens paramètres invalides ont été remplacés par les valeurs par défaut : {fields}. Les originaux restent dans la sauvegarde de migration."
+      "migration_adjusted": "Les anciens paramètres invalides ont été remplacés par les valeurs par défaut : {fields}. Les originaux restent dans la sauvegarde de migration.",
+      "view_row": "Rangée",
+      "view_map": "Carte",
+      "preview": "Aperçu",
+      "page_menu": "Page {page} : plus",
+      "home_chip": "Accueil",
+      "detail_chip": "Via une tuile",
+      "cells_used": "Emplacements utilisés",
+      "tiles_go": "{n} tuile part avec | {n} tuiles partent avec",
+      "connections": "Connexions",
+      "connections_selected": "Sélection",
+      "sections": {
+        "title": "Titre",
+        "navigation": "Navigation"
+      },
+      "home_hint": "La touche maison et un glissement vers le haut mènent ici.",
+      "bar_entities": "Aussi à droite"
     },
     "feedback": {
       "question": "Votre écran fonctionne-t-il comme prévu ?",

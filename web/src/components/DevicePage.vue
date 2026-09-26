@@ -7,12 +7,13 @@ import { computed, nextTick, onBeforeUnmount } from "vue";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { deviceStyle, homeKeyShown, isCompact, movePage, navigationSettings, openBar, openPage, pageAt, pageReady, pageTitleShown, removePage, screenText, setHomePage, state, topbarItems } from "../store";
-import { glyph } from "../model/topbar";
+import { deviceStyle, homeKeyShown, isCompact, movePage, navigationSettings, openBar, pageAt, pageReady, pageTitleShown, screenText, setHomePage, state, topbarItems } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import PageNavigation from './PageNavigation.vue';
+import PageMenu from './PageMenu.vue';
+import Icon from './ui/Icon.vue';
 import type { NavigationIntent } from '../model/pages';
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
@@ -68,21 +69,20 @@ async function onKey(e: KeyboardEvent) {
 
 <template>
   <div class="page" :class="{ carried }" :style="deviceStyle" :data-page-id="owned?.id">
-    <div v-if="!preview" class="page-label">
+    <div v-if="!preview" class="page-head" :class="{ selected: state.selectedPageId === owned?.id && state.inspector?.kind === 'page' }">
       <button v-if="movable" type="button" class="grab" :data-page="page" v-drag="{ kind: 'page', page }"
         :title="t('editor.page.move_title')" :aria-label="t('editor.page.move_aria', { page: page + 1 })" @keydown="onKey">
-        <span class="grip" aria-hidden="true">⋮⋮</span>{{ t("editor.page.label", { page: page + 1 }) }}
+        <Icon name="drag-vertical" class="grip" />{{ t("editor.page.label", { page: page + 1 }) }}
       </button>
-      <span v-else>{{ t("editor.page.label", { page: page + 1 }) }}</span>
-      <button v-if="owned" type="button" class="home-badge mdi" :class="{ active: isHome }" :disabled="!pageReady && !isHome"
-        :aria-label="t(isHome ? 'editor.pages.drag_home' : 'editor.pages.set_home')" :title="t(isHome ? 'editor.pages.drag_home' : 'editor.pages.set_home')"
-        @pointerdown.stop="dragHome" @click.stop="!isHome && setHomePage(owned.id)">{{ glyph('F02DC') }}</button>
-      <span v-if="owned?.navigation.excludeFromPagination" class="deeplink-badge">{{ t('editor.pages.deeplink') }}</span>
+      <slot v-else name="handle"><span class="page-name">{{ t("editor.page.label", { page: page + 1 }) }}</span></slot>
+      <span v-if="owned" class="page-title" :title="pageTitleShown(page)">{{ pageTitleShown(page) }}</span>
+      <span v-if="isHome" class="home-chip" :class="{ movable: pageReady }" role="img" :aria-label="t('editor.pages.drag_home')" :title="t('editor.pages.drag_home')"
+        @pointerdown.stop="dragHome"><Icon name="home" />{{ t('editor.pages.home_chip') }}</span>
+      <span v-if="owned?.navigation.excludeFromPagination" class="detail-chip" :title="t('editor.pages.include_navigation_hint')"><Icon name="link-variant" />{{ t('editor.pages.detail_chip') }}</span>
       <span class="page-side">
-        <span>{{ filled }} / {{ grid.slots }}</span>
-        <button v-if="owned" type="button" class="icon-btn" :aria-label="t('editor.pages.page_settings')" @click="openPage(owned.id)">···</button>
-        <button v-if="movable" type="button" class="icon-btn page-remove" :title="t('editor.page.remove_title')"
-          :aria-label="t('editor.page.remove_aria', { page: page + 1 })" @click="removePage(page)">✕</button>
+        <span class="page-count" :title="t('editor.pages.cells_used')">{{ filled }}/{{ grid.slots }}</span>
+        <slot name="actions" />
+        <PageMenu v-if="owned" :id="owned.id" />
       </span>
     </div>
     <div class="device" :class="{ compact: isCompact }">
@@ -109,14 +109,9 @@ async function onKey(e: KeyboardEvent) {
 
 <style scoped>
 .page { min-width: 0; }
-.page-label { gap: 4px; white-space: nowrap; }
-.page-remove:hover { color: var(--danger); background: var(--danger-soft); }
 .device { grid-template-rows: auto minmax(0, 1fr); }
 .device:has(.page-navigation) { grid-template-rows: auto minmax(0, 1fr) auto; }
 .bar-wrap { position: relative; }
 .preview-home { position: absolute; inset: 0 auto 0 0; width: 30px; border: 0; background: transparent; }
 .preview-empty { visibility: hidden; }
-.home-badge { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 8px; font-size: 20px; padding: 4px 6px; touch-action: none; }
-.home-badge.active { border-color: var(--accent); color: var(--accent); background: var(--surface); cursor: grab; }
-.deeplink-badge { font-size: 10px; border: 1px solid var(--line); border-radius: 5px; padding: 3px 5px; }
 </style>

@@ -9,6 +9,7 @@ import {
   state, updateProgress, whatsNew,
 } from "../store";
 import type { Screen } from "../types";
+import Icon from "./ui/Icon.vue";
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
@@ -103,7 +104,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     <span v-if="!state.reachable || !state.connected" id="connection" class="conn" role="status">
       {{ !state.reachable ? t("editor.sidebar.connection.unreachable") : t("editor.sidebar.connection.reconnecting") }}
     </span>
-    <button type="button" class="search-btn" id="open-palette" @click="state.palette = true">⌕ {{ t("editor.sidebar.search") }}<kbd>⌘K</kbd></button>
+    <button type="button" class="search-btn" id="open-palette" @click="state.palette = true"><Icon name="magnify" />{{ t("editor.sidebar.search") }}<kbd>⌘K</kbd></button>
     <div class="label">{{ t("editor.sidebar.screens") }}</div>
     <div id="screens">
       <div v-for="screen in state.inventory.screens" :key="screen.id" class="screen-item" :class="{ selected: isSelected(screen), open: isOpen(screen) }">
@@ -188,7 +189,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
       </div>
     </div>
     <button id="new-screen" type="button" class="nav-item ghost" :aria-current="route === '#new-screen' ? 'true' : 'false'" @click="go('#new-screen')">
-      <span class="plus">+</span><span class="txt">{{ t("editor.nav.new_screen") }}</span>
+      <Icon name="plus" class="plus" /><span class="txt">{{ t("editor.nav.new_screen") }}</span>
     </button>
     <div class="spacer"></div>
     <div class="more">
@@ -196,7 +197,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
       <button id="open-firmware" type="button" class="nav-item" :aria-current="route === '#firmware' ? 'true' : 'false'" @click="go('#firmware')"><span class="mdi">{{ glyph("F0241") }}</span><span class="txt">{{ t("editor.nav.firmware") }}</span></button>
       <button id="open-alerts" type="button" class="nav-item" :aria-current="route === '#alerts' ? 'true' : 'false'" @click="go('#alerts')"><span class="mdi">{{ glyph("F0594") }}</span><span class="txt">{{ t("editor.nav.alerts") }}</span></button>
       <button id="open-settings" type="button" class="nav-item" :aria-current="route === '#settings' ? 'true' : 'false'" @click="go('#settings')"><span class="mdi">{{ glyph("F0493") }}</span><span class="txt">{{ t("editor.nav.settings") }}</span></button>
-      <button id="refresh" type="button" class="nav-item ghost" @click="refresh()"><span class="plus">↻</span><span class="txt">{{ t("editor.sidebar.refresh") }}</span></button>
+      <button id="refresh" type="button" class="nav-item ghost" @click="refresh()"><Icon name="refresh" class="plus" /><span class="txt">{{ t("editor.sidebar.refresh") }}</span></button>
     </div>
   </aside>
 </template>

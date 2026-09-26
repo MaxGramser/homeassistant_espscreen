@@ -1152,7 +1152,6 @@
       "results": "1 wynik. Pisz dalej, aby zawęzić. | {n} wyniki. Pisz dalej, aby zawęzić. | {n} wyników. Pisz dalej, aby zawęzić.",
       "close": "Zamknij",
       "remove": "Usuń",
-      "change": "Zmień",
       "loading": "Ładowanie…",
       "back": "← Wstecz",
       "copy": "Kopiuj"
@@ -1299,7 +1298,6 @@
         "identify": "Identyfikuj",
         "identify_hint": "mignij ekranem",
         "identify_needs": "Wymaga wersji firmware 0.2.31 lub nowszej",
-        "inspect_hint": "z Home Assistant",
         "copy": "Kopiuj układ z…",
         "copy_screens": "{n} ekran | {n} ekrany | {n} ekranów",
         "copy_none": "brak innych ekranów",
@@ -1307,10 +1305,13 @@
         "export": "Eksportuj układ",
         "import": "Importuj układ…",
         "override": "Nadpisanie YAML",
-        "override_hint": "zaawansowane",
         "override_none": "Nie znaleziono profilu ESPHome dla tego ekranu",
-        "update": "Aktualizuj firmware"
-      }
+        "update": "Aktualizuj firmware",
+        "group_screen": "Ten ekran",
+        "group_layout": "Układ",
+        "group_advanced": "Zaawansowane"
+      },
+      "sending": "Wysyłanie"
     },
     "layout": {
       "removed": "Usunięto: {name}",
@@ -1322,20 +1323,31 @@
       "not_json": "To nie jest JSON. Najpierw wyeksportuj układ albo wklej układ z innej instalacji Tessera.",
       "count": "{n} strona · kafelki: {tiles} / {limit} | {n} strony · kafelki: {tiles} / {limit} | {n} stron · kafelki: {tiles} / {limit}",
       "no_tiles": "Dodaj pierwsze światło, scenę lub urządzenie z biblioteki.",
-      "how_to": "Kliknij górny pasek lub kafelek, aby go zmienić. Przeciągnij, aby przenieść; upuść na następnej stronie, aby utworzyć nową.",
-      "how_to_pages": "Przeciągnij stronę za jej etykietę, aby przenieść całą stronę.",
       "page_removed": "Strona {page} zniknęła.",
       "page_removed_tiles": "Strona {page} i jeden kafelek zniknęły. | Strona {page} i {n} kafelki zniknęły. | Strona {page} i {n} kafelków zniknęło.",
       "positions_hint": "Puste miejsca i stałe pozycje działają od wersji firmware 0.2.26. Do czasu tej aktualizacji ten ekran (firmware {firmware}) przesuwa kafelki w górę, na pierwsze wolne miejsce.",
       "aria": "Układ ekranu",
-      "add_page": "+ Dodaj stronę",
-      "max_pages": "Maksymalnie 1 strona | Maksymalnie {n} strony | Maksymalnie {n} stron"
+      "add_page": "Dodaj stronę",
+      "max_pages": "Maksymalnie 1 strona | Maksymalnie {n} strony | Maksymalnie {n} stron",
+      "help": {
+        "title": "Jak to działa",
+        "change_label": "Zmiana",
+        "change": "Kliknij kafelek albo górny pasek.",
+        "add_label": "Dodawanie",
+        "add": "Kliknij puste miejsce, a potem coś w bibliotece. Albo przeciągnij to na stronę.",
+        "move_label": "Przenoszenie",
+        "move": "Przeciągnij kafelek. Upuść go na następnej stronie, aby utworzyć nową.",
+        "pages_label": "Strony",
+        "pages": "Przeciągnij stronę za jej numer. Resztę znajdziesz w jej menu ···.",
+        "map_label": "Mapa",
+        "map": "Pokazuje, dokąd prowadzi każdy kafelek Przejdź do strony.",
+        "preview_label": "Podgląd",
+        "preview": "Wypróbuj przesuwanie i kafelki stron. W domu nic się nie przełącza."
+      }
     },
     "page": {
       "label": "Strona {page}",
       "remove": "Usuń stronę",
-      "remove_title": "Strona zniknie razem z kafelkami; strony po niej przesuną się o jedno miejsce w górę",
-      "remove_aria": "Usuń stronę {page}",
       "edit_bar": "Edytuj górny pasek",
       "move_title": "Przeciągnij tę stronę w inne miejsce w rzędzie albo użyj ← i →",
       "move_aria": "Przenieś stronę {page}",
@@ -1537,8 +1549,6 @@
       },
       "slider": {
         "label": "Mały suwak na kafelku",
-        "no": "Nie",
-        "yes": "Tak, steruj bezpośrednio",
         "nothing": "Home Assistant nie ma dla tej encji niczego, co suwak mógłby zmieniać. Wybierz „Nie”."
       },
       "history": {
@@ -1552,6 +1562,13 @@
       "resize": {
         "columns": "Zmień szerokość (strzałki w lewo/prawo)",
         "rows": "Zmień wysokość (strzałki w górę/dół)"
+      },
+      "sections": {
+        "text": "Tekst",
+        "look": "Wygląd",
+        "place": "Rozmiar i miejsce",
+        "controls": "Sterowanie",
+        "style": "Ikona i kolor"
       }
     },
     "tile_card": {
@@ -1603,20 +1620,17 @@
       "already": "To już jest na górnym pasku.",
       "title": "Górny pasek",
       "aria": "Górny pasek: {name}",
-      "builtin": "Z samego ekranu, działa też bez Home Assistant",
       "items": "{used} z {n} elementu | {used} z {n} elementów | {used} z {n} elementów",
       "name": "Tytuł nad stroną",
       "name_placeholder": "Na przykład: Salon",
       "screen_name": "Tytuł ekranu",
       "screen_name_hint": "Każda strona bez własnego tytułu pokazuje ten tytuł.",
-      "page_name": "Tytuł nad stroną {page}",
-      "page_name_hint": "Pozostaw puste, a ta strona pokaże tytuł ekranu.",
       "right": "Po prawej: godzina, sensory lub zegar",
       "item_label": "{name}, miejsce {slot}. Enter: konfiguruj, strzałki: przenieś",
       "remove_named": "Usuń {name} z górnego paska",
       "max": "Maksymalnie 1 element | Maksymalnie {n} elementy | Maksymalnie {n} elementów",
       "add_title": "Dodaj godzinę, datę, zegar analogowy lub encję",
-      "add_button": "＋ Dodaj godzinę, datę lub encję",
+      "add_button": "Dodaj godzinę, datę lub encję",
       "hint": {
         "overflow": "Nie wszystko mieści się obok nazwy: ekran pomija elementy z przerywaną ramką. Usuń jeden z nich albo wybierz krótszą nazwę.",
         "reorder": "Przeciągnij, aby zmienić kolejność; kliknij element, aby go skonfigurować.",
@@ -1646,8 +1660,8 @@
       "clock_12": "Zegar 12-godzinny · zmiana: {settings}",
       "clock_settings": "Ustawienia → Język i region",
       "date_hint": "Dziś: {date}. Data pochodzi z zegara samego ekranu.",
-      "up": "↑ W górę",
-      "down": "↓ W dół",
+      "up": "W górę",
+      "down": "W dół",
       "add": {
         "title": "Dodaj do górnego paska",
         "slots": "Zajęto {used} z {n} miejsca | Zajęto {used} z {n} miejsc | Zajęto {used} z {n} miejsc",
@@ -1658,7 +1672,9 @@
         "search": "Szukaj po nazwie, obszarze lub encji, np. temperatura albo drzwi",
         "search_label": "Szukaj encji dla górnego paska",
         "none_found": "Nie znaleziono encji."
-      }
+      },
+      "left": "Lewa strona",
+      "left_hint": "Tytuł i domek: w ustawieniach strony"
     },
     "screen_settings": {
       "groups": {
@@ -2201,7 +2217,23 @@
       "selected_full": "Ta strona jest pełna. Wybierz pustą komórkę na innej stronie.",
       "choose_page": "Strona",
       "all_connections": "Wszystkie połączenia",
-      "migration_adjusted": "Nieprawidłowe stare ustawienia zastąpiono domyślnymi: {fields}. Oryginały pozostają w kopii migracji."
+      "migration_adjusted": "Nieprawidłowe stare ustawienia zastąpiono domyślnymi: {fields}. Oryginały pozostają w kopii migracji.",
+      "view_row": "Rząd",
+      "view_map": "Mapa",
+      "preview": "Podgląd",
+      "page_menu": "Strona {page}: więcej",
+      "home_chip": "Główna",
+      "detail_chip": "Przez kafelek",
+      "cells_used": "Zajęte miejsca",
+      "tiles_go": "Znika 1 kafelek | Znikają {n} kafelki | Znika {n} kafelków",
+      "connections": "Połączenia",
+      "connections_selected": "Zaznaczone",
+      "sections": {
+        "title": "Tytuł",
+        "navigation": "Nawigacja"
+      },
+      "home_hint": "Przycisk domu i przesunięcie w górę prowadzą tutaj.",
+      "bar_entities": "Także po prawej"
     },
     "feedback": {
       "question": "Czy ekran działa tak, jak oczekujesz?",

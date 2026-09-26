@@ -1152,7 +1152,6 @@
       "results": "1 resultaat. Typ verder om te verfijnen. | {n} resultaten. Typ verder om te verfijnen.",
       "close": "Sluiten",
       "remove": "Verwijderen",
-      "change": "Wijzigen",
       "loading": "Laden…",
       "back": "← Terug",
       "copy": "Kopiëren"
@@ -1299,7 +1298,6 @@
         "identify": "Identificeren",
         "identify_hint": "scherm laten knipperen",
         "identify_needs": "Firmware 0.2.31 of nieuwer nodig",
-        "inspect_hint": "uit Home Assistant",
         "copy": "Indeling kopiëren van…",
         "copy_screens": "{n} scherm | {n} schermen",
         "copy_none": "geen ander scherm",
@@ -1307,10 +1305,13 @@
         "export": "Indeling exporteren",
         "import": "Indeling importeren…",
         "override": "YAML-override",
-        "override_hint": "geavanceerd",
         "override_none": "Geen ESPHome-profiel gevonden voor dit scherm",
-        "update": "Firmware bijwerken"
-      }
+        "update": "Firmware bijwerken",
+        "group_screen": "Dit scherm",
+        "group_layout": "Indeling",
+        "group_advanced": "Geavanceerd"
+      },
+      "sending": "Verzenden"
     },
     "layout": {
       "removed": "{name} verwijderd",
@@ -1322,20 +1323,31 @@
       "not_json": "Dat is geen JSON. Exporteer eerst een indeling, of plak er een uit een andere Tessera.",
       "count": "{n} pagina · {tiles} / {limit} tegels | {n} pagina's · {tiles} / {limit} tegels",
       "no_tiles": "Voeg je eerste lamp, scène of apparaat toe uit de bibliotheek.",
-      "how_to": "Tik op de bovenbalk of een tegel om die aan te passen. Sleep om te verplaatsen, of naar de volgende pagina voor een nieuwe pagina.",
-      "how_to_pages": "Sleep een pagina aan zijn label om de hele pagina te verplaatsen.",
       "page_removed": "Pagina {page} is weg.",
       "page_removed_tiles": "Pagina {page} en één tegel zijn weg. | Pagina {page} en {n} tegels zijn weg.",
       "positions_hint": "Lege plekken en vaste posities werken vanaf firmware 0.2.26. Tot die update schuift dit scherm (firmware {firmware}) de tegels op naar de eerste vrije plek.",
       "aria": "Schermindeling",
-      "add_page": "+ Pagina toevoegen",
-      "max_pages": "Maximaal 1 pagina | Maximaal {n} pagina's"
+      "add_page": "Pagina toevoegen",
+      "max_pages": "Maximaal 1 pagina | Maximaal {n} pagina's",
+      "help": {
+        "title": "Zo werkt het",
+        "change_label": "Aanpassen",
+        "change": "Klik op een tegel of een bovenbalk.",
+        "add_label": "Toevoegen",
+        "add": "Klik op een lege plek en dan op iets in de bibliotheek. Of sleep het op de pagina.",
+        "move_label": "Verplaatsen",
+        "move": "Sleep een tegel. Laat hem los op de volgende pagina voor een nieuwe pagina.",
+        "pages_label": "Pagina’s",
+        "pages": "Sleep een pagina aan zijn nummer. De rest zit in zijn ···-menu.",
+        "map_label": "Kaart",
+        "map": "Laat zien waar elke Ga naar pagina-tegel heen gaat.",
+        "preview_label": "Voorvertoning",
+        "preview": "Probeer vegen en de pagina-tegels. Er schakelt niets in huis."
+      }
     },
     "page": {
       "label": "Pagina {page}",
       "remove": "Pagina weghalen",
-      "remove_title": "De pagina gaat weg met zijn tegels; de pagina's erna schuiven een plek op",
-      "remove_aria": "Pagina {page} weghalen",
       "edit_bar": "Bovenbalk aanpassen",
       "move_title": "Sleep deze pagina naar een andere plek in de rij, of gebruik ← en →",
       "move_aria": "Pagina {page} verplaatsen",
@@ -1537,8 +1549,6 @@
       },
       "slider": {
         "label": "Kleine slider op de tegel",
-        "no": "Nee",
-        "yes": "Ja, direct bedienen",
         "nothing": "Home Assistant heeft niets wat een slider bij deze entiteit kan aanpassen. Kies Nee."
       },
       "history": {
@@ -1552,6 +1562,13 @@
       "resize": {
         "columns": "Breedte aanpassen (pijltjes links/rechts)",
         "rows": "Hoogte aanpassen (pijltjes omhoog/omlaag)"
+      },
+      "sections": {
+        "text": "Tekst",
+        "look": "Uiterlijk",
+        "place": "Grootte en plek",
+        "controls": "Bediening",
+        "style": "Icoon en kleur"
       }
     },
     "tile_card": {
@@ -1603,20 +1620,17 @@
       "already": "Dit staat al in de bovenbalk.",
       "title": "Bovenbalk",
       "aria": "Bovenbalk: {name}",
-      "builtin": "Van het scherm zelf, werkt ook zonder Home Assistant",
       "items": "{used} van {n} onderdeel | {used} van {n} onderdelen",
       "name": "Titel boven de pagina",
       "name_placeholder": "Bijvoorbeeld: Woonkamer",
       "screen_name": "Titel van het scherm",
       "screen_name_hint": "Elke pagina zonder eigen titel zegt dit.",
-      "page_name": "Titel boven pagina {page}",
-      "page_name_hint": "Laat leeg en deze pagina zegt de titel van het scherm.",
       "right": "Rechts: tijd, sensoren of een klok",
       "item_label": "{name}, plek {slot}. Enter: instellen, pijltjes: verplaatsen",
       "remove_named": "{name} uit de bovenbalk halen",
       "max": "Maximaal 1 onderdeel | Maximaal {n} onderdelen",
       "add_title": "Tijd, datum, analoge klok of een entiteit toevoegen",
-      "add_button": "＋ Tijd, datum of entiteit toevoegen",
+      "add_button": "Tijd, datum of entiteit toevoegen",
       "hint": {
         "overflow": "Niet alles past naast de naam: het scherm laat de gestreepte onderdelen weg. Haal er een weg of kies een kortere naam.",
         "reorder": "Sleep om de volgorde te wijzigen; tik op een onderdeel om het in te stellen.",
@@ -1646,8 +1660,8 @@
       "clock_12": "12-uursklok · wijzigen onder {settings}",
       "clock_settings": "Instellingen → Taal & regio",
       "date_hint": "Vandaag is het {date}. De datum volgt de eigen klok van het scherm.",
-      "up": "↑ Omhoog",
-      "down": "↓ Omlaag",
+      "up": "Omhoog",
+      "down": "Omlaag",
       "add": {
         "title": "Toevoegen aan de bovenbalk",
         "slots": "{used} van {n} plek gebruikt | {used} van {n} plekken gebruikt",
@@ -1658,7 +1672,9 @@
         "search": "Zoek op naam, ruimte of entiteit, bijv. temperatuur of deur",
         "search_label": "Zoek een entiteit voor de bovenbalk",
         "none_found": "Geen entiteiten gevonden."
-      }
+      },
+      "left": "Links",
+      "left_hint": "Titel en huisje: in de pagina-instellingen"
     },
     "screen_settings": {
       "groups": {
@@ -2201,7 +2217,23 @@
       "selected_full": "Deze pagina is vol. Kies een lege cel op een andere pagina.",
       "choose_page": "Pagina",
       "all_connections": "Alle verbindingen",
-      "migration_adjusted": "Ongeldige oude instellingen zijn vervangen door standaardwaarden: {fields}. De originelen blijven in de migratieback-up bewaard."
+      "migration_adjusted": "Ongeldige oude instellingen zijn vervangen door standaardwaarden: {fields}. De originelen blijven in de migratieback-up bewaard.",
+      "view_row": "Rij",
+      "view_map": "Kaart",
+      "preview": "Voorvertoning",
+      "page_menu": "Pagina {page}: meer",
+      "home_chip": "Thuis",
+      "detail_chip": "Via een tegel",
+      "cells_used": "Plekken in gebruik",
+      "tiles_go": "1 tegel gaat mee | {n} tegels gaan mee",
+      "connections": "Verbindingen",
+      "connections_selected": "Selectie",
+      "sections": {
+        "title": "Titel",
+        "navigation": "Navigatie"
+      },
+      "home_hint": "Het huisje en omhoog vegen leiden hierheen.",
+      "bar_entities": "Ook rechts in de balk"
     },
     "feedback": {
       "question": "Werkt je scherm zoals je verwacht?",

@@ -21,7 +21,7 @@ const placementOptions: Record<string, unknown> = { container: false };
     @hide="close">
     <button type="button" class="help-trigger mdi" :aria-label="text"
       @mouseenter="enter" @mouseleave="hovered = false" @focus="focus" @blur="focused = false; pinned = false"
-      @click.stop="tap" @keydown.esc.stop.prevent="close">{{ glyph('F02FD') }}</button>
+      @click.stop="tap" @keydown.esc.stop.prevent="close" :data-glyph="glyph('F02FD')"></button>
     <template #popper><span class="help-content" role="tooltip" @mouseenter="enter" @mouseleave="hovered = false">{{ text }}</span></template>
   </Tooltip>
 </template>
@@ -29,6 +29,8 @@ const placementOptions: Record<string, unknown> = { container: false };
 <style>
 .help-tip { display: inline-flex; vertical-align: middle; }
 .help-trigger { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; color: var(--muted); background: transparent; font-size: 18px; cursor: help; }
+/* The icon comes from CSS, so a label with a tip beside it still reads as just its words. */
+.help-trigger::before { content: attr(data-glyph); }
 .help-trigger:hover, .help-trigger:focus-visible { color: var(--accent); background: var(--seg); }
 .help-content { display: block; max-width: min(300px, calc(100vw - 48px)); line-height: 1.5; font-size: 13px; white-space: normal; text-transform: none; letter-spacing: normal; font-weight: 400; }
 .v-popper--theme-tooltip .v-popper__inner { padding: 10px 12px; border-radius: 8px; }

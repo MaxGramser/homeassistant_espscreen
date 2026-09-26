@@ -1152,7 +1152,6 @@
       "results": "1 Ergebnis. Tippe weiter, um die Suche einzugrenzen. | {n} Ergebnisse. Tippe weiter, um die Suche einzugrenzen.",
       "close": "Schließen",
       "remove": "Entfernen",
-      "change": "Ändern",
       "loading": "Wird geladen…",
       "back": "← Zurück",
       "copy": "Kopieren"
@@ -1299,7 +1298,6 @@
         "identify": "Identifizieren",
         "identify_hint": "Bildschirm blinken lassen",
         "identify_needs": "Braucht Firmware 0.2.31 oder neuer",
-        "inspect_hint": "aus Home Assistant",
         "copy": "Layout kopieren von…",
         "copy_screens": "{n} Bildschirm | {n} Bildschirme",
         "copy_none": "kein anderer Bildschirm",
@@ -1307,10 +1305,13 @@
         "export": "Layout exportieren",
         "import": "Layout importieren…",
         "override": "YAML-Anpassung",
-        "override_hint": "erweitert",
         "override_none": "Kein ESPHome-Profil für diesen Bildschirm gefunden",
-        "update": "Firmware aktualisieren"
-      }
+        "update": "Firmware aktualisieren",
+        "group_screen": "Dieser Bildschirm",
+        "group_layout": "Layout",
+        "group_advanced": "Erweitert"
+      },
+      "sending": "Wird gesendet"
     },
     "layout": {
       "removed": "{name} entfernt",
@@ -1322,20 +1323,31 @@
       "not_json": "Das ist kein JSON. Exportiere zuerst ein Layout oder füge eines aus einer anderen Tessera-Installation ein.",
       "count": "{n} Seite · {tiles} / {limit} Kacheln | {n} Seiten · {tiles} / {limit} Kacheln",
       "no_tiles": "Füge aus der Bibliothek deine erste Leuchte, Szene oder dein erstes Gerät hinzu.",
-      "how_to": "Tippe auf die Kopfleiste oder eine Kachel, um sie zu ändern. Ziehen verschiebt; Ablegen auf der nächsten Seite legt eine neue an.",
-      "how_to_pages": "Zieh eine Seite an ihrer Beschriftung, um die ganze Seite zu verschieben.",
       "page_removed": "Seite {page} ist weg.",
       "page_removed_tiles": "Seite {page} und eine Kachel sind weg. | Seite {page} und {n} Kacheln sind weg.",
       "positions_hint": "Freie Plätze und feste Positionen funktionieren ab Firmware 0.2.26. Bis zu diesem Update rückt dieser Bildschirm (Firmware {firmware}) die Kacheln auf den ersten freien Platz vor.",
       "aria": "Bildschirm-Layout",
-      "add_page": "+ Seite hinzufügen",
-      "max_pages": "Höchstens 1 Seite | Höchstens {n} Seiten"
+      "add_page": "Seite hinzufügen",
+      "max_pages": "Höchstens 1 Seite | Höchstens {n} Seiten",
+      "help": {
+        "title": "So funktioniert es",
+        "change_label": "Ändern",
+        "change": "Klicke auf eine Kachel oder eine Kopfleiste.",
+        "add_label": "Hinzufügen",
+        "add": "Klicke auf einen freien Platz und dann auf etwas in der Bibliothek. Oder ziehe es auf die Seite.",
+        "move_label": "Verschieben",
+        "move": "Ziehe eine Kachel. Lass sie auf der nächsten Seite los für eine neue Seite.",
+        "pages_label": "Seiten",
+        "pages": "Ziehe eine Seite an ihrer Nummer. Der Rest steckt in ihrem ···-Menü.",
+        "map_label": "Karte",
+        "map": "Zeigt, wohin jede Zur Seite-Kachel führt.",
+        "preview_label": "Vorschau",
+        "preview": "Probiere Wischen und die Seiten-Kacheln aus. Zu Hause schaltet nichts."
+      }
     },
     "page": {
       "label": "Seite {page}",
       "remove": "Seite entfernen",
-      "remove_title": "Die Seite geht mit ihren Kacheln; die folgenden Seiten rücken um eine Stelle nach vorn",
-      "remove_aria": "Seite {page} entfernen",
       "edit_bar": "Kopfleiste bearbeiten",
       "move_title": "Zieh diese Seite an eine andere Stelle in der Reihe, oder nimm ← und →",
       "move_aria": "Seite {page} verschieben",
@@ -1537,8 +1549,6 @@
       },
       "slider": {
         "label": "Kleiner Schieberegler auf der Kachel",
-        "no": "Nein",
-        "yes": "Ja, direkt steuern",
         "nothing": "Home Assistant hat für diese Entität nichts, was ein Schieberegler ändern kann. Wähle „Nein“."
       },
       "history": {
@@ -1552,6 +1562,13 @@
       "resize": {
         "columns": "Breite ändern (Pfeiltasten links/rechts)",
         "rows": "Höhe ändern (Pfeiltasten auf/ab)"
+      },
+      "sections": {
+        "text": "Text",
+        "look": "Aussehen",
+        "place": "Größe und Platz",
+        "controls": "Bedienung",
+        "style": "Symbol und Farbe"
       }
     },
     "tile_card": {
@@ -1603,20 +1620,17 @@
       "already": "Das ist schon in der Kopfleiste.",
       "title": "Kopfleiste",
       "aria": "Kopfleiste: {name}",
-      "builtin": "Vom Bildschirm selbst, funktioniert auch ohne Home Assistant",
       "items": "{used} von {n} Element | {used} von {n} Elementen",
       "name": "Titel über der Seite",
       "name_placeholder": "Zum Beispiel: Wohnzimmer",
       "screen_name": "Titel des Bildschirms",
       "screen_name_hint": "Jede Seite ohne eigenen Titel zeigt diesen.",
-      "page_name": "Titel über Seite {page}",
-      "page_name_hint": "Lass es leer und diese Seite zeigt den Titel des Bildschirms.",
       "right": "Rechts: Uhrzeit, Sensoren oder eine Uhr",
       "item_label": "{name}, Platz {slot}. Enter: einstellen, Pfeile: verschieben",
       "remove_named": "{name} aus der Kopfleiste entfernen",
       "max": "Höchstens 1 Element | Höchstens {n} Elemente",
       "add_title": "Uhrzeit, Datum, Analoguhr oder eine Entität hinzufügen",
-      "add_button": "＋ Uhrzeit, Datum oder Entität hinzufügen",
+      "add_button": "Uhrzeit, Datum oder Entität hinzufügen",
       "hint": {
         "overflow": "Nicht alles passt neben den Namen: Der Bildschirm lässt die gestrichelten Elemente weg. Entferne eines oder wähle einen kürzeren Namen.",
         "reorder": "Zum Umsortieren ziehen; zum Einstellen auf ein Element tippen.",
@@ -1646,8 +1660,8 @@
       "clock_12": "12-Stunden-Uhr · ändern unter {settings}",
       "clock_settings": "Einstellungen → Sprache & Region",
       "date_hint": "Heute: {date}. Das Datum folgt der eigenen Uhr des Bildschirms.",
-      "up": "↑ Nach oben",
-      "down": "↓ Nach unten",
+      "up": "Nach oben",
+      "down": "Nach unten",
       "add": {
         "title": "Zur Kopfleiste hinzufügen",
         "slots": "{used} von {n} Platz belegt | {used} von {n} Plätzen belegt",
@@ -1658,7 +1672,9 @@
         "search": "Nach Name, Bereich oder Entität suchen, z. B. Temperatur oder Tür",
         "search_label": "Entität für die Kopfleiste suchen",
         "none_found": "Keine Entitäten gefunden."
-      }
+      },
+      "left": "Links",
+      "left_hint": "Titel und Haus: in den Seiteneinstellungen"
     },
     "screen_settings": {
       "groups": {
@@ -2201,7 +2217,23 @@
       "selected_full": "Diese Seite ist voll. Eine freie Zelle auf einer anderen Seite auswählen.",
       "choose_page": "Seite",
       "all_connections": "Alle Verbindungen",
-      "migration_adjusted": "Ungültige alte Einstellungen wurden durch Standardwerte ersetzt: {fields}. Die Originale bleiben in der Migrationssicherung erhalten."
+      "migration_adjusted": "Ungültige alte Einstellungen wurden durch Standardwerte ersetzt: {fields}. Die Originale bleiben in der Migrationssicherung erhalten.",
+      "view_row": "Reihe",
+      "view_map": "Karte",
+      "preview": "Vorschau",
+      "page_menu": "Seite {page}: mehr",
+      "home_chip": "Start",
+      "detail_chip": "Über eine Kachel",
+      "cells_used": "Belegte Plätze",
+      "tiles_go": "1 Kachel geht mit | {n} Kacheln gehen mit",
+      "connections": "Verbindungen",
+      "connections_selected": "Auswahl",
+      "sections": {
+        "title": "Titel",
+        "navigation": "Navigation"
+      },
+      "home_hint": "Das Haus-Symbol und Wischen nach oben führen hierher.",
+      "bar_entities": "Außerdem rechts"
     },
     "feedback": {
       "question": "Funktioniert dein Bildschirm wie erwartet?",

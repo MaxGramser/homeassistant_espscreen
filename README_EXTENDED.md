@@ -22,8 +22,8 @@ on the screen itself, and how updates work.
   the Waveshare 4.3-inch (63, over seven pages), twenty on the 10.1-inch Guition (60, over three), and sixteen on the
   [experimental Waveshare 7-inch](docs/WAVESHARE7.md) (64, over four), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md) (32), lying down (firmware 0.2.62+; twenty tiles before).
   Search by entity, device, or room, and drag to reorder. A whole page moves the same way: drag it by its
-  label to another place in the row, and its tiles, its own title and the Go to page tiles that lead to it come
-  along. Remove page beside the cell count takes a page away with those same tiles, with Undo beside the message.
+  number to another place in the row, and its tiles, its own title and the Go to page tiles that lead to it come
+  along. Remove page in the page's ··· menu takes a page away with those same tiles, with Undo beside the message.
 - **Per-tile settings:** a custom name, click behavior, a small slider where
   supported, or a large value for things like temperature and power usage.
   On a double-width tile the small slider stands beside the name, in the cell

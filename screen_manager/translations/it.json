@@ -1152,7 +1152,6 @@
       "results": "1 risultato. Continua a scrivere per restringere l'elenco. | {n} risultati. Continua a scrivere per restringere l'elenco.",
       "close": "Chiudi",
       "remove": "Rimuovi",
-      "change": "Cambia",
       "loading": "Caricamento…",
       "back": "← Indietro",
       "copy": "Copia"
@@ -1299,7 +1298,6 @@
         "identify": "Identifica",
         "identify_hint": "fa lampeggiare lo schermo",
         "identify_needs": "Richiede il firmware 0.2.31 o più recente",
-        "inspect_hint": "da Home Assistant",
         "copy": "Copia disposizione da…",
         "copy_screens": "{n} schermo | {n} schermi",
         "copy_none": "nessun altro schermo",
@@ -1307,10 +1305,13 @@
         "export": "Esporta disposizione",
         "import": "Importa disposizione…",
         "override": "YAML personalizzato",
-        "override_hint": "avanzato",
         "override_none": "Nessun profilo ESPHome trovato per questo schermo",
-        "update": "Aggiorna firmware"
-      }
+        "update": "Aggiorna firmware",
+        "group_screen": "Questo schermo",
+        "group_layout": "Layout",
+        "group_advanced": "Avanzate"
+      },
+      "sending": "Invio"
     },
     "layout": {
       "removed": "Riquadro rimosso: {name}",
@@ -1322,20 +1323,31 @@
       "not_json": "Questo non è JSON. Esporta prima una disposizione, oppure incollane una da un altro Tessera.",
       "count": "{n} pagina · {tiles} / {limit} riquadri | {n} pagine · {tiles} / {limit} riquadri",
       "no_tiles": "Aggiungi la tua prima luce, scena o dispositivo dalla libreria.",
-      "how_to": "Tocca la barra superiore o un riquadro per cambiarne le impostazioni. Trascina per spostare; rilascia sulla pagina successiva per crearne una nuova.",
-      "how_to_pages": "Trascina una pagina dalla sua etichetta per spostare l'intera pagina.",
       "page_removed": "La pagina {page} è sparita.",
       "page_removed_tiles": "La pagina {page} e un riquadro sono spariti. | La pagina {page} e {n} riquadri sono spariti.",
       "positions_hint": "Gli spazi vuoti e le posizioni fisse funzionano a partire dal firmware 0.2.26. Fino a quell'aggiornamento, questo schermo (firmware {firmware}) sposta i riquadri verso il primo spazio libero.",
       "aria": "Disposizione dello schermo",
-      "add_page": "+ Aggiungi pagina",
-      "max_pages": "Al massimo 1 pagina | Al massimo {n} pagine"
+      "add_page": "Aggiungi pagina",
+      "max_pages": "Al massimo 1 pagina | Al massimo {n} pagine",
+      "help": {
+        "title": "Come funziona",
+        "change_label": "Modifica",
+        "change": "Fai clic su un riquadro o su una barra superiore.",
+        "add_label": "Aggiungi",
+        "add": "Fai clic su uno spazio vuoto, poi su qualcosa nella libreria. Oppure trascinalo sulla pagina.",
+        "move_label": "Sposta",
+        "move": "Trascina un riquadro. Rilascialo sulla pagina successiva per una nuova pagina.",
+        "pages_label": "Pagine",
+        "pages": "Trascina una pagina dal suo numero. Il resto è nel suo menu ···.",
+        "map_label": "Mappa",
+        "map": "Mostra dove porta ogni riquadro Vai alla pagina.",
+        "preview_label": "Anteprima",
+        "preview": "Prova lo scorrimento e i riquadri di pagina. In casa non si accende nulla."
+      }
     },
     "page": {
       "label": "Pagina {page}",
       "remove": "Rimuovi pagina",
-      "remove_title": "La pagina se ne va con i suoi riquadri; le pagine successive scalano di un posto",
-      "remove_aria": "Rimuovi la pagina {page}",
       "edit_bar": "Modifica barra superiore",
       "move_title": "Trascina questa pagina in un altro punto della fila, o usa ← e →",
       "move_aria": "Sposta la pagina {page}",
@@ -1537,8 +1549,6 @@
       },
       "slider": {
         "label": "Piccolo cursore sul riquadro",
-        "no": "No",
-        "yes": "Sì, controllo diretto",
         "nothing": "Home Assistant non ha nulla che un cursore possa regolare per questa entità. Scegli No."
       },
       "history": {
@@ -1552,6 +1562,13 @@
       "resize": {
         "columns": "Modifica larghezza (frecce sinistra/destra)",
         "rows": "Modifica altezza (frecce su/giù)"
+      },
+      "sections": {
+        "text": "Testo",
+        "look": "Aspetto",
+        "place": "Dimensione e posizione",
+        "controls": "Comandi",
+        "style": "Icona e colore"
       }
     },
     "tile_card": {
@@ -1603,20 +1620,17 @@
       "already": "È già nella barra superiore.",
       "title": "Barra superiore",
       "aria": "Barra superiore: {name}",
-      "builtin": "Dallo schermo stesso, funziona anche senza Home Assistant",
       "items": "{used} di {n} elemento | {used} di {n} elementi",
       "name": "Titolo sopra la pagina",
       "name_placeholder": "Per esempio: Soggiorno",
       "screen_name": "Titolo dello schermo",
       "screen_name_hint": "Ogni pagina senza un titolo proprio mostra questo.",
-      "page_name": "Titolo sopra la pagina {page}",
-      "page_name_hint": "Lascia vuoto e questa pagina mostra il titolo dello schermo.",
       "right": "Destra: ora, sensori o orologio",
       "item_label": "{name}, spazio {slot}. Enter: configura, frecce: sposta",
       "remove_named": "Rimuovi {name} dalla barra superiore",
       "max": "Massimo 1 elemento | Massimo {n} elementi",
       "add_title": "Aggiungi l'ora, la data, l'orologio analogico o un'entità",
-      "add_button": "＋ Aggiungi ora, data o un'entità",
+      "add_button": "Aggiungi ora, data o un'entità",
       "hint": {
         "overflow": "Non tutto sta accanto al nome: lo schermo tralascia gli elementi tratteggiati. Rimuovine uno o scegli un nome più corto.",
         "reorder": "Trascina per riordinare; tocca un elemento per configurarlo.",
@@ -1646,8 +1660,8 @@
       "clock_12": "Orologio a 12 ore · si cambia in {settings}",
       "clock_settings": "Impostazioni → Lingua e regione",
       "date_hint": "Oggi: {date}. La data segue l'orologio dello schermo stesso.",
-      "up": "↑ Su",
-      "down": "↓ Giù",
+      "up": "Su",
+      "down": "Giù",
       "add": {
         "title": "Aggiungi alla barra superiore",
         "slots": "{used} di {n} spazio usato | {used} di {n} spazi usati",
@@ -1658,7 +1672,9 @@
         "search": "Cerca per nome, area o entità, es. temperatura o porta",
         "search_label": "Cerca un'entità per la barra superiore",
         "none_found": "Nessuna entità trovata."
-      }
+      },
+      "left": "Sinistra",
+      "left_hint": "Titolo e casa: nelle impostazioni della pagina"
     },
     "screen_settings": {
       "groups": {
@@ -2201,7 +2217,23 @@
       "selected_full": "Questa pagina è piena. Seleziona una cella vuota su un’altra pagina.",
       "choose_page": "Pagina",
       "all_connections": "Tutti i collegamenti",
-      "migration_adjusted": "Le vecchie impostazioni non valide sono state sostituite con i valori predefiniti: {fields}. Gli originali restano nel backup di migrazione."
+      "migration_adjusted": "Le vecchie impostazioni non valide sono state sostituite con i valori predefiniti: {fields}. Gli originali restano nel backup di migrazione.",
+      "view_row": "Riga",
+      "view_map": "Mappa",
+      "preview": "Anteprima",
+      "page_menu": "Pagina {page}: altro",
+      "home_chip": "Home",
+      "detail_chip": "Da un riquadro",
+      "cells_used": "Spazi usati",
+      "tiles_go": "Se ne va 1 riquadro | Se ne vanno {n} riquadri",
+      "connections": "Collegamenti",
+      "connections_selected": "Selezione",
+      "sections": {
+        "title": "Titolo",
+        "navigation": "Navigazione"
+      },
+      "home_hint": "Il tasto casa e lo scorrimento verso l’alto portano qui.",
+      "bar_entities": "Anche a destra"
     },
     "feedback": {
       "question": "Il tuo schermo funziona come ti aspetti?",

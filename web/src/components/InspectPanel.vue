@@ -4,7 +4,9 @@ import { onMounted, ref, watch } from "vue";
 import { getJson } from "../api";
 import { t } from "../i18n";
 import { controlsLabel, displayName, sizeName } from "../model/layout";
-import { closeInspector, state, toast } from "../store";
+import { state, toast } from "../store";
+import Icon from "./ui/Icon.vue";
+import InspectorHead from "./ui/InspectorHead.vue";
 
 const props = defineProps<{ entity?: string }>();
 const summary = ref<any[] | null>(null);
@@ -41,11 +43,7 @@ watch(() => props.entity, load);
 </script>
 
 <template>
-  <div class="dr-head">
-    <span class="av" style="background: var(--seg); color: var(--ink-2); font-size: 16px">⌕</span>
-    <span class="tx"><b>{{ t("editor.inspect.title") }}</b><small :class="{ mono: entity }">{{ entity || t("editor.inspect.subtitle") }}</small></span>
-    <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="closeInspector">✕</button>
-  </div>
+  <InspectorHead :title="t('editor.inspect.title')" icon="database-search-outline" :crumbs="[{ text: entity || t('editor.inspect.subtitle'), mono: !!entity }]" />
   <div class="dr-body" id="inspector-section">
     <div id="inspection-summary">
       <p v-if="error" class="hint warn">{{ error }}</p>
@@ -59,7 +57,7 @@ watch(() => props.entity, load);
     <pre id="inspection">{{ raw }}</pre>
   </div>
   <div class="dr-foot">
-    <button type="button" class="btn quiet" @click="load">{{ t("editor.inspect.read_again") }}</button>
+    <button type="button" class="btn quiet" @click="load"><Icon name="refresh" />{{ t("editor.inspect.read_again") }}</button>
     <span class="spacer"></span>
   </div>
 </template>

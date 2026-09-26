@@ -24,12 +24,12 @@ onMounted(() => dialog.value?.showModal());
         </div>
       </div>
     </section>
-    <footer><button class="btn" @click="state.gridReview = null">{{ t('editor.common.cancel') }}</button><button class="btn primary" @click="acceptGridReview">{{ t('editor.pages.grid_accept') }}</button></footer>
+    <footer><button class="btn quiet" @click="state.gridReview = null">{{ t('editor.common.cancel') }}</button><button class="btn primary" @click="acceptGridReview">{{ t('editor.pages.grid_accept') }}</button></footer>
   </dialog>
 </template>
 <style scoped>
 .grid-review { width: 700px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; overflow: auto; }
-.grid-review::backdrop { background: rgb(0 0 0 / .55); }
+.grid-review::backdrop { background: rgb(10 12 18 / .5); }
 p, small { color: var(--muted); }
 section { margin: 20px 0; }
 .grid-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px; }

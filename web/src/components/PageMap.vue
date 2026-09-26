@@ -2,9 +2,9 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
-import { glyph } from "../model/topbar";
 import { arrangeFromHome, connectTile, deviceStyle, liveEntries, moveWorkspacePage, openPage, openTile, screenShape, state, workspacePositions } from "../store";
 import DevicePage from "./DevicePage.vue";
+import Icon from "./ui/Icon.vue";
 defineProps<{ compact?: boolean }>();
 const allConnections = ref(false);
 
@@ -90,19 +90,29 @@ onBeforeUnmount(() => { cleanGesture(); observer?.disconnect(); state.connecting
 <template>
   <div v-if="compact" class="map-list">
     <section v-for="(page, index) in state.document!.pages" :key="page.id">
-      <div class="map-list-head"><button class="btn" @click="openPage(page.id)">{{ index + 1 }} · {{ name(page.id) }}</button>
-        <button class="btn mini" @click="state.selectedPageId = page.id; state.focusedPageId = page.id">{{ t('editor.pages.edit_page') }}</button></div>
-      <button v-for="route in routes.filter((route) => route.from === page.id || route.to === page.id)" :key="route.tileId" class="map-list-route" @click="selectRoute(route.tileId)">{{ name(route.from) }} → {{ name(route.to) }}</button>
+      <div class="map-list-head">
+        <button type="button" class="map-list-name" @click="openPage(page.id)"><b>{{ t('editor.page.label', { page: index + 1 }) }}</b> {{ name(page.id) }}</button>
+        <button type="button" class="btn quiet mini" @click="state.selectedPageId = page.id; state.focusedPageId = page.id"><Icon name="pencil-outline" />{{ t('editor.pages.edit_page') }}</button>
+      </div>
+      <button v-for="route in routes.filter((route) => route.from === page.id || route.to === page.id)" :key="route.tileId" type="button" class="map-list-route" @click="selectRoute(route.tileId)">
+        <span>{{ name(route.from) }}</span><Icon name="arrow-right" /><span>{{ name(route.to) }}</span>
+      </button>
     </section>
   </div>
   <template v-else>
   <div class="map-toolbar">
-    <span>{{ t('editor.pages.map_hint') }}</span>
-    <button class="btn mini" :aria-pressed="allConnections" @click="allConnections = !allConnections">{{ t('editor.pages.all_connections') }}</button>
-    <button type="button" class="btn mini" @click="arrangeFromHome">{{ t('editor.pages.arrange') }}</button>
-    <button type="button" class="icon-btn" :aria-label="t('editor.pages.zoom_out')" @click="zoom = Math.max(.4, zoom - .1)">−</button>
-    <span>{{ Math.round(zoom * 100) }}%</span>
-    <button type="button" class="icon-btn" :aria-label="t('editor.pages.zoom_in')" @click="zoom = Math.min(1.2, zoom + .1)">+</button>
+    <span class="map-hint">{{ t('editor.pages.map_hint') }}</span>
+    <span class="map-tool-label" id="map-connections">{{ t('editor.pages.connections') }}</span>
+    <div class="seg" role="group" aria-labelledby="map-connections">
+      <button type="button" :aria-pressed="!allConnections" @click="allConnections = false">{{ t('editor.pages.connections_selected') }}</button>
+      <button type="button" :aria-pressed="allConnections" @click="allConnections = true">{{ t('editor.pages.all_connections') }}</button>
+    </div>
+    <button type="button" class="btn quiet mini" @click="arrangeFromHome"><Icon name="home-outline" />{{ t('editor.pages.arrange') }}</button>
+    <div class="tool-group" role="group">
+      <button type="button" class="icon-btn" :aria-label="t('editor.pages.zoom_out')" :disabled="zoom <= .4" @click="zoom = Math.max(.4, Math.round((zoom - .1) * 10) / 10)"><Icon name="magnify-minus-outline" /></button>
+      <span class="zoom-value">{{ Math.round(zoom * 100) }}%</span>
+      <button type="button" class="icon-btn" :aria-label="t('editor.pages.zoom_in')" :disabled="zoom >= 1.2" @click="zoom = Math.min(1.2, Math.round((zoom + .1) * 10) / 10)"><Icon name="magnify-plus-outline" /></button>
+    </div>
   </div>
   <div v-if="state.connectingTileId" class="connection-instruction" role="status">
     {{ t('editor.pages.choose_destination') }}
@@ -126,13 +136,17 @@ onBeforeUnmount(() => { cleanGesture(); observer?.disconnect(); state.connecting
           :class="{ selected: state.selectedPageId === page.id, destination: !!state.connectingTileId }"
           :style="{ left: `${positions[page.id].x * pitch.x + 40}px`, top: `${positions[page.id].y * pitch.y + 40}px`, width: `${cardWidth}px` }"
           @click.capture="destinationClick($event, page.id)">
-          <div class="map-node-head">
-            <button type="button" class="map-handle" :aria-label="t('editor.pages.move_map', { name: name(page.id) })" @pointerdown.stop="movePage($event, page.id)" @click="openPage(page.id)">
-              <span class="mdi">{{ glyph('F01DB') }}</span> {{ name(page.id) }}
-            </button>
-            <button type="button" class="btn mini" @click="state.focusedPageId = page.id">{{ t('editor.pages.edit_page') }}</button>
-          </div>
-          <DevicePage :page="index" :entries="state.drag.preview || liveEntries()" :pages="state.document!.pages.length" :moving="state.drag.moving" map />
+          <DevicePage :page="index" :entries="state.drag.preview || liveEntries()" :pages="state.document!.pages.length" :moving="state.drag.moving" map>
+            <template #handle>
+              <button type="button" class="grab map-handle" :aria-label="t('editor.pages.move_map', { name: name(page.id) })" :title="t('editor.pages.move_map', { name: name(page.id) })"
+                @pointerdown.stop="movePage($event, page.id)" @click="openPage(page.id)">
+                <Icon name="drag" class="grip" />{{ t('editor.page.label', { page: index + 1 }) }}
+              </button>
+            </template>
+            <template #actions>
+              <button type="button" class="icon-btn" :aria-label="t('editor.pages.edit_page')" :title="t('editor.pages.edit_page')" @click="state.focusedPageId = page.id"><Icon name="pencil-outline" /></button>
+            </template>
+          </DevicePage>
         </article>
         <button v-for="edge in visibleEdges" :key="edge.tileId" type="button" class="connection-port"
           :style="{ left: `${edge.sx - 6}px`, top: `${edge.sy - 6}px` }" :aria-label="t('editor.pages.change_destination', { name: name(edge.from) })"
@@ -144,19 +158,23 @@ onBeforeUnmount(() => { cleanGesture(); observer?.disconnect(); state.connecting
 </template>
 
 <style scoped>
-.map-list section { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 12px 0; }
-.map-list-head { display: flex; justify-content: space-between; gap: 8px; }
-.map-list-route { display: block; margin: 10px 0; border: 0; background: none; color: var(--accent); text-align: left; }
-.map-toolbar { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 14px; color: var(--muted); }
-.map-toolbar > span:first-child { margin-right: auto; }
-.map-scroll { overflow: auto; min-height: 500px; max-height: calc(100vh - 250px); background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 20px 20px; border-radius: 14px; }
+.map-list { display: grid; gap: 10px; }
+.map-list section { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); display: grid; gap: 6px; }
+.map-list-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.map-list-name { text-align: left; color: var(--ink-2); padding: 4px 0; }
+.map-list-name b { color: var(--ink); font-weight: 650; }
+.map-list-route { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: 12.5px; text-align: left; }
+.map-list-route .ui-icon { color: var(--accent); }
+.map-toolbar { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 12px; color: var(--muted); flex-wrap: wrap; }
+.map-hint { margin-right: auto; }
+.map-tool-label { font-weight: 500; color: var(--ink-2); }
+.zoom-value { min-width: 40px; text-align: center; color: var(--ink-2); font-size: 12px; }
+.map-scroll { overflow: auto; min-height: 500px; max-height: calc(100vh - 250px); background-color: var(--surface-2); background-image: radial-gradient(var(--line-strong) 1px, transparent 1px); background-size: 20px 20px; border-radius: 14px; border: 1px solid var(--line); }
 .map-world { position: relative; transform-origin: top left; }
 .map-node { position: absolute; }
 .map-node.selected :deep(.device) { outline: 2px solid var(--accent); outline-offset: 4px; }
 .map-node.destination:hover :deep(.device) { outline: 3px solid var(--accent); outline-offset: 4px; }
-.map-node-head { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-.map-handle { border: 0; background: none; text-align: left; flex: 1; padding: 8px 0; font-weight: 600; cursor: grab; touch-action: none; }
-.map-handle .mdi { color: var(--muted); }
+.map-handle { touch-action: none; }
 .map-links { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
 .edge { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .55; }
 marker path { fill: var(--accent); }
@@ -167,5 +185,5 @@ marker path { fill: var(--accent); }
 .map-placement { position: absolute; pointer-events: none; border: 3px dashed var(--accent); border-radius: 20px; background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .map-placement.blocked { border-color: var(--danger); }
 .connection-port:focus-visible { outline: 4px solid var(--accent); outline-offset: 3px; }
-.connection-instruction { display: flex; align-items: center; gap: 16px; padding: 10px; color: var(--accent); }
+.connection-instruction { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 10px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 </style>

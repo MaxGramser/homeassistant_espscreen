@@ -4,9 +4,11 @@ ESP Screens 0.3.1 stores each page as a complete unit: its tiles, top bar, navig
 
 ## Editing
 
-**Simple** is the default. Drag entities from the library onto the page grid, or select an empty cell and add an entity. Page settings contain the title, **Set as Home**, **Show in page dots and swipe navigation**, **Show a Home control on this page** and **Edit this page’s top bar**. Every page can have different top-bar items. A title can follow the screen title or use custom text. Copying a bar creates independent items on the chosen pages.
+The toolbar above the pages switches between two views, **Row** and **Map**, and holds Undo, Redo, **Preview**, **Add page** and a **?** with a short how-to.
 
-**Advanced** adds a spatial page map and links from navigation tiles to their destinations. Workspace positions belong to the editor, so arranging pages vertically does not change their order on the device. Reordering pages changes the device order while preserving destinations. Returning to Simple removes the map connections and keeps the same pages and tiles.
+**Row** is the default: the pages side by side, as you swipe through them on the screen. Drag entities from the library onto the page grid, or select an empty cell and add an entity. Each page has a header with its number, its title, a **Home** label on the Home page and one **···** menu: **Page settings**, **Edit top bar**, **Set as Home**, **Duplicate page**, **New empty page with this top bar** and **Remove page**. Page settings hold the page title (the screen title, which every page without its own title shows, is one click under it), **Set as Home**, **Show in page dots and swipe navigation**, **Show a Home control on this page**, the page order and the page's top bar. Every page can have different top-bar items. Copying a bar creates independent items on the chosen pages.
+
+**Map** adds a spatial page map and links from navigation tiles to their destinations. Workspace positions belong to the editor, so arranging pages vertically does not change their order on the device. Reordering pages changes the device order while preserving destinations. Returning to Row removes the map connections and keeps the same pages and tiles.
 
 The navigation preview runs locally. It does not switch entities in Home Assistant. Entity values and available history come from Home Assistant; unavailable history is left empty.
 
@@ -17,9 +19,14 @@ The new page gets a title from its shared HA area, or from its entity domain whe
 there is no shared area. Mixed content without a common area uses the screen title.
 Suggestions are applied only at creation and never rename an existing page.
 
-Contextual help uses Floating Vue through `HelpTip.vue`. Help icons work with
-keyboard focus, pointer hover and a tap; Escape or leaving the help closes it.
-Errors, compatibility notices and unsaved-change status remain visible.
+Contextual help uses Floating Vue through `HelpTip.vue`: a small help icon beside a label, only where the
+words alone don't say it. Help icons work with keyboard focus, pointer hover and a tap; Escape or leaving the
+help closes it. Errors, compatibility notices and unsaved-change status remain visible.
+
+Menus, lists to pick from and switches use Reka UI (app 0.3.19), wrapped in `web/src/components/ui/` so every
+panel uses the same few building blocks. The inspector groups a tile's settings in five cards (Text, Look,
+Size and place, Controls, Icon and color) and a page's in three (Title, Navigation, Top bar). The icons of the
+editor's own controls are Material Design Icons, listed in `web/src/model/ui-icons.json`.
 
 ## Home and detail pages
 

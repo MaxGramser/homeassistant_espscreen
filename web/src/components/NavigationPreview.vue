@@ -6,6 +6,7 @@ import { entriesOf } from '../model/layout';
 import { navigationStep, titleOf, type NavigationIntent } from '../model/pages';
 import { navigationSettings, state } from '../store';
 import DevicePage from './DevicePage.vue';
+import Icon from './ui/Icon.vue';
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
 const current = ref(state.document!.homePageId);
@@ -37,21 +38,23 @@ onBeforeUnmount(() => previouslyFocused?.focus());
 </script>
 <template>
   <dialog ref="dialog" class="navigation-preview" @cancel.prevent="emit('close')">
-    <div class="preview-heading"><b>{{ t('editor.pages.try_navigation') }}</b><button class="icon-btn" :aria-label="t('editor.common.close')" @click="emit('close')">✕</button></div>
+    <div class="preview-heading"><b><Icon name="play" />{{ t('editor.pages.try_navigation') }}</b><button class="icon-btn" :aria-label="t('editor.common.close')" @click="emit('close')"><Icon name="close" /></button></div>
     <p>{{ t('editor.pages.preview_hint') }}</p>
     <div class="preview-screen" @pointerdown="suppressClick = false; start($event)" @pointerup="finish" @pointercancel="origin = null" @click.capture="click">
       <DevicePage :page="page" :entries="entriesOf(state.layout!)" :pages="state.document!.pages.length" :moving="null" preview :can-go-back="canGoBack" @navigate="navigate" />
     </div>
     <div v-if="navigationSettings().swipe" class="preview-swipes">
-      <button class="btn mini" @click="navigate({ kind: 'swipe-previous' })">{{ t('editor.pages.swipe_previous') }}</button>
-      <button class="btn mini" @click="navigate({ kind: 'swipe-next' })">{{ t('editor.pages.swipe_next') }}</button>
+      <button class="btn quiet mini" @click="navigate({ kind: 'swipe-previous' })"><Icon name="arrow-left" />{{ t('editor.pages.swipe_previous') }}</button>
+      <button class="btn quiet mini" @click="navigate({ kind: 'swipe-next' })">{{ t('editor.pages.swipe_next') }}<Icon name="arrow-right" /></button>
     </div>
     <p class="preview-route" aria-live="polite">{{ caption }}</p>
   </dialog>
 </template>
 <style scoped>
-.navigation-preview { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow: auto; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
-.navigation-preview::backdrop { background: rgb(0 0 0 / .55); }
+.navigation-preview { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow: auto; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; box-shadow: var(--shadow); }
+.navigation-preview::backdrop { background: rgb(10 12 18 / .5); }
+.preview-heading b { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
+.preview-heading b .ui-icon { color: var(--accent); }
 .preview-heading, .preview-swipes { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .preview-screen { display: flex; justify-content: center; margin: 18px 0; touch-action: pan-y; }
 p { max-width: 480px; font-size: 13px; color: var(--muted); }
