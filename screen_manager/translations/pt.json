@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Instale-o mais tarde a partir de Firmware e USB: escolha este perfil e depois a porta USB da máquina do Home Assistant, ou Descarregar para instalar o firmware no ecrã a partir do seu próprio computador. Guarde a chave API para o emparelhamento:",
         "uploading": "Não desligue ainda o cabo USB.",
-        "building": "A primeira compilação demora alguns minutos num Raspberry Pi. Pode sair desta página: a instalação continua e volta a encontrá-la em Novo ecrã.",
-        "building_download": "A primeira compilação demora alguns minutos num Raspberry Pi. Pode sair desta página: a compilação continua e volta a encontrá-la em Novo ecrã.",
+        "building": "A compilação pode demorar 20 minutos ou mais num computador do Home Assistant, como um Raspberry Pi, sobretudo da primeira vez. É normal. Pode sair desta página: a instalação continua e volta a encontrá-la em Novo ecrã.",
+        "building_download": "A compilação pode demorar 20 minutos ou mais num computador do Home Assistant, como um Raspberry Pi, sobretudo da primeira vez. É normal. Pode sair desta página: a compilação continua e volta a encontrá-la em Novo ecrã.",
         "downloaded": "Instale-o no ecrã a partir do seu próprio computador e depois emparelhe o ecrã com o Home Assistant.",
         "booted": "O ecrã arranca e liga-se à sua rede Wi-Fi. Emparelhe-o agora com o Home Assistant:",
         "booted_calibrate": "O ecrã arranca e liga-se à sua rede Wi-Fi. Primeiro pede uma calibração do toque: toque nas cruzes. Emparelhe-o agora com o Home Assistant:",
@@ -2259,7 +2259,7 @@
       "hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. Depois disso, as atualizações vão por Wi-Fi.",
       "firmware_hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. O ecrã mantém as definições e a calibração do toque. Assim também recupera um ecrã que reinicia sem parar e nunca fica online.",
       "go": "Ligar e instalar",
-      "building": "Uma primeira compilação demora alguns minutos num Raspberry Pi. Mantenha este separador aberto e o ecrã ligado: esta página instala o firmware assim que estiver pronto.",
+      "building": "A compilação pode demorar 20 minutos ou mais num computador do Home Assistant, como um Raspberry Pi, sobretudo da primeira vez. É normal. Mantenha este separador aberto e o ecrã ligado: esta página instala o firmware assim que estiver pronto.",
       "keep_open": "Mantenha este separador aberto e o cabo USB ligado até terminar.",
       "unavailable": {
         "insecure": "Instalar a partir do navegador exige o Home Assistant aberto por https, por exemplo pelo seu endereço do Home Assistant Cloud, no Chrome ou no Edge. Esta página foi aberta por http simples. Escolha Descarregar, ou abra o Home Assistant por https.",

@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Installiere es später über Firmware & USB: Wähle dieses Profil, dann den USB-Port des Home Assistant-Rechners oder „Download“, um die Firmware von deinem eigenen Computer aus auf den Bildschirm zu spielen. Speichere den API-Schlüssel für die Kopplung:",
         "uploading": "Zieh das USB-Kabel noch nicht ab.",
-        "building": "Das erste Erstellen dauert auf einem Raspberry Pi ein paar Minuten. Du kannst diese Seite verlassen: Die Installation läuft weiter, und du findest sie unter „Neuer Bildschirm“ wieder.",
-        "building_download": "Das erste Erstellen dauert auf einem Raspberry Pi ein paar Minuten. Du kannst diese Seite verlassen: Die Firmware wird weiter erstellt, und du findest sie unter „Neuer Bildschirm“ wieder.",
+        "building": "Das Bauen kann auf einem Home-Assistant-Rechner wie einem Raspberry Pi 20 Minuten oder länger dauern, besonders beim ersten Mal. Das ist normal. Du kannst diese Seite verlassen: Die Installation läuft weiter, und du findest sie unter „Neuer Bildschirm“ wieder.",
+        "building_download": "Das Bauen kann auf einem Home-Assistant-Rechner wie einem Raspberry Pi 20 Minuten oder länger dauern, besonders beim ersten Mal. Das ist normal. Du kannst diese Seite verlassen: Die Firmware wird weiter erstellt, und du findest sie unter „Neuer Bildschirm“ wieder.",
         "downloaded": "Spiele sie von deinem eigenen Computer aus auf den Bildschirm und kopple den Bildschirm dann mit Home Assistant.",
         "booted": "Der Bildschirm startet und verbindet sich mit deinem Wi-Fi. Kopple ihn jetzt mit Home Assistant:",
         "booted_calibrate": "Der Bildschirm startet und verbindet sich mit deinem Wi-Fi. Er fragt zuerst nach einer Touch-Kalibrierung: Tippe auf die Kreuze. Kopple ihn jetzt mit Home Assistant:",
@@ -2259,7 +2259,7 @@
       "hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Danach laufen Updates über WLAN.",
       "firmware_hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Der Bildschirm behält seine Einstellungen und Touch-Kalibrierung. So rettest du auch einen Bildschirm, der ständig neu startet und nie online kommt.",
       "go": "Verbinden & installieren",
-      "building": "Ein erster Build dauert auf einem Raspberry Pi einige Minuten. Lass diesen Tab offen und den Bildschirm angeschlossen: Diese Seite installiert die Firmware, sobald sie fertig ist.",
+      "building": "Das Bauen kann auf einem Home-Assistant-Rechner wie einem Raspberry Pi 20 Minuten oder länger dauern, besonders beim ersten Mal. Das ist normal. Lass diesen Tab offen und den Bildschirm angeschlossen: Diese Seite installiert die Firmware, sobald sie fertig ist.",
       "keep_open": "Lass diesen Tab offen und das USB-Kabel eingesteckt, bis es fertig ist.",
       "unavailable": {
         "insecure": "Die Installation aus dem Browser braucht Home Assistant über https, zum Beispiel über deine Home Assistant Cloud-Adresse, in Chrome oder Edge. Diese Seite wurde über einfaches http geöffnet. Wähle stattdessen „Download“ oder öffne Home Assistant über https.",

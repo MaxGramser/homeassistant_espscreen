@@ -1793,7 +1793,7 @@
     },
     "firmware": {
       "title": "Build and install screen firmware",
-      "intro": "The built-in ESPHome CLI uses your own profile (YAML with keys) and secrets. Choose the screen's profile, then a USB port (screen connected to the Home Assistant machine), {ota} with the hostname, or {download} to put the firmware on the screen from your own computer. {check} only validates, {build} compiles, {install} puts the firmware on the screen. Your tiles stay as they are in ESP Screens. The first build takes a few minutes.",
+      "intro": "The built-in ESPHome CLI uses your own profile (YAML with keys) and secrets. Choose the screen's profile, then a USB port (screen connected to the Home Assistant machine), {ota} with the hostname, or {download} to put the firmware on the screen from your own computer. {check} only validates, {build} compiles, {install} puts the firmware on the screen. Your tiles stay as they are in ESP Screens. Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal.",
       "ota": "Wi-Fi / OTA",
       "download": "Download",
       "check": "Check",
@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Install it later from Firmware & USB: choose this profile, then the USB port of the Home Assistant machine, or Download to put the firmware on the screen from your own computer. Save the API key for pairing:",
         "uploading": "Don't disconnect the USB cable yet.",
-        "building": "A first build takes a few minutes on a Raspberry Pi. You can leave this page: the installation keeps running and you'll find it again under New screen.",
-        "building_download": "A first build takes a few minutes on a Raspberry Pi. You can leave this page: the build keeps running and you'll find it again under New screen.",
+        "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. You can leave this page: the installation keeps running and you'll find it again under New screen.",
+        "building_download": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. You can leave this page: the build keeps running and you'll find it again under New screen.",
         "downloaded": "Put it on the screen from your own computer, then pair the screen with Home Assistant.",
         "booted": "The screen boots up and connects to your Wi-Fi. Pair it with Home Assistant now:",
         "booted_calibrate": "The screen boots up and connects to your Wi-Fi. It first asks for a touch calibration: tap the crosshairs. Pair it with Home Assistant now:",
@@ -2259,7 +2259,7 @@
       "hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. After that, updates go over Wi-Fi.",
       "firmware_hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. The screen keeps its settings and touch calibration. This also rescues a screen that keeps restarting and never comes online.",
       "go": "Connect & install",
-      "building": "A first build takes a few minutes on a Raspberry Pi. Keep this tab open and the screen plugged in: this page installs the firmware as soon as it's ready.",
+      "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. Keep this tab open and the screen plugged in: this page installs the firmware as soon as it's ready.",
       "keep_open": "Keep this tab open and the USB cable plugged in until it's done.",
       "unavailable": {
         "insecure": "Installing from the browser needs Home Assistant opened over https, for example through your Home Assistant Cloud address, in Chrome or Edge. This page was opened over plain http. Choose Download instead, or open Home Assistant over https.",

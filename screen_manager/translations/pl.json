@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Zainstaluj go później w sekcji „Firmware i USB”: wybierz ten profil, a potem port USB komputera z Home Assistant albo „Pobierz”, aby wgrać firmware na ekran z własnego komputera. Zachowaj klucz API do parowania:",
         "uploading": "Nie odłączaj jeszcze kabla USB.",
-        "building": "Pierwsza kompilacja trwa kilka minut na Raspberry Pi. Możesz opuścić tę stronę: instalacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
-        "building_download": "Pierwsza kompilacja trwa kilka minut na Raspberry Pi. Możesz opuścić tę stronę: kompilacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
+        "building": "Budowanie na komputerze z Home Assistant, takim jak Raspberry Pi, może trwać 20 minut lub dłużej, zwłaszcza za pierwszym razem. To normalne. Możesz opuścić tę stronę: instalacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
+        "building_download": "Budowanie na komputerze z Home Assistant, takim jak Raspberry Pi, może trwać 20 minut lub dłużej, zwłaszcza za pierwszym razem. To normalne. Możesz opuścić tę stronę: kompilacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
         "downloaded": "Wgraj go na ekran z własnego komputera, a potem sparuj ekran z Home Assistant.",
         "booted": "Ekran się uruchamia i łączy z Twoją siecią Wi-Fi. Teraz sparuj go z Home Assistant:",
         "booted_calibrate": "Ekran się uruchamia i łączy z Twoją siecią Wi-Fi. Najpierw poprosi o kalibrację dotyku: dotykaj krzyżyków. Teraz sparuj go z Home Assistant:",
@@ -2259,7 +2259,7 @@
       "hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. ESP Screens kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Później aktualizacje idą przez Wi-Fi.",
       "firmware_hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. ESP Screens kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Ekran zachowuje ustawienia i kalibrację dotyku. Tak uratujesz też ekran, który ciągle się restartuje i nigdy nie łączy się z siecią.",
       "go": "Połącz i zainstaluj",
-      "building": "Pierwsza kompilacja trwa kilka minut na Raspberry Pi. Zostaw tę kartę otwartą i ekran podłączony: ta strona zainstaluje firmware, gdy tylko będzie gotowy.",
+      "building": "Budowanie na komputerze z Home Assistant, takim jak Raspberry Pi, może trwać 20 minut lub dłużej, zwłaszcza za pierwszym razem. To normalne. Zostaw tę kartę otwartą i ekran podłączony: ta strona zainstaluje firmware, gdy tylko będzie gotowy.",
       "keep_open": "Zostaw tę kartę otwartą i kabel USB podłączony do końca.",
       "unavailable": {
         "insecure": "Instalacja z przeglądarki wymaga Home Assistant otwartego przez https, na przykład przez adres Home Assistant Cloud, w Chrome lub Edge. Ta strona została otwarta przez zwykłe http. Wybierz „Pobierz” albo otwórz Home Assistant przez https.",

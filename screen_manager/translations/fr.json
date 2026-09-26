@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Installez-le plus tard depuis Firmware et USB : choisissez ce profil, puis le port USB de la machine Home Assistant, ou Télécharger pour installer le firmware sur l'écran depuis votre propre ordinateur. Conservez la clé API pour l'association :",
         "uploading": "Ne débranchez pas encore le câble USB.",
-        "building": "Une première compilation prend quelques minutes sur un Raspberry Pi. Vous pouvez quitter cette page : l'installation continue et vous la retrouverez sous Nouvel écran.",
-        "building_download": "Une première compilation prend quelques minutes sur un Raspberry Pi. Vous pouvez quitter cette page : la compilation continue et vous la retrouverez sous Nouvel écran.",
+        "building": "La compilation peut prendre 20 minutes ou plus sur une machine Home Assistant comme un Raspberry Pi, surtout la première fois. C'est normal. Vous pouvez quitter cette page : l'installation continue et vous la retrouverez sous Nouvel écran.",
+        "building_download": "La compilation peut prendre 20 minutes ou plus sur une machine Home Assistant comme un Raspberry Pi, surtout la première fois. C'est normal. Vous pouvez quitter cette page : la compilation continue et vous la retrouverez sous Nouvel écran.",
         "downloaded": "Installez-le sur l'écran depuis votre propre ordinateur, puis associez l'écran à Home Assistant.",
         "booted": "L'écran démarre et se connecte à votre Wi-Fi. Associez-le maintenant à Home Assistant :",
         "booted_calibrate": "L'écran démarre et se connecte à votre Wi-Fi. Il demande d'abord un étalonnage tactile : touchez les croix. Associez-le maintenant à Home Assistant :",
@@ -2259,7 +2259,7 @@
       "hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. ESP Screens compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. Ensuite, les mises à jour passent par le Wi-Fi.",
       "firmware_hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. ESP Screens compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. L'écran garde ses réglages et son calibrage tactile. Cela sauve aussi un écran qui redémarre sans cesse et n'arrive jamais en ligne.",
       "go": "Connecter et installer",
-      "building": "Une première compilation prend quelques minutes sur un Raspberry Pi. Gardez cet onglet ouvert et l'écran branché : cette page installe le firmware dès qu'il est prêt.",
+      "building": "La compilation peut prendre 20 minutes ou plus sur une machine Home Assistant comme un Raspberry Pi, surtout la première fois. C'est normal. Gardez cet onglet ouvert et l'écran branché : cette page installe le firmware dès qu'il est prêt.",
       "keep_open": "Gardez cet onglet ouvert et le câble USB branché jusqu'à la fin.",
       "unavailable": {
         "insecure": "L'installation depuis le navigateur demande Home Assistant ouvert en https, par exemple via votre adresse Home Assistant Cloud, dans Chrome ou Edge. Cette page a été ouverte en http simple. Choisissez plutôt Télécharger, ou ouvrez Home Assistant en https.",

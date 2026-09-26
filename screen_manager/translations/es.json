@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Instálalo más tarde desde Firmware y USB: elige este perfil y luego el puerto USB del equipo de Home Assistant, o Descargar para instalar el firmware en la pantalla desde tu propio ordenador. Guarda la clave API para el emparejamiento:",
         "uploading": "No desconectes todavía el cable USB.",
-        "building": "La primera compilación tarda unos minutos en una Raspberry Pi. Puedes salir de esta página: la instalación sigue en marcha y la volverás a encontrar en Nueva pantalla.",
-        "building_download": "La primera compilación tarda unos minutos en una Raspberry Pi. Puedes salir de esta página: la compilación sigue en marcha y la volverás a encontrar en Nueva pantalla.",
+        "building": "La compilación puede tardar 20 minutos o más en un equipo de Home Assistant como una Raspberry Pi, sobre todo la primera vez. Es normal. Puedes salir de esta página: la instalación sigue en marcha y la volverás a encontrar en Nueva pantalla.",
+        "building_download": "La compilación puede tardar 20 minutos o más en un equipo de Home Assistant como una Raspberry Pi, sobre todo la primera vez. Es normal. Puedes salir de esta página: la compilación sigue en marcha y la volverás a encontrar en Nueva pantalla.",
         "downloaded": "Instálalo en la pantalla desde tu propio ordenador y luego empareja la pantalla con Home Assistant.",
         "booted": "La pantalla arranca y se conecta a tu Wi-Fi. Empareja ahora la pantalla con Home Assistant:",
         "booted_calibrate": "La pantalla arranca y se conecta a tu Wi-Fi. Primero pide una calibración táctil: toca las cruces. Empareja ahora la pantalla con Home Assistant:",
@@ -2259,7 +2259,7 @@
       "hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
       "firmware_hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. La pantalla conserva sus ajustes y su calibración táctil. Así también rescatas una pantalla que se reinicia sin parar y nunca se conecta.",
       "go": "Conectar e instalar",
-      "building": "Una primera compilación tarda unos minutos en una Raspberry Pi. Deja esta pestaña abierta y la pantalla conectada: esta página instala el firmware en cuanto esté listo.",
+      "building": "La compilación puede tardar 20 minutos o más en un equipo de Home Assistant como una Raspberry Pi, sobre todo la primera vez. Es normal. Deja esta pestaña abierta y la pantalla conectada: esta página instala el firmware en cuanto esté listo.",
       "keep_open": "Deja esta pestaña abierta y el cable USB conectado hasta que termine.",
       "unavailable": {
         "insecure": "Instalar desde el navegador requiere abrir Home Assistant por https, por ejemplo con tu dirección de Home Assistant Cloud, en Chrome o Edge. Esta página se abrió por http simple. Elige Descargar, o abre Home Assistant por https.",
