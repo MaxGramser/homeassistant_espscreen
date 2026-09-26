@@ -1804,8 +1804,8 @@
       "choose": "Wybierz właściwy profil, a potem port USB, adres IP lub „Pobierz”.",
       "profile": "Profil ESPHome",
       "install_to": "Zainstaluj na",
-      "no_board": "USB · nie znaleziono jeszcze płytki na komputerze z Home Assistant",
-      "download_target": "Pobierz · wgraj z własnego komputera",
+      "no_board": "Nie podłączono tam jeszcze ekranu",
+      "download_target": "Pobierz plik i wgraj go samodzielnie",
       "host": "Adres IP lub nazwa hosta",
       "download_file": "Pobierz {name}",
       "download_how": "Wgraj go na ekran przez {esphome_web} w Chrome lub Edge: „Connect”, wybierz port USB ekranu, „Install” i wskaż ten plik. Zawiera Twoje hasło Wi-Fi i klucze ekranu: nie udostępniaj go nikomu."
@@ -1819,7 +1819,7 @@
         "done": "Gotowe.",
         "failed": "Nie udało się."
       },
-      "intro": "ESP Screens tworzy własny profil ekranu z unikalnymi kluczami i kompiluje firmware. Podłącz ekran kablem USB do transmisji danych do komputera z Home Assistant albo pobierz firmware i wgraj go na ekran z własnego komputera.",
+      "intro": "ESP Screens tworzy własny profil ekranu z unikalnymi kluczami i kompiluje firmware. Podłącz ekran kablem USB do transmisji danych do komputera z Home Assistant albo do komputera, którego teraz używasz.",
       "board": "Jaki masz ekran?",
       "board_title": "{name} · {inch} cala",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Zainstaluj przez",
       "later": "Później · tylko zapisz profil",
       "target": {
-        "usb": "Podłącz ekran kablem USB do transmisji danych do komputera z Home Assistant; lista odświeża się sama. Albo wybierz „Pobierz”, aby użyć własnego komputera.",
+        "usb": "Podłącz ekran kablem USB do transmisji danych do komputera z Home Assistant; lista odświeża się sama. Albo wybierz „Ten komputer”, aby zainstalować z tej przeglądarki.",
         "download": "Pobierz firmware i wgraj go na ekran z własnego komputera, w Chrome lub Edge. Potem aktualizacje idą przez Wi-Fi.",
         "later": "Profil trafi do folderu ESPHome. Zainstalujesz go później w sekcji „Firmware i USB” albo w ESPHome Device Builder.",
         "several": "Podłączono więcej niż jedną płytkę: wybierz port tego ekranu.",
@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Zainstaluj go później w sekcji „Firmware i USB”: wybierz ten profil, a potem port USB komputera z Home Assistant albo „Pobierz”, aby wgrać firmware na ekran z własnego komputera. Zachowaj klucz API do parowania:",
         "uploading": "Nie odłączaj jeszcze kabla USB.",
-        "building": "Pierwsza kompilacja trwa kilka minut na Raspberry Pi. Możesz opuścić tę stronę: instalacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
-        "building_download": "Pierwsza kompilacja trwa kilka minut na Raspberry Pi. Możesz opuścić tę stronę: kompilacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
+        "building": "Budowanie na komputerze z Home Assistant, takim jak Raspberry Pi, może trwać 20 minut lub dłużej, zwłaszcza za pierwszym razem. To normalne. Możesz opuścić tę stronę: instalacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
+        "building_download": "Budowanie na komputerze z Home Assistant, takim jak Raspberry Pi, może trwać 20 minut lub dłużej, zwłaszcza za pierwszym razem. To normalne. Możesz opuścić tę stronę: kompilacja trwa dalej, a znajdziesz ją ponownie w sekcji „Nowy ekran”.",
         "downloaded": "Wgraj go na ekran z własnego komputera, a potem sparuj ekran z Home Assistant.",
         "booted": "Ekran się uruchamia i łączy z Twoją siecią Wi-Fi. Teraz sparuj go z Home Assistant:",
         "booted_calibrate": "Ekran się uruchamia i łączy z Twoją siecią Wi-Fi. Najpierw poprosi o kalibrację dotyku: dotykaj krzyżyków. Teraz sparuj go z Home Assistant:",
@@ -2253,6 +2253,48 @@
         "nothing_else": "Nic więcej: bez nazwy, konta, encji, logów ani ustawień Home Assistant. Każdy ekran udostępnia pod własnym losowym kluczem."
       },
       "privacy": "Prywatność"
+    },
+    "webflash": {
+      "target": "Zainstaluj z tej przeglądarki (Chrome lub Edge)",
+      "hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. ESP Screens kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Później aktualizacje idą przez Wi-Fi.",
+      "firmware_hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. ESP Screens kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Ekran zachowuje ustawienia i kalibrację dotyku. Tak uratujesz też ekran, który ciągle się restartuje i nigdy nie łączy się z siecią.",
+      "go": "Połącz i zainstaluj",
+      "building": "Budowanie na komputerze z Home Assistant, takim jak Raspberry Pi, może trwać 20 minut lub dłużej, zwłaszcza za pierwszym razem. To normalne. Zostaw tę kartę otwartą i ekran podłączony: ta strona zainstaluje firmware, gdy tylko będzie gotowy.",
+      "keep_open": "Zostaw tę kartę otwartą i kabel USB podłączony do końca.",
+      "unavailable": {
+        "insecure": "Instalacja z przeglądarki wymaga Home Assistant otwartego przez https, na przykład przez adres Home Assistant Cloud, w Chrome lub Edge. Ta strona została otwarta przez zwykłe http. Wybierz „Pobierz” albo otwórz Home Assistant przez https.",
+        "browser": "Ta przeglądarka nie ma dostępu do portów USB. Użyj Chrome lub Edge na komputerze albo wybierz „Pobierz”."
+      },
+      "phase": {
+        "picking": "Wybierz port USB ekranu w oknie, które pokazuje przeglądarka.",
+        "connecting": "Łączenie z płytką…",
+        "waiting": "Połączono z płytką ({chip}). Firmware zostanie wgrany, gdy tylko się skompiluje.",
+        "downloading": "Pobieranie firmware z ESP Screens…",
+        "erasing": "Kasowanie pamięci płytki…",
+        "writing": "Instalowanie… {percent}%",
+        "restarting": "Restartowanie ekranu…",
+        "done": "Zainstalowano. Ekran się restartuje."
+      },
+      "errors": {
+        "no_port": "Nie wybrano portu. Jeśli ekranu nie było na liście:",
+        "blocked": "Przeglądarka nie pozwala tej stronie używać portów USB. Sprawdź uprawnienia witryny w przeglądarce albo wybierz „Pobierz”.",
+        "busy": "Port ekranu jest zajęty przez inny program lub kartę, na przykład monitor portu szeregowego albo ESPHome Web. Zamknij go i spróbuj ponownie.",
+        "connect": "Płytka nie odpowiedziała. Przytrzymaj przycisk BOOT na płytce podczas wybierania portu, aż zacznie się instalacja, i spróbuj ponownie. Odłączenie i ponowne podłączenie kabla też może pomóc.",
+        "wrong_chip": "Podłączona płytka ma układ {found}, a firmware tego ekranu jest dla {expected}. Podłącz właściwy ekran albo wybierz jego płytkę.",
+        "wrong_image": "Firmware skompilowany przez ESP Screens jest dla {expected}, a podłączona płytka ma {found}. Nic nie zostało zapisane.",
+        "disconnected": "Ekran został odłączony. Podłącz go ponownie i spróbuj jeszcze raz.",
+        "download": "Nie udało się pobrać firmware z ESP Screens: {error}",
+        "failed": "Instalacja się nie udała: {error}"
+      },
+      "hints": {
+        "computer": "Podłącz ekran do tego komputera, tego, na którym działa ta przeglądarka.",
+        "power": "Sprawdź, czy płytka ma zasilanie: większość ma małą diodę.",
+        "cable": "Użyj kabla USB, który przesyła dane. Niektóre kable tylko ładują.",
+        "driver": "Zainstaluj sterownik układu USB płytki, jeśli komputer go potrzebuje (CP210x, CH340 lub CH9102)."
+      },
+      "group_ha": "Podłączony do komputera z Home Assistant",
+      "group_here": "Podłączony do tego komputera",
+      "group_wifi": "Przez Wi-Fi"
     }
   }
 }

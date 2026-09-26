@@ -26,28 +26,30 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
+  /* The neutral near-black greys of Home Assistant's own dark theme (primary background #111111, cards
+     #1c1c1c), so the panel sits in Home Assistant without a blue cast. */
   :root {
-    --ground: #0e1014;
-    --surface: #161a21;
-    --surface-2: #1b2029;
-    --line: #262c37;
-    --line-strong: #333b49;
-    --ink: #e9ecf1;
-    --ink-2: #b4bbc7;
-    --muted: #8a93a3;
+    --ground: #111111;
+    --surface: #1c1c1c;
+    --surface-2: #222222;
+    --line: #2c2c2c;
+    --line-strong: #3a3a3a;
+    --ink: #e1e1e1;
+    --ink-2: #b5b5b5;
+    --muted: #8c8c8c;
     --accent: #6d93ff;
     --accent-ink: #0b1633;
-    --accent-soft: #1b2540;
+    --accent-soft: #1d2434;
     --good: #3fbf7f;
-    --good-soft: #14302a;
+    --good-soft: #16291f;
     --warn: #e0a03a;
-    --warn-soft: #302610;
+    --warn-soft: #2e2512;
     --led-update: #e8a544;
     --danger: #f07167;
-    --danger-soft: #3a1b19;
-    --seg: #222834;
-    --shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.4);
-    --code-bg: #12151b;
+    --danger-soft: #361b19;
+    --seg: #262626;
+    --shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --code-bg: #161616;
   }
 }
 /* The screens draw Material Design Icons; tile-icons.woff holds the same glyphs. The top bar

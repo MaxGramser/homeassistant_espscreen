@@ -75,7 +75,29 @@ update route.
 
 No USB port in the list? A cable plugged into your laptop isn't visible to the
 machine running Home Assistant, and a server or virtual machine may have no USB port
-within reach at all. Then put the firmware on the screen from your own computer:
+within reach at all. Then put the firmware on the screen from the computer you're using.
+
+**From this browser.** This works in Chrome or Edge on a computer, when Home Assistant is
+opened over https (see below):
+
+1. Plug the screen into this computer with a USB data cable.
+2. Under **Install via**, choose **This computer · install from this browser** and click
+   **Connect & install**.
+3. The browser asks which port to use: choose the screen's. ESP Screens first checks that the
+   board carries the chip the chosen board needs (an ESP32, ESP32-S3 or ESP32-P4), then builds the
+   firmware the same way as over USB. Keep the tab open. As soon as the build is ready, the page
+   erases the board and writes the firmware, which takes about two minutes, and the screen
+   restarts and joins your Wi-Fi.
+
+A browser only reaches USB ports on a secure page. Home Assistant opened as
+`http://homeassistant.local:8123` isn't one: open it over https, for example through your
+Home Assistant Cloud address or your own certificate. On a plain http page the option says so and
+stays off, and Download below still works. Not in the port list? Use a cable that carries data
+(some only charge), and install the driver for the board's USB chip (CP210x, CH340 or CH9102) if
+your computer needs one. The board doesn't answer? Hold its **BOOT** button while you choose the
+port, until the installation starts.
+
+**Download.** For any other browser:
 
 1. Under **Install via**, choose **Download · flash from your own computer** and click
    **Build & download**. ESP Screens builds the firmware the same way; when it's ready,
@@ -87,8 +109,11 @@ within reach at all. Then put the firmware on the screen from your own computer:
 
 The file holds your Wi-Fi password and the screen's keys: keep it to yourself. Pairing works
 as in chapter 3, and every later update goes over Wi-Fi, so the cable is only needed once.
-For an existing profile, the same file is under **Firmware & USB** (in the sidebar): choose the
-profile and **Download · flash from your own computer**, then **Build & download**.
+For an existing profile, both routes are under **Firmware & USB** (in the sidebar): choose the
+profile and **This computer · install from this browser** or **Download · flash from your own
+computer**. From the browser, Firmware & USB writes the firmware without erasing the board first,
+so the screen keeps its settings and touch calibration. That also rescues a screen that keeps
+restarting and so never comes online for an update over Wi-Fi.
 
 **CYD:** calibration appears on first boot. Calmly tap the visible crosshair
 three times, hold each tap briefly, and follow each next crosshair in turn.

@@ -1804,8 +1804,8 @@
       "choose": "Scegli il profilo giusto, poi una porta USB, un indirizzo IP o Scarica.",
       "profile": "Profilo ESPHome",
       "install_to": "Installa su",
-      "no_board": "USB · nessuno schermo rilevato finora sulla macchina di Home Assistant",
-      "download_target": "Scarica · installa dal tuo computer",
+      "no_board": "Nessuno schermo ancora collegato lì",
+      "download_target": "Scarica il file e flashalo tu",
       "host": "Indirizzo IP o nome host",
       "download_file": "Scarica {name}",
       "download_how": "Mettilo sullo schermo con {esphome_web} in Chrome o Edge: Connect, scegli la porta USB dello schermo, Install e seleziona questo file. Contiene la tua password Wi-Fi e le chiavi dello schermo: tienilo per te."
@@ -1819,7 +1819,7 @@
         "done": "Fatto.",
         "failed": "Non ha funzionato."
       },
-      "intro": "ESP Screens crea il profilo dello schermo con chiavi uniche e compila il firmware. Collega lo schermo con un cavo USB dati alla macchina su cui gira Home Assistant, oppure scarica il firmware e mettilo sullo schermo dal tuo computer.",
+      "intro": "ESP Screens crea il profilo dello schermo con chiavi uniche e compila il firmware. Collega lo schermo con un cavo USB dati alla macchina su cui gira Home Assistant, oppure al computer che stai usando ora.",
       "board": "Quale schermo hai?",
       "board_title": "{name} · {inch} pollici",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Installa tramite",
       "later": "Più tardi · salva solo il profilo",
       "target": {
-        "usb": "Collega lo schermo con un cavo USB dati alla macchina di Home Assistant; l'elenco si aggiorna da solo. Oppure scegli Scarica per usare il tuo computer.",
+        "usb": "Collega lo schermo con un cavo USB dati alla macchina di Home Assistant; l'elenco si aggiorna da solo. Oppure scegli Questo computer per installare da questo browser.",
         "download": "Scarica il firmware e mettilo sullo schermo dal tuo computer, in Chrome o Edge. Dopo, gli aggiornamenti arrivano via Wi-Fi.",
         "later": "Il profilo va nella cartella di ESPHome. Puoi installarlo più tardi da Firmware e USB, o da ESPHome Device Builder.",
         "several": "Più schermi collegati: scegli la porta di questo schermo.",
@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Installalo più tardi da Firmware e USB: scegli questo profilo, poi la porta USB della macchina di Home Assistant, oppure Scarica per mettere il firmware sullo schermo dal tuo computer. Conserva la chiave API per l'associazione:",
         "uploading": "Non scollegare ancora il cavo USB.",
-        "building": "Una prima compilazione richiede qualche minuto su un Raspberry Pi. Puoi lasciare questa pagina: l'installazione continua e la ritrovi in Nuovo schermo.",
-        "building_download": "Una prima compilazione richiede qualche minuto su un Raspberry Pi. Puoi lasciare questa pagina: la compilazione continua e la ritrovi in Nuovo schermo.",
+        "building": "La compilazione può richiedere 20 minuti o più su un computer di Home Assistant come un Raspberry Pi, soprattutto la prima volta. È normale. Puoi lasciare questa pagina: l'installazione continua e la ritrovi in Nuovo schermo.",
+        "building_download": "La compilazione può richiedere 20 minuti o più su un computer di Home Assistant come un Raspberry Pi, soprattutto la prima volta. È normale. Puoi lasciare questa pagina: la compilazione continua e la ritrovi in Nuovo schermo.",
         "downloaded": "Mettilo sullo schermo dal tuo computer, poi associa lo schermo a Home Assistant.",
         "booted": "Lo schermo si avvia e si collega al tuo Wi-Fi. Ora associalo a Home Assistant:",
         "booted_calibrate": "Lo schermo si avvia e si collega al tuo Wi-Fi. Prima chiede una calibrazione del touch: tocca le croci. Ora associalo a Home Assistant:",
@@ -2253,6 +2253,48 @@
         "nothing_else": "Nient'altro: nessun nome, account, entità, log o impostazioni di Home Assistant. Ogni schermo condivide con una propria chiave casuale."
       },
       "privacy": "Privacy"
+    },
+    "webflash": {
+      "target": "Installa da questo browser (Chrome o Edge)",
+      "hint": "Collega lo schermo a questo computer con un cavo USB dati. ESP Screens compila il firmware, poi questa pagina lo installa sullo schermo, in Chrome o Edge. In seguito gli aggiornamenti passano via Wi-Fi.",
+      "firmware_hint": "Collega lo schermo a questo computer con un cavo USB dati. ESP Screens compila il firmware, poi questa pagina lo installa sullo schermo, in Chrome o Edge. Lo schermo mantiene le impostazioni e la calibrazione del tocco. Così recuperi anche uno schermo che si riavvia di continuo e non va mai online.",
+      "go": "Connetti e installa",
+      "building": "La compilazione può richiedere 20 minuti o più su un computer di Home Assistant come un Raspberry Pi, soprattutto la prima volta. È normale. Lascia aperta questa scheda e lo schermo collegato: questa pagina installa il firmware appena è pronto.",
+      "keep_open": "Lascia aperta questa scheda e il cavo USB collegato fino alla fine.",
+      "unavailable": {
+        "insecure": "Installare dal browser richiede Home Assistant aperto in https, per esempio tramite il tuo indirizzo Home Assistant Cloud, in Chrome o Edge. Questa pagina è stata aperta in semplice http. Scegli Scarica, oppure apri Home Assistant in https.",
+        "browser": "Questo browser non può accedere alle porte USB. Usa Chrome o Edge su un computer, oppure scegli Scarica."
+      },
+      "phase": {
+        "picking": "Scegli la porta USB dello schermo nella finestra che mostra il browser.",
+        "connecting": "Connessione alla scheda…",
+        "waiting": "Connesso alla scheda ({chip}). Il firmware viene installato appena è compilato.",
+        "downloading": "Recupero del firmware da ESP Screens…",
+        "erasing": "Cancellazione della memoria della scheda…",
+        "writing": "Installazione… {percent}%",
+        "restarting": "Riavvio dello schermo…",
+        "done": "Installato. Lo schermo si riavvia."
+      },
+      "errors": {
+        "no_port": "Nessuna porta scelta. Se lo schermo non era nell'elenco:",
+        "blocked": "Il browser non consente a questa pagina di usare le porte USB. Controlla le autorizzazioni del sito nel browser, oppure scegli Scarica.",
+        "busy": "La porta dello schermo è usata da un altro programma o scheda, come un monitor seriale o ESPHome Web. Chiudilo e riprova.",
+        "connect": "La scheda non ha risposto. Tieni premuto il pulsante BOOT sulla scheda mentre scegli la porta, finché l'installazione non inizia, e riprova. Anche scollegare e ricollegare il cavo può aiutare.",
+        "wrong_chip": "La scheda collegata ha un chip {found}, ma il firmware di questo schermo è per un {expected}. Collega lo schermo giusto o scegli la sua scheda.",
+        "wrong_image": "Il firmware compilato da ESP Screens è per un {expected}, ma la scheda collegata ha un {found}. Non è stato scritto nulla.",
+        "disconnected": "Lo schermo è stato scollegato. Ricollegalo e riprova.",
+        "download": "Impossibile recuperare il firmware da ESP Screens: {error}",
+        "failed": "L'installazione non è riuscita: {error}"
+      },
+      "hints": {
+        "computer": "Collega lo schermo a questo computer, quello su cui gira questo browser.",
+        "power": "Controlla che la scheda sia alimentata: la maggior parte ha una piccola spia.",
+        "cable": "Usa un cavo USB che trasmette dati. Alcuni cavi servono solo a caricare.",
+        "driver": "Installa il driver del chip USB della scheda se il computer ne ha bisogno (CP210x, CH340 o CH9102)."
+      },
+      "group_ha": "Collegato al computer di Home Assistant",
+      "group_here": "Collegato a questo computer",
+      "group_wifi": "Via Wi-Fi"
     }
   }
 }

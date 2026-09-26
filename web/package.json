@@ -19,12 +19,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "esptool-js": "^0.6.1",
     "floating-vue": "^5.4.0",
     "vue": "^3.5.18",
     "vue-i18n": "^11.4.12"
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^11.2.5",
+    "@types/w3c-web-serial": "^1.0.8",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.5.1",
     "jsdom": "^26.1.0",

@@ -1804,8 +1804,8 @@
       "choose": "Escolha o perfil pretendido e depois uma porta USB, um endereço IP ou Descarregar.",
       "profile": "Perfil ESPHome",
       "install_to": "Instalar em",
-      "no_board": "USB · ainda não foi encontrada nenhuma placa na máquina do Home Assistant",
-      "download_target": "Descarregar · instalar a partir do seu próprio computador",
+      "no_board": "Ainda não há nenhum ecrã ligado aí",
+      "download_target": "Transferir o ficheiro e gravá-lo você mesmo",
       "host": "Endereço IP ou nome do anfitrião",
       "download_file": "Descarregar {name}",
       "download_how": "Instale-o no ecrã com o {esphome_web} no Chrome ou no Edge: Connect, escolha a porta USB do ecrã, Install e selecione este ficheiro. Contém a sua palavra-passe de Wi-Fi e as chaves do ecrã: não o partilhe."
@@ -1819,7 +1819,7 @@
         "done": "Concluído.",
         "failed": "Não funcionou."
       },
-      "intro": "O ESP Screens cria o perfil próprio do ecrã com chaves únicas e compila o firmware. Ligue o ecrã com um cabo USB de dados à máquina onde corre o Home Assistant, ou descarregue o firmware e instale-o no ecrã a partir do seu próprio computador.",
+      "intro": "O ESP Screens cria o perfil próprio do ecrã com chaves únicas e compila o firmware. Ligue o ecrã com um cabo USB de dados à máquina onde corre o Home Assistant, ou ao computador que está a usar agora.",
       "board": "Que ecrã tem?",
       "board_title": "{name} · {inch} polegadas",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Instalar através de",
       "later": "Mais tarde · só guardar o perfil",
       "target": {
-        "usb": "Ligue o ecrã com um cabo USB de dados à máquina do Home Assistant; a lista atualiza-se sozinha. Ou escolha Descarregar para usar o seu próprio computador.",
+        "usb": "Ligue o ecrã com um cabo USB de dados à máquina do Home Assistant; a lista atualiza-se sozinha. Ou escolha Este computador para instalar a partir deste navegador.",
         "download": "Descarregue o firmware e instale-o no ecrã a partir do seu próprio computador, no Chrome ou no Edge. Depois disso, as atualizações são feitas por Wi-Fi.",
         "later": "O perfil fica na pasta do ESPHome. Pode instalar mais tarde através de Firmware e USB ou a partir do ESPHome Device Builder.",
         "several": "Há mais do que uma placa ligada: escolha a porta deste ecrã.",
@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Instale-o mais tarde a partir de Firmware e USB: escolha este perfil e depois a porta USB da máquina do Home Assistant, ou Descarregar para instalar o firmware no ecrã a partir do seu próprio computador. Guarde a chave API para o emparelhamento:",
         "uploading": "Não desligue ainda o cabo USB.",
-        "building": "A primeira compilação demora alguns minutos num Raspberry Pi. Pode sair desta página: a instalação continua e volta a encontrá-la em Novo ecrã.",
-        "building_download": "A primeira compilação demora alguns minutos num Raspberry Pi. Pode sair desta página: a compilação continua e volta a encontrá-la em Novo ecrã.",
+        "building": "A compilação pode demorar 20 minutos ou mais num computador do Home Assistant, como um Raspberry Pi, sobretudo da primeira vez. É normal. Pode sair desta página: a instalação continua e volta a encontrá-la em Novo ecrã.",
+        "building_download": "A compilação pode demorar 20 minutos ou mais num computador do Home Assistant, como um Raspberry Pi, sobretudo da primeira vez. É normal. Pode sair desta página: a compilação continua e volta a encontrá-la em Novo ecrã.",
         "downloaded": "Instale-o no ecrã a partir do seu próprio computador e depois emparelhe o ecrã com o Home Assistant.",
         "booted": "O ecrã arranca e liga-se à sua rede Wi-Fi. Emparelhe-o agora com o Home Assistant:",
         "booted_calibrate": "O ecrã arranca e liga-se à sua rede Wi-Fi. Primeiro pede uma calibração do toque: toque nas cruzes. Emparelhe-o agora com o Home Assistant:",
@@ -2253,6 +2253,48 @@
         "nothing_else": "Mais nada: nem nome, conta, entidades, registos ou definições do Home Assistant. Cada ecrã partilha com a sua própria chave aleatória."
       },
       "privacy": "Privacidade"
+    },
+    "webflash": {
+      "target": "Instalar a partir deste navegador (Chrome ou Edge)",
+      "hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. Depois disso, as atualizações vão por Wi-Fi.",
+      "firmware_hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. O ecrã mantém as definições e a calibração do toque. Assim também recupera um ecrã que reinicia sem parar e nunca fica online.",
+      "go": "Ligar e instalar",
+      "building": "A compilação pode demorar 20 minutos ou mais num computador do Home Assistant, como um Raspberry Pi, sobretudo da primeira vez. É normal. Mantenha este separador aberto e o ecrã ligado: esta página instala o firmware assim que estiver pronto.",
+      "keep_open": "Mantenha este separador aberto e o cabo USB ligado até terminar.",
+      "unavailable": {
+        "insecure": "Instalar a partir do navegador exige o Home Assistant aberto por https, por exemplo pelo seu endereço do Home Assistant Cloud, no Chrome ou no Edge. Esta página foi aberta por http simples. Escolha Descarregar, ou abra o Home Assistant por https.",
+        "browser": "Este navegador não consegue aceder a portas USB. Use o Chrome ou o Edge num computador, ou escolha Descarregar."
+      },
+      "phase": {
+        "picking": "Escolha a porta USB do ecrã na janela que o navegador mostra.",
+        "connecting": "A ligar à placa…",
+        "waiting": "Ligado à placa ({chip}). O firmware é instalado assim que estiver compilado.",
+        "downloading": "A obter o firmware do ESP Screens…",
+        "erasing": "A apagar a memória da placa…",
+        "writing": "A instalar… {percent}%",
+        "restarting": "A reiniciar o ecrã…",
+        "done": "Instalado. O ecrã reinicia."
+      },
+      "errors": {
+        "no_port": "Nenhuma porta escolhida. Se o ecrã não estava na lista:",
+        "blocked": "O navegador não deixa esta página usar portas USB. Verifique as permissões do site no navegador, ou escolha Descarregar.",
+        "busy": "A porta do ecrã está a ser usada por outro programa ou separador, como um monitor série ou o ESPHome Web. Feche-o e tente novamente.",
+        "connect": "A placa não respondeu. Mantenha premido o botão BOOT da placa enquanto escolhe a porta, até a instalação começar, e tente novamente. Desligar e voltar a ligar o cabo também pode ajudar.",
+        "wrong_chip": "A placa ligada tem um chip {found}, mas o firmware deste ecrã é para um {expected}. Ligue o ecrã certo ou escolha a sua placa.",
+        "wrong_image": "O firmware compilado pelo ESP Screens é para um {expected}, mas a placa ligada tem um {found}. Nada foi escrito.",
+        "disconnected": "O ecrã foi desligado. Volte a ligá-lo e tente novamente.",
+        "download": "Não foi possível obter o firmware do ESP Screens: {error}",
+        "failed": "A instalação não funcionou: {error}"
+      },
+      "hints": {
+        "computer": "Ligue o ecrã a este computador, aquele em que este navegador corre.",
+        "power": "Verifique se a placa tem alimentação: a maioria tem uma pequena luz.",
+        "cable": "Use um cabo USB que transmita dados. Alguns cabos só carregam.",
+        "driver": "Instale o controlador do chip USB da placa se o computador precisar (CP210x, CH340 ou CH9102)."
+      },
+      "group_ha": "Ligado ao computador do Home Assistant",
+      "group_here": "Ligado a este computador",
+      "group_wifi": "Por Wi-Fi"
     }
   }
 }

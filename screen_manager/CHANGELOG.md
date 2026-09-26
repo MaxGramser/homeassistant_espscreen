@@ -1,3 +1,13 @@
+## 0.3.15 (firmware 0.3.8)
+
+Install a screen straight from your browser, and an ESP Screens that looks like Home Assistant in the dark.
+
+- **Install from this browser.** A screen plugged into the computer you are using now, not the Home Assistant machine, installs from ESP Screens itself: under **Install via**, choose **Install from this browser (Chrome or Edge)** and click **Connect & install**. ESP Screens builds the firmware on your Home Assistant machine, and this page puts it on the screen over USB, with a progress bar. No download and no second website. It checks the screen's chip before it builds, so a wrong board choice is refused at once. A new screen is erased first, like ESPHome does; from **Firmware & USB** the screen keeps its settings and touch calibration, which also rescues a screen that keeps restarting. It needs Chrome or Edge on a computer and Home Assistant opened over https (for example your Home Assistant Cloud address); over plain http the choice explains this, and **Download the file and flash it yourself** stays. Built on ESPHome's own browser installer and Espressif's esptool-js (see NOTICE).
+- **Install via** now groups the choices by where the screen is plugged in: **Plugged into the Home Assistant machine** (its USB ports), **Plugged into this computer** (install from this browser, or download), and, under Firmware & USB, **Over Wi-Fi**.
+- ESP Screens says up front that building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially.
+- **Dark mode** uses Home Assistant's own neutral near-black greys instead of a blue cast, so the panel matches the rest of Home Assistant.
+- Update the ESP Screen Manager app to get this; the screens need no new firmware.
+
 ## 0.3.14 (firmware 0.3.8)
 
 The Tessera logo on a screen that is starting.

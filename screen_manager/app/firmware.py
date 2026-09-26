@@ -68,7 +68,7 @@ def _board_choice(shape):
     return {'square': shape['width'] == shape['height'], 'orientations': shape.get('orientations', {}),
             'width': shape['width'], 'height': shape['height'], 'dpi': shape.get('dpi'),
             'camera': bool(shape.get('camera')), 'dimmable': shape.get('dimmable', True),
-            'can_standby': shape.get('can_standby', True), **shape.get('catalog', {})}
+            'can_standby': shape.get('can_standby', True), 'chip': shape.get('chip'), **shape.get('catalog', {})}
 
 BOARD_CHOICES = {board: _board_choice(SHAPES[board]) for board in BOARD_KEYS}
 
@@ -167,7 +167,12 @@ class Firmware:
             return {'state': 'invalid'}
 
     def status(self):
-        return {'available': bool(shutil.which('esphome')), 'profiles': self.profiles(),
+        # A profile of one of this project's boards also names the chip it is built for (boards.json), which the
+        # browser flasher under Firmware & USB compares with the chip on the cable before it builds anything.
+        chips = {file: SHAPES.get(meta.get('package') or '', {}).get('chip') for file, meta in self.profile_names().items()}
+        profiles = [{**entry, 'chip': chips[entry['file']]} if chips.get(entry['file']) else entry
+                    for entry in self.profiles()]
+        return {'available': bool(shutil.which('esphome')), 'profiles': profiles,
                 'ports': self.ports(), 'job': self.job, 'logs': list(self.logs), 'wifi': self.wifi_status(),
                 'downloads': sorted(self.images), 'boards': BOARD_CHOICES}
 
@@ -476,6 +481,18 @@ class Firmware:
             raise ValueError(t('addon.errors.firmware.build_first'))
         self.downloaded.add(profile.name)
         return path, profile.stem + '.factory.bin'
+
+    def flashed(self, name):
+        """The page wrote this profile's image onto a screen from the browser (Web Serial): from now on it is an
+        installed screen that waits for pairing, like one flashed from Home Assistant's own USB port, not a file
+        someone still has to put on it. Only a profile whose image this process built and served counts."""
+        profile = self.profile(name)
+        if profile.name not in self.images or profile.name not in self.downloaded:
+            raise ValueError(t('addon.errors.firmware.build_first'))
+        self.downloaded.discard(profile.name)
+        self.installed.add(profile.name)
+        LOG.info('%s was installed from the browser', profile.name)
+        return {'file': profile.name, 'installed': True}
 
     def redact(self, text):
         text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', text)

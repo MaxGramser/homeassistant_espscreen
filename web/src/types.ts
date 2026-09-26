@@ -77,6 +77,8 @@ export type BoardCatalog = {
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
   width: number; height: number; dpi: number; camera: boolean; dimmable: boolean; can_standby: boolean;
+  // The chip its firmware is built for, as esptool names it ("ESP32-S3"): the browser flasher checks the board on the cable.
+  chip?: string | null;
 };
 // Does this screen work as you expect (app 0.3.10): what the add-on says about the board's shared answer. The key and
 // the revision never reach the page; the add-on keeps them.

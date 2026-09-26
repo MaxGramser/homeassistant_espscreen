@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "jsx": "preserve",
-    "types": ["vite/client"],
+    "types": ["vite/client", "w3c-web-serial"],
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] }
   },

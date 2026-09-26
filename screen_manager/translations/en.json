@@ -1793,7 +1793,7 @@
     },
     "firmware": {
       "title": "Build and install screen firmware",
-      "intro": "The built-in ESPHome CLI uses your own profile (YAML with keys) and secrets. Choose the screen's profile, then a USB port (screen connected to the Home Assistant machine), {ota} with the hostname, or {download} to put the firmware on the screen from your own computer. {check} only validates, {build} compiles, {install} puts the firmware on the screen. Your tiles stay as they are in ESP Screens. The first build takes a few minutes.",
+      "intro": "The built-in ESPHome CLI uses your own profile (YAML with keys) and secrets. Choose the screen's profile, then a USB port (screen connected to the Home Assistant machine), {ota} with the hostname, or {download} to put the firmware on the screen from your own computer. {check} only validates, {build} compiles, {install} puts the firmware on the screen. Your tiles stay as they are in ESP Screens. Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal.",
       "ota": "Wi-Fi / OTA",
       "download": "Download",
       "check": "Check",
@@ -1804,8 +1804,8 @@
       "choose": "Choose the intended profile, then a USB port, an IP address, or Download.",
       "profile": "ESPHome profile",
       "install_to": "Install to",
-      "no_board": "USB · no board found on the Home Assistant machine yet",
-      "download_target": "Download · flash from your own computer",
+      "no_board": "No screen plugged in there yet",
+      "download_target": "Download the file and flash it yourself",
       "host": "IP address or hostname",
       "download_file": "Download {name}",
       "download_how": "Put it on the screen with {esphome_web} in Chrome or Edge: Connect, choose the screen's USB port, Install, and select this file. It holds your Wi-Fi password and the screen's keys: keep it to yourself."
@@ -1819,7 +1819,7 @@
         "done": "Done.",
         "failed": "That didn't work."
       },
-      "intro": "ESP Screens creates the screen's own profile with unique keys and builds the firmware. Connect the screen with a USB data cable to the machine running Home Assistant, or download the firmware and put it on the screen from your own computer.",
+      "intro": "ESP Screens creates the screen's own profile with unique keys and builds the firmware. Connect the screen with a USB data cable to the machine running Home Assistant, or to the computer you're using now.",
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Install via",
       "later": "Later · save profile only",
       "target": {
-        "usb": "Connect the screen with a USB data cable to the Home Assistant machine; the list refreshes on its own. Or choose Download to use your own computer.",
+        "usb": "Plug the screen into the Home Assistant machine with a USB data cable; the list refreshes on its own. Is it plugged into the computer you are using now? Choose Install from this browser.",
         "download": "Download the firmware and put it on the screen from your own computer, in Chrome or Edge. After that, updates go over Wi-Fi.",
         "later": "The profile goes into the ESPHome folder. You can install later via Firmware & USB, or from ESPHome Device Builder.",
         "several": "More than one board connected: choose this screen's port.",
@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Install it later from Firmware & USB: choose this profile, then the USB port of the Home Assistant machine, or Download to put the firmware on the screen from your own computer. Save the API key for pairing:",
         "uploading": "Don't disconnect the USB cable yet.",
-        "building": "A first build takes a few minutes on a Raspberry Pi. You can leave this page: the installation keeps running and you'll find it again under New screen.",
-        "building_download": "A first build takes a few minutes on a Raspberry Pi. You can leave this page: the build keeps running and you'll find it again under New screen.",
+        "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. You can leave this page: the installation keeps running and you'll find it again under New screen.",
+        "building_download": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. You can leave this page: the build keeps running and you'll find it again under New screen.",
         "downloaded": "Put it on the screen from your own computer, then pair the screen with Home Assistant.",
         "booted": "The screen boots up and connects to your Wi-Fi. Pair it with Home Assistant now:",
         "booted_calibrate": "The screen boots up and connects to your Wi-Fi. It first asks for a touch calibration: tap the crosshairs. Pair it with Home Assistant now:",
@@ -2253,6 +2253,48 @@
         "nothing_else": "Nothing else: no name, account, entities, logs or Home Assistant settings. Each screen shares under its own random key."
       },
       "privacy": "Privacy"
+    },
+    "webflash": {
+      "target": "Install from this browser (Chrome or Edge)",
+      "hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. After that, updates go over Wi-Fi.",
+      "firmware_hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. The screen keeps its settings and touch calibration. This also rescues a screen that keeps restarting and never comes online.",
+      "go": "Connect & install",
+      "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. Keep this tab open and the screen plugged in: this page installs the firmware as soon as it's ready.",
+      "keep_open": "Keep this tab open and the USB cable plugged in until it's done.",
+      "unavailable": {
+        "insecure": "Installing from the browser needs Home Assistant opened over https, for example through your Home Assistant Cloud address, in Chrome or Edge. This page was opened over plain http. Choose Download instead, or open Home Assistant over https.",
+        "browser": "This browser can't reach USB ports. Use Chrome or Edge on a computer, or choose Download instead."
+      },
+      "phase": {
+        "picking": "Choose the screen's USB port in the window your browser shows.",
+        "connecting": "Connecting to the board…",
+        "waiting": "Connected to the board ({chip}). The firmware goes on as soon as it's built.",
+        "downloading": "Fetching the firmware from ESP Screens…",
+        "erasing": "Erasing the board's memory…",
+        "writing": "Installing… {percent}%",
+        "restarting": "Restarting the screen…",
+        "done": "Installed. The screen restarts."
+      },
+      "errors": {
+        "no_port": "No port chosen. If the screen wasn't in the list:",
+        "blocked": "The browser doesn't let this page use USB ports. Check the site's permissions in the browser, or choose Download instead.",
+        "busy": "The screen's port is in use by another program or tab, such as a serial monitor or ESPHome Web. Close it and try again.",
+        "connect": "The board didn't answer. Hold the BOOT button on the board while you choose the port, until the installation starts, and try again. Unplugging and plugging in the cable can help too.",
+        "wrong_chip": "The board on the cable has an {found} chip, but this screen's firmware is for an {expected}. Plug in the right screen, or choose its board.",
+        "wrong_image": "The firmware ESP Screens built is for an {expected}, but the board on the cable has an {found}. Nothing was written.",
+        "disconnected": "The screen was disconnected. Plug it in again and try again.",
+        "download": "Couldn't fetch the firmware from ESP Screens: {error}",
+        "failed": "Installing didn't work: {error}"
+      },
+      "hints": {
+        "computer": "Plug the screen into this computer, the one this browser runs on.",
+        "power": "Check that the board has power: most have a small light.",
+        "cable": "Use a USB cable that carries data. Some cables only charge.",
+        "driver": "Install the driver for the board's USB chip if your computer needs one (CP210x, CH340 or CH9102)."
+      },
+      "group_ha": "Plugged into the Home Assistant machine",
+      "group_here": "Plugged into this computer",
+      "group_wifi": "Over Wi-Fi"
     }
   }
 }

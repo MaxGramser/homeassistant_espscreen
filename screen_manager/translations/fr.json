@@ -1804,8 +1804,8 @@
       "choose": "Choisissez le profil voulu, puis un port USB, une adresse IP ou Télécharger.",
       "profile": "Profil ESPHome",
       "install_to": "Installer sur",
-      "no_board": "USB · aucun écran détecté pour l'instant sur la machine Home Assistant",
-      "download_target": "Télécharger · installer depuis votre propre ordinateur",
+      "no_board": "Aucun écran n'y est encore branché",
+      "download_target": "Télécharger le fichier et le flasher vous-même",
       "host": "Adresse IP ou nom d'hôte",
       "download_file": "Télécharger {name}",
       "download_how": "Installez-le sur l'écran avec {esphome_web} dans Chrome ou Edge : Connect, choisissez le port USB de l'écran, Install, puis sélectionnez ce fichier. Il contient votre mot de passe Wi-Fi et les clés de l'écran : gardez-le pour vous."
@@ -1819,7 +1819,7 @@
         "done": "Terminé.",
         "failed": "Cela n'a pas fonctionné."
       },
-      "intro": "ESP Screens crée le profil propre à l'écran, avec des clés uniques, et compile le firmware. Branchez l'écran avec un câble USB de données sur la machine qui fait tourner Home Assistant, ou téléchargez le firmware et installez-le sur l'écran depuis votre propre ordinateur.",
+      "intro": "ESP Screens crée le profil propre à l'écran, avec des clés uniques, et compile le firmware. Branchez l'écran avec un câble USB de données sur la machine qui fait tourner Home Assistant, ou sur l'ordinateur que vous utilisez maintenant.",
       "board": "Quel écran avez-vous ?",
       "board_title": "{name} · {inch} pouces",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Installer via",
       "later": "Plus tard · enregistrer seulement le profil",
       "target": {
-        "usb": "Branchez l'écran avec un câble USB de données sur la machine Home Assistant ; la liste s'actualise d'elle-même. Ou choisissez Télécharger pour utiliser votre propre ordinateur.",
+        "usb": "Branchez l'écran avec un câble USB de données sur la machine Home Assistant ; la liste s'actualise d'elle-même. Ou choisissez Cet ordinateur pour installer depuis ce navigateur.",
         "download": "Téléchargez le firmware et installez-le sur l'écran depuis votre propre ordinateur, dans Chrome ou Edge. Ensuite, les mises à jour passent par le Wi-Fi.",
         "later": "Le profil va dans le dossier ESPHome. Vous pourrez l'installer plus tard via Firmware et USB, ou depuis ESPHome Device Builder.",
         "several": "Plusieurs écrans sont branchés : choisissez le port de cet écran.",
@@ -1893,8 +1893,8 @@
       "detail": {
         "saved": "Installez-le plus tard depuis Firmware et USB : choisissez ce profil, puis le port USB de la machine Home Assistant, ou Télécharger pour installer le firmware sur l'écran depuis votre propre ordinateur. Conservez la clé API pour l'association :",
         "uploading": "Ne débranchez pas encore le câble USB.",
-        "building": "Une première compilation prend quelques minutes sur un Raspberry Pi. Vous pouvez quitter cette page : l'installation continue et vous la retrouverez sous Nouvel écran.",
-        "building_download": "Une première compilation prend quelques minutes sur un Raspberry Pi. Vous pouvez quitter cette page : la compilation continue et vous la retrouverez sous Nouvel écran.",
+        "building": "La compilation peut prendre 20 minutes ou plus sur une machine Home Assistant comme un Raspberry Pi, surtout la première fois. C'est normal. Vous pouvez quitter cette page : l'installation continue et vous la retrouverez sous Nouvel écran.",
+        "building_download": "La compilation peut prendre 20 minutes ou plus sur une machine Home Assistant comme un Raspberry Pi, surtout la première fois. C'est normal. Vous pouvez quitter cette page : la compilation continue et vous la retrouverez sous Nouvel écran.",
         "downloaded": "Installez-le sur l'écran depuis votre propre ordinateur, puis associez l'écran à Home Assistant.",
         "booted": "L'écran démarre et se connecte à votre Wi-Fi. Associez-le maintenant à Home Assistant :",
         "booted_calibrate": "L'écran démarre et se connecte à votre Wi-Fi. Il demande d'abord un étalonnage tactile : touchez les croix. Associez-le maintenant à Home Assistant :",
@@ -2253,6 +2253,48 @@
         "nothing_else": "Rien d'autre : ni nom, ni compte, ni entités, journaux ou réglages Home Assistant. Chaque écran partage sous sa propre clé aléatoire."
       },
       "privacy": "Confidentialité"
+    },
+    "webflash": {
+      "target": "Installer depuis ce navigateur (Chrome ou Edge)",
+      "hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. ESP Screens compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. Ensuite, les mises à jour passent par le Wi-Fi.",
+      "firmware_hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. ESP Screens compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. L'écran garde ses réglages et son calibrage tactile. Cela sauve aussi un écran qui redémarre sans cesse et n'arrive jamais en ligne.",
+      "go": "Connecter et installer",
+      "building": "La compilation peut prendre 20 minutes ou plus sur une machine Home Assistant comme un Raspberry Pi, surtout la première fois. C'est normal. Gardez cet onglet ouvert et l'écran branché : cette page installe le firmware dès qu'il est prêt.",
+      "keep_open": "Gardez cet onglet ouvert et le câble USB branché jusqu'à la fin.",
+      "unavailable": {
+        "insecure": "L'installation depuis le navigateur demande Home Assistant ouvert en https, par exemple via votre adresse Home Assistant Cloud, dans Chrome ou Edge. Cette page a été ouverte en http simple. Choisissez plutôt Télécharger, ou ouvrez Home Assistant en https.",
+        "browser": "Ce navigateur n'a pas accès aux ports USB. Utilisez Chrome ou Edge sur un ordinateur, ou choisissez plutôt Télécharger."
+      },
+      "phase": {
+        "picking": "Choisissez le port USB de l'écran dans la fenêtre que montre votre navigateur.",
+        "connecting": "Connexion à la carte…",
+        "waiting": "Connecté à la carte ({chip}). Le firmware sera installé dès qu'il est compilé.",
+        "downloading": "Récupération du firmware auprès d'ESP Screens…",
+        "erasing": "Effacement de la mémoire de la carte…",
+        "writing": "Installation… {percent} %",
+        "restarting": "Redémarrage de l'écran…",
+        "done": "Installé. L'écran redémarre."
+      },
+      "errors": {
+        "no_port": "Aucun port choisi. Si l'écran n'était pas dans la liste :",
+        "blocked": "Le navigateur n'autorise pas cette page à utiliser les ports USB. Vérifiez les autorisations du site dans le navigateur, ou choisissez plutôt Télécharger.",
+        "busy": "Le port de l'écran est utilisé par un autre programme ou onglet, comme un moniteur série ou ESPHome Web. Fermez-le et réessayez.",
+        "connect": "La carte n'a pas répondu. Maintenez le bouton BOOT de la carte pendant que vous choisissez le port, jusqu'au début de l'installation, et réessayez. Débrancher et rebrancher le câble peut aussi aider.",
+        "wrong_chip": "La carte branchée a une puce {found}, mais le firmware de cet écran est prévu pour une {expected}. Branchez le bon écran ou choisissez sa carte.",
+        "wrong_image": "Le firmware compilé par ESP Screens est prévu pour une {expected}, mais la carte branchée a une {found}. Rien n'a été écrit.",
+        "disconnected": "L'écran a été débranché. Rebranchez-le et réessayez.",
+        "download": "Impossible de récupérer le firmware auprès d'ESP Screens : {error}",
+        "failed": "L'installation n'a pas fonctionné : {error}"
+      },
+      "hints": {
+        "computer": "Branchez l'écran sur cet ordinateur, celui sur lequel tourne ce navigateur.",
+        "power": "Vérifiez que la carte est alimentée : la plupart ont un petit voyant.",
+        "cable": "Utilisez un câble USB qui transmet les données. Certains câbles ne font que charger.",
+        "driver": "Installez le pilote de la puce USB de la carte si votre ordinateur en a besoin (CP210x, CH340 ou CH9102)."
+      },
+      "group_ha": "Branché sur la machine Home Assistant",
+      "group_here": "Branché sur cet ordinateur",
+      "group_wifi": "Par Wi-Fi"
     }
   }
 }

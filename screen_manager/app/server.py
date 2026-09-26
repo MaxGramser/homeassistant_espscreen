@@ -2843,6 +2843,10 @@ def create_app(manager, development=False):
         path, name = manager.firmware.image(request.match_info['file'])
         return web.FileResponse(path, headers={'Content-Type': 'application/octet-stream',
                                                'Content-Disposition': f'attachment; filename="{name}"'})
+    async def firmware_flashed(request):
+        """New screen and Firmware & USB → This computer (browser): the page wrote the image it downloaded onto a
+        screen over Web Serial, so the screen list nudges pairing as for one flashed from Home Assistant's own USB port."""
+        return web.json_response(manager.firmware.flashed(request.match_info['file']))
     # The answers that are still waiting after a restart try again (feedback.py); a request never runs past shutdown.
     FEEDBACK_ERRORS = {'outcome': 'addon.errors.feedback.invalid', 'issues': 'addon.errors.feedback.invalid',
                        'comment': 'addon.errors.feedback.comment', 'board': 'addon.errors.feedback.unknown_board',
@@ -2902,6 +2906,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/firmware/profiles/{file}/override', firmware_override)
     app.router.add_put('/api/firmware/profiles/{file}/override', firmware_override_save)
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)
+    app.router.add_post('/api/firmware/profiles/{file}/flashed', firmware_flashed)
     app.router.add_post('/api/firmware/profiles', firmware_create)
     app.router.add_get('/', index)
     app.router.add_get('/api/inventory', inventory)

@@ -8,11 +8,12 @@ The profile with unique keys goes into the ESPHome folder of the HA configuratio
 any missing Wi-Fi goes into `secrets.yaml` (existing secrets are left untouched), and the
 build and flash run in the same window; it then shows the API key
 for pairing. Is the Home Assistant machine out of reach of the screen, such as a server or a
-virtual machine? Choose **Download** under **Install via**: ESP Screens builds the firmware and
-you put it on the screen from your own computer with [ESPHome Web](https://web.esphome.io) in
-Chrome or Edge. Pairing itself happens in Home Assistant under **Settings → Devices & services** (a button in the window and on the *not yet in Home Assistant* card under Screens in the sidebar). Each screen has its own profile. **Firmware & USB** in the sidebar is
-for existing profiles: check, build or reinstall via USB, the IP address (OTA) or
-Download. Existing ESPHome profiles in the HA config folder are
+virtual machine? Plug it into your own computer and choose **This computer** under **Install via**:
+ESP Screens builds the firmware and the page puts it on the screen, in Chrome or Edge with Home
+Assistant opened over https. Or choose **Download** and put it on the screen with
+[ESPHome Web](https://web.esphome.io). Pairing itself happens in Home Assistant under **Settings → Devices & services** (a button in the window and on the *not yet in Home Assistant* card under Screens in the sidebar). Each screen has its own profile. **Firmware & USB** in the sidebar is
+for existing profiles: check, build or reinstall via USB, the IP address (OTA), this computer
+or Download. Existing ESPHome profiles in the HA config folder are
 found automatically.
 
 **Alerts** in the sidebar is the cheatsheet, with a form to try an alert
