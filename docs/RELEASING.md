@@ -455,6 +455,22 @@ Tile colours as Home Assistant draws them. No protocol, storage or editor change
 - App: `header_bar.ALARM_CLASSES` is Home Assistant's list of eleven red classes, the same list the firmware uses.
 - The editor's mockup still draws icons in one colour. Details: docs/TEST_RESULTS_0285.md.
 
+### Compatibility 0.3.15 / firmware 0.3.9
+
+A light group's lamp page. Negotiated like `bar_values`; storage unchanged.
+
+- Handshake: firmware 0.3.9+ answers the hello with `group_lamps: 1`. Only then does the app add `lamps` to the `x`
+  block of a light group's state: per lamp `e`, `n`, `s` (on), `u` (unavailable), `d` (dims), `c` (1 colour, 2 white
+  shades), `b` (1-100), `h`, `k`, `lo`, `hi`, built by `light_groups.lamps` from the group's `entity_id` attribute and
+  each lamp's `supported_color_modes`. At most 24 lamps and 2400 bytes, so the message stays under 4096 bytes. Older
+  firmware never gets them.
+- The app watches a group's lamps as related entities of the group's tile, so a lamp that changes sends the group
+  again.
+- The screen sends `light.turn_on` with `brightness_pct` or `color_temp_kelvin`, `light.turn_on` with `hs_color` as a
+  data template, and `light.toggle`, each for the lamp, never for the group.
+- Firmware: `group_page.h`; `Extra` gains `lamps`; `runtime_tiles::action_template`. The colour card's
+  `color_group_button` and `group_page::place_card_keys` keep both keys on the right together and the title on one line.
+
 ### Compatibility 0.2.84 (firmware stays 0.2.70)
 
 The two board profiles became `packages/core.yaml` plus a board file under `packages/boards/`, put together by the

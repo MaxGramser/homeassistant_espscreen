@@ -16,6 +16,7 @@ import feedback
 from firmware import Firmware
 import ha_catalogue
 import light_effects
+import light_groups
 import tile_icons
 from updates import Updater
 
@@ -1437,7 +1438,9 @@ class Manager:
         if tile['entity'].startswith('cover.'):
             return tuple(cover_related(tile['entity'], self.device_entries(tile['entity']), self.ha.states).values())
         if tile['entity'].startswith('light.'):
-            return light_effects.related(tile['entity'], self.device_entries(tile['entity']), self.ha.states)
+            # The selects and numbers of its device (effects page), and a group's lamps (lamp page, app 0.3.15).
+            return (tuple(light_effects.related(tile['entity'], self.device_entries(tile['entity']), self.ha.states)) +
+                    tuple(light_groups.lamp_ids(tile['entity'], self.ha.states)))
         return ()
 
     def device_name_of(self, entity):
@@ -1618,8 +1621,11 @@ class Manager:
     def watched_entities(self):
         """Entities whose state changes matter: tiles on any layout plus the screens' own diagnostics.
 
-        Cached per (registry, layouts): both are replaced as whole objects when they change."""
-        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts))
+        Cached per (registry, layouts, the lamps of the light groups on them): the first two are replaced as whole
+        objects when they change; a group's lamps live in its state."""
+        groups = tuple((tile['entity'], tuple(light_groups.lamp_ids(tile['entity'], self.ha.states)))
+                       for layout in self.layouts.values() for tile in layout['tiles'] if tile['entity'].startswith('light.'))
+        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups)
         if key != self._watched_key:
             watched = {tile['entity'] for layout in self.layouts.values() for tile in layout['tiles']}
             watched |= {item['entity'] for record in self.store.records().values() if record['format'] == PAGE_FORMAT
@@ -1643,8 +1649,9 @@ class Manager:
         hourly = self.forecasts.get((entity, 'hourly'))
         return not entry or not hourly or time.monotonic() - min(entry[0], hourly[0]) > FORECAST_SECONDS
 
-    async def tile_message(self, index, tile):
-        """The state message of one tile: state, options, extras, and the history the background task holds."""
+    async def tile_message(self, index, tile, lamps=False):
+        """The state message of one tile: state, options, extras, and the history the background task holds. `lamps`:
+        the screen takes a light group's lamps (its hello said `group_lamps`, firmware 0.3.9+)."""
         forecast=hourly=None
         if tile['entity'].startswith('weather.') and hasattr(self.ha,'forecast'):
             entity = tile['entity']
@@ -1673,6 +1680,11 @@ class Manager:
         word=ha_catalogue.screen_word(tile['entity'],message['state'],state.get('attributes'),entry,getattr(self.ha,'state_words',None))
         if word:
             message.setdefault('x',{})['w']=word
+        # A light group's lamps for its lamp page (app 0.3.15), to a screen that takes them.
+        if lamps and light:
+            members=light_groups.lamps(tile['entity'],self.ha.states)
+            if members:
+                message.setdefault('x',{})['lamps']=members
         if tile['entity'].startswith('alarm_control_panel.'):
             for key,value in alarm_extras(state,entry).items():
                 message.setdefault('x',{})[key]=value

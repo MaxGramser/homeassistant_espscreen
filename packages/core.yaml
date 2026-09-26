@@ -173,6 +173,7 @@ esphome:
           runtime_tiles::settings_changed = []() { id(apply_screen_settings).execute(); };
           runtime_tiles::dismiss = []() {
             effects_page::close();
+            group_page::close();
             runtime_tiles::hide_detail();
             ${CLOSE_CARDS_HOOK}
             id(active_entity).clear();
@@ -237,6 +238,7 @@ esphome:
           };
           runtime_tiles::detail_update = [](runtime_tiles::Tile &t) {
             effects_page::updated(t);
+            group_page::updated(t);
             if (id(active_entity) != t.entity || id(touch_down)) return;
           };
       - lambda: |-
@@ -248,7 +250,7 @@ esphome:
           lv_obj_remove_style_all(light_controls::card);
           lv_obj_set_height(light_controls::card, lv_pct(100));
           overlay_card::frame(light_controls::card, overlay_card::controls);
-          for (auto *widget : {id(color_close_button), id(color_effects_button), id(color_detail_title)})
+          for (auto *widget : {id(color_close_button), id(color_effects_button), id(color_group_button), id(color_detail_title)})
             lv_obj_set_parent(widget, light_controls::card);
           light_controls::setup(light_controls::card, id(sublabel)->get_lv_font(), overlay_card::content_width(), overlay_card::screen_height(), id(materialdesign_icons_mini)->get_lv_font());
           light_controls::commits[0] = [](int value) { id(set_light_hue).execute(value); };
@@ -266,6 +268,12 @@ esphome:
           };
           effects_page::send = [](const std::string &service, const std::string &entity, const std::string &key, const std::string &value) {
             runtime_tiles::action(service, entity, key, value);
+          };
+          // A light group's lamp page (firmware 0.3.9+): the lamps' own actions, a list such as hs_color rendered by
+          // Home Assistant.
+          group_page::send = [](const std::string &service, const std::string &entity, const std::string &key, const std::string &value, bool rendered) {
+            if (rendered) runtime_tiles::action_template(service, entity, key, value);
+            else runtime_tiles::action(service, entity, key, value);
           };
           effects_page::ask = [](const std::string &entity, unsigned page) { runtime_tiles::options_request(entity, page); };
           effects_page::drift = []() { return screen_input::touch_guard.distance(); };
@@ -305,6 +313,7 @@ esphome:
             runtime_tiles::restyle();
             light_controls::restyle();
             effects_page::restyle();
+            group_page::restyle();
             settings_screen::restyle();
             if (id(alert_active)) lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(id(alert_card_color))), LV_PART_MAIN);
           };
@@ -539,6 +548,8 @@ api:
                     root["protocol"] = page_protocol::VERSION;
                     root["bar_values"] = 1;
                     root["appearance_updates"] = 1;
+                    // A light group's lamps in its state message (firmware 0.3.9+, app 0.3.15+).
+                    root["group_lamps"] = 1;
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
                       if (size.fits(runtime_tiles::grid.columns, runtime_tiles::grid.rows)) sizes.add(size.name);
@@ -1992,6 +2003,31 @@ lvgl:
                         text_font: materialdesign_icons_mini
                         clickable: false
 
+              # The lamps key (firmware 0.3.9+): a light group opens the page of its lamps (group_page.h). Hidden for
+              # every other light; group_page::place_card_keys puts it beside the sparkles key.
+              - obj:
+                  id: color_group_button
+                  align: TOP_RIGHT
+                  x: -${CARD_KEY_X}
+                  y: ${CARD_KEY_Y}
+                  width: ${CARD_KEY_SIZE}
+                  height: ${CARD_KEY_SIZE}
+                  radius: 999
+                  styles: paint_key
+                  bg_opa: COVER
+                  border_width: 0
+                  hidden: true
+                  clickable: true
+                  scrollable: false
+                  on_click:
+                    - lambda: 'group_page::open(id(active_entity));'
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "\U000F1253"
+                        text_font: materialdesign_icons_mini
+                        clickable: false
+
               - label:
                   id: color_detail_title
                   width: ${COLOR_TITLE_W}
@@ -2359,6 +2395,17 @@ script:
           light_controls::open(id(active_entity), id(active_supports_color), id(active_supports_temperature), id(active_brightness_pct));
           if (effects_page::offered(id(active_entity))) lv_obj_remove_flag(id(color_effects_button), LV_OBJ_FLAG_HIDDEN);
           else lv_obj_add_flag(id(color_effects_button), LV_OBJ_FLAG_HIDDEN);
+          // A light group gets the lamps key beside the sparkles key, and the title the room that leaves; any other
+          // light has the bar as it always had.
+          if (group_page::offered(id(active_entity))) {
+            lv_obj_remove_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
+            group_page::place_card_keys(light_controls::card, id(color_close_button), id(color_effects_button),
+                                        id(color_group_button), id(color_detail_title), id(active_title));
+          } else {
+            lv_obj_add_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
+            lv_obj_set_width(id(color_detail_title), ${COLOR_TITLE_W});
+            lv_obj_align(id(color_detail_title), LV_ALIGN_TOP_MID, 0, ${COLOR_TITLE_Y});
+          }
       - lvgl.widget.show: color_detail_overlay
 
   - id: color_brightness_commit

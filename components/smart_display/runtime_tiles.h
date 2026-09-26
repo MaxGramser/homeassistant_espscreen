@@ -16,6 +16,7 @@
 #include "screen_input.h"
 #include "light_controls.h"
 #include "effects_page.h"
+#include "group_page.h"
 #include "tile_controls.h"
 #include "history_view.h"
 #include "camera_view.h"
@@ -554,6 +555,25 @@ inline void action(const std::string &service, const std::string &entity, const 
   if(!key.empty()) {esphome::api::HomeassistantServiceMap param;param.key=esphome::StringRef(key);param.value=esphome::StringRef(value);request.data.push_back(param);}
   send_action(request, entity, watch);
   ESP_LOGI("runtime_action","Sent service=%s entity=%s",service.c_str(),entity.c_str());
+}
+// An action whose one value Home Assistant renders itself: a list such as a lamp's hs_color "[20, 100]" does not
+// travel as text (firmware 0.3.9+, the lamp page of a light group).
+inline void action_template(const std::string &service, const std::string &entity, const std::string &key, const std::string &value) {
+  if (!fresh() || !valid_entity(entity)) return;
+  esphome::api::HomeassistantActionRequest request;
+  request.service = esphome::StringRef(service);
+  request.data.init(1);
+  esphome::api::HomeassistantServiceMap target;
+  target.key = esphome::StringRef("entity_id");
+  target.value = esphome::StringRef(entity);
+  request.data.push_back(target);
+  request.data_template.init(1);
+  esphome::api::HomeassistantServiceMap entry;
+  entry.key = esphome::StringRef(key);
+  entry.value = esphome::StringRef(value);
+  request.data_template.push_back(entry);
+  send_action(request, entity, true);
+  ESP_LOGI("runtime_action", "Sent service=%s entity=%s %s", service.c_str(), entity.c_str(), key.c_str());
 }
 // A tap's own action (firmware 0.2.58+): the tile's entity with the data the app sent, text as data and the values Home
 // Assistant renders itself (numbers, lists, true or false) as a data_template.

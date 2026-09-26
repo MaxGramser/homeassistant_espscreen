@@ -149,6 +149,7 @@ class Sender:
         self.last_tile_sizes = set(self.tile_sizes)
         self.bar_values = False
         self.appearance_updates = False
+        self.group_lamps = False
         self.structure, self.appearance = None, None
 
     def disconnected(self):
@@ -156,6 +157,7 @@ class Sender:
         self.tile_sizes = {"single", "wide", "full"}
         self.bar_values = False
         self.appearance_updates = False
+        self.group_lamps = False
         self.structure, self.appearance = None, None
         self.phase = "waiting"
         self.failed_revision = self.failure = None
@@ -175,6 +177,7 @@ class Sender:
             self.last_protocol, self.last_tile_sizes = PROTOCOL, set(self.tile_sizes)
             self.bar_values = answer.get("bar_values") == 1
             self.appearance_updates = answer.get("appearance_updates") == 1
+            self.group_lamps = answer.get("group_lamps") == 1
             return PROTOCOL
         # This is an answer from the running old firmware, not cached registry metadata.
         if isinstance(answer, dict) and answer.get("protocol") in (None, 1) and answer.get("status") == "Error: protocol version":

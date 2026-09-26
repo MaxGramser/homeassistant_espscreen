@@ -120,7 +120,10 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
     sender = manager.page_sender(inbox, screen)
     flat = manager.layouts[inbox]
     cached = manager.page_values.get(inbox)
-    full = force or dirty is None or not cached or cached['revision'] != record['revision'] or cached['context'] != context
+    # A light group's lamps go to a screen that said it takes them (firmware 0.3.9+); the first hello can change that.
+    lamps = getattr(sender, 'group_lamps', False)
+    full = (force or dirty is None or not cached or cached['revision'] != record['revision'] or cached['context'] != context
+            or cached.get('lamps') != lamps)
     if full:
         dependencies = [{item['entity'] for item in bar_items(page) if item['type'] == 'entity'} for page in record['layout']['pages']]
     else:
@@ -129,7 +132,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
     for i, tile in enumerate(flat['tiles']):
         reuse = not full and tile['entity'] not in dirty and dirty.isdisjoint(manager.related_entities(tile))
         if reuse and tile['entity'].startswith('weather.') and manager.forecast_due(tile['entity']): reuse = False
-        values.append(cached['values'][i] if reuse else await manager.tile_message(i, tile))
+        values.append(cached['values'][i] if reuse else await manager.tile_message(i, tile, lamps=lamps))
     bars = [cached['bars'][i] if not full and dirty.isdisjoint(dependencies[i]) else
             manager.header_message({'header': {'items': bar_items(page)}})['items'] for i, page in enumerate(record['layout']['pages'])]
     expected = record['revision']
@@ -152,7 +155,10 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         manager.ha.changed.set()
         return True
     manager.sent[inbox] = {'protocol': 2, 'rev': rev, 'saved_revision': expected}
-    manager.page_values[inbox] = {'revision': expected, 'context': context, 'dependencies': dependencies, 'values': values, 'bars': bars}
+    manager.page_values[inbox] = {'revision': expected, 'context': context, 'dependencies': dependencies, 'values': values, 'bars': bars,
+                                  'lamps': lamps}
+    # The hello of this delivery told us the screen takes lamps: the next round sends them.
+    if getattr(sender, 'group_lamps', False) != lamps: manager.ha.changed.set()
     manager.status[inbox] = 'Applied'
     manager.last[inbox] = time.monotonic()
     if before != rev: manager.pinged[inbox] = manager.last[inbox]
