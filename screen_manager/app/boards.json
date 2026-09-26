@@ -512,6 +512,77 @@
   "rows": 3,
   "width": 480
  },
+ "checkout/waveshare5-dim.yaml": {
+  "alert": {
+   "line": 34,
+   "title_line": 45
+  },
+  "board": "waveshare5-dim",
+  "camera": {
+   "full": [
+    1024,
+    600
+   ],
+   "thumb": [
+    525,
+    295
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "WAVESHARE5-DIM",
+   "name": "Waveshare",
+   "order": 9,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 237,
+  "height": 600,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1024,
+      600
+     ],
+     "thumb": [
+      525,
+      295
+     ]
+    },
+    "columns": 4,
+    "height": 600,
+    "rotation": 0,
+    "rows": 3,
+    "width": 1024
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      600,
+      1024
+     ],
+     "thumb": [
+      498,
+      280
+     ]
+    },
+    "columns": 2,
+    "height": 1024,
+    "rotation": 90,
+    "rows": 5,
+    "width": 600
+   }
+  },
+  "rows": 3,
+  "width": 1024
+ },
  "checkout/waveshare7.yaml": {
   "alert": {
    "line": 19,
@@ -1426,6 +1497,77 @@
   "rows": 3,
   "width": 480
  },
+ "packages/waveshare5-dim.yaml": {
+  "alert": {
+   "line": 34,
+   "title_line": 45
+  },
+  "board": "waveshare5-dim",
+  "camera": {
+   "full": [
+    1024,
+    600
+   ],
+   "thumb": [
+    525,
+    295
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "WAVESHARE5-DIM",
+   "name": "Waveshare",
+   "order": 9,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 237,
+  "height": 600,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1024,
+      600
+     ],
+     "thumb": [
+      525,
+      295
+     ]
+    },
+    "columns": 4,
+    "height": 600,
+    "rotation": 0,
+    "rows": 3,
+    "width": 1024
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      600,
+      1024
+     ],
+     "thumb": [
+      498,
+      280
+     ]
+    },
+    "columns": 2,
+    "height": 1024,
+    "rotation": 90,
+    "rows": 5,
+    "width": 600
+   }
+  },
+  "rows": 3,
+  "width": 1024
+ },
  "packages/waveshare7.yaml": {
   "alert": {
    "line": 19,
@@ -1679,6 +1821,77 @@
   },
   "rows": 3,
   "width": 480
+ },
+ "waveshare5-dim": {
+  "alert": {
+   "line": 34,
+   "title_line": 45
+  },
+  "board": "waveshare5-dim",
+  "camera": {
+   "full": [
+    1024,
+    600
+   ],
+   "thumb": [
+    525,
+    295
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "WAVESHARE5-DIM",
+   "name": "Waveshare",
+   "order": 9,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 237,
+  "height": 600,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1024,
+      600
+     ],
+     "thumb": [
+      525,
+      295
+     ]
+    },
+    "columns": 4,
+    "height": 600,
+    "rotation": 0,
+    "rows": 3,
+    "width": 1024
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      600,
+      1024
+     ],
+     "thumb": [
+      498,
+      280
+     ]
+    },
+    "columns": 2,
+    "height": 1024,
+    "rotation": 90,
+    "rows": 5,
+    "width": 600
+   }
+  },
+  "rows": 3,
+  "width": 1024
  },
  "waveshare7": {
   "alert": {
