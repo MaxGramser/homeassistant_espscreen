@@ -137,6 +137,8 @@ under **Settings → Devices & services** in Home Assistant, and then choose the
 - **Without USB passthrough (app 0.2.68+):** in **New screen**, choose **Download · flash from
   your own computer**. The container builds the firmware, and you put it on the screen with
   [ESPHome Web](https://web.esphome.io) in Chrome or Edge on the computer the screen is plugged into.
+  **This computer · install from this browser** does both in one step, but only on a page served
+  over https (or from `localhost` on the computer that runs the container).
 - **Backups:** Home Assistant backups don't include this container. Keep a copy of
   `data/screens.json` and `data/updates.json` (layouts and update settings) and of the
   ESPHome folder. `data/build`, `data/esphome`, `data/idf` and `data/platformio` are caches.

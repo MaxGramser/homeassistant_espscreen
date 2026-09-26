@@ -157,7 +157,7 @@ class OverrideRoutes(unittest.IsolatedAsyncioTestCase):
                 response = await client.put(url, json={'content': 'logger:\n' + '  # p\n' * 40000}, headers=headers)
                 self.assertEqual((response.status, (await response.json())['error']), (413, 'That request is too large.'))
                 self.assertEqual((await (await client.get(url)).json())['content'], 'display:\n  - id: !extend my_display\n    model: ST7789V\n')
-                self.assertEqual((await (await client.get('/api/firmware')).json())['profiles'], [{'file': 'kitchen.yaml'}])
+                self.assertEqual([p['file'] for p in (await (await client.get('/api/firmware')).json())['profiles']], ['kitchen.yaml'])
 
 
 if __name__ == '__main__':

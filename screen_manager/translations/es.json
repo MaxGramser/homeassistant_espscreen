@@ -1819,7 +1819,7 @@
         "done": "Hecho.",
         "failed": "No ha funcionado."
       },
-      "intro": "ESP Screens crea el perfil propio de la pantalla con claves únicas y compila el firmware. Conecta la pantalla con un cable USB de datos al equipo donde se ejecuta Home Assistant, o descarga el firmware e instálalo en la pantalla desde tu propio ordenador.",
+      "intro": "ESP Screens crea el perfil propio de la pantalla con claves únicas y compila el firmware. Conecta la pantalla con un cable USB de datos al equipo donde se ejecuta Home Assistant, o al ordenador que estás usando ahora.",
       "board": "¿Qué pantalla tienes?",
       "board_title": "{name} · {inch} pulgadas",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Instalar mediante",
       "later": "Más tarde · solo guardar el perfil",
       "target": {
-        "usb": "Conecta la pantalla con un cable USB de datos al equipo de Home Assistant; la lista se actualiza sola. O elige Descargar para usar tu propio ordenador.",
+        "usb": "Conecta la pantalla con un cable USB de datos al equipo de Home Assistant; la lista se actualiza sola. O elige Este ordenador para instalar desde este navegador.",
         "download": "Descarga el firmware e instálalo en la pantalla desde tu propio ordenador, con Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
         "later": "El perfil se guarda en la carpeta de ESPHome. Puedes instalarlo más tarde desde Firmware y USB o desde ESPHome Device Builder.",
         "several": "Hay más de una placa conectada: elige el puerto de esta pantalla.",
@@ -2253,6 +2253,45 @@
         "nothing_else": "Nada más: ni nombre, ni cuenta, ni entidades, registros o configuración de Home Assistant. Cada pantalla comparte con su propia clave aleatoria."
       },
       "privacy": "Privacidad"
+    },
+    "webflash": {
+      "target": "Este ordenador · instalar desde este navegador",
+      "hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
+      "firmware_hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. La pantalla conserva sus ajustes y su calibración táctil. Así también rescatas una pantalla que se reinicia sin parar y nunca se conecta.",
+      "go": "Conectar e instalar",
+      "building": "Una primera compilación tarda unos minutos en una Raspberry Pi. Deja esta pestaña abierta y la pantalla conectada: esta página instala el firmware en cuanto esté listo.",
+      "keep_open": "Deja esta pestaña abierta y el cable USB conectado hasta que termine.",
+      "unavailable": {
+        "insecure": "Instalar desde el navegador requiere abrir Home Assistant por https, por ejemplo con tu dirección de Home Assistant Cloud, en Chrome o Edge. Esta página se abrió por http simple. Elige Descargar, o abre Home Assistant por https.",
+        "browser": "Este navegador no puede acceder a puertos USB. Usa Chrome o Edge en un ordenador, o elige Descargar."
+      },
+      "phase": {
+        "picking": "Elige el puerto USB de la pantalla en la ventana que muestra tu navegador.",
+        "connecting": "Conectando con la placa…",
+        "waiting": "Conectado a la placa ({chip}). El firmware se instala en cuanto esté compilado.",
+        "downloading": "Obteniendo el firmware de ESP Screens…",
+        "erasing": "Borrando la memoria de la placa…",
+        "writing": "Instalando… {percent} %",
+        "restarting": "Reiniciando la pantalla…",
+        "done": "Instalado. La pantalla se reinicia."
+      },
+      "errors": {
+        "no_port": "No se eligió ningún puerto. Si la pantalla no estaba en la lista:",
+        "blocked": "El navegador no deja que esta página use puertos USB. Revisa los permisos del sitio en el navegador, o elige Descargar.",
+        "busy": "El puerto de la pantalla lo usa otro programa o pestaña, como un monitor serie o ESPHome Web. Ciérralo y vuelve a intentarlo.",
+        "connect": "La placa no respondió. Mantén pulsado el botón BOOT de la placa mientras eliges el puerto, hasta que empiece la instalación, y vuelve a intentarlo. Desconectar y volver a conectar el cable también puede ayudar.",
+        "wrong_chip": "La placa conectada tiene un chip {found}, pero el firmware de esta pantalla es para un {expected}. Conecta la pantalla correcta o elige su placa.",
+        "wrong_image": "El firmware que compiló ESP Screens es para un {expected}, pero la placa conectada tiene un {found}. No se escribió nada.",
+        "disconnected": "La pantalla se desconectó. Vuelve a conectarla e inténtalo de nuevo.",
+        "download": "No se pudo obtener el firmware de ESP Screens: {error}",
+        "failed": "La instalación no funcionó: {error}"
+      },
+      "hints": {
+        "computer": "Conecta la pantalla a este ordenador, en el que se ejecuta este navegador.",
+        "power": "Comprueba que la placa tiene alimentación: la mayoría tiene una pequeña luz.",
+        "cable": "Usa un cable USB que transmita datos. Algunos cables solo cargan.",
+        "driver": "Instala el controlador del chip USB de la placa si tu ordenador lo necesita (CP210x, CH340 o CH9102)."
+      }
     }
   }
 }

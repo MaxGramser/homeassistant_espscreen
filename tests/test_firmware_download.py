@@ -109,6 +109,16 @@ class DownloadChecks(unittest.TestCase):
             self.assertEqual(f.factory_image(profile), images[1])
 
 
+class BoardChips(unittest.TestCase):
+    def test_every_board_names_the_chip_its_firmware_is_built_for(self):
+        # The browser flasher refuses a board of another chip; the P4 boards' Wi-Fi co-processor (an ESP32-C6 under
+        # esp32_hosted) is not the chip the image is for.
+        from core import BOARD_KEYS, SHAPES
+        chips = {board: SHAPES[board].get('chip') for board in BOARD_KEYS}
+        self.assertTrue(set(chips.values()) <= {'ESP32', 'ESP32-S3', 'ESP32-P4'}, chips)
+        self.assertEqual((chips['cyd'], chips['guition'], chips['jc8012p4a1']), ('ESP32', 'ESP32-S3', 'ESP32-P4'))
+
+
 class DownloadJobs(unittest.IsolatedAsyncioTestCase):
     async def test_the_download_target_builds_and_offers_the_factory_image(self):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, fake_cli(tmp)):
@@ -126,6 +136,33 @@ class DownloadJobs(unittest.IsolatedAsyncioTestCase):
             path, name = f.image('kitchen.yaml')
             self.assertEqual((name, path.read_bytes()), ('kitchen.factory.bin', b'\xe9factory-kitchen'))
             self.assertEqual((f.installed, f.downloaded), (set(), {'kitchen.yaml'}))
+
+    async def test_a_screen_flashed_from_the_browser_counts_as_installed(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, fake_cli(tmp)):
+            f = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+            f.install({**PROFILE, 'target': 'download'})
+            with self.assertRaisesRegex(ValueError, 'Build the firmware first'):
+                f.flashed('kitchen.yaml')
+            await f.task
+            with self.assertRaisesRegex(ValueError, 'Build the firmware first'):
+                f.flashed('kitchen.yaml')  # built, but the page never fetched the image
+            f.image('kitchen.yaml')
+            for name in ('../secrets.yaml', 'missing.yaml', None):
+                with self.assertRaises(ValueError):
+                    f.flashed(name)
+            self.assertEqual(f.flashed('kitchen.yaml'), {'file': 'kitchen.yaml', 'installed': True})
+            self.assertEqual((f.installed, f.downloaded), ({'kitchen.yaml'}, set()))
+
+    async def test_the_status_names_the_chip_each_profile_is_built_for(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+            f.create(PROFILE)
+            f.create({**PROFILE, 'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall'})
+            (Path(tmp) / 'esphome' / 'other.yaml').write_text('esphome:\n  name: other\n')
+            status = f.status()
+            self.assertEqual(status['profiles'], [{'file': 'hall.yaml', 'chip': 'ESP32-S3'},
+                                                  {'file': 'kitchen.yaml', 'chip': 'ESP32'}, {'file': 'other.yaml'}])
+            self.assertEqual({key: board['chip'] for key, board in status['boards'].items()}.get('cyd'), 'ESP32')
 
     async def test_a_build_without_a_factory_image_fails_instead_of_offering_nothing(self):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {**fake_cli(tmp), 'FAKE_LAYOUT': 'none'}):
@@ -207,6 +244,12 @@ class DownloadRoute(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(await download.read(), b'\xe9factory-kitchen')
                 pending = (await (await client.get('/api/inventory?light=1')).json())['pending']
                 self.assertEqual([(p['file'], p['installed'], p['downloaded']) for p in pending], [('kitchen.yaml', False, True)])
+                flashed = '/api/firmware/profiles/kitchen.yaml/flashed'
+                self.assertEqual((await client.post(flashed)).status, 403, 'CSRF like every other change')
+                self.assertEqual((await client.post(flashed, headers=headers)).status, 200)
+                pending = (await (await client.get('/api/inventory?light=1')).json())['pending']
+                self.assertEqual([(p['file'], p['installed'], p['downloaded']) for p in pending], [('kitchen.yaml', True, False)])
+                self.assertEqual((await client.post('/api/firmware/profiles/other.yaml/flashed', headers=headers)).status, 400)
                 self.assertEqual((await client.get('/api/firmware/profiles/other.yaml/download')).status, 400)
                 self.assertNotEqual((await client.get('/api/firmware/profiles/..%2Fsecrets.yaml/download')).status, 200)
 

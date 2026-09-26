@@ -1819,7 +1819,7 @@
         "done": "Klaar.",
         "failed": "Dat lukte niet."
       },
-      "intro": "ESP Screens maakt een eigen profiel voor het scherm, met unieke sleutels, en bouwt de firmware. Sluit het scherm met een USB-datakabel aan op de machine waarop Home Assistant draait, of download de firmware en zet die vanaf je eigen computer op het scherm.",
+      "intro": "ESP Screens maakt een eigen profiel voor het scherm, met unieke sleutels, en bouwt de firmware. Sluit het scherm met een USB-datakabel aan op de machine waarop Home Assistant draait, of op de computer waar je nu achter zit.",
       "board": "Welk scherm heb je?",
       "board_title": "{name} · {inch} inch",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Installeren via",
       "later": "Later · alleen het profiel bewaren",
       "target": {
-        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; de lijst ververst vanzelf. Of kies Downloaden om je eigen computer te gebruiken.",
+        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; de lijst ververst vanzelf. Of kies Deze computer om vanuit deze browser te installeren.",
         "download": "Download de firmware en zet die vanaf je eigen computer op het scherm, in Chrome of Edge. Daarna gaan updates via Wi-Fi.",
         "later": "Het profiel komt in de ESPHome-map. Installeren kan later via Firmware & USB, of vanuit ESPHome Device Builder.",
         "several": "Meer dan één bord aangesloten: kies de poort van dit scherm.",
@@ -2253,6 +2253,45 @@
         "nothing_else": "Verder niets: geen naam, account, entiteiten, logs of Home Assistant-instellingen. Elk scherm deelt onder een eigen willekeurige sleutel."
       },
       "privacy": "Privacy"
+    },
+    "webflash": {
+      "target": "Deze computer · installeren vanuit deze browser",
+      "hint": "Sluit het scherm met een USB-datakabel aan op deze computer. ESP Screens bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Updates gaan daarna via wifi.",
+      "firmware_hint": "Sluit het scherm met een USB-datakabel aan op deze computer. ESP Screens bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Het scherm houdt zijn instellingen en aanraakkalibratie. Zo red je ook een scherm dat steeds herstart en nooit online komt.",
+      "go": "Verbinden & installeren",
+      "building": "Een eerste build duurt op een Raspberry Pi een paar minuten. Laat dit tabblad open en het scherm aangesloten: deze pagina installeert de firmware zodra die klaar is.",
+      "keep_open": "Laat dit tabblad open en de USB-kabel aangesloten tot het klaar is.",
+      "unavailable": {
+        "insecure": "Installeren vanuit de browser kan alleen als Home Assistant via https open staat, bijvoorbeeld via je Home Assistant Cloud-adres, in Chrome of Edge. Deze pagina is via gewone http geopend. Kies Downloaden, of open Home Assistant via https.",
+        "browser": "Deze browser kan niet bij USB-poorten. Gebruik Chrome of Edge op een computer, of kies Downloaden."
+      },
+      "phase": {
+        "picking": "Kies de USB-poort van het scherm in het venster dat je browser toont.",
+        "connecting": "Verbinden met het bord…",
+        "waiting": "Verbonden met het bord ({chip}). De firmware gaat erop zodra die gebouwd is.",
+        "downloading": "Firmware ophalen bij ESP Screens…",
+        "erasing": "Geheugen van het bord wissen…",
+        "writing": "Installeren… {percent}%",
+        "restarting": "Scherm herstarten…",
+        "done": "Geïnstalleerd. Het scherm herstart."
+      },
+      "errors": {
+        "no_port": "Geen poort gekozen. Stond het scherm niet in de lijst?",
+        "blocked": "De browser laat deze pagina geen USB-poorten gebruiken. Controleer de sitemachtigingen in de browser, of kies Downloaden.",
+        "busy": "De poort van het scherm is in gebruik door een ander programma of tabblad, zoals een seriële monitor of ESPHome Web. Sluit dat en probeer het opnieuw.",
+        "connect": "Het bord reageerde niet. Houd de BOOT-knop op het bord ingedrukt terwijl je de poort kiest, tot de installatie begint, en probeer het opnieuw. De kabel los en weer vast maken helpt soms ook.",
+        "wrong_chip": "Het bord aan de kabel heeft een {found}-chip, maar de firmware van dit scherm is voor een {expected}. Sluit het juiste scherm aan, of kies het juiste bord.",
+        "wrong_image": "De firmware die ESP Screens bouwde is voor een {expected}, maar het bord aan de kabel heeft een {found}. Er is niets geschreven.",
+        "disconnected": "Het scherm is losgekoppeld. Sluit het opnieuw aan en probeer het nog eens.",
+        "download": "Kon de firmware niet ophalen bij ESP Screens: {error}",
+        "failed": "Installeren is niet gelukt: {error}"
+      },
+      "hints": {
+        "computer": "Sluit het scherm aan op deze computer, die waarop deze browser draait.",
+        "power": "Controleer of het bord stroom heeft: de meeste hebben een klein lampje.",
+        "cable": "Gebruik een USB-kabel die data doorgeeft. Sommige kabels laden alleen op.",
+        "driver": "Installeer het stuurprogramma voor de USB-chip van het bord als je computer erom vraagt (CP210x, CH340 of CH9102)."
+      }
     }
   }
 }

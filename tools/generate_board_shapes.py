@@ -96,6 +96,23 @@ def catalog_of(board, values, lying):
             'choices': choices}
 
 
+def chip_of(board):
+    """The chip a board's firmware is built for, as esptool names it ("ESP32", "ESP32-S3", "ESP32-P4"): the `variant`
+    of the `esp32:` block in the board's files. The browser flasher under New screen and Firmware & USB
+    compares it with the chip on the USB cable before anything is built, as ESPHome's own dashboard does, and refuses a
+    board of another chip. Another block's variant (a P4 board's Wi-Fi co-processor under `esp32_hosted:`) is not it.
+    """
+    found = None
+    for path in profiles.chain(profiles.BOARDS[board]):
+        block = re.search(r'(?m)^esp32:[ \t]*\n((?:[ \t]+.*\n|[ \t]*\n)*)', path.read_text())
+        variant = re.search(r'(?m)^[ \t]+variant:[ \t]*"?(\w+)"?', block[1]) if block else None
+        if variant:
+            found = variant[1].lower()
+    if not found or not re.fullmatch(r'esp32\w*', found):
+        raise SystemExit(f'{board}: no esp32 variant in its files')
+    return 'ESP32' + ('-' + found[5:].upper() if found[5:] else '')
+
+
 def camera_of(values, side):
     """The pixel box of each picture a board draws, on the glass of one orientation.
 
@@ -141,7 +158,9 @@ def shapes():
                  # are what screen_alert::layout needs to size an alert's picture (camera_feed.alert_box).
                  'alert': alert_lines(values),
                  # What New screen offers and the screen list names (boards.yaml with what the board's files say).
-                 'catalog': catalog_of(board, values, lying)}
+                 'catalog': catalog_of(board, values, lying),
+                 # The chip it is built for, for the browser flasher's check of the board on the cable.
+                 'chip': chip_of(board)}
         # A board that draws camera pictures includes features/camera.yaml, which states the canvas they fill
         # (CAMERA_FULL_*). Without it the board has no camera at all, like the CYD: the manager then refuses a camera
         # tile instead of sending a picture that never arrives.

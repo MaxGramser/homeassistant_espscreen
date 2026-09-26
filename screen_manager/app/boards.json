@@ -21,6 +21,7 @@
    "status": "stable",
    "touch": "XPT2046"
   },
+  "chip": "ESP32",
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
@@ -72,6 +73,7 @@
    "status": "stable",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
@@ -133,6 +135,7 @@
    "status": "experimental",
    "touch": "XPT2046"
   },
+  "chip": "ESP32",
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
@@ -184,6 +187,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
@@ -255,6 +259,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
@@ -326,6 +331,7 @@
    "status": "new",
    "touch": "GSL3670"
   },
+  "chip": "ESP32-P4",
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
@@ -387,6 +393,7 @@
    "status": "new",
    "touch": "FT63X6"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
@@ -438,6 +445,7 @@
    "status": "stable",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
@@ -509,6 +517,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
@@ -580,6 +589,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
@@ -646,6 +656,7 @@
    "status": "stable",
    "touch": "XPT2046"
   },
+  "chip": "ESP32",
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
@@ -697,6 +708,7 @@
    "status": "stable",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
@@ -758,6 +770,7 @@
    "status": "experimental",
    "touch": "XPT2046"
   },
+  "chip": "ESP32",
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
@@ -809,6 +822,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
@@ -880,6 +894,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
@@ -951,6 +966,7 @@
    "status": "new",
    "touch": "GSL3670"
   },
+  "chip": "ESP32-P4",
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
@@ -1017,6 +1033,7 @@
    "status": "stable",
    "touch": "XPT2046"
   },
+  "chip": "ESP32",
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
@@ -1068,6 +1085,7 @@
    "status": "stable",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
@@ -1129,6 +1147,7 @@
    "status": "experimental",
    "touch": "XPT2046"
   },
+  "chip": "ESP32",
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
@@ -1180,6 +1199,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
@@ -1251,6 +1271,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
@@ -1322,6 +1343,7 @@
    "status": "new",
    "touch": "GSL3670"
   },
+  "chip": "ESP32-P4",
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
@@ -1383,6 +1405,7 @@
    "status": "new",
    "touch": "FT63X6"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
@@ -1434,6 +1457,7 @@
    "status": "stable",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
@@ -1505,6 +1529,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
@@ -1576,6 +1601,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
@@ -1637,6 +1663,7 @@
    "status": "new",
    "touch": "FT63X6"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
@@ -1688,6 +1715,7 @@
    "status": "stable",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
@@ -1759,6 +1787,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
@@ -1830,6 +1859,7 @@
    "status": "experimental",
    "touch": "GT911"
   },
+  "chip": "ESP32-S3",
   "columns": 4,
   "dimmable": false,
   "dpi": 133,

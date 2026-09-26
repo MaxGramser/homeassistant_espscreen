@@ -1819,7 +1819,7 @@
         "done": "Fertig.",
         "failed": "Das hat nicht geklappt."
       },
-      "intro": "ESP Screens legt das eigene Profil des Bildschirms mit eindeutigen Schlüsseln an und erstellt die Firmware. Schließe den Bildschirm mit einem USB-Datenkabel an den Rechner an, auf dem Home Assistant läuft, oder lade die Firmware herunter und spiele sie von deinem eigenen Computer aus auf den Bildschirm.",
+      "intro": "ESP Screens legt das eigene Profil des Bildschirms mit eindeutigen Schlüsseln an und erstellt die Firmware. Schließe den Bildschirm mit einem USB-Datenkabel an den Rechner an, auf dem Home Assistant läuft, oder an den Computer, an dem du gerade sitzt.",
       "board": "Welchen Bildschirm hast du?",
       "board_title": "{name} · {inch} Zoll",
       "status": {
@@ -1871,7 +1871,7 @@
       "install_via": "Installieren über",
       "later": "Später · nur Profil speichern",
       "target": {
-        "usb": "Schließe den Bildschirm mit einem USB-Datenkabel an den Home Assistant-Rechner an; die Liste aktualisiert sich von selbst. Oder wähle „Download“, um deinen eigenen Computer zu nutzen.",
+        "usb": "Schließe den Bildschirm mit einem USB-Datenkabel an den Home Assistant-Rechner an; die Liste aktualisiert sich von selbst. Oder wähle „Dieser Computer“, um aus diesem Browser zu installieren.",
         "download": "Lade die Firmware herunter und spiele sie in Chrome oder Edge von deinem eigenen Computer aus auf den Bildschirm. Danach laufen Updates über Wi-Fi.",
         "later": "Das Profil kommt in den ESPHome-Ordner. Installieren kannst du später über Firmware & USB oder im ESPHome Device Builder.",
         "several": "Mehr als ein Board angeschlossen: Wähle den Port dieses Bildschirms.",
@@ -2253,6 +2253,45 @@
         "nothing_else": "Sonst nichts: kein Name, kein Konto, keine Entitäten, Logs oder Home-Assistant-Einstellungen. Jeder Bildschirm teilt unter einem eigenen zufälligen Schlüssel."
       },
       "privacy": "Datenschutz"
+    },
+    "webflash": {
+      "target": "Dieser Computer · aus diesem Browser installieren",
+      "hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Danach laufen Updates über WLAN.",
+      "firmware_hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Der Bildschirm behält seine Einstellungen und Touch-Kalibrierung. So rettest du auch einen Bildschirm, der ständig neu startet und nie online kommt.",
+      "go": "Verbinden & installieren",
+      "building": "Ein erster Build dauert auf einem Raspberry Pi einige Minuten. Lass diesen Tab offen und den Bildschirm angeschlossen: Diese Seite installiert die Firmware, sobald sie fertig ist.",
+      "keep_open": "Lass diesen Tab offen und das USB-Kabel eingesteckt, bis es fertig ist.",
+      "unavailable": {
+        "insecure": "Die Installation aus dem Browser braucht Home Assistant über https, zum Beispiel über deine Home Assistant Cloud-Adresse, in Chrome oder Edge. Diese Seite wurde über einfaches http geöffnet. Wähle stattdessen „Download“ oder öffne Home Assistant über https.",
+        "browser": "Dieser Browser kann nicht auf USB-Anschlüsse zugreifen. Nutze Chrome oder Edge auf einem Computer oder wähle stattdessen „Download“."
+      },
+      "phase": {
+        "picking": "Wähle den USB-Anschluss des Bildschirms im Fenster, das dein Browser zeigt.",
+        "connecting": "Verbindung zum Board wird hergestellt…",
+        "waiting": "Mit dem Board verbunden ({chip}). Die Firmware wird aufgespielt, sobald sie erstellt ist.",
+        "downloading": "Firmware wird von ESP Screens geholt…",
+        "erasing": "Speicher des Boards wird gelöscht…",
+        "writing": "Installation… {percent} %",
+        "restarting": "Bildschirm wird neu gestartet…",
+        "done": "Installiert. Der Bildschirm startet neu."
+      },
+      "errors": {
+        "no_port": "Kein Anschluss gewählt. Falls der Bildschirm nicht in der Liste stand:",
+        "blocked": "Der Browser erlaubt dieser Seite keine USB-Anschlüsse. Prüfe die Website-Berechtigungen im Browser oder wähle stattdessen „Download“.",
+        "busy": "Der Anschluss des Bildschirms wird von einem anderen Programm oder Tab benutzt, etwa einem seriellen Monitor oder ESPHome Web. Schließe es und versuche es erneut.",
+        "connect": "Das Board hat nicht geantwortet. Halte die BOOT-Taste auf dem Board gedrückt, während du den Anschluss wählst, bis die Installation beginnt, und versuche es erneut. Kabel ab- und wieder anstecken hilft auch manchmal.",
+        "wrong_chip": "Das Board am Kabel hat einen {found}-Chip, aber die Firmware dieses Bildschirms ist für einen {expected}. Schließe den richtigen Bildschirm an oder wähle sein Board.",
+        "wrong_image": "Die Firmware von ESP Screens ist für einen {expected}, aber das Board am Kabel hat einen {found}. Es wurde nichts geschrieben.",
+        "disconnected": "Der Bildschirm wurde getrennt. Schließe ihn wieder an und versuche es erneut.",
+        "download": "Die Firmware konnte nicht von ESP Screens geholt werden: {error}",
+        "failed": "Die Installation hat nicht geklappt: {error}"
+      },
+      "hints": {
+        "computer": "Schließe den Bildschirm an diesen Computer an, den, auf dem dieser Browser läuft.",
+        "power": "Prüfe, ob das Board Strom hat: Die meisten haben eine kleine Leuchte.",
+        "cable": "Nutze ein USB-Kabel, das Daten überträgt. Manche Kabel laden nur.",
+        "driver": "Installiere den Treiber für den USB-Chip des Boards, falls dein Computer einen braucht (CP210x, CH340 oder CH9102)."
+      }
     }
   }
 }
