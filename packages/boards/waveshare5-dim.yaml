@@ -1,0 +1,43 @@
+# ESP Screens - waveshare5-dim: a 5.0-inch 1024 x 600 panel. Written by tools/new_board.py from the waveshare7
+# board: its packages and its hardware sections are the template's until they are replaced by this board's
+# (docs/ADDING_A_BOARD.md). docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  # The chip, the CH422G expander, the GT911 and the backlight line this board shares with the other Waveshare.
+  hardware: !include ../hardware/waveshare-esp32s3-5-dim.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/12.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare5-dim"
+  DEVICE_NAME: "waveshare5-dim-new"
+  DEVICE_FRIENDLY_NAME: "My waveshare5-dim"
+
+  # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 5.0 inches.
+  PANEL_W: "1024"
+  PANEL_H: "600"
+  DISPLAY_DPI: "237.367"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "4"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "5"
+  LVGL_BUFFER_SIZE: "100%"                       # LVGL's draw buffer as a share of the screen
+
+  # From the waveshare7 board: its hardware values and the code it hands the shared lambdas. Replace them
+  # with this board's, as the hardware sections below.
+  # Set by hand when the home key came (firmware 0.2.100); the look would give 27
+  FONT_ICON_HOME_SIZE: "36"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  # An 8 MB partition layout also fits the 16 MB variant.
+  flash_size: 16MB

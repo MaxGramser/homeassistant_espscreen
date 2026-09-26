@@ -75,3 +75,9 @@ jc1060p470v2:
   name: Guition
   model: JC1060P470 V2
   status: experimental
+
+waveshare5-dim:
+  file: waveshare5-dim.yaml
+  name: Waveshare
+  model: WAVESHARE5-DIM
+  status: experimental
