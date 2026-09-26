@@ -1914,7 +1914,7 @@
       "pairing": {
         "ha": "{bold} To dzieje się poza ESP Screens. Home Assistant wykryje {name} jako urządzenie ESPHome; kliknij „Dodaj”. Nie wykryto? Dodaj ESPHome ręcznie, podając adres IP ekranu.",
         "ha_bold": "Przejdź do Home Assistant → Ustawienia → Urządzenia oraz usługi.",
-        "key": "{bold} widoczny powyżej, gdy Home Assistant poprosi o klucz szyfrujący.",
+        "key": "{bold} (pod „Pokaż klucz API” poniżej), jeśli Home Assistant poprosi o klucz szyfrowania. Z zainstalowaną aplikacją ESPHome Device Builder Home Assistant często wpisuje go sam.",
         "key_bold": "Wklej klucz API",
         "actions": "{bold} integracja ESPHome → Konfiguruj → „Zezwól urządzeniu na wykonywanie akcji Home Assistant”. Bez tego ekran widzi wszystko, ale niczym nie steruje.",
         "actions_bold": "Zezwól na akcje HA:",
@@ -1925,7 +1925,8 @@
       "retry": "Ponów",
       "another": "Zainstaluj kolejny ekran",
       "start_over": "Zacznij od nowa",
-      "done": "Gotowe"
+      "done": "Gotowe",
+      "key_more": "Pokaż klucz API"
     },
     "alerts": {
       "eyebrow": "Alerty · ściąga",

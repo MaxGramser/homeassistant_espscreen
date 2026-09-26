@@ -172,8 +172,11 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
         <small>{{ pendingText(p) }}</small>
         <div class="pending-actions">
           <button type="button" class="btn mini quiet" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button>
-          <button v-if="p.api_key" type="button" class="btn mini quiet" @click="copyText(p.api_key!)">{{ t("editor.sidebar.copy_api_key") }}</button>
         </div>
+        <details v-if="p.api_key" class="key-more">
+          <summary>{{ t("editor.installer.key_more") }}</summary>
+          <button type="button" class="btn link mini copy-key" @click="copyText(p.api_key!)">{{ t("editor.sidebar.copy_api_key") }}</button>
+        </details>
       </div>
     </div>
     <button id="new-screen" type="button" class="nav-item ghost" :aria-current="route === '#new-screen' ? 'true' : 'false'" @click="go('#new-screen')">

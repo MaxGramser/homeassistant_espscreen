@@ -1,3 +1,10 @@
+## 0.3.17 (firmware 0.3.9)
+
+The API key steps back.
+
+- Home Assistant often fills in a new screen's encryption key by itself, when the ESPHome Device Builder app is installed. So the API key no longer stands out: after an install and on a screen that is not yet in Home Assistant, it waits behind a small **Show the API key**, and the steps say to paste it only if Home Assistant asks.
+- Update the ESP Screen Manager app to get this; the screens need no new firmware.
+
 ## 0.3.16 (firmware 0.3.9)
 
 The lamps of a light group, each on its own, from the group's colour card.

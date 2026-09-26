@@ -602,3 +602,12 @@ td code { white-space: nowrap; }
 .tile.full .mini-slider { width: 60%; }
 .tile .goto { font-size: 10.5px; color: #5a5f66; }
 .device.compact .tile.full .ic { font-size: 26px; }
+/* The API key is needed only when Home Assistant asks for it (it often fills it in by itself), so it waits behind a
+   small disclosure instead of standing out. */
+.key-more { margin-top: 8px; }
+.key-more > summary { cursor: pointer; font-size: 12px; color: var(--muted); list-style: none; }
+.key-more > summary::-webkit-details-marker { display: none; }
+.key-more > summary::before { content: "\25B8"; display: inline-block; margin-right: 5px; transition: transform 0.12s; }
+.key-more[open] > summary::before { transform: rotate(90deg); }
+.key-more > summary:hover { color: var(--ink-2); }
+.key-more[open] > .key-box, .key-more[open] > .btn { margin-top: 6px; }

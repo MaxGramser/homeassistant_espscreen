@@ -385,16 +385,19 @@ onBeforeUnmount(() => { clearInterval(poll); flash.cancel(); });
         <small>{{ t("editor.installer.download_keep") }}</small>
       </div>
       <div v-if="ok" id="install-result" class="field">
-        <div class="key-box">
-          <span>{{ t("editor.installer.api_key") }}</span><code id="api-key" ref="keyBox">{{ installer.apiKey || "" }}</code>
-          <button type="button" class="btn quiet mini" id="copy-key" @click="copyText(installer.apiKey || '', keyBox)">{{ t("editor.common.copy") }}</button>
-        </div>
         <ol class="steps" id="install-steps">
           <li><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ installer.friendly }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button></li>
           <li><i18n-t keypath="editor.installer.pairing.key" scope="global"><template #bold><b>{{ t("editor.installer.pairing.key_bold") }}</b></template></i18n-t></li>
           <li><i18n-t keypath="editor.installer.pairing.actions" scope="global"><template #bold><b>{{ t("editor.installer.pairing.actions_bold") }}</b></template></i18n-t></li>
           <li><i18n-t keypath="editor.installer.pairing.tiles" scope="global"><template #bold><b>{{ t("editor.installer.pairing.tiles_bold") }}</b></template></i18n-t></li>
         </ol>
+        <details class="key-more" id="key-more">
+          <summary>{{ t("editor.installer.key_more") }}</summary>
+          <div class="key-box">
+            <span>{{ t("editor.installer.api_key") }}</span><code id="api-key" ref="keyBox">{{ installer.apiKey || "" }}</code>
+            <button type="button" class="btn quiet mini" id="copy-key" @click="copyText(installer.apiKey || '', keyBox)">{{ t("editor.common.copy") }}</button>
+          </div>
+        </details>
       </div>
       <details v-if="installer.view !== 'done'" id="install-log-wrap" class="log-wrap" :open="logOpen" @toggle="logOpen = ($event.target as HTMLDetailsElement).open">
         <summary>{{ t("editor.installer.log") }}</summary>

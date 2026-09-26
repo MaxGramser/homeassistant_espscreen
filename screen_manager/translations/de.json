@@ -1914,7 +1914,7 @@
       "pairing": {
         "ha": "{bold} Das passiert außerhalb von ESP Screens. Home Assistant entdeckt {name} als ESPHome-Gerät; klicke auf „Hinzufügen“. Nicht entdeckt? Füge ESPHome manuell mit der IP-Adresse des Bildschirms hinzu.",
         "ha_bold": "Öffne in Home Assistant Einstellungen → Geräte & Dienste.",
-        "key": "{bold}, wenn Home Assistant nach einem Verschlüsselungscode fragt.",
+        "key": "{bold} (unter „API-Schlüssel anzeigen“ unten), falls Home Assistant nach einem Verschlüsselungsschlüssel fragt. Mit der ESPHome Device Builder App trägt Home Assistant ihn oft selbst ein.",
         "key_bold": "Füge den API-Schlüssel von oben ein",
         "actions": "{bold} ESPHome-Integration → Konfigurieren → „Dem Gerät erlauben, Home Assistant-Aktionen auszuführen“. Ohne das sieht der Bildschirm alles, steuert aber nichts.",
         "actions_bold": "HA-Aktionen erlauben:",
@@ -1925,7 +1925,8 @@
       "retry": "Erneut versuchen",
       "another": "Weiteren Bildschirm installieren",
       "start_over": "Neu beginnen",
-      "done": "Fertig"
+      "done": "Fertig",
+      "key_more": "API-Schlüssel anzeigen"
     },
     "alerts": {
       "eyebrow": "Meldungen · Spickzettel",
