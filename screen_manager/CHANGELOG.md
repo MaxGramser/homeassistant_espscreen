@@ -1,3 +1,11 @@
+## 0.3.16 (firmware 0.3.9)
+
+The lamps of a light group, each on its own, from the group's colour card.
+
+- **Light groups.** Hold a light group's tile and its colour card gets a lamps key beside the sparkles key. It opens a page with a card per lamp of the group, in Home Assistant's order. Tap a card to switch that lamp, drag its slider to dim it. A lamp that can only switch has a switch instead of a slider. A lamp that takes a colour or a white shade has a ⋮ key: it opens a small panel with just those sliders, and a touch anywhere beside the panel closes it. A group with more lamps than fit on the glass gets page buttons, like the tile pages. Home Assistant decides what each lamp can do, so a group of mixed lamps shows each lamp as it is.
+- The colour card keeps the two keys on the right together and its title on one line, on every screen size.
+- Update the ESP Screen Manager app and the screens' firmware to get this; with older firmware a light group works as before. CYD firmware: 1,719,360 bytes, 93.7 % of the update slot (10,864 bytes more than 0.3.8).
+
 ## 0.3.15 (firmware 0.3.8)
 
 Install a screen straight from your browser, and an ESP Screens that looks like Home Assistant in the dark.
