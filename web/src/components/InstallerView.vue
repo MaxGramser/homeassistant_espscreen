@@ -343,10 +343,14 @@ onBeforeUnmount(() => { clearInterval(poll); flash.cancel(); });
       <div class="field">
         <label class="f-label" for="install-target">{{ t("editor.installer.install_via") }}</label>
         <select id="install-target" name="target" v-model="form.target" @change="installer.picked = true; installerRefresh()">
-          <option v-if="!ports.length" value="usb">{{ t("editor.firmware.no_board") }}</option>
-          <option v-for="p in ports" :key="p" :value="p">{{ portLabel(p) }}</option>
-          <option value="browser">{{ t("editor.webflash.target") }}</option>
-          <option value="download">{{ t("editor.firmware.download_target") }}</option>
+          <optgroup :label="t('editor.webflash.group_ha')">
+            <option v-if="!ports.length" value="usb">{{ t("editor.firmware.no_board") }}</option>
+            <option v-for="p in ports" :key="p" :value="p">{{ portLabel(p) }}</option>
+          </optgroup>
+          <optgroup :label="t('editor.webflash.group_here')">
+            <option value="browser">{{ t("editor.webflash.target") }}</option>
+            <option value="download">{{ t("editor.firmware.download_target") }}</option>
+          </optgroup>
           <option value="">{{ t("editor.installer.later") }}</option>
         </select>
         <small id="target-hint">{{ targetHint }}</small>

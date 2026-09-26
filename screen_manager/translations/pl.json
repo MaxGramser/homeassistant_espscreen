@@ -1804,8 +1804,8 @@
       "choose": "Wybierz właściwy profil, a potem port USB, adres IP lub „Pobierz”.",
       "profile": "Profil ESPHome",
       "install_to": "Zainstaluj na",
-      "no_board": "USB · nie znaleziono jeszcze płytki na komputerze z Home Assistant",
-      "download_target": "Pobierz · wgraj z własnego komputera",
+      "no_board": "Nie podłączono tam jeszcze ekranu",
+      "download_target": "Pobierz plik i wgraj go samodzielnie",
       "host": "Adres IP lub nazwa hosta",
       "download_file": "Pobierz {name}",
       "download_how": "Wgraj go na ekran przez {esphome_web} w Chrome lub Edge: „Connect”, wybierz port USB ekranu, „Install” i wskaż ten plik. Zawiera Twoje hasło Wi-Fi i klucze ekranu: nie udostępniaj go nikomu."
@@ -2255,7 +2255,7 @@
       "privacy": "Prywatność"
     },
     "webflash": {
-      "target": "Ten komputer · instalacja z tej przeglądarki",
+      "target": "Zainstaluj z tej przeglądarki (Chrome lub Edge)",
       "hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. ESP Screens kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Później aktualizacje idą przez Wi-Fi.",
       "firmware_hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. ESP Screens kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Ekran zachowuje ustawienia i kalibrację dotyku. Tak uratujesz też ekran, który ciągle się restartuje i nigdy nie łączy się z siecią.",
       "go": "Połącz i zainstaluj",
@@ -2291,7 +2291,10 @@
         "power": "Sprawdź, czy płytka ma zasilanie: większość ma małą diodę.",
         "cable": "Użyj kabla USB, który przesyła dane. Niektóre kable tylko ładują.",
         "driver": "Zainstaluj sterownik układu USB płytki, jeśli komputer go potrzebuje (CP210x, CH340 lub CH9102)."
-      }
+      },
+      "group_ha": "Podłączony do komputera z Home Assistant",
+      "group_here": "Podłączony do tego komputera",
+      "group_wifi": "Przez Wi-Fi"
     }
   }
 }

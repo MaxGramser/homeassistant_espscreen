@@ -1804,8 +1804,8 @@
       "choose": "Elige el perfil que corresponda y luego un puerto USB, una dirección IP o Descargar.",
       "profile": "Perfil de ESPHome",
       "install_to": "Instalar en",
-      "no_board": "USB · aún no se ha encontrado ninguna placa en el equipo de Home Assistant",
-      "download_target": "Descargar · instalar desde tu propio ordenador",
+      "no_board": "Aún no hay ninguna pantalla conectada allí",
+      "download_target": "Descargar el archivo y flashearlo tú mismo",
       "host": "Dirección IP o nombre de host",
       "download_file": "Descargar {name}",
       "download_how": "Instálalo en la pantalla con {esphome_web} en Chrome o Edge: Connect, elige el puerto USB de la pantalla, Install y selecciona este archivo. Contiene tu contraseña de Wi-Fi y las claves de la pantalla: no lo compartas."
@@ -2255,7 +2255,7 @@
       "privacy": "Privacidad"
     },
     "webflash": {
-      "target": "Este ordenador · instalar desde este navegador",
+      "target": "Instalar desde este navegador (Chrome o Edge)",
       "hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
       "firmware_hint": "Conecta la pantalla a este ordenador con un cable USB de datos. ESP Screens compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. La pantalla conserva sus ajustes y su calibración táctil. Así también rescatas una pantalla que se reinicia sin parar y nunca se conecta.",
       "go": "Conectar e instalar",
@@ -2291,7 +2291,10 @@
         "power": "Comprueba que la placa tiene alimentación: la mayoría tiene una pequeña luz.",
         "cable": "Usa un cable USB que transmita datos. Algunos cables solo cargan.",
         "driver": "Instala el controlador del chip USB de la placa si tu ordenador lo necesita (CP210x, CH340 o CH9102)."
-      }
+      },
+      "group_ha": "Conectada al equipo de Home Assistant",
+      "group_here": "Conectada a este ordenador",
+      "group_wifi": "Por wifi"
     }
   }
 }

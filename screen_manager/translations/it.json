@@ -1804,8 +1804,8 @@
       "choose": "Scegli il profilo giusto, poi una porta USB, un indirizzo IP o Scarica.",
       "profile": "Profilo ESPHome",
       "install_to": "Installa su",
-      "no_board": "USB · nessuno schermo rilevato finora sulla macchina di Home Assistant",
-      "download_target": "Scarica · installa dal tuo computer",
+      "no_board": "Nessuno schermo ancora collegato lì",
+      "download_target": "Scarica il file e flashalo tu",
       "host": "Indirizzo IP o nome host",
       "download_file": "Scarica {name}",
       "download_how": "Mettilo sullo schermo con {esphome_web} in Chrome o Edge: Connect, scegli la porta USB dello schermo, Install e seleziona questo file. Contiene la tua password Wi-Fi e le chiavi dello schermo: tienilo per te."
@@ -2255,7 +2255,7 @@
       "privacy": "Privacy"
     },
     "webflash": {
-      "target": "Questo computer · installa da questo browser",
+      "target": "Installa da questo browser (Chrome o Edge)",
       "hint": "Collega lo schermo a questo computer con un cavo USB dati. ESP Screens compila il firmware, poi questa pagina lo installa sullo schermo, in Chrome o Edge. In seguito gli aggiornamenti passano via Wi-Fi.",
       "firmware_hint": "Collega lo schermo a questo computer con un cavo USB dati. ESP Screens compila il firmware, poi questa pagina lo installa sullo schermo, in Chrome o Edge. Lo schermo mantiene le impostazioni e la calibrazione del tocco. Così recuperi anche uno schermo che si riavvia di continuo e non va mai online.",
       "go": "Connetti e installa",
@@ -2291,7 +2291,10 @@
         "power": "Controlla che la scheda sia alimentata: la maggior parte ha una piccola spia.",
         "cable": "Usa un cavo USB che trasmette dati. Alcuni cavi servono solo a caricare.",
         "driver": "Installa il driver del chip USB della scheda se il computer ne ha bisogno (CP210x, CH340 o CH9102)."
-      }
+      },
+      "group_ha": "Collegato al computer di Home Assistant",
+      "group_here": "Collegato a questo computer",
+      "group_wifi": "Via Wi-Fi"
     }
   }
 }

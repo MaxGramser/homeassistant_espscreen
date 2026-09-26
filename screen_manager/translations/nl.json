@@ -1804,8 +1804,8 @@
       "choose": "Kies het bedoelde profiel, dan een USB-poort, een IP-adres of Downloaden.",
       "profile": "ESPHome-profiel",
       "install_to": "Installeren naar",
-      "no_board": "USB · nog geen bord gevonden op de Home Assistant-machine",
-      "download_target": "Downloaden · flashen vanaf je eigen computer",
+      "no_board": "Daar is nog geen scherm aangesloten",
+      "download_target": "Bestand downloaden en zelf flashen",
       "host": "IP-adres of hostnaam",
       "download_file": "{name} downloaden",
       "download_how": "Zet het met {esphome_web} op het scherm, in Chrome of Edge: klik op Connect, kies de USB-poort van het scherm, klik op Install en selecteer dit bestand. Het bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf."
@@ -1871,7 +1871,7 @@
       "install_via": "Installeren via",
       "later": "Later · alleen het profiel bewaren",
       "target": {
-        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; de lijst ververst vanzelf. Of kies Deze computer om vanuit deze browser te installeren.",
+        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; de lijst ververst vanzelf. Zit het aan de computer waar je nu achter zit? Kies Installeren vanuit deze browser.",
         "download": "Download de firmware en zet die vanaf je eigen computer op het scherm, in Chrome of Edge. Daarna gaan updates via Wi-Fi.",
         "later": "Het profiel komt in de ESPHome-map. Installeren kan later via Firmware & USB, of vanuit ESPHome Device Builder.",
         "several": "Meer dan één bord aangesloten: kies de poort van dit scherm.",
@@ -2255,7 +2255,7 @@
       "privacy": "Privacy"
     },
     "webflash": {
-      "target": "Deze computer · installeren vanuit deze browser",
+      "target": "Installeren vanuit deze browser (Chrome of Edge)",
       "hint": "Sluit het scherm met een USB-datakabel aan op deze computer. ESP Screens bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Updates gaan daarna via wifi.",
       "firmware_hint": "Sluit het scherm met een USB-datakabel aan op deze computer. ESP Screens bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Het scherm houdt zijn instellingen en aanraakkalibratie. Zo red je ook een scherm dat steeds herstart en nooit online komt.",
       "go": "Verbinden & installeren",
@@ -2291,7 +2291,10 @@
         "power": "Controleer of het bord stroom heeft: de meeste hebben een klein lampje.",
         "cable": "Gebruik een USB-kabel die data doorgeeft. Sommige kabels laden alleen op.",
         "driver": "Installeer het stuurprogramma voor de USB-chip van het bord als je computer erom vraagt (CP210x, CH340 of CH9102)."
-      }
+      },
+      "group_ha": "Aangesloten op de Home Assistant-machine",
+      "group_here": "Aangesloten op deze computer",
+      "group_wifi": "Via wifi"
     }
   }
 }

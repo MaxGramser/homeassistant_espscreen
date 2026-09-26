@@ -1804,8 +1804,8 @@
       "choose": "Choose the intended profile, then a USB port, an IP address, or Download.",
       "profile": "ESPHome profile",
       "install_to": "Install to",
-      "no_board": "USB · no board found on the Home Assistant machine yet",
-      "download_target": "Download · flash from your own computer",
+      "no_board": "No screen plugged in there yet",
+      "download_target": "Download the file and flash it yourself",
       "host": "IP address or hostname",
       "download_file": "Download {name}",
       "download_how": "Put it on the screen with {esphome_web} in Chrome or Edge: Connect, choose the screen's USB port, Install, and select this file. It holds your Wi-Fi password and the screen's keys: keep it to yourself."
@@ -1871,7 +1871,7 @@
       "install_via": "Install via",
       "later": "Later · save profile only",
       "target": {
-        "usb": "Connect the screen with a USB data cable to the Home Assistant machine; the list refreshes on its own. Or choose This computer to install from this browser.",
+        "usb": "Plug the screen into the Home Assistant machine with a USB data cable; the list refreshes on its own. Is it plugged into the computer you are using now? Choose Install from this browser.",
         "download": "Download the firmware and put it on the screen from your own computer, in Chrome or Edge. After that, updates go over Wi-Fi.",
         "later": "The profile goes into the ESPHome folder. You can install later via Firmware & USB, or from ESPHome Device Builder.",
         "several": "More than one board connected: choose this screen's port.",
@@ -2255,7 +2255,7 @@
       "privacy": "Privacy"
     },
     "webflash": {
-      "target": "This computer · install from this browser",
+      "target": "Install from this browser (Chrome or Edge)",
       "hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. After that, updates go over Wi-Fi.",
       "firmware_hint": "Plug the screen into this computer with a USB data cable. ESP Screens builds the firmware, then this page puts it on the screen, in Chrome or Edge. The screen keeps its settings and touch calibration. This also rescues a screen that keeps restarting and never comes online.",
       "go": "Connect & install",
@@ -2291,7 +2291,10 @@
         "power": "Check that the board has power: most have a small light.",
         "cable": "Use a USB cable that carries data. Some cables only charge.",
         "driver": "Install the driver for the board's USB chip if your computer needs one (CP210x, CH340 or CH9102)."
-      }
+      },
+      "group_ha": "Plugged into the Home Assistant machine",
+      "group_here": "Plugged into this computer",
+      "group_wifi": "Over Wi-Fi"
     }
   }
 }

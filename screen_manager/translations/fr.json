@@ -1804,8 +1804,8 @@
       "choose": "Choisissez le profil voulu, puis un port USB, une adresse IP ou Télécharger.",
       "profile": "Profil ESPHome",
       "install_to": "Installer sur",
-      "no_board": "USB · aucun écran détecté pour l'instant sur la machine Home Assistant",
-      "download_target": "Télécharger · installer depuis votre propre ordinateur",
+      "no_board": "Aucun écran n'y est encore branché",
+      "download_target": "Télécharger le fichier et le flasher vous-même",
       "host": "Adresse IP ou nom d'hôte",
       "download_file": "Télécharger {name}",
       "download_how": "Installez-le sur l'écran avec {esphome_web} dans Chrome ou Edge : Connect, choisissez le port USB de l'écran, Install, puis sélectionnez ce fichier. Il contient votre mot de passe Wi-Fi et les clés de l'écran : gardez-le pour vous."
@@ -2255,7 +2255,7 @@
       "privacy": "Confidentialité"
     },
     "webflash": {
-      "target": "Cet ordinateur · installer depuis ce navigateur",
+      "target": "Installer depuis ce navigateur (Chrome ou Edge)",
       "hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. ESP Screens compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. Ensuite, les mises à jour passent par le Wi-Fi.",
       "firmware_hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. ESP Screens compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. L'écran garde ses réglages et son calibrage tactile. Cela sauve aussi un écran qui redémarre sans cesse et n'arrive jamais en ligne.",
       "go": "Connecter et installer",
@@ -2291,7 +2291,10 @@
         "power": "Vérifiez que la carte est alimentée : la plupart ont un petit voyant.",
         "cable": "Utilisez un câble USB qui transmet les données. Certains câbles ne font que charger.",
         "driver": "Installez le pilote de la puce USB de la carte si votre ordinateur en a besoin (CP210x, CH340 ou CH9102)."
-      }
+      },
+      "group_ha": "Branché sur la machine Home Assistant",
+      "group_here": "Branché sur cet ordinateur",
+      "group_wifi": "Par Wi-Fi"
     }
   }
 }

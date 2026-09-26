@@ -112,11 +112,17 @@ onBeforeUnmount(() => { clearInterval(timer); flash.cancel(); });
         <div class="field">
           <label class="f-label" for="firmware-port">{{ t("editor.firmware.install_to") }}</label>
           <select id="firmware-port" v-model="target">
-            <option value="ota">{{ t("editor.firmware.ota") }}</option>
-            <option v-if="!ports.length" value="usb">{{ t("editor.firmware.no_board") }}</option>
-            <option v-for="p in ports" :key="p" :value="p">{{ p }}</option>
-            <option value="browser">{{ t("editor.webflash.target") }}</option>
-            <option value="download">{{ t("editor.firmware.download_target") }}</option>
+            <optgroup :label="t('editor.webflash.group_wifi')">
+              <option value="ota">{{ t("editor.firmware.ota") }}</option>
+            </optgroup>
+            <optgroup :label="t('editor.webflash.group_ha')">
+              <option v-if="!ports.length" value="usb">{{ t("editor.firmware.no_board") }}</option>
+              <option v-for="p in ports" :key="p" :value="p">{{ p }}</option>
+            </optgroup>
+            <optgroup :label="t('editor.webflash.group_here')">
+              <option value="browser">{{ t("editor.webflash.target") }}</option>
+              <option value="download">{{ t("editor.firmware.download_target") }}</option>
+            </optgroup>
           </select>
         </div>
         <div v-if="target === 'ota'" class="field" id="firmware-host-label">

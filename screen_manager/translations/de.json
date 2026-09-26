@@ -1804,8 +1804,8 @@
       "choose": "Wähle das gewünschte Profil, dann einen USB-Port, eine IP-Adresse oder „Download“.",
       "profile": "ESPHome-Profil",
       "install_to": "Installieren auf",
-      "no_board": "USB · noch kein Board am Home Assistant-Rechner gefunden",
-      "download_target": "Download · von deinem eigenen Computer flashen",
+      "no_board": "Dort ist noch kein Bildschirm angeschlossen",
+      "download_target": "Datei herunterladen und selbst flashen",
       "host": "IP-Adresse oder Hostname",
       "download_file": "{name} herunterladen",
       "download_how": "Spiele sie mit {esphome_web} in Chrome oder Edge auf den Bildschirm: „Connect“ klicken, den USB-Port des Bildschirms wählen, „Install“ klicken und diese Datei auswählen. Sie enthält dein Wi-Fi-Passwort und die Schlüssel des Bildschirms: Behalte sie für dich."
@@ -2255,7 +2255,7 @@
       "privacy": "Datenschutz"
     },
     "webflash": {
-      "target": "Dieser Computer · aus diesem Browser installieren",
+      "target": "Aus diesem Browser installieren (Chrome oder Edge)",
       "hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Danach laufen Updates über WLAN.",
       "firmware_hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. ESP Screens erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Der Bildschirm behält seine Einstellungen und Touch-Kalibrierung. So rettest du auch einen Bildschirm, der ständig neu startet und nie online kommt.",
       "go": "Verbinden & installieren",
@@ -2291,7 +2291,10 @@
         "power": "Prüfe, ob das Board Strom hat: Die meisten haben eine kleine Leuchte.",
         "cable": "Nutze ein USB-Kabel, das Daten überträgt. Manche Kabel laden nur.",
         "driver": "Installiere den Treiber für den USB-Chip des Boards, falls dein Computer einen braucht (CP210x, CH340 oder CH9102)."
-      }
+      },
+      "group_ha": "Am Home-Assistant-Rechner angeschlossen",
+      "group_here": "An diesem Computer angeschlossen",
+      "group_wifi": "Über WLAN"
     }
   }
 }

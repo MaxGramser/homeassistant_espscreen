@@ -1804,8 +1804,8 @@
       "choose": "Escolha o perfil pretendido e depois uma porta USB, um endereço IP ou Descarregar.",
       "profile": "Perfil ESPHome",
       "install_to": "Instalar em",
-      "no_board": "USB · ainda não foi encontrada nenhuma placa na máquina do Home Assistant",
-      "download_target": "Descarregar · instalar a partir do seu próprio computador",
+      "no_board": "Ainda não há nenhum ecrã ligado aí",
+      "download_target": "Transferir o ficheiro e gravá-lo você mesmo",
       "host": "Endereço IP ou nome do anfitrião",
       "download_file": "Descarregar {name}",
       "download_how": "Instale-o no ecrã com o {esphome_web} no Chrome ou no Edge: Connect, escolha a porta USB do ecrã, Install e selecione este ficheiro. Contém a sua palavra-passe de Wi-Fi e as chaves do ecrã: não o partilhe."
@@ -2255,7 +2255,7 @@
       "privacy": "Privacidade"
     },
     "webflash": {
-      "target": "Este computador · instalar a partir deste navegador",
+      "target": "Instalar a partir deste navegador (Chrome ou Edge)",
       "hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. Depois disso, as atualizações vão por Wi-Fi.",
       "firmware_hint": "Ligue o ecrã a este computador com um cabo USB de dados. O ESP Screens compila o firmware e depois esta página instala-o no ecrã, no Chrome ou no Edge. O ecrã mantém as definições e a calibração do toque. Assim também recupera um ecrã que reinicia sem parar e nunca fica online.",
       "go": "Ligar e instalar",
@@ -2291,7 +2291,10 @@
         "power": "Verifique se a placa tem alimentação: a maioria tem uma pequena luz.",
         "cable": "Use um cabo USB que transmita dados. Alguns cabos só carregam.",
         "driver": "Instale o controlador do chip USB da placa se o computador precisar (CP210x, CH340 ou CH9102)."
-      }
+      },
+      "group_ha": "Ligado ao computador do Home Assistant",
+      "group_here": "Ligado a este computador",
+      "group_wifi": "Por Wi-Fi"
     }
   }
 }
