@@ -1,3 +1,70 @@
+## 0.3.12 (firmware 0.3.6)
+
+Two new clocks, a simple dial and a flip clock, that look right on every tile size.
+
+- The clock tile has four faces now: **Digital**, **Analog**, **Simple dial** and **Flip clock**. Pick one under Display when you select the clock in the editor.
+- **Simple dial** is a dark disc with four strokes and eight dots, and no numerals, so it stays readable when the tile is small. On a light screen the disc is dark, on a dark screen it is light. The time and the date stand beside it on a wide tile and under it on a tall tile or a full page.
+- **Flip clock** shows the hours and the minutes on two blocks, with the weekday and date beside them when there is room. On a tall tile the blocks stack.
+- Both work with the 12-hour clock: AM or PM stands beside the time, in the screen's language.
+- A new clock starts as the simple dial, in the editor and when an automation or Claude adds one.
+- On a one-row tile the dial and the blocks use more of the tile's height, and the digits sit in the middle of the tile. The digital clock on a page with page buttons no longer sticks out of its tile.
+- Update the firmware of a screen to see the new faces. Until then, a screen shows them as the digital clock, and the editor says so. CYD firmware: 1,695,856 bytes, 92.4 % of the update slot (6,640 bytes more than 0.3.11).
+
+## 0.3.11 (firmware 0.3.5)
+
+ESP Screens asks, once, whether your screen works as you expect, so each board model can be improved with what owners run into.
+
+- A day after a screen first came online, its page shows a small card: **Does your screen work as you expect?** with **Yes, works well**, **Not quite**, **Later** and **Don't ask again**. It never covers the editor, and it doesn't show while a screen updates or is offline.
+- One click on Yes or Not quite shares the answer with the Tessera website. After Not quite you can tick what goes wrong (screen, touch, connection, installation, other) and add a note, but you don't have to.
+- **Later** asks again after two weeks, once. **Don't ask again** is for good. Neither sends anything, and neither does the card itself.
+- **Screen settings → Feedback** is always there: share an answer early, change it, or delete it from the website.
+- What is shared: the board model, your answer, the problems you ticked, your note, and the firmware and ESP Screens versions. Nothing else: no name, account, entities, logs, Home Assistant settings or token. **What is shared?** on the card lists it for that screen.
+- Each screen shares under its own random key, kept in the app's private data. It is not derived from the screen, its MAC address or Home Assistant, and two screens of the same model have two keys. Changing an answer replaces the old one.
+- An answer that can't reach the website waits and is tried again later, for at most a day; the card says so instead of claiming it arrived. Deleting stops those tries first, and says it is deleted only once the website confirmed it.
+
+## 0.3.10 (firmware 0.3.5)
+
+The 4-inch Guition dims over its whole range, and the settings tile no longer looks like a clock in the editor.
+
+- On many 4-inch Guition boards (ESP32-S3-4848S040) every brightness below about 85 to 95 % looked off (GitHub #5). Their backlight driver cannot follow the fast signal the firmware dimmed it with. The firmware now dims it the way ESPHome's own page for this board does, and every level from dim to full shows on every board. Update the firmware of a Guition to get it. If you added the backlight override from GitHub #5, it keeps working, and you can remove it. The other boards only get the new version number.
+- A new Settings tile in the editor started as a wide clock with a clock face to choose, and the preview drew a clock (GitHub #47). It is now a plain tile of one cell, the way the screen draws it. Settings tiles you already placed look right in the preview too.
+
+## 0.3.9 (firmware 0.3.4)
+
+The 7-inch Guition JC1060P470 starts again after a power cut (GitHub #28).
+
+- A JC1060P470 with the first panel ran after it was flashed, but after a power cut or a restart it hung while it started its panel and restarted on its own, over and over. The firmware sent the panel a software reset and its init table straight after it; after a cold start the panel stopped taking commands and the watchdog restarted the chip. The panel now gets a hardware reset on its own reset line and 120 ms before the init table, as the V2 already did. Its timings and init table are unchanged.
+- Update the firmware of a JC1060P470 to get it. A screen caught in the restart loop cannot update over Wi-Fi: flash it once over USB from **New screen** or **Firmware & USB**. The other boards only get the new version number.
+
+## 0.3.8 (firmware 0.3.3)
+
+Clearer weather and thermostat tiles, a select card you can read, a camera that fills its tile (GitHub #4, thanks @govido), alerts with two buttons to choose from, and your alarm as a tile with its keypad.
+
+- **Weather tile.** The weather now sits in its coloured circle like every other tile, each day's icon has the colour of its weather, the high is bold and the low grey, and the chance of rain shows in blue when it is 30 % or more. Today stands on a light pill with room around its digits. A tile of two rows lists the days under each other, each with a bar from its low to its high on one scale for the whole week, coloured from cold to warm.
+- **Thermostat tile.** A tile of two rows shows the temperature between − and +, and a bar with one segment per mode under it, the active one filled in its colour. An airco shows heat and cool first, the mode it is in is always on the bar, and the rest is behind "…". Off is no longer a mode on the bar: tap the tile's circle to turn the thermostat on or off, as on a Home Assistant tile. A short tile puts the stepper and the bar on one row.
+- The − and + of a double-width thermostat or number tile are round white keys in a grey pill, with the number between them in a larger font where it fits.
+- **Select card.** Tapping a select (a washing machine's programme, a mode) opens a list with a check at the option it is on; a tap chooses another at once. Wide screens use two columns, and options that do not fit go to a next page. A select now brings up to 16 options to the screen instead of 8.
+- **A live camera on a 1 × 2 or 2 × 2 tile fills the whole card** with its picture, in full colour, with the camera's name at the bottom on a soft shade. Set the tile to **Display → Live picture** and make it taller.
+- **Picture: Fill the tile or Whole picture.** Fill cuts the picture to the card; Whole picture shows all of it with black above and below or at the sides. ESP Screens prepares the picture pixel for pixel at the size of the card, so the screen only draws it.
+- **On the picture: Name or Nothing.** Nothing leaves the picture alone.
+- The editor shows the camera's own picture on the mockup, cut the way the tile asks.
+- While a camera card waits for its picture, it shows the loading spinner a busy tile has, with the name already in its place.
+- Live pictures go to screens with firmware 0.3.3 in 8-bit colour, a third of the bytes of before, so a picture that fills a tile arrives quickly and the screen keeps answering touches while it loads. The picture already has exactly the pixels of the tile, so a lower resolution would not make it faster.
+- A camera tile no longer offers **Large value**. Its state ("Idle") made no large value, and saving it showed "Invalid or unsupported page configuration fields".
+- A taller camera tile keeps its small picture in the icon's place until the screen has firmware 0.3.3.
+- **Alerts with a choice.** `esp_screens_show_alert` takes `button2_text` for a second button on the left of the first, and `button2_action` with `button2_data` for what it does, the way `action` and `data` work for the first. `button_color` and `button2_color` give a button a full color of its own (the names of `color`: red, green, blue, ...), so a yes can be green and a no red. All of them are optional.
+- The screen's own action `esphome.<screen>_show_alert_choice` does the same without the app. `show_alert` keeps its seven fields, so no automation that calls it breaks.
+- The second button ends the alert as `esphome.screen_alert` with `action: button2`.
+- A screen on older firmware shows the same alert with its first button only, and the log names it.
+- Words too long for a button now end in "..." instead of running past its edge.
+- Alerts in ESP Screens has a "Two buttons" part with an example to copy, and the Claude skill knows the new fields.
+- **Alarm panel.** An `alarm_control_panel` entity is now a tile in every size, in Home Assistant's colours and icons: grey while disarmed, green while armed, orange during a delay, red while it goes off. A tap opens its card with a key for every mode the panel has and one to disarm; when the panel asks for a code, a keypad comes first, as in Home Assistant's own code dialog. A default code stored with the entity in Home Assistant means the screen asks for none. Number codes only; a panel whose code has letters says so on its card.
+- Someone coming in (`pending`) or the alarm going off (`triggered`) wakes every screen that has the tile and opens its card, with the keypad to disarm.
+- The code goes to Home Assistant with the action and is forgotten right away: never logged, stored or put in an event, and the app never sees it. Three wrong codes lock the keypad for 30 seconds, doubling up to 15 minutes, also across a restart; each wrong code fires `esphome.screen_alarm_code_refused`.
+- Animations show what the alarm does: a ring that closes when it arms, a heartbeat during the delays and while it goes off, a countdown where the integration reports the delay (Alarmo).
+- The card has the Guition's size on every screen and stands in the middle of bigger ones. The alarm panel makes the CYD firmware 12.7 KB larger.
+- Update the firmware of your screens to get the new tiles, the second alert button and the alarm panel; a screen needs it before an alarm tile can go on it. With older firmware the app keeps working, and a select shows its first 8 options.
+
 ## 0.3.7 (firmware 0.3.2)
 
 Every page is there the moment you turn to it, and the screen no longer flickers while a picture loads.

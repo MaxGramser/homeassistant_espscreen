@@ -24,6 +24,7 @@ export function tileActive(entity: string, value: Value) {
   if (domain === "vacuum") return !["idle", "docked", "paused"].includes(state);
   if (domain === "timer") return state === "active";
   if (domain === "camera") return ["streaming", "recording"].includes(state);
+  if (domain === "alarm_control_panel") return state !== "disarmed";
   return true;
 }
 function accent(entity: string, value: Value) {
@@ -46,6 +47,7 @@ function accent(entity: string, value: Value) {
   if (domain === "weather") return weather[state] || c.AMBER;
   if (domain === "sun") return state === "above_horizon" ? c.AMBER : c.INDIGO;
   if (domain === "person") return state === "home" ? c.GREEN : c.BLUE;
+  if (domain === "alarm_control_panel") return state === "triggered" ? c.RED : ["arming", "pending", "disarming"].includes(state) ? c.ORANGE : c.GREEN;
   if (domain === "sensor") {
     const charge = Number(state);
     if (a.device_class === "battery" && Number.isFinite(charge)) return charge >= 70 ? c.GREEN : charge >= 30 ? c.ORANGE : c.RED;

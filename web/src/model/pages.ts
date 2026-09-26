@@ -156,7 +156,7 @@ export function entityOf(layout: PageLayout, tile: PageTile): string {
   if (index < 0) throw new Error(t("addon.errors.pages.page_missing"));
   return `screen.page_${index + 1}`;
 }
-const appearanceKeys = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub" } as const;
+const appearanceKeys = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay" } as const;
 
 /** A render view, never a second saved or editable layout. */
 export function projectLayout(layout: PageLayout, grid: PageGrid): Layout {

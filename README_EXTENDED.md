@@ -37,10 +37,14 @@ on the screen itself, and how updates work.
   the normal colors. Requires firmware 0.2.10 or newer. **None** drops the card
   entirely: the content then sits at the same size directly on the screen background
   (firmware 0.2.16).
-- **Clock:** digital or analog. The analog clock has a mark for every hour (numerals at 12, 3, 6,
-  and 9 on the Guition) and a red second hand while the screen is awake. On a single tile it shows
-  a calendar block next to the dial (weekday, day and month; the CYD the day and month); double-width
-  shows the digital time with the date beside it, and a full-page clock is the dial alone.
+- **Clock:** digital, analog, a simple dial or a flip clock (firmware 0.3.6). A new clock starts as the
+  simple dial: a disc with four strokes and eight dots, dark on a light screen and light on a dark one,
+  with the time and date beside it on a wide tile and under it on a tall tile or a full page. The flip
+  clock shows hours and minutes on two blocks, stacked on a tall tile. With the 12-hour clock, AM or PM
+  stands beside the time. The analog clock has a mark for every hour (numerals at 12, 3, 6, and 9 on
+  the Guition). On a single tile it shows a calendar block next to the dial (weekday, day and month; the
+  CYD the day and month); double-width shows the digital time with the date beside it, and a full-page
+  clock is the dial alone. Both dials have a red second hand while the screen is awake.
 - **Light control:** brightness, rainbow color, and white temperature according to
   the light's capabilities. Open the detailed control with a long touch.
 - **Effects (firmware 0.2.70+):** a light that offers effects (a WLED, a Hue with
@@ -82,6 +86,29 @@ on the screen itself, and how updates work.
   <img src="docs/images/cyd-full-climate.png" width="32%" alt="A full-page heating tile on the CYD with the mode keys at the bottom">
 </p>
 
+- **Alarm panel** (app 0.3.8 / firmware 0.3.3): an `alarm_control_panel` entity is a tile like any other, in
+  every size. It takes Home Assistant's colours and icons: grey while disarmed, green while armed, orange while it
+  counts down to armed or waits for someone who just came in, red while it goes off. A tap opens its card with a
+  key for every mode Home Assistant lists for that panel (home, away, night, vacation, custom bypass) and one to
+  disarm. When the panel asks for a code, the card shows a keypad first, the way Home Assistant's own code dialog
+  does: arming needs one only when the panel says so, and a default code stored with the entity in Home Assistant
+  means the screen asks for none. Only number codes can be typed on the screen; a panel whose code has letters
+  says so on its card.
+  - **Animations** show what the alarm does: a ring closes around the shield when it arms, the circle beats slowly
+    during the exit delay, fast during the entry delay and in Home Assistant's one-second rhythm while the alarm
+    goes off, and the bell shakes. Where the integration reports how long a delay lasts (Alarmo's `delay`
+    attribute), the ring and the tile count it down.
+  - **Someone comes in:** when the panel goes to `pending` or `triggered`, every screen that has its tile wakes up
+    and opens the card, with the keypad to disarm when a code is needed.
+  - **The code stays private.** The screen sends it to Home Assistant with the action (`code`), exactly as Home
+    Assistant's dialogs do, and forgets it right away. It never logs it, stores it or puts it in an event, and the
+    app never sees it.
+  - **Wrong codes.** Not every integration says so when a code is wrong: some refuse the action, others ignore it.
+    The screen counts a code as wrong when Home Assistant refuses it or when the panel has not moved after ten
+    seconds. Three wrong codes lock the keypad for 30 seconds, and every wrong code after that doubles the time, up
+    to 15 minutes. The lock survives a restart, and a code that works resets the count. Each wrong code fires the
+    event `esphome.screen_alarm_code_refused` with `entity_id`, `failures` and `locked` (seconds), so an automation
+    can send a notification or take a camera snapshot.
 - **Direct control on double-width tiles** (firmware 0.2.19+), like the rows in
   Home Assistant: temperature − / + or mode buttons (climate), a toggle (switch,
   light, fan), start/stop/dock (vacuum), open/stop/close or a
@@ -108,6 +135,13 @@ on the screen itself, and how updates work.
   rain or millimeters; **climate card** with an on/off button, mode, fan, and swing settings.
   The target temperature sits big between − / + keys with one row of mode keys below; the
   Guition shows fan and swing right away on a card of their own, the CYD behind ···.
+  A thermostat tile of two rows (firmware 0.3.3) has a − / + stepper and a mode bar with heat and
+  cool first; a tap on its circle turns it on or off.
+- **Weather tile** (firmware 0.3.3): the weather now in its colour, then the coming days with the
+  high in bold, the low in grey and the chance of rain in blue when it matters; today stands on a pill.
+  A tile of two rows lists the days under each other with the week's range as coloured bars.
+- **Select card** (firmware 0.3.3): a select's options as a list with a check at the one it is on,
+  in two columns on wide glass and over pages when there are more (up to 16).
 - **Vacuum card** with the state, battery and charging, start and dock, and how the robot
   cleans: **vacuum, vacuum and mop, or mop only** for robots that offer a cleaning mode in
   Home Assistant (such as Roborock), then suction and water. Only the rows the chosen mode
@@ -261,7 +295,7 @@ a ready-to-paste example, and all fields, icons, and colors. It starts with **Tr
 the same seven fields, choose one screen or all of them, and send a test alert.
 Home Assistant asks for all seven fields; leave a field empty (`""`, `0`, `false`) if you
 don't use it. A new alert replaces the current one. Every end is reported as the event
-**`esphome.screen_alert`** with `action` (`ok`, `timeout`, `replaced`, or `remote`), `title`,
+**`esphome.screen_alert`** with `action` (`ok`, `button2`, `timeout`, `replaced`, or `remote`), `title`,
 `screen`, and the `device_id` that Home Assistant adds, so an automation can wait for OK.
 **`esphome.<screen>_dismiss_alert`** clears the card remotely. With the event for every screen, the
 button can also perform a Home Assistant action of your choice (below).
@@ -352,6 +386,9 @@ the icon's place: in the tile's settings choose **Display → Live picture** and
 30 seconds. The picture is a small square with the tile's rounded corners, the middle of the camera's
 view, and it refreshes while that page is on the screen; a tap still opens the camera full screen. The
 camera tiles of one page share one download, so six live tiles cost the screen no more than one.
+On a 1 × 2 or 2 × 2 tile (app 0.3.8, firmware 0.3.3) the live picture fills the whole card, with the
+camera's name at the bottom. The tile's settings choose **Fill the tile** or **Whole picture**, and
+**Name** or **Nothing** on the picture.
 A media player tile can show its **album cover** the same way (app 0.2.92, firmware 0.2.78):
 **Display → Album cover** puts the cover of what plays in the icon's place, refreshed when the track
 changes, with the tile's controls kept. How the image travels (port 8098 of the app, no token on the
@@ -385,6 +422,44 @@ actions:
         entity_id: light.downstairs
         transition: 3
 ```
+
+### Two buttons, and a color per button
+
+<p align="center">
+  <img src="docs/images/guition-alert-choice.png" width="41%" alt="An alert on the Guition with the front door camera's picture and two buttons: Not now in grey and Open in green">
+  <img src="docs/images/guition-alert-choice-colors.png" width="41%" alt="An alert on the Guition asking to open the garage, with a red Decline and a green Accept button side by side">
+</p>
+
+From app 0.3.8 with firmware 0.3.3 an alert can offer a choice. **`button2_text`** adds a second button
+on the left of the first, and **`button2_action`** with **`button2_data`** is what it does, the way
+`action` and `data` work for the first. **`button_color`** and **`button2_color`** give a button a full
+color of its own, from the same names as `color` (`red`, `orange`, `yellow`, `green`, `mint`, `blue`,
+`purple`, `pink`, `gray`), so a yes can be green and a no red. Empty keeps the dark first button and
+the light second one. The first button is always on the right; which answer goes on which side is yours
+to choose.
+
+```yaml
+actions:
+  - event: esp_screens_show_alert
+    event_data:
+      title: "Someone is at the door"
+      subtitle: "Front door camera"
+      icon: doorbell
+      button_text: "Open"
+      button_color: green
+      action: script.open_gate
+      button2_text: "Not now"
+      button2_color: red
+      button2_action: script.doorbell_decline
+```
+
+Every one of these fields is optional in the event. A screen with older firmware shows the same alert
+with its first button only, and the ESP Screen Manager log says which screens did. The second button
+ends the alert as **`esphome.screen_alert`** with `action: button2`, so an automation that waits can
+tell the two answers apart without the app. For one screen, add `screen` to the event, or call its own
+action **`esphome.<screen>_show_alert_choice`**: the seven fields of `show_alert` plus `button_color`,
+`button2_text` and `button2_color`. It is a separate action because Home Assistant makes every field
+of an action required, so `show_alert` keeps its seven and no automation that calls it breaks.
 
 ### Ask Claude
 

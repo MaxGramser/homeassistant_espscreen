@@ -38,7 +38,7 @@ substitutions:
   LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
-  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM; some batches of this board want 150Hz (GitHub #5)
+  BACKLIGHT_FREQUENCY: "150Hz"                  # the backlight's PWM; see the output block (GitHub #5)
 
 # ============================================================
 # No need to edit below this line.
@@ -76,7 +76,12 @@ output:
   - platform: ledc
     pin: GPIO38
     id: gpio_backlight_pwm
+    # The backlight driver on many of these boards cannot follow a fast PWM: at 20 kHz (firmware before 0.3.5) every
+    # level below 85-95 % looked off, and no marking on the board tells those batches apart. 150 Hz with a small floor
+    # dims every board, as ESPHome's own device page for this board does; 100 Hz shimmers visibly.
     frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
 
 touchscreen:
   - platform: gt911

@@ -14,7 +14,7 @@ import SettingsTab from "../src/components/SettingsTab.vue";
 import TileCard from "../src/components/TileCard.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
-import { openBar, state } from "../src/store";
+import { openBar, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
@@ -373,9 +373,10 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     const tile: Tile = { entity: "camera.front", name: "", slot: 0 };
     appendTiles(tile);
     const drawer = inspector(tile);
-    expect(choices(drawer, "Display")).toEqual(["Name and status", "Large value", "Live picture"]);
+    // The add-on's own choices: a camera has no large value to show, and saving one was refused (GitHub #4).
+    expect(choices(drawer, "Display")).toEqual(["Name and status", "Live picture"]);
     expect(row(drawer, "Refresh")).toBeUndefined();
-    await row(drawer, "Display").findAll(".seg button")[2].trigger("click");
+    await row(drawer, "Display").findAll(".seg button")[1].trigger("click");
     expect(current(tile).options).toEqual({ display: "live" });
     expect(choices(drawer, "Refresh")).toEqual(["Every 15 s", "Every 30 s"]);
     expect(row(drawer, "Refresh").find('[aria-pressed="true"]').text()).toBe("Every 15 s");
@@ -393,6 +394,43 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     // The mockup draws the picture's rounded square instead of the icon.
     const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
     expect(card.find(".ic").classes()).toContain("thumb");
+  });
+  it("lets a live camera on a taller tile fill it, whole or cut, with its name or without, and keeps no defaults (app 0.3.8)", async () => {
+    Object.assign(state.inventory, { editor_features: { tall_tiles: true } });
+    Object.assign(state.inventory.screens[0], { firmware: "0.3.1", tile_sizes: ["single", "wide", "tall", "square", "full"] });
+    state.inventory.entities.push({ id: "camera.garden", name: "Garden", state: "idle", area: "Garden" } as any);
+    const tile: Tile = { entity: "camera.garden", name: "", slot: 0, options: { display: "live" } };
+    appendTiles(tile);
+    const drawer = inspector(tile);
+    // One cell high the picture stays in the icon's place: nothing to fill.
+    expect(row(drawer, "Picture")).toBeUndefined();
+    setTileOption(current(tile), "size", "tall");
+    await drawer.vm.$nextTick();
+    expect(choices(drawer, "Picture")).toEqual(["Fill the tile", "Whole picture"]);
+    expect(choices(drawer, "On the picture")).toEqual(["Name", "Nothing"]);
+    expect(row(drawer, "Display").find("small").text()).toMatch(/firmware 0\.3\.3/);
+    expect(row(drawer, "Display").find("small").classes()).toContain("warn");
+    await row(drawer, "Picture").findAll(".seg button")[1].trigger("click");
+    await row(drawer, "On the picture").findAll(".seg button")[1].trigger("click");
+    expect(current(tile).options).toMatchObject({ display: "live", size: "tall", fit: "contain", overlay: "none" });
+    // Back to the defaults stores nothing, and another display takes the picture's own settings with it.
+    await row(drawer, "Picture").findAll(".seg button")[0].trigger("click");
+    expect(current(tile).options).not.toHaveProperty("fit");
+    setTileOption(current(tile), "display", "standard");
+    expect(current(tile).options).not.toHaveProperty("overlay");
+    expect(current(tile).options).not.toHaveProperty("refresh");
+    Object.assign(state.inventory.screens[0], { firmware: "0.3.3" });
+    setTileOption(current(tile), "display", "live");
+    await drawer.vm.$nextTick();
+    expect(row(drawer, "Display").find("small").classes()).not.toContain("warn");
+    // The mockup draws the add-on's picture over the whole card, cut as the tile asks.
+    setTileOption(current(tile), "fit", "contain");
+    const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
+    const picture = card.find("img.camera-art");
+    expect(picture.attributes("src")).toBe("api/camera-preview?entity=camera.garden");
+    expect(picture.classes()).toContain("contain");
+    await picture.trigger("load");
+    expect(card.find(".camera-name").text()).toBe("Garden");
   });
   it("offers the album cover for a media player on a Guition, not on a full-page tile, and keeps its controls", async () => {
     Object.assign(state.inventory.screens[0], { firmware: "0.2.78", pictures: true });  // as the add-on says of a Guition

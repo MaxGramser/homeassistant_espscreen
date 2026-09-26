@@ -110,7 +110,7 @@ inline bool valid_entity(const std::string &entity) {
     if (entity == "screen.clock" || entity == "screen.settings") return true;
     return page_entity(entity) && entity[12] >= '1' && entity[12] <= static_cast<char>('0' + grid.pages());
   }
-  for (const auto *allowed : {"light", "switch", "input_boolean", "scene", "script", "climate", "vacuum", "fan", "cover", "sensor", "binary_sensor", "input_select", "select", "number", "input_number", "weather", "media_player", "button", "input_button", "sun", "timer", "person", "camera", "image"})
+  for (const auto *allowed : {"light", "switch", "input_boolean", "scene", "script", "climate", "vacuum", "fan", "cover", "sensor", "binary_sensor", "input_select", "select", "number", "input_number", "weather", "media_player", "button", "input_button", "sun", "timer", "person", "camera", "image", "alarm_control_panel"})
     if (domain == allowed) return true;
   return false;
 }
@@ -212,6 +212,13 @@ struct Extra {
   // it already says when a script last ran (last_run_text) - one wording, not a second one in Python.
   std::string subtitle;
   uint32_t subtitle_at = 0;
+  // An alarm panel (firmware 0.3.3+): its code_format ("number", "text" or empty), whether arming needs no code
+  // (code_arm_required false), whether Home Assistant keeps a default code for it (app, from the entity's registry
+  // options; never the code itself), who changed it last, and the end of an exit or entry delay with its length in
+  // seconds, where the integration says (Alarmo's `delay`, through the app).
+  std::string code_format, changed_by;
+  bool arm_code_free = false, code_saved = false;
+  uint32_t alarm_end = 0, alarm_delay = 0;
   Choice *choice(char kind) { for (auto &c : choices) if (c.kind == kind) return &c; return nullptr; }
   bool empty() const {
     return hvac_modes.empty() && fan_modes.empty() && swing_modes.empty() && fan_mode.empty() && swing_mode.empty() &&
@@ -221,7 +228,8 @@ struct Extra {
            media_picture.empty() && !media_duration && !media_position && !media_position_at && fan_speeds.empty() && fan_speed.empty() &&
            choices.empty() && room.empty() && !charging && std::isnan(tilt) && action.empty() && action_data.empty() &&
            action_templates.empty() && state_word.empty() && subtitle.empty() && !subtitle_at && effect.empty() &&
-           option_rows.empty() && number_rows.empty();
+           option_rows.empty() && number_rows.empty() && code_format.empty() && changed_by.empty() && !arm_code_free &&
+           !code_saved && !alarm_end && !alarm_delay;
   }
 };
 // The numbers of a clock text ("0:05:00", "07:45"), at most `max` of them, each after optional white space, up to the
@@ -288,6 +296,9 @@ struct Tile {
   // A camera tile's live picture (firmware 0.2.77+): "display": "live" puts a small picture of the camera in the
   // icon's place, loaded again every `refresh` seconds.
   uint16_t refresh = 15;
+  // On a 1x2 or 2x2 tile the picture fills the card (firmware 0.3.3+) with the name at the bottom; "overlay": "none"
+  // leaves the picture alone. Fill or contain is the app's: it sends the picture cut the way the tile asks.
+  bool overlay = true;
   bool live() const { const auto d = domain(); return display == "live" && (d == "camera" || d == "image"); }
   // A media player's album cover in the icon's place (firmware 0.2.78+): "display": "cover" on a single or double-width
   // tile, while the player has a picture; the tile over the whole page keeps the card's big cover.
@@ -329,6 +340,9 @@ struct Tile {
   bool pending = false, confirmed = false, local_feedback = false;
   // When Home Assistant refused the action a tap sent (firmware 0.2.58+); the tile says so for a moment.
   uint32_t refused_at = 0;
+  // When the state last changed to another one (firmware 0.3.3+): an alarm panel marks the moment it armed or
+  // disarmed with a short animation.
+  uint32_t changed_at = 0;
   ExtraBox extra_box;
   const Extra &extra() const { static const Extra none; return extra_box.ptr ? *extra_box.ptr : none; }
   Extra *extra_ptr() { return extra_box.ptr.get(); }
@@ -442,6 +456,7 @@ struct Tile {
     if (d == "vacuum") return state != "idle" && state != "docked" && state != "paused";
     if (d == "timer") return state == "active";
     if (d == "camera") return state == "streaming" || state == "recording";
+    if (d == "alarm_control_panel") return state != "disarmed";
     return true;
   }
   // A slider shows the card's colour like Home Assistant's tile sliders: grey only while the entity is inactive

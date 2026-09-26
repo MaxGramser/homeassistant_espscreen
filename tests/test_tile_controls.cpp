@@ -142,6 +142,18 @@ int main() {
   std::array<Key, 6> mode_row;
   assert(climate_mode_keys(ac, mode_row) == 6 && mode_row[2].arg == "cool" && mode_row[2].checked && mode_row[5].arg == "dry");
   assert(climate_mode_keys(ac, mode_row, 4) == 4 && mode_row[2].arg == "cool" && mode_row[3].command == OPEN_CARD);
+  // The tile's mode bar (firmware 0.3.3): heat and cool first, never off, the current mode always shown.
+  assert(climate_bar_keys(ac, mode_row) == 5 && mode_row[0].arg == "heat" && mode_row[1].arg == "cool" && mode_row[1].checked);
+  assert(mode_row[2].arg == "heat_cool" && mode_row[3].arg == "dry" && mode_row[4].arg == "fan_only");
+  for (unsigned i = 0; i < 5; ++i) assert(mode_row[i].arg != "off");
+  assert(climate_bar_keys(ac, mode_row, 2) == 2 && mode_row[0].arg == "heat" && mode_row[1].arg == "cool");
+  assert(climate_bar_keys(ac, mode_row, 3) == 3 && mode_row[1].arg == "cool" && mode_row[2].command == OPEN_CARD);
+  Tile drying = ac; drying.state = "dry";
+  assert(climate_bar_keys(drying, mode_row, 3) == 3 && mode_row[1].arg == "dry" && mode_row[1].checked && mode_row[2].command == OPEN_CARD);
+  assert(climate_bar_keys(drying, mode_row, 2) == 2 && mode_row[1].arg == "dry");
+  Tile radiator = ac; radiator.edit_extra().hvac_modes = "[\"off\",\"heat\"]";
+  assert(climate_bar_keys(radiator, mode_row) == 0);
+  assert(climate_bar_keys(ac, mode_row, 1) == 0);
   Tile three = ac; three.edit_extra().hvac_modes = "[\"off\",\"heat\",\"cool\"]";
   assert(keys_for(three, keys) == 3 && keys[2].arg == "cool" && keys[2].checked);
   Action mode = key_action(ac, HVAC_MODE, "heat");

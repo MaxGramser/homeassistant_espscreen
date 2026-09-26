@@ -282,6 +282,13 @@
       "rejected": "Meting afgekeurd; probeer het opnieuw",
       "save_failed": "Opslaan mislukt; probeer het opnieuw"
     },
+    "alarm": {
+      "wrong_code": "Onjuiste code",
+      "nothing_changed": "Er veranderde niets. Controleer de code.",
+      "try_again": "Probeer opnieuw over {time}",
+      "too_many": "Te veel onjuiste codes",
+      "letters": "Deze code bevat letters. Voer hem in Home Assistant in."
+    },
     "ha": {
       "on": "Aan",
       "off": "Uit",
@@ -429,6 +436,35 @@
         "both": "Beide",
         "vertical": "Verticaal",
         "horizontal": "Horizontaal"
+      },
+      "alarm": {
+        "disarmed": "Uitgeschakeld",
+        "armed_home": "Ingeschakeld thuis",
+        "armed_away": "Ingeschakeld afwezig",
+        "armed_night": "Ingeschakeld nacht",
+        "armed_vacation": "Ingeschakeld vakantie",
+        "armed_custom_bypass": "Ingeschakeld met overbrugging",
+        "pending": "In behandeling",
+        "arming": "Schakelt in",
+        "disarming": "Schakelt uit",
+        "triggered": "Geactiveerd"
+      },
+      "alarm_mode": {
+        "armed_home": "Thuis",
+        "armed_away": "Afwezig",
+        "armed_night": "Nacht",
+        "armed_vacation": "Vakantie",
+        "armed_custom_bypass": "Aangepast",
+        "disarmed": "Uitgeschakeld"
+      },
+      "alarm_action": {
+        "disarm": "Uitschakelen",
+        "arm_home": "Inschakelen thuis",
+        "arm_away": "Inschakelen voor vertrek",
+        "arm_night": "Voor ’s nachts inschakelen",
+        "arm_vacation": "Inschakelen vakantie",
+        "arm_custom_bypass": "Inschakelen met overbrugging",
+        "enter_code": "Code invoeren"
       }
     },
     "navigation": {
@@ -657,6 +693,13 @@
         "destination_exists": "Het doelscherm heeft al een opgeslagen indeling",
         "update_tall": "Werk het scherm bij om hogere tegels te gebruiken",
         "memory": "Het scherm heeft onvoldoende vrij geheugen voor deze indeling. Gebruik minder tegels."
+      },
+      "feedback": {
+        "invalid": "Dit antwoord kan niet gedeeld worden. Kies ja of niet helemaal, en alleen de genoemde problemen.",
+        "comment": "Houd de toelichting onder 1000 tekens.",
+        "unknown_board": "Feedback is voor dit bord nog niet beschikbaar.",
+        "deleting": "Je gedeelde antwoord wordt nog verwijderd. Antwoord opnieuw zodra dat klaar is.",
+        "storage": "Feedback staat uit: de bewaarde gegevens zijn door een andere versie van ESP Screens geschreven."
       }
     },
     "status": {
@@ -839,10 +882,28 @@
         "screen": {
           "label": "Scherm",
           "help": "Welk scherm de melding krijgt: de apparaatnaam (zoals kitchen-screen), de naam die Home Assistant toont, of een ruimte, die elk scherm daarin bereikt. Een lijst, zoals [kitchen-screen, hallway], bereikt er meerdere. Laat het weg voor alle schermen. Een naam die bij geen scherm past stuurt niets; het log van ESP Screen Manager noemt dan de schermen die het kent. Alleen via de events esp_screens_show_alert en esp_screens_dismiss_alert."
+        },
+        "button_color": {
+          "label": "Knopkleur",
+          "help": "De knop in een eigen kleur: red, orange, yellow, green, mint, blue, purple, pink of gray, als volle knopkleur met witte letters. Leeg houdt de donkere knop."
+        },
+        "button2_text": {
+          "label": "Tekst tweede knop",
+          "help": "Een tweede knop links van de eerste, voor een keuze zoals Weigeren en Accepteren. Leeg geeft één knop.",
+          "example": "Nu niet"
+        },
+        "button2_color": {
+          "label": "Kleur tweede knop",
+          "help": "De tweede knop in een van dezelfde kleuren. Leeg houdt de lichte knop."
+        },
+        "button2_action": {
+          "label": "Actie tweede knop",
+          "help": "Een Home Assistant-actie die één keer wordt uitgevoerd als de tweede knop op een scherm wordt ingedrukt, zoals `action` voor de eerste. `button2_data` geeft de velden. Alleen via het event esp_screens_show_alert."
         }
       },
       "endings": {
         "ok": "De knop is ingedrukt",
+        "button2": "De tweede knop is ingedrukt",
         "timeout": "De timeout is verstreken",
         "replaced": "Een nieuwe alert kwam eroverheen",
         "remote": "dismiss_alert vanuit Home Assistant"
@@ -1309,7 +1370,8 @@
         "select": "Keuzelijsten",
         "person": "Personen",
         "timer": "Timers",
-        "screen": "Scherm"
+        "screen": "Scherm",
+        "alarm_control_panel": "Alarm"
       },
       "more": "Meer ({n})",
       "fewer": "Minder",
@@ -1349,7 +1411,8 @@
       "person": "Persoon",
       "camera": "Camera",
       "image": "Afbeelding",
-      "entity": "Entiteit"
+      "entity": "Entiteit",
+      "alarm_control_panel": "Alarmpaneel"
     },
     "displays": {
       "standard": "standaard",
@@ -1358,6 +1421,8 @@
       "graph": "grafiek",
       "digital": "digitale klok",
       "analog": "analoge klok",
+      "dial": "rustige wijzerplaat",
+      "flip": "flipklok",
       "sunpath": "zonnebaan",
       "live": "livebeeld",
       "cover": "albumhoes"
@@ -1385,6 +1450,8 @@
         "label": "Weergave",
         "digital": "Digitale klok",
         "analog": "Analoge klok",
+        "dial": "Rustige wijzerplaat",
+        "flip": "Flipklok",
         "standard": "Naam en status",
         "watch": "Grote waarde",
         "forecast": "Weersverwachting",
@@ -1393,16 +1460,31 @@
         "live": "Livebeeld",
         "live_hint": "Een klein beeld van de camera op de plek van het icoon, ververst in het tempo hieronder zolang de pagina in beeld is. Een tik opent hem nog steeds schermvullend.",
         "live_needs_firmware": "Een livebeeld heeft firmware 0.2.77 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm.",
+        "live_card_hint": "Het beeld vult de tile en ververst in het tempo hieronder zolang de pagina in beeld is. Een tik opent hem nog steeds schermvullend.",
+        "live_card_needs_firmware": "Een beeld dat de tile vult heeft firmware 0.3.3 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm. Tot dan toont het scherm een klein beeld op de plek van het icoon.",
         "cover": "Albumhoes",
         "cover_hint": "De albumhoes van wat er speelt op de plek van het icoon, zoals de eigen tile van Home Assistant; een speler zonder afbeelding houdt zijn icoon. Een tik opent nog steeds de kaart.",
         "cover_needs_firmware": "De albumhoes op de tile heeft firmware 0.2.78 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm.",
         "no_graph": "Home Assistant heeft geen getallen voor deze entiteit, dus de grafiek blijft leeg. Kies een andere weergave.",
         "no_forecast": "Deze weerdienst heeft geen dagverwachting in Home Assistant. Kies een andere weergave.",
-        "tall_cover_hint": "Gebruikt de albumhoes als donkere achtergrond. Zonder afbeelding blijft de normale tegel zichtbaar."
+        "tall_cover_hint": "Gebruikt de albumhoes als donkere achtergrond. Zonder afbeelding blijft de normale tegel zichtbaar.",
+        "face_needs_firmware": "Deze klok heeft firmware 0.3.6 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm. Tot dan toont het scherm de digitale klok."
       },
       "refresh": {
         "label": "Verversen",
         "seconds": "Elke {n} s"
+      },
+      "picture": {
+        "fit": {
+          "label": "Beeld",
+          "fill": "Tile vullen",
+          "contain": "Hele beeld"
+        },
+        "overlay": {
+          "label": "Op het beeld",
+          "name": "Naam",
+          "none": "Niets"
+        }
       },
       "size": {
         "label": "Grootte",
@@ -1868,7 +1950,8 @@
         "behaviour": "Gedrag",
         "events": "Gebeurtenissen",
         "tips": "Tips",
-        "one": "Eén scherm"
+        "one": "Eén scherm",
+        "choice": "Twee knoppen"
       },
       "try": {
         "text": "Stuur nu één alert, met dezelfde velden die een automatisering stuurt. Het scherm toont de kaart en laat, met knipperen aan, de backlight knipperen.",
@@ -1997,6 +2080,12 @@
         "picture_yes": "Ja",
         "picture_no": "Nee, de melding komt zonder",
         "none": "Nog geen schermen gekoppeld. Zodra een scherm gekoppeld is, staat hier wat je ervoor invult."
+      },
+      "choice": {
+        "title": "Twee knoppen en knopkleuren",
+        "text": "Voeg {second} toe voor een tweede knop links van de eerste, zodat wie bij het scherm staat kan kiezen, bijvoorbeeld Nu niet en Openen. {first_color} en {second_color} geven een knop een eigen kleur, groen voor ja en rood voor nee. Welk antwoord aan welke kant staat kies je zelf: de eerste knop staat altijd rechts.",
+        "event": "Via het event is elk van deze velden optioneel, en {second_action} met {second_data} voert een actie uit vanaf de tweede knop, zoals {action} dat doet vanaf de eerste. Een scherm met firmware ouder dan {version} toont de melding met één knop.",
+        "direct": "Roep je een scherm direct aan? Zijn actie {choice} neemt de velden van show_alert plus deze drie; de tweede knop beëindigt de melding met {ending}."
       }
     },
     "override": {
@@ -2113,6 +2202,58 @@
       "choose_page": "Pagina",
       "all_connections": "Alle verbindingen",
       "migration_adjusted": "Ongeldige oude instellingen zijn vervangen door standaardwaarden: {fields}. De originelen blijven in de migratieback-up bewaard."
+    },
+    "feedback": {
+      "question": "Werkt je scherm zoals je verwacht?",
+      "intro": "Help ons dit model te verbeteren. Je antwoord en schermmodel worden met Tessera gedeeld, zonder account of Home Assistant-instellingen.",
+      "yes": "Ja, werkt goed",
+      "no": "Niet helemaal",
+      "later": "Later",
+      "never": "Niet meer vragen",
+      "add_something": "Iets toevoegen",
+      "issues_question": "Waar loop je tegenaan?",
+      "issues": {
+        "display": "Scherm",
+        "touch": "Touch",
+        "connection": "Verbinding",
+        "installation": "Installatie",
+        "other": "Anders"
+      },
+      "comment_label": "Toelichting (optioneel)",
+      "comment_hint": "Laat persoonsgegevens, logs, wachtwoorden en API-keys weg.",
+      "add_details": "Details toevoegen",
+      "done": "Klaar",
+      "settings_title": "Feedback",
+      "shared": {
+        "working": "Je deelde: werkt goed",
+        "not_working": "Je deelde: niet helemaal"
+      },
+      "none_yet": "Je hebt voor dit scherm nog geen antwoord gedeeld.",
+      "none_now": "Van dit scherm is nu niets gedeeld.",
+      "share": "Antwoord delen",
+      "change": "Antwoord aanpassen",
+      "delete": "Verwijder mijn gedeelde antwoord",
+      "retry": "Opnieuw proberen",
+      "status": {
+        "sending": "Versturen…",
+        "received": "Bedankt, je antwoord is ontvangen.",
+        "waiting": "Nog niet verstuurd; we proberen het later opnieuw.",
+        "failed": "Niet verstuurd: Tessera was een dag lang niet bereikbaar.",
+        "deleting": "Nog niet verwijderd; we proberen het later opnieuw.",
+        "delete_failed": "Nog niet verwijderd: Tessera was een dag lang niet bereikbaar.",
+        "deleted": "Je gedeelde antwoord is verwijderd.",
+        "conflict": "Tessera heeft een ander antwoord voor dit scherm. Pas je antwoord aan om het opnieuw te delen.",
+        "rejected": "Tessera heeft dit antwoord niet aangenomen."
+      },
+      "what_title": "Wat wordt meegestuurd?",
+      "what": {
+        "model": "Het schermmodel: {model}",
+        "answer": "Je antwoord, de gekozen problemen en je toelichting",
+        "firmware": "De firmwareversie van het scherm: {version}",
+        "addon": "De versie van ESP Screens: {version}",
+        "nothing_else": "Verder niets: geen naam, account, entiteiten, logs of Home Assistant-instellingen. Elk scherm deelt onder een eigen willekeurige sleutel."
+      },
+      "privacy": "Privacy"
     }
   }
 }

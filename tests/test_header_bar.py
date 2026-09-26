@@ -290,7 +290,8 @@ class ParityTests(unittest.TestCase):
         self.assertIn('set_hidden(p,!(awake() && now.is_valid()));', second_hand)
         self.assertIn('part_line(w,18,w.points+28,2,w.hand_width)', second_hand)
         tick = TILES.split('inline void tick() {', 1)[1]
-        self.assertIn('t.is_clock() && t.display=="analog")second_hand(w,now);', tick)
+        # The classic dial and the calm dial (firmware 0.3.6+) both move their hand; a digital or flip clock has none.
+        self.assertIn('(((w.extra_mode=="analog" || w.extra_mode=="calendar") && t.display=="analog") || (w.extra_mode=="calm" && t.display=="dial")) && t.is_clock())second_hand(w,now);', tick)
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:

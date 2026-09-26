@@ -33,7 +33,7 @@ lights, the heating or the vacuum.
 
 **What.** Firmware for affordable panels, five of them today, from the 2.8-inch CYD to the 10.1-inch Guition, with
 tiles over up to eight pages, as many per page as the glass holds: lights, climate, blinds and curtains, the vacuum, media, the weather,
-history graphs, clocks and timers, and on every screen but the CYD your cameras. A tile can take the whole page, one big switch you push without
+history graphs, clocks and timers, your alarm with its keypad, and on every screen but the CYD your cameras. A tile can take the whole page, one big switch you push without
 looking, and a tile can go to another page. An automation can put an alert on every screen when someone rings
 the bell, and a screen with room for pictures shows who is there with the doorbell camera's picture. A tap can run any
 action Home Assistant has for a tile, and Dark mode suits a screen beside the bed.
@@ -100,6 +100,24 @@ home fits on one page.
 </p>
 <p align="center"><sub>A tile can be 1 × 2 or 2 × 2 cells as well as one cell, double width or the whole page, and the card follows the room it gets: a player shows its album cover behind the track (every screen but the CYD), the heating shows its setpoint and the modes Home Assistant lists for it (the last key opens the card when they do not all fit), a blind shows its position, and its slats where there is room, an on/off tile stands centred with its switch. Every board works out the same card from its own glass. Each page has its own title and top bar, any page can be Home, and a page can stay out of the page dots and be opened from a tile, with a Back key to return. Rendered from the firmware's own LVGL code with a demo home.</sub></p>
 
+## Weather, heating, cameras and your alarm
+
+<p align="center">
+  <img src="docs/images/guition-weather-tiles.png" width="32%" alt="The 4-inch Guition with two weather tiles: a wide one with today and the next three days, and a big one listing the days under each other, each with a coloured bar from its low to its high on one scale">
+  <img src="docs/images/guition-thermostat-tiles.png" width="32%" alt="Three thermostats: the heating with its setpoint between minus and plus and a bar with Heat and Auto, an airco on cool with heat, cool and more behind three dots, and a short bedroom tile with the stepper on one row">
+  <img src="docs/images/guition-camera-fill.png" width="32%" alt="A garden camera on a tile of two by two cells, its picture filling the whole card with the camera's name at the bottom, above the garden lights and the garden temperature">
+</p>
+<p align="center">
+  <img src="docs/images/guition-alarm-tiles.png" width="32%" alt="Four alarm panels as tiles: the house disarmed in grey, the garage armed away in green, the shed arming in orange and the studio armed home in green">
+  <img src="docs/images/guition-alarm-card.png" width="32%" alt="The alarm card: the shield in its circle, keys for Home, Away, Night and Vacation, and the Disarmed key">
+  <img src="docs/images/guition-alarm-keypad.png" width="32%" alt="The keypad to arm away: four dots for the code, the digits 1 to 0, a clear key and a check key">
+</p>
+<p align="center">
+  <img src="docs/images/waveshare43-new-tiles.png" width="49%" alt="The 4.3-inch Waveshare: a wide weather tile with the coming days, the heating with its stepper, a front door camera filling a tile of two by two cells, and the dryer">
+  <img src="docs/images/waveshare43-select-card.png" width="49%" alt="The select card of a washing machine on the 4.3-inch Waveshare: its programmes in two columns, Cotton eco checked, and page dots for the rest">
+</p>
+<p align="center"><sub>The weather with the coming days, and on a bigger tile the whole week with a bar from each day's low to its high. A thermostat has its − / + and a bar with a key per mode; an airco shows heat and cool first and the rest behind "…". A live camera on a taller tile fills the card with its picture and its name, or shows the whole picture. Your alarm is a tile in Home Assistant's colours, with a key for every mode and Home Assistant's keypad when the panel asks for a code; someone coming in wakes every screen with the keypad to disarm. A select, such as a washing machine's programme, opens a list with a check at the one it is on. On every screen with the memory for it, every page is built ahead and kept, so the next one is there the moment you turn to it. Rendered from the firmware's own LVGL code with a demo home.</sub></p>
+
 ## On the screen
 
 <p align="center">
@@ -134,11 +152,11 @@ home fits on one page.
 </p>
 <p align="center"><sub>Tap a tile to switch it, hold it for the full card. Keys and sliders right on the tile, pastel colors, a clock, the weather and history you can read with a finger. A lamp with modes (a WLED) gets an effects page with a drum picker, named and filled from what Home Assistant lists for it. The media card shows what plays with its album cover, fetched by ESP Screens like a camera picture, and a media tile can show that cover in the icon's place (<a href="docs/CAMERA.md">how</a>). Rendered from the firmware's own LVGL code with a demo home.</sub></p>
 <p align="center">
-  <img src="docs/images/guition-camera-tiles.png" width="32%" alt="Cameras as tiles on the Guition: the front door camera, the garden camera live, the doorbell's last ring, next to the door, the porch light and the garage door">
+  <img src="docs/images/guition-camera-tiles.png" width="32%" alt="Cameras as tiles on the Guition: the front door camera filling a tall tile with its name at the bottom, a porch camera showing its whole picture with black above and below, the porch light and Sam at home">
   <img src="docs/images/guition-camera.png" width="32%" alt="A camera tile tapped: the front door camera full screen, with the round back key and the camera's name at the top">
   <img src="docs/images/guition-alert-camera.png" width="32%" alt="The same camera in an alert: its picture across the top of the card, with the card's rounded corners">
 </p>
-<p align="center"><sub>Cameras are tiles too, not only part of an alert: any camera or snapshot in Home Assistant (a doorbell's last ring, for example) goes on a screen like any other tile. Tap it for the picture full screen, refreshed every four seconds, or let the tile itself show a small live picture in the icon's place (Display → Live picture, every 15 or 30 s); an alert can carry the same picture. Every screen but the CYD, which has no memory for pictures (<a href="docs/CAMERA.md">how it works</a>).</sub></p>
+<p align="center"><sub>Cameras are tiles too, not only part of an alert: any camera or snapshot in Home Assistant (a doorbell's last ring, for example) goes on a screen like any other tile. Tap it for the picture full screen, refreshed every four seconds, or let the tile itself show its live picture (Display → Live picture, every 15 or 30 s): in the icon's place, or on a taller tile over the whole card, filled or whole, with or without its name; an alert can carry the same picture. Every screen but the CYD, which has no memory for pictures (<a href="docs/CAMERA.md">how it works</a>).</sub></p>
 <p align="center">
   <img src="docs/images/cyd-home.png" width="32%" alt="CYD 2.8-inch screen: the weather forecast, a kitchen timer, the coffee machine, a lamp and power usage as a large value">
   <img src="docs/images/cyd-page-2.png" width="32%" alt="Second CYD page: Sonos volume, presence, a scene and an energy graph">
@@ -229,10 +247,10 @@ while it keeps your country's clock and numbers.
 </p>
 <p align="center"><sub>Someone at the door? One event in an automation wakes every screen and shows it. Add the doorbell camera and a Guition shows who is there; tap the picture, or a camera tile, for the camera full screen, refreshed every few seconds. <a href="docs/CAMERA.md">Camera images</a>.</sub></p>
 <p align="center">
-  <img src="docs/images/guition-alert.png" width="41%" alt="An alert on the Guition: someone is at the door, with a Coming button">
+  <img src="docs/images/guition-alert-choice-colors.png" width="41%" alt="An alert on the Guition asking to open the garage, with a red Decline and a green Accept button side by side">
   <img src="docs/images/editor-alerts.png" width="53%" alt="The Alerts cheatsheet in ESP Screens: the action name of every screen, ready to copy">
 </p>
-<p align="center"><sub>Any alert, on one screen or all of them, in a pastel color of your choice. <a href="README_EXTENDED.md#alert-from-an-automation">How alerts work</a>. An automation can also put a page in front, such as the page with the full-page player when the music starts: <a href="README_EXTENDED.md#open-a-page-from-an-automation">Open a page from an automation</a>.</sub></p>
+<p align="center"><sub>Any alert, on one screen or all of them, in a pastel color of your choice, with one button or two to choose from, each in a color of its own and with its own action. <a href="README_EXTENDED.md#alert-from-an-automation">How alerts work</a>. An automation can also put a page in front, such as the page with the full-page player when the music starts: <a href="README_EXTENDED.md#open-a-page-from-an-automation">Open a page from an automation</a>.</sub></p>
 
 ## Installing from Home Assistant
 

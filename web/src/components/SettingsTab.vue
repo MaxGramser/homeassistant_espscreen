@@ -4,6 +4,7 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
+import FeedbackPanel from "./FeedbackPanel.vue";
 import {
   calibrateTouch, choiceText, currentScreen, pageReachWarning, SETTING_GROUPS, setSetting, settingLabel, settingText, settingValues, settingsView, state, steppedSetting,
   type SettingRow,
@@ -111,5 +112,14 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
         <p class="hint">{{ t("editor.screen_settings.actions.calibrate.hint") }}</p>
       </section>
     </div>
+    <!-- Does it work as you expect (app 0.3.10): always here, also for a screen that is offline or never got its tiles. -->
+    <div v-if="currentScreen?.feedback?.available" class="set-grid feedback-grid">
+      <FeedbackPanel :key="`settings-${currentScreen.id}`" :screen="currentScreen" mode="settings" />
+    </div>
   </div>
 </template>
+
+<style scoped>
+.feedback-grid { margin-top: 14px; }
+.offline .feedback-grid { opacity: 1; }
+</style>

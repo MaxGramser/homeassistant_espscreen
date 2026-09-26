@@ -30,7 +30,7 @@ class AlertTests(unittest.TestCase):
 
     def test_action_takes_the_six_fields_and_hands_them_to_one_script(self):
         for name, text in self.sources():
-            block = section(text, '    - action: show_alert\n', '    - action: dismiss_alert\n')
+            block = section(text, '    - action: show_alert\n', '    - action: show_alert_choice\n')
             self.assertEqual(re.findall(r'^        (\w+): (\w+)$', block, re.M), FIELDS, name)
             self.assertIn('id: alert_show', block, name)
             for field, _ in FIELDS:
@@ -38,6 +38,26 @@ class AlertTests(unittest.TestCase):
             remote = text.split('    - action: dismiss_alert\n', 1)[1][:200]
             self.assertIn('id: alert_dismiss', remote, name)
             self.assertIn('reason: "remote"', remote, name)
+
+    def test_show_alert_choice_takes_the_seven_fields_and_three_more(self):
+        # A second button and button colours (firmware 0.3.3+) come in an action of their own: Home Assistant makes every
+        # field required, so show_alert keeps its seven and passes the new ones empty.
+        choice = FIELDS[:5] + [('button_color', 'string'), ('button2_text', 'string'), ('button2_color', 'string')] + FIELDS[5:]
+        for name, text in self.sources():
+            plain = section(text, '    - action: show_alert\n', '    - action: show_alert_choice\n')
+            for field in ('button_color', 'button2_text', 'button2_color'):
+                self.assertIn(f'{field}: ""', plain, name)
+            block = section(text, '    - action: show_alert_choice\n', '    - action: dismiss_alert\n')
+            self.assertEqual(re.findall(r'^        (\w+): (\w+)$', block, re.M), choice, name)
+            for field, _ in choice:
+                self.assertIn(f"{field}: !lambda 'return {field};'", block, name)
+            top = section(section(text, '\nlvgl:\n', '\nscript:\n'), '  top_layer:\n', '  pages:\n')
+            second = section(top, 'id: alert_button2\n', 'id: alert_button2_label')
+            self.assertIn('hidden: true', second, name)
+            self.assertIn('screen_input::touch_guard.accept(millis(), 13)', second, name)
+            self.assertIn('reason: "button2"', second, name)
+            show = script(text, 'alert_show')
+            self.assertLess(show.index('runtime_tiles::alert_two_buttons'), show.index('runtime_tiles::alert_place(false);'), name)
 
     def test_overlay_lives_on_the_top_layer_above_every_page(self):
         for name, text in self.sources():
@@ -50,7 +70,7 @@ class AlertTests(unittest.TestCase):
             self.assertIn(f'text: "\\U000{tile_icons.GLYPHS["alert-outline"]}"', top, name)
             self.assertIn('long_mode: DOT', section(top, 'id: alert_title\n', 'id: alert_subtitle'), name)
             # The subtitle wraps over the whole lines it has and ends in an ellipsis when its text is longer (0.2.103+).
-            self.assertIn('long_mode: DOT', section(top, 'id: alert_subtitle\n', 'id: alert_ok'), name)
+            self.assertIn('long_mode: DOT', section(top, 'id: alert_subtitle\n', 'id: alert_ok\n'), name)
             ok = section(top, 'id: alert_ok\n', 'widgets:')
             self.assertIn('lv_label_set_text(id(alert_ok_label), alert.button.c_str());', script(text, 'alert_show'), name)
             self.assertIn('screen_input::touch_guard.accept(millis(), 13)', ok, name)
@@ -97,7 +117,7 @@ class AlertTests(unittest.TestCase):
             self.assertIn('reason: "timeout"', script(text, 'alert_timeout'), name)
             show = script(text, 'alert_show')
             self.assertIn('id(alert_report).execute("replaced")', show, name)
-            self.assertIn('screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX}, ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX})', show, name)
+            self.assertIn('screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX}, ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX}, button2_text, button_color, button2_color)', show, name)
             self.assertLess(show.index('script.execute: wake_display'), show.index('lvgl.widget.show: alert_overlay'), name)
             self.assertLess(show.index('lvgl.widget.show: alert_overlay'), show.index('script.execute: alert_flash'), name)
             self_test = section(text, '  - id: ui_self_test\n', '\n  - id: ')

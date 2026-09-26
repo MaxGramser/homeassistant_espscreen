@@ -61,8 +61,8 @@ display:
     model: CUSTOM
     update_interval: never
     auto_clear_enabled: false
-    # The panel's LCD_RST (GPIO0 on the schematic). A hardware reset here, where the old panel's model uses a
-    # software one: the pull request found this panel blanks on GPIO0, and its table wants the wait below after it.
+    # The panel's LCD_RST (GPIO0 on the schematic), a hardware reset as on the first panel: the pull request found
+    # this panel blanks on GPIO0, and its table wants the wait below after it.
     reset_pin: GPIO0
     color_order: RGB
     dimensions: {width: 1024, height: 600}

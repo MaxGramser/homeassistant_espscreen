@@ -272,7 +272,7 @@ that screen and says where it is set.
 | `DISPLAY_MODEL` | CYD | ESPHome's `mipi_spi` model of the display controller (`ILI9341`, `ST7789V`, ...) |
 | `DISPLAY_DATA_RATE` | CYD | the display's SPI clock (`40MHz`; some boards want `20MHz`) |
 | `DISPLAY_INVERT_COLORS` | CYD | `true` for a panel that shows its colours inverted |
-| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, Waveshare 4B | the backlight's PWM frequency; some Guition batches only dim at `150Hz` |
+| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, Waveshare 4B | the backlight's PWM frequency (the 4-inch Guition runs `150Hz` since firmware 0.3.5, the CYD `20000Hz`) |
 
 The parts an override names stay the same on every board and in every update:
 `my_display` (the display), `ts_touch` (the touch panel), `gpio_backlight_pwm`

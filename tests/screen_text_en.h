@@ -3,7 +3,7 @@
 #pragma once
 #include "components/smart_display/screen_text.h"
 
-static_assert(screen_text::KEYS_HASH == 0x277DC1BAu && screen_text::KEY_COUNT == 344,
+static_assert(screen_text::KEYS_HASH == 0xBBFCC0CBu && screen_text::KEY_COUNT == 372,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 const char *const screen_text::TABLE[] = {
     ".",
@@ -226,6 +226,11 @@ const char *const screen_text::TABLE[] = {
     "Tap the same crosshair 3 times",
     "Measurement rejected; try again",
     "Save failed; try again",
+    "Wrong code",
+    "Nothing changed. Check the code.",
+    "Try again in {time}",
+    "Too many wrong codes",
+    "This code has letters. Enter it in Home Assistant.",
     "On",
     "Off",
     "Unavailable",
@@ -349,6 +354,29 @@ const char *const screen_text::TABLE[] = {
     "Both",
     "Vertical",
     "Horizontal",
+    "Disarmed",
+    "Armed home",
+    "Armed away",
+    "Armed night",
+    "Armed vacation",
+    "Armed custom bypass",
+    "Pending",
+    "Arming",
+    "Disarming",
+    "Triggered",
+    "Home",
+    "Away",
+    "Night",
+    "Vacation",
+    "Custom",
+    "Disarmed",
+    "Disarm",
+    "Arm home",
+    "Arm away",
+    "Arm night",
+    "Arm vacation",
+    "Custom bypass",
+    "Enter code",
     "Back"
 };
 const char *const screen_text::LANGUAGE = "en";

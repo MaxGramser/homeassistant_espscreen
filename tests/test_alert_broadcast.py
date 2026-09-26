@@ -275,6 +275,49 @@ class Broadcast(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(any('unusable action left empty' in line for line in logs.output), logs.output)
             self.assertEqual(m.alert_actions, {})
 
+    async def test_two_buttons_go_to_screens_that_draw_them(self):
+        """A second button and button colours (firmware 0.3.3+): show_alert_choice where the screen has it, show_alert with
+        one button on an older one, and each button's own action once."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = fake_ha()
+            ha.states['sensor.d1_fw'] = {'state': '0.3.3'}
+            m = Manager(ha, Path(tmp) / 'screens.json')
+            with self.assertLogs('screen_manager', 'INFO') as logs:
+                result = await m.broadcast(BROADCAST_SHOW, {'title': 'Door', 'button_text': 'Open', 'button_color': 'green',
+                                                            'button2_text': 'Not now', 'button2_color': 'red',
+                                                            'action': 'script.open_gate', 'button2_action': 'script.decline',
+                                                            'button2_data': {'reason': 'busy'}})
+            self.assertEqual(result, {'sent': 2, 'skipped': 1, 'failed': 0})
+            calls = dict(ha.calls)
+            self.assertEqual(list(calls['esphome.kitchen_screen_show_alert_choice']),
+                             ['title', 'subtitle', 'icon', 'color', 'button_text', 'button_color', 'button2_text', 'button2_color', 'timeout', 'flash'])
+            self.assertEqual(calls['esphome.kitchen_screen_show_alert_choice']['button2_text'], 'Not now')
+            self.assertEqual(calls['esphome.hall_show_alert'],
+                             {'title': 'Door', 'subtitle': '', 'icon': '', 'color': '', 'button_text': 'Open', 'timeout': 0, 'flash': False})
+            self.assertTrue(any('Hall show one button (the second button needs firmware 0.3.3)' in line for line in logs.output), logs.output)
+            ha.calls.clear()
+            # The second button on the kitchen screen runs its own action, once, and forgets the first everywhere.
+            with self.assertLogs('screen_manager', 'INFO') as logs:
+                await m.alert_ended({'action': 'button2', 'title': 'Door', 'screen': 'kitchen-screen'})
+            self.assertEqual(ha.calls, [('script.decline', {'reason': 'busy'})])
+            self.assertIn('Alert second button on kitchen-screen: script.decline performed', logs.output[-1])
+            await m.alert_ended({'action': 'ok', 'title': 'Door', 'screen': 'hall'})
+            self.assertEqual(len(ha.calls), 1)
+            # The first button still runs `action`.
+            await m.broadcast(BROADCAST_SHOW, {'title': 'Door', 'button2_text': 'No', 'action': 'script.open_gate'})
+            ha.calls.clear()
+            with self.assertLogs('screen_manager', 'INFO'):
+                await m.alert_ended({'action': 'ok', 'title': 'Door', 'screen': 'kitchen-screen'})
+            self.assertEqual(ha.calls, [('script.open_gate', {})])
+            # A colour alone is a choice too (one button in green); a second action without a second button is dropped.
+            ha.calls.clear()
+            with self.assertLogs('screen_manager', 'INFO') as logs:
+                await m.broadcast(BROADCAST_SHOW, {'title': 'Go', 'button_color': 'green', 'button2_action': 'script.x', 'button2_text': True})
+            self.assertEqual(dict(ha.calls)['esphome.kitchen_screen_show_alert_choice']['button2_text'], '')
+            self.assertTrue(any('unusable button2_text left empty' in line for line in logs.output), logs.output)
+            self.assertTrue(any('button2_action without button2_text' in line for line in logs.output), logs.output)
+            self.assertEqual(m.alert_actions, {})
+
     async def test_the_reports_of_the_screens_go_through_the_alert_loop(self):
         with tempfile.TemporaryDirectory() as tmp:
             m = Manager(fake_ha(), Path(tmp) / 'screens.json')

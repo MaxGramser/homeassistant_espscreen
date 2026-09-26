@@ -86,6 +86,36 @@ corners, and refreshes it while that page is on the screen. A tap still opens th
 - The strip lives in a third `online_image` of the Guition profile (`tile_image`, PSRAM); the CYD has
   none and the editor does not offer the live picture there.
 
+### A camera that fills a taller tile
+
+From app 0.3.8 with firmware 0.3.3, a live camera on a 1 × 2 or 2 × 2 tile fills the whole card instead
+of the icon's place. Two settings appear in the tile's settings once the tile is taller:
+
+- **Picture**: **Fill the tile** (`fit` left out, the default) cuts the picture to the card, the way a
+  photo fills a frame. **Whole picture** (`fit: contain`) shows all of it, with black above and below
+  or at the sides.
+- **On the picture**: **Name** (`overlay` left out, the default) writes the tile's name at the bottom
+  in white. **Nothing** (`overlay: none`) leaves the picture alone.
+
+The screen does none of this work. On a page with a picture that fills its card, the screen asks for
+the page's pictures as frames (`atlas`: the place, size and corner of each), and the app answers with
+one BMP in which every picture already has its card's exact size in pixels, its crop or its black bars,
+its rounded corners and, under the name, a soft shade that keeps white text readable on a bright
+picture. The screen draws that image as it is. A smaller picture does not load faster: the picture
+already has exactly as many pixels as the card shows. What sets the pace is the 15 or 30 seconds of the
+tile and the time the camera takes to answer.
+
+A screen with firmware 0.3.3 or newer gets its live pictures in 8-bit colour: a palette of the picture's own
+256 colours, dithered so a shade stays smooth. That is a third of the bytes of a 24-bit BMP (a 2 × 2 card
+on the 4-inch Guition: about 100 KB instead of 300 KB), at about the quality of the screen's own 16-bit
+colour. ESPHome decodes a BMP while it downloads, in the screen's main loop, so fewer bytes means a picture
+that arrives sooner and a screen that answers a touch sooner. Preparing the palette costs Home Assistant a
+few milliseconds per picture, also on a Raspberry Pi. Older firmware keeps 24-bit pictures.
+
+The camera's state ("Idle") is not written on the picture. Until the first picture arrives, the tile
+shows its icon and name as any tile does. Older firmware ignores both settings and keeps the small
+picture in the icon's place.
+
 ## A doorbell
 
 ```yaml

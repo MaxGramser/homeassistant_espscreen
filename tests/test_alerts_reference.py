@@ -13,7 +13,7 @@ import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 sys.path.insert(0, str(ROOT / 'tests'))
 import tile_icons  # noqa: E402
-from core import (ALERT_LIMITS, ALERT_MIN_FIRMWARE, FIRMWARE_VERSION, TILE_BACKGROUNDS, alert_reference,  # noqa: E402
+from core import (ALERT_CHOICE_ORDER, ALERT_LIMITS, ALERT_MIN_FIRMWARE, FIRMWARE_VERSION, TILE_BACKGROUNDS, alert_reference,  # noqa: E402
                   alert_service)
 from updates import parse_version  # noqa: E402
 
@@ -25,12 +25,17 @@ class ReferenceTests(unittest.TestCase):
         reference = alert_reference()
         for board, name in PROFILES.items():
             text = profiles.text(name)
-            block = text.split('    - action: show_alert\n', 1)[1].split('    - action: dismiss_alert\n', 1)[0]
+            block = text.split('    - action: show_alert\n', 1)[1].split('    - action: show_alert_choice\n', 1)[0]
             self.assertEqual(re.findall(r'^        (\w+): (\w+)$', block, re.M), [(f['name'], f['type']) for f in reference['fields']], name)
-            for needle in ('event: esphome.screen_alert', 'execute("replaced")', 'reason: "timeout"', 'reason: "remote"', 'reason: "ok"'):
+            choice = text.split('    - action: show_alert_choice\n', 1)[1].split('    - action: dismiss_alert\n', 1)[0]
+            order = [(f, t) for f, t in re.findall(r'^        (\w+): (\w+)$', choice, re.M)]
+            self.assertEqual([f for f, _ in order], list(ALERT_CHOICE_ORDER), name)
+            self.assertEqual({f: t for f, t in order if f in {c['name'] for c in reference['choice']['fields']}},
+                             {c['name']: c['type'] for c in reference['choice']['fields']}, name)
+            for needle in ('event: esphome.screen_alert', 'execute("replaced")', 'reason: "timeout"', 'reason: "remote"', 'reason: "ok"', 'reason: "button2"'):
                 self.assertIn(needle, text, (name, needle))
         self.assertEqual(reference['event'], 'esphome.screen_alert')
-        self.assertEqual([e['action'] for e in reference['endings']], ['ok', 'timeout', 'replaced', 'remote'])
+        self.assertEqual([e['action'] for e in reference['endings']], ['ok', 'button2', 'timeout', 'replaced', 'remote'])
         self.assertEqual(reference['limits'], ALERT_LIMITS)
 
     def test_the_limits_are_the_looks_and_name_the_boards_of_each(self):
@@ -45,7 +50,10 @@ class ReferenceTests(unittest.TestCase):
 
     def test_colours_icons_and_fallback_match_the_firmware_headers(self):
         reference = alert_reference()
-        palette = (ROOT / 'components/smart_display/theme.h').read_text()
+        palette = (ROOT / 'components/smart_display/theme.h').read_text().split('SWATCHES[] = {', 1)[1].split('};', 1)[0]
+        keys = (ROOT / 'components/smart_display/theme.h').read_text().split('KEY_SWATCHES[] = {', 1)[1].split('};', 1)[0]
+        # A button's colour (firmware 0.3.3+) takes the same names as the card's.
+        self.assertEqual(re.findall(r'\{"(\w+)", 0x', keys), [c['name'] for c in reference['colors']])
         self.assertEqual([c['name'] for c in reference['colors']], re.findall(r'\{"(\w+)", 0x[0-9A-F]{6}, 0x[0-9A-F]{6}\}', palette))
         for colour in reference['colors']:
             self.assertRegex(palette, rf'\{{"{colour["name"]}", 0x{colour["color"][1:]}, 0x[0-9A-F]{{6}}\}}')

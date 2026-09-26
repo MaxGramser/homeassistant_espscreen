@@ -282,6 +282,13 @@
       "rejected": "Measurement rejected; try again",
       "save_failed": "Save failed; try again"
     },
+    "alarm": {
+      "wrong_code": "Wrong code",
+      "nothing_changed": "Nothing changed. Check the code.",
+      "try_again": "Try again in {time}",
+      "too_many": "Too many wrong codes",
+      "letters": "This code has letters. Enter it in Home Assistant."
+    },
     "ha": {
       "on": "On",
       "off": "Off",
@@ -429,6 +436,35 @@
         "both": "Both",
         "vertical": "Vertical",
         "horizontal": "Horizontal"
+      },
+      "alarm": {
+        "disarmed": "Disarmed",
+        "armed_home": "Armed home",
+        "armed_away": "Armed away",
+        "armed_night": "Armed night",
+        "armed_vacation": "Armed vacation",
+        "armed_custom_bypass": "Armed custom bypass",
+        "pending": "Pending",
+        "arming": "Arming",
+        "disarming": "Disarming",
+        "triggered": "Triggered"
+      },
+      "alarm_mode": {
+        "armed_home": "Home",
+        "armed_away": "Away",
+        "armed_night": "Night",
+        "armed_vacation": "Vacation",
+        "armed_custom_bypass": "Custom",
+        "disarmed": "Disarmed"
+      },
+      "alarm_action": {
+        "disarm": "Disarm",
+        "arm_home": "Arm home",
+        "arm_away": "Arm away",
+        "arm_night": "Arm night",
+        "arm_vacation": "Arm vacation",
+        "arm_custom_bypass": "Custom bypass",
+        "enter_code": "Enter code"
       }
     },
     "navigation": {
@@ -657,6 +693,13 @@
         "destination_exists": "Destination screen already has a saved layout",
         "update_tall": "Update screen to use taller tiles",
         "memory": "The screen does not have enough free memory for this layout. Reduce the number of tiles."
+      },
+      "feedback": {
+        "invalid": "This answer can't be shared. Choose yes or not quite, and only the listed problems.",
+        "comment": "Keep the note under 1000 characters.",
+        "unknown_board": "Feedback isn't available for this board yet.",
+        "deleting": "Your shared answer is still being deleted. Answer again once that's done.",
+        "storage": "Feedback is off: its saved data was written by another version of ESP Screens."
       }
     },
     "status": {
@@ -839,10 +882,28 @@
         "screen": {
           "label": "Screen",
           "help": "Which screen gets the alert: its device name (such as kitchen-screen), the name Home Assistant shows, or a room, which reaches every screen in it. A list, such as [kitchen-screen, hallway], reaches several. Leave it out for every screen. A name that matches no screen sends nothing; the ESP Screen Manager log names the screens it knows. Only through the esp_screens_show_alert and esp_screens_dismiss_alert events."
+        },
+        "button_color": {
+          "label": "Button color",
+          "help": "The button in a color of its own: red, orange, yellow, green, mint, blue, purple, pink or gray, as a full key color with white words. Empty keeps the dark button."
+        },
+        "button2_text": {
+          "label": "Second button text",
+          "help": "A second button on the left of the first, for a choice such as Decline and Accept. Empty gives one button.",
+          "example": "Not now"
+        },
+        "button2_color": {
+          "label": "Second button color",
+          "help": "The second button in one of the same colors. Empty keeps the light button."
+        },
+        "button2_action": {
+          "label": "Second button action",
+          "help": "A Home Assistant action performed once when the second button is pressed on any screen, like `action` for the first. `button2_data` gives its fields. Only through the esp_screens_show_alert event."
         }
       },
       "endings": {
         "ok": "The button was pressed",
+        "button2": "The second button was pressed",
         "timeout": "The timeout ran out",
         "replaced": "A new alert came over it",
         "remote": "dismiss_alert from Home Assistant"
@@ -1309,7 +1370,8 @@
         "select": "Selects",
         "person": "People",
         "timer": "Timers",
-        "screen": "Screen"
+        "screen": "Screen",
+        "alarm_control_panel": "Alarm"
       },
       "more": "More ({n})",
       "fewer": "Fewer",
@@ -1349,7 +1411,8 @@
       "person": "Person",
       "camera": "Camera",
       "image": "Image",
-      "entity": "Entity"
+      "entity": "Entity",
+      "alarm_control_panel": "Alarm panel"
     },
     "displays": {
       "standard": "standard",
@@ -1358,6 +1421,8 @@
       "graph": "graph",
       "digital": "digital clock",
       "analog": "analog clock",
+      "dial": "simple dial",
+      "flip": "flip clock",
       "sunpath": "sun path",
       "live": "live picture",
       "cover": "album cover"
@@ -1385,6 +1450,8 @@
         "label": "Display",
         "digital": "Digital clock",
         "analog": "Analog clock",
+        "dial": "Simple dial",
+        "flip": "Flip clock",
         "standard": "Name and status",
         "watch": "Large value",
         "forecast": "Weather forecast",
@@ -1393,16 +1460,31 @@
         "live": "Live picture",
         "live_hint": "A small picture of the camera in the icon's place, refreshed at the pace below while the page is on screen. A tap still opens it full screen.",
         "live_needs_firmware": "A live picture needs firmware 0.2.77 or newer: press Update on the screen after saving.",
+        "live_card_hint": "The picture fills the tile, refreshed at the pace below while the page is on screen. A tap still opens it full screen.",
+        "live_card_needs_firmware": "A picture that fills the tile needs firmware 0.3.3 or newer: press Update on the screen after saving. Until then the screen shows a small picture in the icon's place.",
         "cover": "Album cover",
         "cover_hint": "The album cover of what plays in the icon's place, like Home Assistant's own tile; a player without a picture keeps its icon. A tap still opens the card.",
         "cover_needs_firmware": "The album cover on the tile needs firmware 0.2.78 or newer: press Update on the screen after saving.",
         "no_graph": "Home Assistant has no numbers for this entity, so the graph stays empty. Choose another display.",
         "no_forecast": "This weather service has no daily forecast in Home Assistant. Choose another display.",
-        "tall_cover_hint": "Uses the album cover as a dimmed background. Without artwork the normal tile remains visible."
+        "tall_cover_hint": "Uses the album cover as a dimmed background. Without artwork the normal tile remains visible.",
+        "face_needs_firmware": "This clock needs firmware 0.3.6 or newer: press Update on the screen after saving. Until then the screen shows the digital clock."
       },
       "refresh": {
         "label": "Refresh",
         "seconds": "Every {n} s"
+      },
+      "picture": {
+        "fit": {
+          "label": "Picture",
+          "fill": "Fill the tile",
+          "contain": "Whole picture"
+        },
+        "overlay": {
+          "label": "On the picture",
+          "name": "Name",
+          "none": "Nothing"
+        }
       },
       "size": {
         "label": "Size",
@@ -1868,7 +1950,8 @@
         "behaviour": "Behavior",
         "events": "Events",
         "tips": "Tips",
-        "one": "One screen"
+        "one": "One screen",
+        "choice": "Two buttons"
       },
       "try": {
         "text": "Send one alert now, with the same fields an automation sends. The screen shows the card and, with blinking on, flashes its backlight.",
@@ -1997,6 +2080,12 @@
         "picture_yes": "Yes",
         "picture_no": "No, the alert comes without it",
         "none": "No screens paired yet. Once a screen is paired, what to fill in for it appears here."
+      },
+      "choice": {
+        "title": "Two buttons and button colors",
+        "text": "Add {second} for a second button on the left of the first, so the person at the screen can choose, such as Not now and Open. {first_color} and {second_color} give a button a color of its own, green for yes and red for no. Which answer goes on which side is yours to choose: the first button is always on the right.",
+        "event": "Through the event every one of these fields is optional, and {second_action} with {second_data} runs an action from the second button, as {action} does from the first. A screen with firmware older than {version} shows the alert with its one button.",
+        "direct": "Calling a screen directly? Its action {choice} takes the fields of show_alert plus these three; the second button ends the alert with {ending}."
       }
     },
     "override": {
@@ -2113,6 +2202,58 @@
       "choose_page": "Page",
       "all_connections": "All connections",
       "migration_adjusted": "Invalid legacy settings were replaced with defaults: {fields}. The originals remain in the migration backup."
+    },
+    "feedback": {
+      "question": "Does your screen work as you expect?",
+      "intro": "Help us improve this model. Your answer and screen model are shared with Tessera, without an account or your Home Assistant settings.",
+      "yes": "Yes, works well",
+      "no": "Not quite",
+      "later": "Later",
+      "never": "Don't ask again",
+      "add_something": "Add something",
+      "issues_question": "What's getting in the way?",
+      "issues": {
+        "display": "Screen",
+        "touch": "Touch",
+        "connection": "Connection",
+        "installation": "Installation",
+        "other": "Other"
+      },
+      "comment_label": "Anything else? (optional)",
+      "comment_hint": "Please leave out personal details, logs, passwords and API keys.",
+      "add_details": "Add details",
+      "done": "Done",
+      "settings_title": "Feedback",
+      "shared": {
+        "working": "You shared: works well",
+        "not_working": "You shared: not quite"
+      },
+      "none_yet": "You haven't shared an answer for this screen.",
+      "none_now": "Nothing of this screen is shared right now.",
+      "share": "Share an answer",
+      "change": "Change answer",
+      "delete": "Delete my shared answer",
+      "retry": "Try again",
+      "status": {
+        "sending": "Sending…",
+        "received": "Thanks, your answer was received.",
+        "waiting": "Not sent yet; we'll try again later.",
+        "failed": "Not sent: Tessera could not be reached for a day.",
+        "deleting": "Not deleted yet; we'll try again later.",
+        "delete_failed": "Not deleted yet: Tessera could not be reached for a day.",
+        "deleted": "Your shared answer was deleted.",
+        "conflict": "Tessera holds another answer for this screen. Change your answer to share it again.",
+        "rejected": "Tessera did not accept this answer."
+      },
+      "what_title": "What is shared?",
+      "what": {
+        "model": "The screen model: {model}",
+        "answer": "Your answer, the problems you chose and your note",
+        "firmware": "The screen's firmware version: {version}",
+        "addon": "The ESP Screens version: {version}",
+        "nothing_else": "Nothing else: no name, account, entities, logs or Home Assistant settings. Each screen shares under its own random key."
+      },
+      "privacy": "Privacy"
     }
   }
 }

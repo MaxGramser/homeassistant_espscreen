@@ -19,7 +19,7 @@ PAGE_ID = re.compile(r"[0-9a-f]{16}\Z")
 INSTANCE_ID = re.compile(r"[a-zA-Z0-9_-]{1,64}\Z")
 APPEARANCE = {
     "display": "display", "icon": "icon", "background": "background",
-    "historyHours": "history_hours", "refresh": "refresh", "subtitle": "sub",
+    "historyHours": "history_hours", "refresh": "refresh", "subtitle": "sub", "fit": "fit", "overlay": "overlay",
 }
 INTERACTION = {"tap": "tap", "inline": "inline", "controls": "controls", "action": "action"}
 

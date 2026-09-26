@@ -40,6 +40,11 @@ int main() {
   assert(make("x", "", "", "", "", 0, false, 48, 160, 12).button == "OK");
   assert(make("x", "", "", "", "  Open  ", 0, false, 48, 160, 12).button == "Open");
   assert(make("x", "", "", "", std::string(40, 'c'), 0, false, 48, 160, 12).button == std::string(9, 'c') + "...");
+  // The second button (firmware 0.3.3+): none unless it is asked for, trimmed and capped like the first, never "OK".
+  assert(make("x", "", "", "", "", 0, false, 48, 160, 12).button2.empty());
+  assert(make("x", "", "", "", "", 0, false, 48, 160, 12, "   ").button2.empty());
+  assert(make("x", "", "", "", "Accept", 0, false, 48, 160, 12, " Decline ").button2 == "Decline");
+  assert(make("x", "", "", "", "", 0, false, 48, 160, 12, std::string(40, 'd')).button2 == std::string(9, 'd') + "...");
   // The generated table carries every font glyph by name.
   assert(tile_icon::named("lightbulb") == 0xF0335 && tile_icon::named("alert-outline") == 0xF002A);
   assert(tile_icon::named("nope") == 0 && tile_icon::named("") == 0);
@@ -61,6 +66,11 @@ int main() {
   assert(c.card_w == 292 && c.card_h == 196 && c.icon_x == 18 && c.icon_y == 16 && c.text_x == 62 && c.text_w == 212);
   assert(c.title_y == 16 && c.title_h == 21 && c.subtitle_y == 44 && c.subtitle_h == 80);  // five whole lines of 16
   assert(c.button_w == 100 && c.button_h == 40 && c.button_inset == 14);
+  // Two buttons on the CYD share the row in two halves, the first on the right: 292 - 2 x 14 - 8 = 256, 128 each.
+  auto two = screen_alert::buttons(c, true);
+  assert(two.w == 128 && two.w2 == 128 && two.x == 292 - 14 - 128 && two.x2 == 14);
+  auto one = screen_alert::buttons(c, false);
+  assert(one.x == c.button_x && one.w == c.button_w && one.w2 == 0);
   // The picture keeps its size in millimetres, whatever the glass: a 1024 x 600 seven-inch shows the 16:9 picture the
   // Guition does, above the words.
   ui::configure(170, "standard");
@@ -110,6 +120,12 @@ int main() {
             } else {
               assert(l.image_w == 0 && l.image_h == 0);
             }
+            // Two buttons stay on the card, in the column of words (never over a picture beside them), side by side.
+            const auto b = screen_alert::buttons(l, true);
+            assert(b.x + b.w == l.card_w - l.button_inset && b.w == b.w2);
+            assert(b.x2 + b.w2 < b.x || b.w == 0);
+            assert(b.x2 >= l.column_x + l.button_inset - 1 || b.w == 0);
+            if (image && l.image_w > 0 && l.column_x > 0) assert(b.x2 >= l.image_x + l.image_w || b.w == 0);
             // The words end above the button, however little room the glass leaves them.
             if (l.subtitle_h > 0) assert(l.subtitle_y + l.subtitle_h <= l.card_h - l.button_inset - l.button_h);
           }

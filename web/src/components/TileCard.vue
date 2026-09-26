@@ -36,7 +36,8 @@ const tallAction = computed(() => tall.value && (props.tile.entity === "screen.s
 const goesTo = computed(() => pageTarget(props.tile.entity));
 const background = computed(() => state.inventory.backgrounds?.[props.tile.options?.background || ""]?.color);
 const bare = computed(() => props.tile.options?.background === "none");
-const display = computed(() => props.tile.options?.display || "standard");
+// A settings card stays a plain card, as the screen draws it, even when an older layout gave it a clock face (GitHub #47).
+const display = computed(() => props.tile.entity === "screen.settings" ? "standard" : props.tile.options?.display || "standard");
 const note = computed(() => (display.value !== "standard" ? displayName(display.value) : ""));
 const controls = computed(() => {
   const selected = effectiveControls(props.tile, state.inventory);
@@ -72,6 +73,10 @@ const label = computed(() => t("editor.tile_card.label", { name: name.value, slo
 const now = computed(() => new Date(state.now));
 const hourAngle = computed(() => (now.value.getHours() % 12 + now.value.getMinutes() / 60) * 30);
 const minuteAngle = computed(() => now.value.getMinutes() * 6);
+// The flip clock's two blocks, as the screen draws them: "07" "12" on 24 hours, "7" "12" with AM or PM on 12.
+const flipHours = computed(() => clock24.value ? String(now.value.getHours()).padStart(2, "0") : String(now.value.getHours() % 12 || 12));
+const flipMinutes = computed(() => String(now.value.getMinutes()).padStart(2, "0"));
+const amPm = computed(() => screenText(`screen.time.${now.value.getHours() < 12 ? "am" : "pm"}`));
 const clockDate = computed(() => screenText('screen.date.full', {
   weekday: screenText(`screen.date.weekdays.${now.value.getDay()}`),
   day: now.value.getDate(),
@@ -94,7 +99,7 @@ const value = (state: string) => (unit.value || NUMERIC.includes(domain.value) ?
 // The screens' own words for a state where Home Assistant hands us none (screen.ha, Home Assistant's words in the
 // screens' language, app 0.2.90): a binary sensor's by its device class, on and off, and the states of the domains
 // the screen names itself. A weather's windy-variant is windy there too.
-const HA_WORDS: Record<string, string> = { climate: "climate", cover: "cover", media_player: "media", person: "person", sun: "sun", vacuum: "vacuum", weather: "weather" };
+const HA_WORDS: Record<string, string> = { climate: "climate", cover: "cover", media_player: "media", person: "person", sun: "sun", vacuum: "vacuum", weather: "weather", alarm_control_panel: "alarm" };
 function haWord(c: { state: string; a: Record<string, any> }) {
   const key = (path: string) => (te(`screen.ha.${path}`) ? screenText(`screen.ha.${path}`) : "");
   const value = c.state === "windy-variant" ? "windy" : c.state.replace(/-/g, "_");
@@ -146,6 +151,12 @@ const artwork = computed(() => tall.value && display.value === 'cover' && domain
   ? `api/media-art?entity=${encodeURIComponent(props.tile.entity)}&v=${encodeURIComponent(String(current.value.a.artwork_mark))}` : '');
 const artworkLoaded = ref(false);
 watch(artwork, () => { artworkLoaded.value = false; });
+// A live camera on a 1x2 or 2x2 tile fills the card (app 0.3.8): the add-on's picture, cut the way the tile asks, with
+// the name at the bottom or nothing on it. Until the picture is here, the head as on the screen.
+const cameraCard = computed(() => shape.value.rows > 1 && !full.value && display.value === 'live' && ['camera', 'image'].includes(domain.value));
+const cameraPicture = computed(() => cameraCard.value ? `api/camera-preview?entity=${encodeURIComponent(props.tile.entity)}` : '');
+const cameraLoaded = ref(false);
+watch(cameraPicture, () => { cameraLoaded.value = false; });
 const mediaSubtitle = computed(() => [current.value?.a?.media_artist, current.value?.a?.media_album_name].filter(Boolean).join(' · '));
 const features = computed(() => Number(current.value?.a?.supported_features || 0));
 // The screens give a control that fills its room the content width of one cell, so its edges stand where the
@@ -174,7 +185,7 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, photo: artworkLoaded && !!artwork, bare, placeholder: placeholder || !live, chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
+  <div class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, photo: artworkLoaded && !!artwork, camera: cameraCard && cameraLoaded, bare, placeholder: placeholder || !live, chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
     :style="{ gridColumn: `${slot % grid.columns + 1} / span ${shape.columns}`, gridRow: `${Math.floor(slot % grid.slots / grid.columns) + 1} / span ${shape.rows}`, ...(background && !bare ? { backgroundColor: background } : {}), '--tile-icon': palette.icon, '--tile-circle': palette.circle, '--tile-accent': palette.accent }"
     :tabindex="(preview ? goesTo : live) ? 0 : -1" :role="(preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
     v-drag="preview ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
@@ -188,12 +199,36 @@ async function onKey(e: KeyboardEvent) {
       </svg>
       <span v-if="wide" class="lead"><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ note }}</span></span></span>
     </template>
+    <template v-else-if="display === 'dial' && domain === 'screen'">
+      <span class="face-clock" :class="{ upright: !wide || tall || full }">
+        <svg class="calm-dial" viewBox="0 0 60 60" aria-hidden="true">
+          <circle cx="30" cy="30" r="29" fill="#1b1b1b" />
+          <line v-for="a in [0, 90, 180, 270]" :key="a" x1="30" y1="4" x2="30" y2="11" stroke="#fff" stroke-width="3" stroke-linecap="round" :transform="`rotate(${a} 30 30)`" />
+          <circle v-for="a in [30, 60, 120, 150, 210, 240, 300, 330]" :key="a" cx="30" cy="6" r="1.6" fill="#9e9e9e" :transform="`rotate(${a} 30 30)`" />
+          <line x1="30" y1="30" x2="30" y2="15" stroke="#fff" stroke-width="4.5" stroke-linecap="round" :transform="`rotate(${hourAngle} 30 30)`" />
+          <line x1="30" y1="30" x2="30" y2="8" stroke="#2196f3" stroke-width="3" stroke-linecap="round" :transform="`rotate(${minuteAngle} 30 30)`" />
+          <circle cx="30" cy="30" r="3.6" fill="#2196f3" />
+        </svg>
+        <span v-if="wide || tall || full" class="face-text"><span class="big">{{ clockText(clock24, now) }}</span><span class="st">{{ clockDate }}</span></span>
+      </span>
+    </template>
+    <template v-else-if="display === 'flip' && domain === 'screen'">
+      <span class="face-clock flip">
+        <span class="blocks"><span class="block">{{ flipHours }}</span><span class="block">{{ flipMinutes }}</span><small v-if="!clock24">{{ amPm }}</small></span>
+        <span v-if="wide && !tall && !full" class="face-text"><span class="st">{{ clockDate }}</span></span>
+      </span>
+    </template>
     <template v-else-if="display === 'digital' && domain === 'screen'">
       <span class="digital-clock"><span class="big">{{ clockText(clock24, now) }}</span><span class="st">{{ clockDate }}</span></span>
     </template>
     <template v-else-if="display === 'graph' && domain === 'sensor'">
       <span class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ status }}</span></span></span>
       <SensorHistory :entity="tile.entity" :hours="Number(tile.options?.history_hours || 24)" />
+    </template>
+    <template v-else-if="cameraCard">
+      <img v-if="cameraPicture" :key="cameraPicture" class="camera-art" :class="tile.options?.fit === 'contain' ? 'contain' : 'fill'" :src="cameraPicture" alt="" @load="cameraLoaded = true" @error="cameraLoaded = false" />
+      <span v-if="!cameraLoaded" class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span v-if="status" class="st" :class="{ off: gone }">{{ status }}</span></span></span>
+      <span v-else-if="tile.options?.overlay !== 'none'" class="camera-name"><span>{{ name }}</span></span>
     </template>
     <template v-else-if="full && !tall">
       <span class="ic mdi" :class="{ lit: isOn, thumb: display === 'live' || display === 'cover' }">{{ glyph(tileIconCp(tile)) }}</span>
@@ -293,6 +328,18 @@ async function onKey(e: KeyboardEvent) {
 <style scoped>
 .tile .ic:not(.thumb) { color: var(--tile-icon); background: var(--tile-circle); border-radius: 50%; padding: 5px; }
 .tile .tog:not(.off) { background: var(--tile-accent); }
+.face-clock { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; height: 100%; padding-inline: 2px; }
+.face-clock.upright { flex-direction: column; justify-content: center; gap: 4px; }
+.face-clock .calm-dial { height: 100%; max-height: 100%; aspect-ratio: 1; flex: none; }
+.face-clock.upright .calm-dial { height: auto; width: min(70%, 100%); max-height: 70%; }
+.face-clock .face-text { display: grid; gap: 1px; min-width: 0; }
+.face-clock.upright .face-text { text-align: center; }
+.face-clock .face-text .big { font-size: 22px; font-weight: 500; }
+.face-clock .face-text .st { font-size: 9px; }
+.face-clock.flip { justify-content: center; }
+.face-clock .blocks { display: flex; align-items: baseline; gap: 3px; }
+.face-clock .block { background: #f1f1f1; border-radius: 4px; padding: 1px 5px; font-size: 24px; font-weight: 500; line-height: 1.25; background-image: linear-gradient(transparent calc(50% - .5px), #fff calc(50% - .5px), #fff calc(50% + .5px), transparent calc(50% + .5px)); }
+.face-clock .blocks small { font-size: 9px; margin-left: 2px; }
 .digital-clock { display: grid; gap: 3px; align-content: center; text-align: center; min-width: 0; width: 100%; height: 100%; }
 .digital-clock .big { font-size: 28px; font-weight: 400; }
 .digital-clock .st { font-size: 9px; }
@@ -324,4 +371,12 @@ async function onKey(e: KeyboardEvent) {
 .tile.tall.photo .ic { background: #333; color: white; }
 .tile.tall.photo .playback .key { background: transparent; }
 .tile.tall.photo .playback .key.primary { background: white; color: #111; }
+.tile .camera-art { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; background: #000; opacity: 0; pointer-events: none; }
+.tile .camera-art.fill { object-fit: cover; }
+.tile .camera-art.contain { object-fit: contain; }
+.tile.camera { justify-content: end; }
+.tile.camera .camera-art { opacity: 1; }
+/* The shade the add-on puts under the name (tile_art.FADE_SHARE, FADE_DEPTH). */
+.tile .camera-name { position: absolute; inset: auto 0 0 0; height: 42%; padding: 0 9px 8px; display: flex; align-items: end; color: white; font-weight: 700; background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .59)); border-radius: 0 0 inherit inherit; pointer-events: none; }
+.tile .camera-name > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

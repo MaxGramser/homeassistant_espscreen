@@ -6,7 +6,8 @@ real firmware for the host, starts it, and drives it over its API with no Home A
 - the demo layout of diagnostics/send_layout.py (every kind of card, fixed states at a fixed moment);
 - the firmware's own self test (ui_self_test): every page and overlay rendered, each page's cards and bar checked,
   and on every board the geometry check that nothing falls outside its area. A FAIL fails the run;
-- PNGs of every page, of three alerts (plain, long, with a button), of an alert with a camera picture on the boards
+- PNGs of every page, of the alerts (plain, long, with a button, with two buttons and button colors), of an alert with a camera picture
+  (one button and two) on the boards
   that draw pictures (made by the add-on's own camera_feed for the frame this screen's card makes for it), and of
   page 1 in Dark mode.
 
@@ -56,14 +57,24 @@ ALERTS = (
     ('alert-plain', dict(title='Someone is at the door', subtitle='Front door camera\nTap Coming to let them know', icon='doorbell')),
     ('alert-long', dict(title=LONG_TITLE, subtitle=LONG_SUBTITLE, icon='washing-machine')),
     ('alert-button', dict(title='Doorbell', subtitle='', icon='doorbell', button_text='Coming')),
+    # Two buttons (show_alert_choice, firmware 0.3.3+): in the keys' own paints, in key colours, and on a coloured card.
+    ('alert-choice', dict(title='Someone is at the door', subtitle='Front door camera', icon='doorbell',
+                          button_text='Open', button2_text='Not now')),
+    ('alert-choice-colors', dict(title='Open the garage?', subtitle='The car is on the driveway', icon='garage',
+                                 button_text='Accept', button_color='green', button2_text='Decline', button2_color='red')),
+    ('alert-choice-card', dict(title='Washing machine done', subtitle='Hang the laundry up or move it to the dryer',
+                               icon='washing-machine', color='blue', button_text='Heard', button2_text='Remind me',
+                               button2_color='gray')),
 )
+CHOICE_FIELDS = ('button_color', 'button2_text', 'button2_color')
 PROBE = re.compile(r'probe page=(-?\d+) applied=(-?\d+) shown=(\d+) tiles=(\d+) alert=(\d) pages=(\d+)')
 HEADER = re.compile(r'state page=(-?\d+) name=\[(.*?)\] shown=\[(.*?)\] name_box=(-?\d+),(-?\d+),(-?\d+),(-?\d+)')
 NAVIGATION = re.compile(r'navigation page=(-?\d+) footer=(\d) back=(\d) grid_height=(\d+) tile=(-?\d+),(-?\d+) prev=(-?\d+),(-?\d+) header=(-?\d+),(-?\d+)')
 ALERT = re.compile(r'alert on=(\d) ' + ' '.join(f'{part}=(-?\\d+),(-?\\d+),(-?\\d+),(-?\\d+)'
-                                              for part in ('card', 'frame', 'icon', 'title', 'subtitle', 'button')))
+                                              for part in ('card', 'frame', 'icon', 'title', 'subtitle', 'button', 'button2')))
 # A page's own title (app 0.2.123): a long one among them, the kind that stood in dots after a page change (GitHub #27).
 PAGE_TITLES = ['Demo cards', 'Living room downstairs', 'Kitchen']
+ALARM = re.compile(r'alarm open=(\d) pad=(\d) back=(\S*) title=\[(.*?)\] status=\[(.*?)\] line=\[(.*?)\] modes=(\S*) keys=(\S*) faults=(.*?) locked=(\d+)$')
 
 
 def overlap(a, b):
@@ -153,8 +164,9 @@ def free(port):
 class Run:
     """One variant's program, driven over its API."""
 
-    def __init__(self, build, out, pictures, camera):
+    def __init__(self, build, out, pictures, camera, only=None):
         self.build, self.item, self.out, self.pictures, self.camera = build, build.variant, out, pictures, camera
+        self.only = only
         self.lines, self.warnings, self.failures = [], [], []
 
     async def call(self, name, **args):
@@ -240,13 +252,16 @@ class Run:
     async def alert(self, name, reference, **given):
         """One alert over page 1, rendered and dismissed; page 1 must then look as it did."""
         args = dict(title='', subtitle='', icon='', color='', button_text='', timeout=0, flash=False)
+        choice = any(field in given for field in CHOICE_FIELDS)
+        if choice:
+            args.update({field: '' for field in CHOICE_FIELDS})
         args.update(given)
         start = len(self.lines)
-        await self.call('show_alert', **args)
+        await self.call('show_alert_choice' if choice else 'show_alert', **args)
         await self.until(lambda l: '[alert' in l and 'show "' in l, 10, f'{name}: the alert never showed', start)
         state = await self.state()
         self.failures += [f'{name}, as it opens: {fault}' for fault in alert_faults(state['boxes'])]
-        if name == 'alert-camera':
+        if name.startswith('alert-camera'):
             if state['boxes']['frame'][2] < state['boxes']['frame'][0]:
                 self.failures.append(f'{name}: no frame for the picture while it loads')
             await self.render(f'{name}-waiting')
@@ -279,7 +294,7 @@ class Run:
         line = await self.until(lambda l: ALERT.search(l), 10, 'render_state', start)
         header = next(HEADER.search(l) for l in self.lines[start:] if HEADER.search(l))
         values = [int(v) for v in ALERT.search(line).groups()]
-        boxes = {name: tuple(values[1 + 4 * i:5 + 4 * i]) for i, name in enumerate(('card', 'frame', 'icon', 'title', 'subtitle', 'button'))}
+        boxes = {name: tuple(values[1 + 4 * i:5 + 4 * i]) for i, name in enumerate(('card', 'frame', 'icon', 'title', 'subtitle', 'button', 'button2'))}
         return {'page': int(header[1]), 'name': header[2], 'shown': header[3], 'alert': values[0], 'boxes': boxes}
 
     async def swipe(self, forward):
@@ -575,6 +590,187 @@ class Run:
                 await self.render(f'{size}-{page + 1}')
         return checks
 
+    async def alarm_probe(self):
+        start = len(self.lines)
+        await self.call('render_alarm')
+        line = await self.until(lambda l: ALARM.search(l), 10, 'render_alarm', start)
+        m = ALARM.search(line)
+        points = lambda text: [tuple(int(n) for n in p.rstrip('d').split(',')) + (p.endswith('d'),) for p in text.split(';') if p]
+        return {'open': m[1] == '1', 'pad': m[2] == '1', 'back': tuple(int(n) for n in m[3].split(',')) if m[3] else None,
+                'title': m[4], 'status': m[5], 'line': m[6], 'modes': points(m[7]), 'keys': points(m[8]), 'faults': m[9],
+                'locked': int(m[10])}
+
+    async def tap(self, x, y):
+        await self.call('render_finger', x=x, y=y, down=True)
+        await asyncio.sleep(0.15)
+        await self.call('render_finger', x=x, y=y, down=False)
+        await asyncio.sleep(0.3)
+
+    async def alarm_until(self, test, what, timeout=8):
+        end = time.monotonic() + timeout
+        while True:
+            card = await self.alarm_probe()
+            if test(card):
+                return card
+            if time.monotonic() > end:
+                raise RuntimeError(f'alarm: {what}: {card}')
+            await asyncio.sleep(0.15)
+
+    async def alarm_panel(self, grid):
+        """The alarm panel (firmware 0.3.3+) the way it is used: a finger on the tile opens its card, a mode opens the
+        keypad, the digits and OK send Home Assistant's action with the code, Home Assistant answers and its states come
+        back through the add-on's own messages. Someone coming in wakes the card with the keypad; three wrong codes lock
+        it. Every key a finger's size and inside the glass, checked on every board by the card itself (render_alarm)."""
+        from core import alarm_extras, state_message
+        entity = 'alarm_control_panel.demo_home'
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        def alarm(state, delay=None, **attributes):
+            attrs = {'friendly_name': 'Alarm', 'code_format': 'number', 'code_arm_required': True, 'changed_by': None,
+                     'supported_features': 1 | 2 | 4 | 8 | 32, **attributes}
+            if delay:
+                attrs['delay'] = delay
+            # The screen's clock stands at MOMENT (render_time), so a delay starts there.
+            return {'state': state, 'attributes': attrs, 'last_changed': MOMENT.isoformat()}
+        states = {entity: alarm('disarmed'), 'sensor.hall': {'state': '21.5', 'attributes': {'unit_of_measurement': '°C'}}}
+        record = send_layout.migrate_legacy(dict(title='Alarm', tiles=[
+            dict(entity=entity, name='Alarm', slot=0), dict(entity='sensor.hall', name='Hall', slot=1)]), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        async def push():
+            values = []
+            for index, tile in enumerate(tiles):
+                extra = alarm_extras(states[tile['entity']], None) if tile['entity'] == entity else None
+                values.append(state_message(index, tile, states, extra or None))
+            await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await push()
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        faults = []
+        def keep(card, where):
+            if card['faults']:
+                faults.append(f'{where}: {card["faults"]}')
+        async def call_for(service, since):
+            end = time.monotonic() + 8
+            while time.monotonic() < end:
+                found = [c for c in calls[since:] if c.service == service]
+                if found:
+                    return found[-1]
+                await asyncio.sleep(0.05)
+            raise RuntimeError(f'alarm: the screen never sent {service}: {[c.service for c in calls[since:]]}')
+        async def type_code(card, digits):
+            for digit in digits:
+                x, y, _ = card['keys'][10 if digit == '0' else int(digit) - 1]
+                await self.tap(x, y)
+        await self.render('_alarm-home', keep=False)
+        tile = (await self.navigation_state())['tile']
+        await self.tap(*tile)
+        card = await self.alarm_until(lambda c: c['open'] and not c['pad'], 'the tile never opened its card')
+        keep(card, 'card')
+        if len(card['modes']) != 5:
+            faults.append(f'card: {len(card["modes"])} mode keys, not the five the panel supports (trigger left out)')
+        await self.render('alarm-card')
+        # Arm away: the keypad, a code, OK. The screen sends the action with the code; Home Assistant answers and the
+        # panel goes through its exit delay to armed away.
+        await self.tap(*card['modes'][1][:2])
+        card = await self.alarm_until(lambda c: c['pad'] and len(c['keys']) == 12, 'Away never opened the keypad')
+        keep(card, 'keypad')
+        await self.render('alarm-keypad')
+        await type_code(card, '1234')
+        await self.render('alarm-keypad-typed')
+        since = len(calls)
+        await self.tap(*card['keys'][11][:2])
+        sent = await call_for('alarm_control_panel.alarm_arm_away', since)
+        if sent.data.get('code') != '1234' or sent.data.get('entity_id') != entity or not sent.call_id:
+            faults.append(f'arm away went out as {sent.service} {sent.data} call_id={sent.call_id}')
+        self.client.send_homeassistant_action_response(sent.call_id, True, '', b'')
+        states[entity] = alarm('arming', delay=30)
+        await push()
+        card = await self.alarm_until(lambda c: not c['pad'] and 'Arming' in c['status'], 'the keypad never gave way to the card')
+        keep(card, 'arming')
+        await self.snapshot(self.out / 'alarm-arming.png')
+        states[entity] = alarm('armed_away', changed_by='Sam')
+        await push()
+        await asyncio.sleep(0.25)
+        await self.snapshot(self.out / 'alarm-arriving.png')
+        card = await self.alarm_until(lambda c: 'Armed away' in c['status'], 'the card never said armed away')
+        await asyncio.sleep(1.6)
+        await self.render('alarm-armed')
+        # Someone comes in: the screen, on page 1 with the card closed, wakes with the keypad to disarm.
+        await self.tap(*card['back'][:2])
+        await self.alarm_until(lambda c: not c['open'], 'Back never closed the card')
+        states[entity] = alarm('pending', delay=30)
+        await push()
+        card = await self.alarm_until(lambda c: c['open'] and c['pad'] and c['title'] == 'Disarm', 'pending never opened the keypad')
+        keep(card, 'pending keypad')
+        await self.snapshot(self.out / 'alarm-pending.png')
+        # A wrong code refused by Home Assistant (the manual alarm's ServiceValidationError), then the right one.
+        await type_code(card, '9999')
+        since = len(calls)
+        await self.tap(*card['keys'][11][:2])
+        sent = await call_for('alarm_control_panel.alarm_disarm', since)
+        self.client.send_homeassistant_action_response(sent.call_id, False, 'Invalid alarm code provided', b'')
+        card = await self.alarm_until(lambda c: c['line'] == 'Wrong code', 'a refused code never said so')
+        await self.render('alarm-wrong-code', timeout=3)
+        refused = [c for c in calls if c.service == 'esphome.screen_alarm_code_refused']
+        if not refused or 'code' in refused[-1].data or refused[-1].data.get('failures') != '1':
+            faults.append(f'the refusal event: {[c.data for c in refused]}')
+        await type_code(card, '1234')
+        since = len(calls)
+        await self.tap(*card['keys'][11][:2])
+        sent = await call_for('alarm_control_panel.alarm_disarm', since)
+        self.client.send_homeassistant_action_response(sent.call_id, True, '', b'')
+        states[entity] = alarm('disarmed', changed_by='Sam')
+        await push()
+        card = await self.alarm_until(lambda c: c['open'] and not c['pad'] and 'Disarmed' in c['status'], 'disarming never showed the card')
+        await asyncio.sleep(1)
+        await self.render('alarm-disarmed')
+        # Three wrong codes lock the keypad for 30 s, and Home Assistant hears of each.
+        await self.tap(*card['modes'][0][:2])
+        card = await self.alarm_until(lambda c: c['pad'], 'Home never opened the keypad')
+        for attempt in range(3):
+            await type_code(card, '0000')
+            since = len(calls)
+            await self.tap(*card['keys'][11][:2])
+            sent = await call_for('alarm_control_panel.alarm_arm_home', since)
+            self.client.send_homeassistant_action_response(sent.call_id, False, 'Invalid alarm code provided', b'')
+            card = await self.alarm_until(lambda c: c['line'] in ('Wrong code',) or c['locked'], f'wrong code {attempt + 1} never counted')
+            await asyncio.sleep(0.4)
+        card = await self.alarm_until(lambda c: c['locked'] > 25 and all(k[2] for k in c['keys']), 'three wrong codes never locked the keypad')
+        await self.render('alarm-locked', timeout=3)
+        refused = [c for c in calls if c.service == 'esphome.screen_alarm_code_refused']
+        if refused[-1].data.get('locked') != '30':
+            faults.append(f'the third wrong code locked for {refused[-1].data.get("locked")} s, not 30')
+        # The alarm goes off: the screen opens the keypad to disarm by itself (still locked here), and Back shows the
+        # card with its big Disarm key.
+        states[entity] = alarm('triggered')
+        await push()
+        card = await self.alarm_until(lambda c: c['pad'] and c['title'] == 'Disarm' and c['status'] == 'Triggered',
+                                      'going off never opened the keypad to disarm')
+        await self.tap(*card['back'][:2])
+        card = await self.alarm_until(lambda c: c['open'] and not c['pad'] and len(c['modes']) == 1, 'triggered never showed the Disarm key')
+        keep(card, 'triggered')
+        await self.snapshot(self.out / 'alarm-triggered.png')
+        # A panel without a code: a mode goes straight out, without a keypad.
+        states[entity] = alarm('disarmed', code_format=None)
+        await push()
+        card = await self.alarm_until(lambda c: len(c['modes']) == 5, 'the codeless card never came')
+        since = len(calls)
+        await self.tap(*card['modes'][3][:2])
+        sent = await call_for('alarm_control_panel.alarm_arm_vacation', since)
+        if 'code' in sent.data:
+            faults.append(f'a codeless panel was sent a code: {sent.data}')
+        await self.tap(*card['back'][:2])
+        await self.call('render_page', page=0)
+        states[entity] = alarm('arming')
+        await push()
+        await asyncio.sleep(0.5)
+        await self.snapshot(self.out / 'alarm-tile-arming.png')
+        self.failures += [f'alarm: {f}' for f in faults]
+        self.warnings.append(f'alarm panel: card, keypad, arm with code, entry delay, wrong code, lock, trigger, codeless; {len(calls)} calls')
+        return 1
+
     async def drive(self):
         self.client = APIClient('127.0.0.1', self.item.port, None)
         for _ in range(240):
@@ -613,6 +809,8 @@ class Run:
             await asyncio.sleep(0.2)
         pages = p[5]
         self.canvas = (side['width'], side['height'])
+        if self.only == 'alarm':
+            return 1, await self.alarm_panel(grid)
         checks = await self.self_test()
         await self.moments(pages)
         for page in range(pages):
@@ -628,6 +826,9 @@ class Run:
             await self.send({'v': 1, 'op': 'camera', 't': 'alert', 'e': 'camera.front_door', 'u': ''})
             await self.alert('alert-camera', page1, title='Someone is at the door', subtitle='Front door', icon='doorbell',
                              color='orange', button_text='Coming')
+            await self.send({'v': 1, 'op': 'camera', 't': 'alert', 'e': 'camera.front_door', 'u': ''})
+            await self.alert('alert-camera-choice', page1, title='Someone is at the door', subtitle='Front door', icon='doorbell',
+                             button_text='Open', button_color='green', button2_text='Not now')
         self.client.switch_command(dark.key, True)
         end = time.monotonic() + 10
         while (await self.snapshot(self.out / '_dark.ppm')).tobytes() == page1.tobytes():
@@ -640,6 +841,7 @@ class Run:
         await self.appearance_edits(grid)
         checks += await self.detail_navigation(grid, entities)
         checks += await self.rectangular_tiles(grid)
+        checks += await self.alarm_panel(grid)
         return pages, checks
 
     async def run(self):
@@ -695,9 +897,13 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
+    parser.add_argument('--only', choices=['alarm'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
     args = parser.parse_args()
     # The programs write their pictures from their own folder, so every path they get is absolute.
     args.out = args.out.resolve()
+    if args.port_base:
+        host.PORT_BASE = args.port_base
     items = [host.variant(key) for key in args.variants] or host.variants()
     busy = [str(item.port) for item in items if not free(item.port)]
     if busy:
@@ -717,7 +923,7 @@ def main():
             print(f'{item.key}: BUILD FAILED\n{output[-2000:]}', flush=True)
             continue
         built = time.monotonic()
-        run = Run(build, args.out / item.key, pictures, camera)
+        run = Run(build, args.out / item.key, pictures, camera, args.only)
         try:
             summary = asyncio.run(run.run())
         except Exception as error:  # a program that crashed or stopped answering

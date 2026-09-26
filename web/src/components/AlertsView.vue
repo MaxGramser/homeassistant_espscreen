@@ -110,6 +110,16 @@ const oneYaml = computed(() => {
   if (alerts.value?.camera && (!screen || screen.pictures)) lines.push(`  ${alerts.value.camera.name}: ${alerts.value.camera.example}`);
   return `event: ${alerts.value?.broadcast?.show || "esp_screens_show_alert"}\nevent_data:\n${lines.join("\n")}`;
 });
+// Two buttons (firmware 0.3.3+): the event with a second button, its colours and its action, as an automation writes it.
+const choiceYaml = computed(() => {
+  const choice = alerts.value?.choice;
+  const lines = [`  title: ${example("title", "Someone is at the door")}`, `  icon: doorbell`,
+    `  button_text: ${example("button_text", "Coming")}`, `  button_color: green`];
+  const text = choice?.fields?.find((f: any) => f.name === "button2_text")?.example || "Not now";
+  lines.push(`  button2_text: ${yamlString(text)}`, `  button2_color: red`, `  action: script.open_gate`,
+    `  ${choice?.action2?.name || "button2_action"}: ${choice?.action2?.example || "script.snooze_reminder"}`);
+  return `event: ${alerts.value?.broadcast?.show || "esp_screens_show_alert"}\nevent_data:\n${lines.join("\n")}`;
+});
 const iconGroups = computed(() => {
   if (!alerts.value || !icons.value) return [];
   const query = iconQuery.value.trim().toLowerCase();
@@ -122,7 +132,7 @@ const orange = computed(() => alerts.value?.colors?.find((c: any) => c.name === 
 const typeName = (type: string) => (["string", "int", "bool"].includes(type) ? t(`editor.alerts.fields.types.${type}`) : type);
 function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }
 // The sections by id; each one's name in the bar is editor.alerts.nav.<the id without "alerts-">.
-const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", "alerts-one", "alerts-fields", "alerts-icons", "alerts-colors", "alerts-behaviour", "alerts-events", "alerts-tips"];
+const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", "alerts-one", "alerts-choice", "alerts-fields", "alerts-icons", "alerts-colors", "alerts-behaviour", "alerts-events", "alerts-tips"];
 </script>
 
 <template>
@@ -279,6 +289,28 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <button type="button" class="btn quiet mini" id="alerts-one-copy" @click="copyText(oneYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
+      <section v-if="alerts.choice" id="alerts-choice" class="card">
+        <h2>{{ t("editor.alerts.choice.title") }}</h2>
+        <i18n-t keypath="editor.alerts.choice.text" tag="p" scope="global">
+          <template #button2_text><code>button2_text</code></template>
+          <template #button_color><code>button_color</code></template>
+          <template #button2_color><code>button2_color</code></template>
+        </i18n-t>
+        <i18n-t keypath="editor.alerts.choice.event" tag="p" scope="global">
+          <template #button2_action><code>button2_action</code></template>
+          <template #button2_data><code>button2_data</code></template>
+          <template #action><code>action</code></template>
+          <template #version>{{ alerts.choice.min_firmware }}</template>
+        </i18n-t>
+        <div class="copy-line">
+          <pre id="alerts-choice-example">{{ choiceYaml }}</pre>
+          <button type="button" class="btn quiet mini" id="alerts-choice-copy" @click="copyText(choiceYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+        </div>
+        <i18n-t keypath="editor.alerts.choice.direct" tag="p" scope="global">
+          <template #choice><code>esphome.&lt;device_name&gt;_{{ alerts.choice.action }}</code></template>
+          <template #ending><code>action: button2</code></template>
+        </i18n-t>
+      </section>
       <section id="alerts-fields" class="card">
         <h2>{{ t("editor.alerts.nav.fields") }}</h2>
         <p>{{ t("editor.alerts.fields.text") }}</p>
@@ -291,6 +323,20 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
               <td>{{ field.help }}</td>
               <td><code>{{ typeof field.example === "string" ? field.example : String(field.example) }}</code></td>
               <td>{{ limitText(field.name) || (field.type === "int" ? t("editor.alerts.fields.seconds") : "—") }}</td>
+            </tr>
+            <tr v-for="field in alerts.choice?.fields || []" :key="field.name">
+              <td><code>{{ field.name }}</code><small>{{ field.label }}</small></td>
+              <td>{{ typeName(field.type) }}</td>
+              <td>{{ field.help }}</td>
+              <td><code>{{ field.example }}</code></td>
+              <td>{{ field.name === "button2_text" ? limitText("button_text") : "—" }}</td>
+            </tr>
+            <tr v-if="alerts.choice?.action2">
+              <td><code>{{ alerts.choice.action2.name }}</code><small>{{ alerts.choice.action2.label }}</small></td>
+              <td>{{ t("editor.alerts.fields.types.string") }}</td>
+              <td>{{ alerts.choice.action2.help }}</td>
+              <td><code>{{ alerts.choice.action2.example }}</code></td>
+              <td>—</td>
             </tr>
             <tr v-if="alerts.camera">
               <td><code>{{ alerts.camera.name }}</code><small>{{ alerts.camera.label }}</small></td>

@@ -1,5 +1,6 @@
 {
   "domains": [
+    "alarm_control_panel",
     "binary_sensor",
     "button",
     "camera",
@@ -85,7 +86,9 @@
     ],
     "screen": [
       "digital",
-      "analog"
+      "analog",
+      "dial",
+      "flip"
     ],
     "sun": [
       "standard",
@@ -191,6 +194,16 @@
     15,
     30
   ],
+  "picture": {
+    "fit": [
+      "fill",
+      "contain"
+    ],
+    "overlay": [
+      "name",
+      "none"
+    ]
+  },
   "icons": [
     "account",
     "account-child",

@@ -146,6 +146,15 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status, 304)
         self.assertEqual((await self.client.get('/api/media-art?entity=light.a')).status, 404)
         self.assertEqual((await self.client.get('/api/media-art?entity=media_player.unknown')).status, 404)
+        # A camera that fills a taller tile on the mockup (app 0.3.8): prepared pixels too, never a camera URL.
+        self.ha.states['camera.garden'] = {'state': 'idle', 'attributes': {'access_token': 'private', 'entity_picture': '/api/camera_proxy/camera.garden?token=private'}}
+        self.manager.camera.fetch = AsyncMock(return_value=source.getvalue())
+        response = await self.client.get('/api/camera-preview?entity=camera.garden')
+        self.assertEqual(response.status, 200)
+        with Image.open(io.BytesIO(await response.read())) as image:
+            self.assertEqual(image.size, (512, 256))
+        self.assertEqual((await self.client.get('/api/camera-preview?entity=media_player.test')).status, 404)
+        self.assertEqual((await self.client.get('/api/camera-preview?entity=camera.unknown')).status, 404)
 
     async def test_states_give_the_value_word_and_attributes_per_entity(self):
         response = await self.client.get('/api/states?entity=light.a&entity=sensor.t&entity=light.nope&entity=screen.clock')

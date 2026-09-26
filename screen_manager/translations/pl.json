@@ -282,6 +282,13 @@
       "rejected": "Pomiar odrzucony; spróbuj ponownie",
       "save_failed": "Zapis nieudany; spróbuj ponownie"
     },
+    "alarm": {
+      "wrong_code": "Błędny kod",
+      "nothing_changed": "Nic się nie zmieniło. Sprawdź kod.",
+      "try_again": "Spróbuj ponownie za {time}",
+      "too_many": "Zbyt wiele błędnych kodów",
+      "letters": "Ten kod zawiera litery. Wprowadź go w Home Assistant."
+    },
     "ha": {
       "on": "włączono",
       "off": "wyłączono",
@@ -429,6 +436,35 @@
         "both": "ruch w obu płaszczyznach",
         "vertical": "ruch pionowy",
         "horizontal": "ruch poziomy"
+      },
+      "alarm": {
+        "disarmed": "rozbrojony",
+        "armed_home": "uzbrojony (w domu)",
+        "armed_away": "uzbrojony (poza domem)",
+        "armed_night": "uzbrojony (noc)",
+        "armed_vacation": "uzbrojony (wakacje)",
+        "armed_custom_bypass": "uzbrojony (własny bypass)",
+        "pending": "oczekiwanie",
+        "arming": "uzbrajanie",
+        "disarming": "rozbrajanie",
+        "triggered": "wyzwolony"
+      },
+      "alarm_mode": {
+        "armed_home": "W domu",
+        "armed_away": "Poza domem",
+        "armed_night": "Noc",
+        "armed_vacation": "Wakacje",
+        "armed_custom_bypass": "Niestandardowy",
+        "disarmed": "Rozbrojony"
+      },
+      "alarm_action": {
+        "disarm": "Rozbrój",
+        "arm_home": "Uzbrój (w domu)",
+        "arm_away": "Uzbrój (poza domem)",
+        "arm_night": "Uzbrój (noc)",
+        "arm_vacation": "Uzbrój (tryb wakacyjny)",
+        "arm_custom_bypass": "Niestandardowy bypass",
+        "enter_code": "Wprowadź kod"
       }
     },
     "navigation": {
@@ -657,6 +693,13 @@
         "destination_exists": "Ekran docelowy ma już zapisany układ",
         "update_tall": "Zaktualizuj ekran, aby używać wyższych kafelków",
         "memory": "Ekran nie ma wystarczającej ilości wolnej pamięci dla tego układu. Użyj mniejszej liczby kafelków."
+      },
+      "feedback": {
+        "invalid": "Tej odpowiedzi nie można udostępnić. Wybierz tak lub nie do końca i tylko wymienione problemy.",
+        "comment": "Notatka może mieć najwyżej 1000 znaków.",
+        "unknown_board": "Opinie nie są jeszcze dostępne dla tej płytki.",
+        "deleting": "Twoja udostępniona odpowiedź jest jeszcze usuwana. Odpowiedz ponownie, gdy to się zakończy.",
+        "storage": "Opinie są wyłączone: zapisane dane pochodzą z innej wersji ESP Screens."
       }
     },
     "status": {
@@ -839,10 +882,28 @@
         "screen": {
           "label": "Ekran",
           "help": "Który ekran dostaje alert: jego nazwa urządzenia (np. kitchen-screen), nazwa wyświetlana w Home Assistant albo pomieszczenie, które obejmuje każdy ekran w nim. Lista, np. [kitchen-screen, hallway], obejmuje kilka. Pomiń, aby wysłać na wszystkie ekrany. Nazwa, która nie pasuje do żadnego ekranu, nie wysyła niczego; dziennik ESP Screen Manager podaje wtedy znane mu ekrany. Tylko przez zdarzenia esp_screens_show_alert i esp_screens_dismiss_alert."
+        },
+        "button_color": {
+          "label": "Kolor przycisku",
+          "help": "Przycisk we własnym kolorze: red, orange, yellow, green, mint, blue, purple, pink lub gray, jako pełny kolor z białym napisem. Puste zostawia ciemny przycisk."
+        },
+        "button2_text": {
+          "label": "Tekst drugiego przycisku",
+          "help": "Drugi przycisk na lewo od pierwszego, do wyboru, np. Odrzuć i Akceptuj. Puste daje jeden przycisk.",
+          "example": "Nie teraz"
+        },
+        "button2_color": {
+          "label": "Kolor drugiego przycisku",
+          "help": "Drugi przycisk w jednym z tych samych kolorów. Puste zostawia jasny przycisk."
+        },
+        "button2_action": {
+          "label": "Akcja drugiego przycisku",
+          "help": "Akcja Home Assistant wykonywana raz, gdy drugi przycisk zostanie naciśnięty na dowolnym ekranie, jak `action` dla pierwszego. `button2_data` podaje jej pola. Tylko przez zdarzenie esp_screens_show_alert."
         }
       },
       "endings": {
         "ok": "Naciśnięto przycisk",
+        "button2": "Naciśnięto drugi przycisk",
         "timeout": "Upłynął limit czasu",
         "replaced": "Zastąpił go nowy alert",
         "remote": "dismiss_alert z Home Assistant"
@@ -1309,7 +1370,8 @@
         "select": "Selektory",
         "person": "Osoby",
         "timer": "Minutniki",
-        "screen": "Ekran"
+        "screen": "Ekran",
+        "alarm_control_panel": "Alarm"
       },
       "more": "Więcej ({n})",
       "fewer": "Mniej",
@@ -1349,7 +1411,8 @@
       "person": "Osoba",
       "camera": "Kamera",
       "image": "Obraz",
-      "entity": "Encja"
+      "entity": "Encja",
+      "alarm_control_panel": "Panel alarmowy"
     },
     "displays": {
       "standard": "standardowy",
@@ -1358,6 +1421,8 @@
       "graph": "wykres",
       "digital": "zegar cyfrowy",
       "analog": "zegar analogowy",
+      "dial": "prosta tarcza",
+      "flip": "zegar klapkowy",
       "sunpath": "tor słońca",
       "live": "obraz na żywo",
       "cover": "okładka albumu"
@@ -1385,6 +1450,8 @@
         "label": "Widok",
         "digital": "Zegar cyfrowy",
         "analog": "Zegar analogowy",
+        "dial": "Prosta tarcza",
+        "flip": "Zegar klapkowy",
         "standard": "Nazwa i stan",
         "watch": "Duża wartość",
         "forecast": "Prognoza pogody",
@@ -1393,16 +1460,31 @@
         "live": "Obraz na żywo",
         "live_hint": "Mały obraz z kamery w miejscu ikony, odświeżany w tempie poniżej, dopóki strona jest na ekranie. Dotknięcie nadal otwiera go na pełnym ekranie.",
         "live_needs_firmware": "Obraz na żywo wymaga firmware 0.2.77 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie.",
+        "live_card_hint": "Obraz wypełnia kafelek i odświeża się w tempie poniżej, dopóki strona jest na ekranie. Dotknięcie nadal otwiera go na pełnym ekranie.",
+        "live_card_needs_firmware": "Obraz wypełniający kafelek wymaga firmware 0.3.3 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie. Do tego czasu ekran pokazuje mały obraz w miejscu ikony.",
         "cover": "Okładka albumu",
         "cover_hint": "Okładka albumu tego, co gra, w miejscu ikony, jak na kafelku Home Assistant; odtwarzacz bez obrazu zachowuje ikonę. Dotknięcie nadal otwiera kartę.",
         "cover_needs_firmware": "Okładka albumu na kafelku wymaga firmware 0.2.78 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie.",
         "no_graph": "Home Assistant nie ma wartości liczbowych dla tej encji, więc wykres pozostanie pusty. Wybierz inny widok.",
         "no_forecast": "Ta usługa pogodowa nie ma prognozy dziennej w Home Assistant. Wybierz inny widok.",
-        "tall_cover_hint": ""
+        "tall_cover_hint": "",
+        "face_needs_firmware": "Ten zegar wymaga oprogramowania 0.3.6 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie. Do tego czasu ekran pokazuje zegar cyfrowy."
       },
       "refresh": {
         "label": "Odświeżanie",
         "seconds": "Co {n} s"
+      },
+      "picture": {
+        "fit": {
+          "label": "Obraz",
+          "fill": "Wypełnij kafelek",
+          "contain": "Cały obraz"
+        },
+        "overlay": {
+          "label": "Na obrazie",
+          "name": "Nazwa",
+          "none": "Nic"
+        }
       },
       "size": {
         "label": "Rozmiar",
@@ -1868,7 +1950,8 @@
         "behaviour": "Działanie",
         "events": "Zdarzenia",
         "tips": "Wskazówki",
-        "one": "Jeden ekran"
+        "one": "Jeden ekran",
+        "choice": "Dwa przyciski"
       },
       "try": {
         "text": "Wyślij teraz jeden alert z tymi samymi polami, które wysyła automatyzacja. Ekran pokaże kartę, a przy włączonym miganiu mignie podświetleniem.",
@@ -1997,6 +2080,12 @@
         "picture_yes": "Tak",
         "picture_no": "Nie, alert przychodzi bez niego",
         "none": "Nie sparowano jeszcze żadnego ekranu. Gdy ekran zostanie sparowany, tutaj pojawi się, co dla niego wpisać."
+      },
+      "choice": {
+        "title": "Dwa przyciski i kolory przycisków",
+        "text": "Dodaj {second}, aby uzyskać drugi przycisk na lewo od pierwszego, żeby osoba przy ekranie mogła wybrać, np. Nie teraz i Otwórz. {first_color} i {second_color} nadają przyciskowi własny kolor, zielony na tak i czerwony na nie. Która odpowiedź jest po której stronie, decydujesz ty: pierwszy przycisk jest zawsze po prawej.",
+        "event": "Przez zdarzenie każde z tych pól jest opcjonalne, a {second_action} z {second_data} uruchamia akcję z drugiego przycisku, tak jak {action} z pierwszego. Ekran z oprogramowaniem starszym niż {version} pokazuje alert z jednym przyciskiem.",
+        "direct": "Wywołujesz ekran bezpośrednio? Jego akcja {choice} przyjmuje pola show_alert oraz te trzy; drugi przycisk kończy alert z {ending}."
       }
     },
     "override": {
@@ -2113,6 +2202,58 @@
       "choose_page": "Strona",
       "all_connections": "Wszystkie połączenia",
       "migration_adjusted": "Nieprawidłowe stare ustawienia zastąpiono domyślnymi: {fields}. Oryginały pozostają w kopii migracji."
+    },
+    "feedback": {
+      "question": "Czy ekran działa tak, jak oczekujesz?",
+      "intro": "Pomóż nam ulepszyć ten model. Twoja odpowiedź i model ekranu trafiają do Tessera, bez konta i bez ustawień Home Assistant.",
+      "yes": "Tak, działa dobrze",
+      "no": "Nie do końca",
+      "later": "Później",
+      "never": "Nie pytaj więcej",
+      "add_something": "Dodaj coś",
+      "issues_question": "Z czym masz problem?",
+      "issues": {
+        "display": "Ekran",
+        "touch": "Dotyk",
+        "connection": "Połączenie",
+        "installation": "Instalacja",
+        "other": "Inne"
+      },
+      "comment_label": "Notatka (opcjonalnie)",
+      "comment_hint": "Nie podawaj danych osobowych, logów, haseł ani kluczy API.",
+      "add_details": "Dodaj szczegóły",
+      "done": "Gotowe",
+      "settings_title": "Opinia",
+      "shared": {
+        "working": "Udostępniono: działa dobrze",
+        "not_working": "Udostępniono: nie do końca"
+      },
+      "none_yet": "Nie udostępniono jeszcze odpowiedzi dla tego ekranu.",
+      "none_now": "Z tego ekranu nic nie jest teraz udostępnione.",
+      "share": "Udostępnij odpowiedź",
+      "change": "Zmień odpowiedź",
+      "delete": "Usuń moją udostępnioną odpowiedź",
+      "retry": "Spróbuj ponownie",
+      "status": {
+        "sending": "Wysyłanie…",
+        "received": "Dziękujemy, odpowiedź dotarła.",
+        "waiting": "Jeszcze nie wysłano; spróbujemy ponownie później.",
+        "failed": "Nie wysłano: Tessera była niedostępna przez dobę.",
+        "deleting": "Jeszcze nie usunięto; spróbujemy ponownie później.",
+        "delete_failed": "Jeszcze nie usunięto: Tessera była niedostępna przez dobę.",
+        "deleted": "Twoja udostępniona odpowiedź została usunięta.",
+        "conflict": "Tessera ma inną odpowiedź dla tego ekranu. Zmień odpowiedź, aby udostępnić ją ponownie.",
+        "rejected": "Tessera nie przyjęła tej odpowiedzi."
+      },
+      "what_title": "Co jest udostępniane?",
+      "what": {
+        "model": "Model ekranu: {model}",
+        "answer": "Twoja odpowiedź, wybrane problemy i notatka",
+        "firmware": "Wersja firmware ekranu: {version}",
+        "addon": "Wersja ESP Screens: {version}",
+        "nothing_else": "Nic więcej: bez nazwy, konta, encji, logów ani ustawień Home Assistant. Każdy ekran udostępnia pod własnym losowym kluczem."
+      },
+      "privacy": "Prywatność"
     }
   }
 }

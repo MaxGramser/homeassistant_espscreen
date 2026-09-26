@@ -13,7 +13,7 @@ import zipfile
 
 from i18n import t
 import tile_icons
-from core import (ALERT_ACTION_FIELD, ALERT_CAMERA_FIELD, ALERT_SCREEN_FIELD, ALERT_ENDINGS, ALERT_EVENT, ALERT_FALLBACK_ICON, ALERT_FIELDS, ALERT_LIMITS, ALERT_MAX_TIMEOUT, BOARD_KEYS, SHAPES, limit_boards,
+from core import (ALERT_ACTION_FIELD, ALERT_ACTION2_FIELD, ALERT_CHOICE_ACTION, ALERT_CHOICE_FIELDS, ALERT_CHOICE_MIN_FIRMWARE, ALERT_CAMERA_FIELD, ALERT_SCREEN_FIELD, ALERT_ENDINGS, ALERT_EVENT, ALERT_FALLBACK_ICON, ALERT_FIELDS, ALERT_LIMITS, ALERT_MAX_TIMEOUT, BOARD_KEYS, SHAPES, limit_boards,
                   ALERT_MIN_FIRMWARE, ALERT_SUGGESTED_ICONS, AUTO_STANDBY_MIN_FIRMWARE, BROADCAST_DISMISS, BROADCAST_SHOW,
                   CONTROLS, COVER_TILE_MIN_FIRMWARE, DISPLAYS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, FULL_PAGE_MIN_FIRMWARE, LIVE_MIN_FIRMWARE,
                   PAGE_TILE_REPEAT_MIN_FIRMWARE, SETTINGS_PAGE_MIN_FIRMWARE, TILE_BACKGROUNDS, TILE_EVENTS, TILE_RESULT_EVENT,
@@ -67,6 +67,7 @@ def text():
     """SKILL.md: the tile events and how to read a screen, then the alert event for every screen, the
     per-screen action, fields, colors and icons, and the standby and brightness entities."""
     fields = '\n'.join(f'| `{name}` | {TYPES[kind]} | {help_} | {_limit(name, kind)} |' for name, kind, _, help_, _ in ALERT_FIELDS)
+    choice_fields = '\n'.join(f'- `{name}`: {help_}' for name, _, _, help_, _ in ALERT_CHOICE_FIELDS)
     colors = ', '.join(f"`{name}` ({item['label']})" for name, item in TILE_BACKGROUNDS.items() if item['color'])
     suggested = ', '.join(f'`{name}`' for name in ALERT_SUGGESTED_ICONS)
     groups = '\n'.join(f'- {group}: ' + ', '.join(f'`{name}` ({label})' for name, _, label in icons) for group, icons in tile_icons.GROUPS)
@@ -91,7 +92,7 @@ Made by ESP Screen Manager (ESP Screens → Settings → Claude). Installing it 
 
 Four things Home Assistant can do with the screens: choose what a screen shows ([Tiles](#tiles-on-a-screen)), show an alert (below), open a page ([Open a page on a screen](#open-a-page-on-a-screen)), and wake a screen, put it to sleep or keep it awake ([Standby and brightness](#standby-and-brightness)).
 
-An alert is a card over the whole screen with an icon, a title, a subtitle and one button. It wakes the screen and stays until someone presses the button or the timeout runs out. A new alert replaces the one showing.
+An alert is a card over the whole screen with an icon, a title, a subtitle and one button, or two for a choice. It wakes the screen and stays until someone presses the button or the timeout runs out. A new alert replaces the one showing.
 
 ## Tiles on a screen
 
@@ -238,6 +239,28 @@ actions:
 The event for every screen takes one more field, `{ALERT_CAMERA_FIELD[0]}`: {ALERT_CAMERA_FIELD[2]} Example: `{ALERT_CAMERA_FIELD[0]}: {ALERT_CAMERA_FIELD[3]}`. Use a real `camera.*` or `image.*` entity from this Home Assistant (a doorbell integration usually has one); the per-screen actions have no such field, so for one screen add `{ALERT_SCREEN_FIELD[0]}`.
 
 It also takes `{ALERT_ACTION_FIELD[0]}` (app 0.2.91): {ALERT_ACTION_FIELD[2]} Example: `{ALERT_ACTION_FIELD[0]}: {ALERT_ACTION_FIELD[3]}`, or `action: light.turn_off` with `data: {{entity_id: light.hall}}`. Use an action Home Assistant lists; give `button_text` a word that says what the button does ("Open", "Turn off"). The per-screen actions have no such field either.
+
+## Two buttons and button colors
+
+Firmware {ALERT_CHOICE_MIN_FIRMWARE} or newer draws a second button on the left of the first, for a choice such as Not now and Open, and gives either button a color of its own. The event takes these fields, all optional:
+
+{choice_fields}
+- `{ALERT_ACTION2_FIELD[0]}`: {ALERT_ACTION2_FIELD[2]}
+
+```yaml
+actions:
+  - event: {BROADCAST_SHOW}
+    event_data:
+      title: "Someone is at the door"
+      icon: doorbell
+      button_text: "Open"
+      button_color: green
+      action: script.open_gate
+      button2_text: "Not now"
+      button2_color: red
+```
+
+The first button is always on the right; which answer goes on which side is the user's choice. A screen with older firmware shows the alert with its first button only. One screen can also use its own action `esphome.<device_name>_{ALERT_CHOICE_ACTION}`: the seven fields of show_alert plus `button_color`, `button2_text` and `button2_color`, all required (send `""` for the ones you don't use). The second button ends the alert with `action: button2`.
 
 Text limits are in bytes; an accented letter takes two. Keep the title short: a screen shows about twenty characters of it on one line and ends a longer title with an ellipsis. Put details in the subtitle.
 

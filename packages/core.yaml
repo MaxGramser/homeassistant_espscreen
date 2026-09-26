@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.3.2"
+  SCREEN_FIRMWARE_VERSION: "0.3.6"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -158,6 +158,7 @@ esphome:
             theme::fill(id(paint_page_soft), Paint::page_soft);
             theme::fill(id(paint_raised), Paint::raised);
             theme::fill(id(paint_key), Paint::key);
+            theme::fill(id(paint_key_pressed), Paint::key_pressed);
             theme::fill(id(paint_ink_soft), Paint::ink_soft);
             theme::fill(id(paint_scrim), Paint::scrim);
             theme::fill(id(paint_button_dark), Paint::button_dark);
@@ -200,6 +201,9 @@ esphome:
           // The way home for the house in the top bar and for a swipe up from the bottom edge (firmware 0.2.100+):
           // the same script the Back to page 1 timeout and Home Assistant use, so there is one way home.
           runtime_tiles::back_home = []() { id(go_home).execute(); };
+          // An alarm panel that someone comes in on, or that goes off, wakes the screen as a touch does and opens its
+          // card (firmware 0.3.3+): Back to page 1 counts from now.
+          runtime_tiles::alarm_wake = []() { id(last_use_ms) = millis(); id(wake_display).execute(); };
           runtime_tiles::touch_input::turn_page = [](int target) {
             id(tile_page) = target;
             id(show_tile_page).execute();
@@ -211,7 +215,8 @@ esphome:
           // The alert card, laid out on the glass it landed on (firmware 0.2.103+): screen_alert::layout works every
           // size out from the canvas, the look and the fonts, lying down or standing up, and runtime_tiles::alert_place
           // puts the parts; an alert with a camera image lays it out again with room for the picture.
-          runtime_tiles::alert_parts = {id(alert_card), id(alert_icon), id(alert_title), id(alert_subtitle), id(alert_ok)};
+          runtime_tiles::alert_parts = {id(alert_card), id(alert_icon), id(alert_title), id(alert_subtitle), id(alert_ok),
+                                        id(alert_ok_label), id(alert_button2), id(alert_button2_label)};
           runtime_tiles::alert_place(false);
           runtime_tiles::setpoint_font = id(setpoint_digits)->get_lv_font();
           // The cards of this board's grid (packages/cells/<number>.yaml), and their styles for the cards of kept pages
@@ -471,6 +476,38 @@ api:
             icon: !lambda 'return icon;'
             color: !lambda 'return color;'
             button_text: !lambda 'return button_text;'
+            button_color: ""
+            button2_text: ""
+            button2_color: ""
+            timeout: !lambda 'return timeout;'
+            flash: !lambda 'return flash;'
+    # The same card with a second button on the left of the first (firmware 0.3.3+), for a choice such as Decline and
+    # Accept, and a colour of its own for either button (red, green, blue, ...: the names of `color`). Its own action, as
+    # Home Assistant makes every field of an action required: show_alert keeps its seven, so no automation that calls it
+    # breaks. The second button ends the alert as esphome.screen_alert with action button2.
+    - action: show_alert_choice
+      variables:
+        title: string
+        subtitle: string
+        icon: string
+        color: string
+        button_text: string
+        button_color: string
+        button2_text: string
+        button2_color: string
+        timeout: int
+        flash: bool
+      then:
+        - script.execute:
+            id: alert_show
+            title: !lambda 'return title;'
+            subtitle: !lambda 'return subtitle;'
+            icon: !lambda 'return icon;'
+            color: !lambda 'return color;'
+            button_text: !lambda 'return button_text;'
+            button_color: !lambda 'return button_color;'
+            button2_text: !lambda 'return button2_text;'
+            button2_color: !lambda 'return button2_color;'
             timeout: !lambda 'return timeout;'
             flash: !lambda 'return flash;'
     - action: dismiss_alert
@@ -1561,6 +1598,7 @@ lvgl:
     - id: paint_page_soft
     - id: paint_raised
     - id: paint_key
+    - id: paint_key_pressed
     - id: paint_ink
     - id: paint_ink_soft
     - id: paint_scrim
@@ -1652,7 +1690,43 @@ lvgl:
                         - label:
                             id: alert_ok_label
                             align: CENTER
+                            long_mode: DOT
+                            text_align: CENTER
                             text: !lambda 'return std::string(screen_text::tr(screen_text::txt::alert_ok));'
+                            text_font: headline
+                            clickable: false
+                  # The second button (show_alert_choice, firmware 0.3.3+): the left half of the row, the first the right,
+                  # in a quieter key unless the automation names a colour. Hidden on an alert with one button.
+                  - obj:
+                      id: alert_button2
+                      align: BOTTOM_RIGHT
+                      hidden: true
+                      radius: 999
+                      styles: paint_key
+                      bg_opa: COVER
+                      border_width: 0
+                      shadow_width: 0
+                      pad_all: 0
+                      clickable: true
+                      scrollable: false
+                      pressed:
+                        styles: paint_key_pressed
+                        bg_opa: COVER
+                      on_click:
+                        - if:
+                            condition:
+                              lambda: 'return screen_input::touch_guard.accept(millis(), 13);'
+                            then:
+                              - script.execute:
+                                  id: alert_dismiss
+                                  reason: "button2"
+                      widgets:
+                        - label:
+                            id: alert_button2_label
+                            align: CENTER
+                            long_mode: DOT
+                            text_align: CENTER
+                            text: ""
                             text_font: headline
                             clickable: false
 
@@ -2141,6 +2215,9 @@ script:
       icon: string
       color: string
       button_text: string
+      button_color: string
+      button2_text: string
+      button2_color: string
       timeout: int
       flash: bool
     then:
@@ -2148,8 +2225,14 @@ script:
           if (id(alert_active)) id(alert_report).execute("replaced");
           // An alert is the one thing that outranks the settings page, so that closes first.
           settings_screen::close();
+          const auto alert = screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX}, ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX}, button2_text, button_color, button2_color);
+          // One button or two (firmware 0.3.3+), laid out before the hook, which lays the card out again for a picture.
+          runtime_tiles::alert_two_buttons = !alert.button2.empty();
+          lv_label_set_text(id(alert_button2_label), alert.button2.c_str());
+          runtime_tiles::alert_key(id(alert_ok), id(alert_ok_label), alert.button_color);
+          runtime_tiles::alert_key(id(alert_button2), id(alert_button2_label), alert.button2_color);
+          runtime_tiles::alert_place(false);
           ${ALERT_SHOW_HOOK}
-          const auto alert = screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX}, ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX});
           id(alert_active) = true;
           id(alert_title_text) = alert.title;
           id(alert_timeout_seconds) = alert.timeout_seconds;
@@ -2160,7 +2243,8 @@ script:
           lv_label_set_text(id(alert_ok_label), alert.button.c_str());
           id(alert_card_color) = alert.color;
           lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(alert.color)), LV_PART_MAIN);
-          ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash);
+          ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
+                   alert.button2.empty() ? 1 : 2);
       - script.execute: wake_display
       - lvgl.widget.show: alert_overlay
       - script.stop: alert_timeout
@@ -2187,7 +2271,7 @@ script:
           id: alert_dismiss
           reason: "timeout"
 
-  # Home Assistant adds device_id; action is ok, timeout, replaced or remote.
+  # Home Assistant adds device_id; action is ok, button2 (the second button, firmware 0.3.3+), timeout, replaced or remote.
   - id: alert_report
     parameters:
       action: string

@@ -282,6 +282,13 @@
       "rejected": "Mesure rejetée ; réessayez",
       "save_failed": "Échec de l'enregistrement ; réessayez"
     },
+    "alarm": {
+      "wrong_code": "Code erroné",
+      "nothing_changed": "Rien n’a changé. Vérifiez le code.",
+      "try_again": "Réessayez dans {time}",
+      "too_many": "Trop de codes erronés",
+      "letters": "Ce code contient des lettres. Saisissez-le dans Home Assistant."
+    },
     "ha": {
       "on": "Activé",
       "off": "Désactivé",
@@ -429,6 +436,35 @@
         "both": "Les deux",
         "vertical": "Verticale",
         "horizontal": "Horizontale"
+      },
+      "alarm": {
+        "disarmed": "Désactivée",
+        "armed_home": "Activée (présence)",
+        "armed_away": "Activée (absence)",
+        "armed_night": "Activée (nuit)",
+        "armed_vacation": "Activée (vacances)",
+        "armed_custom_bypass": "Activée (exception personnalisée)",
+        "pending": "En attente",
+        "arming": "Activation",
+        "disarming": "Désactivation",
+        "triggered": "Déclenchée"
+      },
+      "alarm_mode": {
+        "armed_home": "Présent",
+        "armed_away": "Absent",
+        "armed_night": "Nuit",
+        "armed_vacation": "Vacances",
+        "armed_custom_bypass": "Personnalisé",
+        "disarmed": "Désarmé"
+      },
+      "alarm_action": {
+        "disarm": "Désactiver",
+        "arm_home": "Activer (présence)",
+        "arm_away": "Activer (absence)",
+        "arm_night": "Activer (nuit)",
+        "arm_vacation": "Activer (vacances)",
+        "arm_custom_bypass": "Contournement personnalisé",
+        "enter_code": "Saisir le code"
       }
     },
     "navigation": {
@@ -657,6 +693,13 @@
         "destination_exists": "L’écran de destination possède déjà une disposition enregistrée",
         "update_tall": "Mettez l’écran à jour pour utiliser des tuiles plus hautes",
         "memory": "L’écran ne dispose pas de suffisamment de mémoire libre pour cette disposition. Utilisez moins de tuiles."
+      },
+      "feedback": {
+        "invalid": "Cette réponse ne peut pas être partagée. Choisissez oui ou pas vraiment, et seulement les problèmes proposés.",
+        "comment": "La note doit faire moins de 1000 caractères.",
+        "unknown_board": "Les retours ne sont pas encore disponibles pour cette carte.",
+        "deleting": "Votre réponse partagée est encore en cours de suppression. Répondez à nouveau une fois terminé.",
+        "storage": "Les retours sont désactivés : leurs données ont été écrites par une autre version d'ESP Screens."
       }
     },
     "status": {
@@ -839,10 +882,28 @@
         "screen": {
           "label": "Écran",
           "help": "L'écran qui reçoit l'alerte : son nom d'appareil (comme kitchen-screen), le nom affiché par Home Assistant, ou une pièce, qui atteint chaque écran qui s'y trouve. Une liste, comme [kitchen-screen, hallway], en atteint plusieurs. Omettez-le pour tous les écrans. Un nom qui ne correspond à aucun écran n'envoie rien ; le journal d'ESP Screen Manager nomme alors les écrans qu'il connaît. Uniquement via les événements esp_screens_show_alert et esp_screens_dismiss_alert."
+        },
+        "button_color": {
+          "label": "Couleur du bouton",
+          "help": "Le bouton dans une couleur à lui : red, orange, yellow, green, mint, blue, purple, pink ou gray, en couleur pleine avec du texte blanc. Vide garde le bouton sombre."
+        },
+        "button2_text": {
+          "label": "Texte du deuxième bouton",
+          "help": "Un deuxième bouton à gauche du premier, pour un choix comme Refuser et Accepter. Vide donne un seul bouton.",
+          "example": "Pas maintenant"
+        },
+        "button2_color": {
+          "label": "Couleur du deuxième bouton",
+          "help": "Le deuxième bouton dans une des mêmes couleurs. Vide garde le bouton clair."
+        },
+        "button2_action": {
+          "label": "Action du deuxième bouton",
+          "help": "Une action Home Assistant exécutée une fois quand le deuxième bouton est pressé sur un écran, comme `action` pour le premier. `button2_data` donne ses champs. Uniquement via l'événement esp_screens_show_alert."
         }
       },
       "endings": {
         "ok": "Le bouton a été touché",
+        "button2": "Le deuxième bouton a été pressé",
         "timeout": "Le délai a expiré",
         "replaced": "Une nouvelle alerte l'a remplacée",
         "remote": "dismiss_alert depuis Home Assistant"
@@ -1309,7 +1370,8 @@
         "select": "Sélecteurs",
         "person": "Personnes",
         "timer": "Minuteurs",
-        "screen": "Écran"
+        "screen": "Écran",
+        "alarm_control_panel": "Alarme"
       },
       "more": "Plus ({n})",
       "fewer": "Moins",
@@ -1349,7 +1411,8 @@
       "person": "Personne",
       "camera": "Caméra",
       "image": "Image",
-      "entity": "Entité"
+      "entity": "Entité",
+      "alarm_control_panel": "Panneau d’alarme"
     },
     "displays": {
       "standard": "standard",
@@ -1358,6 +1421,8 @@
       "graph": "graphique",
       "digital": "horloge numérique",
       "analog": "horloge analogique",
+      "dial": "cadran épuré",
+      "flip": "horloge à volets",
       "sunpath": "course du soleil",
       "live": "image en direct",
       "cover": "pochette"
@@ -1385,6 +1450,8 @@
         "label": "Affichage",
         "digital": "Horloge numérique",
         "analog": "Horloge analogique",
+        "dial": "Cadran épuré",
+        "flip": "Horloge à volets",
         "standard": "Nom et état",
         "watch": "Grande valeur",
         "forecast": "Prévisions météo",
@@ -1393,16 +1460,31 @@
         "live": "Image en direct",
         "live_hint": "Une petite image de la caméra à la place de l'icône, rafraîchie au rythme ci-dessous tant que la page est affichée. Un appui l'ouvre toujours en plein écran.",
         "live_needs_firmware": "Une image en direct demande le firmware 0.2.77 ou plus récent : appuyez sur Mettre à jour sur l'écran après l'enregistrement.",
+        "live_card_hint": "L'image remplit la tuile, rafraîchie au rythme ci-dessous tant que la page est affichée. Un appui l'ouvre toujours en plein écran.",
+        "live_card_needs_firmware": "Une image qui remplit la tuile demande le firmware 0.3.3 ou plus récent : appuyez sur Mettre à jour sur l'écran après l'enregistrement. D'ici là, l'écran affiche une petite image à la place de l'icône.",
         "cover": "Pochette",
         "cover_hint": "La pochette de ce qui joue à la place de l'icône, comme la tuile de Home Assistant ; un lecteur sans image garde son icône. Un appui ouvre toujours la carte.",
         "cover_needs_firmware": "La pochette sur la tuile demande le firmware 0.2.78 ou plus récent : appuyez sur Mettre à jour sur l'écran après l'enregistrement.",
         "no_graph": "Home Assistant n'a pas de valeurs numériques pour cette entité : le graphique reste donc vide. Choisissez un autre affichage.",
         "no_forecast": "Ce service météo n'a pas de prévisions journalières dans Home Assistant. Choisissez un autre affichage.",
-        "tall_cover_hint": ""
+        "tall_cover_hint": "",
+        "face_needs_firmware": "Cette horloge demande le firmware 0.3.6 ou plus récent : appuyez sur Mettre à jour pour l'écran après l'enregistrement. D'ici là, l'écran affiche l'horloge numérique."
       },
       "refresh": {
         "label": "Rafraîchir",
         "seconds": "Toutes les {n} s"
+      },
+      "picture": {
+        "fit": {
+          "label": "Image",
+          "fill": "Remplir la tuile",
+          "contain": "Image entière"
+        },
+        "overlay": {
+          "label": "Sur l'image",
+          "name": "Nom",
+          "none": "Rien"
+        }
       },
       "size": {
         "label": "Taille",
@@ -1868,7 +1950,8 @@
         "behaviour": "Comportement",
         "events": "Événements",
         "tips": "Astuces",
-        "one": "Un écran"
+        "one": "Un écran",
+        "choice": "Deux boutons"
       },
       "try": {
         "text": "Envoyez une alerte maintenant, avec les mêmes champs qu'une automatisation. L'écran affiche la carte et, si le clignotement est activé, fait clignoter son rétroéclairage.",
@@ -1997,6 +2080,12 @@
         "picture_yes": "Oui",
         "picture_no": "Non, l'alerte arrive sans",
         "none": "Aucun écran associé pour l'instant. Dès qu'un écran est associé, ce qu'il faut saisir pour lui apparaît ici."
+      },
+      "choice": {
+        "title": "Deux boutons et couleurs de bouton",
+        "text": "Ajoutez {second} pour un deuxième bouton à gauche du premier, afin que la personne devant l'écran puisse choisir, par exemple Pas maintenant et Ouvrir. {first_color} et {second_color} donnent à un bouton sa propre couleur, vert pour oui et rouge pour non. Quelle réponse va de quel côté, c'est vous qui choisissez : le premier bouton est toujours à droite.",
+        "event": "Via l'événement, chacun de ces champs est facultatif, et {second_action} avec {second_data} lance une action depuis le deuxième bouton, comme {action} depuis le premier. Un écran dont le firmware est antérieur à {version} affiche l'alerte avec un seul bouton.",
+        "direct": "Vous appelez un écran directement ? Son action {choice} prend les champs de show_alert plus ces trois ; le deuxième bouton termine l'alerte avec {ending}."
       }
     },
     "override": {
@@ -2113,6 +2202,58 @@
       "choose_page": "Page",
       "all_connections": "Toutes les connexions",
       "migration_adjusted": "Les anciens paramètres invalides ont été remplacés par les valeurs par défaut : {fields}. Les originaux restent dans la sauvegarde de migration."
+    },
+    "feedback": {
+      "question": "Votre écran fonctionne-t-il comme prévu ?",
+      "intro": "Aidez-nous à améliorer ce modèle. Votre réponse et le modèle d'écran sont partagés avec Tessera, sans compte ni vos réglages Home Assistant.",
+      "yes": "Oui, ça marche bien",
+      "no": "Pas vraiment",
+      "later": "Plus tard",
+      "never": "Ne plus demander",
+      "add_something": "Ajouter quelque chose",
+      "issues_question": "Qu'est-ce qui coince ?",
+      "issues": {
+        "display": "Écran",
+        "touch": "Tactile",
+        "connection": "Connexion",
+        "installation": "Installation",
+        "other": "Autre"
+      },
+      "comment_label": "Note (facultatif)",
+      "comment_hint": "N'indiquez ni données personnelles, ni journaux, ni mots de passe, ni clés d'API.",
+      "add_details": "Ajouter des détails",
+      "done": "Terminé",
+      "settings_title": "Retour",
+      "shared": {
+        "working": "Vous avez partagé : ça marche bien",
+        "not_working": "Vous avez partagé : pas vraiment"
+      },
+      "none_yet": "Vous n'avez pas encore partagé de réponse pour cet écran.",
+      "none_now": "Rien n'est partagé pour cet écran en ce moment.",
+      "share": "Partager une réponse",
+      "change": "Modifier la réponse",
+      "delete": "Supprimer ma réponse partagée",
+      "retry": "Réessayer",
+      "status": {
+        "sending": "Envoi…",
+        "received": "Merci, votre réponse a bien été reçue.",
+        "waiting": "Pas encore envoyée ; nous réessaierons plus tard.",
+        "failed": "Non envoyée : Tessera est resté injoignable pendant une journée.",
+        "deleting": "Pas encore supprimée ; nous réessaierons plus tard.",
+        "delete_failed": "Pas encore supprimée : Tessera est resté injoignable pendant une journée.",
+        "deleted": "Votre réponse partagée a été supprimée.",
+        "conflict": "Tessera a une autre réponse pour cet écran. Modifiez votre réponse pour la partager à nouveau.",
+        "rejected": "Tessera n'a pas accepté cette réponse."
+      },
+      "what_title": "Qu'est-ce qui est partagé ?",
+      "what": {
+        "model": "Le modèle d'écran : {model}",
+        "answer": "Votre réponse, les problèmes choisis et votre note",
+        "firmware": "La version du firmware de l'écran : {version}",
+        "addon": "La version d'ESP Screens : {version}",
+        "nothing_else": "Rien d'autre : ni nom, ni compte, ni entités, journaux ou réglages Home Assistant. Chaque écran partage sous sa propre clé aléatoire."
+      },
+      "privacy": "Confidentialité"
     }
   }
 }

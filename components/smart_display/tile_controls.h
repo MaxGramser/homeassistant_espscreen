@@ -3,10 +3,12 @@
 // own entity rows. Pure logic only: which keys a card shows, what they send, how
 // a -/+ step lands on the entity's grid, and the status line beside them. The
 // LVGL drawing lives in runtime_tiles.h; tests/test_tile_controls.cpp covers this.
+#include "alarm_panel.h"
 #include "screen_input.h"
 #include "runtime_model.h"
 #include "screen_text.h"
 #include "theme.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -137,6 +139,8 @@ inline uint32_t accent(const Tile &t) {
   if (d == "sun") return t.state == "above_horizon" ? AMBER : INDIGO;
   // At home green; in another zone blue (--state-person-active-color).
   if (d == "person") return t.state == "home" ? GREEN : BLUE;
+  // An alarm panel: armed green, the delays orange, going off red (--state-alarm_control_panel-*-color).
+  if (d == "alarm_control_panel") return alarm_panel::color(t.state);
   if (d == "sensor") {
     // A battery by its charge, as Home Assistant's battery_color.ts: green from 70 %, orange from 30 %, red below.
     if (t.device_class == "battery") {
@@ -469,6 +473,31 @@ template <size_t N> inline unsigned climate_mode_keys(const Tile &t, std::array<
   if (more && room) out[n++] = Key{glyph::MORE, OPEN_CARD, "", false, false};
   return n;
 }
+// A thermostat tile's mode bar (firmware 0.3.3): heat and cool before the rest, so an airco shows both ways it can go
+// and not only the first Home Assistant lists; never off, which the tile's circle switches; and the mode it is in
+// always among them. When the modes do not all fit, the last place is "…" and opens the card with every mode; a bar
+// with room for two shows two modes rather than one and a "…". A device with one mode has no bar: its circle is
+// all it needs.
+template <size_t N> inline unsigned climate_bar_keys(const Tile &t, std::array<Key, N> &out, unsigned room = N) {
+  static const char *const ORDER[] = {"heat", "cool", "heat_cool", "auto", "dry", "fan_only"};
+  room = std::min<unsigned>(room, N);
+  std::vector<std::string> modes;
+  const auto listed = list_values(t.extra().hvac_modes, 8);
+  for (const char *mode : ORDER)
+    for (const auto &raw : listed)
+      if (lower_case(raw) == mode) { modes.push_back(mode); break; }
+  if (modes.size() < 2 || room < 2) return 0;
+  const bool more = modes.size() > room;
+  const unsigned shown = !more ? (unsigned) modes.size() : room == 2 ? 2 : room - 1;
+  std::vector<std::string> pick(modes.begin(), modes.begin() + shown);
+  const std::string current = lower_case(t.state);
+  if (std::find(modes.begin(), modes.end(), current) != modes.end() && std::find(pick.begin(), pick.end(), current) == pick.end())
+    pick.back() = current;
+  unsigned n = 0;
+  for (const auto &mode : pick) out[n++] = Key{mode_icon(mode), HVAC_MODE, mode, mode == current, false};
+  if (more && shown < room) out[n++] = Key{glyph::MORE, OPEN_CARD, "", false, false};
+  return n;
+}
 // The row of up to three pill keys for a key-row panel; returns how many.
 //
 // A key is greyed for one reason only (firmware 0.2.90+): a command of this tile is on its way to Home Assistant
@@ -660,7 +689,7 @@ struct Tap { TapRoute route = TapRoute::NONE; std::string service; bool busy = f
 inline bool runtime_card_domain(const std::string &d) {
   return d == "sensor" || d == "binary_sensor" || d == "weather" || d == "number" || d == "input_number" || d == "select" ||
          d == "input_select" || d == "media_player" || d == "vacuum" || d == "cover" || d == "sun" || d == "person" ||
-         d == "timer" || d == "climate";
+         d == "timer" || d == "climate" || d == "alarm_control_panel";
 }
 // Whether a light offers a colour or a colour temperature, and so opens the colour card instead of the card
 // with the brightness slider. The modes come from Home Assistant as one string (`supported_color_modes`) and

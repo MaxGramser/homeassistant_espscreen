@@ -39,6 +39,8 @@ enum Role : uint8_t {
   PANEL_TOGGLE_OFF,     // the toggle on a wide tile while off
   PANEL_TOGGLE_OFF_PRESSED,
   KNOB,                 // handles and knobs
+  STEPPER_KEY,          // the - and + keys inside a thermostat's or a number's grey stepper (firmware 0.3.3)
+  STEPPER_KEY_PRESSED,
   SLIDER_KNOB,          // the round knob of a card's number or volume slider
   SCRIM,                // behind an alert
   VEIL,                 // the sheet over a busy tile, the haze over the value card
@@ -111,6 +113,8 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* PANEL_TOGGLE_OFF */         {0xD7DADF, 0x393C41},
   /* PANEL_TOGGLE_OFF_PRESSED */ {0xC5C9CF, 0x494D52},
   /* KNOB */                     {0xFFFFFF, 0xE8E8E8},
+  /* STEPPER_KEY */              {0xFFFFFF, 0x3A3A3A},
+  /* STEPPER_KEY_PRESSED */      {0xE4E4E4, 0x4A4A4A},
   /* SLIDER_KNOB */              {0x111111, 0xE8E8E8},
   /* SCRIM */                    {0x101820, 0x000000},
   /* VEIL */                     {0xFFFFFF, 0x1A1A1A},
@@ -186,6 +190,32 @@ inline uint32_t swatch(const std::string &name) {
   for (const auto &s : SWATCHES) if (name == s.name) return s.light;
   return 0;
 }
+// The same names on an alert's button (firmware 0.3.3+): a full key colour instead of a pastel, so a green Accept and a
+// red Decline stand out on any card. Like Home Assistant's state colours they are the same in both looks; the words on
+// them are white, or ink on the light ones (yellow), whichever reads.
+struct KeySwatch { const char *name; uint32_t key, text; };
+inline constexpr KeySwatch KEY_SWATCHES[] = {
+  {"red", 0xD93A30, 0xFFFFFF},
+  {"orange", 0xEF7D14, 0xFFFFFF},
+  {"yellow", 0xF6C433, 0x1B1B1B},
+  {"green", 0x3C9A4A, 0xFFFFFF},
+  {"mint", 0x13897B, 0xFFFFFF},
+  {"blue", 0x1F7FD6, 0xFFFFFF},
+  {"purple", 0x7B55BE, 0xFFFFFF},
+  {"pink", 0xD3437E, 0xFFFFFF},
+  {"gray", 0x6B7078, 0xFFFFFF},
+};
+// The key colour of a name, 0 for none or an unknown one (the button keeps its own paint).
+inline uint32_t key_swatch(const std::string &name) {
+  for (const auto &s : KEY_SWATCHES) if (name == s.name) return s.key;
+  return 0;
+}
+inline uint32_t key_text(uint32_t key) {
+  for (const auto &s : KEY_SWATCHES) if (key == s.key) return s.text;
+  return 0xFFFFFF;
+}
+// The key under a finger: a little darker, in both looks.
+inline uint32_t key_pressed(uint32_t key) { return mix(key, 0x000000, 210); }
 // A card's own colour (a swatch's light value, or 0 for none) as this look draws it.
 inline uint32_t surface(uint32_t own) {
   if (!own) return hex(CARD);
@@ -232,6 +262,22 @@ constexpr uint32_t ALARM = 0xE53935, CHARGING = 0x43A047;
 // ---- Home Assistant's colours on their way to the glass
 // Grey is what Home Assistant draws for something off; the add-on's timelines add a lighter grey for off and one for no
 // data. In dark those greys come from the table; every other state colour stays itself.
+// A temperature as a colour, from Home Assistant's own hues: indigo in a frost, blue and cyan in the cold, green in
+// the mild, amber and orange in the warm, red in a heatwave. The weather tile draws a day's range from its low to its
+// high in these (firmware 0.3.3), so a cold day reads as a cold day before the digits do. Degrees Celsius.
+inline uint32_t temperature(float celsius) {
+  struct Stop { float at; uint32_t color; };
+  static constexpr Stop STOPS[] = {{-5, ha::INDIGO}, {5, ha::BLUE}, {11, ha::CYAN}, {16, ha::GREEN},
+                                   {20, ha::AMBER}, {25, ha::ORANGE}, {32, ha::RED}};
+  if (!(celsius > STOPS[0].at)) return STOPS[0].color;
+  for (size_t i = 1; i < sizeof(STOPS) / sizeof(STOPS[0]); ++i) {
+    if (celsius > STOPS[i].at) continue;
+    const float share = (celsius - STOPS[i - 1].at) / (STOPS[i].at - STOPS[i - 1].at);
+    return mix(STOPS[i].color, STOPS[i - 1].color, static_cast<uint8_t>(share * 255 + 0.5f));
+  }
+  return STOPS[sizeof(STOPS) / sizeof(STOPS[0]) - 1].color;
+}
+
 constexpr uint32_t STATE_OFF = ha::GREY;
 inline uint32_t state(uint32_t color) {
   if (!dark) return color;

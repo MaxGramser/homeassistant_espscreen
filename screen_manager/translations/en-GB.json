@@ -159,6 +159,35 @@
         "both": "Both",
         "vertical": "Vertical",
         "horizontal": "Horizontal"
+      },
+      "alarm": {
+        "disarmed": "Disarmed",
+        "armed_home": "Armed home",
+        "armed_away": "Armed away",
+        "armed_night": "Armed night",
+        "armed_vacation": "Armed holiday",
+        "armed_custom_bypass": "Armed custom bypass",
+        "pending": "Pending",
+        "arming": "Arming",
+        "disarming": "Disarming",
+        "triggered": "Triggered"
+      },
+      "alarm_mode": {
+        "armed_home": "Home",
+        "armed_away": "Away",
+        "armed_night": "Night",
+        "armed_vacation": "Holiday",
+        "armed_custom_bypass": "Custom",
+        "disarmed": "Disarmed"
+      },
+      "alarm_action": {
+        "disarm": "Disarm",
+        "arm_home": "Arm home",
+        "arm_away": "Arm away",
+        "arm_night": "Arm night",
+        "arm_vacation": "Arm holiday",
+        "arm_custom_bypass": "Custom bypass",
+        "enter_code": "Enter code"
       }
     },
     "navigation": {

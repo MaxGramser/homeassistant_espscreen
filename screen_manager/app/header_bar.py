@@ -258,7 +258,7 @@ def accent(entity, state):
         return ORANGE if raw == 'heat' else BLUE
     # Home Assistant's own state colours: armed and locked green, on their way orange, alarm and open red.
     if domain == 'alarm_control_panel':
-        return RED if raw == 'triggered' else ORANGE if raw in ('arming', 'pending') else GREEN if raw and raw.startswith('armed') else None
+        return RED if raw == 'triggered' else ORANGE if raw in ('arming', 'pending', 'disarming') else GREEN if raw and raw.startswith('armed') else None
     if domain == 'lock':
         return GREEN if raw == 'locked' else ORANGE if raw in ('locking', 'unlocking', 'opening') else RED if raw in ('unlocked', 'open', 'jammed') else None
     if domain == 'media_player' and raw == 'playing':

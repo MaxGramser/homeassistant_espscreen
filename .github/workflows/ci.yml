@@ -48,7 +48,8 @@ jobs:
     needs: checks
     runs-on: ubuntu-latest
     # Nine boards since 0.3.6: the add-on's ESPHome builds took just under 30 minutes and ran past it on a slow runner.
-    timeout-minutes: 45
+    # A build without its build folder (a source file added or removed) took 40 minutes for min_version on 09-26.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -74,17 +75,28 @@ jobs:
       # ESPHome 2026.7+ builds with ESP-IDF itself and reuses what it compiled before when ccache is on the PATH.
       - name: ccache
         run: ccache --version || (sudo apt-get update && sudo apt-get install -y ccache)
-      # ESP-IDF, its tools and ccache's cache (ESPHome 2026.7+ keeps them in ~/.cache/esphome), PlatformIO's toolchains
-      # (ESPHome before 2026.7), and the two check builds (tools/check.sh builds under .esphome/check).
+      # ESP-IDF, its tools and ccache's cache (ESPHome 2026.7+ keeps them in ~/.cache/esphome) and PlatformIO's
+      # toolchains (ESPHome before 2026.7): any older copy of the same ESPHome will do.
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/esphome
             ~/.platformio
-            .esphome/check
-          key: firmware-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-${{ hashFiles('checkout/cyd.yaml', 'checkout/guition.yaml', 'packages/**', 'components/**') }}
+          key: firmware-tools-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-${{ hashFiles('checkout/cyd.yaml', 'checkout/guition.yaml', 'packages/**', 'components/**') }}
           restore-keys: |
-            firmware-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-
+            firmware-tools-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-
+      # The names of the files the builds compile. Before 2026.7 ESPHome builds through PlatformIO, which lists a
+      # build's sources once: a build folder from before a .cpp was added links without it (undefined reference).
+      - name: Source files
+        id: sources
+        run: echo "hash=$(git ls-files checkout packages components | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      # The check builds (tools/check.sh builds under .esphome/check), reused only while the same files exist.
+      - uses: actions/cache@v4
+        with:
+          path: .esphome/check
+          key: firmware-build-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-${{ steps.sources.outputs.hash }}-${{ hashFiles('checkout/cyd.yaml', 'checkout/guition.yaml', 'packages/**', 'components/**') }}
+          restore-keys: |
+            firmware-build-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-${{ steps.sources.outputs.hash }}-
       - name: tools/check.sh --firmware
         run: bash tools/check.sh --firmware
         env:

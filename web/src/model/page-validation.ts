@@ -50,7 +50,7 @@ export function validatePageShape(layout: PageLayout) {
     for (const tile of page.tiles) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
-      fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle'], ['label']);
+      fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay'], ['label']);
       fields(tile.interaction, ['tap', 'inline', 'controls', 'action'], []);
       const content = tile.content;
       fields(content, ['kind', 'entityId', 'name', 'target'], ['kind']);
@@ -85,6 +85,9 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
   if (i.tap === 'toggle' && domain === 'screen') fail();
   if (i.inline === 'slider' && (!['light', 'fan', 'cover', 'number', 'input_number', 'media_player'].includes(domain) || a.display === 'watch')) fail();
   if (a.refresh !== undefined && (a.display !== 'live' || !rules.refresh.includes(a.refresh))) fail('normalization');
+  // How a live picture fills a taller card (app 0.3.8): only with the live picture, and a default is never stored.
+  for (const [key, choices] of Object.entries(rules.picture) as [('fit' | 'overlay'), string[]][])
+    if (a[key] !== undefined && (a.display !== 'live' || !choices.includes(a[key]!) || a[key] === choices[0])) fail('normalization');
   if (a.subtitle !== undefined) {
     const sub = a.subtitle;
     if (typeof sub !== 'string' || bytes(sub) > 96 || sub === 'auto' ||

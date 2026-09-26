@@ -58,6 +58,15 @@
    | 90-93 % | tight: every release states its flash delta; a delta over 8 KB needs a matching saving or Max's OK |
    | 93-95 % | only fixes ship |
    | over 95 % | never: that keeps about 90 KB for ESPHome upgrades and users' own overrides |
+
+   **The Xtensa literal range** (app 0.3.8). On the ESP32 and the ESP32-S3 an `l32r` instruction loads a constant
+   from at most 256 KB back, and ESP-IDF puts a function's literals in front of the code that follows them. Every
+   header of the component compiles into `main.cpp`, so growing code there can push a function out of reach. The build
+   then fails at the link step with `dangerous relocation: l32r: literal target out of range`, often on an S3 board
+   while the CYD still links. The fix is its own compilation unit for a large part (the protocol parser has lived in
+   `components/smart_display/page_receiver.cpp` since 0.3.8), not a global compiler flag. To see the margin, compare
+   in a build's `.map` the address of a function's `.literal.<name>` with the end of its `.text.<name>`: 0.3.8 left
+   about 14 KB on the S3 boards and 66 KB on the CYD. The ESP32-P4 is RISC-V and has no such limit.
 3. Test app start, saving, restarting/updating with existing layouts,
    reconnecting to HA, and an ESP restart. Test a new card on real
    hardware. A good build doesn't replace physical touch acceptance.
@@ -1468,7 +1477,7 @@ always|active}`. Without `header`, the firmware's prior always-on behavior appli
 `show_clock`); an old editor that omits `header` keeps the stored bar. When
 saving, `settings.show_clock` follows the clock in the bar, so older firmware only shows the
 time if it's in the bar. Besides the tile domains, entities in the bar may
-also be `device_tracker`, `zone`, `lock`, `alarm_control_panel`, `counter`, `event`,
+also be `device_tracker`, `zone`, `lock`, `counter`, `event`,
 `input_datetime`, `input_text`, `water_heater`, and `humidifier`; the inventory
 marks those with `tile: false` so the tile picker skips them.
 

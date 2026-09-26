@@ -11,7 +11,7 @@ import secrets
 from i18n import english, screen_t, t
 import tile_icons
 
-DOMAINS = frozenset('light switch input_boolean scene script climate vacuum fan cover sensor binary_sensor input_select select number input_number weather media_player button input_button sun timer person screen camera image'.split())
+DOMAINS = frozenset('light switch input_boolean scene script climate vacuum fan cover sensor binary_sensor input_select select number input_number weather media_player button input_button sun timer person screen camera image alarm_control_panel'.split())
 # Built-in cards without a Home Assistant entity; firmware 0.2.14+ renders them. The names in English: a screen gets them in
 # its language and the editor in its own (builtin_name, app 0.2.90).
 BUILTIN = {'screen.clock': 'Clock', 'screen.settings': 'Settings', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 9)}}
@@ -40,6 +40,11 @@ LIVE_MIN_FIRMWARE = (0, 2, 77)
 LIVE_REFRESH = (15, 30)  # the paces a live tile may choose, in seconds; the first is the default
 # A media tile's album cover in the icon's place ("display": "cover", app 0.2.92): the same strip, firmware from here.
 COVER_TILE_MIN_FIRMWARE = (0, 2, 78)
+# The calm dial and the flip clock (firmware 0.3.6+). An older screen draws either as the digital clock, so a layout
+# with one is sent as it is; the editor says so.
+CLOCK_FACES_MIN_FIRMWARE = (0, 3, 6)
+CLOCK_DEFAULT_DISPLAY = 'dial'
+
 # The media card with its cover (app 0.2.77): firmware from here draws it and asks for the cover.
 COVER_MIN_FIRMWARE = (0, 2, 64)
 # One tile per slot, a tile over the whole page and the screen.page tile (firmware 0.2.62+). How many tiles a
@@ -53,7 +58,7 @@ REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
 # The branch a screen's YAML builds its board package from. Which boards there are is boards.json's (BOARD_KEYS).
 REF = 'main'
 # Firmware shipped with this app release; screens below it get an update offer.
-FIRMWARE_VERSION = '0.3.2'
+FIRMWARE_VERSION = '0.3.6'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -70,9 +75,12 @@ PAGE_BUTTONS_MIN_FIRMWARE = '0.2.69'
 HOME_BUTTON_MIN_FIRMWARE = '0.2.100'
 # Open a page from Home Assistant (esphome.<node>_show_page), the way a Go to page tile does.
 SHOW_PAGE_MIN_FIRMWARE = '0.2.87'
-ATTRS = frozenset('brightness percentage current_position current_tilt_position current_temperature temperature current_humidity min_temp max_temp target_temp_step supported_color_modes hvac_modes hvac_action hs_color color_temp_kelvin min_color_temp_kelvin max_color_temp_kelvin fan_speed_list unit_of_measurement battery_level fan_speed volume_level is_volume_muted media_title options min max step temperature_unit supported_features device_class next_rising next_setting finishes_at duration remaining humidity wind_speed wind_speed_unit apparent_temperature fan_modes swing_modes fan_mode swing_mode effect'.split())
+# An alarm panel as a tile with its card and keypad (components/smart_display/alarm_panel.h); older firmware refuses the
+# domain, so a layout with one waits for the update.
+ALARM_MIN_FIRMWARE = (0, 3, 3)
+ATTRS = frozenset('brightness percentage current_position current_tilt_position current_temperature temperature current_humidity min_temp max_temp target_temp_step supported_color_modes hvac_modes hvac_action hs_color color_temp_kelvin min_color_temp_kelvin max_color_temp_kelvin fan_speed_list unit_of_measurement battery_level fan_speed volume_level is_volume_muted media_title options min max step temperature_unit supported_features device_class next_rising next_setting finishes_at duration remaining humidity wind_speed wind_speed_unit apparent_temperature fan_modes swing_modes fan_mode swing_mode effect code_format code_arm_required changed_by'.split())
 # Attributes whose boolean value the screen needs; every other bool stays behind.
-BOOL_ATTRS = frozenset(['is_volume_muted'])
+BOOL_ATTRS = frozenset(['is_volume_muted', 'code_arm_required'])
 
 
 # The labels in English, as the Claude skill writes them; the editor gets them in its language (backgrounds()).
@@ -96,8 +104,11 @@ def backgrounds():
     return {name: {**item, 'label': t(f'addon.labels.backgrounds.{name}')} for name, item in TILE_BACKGROUNDS.items()}
 
 # Display modes per domain; everything else offers standard and watch (large value).
-DISPLAYS = {'weather': ('standard', 'watch', 'forecast'), 'sensor': ('standard', 'watch', 'graph'), 'screen': ('digital', 'analog'), 'sun': ('standard', 'watch', 'sunpath'),
+DISPLAYS = {'weather': ('standard', 'watch', 'forecast'), 'sensor': ('standard', 'watch', 'graph'), 'screen': ('digital', 'analog', 'dial', 'flip'), 'sun': ('standard', 'watch', 'sunpath'),
             'camera': ('standard', 'live'), 'image': ('standard', 'live'), 'media_player': ('standard', 'watch', 'cover')}
+# A live picture on a 1x2 or 2x2 tile fills the card (app 0.3.8, firmware 0.3.3): cut to fill it or whole on black, with
+# its name on it or nothing. The first choice of each is the default and is never stored.
+PICTURE_OPTIONS = {'fit': ('fill', 'contain'), 'overlay': ('name', 'none')}
 # Displays that only work on a double-width card.
 WIDE_ONLY = ('forecast', 'sunpath')
 
@@ -802,7 +813,7 @@ HEADER_MAX_ITEMS = 6
 # app 0.2.90).
 HEADER_BUILTIN = ('clock', 'analog', 'date')
 # Only shown, never controlled: the top bar takes these besides every tile domain.
-HEADER_ONLY_DOMAINS = frozenset('device_tracker zone lock alarm_control_panel counter event input_datetime input_text water_heater humidifier'.split())
+HEADER_ONLY_DOMAINS = frozenset('device_tracker zone lock counter event input_datetime input_text water_heater humidifier'.split())
 HEADER_CONTENTS = ('state', 'last_changed')
 HEADER_SHOWS = ('always', 'active')
 
@@ -858,6 +869,8 @@ def min_firmware(layout):
     if any(tile.get('options', {}).get('controls') in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode')
            for tile in layout['tiles']):
         return (0, 3, 1)
+    if any(t['entity'].split('.')[0] == 'alarm_control_panel' for t in layout['tiles']):
+        return ALARM_MIN_FIRMWARE
     if repeated_page_tiles(layout['tiles']):
         return PAGE_TILE_REPEAT_MIN_FIRMWARE
     if len(layout['tiles']) > LEGACY_MAX_TILES or any(is_full(t) or page_target(t['entity']) for t in layout['tiles']):
@@ -898,7 +911,7 @@ TILE_RESULT_EVENT = 'esp_screens_tile_result'
 # pastel background.
 TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'display', 'icon': 'icon',
                       'color': 'background', 'background': 'background', 'tap': 'tap', 'inline': 'inline',
-                      'history_hours': 'history_hours', 'refresh': 'refresh'}
+                      'history_hours': 'history_hours', 'refresh': 'refresh', 'fit': 'fit', 'overlay': 'overlay'}
 TILE_SIZES = {'full': 'full', 'fullscreen': 'full', 'full screen': 'full', 'full-screen': 'full', 'page': 'full', 'whole page': 'full',
               'wide': 'wide', 'double': 'wide', 'large': 'wide', 'big': 'wide',
               'single': 'single', 'small': 'single', 'normal': 'single'}
@@ -1163,6 +1176,9 @@ def run_tile_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID):
             chosen = found is not None
         was_size, had_slot = tile_size(found) if found else 'single', (found or {}).get('slot')
         options = tile_options(data, (found or {}).get('options'))
+        # A new clock starts with the calm dial, as in the editor (app 0.3.12); an older screen draws it as the digital clock.
+        if found is None and entity == 'screen.clock' and 'display' not in options:
+            options['display'] = CLOCK_DEFAULT_DISPLAY
         tile = found or {'entity': entity, 'name': ''}
         if data.get('name') not in (None, ''):
             tile['name'] = str(data['name']).strip()
@@ -1303,7 +1319,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub'}:
+            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay'}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A navigation tile (screen.page_<n>, firmware 0.2.62+) has a name, an icon, a colour and a width; never the page.
             if page_target(tile['entity']):
@@ -1357,11 +1373,17 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             if 'history_hours' in options and (type(options['history_hours']) is not int or options['history_hours'] not in (1,6,24)):
                 raise ValueError(t('addon.errors.layout.history_hours'))
             # A live picture's pace (app 0.2.91) belongs to the live display; another display leaves a stale one behind.
+            # So does how its picture fills a taller card and whether its name is on it (app 0.3.8); the defaults are
+            # not stored, so a layout without them means what it always meant.
             if options.get('display') == 'live':
                 if 'refresh' in options and (type(options['refresh']) is not int or options['refresh'] not in LIVE_REFRESH):
                     raise ValueError(t('addon.errors.layout.refresh'))
-            elif 'refresh' in options:
-                options = {key: value for key, value in options.items() if key != 'refresh'}
+                for key, allowed in PICTURE_OPTIONS.items():
+                    if key in options and options[key] not in allowed:
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting=key))
+                options = {key: value for key, value in options.items() if key not in PICTURE_OPTIONS or value != PICTURE_OPTIONS[key][0]}
+            elif set(options) & {'refresh', *PICTURE_OPTIONS}:
+                options = {key: value for key, value in options.items() if key not in ('refresh', *PICTURE_OPTIONS)}
             if options.get('display') == 'watch' and options.get('inline') == 'slider':
                 raise ValueError(t('addon.errors.layout.watch_or_slider'))
             if 'controls' in options:
@@ -1456,6 +1478,26 @@ def forecast_time(entry, tz):
         return datetime.fromisoformat(str(entry.get('datetime')).replace('Z', '+00:00')).astimezone(tz or timezone.utc)
     except (ValueError, TypeError):
         return None
+
+def alarm_extras(state, entry):
+    """What an alarm panel's card needs beside its attributes (firmware 0.3.3+): `dc` 1 when Home Assistant keeps a default
+    code in the entity's registry options (it then fills the code in itself and the screen asks for none, as Home
+    Assistant's own dialogs do; the code itself never leaves Home Assistant), and during an exit or entry delay the moment
+    it ends (`ae`, epoch) and its length (`ad`, seconds), where the integration reports it (Alarmo's `delay` attribute)."""
+    result = {}
+    options = (entry or {}).get('options') if isinstance(entry, dict) else None
+    panel = options.get('alarm_control_panel') if isinstance(options, dict) else None
+    if isinstance(panel, dict) and isinstance(panel.get('default_code'), str) and panel['default_code']:
+        result['dc'] = 1
+    state = state if isinstance(state, dict) else {}
+    delay = (state.get('attributes') or {}).get('delay')
+    if state.get('state') in ('arming', 'pending') and isinstance(delay, (int, float)) and not isinstance(delay, bool) \
+            and math.isfinite(delay) and 0 < delay <= 86400:
+        start = epoch(state.get('last_changed'))
+        if start:
+            result['ae'] = start + int(delay)
+            result['ad'] = int(delay)
+    return result
 
 def epoch(value):
     """Unix time of an ISO timestamp (a scene's state, a script's last_triggered); None when unusable."""
@@ -1798,7 +1840,8 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None):
             bounded[key] = short(value, 48)
         elif isinstance(value, list):
             # Attribute lists have bounded lengths, strings and numeric ranges.
-            limit = 2 if key == 'hs_color' else 4 if key == 'fan_speed_list' else 8
+            # A select's options run to sixteen (firmware 0.3.3 pages through them; older firmware keeps the first eight).
+            limit = 2 if key == 'hs_color' else 4 if key == 'fan_speed_list' else 16 if key == 'options' else 8
             bounded[key] = [short(v, 48) if isinstance(v, str) else v for v in value[:limit]
                             if isinstance(v, str) or isinstance(v, (float, int)) and math.isfinite(v) and abs(v) <= 1000000]
     options = screen_options(tile, attrs, state.get('state'), entry)
@@ -1834,7 +1877,7 @@ def message_action(node):
 # writes them; the cheatsheet gets them in the editor's language (alert_reference, app 0.2.90). -----
 ALERT_MIN_FIRMWARE = '0.2.31'
 ALERT_EVENT = 'esphome.screen_alert'
-ALERT_ENDINGS = (('ok', 'The button was pressed'), ('timeout', 'The timeout ran out'),
+ALERT_ENDINGS = (('ok', 'The button was pressed'), ('button2', 'The second button was pressed'), ('timeout', 'The timeout ran out'),
                  ('replaced', 'A new alert came over it'), ('remote', 'dismiss_alert from Home Assistant'))
 ALERT_FALLBACK_ICON = 'alert-outline'
 # (field, ESPHome type, label, explanation, example) in the order Home Assistant shows them.
@@ -1869,6 +1912,20 @@ ALERT_ACTION_MAX_BYTES = 4096
 # device name, the name Home Assistant shows, or a room (every screen in it), written loosely (case, spaces, dashes and
 # underscores don't matter); a list names several. A name that matches no screen sends nothing, never to everyone.
 ALERT_SCREEN_FIELD = ('screen', 'Screen', 'Which screen gets the alert: its device name (such as kitchen-screen), the name Home Assistant shows, or a room, which reaches every screen in it. A list, such as [kitchen-screen, hallway], reaches several. Leave it out for every screen. A name that matches no screen sends nothing; the ESP Screen Manager log names the screens it knows. Only through the esp_screens_show_alert and esp_screens_dismiss_alert events.', 'kitchen-screen')
+# A second button and a colour per button (firmware 0.3.3+): the screen's own show_alert_choice action, which takes the seven
+# fields of show_alert and these three. Through the event they are optional: an alert that uses any of them goes to a screen
+# with that firmware as show_alert_choice, and to an older one as show_alert, with its one button. (field, ESPHome type,
+# label, explanation, example) like ALERT_FIELDS, in the order show_alert_choice declares them after button_text.
+ALERT_CHOICE_MIN_FIRMWARE = '0.3.3'
+ALERT_CHOICE_ACTION = 'show_alert_choice'
+ALERT_CHOICE_FIELDS = (
+    ('button_color', 'string', 'Button color', 'The button in a color of its own: red, orange, yellow, green, mint, blue, purple, pink or gray, as a full key color with white words. Empty keeps the dark button.', 'green'),
+    ('button2_text', 'string', 'Second button text', 'A second button on the left of the first, for a choice such as Decline and Accept. Empty gives one button.', 'Not now'),
+    ('button2_color', 'string', 'Second button color', 'The second button in one of the same colors. Empty keeps the light button.', 'red'),
+)
+ALERT_CHOICE_ORDER = ('title', 'subtitle', 'icon', 'color', 'button_text', 'button_color', 'button2_text', 'button2_color', 'timeout', 'flash')
+# What the second button does, like `action` and `data` for the first (app 0.3.8): performed once when it is pressed.
+ALERT_ACTION2_FIELD = ('button2_action', 'Second button action', 'A Home Assistant action performed once when the second button is pressed on any screen, like `action` for the first. `button2_data` gives its fields. Only through the esp_screens_show_alert event.', 'script.snooze_reminder')
 # The firmware's MAX_TIMEOUT_SECONDS.
 ALERT_MAX_TIMEOUT = 86400
 # One alert for every screen (app 0.2.45): an automation fires one of these Home Assistant events and the
@@ -1904,6 +1961,13 @@ def alert_reference():
                        'help': t(f'addon.alerts.fields.{ALERT_SCREEN_FIELD[0]}.help'), 'example': ALERT_SCREEN_FIELD[3]},
             'action': {'name': ALERT_ACTION_FIELD[0], 'label': t(f'addon.alerts.fields.{ALERT_ACTION_FIELD[0]}.label'),
                        'help': t(f'addon.alerts.fields.{ALERT_ACTION_FIELD[0]}.help'), 'example': ALERT_ACTION_FIELD[3]},
+            'choice': {'min_firmware': ALERT_CHOICE_MIN_FIRMWARE, 'action': ALERT_CHOICE_ACTION,
+                       'fields': [{'name': name, 'type': kind, 'label': t(f'addon.alerts.fields.{name}.label'),
+                                   'help': t(f'addon.alerts.fields.{name}.help'),
+                                   'example': t(f'addon.alerts.fields.{name}.example') if name == 'button2_text' else value}
+                                  for name, kind, _, _, value in ALERT_CHOICE_FIELDS],
+                       'action2': {'name': ALERT_ACTION2_FIELD[0], 'label': t(f'addon.alerts.fields.{ALERT_ACTION2_FIELD[0]}.label'),
+                                   'help': t(f'addon.alerts.fields.{ALERT_ACTION2_FIELD[0]}.help'), 'example': ALERT_ACTION2_FIELD[3]}},
             'limits': ALERT_LIMITS,
             'limit_boards': limit_boards(),
             'colors': [{'name': name, 'label': item['label'], 'color': item['color']} for name, item in backgrounds().items() if item['color']],
@@ -1956,6 +2020,28 @@ def alert_data(data):
             unusable.append(name)
     return service, unusable
 
+def alert_choice(data):
+    """(choice fields, unusable field names): the second button's text and the buttons' colours from an event's data, as
+    strings; {} when the event uses none of them, so the alert goes out as show_alert."""
+    data = data if isinstance(data, dict) else {}
+    fields, unusable = {}, []
+    for name, *_ in ALERT_CHOICE_FIELDS:
+        value = data.get(name)
+        if value is None or value == '':
+            continue
+        if isinstance(value, (str, int, float)) and not isinstance(value, bool):
+            fields[name] = str(value)
+        else:
+            unusable.append(name)
+    if not fields:
+        return {}, unusable
+    return {name: fields.get(name, '') for name, *_ in ALERT_CHOICE_FIELDS}, unusable
+
+def choice_service(service_data, choice):
+    """show_alert_choice's ten fields in the order it declares them."""
+    merged = {**service_data, **choice}
+    return {name: merged[name] for name in ALERT_CHOICE_ORDER}
+
 def alert_camera(data):
     """(entity, usable): the alert's `camera` field when it names a camera or image entity; ('', True) without one."""
     value = data.get(ALERT_CAMERA_FIELD[0]) if isinstance(data, dict) else None
@@ -1964,13 +2050,13 @@ def alert_camera(data):
     usable = isinstance(value, str) and re.fullmatch(r'[a-z0-9_]+\.[a-z0-9_]+', value.strip()) is not None and value.strip().split('.')[0] in CAMERA_DOMAINS
     return (value.strip(), True) if usable else ('', False)
 
-def alert_action(data):
-    """((action, data), usable): the alert's `action` and `data` when they name a Home Assistant action with a mapping of
-    fields; (None, True) without one, (None, False) when it is unusable."""
-    value = data.get(ALERT_ACTION_FIELD[0]) if isinstance(data, dict) else None
+def alert_action(data, name=ALERT_ACTION_FIELD[0], data_name='data'):
+    """((action, data), usable): the alert's `action` and `data` (or `button2_action` and `button2_data`) when they name a
+    Home Assistant action with a mapping of fields; (None, True) without one, (None, False) when it is unusable."""
+    value = data.get(name) if isinstance(data, dict) else None
     if value is None or value == '':
         return None, True
-    fields = data.get('data')
+    fields = data.get(data_name)
     if not isinstance(value, str) or not ACTION_NAME.fullmatch(value.strip()) or len(value) > 64 or (fields is not None and not isinstance(fields, dict)):
         return None, False
     try:

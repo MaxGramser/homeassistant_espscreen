@@ -3,7 +3,7 @@
 #
 # 1024x600 at 170 dpi, the standard look, a grid of 4 x 4 cells lying down and 2 x 7 standing up, as on the
 # 7-inch Waveshare. The panel is 1024x600 itself, so it lies down without a turn.
-# Built from ESPHome's own panel model and the pins community configurations agree on; nobody on the project has
+# Built from ESPHome's own panel model (with a hardware reset added) and the pins community configurations agree on; nobody on the project has
 # tried it on the glass yet (docs/JC1060P470.md has what to check). Panels whose rear label says "V2" after the
 # material number carry a different LCD and need guition-jc1060p470-v2.yaml instead.
 #
@@ -50,12 +50,79 @@ substitutions:
 # No need to edit below this line.
 # ============================================================
 
-# ESPHome's own mipi_dsi platform knows this panel by name: `model: JC1060P470` brings the JD9165's init sequence and
-# its timings. It names no reset pin on purpose (ESPHome pull request 10464): the panel then gets a software reset,
-# which is what brings it back after a restart that kept the power on. The schematic's LCD_RST is GPIO0.
+# The panel as ESPHome's own `model: JC1060P470` describes it (the JD9165's timings and init table), written out in full
+# for the two things that model cannot say: the panel's hardware reset and a wait after it. With the model alone the
+# panel gets a software reset and, straight after it, the init table. A JC1060P470 that got that after a cold start
+# stopped taking commands, and the firmware waited for it until the watchdog restarted the chip, again on every boot
+# (GitHub issue #28). This is what the V2 does, on the same board: LCD_RST is GPIO0 on the schematic, and the JD9165
+# takes the table only 120 ms after a reset. ESPHome adds the pixel format, the orientation and the display-on
+# commands itself.
 display:
   - platform: mipi_dsi
     id: my_display
-    model: JC1060P470
+    model: CUSTOM
     update_interval: never
     auto_clear_enabled: false
+    reset_pin: GPIO0
+    color_order: RGB
+    dimensions: {width: 1024, height: 600}
+    lanes: 2
+    lane_bit_rate: 750Mbps
+    pclk_frequency: 54MHz
+    hsync_pulse_width: 40
+    hsync_back_porch: 160
+    hsync_front_porch: 160
+    vsync_pulse_width: 10
+    vsync_back_porch: 23
+    vsync_front_porch: 12
+    init_sequence:
+      # ESPHome waits 120 ms after a reset before its own sleep-out, not before the table.
+      - delay 120ms
+      - [0x30, 0x00]
+      - [0xF7, 0x49, 0x61, 0x02, 0x00]
+      - [0x30, 0x01]
+      - [0x04, 0x0C]
+      - [0x05, 0x00]
+      - [0x06, 0x00]
+      - [0x0B, 0x11]
+      - [0x17, 0x00]
+      - [0x20, 0x04]
+      - [0x1F, 0x05]
+      - [0x23, 0x00]
+      - [0x25, 0x19]
+      - [0x28, 0x18]
+      - [0x29, 0x04]
+      - [0x2A, 0x01]
+      - [0x2B, 0x04]
+      - [0x2C, 0x01]
+      - [0x30, 0x02]
+      - [0x01, 0x22]
+      - [0x03, 0x12]
+      - [0x04, 0x00]
+      - [0x05, 0x64]
+      - [0x0A, 0x08]
+      - [0x0B, 0x0A, 0x1A, 0x0B, 0x0D, 0x0D, 0x11, 0x10, 0x06, 0x08, 0x1F, 0x1D]
+      - [0x0C, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x0D, 0x16, 0x1B, 0x0B, 0x0D, 0x0D, 0x11, 0x10, 0x07, 0x09, 0x1E, 0x1C]
+      - [0x0E, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x0F, 0x16, 0x1B, 0x0D, 0x0B, 0x0D, 0x11, 0x10, 0x1C, 0x1E, 0x09, 0x07]
+      - [0x10, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x11, 0x0A, 0x1A, 0x0D, 0x0B, 0x0D, 0x11, 0x10, 0x1D, 0x1F, 0x08, 0x06]
+      - [0x12, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x14, 0x00, 0x00, 0x11, 0x11]
+      - [0x18, 0x99]
+      - [0x30, 0x06]
+      - [0x12, 0x36, 0x2C, 0x2E, 0x3C, 0x38, 0x35, 0x35, 0x32, 0x2E, 0x1D, 0x2B, 0x21, 0x16, 0x29]
+      - [0x13, 0x36, 0x2C, 0x2E, 0x3C, 0x38, 0x35, 0x35, 0x32, 0x2E, 0x1D, 0x2B, 0x21, 0x16, 0x29]
+      - [0x30, 0x0A]
+      - [0x02, 0x4F]
+      - [0x0B, 0x40]
+      - [0x12, 0x3E]
+      - [0x13, 0x78]
+      - [0x30, 0x0D]
+      - [0x0D, 0x04]
+      - [0x10, 0x0C]
+      - [0x11, 0x0C]
+      - [0x12, 0x0C]
+      - [0x13, 0x0C]
+      - [0x30, 0x00]

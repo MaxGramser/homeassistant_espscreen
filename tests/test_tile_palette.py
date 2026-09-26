@@ -15,7 +15,8 @@ def luminance(color):
 class PaletteTests(unittest.IsolatedAsyncioTestCase):
     def test_palette_matches_firmware_and_has_readable_text(self):
         # The named card colours live in theme.h (firmware 0.2.54+): name, light value, dark value.
-        header=(Path(__file__).resolve().parents[1]/'components/smart_display/theme.h').read_text()
+        # Only the card colours: the key colours of an alert's buttons (KEY_SWATCHES, firmware 0.3.3+) share their names.
+        header=(Path(__file__).resolve().parents[1]/'components/smart_display/theme.h').read_text().split('SWATCHES[] = {',1)[1].split('};',1)[0]
         native={name:light for name,light,_ in re.findall(r'\{"(\w+)", 0x([A-F0-9]{6}), 0x([A-F0-9]{6})\}',header)}
         expected={k:v['color'][1:] for k,v in TILE_BACKGROUNDS.items() if v['color']}
         self.assertEqual(native,expected)

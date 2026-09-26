@@ -269,6 +269,9 @@ def ha_sources():
         sources[f'sun.{state}'] = f'component.sun.entity_component._.state.{state}'
     for state in ('docked', 'cleaning', 'paused', 'returning', 'idle'):
         sources[f'vacuum.{state}'] = f'component.vacuum.entity_component._.state.{state}'
+    for state in ('disarmed', 'armed_home', 'armed_away', 'armed_night', 'armed_vacation', 'armed_custom_bypass', 'pending',
+                  'arming', 'disarming', 'triggered'):
+        sources[f'alarm.{state}'] = f'component.alarm_control_panel.entity_component._.state.{state}'
     english = json.loads((FOLDER / 'en.json').read_text(encoding='utf-8'))['screen']['ha']
     for key in english['weather']:
         sources[f'weather.{key}'] = f'component.weather.entity_component._.state.{key.replace("_", "-") if key != "partlycloudy" else key}'
@@ -280,7 +283,13 @@ def ha_sources():
 
 # The words Home Assistant's frontend itself shows (its own translation files, not the backend's).
 FRONTEND_SOURCES = {'unavailable': 'state.default.unavailable', 'button.activate': 'ui.card.scene.activate',
-                    'button.run': 'ui.card.script.run', 'button.press': 'ui.card.button.press'}
+                    'button.run': 'ui.card.script.run', 'button.press': 'ui.card.button.press',
+                    # The alarm panel's modes and keys, as its dialog and its alarm panel card name them (firmware 0.3.3+).
+                    **{f'alarm_mode.{mode}': f'ui.card.alarm_control_panel.modes.{mode}'
+                       for mode in ('armed_home', 'armed_away', 'armed_night', 'armed_vacation', 'armed_custom_bypass', 'disarmed')},
+                    **{f'alarm_action.{key}': f'ui.card.alarm_control_panel.{key}'
+                       for key in ('disarm', 'arm_home', 'arm_away', 'arm_night', 'arm_vacation', 'arm_custom_bypass')},
+                    'alarm_action.enter_code': 'ui.dialogs.enter_code.title'}
 
 
 def frontend_words(url, codes):

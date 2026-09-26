@@ -92,8 +92,19 @@ show: a CYD six, a 4 x 4 board sixteen. `tools/check.sh` fails when a file is ou
 - What does not fit is left out: the forecast shows as many day columns as the width holds (five at
   most, none below two), a single clock card drops its date when it has no room beside the dial, a
   wide card gets a control panel only when the panel, the icon and some name fit.
-- The icon circle's size is `TILE_ICON_SIZE`, the only size of the head a board states; the forecast's current
-  conditions block follows the head's text offset.
+- The weather tile (`forecast_tile.h`, firmware 0.3.3) takes one of three forms. A card of one row puts the
+  weather now at the left and a column per day beside it; a taller card puts the weather now on top and a row
+  per day under it, the day's range drawn as a bar on one scale for the week; a tall card with no room for four
+  rows keeps the columns under the weather now. A short column gives up its chance of rain first, then the day
+  name on a line of its own. Today's column stands on a pill that keeps its padding: every column is as wide as
+  the pill around the widest text, so a card shows one day fewer rather than a pill that touches its digits.
+- A thermostat tile of more than one row (`climate_tile.h`) has two groups: the number between - and +, and a
+  bar with one segment per mode. Off is not on the bar; the tile's circle switches the thermostat on and off.
+  With room the number stands large with the bar under it; otherwise the stepper and the bar share one row, or
+  on a narrow card the bar goes under the stepper. The bar shows heat and cool first and always the mode the
+  thermostat is in; what does not fit is behind "…".
+- The icon circle's size is `TILE_ICON_SIZE`, the only size of the head a board states; the forecast's
+  weather now uses that circle as every other card does.
 
 ## Overlays: one frame for every card
 

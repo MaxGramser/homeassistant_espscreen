@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 import math
 import camera_feed
 import claude_skill
+import feedback
 from firmware import Firmware
 import ha_catalogue
 import light_effects
@@ -19,8 +20,9 @@ import tile_icons
 from updates import Updater
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
-from core import ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_data, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
+from core import alarm_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
 from core import calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
+from core import BOARD_KEYS
 from core import (Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
                   packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, version_text)
 import header_bar
@@ -646,6 +648,8 @@ class Manager:
         self.listeners = set()  # asyncio.Event per open /api/events stream
         self.firmware = Firmware(os.environ.get("ESPHOME_CONFIG", "/homeassistant/esphome"), self.path.parent)
         self.updates = Updater(self, self.path.parent / 'updates.json')
+        # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
+        self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
         # Settings -> Language & region (app 0.2.90): the language, clock and numbers of every screen.
         self.region = Region(self.path.parent / 'language.json', ha_language=lambda: getattr(self.ha, 'ha_language', None))
         self.ha.language_of = self.region.language
@@ -1022,6 +1026,18 @@ class Manager:
         profile, _ = self.updates.resolve(screen, profiles)
         profiles = profiles if profiles is not None else self.firmware.profile_names()
         return (profiles.get(profile) or {}) if profile else {}
+
+    def feedback_board(self, screen, profiles=None):
+        """The website's id for this screen's model (the keys of boards.yaml are the website's own), or None for a board
+        this app doesn't ship: never a guess from a name or a resolution."""
+        board = board_of({**screen, 'package': self.package_of(screen, profiles)})
+        return board if board in BOARD_KEYS else None
+
+    def feedback_versions(self, screen):
+        """The versions an answer shares: the screen's firmware and this app, as the website takes them."""
+        changelog = getattr(self.updates, 'changelog', None) or []
+        return {'firmware_version': feedback.clean_version(version_text(self.firmware_version(screen['id'], screen))),
+                'addon_version': feedback.clean_version(changelog[0].get('app') if changelog else None)}
 
     def package_of(self, screen, profiles=None):
         """The board package the screen's profile builds from ("packages/waveshare43.yaml"), or None: what a screen looks
@@ -1657,6 +1673,9 @@ class Manager:
         word=ha_catalogue.screen_word(tile['entity'],message['state'],state.get('attributes'),entry,getattr(self.ha,'state_words',None))
         if word:
             message.setdefault('x',{})['w']=word
+        if tile['entity'].startswith('alarm_control_panel.'):
+            for key,value in alarm_extras(state,entry).items():
+                message.setdefault('x',{})[key]=value
         # A second line set to a value of this entity (app 0.2.105): the finished line, or seconds for a moment in
         # time. The other three settings live in the option itself, so the screen keeps drawing them without us.
         for key,value in ha_catalogue.subtitle_message(tile,state).items():
@@ -2097,13 +2116,17 @@ class Manager:
             return
         paces = [min(option.get('refresh', camera_feed.LIVE_REFRESH[0]) if option.get('display') == 'live' else 0
                      for option in tiles[entity]) for entity in entities]
+        # How each picture fills its card (app 0.3.8): one tile per entity on a screen, so its options are the tile's.
+        modes = camera_feed.picture_modes(screen, lambda entity: next((o for o in tiles[entity] if o.get('display') == 'live'), None), entities) if atlas else None
         url, listing = '', ','.join(entities)
         base = await camera_feed.base_url(self.ha.request)
         if base:
-            found = await self.camera.live(entities, size, grounds, paces, **({"atlas": atlas} if atlas else {}))
+            # A screen whose decoder reads 8-bit colour gets a third of the bytes (app 0.3.8).
+            extra = {'compact': camera_feed.compact_pictures(screen), **({'atlas': atlas, 'modes': modes} if atlas else {})}
+            found = await self.camera.live(entities, size, grounds, paces, **extra)
             if found:
                 listing = ','.join(found[2])
-                token = self.camera.link(listing, atlas[:2] if atlas else (size, size), live=(entities, size, grounds, paces) + ((atlas,) if atlas else ()))
+                token = self.camera.link(listing, atlas[:2] if atlas else (size, size), live=(entities, size, grounds, paces, extra))
                 url = f'{base}/camera/{token}.bmp'
         else:
             LOG.warning('Live pictures: no address for this app on the LAN; set SCREEN_CAMERA_URL')
@@ -2164,6 +2187,15 @@ class Manager:
         button, usable = alert_action(data) if event_type == BROADCAST_SHOW else (None, True)
         if not usable:
             unusable.append('action')
+        # The second button and the buttons' colours (firmware 0.3.3+) and what the second button does (app 0.3.8).
+        choice, bad = alert_choice(data) if event_type == BROADCAST_SHOW else ({}, [])
+        unusable += bad
+        button2, usable = alert_action(data, 'button2_action', 'button2_data') if event_type == BROADCAST_SHOW else (None, True)
+        if not usable:
+            unusable.append('button2_action')
+        if button2 and not choice.get('button2_text'):
+            LOG.warning('%s: button2_action without button2_text, no second button', event_type)
+            button2 = None
         if unusable:
             LOG.warning('%s: unusable %s left empty', event_type, ', '.join(unusable))
         # One screen or a few (app 0.2.133): the event's `screen` narrows it down. A name that matches nothing, or a field
@@ -2190,8 +2222,16 @@ class Manager:
             scopes = {screen['id']: self.page_scope(screen['id']) for screen in viewers}
             await asyncio.gather(*(self.send_auxiliary(screen['id'], pending, self.transport(screen['id'], screen), scopes[screen['id']]) for screen in viewers),
                                  return_exceptions=True)
-        results = await asyncio.gather(*(self.ha.call(alert_service(screen['node'], action), service_data) for screen in ready),
-                                       return_exceptions=True)
+        # An alert with a choice goes as show_alert_choice to a screen that has it, and as show_alert, with one button, to
+        # an older one, which the log names.
+        choice_min = parse_firmware(ALERT_CHOICE_MIN_FIRMWARE)
+        chooses = {screen['node'] for screen in ready if choice and (screen_firmware(screen) or (0, 0, 0)) >= choice_min}
+        older = [screen['name'] for screen in ready if choice and screen['node'] not in chooses]
+        if older:
+            LOG.warning('%s: %s show one button (the second button needs firmware %s)', event_type, ', '.join(older), ALERT_CHOICE_MIN_FIRMWARE)
+        calls = [self.ha.call(alert_service(screen['node'], ALERT_CHOICE_ACTION), choice_service(service_data, choice))
+                 if screen['node'] in chooses else self.ha.call(alert_service(screen['node'], action), service_data) for screen in ready]
+        results = await asyncio.gather(*calls, return_exceptions=True)
         failed = [(screen, type(result).__name__) for screen, result in zip(ready, results) if isinstance(result, BaseException)]
         notes = [f"{screen['name']} {reason}" for screen, reason in skipped + failed]
         LOG.info('%s: %d of %d screens%s%s', event_type, len(ready) - len(failed), len(ready) + len(skipped),
@@ -2200,10 +2240,11 @@ class Manager:
         # The button's action waits on every screen that shows this alert; a dismissal forgets it everywhere.
         for screen in ready:
             self.alert_actions.pop(screen['node'], None)
-        if button and shown:
+        if (button or button2) and shown:
             key = secrets.token_hex(4)
             for screen in shown:
-                self.alert_actions[screen['node']] = (key, *button)
+                # Only a screen that draws the second button can press it.
+                self.alert_actions[screen['node']] = (key, {'ok': button, 'button2': button2 if screen['node'] in chooses else None})
         if viewers and any(screen in shown for screen in viewers):
             await self.alert_images(camera, [screen for screen in viewers if screen in shown])
         result = {'sent': len(ready) - len(failed), 'skipped': len(skipped), 'failed': len(failed)}
@@ -2290,16 +2331,19 @@ class Manager:
         pending = self.alert_actions.pop(node, None) if isinstance(node, str) else None
         if pending is None:
             return
-        key, action, fields = pending
-        for other in [n for n, (k, _, _) in self.alert_actions.items() if k == key]:
+        key, buttons = pending
+        for other in [n for n, (k, _) in self.alert_actions.items() if k == key]:
             del self.alert_actions[other]
-        if data.get('action') != 'ok':
+        chosen = buttons.get(data.get('action')) if isinstance(data.get('action'), str) else None
+        if not chosen:
             return
+        action, fields = chosen
+        which = 'Alert button' if data.get('action') == 'ok' else 'Alert second button'
         try:
             await self.ha.call(action, fields)
-            LOG.info('Alert button on %s: %s performed', node, action)
+            LOG.info('%s on %s: %s performed', which, node, action)
         except Exception as error:
-            LOG.warning('Alert button on %s: %s failed (%s)', node, action, type(error).__name__)
+            LOG.warning('%s on %s: %s failed (%s)', which, node, action, type(error).__name__)
 
 def create_app(manager, development=False):
     csrf = secrets.token_urlsafe(32)
@@ -2424,6 +2468,16 @@ def create_app(manager, development=False):
             version = manager.firmware_version(screen['id'], screen)
             screen['firmware_known'] = version_text(version)
             screen.update(firmware_features(version, manager.grid_of(screen)))
+            # Does it work as you expect (app 0.3.10): only for a board the website knows, and never the key.
+            board, device = (screen['board'] if screen['board'] in BOARD_KEYS else None), screen.get('device_id')
+            if board and device and not manager.feedback.readonly:
+                if screen.get('online'):
+                    manager.feedback.seen_usable(device)
+                screen['feedback'] = {**manager.feedback.view(device), 'board': board,
+                                      'model': (SHAPES.get(board, {}).get('catalog') or {}).get('model'),
+                                      'versions': manager.feedback_versions(screen), 'privacy': feedback.PRIVACY_URL}
+            else:
+                screen['feedback'] = None
         return {'csrf': csrf, 'connected': manager.ha.online, 'screens': screens,
                 'editor_features': editor_features,
                 'pending': manager.pending_profiles(screens, profiles),
@@ -2656,6 +2710,20 @@ def create_app(manager, development=False):
             return web.Response(status=304, headers=headers)
         return web.Response(body=body, content_type='image/bmp', headers=headers)
 
+    async def camera_preview(request):
+        # A camera that fills a taller card on the mockup (app 0.3.8): prepared pixels only, as for a cover.
+        entity = request.query.get('entity', '')
+        if not camera_feed.supported(entity) or entity not in manager.ha.states:
+            raise web.HTTPNotFound()
+        result = await manager.camera.frame(entity, (512, 512), fresh=False)
+        if result is None:
+            raise web.HTTPNotFound()
+        tag, body = result
+        headers = {'ETag': tag, 'Cache-Control': 'private, max-age=30'}
+        if request.headers.get('If-None-Match') == tag:
+            return web.Response(status=304, headers=headers)
+        return web.Response(body=body, content_type='image/bmp', headers=headers)
+
     async def states(request):
         """Live values for the editor's mockup (app 0.2.73): the state, Home Assistant's word and the attributes a
         card shows, for the tiles on the page, saved or not. At most sixty entities per request."""
@@ -2763,11 +2831,54 @@ def create_app(manager, development=False):
         path, name = manager.firmware.image(request.match_info['file'])
         return web.FileResponse(path, headers={'Content-Type': 'application/octet-stream',
                                                'Content-Disposition': f'attachment; filename="{name}"'})
+    # The answers that are still waiting after a restart try again (feedback.py); a request never runs past shutdown.
+    FEEDBACK_ERRORS = {'outcome': 'addon.errors.feedback.invalid', 'issues': 'addon.errors.feedback.invalid',
+                       'comment': 'addon.errors.feedback.comment', 'board': 'addon.errors.feedback.unknown_board',
+                       'deleting': 'addon.errors.feedback.deleting', 'storage': 'addon.errors.feedback.storage',
+                       'revision': 'addon.errors.feedback.invalid', 'action': 'addon.errors.invalid_input'}
+    async def feedback_start(app):
+        manager.feedback.start()
+    app.on_startup.append(feedback_start)
+    async def feedback_action(request):
+        """The owner's choice on the feedback card: answer, later, never, cancel, retry or delete. The page names the
+        screen; the key, the revision and the model are this app's own, for a screen paired with this Home Assistant."""
+        screen = manager.screen(request.match_info['inbox'])
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError(t('addon.errors.invalid_input'))
+        board, device = manager.feedback_board(screen, manager.firmware.profile_names()), screen.get('device_id')
+        if not board or not device:
+            raise ValueError(t('addon.errors.feedback.unknown_board'))
+        action, store = data.get('action'), manager.feedback
+        try:
+            if store.readonly:
+                raise ValueError('storage')
+            if action == 'answer':
+                await store.answer(device, board, data.get('outcome'), data.get('issues'), data.get('comment'),
+                                   manager.feedback_versions(screen))
+            elif action == 'later':
+                store.later(device)
+            elif action == 'never':
+                store.never(device)
+            elif action == 'cancel':
+                await store.cancel(device)
+            elif action == 'retry':
+                await store.retry(device)
+            elif action == 'delete':
+                await store.delete(device)
+            else:
+                raise ValueError('action')
+        except ValueError as error:
+            raise ValueError(t(FEEDBACK_ERRORS.get(str(error), 'addon.errors.invalid_input'))) from None
+        return web.json_response({'feedback': store.view(device)})
     async def shutdown(app):
         for task in (manager.updates.task, manager.firmware.task):
             if task and not task.done():
                 task.cancel()
                 with contextlib.suppress(asyncio.CancelledError): await task
+        await manager.feedback.close()
     app.on_cleanup.append(shutdown)
     app.router.add_get('/api/screens/{inbox}/inspect', inspector)
     app.router.add_post('/api/screens/{inbox}/update', update_screen)
@@ -2786,6 +2897,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/states', states)
     app.router.add_get('/api/history-preview', preview_history)
     app.router.add_get('/api/media-art', media_art_preview)
+    app.router.add_get('/api/camera-preview', camera_preview)
     app.router.add_post('/api/screens/{inbox}/identify', identify)
     app.router.add_post('/api/screens/{inbox}/calibrate', calibrate)
     app.router.add_post('/api/alerts/test', test_alert)
@@ -2802,6 +2914,7 @@ def create_app(manager, development=False):
     app.router.add_put('/api/screens/{inbox}/workspace', save_workspace)
     app.router.add_delete('/api/screens/{inbox}', remove_screen)
     app.router.add_put('/api/screens/{inbox}/settings', change_settings)
+    app.router.add_post('/api/screens/{inbox}/feedback', feedback_action)
     app.router.add_static('/assets/', static / 'assets')
     return app
 

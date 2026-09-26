@@ -175,8 +175,9 @@ def capabilities(entity_id, actions, state, services):
     elif domain == 'sun':
         displays.append('sunpath')
     elif domain in ('camera', 'image'):
-        # A live picture on the tile (app 0.2.91): the editor offers it on a Guition, the only board that draws images.
-        displays.append('live')
+        # A live picture on the tile (app 0.2.91): the editor offers it on a board that draws images. A camera's state
+        # ("Idle") makes no large value, and the layout refuses one (core.DISPLAYS, app 0.3.8).
+        displays = ['standard', 'live']
     elif domain == 'media_player':
         # The album cover in the icon's place (app 0.2.92), a Guition again.
         displays.append('cover')

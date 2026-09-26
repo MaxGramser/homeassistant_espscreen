@@ -8,6 +8,7 @@ import {
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
 import Drawer from "./Drawer.vue";
+import FeedbackPanel from "./FeedbackPanel.vue";
 
 const screen = computed(() => currentScreen.value!);
 const statusText = computed(() => screen.value.online
@@ -99,6 +100,7 @@ onBeforeUnmount(() => { document.removeEventListener("keydown", onKey); document
       <input ref="fileInput" type="file" accept="application/json,.json" hidden @change="onFile" />
     </div>
   </header>
+  <FeedbackPanel v-if="screen.feedback?.available" :key="`card-${screen.id}`" :screen="screen" mode="card" />
   <div class="body" id="body">
     <LayoutView v-if="state.tab === 'layout'" />
     <SettingsTab v-else />

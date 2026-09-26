@@ -135,7 +135,9 @@ describe("defaults, controls and versions", () => {
   it("starts a new tile with the card that shows the entity best", () => {
     expect(defaultOptions("weather.home")).toEqual({ options: { display: "forecast", size: "wide" } });
     expect(defaultOptions("sun.sun")).toEqual({ options: { display: "sunpath", size: "wide" } });
-    expect(defaultOptions("screen.clock")).toEqual({ options: { display: "digital", size: "wide" } });
+    expect(defaultOptions("screen.clock")).toEqual({ options: { display: "dial", size: "wide" } });
+    // The settings card is a plain card, not a second clock (GitHub #47).
+    expect(defaultOptions("screen.settings")).toEqual({});
     expect(defaultOptions("light.a")).toEqual({});
     expect(newTile("light.a")).toEqual({ entity: "light.a", name: "", slot: -1 });
   });
@@ -277,4 +279,17 @@ it('keeps simultaneous layout instances independent and reads a shape change imm
   expect(editor.cellsOf(0, 'square')).toEqual([0, 1, 4, 5]);
   expect(editor.grid.pages).toBe(4);
   expect(other.grid.pages).toBe(7);
+});
+
+describe("the alarm panel's colours (app 0.3.8)", () => {
+  it("paints an alarm as Home Assistant does: armed green, the delays orange, going off red, disarmed grey", async () => {
+    const { tilePalette, tileActive } = await import("../src/model/tile-palette");
+    const accent = (state: string) => tilePalette("alarm_control_panel.house", { state }).accent;
+    expect(accent("armed_away")).toBe("#4caf50");
+    expect(accent("armed_night")).toBe("#4caf50");
+    for (const state of ["arming", "pending", "disarming"]) expect(accent(state)).toBe("#ff9800");
+    expect(accent("triggered")).toBe("#f44336");
+    expect(tileActive("alarm_control_panel.house", { state: "disarmed" })).toBe(false);
+    expect(accent("disarmed")).toBe("#9e9e9e");
+  });
 });

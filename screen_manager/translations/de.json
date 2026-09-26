@@ -282,6 +282,13 @@
       "rejected": "Messung verworfen; bitte erneut",
       "save_failed": "Speichern fehlgeschlagen; bitte erneut"
     },
+    "alarm": {
+      "wrong_code": "Falscher Code",
+      "nothing_changed": "Nichts hat sich geändert. Prüfe den Code.",
+      "try_again": "Erneut versuchen in {time}",
+      "too_many": "Zu viele falsche Codes",
+      "letters": "Dieser Code enthält Buchstaben. Gib ihn in Home Assistant ein."
+    },
     "ha": {
       "on": "Ein",
       "off": "Aus",
@@ -429,6 +436,35 @@
         "both": "Beides",
         "vertical": "Vertikal",
         "horizontal": "Horizontal"
+      },
+      "alarm": {
+        "disarmed": "Deaktiviert",
+        "armed_home": "Aktiviert (Zuhause)",
+        "armed_away": "Aktiviert (Abwesend)",
+        "armed_night": "Aktiviert (Nacht)",
+        "armed_vacation": "Aktiviert (Urlaub)",
+        "armed_custom_bypass": "Aktiviert (Mit Bypass)",
+        "pending": "Anstehend",
+        "arming": "Wird aktiviert",
+        "disarming": "Wird deaktiviert",
+        "triggered": "Ausgelöst"
+      },
+      "alarm_mode": {
+        "armed_home": "Zuhause",
+        "armed_away": "Abwesend",
+        "armed_night": "Nacht",
+        "armed_vacation": "Urlaub",
+        "armed_custom_bypass": "Mit Bypass",
+        "disarmed": "Deaktiviert"
+      },
+      "alarm_action": {
+        "disarm": "Deaktivieren",
+        "arm_home": "Aktivieren (Zuhause)",
+        "arm_away": "Aktivieren (Abwesend)",
+        "arm_night": "Aktivieren (Nacht)",
+        "arm_vacation": "Aktivieren (Urlaub)",
+        "arm_custom_bypass": "Aktivieren (Mit Bypass)",
+        "enter_code": "Code eingeben"
       }
     },
     "navigation": {
@@ -657,6 +693,13 @@
         "destination_exists": "Der Zielbildschirm hat bereits ein gespeichertes Layout",
         "update_tall": "Aktualisiere den Bildschirm, um höhere Kacheln zu verwenden",
         "memory": "Der Bildschirm hat nicht genug freien Speicher für dieses Layout. Verwende weniger Kacheln."
+      },
+      "feedback": {
+        "invalid": "Diese Antwort kann nicht geteilt werden. Wähle Ja oder Nicht ganz und nur die genannten Probleme.",
+        "comment": "Halte die Anmerkung unter 1000 Zeichen.",
+        "unknown_board": "Feedback ist für dieses Board noch nicht verfügbar.",
+        "deleting": "Deine geteilte Antwort wird noch gelöscht. Antworte erneut, sobald das erledigt ist.",
+        "storage": "Feedback ist aus: Die gespeicherten Daten stammen von einer anderen Version von ESP Screens."
       }
     },
     "status": {
@@ -839,10 +882,28 @@
         "screen": {
           "label": "Bildschirm",
           "help": "Welcher Bildschirm die Meldung bekommt: sein Gerätename (etwa kitchen-screen), der Name, den Home Assistant anzeigt, oder ein Raum, der jeden Bildschirm darin erreicht. Eine Liste wie [kitchen-screen, hallway] erreicht mehrere. Weglassen für alle Bildschirme. Ein Name, der zu keinem Bildschirm passt, sendet nichts; das Log von ESP Screen Manager nennt dann die Bildschirme, die es kennt. Nur über die Events esp_screens_show_alert und esp_screens_dismiss_alert."
+        },
+        "button_color": {
+          "label": "Tastenfarbe",
+          "help": "Die Taste in einer eigenen Farbe: red, orange, yellow, green, mint, blue, purple, pink oder gray, als volle Tastenfarbe mit weißer Schrift. Leer behält die dunkle Taste."
+        },
+        "button2_text": {
+          "label": "Text der zweiten Taste",
+          "help": "Eine zweite Taste links neben der ersten, für eine Wahl wie Ablehnen und Annehmen. Leer ergibt eine Taste.",
+          "example": "Nicht jetzt"
+        },
+        "button2_color": {
+          "label": "Farbe der zweiten Taste",
+          "help": "Die zweite Taste in einer der gleichen Farben. Leer behält die helle Taste."
+        },
+        "button2_action": {
+          "label": "Aktion der zweiten Taste",
+          "help": "Eine Home-Assistant-Aktion, die einmal ausgeführt wird, wenn die zweite Taste auf einem Bildschirm gedrückt wird, wie `action` für die erste. `button2_data` gibt ihre Felder an. Nur über das Event esp_screens_show_alert."
         }
       },
       "endings": {
         "ok": "Die Taste wurde gedrückt",
+        "button2": "Die zweite Taste wurde gedrückt",
         "timeout": "Das Timeout ist abgelaufen",
         "replaced": "Eine neue Meldung hat sie ersetzt",
         "remote": "dismiss_alert aus Home Assistant"
@@ -1309,7 +1370,8 @@
         "select": "Auswahl",
         "person": "Personen",
         "timer": "Timer",
-        "screen": "Bildschirm"
+        "screen": "Bildschirm",
+        "alarm_control_panel": "Alarm"
       },
       "more": "Mehr ({n})",
       "fewer": "Weniger",
@@ -1349,7 +1411,8 @@
       "person": "Person",
       "camera": "Kamera",
       "image": "Bild",
-      "entity": "Entität"
+      "entity": "Entität",
+      "alarm_control_panel": "Alarmanlage"
     },
     "displays": {
       "standard": "Standard",
@@ -1358,6 +1421,8 @@
       "graph": "Diagramm",
       "digital": "Digitaluhr",
       "analog": "Analoguhr",
+      "dial": "schlichtes Zifferblatt",
+      "flip": "Klappuhr",
       "sunpath": "Sonnenbahn",
       "live": "Livebild",
       "cover": "Albumcover"
@@ -1385,6 +1450,8 @@
         "label": "Anzeige",
         "digital": "Digitaluhr",
         "analog": "Analoguhr",
+        "dial": "Schlichtes Zifferblatt",
+        "flip": "Klappuhr",
         "standard": "Name und Status",
         "watch": "Großer Wert",
         "forecast": "Wettervorhersage",
@@ -1393,16 +1460,31 @@
         "live": "Livebild",
         "live_hint": "Ein kleines Bild der Kamera anstelle des Symbols, im Takt unten aufgefrischt, solange die Seite zu sehen ist. Ein Tipp öffnet sie weiterhin bildschirmfüllend.",
         "live_needs_firmware": "Ein Livebild braucht Firmware 0.2.77 oder neuer: Nach dem Speichern beim Bildschirm auf Aktualisieren drücken.",
+        "live_card_hint": "Das Bild füllt die Kachel, im Takt unten aufgefrischt, solange die Seite zu sehen ist. Ein Tipp öffnet sie weiterhin bildschirmfüllend.",
+        "live_card_needs_firmware": "Ein Bild, das die Kachel füllt, braucht Firmware 0.3.3 oder neuer: Nach dem Speichern beim Bildschirm auf Aktualisieren drücken. Bis dahin zeigt der Bildschirm ein kleines Bild anstelle des Symbols.",
         "cover": "Albumcover",
         "cover_hint": "Das Albumcover des laufenden Titels anstelle des Symbols, wie auf der eigenen Kachel von Home Assistant; ein Player ohne Bild behält sein Symbol. Ein Tipp öffnet weiterhin die Karte.",
         "cover_needs_firmware": "Das Albumcover auf der Kachel braucht Firmware 0.2.78 oder neuer: Nach dem Speichern beim Bildschirm auf Aktualisieren drücken.",
         "no_graph": "Home Assistant hat für diese Entität keine Zahlen, daher bleibt das Diagramm leer. Wähle eine andere Anzeige.",
         "no_forecast": "Dieser Wetterdienst hat in Home Assistant keine Tagesvorhersage. Wähle eine andere Anzeige.",
-        "tall_cover_hint": ""
+        "tall_cover_hint": "",
+        "face_needs_firmware": "Diese Uhr braucht Firmware 0.3.6 oder neuer: Nach dem Speichern beim Bildschirm auf Aktualisieren drücken. Bis dahin zeigt der Bildschirm die Digitaluhr."
       },
       "refresh": {
         "label": "Auffrischen",
         "seconds": "Alle {n} s"
+      },
+      "picture": {
+        "fit": {
+          "label": "Bild",
+          "fill": "Kachel füllen",
+          "contain": "Ganzes Bild"
+        },
+        "overlay": {
+          "label": "Auf dem Bild",
+          "name": "Name",
+          "none": "Nichts"
+        }
       },
       "size": {
         "label": "Größe",
@@ -1868,7 +1950,8 @@
         "behaviour": "Verhalten",
         "events": "Ereignisse",
         "tips": "Tipps",
-        "one": "Ein Bildschirm"
+        "one": "Ein Bildschirm",
+        "choice": "Zwei Tasten"
       },
       "try": {
         "text": "Sende jetzt eine Meldung mit denselben Feldern, die auch eine Automation sendet. Der Bildschirm zeigt die Karte und lässt bei eingeschaltetem Blinken seine Hintergrundbeleuchtung blinken.",
@@ -1997,6 +2080,12 @@
         "picture_yes": "Ja",
         "picture_no": "Nein, die Meldung kommt ohne",
         "none": "Noch keine Bildschirme gekoppelt. Sobald ein Bildschirm gekoppelt ist, steht hier, was du für ihn einträgst."
+      },
+      "choice": {
+        "title": "Zwei Tasten und Tastenfarben",
+        "text": "Füge {second} hinzu für eine zweite Taste links neben der ersten, damit man am Bildschirm wählen kann, etwa Nicht jetzt und Öffnen. {first_color} und {second_color} geben einer Taste eine eigene Farbe, Grün für Ja und Rot für Nein. Welche Antwort auf welcher Seite steht, entscheidest du: Die erste Taste ist immer rechts.",
+        "event": "Über das Event ist jedes dieser Felder optional, und {second_action} mit {second_data} führt eine Aktion von der zweiten Taste aus, wie {action} von der ersten. Ein Bildschirm mit Firmware älter als {version} zeigt die Meldung mit einer Taste.",
+        "direct": "Rufst du einen Bildschirm direkt auf? Seine Aktion {choice} nimmt die Felder von show_alert und diese drei; die zweite Taste beendet die Meldung mit {ending}."
       }
     },
     "override": {
@@ -2113,6 +2202,58 @@
       "choose_page": "Seite",
       "all_connections": "Alle Verbindungen",
       "migration_adjusted": "Ungültige alte Einstellungen wurden durch Standardwerte ersetzt: {fields}. Die Originale bleiben in der Migrationssicherung erhalten."
+    },
+    "feedback": {
+      "question": "Funktioniert dein Bildschirm wie erwartet?",
+      "intro": "Hilf uns, dieses Modell zu verbessern. Deine Antwort und das Bildschirmmodell werden mit Tessera geteilt, ohne Konto und ohne deine Home-Assistant-Einstellungen.",
+      "yes": "Ja, funktioniert gut",
+      "no": "Nicht ganz",
+      "later": "Später",
+      "never": "Nicht mehr fragen",
+      "add_something": "Etwas hinzufügen",
+      "issues_question": "Wo hakt es?",
+      "issues": {
+        "display": "Bildschirm",
+        "touch": "Touch",
+        "connection": "Verbindung",
+        "installation": "Installation",
+        "other": "Anderes"
+      },
+      "comment_label": "Anmerkung (optional)",
+      "comment_hint": "Bitte keine persönlichen Daten, Logs, Passwörter oder API-Schlüssel.",
+      "add_details": "Details hinzufügen",
+      "done": "Fertig",
+      "settings_title": "Feedback",
+      "shared": {
+        "working": "Du hast geteilt: funktioniert gut",
+        "not_working": "Du hast geteilt: nicht ganz"
+      },
+      "none_yet": "Du hast für diesen Bildschirm noch keine Antwort geteilt.",
+      "none_now": "Von diesem Bildschirm ist gerade nichts geteilt.",
+      "share": "Antwort teilen",
+      "change": "Antwort ändern",
+      "delete": "Meine geteilte Antwort löschen",
+      "retry": "Erneut versuchen",
+      "status": {
+        "sending": "Wird gesendet…",
+        "received": "Danke, deine Antwort ist angekommen.",
+        "waiting": "Noch nicht gesendet; wir versuchen es später erneut.",
+        "failed": "Nicht gesendet: Tessera war einen Tag lang nicht erreichbar.",
+        "deleting": "Noch nicht gelöscht; wir versuchen es später erneut.",
+        "delete_failed": "Noch nicht gelöscht: Tessera war einen Tag lang nicht erreichbar.",
+        "deleted": "Deine geteilte Antwort wurde gelöscht.",
+        "conflict": "Tessera hat eine andere Antwort für diesen Bildschirm. Ändere deine Antwort, um sie erneut zu teilen.",
+        "rejected": "Tessera hat diese Antwort nicht angenommen."
+      },
+      "what_title": "Was wird geteilt?",
+      "what": {
+        "model": "Das Bildschirmmodell: {model}",
+        "answer": "Deine Antwort, die gewählten Probleme und deine Anmerkung",
+        "firmware": "Die Firmware-Version des Bildschirms: {version}",
+        "addon": "Die Version von ESP Screens: {version}",
+        "nothing_else": "Sonst nichts: kein Name, kein Konto, keine Entitäten, Logs oder Home-Assistant-Einstellungen. Jeder Bildschirm teilt unter einem eigenen zufälligen Schlüssel."
+      },
+      "privacy": "Datenschutz"
     }
   }
 }

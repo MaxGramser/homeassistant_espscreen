@@ -221,7 +221,9 @@ export function defaultOptions(id: string): Partial<Tile> {
   if (domain === "sun") return { options: { display: "sunpath", size: "wide" } };
   if (domain === "weather") return { options: { display: "forecast", size: "wide" } };
   if (pageTarget(id)) return {};
-  if (domain === "screen") return { options: { display: "digital", size: "wide" } };
+  // The clock is the one built-in card with a face; the settings card is a plain card, as the screen draws it (GitHub #47).
+  // A new clock starts with the calm dial (app 0.3.12): it reads well on every size of card.
+  if (id === "screen.clock") return { options: { display: "dial", size: "wide" } };
   return {};
 }
 export const newTile = (id: string): Tile => ({ entity: id, name: "", slot: -1, ...defaultOptions(id) } as Tile);
@@ -254,7 +256,7 @@ export const supportsFirmware = (firmware: string | undefined | null, major: num
 // add-on tells the editor per screen (tile_limit, app 0.2.78); this rule stays for a screen entry without it.
 
 // What a tile shows and how big it is, in a few words (editor.displays, editor.sizes); a key it doesn't know stays as it is.
-export const DISPLAYS = ["standard", "watch", "forecast", "graph", "digital", "analog", "sunpath", "live", "cover"];
+export const DISPLAYS = ["standard", "watch", "forecast", "graph", "digital", "analog", "dial", "flip", "sunpath", "live", "cover"];
 export const displayName = (display: string) => (DISPLAYS.includes(display) ? t(`editor.displays.${display}`) : display);
 export const sizeName = (size: string | undefined) => t(`editor.sizes.${SIZES.includes(size as Size) ? size : "single"}`);
 export const TOGGLE_BEFORE = ["light", "switch", "input_boolean", "fan", "media_player", "climate"];
@@ -289,6 +291,7 @@ export const domains: Record<string, [string, string, string]> = {
   person: ["☺", "#2f7d32", "#e1f2e2"],
   camera: ["◧", "#3d4a57", "#e6ebf0"],
   image: ["◧", "#3d4a57", "#e6ebf0"],
+  alarm_control_panel: ["⛨", "#2f7d32", "#e1f2e2"],
 };
 // [name, sign, colour, background] of an entity's domain.
 export function domainInfo(id: string): [string, string, string, string] {

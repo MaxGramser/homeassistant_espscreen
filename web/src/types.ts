@@ -20,7 +20,7 @@ export type PageTile = {
   // A footprint is a rectangle. The renderer's capabilities decide which
   // rectangles it supports; the page's grid is never user-overridable.
   placement: { row: number; column: number; columns: number; rows: number };
-  appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full"; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string };
+  appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full"; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; fit?: string; overlay?: string };
   interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"] };
 };
 export type Page = {
@@ -78,6 +78,18 @@ export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
   width: number; height: number; dpi: number; camera: boolean; dimmable: boolean; can_standby: boolean;
 };
+// Does this screen work as you expect (app 0.3.10): what the add-on says about the board's shared answer. The key and
+// the revision never reach the page; the add-on keeps them.
+export type FeedbackIssue = "display" | "touch" | "connection" | "installation" | "other";
+export type FeedbackAnswer = { outcome: "working" | "not_working"; issues?: FeedbackIssue[] | null; comment?: string | null };
+export type FeedbackView = {
+  available: boolean; ask: boolean; answered: boolean;
+  shared: FeedbackAnswer | null; pending: FeedbackAnswer | null;
+  state: "idle" | "waiting" | "failed" | "deleting" | "delete_failed";
+  problem: "conflict" | "rejected" | null; deleted: boolean; retry_at?: number | null;
+  board: string; model?: string | null; privacy: string;
+  versions: { firmware_version?: string | null; addon_version?: string | null };
+};
 export type Screen = {
   id: string; name: string; online: boolean; area?: string; firmware?: string; board?: string;
   layout: Layout; update?: UpdateInfo; settings?: SettingsView; delivery?: string; status?: string;
@@ -91,6 +103,7 @@ export type Screen = {
   page_applied_revision?: string | null;
   // The layout is out and the screen holds it (app 0.2.108): the editor then shows no delivery line.
   in_sync?: boolean;
+  feedback?: FeedbackView | null;
   alert_action?: string; dismiss_action?: string;
   // The screen's device name (its ESPHome name): what its actions are named after and what an alert's `screen` takes.
   node?: string;

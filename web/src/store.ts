@@ -6,7 +6,7 @@ import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, 
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware as supportsVersion } from "./model/layout";
 import { agoText, barMetricsFor, clockText, dateText, itemKey, type ItemView, whenBarFontsLoad } from "./model/topbar";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
-import type { Capability, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, Screen, Tile, PageLayout, PageDocument, PageGrid, PageWorkspace } from "./types";
+import type { Capability, FeedbackView, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, Screen, Tile, PageLayout, PageDocument, PageGrid, PageWorkspace } from "./types";
 
 import * as pages from "./model/pages";
 import { DraftHistory, type HistoryScope } from './model/draft-history';
@@ -685,6 +685,9 @@ export function setTileOption(tile: Tile, key: string, value: unknown) {
   // Direct controls need the standard layout without a mini slider, and vice versa.
   if (key === "display" && value === "watch") { tile.options.inline = "none"; if (state.inventory.controls?.[domain]) tile.options.controls = "none"; }
   if (key === "display" && ["forecast", "sunpath"].includes(value as string) && !isWide(tile)) tile.options.size = "wide";
+  // A live picture's own settings leave with it, and a default is not stored (the add-on's canonical form, app 0.3.8).
+  if (key === "display" && value !== "live") for (const own of ["refresh", "fit", "overlay"]) delete tile.options[own];
+  if ((key === "fit" && value === "fill") || (key === "overlay" && value === "name")) delete tile.options[key];
   if (key === "inline" && value === "slider") { tile.options.display = "standard"; if (state.inventory.controls?.[domain]) tile.options.controls = "none"; }
   if (key === "controls" && value === "none" && ["tall", "square"].includes(sizeOf(tile))) tile.options.inline = "none";
   if (key === "controls" && value !== "none") { if (tile.options.display !== "cover") tile.options.display = "standard"; tile.options.inline = "none"; }
@@ -860,6 +863,20 @@ export async function calibrateTouch(screen: Screen) {
     toast(t("editor.screen_settings.actions.calibrate.done", { name: screen.name }));
   } catch (e: any) {
     toast(e.message);
+  }
+}
+// ---- Does this screen work as you expect (app 0.3.10) ----
+// One request per choice on the feedback card; the add-on keeps the board's key, picks the revision and talks to the
+// website. What comes back replaces the screen's feedback view, so the card and Settings agree at once.
+export async function feedbackAction(screen: Screen, body: Record<string, unknown>): Promise<boolean> {
+  try {
+    const result = await send<{ feedback: Partial<FeedbackView> }>(`screens/${encodeURIComponent(screen.id)}/feedback`, "POST", body);
+    const live = state.inventory.screens.find((s) => s.id === screen.id) || screen;
+    if (live.feedback && result?.feedback) live.feedback = { ...live.feedback, ...result.feedback };
+    return true;
+  } catch (e: any) {
+    toast(e.message);
+    return false;
   }
 }
 // ---- Removing a screen (app 0.2.112): the mirror of New screen ----

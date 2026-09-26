@@ -20,6 +20,8 @@ constexpr int MAX_TIMEOUT_SECONDS = 86400;
 
 struct Alert {
   std::string title, subtitle, icon, button;  // icon: UTF-8 glyph for the icon font
+  std::string button2;  // the second button (firmware 0.3.3+, show_alert_choice); empty: the card has one button
+  uint32_t button_color = 0, button2_color = 0;  // a key colour (theme::KEY_SWATCHES); 0: the button's own paint
   uint32_t color = DEFAULT_CARD_COLOR;
   int timeout_seconds = 0;  // 0: stays until OK
   bool flash = false;
@@ -61,13 +63,17 @@ inline int clamp_timeout(int seconds) {
 }
 inline Alert make(const std::string &title, const std::string &subtitle, const std::string &icon,
                   const std::string &color, const std::string &button, int timeout, bool flash,
-                  size_t title_max, size_t subtitle_max, size_t button_max) {
+                  size_t title_max, size_t subtitle_max, size_t button_max, const std::string &button2 = "",
+                  const std::string &button_color = "", const std::string &button2_color = "") {
   Alert alert;
   alert.title = clipped(trimmed(title), title_max);
   if (alert.title.empty()) alert.title = screen_text::tr(screen_text::txt::alert_notification);
   alert.subtitle = clipped(trimmed(subtitle), subtitle_max);
   alert.button = clipped(trimmed(button), button_max);
   if (alert.button.empty()) alert.button = FALLBACK_BUTTON;
+  alert.button2 = clipped(trimmed(button2), button_max);
+  alert.button_color = theme::key_swatch(lowercase(trimmed(button_color)));
+  alert.button2_color = alert.button2.empty() ? 0 : theme::key_swatch(lowercase(trimmed(button2_color)));
   alert.icon = tile_icon::utf8(icon_codepoint(icon));
   const uint32_t card = tile_palette::color(lowercase(trimmed(color)));
   alert.color = card ? card : DEFAULT_CARD_COLOR;
@@ -106,6 +112,7 @@ struct Layout {
   int subtitle_y = 0, subtitle_h = 0;
   int button_x = 0, button_y = 0, button_w = 0, button_h = 0, button_inset = 0;
   int image_x = 0, image_y = 0, image_w = 0, image_h = 0;  // all 0 without an image
+  int column_x = 0;  // where the column of words and the button starts: 0, or the right edge of a picture beside it
 };
 
 // The proportions of a camera picture before the screen has seen one: the design's 392 x 220, a camera's 16:9. Once
@@ -202,6 +209,7 @@ inline Layout beside(int canvas_w, int canvas_h, int title_line, int line, int a
   l.button_y = l.card_h - l.button_inset - l.button_h;
   const int shift = image_inset + l.image_w;  // the column of words starts where the picture ends
   l.card_w = shift + column;
+  l.column_x = shift;
   l.image_x = image_inset;
   l.image_y = (l.card_h - l.image_h) / 2;
   l.icon_x += shift;
@@ -223,5 +231,24 @@ inline Layout layout(int canvas_w, int canvas_h, int title_line, int line, bool 
   const Layout top = above(canvas_w, canvas_h, title_line, line, aw, ah);
   const Layout side = beside(canvas_w, canvas_h, title_line, line, aw, ah);
   return picture_area(side.image_w, side.image_h, aw, ah) > picture_area(top.image_w, top.image_h, aw, ah) ? side : top;
+}
+// The buttons along the bottom of the card (firmware 0.3.3+). One button stands against the right edge, as it always did.
+// Two (show_alert_choice) share the whole row of the column in two equal halves, the first on the right: they read as one
+// choice, each is as easy to hit as the card allows, and a word like "Remind me" fits on the CYD, where two buttons of
+// the one button's width ended it in dots. Rendered against both of them standing on the right and against one at each
+// edge, which pulled the two answers apart. Never over a picture beside the words: the row starts where the column does.
+struct Buttons {
+  int x = 0, w = 0;    // the first button, the one every alert has
+  int x2 = 0, w2 = 0;  // the second: w2 is 0 without one
+};
+inline Buttons buttons(const Layout &l, bool two) {
+  Buttons b{l.button_x, l.button_w};
+  if (!two) return b;
+  const int gap = ui::px(ui::large() ? 12 : 8);
+  const int room = l.card_w - l.button_inset - (l.column_x + l.button_inset);
+  b.w = b.w2 = std::max(0, (room - gap) / 2);
+  b.x = l.card_w - l.button_inset - b.w;
+  b.x2 = b.x - gap - b.w2;
+  return b;
 }
 }  // namespace screen_alert
