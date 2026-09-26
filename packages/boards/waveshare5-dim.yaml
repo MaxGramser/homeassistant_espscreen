@@ -41,13 +41,3 @@ substitutions:
 esp32:
   # An 8 MB partition layout also fits the 16 MB variant.
   flash_size: 16MB
-
-display:
-  # ESPHome's exact 7-inch model supplies the RGB pins and panel timings. EXIO6 enables the separate panel supply.
-  - id: !extend my_display
-    model: ESP32-S3-TOUCH-LCD-7-800X480
-    enable_pin:
-      - ch422g: expander
-        number: 6
-        mode:
-          output: true
