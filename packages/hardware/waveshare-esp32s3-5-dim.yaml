@@ -72,7 +72,7 @@ binary_sensor:
     name: Input DI0
     id: input_di0
     pin:
-      ch422g: ch422g_hub
+      ch422g: expander
       number: 0
       mode:
         input: true
@@ -82,7 +82,7 @@ binary_sensor:
     name: Input DI1
     id: input_di1
     pin:
-      ch422g: ch422g_hub
+      ch422g: expander
       number: 5
       mode:
         input: true
