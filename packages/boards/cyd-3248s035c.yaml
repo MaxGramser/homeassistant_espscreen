@@ -45,11 +45,11 @@ substitutions:
   # The tile grid: columns and rows of cells. The shared tree places every cell from these
   # (runtime_tiles::place_page).
   GRID_COLS: "2"
-  GRID_ROWS: "3"
+  GRID_ROWS: "2"
   # The cells of a page when this screen stands up (firmware 0.2.92+).
   # The 2.8-inch glass is 43 x 57 mm standing up: one column of four cards, each 39 x 10 mm.
   GRID_COLS_PORTRAIT: "1"
-  GRID_ROWS_PORTRAIT: "4"
+  GRID_ROWS_PORTRAIT: "3"
   LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
 
   #BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
