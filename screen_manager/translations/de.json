@@ -1236,6 +1236,11 @@
         "show": "Details von {name} anzeigen",
         "hide": "Details von {name} ausblenden"
       },
+      "rename": {
+        "button": "Umbenennen",
+        "label": "Name in dieser App",
+        "save": "Speichern"
+      },
       "remove": {
         "button": "Bildschirm entfernen",
         "title": "{name} entfernen?",

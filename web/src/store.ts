@@ -969,6 +969,19 @@ export async function feedbackAction(screen: Screen, body: Record<string, unknow
 // ---- Removing a screen (app 0.2.112): the mirror of New screen ----
 // Home Assistant, the ESPHome profile and everything kept here, in one request. The sidebar says what goes
 // before it asks; here only what came back is shown.
+// A screen's own name in this app (app 0.4.2): only the editor shows it, so it needs no flash. Empty gives Home Assistant's back.
+export async function renameScreen(screen: Screen, name: string) {
+  try {
+    const result = await send<{ name: string }>(`screens/${encodeURIComponent(screen.id)}/name`, "PUT", { name });
+    const live = state.inventory.screens.find((s) => s.id === screen.id);
+    if (live && result?.name) live.name = result.name;
+    return true;
+  } catch (e: any) {
+    toast(e.message);
+    return false;
+  }
+}
+
 export async function removeScreen(screen: Screen) {
   if (state.removing) return false;
   state.removing = screen.id;
