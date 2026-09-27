@@ -416,7 +416,7 @@ let committedLayout: PageLayout | null = null;
 let committedGrid: PageGrid | null = null;
 let selectionEpoch = 0;
 export function markDirty() {
-  state.dirty = JSON.stringify(state.document) !== JSON.stringify(committedLayout) || JSON.stringify(state.documentGrid) !== JSON.stringify(committedGrid);
+  state.dirty = !sameValue(state.document, committedLayout) || !sameValue(state.documentGrid, committedGrid);
   state.saved = 0;
   edits++;
 }
@@ -435,7 +435,7 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   if (!state.document || !state.documentGrid) return false;
   if (!nextGrid) return false;
   pages.validatePages(next, nextGrid);
-  if (JSON.stringify(next) === JSON.stringify(state.document) && pages.sameGrid(nextGrid, state.documentGrid)) return false;
+  if (sameValue(next, state.document) && pages.sameGrid(nextGrid, state.documentGrid)) return false;
   if (remember) {
     draftHistory.remember(snapshot());
     historyCounts();
@@ -455,6 +455,11 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   loadTopbarPreview();
   return true;
 }
+// The same document whatever the order of its keys (app 0.4.1): a tile the add-on wrote keeps its fields in another order
+// than one the editor rebuilt, and comparing the text of the two marked a change that changed nothing as unsaved.
+const ordered = (value: unknown): unknown => Array.isArray(value) ? value.map(ordered)
+  : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, ordered((value as Record<string, unknown>)[key])])) : value;
+export const sameValue = (a: unknown, b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
 let focusedField: string | null = null, groupedEdit = -1;
 export function beginFieldEdit(key: string) { focusedField = key; groupedEdit = -1; }
 export function endFieldEdit() { focusedField = null; groupedEdit = -1; }
@@ -536,7 +541,8 @@ export function select(id: string | null) {
   state.selected = id; state.selectedTile = null; state.inspector = null;
   state.tab = "layout"; state.menuOpen = false;
   const screen = state.inventory.screens.find((item) => item.id === id);
-  if (!screen) { state.document = null; state.documentGrid = null; return; }
+  // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
+  if (!screen) { state.document = null; state.documentGrid = null; state.dirty = false; return; }
   loadDocument(screen);
   state.editorMode = readMode(screen.id);
   if (state.editorMode === "advanced") initializeWorkspace();
@@ -606,6 +612,9 @@ export function addPage(bar?: PageLayout["pages"][number]["topbar"]) {
 export function movePage(from: number, to: number) {
   if (!state.document || !state.documentGrid || from === to || !Number.isInteger(from) || !Number.isInteger(to) ||
       from < 0 || to < 0 || from >= state.document.pages.length || to >= state.document.pages.length) return false;
+  // Older firmware knows no home page of its own: it starts on the first page, so there the home page stays first
+  // (app 0.4.1). Before, the move was taken and the save refused it later with no clue why.
+  if (!pageReady.value && (from === 0 || to === 0)) { toast(t("editor.pages.update_notice")); return false; }
   try { return applyDocument(pages.reorderPage(state.document, state.documentGrid, state.document.pages[from]?.id, to)); }
   catch (error: any) { toast(error.message); return false; }
 }
@@ -724,7 +733,8 @@ export function resizeTile(tile: Tile, size: Size, axis: 'columns' | 'rows') {
   return editDocument(draft => {
     const owned = draft.pages.flatMap(page => page.tiles).find(item => item.id === current.id)!;
     // Gaining height exposes choices, it never opts into a default control.
-    if (owned.placement.rows === 1 && dimensions(size, grid).rows > 1 && owned.interaction.controls === undefined)
+    // A Go to page tile has no controls at all (app 0.4.1): writing 'none' there made the add-on refuse the resize.
+    if (owned.placement.rows === 1 && dimensions(size, grid).rows > 1 && owned.interaction.controls === undefined && owned.content.kind !== "navigation")
       owned.interaction.controls = effectiveControls(current, state.inventory) || 'none';
     Object.assign(owned.placement, dimensions(size, grid));
     if (size === 'single') delete owned.appearance.presentation;
@@ -868,7 +878,7 @@ function acceptSave(record: PageDocument, submitted: PageLayout, submittedWorksp
       state.workspace.positions = pages.clone(record.workspace.positions); state.workspaceDirty = false;
     }
   }
-  state.dirty = JSON.stringify(state.document) !== JSON.stringify(committedLayout) || JSON.stringify(state.documentGrid) !== JSON.stringify(committedGrid);
+  state.dirty = !sameValue(state.document, committedLayout) || !sameValue(state.documentGrid, committedGrid);
   state.conflict = false;
   if (edits === sent) { state.saved = Date.now(); toast(t("editor.screen_view.saved.current")); }
   else toast(t("editor.screen_view.saved.newer_edit"));
@@ -1028,7 +1038,7 @@ export function acceptGridReview() {
 }
 export function copyLayoutFrom(id: string) {
   const other = state.inventory.screens.find((screen) => screen.id === id);
-  if (other?.page_document?.format !== "pages-v2") { toast("Connect the source screen to finish its layout migration first."); return; }
+  if (other?.page_document?.format !== "pages-v2") { toast(t("editor.layout.copy_needs_migration")); return; }
   const copy = pages.clone(other.page_document);
   copy.layout.title = state.document?.title || copy.layout.title;
   adopt(copy, t("editor.layout.copied", { name: other.name }));

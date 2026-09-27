@@ -1352,7 +1352,8 @@
         "map": "Shows where each Go to page tile leads.",
         "preview_label": "Preview",
         "preview": "Try swiping and the page tiles. Nothing at home switches."
-      }
+      },
+      "copy_needs_migration": "Open the source screen once so its layout can move to pages, then copy it."
     },
     "page": {
       "label": "Page {page}",

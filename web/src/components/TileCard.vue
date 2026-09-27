@@ -183,8 +183,10 @@ async function onKey(e: KeyboardEvent) {
   e.preventDefault();
   // A wide card owns its row: every arrow means the row above or below. A full card moves by the page.
   if (placeTile(props.tile, props.tile.slot + (full.value ? Math.sign(step) * grid.value.slots : step))) {
+    // The card that moved, found by its id: the cards are keyed by their place, so the one under the old place is
+    // another tile now, and focusing that sent the next arrow key to the neighbour (app 0.4.1).
     await nextTick();
-    document.querySelector<HTMLElement>(`.pages [data-slot="${props.tile.slot}"]`)?.focus();
+    document.querySelector<HTMLElement>(`.pages [data-tile-id="${props.tile.id}"]`)?.focus();
   }
 }
 </script>

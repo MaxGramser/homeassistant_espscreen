@@ -1352,7 +1352,8 @@
         "map": "Mostra para onde leva cada mosaico Ir para a página.",
         "preview_label": "Pré-visualizar",
         "preview": "Experimente deslizar e os mosaicos de página. Nada muda em casa."
-      }
+      },
+      "copy_needs_migration": "Abra uma vez o ecrã de origem para que a disposição passe para páginas e depois copie-a."
     },
     "page": {
       "label": "Página {page}",

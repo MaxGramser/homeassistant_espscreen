@@ -1352,7 +1352,8 @@
         "map": "Laat zien waar elke Ga naar pagina-tegel heen gaat.",
         "preview_label": "Voorvertoning",
         "preview": "Probeer vegen en de pagina-tegels. Er schakelt niets in huis."
-      }
+      },
+      "copy_needs_migration": "Open het bronscherm één keer zodat zijn indeling naar pagina's kan overgaan, en kopieer het dan."
     },
     "page": {
       "label": "Pagina {page}",

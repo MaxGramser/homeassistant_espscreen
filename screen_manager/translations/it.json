@@ -1352,7 +1352,8 @@
         "map": "Mostra dove porta ogni riquadro Vai alla pagina.",
         "preview_label": "Anteprima",
         "preview": "Prova lo scorrimento e i riquadri di pagina. In casa non si accende nulla."
-      }
+      },
+      "copy_needs_migration": "Apri una volta lo schermo di origine perché il suo layout passi alle pagine, poi copialo."
     },
     "page": {
       "label": "Pagina {page}",

@@ -1352,7 +1352,8 @@
         "map": "Pokazuje, dokąd prowadzi każdy kafelek Przejdź do strony.",
         "preview_label": "Podgląd",
         "preview": "Wypróbuj przesuwanie i kafelki stron. W domu nic się nie przełącza."
-      }
+      },
+      "copy_needs_migration": "Otwórz raz ekran źródłowy, aby jego układ przeszedł na strony, a potem go skopiuj."
     },
     "page": {
       "label": "Strona {page}",

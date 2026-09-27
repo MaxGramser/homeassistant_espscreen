@@ -9,7 +9,13 @@ import type { HeaderItem } from "../types";
 // The words are the screens' own (app 0.2.90): screen.date and screen.time of the translations, in the language the
 // screens have, which `locale` names; English where none is given.
 export const BUILTIN_ICONS: Record<string, string> = { clock: "clock-outline", analog: "clock-outline", date: "calendar" };
-export const itemKey = (item: HeaderItem) => JSON.stringify(item);
+// What makes an item that item, as the add-on compares them (core.validate_header): its kind, and for an entity what it
+// shows with the defaults filled in. Never its id: since app 0.3.1 every item on every page has an id of its own, and a
+// key with the id in it matched no other item, so "already in the bar", the preview of an entity on several pages and
+// the flash of a new item all stopped working (fixed in app 0.4.1).
+export const itemKey = (item: HeaderItem) => item.type === "entity"
+  ? JSON.stringify(["entity", item.entity, item.content ?? "state", item.icon ?? "auto", item.show ?? "always"])
+  : JSON.stringify([item.type]);
 export const glyph = (cp: string) => String.fromCodePoint(parseInt(cp, 16));
 
 // The time as the screens write it (screen_text::clock_text): "07:12" on 24 hours; on 12 "7:12 PM" in the top bar, with
