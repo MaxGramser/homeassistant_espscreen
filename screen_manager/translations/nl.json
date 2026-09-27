@@ -1420,7 +1420,8 @@
         "person": "Personen",
         "timer": "Timers",
         "screen": "Scherm",
-        "alarm_control_panel": "Alarm"
+        "alarm_control_panel": "Alarm",
+        "lock": "Sloten"
       },
       "more": "Meer ({n})",
       "fewer": "Minder",
@@ -1461,7 +1462,8 @@
       "camera": "Camera",
       "image": "Afbeelding",
       "entity": "Entiteit",
-      "alarm_control_panel": "Alarmpaneel"
+      "alarm_control_panel": "Alarmpaneel",
+      "lock": "Slot"
     },
     "displays": {
       "standard": "standaard",
@@ -1569,6 +1571,13 @@
         "no_toggle": "Home Assistant kan dit niet aan- en uitzetten, dus een tik doet niets. Kies een andere optie.",
         "toggle_needs_firmware": "Het scherm schakelt dit vanaf firmware 0.2.58: druk bij het scherm op Bijwerken. Tot dan opent een tik de kaart.",
         "hold": "Houd de tegel vast om de kaart te openen."
+      },
+      "guard": {
+        "label": "Ontgrendelen hier",
+        "confirm": "Na bevestigen",
+        "lock_only": "Nooit",
+        "confirm_hint": "Een vergrendeld slot gaat pas open na een tweede tik op de tegel of de knop. Vergrendelen is altijd één tik.",
+        "lock_only_hint": "Dit scherm kan vergrendelen, maar nooit ontgrendelen of openen. Handig voor een scherm in een portiek, garage of kinderkamer."
       },
       "sub": {
         "label": "Tweede regel",

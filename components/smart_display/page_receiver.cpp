@@ -462,7 +462,7 @@ std::string receive(const std::string &payload) {
     tile.icon = icon && has_icon_glyph(icon) ? tile_icon::utf8(icon) : "";
     tile.tap = string(options["tap"]); if (tile.tap.empty()) tile.tap="auto";
     tile.display = string(options["display"]); if (tile.display.empty()) tile.display="standard";
-    // How far a lock's tile may go (firmware 0.4.0+): "confirm" unlocks after a second tap, "lock_only" never unlocks.
+    // How far a lock's tile may go (firmware 0.5.0+): "confirm" unlocks after a second tap, "lock_only" never unlocks.
     tile.guard = string(options["guard"], 16); if (tile.guard.empty()) tile.guard="confirm";
     // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the default.
     const int refresh = options["refresh"].is<int>() ? options["refresh"].as<int>() : 0;
@@ -656,7 +656,7 @@ std::string receive(const std::string &payload) {
       next.alarm_end = extra["ae"].is<unsigned>() ? extra["ae"].as<uint32_t>() : 0;
       next.alarm_delay = extra["ad"].is<unsigned>() ? extra["ad"].as<uint32_t>() : 0;
     }
-    // A lock (firmware 0.4.0+): its code_format (a regular expression), who changed it, whether Home Assistant keeps a
+    // A lock (firmware 0.5.0+): its code_format (a regular expression), who changed it, whether Home Assistant keeps a
     // default code for it (never the code) and whether the integration only assumes its state.
     if (tile.domain() == "lock") {
       next.code_format = string(a["code_format"], 48);

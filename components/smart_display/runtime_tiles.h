@@ -2075,7 +2075,7 @@ inline void alarm_load_lock(){
 // the panel, how many in a row and how long the keypad is locked; never the code.
 inline void alarm_refused_event(const std::string &entity,uint32_t locked){
   esphome::api::HomeassistantActionRequest request;
-  // A lock's keypad has an event of its own (firmware 0.4.0+).
+  // A lock's keypad has an event of its own (firmware 0.5.0+).
   request.service=esphome::StringRef(entity.compare(0,5,"lock.")==0?"esphome.screen_lock_code_refused":"esphome.screen_alarm_code_refused");
   request.is_event=true;
   const std::string failures=std::to_string(alarm_lock.failures),seconds=std::to_string(locked);
@@ -2194,7 +2194,7 @@ inline uint32_t alarm_tile_marks[CELLS_MAX]{};
 inline void alarm_tile_look(size_t slot,const Tile *t){
   if(slot>=widgets.size()||!widgets[slot].circle)return;
   lv_obj_t *circle=widgets[slot].circle;
-  // A lock's circle moves the same way (firmware 0.4.0+): it beats while the lock moves or waits for its second tap,
+  // A lock's circle moves the same way (firmware 0.5.0+): it beats while the lock moves or waits for its second tap,
   // and beats once and springs when it locks.
   const bool lock=t&&t->domain()=="lock";
   const bool alarm=t&&(t->domain()=="alarm_control_panel"||lock);
@@ -2486,7 +2486,7 @@ inline void alarm_tick(){
 inline void alarm_command(int cmd){
   if(detail_index>=model.count)return;
   auto &t=model.tiles[detail_index];
-  // The keypad is a lock's too (firmware 0.4.0+); the mode keys are the alarm's own.
+  // The keypad is a lock's too (firmware 0.5.0+); the mode keys are the alarm's own.
   if(t.domain()!="alarm_control_panel"&&!(t.domain()=="lock"&&cmd>=ALARM_DIGIT_FIRST))return;
   const uint32_t now=esphome::millis();
   if(cmd>=ALARM_DIGIT_FIRST&&cmd<ALARM_DIGIT_FIRST+10){
@@ -2510,7 +2510,7 @@ inline void alarm_command(int cmd){
     alarm_choose(t,(unsigned)(cmd-ALARM_MODE_FIRST));
   }
 }
-// ---- Lock (firmware 0.4.0+): Home Assistant's lock dialog in this look, and a tile that locks with one tap ----
+// ---- Lock (firmware 0.5.0+): Home Assistant's lock dialog in this look, and a tile that locks with one tap ----
 // lock_panel.h decides (what may happen, which keys, when a code is asked for); this draws it. A tap on the tile locks
 // what is not locked at once. A locked lock asks first: the tile turns orange, and its circle
 // beats and says "Confirm", and a second tap within five seconds unlocks. The card (hold the tile) has the key that changes the state,
@@ -2554,9 +2554,7 @@ inline const char *lock_action_text(unsigned act){
   return tr(txt::ha_lock_action_open_door);
 }
 // The tile's icon: the open lock while it waits for the second tap that unlocks it. A chosen icon stays.
-inline const char *lock_icon(const Tile &t){
-  return lock_asking(t,false)?lock_panel::glyph::LOCK_OPEN:lock_panel::icon(t.state);
-}
+inline const char *lock_icon(const Tile &t){return lock_panel::icon(t.state);}
 // The line under the name: the second tap it waits for, a lock-only tile's word, or Home Assistant's word for the
 // state, and on the card who changed it last.
 inline std::string lock_status(const Tile &t,bool card){
@@ -3470,6 +3468,9 @@ inline const char *weather_text(const std::string &condition) {
   return condition.c_str();
 }
 inline const char *icon_for(const Tile &tile) {
+  // A lock that waits for its second tap shows the open lock, also over an icon Home Assistant or the tile chose: for
+  // five seconds it says what the next tap does.
+  if (tile.domain() == "lock" && lock_asking(tile, false, lock_panel::NONE)) return lock_panel::glyph::LOCK_OPEN;
   if (!tile.icon.empty()) return tile.icon.c_str();
   auto d = tile.domain();
   // Home Assistant's own icon: a bulb, crossed out while off. A chosen icon stays, as in Home Assistant.

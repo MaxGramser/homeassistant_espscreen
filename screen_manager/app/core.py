@@ -85,7 +85,7 @@ SHOW_PAGE_MIN_FIRMWARE = '0.2.87'
 ALARM_MIN_FIRMWARE = (0, 3, 3)
 # A lock as a tile with its card (components/smart_display/lock_panel.h): locks with one tap, unlocks after a second, the
 # alarm panel's keypad for a code. Older firmware refuses the domain, so a layout with one waits for the update.
-LOCK_MIN_FIRMWARE = (0, 4, 0)
+LOCK_MIN_FIRMWARE = (0, 5, 0)
 # How far a lock's tile may go (the `guard` option): unlock after a second tap, or lock only.
 LOCK_GUARDS = ('confirm', 'lock_only')
 ATTRS = frozenset('brightness percentage current_position current_tilt_position current_temperature temperature current_humidity min_temp max_temp target_temp_step supported_color_modes hvac_modes hvac_action hs_color color_temp_kelvin min_color_temp_kelvin max_color_temp_kelvin fan_speed_list unit_of_measurement battery_level fan_speed volume_level is_volume_muted media_title options min max step temperature_unit supported_features device_class next_rising next_setting finishes_at duration remaining humidity wind_speed wind_speed_unit apparent_temperature fan_modes swing_modes fan_mode swing_mode effect code_format code_arm_required changed_by assumed_state'.split())
@@ -887,7 +887,7 @@ def repeated_page_tiles(tiles):
 def min_firmware(layout):
     """Oldest firmware that still accepts this layout; None when any version works. Every feature the layout uses names
     the firmware it needs, and the layout needs the newest of them: a tilting blind (0.3.1) beside an alarm panel
-    (0.3.3) needs 0.3.3, which returning the first match got wrong before app 0.4.0."""
+    (0.3.3) needs 0.3.3, which returning the first match got wrong before firmware 0.5.0."""
     tiles = layout['tiles']
     domains = {t['entity'].split('.')[0] for t in tiles}
     options = [t.get('options', {}) for t in tiles]
@@ -1350,7 +1350,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             domain = tile['entity'].split('.')[0]
             displays = DISPLAYS.get(domain, ('standard', 'watch'))
             choices = {'tap': ('auto', 'detail', 'toggle', 'none', 'action'), 'display': displays, 'inline': ('none', 'slider'), 'size': TILE_SIZES_ON_SCREEN}
-            # A lock's tile (firmware 0.4.0+) unlocks after a second tap or only locks; no other tile has the choice.
+            # A lock's tile (firmware 0.5.0+) unlocks after a second tap or only locks; no other tile has the choice.
             if 'guard' in options:
                 if domain != 'lock' or options['guard'] not in LOCK_GUARDS:
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='guard'))
@@ -1503,7 +1503,7 @@ def forecast_time(entry, tz):
         return None
 
 def lock_extras(entry):
-    """What a lock's card needs beside its attributes (firmware 0.4.0+): `dc` 1 when Home Assistant keeps a default code in
+    """What a lock's card needs beside its attributes (firmware 0.5.0+): `dc` 1 when Home Assistant keeps a default code in
     the entity's registry options (`options.lock.default_code`; it then fills the code in itself and the screen asks for
     none, as Home Assistant's own lock dialog does). The code itself never leaves Home Assistant."""
     options = (entry or {}).get('options') if isinstance(entry, dict) else None
@@ -1858,7 +1858,7 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None):
     for key in ATTRS:
         value = attrs.get(key)
         if isinstance(value, bool):
-            # assumed_state only matters to a lock's keys (firmware 0.4.0+); anywhere else it is bytes for nothing.
+            # assumed_state only matters to a lock's keys (firmware 0.5.0+); anywhere else it is bytes for nothing.
             if key in BOOL_ATTRS and (key != 'assumed_state' or tile['entity'].startswith('lock.')):
                 bounded[key] = value
             continue

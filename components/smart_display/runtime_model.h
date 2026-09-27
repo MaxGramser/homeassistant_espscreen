@@ -234,7 +234,7 @@ struct Extra {
   std::string code_format, changed_by;
   bool arm_code_free = false, code_saved = false;
   uint32_t alarm_end = 0, alarm_delay = 0;
-  // A lock (firmware 0.4.0+) shares code_format, changed_by and code_saved with the alarm panel, and says whether the
+  // A lock (firmware 0.5.0+) shares code_format, changed_by and code_saved with the alarm panel, and says whether the
   // integration only assumes its state (assumed_state), which lets every key work as in Home Assistant's dialog.
   bool assumed = false;
   Choice *choice(char kind) { for (auto &c : choices) if (c.kind == kind) return &c; return nullptr; }

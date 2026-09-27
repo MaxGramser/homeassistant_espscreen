@@ -714,7 +714,7 @@ inline Action edit_action(const Tile &t, float value) {
 // CARD is the runtime detail card (show_detail), OVERLAY the board's own colour card; `busy` marks the
 // tile busy for a moment while the card opens.
 // CUSTOM (firmware 0.2.58+) is an action of the tile's own choosing from Home Assistant's list, with its data.
-// LOCK (firmware 0.4.0+) is a lock's own tap: lock at once, or unlock after a second tap (lock_panel::tap).
+// LOCK (firmware 0.5.0+) is a lock's own tap: lock at once, or unlock after a second tap (lock_panel::tap).
 enum class TapRoute : uint8_t { NONE, ACTION, CARD, OVERLAY, CUSTOM, LOCK };
 struct Tap { TapRoute route = TapRoute::NONE; std::string service; bool busy = false; };
 inline bool runtime_card_domain(const std::string &d) {

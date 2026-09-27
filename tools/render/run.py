@@ -789,7 +789,7 @@ class Run:
         await asyncio.sleep(0.4)
 
     async def lock_panel(self, grid):
-        """The lock (firmware 0.4.0+) the way it is used: a tap locks at once, a locked lock asks for a second tap on its
+        """The lock (firmware 0.5.0+) the way it is used: a tap locks at once, a locked lock asks for a second tap on its
         tile, the card (hold) has Lock or Unlock and Open door with its own second tap, a jammed lock shows both keys, a
         lock-only tile never unlocks, and a lock with a code opens the alarm panel's keypad. Home Assistant's answers and
         states come back through the add-on's own messages. Every key a finger's size and inside the glass (render_alarm,

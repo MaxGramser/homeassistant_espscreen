@@ -292,7 +292,7 @@ FRONTEND_SOURCES = {'unavailable': 'state.default.unavailable', 'button.activate
                     **{f'alarm_action.{key}': f'ui.card.alarm_control_panel.{key}'
                        for key in ('disarm', 'arm_home', 'arm_away', 'arm_night', 'arm_vacation', 'arm_custom_bypass')},
                     'alarm_action.enter_code': 'ui.dialogs.enter_code.title',
-                    # The lock's keys, as its dialog names them (firmware 0.4.0+).
+                    # The lock's keys, as its dialog names them (firmware 0.5.0+).
                     **{f'lock_action.{key}': f'ui.card.lock.{key}' for key in ('lock', 'unlock', 'open', 'open_door', 'open_door_confirm')}}
 
 

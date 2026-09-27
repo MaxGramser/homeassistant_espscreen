@@ -1420,7 +1420,8 @@
         "person": "Personnes",
         "timer": "Minuteurs",
         "screen": "Écran",
-        "alarm_control_panel": "Alarme"
+        "alarm_control_panel": "Alarme",
+        "lock": "Serrures"
       },
       "more": "Plus ({n})",
       "fewer": "Moins",
@@ -1461,7 +1462,8 @@
       "camera": "Caméra",
       "image": "Image",
       "entity": "Entité",
-      "alarm_control_panel": "Panneau d’alarme"
+      "alarm_control_panel": "Panneau d’alarme",
+      "lock": "Serrure"
     },
     "displays": {
       "standard": "standard",
@@ -1569,6 +1571,13 @@
         "no_toggle": "Home Assistant ne peut pas allumer ni éteindre ceci : toucher la tuile ne fait donc rien. Choisissez une autre option.",
         "toggle_needs_firmware": "L'écran allume et éteint ceci à partir du firmware 0.2.58 : appuyez sur Mettre à jour pour cet écran. D'ici là, toucher la tuile ouvre sa carte.",
         "hold": "Maintenez le doigt sur la tuile pour ouvrir sa carte."
+      },
+      "guard": {
+        "label": "Déverrouiller ici",
+        "confirm": "Après confirmation",
+        "lock_only": "Jamais",
+        "confirm_hint": "Une serrure verrouillée ne s'ouvre qu'après une seconde touche sur la tuile ou le bouton. Verrouiller se fait toujours en une touche.",
+        "lock_only_hint": "Cet écran peut verrouiller mais jamais déverrouiller ni ouvrir. Idéal pour un écran dans une entrée, un garage ou une chambre d'enfant."
       },
       "sub": {
         "label": "Deuxième ligne",

@@ -1420,7 +1420,8 @@
         "person": "Personas",
         "timer": "Temporizadores",
         "screen": "Pantalla",
-        "alarm_control_panel": "Alarma"
+        "alarm_control_panel": "Alarma",
+        "lock": "Cerraduras"
       },
       "more": "Más ({n})",
       "fewer": "Menos",
@@ -1461,7 +1462,8 @@
       "camera": "Cámara",
       "image": "Imagen",
       "entity": "Entidad",
-      "alarm_control_panel": "Panel de alarma"
+      "alarm_control_panel": "Panel de alarma",
+      "lock": "Cerradura"
     },
     "displays": {
       "standard": "estándar",
@@ -1569,6 +1571,13 @@
         "no_toggle": "Home Assistant no puede encender y apagar esto, así que un toque no hace nada. Elige otra opción.",
         "toggle_needs_firmware": "La pantalla lo enciende y apaga a partir del firmware 0.2.58: pulsa Actualizar en la lista de pantallas. Hasta entonces, un toque abre su tarjeta.",
         "hold": "Mantén pulsado el mosaico para abrir su tarjeta."
+      },
+      "guard": {
+        "label": "Desbloquear aquí",
+        "confirm": "Tras confirmar",
+        "lock_only": "Nunca",
+        "confirm_hint": "Una cerradura bloqueada solo se abre tras un segundo toque en la tarjeta o el botón. Bloquear siempre es un toque.",
+        "lock_only_hint": "Esta pantalla puede bloquear pero nunca desbloquear ni abrir. Ideal para una pantalla en la entrada, el garaje o un cuarto infantil."
       },
       "sub": {
         "label": "Segunda línea",

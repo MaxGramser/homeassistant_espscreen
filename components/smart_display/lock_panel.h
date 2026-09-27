@@ -1,5 +1,5 @@
 #pragma once
-// The lock (firmware 0.4.0+): a Home Assistant lock entity as a tile and a card, the way Home Assistant's own lock
+// The lock (firmware 0.5.0+): a Home Assistant lock entity as a tile and a card, the way Home Assistant's own lock
 // dialog does it. Pure logic only, free of LVGL, so tests/test_lock_panel.cpp checks it on a PC: the colours and icons,
 // what a tap on the tile does, which keys the card offers, when a code is asked for and how long a "tap again" waits.
 // runtime_tiles.h draws it; the keypad and its lock after wrong codes are the alarm panel's (alarm_panel.h).
