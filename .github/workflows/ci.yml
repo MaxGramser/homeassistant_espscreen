@@ -55,7 +55,9 @@ jobs:
         env:
           PYTHON: python
           CXX: clang++
-          CHECK_BASE: ${{ steps.base.outputs.base }}
+          # Without a green commit to compare with, the commit before the push: an empty CHECK_BASE would compare
+          # main with itself and check nothing (the firmware job builds everything instead).
+          CHECK_BASE: ${{ steps.base.outputs.base || github.event.before }}
 
   firmware:
     name: firmware (${{ matrix.esphome }})
