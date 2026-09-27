@@ -93,7 +93,8 @@ compares with its own `FIRMWARE_VERSION`, so a screen on a newer board fix just 
 A new board is not a firmware release. It has no screens yet, and it builds the shared firmware from main like every
 other board.
 
-1. Follow docs/ADDING_A_BOARD.md for the board itself.
+1. Follow docs/ADDING_A_BOARD.md for the board itself, and run `tools/generate_issue_templates.py` so the board
+   dropdown of the GitHub issue forms lists it (tools/check.sh fails until you do).
 2. Don't set `SCREEN_FIRMWARE_VERSION` in its board file, and don't change the shared version.
 3. Run `tools/affected_boards.py`. It should say "New board: <key>" and "No firmware change for a screen that exists".
    If it also names an existing board, you touched a shared file or another board's file on the way: that part is its

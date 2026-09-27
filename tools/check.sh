@@ -141,6 +141,8 @@ icons_current() { cd "$ROOT" && "$PYTHON" tools/generate_icons.py --check; }
 # What every board looks like, as the manager reads it (screen_manager/app/boards.json from the board files).
 shapes_current() { cd "$ROOT" && "$PYTHON" tools/generate_board_shapes.py --check; }
 entries_current() { cd "$ROOT" && "$PYTHON" tools/generate_entries.py --check; }
+# The board dropdown in the bug report and question issue templates (.github/ISSUE_TEMPLATE), from boards.yaml.
+issue_templates_current() { cd "$ROOT" && "$PYTHON" tools/generate_issue_templates.py --check; }
 # A firmware change against origin/main with no higher number for the boards it reaches (docs/BOARD_RELEASES.md): a
 # warning while the work goes on, and the reminder before a release that those screens would never be offered it.
 firmware_numbers_raised() {
@@ -353,6 +355,7 @@ if ((want_fast)); then
   run "Cards of every grid" cells_current
   run "Board shapes for the manager" shapes_current
   run "Entry files of every board" entries_current
+  run "Issue template boards" issue_templates_current
   run "Firmware numbers for what changed" firmware_numbers_raised
   run "Icons match tile_icons.py" icons_current
   run "Translations" translations_check

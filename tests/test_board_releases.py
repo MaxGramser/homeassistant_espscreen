@@ -58,7 +58,8 @@ class WhatAChangeReaches(unittest.TestCase):
     def test_the_app_the_editor_docs_and_tools_are_no_firmware(self):
         for name in ('screen_manager/app/core.py', 'screen_manager/config.yaml', 'screen_manager/CHANGELOG.md',
                      'web/src/store.ts', 'docs/BOARD_RELEASES.md', 'README.md', 'tools/check.sh', 'tests/test_updates.py',
-                     'boards.yaml', 'screen_manager/app/boards.json'):
+                     'boards.yaml', 'screen_manager/app/boards.json', '.github/ISSUE_TEMPLATE/bug_report.yml',
+                     'tools/generate_issue_templates.py'):
             self.assertEqual(reach(name)[name], set(), name)
 
     def test_a_translation_reaches_the_screens_only_through_its_screen_texts(self):

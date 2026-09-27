@@ -134,7 +134,8 @@ differs between boards sold under one name, the `choices` someone makes when a s
 Screens needs: New screen and the screen list draw every board from the catalog and the board's own files (the size in
 inches from its pixels and density, the touch controller from its `touchscreen:`, a touch calibration on the first
 start from `features/resistive-touch.yaml`), so no board is written into the editor or its translations. After a
-change to its board file, run `tools/generate_cells.py` and `tools/generate_board_shapes.py` again.
+change to its board file, run `tools/generate_cells.py` and `tools/generate_board_shapes.py` again, and after its
+`boards.yaml` entry `tools/generate_issue_templates.py`, which lists it in the board dropdown of the GitHub issue forms.
 
 ## 8. Release it
 
