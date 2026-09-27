@@ -19,10 +19,13 @@ class SettingsView(unittest.TestCase):
 
     def test_the_sidebar_is_the_one_way_to_the_tools(self):
         more = self.sidebar.split('<div class="more">', 1)[1]
-        self.assertEqual(re.findall(r'<button id="([\w-]+)"', more), ['open-firmware', 'open-alerts', 'open-settings', 'refresh'])
+        self.assertEqual(re.findall(r'<button id="([\w-]+)"', more), ['open-alerts', 'open-settings', 'refresh'])
         self.assertEqual(self.sidebar.count('id="new-screen"'), 1)
-        for element in ('new-screen', 'open-firmware', 'open-alerts', 'open-settings'):
+        for element in ('new-screen', 'open-alerts', 'open-settings'):
             self.assertEqual(editor_sources.PAGE.count(f'id="{element}"'), 1, element)
+        # The firmware tool is no way to add a screen: it stays out of the sidebar but in Settings (app 0.3.27).
+        self.assertNotIn("go('#firmware')\"><span class=\"mdi\"", self.sidebar)
+        self.assertIn("go('#firmware')", self.settings)
 
     def test_every_tool_lives_in_the_settings_view_once(self):
         for element in ('updates', 'update-all', 'auto-update', 'claude-install', 'claude-status', 'claude-path', 'claude-download', 'close-settings'):

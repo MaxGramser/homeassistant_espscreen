@@ -1,3 +1,12 @@
+## 0.3.27 (firmware 0.3.10)
+
+A calmer sidebar.
+
+- The sidebar no longer shows **Firmware & USB**. It read as the way to add a screen, but it is a tool for rebuilding
+  or repairing one. **New screen** is the way in; the firmware tool is still under **Settings**, in the command
+  palette and in a screen's menu.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
 ## 0.3.26 (firmware 0.3.10)
 
 The CYD with an ILI9342 display controller, experimental (GitHub #50).
