@@ -256,7 +256,7 @@ class AForgottenNumber(unittest.TestCase):
 
 
 class ReviewFindings(unittest.TestCase):
-    """The review of app 0.3.21's tools (0.3.27): each test failed before its fix."""
+    """The review of app 0.3.21's tools (0.3.28): each test failed before its fix."""
 
     def git_repo(self):
         """A throwaway repository with one commit holding a component file and a board file."""

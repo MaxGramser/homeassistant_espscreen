@@ -21,6 +21,3 @@ pako 2.x (https://github.com/nodeca/pako), a dependency of esptool-js
 
 atob-lite 2.x (https://github.com/hughsk/atob-lite), a dependency of esptool-js
   By Hugh Kennedy. MIT License.
-
-tslib 2.x (https://github.com/microsoft/tslib), a dependency of esptool-js
-  Copyright (c) Microsoft Corporation. 0BSD License.

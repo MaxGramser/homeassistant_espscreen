@@ -283,7 +283,7 @@ def known(base):
         return False
 
 
-# What a firmware build reads besides the firmware itself (app 0.3.27, for CI): how check.sh builds and measures, which
+# What a firmware build reads besides the firmware itself (app 0.3.28, for CI): how check.sh builds and measures, which
 # boards and entries there are, the owners' overrides it builds against, the ESPHome it builds with, and this selector.
 # A change to one is no update for any screen (--keys leaves it out) but can break the build of any board.
 BUILD_INPUTS = ('tools/check.sh', 'tools/profiles.py', 'tools/affected_boards.py', 'tools/firmware_count.py',

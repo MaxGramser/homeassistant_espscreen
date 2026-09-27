@@ -1,3 +1,14 @@
+## 0.3.28 (firmware 0.3.10)
+
+Safer releases per board, and a check that no firmware build goes missing.
+
+- **Release checks.** The tools that decide which boards a change reaches now stop when they fail instead of
+  building nothing, count a moved file at both ends, and treat a shared change next to a new board as a shared
+  release. CI builds from the last commit whose build passed, so a failed or cancelled run leaves no board unbuilt.
+- **Licenses.** The browser installer's list of third-party software no longer ends in a license text without a
+  name: tslib left with esptool-js 0.7 (app 0.3.24), and its text had stayed behind.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
 ## 0.3.27 (firmware 0.3.10)
 
 A calmer sidebar.
