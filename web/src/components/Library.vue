@@ -14,7 +14,7 @@ import { addTile, automaticIcon, liveOf, loadLibraryStates, pictures, repeatable
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
 const FILTERS = [
   "", "light", "climate", "switch", "binary_sensor", "button", "script", "fan", "cover", "scene", "vacuum", "sensor",
-  "media_player", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel",
+  "media_player", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock",
 ];
 const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
 // How many chips the head carries before the rest fold behind "More" (app 0.2.116). They used to sit on one sideways

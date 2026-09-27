@@ -139,7 +139,9 @@ export function createLayout(shape: () => PageGrid) {
   }
   // The arrangement after putting `moving` (a tile on the grid, or a new one) at `target`:
   // it lands exactly there; tiles in its way take the cells it left (a swap) or else the
-  // nearest free cell; everything else stays put. Null when the target is off the grid.
+  // nearest free cell of their own page; everything else stays put. Null when the target is off the grid, or when a
+  // tile in the way has no room left on its page: a wide tile never lands on a new page at the end because a single
+  // one took its place (app 0.4.2).
   function arrange(tiles: Tile[], moving: Tile, target: number): Entry[] | null {
     const size = sizeOf(moving);
     target = startOf(target, size);
@@ -156,7 +158,12 @@ export function createLayout(shape: () => PageGrid) {
     for (const tile of displaced) {
       const w = sizeOf(tile), taken = occupied(result);
       let slot = vacated.map((c) => startOf(c, w)).find((c) => fits(taken, c, w));
-      if (slot === undefined) slot = nearestFree(taken, w, tile.slot);
+      if (slot === undefined) {
+        const page = pageOf(tile.slot);
+        slot = -1;
+        for (let cell = page * grid.slots; cell < (page + 1) * grid.slots; cell++)
+          if (fits(taken, cell, w) && (slot < 0 || Math.abs(cell - tile.slot) < Math.abs(slot - tile.slot))) slot = cell;
+      }
       if (slot < 0) return null;
       result.push({ tile, slot });
     }
@@ -292,6 +299,7 @@ export const domains: Record<string, [string, string, string]> = {
   camera: ["◧", "#3d4a57", "#e6ebf0"],
   image: ["◧", "#3d4a57", "#e6ebf0"],
   alarm_control_panel: ["⛨", "#2f7d32", "#e1f2e2"],
+  lock: ["⚿", "#2f7d32", "#e1f2e2"],
 };
 // [name, sign, colour, background] of an entity's domain.
 export function domainInfo(id: string): [string, string, string, string] {

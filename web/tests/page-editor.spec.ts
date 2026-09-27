@@ -6,7 +6,7 @@ import LayoutView from "../src/components/LayoutView.vue";
 import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
 import TopbarInspector from '../src/components/TopbarInspector.vue';
-import { placeTile, dismissMigrationNote, pageReady, removeTile, resolveLayoutConflict } from '../src/store';
+import { placeTile, dismissMigrationNote, pageReady, removeTile, resolveLayoutConflict, addPage, movePage } from '../src/store';
 import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo,
   acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, select, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
@@ -438,6 +438,34 @@ describe('creating a page', () => {
     expect(state.selectedPageId).toBe(page.id);
     expect(view.emitted('close')).toHaveLength(1);
     undo(); expect(JSON.stringify(state.document)).toBe(before);
+  });
+  it('offers only what a top bar can show: never a camera (app 0.4.1)', async () => {
+    state.inventory.entities = [{ id: 'sensor.room', name: 'Temperature', area: '' }, { id: 'camera.door', name: 'Door', area: '' }];
+    const view = mount(PageWizard);
+    expect(view.findAll('.entity-option').map((row) => row.text())).toEqual([expect.stringContaining('Temperature')]);
+  });
+  it('gives a new page the shared bar on a screen whose firmware still shares one (app 0.4.1)', async () => {
+    state.inventory.screens[0].page_capability = 'update_screen';
+    const first = state.document!.pages[0].topbar;
+    const view = mount(PageWizard);
+    expect(view.find('.home-choice').exists()).toBe(false);
+    await view.find('#new-page-title').setValue('Study');
+    await view.find('form').trigger('submit');
+    const page = state.document!.pages.at(-1)!;
+    expect(page.topbar.title).toEqual({ source: 'text', text: 'Study' });
+    expect(page.topbar.leading.map((item) => item.kind)).toEqual(first.leading.map((item) => item.kind));
+    expect(page.topbar.trailing.map(({ id: _, ...item }) => item)).toEqual(first.trailing.map(({ id: _, ...item }) => item));
+    expect(view.emitted('close')).toHaveLength(1);
+  });
+  it('keeps the home page first on a screen whose firmware starts on page 1 (app 0.4.1)', () => {
+    state.inventory.screens[0].page_capability = 'update_screen';
+    while (state.document!.pages.length < 3) addPage();
+    const order = state.document!.pages.map((page) => page.id);
+    expect(movePage(0, 1)).toBe(false);
+    expect(movePage(2, 0)).toBe(false);
+    expect(state.toast?.message).toBe('Update screen to use the new titlebar and layout');
+    expect(movePage(2, 1)).toBe(true);
+    expect(state.document!.pages[0].id).toBe(order[0]);
   });
   it('names a drop-created page once and preserves it when more entities are added', () => {
     state.inventory.entities = [{ id: 'light.study', name: 'Desk', area: 'Study' }];

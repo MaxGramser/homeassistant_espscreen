@@ -6,6 +6,7 @@ import { BUILTIN_ICONS, clockText, dateText, glyph, itemKey } from "../model/top
 import { addTopbarItem, automaticIcon, clock24, closeInspector, iconNamed, openBar, screenLanguage, state, topbarItems, topbarMax } from "../store";
 import type { HeaderItem } from "../types";
 import Icon from "./ui/Icon.vue";
+import rules from "../model/page-rules.json";
 import InspectorHead from "./ui/InspectorHead.vue";
 
 const query = ref("");
@@ -18,7 +19,8 @@ const samples = computed(() => ({
 const suggested = computed(() => state.inventory.header?.suggestions?.[state.selected || ""] || []);
 const matches = computed(() => {
   const q = query.value.trim().toLocaleLowerCase();
-  return state.inventory.entities.filter((e) => `${e.name} ${e.id} ${e.area || ""} ${e.device || ""}`.toLocaleLowerCase().includes(q));
+  // Only what the top bar can show (the add-on's header domains, app 0.4.1): a camera or an image is a tile, not a value.
+  return state.inventory.entities.filter((e) => rules.headerDomains.includes(e.id.split(".")[0]) && `${e.name} ${e.id} ${e.area || ""} ${e.device || ""}`.toLocaleLowerCase().includes(q));
 });
 const entityItem = (id: string): HeaderItem => ({ type: "entity", entity: id, content: "state", icon: "auto", show: "always" });
 </script>

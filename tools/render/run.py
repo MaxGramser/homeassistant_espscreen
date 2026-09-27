@@ -771,6 +771,205 @@ class Run:
         self.warnings.append(f'alarm panel: card, keypad, arm with code, entry delay, wrong code, lock, trigger, codeless; {len(calls)} calls')
         return 1
 
+    async def slots(self):
+        start = len(self.lines)
+        await self.call('render_slots')
+        line = await self.until(lambda l: 'slots ' in l, 10, 'render_slots', start)
+        found = {}
+        for item in line.split('slots ', 1)[1].strip().split(';'):
+            if '@' in item:
+                entity, point = item.split('@')
+                found[entity] = tuple(int(n) for n in point.split(','))
+        return found
+
+    async def hold(self, x, y):
+        await self.call('render_finger', x=x, y=y, down=True)
+        await asyncio.sleep(1.0)
+        await self.call('render_finger', x=x, y=y, down=False)
+        await asyncio.sleep(0.4)
+
+    async def lock_panel(self, grid):
+        """The lock (firmware 0.5.0+) the way it is used: a tap locks at once, a locked lock asks for a second tap on its
+        tile, the card (hold) has Lock or Unlock and Open door with its own second tap, a jammed lock shows both keys, a
+        lock-only tile never unlocks, and a lock with a code opens the alarm panel's keypad. Home Assistant's answers and
+        states come back through the add-on's own messages. Every key a finger's size and inside the glass (render_alarm,
+        which reads any open card)."""
+        from core import lock_extras, state_message
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        def lock(state, name, features=0, **attributes):
+            return {'state': state, 'attributes': {'friendly_name': name, 'supported_features': features, **attributes},
+                    'last_changed': MOMENT.isoformat()}
+        states = {'lock.front_door': lock('locked', 'Front door', changed_by='Keypad'),
+                  'lock.back_door': lock('unlocked', 'Back door', 1),
+                  'lock.gate': lock('locked', 'Gate'),
+                  'lock.garage': lock('jammed', 'Garage'),
+                  'lock.shed': lock('locking', 'Shed'),
+                  'lock.cellar': lock('unavailable', 'Cellar')}
+        order = list(states)
+        tiles_in = [dict(entity=e, name=states[e]['attributes']['friendly_name'], slot=i) for i, e in enumerate(order)]
+        tiles_in[2]['options'] = {'guard': 'lock_only'}
+        record = send_layout.migrate_legacy(dict(title='Locks', tiles=tiles_in[:grid.columns * grid.rows]), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        entries = {}
+        async def push():
+            values = [state_message(index, tile, states, lock_extras(entries.get(tile['entity'])) or None)
+                      for index, tile in enumerate(tiles)]
+            await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await push()
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        faults = []
+        def keep(card, where):
+            if card['faults']:
+                faults.append(f'{where}: {card["faults"]}')
+        async def call_for(service, since):
+            end = time.monotonic() + 8
+            while time.monotonic() < end:
+                found = [c for c in calls[since:] if c.service == service]
+                if found:
+                    return found[-1]
+                await asyncio.sleep(0.05)
+            raise RuntimeError(f'lock: the screen never sent {service}: {[c.service for c in calls[since:]]}')
+        def answer(sent, ok=True, text=''):
+            self.client.send_homeassistant_action_response(sent.call_id, ok, text, b'')
+        async def card_until(test, what):
+            return await self.alarm_until(test, what)
+        await asyncio.sleep(1.6)
+        await self.render('lock-tiles')
+        spots = await self.slots()
+        # A locked lock asks first: the tile turns orange and says so; the second tap unlocks.
+        since = len(calls)
+        await self.tap(*spots['lock.front_door'])
+        await asyncio.sleep(0.2)
+        await self.snapshot(self.out / 'lock-tile-ask.png')
+        if [c for c in calls[since:] if c.service.startswith('lock.')]:
+            faults.append('one tap on a locked lock already sent an action')
+        await asyncio.sleep(0.5)
+        await self.tap(*spots['lock.front_door'])
+        sent = await call_for('lock.unlock', since)
+        if sent.data.get('entity_id') != 'lock.front_door' or 'code' in sent.data:
+            faults.append(f'unlock went out as {sent.data}')
+        answer(sent)
+        states['lock.front_door'] = lock('unlocking', 'Front door')
+        await push()
+        await asyncio.sleep(0.5)
+        await self.snapshot(self.out / 'lock-tile-unlocking.png')
+        states['lock.front_door'] = lock('unlocked', 'Front door', changed_by='Wall screen')
+        await push()
+        await asyncio.sleep(1.8)
+        # An unlocked lock locks with one tap.
+        since = len(calls)
+        await self.tap(*spots['lock.front_door'])
+        sent = await call_for('lock.lock', since)
+        answer(sent)
+        states['lock.front_door'] = lock('locked', 'Front door', changed_by='Wall screen')
+        await push()
+        await asyncio.sleep(0.3)
+        await self.snapshot(self.out / 'lock-tile-locked-arriving.png')
+        await asyncio.sleep(1.6)
+        # A lock-only tile says so and sends nothing.
+        since = len(calls)
+        await self.tap(*spots['lock.gate'])
+        await asyncio.sleep(0.4)
+        await self.snapshot(self.out / 'lock-tile-lock-only.png')
+        if [c for c in calls[since:] if c.service.startswith('lock.')]:
+            faults.append('a lock-only tile sent an action')
+        await asyncio.sleep(3.2)
+        # The card: hold the back door (unlocked, with Open door).
+        await self.hold(*spots['lock.back_door'])
+        card = await card_until(lambda c: c['open'] and len(c['modes']) == 2, 'holding the back door never opened its card with two keys')
+        keep(card, 'card unlocked')
+        await self.render('lock-card-unlocked')
+        since = len(calls)
+        await self.tap(*card['modes'][1][:2])
+        await asyncio.sleep(0.3)
+        await self.snapshot(self.out / 'lock-card-open-ask.png')
+        await self.tap(*card['modes'][1][:2])
+        sent = await call_for('lock.open', since)
+        answer(sent)
+        states['lock.back_door'] = lock('open', 'Back door', 1, changed_by='Wall screen')
+        await push()
+        await asyncio.sleep(0.6)
+        await self.render('lock-card-open')
+        since = len(calls)
+        card = await card_until(lambda c: c['open'], 'the card closed')
+        await self.tap(*card['modes'][0][:2])
+        sent = await call_for('lock.lock', since)
+        answer(sent)
+        states['lock.back_door'] = lock('locking', 'Back door', 1)
+        await push()
+        await asyncio.sleep(0.5)
+        await self.snapshot(self.out / 'lock-card-locking.png')
+        states['lock.back_door'] = lock('locked', 'Back door', 1, changed_by='Wall screen')
+        await push()
+        await asyncio.sleep(0.3)
+        await self.snapshot(self.out / 'lock-card-locked-arriving.png')
+        await asyncio.sleep(1.6)
+        card = await card_until(lambda c: c['open'] and len(c['modes']) == 2, 'the locked back door never showed Unlock and Open door')
+        keep(card, 'card locked')
+        await self.render('lock-card-locked')
+        await self.tap(*card['modes'][0][:2])
+        await asyncio.sleep(0.3)
+        await self.snapshot(self.out / 'lock-card-unlock-ask.png')
+        await asyncio.sleep(5.5)
+        await self.tap(*card['back'][:2])
+        await card_until(lambda c: not c['open'], 'Back never closed the card')
+        # A jammed lock shows both keys.
+        await self.hold(*spots['lock.garage'])
+        card = await card_until(lambda c: c['open'] and len(c['modes']) == 2, 'the jammed garage never showed two keys')
+        keep(card, 'card jammed')
+        await self.render('lock-card-jammed')
+        await self.tap(*card['back'][:2])
+        await card_until(lambda c: not c['open'], 'Back never closed the card')
+        # A lock-only card: only Lock, and only when it is not locked.
+        await self.hold(*spots['lock.gate'])
+        card = await card_until(lambda c: c['open'], 'the gate never opened its card')
+        if len(card['modes']) != 1:
+            faults.append(f'a locked lock-only card offered {len(card["modes"])} keys, not only its lock')
+        await self.render('lock-card-lock-only')
+        since = len(calls)
+        await self.tap(*card['modes'][0][:2])
+        await asyncio.sleep(0.6)
+        if [c for c in calls[since:] if c.service.startswith('lock.')]:
+            faults.append('the lock of a locked lock-only card sent an action')
+        await self.tap(*card['back'][:2])
+        await card_until(lambda c: not c['open'], 'Back never closed the card')
+        # A lock with a code: the tap opens the keypad, the code goes out with the action.
+        states['lock.front_door'] = lock('locked', 'Front door', code_format='^\\d{4}$')
+        await push()
+        await asyncio.sleep(0.8)
+        await self.tap(*spots['lock.front_door'])
+        card = await card_until(lambda c: c['pad'] and len(c['keys']) == 12, 'a lock with a code never opened the keypad')
+        keep(card, 'keypad')
+        await self.render('lock-keypad')
+        for digit in '1234':
+            x, y, _ = card['keys'][10 if digit == '0' else int(digit) - 1]
+            await self.tap(x, y)
+        await self.render('lock-keypad-typed')
+        since = len(calls)
+        await self.tap(*card['keys'][11][:2])
+        sent = await call_for('lock.unlock', since)
+        if sent.data.get('code') != '1234':
+            faults.append(f'the code went out as {sent.data}')
+        answer(sent, False, 'Invalid code')
+        card = await card_until(lambda c: c['line'] == 'Wrong code', 'a refused code never said so')
+        await self.render('lock-keypad-wrong', timeout=3)
+        refused = [c for c in calls if c.service == 'esphome.screen_lock_code_refused']
+        if not refused or 'code' in refused[-1].data:
+            faults.append(f'the refusal event: {[c.data for c in refused]}')
+        await self.tap(*card['back'][:2])
+        await asyncio.sleep(0.5)
+        await self.tap(*card['back'][:2])
+        await self.call('render_page', page=0)
+        await asyncio.sleep(1.6)
+        await self.render('lock-tiles-end')
+        self.failures += [f'lock: {f}' for f in faults]
+        self.warnings.append(f'lock: tile ask, unlock, lock, lock-only, card open/lock/jammed, keypad; {len(calls)} calls')
+        return 1
+
     async def drive(self):
         self.client = APIClient('127.0.0.1', self.item.port, None)
         for _ in range(240):
@@ -813,6 +1012,8 @@ class Run:
         self.canvas = (side['width'], side['height'])
         if self.only == 'alarm':
             return 1, await self.alarm_panel(grid)
+        if self.only == 'lock':
+            return 1, await self.lock_panel(grid)
         checks = await self.self_test()
         await self.moments(pages)
         for page in range(pages):
@@ -899,7 +1100,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
     args = parser.parse_args()
     # The programs write their pictures from their own folder, so every path they get is absolute.

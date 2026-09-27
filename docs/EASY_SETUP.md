@@ -21,7 +21,7 @@ ESPHome Device Builder is optional:
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
-| Guition, 3.5 inch (experimental) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
+| Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
@@ -39,6 +39,9 @@ through its Override YAML (docs/GUITION.md, Relays).
    `https://github.com/MaxGramser/homeassistant_espscreen`.
 3. Install and start **ESP Screen Manager**. Turn on **Start on boot**
    and **Show in sidebar**. Open the **ESP Screens** web interface.
+
+ESP Screens opens on **Your screens**: every screen in the house with its home page as it looks
+right now. Click a screen to change it; the logo at the top of the sidebar brings you back.
 
 This app includes the tested ESPHome 2026.9.0 CLI and runs within your HA login.
 A second ESPHome management page, MQTT, blueprint, or long-lived token is not needed.
@@ -143,8 +146,9 @@ button. The card disappears once the screen is in the list.
    IP address, port 6053.
 2. Does HA ask for an encryption key? Paste the API key the window shows after
    installation (also found as **api → encryption → key** in the
-   profile). Don't use the OTA password. Once the screen is paired, open it in
-   the sidebar and use **Copy API key** there whenever HA asks for it again.
+   profile). Don't use the OTA password. Once the screen is paired, choose it in
+   the sidebar, open its details with the arrow at its right, and use **Copy API key**
+   there whenever HA asks for it again.
 3. On the ESPHome integration, open **Configure** and enable **Allow the device to
    perform Home Assistant actions**. Without this permission, values still show up,
    but the screen can't control lights and devices.
@@ -342,8 +346,8 @@ Reload any editor tabs left open during the update before saving changes.
 
 ## 6. Removing a screen
 
-A screen you no longer use goes in one place: open it in the sidebar and click
-**Remove screen**. The list in ESP Screens is Home Assistant's own, so removing
+A screen you no longer use goes in one place: choose it in the sidebar, open its
+details with the arrow at its right, and click **Remove screen**. The list in ESP Screens is Home Assistant's own, so removing
 only the YAML in ESPHome leaves the screen in the list. What the button does:
 
 - Home Assistant loses the screen's ESPHome integration, with its device and all
@@ -368,6 +372,14 @@ should stay away.
   available. A renamed entity ID needs to be chosen again.
 - **No OTA:** check Wi-Fi/IP and the original OTA password. If needed,
   use the same own YAML over USB. Don't generate a new identity.
+- **New Wi-Fi network or password:** change `wifi_ssid` and `wifi_password` in ESPHome's
+  `secrets.yaml`. A screen that can't reach the old network can't be updated over Wi-Fi, so:
+  - Most boards open a fallback hotspot, `<screen name> Setup`, about 90 seconds after they lose
+    their network. Its password is under `wifi:` → `ap:` in the screen's own YAML. Join it with a
+    phone and pick the new network on the page that opens.
+  - A CYD and the other boards with 4 MB of flash have no hotspot (app 0.4.5+): it would take
+    some 90 KB of their update slot. Connect the screen to a computer over USB and install its own
+    profile again under **Firmware & USB**. The name, the keys and the calibration stay.
 - **Build fails:** read the first error, check the ESPHome version and internet for
   GitHub/font downloads. If the Raspberry Pi is low on memory, temporarily use a
   more powerful computer to compile; the YAML stays the same.

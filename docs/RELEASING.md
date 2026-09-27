@@ -45,8 +45,11 @@
 
    **Flash budget of the CYD** (Max's rule, app 0.2.78). The CYD has 4 MB of flash and two update slots of
    1,835,008 bytes; the Guition's 16 MB leave it far from any limit. Measure the CYD on the build users get: the YAML
-   `core.installation_yaml()` writes has the Wi-Fi fallback access point (`wifi: ap:`) and `captive_portal:`, about
-   84 KB more than a profile without them. The board profiles carry both, so `tools/check.sh --firmware` measures
+   `core.installation_yaml()` writes has the Wi-Fi fallback access point (`wifi: ap:`) and `captive_portal:` only on a
+   board with more than 4 MB of flash (`hotspot` in boards.json, app 0.4.5+). On the CYD they cost 97 KB (1,720,768
+   against 1,623,552 bytes with ESPHome 2026.9), so a screen of a 4 MB board is written without them, and the manager
+   takes them out of an older screen's YAML before it builds (`Firmware.drop_hotspot`). The checkout profiles follow
+   the same flag (tools/generate_entries.py), and `tools/check.sh --firmware` refuses one that doesn't, so it measures
    that shape; it reads the slot from the build's `partitions.csv` (`app0`, `ota_0`) and the image from
    `firmware.ota.bin`, and `--baseline <bytes>` prints the delta against the last release. The check-profile tables
    in earlier test results left both out and read about 84 KB low (0.2.72: 1,453,647 bytes, 79.2 %, where the

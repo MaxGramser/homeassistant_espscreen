@@ -7,7 +7,8 @@
 # Everything but the chip revision and the LCD is the first JC8012P4A1's (packages/hardware/guition-jc8012p4a1.yaml), so
 # this file differs from guition-jc8012p4a1.yaml only there. The first build's firmware restarts a V3 straight after
 # its bootloader, over and over (CHIP_LP_WDT_RESET, GitHub issue #52), which is how someone finds out which of the two
-# they have. docs/JC8012P4A1.md has what to check on the glass.
+# they have. docs/JC8012P4A1.md has what to check on the glass. On rev3 silicon ESPHome's own display driver aborts
+# while the display starts; the display below says why this board has its own copy of it for now.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
@@ -29,6 +30,7 @@ packages:
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "jc8012p4a1v3"
+  SCREEN_FIRMWARE_VERSION: "0.6.1"   # a fix for this board alone (docs/BOARD_RELEASES.md)
   DEVICE_NAME: "jc8012p4a1v3-new"
   DEVICE_FRIENDLY_NAME: "My Guition 10 V3"
 
@@ -82,8 +84,12 @@ esp32:
 # init sequence for it, its timings and its reset pin. ESPHome's "V2" is the LCD, not Guition's board label; the
 # community configurations for V3 boards run this LCD's table. The panel is 800x1280; LVGL turns it a quarter
 # (LVGL_ROTATION).
+# The platform is mipi_dsi_v3, a copy of ESPHome 2026.9.0's mipi_dsi in components/ that lets ESP-IDF pick the DSI
+# clock. Upstream's fixed clock aborts on rev3 silicon while the display starts, so the screen restarts until safe mode
+# (GitHub #52). ESPHome fixes this in 2026.9.1 (esphome/esphome#18984); then this goes back to `platform: mipi_dsi`
+# and the copy goes away (components/mipi_dsi_v3/README.md).
 display:
-  - platform: mipi_dsi
+  - platform: mipi_dsi_v3
     id: my_display
     model: JC8012P4A1-V2
     dimensions: {width: 800, height: 1280}

@@ -58,7 +58,8 @@ on the screen itself, and how updates work.
 - **Light groups (firmware 0.3.9+):** a light group gets a lamps key beside the
   sparkles key on its colour card. It opens a page with a card per lamp of the
   group, in Home Assistant's order: tap a card to switch that lamp, drag its
-  slider to dim it. A lamp that can only switch shows a switch instead of a
+  slider to dim it. Each card shows its lamp in the colour it is on, the way the
+  group's tile does (firmware 0.4.0+). A lamp that can only switch shows a switch instead of a
   slider. A lamp that takes a colour or a white shade has a ⋮ key that opens a
   small panel with just those sliders; touching anywhere beside the panel closes
   it. A group with more lamps than fit on the glass is paged, the same way as the
@@ -117,6 +118,32 @@ on the screen itself, and how updates work.
     to 15 minutes. The lock survives a restart, and a code that works resets the count. Each wrong code fires the
     event `esphome.screen_alarm_code_refused` with `entity_id`, `failures` and `locked` (seconds), so an automation
     can send a notification or take a camera snapshot.
+- **Lock** (firmware 0.5.0): a `lock` entity is a tile like any other, in Home Assistant's colours and icons: green
+  while locked, orange while it locks, unlocks or opens, red while unlocked, open or jammed.
+  - **One tap locks.** Locking is the safe way round, so a tap on an unlocked lock locks it at once.
+  - **Unlocking asks first.** A tap on a locked lock turns the tile orange and it says "Confirm" while its circle
+    beats. A second tap within five seconds unlocks it; otherwise the tile goes back by itself. One stray tap on a
+    wall screen never opens a door.
+  - **The card** (hold the tile): the lock itself is the big key and does what a tap on the tile does. Under it is
+    **Open door** for a lock that can open its latch (Home Assistant's `open` action), which also asks for a second
+    tap, as in Home Assistant's own dialog. While a lock is jammed, the big key locks and an Unlock key stands under
+    it.
+  - **Codes are Home Assistant's.** When a lock has a `code_format`, the screen shows the keypad before it locks,
+    unlocks or opens, exactly as Home Assistant's lock dialog does, and sends the code with the action. A default code
+    stored with the lock in Home Assistant means the screen asks for none. The keypad is the alarm panel's, with the
+    same rules: number codes only, the code is never logged or stored, and wrong codes lock the keypad for a while.
+    Each wrong code fires the event `esphome.screen_lock_code_refused` with `entity_id`, `failures` and `locked`.
+  - **Lock only.** Per tile, choose **Unlocking here: Never**. That screen can lock but never unlock or open. Use it
+    for a screen in a porch, a garage or a child's room.
+  - **Locks and security.** A screen runs Home Assistant actions only when you allow it (**Allow the device to
+    perform Home Assistant actions** in the ESPHome integration's options). That switch is the real boundary: it
+    lets a screen call any action, so a lock tile does not add a new way in. It makes locking and unlocking easy and
+    visible, and the screen adds its own care on top: a confirm to unlock, lock only per tile, and the keypad when
+    the lock asks for a code. To require a code, set it on the lock in Home Assistant. Many integrations set a
+    `code_format` themselves (a Matter lock does when it requires a PIN for remote use), and a template lock has a
+    **Code format** field. Home Assistant checks the code for locking, unlocking and opening alike, so the screen asks
+    for it every time. If you set a **Default code** in the lock's entity settings, Home Assistant fills it in and
+    no screen asks for a code any more.
 - **Direct control on double-width tiles** (firmware 0.2.19+), like the rows in
   Home Assistant: temperature − / + or mode buttons (climate), a toggle (switch,
   light, fan), start/stop/dock (vacuum), open/stop/close or a

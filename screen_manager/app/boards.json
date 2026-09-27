@@ -25,8 +25,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 143,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 240,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -113,8 +114,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 143,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 240,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -166,8 +168,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -229,8 +232,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 146,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -282,8 +286,9 @@
         "columns": 4,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 600,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -355,8 +360,9 @@
         "columns": 4,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 600,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -421,15 +427,16 @@
             "model": "JC3248W535",
             "name": "Guition",
             "order": 12,
-            "status": "experimental",
+            "status": "new",
             "touch": "AXS15231"
         },
         "chip": "ESP32-S3",
         "columns": 2,
         "dimmable": true,
         "dpi": 165,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -501,8 +508,9 @@
         "columns": 5,
         "dimmable": true,
         "dpi": 149,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 800,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -574,8 +582,9 @@
         "columns": 5,
         "dimmable": true,
         "dpi": 149,
-        "firmware": "0.3.10",
+        "firmware": "0.6.1",
         "height": 800,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -637,8 +646,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 165,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -690,8 +700,9 @@
         "columns": 3,
         "dimmable": false,
         "dpi": 217,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -763,8 +774,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -836,8 +848,9 @@
         "columns": 4,
         "dimmable": false,
         "dpi": 133,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -904,8 +917,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 143,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 240,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -992,8 +1006,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 143,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 240,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -1045,8 +1060,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1108,8 +1124,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 146,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -1161,8 +1178,9 @@
         "columns": 4,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 600,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1234,8 +1252,9 @@
         "columns": 4,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 600,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1300,15 +1319,16 @@
             "model": "JC3248W535",
             "name": "Guition",
             "order": 12,
-            "status": "experimental",
+            "status": "new",
             "touch": "AXS15231"
         },
         "chip": "ESP32-S3",
         "columns": 2,
         "dimmable": true,
         "dpi": 165,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1380,8 +1400,9 @@
         "columns": 5,
         "dimmable": true,
         "dpi": 149,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 800,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1453,8 +1474,9 @@
         "columns": 5,
         "dimmable": true,
         "dpi": 149,
-        "firmware": "0.3.10",
+        "firmware": "0.6.1",
         "height": 800,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1521,8 +1543,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 143,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 240,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -1609,8 +1632,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 143,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 240,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -1662,8 +1686,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1725,8 +1750,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 146,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": false,
         "look": "compact",
         "orientations": {
             "landscape": {
@@ -1778,8 +1804,9 @@
         "columns": 4,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 600,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1851,8 +1878,9 @@
         "columns": 4,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 600,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1917,15 +1945,16 @@
             "model": "JC3248W535",
             "name": "Guition",
             "order": 12,
-            "status": "experimental",
+            "status": "new",
             "touch": "AXS15231"
         },
         "chip": "ESP32-S3",
         "columns": 2,
         "dimmable": true,
         "dpi": 165,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -1997,8 +2026,9 @@
         "columns": 5,
         "dimmable": true,
         "dpi": 149,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 800,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2070,8 +2100,9 @@
         "columns": 5,
         "dimmable": true,
         "dpi": 149,
-        "firmware": "0.3.10",
+        "firmware": "0.6.1",
         "height": 800,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2133,8 +2164,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 165,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2186,8 +2218,9 @@
         "columns": 3,
         "dimmable": false,
         "dpi": 217,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2259,8 +2292,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2332,8 +2366,9 @@
         "columns": 4,
         "dimmable": false,
         "dpi": 133,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2395,8 +2430,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 165,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 320,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2448,8 +2484,9 @@
         "columns": 3,
         "dimmable": false,
         "dpi": 217,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2521,8 +2558,9 @@
         "columns": 2,
         "dimmable": true,
         "dpi": 170,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {
@@ -2594,8 +2632,9 @@
         "columns": 4,
         "dimmable": false,
         "dpi": 133,
-        "firmware": "0.3.10",
+        "firmware": "0.6.0",
         "height": 480,
+        "hotspot": true,
         "look": "standard",
         "orientations": {
             "landscape": {

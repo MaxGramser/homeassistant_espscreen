@@ -1,7 +1,8 @@
 """A light group's lamps (app 0.3.16 / firmware 0.3.9): what the screen's lamp page shows of each lamp of a group.
 
 Home Assistant lists a group's lamps in the group's `entity_id` attribute (the light group helper and the old group
-platform both do). Each lamp travels with its name as Home Assistant shows it, whether it is on, its brightness, and
+platform both do). Each lamp travels with its name as Home Assistant shows it, whether it is on, its brightness, the
+colour it is on in (hue and saturation, app 0.4.0), and
 what it can take besides that, from its own `supported_color_modes`: a colour (hs, xy, rgb, rgbw, rgbww), a white
 shade (color_temp, with the lamp's own range), only dimming (brightness), or only switching (onoff). A lamp Home
 Assistant no longer knows is left out; one that is unavailable is sent as such, so the screen can grey it.
@@ -63,11 +64,16 @@ def lamp(eid, state):
     brightness = _int(attrs.get('brightness'), 0, 255)
     if raw == 'on' and brightness is not None:
         item['b'] = max(1, round(brightness * 100 / 255))
+    # The colour a lamp is on in (app 0.4.0 / firmware 0.4.0): its hue and saturation, so its card paints in the colour
+    # its tile shows (tile_controls::lamp_color). Home Assistant reports hs_color for a lamp showing a white shade too.
     hs = attrs.get('hs_color')
-    if color and isinstance(hs, (list, tuple)) and hs:
+    if isinstance(hs, (list, tuple)) and hs:
         hue = _int(hs[0], 0, 360)
-        if hue is not None:
+        saturation = _int(hs[1], 0, 100) if len(hs) > 1 else None
+        if hue is not None and (color or (raw == 'on' and saturation)):
             item['h'] = hue % 360
+        if hue is not None and raw == 'on' and saturation:
+            item['sa'] = saturation
     if temperature:
         for key, attr in (('k', 'color_temp_kelvin'), ('lo', 'min_color_temp_kelvin'), ('hi', 'max_color_temp_kelvin')):
             value = _int(attrs.get(attr), 1000, 15000)

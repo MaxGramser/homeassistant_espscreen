@@ -4,6 +4,7 @@
 // a -/+ step lands on the entity's grid, and the status line beside them. The
 // LVGL drawing lives in runtime_tiles.h; tests/test_tile_controls.cpp covers this.
 #include "alarm_panel.h"
+#include "lock_panel.h"
 #include "screen_input.h"
 #include "runtime_model.h"
 #include "screen_text.h"
@@ -118,6 +119,33 @@ inline uint32_t weather_color(const std::string &condition) {
   if (condition == "exceptional") return RED;
   return AMBER;
 }
+// LVGL's lv_color_hsv_to_rgb (lv_color.c, LVGL 9) step for step, free of LVGL so the tests can reach it: a lamp's
+// colour comes out the same on its tile and on its group's lamp page, to the last bit.
+inline uint32_t hsv_rgb(unsigned h, unsigned s, unsigned v) {
+  h = h * 255 / 360; s = s * 255 / 100; v = v * 255 / 100;
+  if (s == 0) return (v << 16) | (v << 8) | v;
+  const unsigned region = h / 43, remainder = (h - region * 43) * 6;
+  const unsigned p = (v * (255 - s)) >> 8, q = (v * (255 - ((s * remainder) >> 8))) >> 8,
+                 t = (v * (255 - ((s * (255 - remainder)) >> 8))) >> 8;
+  unsigned r, g, b;
+  switch (region) {
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    default: r = v; g = p; b = q; break;
+  }
+  return ((r & 255) << 16) | ((g & 255) << 8) | (b & 255);
+}
+// A lamp's own colour while it is on, through Home Assistant's contrast rule (hui-tile-card._computeStateColor,
+// firmware 0.2.98+): anything under 40 % saturation is lifted to 40 %, or a pale bulb paints in a colour that is no
+// colour. Under 10 % there is nothing left to lift, and a white bulb keeps the amber of a lamp that is on. The tile
+// and the lamp page of a group (firmware 0.4.0+) both ask here.
+inline uint32_t lamp_color(int hue, int saturation) {
+  if (saturation < 10) return theme::ha::AMBER;
+  return hsv_rgb(static_cast<unsigned>(((hue % 360) + 360) % 360), static_cast<unsigned>(std::min(100, std::max(40, saturation))), 100);
+}
 // The colour of a tile while Home Assistant calls it active (Tile::active; anything inactive is grey): its
 // stateColorCss() (frontend src/common/entity/state_color.ts) for the domains it colours by state, and a colour of
 // our own per kind for those it draws in one neutral blue, such as scenes, selects, numbers and sensors (0.2.3).
@@ -141,6 +169,8 @@ inline uint32_t accent(const Tile &t) {
   if (d == "person") return t.state == "home" ? GREEN : BLUE;
   // An alarm panel: armed green, the delays orange, going off red (--state-alarm_control_panel-*-color).
   if (d == "alarm_control_panel") return alarm_panel::color(t.state);
+  // A lock: locked green, moving orange, unlocked, open or jammed red (--state-lock-*-color).
+  if (d == "lock") return lock_panel::color(t.state);
   if (d == "sensor") {
     // A battery by its charge, as Home Assistant's battery_color.ts: green from 70 %, orange from 30 %, red below.
     if (t.device_class == "battery") {
@@ -684,7 +714,8 @@ inline Action edit_action(const Tile &t, float value) {
 // CARD is the runtime detail card (show_detail), OVERLAY the board's own colour card; `busy` marks the
 // tile busy for a moment while the card opens.
 // CUSTOM (firmware 0.2.58+) is an action of the tile's own choosing from Home Assistant's list, with its data.
-enum class TapRoute : uint8_t { NONE, ACTION, CARD, OVERLAY, CUSTOM };
+// LOCK (firmware 0.5.0+) is a lock's own tap: lock at once, or unlock after a second tap (lock_panel::tap).
+enum class TapRoute : uint8_t { NONE, ACTION, CARD, OVERLAY, CUSTOM, LOCK };
 struct Tap { TapRoute route = TapRoute::NONE; std::string service; bool busy = false; };
 inline bool runtime_card_domain(const std::string &d) {
   return d == "sensor" || d == "binary_sensor" || d == "weather" || d == "number" || d == "input_number" || d == "select" ||
@@ -736,6 +767,8 @@ inline Tap tap_route(const Tile &t, bool hold) {
   // A tile whose action didn't arrive (an app before 0.2.67) taps automatically, as older firmware does.
   if (!hold && t.tap == "action" && !t.extra().action.empty()) return {TapRoute::CUSTOM, t.extra().action};
   if (!hold && t.tap == "toggle") return {TapRoute::ACTION, d + ".toggle"};
+  // A lock opens its card when held or set to; a tap locks or asks for the second tap that unlocks.
+  if (d == "lock") return hold || t.tap == "detail" ? Tap{TapRoute::CARD, "", false} : Tap{TapRoute::LOCK, "", false};
   bool open = hold || t.tap == "detail" || d == "vacuum" || d == "cover";
   // A short tap runs or pauses the timer; holding opens the card with a cancel button.
   if (d == "timer" && !open) return {TapRoute::ACTION, t.state == "active" ? "timer.pause" : "timer.start"};

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { t } from '../i18n';
-import { addPage, automaticIcon, liveOf, state, topbarMax } from '../store';
-import { emptyPage, instanceId } from '../model/pages';
+import { addPage, automaticIcon, liveOf, pageReady, state, topbarMax } from '../store';
+import { clone, emptyPage, instanceId } from '../model/pages';
 import { tilePalette } from '../model/tile-palette';
 import { glyph } from '../model/topbar';
 import type { HeaderItem } from '../types';
 import CheckRow from './ui/CheckRow.vue';
+import rules from '../model/page-rules.json';
 import Icon from './ui/Icon.vue';
 import SwitchRow from './ui/SwitchRow.vue';
 
@@ -17,12 +18,21 @@ const chosen = ref<string[]>([]);
 const count = computed(() => chosen.value.length + Number(clock.value));
 const matches = computed(() => {
   const search = query.value.trim().toLocaleLowerCase();
-  return state.inventory.entities.filter(entity => `${entity.name} ${entity.id} ${entity.area || ''}`.toLocaleLowerCase().includes(search));
+  // Only what the top bar can show (app 0.4.1): the add-on's header domains, so Create never fails on a camera.
+  return state.inventory.entities.filter(entity => rules.headerDomains.includes(entity.id.split('.')[0]) && `${entity.name} ${entity.id} ${entity.area || ''}`.toLocaleLowerCase().includes(search));
 });
 const toggle = (id: string) => { chosen.value = chosen.value.includes(id) ? chosen.value.filter((item) => item !== id) : [...chosen.value, id]; };
 const invalidTitle = computed(() => new TextEncoder().encode(title.value.trim()).length > 96);
 function create() {
   if (invalidTitle.value || count.value > topbarMax()) return;
+  // A screen whose firmware still shares one top bar (app 0.4.1): the new page takes that bar and its home key, as
+  // every other page does, or the save is refused long after this dialog closed. Only the title is its own.
+  if (!pageReady.value) {
+    const shared = clone(state.document!.pages[0].topbar);
+    shared.title = title.value.trim() ? { source: 'text', text: title.value.trim() } : { source: 'screen' };
+    if (addPage(shared)) emit('close');
+    return;
+  }
   const page = emptyPage();
   page.topbar.title = title.value.trim() ? { source: 'text', text: title.value.trim() } : { source: 'screen' };
   if (!home.value) page.topbar.leading = [];
@@ -46,12 +56,13 @@ onMounted(() => dialog.value?.showModal());
         <input id="new-page-title" v-model="title" :placeholder="state.document?.title" :aria-invalid="invalidTitle" autofocus />
         <small v-if="invalidTitle" class="help warn">{{ t('addon.errors.layout.page_title') }}</small>
       </div>
-      <div class="wizard-group">
+      <div v-if="!pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
+      <div v-if="pageReady" class="wizard-group">
         <h3>{{ t('editor.topbar.title') }}</h3>
         <SwitchRow class="bar-choice home-choice" icon="home-outline" :label="t('editor.pages.home_control')" v-model="home" />
         <SwitchRow class="bar-choice clock-choice" icon="clock-outline" :label="t('editor.pages.clock_control')" :disabled="!clock && count >= topbarMax()" v-model="clock" />
       </div>
-      <div class="f">
+      <div v-if="pageReady" class="f">
         <label class="f-label" for="new-page-entity">{{ t('editor.pages.bar_entities') }} <span class="f-value">{{ count }} / {{ topbarMax() }}</span></label>
         <label class="search-field"><Icon name="magnify" /><input id="new-page-entity" v-model="query" type="search" :placeholder="t('editor.topbar.add.search')" /></label>
         <div class="entity-options check-list">

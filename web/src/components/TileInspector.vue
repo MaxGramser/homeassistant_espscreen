@@ -4,7 +4,7 @@ const { grid, pageCount, pageOf } = editorLayout;
 
 import { tileSizeChoices } from "../store";
 // One tile's settings. Every change applies live, so the card on the mockup shows the result while you pick.
-import { computed, ref, toRaw } from "vue";
+import { computed, ref, toRaw, watch } from "vue";
 import { t } from "../i18n";
 import { beginFieldEdit, endFieldEdit } from '../store';
 import { domainInfo, entriesOf, inlineControlKind, pageTarget, SLIDER_DOMAINS, TOGGLE_BEFORE } from "../model/layout";
@@ -23,6 +23,7 @@ import HelpTip from "./HelpTip.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import { textDraft } from '../model/text-draft';
 import rules from "../model/page-rules.json";
+import { choiceOffered, offeredChoices } from "../model/tile-options";
 
 const props = defineProps<{ tile: Tile }>();
 const nameDraft = textDraft(() => props.tile.name, value => setTileName(props.tile, value));
@@ -71,7 +72,7 @@ const displays = computed(() => {
     if (key === "cover") return (pictures.value || display.value === "cover") && size.value !== "full";
     return true;
   });
-  return keys.map((key) => [key, t(`editor.tile.display.${key}`)] as [string, string]);
+  return offer("display", keys.map((key) => [key, t(`editor.tile.display.${key}`)] as [string, string]), display.value);
 });
 // A live camera fills its card on every size (app 0.3.13, firmware 0.3.7; 1x2 and 2x2 since app 0.3.8, firmware 0.3.3):
 // whole or cut to fill it, its name on it or nothing.
@@ -80,7 +81,9 @@ const cardFilled = computed(() => supports(0, 3, 7) || (taller.value && supports
 // A hint is a warning unless the screen's firmware already does what it describes.
 const clockFace = computed(() => clock.value && ["dial", "flip"].includes(display.value));
 const displayWarns = computed(() => !(display.value === "live" && cardFilled.value) && !(display.value === "cover" && supports(0, 2, 78)) && !(clockFace.value && supports(0, 3, 6)));
-const pictureChoices = (key: "fit" | "overlay") => rules.picture[key].map((value) => [value, t(`editor.tile.picture.${key}.${value}`)] as [string, string]);
+const pictureChoices = (key: "fit" | "overlay") => offer(key, rules.picture[key].map((value) => [value, t(`editor.tile.picture.${key}.${value}`)] as [string, string]), current(key, rules.picture[key][0]));
+const refreshChoices = computed(() => offer("refresh", rules.refresh.map((seconds) => [seconds, t("editor.tile.refresh.seconds", { n: seconds })] as [number, string]), refresh.value));
+const historyChoices = computed(() => offer("history_hours", [1, 6, 24].map((hours) => [hours, t("editor.tile.history.hours", hours)] as [number, string]), history.value));
 const displayHint = computed(() => {
   const c = caps.value;
   if (c && display.value === "graph" && !c.displays.includes("graph")) return t("editor.tile.display.no_graph");
@@ -96,19 +99,26 @@ const refresh = computed(() => current("refresh", 15) as number);
 const size = computed(() => current("size", "single") as string);
 const taller = computed(() => ["tall", "square"].includes(size.value));
 const catalogue = computed(() => state.inventory.controls?.[domain.value]);
+// Every choice the panel shows is one the add-on saves (app 0.4.0, GitHub #47): tried the way the panel applies it,
+// against the same card check the save runs (model/tile-options.ts). The tile's own choice always stays in sight.
+const controlled = computed(() => Boolean(catalogue.value));
+function offer<T extends string | number>(key: string, choices: [T, string][], now: unknown, sample?: (value: T) => unknown) {
+  return offeredChoices(props.tile, key, choices, now, controlled.value, sample);
+}
 const controls = computed(() => taller.value && current("inline", "none") === "slider" ? inlineControlKind(domain.value) : current("controls", ["tall", "full"].includes(size.value) ? "none" : catalogue.value?.default) as string);
 const primaryControl = computed(() => domain.value === 'cover' ? coverPrimary(controls.value) : controls.value);
 const tiltSelected = computed(() => domain.value === 'cover' && hasCoverTilt(controls.value));
 const offerTilt = computed(() => domain.value === 'cover' && ['tall', 'square', 'full'].includes(size.value)
-  && (tiltSelected.value || caps.value?.controls.includes('tilt')));
+  && (tiltSelected.value || (caps.value?.controls.includes('tilt') && choiceOffered(props.tile, 'controls', withCoverTilt(primaryControl.value, true), controlled.value))));
 function pickControl(value: string) {
   setTileOption(props.tile, 'controls', domain.value === 'cover' ? withCoverTilt(value, tiltSelected.value) : value);
 }
 const controlChoices = computed(() => {
   const c = caps.value;
   // Temperature and mode need a second row: offered on 1 x 2, 2 x 2 and full-page cards only.
-  return (catalogue.value?.choices || []).filter(ch => domain.value !== "cover" || !hasCoverTilt(ch.key))
+  const choices = (catalogue.value?.choices || []).filter(ch => domain.value !== "cover" || !hasCoverTilt(ch.key))
     .filter(ch => ch.key !== "setpoint_mode" || ["tall", "square", "full"].includes(size.value)).filter((ch) => !c || ch.key === "none" || ch.key === primaryControl.value || c.controls.includes(ch.key)).map((ch) => [ch.key, ch.label] as [string, string]);
+  return offer("controls", choices, primaryControl.value, (key) => domain.value === "cover" ? withCoverTilt(key, tiltSelected.value) : key);
 });
 const controlHint = computed(() => {
   const c = caps.value;
@@ -117,14 +127,27 @@ const controlHint = computed(() => {
     ? t(taller.value ? "editor.tile.controls.tall_hint" : size.value === "full" ? "editor.tile.controls.full_hint" : "editor.tile.controls.wide_hint")
     : t("editor.tile.controls.needs_firmware"), warn: false };
 });
-const tap = computed(() => current("tap", "auto") as string);
+// Perform action has a second step, the action: picking it opens the list, and only an action chosen there stores it
+// (app 0.4.0, GitHub #47). Until then the tile keeps the tap choice it had.
+const choosingAction = ref(false);
+watch(() => props.tile.id, () => { choosingAction.value = false; });
+const tap = computed(() => choosingAction.value ? "action" : current("tap", "auto") as string);
+watch(() => props.tile.options?.tap, (stored) => { if (stored === "action") choosingAction.value = false; });
 const taps = computed(() => {
   const keys = ["auto", "detail", "none"];
   // On / off where Home Assistant can toggle the entity, such as a cover; a speaker without on and off gets none.
   if ((caps.value ? caps.value.toggle : TOGGLE_BEFORE.includes(domain.value)) || tap.value === "toggle") keys.push("toggle");
   keys.push("action");
-  return keys.map((key) => [key, t(`editor.tile.tap.${key}`)] as [string, string]);
+  return offer("tap", keys.map((key) => [key, t(`editor.tile.tap.${key}`)] as [string, string]), tap.value);
 });
+function pickTap(value: string) {
+  choosingAction.value = value === "action" && !props.tile.options?.action;
+  if (choosingAction.value) state.actionPickerOpen = true;
+  else setTileOption(props.tile, "tap", value);
+}
+// A lock's tile (firmware 0.5.0+): unlock after a second tap on it, or never unlock from this screen.
+const guard = computed(() => current("guard", "confirm") as string);
+const guards = computed(() => offer("guard", ["confirm", "lock_only"].map((key) => [key, t(`editor.tile.guard.${key}`)] as [string, string]), guard.value));
 const tapHint = computed(() => {
   if (tap.value === "toggle" && caps.value && !caps.value.toggle) return { text: t("editor.tile.tap.no_toggle"), warn: true };
   if (tap.value === "toggle" && !TOGGLE_BEFORE.includes(domain.value) && !supports(0, 2, 58)) return { text: t("editor.tile.tap.toggle_needs_firmware"), warn: false };
@@ -143,7 +166,9 @@ const subChoices = computed(() => {
   const keys = ["auto", "none"];
   if (subValues.value.length || subKind.value === "attr") keys.push("attr");
   keys.push("text");
-  return keys.map((key) => [key, t(`editor.tile.sub.${key}`)] as [string, string]);
+  // A value of the entity and words of your own are tried with a sample of the second step they ask.
+  const sample = (kind: string) => kind === "attr" ? `attr:${subAttribute.value || "state"}` : kind === "text" ? "text:x" : kind;
+  return offer("sub", keys.map((key) => [key, t(`editor.tile.sub.${key}`)] as [string, string]), subKind.value, sample);
 });
 const subAttribute = computed(() => (sub.value.startsWith("attr:") ? sub.value.slice(5) : subValues.value[0]?.key ?? ""));
 const subText = computed(() => (sub.value.startsWith("text:") ? sub.value.slice(5) : ""));
@@ -158,10 +183,12 @@ function pickSubKind(kind: string) {
 }
 function writeSubText(value: string) {
   const words = value.trim();
-  setTileOption(props.tile, "sub", words ? `text:${words}` : "none");
+  // Typing words of your own is one step of undo, as typing the name is (app 0.4.2).
+  setTileOption(props.tile, "sub", words ? `text:${words}` : "none", `sub:${props.tile.id}`);
 }
 const inline = computed(() => current("inline", "none") as string);
-const showSlider = computed(() => !taller.value && SLIDER_DOMAINS.includes(domain.value) && (!caps.value || caps.value.inline || inline.value === "slider"));
+const showSlider = computed(() => !taller.value && SLIDER_DOMAINS.includes(domain.value) && (inline.value === "slider" ||
+  ((!caps.value || caps.value.inline) && choiceOffered(props.tile, "inline", "slider", controlled.value))));
 const sliderWarn = computed(() => inline.value === "slider" && caps.value && !caps.value.inline);
 const history = computed(() => current("history_hours", 24) as number);
 const backgrounds = computed(() => Object.entries(state.inventory.backgrounds || {}));
@@ -199,6 +226,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
         <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
           :aria-label="t('editor.tile.sub.value_aria')" @update:model-value="(key) => setTileOption(tile, 'sub', `attr:${key}`)" />
         <input v-if="subKind === 'text'" class="sub-text" :value="subText" maxlength="60"
+          @focus="beginFieldEdit(`sub:${tile.id}`)" @blur="endFieldEdit()"
           :placeholder="t('editor.tile.sub.text_placeholder')" :aria-label="t('editor.tile.sub.text_aria')"
           @input="writeSubText(($event.target as HTMLInputElement).value)" />
       </div>
@@ -212,7 +240,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
       </div>
       <div v-if="display === 'live'" class="f">
         <span class="f-label">{{ t("editor.tile.refresh.label") }}</span>
-        <Segmented :choices="rules.refresh.map((seconds) => [seconds, t('editor.tile.refresh.seconds', { n: seconds })] as [number, string])" :value="refresh" @pick="(v) => setTileOption(tile, 'refresh', Number(v))" />
+        <Segmented :choices="refreshChoices" :value="refresh" @pick="(v) => setTileOption(tile, 'refresh', Number(v))" />
       </div>
       <div v-if="pictureCard" class="f">
         <span class="f-label">{{ t("editor.tile.picture.fit.label") }}</span>
@@ -224,7 +252,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
       </div>
       <div v-if="domain === 'sensor'" class="f">
         <span class="f-label">{{ t("editor.tile.history.label") }}</span>
-        <Segmented :choices="[1, 6, 24].map((hours) => [hours, t('editor.tile.history.hours', hours)] as [number, string])" :value="history" @pick="(v) => setTileOption(tile, 'history_hours', Number(v))" />
+        <Segmented :choices="historyChoices" :value="history" @pick="(v) => setTileOption(tile, 'history_hours', Number(v))" />
       </div>
     </Section>
 
@@ -247,10 +275,14 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     <Section v-if="controlsShown" :title="t('editor.tile.sections.controls')" icon="gesture-tap">
       <div v-if="domain !== 'screen' && !goesTo" class="f">
         <span class="f-label">{{ t("editor.tile.tap.label") }}<HelpTip v-if="tapHint && !tapHint.warn" :text="tapHint.text" /></span>
-        <Segmented :choices="taps" :value="tap" @pick="(v) => setTileOption(tile, 'tap', v)" />
+        <Segmented :choices="taps" :value="tap" @pick="pickTap" />
         <small v-if="tapHint?.warn" class="help warn">{{ tapHint.text }}</small>
       </div>
       <ActionPicker v-if="domain !== 'screen' && !goesTo && tap === 'action'" :tile="tile" />
+      <div v-if="domain === 'lock'" class="f">
+        <span class="f-label">{{ t("editor.tile.guard.label") }}<HelpTip :text="t(guard === 'lock_only' ? 'editor.tile.guard.lock_only_hint' : 'editor.tile.guard.confirm_hint')" /></span>
+        <Segmented :choices="guards" :value="guard" @pick="(v) => setTileOption(tile, 'guard', v)" />
+      </div>
       <div v-if="catalogue && ['wide', 'tall', 'square', 'full'].includes(size) && !goesTo" class="f">
         <span class="f-label">{{ t("editor.tile.controls.label") }}<HelpTip v-if="controlHint && !controlHint.warn" :text="controlHint.text" /></span>
         <Segmented :choices="controlChoices" :value="primaryControl" @pick="pickControl" />

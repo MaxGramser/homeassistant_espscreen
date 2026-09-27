@@ -7,7 +7,7 @@ import { computed, nextTick, onBeforeUnmount } from "vue";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { deviceStyle, homeKeyShown, isCompact, movePage, navigationSettings, openBar, pageAt, pageReady, pageTitleShown, screenText, setHomePage, state, topbarItems } from "../store";
+import { deviceStyle, homeKeyShown, isCompact, movePage, navigationSettings, openBar, pageAt, pageReady, pageTitleShown, roomyNames, screenText, setHomePage, state, topbarItems } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -85,7 +85,7 @@ async function onKey(e: KeyboardEvent) {
         <PageMenu v-if="owned" :id="owned.id" />
       </span>
     </div>
-    <div class="device" :class="{ compact: isCompact }">
+    <div class="device" :class="{ compact: isCompact, roomy: roomyNames }">
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
         @click="!preview && openBar(0, page)" @keydown.enter.prevent="!preview && openBar(0, page)">
         <TopbarSvg :items="topbarItems(page)" :name-text="pageTitleShown(page)" :home="homeKeyShown(page)" :back="backInHeader" />

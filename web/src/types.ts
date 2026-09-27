@@ -3,6 +3,7 @@ export type TileOptions = {
   size?: string;
   controls?: string;
   inline?: string;
+  guard?: string;
   tap?: string;
   icon?: string;
   background?: string;
@@ -21,7 +22,7 @@ export type PageTile = {
   // rectangles it supports; the page's grid is never user-overridable.
   placement: { row: number; column: number; columns: number; rows: number };
   appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full"; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; fit?: string; overlay?: string };
-  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"] };
+  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string };
 };
 export type Page = {
   id: string;
@@ -93,7 +94,8 @@ export type FeedbackView = {
   versions: { firmware_version?: string | null; addon_version?: string | null };
 };
 export type Screen = {
-  id: string; name: string; online: boolean; area?: string; firmware?: string; board?: string;
+  // name: the editor's own name when one is set (app 0.4.2); ha_name: what Home Assistant calls the screen.
+  id: string; name: string; ha_name?: string; online: boolean; area?: string; firmware?: string; board?: string;
   layout: Layout; update?: UpdateInfo; settings?: SettingsView; delivery?: string; status?: string;
   page_document?: PageDocument | PendingMigration | null;
   source_grid?: PageGrid | null;

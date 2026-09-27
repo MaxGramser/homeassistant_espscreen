@@ -289,6 +289,12 @@
       "too_many": "Demasiados códigos incorrectos",
       "letters": "Este código tiene letras. Introdúcelo en Home Assistant."
     },
+    "lock": {
+      "confirm": "Confirmar",
+      "really_unlock": "¿Desbloquear de verdad?",
+      "lock_only": "Solo bloquear en esta pantalla",
+      "lock_only_short": "Solo bloquear"
+    },
     "ha": {
       "on": "Encendido",
       "off": "Apagado",
@@ -465,6 +471,22 @@
         "arm_vacation": "Armar por vacaciones",
         "arm_custom_bypass": "Bypass personalizada",
         "enter_code": "Introduce el código"
+      },
+      "lock": {
+        "locked": "Bloqueado",
+        "unlocked": "Desbloqueado",
+        "locking": "Bloqueando",
+        "unlocking": "Desbloqueando",
+        "open": "Abierto",
+        "opening": "Abriendo",
+        "jammed": "Atascado"
+      },
+      "lock_action": {
+        "lock": "Bloquear",
+        "unlock": "Desbloquear",
+        "open": "Abierto",
+        "open_door": "Abrir puerta",
+        "open_door_confirm": "¿Realmente abrirla?"
       }
     },
     "navigation": {
@@ -1232,7 +1254,14 @@
       "details": {
         "room": "Habitación",
         "firmware": "Firmware",
-        "board": "Placa"
+        "board": "Placa",
+        "show": "Mostrar detalles de {name}",
+        "hide": "Ocultar detalles de {name}"
+      },
+      "rename": {
+        "button": "Cambiar nombre",
+        "label": "Nombre en esta app",
+        "save": "Guardar"
       },
       "remove": {
         "button": "Eliminar pantalla",
@@ -1244,7 +1273,8 @@
         "confirm": "Eliminar",
         "done": "{name} se ha eliminado.",
         "kept": "{name} se ha eliminado. Su perfil {file} sigue en la carpeta ESPHome."
-      }
+      },
+      "home": "Resumen de tus pantallas"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1303,12 @@
         "text": "Conecta tu pantalla por USB al equipo de Home Assistant. El perfil, el firmware y la primera instalación se hacen de una vez.",
         "button": "Instalar pantalla nueva"
       }
+    },
+    "home": {
+      "title": "Tus pantallas",
+      "summary": "{online} de {count} en línea",
+      "open": "Abrir {name}",
+      "no_layout": "Aún sin diseño"
     },
     "screen_view": {
       "confirm": {
@@ -1343,7 +1379,8 @@
         "map": "Muestra adónde lleva cada mosaico Ir a la página.",
         "preview_label": "Vista previa",
         "preview": "Prueba a deslizar y los mosaicos de página. En casa no se activa nada."
-      }
+      },
+      "copy_needs_migration": "Abre una vez la pantalla de origen para que su diseño pase a páginas y luego cópialo."
     },
     "page": {
       "label": "Página {page}",
@@ -1383,7 +1420,8 @@
         "person": "Personas",
         "timer": "Temporizadores",
         "screen": "Pantalla",
-        "alarm_control_panel": "Alarma"
+        "alarm_control_panel": "Alarma",
+        "lock": "Cerraduras"
       },
       "more": "Más ({n})",
       "fewer": "Menos",
@@ -1424,7 +1462,8 @@
       "camera": "Cámara",
       "image": "Imagen",
       "entity": "Entidad",
-      "alarm_control_panel": "Panel de alarma"
+      "alarm_control_panel": "Panel de alarma",
+      "lock": "Cerradura"
     },
     "displays": {
       "standard": "estándar",
@@ -1532,6 +1571,13 @@
         "no_toggle": "Home Assistant no puede encender y apagar esto, así que un toque no hace nada. Elige otra opción.",
         "toggle_needs_firmware": "La pantalla lo enciende y apaga a partir del firmware 0.2.58: pulsa Actualizar en la lista de pantallas. Hasta entonces, un toque abre su tarjeta.",
         "hold": "Mantén pulsado el mosaico para abrir su tarjeta."
+      },
+      "guard": {
+        "label": "Desbloquear aquí",
+        "confirm": "Tras confirmar",
+        "lock_only": "Nunca",
+        "confirm_hint": "Una cerradura bloqueada solo se abre tras un segundo toque en la tarjeta o el botón. Bloquear siempre es un toque.",
+        "lock_only_hint": "Esta pantalla puede bloquear pero nunca desbloquear ni abrir. Ideal para una pantalla en la entrada, el garaje o un cuarto infantil."
       },
       "sub": {
         "label": "Segunda línea",

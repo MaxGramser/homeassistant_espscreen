@@ -188,6 +188,22 @@
         "arm_vacation": "Arm holiday",
         "arm_custom_bypass": "Custom bypass",
         "enter_code": "Enter code"
+      },
+      "lock": {
+        "locked": "Locked",
+        "unlocked": "Unlocked",
+        "locking": "Locking",
+        "unlocking": "Unlocking",
+        "open": "Open",
+        "opening": "Opening",
+        "jammed": "Jammed"
+      },
+      "lock_action": {
+        "lock": "Lock",
+        "unlock": "Unlock",
+        "open": "Open",
+        "open_door": "Open door",
+        "open_door_confirm": "Really open?"
       }
     },
     "navigation": {

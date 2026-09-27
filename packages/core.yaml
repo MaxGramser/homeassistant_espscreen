@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.3.10"
+  SCREEN_FIRMWARE_VERSION: "0.6.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -127,6 +127,8 @@ esphome:
           runtime_tiles::big_icon_font = id(materialdesign_icons_big)->get_lv_font();
           runtime_tiles::control_font = id(sublabel_big)->get_lv_font();
           runtime_tiles::small_font = id(sublabel)->get_lv_font();
+          // A plain card's name where it has room, in the compact look (runtime_tiles::name_font, firmware 0.6.0+).
+          runtime_tiles::wide_name_font = id(${WIDE_NAME_FONT})->get_lv_font();
           // Top bar (0.2.32+): values in the text font, icons in the small icon font; the clock
           // label lends its margin and drawing order and stays hidden in runtime mode.
           runtime_tiles::header_text_font = id(sublabel_big)->get_lv_font();

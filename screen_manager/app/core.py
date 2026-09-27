@@ -11,7 +11,7 @@ import secrets
 from i18n import english, screen_t, t
 import tile_icons
 
-DOMAINS = frozenset('light switch input_boolean scene script climate vacuum fan cover sensor binary_sensor input_select select number input_number weather media_player button input_button sun timer person screen camera image alarm_control_panel'.split())
+DOMAINS = frozenset('light switch input_boolean scene script climate vacuum fan cover sensor binary_sensor input_select select number input_number weather media_player button input_button sun timer person screen camera image alarm_control_panel lock'.split())
 # Built-in cards without a Home Assistant entity; firmware 0.2.14+ renders them. The names in English: a screen gets them in
 # its language and the editor in its own (builtin_name, app 0.2.90).
 BUILTIN = {'screen.clock': 'Clock', 'screen.settings': 'Settings', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 9)}}
@@ -63,7 +63,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.3.10'
+FIRMWARE_VERSION = '0.6.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -83,9 +83,14 @@ SHOW_PAGE_MIN_FIRMWARE = '0.2.87'
 # An alarm panel as a tile with its card and keypad (components/smart_display/alarm_panel.h); older firmware refuses the
 # domain, so a layout with one waits for the update.
 ALARM_MIN_FIRMWARE = (0, 3, 3)
-ATTRS = frozenset('brightness percentage current_position current_tilt_position current_temperature temperature current_humidity min_temp max_temp target_temp_step supported_color_modes hvac_modes hvac_action hs_color color_temp_kelvin min_color_temp_kelvin max_color_temp_kelvin fan_speed_list unit_of_measurement battery_level fan_speed volume_level is_volume_muted media_title options min max step temperature_unit supported_features device_class next_rising next_setting finishes_at duration remaining humidity wind_speed wind_speed_unit apparent_temperature fan_modes swing_modes fan_mode swing_mode effect code_format code_arm_required changed_by'.split())
+# A lock as a tile with its card (components/smart_display/lock_panel.h): locks with one tap, unlocks after a second, the
+# alarm panel's keypad for a code. Older firmware refuses the domain, so a layout with one waits for the update.
+LOCK_MIN_FIRMWARE = (0, 5, 0)
+# How far a lock's tile may go (the `guard` option): unlock after a second tap, or lock only.
+LOCK_GUARDS = ('confirm', 'lock_only')
+ATTRS = frozenset('brightness percentage current_position current_tilt_position current_temperature temperature current_humidity min_temp max_temp target_temp_step supported_color_modes hvac_modes hvac_action hs_color color_temp_kelvin min_color_temp_kelvin max_color_temp_kelvin fan_speed_list unit_of_measurement battery_level fan_speed volume_level is_volume_muted media_title options min max step temperature_unit supported_features device_class next_rising next_setting finishes_at duration remaining humidity wind_speed wind_speed_unit apparent_temperature fan_modes swing_modes fan_mode swing_mode effect code_format code_arm_required changed_by assumed_state'.split())
 # Attributes whose boolean value the screen needs; every other bool stays behind.
-BOOL_ATTRS = frozenset(['is_volume_muted', 'code_arm_required'])
+BOOL_ATTRS = frozenset(['is_volume_muted', 'code_arm_required', 'assumed_state'])
 
 
 # The labels in English, as the Claude skill writes them; the editor gets them in its language (backgrounds()).
@@ -828,7 +833,7 @@ HEADER_MAX_ITEMS = 6
 # app 0.2.90).
 HEADER_BUILTIN = ('clock', 'analog', 'date')
 # Only shown, never controlled: the top bar takes these besides every tile domain.
-HEADER_ONLY_DOMAINS = frozenset('device_tracker zone lock counter event input_datetime input_text water_heater humidifier'.split())
+HEADER_ONLY_DOMAINS = frozenset('device_tracker zone counter event input_datetime input_text water_heater humidifier'.split())
 HEADER_CONTENTS = ('state', 'last_changed')
 HEADER_SHOWS = ('always', 'active')
 
@@ -880,31 +885,28 @@ def repeated_page_tiles(tiles):
     return len(pages) != len(set(pages))
 
 def min_firmware(layout):
-    """Oldest firmware that still accepts this layout; None when any version works."""
-    if any(tile.get('options', {}).get('controls') in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode')
-           for tile in layout['tiles']):
-        return (0, 3, 1)
-    if any(t['entity'].split('.')[0] == 'alarm_control_panel' for t in layout['tiles']):
-        return ALARM_MIN_FIRMWARE
-    if repeated_page_tiles(layout['tiles']):
-        return PAGE_TILE_REPEAT_MIN_FIRMWARE
-    if len(layout['tiles']) > LEGACY_MAX_TILES or any(is_full(t) or page_target(t['entity']) for t in layout['tiles']):
-        return FULL_PAGE_MIN_FIRMWARE
-    if any(t.get('options', {}).get('display') == 'cover' for t in layout['tiles']):
-        return COVER_TILE_MIN_FIRMWARE
-    if any(t.get('options', {}).get('display') == 'live' for t in layout['tiles']):
-        return LIVE_MIN_FIRMWARE
-    if any(t['entity'].split('.')[0] in CAMERA_DOMAINS for t in layout['tiles']):
-        return CAMERA_MIN_FIRMWARE
-    if any(t['entity'] == 'screen.settings' for t in layout['tiles']):
-        return (0, 2, 44)
-    if any(t.get('options', {}).get('background') == 'none' for t in layout['tiles']):
-        return (0, 2, 16)
-    if any(t['entity'].split('.')[0] in NEW_DOMAINS for t in layout['tiles']):
-        return (0, 2, 14)
-    if len(layout['tiles']) > FIRST_MAX_TILES:
-        return TWENTY_TILES_MIN_FIRMWARE
-    return None
+    """Oldest firmware that still accepts this layout; None when any version works. Every feature the layout uses names
+    the firmware it needs, and the layout needs the newest of them: a tilting blind (0.3.1) beside an alarm panel
+    (0.3.3) needs 0.3.3, which returning the first match got wrong before firmware 0.5.0."""
+    tiles = layout['tiles']
+    domains = {t['entity'].split('.')[0] for t in tiles}
+    options = [t.get('options', {}) for t in tiles]
+    gates = [
+        (any(o.get('controls') in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode') for o in options), (0, 3, 1)),
+        ('alarm_control_panel' in domains, ALARM_MIN_FIRMWARE),
+        ('lock' in domains, LOCK_MIN_FIRMWARE),
+        (repeated_page_tiles(tiles), PAGE_TILE_REPEAT_MIN_FIRMWARE),
+        (len(tiles) > LEGACY_MAX_TILES or any(is_full(t) or page_target(t['entity']) for t in tiles), FULL_PAGE_MIN_FIRMWARE),
+        (any(o.get('display') == 'cover' for o in options), COVER_TILE_MIN_FIRMWARE),
+        (any(o.get('display') == 'live' for o in options), LIVE_MIN_FIRMWARE),
+        (bool(domains & set(CAMERA_DOMAINS)), CAMERA_MIN_FIRMWARE),
+        (any(t['entity'] == 'screen.settings' for t in tiles), (0, 2, 44)),
+        (any(o.get('background') == 'none' for o in options), (0, 2, 16)),
+        (bool(domains & set(NEW_DOMAINS)), (0, 2, 14)),
+        (len(tiles) > FIRST_MAX_TILES, TWENTY_TILES_MIN_FIRMWARE),
+    ]
+    needed = [version for used, version in gates if used]
+    return max(needed) if needed else None
 
 def one_mu(text):
     """The Greek small letter mu (U+03BC), which Home Assistant writes in "μg/m³", as the micro sign (U+00B5) the
@@ -1334,7 +1336,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay'}:
+            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard'}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A navigation tile (screen.page_<n>, firmware 0.2.62+) has a name, an icon, a colour and a width; never the page.
             if page_target(tile['entity']):
@@ -1348,6 +1350,12 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             domain = tile['entity'].split('.')[0]
             displays = DISPLAYS.get(domain, ('standard', 'watch'))
             choices = {'tap': ('auto', 'detail', 'toggle', 'none', 'action'), 'display': displays, 'inline': ('none', 'slider'), 'size': TILE_SIZES_ON_SCREEN}
+            # A lock's tile (firmware 0.5.0+) unlocks after a second tap or only locks; no other tile has the choice.
+            if 'guard' in options:
+                if domain != 'lock' or options['guard'] not in LOCK_GUARDS:
+                    raise ValueError(t('addon.errors.layout.invalid_setting', setting='guard'))
+                if options['guard'] == 'confirm':
+                    options = {k: v for k, v in options.items() if k != 'guard'}
             for key, allowed in choices.items():
                 if key in options and options[key] not in allowed:
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting=key))
@@ -1493,6 +1501,14 @@ def forecast_time(entry, tz):
         return datetime.fromisoformat(str(entry.get('datetime')).replace('Z', '+00:00')).astimezone(tz or timezone.utc)
     except (ValueError, TypeError):
         return None
+
+def lock_extras(entry):
+    """What a lock's card needs beside its attributes (firmware 0.5.0+): `dc` 1 when Home Assistant keeps a default code in
+    the entity's registry options (`options.lock.default_code`; it then fills the code in itself and the screen asks for
+    none, as Home Assistant's own lock dialog does). The code itself never leaves Home Assistant."""
+    options = (entry or {}).get('options') if isinstance(entry, dict) else None
+    lock = options.get('lock') if isinstance(options, dict) else None
+    return {'dc': 1} if isinstance(lock, dict) and isinstance(lock.get('default_code'), str) and lock['default_code'] else {}
 
 def alarm_extras(state, entry):
     """What an alarm panel's card needs beside its attributes (firmware 0.3.3+): `dc` 1 when Home Assistant keeps a default
@@ -1842,7 +1858,8 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None):
     for key in ATTRS:
         value = attrs.get(key)
         if isinstance(value, bool):
-            if key in BOOL_ATTRS:
+            # assumed_state only matters to a lock's keys (firmware 0.5.0+); anywhere else it is bytes for nothing.
+            if key in BOOL_ATTRS and (key != 'assumed_state' or tile['entity'].startswith('lock.')):
                 bounded[key] = value
             continue
         if value is None:
@@ -2258,7 +2275,15 @@ def installation_yaml(data):
     choice_lines = ''.join(f'  {key}: {quote(chosen[key])}\n' for key in offered if chosen.get(key, offered[key][0]) != offered[key][0])
     # An OTA password, not yet `ota: encryption:` with the api key: ESPHome before 2026.9 refuses that, and the owner's
     # ESPHome Device Builder may still be older (docs/RELEASING.md, Compatibility 0.2.89).
-    key, ota, ap = base64.b64encode(secrets.token_bytes(32)).decode(), secrets.token_urlsafe(24), secrets.token_urlsafe(12)
+    key, ota = base64.b64encode(secrets.token_bytes(32)).decode(), secrets.token_urlsafe(24)
+    # The Wi-Fi fallback hotspot and its captive portal, where the board has room for them (boards.json `hotspot`,
+    # app 0.4.5+): a board with 4 MB of flash leaves both out, some 90 KB of its 1.75 MB update slot. A screen whose
+    # Wi-Fi changed is then installed again over USB (docs/EASY_SETUP.md).
+    hotspot = (f'''  ap:
+    ssid: {quote(name + ' Setup')}
+    password: {quote(secrets.token_urlsafe(12))}
+captive_portal:
+''' if SHAPES[board].get('hotspot', True) else '')
     return f'''# Keep this file safe: it contains the unique keys for this screen.
 # Wi-Fi comes from the secrets.yaml of ESPHome Device Builder.
 substitutions:
@@ -2288,8 +2313,4 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   power_save_mode: none
-  ap:
-    ssid: {quote(name + ' Setup')}
-    password: {quote(ap)}
-captive_portal:
-'''
+{hotspot}'''

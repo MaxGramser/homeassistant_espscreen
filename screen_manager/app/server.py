@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 import math
 import camera_feed
 import claude_skill
+import screen_labels
 import feedback
 from firmware import Firmware
 import ha_catalogue
@@ -21,7 +22,7 @@ import tile_icons
 from updates import Updater
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
-from core import alarm_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
+from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
 from core import calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
 from core import BOARD_KEYS
 from core import (Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
@@ -651,6 +652,8 @@ class Manager:
         self.updates = Updater(self, self.path.parent / 'updates.json')
         # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
+        # The names the editor shows instead of Home Assistant's (app 0.4.2).
+        self.labels = screen_labels.ScreenLabels(self.path.parent / 'screen-labels.json')
         # Settings -> Language & region (app 0.2.90): the language, clock and numbers of every screen.
         self.region = Region(self.path.parent / 'language.json', ha_language=lambda: getattr(self.ha, 'ha_language', None))
         self.ha.language_of = self.region.language
@@ -1013,6 +1016,7 @@ class Manager:
             with contextlib.suppress(ClientError, ConnectionError, TimeoutError, OSError):
                 await self.ha.remove_state(sensor)
         self.forget_inbox(inbox)
+        self.labels.forget(screen.get('device_id'))
         # The registry again at once, so the screen leaves the page now instead of when Home Assistant's own
         # event arrives; the editor opens another screen as soon as it does.
         with contextlib.suppress(ConnectionError, TimeoutError, OSError, ValueError):
@@ -1687,6 +1691,9 @@ class Manager:
                 message.setdefault('x',{})['lamps']=members
         if tile['entity'].startswith('alarm_control_panel.'):
             for key,value in alarm_extras(state,entry).items():
+                message.setdefault('x',{})[key]=value
+        if tile['entity'].startswith('lock.'):
+            for key,value in lock_extras(entry).items():
                 message.setdefault('x',{})[key]=value
         # A second line set to a value of this entity (app 0.2.105): the finished line, or seconds for a moment in
         # time. The other three settings live in the option itself, so the screen keeps drawing them without us.
@@ -2425,6 +2432,9 @@ def create_app(manager, development=False):
             screens = manager.screens()
         profiles = manager.firmware.profile_names()
         for screen in screens:
+            # The editor's own name for the screen (app 0.4.2); `ha_name` is what Home Assistant calls it.
+            screen['ha_name'] = screen['name']
+            screen['name'] = manager.labels.get(screen.get('device_id')) or screen['name']
             # A screen without tiles yet: the title the screen itself shows without one, in its language (app 0.2.90).
             screen['layout'] = manager.layouts.get(screen['id'], {'title': screen_t('screen.status.home'), 'tiles': []})
             record = manager.store.get(screen['id'])
@@ -2619,6 +2629,17 @@ def create_app(manager, development=False):
         """Remove a screen for good (app 0.2.112): out of Home Assistant, out of the ESPHome folder and out of
         this app. Everything the sidebar's own warning names before it asks."""
         return web.json_response(await manager.remove_screen(request.match_info['inbox']))
+    async def rename_screen(request):
+        """Give a screen its own name in this app (app 0.4.2); an empty one gives Home Assistant's back."""
+        data = await request.json()
+        screen = manager.screen(request.match_info['inbox'])
+        if screen is None or not screen.get('device_id'):
+            raise ValueError(t('addon.errors.not_paired'))
+        if not isinstance(data, dict) or not isinstance(data.get('name'), str):
+            raise ValueError(t('addon.errors.pages.fields'))
+        label = manager.labels.set(screen['device_id'], data['name'])
+        manager.notify()
+        return web.json_response({'name': label or screen['name']})
     async def capabilities(request):
         """What Home Assistant says each entity can do, for the tile settings (app 0.2.67). Unknown is null: the editor
         then offers what it always offered."""
@@ -2930,6 +2951,7 @@ def create_app(manager, development=False):
     app.router.add_post('/api/screens/{inbox}/migration/reset', start_fresh)
     app.router.add_put('/api/screens/{inbox}/workspace', save_workspace)
     app.router.add_delete('/api/screens/{inbox}', remove_screen)
+    app.router.add_put('/api/screens/{inbox}/name', rename_screen)
     app.router.add_put('/api/screens/{inbox}/settings', change_settings)
     app.router.add_post('/api/screens/{inbox}/feedback', feedback_action)
     app.router.add_static('/assets/', static / 'assets')

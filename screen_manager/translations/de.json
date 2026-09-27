@@ -289,6 +289,12 @@
       "too_many": "Zu viele falsche Codes",
       "letters": "Dieser Code enthält Buchstaben. Gib ihn in Home Assistant ein."
     },
+    "lock": {
+      "confirm": "Bestätigen",
+      "really_unlock": "Wirklich entriegeln?",
+      "lock_only": "Hier nur verriegeln",
+      "lock_only_short": "Nur verriegeln"
+    },
     "ha": {
       "on": "Ein",
       "off": "Aus",
@@ -465,6 +471,22 @@
         "arm_vacation": "Aktivieren (Urlaub)",
         "arm_custom_bypass": "Aktivieren (Mit Bypass)",
         "enter_code": "Code eingeben"
+      },
+      "lock": {
+        "locked": "Abgeschlossen",
+        "unlocked": "Aufgeschlossen",
+        "locking": "Wird abgeschlossen",
+        "unlocking": "Wird aufgeschlossen",
+        "open": "Geöffnet",
+        "opening": "Wird geöffnet",
+        "jammed": "Verklemmt"
+      },
+      "lock_action": {
+        "lock": "Abschließen",
+        "unlock": "Aufschließen",
+        "open": "Öffnen",
+        "open_door": "Tür öffnen",
+        "open_door_confirm": "Wirklich öffnen?"
       }
     },
     "navigation": {
@@ -1232,7 +1254,14 @@
       "details": {
         "room": "Bereich",
         "firmware": "Firmware",
-        "board": "Board"
+        "board": "Board",
+        "show": "Details von {name} anzeigen",
+        "hide": "Details von {name} ausblenden"
+      },
+      "rename": {
+        "button": "Umbenennen",
+        "label": "Name in dieser App",
+        "save": "Speichern"
       },
       "remove": {
         "button": "Bildschirm entfernen",
@@ -1244,7 +1273,8 @@
         "confirm": "Entfernen",
         "done": "{name} wurde entfernt.",
         "kept": "{name} wurde entfernt. Das Profil {file} liegt noch im ESPHome-Ordner."
-      }
+      },
+      "home": "Übersicht deiner Bildschirme"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1303,12 @@
         "text": "Schließe deinen Bildschirm per USB an deinen Home Assistant-Rechner an. Profil, Firmware und das erste Flashen laufen in einem Rutsch.",
         "button": "Neuen Bildschirm installieren"
       }
+    },
+    "home": {
+      "title": "Deine Bildschirme",
+      "summary": "{online} von {count} online",
+      "open": "{name} öffnen",
+      "no_layout": "Noch kein Layout"
     },
     "screen_view": {
       "confirm": {
@@ -1343,7 +1379,8 @@
         "map": "Zeigt, wohin jede Zur Seite-Kachel führt.",
         "preview_label": "Vorschau",
         "preview": "Probiere Wischen und die Seiten-Kacheln aus. Zu Hause schaltet nichts."
-      }
+      },
+      "copy_needs_migration": "Öffne den Quellbildschirm einmal, damit sein Layout auf Seiten umgestellt wird, und kopiere es dann."
     },
     "page": {
       "label": "Seite {page}",
@@ -1383,7 +1420,8 @@
         "person": "Personen",
         "timer": "Timer",
         "screen": "Bildschirm",
-        "alarm_control_panel": "Alarm"
+        "alarm_control_panel": "Alarm",
+        "lock": "Schlösser"
       },
       "more": "Mehr ({n})",
       "fewer": "Weniger",
@@ -1424,7 +1462,8 @@
       "camera": "Kamera",
       "image": "Bild",
       "entity": "Entität",
-      "alarm_control_panel": "Alarmanlage"
+      "alarm_control_panel": "Alarmanlage",
+      "lock": "Schloss"
     },
     "displays": {
       "standard": "Standard",
@@ -1532,6 +1571,13 @@
         "no_toggle": "Home Assistant kann dies nicht ein- und ausschalten, daher bewirkt ein Tippen nichts. Wähle eine andere Option.",
         "toggle_needs_firmware": "Ab Firmware 0.2.58 schaltet der Bildschirm das ein und aus: Drücke beim Bildschirm auf „Aktualisieren“. Bis dahin öffnet ein Tippen die Karte.",
         "hold": "Halte die Kachel gedrückt, um ihre Karte zu öffnen."
+      },
+      "guard": {
+        "label": "Hier entriegeln",
+        "confirm": "Nach Bestätigen",
+        "lock_only": "Nie",
+        "confirm_hint": "Ein verriegeltes Schloss öffnet erst nach einem zweiten Tippen auf die Kachel oder Taste. Verriegeln geht immer mit einem Tippen.",
+        "lock_only_hint": "Dieser Bildschirm kann verriegeln, aber nie entriegeln oder öffnen. Gut für einen Bildschirm im Eingang, in der Garage oder im Kinderzimmer."
       },
       "sub": {
         "label": "Zweite Zeile",

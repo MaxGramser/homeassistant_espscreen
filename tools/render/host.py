@@ -445,6 +445,18 @@ PROBES = '''    - action: render_finger
                      (int) id(tile_page), (int) runtime_tiles::applied_bar, (int) runtime_tiles::header_back(),
                      (int) lv_obj_get_height(id(tile_scroll)), (int) tile.x, (int) tile.y,
                      (int) prev.x, (int) prev.y, (int) header.x, (int) header.y);
+    - action: render_slots
+      then:
+        - lambda: |-
+            lv_obj_update_layout(lv_screen_active());
+            std::string out;
+            for (size_t slot = 0; slot < runtime_tiles::widgets.size(); ++slot) {
+              auto &w = runtime_tiles::widgets[slot];
+              if (!w.tile || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN) || w.index >= runtime_tiles::model.count) continue;
+              lv_area_t a; lv_obj_get_coords(w.tile, &a);
+              out += runtime_tiles::model.tiles[w.index].entity + "@" + std::to_string((a.x1 + a.x2) / 2) + "," + std::to_string((a.y1 + a.y2) / 2) + ";";
+            }
+            ESP_LOGI("render", "slots %s", out.c_str());
     - action: render_problem
       then:
         - lambda: |-

@@ -318,6 +318,19 @@ int main() {
   issue7.edit_extra().action_data = {{"position", "50"}};
   assert(tap_route(issue7, false).route == TapRoute::CUSTOM && tap_route(issue7, false).service == "cover.set_cover_position");
   assert(tap_route(issue7, true).route == TapRoute::CARD);
+  // A lock (firmware 0.5.0): a tap is its own (lock at once, or ask before unlocking), holding or "detail" opens the
+  // card, "none" does nothing; its colours are Home Assistant's, green while locked although it is inactive.
+  {
+    Tile lock = make("lock.front_door", "locked");
+    assert(tap_route(lock, false).route == TapRoute::LOCK && tap_route(lock, true).route == TapRoute::CARD);
+    lock.tap = "detail";
+    assert(tap_route(lock, false).route == TapRoute::CARD);
+    lock.tap = "none";
+    assert(tap_route(lock, false).route == TapRoute::NONE);
+    assert(!make("lock.a", "locked").active() && make("lock.a", "unlocked").active() && make("lock.a", "jammed").active());
+    assert(accent(make("lock.a", "locked")) == theme::ha::GREEN && accent(make("lock.a", "unlocking")) == theme::ha::ORANGE &&
+           accent(make("lock.a", "jammed")) == theme::ha::RED && accent(make("lock.a", "open")) == theme::ha::RED);
+  }
   assert(runtime_tiles::valid_action("cover.toggle") && runtime_tiles::valid_action("sonos.snapshot") && runtime_tiles::valid_action("homeassistant.turn_on"));
   assert(!runtime_tiles::valid_action("cover") && !runtime_tiles::valid_action("Cover.toggle") && !runtime_tiles::valid_action("a.b.c") &&
          !runtime_tiles::valid_action(".toggle") && !runtime_tiles::valid_action("cover.") && !runtime_tiles::valid_action("cover.to ggle"));

@@ -289,6 +289,12 @@
       "too_many": "Te veel onjuiste codes",
       "letters": "Deze code bevat letters. Voer hem in Home Assistant in."
     },
+    "lock": {
+      "confirm": "Bevestigen",
+      "really_unlock": "Echt ontgrendelen?",
+      "lock_only": "Alleen vergrendelen op dit scherm",
+      "lock_only_short": "Alleen op slot"
+    },
     "ha": {
       "on": "Aan",
       "off": "Uit",
@@ -465,6 +471,22 @@
         "arm_vacation": "Inschakelen vakantie",
         "arm_custom_bypass": "Inschakelen met overbrugging",
         "enter_code": "Code invoeren"
+      },
+      "lock": {
+        "locked": "Vergrendeld",
+        "unlocked": "Ontgrendeld",
+        "locking": "Vergrendelen",
+        "unlocking": "Ontgrendelen",
+        "open": "Open",
+        "opening": "Openen",
+        "jammed": "Vastgelopen"
+      },
+      "lock_action": {
+        "lock": "Vergrendelen",
+        "unlock": "Ontgrendelen",
+        "open": "Openen",
+        "open_door": "Open deur",
+        "open_door_confirm": "Open deur?"
       }
     },
     "navigation": {
@@ -1232,7 +1254,14 @@
       "details": {
         "room": "Ruimte",
         "firmware": "Firmware",
-        "board": "Bord"
+        "board": "Bord",
+        "show": "Details van {name} tonen",
+        "hide": "Details van {name} verbergen"
+      },
+      "rename": {
+        "button": "Naam wijzigen",
+        "label": "Naam in deze app",
+        "save": "Opslaan"
       },
       "remove": {
         "button": "Scherm verwijderen",
@@ -1244,7 +1273,8 @@
         "confirm": "Verwijderen",
         "done": "{name} is verwijderd.",
         "kept": "{name} is verwijderd. Het profiel {file} staat nog in de ESPHome-map."
-      }
+      },
+      "home": "Overzicht van je schermen"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1303,12 @@
         "text": "Sluit je scherm via USB aan op je Home Assistant-machine. Profiel, firmware en de eerste flash gebeuren in één keer.",
         "button": "Nieuw scherm installeren"
       }
+    },
+    "home": {
+      "title": "Je schermen",
+      "summary": "{online} van {count} online",
+      "open": "{name} openen",
+      "no_layout": "Nog geen indeling"
     },
     "screen_view": {
       "confirm": {
@@ -1343,7 +1379,8 @@
         "map": "Laat zien waar elke Ga naar pagina-tegel heen gaat.",
         "preview_label": "Voorvertoning",
         "preview": "Probeer vegen en de pagina-tegels. Er schakelt niets in huis."
-      }
+      },
+      "copy_needs_migration": "Open het bronscherm één keer zodat zijn indeling naar pagina's kan overgaan, en kopieer het dan."
     },
     "page": {
       "label": "Pagina {page}",
@@ -1383,7 +1420,8 @@
         "person": "Personen",
         "timer": "Timers",
         "screen": "Scherm",
-        "alarm_control_panel": "Alarm"
+        "alarm_control_panel": "Alarm",
+        "lock": "Sloten"
       },
       "more": "Meer ({n})",
       "fewer": "Minder",
@@ -1424,7 +1462,8 @@
       "camera": "Camera",
       "image": "Afbeelding",
       "entity": "Entiteit",
-      "alarm_control_panel": "Alarmpaneel"
+      "alarm_control_panel": "Alarmpaneel",
+      "lock": "Slot"
     },
     "displays": {
       "standard": "standaard",
@@ -1532,6 +1571,13 @@
         "no_toggle": "Home Assistant kan dit niet aan- en uitzetten, dus een tik doet niets. Kies een andere optie.",
         "toggle_needs_firmware": "Het scherm schakelt dit vanaf firmware 0.2.58: druk bij het scherm op Bijwerken. Tot dan opent een tik de kaart.",
         "hold": "Houd de tegel vast om de kaart te openen."
+      },
+      "guard": {
+        "label": "Ontgrendelen hier",
+        "confirm": "Na bevestigen",
+        "lock_only": "Nooit",
+        "confirm_hint": "Een vergrendeld slot gaat pas open na een tweede tik op de tegel of de knop. Vergrendelen is altijd één tik.",
+        "lock_only_hint": "Dit scherm kan vergrendelen, maar nooit ontgrendelen of openen. Handig voor een scherm in een portiek, garage of kinderkamer."
       },
       "sub": {
         "label": "Tweede regel",

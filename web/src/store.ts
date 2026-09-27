@@ -12,6 +12,7 @@ import * as pages from "./model/pages";
 import { DraftHistory, type HistoryScope } from './model/draft-history';
 import { suggestedPageTitle } from './model/page-naming';
 import { validateCardOptions } from './model/page-validation';
+import { canonicalOptions, coupledOptions } from './model/tile-options';
 import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
 
@@ -158,6 +159,17 @@ export const deviceStyle = computed(() => {
 // still the standard look, and on its width alone it would have read as a CYD.
 export const isCompact = computed(() =>
   screenShape.value.look ? screenShape.value.look === "compact" : Math.min(screenShape.value.width, screenShape.value.height) < 300);
+// A plain card's name gets larger letters on the compact look where its cell has 30 mm of room
+// (runtime_tiles::name_font): one column standing up, a 4-inch glass. The cell's width as the screen lays it out:
+// its 9 px margins and 8 px gaps, then the card's padding (8 px of the look) and border.
+export const roomyNames = computed(() => {
+  const shape = screenShape.value;
+  if (!isCompact.value || !shape.dpi) return false;
+  const columns = state.documentGrid?.columns ?? shape.columns;
+  const pad = Math.round((8 * shape.dpi) / 143);
+  const cell = (shape.width - 18 - (columns - 1) * 8) / columns - 2 * pad - 2;
+  return cell >= Math.floor((shape.dpi * 30 + 12) / 25);
+});
 export const editorLayout = createLayout(() => state.documentGrid ?? screenShape.value);
 export const grid = editorLayout.grid;
 const { arrange, cellsOf, firstFree, fits, nearestFree, normalize, occupied, pageCount, pageOf, reorderPages, rowStart, startOf, strandedPages, tileLimit: limitFor } = editorLayout;
@@ -347,6 +359,67 @@ export function liveOf(entity: string): Live | null {
   return known?.state ? { state: known.state, word: null, a: {} } : null;
 }
 
+// ---- The overview (app 0.4.0): every screen of the home with its home page, as its mockup draws it ----
+// Nothing selected is the add-on's home. Each screen's home page comes from its own saved document, drawn on its own
+// grid and glass, with what Home Assistant reports right now; a click opens the screen in the editor.
+export type HomeView = { screen: Screen; tiles: { tile: Tile; slot: number }[]; grid: { columns: number; rows: number; slots: number };
+  shape: NonNullable<Screen["shape"]>; title: string; items: HeaderItem[]; style: Record<string, string>; compact: boolean };
+const OVERVIEW_SIDE = 300;
+export function homeView(screen: Screen): HomeView | null {
+  const record = screen.page_document;
+  if (record?.format !== "pages-v2") return null;
+  const shape = screen.shape && screen.shape.columns > 0 && screen.shape.rows > 0 ? screen.shape : SMALLEST;
+  const source = record.sourceGrid, slots = source.columns * source.rows;
+  const index = Math.max(0, record.layout.pages.findIndex((page) => page.id === record.layout.homePageId));
+  const page = record.layout.pages[index];
+  if (!page) return null;
+  const view = pages.projectLayout(record.layout, source);
+  const tiles = view.tiles.filter((tile) => Math.floor(tile.slot / slots) === index).map((tile) => ({ tile, slot: tile.slot }));
+  // The same proportions as the editor's mockup (deviceStyle), at a size that lets several stand side by side.
+  const width = shape.width >= shape.height ? Math.min(560, (OVERVIEW_SIDE * shape.width) / shape.height) : OVERVIEW_SIDE;
+  return {
+    screen, tiles, grid: { columns: source.columns, rows: source.rows, slots }, shape: shape as NonNullable<Screen["shape"]>,
+    title: page.topbar.title.source === "text" ? page.topbar.title.text : record.layout.title,
+    items: page.topbar.trailing,
+    compact: shape.look ? shape.look === "compact" : Math.min(shape.width, shape.height) < 300,
+    style: { "--screen-aspect": `${shape.width} / ${shape.height}`, "--screen-columns": String(source.columns), "--screen-rows": String(source.rows),
+      "--screen-wide-span": String(Math.min(2, source.columns)), "--mockup-width": `${Math.round(width * 10) / 10}px` },
+  };
+}
+// What the overview draws with: the states of every home page's tiles and the values in their top bars.
+let overviewFlight = false;
+export async function loadOverview() {
+  if (overviewFlight) return;
+  overviewFlight = true;
+  try {
+    const views = state.inventory.screens.map(homeView).filter((view): view is HomeView => Boolean(view));
+    const entities = [...new Set(views.flatMap((view) => view.tiles.map(({ tile }) => tile.entity)).filter((id) => !id.startsWith("screen.")))];
+    for (let i = 0; i < entities.length; i += 60) {
+      const values = await getJson(`states?${entities.slice(i, i + 60).map((id) => `entity=${encodeURIComponent(id)}`).join("&")}`);
+      Object.assign(state.liveStates, values.states || {});
+    }
+    // One bar at a time: each home page's bar is one the add-on already accepted, which a mix of several bars is not
+    // (the same entity twice with another content is refused as a double).
+    const asked = new Set<string>();
+    for (const view of views) {
+      const batch = view.items.filter((item) => item.type === "entity" && !asked.has(itemKey(item)));
+      if (!batch.length) continue;
+      batch.forEach((item) => asked.add(itemKey(item)));
+      const data = await send("header-preview", "POST", { header: { items: batch.map(({ id: _id, ...item }) => item) } });
+      batch.forEach((item, i) => { state.topbarPreviews[itemKey(item)] = data.items[i]; });
+    }
+  } catch {
+    // The overview keeps what it has; the next visit asks again.
+  } finally {
+    overviewFlight = false;
+  }
+}
+// The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
+export function goHome() {
+  if (state.selected) select(null);
+  if (!state.selected) go("");
+}
+
 // ---- Selecting a screen and editing its layout ----
 // Every edit counts, so a save only clears the edits it sent (app 0.2.78).
 let edits = 0;
@@ -354,7 +427,7 @@ let committedLayout: PageLayout | null = null;
 let committedGrid: PageGrid | null = null;
 let selectionEpoch = 0;
 export function markDirty() {
-  state.dirty = JSON.stringify(state.document) !== JSON.stringify(committedLayout) || JSON.stringify(state.documentGrid) !== JSON.stringify(committedGrid);
+  state.dirty = !sameValue(state.document, committedLayout) || !sameValue(state.documentGrid, committedGrid);
   state.saved = 0;
   edits++;
 }
@@ -373,7 +446,7 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   if (!state.document || !state.documentGrid) return false;
   if (!nextGrid) return false;
   pages.validatePages(next, nextGrid);
-  if (JSON.stringify(next) === JSON.stringify(state.document) && pages.sameGrid(nextGrid, state.documentGrid)) return false;
+  if (sameValue(next, state.document) && pages.sameGrid(nextGrid, state.documentGrid)) return false;
   if (remember) {
     draftHistory.remember(snapshot());
     historyCounts();
@@ -393,6 +466,11 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   loadTopbarPreview();
   return true;
 }
+// The same document whatever the order of its keys (app 0.4.1): a tile the add-on wrote keeps its fields in another order
+// than one the editor rebuilt, and comparing the text of the two marked a change that changed nothing as unsaved.
+const ordered = (value: unknown): unknown => Array.isArray(value) ? value.map(ordered)
+  : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, ordered((value as Record<string, unknown>)[key])])) : value;
+export const sameValue = (a: unknown, b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
 let focusedField: string | null = null, groupedEdit = -1;
 export function beginFieldEdit(key: string) { focusedField = key; groupedEdit = -1; }
 export function endFieldEdit() { focusedField = null; groupedEdit = -1; }
@@ -474,7 +552,8 @@ export function select(id: string | null) {
   state.selected = id; state.selectedTile = null; state.inspector = null;
   state.tab = "layout"; state.menuOpen = false;
   const screen = state.inventory.screens.find((item) => item.id === id);
-  if (!screen) { state.document = null; state.documentGrid = null; return; }
+  // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
+  if (!screen) { state.document = null; state.documentGrid = null; state.dirty = false; return; }
   loadDocument(screen);
   state.editorMode = readMode(screen.id);
   if (state.editorMode === "advanced") initializeWorkspace();
@@ -485,7 +564,8 @@ export function select(id: string | null) {
 }
 export const liveEntries = () => (state.layout ? entriesOf(state.layout) : []);
 // Apply an arrangement; a new tile joins the layout. True when anything changed.
-export function commitArrangement(result: { tile: Tile; slot: number }[]) {
+// `field`: typing in one field is one step of undo (app 0.4.2), as with editDocument.
+export function commitArrangement(result: { tile: Tile; slot: number }[], field?: string) {
   if (!state.document || !state.documentGrid) return false;
   try {
     // Adding a numbered destination from the library explicitly creates that
@@ -500,7 +580,10 @@ export function commitArrangement(result: { tile: Tile; slot: number }[]) {
       const title = suggestedPageTitle(page, state.inventory.entities);
       page.topbar.title = title ? { source: 'text', text: title } : { source: 'screen' };
     }
-    return applyDocument(arranged);
+    const grouped = field !== undefined && focusedField === field;
+    const changed = applyDocument(arranged, !(grouped && groupedEdit === edits));
+    if (changed) groupedEdit = grouped ? edits : -1;
+    return changed;
   }
   catch (error: any) { toast(error.message); return false; }
 }
@@ -544,6 +627,9 @@ export function addPage(bar?: PageLayout["pages"][number]["topbar"]) {
 export function movePage(from: number, to: number) {
   if (!state.document || !state.documentGrid || from === to || !Number.isInteger(from) || !Number.isInteger(to) ||
       from < 0 || to < 0 || from >= state.document.pages.length || to >= state.document.pages.length) return false;
+  // Older firmware knows no home page of its own: it starts on the first page, so there the home page stays first
+  // (app 0.4.1). Before, the move was taken and the save refused it later with no clue why.
+  if (!pageReady.value && (from === 0 || to === 0)) { toast(t("editor.pages.update_notice")); return false; }
   try { return applyDocument(pages.reorderPage(state.document, state.documentGrid, state.document.pages[from]?.id, to)); }
   catch (error: any) { toast(error.message); return false; }
 }
@@ -662,7 +748,8 @@ export function resizeTile(tile: Tile, size: Size, axis: 'columns' | 'rows') {
   return editDocument(draft => {
     const owned = draft.pages.flatMap(page => page.tiles).find(item => item.id === current.id)!;
     // Gaining height exposes choices, it never opts into a default control.
-    if (owned.placement.rows === 1 && dimensions(size, grid).rows > 1 && owned.interaction.controls === undefined)
+    // A Go to page tile has no controls at all (app 0.4.1): writing 'none' there made the add-on refuse the resize.
+    if (owned.placement.rows === 1 && dimensions(size, grid).rows > 1 && owned.interaction.controls === undefined && owned.content.kind !== "navigation")
       owned.interaction.controls = effectiveControls(current, state.inventory) || 'none';
     Object.assign(owned.placement, dimensions(size, grid));
     if (size === 'single') delete owned.appearance.presentation;
@@ -671,26 +758,22 @@ export function resizeTile(tile: Tile, size: Size, axis: 'columns' | 'rows') {
 }
 // Inspector resizing may find the nearest fitting rectangle. Edge handles above
 // keep the anchor fixed so that dragging an edge never moves the tile.
-export function setTileOption(tile: Tile, key: string, value: unknown) {
+export function setTileOption(tile: Tile, key: string, value: unknown, field?: string) {
   if (!state.layout) return;
   const layout = pages.clone(state.layout);
   tile = currentView(tile, layout) || tile;
   const domain = tile.entity.split(".")[0], caps = state.capabilities[tile.entity], wasSize = sizeOf(tile);
   if (key === "size" && ["tall", "square"].includes(String(value)) && (!tallerTilesEnabled.value || !currentScreen.value?.tile_sizes?.includes(String(value)))) return;
   if (key === "size" && value === "tall" && ["forecast", "sunpath"].includes(String(tile.options?.display))) return;
+  // Perform action is a choice with a second step (app 0.4.0, GitHub #47): nothing is stored until an action is
+  // chosen, which comes here as `action` and brings the tap choice with it.
+  if (key === "tap" && value === "action" && !tile.options?.action) return;
   const previousControls = effectiveControls(tile, state.inventory);
-  tile.options = { ...tile.options, [key]: value };
+  // Direct controls need the standard layout without a mini slider, and vice versa (tile-options.ts).
+  tile.options = coupledOptions(tile.options, key, value, Boolean(state.inventory.controls?.[domain]));
   if (key === 'size' && ['tall', 'square'].includes(String(value)) && dimensions(wasSize, grid).rows === 1 && !('controls' in tile.options))
     tile.options.controls = previousControls || 'none';
-  // Direct controls need the standard layout without a mini slider, and vice versa.
-  if (key === "display" && value === "watch") { tile.options.inline = "none"; if (state.inventory.controls?.[domain]) tile.options.controls = "none"; }
   if (key === "display" && ["forecast", "sunpath"].includes(value as string) && !isWide(tile)) tile.options.size = "wide";
-  // A live picture's own settings leave with it, and a default is not stored (the add-on's canonical form, app 0.3.8).
-  if (key === "display" && value !== "live") for (const own of ["refresh", "fit", "overlay"]) delete tile.options[own];
-  if ((key === "fit" && value === "fill") || (key === "overlay" && value === "name")) delete tile.options[key];
-  if (key === "inline" && value === "slider") { tile.options.display = "standard"; if (state.inventory.controls?.[domain]) tile.options.controls = "none"; }
-  if (key === "controls" && value === "none" && ["tall", "square"].includes(sizeOf(tile))) tile.options.inline = "none";
-  if (key === "controls" && value !== "none") { if (tile.options.display !== "cover") tile.options.display = "standard"; tile.options.inline = "none"; }
   // A card that becomes wide gets the first direct control Home Assistant offers when the usual one isn't there.
   const catalogue = state.inventory.controls?.[domain];
   if (key === "size" && ["wide", "square"].includes(String(value)) && caps && catalogue && !("controls" in tile.options) && !caps.controls.includes(catalogue.default))
@@ -719,8 +802,10 @@ export function setTileOption(tile: Tile, key: string, value: unknown) {
     if (slot >= 0) tile.slot = slot;
     else { tile.options.size = wasSize; toast(t("editor.layout.no_room", { page: pageOf(tile.slot) + 1 })); return; }
   }
+  // What the add-on would still change is never stored (its canonical form): a default, a stale action or picture setting.
+  tile.options = canonicalOptions(tile.entity, tile.options);
   normalize(layout);
-  commitArrangement(layout.tiles.map((item) => ({ tile: item, slot: item.slot })));
+  commitArrangement(layout.tiles.map((item) => ({ tile: item, slot: item.slot })), field);
 }
 // A navigation tile goes to another page: its entity changes (screen.page_<n>). One tile per page it goes to, unless
 // the firmware takes several (0.2.65). The page after the last one becomes a new, empty page to fill (app 0.2.78).
@@ -733,8 +818,21 @@ export function retargetPageTile(tile: Tile, page: number) {
     while (draft.pages.length < page) draft.pages.push(pages.emptyPage(draft.pages.at(-1)!.topbar));
     const source = draft.pages.flatMap((item) => item.tiles).find((item) => item.id === tile.id);
     if (!source || source.content.kind !== "navigation") throw new Error(t("addon.errors.pages.tile_missing"));
+    // A link that follows Home stays one when the page it is sent to is the home page (app 0.4.2): it keeps following
+    // Home when another page becomes it, instead of turning into a fixed link to this page.
+    if (source.content.target.kind === "home" && draft.pages[page - 1].id === draft.homePageId) return;
     source.content.target = { kind: "page", pageId: draft.pages[page - 1].id };
   });
+}
+// Perform action with its action (app 0.4.0, GitHub #47): the tap choice and the action go into the document together,
+// and typing in one of the action's fields is one step of undo, as typing a name is.
+export function setTileAction(tile: Tile, action: { action: string; data?: Record<string, unknown> }, field?: string) {
+  return editDocument((draft) => {
+    const found = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === tile.id);
+    if (!found) throw new Error(t("addon.errors.pages.tile_missing"));
+    found.interaction.tap = "action";
+    found.interaction.action = pages.clone(action);
+  }, field);
 }
 export function setTileName(tile: Tile, value: string) {
   editDocument((draft) => { const found = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === tile.id); if (found) found.appearance.label = value; }, `tile:${tile.id}`);
@@ -798,7 +896,7 @@ function acceptSave(record: PageDocument, submitted: PageLayout, submittedWorksp
       state.workspace.positions = pages.clone(record.workspace.positions); state.workspaceDirty = false;
     }
   }
-  state.dirty = JSON.stringify(state.document) !== JSON.stringify(committedLayout) || JSON.stringify(state.documentGrid) !== JSON.stringify(committedGrid);
+  state.dirty = !sameValue(state.document, committedLayout) || !sameValue(state.documentGrid, committedGrid);
   state.conflict = false;
   if (edits === sent) { state.saved = Date.now(); toast(t("editor.screen_view.saved.current")); }
   else toast(t("editor.screen_view.saved.newer_edit"));
@@ -882,6 +980,19 @@ export async function feedbackAction(screen: Screen, body: Record<string, unknow
 // ---- Removing a screen (app 0.2.112): the mirror of New screen ----
 // Home Assistant, the ESPHome profile and everything kept here, in one request. The sidebar says what goes
 // before it asks; here only what came back is shown.
+// A screen's own name in this app (app 0.4.2): only the editor shows it, so it needs no flash. Empty gives Home Assistant's back.
+export async function renameScreen(screen: Screen, name: string) {
+  try {
+    const result = await send<{ name: string }>(`screens/${encodeURIComponent(screen.id)}/name`, "PUT", { name });
+    const live = state.inventory.screens.find((s) => s.id === screen.id);
+    if (live && result?.name) live.name = result.name;
+    return true;
+  } catch (e: any) {
+    toast(e.message);
+    return false;
+  }
+}
+
 export async function removeScreen(screen: Screen) {
   if (state.removing) return false;
   state.removing = screen.id;
@@ -958,7 +1069,7 @@ export function acceptGridReview() {
 }
 export function copyLayoutFrom(id: string) {
   const other = state.inventory.screens.find((screen) => screen.id === id);
-  if (other?.page_document?.format !== "pages-v2") { toast("Connect the source screen to finish its layout migration first."); return; }
+  if (other?.page_document?.format !== "pages-v2") { toast(t("editor.layout.copy_needs_migration")); return; }
   const copy = pages.clone(other.page_document);
   copy.layout.title = state.document?.title || copy.layout.title;
   adopt(copy, t("editor.layout.copied", { name: other.name }));
@@ -1329,6 +1440,42 @@ export const languageName = (code: string | null | undefined) =>
 // A screen that doesn't run the chosen language yet needs its update as well.
 export const needsUpdate = (screen: Screen) => Boolean(screen.update?.available || screen.update?.language);
 export const newLanguageText = () => t("editor.update.new_language", { name: languageName(state.inventory.language?.effective) });
+// ---- A screen's status, as the sidebar and the overview show it ----
+// A screen that only needs the new language (app 0.2.90) says so instead of naming the version it already has.
+export const languageOnly = (screen: Screen) => {
+  const u = screen.update || {};
+  return Boolean(u.language) && (!u.target || versionAtLeast(firmwareVersion(screen), u.target));
+};
+export function updateState(screen: Screen) {
+  const u = screen.update || {};
+  if (u.state === "running" || state.updating.includes(screen.id)) return { kind: "running", text: phaseText(u.phase) };
+  if (u.state === "queued") return { kind: "queued", text: t("editor.sidebar.update.queued") };
+  // A screen ESP Screens did not install has no YAML here to build from, so there is nothing to press: say why
+  // instead of offering a button that cannot work (the nightly round already passes such a screen by).
+  if (needsUpdate(screen) && screen.online && !u.profile)
+    return { kind: "blocked", text: t("editor.sidebar.update.no_profile") };
+  if (needsUpdate(screen) && screen.online)
+    return { kind: "available", text: languageOnly(screen) ? newLanguageText() : t("editor.sidebar.update.available", { version: u.target }) };
+  if (u.result && Date.now() / 1000 - u.result.time < 86400) return { kind: u.result.state === "failed" ? "failed" : "done", text: u.result.message };
+  return null;
+}
+// The light beside the icon: green when all is well, amber when an update waits or runs, red when the screen is away.
+export const screenLight = (screen: Screen) => {
+  if (!screen.online) return "down";
+  const kind = updateState(screen)?.kind;
+  return kind === "available" || kind === "blocked" || kind === "running" || kind === "queued" ? "update" : kind === "failed" ? "down" : "ok";
+};
+// One quiet line under the name, only when there is something to say; a healthy screen shows its name alone.
+export const screenSubline = (screen: Screen) => {
+  if (!screen.online) return { kind: "down", text: t("editor.common.offline") };
+  const u = updateState(screen);
+  // An update nothing here can build is still an update: the line names it, the details say why it waits.
+  if (u?.kind === "blocked") return { kind: "update", text: t("editor.sidebar.update.available", { version: screen.update?.target }) };
+  return u && u.kind !== "done" ? u : null;
+};
+// Whether a screen asks for a look (app 0.4.0): away, an update waiting, running or failed. Only such a screen opens its
+// details in the sidebar by itself; a healthy one keeps them folded behind the chevron.
+export const needsAttention = (screen: Screen) => screenLight(screen) !== "ok";
 // Time and number format, for every screen at once under Settings → Language & region: a 24-hour clock and "1,234.5"
 // until the add-on says otherwise. The mockup's clocks and numbers follow what the add-on sends the screens: the style,
 // from how many digits a number is grouped, and the space before "%" (Home Assistant's language decides "auto").

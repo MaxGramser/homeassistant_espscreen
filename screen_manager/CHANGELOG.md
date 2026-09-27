@@ -1,3 +1,141 @@
+## 0.4.8 (firmware 0.6.1 for jc8012p4a1v3)
+
+The Guition JC8012P4A1 V3 starts its display (GitHub #52, thanks @ivanfmartinez).
+
+- **Guition JC8012P4A1 V3** (experimental): the screen restarted right after starting, over and over, until it fell into
+  safe mode. ESPHome's display driver gives the display bus a fixed clock that the rev3 ESP32-P4 of this board does not
+  accept. ESPHome has fixed this for its next version (2026.9.1); until the app builds with it, the V3 uses a copy of
+  the driver with that one fix. Flash the V3 firmware over USB once more: a screen that does not start cannot take an
+  update over the air. docs/JC8012P4A1.md has the details.
+- For contributors: `tools/affected_boards.py` now counts a component that only some boards load, such as the CYD's
+  touch driver, toward those boards alone instead of every board.
+- Other screens get nothing new.
+
+## 0.4.7 (firmware 0.6.0)
+
+The Guition JC3248W535 3.5 inch is tried on a real screen (GitHub #54, thanks @govido).
+
+- New screen now marks the **Guition JC3248W535** as new instead of experimental: a community member installed it from
+  ESP Screens and it worked with no changes, taps in the right place, a camera tile on the glass and plenty of memory
+  to spare. docs/JC3248W535.md has what was tried and what is still open.
+- Nothing to do for your screens: the firmware is unchanged.
+
+## 0.4.6 (firmware 0.6.0)
+
+Bigger tile names on small screens standing up, and the right colours on the ILI9342 CYD (GitHub #50).
+
+- **Tile names.** On the CYD and the 4-inch Hosyond, a tile with room for its name, such as one column of tiles on a
+  screen standing up or a double-width tile, now writes the name a little larger. Narrow tiles, like the CYD's two
+  columns lying down, keep the size they had. The editor's preview shows the same.
+- **CYD ESP32-2432S028 ILI9342** (experimental): red and blue were swapped. The screen now sends its colours in the
+  order this display expects.
+- Every screen gets the new firmware; other boards look the same as before.
+
+## 0.4.5 (firmware 0.5.0)
+
+Locks on every screen (GitHub #55), and 97 KB more room on a CYD so its updates keep fitting.
+
+- **Locks.** A `lock` entity is now a tile, in Home Assistant's colours and icons: green while locked, orange while it
+  moves, red while unlocked, open or jammed. One tap locks. A tap on a locked lock turns the tile orange with
+  "Confirm" and a beating circle; a second tap within five seconds unlocks it, so a stray tap never opens a door.
+  Hold the tile for its card: the lock itself is the big key, with **Open door** under it for a lock that can open
+  its latch (that asks for a second tap too). A lock with a code opens the alarm panel's keypad, exactly as Home
+  Assistant's own lock dialog asks for it, and a default code stored with the lock means no code is asked. Per tile,
+  **Unlocking here: Never** makes a screen lock only, for a porch or a garage. Wrong codes fire
+  `esphome.screen_lock_code_refused`. The README has a new part, "Locks and security".
+- **Firmware gate.** A layout that uses several newer features now waits for the newest firmware they need, not the
+  first one it found (a tilting blind beside an alarm panel asked for 0.3.1 instead of 0.3.3).
+- **No Wi-Fi fallback hotspot on boards with 4 MB of flash** (the CYD, the CYD with an ILI9342 and the Hosyond
+  4-inch). The hotspot and its captive portal took 97 KB of the 1.75 MB update slot, for a way in that nobody could
+  find: its password only lived in the screen's own YAML. A new screen of these boards is written without it. An
+  existing one loses the `ap:` block under `wifi:` and `captive_portal:` from its own YAML the next time ESP Screens
+  builds it, and nothing else in that file changes. Every other board keeps the hotspot.
+- **Wi-Fi changed?** A screen without the hotspot is installed again over USB under **Firmware & USB**, with its own
+  profile: its name, keys and calibration stay (docs/EASY_SETUP.md).
+- New firmware for every board: update the app, then press **Update** on each screen. The update also takes the
+  hotspot off a CYD.
+- Tested: every board builds with ESPHome 2026.9 (the CYD image is 1,631,488 B, 88.9 % of its slot: 97 KB less without
+  the hotspot, 7.9 KB more for the locks). Three screens (CYD, Guition 4 inch, Waveshare 4.3) run firmware 0.5.0 on a
+  Home Assistant, the CYD without its hotspot and with its calibration kept; the lock tiles were tried on the Guition.
+
+## 0.4.4 (firmware 0.4.1 for cyd9342)
+
+The CYD with an ILI9342 asks for ESPHome 2026.7.0 or newer (GitHub #50).
+
+- **CYD ESP32-2432S028 ILI9342** (experimental) needs ESPHome 2026.7.0 or newer. On an older ESPHome Device Builder
+  its build stopped with "Invalid offsets"; it now says to update ESPHome instead. ESP Screens itself builds with a
+  newer ESPHome, so installing from ESP Screens works as before. Nothing changes in what the screen shows.
+- For contributors: the release recipe (docs/BOARD_RELEASES.md) and `tools/affected_boards.py` now also build a new or
+  changed board on the oldest ESPHome the packages promise, the way CI does, so a board like this one is caught
+  before it ships.
+- Other screens get nothing new.
+
+## 0.4.3 (firmware 0.4.0)
+
+Give a screen its own name in the app.
+
+- **Rename.** Open a screen's details in the sidebar and choose Rename. The new name shows at once in the sidebar,
+  the header and the overview, with no flash. It is kept in the app only: Home Assistant, the screen's ESPHome name
+  and its YAML stay as they are. Save an empty name to get Home Assistant's name back.
+- No new firmware: update the app; the screens stay as they are.
+
+## 0.4.2 (firmware 0.4.0)
+
+The editor shows your second line, and a few more rough edges are gone.
+
+- **Second line on the preview.** The screen in the editor now shows the second line you chose for a tile: nothing,
+  your own words or a value of the entity. It used to show the screen's own line whatever you picked.
+- **Moving tiles.** A tile that is in the way only moves to a free spot on its own page. When there is none, the move
+  doesn't happen, and the arrow keys say so. A double-width tile no longer ends up alone on a new page at the end.
+- **Undo.** Typing your own words for the second line is one step of undo, as typing a name is.
+- **Page titles** are saved without spaces at the start or the end, while you can still type them.
+- **Go to Home links.** Sending a link that follows the home page to the home page's number keeps it following the
+  home page, instead of turning it into a link to that one page.
+- No new firmware: update the app; the screens stay as they are.
+
+## 0.4.1 (firmware 0.4.0)
+
+Editor fixes from a hunt for features that quietly broke when pages got their own layout in 0.3.1.
+
+- **Top bar.** An item that stands on several pages shows its value in the editor again instead of "...". Add greys
+  out Clock and Date once they are in the bar, and a new item lights up briefly again. The editor compared items
+  together with an id each page gives them, so no item ever matched another.
+- **Top bar choices.** Add and the new page dialog no longer offer cameras and images, which a top bar can't show.
+- **Moving tiles with the arrow keys** keeps moving the same tile. The second key press used to move its neighbour
+  back.
+- **Go to page tiles** can be made 1 x 2 or 2 x 2 by dragging their edge again instead of getting an error.
+- **Screens with older firmware** keep their home page first and give a new page the shared top bar, so saving no
+  longer fails later with "Update screen to use the new titlebar and layout".
+- **Unsaved changes.** Picking what a tile already has no longer counts as a change, and going back to the overview
+  after discarding changes no longer asks a second time.
+- An action value with accented letters is measured the way the app measures it, so a valid action is no longer
+  refused, and a tile name that is too long says so.
+- No new firmware: update the app; the screens stay as they are.
+
+## 0.4.0 (firmware 0.4.0)
+
+A home for all your screens, lamps in their own colour, and tile choices that always save (GitHub #47).
+
+- **Your screens.** ESP Screens now opens on an overview of every screen in the house, each with its home page as it
+  looks right now: its tiles, its top bar and their live values. Click a screen to change it. The logo at the top of
+  the sidebar brings you back to it, like a home key.
+- **A calmer sidebar.** Choosing a screen no longer folds out its details. An arrow at its right opens them. A screen
+  that needs a look opens them by itself: one that is offline, has an update waiting or running, or whose last update
+  failed.
+- **Lamps in their own colour.** On a light group's lamp page, each lamp's slider, icon and switch now show the colour
+  the lamp is on, the same colour as the group's tile, instead of amber for every lamp. A colour picked in a lamp's
+  panel shows on its card at once.
+- **Tile choices that always save.** The tile panel only offers what the screen can save for that tile, checked with
+  the same rules the save uses. Two choices never saved: **Automatic** for the second line after another choice, and
+  **Perform action**. Both work now: Perform action opens the list of actions, and is stored once you pick one, with
+  its values.
+- New firmware for every board: update the app, then press **Update** on each screen for the lamp colours. The
+  overview, the sidebar and the tile panel need only the app update.
+- Tested: every board builds (the CYD image is 1,719,888 B, 93.7 % of its slot; this release only fixes the lamp
+  colours in firmware). The app ran on a Home Assistant with three screens (Guition 4 inch, CYD, Waveshare 4.3) on
+  firmware 0.4.0: a light group's lamp page on each showed every lamp in its own colour, and the overview, the
+  sidebar and the tile choices worked as described.
+
 ## 0.3.28 (firmware 0.3.10)
 
 Safer releases per board, and a check that no firmware build goes missing.

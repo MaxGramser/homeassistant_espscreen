@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { editorLayout } from "../store";
-const { grid, pageOf } = editorLayout;
+const { grid: editorGrid } = editorLayout;
 
 // A card on the mockup, drawn with what Home Assistant reports right now. A placeholder is the tile being
 // dragged, drawn where it will land.
@@ -9,7 +9,7 @@ import { vDrag } from "../drag";
 import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
-import { clock24, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, unitSuffix } from "../store";
+import { clock24, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
 import { tilePalette, tileActive } from "../model/tile-palette";
 import type { Tile } from "../types";
 import TileResize from "./TileResize.vue";
@@ -19,7 +19,12 @@ import CoverTilePreview from "./CoverTilePreview.vue";
 import MarqueeText from "./MarqueeText.vue";
 import SensorHistory from './SensorHistory.vue';
 
-const props = defineProps<{ tile: Tile; slot: number; placeholder?: boolean; preview?: boolean }>();
+// `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
+// screen otherwise.
+const props = defineProps<{ tile: Tile; slot: number; placeholder?: boolean; preview?: boolean; grid?: { columns: number; rows: number; slots: number } }>();
+const grid = computed(() => props.grid ?? editorGrid);
+// A card of another screen, on the overview: drawn only, never picked up, focused or opened.
+const foreign = computed(() => Boolean(props.grid));
 const emit = defineEmits<{ navigate: [tileId: string] }>();
 function activate() {
   if (props.preview) { if (goesTo.value && props.tile.id) emit('navigate', props.tile.id); }
@@ -27,7 +32,7 @@ function activate() {
 }
 // A built-in card is named as the screens name it, in their language (app 0.2.90).
 const name = computed(() => props.tile.name || (domain.value === "screen" && screenBuiltinName(props.tile.entity)) || entityName(props.tile.entity));
-const shape = computed(() => dimensions(sizeOf(props.tile), grid));
+const shape = computed(() => dimensions(sizeOf(props.tile), grid.value));
 const climateModes = computed(() => domain.value === 'climate' && effectiveControls(props.tile, state.inventory) === 'setpoint_mode' && shape.value.rows > 1);
 const tall = computed(() => shape.value.rows > 1 && (!full.value || coverExtended.value || climateModes.value) && ["standard", "cover"].includes(display.value));
 const full = computed(() => isFull(props.tile));
@@ -63,13 +68,26 @@ const bodyText = computed(() => {
   if (domain.value === 'climate' || domain.value === 'screen') return '';
   return domain.value === 'light' && isOn.value ? `${fill.value}%` : status.value;
 });
-const headStatus = computed(() => bodyText.value && (status.value === bodyText.value || status.value.startsWith(bodyText.value + ' ')) ? '' : status.value);
+// The second line as chosen in the tile panel (app 0.2.105; drawn on the mockup since app 0.4.1): the screen's own
+// line, nothing, words of your own, or a value of the entity. A value Home Assistant does not report leaves the
+// line to the screen, as on the glass.
+const sub = computed(() => String(props.tile.options?.sub ?? "auto"));
+const line = computed(() => {
+  if (sub.value === "none") return "";
+  if (sub.value.startsWith("text:")) return sub.value.slice(5);
+  if (sub.value.startsWith("attr:")) {
+    const value = current.value?.a?.[sub.value.slice(5)];
+    if (value !== undefined && value !== null && value !== "") return typeof value === "number" ? num(value) : String(value);
+  }
+  return status.value;
+});
+const headStatus = computed(() => bodyText.value && (line.value === bodyText.value || line.value.startsWith(bodyText.value + ' ')) ? '' : line.value);
 const domain = computed(() => props.tile.entity.split(".")[0]);
 const cp = computed(() => state.inventory.icons?.controls || {});
 const key = (n: string) => (cp.value[n] ? glyph(cp.value[n]) : "");
 const chosen = computed(() => isSelected(props.tile) && state.inspector?.kind === "tile");
 const live = computed(() => !props.placeholder && state.layout?.tiles.some((tile) => tile.id === props.tile.id));
-const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.slots) + 1, page: pageOf(props.slot) + 1 }));
+const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.value.slots) + 1, page: Math.floor(props.slot / grid.value.slots) + 1 }));
 const now = computed(() => new Date(state.now));
 const hourAngle = computed(() => (now.value.getHours() % 12 + now.value.getMinutes() / 60) * 30);
 const minuteAngle = computed(() => now.value.getMinutes() * 6);
@@ -99,7 +117,7 @@ const value = (state: string) => (unit.value || NUMERIC.includes(domain.value) ?
 // The screens' own words for a state where Home Assistant hands us none (screen.ha, Home Assistant's words in the
 // screens' language, app 0.2.90): a binary sensor's by its device class, on and off, and the states of the domains
 // the screen names itself. A weather's windy-variant is windy there too.
-const HA_WORDS: Record<string, string> = { climate: "climate", cover: "cover", media_player: "media", person: "person", sun: "sun", vacuum: "vacuum", weather: "weather", alarm_control_panel: "alarm" };
+const HA_WORDS: Record<string, string> = { climate: "climate", cover: "cover", media_player: "media", person: "person", sun: "sun", vacuum: "vacuum", weather: "weather", alarm_control_panel: "alarm", lock: "lock" };
 function haWord(c: { state: string; a: Record<string, any> }) {
   const key = (path: string) => (te(`screen.ha.${path}`) ? screenText(`screen.ha.${path}`) : "");
   const value = c.state === "windy-variant" ? "windy" : c.state.replace(/-/g, "_");
@@ -173,22 +191,28 @@ async function onKey(e: KeyboardEvent) {
   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); return; }
   if (props.preview) return;
   // Up and down are a row of the screen's grid, whatever its columns; left and right one cell.
-  const step = ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -grid.columns, ArrowDown: grid.columns } as Record<string, number>)[e.key];
+  const step = ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -grid.value.columns, ArrowDown: grid.value.columns } as Record<string, number>)[e.key];
   if (!step) return;
   e.preventDefault();
   // A wide card owns its row: every arrow means the row above or below. A full card moves by the page.
-  if (placeTile(props.tile, props.tile.slot + (full.value ? Math.sign(step) * grid.slots : step))) {
-    await nextTick();
-    document.querySelector<HTMLElement>(`.pages [data-slot="${props.tile.slot}"]`)?.focus();
+  const to = props.tile.slot + (full.value ? Math.sign(step) * grid.value.slots : step);
+  if (!placeTile(props.tile, to)) {
+    // Nowhere to go without pushing a tile off its page (app 0.4.2): say so instead of doing nothing.
+    if (to >= 0 && to < grid.value.slots * 8) toast(t("editor.layout.no_room", { page: Math.floor(to / grid.value.slots) + 1 }));
+    return;
   }
+  // The card that moved, found by its id: the cards are keyed by their place, so the one under the old place is
+  // another tile now, and focusing that sent the next arrow key to the neighbour (app 0.4.1).
+  await nextTick();
+  document.querySelector<HTMLElement>(`.pages [data-tile-id="${props.tile.id}"]`)?.focus();
 }
 </script>
 
 <template>
-  <div class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, photo: artworkLoaded && !!artwork, camera: cameraCard && cameraLoaded, bare, placeholder: placeholder || !live, chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
+  <div class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, photo: artworkLoaded && !!artwork, camera: cameraCard && cameraLoaded, bare, placeholder: placeholder || (!live && !foreign), chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
     :style="{ gridColumn: `${slot % grid.columns + 1} / span ${shape.columns}`, gridRow: `${Math.floor(slot % grid.slots / grid.columns) + 1} / span ${shape.rows}`, ...(background && !bare ? { backgroundColor: background } : {}), '--tile-icon': palette.icon, '--tile-circle': palette.circle, '--tile-accent': palette.accent }"
-    :tabindex="(preview ? goesTo : live) ? 0 : -1" :role="(preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
-    v-drag="preview ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
+    :tabindex="!foreign && (preview ? goesTo : live) ? 0 : -1" :role="!foreign && (preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
+    v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
     <template v-if="display === 'analog'">
       <svg class="clockface" viewBox="0 0 60 60" aria-hidden="true">
         <circle cx="30" cy="30" r="27" fill="#fff" stroke="#c9ccd1" />
@@ -222,12 +246,12 @@ async function onKey(e: KeyboardEvent) {
       <span class="digital-clock"><span class="big">{{ clockText(clock24, now) }}</span><span class="st">{{ clockDate }}</span></span>
     </template>
     <template v-else-if="display === 'graph' && domain === 'sensor'">
-      <span class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ status }}</span></span></span>
+      <span class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ line }}</span></span></span>
       <SensorHistory :entity="tile.entity" :hours="Number(tile.options?.history_hours || 24)" />
     </template>
     <template v-else-if="cameraCard">
       <img v-if="cameraPicture" :key="cameraPicture" class="camera-art" :class="tile.options?.fit === 'contain' ? 'contain' : 'fill'" :src="cameraPicture" alt="" @load="cameraLoaded = true" @error="cameraLoaded = false" />
-      <span v-if="!cameraLoaded" class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span v-if="status" class="st" :class="{ off: gone }">{{ status }}</span></span></span>
+      <span v-if="!cameraLoaded" class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span v-if="line" class="st" :class="{ off: gone }">{{ line }}</span></span></span>
       <span v-else-if="tile.options?.overlay !== 'none'" class="camera-name"><span>{{ name }}</span></span>
     </template>
     <template v-else-if="full && !tall">
@@ -236,7 +260,7 @@ async function onKey(e: KeyboardEvent) {
         <span class="nm">{{ name }}</span>
         <span v-if="goesTo" class="goto">{{ pageLink }}</span>
         <span v-else-if="display === 'watch'" class="big">{{ bigValue }}<small v-if="unit && !gone">{{ unit }}</small></span>
-        <span v-else-if="status" class="st" :class="{ off: gone }">{{ status }}</span>
+        <span v-else-if="line" class="st" :class="{ off: gone }">{{ line }}</span>
       </span>
       <span v-if="tile.options?.inline === 'slider'" class="mini-slider" :style="sliderStyle"></span>
       <span v-if="controls" class="ctl">
@@ -287,7 +311,7 @@ async function onKey(e: KeyboardEvent) {
           <span class="nm">{{ name }}</span>
           <span v-if="goesTo" class="goto">{{ pageLink }}</span>
           <span v-else-if="display === 'watch'" class="big">{{ bigValue }}<small v-if="unit && !gone">{{ unit }}</small></span>
-          <span v-else-if="status" class="st" :class="{ off: gone }">{{ status }}</span>
+          <span v-else-if="line" class="st" :class="{ off: gone }">{{ line }}</span>
         </span>
       </span>
       <span v-if="tile.options?.inline === 'slider'" class="mini-slider" :style="sliderStyle"></span>
@@ -314,7 +338,7 @@ async function onKey(e: KeyboardEvent) {
         <span class="tx">
           <span class="nm">{{ name }}</span>
           <span v-if="goesTo" class="goto">{{ pageLink }}</span>
-          <span v-else-if="display !== 'watch' && status" class="st" :class="{ off: gone }">{{ status }}</span>
+          <span v-else-if="display !== 'watch' && line" class="st" :class="{ off: gone }">{{ line }}</span>
         </span>
       </span>
       <span v-if="display === 'watch'" class="big">{{ bigValue }}<small v-if="unit && !gone">{{ unit }}</small></span>

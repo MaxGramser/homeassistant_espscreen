@@ -462,6 +462,8 @@ std::string receive(const std::string &payload) {
     tile.icon = icon && has_icon_glyph(icon) ? tile_icon::utf8(icon) : "";
     tile.tap = string(options["tap"]); if (tile.tap.empty()) tile.tap="auto";
     tile.display = string(options["display"]); if (tile.display.empty()) tile.display="standard";
+    // How far a lock's tile may go (firmware 0.5.0+): "confirm" unlocks after a second tap, "lock_only" never unlocks.
+    tile.guard = string(options["guard"], 16); if (tile.guard.empty()) tile.guard="confirm";
     // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the default.
     const int refresh = options["refresh"].is<int>() ? options["refresh"].as<int>() : 0;
     tile.refresh = refresh >= 5 && refresh <= 3600 ? refresh : 15;
@@ -632,6 +634,7 @@ std::string receive(const std::string &payload) {
       lamp.color = caps & 1; lamp.temperature = caps & 2;
       lamp.level = static_cast<uint8_t>(std::min(100u, l["b"] | 0u));
       lamp.hue = static_cast<uint16_t>(std::min(360u, l["h"] | 0u));
+      lamp.saturation = static_cast<uint8_t>(std::min(100u, l["sa"] | 0u));
       auto kelvin = [](unsigned k) { return static_cast<uint16_t>(k >= 1000 && k <= 15000 ? k : 0); };
       lamp.kelvin = kelvin(l["k"] | 0u); lamp.low = kelvin(l["lo"] | 0u); lamp.high = kelvin(l["hi"] | 0u);
       if (!(lamp.high > lamp.low)) lamp.low = lamp.high = 0;
@@ -653,6 +656,14 @@ std::string receive(const std::string &payload) {
       next.alarm_end = extra["ae"].is<unsigned>() ? extra["ae"].as<uint32_t>() : 0;
       next.alarm_delay = extra["ad"].is<unsigned>() ? extra["ad"].as<uint32_t>() : 0;
     }
+    // A lock (firmware 0.5.0+): its code_format (a regular expression), who changed it, whether Home Assistant keeps a
+    // default code for it (never the code) and whether the integration only assumes its state.
+    if (tile.domain() == "lock") {
+      next.code_format = string(a["code_format"], 48);
+      next.changed_by = string(a["changed_by"], 48);
+      next.code_saved = extra["dc"].is<int>() && extra["dc"].as<int>() == 1;
+      next.assumed = a["assumed_state"].is<bool>() && a["assumed_state"].as<bool>();
+    }
     tile.set_extra(std::move(next));
     // Home Assistant reports the edited value: the -/+ pill follows its state again.
     if(std::isfinite(tile.edit_value) && tile.edit_sent && std::fabs(tile_controls::edit_target(tile)-tile.edit_value)<0.051f)tile.edit_value=NAN;
@@ -667,6 +678,7 @@ std::string receive(const std::string &payload) {
     refresh_tile(index);
     if (active_index == static_cast<int>(index) && detail_update) detail_update(tile);
     if (tile.domain() == "alarm_control_panel") alarm_state_arrived(index, before);
+    if (tile.domain() == "lock") lock_state_arrived(index, before);
     refresh_detail(index);
     result = model.ready() ? "Synced" : "Loading tiles";
     return true;

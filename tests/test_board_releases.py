@@ -4,6 +4,7 @@ state of its own, and the release plan tools/affected_boards.py prints from both
 Standard library and PyYAML only.
 """
 import json
+import re
 from pathlib import Path
 import sys
 import unittest
@@ -42,6 +43,17 @@ class WhatAChangeReaches(unittest.TestCase):
         for name in ('packages/core.yaml', 'components/smart_display/theme.h', 'components/smart_display/__init__.py',
                      'fonts/Roboto-400.ttf'):
             self.assertEqual(reach(name)[name], EVERY, name)
+
+    def test_a_component_some_boards_load_reaches_those_boards(self):
+        """The CYD's xpt2046 and the JC8012P4A1 V3's mipi_dsi_v3 are platforms of those boards alone: a fix in one is
+        firmware for them, not for every screen."""
+        for name, board in (('components/xpt2046/touchscreen/xpt2046.cpp', 'cyd'),
+                            ('components/mipi_dsi_v3/mipi_dsi.cpp', 'jc8012p4a1v3')):
+            boards = reach(name)[name]
+            self.assertIn(board, boards, name)
+            self.assertNotEqual(boards, EVERY, name)
+        self.assertEqual(reach('components/mipi_dsi_v3/display.py')['components/mipi_dsi_v3/display.py'],
+                         {'jc8012p4a1v3'})
 
     def test_a_package_reaches_the_boards_that_include_it(self):
         """A feature, look, hardware or cells file reaches exactly the boards whose chain names it."""
@@ -97,6 +109,10 @@ class WhatAChangeReaches(unittest.TestCase):
 
 
 CORE = tuple(map(int, FIRMWARE_VERSION.split('.')))
+# Two boards that build the shared firmware today, for the examples that need a board with no fix of its own (a board
+# that went ahead, like the CYD's 0.4.1, counts on from its own revision). The 4B is the example of one that did.
+A, B = [board for board in profiles.BOARDS if board != 'waveshare4b'
+        and profiles.board_values(board)['SCREEN_FIRMWARE_VERSION'].strip('"') == FIRMWARE_VERSION][:2]
 
 
 class TheReleasePlan(unittest.TestCase):
@@ -107,7 +123,7 @@ class TheReleasePlan(unittest.TestCase):
     def test_the_core_counts_in_the_middle_and_a_board_at_the_end(self):
         """docs/BOARD_RELEASES.md "How the version numbers work": a shared release raises the core and starts at .0, a
         board release keeps the core and takes a revision above what those boards build now."""
-        shared, board = affected_boards.next_numbers(['cyd'])
+        shared, board = affected_boards.next_numbers([A])
         self.assertEqual(shared, (CORE[0], CORE[1] + 1, 0))
         self.assertEqual(board, (*CORE[:2], CORE[2] + 1))
         # Counted from what a base shows: core 0.4.0 with the Waveshare 4B at its second fix.
@@ -154,6 +170,7 @@ class TheReleasePlan(unittest.TestCase):
         self.assertIn(f'{path}: SCREEN_FIRMWARE_VERSION: "{self.following()}"', text)
         self.assertIn(f'(firmware {self.following()} for {board})', text)
         self.assertIn(f'tools/check.sh --firmware --board {board}', text)
+        self.assertIn(self.oldest(f'--firmware --board {board}'), text)
         self.assertIn('Leave packages/core.yaml', text)
 
     def test_a_new_board_takes_no_number_and_updates_nothing(self):
@@ -163,28 +180,39 @@ class TheReleasePlan(unittest.TestCase):
         text = affected_boards.plan(reach(*paths), new={board})
         self.assertIn(f'New board: {board}', text)
         self.assertIn(f'tools/check.sh --firmware --board {board}', text)
+        self.assertIn(self.oldest(f'--firmware --board {board}'), text)
         self.assertIn('No firmware change for a screen that exists', text)
         self.assertIn(f'(firmware {FIRMWARE_VERSION})', text)
         self.assertNotIn('SCREEN_FIRMWARE_VERSION: "', text)
         # A new board that also fixes an existing one: that one still gets its own number.
-        text = affected_boards.plan(reach(*paths, 'checkout/cyd.yaml'), new={board})
-        self.assertIn('Firmware for cyd alone', text)
-        self.assertIn(f'(firmware {self.following()} for cyd)', text)
+        text = affected_boards.plan(reach(*paths, f'checkout/{A}.yaml'), new={board})
+        self.assertIn(f'Firmware for {A} alone', text)
+        self.assertIn(f'(firmware {self.following()} for {A})', text)
 
     def test_new_boards_are_the_ones_the_base_lacks(self):
         with mock.patch.object(affected_boards, 'git', return_value='packages/boards/cyd-2432s028.yaml\n'):
             self.assertEqual(affected_boards.new_boards('base'), EVERY - {'cyd'})
 
     def test_two_boards_are_named_together(self):
-        text = affected_boards.plan(reach('checkout/cyd.yaml', 'checkout/guition.yaml'))
-        self.assertIn(f'(firmware {self.following()} for cyd, guition)', text)
-        self.assertIn('--board cyd --board guition', text)
+        text = affected_boards.plan(reach(f'checkout/{A}.yaml', f'checkout/{B}.yaml'))
+        self.assertIn(f'(firmware {self.following()} for {A}, {B})', text)
+        self.assertIn(f'--board {A} --board {B}', text)
 
     def test_a_shared_change_is_a_shared_release(self):
         text = affected_boards.plan(reach('packages/core.yaml', 'packages/boards/cyd-2432s028.yaml'))
         self.assertIn('Shared firmware: every board', text)
         self.assertIn(f'FIRMWARE_VERSION: "{affected_boards.dotted((CORE[0], CORE[1] + 1, 0))}"', text)
         self.assertIn('tools/check.sh --firmware (every board', text)
+        self.assertIn(self.oldest('--firmware'), text)
+
+    def test_an_app_release_builds_nothing_on_the_oldest_esphome(self):
+        self.assertNotIn('uv run', affected_boards.plan(reach('screen_manager/app/core.py')))
+
+    @staticmethod
+    def oldest(args):
+        """The min_version build the plan asks for (GitHub #50 slipped through without it)."""
+        version = re.search(r'(?m)^  min_version: (\S+)', profiles.CORE.read_text()).group(1)
+        return f'ESPHOME="uv run -q --no-project --with esphome=={version} esphome" tools/check.sh {args}'
 
 
 class AForgottenNumber(unittest.TestCase):
@@ -440,7 +468,7 @@ class ABoardsOwnVersion(unittest.TestCase):
                                    {**own, 'SCREEN_FIRMWARE_VERSION': '"9.9.9"'} if Path(path) == profiles.BOARDS[board]
                                    else real(path))):
             self.assertEqual(profiles.board_values(board)['SCREEN_FIRMWARE_VERSION'].strip('"'), '9.9.9')
-            self.assertEqual(profiles.board_values('cyd')['SCREEN_FIRMWARE_VERSION'].strip('"'), FIRMWARE_VERSION)
+            self.assertEqual(profiles.board_values(A)['SCREEN_FIRMWARE_VERSION'].strip('"'), FIRMWARE_VERSION)
 
 
 if __name__ == '__main__':

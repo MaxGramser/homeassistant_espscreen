@@ -52,6 +52,7 @@ substitutions:
   FONT_CLOCK_DIGITS_SIZE: ${ [8, (48 * LOOK_SCALE | float) | round | int] | max }
   FONT_SETPOINT_SIZE: ${ [8, (64 * LOOK_SCALE | float) | round | int] | max }     # the climate card's setpoint
   FONT_LABEL_SIZE: ${ [8, (18 * LOOK_SCALE | float) | round | int] | max }        # tile titles
+  WIDE_NAME_FONT: "label"             # the standard look keeps one name size (runtime_tiles::name_font)
   FONT_SUBLABEL_SIZE: ${ [8, (16 * LOOK_SCALE | float) | round | int] | max }     # tile values and small text
   FONT_SUBLABEL_BIG_SIZE: ${ [8, (21 * LOOK_SCALE | float) | round | int] | max } # the top bar and settings rows
   FONT_ICON_SIZE: ${ [8, (42 * LOOK_SCALE | float) | round | int] | max }         # tile icons

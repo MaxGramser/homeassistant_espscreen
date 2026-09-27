@@ -53,6 +53,7 @@ substitutions:
   FONT_CLOCK_DIGITS_SIZE: ${ [8, (24 * LOOK_SCALE | float) | round | int] | max }
   FONT_SETPOINT_SIZE: ${ [8, (40 * LOOK_SCALE | float) | round | int] | max }     # the climate card's setpoint
   FONT_LABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }        # tile titles
+  WIDE_NAME_FONT: "label_wide"    # a tile title with room: 14 px bold (the font at the end of this file)
   FONT_SUBLABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }     # tile values and small text
   FONT_SUBLABEL_BIG_SIZE: ${ [8, (14 * LOOK_SCALE | float) | round | int] | max } # the top bar and settings rows
   FONT_ICON_SIZE: ${ [8, (28 * LOOK_SCALE | float) | round | int] | max }         # tile icons
@@ -71,3 +72,23 @@ substitutions:
   TOUCH_TEST_TITLE_Y: "65"
   TOUCH_TEST_INSET: "10"          # the corner crosses from the edge
   TOUCH_TEST_SIZE: "20"           # a cross
+
+# A tile's name where its cell has room (runtime_tiles::name_font, firmware 0.6.0+): one column standing up, a
+# double-width card, a 4-inch glass. The name's own bold letters, a little larger; only this look carries them.
+font:
+  - file: "${FONT_DIR}/Roboto-700.ttf"
+    id: label_wide
+    size: ${ [8, (14 * LOOK_SCALE | float) | round | int] | max }
+    bpp: 4
+    glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
+             '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
+             'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
+             'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
+             'ñ','ò','ó','ô','õ','ö','ø','ù','ú','û','ü','ý','þ','ÿ','Ą','ą','Ć','ć','Ę','ę','Ł','ł','Ń','ń',
+             'Ś','ś','Ź','ź','Ż','ż','Č','č','Ď','ď','Ě','ě','Ň','ň','Ř','ř','Š','š','Ť','ť','Ů','ů','Ž','ž',
+             'Ĺ','ĺ','Ľ','ľ','Ŕ','ŕ','Ő','ő','Ű','ű','Ă','ă','Ș','ș','Ț','ț','Đ','đ','Ā','ā','Ē','ē','Ģ','ģ',
+             'Ī','ī','Ķ','ķ','Ļ','ļ','Ņ','ņ','Ū','ū','Ė','ė','Į','į','Ų','ų','Ğ','ğ','İ','ı','Ş','ş','Ċ','ċ',
+             'Ġ','ġ','Ħ','ħ','Ŵ','ŵ','Ŷ','ŷ','Ŀ','ŀ','Œ','œ','Ÿ','„','“','”','‘','’','«','»','‹','›','¿','¡',
+             '€','£','²','³','µ']

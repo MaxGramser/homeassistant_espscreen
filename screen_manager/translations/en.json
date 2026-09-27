@@ -289,6 +289,12 @@
       "too_many": "Too many wrong codes",
       "letters": "This code has letters. Enter it in Home Assistant."
     },
+    "lock": {
+      "confirm": "Confirm",
+      "really_unlock": "Really unlock?",
+      "lock_only": "Only locking on this screen",
+      "lock_only_short": "Lock only"
+    },
     "ha": {
       "on": "On",
       "off": "Off",
@@ -449,6 +455,15 @@
         "disarming": "Disarming",
         "triggered": "Triggered"
       },
+      "lock": {
+        "locked": "Locked",
+        "unlocked": "Unlocked",
+        "locking": "Locking",
+        "unlocking": "Unlocking",
+        "open": "Open",
+        "opening": "Opening",
+        "jammed": "Jammed"
+      },
       "alarm_mode": {
         "armed_home": "Home",
         "armed_away": "Away",
@@ -465,6 +480,13 @@
         "arm_vacation": "Arm vacation",
         "arm_custom_bypass": "Custom bypass",
         "enter_code": "Enter code"
+      },
+      "lock_action": {
+        "lock": "Lock",
+        "unlock": "Unlock",
+        "open": "Open",
+        "open_door": "Open door",
+        "open_door_confirm": "Really open?"
       }
     },
     "navigation": {
@@ -1232,7 +1254,14 @@
       "details": {
         "room": "Room",
         "firmware": "Firmware",
-        "board": "Board"
+        "board": "Board",
+        "show": "Show details of {name}",
+        "hide": "Hide details of {name}"
+      },
+      "rename": {
+        "button": "Rename",
+        "label": "Name in this app",
+        "save": "Save"
       },
       "remove": {
         "button": "Remove screen",
@@ -1244,7 +1273,8 @@
         "confirm": "Remove",
         "done": "{name} is removed.",
         "kept": "{name} is removed. Its profile {file} is still in the ESPHome folder."
-      }
+      },
+      "home": "Overview of your screens"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1303,12 @@
         "text": "Connect your screen via USB to your Home Assistant machine. Profile, firmware, and the first flash happen in one go.",
         "button": "Install new screen"
       }
+    },
+    "home": {
+      "title": "Your screens",
+      "summary": "{online} of {count} online",
+      "open": "Open {name}",
+      "no_layout": "No layout yet"
     },
     "screen_view": {
       "confirm": {
@@ -1343,7 +1379,8 @@
         "map": "Shows where each Go to page tile leads.",
         "preview_label": "Preview",
         "preview": "Try swiping and the page tiles. Nothing at home switches."
-      }
+      },
+      "copy_needs_migration": "Open the source screen once so its layout can move to pages, then copy it."
     },
     "page": {
       "label": "Page {page}",
@@ -1383,7 +1420,8 @@
         "person": "People",
         "timer": "Timers",
         "screen": "Screen",
-        "alarm_control_panel": "Alarm"
+        "alarm_control_panel": "Alarm",
+        "lock": "Locks"
       },
       "more": "More ({n})",
       "fewer": "Fewer",
@@ -1424,7 +1462,8 @@
       "camera": "Camera",
       "image": "Image",
       "entity": "Entity",
-      "alarm_control_panel": "Alarm panel"
+      "alarm_control_panel": "Alarm panel",
+      "lock": "Lock"
     },
     "displays": {
       "standard": "standard",
@@ -1532,6 +1571,13 @@
         "no_toggle": "Home Assistant can't turn this on and off, so a tap does nothing. Choose another option.",
         "toggle_needs_firmware": "The screen switches this from firmware 0.2.58: press Update on the screen. Until then a tap opens its card.",
         "hold": "Hold the tile to open its card."
+      },
+      "guard": {
+        "label": "Unlocking here",
+        "confirm": "After a confirm",
+        "lock_only": "Never",
+        "confirm_hint": "A locked lock unlocks after a second tap on the tile or its key. Locking always takes one tap.",
+        "lock_only_hint": "This screen can lock but never unlock or open. Good for a screen in a porch, a garage or a child's room."
       },
       "sub": {
         "label": "Second line",

@@ -16,7 +16,7 @@ external_components:
   - source:
       type: local
       path: ../components
-    components: [smart_display]
+    components: [mipi_dsi_v3, smart_display]
 
 api:
   encryption:

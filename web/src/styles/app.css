@@ -51,7 +51,9 @@ a:hover { text-decoration: underline; }
 
 /* Sidebar */
 .side { background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px; gap: 4px; min-height: 0; overflow: auto; position: sticky; top: 0; height: 100vh; }
-.brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 6px; font-weight: 600; font-size: 13px; }
+/* The logo is the way home (app 0.4.0): the overview of every screen, the page shown with nothing selected. */
+.brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 6px; font-weight: 600; font-size: 13px; text-align: left; border-radius: 10px; }
+.brand:hover { background: var(--surface-2); }
 .brand .mark { width: 22px; height: 22px; flex: none; }
 /* Only while something is wrong: unreachable, or reconnecting. Connected says nothing. */
 .conn { display: block; padding: 0 8px 8px; font-size: 11px; color: var(--warn); }
@@ -74,7 +76,14 @@ a:hover { text-decoration: underline; }
    The screens keep the same air between them as the rest of the sidebar (.side's own gap), so an open card with its
    details does not touch the screen under it. */
 #screens { display: grid; gap: 4px; }
-.screen-item { display: grid; border-radius: 12px; }
+.screen-item { display: grid; border-radius: 12px; position: relative; }
+/* The chevron at the right of the chosen screen (app 0.4.0) folds its details out and in; a screen that asks for a
+   look opens them by itself (Sidebar.vue). It stands over the name's row, so the row keeps one background. */
+.screen-item.has-chevron .nav-item { padding-right: 38px; }
+.details-toggle { position: absolute; top: 6px; right: 6px; width: 28px; height: 32px; display: grid; place-items: center; color: var(--muted); border-radius: 8px; }
+.details-toggle:hover { color: var(--ink); background: var(--surface-2); }
+.details-toggle .ui-icon { display: inline-block; font-size: 18px; transition: transform 0.16s ease; }
+.details-toggle[aria-expanded="true"] .ui-icon { transform: rotate(180deg); }
 .screen-item.open { background: var(--seg); }
 .screen-item.open .nav-item, .screen-item.open .nav-item:hover { background: transparent; }
 .screen-item .nav-item { padding: 6px 8px; }
@@ -113,6 +122,10 @@ a:hover { text-decoration: underline; }
 .screen-remove ul { margin: 0; padding-left: 15px; display: grid; gap: 4px; }
 .screen-remove .btn.danger { border: 1px solid var(--danger); }
 .screen-host input { padding: 5px 8px; font-size: 12px; }
+/* Rename (app 0.4.2): the name gets the whole column, Save and Cancel sit under it. */
+.rename-screen { display: grid; gap: 6px; }
+.rename-screen input { width: 100%; padding: 5px 8px; font-size: 12px; }
+.screen-details button.rename-screen { justify-self: start; }
 .pending { margin: 4px 0; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 10px; display: grid; gap: 6px; }
 .pending strong { font-size: 12.5px; }
 .pending-actions { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -254,6 +267,9 @@ a:hover { text-decoration: underline; }
 .tile .st { font-size: 10.5px; color: #5a5f66; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .device.compact .tile { padding: 6px 7px; }
 .device.compact .tile .nm { font-size: 10.5px; }
+/* A name with room (a single column standing up, a double-width card) a little larger, as the screen draws it
+   (runtime_tiles::name_font). */
+.device.compact.roomy .tile:not(.full) .nm, .device.compact .tile.wide .nm { font-size: 12.5px; }
 .device.compact .tile .ic { font-size: 15px; }
 .device.compact .tile .head { gap: 6px; }
 /* The screen's own numbers on its short tiles: 4 px above and below, an 8 px slider. */

@@ -163,6 +163,7 @@ inline std::string countdown(uint32_t seconds);
 // The alarm panel (firmware 0.3.3+), further down beside the other cards.
 inline void alarm_refused(const std::string &entity);
 inline void alarm_state_arrived(unsigned index, const std::string &before);
+inline void lock_state_arrived(unsigned index, const std::string &before);
 inline std::string last_run_text(uint32_t epoch, bool compact = false);
 // "07:12": a time of day as Home Assistant and ESP Screens send it, for screen_text::clock_text.
 inline std::string hhmm(const esphome::ESPTime &time) {
@@ -708,10 +709,11 @@ inline std::string detail_state(const Tile &t){
   return t.unit.empty()?t.state:screen_text::localize(t.state);
 }
 inline void alarm_close_pad();
+inline void lock_card_closed();
 // Every way a card closes (Back, standby, Back to page 1, another card) also forgets a code half typed on an alarm's
 // keypad: it never waits in memory for the next person at the screen.
 inline void hide_detail(){
-  alarm_close_pad();
+  alarm_close_pad();lock_card_closed();
   if(detail_backdrop)lv_obj_add_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);if(detail_root)lv_obj_add_flag(detail_root,LV_OBJ_FLAG_HIDDEN);}
 inline int slider_value(const Tile &t){
   auto d=t.domain();float value=0;
@@ -826,6 +828,7 @@ inline void choose(Tile &t,Choice &row,const std::string &value){
 // What a key on a card does; `cmd` is the key's command. Shared by the plain keys (detail_button) and the round
 // keys of the media card. -1 is Back.
 inline void alarm_command(int cmd);
+inline void lock_command(int cmd);
 inline bool alarm_pad_open();
 inline void detail_command(int cmd){
   // Back on the alarm's keypad goes back to its card; everywhere else it closes the card.
@@ -833,6 +836,8 @@ inline void detail_command(int cmd){
   if(cmd==-1){hide_detail();return;}
   // The alarm panel's modes, digits, Clear and OK (600-621): the digits count every clean tap, like the -/+ keys.
   if(cmd>=600&&cmd<=621){alarm_command(cmd);return;}
+  // A lock's keys (700-702): Lock, Unlock, Open door.
+  if(cmd>=700&&cmd<=709){lock_command(cmd);return;}
   // History ranges (firmware 0.2.51+): redraw after this event, which belongs to a key the redraw deletes.
   if(cmd>=160&&cmd<163){
     static const uint32_t hours[]={1,24,168};
@@ -1462,6 +1467,7 @@ inline uint32_t cover_track(){return theme::tint(COVER_ACCENT,37);}
 inline uint32_t cover_slats(){return theme::tint(COVER_ACCENT,80);}
 inline lv_obj_t *cover_values[2]{};
 inline std::string alarm_card_line(const Tile &t);
+inline std::string lock_card_line(const Tile &t);
 inline std::string cover_status_line(const Tile &t){return t.available()?tile_controls::cover_card_status(t):tr(txt::ha_unavailable);}
 // The line under a card's name: the domain that writes its own says it here, so the card, its refresh and the
 // second-by-second tick all show the same words.
@@ -1470,6 +1476,7 @@ inline std::string card_status(const Tile &t,bool brief=false){
   if(d=="cover")return cover_status_line(t);
   if(d=="climate")return tile_controls::climate_card_status(t,brief);
   if(d=="alarm_control_panel")return alarm_card_line(t);
+  if(d=="lock")return lock_card_line(t);
   return detail_state(t);
 }
 // Set while the state line lives in a smaller place than its own line (the climate card's caption), so the
@@ -2068,7 +2075,8 @@ inline void alarm_load_lock(){
 // the panel, how many in a row and how long the keypad is locked; never the code.
 inline void alarm_refused_event(const std::string &entity,uint32_t locked){
   esphome::api::HomeassistantActionRequest request;
-  request.service=esphome::StringRef("esphome.screen_alarm_code_refused");
+  // A lock's keypad has an event of its own (firmware 0.5.0+).
+  request.service=esphome::StringRef(entity.compare(0,5,"lock.")==0?"esphome.screen_lock_code_refused":"esphome.screen_alarm_code_refused");
   request.is_event=true;
   const std::string failures=std::to_string(alarm_lock.failures),seconds=std::to_string(locked);
   const std::string keys[]={"entity_id","failures","locked"},values[]={entity,failures,seconds};
@@ -2086,14 +2094,14 @@ inline void alarm_settled(alarm_panel::Outcome outcome,bool silent){
   if(outcome==Outcome::ACCEPTED){
     if(alarm_attempt.with_code&&alarm_lock.failures){alarm_lock.success();alarm_save_lock();}
     if(alarm_pad.open)alarm_close_pad();
-    ESP_LOGI("alarm","%s accepted",alarm_attempt_entity.c_str());
+    ESP_LOGI(alarm_attempt_entity.compare(0,5,"lock.")==0?"lock":"alarm","%s accepted",alarm_attempt_entity.c_str());
   }else{
     if(!alarm_attempt.with_code)return;
     const uint32_t locked=alarm_lock.fail(now);
     alarm_save_lock();
     alarm_refused_event(alarm_attempt_entity,locked);
     alarm_pad.note=silent?txt::alarm_nothing_changed:txt::alarm_wrong_code;alarm_pad.note_at=now;alarm_pad.shake_at=now;
-    ESP_LOGW("alarm","%s: code not accepted (%s), %u in a row, keypad locked for %u s",alarm_attempt_entity.c_str(),
+    ESP_LOGW(alarm_attempt_entity.compare(0,5,"lock.")==0?"lock":"alarm","%s: code not accepted (%s), %u in a row, keypad locked for %u s",alarm_attempt_entity.c_str(),
              silent?"ignored":"refused",(unsigned)alarm_lock.failures,(unsigned)locked);
   }
   redraw_detail();
@@ -2123,7 +2131,7 @@ inline void alarm_send(Tile &t){
   alarm_attempt.begin(alarm_pad.mode,true,now);alarm_attempt_entity=t.entity;
   alarm_pad.note=0;
   // The one place the code leaves the screen: the action's `code`, as Home Assistant's own dialogs send it.
-  action(MODES[alarm_pad.mode].service,t.entity,"code",alarm_pad.code);
+  action(t.domain()=="lock"?lock_panel::service((lock_panel::Act)alarm_pad.mode):MODES[alarm_pad.mode].service,t.entity,"code",alarm_pad.code);
   alarm_wipe(alarm_pad.code);
   redraw_detail();
 }
@@ -2178,30 +2186,37 @@ constexpr uint32_t ALARM_ARRIVAL_MS=1500;
 inline bool alarm_arrived(const Tile &t){return t.changed_at&&esphome::millis()-t.changed_at<ALARM_ARRIVAL_MS;}
 // The tile's circle, after every render of its slot and once a second from tick(): the heartbeat of the state while
 // the screen is awake, the arrival once.
+// A lock's heartbeat: slow while it moves, quicker while its tile waits for the second tap (lock section below).
+inline AlarmLook lock_look(const Tile &t);
+inline uint32_t lock_accent(const Tile &t);
 inline uint8_t alarm_tile_looks[CELLS_MAX]{};
 inline uint32_t alarm_tile_marks[CELLS_MAX]{};
 inline void alarm_tile_look(size_t slot,const Tile *t){
   if(slot>=widgets.size()||!widgets[slot].circle)return;
   lv_obj_t *circle=widgets[slot].circle;
-  const bool alarm=t&&t->domain()=="alarm_control_panel";
+  // A lock's circle moves the same way (firmware 0.5.0+): it beats while the lock moves or waits for its second tap,
+  // and beats once and springs when it locks.
+  const bool lock=t&&t->domain()=="lock";
+  const bool alarm=t&&(t->domain()=="alarm_control_panel"||lock);
   // The slot shows another tile now: its circle stands still.
   if(!alarm){
     if(alarm_tile_looks[slot]||alarm_tile_marks[slot])alarm_still(circle);
     alarm_tile_looks[slot]=LOOK_NONE;alarm_tile_marks[slot]=0;
     return;
   }
-  const AlarmLook want=alarm&&awake()&&fresh()?alarm_look(*t):LOOK_NONE;
+  const AlarmLook want=alarm&&awake()&&fresh()?(lock?lock_look(*t):alarm_look(*t)):LOOK_NONE;
   const bool large=ui::large();
   if(alarm&&want==LOOK_NONE&&alarm_arrived(*t)&&alarm_tile_marks[slot]!=t->changed_at&&awake()){
     alarm_tile_marks[slot]=t->changed_at;alarm_still(circle);alarm_tile_looks[slot]=LOOK_NONE;
-    if(alarm_panel::armed(t->state))alarm_beat(circle,theme::state(alarm_panel::GREEN),600,ui::px(large?10:5),true);
-    alarm_spring(circle,alarm_panel::armed(t->state)?120:0);
+    const bool closed=lock?t->state=="locked":alarm_panel::armed(t->state);
+    if(closed)alarm_beat(circle,theme::state(alarm_panel::GREEN),600,ui::px(large?10:5),true);
+    alarm_spring(circle,closed?120:0);
     return;
   }
   if(want==alarm_tile_looks[slot])return;
   alarm_tile_looks[slot]=want;alarm_still(circle);
   if(want==LOOK_NONE)return;
-  const uint32_t colour=theme::state(alarm_panel::color(t->state));
+  const uint32_t colour=theme::state(lock?lock_accent(*t):alarm_panel::color(t->state));
   alarm_beat(circle,colour,want==LOOK_ARMING?1600:want==LOOK_PENDING?600:1000,ui::px(large?10:5),false);
 }
 // The bell rings while the alarm goes off: it shakes a few pixels either way, then stands still, once a second (a
@@ -2314,6 +2329,45 @@ inline void alarm_key_face(lv_obj_t *key,const char *icon,const std::string &wor
     lv_obj_set_pos(glyph,x,(h-icon_w)/2);lv_obj_remove_flag(glyph,LV_OBJ_FLAG_CLICKABLE);
   }
 }
+// The keypad: the dots, a line of words and twelve keys, in the card's place. The alarm panel's and a lock's.
+inline void render_code_pad(const alarm_panel::Metrics &m,int width,int top,int bottom,const lv_font_t *text,const lv_font_t *icons,const lv_font_t *mini){
+  using namespace alarm_panel;
+  const auto l=keypad_layout(m,width,top,bottom,(unsigned)alarm_pad.code.size());
+  alarm_keypad_layout=l;
+  alarm_dots=lv_obj_create(detail_root);lv_obj_remove_style_all(alarm_dots);lv_obj_set_pos(alarm_dots,l.dots.x,l.dots.y);
+  lv_obj_remove_flag(alarm_dots,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(alarm_dots,LV_OBJ_FLAG_SCROLLABLE);
+  alarm_draw_dots(l);
+  if(alarm_pad.shake_at&&esphome::millis()-alarm_pad.shake_at<400){
+    alarm_pad.shake_at=0;
+    lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,alarm_dots);lv_anim_set_values(&a,0,320);lv_anim_set_duration(&a,320);
+    lv_anim_set_exec_cb(&a,alarm_shake_exec);lv_anim_start(&a);
+  }
+  alarm_line=detail_text(detail_root,alarm_line_text(),l.line.x,l.line.y,l.line.w,text,LV_TEXT_ALIGN_CENTER,theme::MUTED);
+  // The words wrap within their room instead of ending in dots after the first one (keypad_layout gives it the lines).
+  lv_label_set_long_mode(alarm_line,LV_LABEL_LONG_WRAP);lv_obj_set_height(alarm_line,l.line.h);
+  const lv_font_t *digits=watch_font?watch_font:detail_font;
+  const lv_font_t *glyphs=icons&&lv_font_get_line_height(icons)<=l.keys[0].h-ui::px(6)?icons:mini;
+  const unsigned before=detail_action_count;
+  for(int i=0;i<12;++i){
+    const Rect &r=l.keys[i];
+    const bool ok=i==11,clear=i==9;
+    const int digit=i<9?i+1:0;
+    auto *key=detail_button("",r.x,r.y,r.w,r.h,ok?ALARM_OK:clear?ALARM_CLEAR:ALARM_DIGIT_FIRST+digit);
+    lv_obj_set_style_radius(key,r.h/2,0);
+    lv_obj_set_style_bg_color(key,theme::color(ok?theme::ACCENT:theme::CARD),0);
+    lv_obj_set_style_bg_color(key,theme::color(ok?theme::ACCENT_PRESSED:theme::KEY),LV_STATE_PRESSED);
+    lv_obj_set_style_border_width(key,ok?0:1,0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
+    auto *face=lv_obj_get_child(key,0);
+    lv_obj_set_style_text_font(face,ok||clear?glyphs:digits,0);
+    lv_label_set_text(face,ok?glyph::CHECK:clear?glyph::CLOSE:std::to_string(digit).c_str());
+    lv_obj_set_style_text_color(face,theme::color(ok?theme::ON_ACCENT:theme::INK),0);
+    lv_obj_set_size(face,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(face);
+    alarm_keys[i]=key;
+  }
+  // The keypad keeps its own states (alarm_keys_state), not the card's "wait for Home Assistant" ones.
+  detail_action_count=before;
+  alarm_keys_state();
+}
 inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t *heading){
   using namespace alarm_panel;
   detail_placed=true;
@@ -2332,41 +2386,7 @@ inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t
   if(alarm_pad.open){
     // The keypad in the card's place, titled as Home Assistant's code dialog: Disarm, Arm away.
     if(heading)label(heading,alarm_action_text(alarm_pad.mode));
-    const auto l=keypad_layout(m,width,top,bottom,(unsigned)alarm_pad.code.size());
-    alarm_keypad_layout=l;
-    alarm_dots=lv_obj_create(detail_root);lv_obj_remove_style_all(alarm_dots);lv_obj_set_pos(alarm_dots,l.dots.x,l.dots.y);
-    lv_obj_remove_flag(alarm_dots,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(alarm_dots,LV_OBJ_FLAG_SCROLLABLE);
-    alarm_draw_dots(l);
-    if(alarm_pad.shake_at&&esphome::millis()-alarm_pad.shake_at<400){
-      alarm_pad.shake_at=0;
-      lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,alarm_dots);lv_anim_set_values(&a,0,320);lv_anim_set_duration(&a,320);
-      lv_anim_set_exec_cb(&a,alarm_shake_exec);lv_anim_start(&a);
-    }
-    alarm_line=detail_text(detail_root,alarm_line_text(),l.line.x,l.line.y,l.line.w,text,LV_TEXT_ALIGN_CENTER,theme::MUTED);
-    // The words wrap within their room instead of ending in dots after the first one (keypad_layout gives it the lines).
-    lv_label_set_long_mode(alarm_line,LV_LABEL_LONG_WRAP);lv_obj_set_height(alarm_line,l.line.h);
-    const lv_font_t *digits=watch_font?watch_font:detail_font;
-    const lv_font_t *glyphs=icons&&lv_font_get_line_height(icons)<=l.keys[0].h-ui::px(6)?icons:mini;
-    const unsigned before=detail_action_count;
-    for(int i=0;i<12;++i){
-      const Rect &r=l.keys[i];
-      const bool ok=i==11,clear=i==9;
-      const int digit=i<9?i+1:0;
-      auto *key=detail_button("",r.x,r.y,r.w,r.h,ok?ALARM_OK:clear?ALARM_CLEAR:ALARM_DIGIT_FIRST+digit);
-      lv_obj_set_style_radius(key,r.h/2,0);
-      lv_obj_set_style_bg_color(key,theme::color(ok?theme::ACCENT:theme::CARD),0);
-      lv_obj_set_style_bg_color(key,theme::color(ok?theme::ACCENT_PRESSED:theme::KEY),LV_STATE_PRESSED);
-      lv_obj_set_style_border_width(key,ok?0:1,0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
-      auto *face=lv_obj_get_child(key,0);
-      lv_obj_set_style_text_font(face,ok||clear?glyphs:digits,0);
-      lv_label_set_text(face,ok?glyph::CHECK:clear?glyph::CLOSE:std::to_string(digit).c_str());
-      lv_obj_set_style_text_color(face,theme::color(ok?theme::ON_ACCENT:theme::INK),0);
-      lv_obj_set_size(face,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(face);
-      alarm_keys[i]=key;
-    }
-    // The keypad keeps its own states (alarm_keys_state), not the card's "wait for Home Assistant" ones.
-    detail_action_count=before;
-    alarm_keys_state();
+    render_code_pad(m,width,top,bottom,text,icons,mini);
     return;
   }
   // The card: the shield on its white card, and the modes or the one Disarm key.
@@ -2446,7 +2466,9 @@ inline void alarm_tick(){
   if(alarm_attempt.active){
     std::string state;
     for(size_t i=0;i<model.count;++i)if(model.tiles[i].entity==alarm_attempt_entity){state=model.tiles[i].state;break;}
-    alarm_settled(alarm_attempt.settle(state,now),true);
+    // A lock's attempt heads for a lock's state (lock_panel::reached).
+    const bool lock=alarm_attempt_entity.compare(0,5,"lock.")==0;
+    alarm_settled(lock?alarm_attempt.settle_if(lock_panel::reached(state,(lock_panel::Act)alarm_attempt.mode),now):alarm_attempt.settle(state,now),true);
   }
   if(alarm_keys[0])alarm_keys_state();
   // A lock that ran out while nobody looked: the count stays, the keypad opens.
@@ -2464,7 +2486,8 @@ inline void alarm_tick(){
 inline void alarm_command(int cmd){
   if(detail_index>=model.count)return;
   auto &t=model.tiles[detail_index];
-  if(t.domain()!="alarm_control_panel")return;
+  // The keypad is a lock's too (firmware 0.5.0+); the mode keys are the alarm's own.
+  if(t.domain()!="alarm_control_panel"&&!(t.domain()=="lock"&&cmd>=ALARM_DIGIT_FIRST))return;
   const uint32_t now=esphome::millis();
   if(cmd>=ALARM_DIGIT_FIRST&&cmd<ALARM_DIGIT_FIRST+10){
     if(!alarm_pad.open||alarm_lock.locked(now)||alarm_attempt.active||alarm_pad.code.size()>=alarm_panel::CODE_MAX)return;
@@ -2487,6 +2510,274 @@ inline void alarm_command(int cmd){
     alarm_choose(t,(unsigned)(cmd-ALARM_MODE_FIRST));
   }
 }
+// ---- Lock (firmware 0.5.0+): Home Assistant's lock dialog in this look, and a tile that locks with one tap ----
+// lock_panel.h decides (what may happen, which keys, when a code is asked for); this draws it. A tap on the tile locks
+// what is not locked at once. A locked lock asks first: the tile turns orange, and its circle
+// beats and says "Confirm", and a second tap within five seconds unlocks. The card (hold the tile) has the key that changes the state,
+// both keys while the lock is jammed, and Open door where the lock has one; Unlock and Open door ask for a second tap
+// on the same key. A lock with a code opens the alarm panel's keypad instead, with its lock after wrong codes: typing
+// the code is the second tap. The animations are the alarm panel's: a heartbeat while the lock moves or waits for its
+// second tap, a ring going round while it moves, and a ring that closes round the lock when it locks.
+inline constexpr int LOCK_KEY_FIRST=700;   // 700 lock, 701 unlock, 702 open
+// The one "tap again" the screen waits for: which lock, on its tile or on its card, and since when.
+struct LockAsk { lock_panel::Confirm confirm; std::string entity; bool card=false; bool shown=false; };
+inline LockAsk lock_ask;
+// A line in place of the tile's state for a moment: a lock-only tile tapped while locked.
+inline std::string lock_note_entity;
+inline uint32_t lock_note_at=0;
+inline lv_obj_t *lock_ring=nullptr;
+inline lock_panel::Lock lock_of(const Tile &t){
+  lock_panel::Lock l;l.state=t.state;l.supported=t.supported;l.assumed=t.extra().assumed;l.available=t.available()&&fresh();return l;
+}
+inline lock_panel::Guard lock_guard(const Tile &t){return lock_panel::guard_of(t.guard);}
+inline bool lock_noting(const Tile &t){return lock_note_entity==t.entity&&esphome::millis()-lock_note_at<3000;}
+inline bool lock_asking(const Tile &t,bool card,lock_panel::Act a=lock_panel::NONE){
+  const uint32_t now=esphome::millis();
+  if(lock_ask.entity!=t.entity||lock_ask.card!=card)return false;
+  return a==lock_panel::NONE?lock_ask.confirm.any(now):lock_ask.confirm.waiting(a,now);
+}
+inline const char *lock_state_text(const std::string &state){
+  using namespace screen_text;
+  if(state=="locked")return tr(txt::ha_lock_locked);
+  if(state=="unlocked")return tr(txt::ha_lock_unlocked);
+  if(state=="locking")return tr(txt::ha_lock_locking);
+  if(state=="unlocking")return tr(txt::ha_lock_unlocking);
+  if(state=="open")return tr(txt::ha_lock_open);
+  if(state=="opening")return tr(txt::ha_lock_opening);
+  if(state=="jammed")return tr(txt::ha_lock_jammed);
+  return state.c_str();
+}
+// A key's word, as Home Assistant's dialog names it; the keypad's title too.
+inline const char *lock_action_text(unsigned act){
+  if(act==lock_panel::LOCK)return tr(txt::ha_lock_action_lock);
+  if(act==lock_panel::UNLOCK)return tr(txt::ha_lock_action_unlock);
+  return tr(txt::ha_lock_action_open_door);
+}
+// The tile's icon: the open lock while it waits for the second tap that unlocks it. A chosen icon stays.
+inline const char *lock_icon(const Tile &t){return lock_panel::icon(t.state);}
+// The line under the name: the second tap it waits for, a lock-only tile's word, or Home Assistant's word for the
+// state, and on the card who changed it last.
+inline std::string lock_status(const Tile &t,bool card){
+  if(!t.available())return tr(txt::ha_unavailable);
+  if(!card&&lock_asking(t,false))return tr(txt::lock_confirm);
+  if(!card&&lock_noting(t))return tr(txt::lock_lock_only);
+  std::string text=!t.extra().state_word.empty()?t.extra().state_word:std::string(lock_state_text(t.state));
+  if(card&&!t.extra().changed_by.empty()&&!lock_panel::moving(t.state))text+=" · "+t.extra().changed_by;
+  return text;
+}
+inline std::string lock_card_line(const Tile &t){
+  if(alarm_card_note&&esphome::millis()-alarm_card_note_at<6000)return tr(alarm_card_note);
+  return lock_status(t,true);
+}
+// The tile's colour: orange while it waits for the second tap, else Home Assistant's for the state.
+inline uint32_t lock_accent(const Tile &t){
+  return lock_asking(t,false)?lock_panel::ORANGE:lock_panel::color(t.state);
+}
+// What a tap or a key asks for: lock, unlock or open. A code opens the keypad; Unlock and Open door wait for a second
+// tap on the same tile or key; the rest goes to Home Assistant at once.
+inline void lock_do(unsigned index,lock_panel::Act act,bool card){
+  using namespace lock_panel;
+  if(index>=model.count)return;
+  auto &t=model.tiles[index];
+  const uint32_t now=esphome::millis();
+  if(!can(lock_of(t),act,lock_guard(t))||t.waiting(now))return;
+  const auto &x=t.extra();
+  if(needs_code(x.code_format,x.code_saved)){
+    lock_ask.confirm.clear();
+    if(!code_typable(x.code_format)){alarm_card_note=txt::alarm_letters;alarm_card_note_at=now;}
+    else{alarm_wipe(alarm_pad.code);alarm_pad.open=true;alarm_pad.mode=act;alarm_pad.note=0;alarm_pad.entity=t.entity;}
+    if(card)redraw_detail();else{active_index=(int)index;show_detail(index);}
+    return;
+  }
+  if(confirms(act)){
+    if(lock_ask.entity!=t.entity||lock_ask.card!=card)lock_ask.confirm.clear();
+    lock_ask.entity=t.entity;lock_ask.card=card;
+    if(!lock_ask.confirm.press(act,now)){
+      lock_ask.shown=true;
+      ESP_LOGI("lock","%s: tap again to %s",t.entity.c_str(),act==OPEN?"open":"unlock");
+      if(card)redraw_detail();else refresh_tile(index);
+      return;
+    }
+  }
+  lock_ask.confirm.clear();lock_ask.shown=false;
+  alarm_attempt.begin(act,false,now);alarm_attempt_entity=t.entity;
+  action(service(act),t.entity);
+  if(card)redraw_detail();else refresh_tile(index);
+}
+// A finger on the tile (tile_controls::TapRoute::LOCK).
+inline void lock_tap(unsigned index){
+  if(index>=model.count)return;
+  auto &t=model.tiles[index];
+  const auto act=lock_panel::tap(lock_of(t),lock_guard(t));
+  if(act==lock_panel::NONE){
+    if(t.state=="locked"&&lock_guard(t)==lock_panel::Guard::LOCK_ONLY){lock_note_entity=t.entity;lock_note_at=esphome::millis();refresh_tile(index);}
+    return;
+  }
+  lock_do(index,act,false);
+}
+// The ring round the card's lock: a short arc going round while it moves, and a ring closing when it locks.
+inline void lock_card_ring(const Tile &t,int cx,int cy,int size,int width){
+  lock_ring=nullptr;
+#if LV_USE_ARC
+  const bool closing=t.state=="locked"&&alarm_arrived(t);
+  if(!lock_panel::moving(t.state)&&!closing)return;
+  const uint32_t colour=theme::state(lock_panel::color(t.state));
+  auto *arc=lv_arc_create(detail_root);
+  lv_obj_remove_style_all(arc);lv_obj_set_size(arc,size,size);lv_obj_set_pos(arc,cx-size/2,cy-size/2);
+  lv_obj_remove_flag(arc,LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_style_arc_width(arc,width,LV_PART_MAIN);lv_obj_set_style_arc_width(arc,width,LV_PART_INDICATOR);
+  lv_obj_set_style_arc_rounded(arc,true,LV_PART_INDICATOR);
+  lv_obj_set_style_arc_color(arc,lv_color_hex(theme::tint(colour,38)),LV_PART_MAIN);lv_obj_set_style_arc_opa(arc,closing?LV_OPA_TRANSP:LV_OPA_COVER,LV_PART_MAIN);
+  lv_obj_set_style_arc_color(arc,lv_color_hex(colour),LV_PART_INDICATOR);lv_obj_set_style_arc_opa(arc,LV_OPA_COVER,LV_PART_INDICATOR);
+  lv_arc_set_rotation(arc,270);lv_arc_set_bg_angles(arc,0,360);
+  lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,arc);
+  if(closing){
+    lv_arc_set_angles(arc,0,0);
+    lv_anim_set_values(&a,0,360);lv_anim_set_duration(&a,500);lv_anim_set_exec_cb(&a,alarm_ring_close);lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
+    lv_anim_set_completed_cb(&a,[](lv_anim_t *done){lv_obj_add_flag(static_cast<lv_obj_t *>(done->var),LV_OBJ_FLAG_HIDDEN);});
+    lv_anim_start(&a);
+    return;
+  }
+  lv_arc_set_angles(arc,0,70);
+  lv_anim_set_values(&a,270,630);lv_anim_set_duration(&a,1600);lv_anim_set_exec_cb(&a,alarm_ring_turn);
+  lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);lv_anim_start(&a);
+  lock_ring=arc;
+#else
+  (void)t;(void)cx;(void)cy;(void)size;(void)width;
+#endif
+}
+inline void render_code_pad(const alarm_panel::Metrics &m,int width,int top,int bottom,const lv_font_t *text,const lv_font_t *icons,const lv_font_t *mini);
+inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t *heading){
+  using namespace alarm_panel;
+  detail_placed=true;
+  if(alarm_pad.entity!=t.entity){alarm_close_pad();alarm_pad.entity=t.entity;}
+  if(alarm_pad.open&&!t.available())alarm_close_pad();
+  alarm_forget_widgets();lock_ring=nullptr;
+  const lv_font_t *text=large?detail_font:(control_font?control_font:detail_font);
+  const lv_font_t *icons=tile_icon_font();
+  const lv_font_t *mini=mini_icon_font?mini_icon_font:detail_font;
+  Metrics m;m.large=large;m.touch=ui::touch_min();m.text_h=lv_font_get_line_height(text);
+  m.icon_h=icons?lv_font_get_line_height(icons):m.text_h;m.side=overlay_card::pad();
+  const int top=ui::px(large?80:50)+lv_font_get_line_height(detail_font)+m.gap(),bottom=height-ui::px(large?18:8);
+  if(alarm_pad.open){
+    // The keypad in the card's place, titled as the key that asked for it: Unlock, Lock, Open door.
+    if(heading)label(heading,lock_action_text(alarm_pad.mode));
+    render_code_pad(m,width,top,bottom,text,icons,mini);
+    return;
+  }
+  const auto lock=lock_of(t);
+  const auto guard=lock_guard(t);
+  const auto primary=lock_panel::primary(lock,guard);
+  const auto keys=lock_panel::secondary(lock,guard);
+  const bool available=t.available();
+  const bool asking=lock_asking(t,true);
+  // The lock's hero is its control, so it takes the height the alarm's shield leaves to its keys.
+  m.hero_cap=ui::px(large?300:190);
+  const auto l=card_layout(m,width,top,bottom,keys.count,false);
+  detail_card(l.hero.x,l.hero.y,l.hero.w,l.hero.h);
+  // The lock itself is the big key, as Apple's Home and Home Assistant's own lock dialog make the lock the control:
+  // a round key in its state's colour, and under it the word of what a tap does (Lock, Unlock, Confirm).
+  const int icon_h=m.icon_h,ring_w=ui::px(large?8:5),ring_gap=ui::px(large?8:5),word_h=m.text_h,inner=ui::px(large?10:6);
+  const int room_h=l.hero.h-2*inner-word_h-ui::px(large?8:4);
+  int d=std::min({room_h-2*(ring_w+ring_gap),l.hero.w*11/20,icon_h*4});
+  d=std::max(d,std::max(icon_h+ui::px(8),m.least_key()));
+  const int block=d+2*(ring_w+ring_gap)+ui::px(large?8:4)+word_h;
+  const int cx=l.hero.cx(),cy=l.hero.y+(l.hero.h-block)/2+ring_w+ring_gap+d/2;
+  const bool waits_open=lock_asking(t,true,lock_panel::OPEN);
+  const uint32_t colour=asking&&!waits_open?lock_panel::ORANGE:lock_panel::color(t.state);
+  auto *big=detail_button("",cx-d/2,cy-d/2,d,d,LOCK_KEY_FIRST+(int)(primary==lock_panel::NONE?lock_panel::LOCK:primary));
+  lv_obj_set_style_radius(big,LV_RADIUS_CIRCLE,0);lv_obj_set_style_border_width(big,0,0);
+  const uint32_t ground=available?theme::tint(theme::state(colour),38):theme::hex(theme::TRACK);
+  lv_obj_set_style_bg_color(big,lv_color_hex(ground),0);
+  lv_obj_set_style_bg_color(big,lv_color_hex(theme::pressed(ground)),LV_STATE_PRESSED);
+  lv_obj_set_style_bg_color(big,lv_color_hex(ground),LV_STATE_DISABLED);lv_obj_set_style_bg_opa(big,LV_OPA_COVER,LV_STATE_DISABLED);
+  if(icons){
+    auto *face=lv_obj_get_child(big,0);
+    const char *glyph=asking&&!waits_open?lock_panel::glyph::LOCK_OPEN:(t.icon.empty()?lock_panel::icon(t.state):t.icon.c_str());
+    // The large icon face where the key has room for it and it carries the glyph.
+    const lv_font_t *face_font=big_icon_font&&font_has(big_icon_font,glyph)&&lv_font_get_line_height(big_icon_font)<=d*3/5?big_icon_font:icons;
+    lv_obj_set_style_text_font(face,face_font,0);lv_label_set_text(face,glyph);
+    lv_obj_set_style_text_color(face,lv_color_hex(available?theme::icon(theme::state(colour)):theme::hex(theme::OFF)),0);
+    lv_obj_set_style_text_color(face,lv_color_hex(available?theme::icon(theme::state(colour)):theme::hex(theme::OFF)),LV_STATE_DISABLED);
+    lv_obj_set_size(face,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(face);
+  }
+  if(primary==lock_panel::NONE||!lock_panel::can(lock,primary,guard))lv_obj_add_state(big,LV_STATE_DISABLED);
+  // The word under the key: what a tap does, "Confirm" in orange while it waits, the state while it moves, and why a
+  // lock-only tile's locked lock does nothing.
+  std::string word;uint32_t ink=theme::hex(theme::INK);
+  if(!available)word=tr(txt::ha_unavailable);
+  else if(asking&&!waits_open){word=tr(txt::lock_confirm);ink=theme::foreground(lock_panel::ORANGE);}
+  else if(lock_panel::moving(t.state))word=lock_state_text(t.state);
+  else if(primary==lock_panel::NONE&&guard==lock_panel::Guard::LOCK_ONLY)word=tr(txt::lock_lock_only);
+  else if(primary!=lock_panel::NONE)word=lock_action_text(primary);
+  const int word_y=cy+d/2+ring_w+ring_gap+ui::px(large?8:4);
+  auto *caption=detail_text(detail_root,word,l.hero.x+inner,word_y,l.hero.w-2*inner,text,LV_TEXT_ALIGN_CENTER,ink);
+  lv_label_set_long_mode(caption,LV_LABEL_LONG_DOT);
+  lock_card_ring(t,cx,cy,d+2*(ring_w+ring_gap),ring_w);
+  if(awake()&&available){
+    if(asking&&!waits_open)alarm_beat(big,theme::state(colour),1000,ui::px(large?28:14),false);
+    else if(lock_panel::moving(t.state))alarm_beat(big,theme::state(colour),1600,ui::px(large?28:14),false);
+    else if(alarm_arrived(t)){
+      if(t.state=="locked")alarm_beat(big,theme::state(colour),600,ui::px(large?28:14),true);
+      alarm_spring(big,t.state=="locked"?450:0);
+    }
+  }
+  const lv_font_t *key_icons=icons&&lv_font_get_line_height(icons)<=(l.key_count?l.keys[0].h:0)-ui::px(10)?icons:mini;
+  for(unsigned i=0;i<l.key_count;++i){
+    const auto act=keys.act[i];
+    const Rect &r=l.keys[i];
+    const bool waiting=lock_asking(t,true,act);
+    auto *key=detail_button("",r.x,r.y,r.w,r.h,LOCK_KEY_FIRST+(int)act);
+    lv_obj_set_style_radius(key,r.h/2,0);
+    // A key that waits for its second tap turns orange and asks, as Home Assistant's Open door key does.
+    const uint32_t ask=theme::state(lock_panel::ORANGE);
+    lv_obj_set_style_bg_color(key,waiting?lv_color_hex(ask):theme::color(theme::CARD),0);
+    lv_obj_set_style_bg_color(key,waiting?lv_color_hex(theme::pressed(ask)):theme::color(theme::KEY),LV_STATE_PRESSED);
+    lv_obj_set_style_border_width(key,waiting?0:1,0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
+    const char *glyph=act==lock_panel::UNLOCK?lock_panel::glyph::LOCK_OPEN:lock_panel::glyph::DOOR_OPEN;
+    const std::string label_text=waiting?(act==lock_panel::OPEN?tr(txt::ha_lock_action_open_door_confirm):tr(txt::lock_really_unlock)):lock_action_text(act);
+    // Neutral keys, as Home Assistant's dialog draws them: the colour belongs to the lock, not to what a key does.
+    alarm_key_face(key,glyph,label_text,key_icons,text,waiting?theme::color(theme::ON_ACCENT):theme::color(theme::INK),r.w,r.h);
+    if(!lock_panel::can(lock,act,guard))lv_obj_add_state(key,LV_STATE_DISABLED);
+  }
+}
+// A new state of a lock arrived (page_receiver): an attempt may be settled by it, and a "tap again" for it ends.
+inline void lock_state_arrived(unsigned index,const std::string &before){
+  if(index>=model.count)return;
+  auto &t=model.tiles[index];
+  if(alarm_attempt.active&&t.entity==alarm_attempt_entity)
+    alarm_settled(alarm_attempt.settle_if(lock_panel::reached(t.state,(lock_panel::Act)alarm_attempt.mode),esphome::millis()),true);
+  if(before!=t.state&&lock_ask.entity==t.entity){lock_ask.confirm.clear();}
+}
+// Every tick (tick()): a "tap again" that ran out, or a screen that went to sleep, puts the tile or the card back.
+inline void lock_tick(){
+  if(!lock_ask.shown)return;
+  const uint32_t now=esphome::millis();
+  if(!awake())lock_ask.confirm.clear();
+  if(lock_ask.confirm.any(now))return;
+  lock_ask.shown=false;
+  for(size_t i=0;i<model.count;++i)if(model.tiles[i].entity==lock_ask.entity){
+    refresh_tile(i);
+    if(lock_ask.card&&detail_index==i&&detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN))redraw_detail();
+  }
+}
+inline void lock_command(int cmd){
+  if(detail_index>=model.count)return;
+  auto &t=model.tiles[detail_index];
+  if(t.domain()!="lock"||!fresh()||!t.available())return;
+  if(!allowed(esphome::millis(),300+cmd,"lock:"+t.entity))return;
+  const int act=cmd-LOCK_KEY_FIRST;
+  if(act<0||act>=(int)lock_panel::NONE)return;
+  lock_do((unsigned)detail_index,(lock_panel::Act)act,true);
+}
+inline AlarmLook lock_look(const Tile &t){
+  if(!t.available())return LOOK_NONE;
+  if(lock_asking(t,false))return LOOK_TRIGGERED;
+  if(lock_panel::moving(t.state))return LOOK_ARMING;
+  return LOOK_NONE;
+}
+// A card that closes forgets the second tap its keys waited for.
+inline void lock_card_closed(){if(lock_ask.card)lock_ask.confirm.clear();}
 // ---- History card (firmware 0.2.51+): numbers as a line with axes, states as a timeline ----
 // Sensors, numbers, switches, binary sensors and people. The card asks the manager for the chosen range when it
 // opens (an hour, a day or a week; always 24 averages or 96 slots) and draws what comes back. A finger on the
@@ -3115,6 +3406,8 @@ inline void show_detail(unsigned index){
     render_weather_detail(t,large,width,height,columns);
   }else if(d=="alarm_control_panel"){
     render_alarm_detail(t,large,width,height,heading);
+  }else if(d=="lock"){
+    render_lock_detail(t,large,width,height,heading);
   }else if(d=="timer"){
     detail_label(detail_root,tr(t.state=="active"?txt::timer_running:t.state=="paused"?txt::timer_paused:txt::timer_stopped),pad,top,width-2*pad);
     detail_button(tr(t.state=="active"?txt::timer_pause:txt::timer_start),pad,top+(ui::px(large?50:30)),cw,bh,40);
@@ -3175,6 +3468,9 @@ inline const char *weather_text(const std::string &condition) {
   return condition.c_str();
 }
 inline const char *icon_for(const Tile &tile) {
+  // A lock that waits for its second tap shows the open lock, also over an icon Home Assistant or the tile chose: for
+  // five seconds it says what the next tap does.
+  if (tile.domain() == "lock" && lock_asking(tile, false, lock_panel::NONE)) return lock_panel::glyph::LOCK_OPEN;
   if (!tile.icon.empty()) return tile.icon.c_str();
   auto d = tile.domain();
   // Home Assistant's own icon: a bulb, crossed out while off. A chosen icon stays, as in Home Assistant.
@@ -3193,6 +3489,7 @@ inline const char *icon_for(const Tile &tile) {
   if (d == "screen") return tile.is_settings() ? "\U000F0493" : tile.is_page() ? "\U000F0054" : "\U000F0150";
   if (d == "camera" || d == "image") return "\U000F07AE";
   if (d == "alarm_control_panel") return alarm_panel::icon(tile.state);
+  if (d == "lock") return lock_icon(tile);
   return "\U000F0425";
 }
 inline std::string countdown(uint32_t seconds) {
@@ -3310,6 +3607,9 @@ inline void event(lv_event_t *event) {
     case tile_controls::TapRoute::CUSTOM:
       perform(tile);
       return;
+    case tile_controls::TapRoute::LOCK:
+      lock_tap(w.index);
+      return;
     case tile_controls::TapRoute::CARD:
       if (tap.busy) tile.begin(esphome::millis(), true);
       active_index = w.index;
@@ -3390,6 +3690,16 @@ inline int tile_width(const Widgets &w) { return lv_obj_get_width(w.tile); }
 inline int tile_height(const Widgets &w) { return lv_obj_get_height(w.tile); }
 inline int content_width(const Widgets &w) {
   return tile_width(w) - lv_obj_get_style_space_left(w.tile, LV_PART_MAIN) - lv_obj_get_style_space_right(w.tile, LV_PART_MAIN);
+}
+// The name of a plain card. The compact look draws it in small letters for a cell of two columns (a CYD lying down);
+// a card whose name has more room than that (one column standing up, a double-width card, a 4-inch glass) gets the
+// same bold letters a little larger (label_wide in looks/compact.yaml), so the words are not small in a wide empty
+// card (GitHub #50). The standard look keeps one size. The room is the name's own, after a panel or a graph took
+// theirs.
+inline const lv_font_t *wide_name_font = nullptr;
+inline int wide_name_room() { return ui::mm(30); }
+inline const lv_font_t *name_font(const Widgets &w, int room) {
+  return !ui::large() && wide_name_font && room >= wide_name_room() ? wide_name_font : w.title_font;
 }
 inline int content_height(const Widgets &w) {
   return tile_height(w) - lv_obj_get_style_space_top(w.tile, LV_PART_MAIN) - lv_obj_get_style_space_bottom(w.tile, LV_PART_MAIN);
@@ -5163,6 +5473,7 @@ inline void render_slot(size_t slot) {
   else if (d == "image") value = tr(t.last_run ? txt::camera_tap_to_view : txt::camera_no_image_yet);
   else if (d == "binary_sensor" && (value == "on" || value == "off")) value = tile_controls::binary_state_text(t.device_class, value == "on");
   else if (d == "alarm_control_panel") value = alarm_status(t, false);
+  else if (d == "lock") value = lock_status(t, false);
   else if (value == "on") value = tr(txt::ha_on);
   else if (value == "off") value = tr(txt::ha_off);
   else if (value == "cleaning") value = tr(txt::ha_vacuum_cleaning);
@@ -5181,6 +5492,8 @@ inline void render_slot(size_t slot) {
   // end that must stay readable whatever happens to the words in front of it.
   std::string value_short,value_tail;
   if((d=="script"||d=="scene"||d=="button"||d=="input_button") && t.state!="on")value_short=last_run_text(t.last_run,true);
+  // A lock-only tile's word where the whole of it does not fit.
+  if(d=="lock"&&lock_noting(t))value_short=tr(txt::lock_lock_only_short);
   if(d=="vacuum" && std::isfinite(t.battery)){value_tail=" / "+screen_text::percent((int)t.battery);value+=value_tail;}
   // Direct controls: only a wide card in the standard layout has room for the panel.
   // A small slider on a double-width card is that panel's slider: it stands beside the name, where every other
@@ -5268,11 +5581,6 @@ inline void render_slot(size_t slot) {
     else render_forecast(w,t,large_tile,content_w,content_h);
     lap(swipe_profile::CUSTOM);
   }else{
-  // A slot that just held a full card gets its own name font, one-line box and left-aligned text back.
-  set_font(w.title,w.title_font);set_text_align(w.title,LV_TEXT_ALIGN_LEFT);set_text_align(w.value,LV_TEXT_ALIGN_LEFT);
-  title_height=lv_font_get_line_height(w.title_font);lv_obj_set_height(w.title,title_height);
-  int line_gap=head_gap(large_tile),text_height=title_height+line_gap+value_height;
-  int slider_height=ui::px(large_tile?28:8);
   // A single-width graph takes the slider strip; a wide graph takes the right half.
   bool graph_strip=graph && !w.wide, graph_side=graph && w.wide;
   int chart_w=graph_side?content_w*55/100:0;
@@ -5280,6 +5588,13 @@ inline void render_slot(size_t slot) {
   int panel_w=with_panel && !graph?layout_panel(w,t,large_tile,content_w,content_h):0;
   if(!panel_w)hide_panel(w);
   lap(swipe_profile::PANEL);
+  // A slot that just held a full card gets its own name font, one-line box and left-aligned text back. A name with
+  // room gets bigger letters (name_font).
+  const lv_font_t *title_face=name_font(w,content_w-chart_w-panel_w);
+  set_font(w.title,title_face);set_text_align(w.title,LV_TEXT_ALIGN_LEFT);set_text_align(w.value,LV_TEXT_ALIGN_LEFT);
+  title_height=lv_font_get_line_height(title_face);lv_obj_set_height(w.title,title_height);
+  int line_gap=head_gap(large_tile),text_height=title_height+line_gap+value_height;
+  int slider_height=ui::px(large_tile?28:8);
   // The circle follows the board's icon size (TILE_ICON_SIZE), so a 73 pt icon on a 294 dpi panel gets its disc;
   // the watch and mini circles keep their ratios to it.
   const int base_circle=w.base_circle>0?w.base_circle:(ui::px(large_tile?54:36));
@@ -5411,20 +5726,22 @@ inline void render_slot(size_t slot) {
   // A closed blind's slider keeps the blind's colour while its card is grey, as in Home Assistant (Tile::slider_active).
   bool slider_on = fresh() && t.slider_active();
   bool available=fresh() && t.available();
-  int palette_state=(available?2:0)|(on?1:0)|(slider_on?4:0)|((card_art(t)&&w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN))?8:0);
+  // A locked lock is inactive in Home Assistant and still green, not grey (--state-lock-locked-color); a lock that
+  // waits for the second tap is orange.
+  const bool lock_tile=d=="lock";
+  if(lock_tile)on=available;
+  int palette_state=(available?2:0)|(on?1:0)|(slider_on?4:0)|((card_art(t)&&w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN))?8:0)|
+                    (lock_tile&&lock_asking(t,false)?16:0)|(lock_tile?(int)(lock_panel::color(t.state)&0xFF)<<8:0);
   // An alarm panel's circle beats while it counts down or goes off, and springs once when it arms or disarms.
-  if (d == "alarm_control_panel" || alarm_tile_looks[slot] || alarm_tile_marks[slot]) alarm_tile_look(slot, &t);
+  if (d == "alarm_control_panel" || d == "lock" || alarm_tile_looks[slot] || alarm_tile_marks[slot]) alarm_tile_look(slot, &t);
   if (w.cached_active == palette_state && !w.panel_dirty) { style_tall(w,t);lap(swipe_profile::GEOMETRY); return; }
   w.cached_active = palette_state;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
-  uint32_t accent=tile_controls::accent(t);
+  uint32_t accent=lock_tile?lock_accent(t):tile_controls::accent(t);
   // A lamp's own colour goes through Home Assistant's contrast rule before it reaches the glass
-  // (hui-tile-card._computeStateColor, firmware 0.2.98+): anything under 40 % saturation is lifted to 40 %, or a
-  // pale bulb paints the tile in a colour that is no colour. Under 10 % there is nothing left to lift and Home
-  // Assistant only dims the white a little; a white icon on a dark card, or on a card of its own colour, then says
-  // the same as the grey of something off, so a white bulb keeps the amber of a lamp that is on.
-  if(d=="light" && on && t.has_hs_color && t.saturation>=10)
-    accent=lv_color_to_u32(lv_color_hsv_to_rgb(t.hue%360,t.saturation<40?40:t.saturation,100))&0xFFFFFF;
+  // (tile_controls::lamp_color, shared with the lamp page of a group): a white bulb keeps the amber of a lamp that is on.
+  if(d=="light" && on && t.has_hs_color)
+    accent=tile_controls::lamp_color(t.hue,t.saturation);
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
   auto circle_color=lv_color_hex(available?theme::tint(state_color,38):theme::hex(theme::TRACK));
@@ -6381,6 +6698,7 @@ inline void tick() {
   expire_calls(esphome::millis());
 #endif
   alarm_tick();
+  lock_tick();
   for(size_t i=0;i<model.tiles.size();++i){
     auto &t=model.tiles[i];
     if(t.refused_at && esphome::millis()-t.refused_at>=4000){t.refused_at=0;card(i);}
@@ -6419,6 +6737,7 @@ inline void tick() {
       if((t.is_clock() && new_minute) || (t.domain()=="timer" && t.state=="active") || (t.domain()=="sun" && second%60==0))card(w.index);
       // An alarm's delay counts down on its tile; its heartbeat stops while the screen sleeps and starts when it wakes.
       if(t.domain()=="alarm_control_panel"){if(alarm_left(t))card(w.index);alarm_tile_look(slot,&t);}
+      if(t.domain()=="lock")alarm_tile_look(slot,&t);
       // A media tile over the whole page: its bar runs on while the track plays (firmware 0.2.64+).
       if(w.extra_mode=="media" && w.extra && !lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN) && w.parts[5] && !lv_obj_has_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN))media_progress(t,w.parts[5],w.parts[6],w.media_bar_w);
       // The second hand moves on its own: only its line is redrawn, and it hides during standby. Only while the

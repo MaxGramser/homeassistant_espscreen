@@ -289,6 +289,12 @@
       "too_many": "Zbyt wiele błędnych kodów",
       "letters": "Ten kod zawiera litery. Wprowadź go w Home Assistant."
     },
+    "lock": {
+      "confirm": "Potwierdź",
+      "really_unlock": "Na pewno odblokować?",
+      "lock_only": "Tylko blokowanie na tym ekranie",
+      "lock_only_short": "Tylko blokada"
+    },
     "ha": {
       "on": "włączono",
       "off": "wyłączono",
@@ -465,6 +471,22 @@
         "arm_vacation": "Uzbrój (tryb wakacyjny)",
         "arm_custom_bypass": "Niestandardowy bypass",
         "enter_code": "Wprowadź kod"
+      },
+      "lock": {
+        "locked": "zablokowano",
+        "unlocked": "odblokowano",
+        "locking": "blokowanie",
+        "unlocking": "odblokowywanie",
+        "open": "otwarto",
+        "opening": "otwieranie",
+        "jammed": "zacięcie"
+      },
+      "lock_action": {
+        "lock": "Zablokuj",
+        "unlock": "Odblokuj",
+        "open": "O",
+        "open_door": "Otwórz drzwi",
+        "open_door_confirm": "Naprawdę otworzyć?"
       }
     },
     "navigation": {
@@ -1232,7 +1254,14 @@
       "details": {
         "room": "Obszar",
         "firmware": "Firmware",
-        "board": "Płytka"
+        "board": "Płytka",
+        "show": "Pokaż szczegóły: {name}",
+        "hide": "Ukryj szczegóły: {name}"
+      },
+      "rename": {
+        "button": "Zmień nazwę",
+        "label": "Nazwa w tej aplikacji",
+        "save": "Zapisz"
       },
       "remove": {
         "button": "Usuń ekran",
@@ -1244,7 +1273,8 @@
         "confirm": "Usuń",
         "done": "Ekran {name} został usunięty.",
         "kept": "Ekran {name} został usunięty. Jego profil {file} pozostaje w folderze ESPHome."
-      }
+      },
+      "home": "Przegląd twoich ekranów"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1303,12 @@
         "text": "Podłącz swój ekran przez USB do komputera z Home Assistant. Profil, firmware i pierwsze wgranie za jednym razem.",
         "button": "Zainstaluj nowy ekran"
       }
+    },
+    "home": {
+      "title": "Twoje ekrany",
+      "summary": "{online} z {count} online",
+      "open": "Otwórz {name}",
+      "no_layout": "Jeszcze bez układu"
     },
     "screen_view": {
       "confirm": {
@@ -1343,7 +1379,8 @@
         "map": "Pokazuje, dokąd prowadzi każdy kafelek Przejdź do strony.",
         "preview_label": "Podgląd",
         "preview": "Wypróbuj przesuwanie i kafelki stron. W domu nic się nie przełącza."
-      }
+      },
+      "copy_needs_migration": "Otwórz raz ekran źródłowy, aby jego układ przeszedł na strony, a potem go skopiuj."
     },
     "page": {
       "label": "Strona {page}",
@@ -1383,7 +1420,8 @@
         "person": "Osoby",
         "timer": "Minutniki",
         "screen": "Ekran",
-        "alarm_control_panel": "Alarm"
+        "alarm_control_panel": "Alarm",
+        "lock": "Zamki"
       },
       "more": "Więcej ({n})",
       "fewer": "Mniej",
@@ -1424,7 +1462,8 @@
       "camera": "Kamera",
       "image": "Obraz",
       "entity": "Encja",
-      "alarm_control_panel": "Panel alarmowy"
+      "alarm_control_panel": "Panel alarmowy",
+      "lock": "Zamek"
     },
     "displays": {
       "standard": "standardowy",
@@ -1532,6 +1571,13 @@
         "no_toggle": "Home Assistant nie może tego włączać ani wyłączać, więc dotknięcie nic nie robi. Wybierz inną opcję.",
         "toggle_needs_firmware": "Włączanie i wyłączanie dotknięciem działa od wersji firmware 0.2.58: naciśnij „Aktualizuj” przy tym ekranie. Do tego czasu dotknięcie otwiera kartę.",
         "hold": "Przytrzymaj kafelek, aby otworzyć jego kartę."
+      },
+      "guard": {
+        "label": "Odblokowanie tutaj",
+        "confirm": "Po potwierdzeniu",
+        "lock_only": "Nigdy",
+        "confirm_hint": "Zablokowany zamek otwiera się dopiero po drugim dotknięciu kafelka lub przycisku. Blokowanie to zawsze jedno dotknięcie.",
+        "lock_only_hint": "Ten ekran może blokować, ale nigdy nie odblokuje ani nie otworzy. Dobre dla ekranu w przedsionku, garażu lub pokoju dziecka."
       },
       "sub": {
         "label": "Druga linia",

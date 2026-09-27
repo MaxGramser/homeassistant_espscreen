@@ -102,7 +102,7 @@ home fits on one page.
 </p>
 <p align="center"><sub>A tile can be 1 × 2 or 2 × 2 cells as well as one cell, double width or the whole page, and the card follows the room it gets: a player shows its album cover behind the track (every screen but the CYD), the heating shows its setpoint and the modes Home Assistant lists for it (the last key opens the card when they do not all fit), a blind shows its position, and its slats where there is room, an on/off tile stands centred with its switch. Every board works out the same card from its own glass. Each page has its own title and top bar, any page can be Home, and a page can stay out of the page dots and be opened from a tile, with a Back key to return. Rendered from the firmware's own LVGL code with a demo home.</sub></p>
 
-## Weather, heating, cameras and your alarm
+## Weather, heating, cameras, your alarm and your locks
 
 <p align="center">
   <img src="docs/images/guition-weather-tiles.png" width="32%" alt="The 4-inch Guition with two weather tiles: a wide one with today and the next three days, and a big one listing the days under each other, each with a coloured bar from its low to its high on one scale">
@@ -115,10 +115,15 @@ home fits on one page.
   <img src="docs/images/guition-alarm-keypad.png" width="32%" alt="The keypad to arm away: four dots for the code, the digits 1 to 0, a clear key and a check key">
 </p>
 <p align="center">
+  <img src="docs/images/guition-lock-tiles.png" width="32%" alt="Six locks as tiles: the front door asking to confirm in orange, the back door unlocked in red, the gate locked in green, the garage jammed in red, the shed locking in orange and the cellar unavailable in grey">
+  <img src="docs/images/guition-lock-card.png" width="32%" alt="The lock card: a big green lock to tap with Unlock under it, and an Open door key">
+  <img src="docs/images/guition-lock-confirm.png" width="32%" alt="The lock card waiting for the second tap: the big lock orange and open, with Confirm under it">
+</p>
+<p align="center">
   <img src="docs/images/waveshare43-new-tiles.png" width="49%" alt="The 4.3-inch Waveshare: a wide weather tile with the coming days, the heating with its stepper, a front door camera filling a tile of two by two cells, and the dryer">
   <img src="docs/images/waveshare43-select-card.png" width="49%" alt="The select card of a washing machine on the 4.3-inch Waveshare: its programmes in two columns, Cotton eco checked, and page dots for the rest">
 </p>
-<p align="center"><sub>The weather with the coming days, and on a bigger tile the whole week with a bar from each day's low to its high. A thermostat has its − / + and a bar with a key per mode; an airco shows heat and cool first and the rest behind "…". A live camera on a taller tile fills the card with its picture and its name, or shows the whole picture. Your alarm is a tile in Home Assistant's colours, with a key for every mode and Home Assistant's keypad when the panel asks for a code; someone coming in wakes every screen with the keypad to disarm. A select, such as a washing machine's programme, opens a list with a check at the one it is on. On every screen with the memory for it, every page is built ahead and kept, so the next one is there the moment you turn to it. Rendered from the firmware's own LVGL code with a demo home.</sub></p>
+<p align="center"><sub>The weather with the coming days, and on a bigger tile the whole week with a bar from each day's low to its high. A thermostat has its − / + and a bar with a key per mode; an airco shows heat and cool first and the rest behind "…". A live camera on a taller tile fills the card with its picture and its name, or shows the whole picture. Your alarm is a tile in Home Assistant's colours, with a key for every mode and Home Assistant's keypad when the panel asks for a code; someone coming in wakes every screen with the keypad to disarm. A lock locks with one tap and asks for a second one before it unlocks; its card has Open door where the lock can open its latch, and Home Assistant's keypad when the lock asks for a code. A select, such as a washing machine's programme, opens a list with a check at the one it is on. On every screen with the memory for it, every page is built ahead and kept, so the next one is there the moment you turn to it. Rendered from the firmware's own LVGL code with a demo home.</sub></p>
 
 ## On the screen
 
@@ -268,7 +273,7 @@ while it keeps your country's clock and numbers.
 | [Waveshare ESP32-S3-Touch-LCD-4B](https://tessera-maxgramser.on-forge.com/screens/waveshare4b), 4 inch (experimental) | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE4B.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-3.5](https://tessera-maxgramser.on-forge.com/screens/waveshare35) (new) | 480 × 320, 2 × 2 tiles | ST7796 SPI / capacitive FT6336; dimmable backlight, no camera pictures ([details](docs/WAVESHARE35.md)) |
 | [Hosyond ESP32-32E](https://tessera-maxgramser.on-forge.com/screens/hosyond40), 4 inch (experimental) | 480 × 320, 2 × 3 tiles | ST7796 SPI / resistive XPT2046; dimmable backlight, no camera pictures, hardware acceptance pending ([details](docs/HOSYOND40.md)) |
-| [Guition JC3248W535](docs/JC3248W535.md), 3.5 inch (experimental) | 480 × 320, 2 × 2 tiles | AXS15231B QSPI / capacitive AXS15231B; dimmable backlight, camera pictures, hardware acceptance pending |
+| [Guition JC3248W535](docs/JC3248W535.md), 3.5 inch (new) | 480 × 320, 2 × 2 tiles | AXS15231B QSPI / capacitive AXS15231B; dimmable backlight, camera pictures |
 | [Guition JC8012P4A1](https://tessera-maxgramser.on-forge.com/screens/jc8012p4a1), 10.1 inch | 1280 × 800, 5 × 4 tiles | MIPI-DSI JD9365 / capacitive GSL3680, ESP32-P4 (new) ([details](docs/JC8012P4A1.md)) |
 | Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 4 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; hardware acceptance pending ([details](docs/JC1060P470.md)) |

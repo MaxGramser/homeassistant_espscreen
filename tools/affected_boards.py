@@ -7,8 +7,10 @@ changed path:
 
 - a file in one board's chain only (its board file, its entry files, a feature or hardware file no other board
   includes) reaches that board;
-- the core, components/, fonts/, a translation's `screen` texts, or a package several boards include reaches all of
-  them;
+- a component under components/ that only some boards load as a platform (the CYD's xpt2046) reaches the boards
+  whose entry files name it (tools/generate_entries.py);
+- the core, the rest of components/, fonts/, a translation's `screen` texts, or a package several boards include
+  reaches all of them;
 - anything else (the add-on, the editor, docs, tests, tools) is no firmware at all.
 
 A board whose board file is not in the base yet is new: no screen runs it, so it needs no firmware number of its own and
@@ -36,6 +38,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import firmware_count  # noqa: E402
+import generate_entries  # noqa: E402
 import profiles  # noqa: E402
 
 ROOT = profiles.ROOT
@@ -124,12 +127,28 @@ def only_comments(path, base):
     return now is not None and tokens is not None and tokens == yaml_tokens(now)
 
 
+def loaders():
+    """{component: boards whose entry files load it} for the components under components/ that some boards load as a
+    platform and others don't (generate_entries.components); smart_display, which every board loads, is not one."""
+    found = {}
+    for board in profiles.BOARDS:
+        for name in generate_entries.components(board):
+            if name != 'smart_display':
+                found.setdefault(name, set()).add(board)
+    return found
+
+
 def sort(paths, base):
     """{path: set of boards it reaches}; an empty set for a path that is no firmware."""
-    every, table, reach = set(profiles.BOARDS), chains(), {}
+    every, table, reach, loaded = set(profiles.BOARDS), chains(), {}, loaders()
     for path in paths:
+        parts = path.split('/')
         if path.endswith('.yaml') and path.startswith(('packages/', 'checkout/')) and only_comments(path, base):
             reach[path] = set()
+        elif len(parts) > 2 and parts[0] == 'components' and parts[1] in loaded:
+            # A component no board loads any more (a removed one) is not in `loaded`: it counts as shared below, and the
+            # entry files that stopped loading it name their boards on their own.
+            reach[path] = set(loaded[parts[1]])
         elif path.startswith(SHARED_TREES) or path == str(profiles.CORE.relative_to(ROOT)):
             reach[path] = set(every)
         elif path.startswith(TRANSLATIONS) and path.endswith('.json'):
@@ -182,6 +201,16 @@ def next_numbers(boards=(), read=read_now):
     return firmware_count.next_shared(core), firmware_count.next_board(core, [built.get(board) for board in boards])
 
 
+def oldest(args):
+    """The same firmware check on the oldest ESPHome the packages promise (packages/core.yaml min_version), as CI's
+    min_version leg runs it. A throwaway uv environment, not a second venv; a board whose own min_version is newer is
+    skipped there, which is what that board should do (GitHub #50: an ILI9342 CYD passed on the add-on's ESPHome and
+    failed on 2026.6.2)."""
+    version = re.search(r'(?m)^  min_version: (\S+)', profiles.CORE.read_text()).group(1)
+    return [f'- And on the oldest ESPHome the packages promise ({version}), as CI does:',
+            f'  ESPHOME="uv run -q --no-project --with esphome=={version} esphome" tools/check.sh {args}']
+
+
 def plan(reach, new=frozenset(), read_base=read_now):
     """The release that follows from what each path reaches, counted from the base (`read_base`); `new` are boards no
     screen runs yet (new_boards). Once the working tree builds the numbers it asks for, it says so."""
@@ -209,7 +238,8 @@ def plan(reach, new=frozenset(), read_base=read_now):
         lines += [f'New board: {", ".join(added)}. No screen runs it yet, so it takes no firmware number of its own and',
                   'nothing else updates: it builds the shared firmware from main (docs/BOARD_RELEASES.md, "A new board").',
                   f'- Build and render it: tools/check.sh --firmware --board {" --board ".join(added)}, and',
-                  '  tools/render/run.py <board> (with <board>-portrait for glass that is not square).', '']
+                  '  tools/render/run.py <board> (with <board>-portrait for glass that is not square).']
+        lines += oldest(f'--firmware --board {" --board ".join(added)}') + ['']
     if not boards:
         lines += ['No firmware change for a screen that exists: an app release (or a docs push, docs/RELEASING.md).',
                   '- Bump screen_manager/config.yaml and write the CHANGELOG entry with the shared firmware it ships with:',
@@ -226,6 +256,7 @@ def plan(reach, new=frozenset(), read_base=read_now):
         lines += ['- tools/generate_board_shapes.py, then bump screen_manager/config.yaml with the CHANGELOG entry',
                   f'  "## <app> (firmware {shared_next})".',
                   '- Run tools/check.sh and tools/check.sh --firmware (every board, the CYD flash budget).']
+        lines += oldest('--firmware')
     else:
         done = all(built_now[key] == for_boards for key in boards)
         lines += [f'Firmware for {", ".join(sorted(boards))} alone: every other screen is left alone. The core stays, '
@@ -239,6 +270,7 @@ def plan(reach, new=frozenset(), read_base=read_now):
                   f'  "## <app> (firmware {board_next} for {", ".join(sorted(boards))})".',
                   f'- Run tools/check.sh and tools/check.sh --firmware --board {" --board ".join(sorted(boards))}'
                   f' (or --affected).']
+        lines += oldest(f'--firmware --board {" --board ".join(sorted(boards))}')
     return '\n'.join(lines)
 
 

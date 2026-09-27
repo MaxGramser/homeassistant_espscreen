@@ -72,7 +72,8 @@ describe("the bar's geometry", () => {
     expect(short.endsWith("...")).toBe(true);
     expect(short.length).toBeLessThan("A very long living room name".length);
   });
-  it("keys an item by its whole definition", () => {
-    expect(itemKey({ type: "entity", entity: "a", content: "state" })).toBe('{"type":"entity","entity":"a","content":"state"}');
+  it("keys an item by what it shows, never by its id (app 0.4.1)", () => {
+    expect(itemKey({ id: "x", type: "entity", entity: "a", content: "state" })).toBe(itemKey({ type: "entity", entity: "a" }));
+    expect(itemKey({ type: "entity", entity: "a", show: "active" })).not.toBe(itemKey({ type: "entity", entity: "a" }));
   });
 });

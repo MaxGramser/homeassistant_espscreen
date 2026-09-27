@@ -289,6 +289,12 @@
       "too_many": "Troppi codici errati",
       "letters": "Questo codice contiene lettere. Inseriscilo in Home Assistant."
     },
+    "lock": {
+      "confirm": "Conferma",
+      "really_unlock": "Sbloccare davvero?",
+      "lock_only": "Solo blocco su questo schermo",
+      "lock_only_short": "Solo blocco"
+    },
     "ha": {
       "on": "Acceso",
       "off": "Spento",
@@ -465,6 +471,22 @@
         "arm_vacation": "Attiva in vacanza",
         "arm_custom_bypass": "Esclusione personalizzata",
         "enter_code": "Inserisci il codice"
+      },
+      "lock": {
+        "locked": "Bloccato/a",
+        "unlocked": "Sbloccato/a",
+        "locking": "In chiusura",
+        "unlocking": "In apertura",
+        "open": "Aperto",
+        "opening": "In apertura",
+        "jammed": "Inceppata"
+      },
+      "lock_action": {
+        "lock": "Blocca",
+        "unlock": "Sblocca",
+        "open": "Apri",
+        "open_door": "Apri porta",
+        "open_door_confirm": "Vuoi aprire la porta?"
       }
     },
     "navigation": {
@@ -1232,7 +1254,14 @@
       "details": {
         "room": "Area",
         "firmware": "Firmware",
-        "board": "Scheda"
+        "board": "Scheda",
+        "show": "Mostra i dettagli di {name}",
+        "hide": "Nascondi i dettagli di {name}"
+      },
+      "rename": {
+        "button": "Rinomina",
+        "label": "Nome in questa app",
+        "save": "Salva"
       },
       "remove": {
         "button": "Rimuovi schermo",
@@ -1244,7 +1273,8 @@
         "confirm": "Rimuovi",
         "done": "{name} è stato rimosso.",
         "kept": "{name} è stato rimosso. Il suo profilo {file} è ancora nella cartella ESPHome."
-      }
+      },
+      "home": "Panoramica dei tuoi schermi"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1303,12 @@
         "text": "Collega il tuo schermo via USB alla macchina di Home Assistant. Profilo, firmware e prima installazione in un colpo solo.",
         "button": "Installa un nuovo schermo"
       }
+    },
+    "home": {
+      "title": "I tuoi schermi",
+      "summary": "{online} di {count} online",
+      "open": "Apri {name}",
+      "no_layout": "Nessun layout ancora"
     },
     "screen_view": {
       "confirm": {
@@ -1343,7 +1379,8 @@
         "map": "Mostra dove porta ogni riquadro Vai alla pagina.",
         "preview_label": "Anteprima",
         "preview": "Prova lo scorrimento e i riquadri di pagina. In casa non si accende nulla."
-      }
+      },
+      "copy_needs_migration": "Apri una volta lo schermo di origine perché il suo layout passi alle pagine, poi copialo."
     },
     "page": {
       "label": "Pagina {page}",
@@ -1383,7 +1420,8 @@
         "person": "Persone",
         "timer": "Timer",
         "screen": "Schermo",
-        "alarm_control_panel": "Allarme"
+        "alarm_control_panel": "Allarme",
+        "lock": "Serrature"
       },
       "more": "Altri ({n})",
       "fewer": "Meno",
@@ -1424,7 +1462,8 @@
       "camera": "Telecamera",
       "image": "Immagine",
       "entity": "Entità",
-      "alarm_control_panel": "Pannello allarme"
+      "alarm_control_panel": "Pannello allarme",
+      "lock": "Serratura"
     },
     "displays": {
       "standard": "standard",
@@ -1532,6 +1571,13 @@
         "no_toggle": "Home Assistant non può accendere e spegnere questa entità, quindi un tocco non fa nulla. Scegli un'altra opzione.",
         "toggle_needs_firmware": "Lo schermo accende e spegne questa entità a partire dal firmware 0.2.58: premi Aggiorna per questo schermo. Fino ad allora un tocco apre la sua scheda.",
         "hold": "Tieni premuto il riquadro per aprire la sua scheda."
+      },
+      "guard": {
+        "label": "Sblocco qui",
+        "confirm": "Dopo conferma",
+        "lock_only": "Mai",
+        "confirm_hint": "Una serratura bloccata si apre solo dopo un secondo tocco sul riquadro o sul tasto. Bloccare richiede sempre un tocco.",
+        "lock_only_hint": "Questo schermo può bloccare ma mai sbloccare o aprire. Utile per uno schermo in ingresso, in garage o nella cameretta."
       },
       "sub": {
         "label": "Seconda riga",

@@ -32,6 +32,8 @@ function editRoute(tileId: string) { const tile = state.layout?.tiles.find((item
 // row keeps its own field, so nothing is set that nobody can see.
 const ownTitle = computed(() => count.value > 1 || !!pageTitle(index.value));
 const titleDraft = textDraft(screenTitle, setScreenTitle, true);
+// A page's own title keeps the spaces you type while you type, and is saved without the ones at its ends (app 0.4.2).
+const pageTitleDraft = textDraft(() => page.value?.topbar.title.source === 'text' ? page.value.topbar.title.text : '', (value) => setPageTitle(index.value, value));
 const screenTitleOpen = ref(false);
 const orders = computed(() => (state.document?.pages || []).map((_, at) => [at, String(at + 1)] as [number, string]));
 const barItems = computed(() => topbarItems(index.value));
@@ -46,9 +48,9 @@ const tiles = computed(() => page.value?.tiles.length || 0);
       <Section :title="t('editor.pages.sections.title')" icon="format-title">
         <div v-if="ownTitle" class="f">
           <span class="f-label"><label for="owned-page-title">{{ t('editor.pages.title') }}</label><HelpTip :text="t('editor.pages.title_hint')" /></span>
-          <input id="owned-page-title" :value="page.topbar.title.source === 'text' ? page.topbar.title.text : ''" :placeholder="state.document?.title"
-            maxlength="60" @focus="beginFieldEdit(`page:${id}`)" @blur="endFieldEdit"
-            @input="setPageTitle(index, ($event.target as HTMLInputElement).value)" />
+          <input id="owned-page-title" :value="pageTitleDraft.value.value" :placeholder="state.document?.title"
+            maxlength="60" @focus="beginFieldEdit(`page:${id}`); pageTitleDraft.focus()" @blur="endFieldEdit(); pageTitleDraft.blur()"
+            @input="pageTitleDraft.input(($event.target as HTMLInputElement).value)" />
           <button type="button" class="disclosure" :aria-expanded="screenTitleOpen ? 'true' : 'false'" @click="screenTitleOpen = !screenTitleOpen">
             <Icon :name="screenTitleOpen ? 'chevron-down' : 'chevron-right'" />{{ t('editor.topbar.screen_name') }}
           </button>

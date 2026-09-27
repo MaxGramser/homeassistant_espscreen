@@ -73,8 +73,11 @@ class StateColours(unittest.TestCase):
         # (hui-tile-card._computeStateColor). Under 10 % there is nothing left to lift and it only dims the white,
         # which on a dark card or a card with a colour of its own says what the grey of something off says, so such
         # a lamp keeps the amber of tile_controls::accent (firmware 0.2.98+).
-        self.assertIn('if(d=="light" && on && t.has_hs_color && t.saturation>=10)', TILES)
-        self.assertIn('lv_color_hsv_to_rgb(t.hue%360,t.saturation<40?40:t.saturation,100)', TILES)
+        # Since firmware 0.4.0 the rule lives once in tile_controls::lamp_color, which the lamp page of a group asks
+        # too, with LVGL's own conversion ported bit for bit (tests/test_group_page.cpp checks both).
+        self.assertIn('if(d=="light" && on && t.has_hs_color)\n    accent=tile_controls::lamp_color(t.hue,t.saturation);', TILES)
+        self.assertIn('if (saturation < 10) return theme::ha::AMBER;', CONTROLS)
+        self.assertIn('std::min(100, std::max(40, saturation))', CONTROLS)
 
     def test_an_airco_that_is_off_says_so(self):
         self.assertIn('else if (d == "climate" && t.state == "off") { value = tile_controls::climate_mode_text(t.state);', TILES)

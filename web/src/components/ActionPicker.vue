@@ -3,7 +3,7 @@
 // and one field per value Home Assistant asks for (its selector). An empty field is left out.
 import { computed } from "vue";
 import { t } from "../i18n";
-import { loadEntityActions, markDirty, state, supports } from "../store";
+import { beginFieldEdit, endFieldEdit, loadEntityActions, setTileAction, state, supports } from "../store";
 import type { EntityAction, Tile } from "../types";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
@@ -20,18 +20,17 @@ const rows = computed(() => {
 });
 if (list.value === undefined) loadEntityActions(props.tile.entity);
 
+// Choosing an action stores Perform action with it (app 0.4.0): until then the tile keeps the tap choice it had, so a
+// half-made choice never reaches the document (GitHub #47). The chosen action is the tile's own, from the document.
 function pick(action: EntityAction) {
   const same = action.action === chosen.value?.action;
-  props.tile.options = { ...props.tile.options, action: same ? chosen.value : { action: action.action } };
-  state.actionPickerOpen = false;
-  markDirty();
+  if (setTileAction(props.tile, same && chosen.value ? chosen.value : { action: action.action }) || same) state.actionPickerOpen = false;
 }
 function setField(key: string, value: unknown) {
   const data: Record<string, unknown> = { ...(props.tile.options?.action?.data || {}) };
   if (value === undefined) delete data[key];
   else data[key] = value;
-  props.tile.options = { ...props.tile.options, action: { action: chosen.value!.action, ...(Object.keys(data).length ? { data } : {}) } };
-  markDirty();
+  setTileAction(props.tile, { action: chosen.value!.action, ...(Object.keys(data).length ? { data } : {}) }, `action:${props.tile.id}:${key}`);
 }
 const missing = computed(() => {
   if (!entry.value) return [];
@@ -99,15 +98,15 @@ const unitOf = (field: Field) => configOf(field).unit_of_measurement || (kindOf(
           <UiSelect v-else-if="choicesOf(field)" :aria-label="field.name" :model-value="String(chosen?.data?.[field.key] ?? '')"
             :options="[['', t('editor.action.not_set')], ...choicesOf(field)!] as [string, string][]" @update:model-value="(value) => setField(field.key, value === '' ? undefined : value)" />
           <div v-else-if="kindOf(field) === 'color_rgb'" class="action-number">
-            <input type="color" :aria-label="field.name" :value="colorValue(chosen?.data?.[field.key])" @input="setField(field.key, [1, 3, 5].map((i) => parseInt(($event.target as HTMLInputElement).value.slice(i, i + 2), 16)))" />
+            <input type="color" :aria-label="field.name" @focus="beginFieldEdit(`action:${tile.id}:${field.key}`)" @blur="endFieldEdit()" :value="colorValue(chosen?.data?.[field.key])" @input="setField(field.key, [1, 3, 5].map((i) => parseInt(($event.target as HTMLInputElement).value.slice(i, i + 2), 16)))" />
             <button type="button" class="btn quiet mini" @click="setField(field.key, undefined)">{{ t("editor.action.not_set") }}</button>
           </div>
           <div v-else-if="kindOf(field) === 'number' || kindOf(field) === 'color_temp'" class="action-number">
-            <input type="number" :aria-label="field.name" :min="configOf(field).min" :max="configOf(field).max" :step="configOf(field).step === 'any' ? 'any' : configOf(field).step"
+            <input type="number" :aria-label="field.name" @focus="beginFieldEdit(`action:${tile.id}:${field.key}`)" @blur="endFieldEdit()" :min="configOf(field).min" :max="configOf(field).max" :step="configOf(field).step === 'any' ? 'any' : configOf(field).step"
               :value="chosen?.data?.[field.key] ?? ''" :placeholder="exampleOf(field)" @input="onNumber(field, ($event.target as HTMLInputElement).value)" />
             <span v-if="unitOf(field)">{{ unitOf(field) }}</span>
           </div>
-          <input v-else type="text" :aria-label="field.name" :value="textValue(chosen?.data?.[field.key])" :placeholder="exampleOf(field)" @input="onText(field, ($event.target as HTMLInputElement).value)" />
+          <input v-else type="text" :aria-label="field.name" @focus="beginFieldEdit(`action:${tile.id}:${field.key}`)" @blur="endFieldEdit()" :value="textValue(chosen?.data?.[field.key])" :placeholder="exampleOf(field)" @input="onText(field, ($event.target as HTMLInputElement).value)" />
           <small v-if="field.description" class="help">{{ field.description }}</small>
         </div>
         <small v-if="missing.length" class="warn">{{ t("editor.action.needs", { fields: missing.join(", ") }) }}</small>

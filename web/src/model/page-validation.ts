@@ -51,7 +51,7 @@ export function validatePageShape(layout: PageLayout) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
       fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay'], ['label']);
-      fields(tile.interaction, ['tap', 'inline', 'controls', 'action'], []);
+      fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard'], []);
       const content = tile.content;
       fields(content, ['kind', 'entityId', 'name', 'target'], ['kind']);
       if (content.kind === 'entity') {
@@ -72,11 +72,14 @@ export function validatePageShape(layout: PageLayout) {
 export function validateCardOptions(tile: PageTile, entityId: string, size: string) {
   const a = tile.appearance, i = tile.interaction, domain = entityId.split('.')[0];
   if ('presentation' in a && typeof a.presentation !== 'string') fail('size');
-  if (typeof a.label !== 'string' || bytes(a.label) > 80 || a.label !== a.label.trim()) fail('normalization');
+  // A name too long for the screen says so (app 0.4.1): emoji and accents count their bytes, not their letters.
+  if (typeof a.label === 'string' && bytes(a.label) > 80) throw new Error(t('addon.errors.layout.tile_name'));
+  if (typeof a.label !== 'string' || a.label !== a.label.trim()) fail('normalization');
   const displays = (rules.displays as Record<string, string[]>)[domain] || ['standard', 'watch'];
   const controls = ['none', ...((rules.controls as Record<string, string[]>)[domain] || [])];
   for (const [value, choices] of [[a.display, displays], [a.background, rules.backgrounds], [a.historyHours, [1, 6, 24]],
-    [i.tap, ['auto', 'detail', 'toggle', 'none', 'action']], [i.inline, ['none', 'slider']], [i.controls, controls]] as [any, any[]][])
+    [i.tap, ['auto', 'detail', 'toggle', 'none', 'action']], [i.inline, ['none', 'slider']], [i.controls, controls],
+    [i.guard, domain === 'lock' ? ['confirm', 'lock_only'] : []]] as [any, any[]][])
     if (value !== undefined && !choices.includes(value)) fail();
   if (a.icon !== undefined && !icon(a.icon)) fail();
   if (rules.wideOnly.includes(a.display || '') && !['wide', 'square', 'full'].includes(size)) fail('normalization');
@@ -105,7 +108,8 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     const strings: string[][] = [], templates: string[][] = [];
     for (const [key, value] of Object.entries(data)) {
       if (!matches(/^[a-z0-9_]{1,32}$/, key) || ['entity_id', 'device_id', 'area_id', 'floor_id', 'label_id'].includes(key)) fail();
-      const serialized = JSON.stringify(JSON.stringify(value)).replace(/[^\x00-\x7f]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+      // As core.action_for_screen writes it: JSON with ensure_ascii=False, so é counts its two UTF-8 bytes (app 0.4.1).
+      const serialized = JSON.stringify(JSON.stringify(value));
       const text = typeof value === 'string' ? value : `{{ ${serialized} | from_json }}`;
       if (bytes(text) > 400) fail();
       (typeof value === 'string' ? strings : templates).push([key, text]);
