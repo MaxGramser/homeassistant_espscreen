@@ -136,8 +136,11 @@ def plan(reach, new=frozenset()):
     ahead = {board: version for board, version in ahead.items() if version}
     lines = ['Changed:']
     for path, these in reach.items():
-        what = 'every board' if these == every else ', '.join(sorted(these)) if these else 'no firmware'
-        lines.append(f'  {path}: {what}')
+        if these:
+            lines.append(f'  {path}: {"every board" if these == every else ", ".join(sorted(these))}')
+    others = sum(1 for these in reach.values() if not these)
+    if others:
+        lines.append(f'  {others} other file{"s" if others != 1 else ""}: no firmware')
     lines.append('')
     if reached & set(new):
         added = sorted(reached & set(new))
