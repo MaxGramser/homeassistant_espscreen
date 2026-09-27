@@ -1,3 +1,12 @@
+## 0.3.24 (firmware 0.3.10)
+
+Installing from the browser reaches the newest ESP32-P4 boards.
+
+- **This computer** (install from the browser) now uses esptool-js 0.7. It recognises an ESP32-P4 of revision 3.1 or
+  3.2, as on the Guition JC8012P4A1 V3, and switches its flash on before writing. The older version stopped with "The
+  board didn't answer" on such a board (GitHub #51); Download with ESPHome Web was the way around it until now.
+- No new firmware in this release: update the app; the screens stay as they are.
+
 ## 0.3.23 (firmware 0.3.10)
 
 The 10.1-inch Guition JC8012P4A1 V3, experimental (GitHub #52).
