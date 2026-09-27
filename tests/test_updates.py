@@ -179,7 +179,7 @@ class UpdaterTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(m.updates.pending(), [])
 
     async def test_a_fix_for_one_board_is_offered_to_that_board_alone(self):
-        """A board file that went ahead of the shared firmware (app 0.3.20): its screens are offered its version, a screen
+        """A board file that went ahead of the shared firmware (app 0.3.21): its screens are offered its version, a screen
         of any other board on the shared version is up to date, and the round waits for the board's version."""
         import core
         ahead = '.'.join(map(str, (*parse_version(FIRMWARE_VERSION)[:2], parse_version(FIRMWARE_VERSION)[2] + 1)))

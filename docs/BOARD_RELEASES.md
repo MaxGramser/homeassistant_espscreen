@@ -16,8 +16,12 @@ tools/affected_boards.py
 
 It compares your working tree (commits, staged and unstaged changes, new files) with where your branch left
 `origin/main`, sorts every changed path, and prints the release that follows: the version to set, the CHANGELOG heading
-to write, and the checks to run. `--base <ref>` compares with something else, and `--keys` prints only the board keys
-(that is what `tools/check.sh --affected` uses).
+to write, and the checks to run. `--base <ref>` compares with something else, and `--keys` prints only the board keys.
+`--build-keys` prints the boards a build of the change needs: the same keys, and every board when something every
+build reads changed (`tools/check.sh`, `tools/profiles.py`, `boards.yaml`, `checkout/`, the override fixtures, the CI
+workflow, the add-on's ESPHome in `screen_manager/Dockerfile`, or this tool). That is what `tools/check.sh --affected`
+and CI build. A moved file counts at both its old and its new place. Any error stops with a message and prints no
+keys, and `tools/check.sh` then stops too instead of reading it as "nothing to build".
 
 How a path is sorted:
 

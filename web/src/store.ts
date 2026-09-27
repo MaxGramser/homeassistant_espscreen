@@ -994,7 +994,7 @@ export async function importLayout(text: string) {
 
 // ---- Updates with content (app 0.2.73): what a screen gets, and how far its update is ----
 // The changelog comes with the full inventory only (app 0.2.78): the live payload goes out every few seconds.
-// Each screen has its own target (app 0.3.20): a fix for one board is no update for another, and its notes are not
+// Each screen has its own target (app 0.3.21): a fix for one board is no update for another, and its notes are not
 // what another board gets either.
 export function whatsNew(screen: Screen): string[] {
   const target = screen.update?.target || state.inventory.updates?.target;

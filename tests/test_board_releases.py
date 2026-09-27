@@ -1,4 +1,4 @@
-"""Firmware for one board (app 0.3.20, docs/BOARD_RELEASES.md): which boards a change reaches, what version a board may
+"""Firmware for one board (app 0.3.21, docs/BOARD_RELEASES.md): which boards a change reaches, what version a board may
 state of its own, and the release plan tools/affected_boards.py prints from both.
 
 Standard library and PyYAML only.
@@ -255,6 +255,128 @@ class AForgottenNumber(unittest.TestCase):
             self.assertEqual(affected_boards.unraised({'x': {'waveshare4b'}}, 'base', new={'waveshare4b'}), [])
 
 
+class ReviewFindings(unittest.TestCase):
+    """The review of app 0.3.21's tools (0.3.27): each test failed before its fix."""
+
+    def git_repo(self):
+        """A throwaway repository with one commit holding a component file and a board file."""
+        import subprocess, tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        run = lambda *args: subprocess.run(['git', *args], cwd=root, check=True, capture_output=True)
+        run('init', '-q')
+        run('config', 'user.email', 'test@example.invalid')
+        run('config', 'user.name', 'Test')
+        (root / 'components').mkdir()
+        (root / 'components' / 'panel.h').write_text('// a component\nint panel = 1;\n' * 20)
+        run('add', '-A')
+        run('commit', '-q', '-m', 'base')
+        return root, run
+
+    def test_a_file_moved_out_of_components_still_reaches_every_board(self):
+        """git diff detects renames and then names only the new path: a component moved to tools/ read as no firmware."""
+        root, run = self.git_repo()
+        (root / 'tools').mkdir()
+        run('mv', 'components/panel.h', 'tools/panel.h')
+        with mock.patch.object(affected_boards, 'ROOT', root):
+            paths = affected_boards.changed_paths('HEAD')
+        self.assertIn('components/panel.h', paths)
+        self.assertIn('tools/panel.h', paths)
+        self.assertEqual(reach(*paths)['components/panel.h'], EVERY)
+
+    def test_a_new_board_and_a_core_change_are_a_shared_release(self):
+        """`every` held the new board too, so a shared change next to a new board read as a fix for every other board."""
+        board = 'hosyond40'
+        text = affected_boards.plan(reach('packages/core.yaml', str(profiles.BOARDS[board].relative_to(ROOT))), new={board})
+        self.assertIn(f'New board: {board}', text)
+        self.assertIn('Shared firmware: every board', text)
+        self.assertNotIn('alone', text)
+
+    def test_check_sh_fails_closed_when_the_tool_fails(self):
+        """A crash of tools/affected_boards.py read as "nothing to build" and passed."""
+        import os, subprocess, tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            broken, silent = Path(tmp) / 'broken', Path(tmp) / 'silent'
+            broken.write_text('#!/bin/sh\necho "Traceback: no PyYAML" >&2\nexit 1\n')
+            silent.write_text('#!/bin/sh\nexit 0\n')
+            for script in (broken, silent):
+                script.chmod(0o755)
+            run = lambda python: subprocess.run(['bash', str(ROOT / 'tools/check.sh'), '--firmware', '--affected'],
+                                                cwd=ROOT, capture_output=True, text=True, timeout=60,
+                                                env={**os.environ, 'PYTHON': str(python)})
+            failed = run(broken)
+            self.assertNotEqual(failed.returncode, 0, failed.stdout + failed.stderr)
+            self.assertNotIn('nothing to build', failed.stdout)
+            self.assertIn('affected_boards', failed.stdout + failed.stderr)
+            # A tool that works and finds nothing still means nothing to build.
+            quiet = run(silent)
+            self.assertEqual(quiet.returncode, 0, quiet.stdout + quiet.stderr)
+            self.assertIn('nothing to build', quiet.stdout)
+
+    def test_build_keys_add_what_can_break_a_build(self):
+        """--build-keys (for CI) is --keys plus every board when the build's own tools, entries, fixtures or ESPHome
+        changed; errors exit non-zero with nothing on stdout."""
+        def keys(paths, *extra, known=True):
+            with mock.patch.object(affected_boards, 'known', return_value=known), \
+                 mock.patch.object(affected_boards, 'changed_paths', return_value=paths), \
+                 mock.patch.object(affected_boards, 'only_comments', return_value=False), \
+                 mock.patch.object(affected_boards, 'new_boards', return_value=set()), \
+                 mock.patch('sys.stdout') as out:
+                code = affected_boards.main(['--build-keys', '--base', 'base', *extra])
+            return code, ''.join(call.args[0] for call in out.write.call_args_list).split()
+        every = list(profiles.BOARDS)
+        for path in ('tools/check.sh', 'tools/profiles.py', 'boards.yaml', 'checkout/cyd.yaml', 'checkout/README.md',
+                     'tests/fixtures/overrides/cyd-backlight.yaml', '.github/workflows/ci.yml', 'screen_manager/Dockerfile',
+                     'tools/affected_boards.py', 'tools/firmware_count.py'):
+            self.assertEqual(keys([path]), (0, every), path)
+        self.assertEqual(keys(['docs/BOARD_RELEASES.md', 'web/src/store.ts', 'tools/check_packages.py']), (0, []))
+        self.assertEqual(keys([str(profiles.BOARDS['cyd'].relative_to(ROOT))]), (0, ['cyd']))
+        self.assertEqual(keys([], known=False), (0, every))
+        # --keys keeps sorting for the update offer: the build's tools are no update for a screen.
+        with mock.patch.object(affected_boards, 'known', return_value=True), \
+             mock.patch.object(affected_boards, 'changed_paths', return_value=['tools/check.sh']), \
+             mock.patch.object(affected_boards, 'new_boards', return_value=set()), mock.patch('sys.stdout') as out:
+            affected_boards.main(['--keys', '--base', 'base'])
+        self.assertEqual(''.join(call.args[0] for call in out.write.call_args_list).strip(), '')
+
+    def test_one_reader_and_either_quote(self):
+        """A board file's version in single quotes fell back to the core's in one reader and not in the others."""
+        core, fourb = str(profiles.CORE.relative_to(ROOT)), str(profiles.BOARDS['waveshare4b'].relative_to(ROOT))
+        texts = {core: "substitutions:\n  SCREEN_FIRMWARE_VERSION: '0.4.0'\n",
+                 fourb: "substitutions:\n  BOARD_ID: \"waveshare4b\"\n  SCREEN_FIRMWARE_VERSION: '0.4.1'\n"}
+        versions = affected_boards.built_versions(lambda path: texts.get(path, 'substitutions:\n'))
+        self.assertEqual((versions['waveshare4b'], versions['cyd']), ((0, 4, 1), (0, 4, 0)))
+        self.assertEqual(firmware_count.parse("'0.4.1'"), (0, 4, 1))
+        self.assertIsNone(check_packages.firmware_problem("'0.4.0'", {fourb: "'0.4.1'"}))
+
+    def test_quoting_is_no_comment(self):
+        """`yes` is a bool and `"yes"` a string in the YAML ESPHome reads: that is a change, not layout."""
+        self.assertNotEqual(affected_boards.yaml_tokens('a: yes\n'), affected_boards.yaml_tokens('a: "yes"\n'))
+        self.assertNotEqual(affected_boards.yaml_tokens("a: '1'\n"), affected_boards.yaml_tokens('a: 1\n'))
+        self.assertEqual(affected_boards.yaml_tokens('a: 1   # one\n'), affected_boards.yaml_tokens('a: 1\n'))
+
+    def test_a_base_without_a_version_says_so(self):
+        """next_numbers crashed with AttributeError on a base whose core has no version line."""
+        with self.assertRaisesRegex(affected_boards.NoVersion, 'SCREEN_FIRMWARE_VERSION'):
+            affected_boards.next_numbers((), lambda path: 'substitutions:\n  OTHER: "1"\n')
+        with mock.patch.object(affected_boards, 'known', return_value=True), \
+             mock.patch.object(affected_boards, 'changed_paths', return_value=['packages/core.yaml']), \
+             mock.patch.object(affected_boards, 'only_comments', return_value=False), \
+             mock.patch.object(affected_boards, 'new_boards', return_value=set()), \
+             mock.patch.object(affected_boards, 'read_at', return_value=lambda path: 'substitutions:\n'), \
+             mock.patch('sys.stdout'), mock.patch('sys.stderr') as err:
+            self.assertEqual(affected_boards.main(['--base', 'base']), 2)
+        self.assertIn('SCREEN_FIRMWARE_VERSION', ''.join(call.args[0] for call in err.write.call_args_list))
+
+    def test_a_board_claiming_a_newer_core_is_told_so(self):
+        """The message told a board on a newer core that a shared release took its fix along, which is backwards."""
+        message = check_packages.firmware_problem('0.4.0', {'packages/boards/b.yaml': '0.5.1'})
+        self.assertIn('newer core', message)
+        self.assertNotIn('took', message)
+        self.assertIn('took', check_packages.firmware_problem('0.5.0', {'packages/boards/b.yaml': '0.4.1'}))
+
+
 class TheCount(unittest.TestCase):
     """tools/firmware_count.py, the rule the package check, the plan and the release lint all read."""
     def test_parse_is_strict(self):
@@ -291,9 +413,9 @@ class ABoardsOwnVersion(unittest.TestCase):
         # The same number or lower is no revision.
         self.assertIn('no board revision', problem('0.4.0', {'packages/boards/b.yaml': '0.4.0'}))
         # A shared release took the board along: the old line names another core.
-        self.assertIn('another core', problem('0.5.0', {'packages/boards/b.yaml': '0.4.1'}))
+        self.assertIn('older core', problem('0.5.0', {'packages/boards/b.yaml': '0.4.1'}))
         # A board can't claim a core that has not shipped.
-        self.assertIn('another core', problem('0.4.0', {'packages/boards/b.yaml': '0.5.1'}))
+        self.assertIn('newer core', problem('0.4.0', {'packages/boards/b.yaml': '0.5.1'}))
         self.assertIn('not X.Y.Z', problem('0.4.0', {'packages/boards/b.yaml': '0.4.1-fix'}))
         # The old count, before the core moved to the middle number: a board fix on 0.3.9 is 0.3.10.
         self.assertIsNone(problem('0.3.9', {'packages/boards/b.yaml': '0.3.10'}))
@@ -310,7 +432,7 @@ class ABoardsOwnVersion(unittest.TestCase):
 
     def test_a_board_files_own_version_wins_over_the_cores(self):
         """The precedence the manager's numbers rest on: a board file's substitution over the core's, as ESPHome merges
-        them (docs/PROFILES.md "Which value wins"; checked against a real ESPHome config for app 0.3.20)."""
+        them (docs/PROFILES.md "Which value wins"; checked against a real ESPHome config for app 0.3.21)."""
         board = 'waveshare4b'
         own = profiles.substitutions_of(profiles.BOARDS[board])
         with mock.patch.object(profiles, 'substitutions_of',

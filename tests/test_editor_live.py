@@ -40,7 +40,7 @@ class Changelog(unittest.TestCase):
         self.assertEqual(sections[0]['boards'], [])
 
     def test_a_firmware_for_some_boards_names_them(self):
-        """A fix for one board alone (app 0.3.20): `(firmware x for <board>, <board>)` with the keys of boards.yaml."""
+        """A fix for one board alone (app 0.3.21): `(firmware x for <board>, <board>)` with the keys of boards.yaml."""
         text = '## 0.3.21 (firmware 0.3.11 for waveshare4b, cyd)\n\n- Fix.\n\n## 0.3.20 (firmware 0.3.10 for waveshare4b)\n\n- Fix.\n'
         sections = changelog.parse(text)
         self.assertEqual([(s['firmware'], s['boards']) for s in sections],

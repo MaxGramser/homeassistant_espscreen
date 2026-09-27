@@ -86,8 +86,12 @@ def firmware_problem(shared, own):
         if not board:
             return f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", not X.Y.Z'
         problem = firmware_count.board_problem(core, board)
+        if problem == 'another core' and board[:2] > core[:2]:
+            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", a newer core than the shared {shared}: a board fix '
+                    f'keeps the shared core, {firmware_count.dotted(firmware_count.next_board(core, [board]))} or higher '
+                    f'(docs/BOARD_RELEASES.md)')
         if problem == 'another core':
-            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}" on another core than the shared {shared}: a shared '
+            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}" on an older core than the shared {shared}: a shared '
                     f'release took the board\'s fix along, so remove the line (docs/BOARD_RELEASES.md)')
         if problem:
             return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", which is no board revision above the shared '
@@ -223,9 +227,10 @@ def main():
             fail(f'{path.relative_to(ROOT)} says BOARD_ID "{found}" but the manager knows it as "{board}" '
                  f'(tools/profiles.py): boards.json and the screen would not agree')
 
-    # A board's own firmware version (app 0.3.20, docs/RELEASING.md "Firmware for one board"): only a board file sets
-    # one, and only above the core's. The core's version is what every feature gate compares against, so a board at or
-    # below it would report a firmware it does not have; the next shared release takes the number back out.
+    # A board's own firmware version (app 0.3.21, docs/BOARD_RELEASES.md): only a board file sets one, on the shared
+    # core with a higher revision (firmware_problem). The feature gates compare against the core, so a board on another
+    # core, or at or below the core's number, would report a firmware it does not have; the next shared release takes
+    # the line back out.
     for path in (ROOT / 'packages').rglob('*.yaml'):
         if path != profiles.CORE and path not in boards.values() and 'SCREEN_FIRMWARE_VERSION' in profiles.substitutions_of(path):
             fail(f'{path.relative_to(ROOT)} sets SCREEN_FIRMWARE_VERSION: only packages/core.yaml and a board file do')

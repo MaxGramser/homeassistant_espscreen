@@ -19,7 +19,7 @@ CHANGELOG = ROOT / 'screen_manager/CHANGELOG.md'
 # An app release: "## 0.2.76 (firmware 0.2.63)"; the oldest ones name no firmware. The two "## Firmware 0.2.1x"
 # sections are firmware-only releases between app 0.2.11 and 0.2.12 and carry no app version, so they don't count.
 APP_HEADING = re.compile(r'^## (\d+)\.(\d+)\.(\d+)\b(.*)$', re.M)
-# A firmware for some boards alone names them (app 0.3.20): "(firmware 0.3.10 for waveshare4b)".
+# A firmware for some boards alone names them (app 0.3.21): "(firmware 0.3.10 for waveshare4b)".
 FIRMWARE_IN_HEADING = re.compile(r'\(firmware (\d+\.\d+\.\d+)(?: for ([a-z0-9]+(?:, [a-z0-9]+)*))?\)')
 # The published entries (packages/<board>.yaml) point ${FONT_DIR} at the raw GitHub URL of fonts/ on main.
 FONT_URL = re.compile(r'https://raw\.githubusercontent\.com/MaxGramser/homeassistant_espscreen/[^/\s"\']+/(fonts/[^"\'\s]+)')

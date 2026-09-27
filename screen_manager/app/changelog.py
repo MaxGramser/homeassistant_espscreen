@@ -2,7 +2,7 @@
 
 The Dockerfile copies CHANGELOG.md next to this file; a development checkout has it one folder up.
 Each `## <app> (firmware <fw>)` section gives its bullet lines as plain text, newest first. A firmware for some boards
-alone (app 0.3.20) says which: `## <app> (firmware <fw> for <board>, <board>)`, with the board keys of boards.yaml.
+alone (app 0.3.21) says which: `## <app> (firmware <fw> for <board>, <board>)`, with the board keys of boards.yaml.
 """
 import logging
 import re

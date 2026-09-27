@@ -6,7 +6,7 @@
 #                                    tests, types and build, and whether the editor bundle in Git equals that build
 #   tools/check.sh --firmware        compiles every board profile (tools/profiles.py) and applies the CYD's flash budget
 #   --board KEY                      with --firmware: only this board (repeat for more); a fix for one board builds one
-#   --affected                       with --firmware: only the boards the change reaches (tools/affected_boards.py);
+#   --affected                       with --firmware: only the boards a build of the change needs (affected_boards.py --build-keys);
 #                                    nothing to build when it reaches none (docs/BOARD_RELEASES.md)
 #   tools/check.sh --all             both
 #   tools/check.sh --render          builds every board as a host program (tools/render/run.py): its self test must pass,
@@ -379,8 +379,14 @@ if ((want_fast)); then
 fi
 
 if ((want_firmware && affected)); then
-  # The boards the change reaches (tools/affected_boards.py); none means no firmware changed and nothing needs a build.
-  read -r -a reached <<< "$(cd "$ROOT" && "$PYTHON" tools/affected_boards.py --keys ${CHECK_BASE:+--base "$CHECK_BASE"})"
+  # The boards a build of the change needs (tools/affected_boards.py --build-keys: the boards it reaches, and every board
+  # when the build's own tools, entries, fixtures or ESPHome changed); none means nothing needs a build. A tool that
+  # fails stops the run: an empty answer from a crash would read as "nothing to build" and pass (app 0.3.27).
+  if ! keys=$(cd "$ROOT" && "$PYTHON" tools/affected_boards.py --build-keys ${CHECK_BASE:+--base "$CHECK_BASE"}); then
+    echo "tools/affected_boards.py failed, so which boards to build is unknown: nothing was built." >&2
+    exit 2
+  fi
+  read -r -a reached <<< "$keys"
   only+=(${reached[@]+"${reached[@]}"})
   choosing=1
   if ((${#only[@]} == 0)); then

@@ -7,7 +7,7 @@ import { anyUpdating, autoMarks, go, installClaudeSkill, runUpdateAll, saveLangu
 const u = computed(() => state.inventory.updates);
 const outdated = computed(() => state.inventory.screens.filter((s) => s.update?.available).length);
 const running = computed(() => state.inventory.screens.find((s) => s.update?.state === "running" || state.updating.includes(s.id)));
-// Each screen is offered its own board's firmware (app 0.3.20): one number only when those screens share it.
+// Each screen is offered its own board's firmware (app 0.3.21): one number only when those screens share it.
 const oneTarget = (screens: typeof state.inventory.screens) => {
   const targets = new Set(screens.map((s) => s.update?.target || u.value?.target));
   return targets.size === 1 ? [...targets][0] : null;

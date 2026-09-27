@@ -127,7 +127,7 @@ class Updater:
         return (screen.get('language') if screen.get('language_sensor') else 'en') == region.language()
 
     def target_for(self, screen, profiles=None):
-        """The firmware this screen is offered (app 0.3.20): its board's (core.firmware_target), so a fix for one board is
+        """The firmware this screen is offered (app 0.3.21): its board's (core.firmware_target), so a fix for one board is
         no update for the others. The board is the one its profile builds, because that is what an update flashes;
         without a profile here, the board the screen reports."""
         if profiles is None:
@@ -157,7 +157,7 @@ class Updater:
 
     def summary(self, screens=None, profiles=None):
         # The changelog goes with the full inventory only (app 0.2.78): this summary is in every live update of the page.
-        # `target` is the shared version; what one screen is offered is its own `update.target` (app 0.3.20).
+        # `target` is the shared version; what one screen is offered is its own `update.target` (app 0.3.21).
         return {'auto': self.auto, 'target': FIRMWARE_VERSION, 'busy': self.current,
                 'pending': len(self.pending(screens, profiles)), 'last_round': self.last_round}
 

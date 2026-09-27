@@ -18,8 +18,9 @@ NUMBER = re.compile(r'(\d+)\.(\d+)\.(\d+)')
 
 
 def parse(text):
-    """(X, Y, Z) of a strict "X.Y.Z" (quotes around it allowed, as YAML writes it); None for anything else."""
-    match = NUMBER.fullmatch(str(text).strip().strip('"')) if text is not None else None
+    """(X, Y, Z) of a strict "X.Y.Z" (either kind of quote around it allowed, as YAML writes it); None for anything
+    else."""
+    match = NUMBER.fullmatch(str(text).strip().strip('"\'')) if text is not None else None
     return tuple(int(part) for part in match.groups()) if match else None
 
 

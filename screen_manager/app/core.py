@@ -387,7 +387,7 @@ BOARD_KEYS = tuple(sorted((board for board, shape in SHAPES.items() if shape.get
 DEFAULT_SHAPE = SHAPES.get('cyd', {'width': 320, 'height': 240, 'columns': 2, 'rows': 3})
 
 def firmware_target(board):
-    """The firmware a screen of this board is offered (app 0.3.20): what a build of the board makes today, boards.json's
+    """The firmware a screen of this board is offered (app 0.3.21): what a build of the board makes today, boards.json's
     `firmware`, and never less than the shared FIRMWARE_VERSION; an unknown board gets the shared one. A board that went
     ahead with a fix of its own (its board file sets SCREEN_FIRMWARE_VERSION) is the only one offered that update. A
     number reads as core and board (firmware 0.4.0+): 0.4.2 is core 4 with the board's second fix, so it passes the

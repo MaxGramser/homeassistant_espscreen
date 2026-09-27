@@ -162,7 +162,7 @@ def shapes():
                  # The chip it is built for, for the browser flasher's check of the board on the cable.
                  'chip': chip_of(board),
                  # The firmware a screen of this board builds today: the core's version, or the board file's own when
-                 # a fix for this board alone went out after it (docs/RELEASING.md, "Firmware for one board"). The
+                 # a fix for this board alone went out after it (docs/BOARD_RELEASES.md). The
                  # update offer goes by it, so a fix for one board is not an update for every other one.
                  'firmware': values['SCREEN_FIRMWARE_VERSION'].strip('"')}
         # A board that draws camera pictures includes features/camera.yaml, which states the canvas they fill
