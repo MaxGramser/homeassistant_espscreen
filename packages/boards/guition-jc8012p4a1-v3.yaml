@@ -1,0 +1,92 @@
+# ESP Screens - Guition JC8012P4A1 "V3" board, EXPERIMENTAL: the 10.1-inch JC8012P4A1 as Guition ships it now, with
+# rev3 ESP32-P4 silicon and a newer LCD behind the same JD9365 driver. 1280x800 MIPI-DSI + GSL3680 capacitive touch,
+# on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# 1280x800 at 149 dpi, the standard look, a grid of 5 x 4 cells of 240 x 162 px. The panel itself is
+# 800x1280 (portrait); LVGL turns the picture and the touch a quarter, as it does on the CYD.
+# Everything but the chip revision and the LCD is the first JC8012P4A1's (packages/hardware/guition-jc8012p4a1.yaml), so
+# this file differs from guition-jc8012p4a1.yaml only there. The first build's firmware restarts a V3 straight after
+# its bootloader, over and over (CHIP_LP_WDT_RESET, GitHub issue #52), which is how someone finds out which of the two
+# they have. docs/JC8012P4A1.md has what to check on the glass.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/jc8012p4a1v3.yaml (a build on this computer) and
+# packages/jc8012p4a1v3.yaml (the package a screen builds from over GitHub).
+packages:
+  # The board apart from its chip revision and its LCD: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch) and
+  # the GSL3680, the same as on the first build.
+  hardware: !include ../hardware/guition-jc8012p4a1.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/20.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc8012p4a1v3"
+  DEVICE_NAME: "jc8012p4a1v3-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 10 V3"
+
+  # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
+  # touch together, so nothing else on this board knows which way the glass hangs. 1509 diagonal pixels over
+  # 10.1 inches: the look scales its sizes by the exact density, the firmware by the nearest whole number.
+  PANEL_W: "800"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "149.44920605238187"
+  # The LVGL angle that lays this panel out lying down (1280 x 800). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # ESPHome's own preset for this panel (touchscreen: platform: gsl3670, model: GUITION-JC8012P4A1) reads the
+  # glass as the panel is built: turned a quarter against the picture. LVGL then turns picture and touch
+  # together (LVGL_ROTATION), as it does on the CYD.
+  TOUCH_SWAP_XY: "true"
+  TOUCH_MIRROR_X: "true"
+  # The tile grid: columns and rows of cells. The shared tree places every cell from these
+  # (runtime_tiles::place_page), so a board with more room states more columns or rows.
+  GRID_COLS: "5"
+  GRID_ROWS: "4"
+  # The cells of a page when this screen stands up (firmware 0.2.92+).
+  # The 10.1-inch glass is 136 x 218 mm standing up: four columns of 31 mm and five rows of 38 mm. A cell that
+  # tall carries the stacked card (the icon above the name), which is what a big button on a wall wants.
+  # Twenty cells is also what this board carries lying down, so standing up costs it no card and no memory.
+  # Denser is possible here: eight rows of 23 mm would hold 32 cards a page, two pages within the 64 tiles a
+  # screen holds, and asks for packages/cells/32.yaml and 32 cards on every JC8012P4A1, this one included.
+  GRID_COLS_PORTRAIT: "4"
+  GRID_ROWS_PORTRAIT: "5"
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its touch
+  # platform (gsl3670) arrived in 2026.7.0 and that platform's `model: GUITION-JC8012P4A1` in 2026.8.0, which is
+  # what packages/hardware/guition-jc8012p4a1.yaml uses. A board file's min_version wins over the core's, so the CYD, the Guition and the
+  # Waveshare keep building on an older ESPHome; only a 10.1-inch screen asks for 2026.8 or newer.
+  # docs/RELEASING.md says why the packages stay behind the add-on's ESPHome.
+  min_version: 2026.8.0
+
+# Rev3 silicon: the boot ROM of this board reports "esp32p4-eco7". The first build's chips are pre-v3, which
+# packages/hardware/guition-esp32p4.yaml builds for; ESP-IDF lays out memory differently for the two and a pre-v3
+# firmware restarts a rev3 chip straight after its bootloader (CHIP_LP_WDT_RESET, GitHub issue #52). This board file's
+# value wins over that file's. The CPU stays at 360 MHz, as the community configurations for this board run it.
+esp32:
+  engineering_sample: false
+
+# ESPHome's own mipi_dsi platform knows the newer LCD by name (2026.8.0+): `model: JC8012P4A1-V2` brings the JD9365's
+# init sequence for it, its timings and its reset pin. ESPHome's "V2" is the LCD, not Guition's board label; the
+# community configurations for V3 boards run this LCD's table. The panel is 800x1280; LVGL turns it a quarter
+# (LVGL_ROTATION).
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: JC8012P4A1-V2
+    dimensions: {width: 800, height: 1280}
+    lanes: 2
+    update_interval: never
+    auto_clear_enabled: false

@@ -3,6 +3,8 @@
 #
 # 1280x800 at 149 dpi, the standard look, a grid of 5 x 4 cells of 240 x 162 px. The panel itself is
 # 800x1280 (portrait); LVGL turns the picture and the touch a quarter, as it does on the CYD.
+# This is the first build of the board, with a pre-v3 ESP32-P4 ("chip revision: v1.3" in the boot log). A board sold
+# as "V3" carries rev3 silicon and a newer LCD and needs guition-jc8012p4a1-v3.yaml instead (docs/JC8012P4A1.md).
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board

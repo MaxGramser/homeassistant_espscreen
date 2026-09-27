@@ -16,7 +16,7 @@ ESPHome supports many panels by name, and then one line sets the pins, the timin
 |---|---|---|
 | `mipi_spi` | small SPI panels | `ESP32-2432S028` (the CYD), `JC4827W543`, `WT32-SC01-PLUS`, `T-DISPLAY-S3` |
 | `mipi_rgb` | 16-bit parallel panels | `ST7701S` with a board's own pins (the Waveshare 4B), `GUITION-4848S040`, `ESP32-S3-TOUCH-LCD-4.3`, `ESP32-S3-TOUCH-LCD-7-800X480`, `ESP32-8048S070`, `WAVESHARE-5-1024X600` |
-| `mipi_dsi` | ESP32-P4 panels | `WAVESHARE-P4-86-PANEL`, `M5STACK-TAB5`, `JC8012P4A1`, `JC1060P470` |
+| `mipi_dsi` | ESP32-P4 panels | `WAVESHARE-P4-86-PANEL`, `M5STACK-TAB5`, `JC8012P4A1`, `JC8012P4A1-V2`, `JC1060P470` |
 
 A board that is not in those lists needs its pins, its init sequence and its timings from the manufacturer's
 example, which is the one genuinely difficult part of a new board.
@@ -134,5 +134,17 @@ differs between boards sold under one name, the `choices` someone makes when a s
 Screens needs: New screen and the screen list draw every board from the catalog and the board's own files (the size in
 inches from its pixels and density, the touch controller from its `touchscreen:`, a touch calibration on the first
 start from `features/resistive-touch.yaml`), so no board is written into the editor or its translations. After a
-change to its board file, run `tools/generate_cells.py` and `tools/generate_board_shapes.py` again, and
-`tools/check.sh --all --render`, which from then on checks, compiles and renders it with the others.
+change to its board file, run `tools/generate_cells.py` and `tools/generate_board_shapes.py` again, and after its
+`boards.yaml` entry `tools/generate_issue_templates.py`, which lists it in the board dropdown of the GitHub issue forms.
+
+## 8. Release it
+
+A new board is a release of the app, not of the firmware: no screen runs it yet, and it builds the shared firmware
+from main like every other board. So it takes no firmware number of its own, the shared number stays, and no other
+screen is offered an update. `tools/affected_boards.py` should say "New board" and nothing else; if it names an
+existing board, part of the change reaches that board and is a release of its own. docs/BOARD_RELEASES.md ("A new
+board") has the steps. The checks are `tools/check.sh`, `tools/check.sh --firmware --board <key>` and
+`tools/render/run.py <key>`; the other boards need no build.
+
+A later fix for this board alone gets its own firmware number in its board file, so only its screens are offered it
+(docs/BOARD_RELEASES.md, "A fix for one board").

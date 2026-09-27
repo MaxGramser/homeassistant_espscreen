@@ -1754,6 +1754,8 @@
         "no_screens": "No screen paired yet. New screens get firmware {version}.",
         "available": "Firmware {version} is available for {n} screen. | Firmware {version} is available for {n} screens.",
         "current": "All screens have firmware {version}.",
+        "available_mixed": "An update is available for {n} screen. | An update is available for {n} screens.",
+        "current_mixed": "All screens are up to date.",
         "all": "Update 1 screen | Update all {n} screens",
         "whats_new": "What's new in firmware {version}",
         "auto_label": "Update automatically every night",

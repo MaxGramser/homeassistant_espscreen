@@ -32,7 +32,9 @@
    `npm ci`, `npm test`, `npm run check` and `npm run build`, and fails when that fresh build differs from the
    `screen_manager/app/static` in Git (committed or staged). For a firmware change, `tools/check.sh --firmware`
    compiles every board profile with placeholder secrets from a temporary folder (never the real `secrets.yaml`) and
-   applies the flash budget below; `--all` does both. `tools/check.sh --render` builds every board as a program for
+   applies the flash budget below; `--all` does both. A change that reaches one board or a few builds only those:
+   `--firmware --affected` (the boards `tools/affected_boards.py` finds) or `--firmware --board <key>`
+   (docs/BOARD_RELEASES.md). `tools/check.sh --render` builds every board as a program for
    this computer (tools/render/run.py, needs SDL2): its self test must pass lying down and standing up, and it saves
    what every board draws under `.esphome/render/out`. CI (`.github/workflows/ci.yml`) runs the same script on every
    push and pull request to main, and its render job compares the renders with the commit before (the `renders`
@@ -56,8 +58,8 @@
    |---|---|
    | up to 90 % | normal |
    | 90-93 % | tight: every release states its flash delta; a delta over 8 KB needs a matching saving or Max's OK |
-   | 93-95 % | only fixes ship |
-   | over 95 % | never: that keeps about 90 KB for ESPHome upgrades and users' own overrides |
+   | 93-97 % | only fixes ship |
+   | over 97 % | never: that keeps about 55 KB for ESPHome upgrades and users' own overrides |
 
    **The Xtensa literal range** (app 0.3.8). On the ESP32 and the ESP32-S3 an `l32r` instruction loads a constant
    from at most 256 KB back, and ESP-IDF puts a function's literals in front of the code that follows them. Every
@@ -70,11 +72,14 @@
 3. Test app start, saving, restarting/updating with existing layouts,
    reconnecting to HA, and an ESP restart. Test a new card on real
    hardware. A good build doesn't replace physical touch acceptance.
-4. Bump the app version and firmware project version; write the CHANGELOG and concrete
-   test results. Only publish compatible changes directly to main. `tests/test_release_lint.py`
-   (part of `tools/check.sh`) holds `config.yaml`'s version, the first CHANGELOG heading and its
-   firmware against `FIRMWARE_VERSION`, keeps the CHANGELOG headings unique and newest first, and checks
-   that every `fonts/...` file the packages fetch from GitHub is in the tree.
+4. Bump the app version and, for a firmware change, the firmware number; write the CHANGELOG and concrete
+   test results. Which firmware number goes where depends on the boards the change reaches: the shared one in
+   `packages/core.yaml` and `FIRMWARE_VERSION`, or a board file's own for a fix for that board alone.
+   `tools/affected_boards.py` prints the number and the heading, and docs/BOARD_RELEASES.md is the recipe.
+   Only publish compatible changes directly to main. `tests/test_release_lint.py`
+   (part of `tools/check.sh`) holds `config.yaml`'s version, the first CHANGELOG heading and the
+   firmware it names, keeps the CHANGELOG headings unique and newest first, holds the firmware numbers to core and
+   board (a shared release the next X.Y.0, a board fix a revision on it), and checks that every `fonts/...` file the packages fetch from GitHub is in the tree.
 5. Commit and push main (the only release branch). Create an immutable tag
    `screens-vX.Y.Z` from the same commit, and a GitHub release on that tag with the release notes in English
    (`gh release create screens-vX.Y.Z --notes-file ...`). Test the remote YAML in an empty folder:
@@ -207,11 +212,12 @@ new field is needed for it. No changed preferences or keys.
 
 ### Compatibility 0.2.16 / firmware 0.2.17
 
-`FIRMWARE_VERSION` in `screen_manager/app/core.py` is the firmware that belongs to this
+`FIRMWARE_VERSION` in `screen_manager/app/core.py` is the shared firmware that belongs to this
 app; `tests/test_updates.py` requires it to equal
 `SCREEN_FIRMWARE_VERSION` in both board profiles and packages (since app 0.2.84 one line in
 `packages/core.yaml` that every board and package takes). Bump them together.
-A screen with a lower `Schermfirmware` gets an update offer; a build
+Since app 0.3.20 a board file can go ahead with a number of its own after a fix for that board alone, and a screen
+is offered its board's number (docs/BOARD_RELEASES.md); a screen below that gets an update offer. A build
 fetches `main`, so publish firmware and app in the same commit.
 
 Firmware 0.2.17 adds the diagnostic text sensors `Apparaatnaam`

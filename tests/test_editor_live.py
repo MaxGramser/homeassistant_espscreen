@@ -37,6 +37,14 @@ class Changelog(unittest.TestCase):
         self.assertEqual([(s['app'], s['firmware']) for s in sections], [('0.2.74', '0.2.62'), ('0.2.71', '0.2.60')])
         self.assertEqual(sections[0]['lines'], ['One workspace. Sidebar, pages, library with code.', 'Second line.'])
         self.assertEqual(changelog.parse(SAMPLE, limit=1)[0]['app'], '0.2.74')
+        self.assertEqual(sections[0]['boards'], [])
+
+    def test_a_firmware_for_some_boards_names_them(self):
+        """A fix for one board alone (app 0.3.20): `(firmware x for <board>, <board>)` with the keys of boards.yaml."""
+        text = '## 0.3.21 (firmware 0.3.11 for waveshare4b, cyd)\n\n- Fix.\n\n## 0.3.20 (firmware 0.3.10 for waveshare4b)\n\n- Fix.\n'
+        sections = changelog.parse(text)
+        self.assertEqual([(s['firmware'], s['boards']) for s in sections],
+                         [('0.3.11', ['waveshare4b', 'cyd']), ('0.3.10', ['waveshare4b'])])
 
     def test_italics_go_and_lone_asterisks_and_code_stay(self):
         # What's new showed "*Full page*" (app 0.2.78).
@@ -211,7 +219,7 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         inventory = await (await self.client.get('/api/inventory')).json()
         sections = inventory['changelog']
         self.assertTrue(sections)
-        self.assertEqual(set(sections[0]), {'app', 'firmware', 'lines'})
+        self.assertEqual(set(sections[0]), {'app', 'firmware', 'boards', 'lines'})
         self.assertNotIn('changelog', inventory['updates'])
         light = await (await self.client.get('/api/inventory?light=1')).json()
         self.assertNotIn('changelog', light)

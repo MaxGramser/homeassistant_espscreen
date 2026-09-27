@@ -5,6 +5,11 @@ This is the **ESP32-S3-Touch-LCD-4B**: a 4-inch 480 x 480 IPS panel with an ST77
 touch, 8 MB octal PSRAM and 16 MB flash. It is not the older ESP32-S3-Touch-LCD-4 without the "B", which has other pins.
 Physical acceptance has not been performed.
 
+Up to firmware 0.3.9 this board started without its tiles: a light page with only the page buttons, and every save
+answered with "Use the Easy Setup profile". Its board file had a boot step of its own that replaced the shared boot
+steps (docs/PROFILES.md, "Which value wins"). Firmware 0.3.10 removes it; ESPHome prepares the panel's setup lines by
+itself. Update such a screen to 0.3.10 or later.
+
 ## Install
 
 Update ESP Screen Manager and choose **Waveshare · 4 inch** (ESP32-S3-Touch-LCD-4B, marked Experimental) in **New screen**.

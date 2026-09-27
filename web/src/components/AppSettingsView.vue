@@ -6,14 +6,25 @@ import { anyUpdating, autoMarks, go, installClaudeSkill, runUpdateAll, saveLangu
 
 const u = computed(() => state.inventory.updates);
 const outdated = computed(() => state.inventory.screens.filter((s) => s.update?.available).length);
-const updatesHint = computed(() => !u.value ? "" : u.value.busy
-  ? t("editor.settings.updates.busy", { version: u.value.target })
-  : !state.inventory.screens.length
-    ? t("editor.settings.updates.no_screens", { version: u.value.target })
-    : outdated.value
-      ? t("editor.settings.updates.available", { version: u.value.target }, outdated.value)
-      : t("editor.settings.updates.current", { version: u.value.target }));
 const running = computed(() => state.inventory.screens.find((s) => s.update?.state === "running" || state.updating.includes(s.id)));
+// Each screen is offered its own board's firmware (app 0.3.20): one number only when those screens share it.
+const oneTarget = (screens: typeof state.inventory.screens) => {
+  const targets = new Set(screens.map((s) => s.update?.target || u.value?.target));
+  return targets.size === 1 ? [...targets][0] : null;
+};
+const updatesHint = computed(() => {
+  if (!u.value) return "";
+  const screens = state.inventory.screens;
+  if (u.value.busy) return t("editor.settings.updates.busy", { version: running.value?.update?.target || u.value.target });
+  if (!screens.length) return t("editor.settings.updates.no_screens", { version: u.value.target });
+  if (outdated.value) {
+    const version = oneTarget(screens.filter((s) => s.update?.available));
+    return version ? t("editor.settings.updates.available", { version }, outdated.value)
+      : t("editor.settings.updates.available_mixed", {}, outdated.value);
+  }
+  const version = oneTarget(screens);
+  return version ? t("editor.settings.updates.current", { version }) : t("editor.settings.updates.current_mixed");
+});
 const progress = computed(() => (running.value ? updateProgress(running.value) : null));
 const logTail = computed(() => (state.firmwareJob?.logs || []).slice(-12).join("\n"));
 // What the current firmware brings: the changelog sections that mention it.

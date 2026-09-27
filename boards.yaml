@@ -46,6 +46,12 @@ jc8012p4a1:
   model: JC8012P4A1
   status: new
 
+jc8012p4a1v3:
+  file: guition-jc8012p4a1-v3.yaml
+  name: Guition
+  model: JC8012P4A1 V3
+  status: experimental
+
 waveshare7:
   file: waveshare-esp32s3-7.yaml
   name: Waveshare

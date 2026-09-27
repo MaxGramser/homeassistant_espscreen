@@ -1,0 +1,70 @@
+# The Screen Manager image (screen_manager/Dockerfile) built on every push to main, every release tag and every pull request, for both architectures
+# the app ships (config.yaml `arch`). A push publishes it to the GitHub Container Registry, so a Docker install
+# (docs/DOCKER.md) can pull it instead of building from the Git context. A pull request and a fork only build it:
+# a fork's token can't write this repository's packages, and a fork's own pushes shouldn't fill its owner's registry.
+name: Docker image
+
+on:
+  push:
+    branches: [main]
+    tags: ["screens-v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  PUSH: ${{ github.event_name != 'pull_request' && !github.event.repository.fork }}
+
+jobs:
+  image:
+    name: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # The app's version from screen_manager/config.yaml, the same number Home Assistant shows.
+      - name: App version
+        id: app
+        run: |
+          version=$(sed -n 's/^version: "\(.*\)"$/\1/p' screen_manager/config.yaml)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: env.PUSH == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # latest follows main; every commit also gets its sha, a branch its name, and main the app version.
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.app.outputs.version }},enable={{is_default_branch}}
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=sha,format=long
+      - uses: docker/build-push-action@v6
+        with:
+          context: screen_manager
+          platforms: linux/amd64,linux/arm64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_VERSION=${{ steps.app.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

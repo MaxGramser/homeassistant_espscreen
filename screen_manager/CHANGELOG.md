@@ -1,3 +1,50 @@
+## 0.3.24 (firmware 0.3.10)
+
+Installing from the browser reaches the newest ESP32-P4 boards.
+
+- **This computer** (install from the browser) now uses esptool-js 0.7. It recognises an ESP32-P4 of revision 3.1 or
+  3.2, as on the Guition JC8012P4A1 V3, and switches its flash on before writing. The older version stopped with "The
+  board didn't answer" on such a board (GitHub #51); Download with ESPHome Web was the way around it until now.
+- No new firmware in this release: update the app; the screens stay as they are.
+
+## 0.3.23 (firmware 0.3.10)
+
+The 10.1-inch Guition JC8012P4A1 V3, experimental (GitHub #52).
+
+- **New screen** offers the Guition JC8012P4A1 V3. The V3 has a newer ESP32-P4 (revision 3) and a newer LCD, and the
+  firmware of the first JC8012P4A1 does not start on it: the board restarts right after its bootloader, over and over.
+  The V3 firmware is built for its chip and drives its LCD with ESPHome's own panel settings. It is built and rendered
+  but not yet tried on the glass: please report how it runs (docs/JC8012P4A1.md says how to tell the two apart and what
+  to check).
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
+## 0.3.22 (firmware 0.3.10)
+
+A ready Docker image, so a Docker install no longer needs git.
+
+- **Docker image.** GitHub now builds the app's image for amd64 and arm64 on every change to main and publishes
+  it as `ghcr.io/maxgramser/homeassistant_espscreen`. `docker/compose.yaml` pulls it instead of building from Git,
+  which also makes it work in Synology Container Manager (GitHub #32). Thanks to @sriramsv (#53).
+- No new firmware in this release: update the app; the screens stay as they are.
+
+## 0.3.21 (firmware 0.3.10)
+
+A firmware number per board: a fix for one board is no longer an update for every screen.
+
+- **Firmware per board.** A fix for one board alone now gets a number for that board only, and every other screen
+  stays up to date. A new board needs no firmware update at all. From the next shared firmware, 0.4.0, the number
+  reads as core and board: 0.4.0 is core 4, and a fix for one board becomes 0.4.1, 0.4.2 for that board.
+- **Updates.** Each screen is offered its own board's firmware, What's new shows only what its board gets, and the
+  nightly round only flashes the screens that have something new.
+- No new firmware in this release: update the app; the screens stay as they are.
+
+## 0.3.20 (firmware 0.3.10)
+
+The Waveshare ESP32-S3-Touch-LCD-4B takes its tiles.
+
+- **Waveshare 4B.** The board's own boot step replaced the shared one, so the screen started without its tiles: a light page with only the page buttons, and every save answered with "Use the Easy Setup profile". That step is gone (ESPHome prepares the panel's lines by itself) and a check keeps every board from replacing the shared boot steps again. The board is still experimental.
+- Update the Tessera Screen Manager app, then update a Waveshare 4B to firmware 0.3.10. Other screens gain nothing from this firmware.
+
 ## 0.3.19 (firmware 0.3.9)
 
 A calmer editor: every setting has one place, and the pages and panels read at a glance.

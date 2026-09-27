@@ -1,0 +1,79 @@
+name: Bug report
+description: Something isn't working, a screen, the add-on, or the editor.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Please fill in as much as you can, it saves a lot of back and forth.
+  - type: dropdown
+    id: board
+    attributes:
+      label: Board
+      description: Which board is this about?
+      options:
+        - CYD (ESP32-2432S028)
+        - Guition (ESP32-S3-4848S040)
+        - Waveshare (ESP32-S3-Touch-LCD-4.3)
+        - Guition (JC8012P4A1)
+        - Guition (JC8012P4A1 V3)
+        - Waveshare (ESP32-S3-Touch-LCD-7)
+        - Waveshare (ESP32-S3-Touch-LCD-4B)
+        - Waveshare (ESP32-S3-Touch-LCD-3.5)
+        - Guition (JC1060P470)
+        - Guition (JC1060P470 V2)
+        - Hosyond (ESP32-32E E32R40T)
+        - Guition (JC3248W535)
+        - Other / not listed here
+        - Not board-specific (add-on, editor, documentation)
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Add-on and firmware version
+      description: The add-on version from Settings > Add-ons > ESP Screen Manager, and the firmware version shown on the screen's own Settings page (or in the ESPHome logs).
+      placeholder: "e.g. add-on 0.3.19, firmware 0.3.9"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Describe the problem you are seeing.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do, in order, right before the problem showed up?
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots, or a photo of the screen
+      description: Add-on logs, ESPHome logs, screenshots of the editor, or a photo of the physical screen. Drag and drop files here.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the README, README_EXTENDED.md, and the guides under docs/ for this
+          required: true
+        - label: I searched the existing issues and this has not already been reported
+          required: true

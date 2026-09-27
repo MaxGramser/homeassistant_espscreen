@@ -1,7 +1,8 @@
 """What's new for the Update badge (app 0.2.73): the CHANGELOG sections since a screen's firmware.
 
 The Dockerfile copies CHANGELOG.md next to this file; a development checkout has it one folder up.
-Each `## <app> (firmware <fw>)` section gives its bullet lines as plain text, newest first.
+Each `## <app> (firmware <fw>)` section gives its bullet lines as plain text, newest first. A firmware for some boards
+alone (app 0.3.20) says which: `## <app> (firmware <fw> for <board>, <board>)`, with the board keys of boards.yaml.
 """
 import logging
 import re
@@ -9,7 +10,7 @@ from pathlib import Path
 
 LOG = logging.getLogger('screen_manager')
 
-HEADER = re.compile(r'^## (\d+\.\d+\.\d+) \(firmware (\d+\.\d+\.\d+)\)')
+HEADER = re.compile(r'^## (\d+\.\d+\.\d+) \(firmware (\d+\.\d+\.\d+)(?: for ([a-z0-9]+(?:, [a-z0-9]+)*))?\)')
 # A heading of level one or two ends a section; a `### ` inside one doesn't.
 SECTION_END = re.compile(r'^#{1,2}(\s|$)')
 BULLET = re.compile(r'^[-*+]\s+(.*)$')
@@ -50,7 +51,9 @@ def parse(text, limit=20):
             item, match = None, HEADER.match(line)
             if match and len(sections) >= limit:
                 return sections
-            current = {'app': match.group(1), 'firmware': match.group(2), 'lines': []} if match else None
+            # `boards`: the boards this firmware is for; empty for the shared firmware every board builds.
+            current = ({'app': match.group(1), 'firmware': match.group(2),
+                        'boards': match.group(3).split(', ') if match.group(3) else [], 'lines': []} if match else None)
             if current:
                 sections.append(current)
         elif (bullet := BULLET.match(line)) and current is not None:

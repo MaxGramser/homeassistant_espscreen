@@ -17,7 +17,7 @@ numbers.
 | `packages/core.yaml` | Everything every screen shares: the LVGL tree (tiles, cards, overlays, the touch test page), the scripts, the API actions, the entities, the fonts, the globals, the Rotation select. It names no board and no hardware, and gives a default for every value a board may change. | The entry files |
 | `packages/looks/` | How big everything is: `standard.yaml` (drawn on the 4-inch Guition at 170 dpi) and `compact.yaml` (drawn on the CYD at 143 dpi). Every size is written at the look's own density and scaled to the board's `DISPLAY_DPI`, so a tile, a letter and a key keep their size in millimetres. | Every board, exactly one |
 | `packages/features/` | What a board can do, once for every board that can: `capacitive-touch.yaml` or `resistive-touch.yaml` (how its touch panel is read), `backlight.yaml` (a backlight the firmware dims) and `backlight-always-on.yaml` (one that must never go dark), `camera.yaml` (camera images, needs PSRAM), `self-test.yaml` (the UI self test with its geometry check), `snapshot.yaml` (a picture of the screen over the log). | Board files |
-| `packages/hardware/` | Hardware that several boards share: `esp-idf.yaml` (how every firmware is built), `esp32s3-rgb.yaml` (an ESP32-S3 with octal PSRAM driving an RGB panel), `waveshare-ch422g.yaml` (the Waveshare boards whose panel, touch and backlight hang on a CH422G expander). | Board files, and each other |
+| `packages/hardware/` | Hardware that several boards share: `esp-idf.yaml` (how every firmware is built), `esp32s3-rgb.yaml` (an ESP32-S3 with octal PSRAM driving an RGB panel), `waveshare-ch422g.yaml` (the Waveshare boards whose panel, touch and backlight hang on a CH422G expander), `guition-esp32p4.yaml` (the Guition ESP32-P4 boards with an ESP32-C6 for Wi-Fi) and the Guition boards on it, `guition-jc1060p470.yaml` and `guition-jc8012p4a1.yaml`. | Board files, and each other |
 | `packages/boards/` | One board: its word (`BOARD_ID`), its glass (`PANEL_W`, `PANEL_H`, `DISPLAY_DPI`, `ROTATION_LANDSCAPE`), its grid, its draw buffer, the packages it includes, and its own hardware sections. | The entry files |
 | `packages/cells/` | The cards of a grid, one per cell, written by `tools/generate_cells.py`. | Board files |
 | `packages/<board>.yaml` | The entry a screen installed from ESP Screens builds from over GitHub. ESP Screen Manager writes every screen's YAML with `files: [packages/<board>.yaml]`, so these names never change. | A screen's own YAML |
@@ -70,7 +70,17 @@ repeats what the board would get anyway: a change to a default then reaches that
 A mapping merges key by key. A list of components with ids merges by id: `!extend` adds to a widget, a script or a
 component defined anywhere in the chain, and `!remove` takes one away (`backlight-always-on.yaml` removes the
 `alert_flash` of `backlight.yaml` and defines its own). Any other list is joined, the earlier file's items first.
+A list and a mapping under the same key are not joined: the later one replaces the other whole. That is why a board
+file has no `esphome: on_boot:` of its own. The core writes its boot steps as one trigger, and a board's list there
+threw all of them away (the Waveshare 4B up to firmware 0.3.9 never took its tiles); `tools/check_packages.py`
+refuses it. A step that belongs to one board's hardware goes in that board's own sections, or in a hook.
 `esphome config checkout/<board>.yaml` shows the result.
+
+The firmware version is one of these values too. `SCREEN_FIRMWARE_VERSION` in the core is the version every board
+builds; a board file may set its own under `BOARD_ID` after a fix for that board alone (the core's 0.4.0 becomes
+0.4.1 for that board), and that board then builds and reports its own number (docs/BOARD_RELEASES.md). Only the core
+and a board file may set it, and a board's own number keeps the core's X.Y with a higher last number;
+`tools/check_packages.py` holds both.
 
 ## Sizes: the look works them out
 

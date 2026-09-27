@@ -46,21 +46,6 @@ substitutions:
 # No need to edit below this line.
 # ============================================================
 
-esphome:
-  # The panel's setup travels over three lines of the TCA9554 (CS on EXIO0, data on EXIO1, clock on EXIO2), bit by
-  # bit through the expander. Park them before the display sends it: select high (idle), data and clock low. The
-  # community configuration that first drove this board with ESPHome does the same.
-  on_boot:
-    - priority: 600
-      then:
-        - lambda: |-
-            id(expander)->pin_mode(0, esphome::gpio::FLAG_OUTPUT);
-            id(expander)->digital_write(0, true);
-            id(expander)->pin_mode(1, esphome::gpio::FLAG_OUTPUT);
-            id(expander)->digital_write(1, false);
-            id(expander)->pin_mode(2, esphome::gpio::FLAG_OUTPUT);
-            id(expander)->digital_write(2, false);
-
 esp32:
   flash_size: 16MB
 
@@ -86,7 +71,10 @@ pca9554:
     i2c_id: touch_bus
 
 # The ST7701S takes its setup over three-wire SPI, and on this board those wires are expander lines, so the bus is
-# ESPHome's software SPI on them. It runs once, at boot; the picture itself goes over the RGB pins below.
+# ESPHome's software SPI on them. It runs once, at boot; the picture itself goes over the RGB pins below. ESPHome parks
+# the lines itself before the setup goes out: the bus sets up the clock and data lines, and the display raises its select
+# line when it joins the bus. A board file has no `esphome: on_boot:` of its own (tools/check_packages.py): a list there
+# replaced the core's whole boot block, so up to firmware 0.3.9 this board never took its tiles.
 spi:
   id: lcd
   interface: software

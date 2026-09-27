@@ -4,7 +4,12 @@
 // Adapted from ESPHome's dashboard (github.com/esphome/dashboard, src/web-serial/create-esploader.ts, flash.ts and
 // hard-reset.ts, at commit 72b9b1b; Copyright (c) 2019 Nabu Casa, MIT licence per the repository's LICENSE file; see
 // NOTICE). Changed: the image arrives as bytes (esptool-js
-// 0.6 takes a Uint8Array instead of a binary string), and the progress sum lives in ./logic.ts, where it is tested.
+// 0.6 and later take a Uint8Array instead of a binary string), and the progress sum lives in ./logic.ts, where it is
+// tested.
+//
+// esptool-js 0.7 or newer, ahead of ESPHome's own web tools (0.6): it detects a chip with GET_SECURITY_INFO and powers
+// the flash of an ESP32-P4 revision 3.1 or 3.2 (ECO6/ECO7), on which, by its changelog, 0.6 hung at the first flash
+// command. With 0.6 a JC8012P4A1 V3 behind a CH340 gave no answer at chip detection (GitHub #51).
 import { ESPLoader, Transport, UsbJtagSerialReset } from "esptool-js";
 import { writtenPercent } from "./logic";
 
@@ -12,8 +17,8 @@ export type Loader = ESPLoader;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** ESPHome's createESPLoader: 115200 baud to the ROM and the stub alike (esptool-js 0.6 talks to the ROM at 115200),
- * so the port is never reopened at another speed. */
+/** ESPHome's createESPLoader: 115200 baud to the ROM and the stub alike (esptool-js talks to the ROM at its
+ * romBaudrate, 115200 by default), so the port is never reopened at another speed. */
 export function createLoader(port: SerialPort): ESPLoader {
   const transport = new Transport(port);
   return new ESPLoader({ transport, baudrate: 115200, enableTracing: false });
