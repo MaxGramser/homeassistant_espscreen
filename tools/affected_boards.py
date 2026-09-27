@@ -7,8 +7,10 @@ changed path:
 
 - a file in one board's chain only (its board file, its entry files, a feature or hardware file no other board
   includes) reaches that board;
-- the core, components/, fonts/, a translation's `screen` texts, or a package several boards include reaches all of
-  them;
+- a component under components/ that only some boards load as a platform (the CYD's xpt2046) reaches the boards
+  whose entry files name it (tools/generate_entries.py);
+- the core, the rest of components/, fonts/, a translation's `screen` texts, or a package several boards include
+  reaches all of them;
 - anything else (the add-on, the editor, docs, tests, tools) is no firmware at all.
 
 A board whose board file is not in the base yet is new: no screen runs it, so it needs no firmware number of its own and
@@ -36,6 +38,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import firmware_count  # noqa: E402
+import generate_entries  # noqa: E402
 import profiles  # noqa: E402
 
 ROOT = profiles.ROOT
@@ -124,12 +127,28 @@ def only_comments(path, base):
     return now is not None and tokens is not None and tokens == yaml_tokens(now)
 
 
+def loaders():
+    """{component: boards whose entry files load it} for the components under components/ that some boards load as a
+    platform and others don't (generate_entries.components); smart_display, which every board loads, is not one."""
+    found = {}
+    for board in profiles.BOARDS:
+        for name in generate_entries.components(board):
+            if name != 'smart_display':
+                found.setdefault(name, set()).add(board)
+    return found
+
+
 def sort(paths, base):
     """{path: set of boards it reaches}; an empty set for a path that is no firmware."""
-    every, table, reach = set(profiles.BOARDS), chains(), {}
+    every, table, reach, loaded = set(profiles.BOARDS), chains(), {}, loaders()
     for path in paths:
+        parts = path.split('/')
         if path.endswith('.yaml') and path.startswith(('packages/', 'checkout/')) and only_comments(path, base):
             reach[path] = set()
+        elif len(parts) > 2 and parts[0] == 'components' and parts[1] in loaded:
+            # A component no board loads any more (a removed one) is not in `loaded`: it counts as shared below, and the
+            # entry files that stopped loading it name their boards on their own.
+            reach[path] = set(loaded[parts[1]])
         elif path.startswith(SHARED_TREES) or path == str(profiles.CORE.relative_to(ROOT)):
             reach[path] = set(every)
         elif path.startswith(TRANSLATIONS) and path.endswith('.json'):

@@ -1,3 +1,16 @@
+## 0.4.8 (firmware 0.6.1 for jc8012p4a1v3)
+
+The Guition JC8012P4A1 V3 starts its display (GitHub #52, thanks @ivanfmartinez).
+
+- **Guition JC8012P4A1 V3** (experimental): the screen restarted right after starting, over and over, until it fell into
+  safe mode. ESPHome's display driver gives the display bus a fixed clock that the rev3 ESP32-P4 of this board does not
+  accept. ESPHome has fixed this for its next version (2026.9.1); until the app builds with it, the V3 uses a copy of
+  the driver with that one fix. Flash the V3 firmware over USB once more: a screen that does not start cannot take an
+  update over the air. docs/JC8012P4A1.md has the details.
+- For contributors: `tools/affected_boards.py` now counts a component that only some boards load, such as the CYD's
+  touch driver, toward those boards alone instead of every board.
+- Other screens get nothing new.
+
 ## 0.4.7 (firmware 0.6.0)
 
 The Guition JC3248W535 3.5 inch is tried on a real screen (GitHub #54, thanks @govido).

@@ -44,6 +44,17 @@ class WhatAChangeReaches(unittest.TestCase):
                      'fonts/Roboto-400.ttf'):
             self.assertEqual(reach(name)[name], EVERY, name)
 
+    def test_a_component_some_boards_load_reaches_those_boards(self):
+        """The CYD's xpt2046 and the JC8012P4A1 V3's mipi_dsi_v3 are platforms of those boards alone: a fix in one is
+        firmware for them, not for every screen."""
+        for name, board in (('components/xpt2046/touchscreen/xpt2046.cpp', 'cyd'),
+                            ('components/mipi_dsi_v3/mipi_dsi.cpp', 'jc8012p4a1v3')):
+            boards = reach(name)[name]
+            self.assertIn(board, boards, name)
+            self.assertNotEqual(boards, EVERY, name)
+        self.assertEqual(reach('components/mipi_dsi_v3/display.py')['components/mipi_dsi_v3/display.py'],
+                         {'jc8012p4a1v3'})
+
     def test_a_package_reaches_the_boards_that_include_it(self):
         """A feature, look, hardware or cells file reaches exactly the boards whose chain names it."""
         seen = 0
