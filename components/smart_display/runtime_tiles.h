@@ -2094,14 +2094,14 @@ inline void alarm_settled(alarm_panel::Outcome outcome,bool silent){
   if(outcome==Outcome::ACCEPTED){
     if(alarm_attempt.with_code&&alarm_lock.failures){alarm_lock.success();alarm_save_lock();}
     if(alarm_pad.open)alarm_close_pad();
-    ESP_LOGI("alarm","%s accepted",alarm_attempt_entity.c_str());
+    ESP_LOGI(alarm_attempt_entity.compare(0,5,"lock.")==0?"lock":"alarm","%s accepted",alarm_attempt_entity.c_str());
   }else{
     if(!alarm_attempt.with_code)return;
     const uint32_t locked=alarm_lock.fail(now);
     alarm_save_lock();
     alarm_refused_event(alarm_attempt_entity,locked);
     alarm_pad.note=silent?txt::alarm_nothing_changed:txt::alarm_wrong_code;alarm_pad.note_at=now;alarm_pad.shake_at=now;
-    ESP_LOGW("alarm","%s: code not accepted (%s), %u in a row, keypad locked for %u s",alarm_attempt_entity.c_str(),
+    ESP_LOGW(alarm_attempt_entity.compare(0,5,"lock.")==0?"lock":"alarm","%s: code not accepted (%s), %u in a row, keypad locked for %u s",alarm_attempt_entity.c_str(),
              silent?"ignored":"refused",(unsigned)alarm_lock.failures,(unsigned)locked);
   }
   redraw_detail();
