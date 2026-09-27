@@ -1,7 +1,7 @@
 # Releases per board
 
 Tessera runs on many boards. Most changes reach all of them, but a new board or a fix for one board should not make
-every screen in every home rebuild its firmware. Since app 0.3.20 a board can have a firmware version of its own, so
+every screen in every home rebuild its firmware. Since app 0.3.21 a board can have a firmware version of its own, so
 only the screens that actually get something new are offered an update.
 
 This page is the recipe. It says which kind of release a change is, what to change, which checks to run, and why the
@@ -29,8 +29,17 @@ How a path is sorted:
 | a file under `packages/features/`, `looks/`, `hardware/` or `cells/` | exactly the boards whose files include it |
 | anything else: the add-on, the editor, docs, tests, tools, `boards.yaml`, the other translation texts | no firmware |
 
+A YAML file that changed in its comments or layout alone reaches no board: the tool compares what ESPHome reads of
+it (its YAML tokens), so a better explanation in a board file is no update. The lines of a lambda are text to YAML,
+so a changed `#ifdef` inside one does count.
+
 A board whose board file is not on `origin/main` yet is **new**. No screen runs it, so it never counts toward a
 firmware release.
+
+**The ESPHome version** the add-on builds with (`screen_manager/Dockerfile`) counts as no firmware either, on purpose.
+A newer ESPHome changes every build, but it brings nothing a screen owner asked for, so it is no reason to ask every
+screen to update: screens pick it up at their next real update. A release that needs a newer ESPHome for a firmware
+change is a firmware release because of that change.
 
 The four outcomes are the four recipes below.
 
@@ -57,7 +66,7 @@ screen reports.
 
 ### Core and board in one number
 
-A firmware number `X.Y.Z` reads as core and board (since firmware 0.4.0):
+A firmware number `X.Y.Z` reads as core and board (from the shared firmware 0.4.0 on):
 
 - **Y is the core.** Every shared release raises it and starts the last number at 0: 0.4.0, 0.5.0, 0.6.0.
 - **Z is the board's revision on that core.** A fix for one board alone keeps the core and raises the last number
@@ -72,7 +81,8 @@ A firmware number `X.Y.Z` reads as core and board (since firmware 0.4.0):
 | another fix for the 4B | 0.4.0 | 0.4.2 | 0.4.0 |
 | next shared release (has the 4B fixes too) | 0.5.0 | 0.5.0 | 0.5.0 |
 
-`tools/affected_boards.py` works the next number out from `origin/main` and prints it.
+`tools/affected_boards.py` works the next number out from `origin/main` and prints it. The rule itself lives in one
+place, `tools/firmware_count.py`, which the package check, the plan and the release lint all read.
 
 The number has to stay three plain numbers: every app version and Home Assistant read a screen's firmware as strict
 `X.Y.Z`, and anything else would read as no firmware at all.
@@ -87,8 +97,9 @@ When a shared release raises the core, a board that went ahead drops its own lin
 fix too (the fix is in its board file, which the shared release builds). `tools/check_packages.py` fails as long as a
 board file names another core than the shared one, or no revision above it.
 
-Up to firmware 0.3.9 the last number counted the core (0.3.0 to 0.3.9 were all shared releases). The count above
-starts at 0.4.0; `tests/test_release_lint.py` knows 0.3.9 as the last number of the old count.
+Up to firmware 0.3.10 the last number counted the core (0.3.0 to 0.3.10 were all shared releases). The next shared
+release is 0.4.0 and the count above holds from there; `tools/firmware_count.py` knows 0.3.10 as the last number of the
+old count. A fix for one board before that release keeps shared 0.3.10 as its core: 0.3.11 for that board.
 
 ### What screens see
 
@@ -212,10 +223,11 @@ These run in `tools/check.sh` and CI, so a release that breaks a rule fails befo
 
 | Check | Holds |
 |---|---|
+| "Firmware numbers for what changed" (`tools/affected_boards.py --verify`) | every existing board a change reaches builds a higher number than on `origin/main`. While you work it warns; once `screen_manager/config.yaml` names a new app version (a release) it fails. CI checks it against the commit before the push, or the pull request's base, and always fails (`CHECK_BASE`) |
 | `tools/check_packages.py` | only the core and a board file set `SCREEN_FIRMWARE_VERSION`; a board's own version is `X.Y.Z` on the shared core with a higher revision |
 | `tools/generate_board_shapes.py --check` | `boards.json` carries each board's version as its files work it out |
 | `tests/test_release_lint.py` | a shared firmware raises the core and ends in .0, a board fix is a revision on the shared core above its last one; the newest entry names what it ships; a board that went ahead has its entry; board keys in headings exist |
-| `tests/test_board_releases.py` | what `tools/affected_boards.py` sorts where, the plan it prints, and that a board file's version wins over the core's |
+| `tests/test_board_releases.py` | the count of `tools/firmware_count.py`, what `tools/affected_boards.py` sorts where (comments alone included), the plan it prints, when `--verify` warns or fails, and that a board file's version wins over the core's |
 | `tests/test_updates.py` | a board fix is offered to that board alone, an update waits for the board's version, and the target is never below the shared one |
 | `web/tests/store.spec.ts`, `web/tests/components.spec.ts` | What's new goes by the screen's own target and leaves out other boards' entries; the Settings page names one firmware only when the screens share it |
 
@@ -233,7 +245,8 @@ version, its Screen firmware sensor and its settings page, and the CYD next to i
 - **A "board fix" in a shared file.** A change to the core or a component reaches every board, whatever it was meant for.
   Then it is a shared release.
 - **Forgetting to raise the version.** A fix in a board file without a new number reaches new screens (they build
-  from main) but is never offered to the screens that already run that board.
+  from main) but is never offered to the screens that already run that board, and a later update of another board
+  takes it along unannounced. `tools/check.sh` warns while you work and fails at the release and in CI.
 - **Leaving a board's line behind after a shared release.** The check fails; remove the line.
 - **Setting the version in a feature or look file.** Only a board file may, so each board's number is in one obvious
   place.

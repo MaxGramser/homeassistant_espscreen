@@ -6,7 +6,8 @@ persistent add-on data; Wi-Fi/API/OTA stay in the device's own ESPHome YAML. Rea
 docs/RELEASING.md before publishing updates. Main distributes every board in tools/profiles.py.
 Every push to GitHub is a release: always also bump the add-on version in
 screen_manager/config.yaml (with a CHANGELOG line), otherwise HA won't see an update.
-The firmware number is core and board (firmware 0.4.0+): X.Y.Z with Y the core (a shared release is the next X.Y.0)
+The firmware number is core and board (from shared firmware 0.4.0; 0.3.10 was the last of the old count, and
+`tools/firmware_count.py` holds the rule): X.Y.Z with Y the core (a shared release is the next X.Y.0)
 and Z a board's revision on it (a fix for one board alone is X.Y.1, X.Y.2 in that board file only). Before any
 release run `tools/affected_boards.py`, which says whether the change reaches no screen, a new board, one or a few
 boards, or every board, and prints the number, the CHANGELOG heading and the checks. A new board takes no firmware

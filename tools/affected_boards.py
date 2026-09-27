@@ -27,7 +27,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import firmware_count  # noqa: E402
 import profiles  # noqa: E402
 
 ROOT = profiles.ROOT
@@ -91,11 +94,34 @@ def new_boards(base):
     return {board for board, path in profiles.BOARDS.items() if str(path.relative_to(ROOT)) not in known}
 
 
+def yaml_tokens(text):
+    """What ESPHome reads of a YAML file: its tokens, without the comments YAML itself drops. A lambda's lines stay as
+    they are, `#ifdef` included, because inside a block scalar they are its text. None when it doesn't scan."""
+    try:
+        return [(type(token).__name__, getattr(token, 'value', None)) for token in yaml.scan(text)]
+    except yaml.YAMLError:
+        return None
+
+
+def only_comments(path, base):
+    """Whether a YAML file changed in comments or layout alone since the base, so the firmware is the same (a board
+    file whose explanation got better is no update for its screens)."""
+    try:
+        before = git('show', f'{base}:{path}')
+    except subprocess.CalledProcessError:
+        return False
+    now = read_now(path)
+    tokens = yaml_tokens(before)
+    return now is not None and tokens is not None and tokens == yaml_tokens(now)
+
+
 def sort(paths, base):
     """{path: set of boards it reaches}; an empty set for a path that is no firmware."""
     every, table, reach = set(profiles.BOARDS), chains(), {}
     for path in paths:
-        if path.startswith(SHARED_TREES) or path == str(profiles.CORE.relative_to(ROOT)):
+        if path.endswith('.yaml') and path.startswith(('packages/', 'checkout/')) and only_comments(path, base):
+            reach[path] = set()
+        elif path.startswith(SHARED_TREES) or path == str(profiles.CORE.relative_to(ROOT)):
             reach[path] = set(every)
         elif path.startswith(TRANSLATIONS) and path.endswith('.json'):
             reach[path] = set(every) if translation_reaches_screens(path, base) else set()
@@ -111,12 +137,7 @@ def sort(paths, base):
     return reach
 
 
-def dotted(version):
-    return '.'.join(map(str, version))
-
-
-def parse(text):
-    return tuple(map(int, text.strip('"').split('.')))
+dotted = firmware_count.dotted
 
 
 def read_now(path):
@@ -140,11 +161,9 @@ def next_numbers(boards=(), read=read_now):
     the last one a board's revisions on top of it. A shared release raises the core and starts at .0; a board release
     keeps the core and takes a revision above what each of those boards builds (several boards share one number, so it
     is above the highest of them)."""
-    core = VERSION_LINE.search(read(str(profiles.CORE.relative_to(ROOT))) or '')
-    core = parse(core.group(1))
+    core = firmware_count.parse(VERSION_LINE.search(read(str(profiles.CORE.relative_to(ROOT))) or '').group(1))
     built = built_versions(read)
-    revisions = [built[board] for board in boards if built.get(board)] or [core]
-    return (core[0], core[1] + 1, 0), (core[0], core[1], max(version[2] for version in revisions) + 1)
+    return firmware_count.next_shared(core), firmware_count.next_board(core, [built.get(board) for board in boards])
 
 
 def plan(reach, new=frozenset(), read_base=read_now):
@@ -215,7 +234,7 @@ def built_versions(read):
     found = {}
     for board, path in profiles.BOARDS.items():
         own = VERSION_LINE.search(read(str(path.relative_to(ROOT))) or '')
-        found[board] = tuple(map(int, (own or core).group(1).split('.'))) if (own or core) else None
+        found[board] = firmware_count.parse((own or core).group(1)) if (own or core) else None
     return found
 
 
@@ -228,14 +247,39 @@ def unraised(reach, base, new=frozenset()):
                   if before.get(board) is not None and not (after.get(board) and after[board] > before[board]))
 
 
+APP_VERSION = re.compile(r'(?m)^version:\s*["\']?([^"\'\s]+)')
+
+
+def releasing(base):
+    """Whether this change is a release: screen_manager/config.yaml names another app version than the base. That is
+    the moment a firmware change without its number would reach Home Assistant."""
+    config = 'screen_manager/config.yaml'
+    before, now = (APP_VERSION.search(read_at(base)(config) or ''), APP_VERSION.search(read_now(config) or ''))
+    return bool(now) and (not before or before.group(1) != now.group(1))
+
+
+def known(base):
+    try:
+        git('rev-parse', '--verify', '--quiet', f'{base}^{{commit}}')
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('--base', help='compare with this ref (default: where HEAD left origin/main)')
     parser.add_argument('--keys', action='store_true', help='print only the board keys a change reaches')
     parser.add_argument('--verify', action='store_true',
-                        help='exit 1 when a board the change reaches builds no higher firmware number than the base')
+                        help='exit 1 when a board the change reaches builds no higher firmware number than the base and '
+                             'this is a release (or --strict); exit 3 when it is not a release yet, a warning')
+    parser.add_argument('--strict', action='store_true', help='with --verify: fail whether or not it is a release (CI)')
     args = parser.parse_args(argv)
     base = args.base or default_base()
+    if not known(base):
+        # A push that starts a branch has no commit before it; there is nothing to compare with.
+        print(f'No base to compare with ({base[:12] or "none"}): nothing checked')
+        return 0
     reach = sort(changed_paths(base), base)
     new = new_boards(base)
     if args.verify:
@@ -243,7 +287,7 @@ def main(argv=None):
         if missing:
             print(f'Firmware changed for {", ".join(missing)} without a higher firmware number, so screens that run it '
                   f'are never offered the change. tools/affected_boards.py says which number to set.')
-            return 1
+            return 1 if args.strict or releasing(base) else 3
         print('Every board the change reaches builds a higher firmware number' if set().union(*reach.values()) - new
               else 'No firmware change for a screen that exists')
         return 0

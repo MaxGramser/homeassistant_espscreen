@@ -20,6 +20,8 @@
 #   RENDER_PYTHON     for --render: a Python with aioesphomeapi and Pillow, by default the one next to ESPHOME
 #   ESPHOME_DATA_DIR  where the firmware builds go, .esphome/check by default: apart from the bench profiles' own
 #                     build folders, so a check build never replaces the firmware.bin of a screen's profile
+#   CHECK_BASE        the commit to hold the firmware numbers against (CI: the push's previous commit or the pull
+#                     request's base); set, a firmware change without its number fails instead of warning
 #
 # Every check prints PASS, WARN or FAIL; a failing check shows the end of its output. Exit status 1 when one failed.
 set -euo pipefail
@@ -143,12 +145,18 @@ shapes_current() { cd "$ROOT" && "$PYTHON" tools/generate_board_shapes.py --chec
 entries_current() { cd "$ROOT" && "$PYTHON" tools/generate_entries.py --check; }
 # The board dropdown in the bug report and question issue templates (.github/ISSUE_TEMPLATE), from boards.yaml.
 issue_templates_current() { cd "$ROOT" && "$PYTHON" tools/generate_issue_templates.py --check; }
-# A firmware change against origin/main with no higher number for the boards it reaches (docs/BOARD_RELEASES.md): a
-# warning while the work goes on, and the reminder before a release that those screens would never be offered it.
+# A firmware change with no higher number for the boards it reaches (docs/BOARD_RELEASES.md): those screens would
+# never be offered it. Against origin/main it warns while the work goes on and fails once config.yaml names a new app
+# version (a release); with CHECK_BASE, the commit CI compares with, it always fails.
 firmware_numbers_raised() {
-  local out
+  local out status=0 args=(--verify)
   cd "$ROOT" || return 1
-  if out=$("$PYTHON" tools/affected_boards.py --verify 2>&1); then note "$out"; else warn "$out"; note "not raised yet"; fi
+  if [[ -n ${CHECK_BASE:-} ]]; then args+=(--strict --base "$CHECK_BASE"); fi
+  out=$("$PYTHON" tools/affected_boards.py "${args[@]}" 2>&1) || status=$?
+  echo "$out"
+  if ((status == 3)); then warn "$out"; note "not raised yet"; return 0; fi
+  note "$(printf '%s' "$out" | tail -n 1 | cut -c1-70)"
+  return "$status"
 }
 # The translations (app 0.2.90, docs/TRANSLATING.md): every language against English, the key header the firmware
 # builds against, and no English left in the firmware's code.

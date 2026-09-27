@@ -21,7 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # The whole history: the firmware number check compares with the commit before this push, or the pull request's
+      # base (CHECK_BASE below, docs/BOARD_RELEASES.md).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -42,6 +46,7 @@ jobs:
         env:
           PYTHON: python
           CXX: clang++
+          CHECK_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
 
   firmware:
     name: firmware (${{ matrix.esphome }})

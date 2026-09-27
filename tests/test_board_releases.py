@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import affected_boards  # noqa: E402
 import check_packages  # noqa: E402
+import firmware_count  # noqa: E402
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 from core import FIRMWARE_VERSION, SHAPES, firmware_target  # noqa: E402
@@ -21,7 +22,9 @@ EVERY = set(profiles.BOARDS)
 
 
 def reach(*paths):
-    return affected_boards.sort(list(paths), 'HEAD')
+    """What each path reaches when it changed for real (not in its comments alone)."""
+    with mock.patch.object(affected_boards, 'only_comments', return_value=False):
+        return affected_boards.sort(list(paths), 'HEAD')
 
 
 class WhatAChangeReaches(unittest.TestCase):
@@ -61,6 +64,24 @@ class WhatAChangeReaches(unittest.TestCase):
                      'boards.yaml', 'screen_manager/app/boards.json', '.github/ISSUE_TEMPLATE/bug_report.yml',
                      'tools/generate_issue_templates.py'):
             self.assertEqual(reach(name)[name], set(), name)
+
+    def test_comments_alone_are_no_firmware(self):
+        """A board file whose explanation got better is no update; a lambda's `#ifdef` is code, and it counts."""
+        name = str(profiles.BOARDS['waveshare4b'].relative_to(ROOT))
+        now = (ROOT / name).read_text()
+        commented = now.replace('\n', '\n# a new line of explanation\n', 1)
+        with mock.patch.object(affected_boards, 'git', return_value=commented):
+            self.assertEqual(affected_boards.sort([name], 'base')[name], set())
+        changed = now.replace('BOARD_ID: "waveshare4b"', 'BOARD_ID: "waveshare4b"\n  EXTRA: "1"', 1)
+        with mock.patch.object(affected_boards, 'git', return_value=changed):
+            self.assertEqual(affected_boards.sort([name], 'base')[name], {'waveshare4b'})
+        core = (ROOT / 'packages/core.yaml').read_text()
+        self.assertIn('#ifdef USE_ESP32', core)
+        with mock.patch.object(affected_boards, 'git', return_value=core.replace('#ifdef USE_ESP32', '#ifdef USE_X', 1)):
+            self.assertEqual(affected_boards.sort(['packages/core.yaml'], 'base')['packages/core.yaml'], EVERY)
+        # A new file (not in the base) is never comments alone.
+        with mock.patch.object(affected_boards, 'git', side_effect=affected_boards.subprocess.CalledProcessError(128, 'git')):
+            self.assertFalse(affected_boards.only_comments(name, 'base'))
 
     def test_a_translation_reaches_the_screens_only_through_its_screen_texts(self):
         """The firmware compiles the `screen` section in (components/smart_display/screen_text_gen.py); the add-on's own
@@ -201,11 +222,64 @@ class AForgottenNumber(unittest.TestCase):
         self.assertEqual(self.verdict(EVERY, self.files('0.4.0', '0.4.1'), self.files('0.5.0', '0.4.1')), ['waveshare4b'])
         self.assertEqual(sorted(self.verdict(EVERY, self.files('0.4.0'), self.files('0.4.0'))), sorted(EVERY))
 
+    def test_a_release_is_a_new_app_version(self):
+        """--verify fails once config.yaml names another app version than the base (a release), and warns before."""
+        config = lambda version: (lambda path: f'name: x\nversion: "{version}"\n' if path == 'screen_manager/config.yaml' else None)
+        with mock.patch.object(affected_boards, 'read_at', return_value=config('0.3.20')):
+            with mock.patch.object(affected_boards, 'read_now', config('0.3.21')):
+                self.assertTrue(affected_boards.releasing('base'))
+            with mock.patch.object(affected_boards, 'read_now', config('0.3.20')):
+                self.assertFalse(affected_boards.releasing('base'))
+
+    def test_verify_exit_codes(self):
+        """1 fails (a release, or --strict in CI), 3 warns (work in progress), 0 passes; no base checks nothing."""
+        def run(missing, releasing, *args):
+            with mock.patch.object(affected_boards, 'known', return_value=True), \
+                 mock.patch.object(affected_boards, 'changed_paths', return_value=[]), \
+                 mock.patch.object(affected_boards, 'new_boards', return_value=set()), \
+                 mock.patch.object(affected_boards, 'unraised', return_value=missing), \
+                 mock.patch.object(affected_boards, 'releasing', return_value=releasing), \
+                 mock.patch('builtins.print'):
+                return affected_boards.main(['--verify', '--base', 'base', *args])
+        self.assertEqual(run(['cyd'], True), 1)
+        self.assertEqual(run(['cyd'], False), 3)
+        self.assertEqual(run(['cyd'], False, '--strict'), 1)
+        self.assertEqual(run([], True), 0)
+        with mock.patch.object(affected_boards, 'known', return_value=False), mock.patch('builtins.print'):
+            self.assertEqual(affected_boards.main(['--verify', '--strict', '--base', '0' * 40]), 0)
+
     def test_a_new_board_needs_no_number(self):
         with mock.patch.object(affected_boards, 'built_versions',
                                side_effect=[affected_boards.built_versions(self.files('0.4.0')),
                                             affected_boards.built_versions(self.files('0.4.0'))]):
             self.assertEqual(affected_boards.unraised({'x': {'waveshare4b'}}, 'base', new={'waveshare4b'}), [])
+
+
+class TheCount(unittest.TestCase):
+    """tools/firmware_count.py, the rule the package check, the plan and the release lint all read."""
+    def test_parse_is_strict(self):
+        self.assertEqual(firmware_count.parse('"0.4.1"'), (0, 4, 1))
+        for text in ('0.4', '0.4.1-fix', '0.4.1.2', '', None, 'v0.4.1'):
+            self.assertIsNone(firmware_count.parse(text), text)
+
+    def test_next_numbers(self):
+        self.assertEqual(firmware_count.next_shared((0, 4, 2)), (0, 5, 0))
+        self.assertEqual(firmware_count.next_board((0, 4, 0), []), (0, 4, 1))
+        self.assertEqual(firmware_count.next_board((0, 4, 0), [(0, 4, 0), (0, 4, 2)]), (0, 4, 3))
+        # A number on an older core (a line a shared release should have taken out) does not count.
+        self.assertEqual(firmware_count.next_board((0, 5, 0), [(0, 4, 7)]), (0, 5, 1))
+        # The old count: a board fix on shared 0.3.10 is 0.3.11.
+        self.assertEqual(firmware_count.next_board((0, 3, 10), [None]), (0, 3, 11))
+
+    def test_problems(self):
+        self.assertIsNone(firmware_count.board_problem((0, 4, 0), (0, 4, 1)))
+        self.assertEqual(firmware_count.board_problem((0, 4, 0), (0, 5, 1)), 'another core')
+        self.assertEqual(firmware_count.board_problem((0, 4, 1), (0, 4, 1)), 'no board revision')
+        self.assertIsNone(firmware_count.shared_problem((0, 3, 10), (0, 4, 0), (0, 3, 11)))
+        self.assertEqual(firmware_count.shared_problem((0, 4, 0), (0, 4, 3), (0, 4, 2)), 'no new core')
+        self.assertEqual(firmware_count.shared_problem((0, 3, 10), (0, 3, 11), (0, 3, 11)), 'not above')
+        # Before the change a shared release only had to rise.
+        self.assertIsNone(firmware_count.shared_problem((0, 3, 8), (0, 3, 9), (0, 3, 8)))
 
 
 class ABoardsOwnVersion(unittest.TestCase):

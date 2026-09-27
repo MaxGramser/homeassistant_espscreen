@@ -10,6 +10,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
+import firmware_count  # noqa: E402
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 from core import BOARD_KEYS, FIRMWARE_VERSION, SHAPES, firmware_target, parse_firmware  # noqa: E402
@@ -29,18 +30,12 @@ def app_headings():
     return [((int(a), int(b), int(c)), rest) for a, b, c, rest in APP_HEADING.findall(CHANGELOG.read_text())]
 
 
-def dotted(version):
-    return '.'.join(map(str, version))
-
-
-# The last shared firmware counted in the last number. From the next one on (app 0.3.20) the middle number counts the
-# core and the last one a board's revisions on top of it: a shared release is X.Y.0, a board's fix X.Y.1, X.Y.2.
-LAST_OLD_COUNT = (0, 3, 10)
+dotted = firmware_count.dotted
 
 
 def firmware_series(headings):
-    """(problem or None, the newest shared firmware) of CHANGELOG headings, top to bottom (docs/BOARD_RELEASES.md "How
-    the version numbers work"). Oldest first:
+    """(problem or None, the newest shared firmware) of CHANGELOG headings, top to bottom, by tools/firmware_count.py
+    (docs/BOARD_RELEASES.md "Core and board in one number"). Oldest first:
     - a heading names the shared firmware again (a release of the app alone), or a newer one; after LAST_OLD_COUNT a new
       shared number raises the core (the middle number) and ends in .0, and before it just rises, as it always did;
     - a firmware for some boards alone keeps the core of the shared firmware, takes a revision above it and above each
@@ -56,7 +51,7 @@ def firmware_series(headings):
             unknown = [board for board in names if board not in BOARD_KEYS]
             if unknown:
                 return f'{where} names firmware for {", ".join(unknown)}, which is no board key', None
-            if shared is None or number[:2] != shared[:2] or number[2] <= shared[2]:
+            if shared is None or firmware_count.board_problem(shared, number):
                 return (f'{where}: a fix for {boards} is a board revision on the shared core, '
                         f'{dotted((*shared[:2], shared[2] + 1)) if shared else "X.Y.1"} or higher, not {firmware.group(1)}'), None
             for board in names:
@@ -66,12 +61,13 @@ def firmware_series(headings):
                 revisions[board] = number
         elif number != shared:
             highest = max([shared, *revisions.values()], default=None) if shared else None
-            if highest is not None and number <= highest:
+            problem = firmware_count.shared_problem(shared, number, highest)
+            if problem == 'not above':
                 return (f'{where}: shared firmware {firmware.group(1)} is neither the one before ({dotted(shared)}) nor '
                         f'above {dotted(highest)}, the highest so far'), None
-            if number > LAST_OLD_COUNT and (number[2] != 0 or (shared and number[:2] <= shared[:2])):
+            if problem:
                 return (f'{where}: a new shared firmware raises the core and starts at .0, '
-                        f'{dotted((shared[0], shared[1] + 1, 0)) if shared else "X.Y.0"}, not {firmware.group(1)}'), None
+                        f'{dotted(firmware_count.next_shared(shared)) if shared else "X.Y.0"}, not {firmware.group(1)}'), None
             shared, revisions = number, {}
     return None, dotted(shared) if shared else None
 
