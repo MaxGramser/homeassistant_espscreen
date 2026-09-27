@@ -78,14 +78,14 @@
                 "columns": 2,
                 "height": 320,
                 "rotation": 90,
-                "rows": 2,
+                "rows": 3,
                 "width": 480
             },
             "portrait": {
                 "columns": 1,
                 "height": 480,
                 "rotation": 180,
-                "rows": 3,
+                "rows": 4,
                 "width": 320
             }
         },
@@ -957,14 +957,14 @@
                 "columns": 2,
                 "height": 320,
                 "rotation": 90,
-                "rows": 2,
+                "rows": 3,
                 "width": 480
             },
             "portrait": {
                 "columns": 1,
                 "height": 480,
                 "rotation": 180,
-                "rows": 3,
+                "rows": 4,
                 "width": 320
             }
         },
@@ -1574,14 +1574,14 @@
                 "columns": 2,
                 "height": 320,
                 "rotation": 90,
-                "rows": 2,
+                "rows": 3,
                 "width": 480
             },
             "portrait": {
                 "columns": 1,
                 "height": 480,
                 "rotation": 180,
-                "rows": 3,
+                "rows": 4,
                 "width": 320
             }
         },
