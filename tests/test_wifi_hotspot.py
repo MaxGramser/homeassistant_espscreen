@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tools'))
+sys.path.append(str(ROOT / 'tools'))  # after the app: tools/i18n.py is not the app's i18n
 import yaml  # noqa: E402
 import profiles  # noqa: E402
 from core import REPO, SHAPES, installation_yaml  # noqa: E402
