@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest new functionality for a screen, the add-on, or the editor.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is about controlling Home Assistant from a screen. Because of that, a hardware idea
+        (a sensor, a slot, a chip) is only half a feature request. Please describe what it would let
+        someone do in Home Assistant, not only the hardware itself.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to add
+      description: The feature or capability you are asking for.
+    validations:
+      required: true
+  - type: textarea
+    id: ha-behavior
+    attributes:
+      label: How this relates to Home Assistant
+      description: |
+        What should this do in Home Assistant? What entity, state, or automation is involved?
+        Example: not "an SD card slot", but "store camera snapshots locally so they survive a reboot,
+        without needing a media player entity".
+      placeholder: This should let me...
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Pictures, mockups, or examples
+      description: A photo, a mockup, or a screenshot of something similar helps a lot. Drag and drop files here.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this has not already been requested
+          required: true

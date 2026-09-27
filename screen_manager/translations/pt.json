@@ -1754,6 +1754,8 @@
         "no_screens": "Ainda não há nenhum ecrã emparelhado. Os novos ecrãs recebem o firmware {version}.",
         "available": "O firmware {version} está disponível para {n} ecrã. | O firmware {version} está disponível para {n} ecrãs.",
         "current": "Todos os ecrãs têm o firmware {version}.",
+        "available_mixed": "Há uma atualização para {n} ecrã. | Há uma atualização para {n} ecrãs.",
+        "current_mixed": "Todos os ecrãs estão atualizados.",
         "all": "Atualizar {n} ecrã | Atualizar os {n} ecrãs",
         "whats_new": "Novidades do firmware {version}",
         "auto_label": "Atualizar automaticamente todas as noites",

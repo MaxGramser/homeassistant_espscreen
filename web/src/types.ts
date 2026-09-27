@@ -138,7 +138,8 @@ export type Languages = {
   /** What Automatic means now: the clock and numbers of Home Assistant's language (or the chosen one). */
   clock_auto?: "24" | "12"; numbers_auto?: "point" | "comma" | "space"; group_min_auto?: number;
 };
-export type ChangelogSection = { app: string; firmware: string; lines: string[] };
+// `boards`: the boards a firmware for some boards alone is for (app 0.3.20); empty or absent for the shared firmware.
+export type ChangelogSection = { app: string; firmware: string; boards?: string[]; lines: string[] };
 export type Entity = { id: string; name: string; area?: string; device?: string; icon?: string; state?: string; tile?: boolean; screen_name?: string };
 export type IconInfo = { name: string; cp: string; label: string };
 export type Inventory = {

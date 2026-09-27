@@ -1754,6 +1754,8 @@
         "no_screens": "Aún no hay ninguna pantalla emparejada. Las pantallas nuevas reciben el firmware {version}.",
         "available": "El firmware {version} está disponible para {n} pantalla. | El firmware {version} está disponible para {n} pantallas.",
         "current": "Todas las pantallas tienen el firmware {version}.",
+        "available_mixed": "Hay una actualización para {n} pantalla. | Hay una actualización para {n} pantallas.",
+        "current_mixed": "Todas las pantallas están al día.",
         "all": "Actualizar 1 pantalla | Actualizar las {n} pantallas",
         "whats_new": "Novedades del firmware {version}",
         "auto_label": "Actualizar automáticamente cada noche",

@@ -60,8 +60,10 @@ FIRST_MAX_TILES = 10
 REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
 # The branch a screen's YAML builds its board package from. Which boards there are is boards.json's (BOARD_KEYS).
 REF = 'main'
-# Firmware shipped with this app release; screens below it get an update offer.
-FIRMWARE_VERSION = '0.3.9'
+# The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
+# unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
+# middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
+FIRMWARE_VERSION = '0.3.10'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -383,6 +385,16 @@ SHAPES = _board_shapes()
 BOARD_KEYS = tuple(sorted((board for board, shape in SHAPES.items() if shape.get('board') == board),
                           key=lambda board: SHAPES[board].get('catalog', {}).get('order', len(SHAPES))))
 DEFAULT_SHAPE = SHAPES.get('cyd', {'width': 320, 'height': 240, 'columns': 2, 'rows': 3})
+
+def firmware_target(board):
+    """The firmware a screen of this board is offered (app 0.3.20): what a build of the board makes today, boards.json's
+    `firmware`, and never less than the shared FIRMWARE_VERSION; an unknown board gets the shared one. A board that went
+    ahead with a fix of its own (its board file sets SCREEN_FIRMWARE_VERSION) is the only one offered that update. A
+    number reads as core and board (firmware 0.4.0+): 0.4.2 is core 4 with the board's second fix, so it passes the
+    gates of core 4 and no newer one."""
+    shared = parse_firmware(FIRMWARE_VERSION)
+    own = parse_firmware((SHAPES.get(board) or {}).get('firmware')) if isinstance(board, str) else None
+    return '.'.join(map(str, max(shared, own) if own else shared))
 
 # The two ways a screen can hang (app 0.2.107). Which one it is, is chosen when the screen is built: the canvas, the
 # grid and every size on it follow from the angle LVGL draws at, so it is not something a screen can be told later.

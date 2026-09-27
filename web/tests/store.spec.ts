@@ -180,6 +180,18 @@ describe("updates with content", () => {
     expect(whatsNew(kitchen)).toEqual(["Full-page tiles.", "Live values.", "Slider stays put.", "English."]);
     expect(whatsNew({ ...living, firmware: "0.2.62" })).toEqual([]);
   });
+  it("goes by the screen's own target and leaves out a fix for another board (app 0.3.20)", () => {
+    const [living] = state.inventory.screens;
+    state.inventory.changelog = [
+      { app: "0.2.76", firmware: "0.2.64", lines: ["Shared."] },
+      { app: "0.2.75", firmware: "0.2.63", boards: ["cyd"], lines: ["CYD fix."] },
+      { app: "0.2.74", firmware: "0.2.62", lines: ["Full-page tiles."] },
+    ];
+    // The Guition is offered 0.2.64: the shared release, not the CYD's own fix in between.
+    expect(whatsNew({ ...living, update: { available: true, target: "0.2.64" } })).toEqual(["Shared.", "Full-page tiles."]);
+    // A CYD offered only its own fix sees that and what came before, never the newer shared notes.
+    expect(whatsNew({ ...living, board: "cyd", update: { available: true, target: "0.2.63" } })).toEqual(["CYD fix.", "Full-page tiles."]);
+  });
   it("turns the phase and the ESPHome stage into a progress bar", () => {
     const living = state.inventory.screens[0];
     expect(updateProgress(living)).toBeNull();

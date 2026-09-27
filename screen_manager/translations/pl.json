@@ -1754,6 +1754,8 @@
         "no_screens": "Nie sparowano jeszcze żadnego ekranu. Nowe ekrany dostaną firmware {version}.",
         "available": "Firmware {version} jest dostępny dla {n} ekranu. | Firmware {version} jest dostępny dla {n} ekranów. | Firmware {version} jest dostępny dla {n} ekranów.",
         "current": "Wszystkie ekrany mają firmware {version}.",
+        "available_mixed": "Aktualizacja jest dostępna dla {n} ekranu. | Aktualizacja jest dostępna dla {n} ekranów. | Aktualizacja jest dostępna dla {n} ekranów.",
+        "current_mixed": "Wszystkie ekrany są aktualne.",
         "all": "Aktualizuj 1 ekran | Aktualizuj wszystkie ekrany ({n}) | Aktualizuj wszystkie ekrany ({n})",
         "whats_new": "Co nowego w firmware {version}",
         "auto_label": "Aktualizuj automatycznie co noc",

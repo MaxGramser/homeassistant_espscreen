@@ -14,9 +14,9 @@ This route is new. If something doesn't work on your setup, please
   as in the Home Assistant installation docs. Home Assistant on Docker's bridge network, as
   is usual with Docker Desktop on Windows or macOS, works too: see
   [Home Assistant on a bridge network](#home-assistant-on-a-bridge-network).
-- Docker with Compose on the same host, and `git`: Compose builds the image straight from GitHub. Synology
-  Container Manager has no `git`; download the release's source ZIP instead and point `context:` in
-  `compose.yaml` at its `screen_manager` folder (GitHub #32).
+- Docker with Compose on the same host. Compose pulls a ready image from the GitHub Container Registry
+  (`ghcr.io/maxgramser/homeassistant_espscreen`, for amd64 and arm64), so no `git` is needed, which also makes
+  it work in Synology Container Manager.
 - The ESPHome integration in Home Assistant, to pair the screens. ESPHome Device Builder
   is optional: the ESPHome CLI is already in this image.
 
@@ -35,10 +35,10 @@ This route is new. If something doesn't work on your setup, please
 4. Start it:
 
    ```sh
-   docker compose up -d --build
+   docker compose up -d
    ```
 
-   The first build downloads the official ESPHome image. `docker compose logs -f` shows
+   The first start downloads the image, which is based on the official ESPHome image. `docker compose logs -f` shows
    `Home Assistant connected` once the token works.
 
 ## Open ESP Screens
@@ -91,7 +91,7 @@ services:
       - 8098:8098                    # camera images for the screens, published by this container
 
   esp-screens:
-    # ... build, restart, init, secrets, volumes and healthcheck as in docker/compose.yaml ...
+    # ... image, restart, init, secrets, volumes and healthcheck as in docker/compose.yaml ...
     network_mode: "service:homeassistant"   # replaces network_mode: host
     depends_on:
       - homeassistant
@@ -152,12 +152,12 @@ under **Settings → Devices & services** in Home Assistant, and then choose the
 ## Updating
 
 ```sh
-docker compose build --pull
+docker compose pull
 docker compose up -d
 ```
 
-This builds the latest version from `main`, the same one the App store offers. To stay on
-one version, replace `#main` in the `context:` line of `compose.yaml` with a release tag, such as `#screens-v0.3.14`.
+This pulls the latest version from `main`, the same one the App store offers. To stay on
+one version, replace `latest` in the `image:` line of `compose.yaml` with a version number, such as `0.3.22`.
 After an update, ESP Screens shows per screen whether newer firmware is available, as usual.
 
 ## Settings in compose.yaml

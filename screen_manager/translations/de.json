@@ -1754,6 +1754,8 @@
         "no_screens": "Noch kein Bildschirm gekoppelt. Neue Bildschirme bekommen Firmware {version}.",
         "available": "Firmware {version} ist für {n} Bildschirm verfügbar. | Firmware {version} ist für {n} Bildschirme verfügbar.",
         "current": "Alle Bildschirme haben Firmware {version}.",
+        "available_mixed": "Ein Update ist für {n} Bildschirm verfügbar. | Ein Update ist für {n} Bildschirme verfügbar.",
+        "current_mixed": "Alle Bildschirme sind aktuell.",
         "all": "1 Bildschirm aktualisieren | Alle {n} Bildschirme aktualisieren",
         "whats_new": "Neu in Firmware {version}",
         "auto_label": "Jede Nacht automatisch aktualisieren",
