@@ -280,6 +280,12 @@ while it keeps your country's clock and numbers.
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.
 
+For room to grow, compare [firmware size and free flash space](docs/FLASH_SPACE.md):
+the configured flash, OTA update slot and measured space left for every board
+profile. The figures name the release and ESPHome version used.
+For a new screen, the guide recommends at least 8 MiB of configured flash and
+prefers 16 MiB; supported 4 MiB boards have less room for additions and updates.
+
 > **Got your screen working? Tell the next person.** Whether a board is worth buying is something
 > only owners can tell. On the website, [My screen works](https://tessera-maxgramser.on-forge.com/community/share?type=installation)
 > records your exact board, its firmware version and whether the display, touch and connection work,

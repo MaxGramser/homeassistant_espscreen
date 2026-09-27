@@ -64,6 +64,11 @@
    | 93-97 % | only fixes ship |
    | over 97 % | never: that keeps about 55 KB for ESPHome upgrades and users' own overrides |
 
+   [Firmware size and free flash space](FLASH_SPACE.md) is the comparison linked from the board-selection docs.
+   When refreshing it for a firmware or toolchain release, use the full board check above and update its table,
+   source commit, release, ESPHome version and measurement date together. Keep it labelled as a snapshot of that
+   release; do not mix boards from different releases or replace stock figures with feature-branch builds.
+
    **The Xtensa literal range** (app 0.3.8). On the ESP32 and the ESP32-S3 an `l32r` instruction loads a constant
    from at most 256 KB back, and ESP-IDF puts a function's literals in front of the code that follows them. Every
    header of the component compiles into `main.cpp`, so growing code there can push a function out of reach. The build

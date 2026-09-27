@@ -26,6 +26,10 @@ ESPHome Device Builder is optional:
 | Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
 
+Compare [firmware size and free flash space](FLASH_SPACE.md) before choosing a
+screen for custom ESPHome additions. It lists the space left in each board's
+firmware update slot for a named release.
+
 Other screens with roughly the same name can have different pins. Use
 the board profile that matches the hardware. Use a USB cable that supports data.
 Wallbox relays are not used by default; a Guition with relays can switch them

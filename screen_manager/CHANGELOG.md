@@ -1,3 +1,9 @@
+## 0.4.9 (firmware 0.6.0)
+
+- **Flash space comparison.** The board-selection docs now link to a dated comparison of configured flash,
+  firmware update slots, image sizes and free space for all 13 profiles, with instructions to refresh it.
+- Documentation only. Firmware stays at 0.6.0.
+
 ## 0.4.8 (firmware 0.6.1 for jc8012p4a1v3)
 
 The Guition JC8012P4A1 V3 starts its display (GitHub #52, thanks @ivanfmartinez).
