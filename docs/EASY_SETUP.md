@@ -377,7 +377,7 @@ should stay away.
   - Most boards open a fallback hotspot, `<screen name> Setup`, about 90 seconds after they lose
     their network. Its password is under `wifi:` → `ap:` in the screen's own YAML. Join it with a
     phone and pick the new network on the page that opens.
-  - A CYD and the other boards with 4 MB of flash have no hotspot (app 0.4.2+): it would take
+  - A CYD and the other boards with 4 MB of flash have no hotspot (app 0.4.5+): it would take
     some 90 KB of their update slot. Connect the screen to a computer over USB and install its own
     profile again under **Firmware & USB**. The name, the keys and the calibration stay.
 - **Build fails:** read the first error, check the ESPHome version and internet for

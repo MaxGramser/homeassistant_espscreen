@@ -196,7 +196,7 @@ esphome_version() {
 
 # The builds users get come from the YAML core.installation_yaml() writes: the board's package plus the device's own
 # keys, and the Wi-Fi fallback access point and captive_portal where the board has room for them (boards.json
-# `hotspot`, not on 4 MB of flash since app 0.4.2). The board profiles carry all of that (with !secret), so a
+# `hotspot`, not on 4 MB of flash since app 0.4.5). The board profiles carry all of that (with !secret), so a
 # copy of each profile compiles in a temporary checkout/ folder with placeholder secrets of the same length as real ones,
 # beside links to this tree's components, fonts and packages (the shared core and the board files the profile includes,
 # which a checkout entry names as ../packages): this commit's code, never GitHub's main, never the real secrets.yaml.

@@ -72,7 +72,7 @@ def flash_mb(board):
 
 
 def hotspot(board):
-    """Whether a screen of this board gets the Wi-Fi fallback hotspot and its captive portal (app 0.4.2+). On 4 MB of
+    """Whether a screen of this board gets the Wi-Fi fallback hotspot and its captive portal (app 0.4.5+). On 4 MB of
     flash both update slots are 1.75 MB, and the hotspot takes some 90 KB of one; a screen whose Wi-Fi changed is
     installed again over USB instead (docs/EASY_SETUP.md). Every board with more flash keeps it."""
     return flash_mb(board) > 4

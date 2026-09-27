@@ -37,7 +37,6 @@ packages:
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "cyd9342"
-  SCREEN_FIRMWARE_VERSION: "0.4.1"   # a fix for this board alone (docs/BOARD_RELEASES.md)
   DEVICE_NAME: "cyd9342-new"
   DEVICE_FRIENDLY_NAME: "My CYD"
 

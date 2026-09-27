@@ -1,3 +1,30 @@
+## 0.4.5 (firmware 0.5.0)
+
+Locks on every screen (GitHub #55), and 97 KB more room on a CYD so its updates keep fitting.
+
+- **Locks.** A `lock` entity is now a tile, in Home Assistant's colours and icons: green while locked, orange while it
+  moves, red while unlocked, open or jammed. One tap locks. A tap on a locked lock turns the tile orange with
+  "Confirm" and a beating circle; a second tap within five seconds unlocks it, so a stray tap never opens a door.
+  Hold the tile for its card: the lock itself is the big key, with **Open door** under it for a lock that can open
+  its latch (that asks for a second tap too). A lock with a code opens the alarm panel's keypad, exactly as Home
+  Assistant's own lock dialog asks for it, and a default code stored with the lock means no code is asked. Per tile,
+  **Unlocking here: Never** makes a screen lock only, for a porch or a garage. Wrong codes fire
+  `esphome.screen_lock_code_refused`. The README has a new part, "Locks and security".
+- **Firmware gate.** A layout that uses several newer features now waits for the newest firmware they need, not the
+  first one it found (a tilting blind beside an alarm panel asked for 0.3.1 instead of 0.3.3).
+- **No Wi-Fi fallback hotspot on boards with 4 MB of flash** (the CYD, the CYD with an ILI9342 and the Hosyond
+  4-inch). The hotspot and its captive portal took 97 KB of the 1.75 MB update slot, for a way in that nobody could
+  find: its password only lived in the screen's own YAML. A new screen of these boards is written without it. An
+  existing one loses the `ap:` block under `wifi:` and `captive_portal:` from its own YAML the next time ESP Screens
+  builds it, and nothing else in that file changes. Every other board keeps the hotspot.
+- **Wi-Fi changed?** A screen without the hotspot is installed again over USB under **Firmware & USB**, with its own
+  profile: its name, keys and calibration stay (docs/EASY_SETUP.md).
+- New firmware for every board: update the app, then press **Update** on each screen. The update also takes the
+  hotspot off a CYD.
+- Tested: every board builds with ESPHome 2026.9 (the CYD image is 1,631,488 B, 88.9 % of its slot: 97 KB less without
+  the hotspot, 7.9 KB more for the locks). Three screens (CYD, Guition 4 inch, Waveshare 4.3) run firmware 0.5.0 on a
+  Home Assistant, the CYD without its hotspot and with its calibration kept; the lock tiles were tried on the Guition.
+
 ## 0.4.4 (firmware 0.4.1 for cyd9342)
 
 The CYD with an ILI9342 asks for ESPHome 2026.7.0 or newer (GitHub #50).

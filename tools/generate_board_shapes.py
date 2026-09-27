@@ -161,7 +161,7 @@ def shapes():
                  'catalog': catalog_of(board, values, lying),
                  # The chip it is built for, for the browser flasher's check of the board on the cable.
                  'chip': chip_of(board),
-                 # Whether a screen's own YAML gets the Wi-Fi fallback hotspot and captive_portal (app 0.4.2+): not on
+                 # Whether a screen's own YAML gets the Wi-Fi fallback hotspot and captive_portal (app 0.4.5+): not on
                  # a board with 4 MB of flash, where it would take some 90 KB of the update slot (profiles.hotspot).
                  # The manager writes a new screen's YAML by it and takes both out of an older one before it builds.
                  'hotspot': profiles.hotspot(board),

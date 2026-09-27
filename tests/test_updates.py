@@ -186,7 +186,7 @@ class UpdaterTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(core.SHAPES['waveshare4b'], {'firmware': ahead}):
             m = self.setup_manager(tmp)
             m.firmware.names['living-room.yaml']['package'] = 'packages/waveshare4b.yaml'
-            # Any board that builds the shared firmware (the CYD went ahead with its own fix in app 0.4.2).
+            # Any board that builds the shared firmware (a board that went ahead with a fix of its own would count on from that).
             other = next(b for b in core.BOARD_KEYS if b != 'waveshare4b' and core.SHAPES[b]['firmware'] == FIRMWARE_VERSION)
             m.firmware.names['kitchen.yaml']['package'] = f'packages/{other}.yaml'
             m.updates.hosts['text.screen2'] = '10.0.0.6'

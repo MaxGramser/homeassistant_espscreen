@@ -63,7 +63,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.4.0'
+FIRMWARE_VERSION = '0.5.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -2277,7 +2277,7 @@ def installation_yaml(data):
     # ESPHome Device Builder may still be older (docs/RELEASING.md, Compatibility 0.2.89).
     key, ota = base64.b64encode(secrets.token_bytes(32)).decode(), secrets.token_urlsafe(24)
     # The Wi-Fi fallback hotspot and its captive portal, where the board has room for them (boards.json `hotspot`,
-    # app 0.4.2+): a board with 4 MB of flash leaves both out, some 90 KB of its 1.75 MB update slot. A screen whose
+    # app 0.4.5+): a board with 4 MB of flash leaves both out, some 90 KB of its 1.75 MB update slot. A screen whose
     # Wi-Fi changed is then installed again over USB (docs/EASY_SETUP.md).
     hotspot = (f'''  ap:
     ssid: {quote(name + ' Setup')}

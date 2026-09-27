@@ -316,7 +316,7 @@ class Firmware:
 
     def drop_hotspot(self, name):
         """Take the Wi-Fi fallback hotspot (`wifi: ap:`) and `captive_portal:` out of a profile whose board has no room
-        for them (boards.json `hotspot`, app 0.4.2+), so its next build leaves both out as a new screen's does. ESPHome
+        for them (boards.json `hotspot`, app 0.4.5+), so its next build leaves both out as a new screen's does. ESPHome
         lays the screen's own YAML over the packages, so a package cannot remove them; this app wrote them there.
 
         Only a profile that builds from ESP Screens' board packages is touched, and only when both go: an `ap:` left
@@ -555,7 +555,7 @@ class Firmware:
                 self.set_language(profile.name, self.language())
             except (OSError, ValueError, yaml.YAMLError) as error:
                 LOG.warning('Could not write the language into %s (%s)', profile.name, error)
-        # A board without room for the Wi-Fi fallback hotspot builds without it, also a screen made before (app 0.4.2).
+        # A board without room for the Wi-Fi fallback hotspot builds without it, also a screen made before (app 0.4.5).
         dropped = False
         if action != 'validate':
             try:
