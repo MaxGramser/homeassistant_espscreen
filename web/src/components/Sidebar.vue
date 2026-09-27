@@ -160,10 +160,12 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
             <small v-else-if="updateState(screen)!.kind !== 'running'" :class="{ failed: updateState(screen)!.kind === 'failed' }">{{ updateState(screen)!.text }}</small>
           </div>
           <button v-if="screen.api_key" type="button" class="btn link mini copy-key" @click="copyText(screen.api_key!)">{{ t("editor.sidebar.copy_api_key") }}</button>
-          <form v-if="renameFor === screen.id" class="screen-host rename-screen" @submit.prevent="saveName(screen)">
+          <form v-if="renameFor === screen.id" class="rename-screen" @submit.prevent="saveName(screen)">
             <input v-model="newName" :placeholder="screen.ha_name" maxlength="40" :aria-label="t('editor.sidebar.rename.label')" autofocus @keydown.esc="renameFor = null" />
-            <button type="submit" class="btn mini primary">{{ t("editor.sidebar.rename.save") }}</button>
-            <button type="button" class="icon-btn" :aria-label="t('editor.common.cancel')" @click="renameFor = null">✕</button>
+            <div class="screen-actions">
+              <button type="submit" class="btn mini primary">{{ t("editor.sidebar.rename.save") }}</button>
+              <button type="button" class="btn link mini" @click="renameFor = null">{{ t("editor.common.cancel") }}</button>
+            </div>
           </form>
           <button v-else type="button" class="btn link mini rename-screen" @click="startRename(screen)">{{ t("editor.sidebar.rename.button") }}</button>
           <button type="button" class="btn link mini danger remove-screen" @click="removeFor = screen.id">{{ t("editor.sidebar.remove.button") }}</button>
