@@ -1,3 +1,22 @@
+## 0.4.1 (firmware 0.4.0)
+
+Editor fixes from a hunt for features that quietly broke when pages got their own layout in 0.3.1.
+
+- **Top bar.** An item that stands on several pages shows its value in the editor again instead of "...". Add greys
+  out Clock and Date once they are in the bar, and a new item lights up briefly again. The editor compared items
+  together with an id each page gives them, so no item ever matched another.
+- **Top bar choices.** Add and the new page dialog no longer offer cameras and images, which a top bar can't show.
+- **Moving tiles with the arrow keys** keeps moving the same tile. The second key press used to move its neighbour
+  back.
+- **Go to page tiles** can be made 1 x 2 or 2 x 2 by dragging their edge again instead of getting an error.
+- **Screens with older firmware** keep their home page first and give a new page the shared top bar, so saving no
+  longer fails later with "Update screen to use the new titlebar and layout".
+- **Unsaved changes.** Picking what a tile already has no longer counts as a change, and going back to the overview
+  after discarding changes no longer asks a second time.
+- An action value with accented letters is measured the way the app measures it, so a valid action is no longer
+  refused, and a tile name that is too long says so.
+- No new firmware: update the app; the screens stay as they are.
+
 ## 0.4.0 (firmware 0.4.0)
 
 A home for all your screens, lamps in their own colour, and tile choices that always save (GitHub #47).

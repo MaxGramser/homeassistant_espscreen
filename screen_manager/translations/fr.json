@@ -1352,7 +1352,8 @@
         "map": "Montre où mène chaque tuile Aller à la page.",
         "preview_label": "Aperçu",
         "preview": "Essayez de balayer et les tuiles de page. Rien ne s’allume à la maison."
-      }
+      },
+      "copy_needs_migration": "Ouvrez une fois l'écran source pour que sa disposition passe aux pages, puis copiez-la."
     },
     "page": {
       "label": "Page {page}",

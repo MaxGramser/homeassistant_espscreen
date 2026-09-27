@@ -1352,7 +1352,8 @@
         "map": "Zeigt, wohin jede Zur Seite-Kachel führt.",
         "preview_label": "Vorschau",
         "preview": "Probiere Wischen und die Seiten-Kacheln aus. Zu Hause schaltet nichts."
-      }
+      },
+      "copy_needs_migration": "Öffne den Quellbildschirm einmal, damit sein Layout auf Seiten umgestellt wird, und kopiere es dann."
     },
     "page": {
       "label": "Seite {page}",

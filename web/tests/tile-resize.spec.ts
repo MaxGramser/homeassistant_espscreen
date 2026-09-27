@@ -110,3 +110,15 @@ it('keeps already chosen controls when a wide tile gains height', () => {
   expect(resizeTile(tile(), 'square', 'rows')).toBe(true);
   expect(tile().options?.controls).toBe('brightness');
 });
+
+it('resizes a Go to page tile by its edge without giving it controls (app 0.4.1)', () => {
+  state.inventory.editor_features = { tall_tiles: true };
+  state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: 'Home', pages: 2, tiles: [{ entity: 'screen.page_2', name: 'More', slot: 0 }] } });
+  select(null); select('test');
+  expect(resizeChoices(tile(), 'rows')).toContain('tall');
+  expect(state.toast).toBeNull();
+  expect(resizeTile(tile(), 'tall', 'rows')).toBe(true);
+  expect(state.toast).toBeNull();
+  expect(tile().options?.size).toBe('tall');
+  expect(tile().options?.controls).toBeUndefined();
+});

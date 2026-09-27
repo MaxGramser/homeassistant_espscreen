@@ -1352,7 +1352,8 @@
         "map": "Muestra adónde lleva cada mosaico Ir a la página.",
         "preview_label": "Vista previa",
         "preview": "Prueba a deslizar y los mosaicos de página. En casa no se activa nada."
-      }
+      },
+      "copy_needs_migration": "Abre una vez la pantalla de origen para que su diseño pase a páginas y luego cópialo."
     },
     "page": {
       "label": "Página {page}",
