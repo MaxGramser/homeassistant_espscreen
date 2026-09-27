@@ -68,7 +68,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.4.0",
+  "firmware": "0.4.1",
   "height": 240,
   "look": "compact",
   "orientations": {
@@ -902,7 +902,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.4.0",
+  "firmware": "0.4.1",
   "height": 240,
   "look": "compact",
   "orientations": {
@@ -1474,7 +1474,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.4.0",
+  "firmware": "0.4.1",
   "height": 240,
   "look": "compact",
   "orientations": {

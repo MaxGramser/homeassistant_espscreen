@@ -1,3 +1,15 @@
+## 0.4.4 (firmware 0.4.1 for cyd9342)
+
+The CYD with an ILI9342 asks for ESPHome 2026.7.0 or newer (GitHub #50).
+
+- **CYD ESP32-2432S028 ILI9342** (experimental) needs ESPHome 2026.7.0 or newer. On an older ESPHome Device Builder
+  its build stopped with "Invalid offsets"; it now says to update ESPHome instead. ESP Screens itself builds with a
+  newer ESPHome, so installing from ESP Screens works as before. Nothing changes in what the screen shows.
+- For contributors: the release recipe (docs/BOARD_RELEASES.md) and `tools/affected_boards.py` now also build a new or
+  changed board on the oldest ESPHome the packages promise, the way CI does, so a board like this one is caught
+  before it ships.
+- Other screens get nothing new.
+
 ## 0.4.3 (firmware 0.4.0)
 
 Give a screen its own name in the app.
