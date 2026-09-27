@@ -235,6 +235,20 @@ The precedence the whole scheme rests on (a board file's substitution over the c
 `esphome config` when this was built: a board file with its own version built and reported that version in its project
 version, its Screen firmware sensor and its settings page, and the CYD next to it kept the shared one.
 
+## What CI builds
+
+The firmware job of CI builds only the boards a push or pull request reaches, with the same sorting as above against
+the commit before the push or the pull request's base. It builds every board every night, when started by hand, when
+there is no commit to compare with (a new branch), and when the add-on's ESPHome changed.
+
+| Push | CI builds |
+|---|---|
+| the app alone | no firmware |
+| a fix in one board file | that board, with both ESPHome versions |
+| a change to the core or a component | every board |
+| a new ESPHome in the add-on | every board |
+| every night, or by hand | every board |
+
 ## Mistakes to avoid
 
 - **A shared release that does not raise the core.** 0.4.3 after 0.4.0 reads as a board revision and is no update

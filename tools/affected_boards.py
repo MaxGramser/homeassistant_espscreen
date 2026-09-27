@@ -278,6 +278,10 @@ def main(argv=None):
     base = args.base or default_base()
     if not known(base):
         # A push that starts a branch has no commit before it; there is nothing to compare with.
+        if args.keys:
+            # Nothing to compare with: build every board rather than none.
+            print(' '.join(profiles.BOARDS))
+            return 0
         print(f'No base to compare with ({base[:12] or "none"}): nothing checked')
         return 0
     reach = sort(changed_paths(base), base)

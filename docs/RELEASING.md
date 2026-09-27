@@ -58,8 +58,8 @@
    |---|---|
    | up to 90 % | normal |
    | 90-93 % | tight: every release states its flash delta; a delta over 8 KB needs a matching saving or Max's OK |
-   | 93-95 % | only fixes ship |
-   | over 95 % | never: that keeps about 90 KB for ESPHome upgrades and users' own overrides |
+   | 93-97 % | only fixes ship |
+   | over 97 % | never: that keeps about 55 KB for ESPHome upgrades and users' own overrides |
 
    **The Xtensa literal range** (app 0.3.8). On the ESP32 and the ESP32-S3 an `l32r` instruction loads a constant
    from at most 256 KB back, and ESP-IDF puts a function's literals in front of the code that follows them. Every

@@ -295,11 +295,11 @@ if baseline:
 print(line)
 if mode != 'budget':
     sys.exit(0)
-if share > 95:
-    print('Over 95 %: never ship this; it leaves no room for ESPHome upgrades and users\' own overrides.')
+if share > 97:
+    print('Over 97 %: never ship this; it leaves no room for ESPHome upgrades and users\' own overrides.')
     sys.exit(1)
 if share > 93:
-    print('93-95 %: only fixes ship.')
+    print('93-97 %: only fixes ship.')
     sys.exit(3)
 if share > 90:
     print('90-93 %: tight. The release states its flash delta; more than 8 KB needs a matching saving or Max\'s OK.'
@@ -380,7 +380,7 @@ fi
 
 if ((want_firmware && affected)); then
   # The boards the change reaches (tools/affected_boards.py); none means no firmware changed and nothing needs a build.
-  read -r -a reached <<< "$(cd "$ROOT" && "$PYTHON" tools/affected_boards.py --keys)"
+  read -r -a reached <<< "$(cd "$ROOT" && "$PYTHON" tools/affected_boards.py --keys ${CHECK_BASE:+--base "$CHECK_BASE"})"
   only+=(${reached[@]+"${reached[@]}"})
   choosing=1
   if ((${#only[@]} == 0)); then

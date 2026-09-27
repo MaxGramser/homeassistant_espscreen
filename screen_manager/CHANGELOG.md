@@ -1,3 +1,12 @@
+## 0.3.22 (firmware 0.3.10)
+
+A ready Docker image, so a Docker install no longer needs git.
+
+- **Docker image.** GitHub now builds the app's image for amd64 and arm64 on every change to main and publishes
+  it as `ghcr.io/maxgramser/homeassistant_espscreen`. `docker/compose.yaml` pulls it instead of building from Git,
+  which also makes it work in Synology Container Manager (GitHub #32). Thanks to @sriramsv (#53).
+- No new firmware in this release: update the app; the screens stay as they are.
+
 ## 0.3.21 (firmware 0.3.10)
 
 A firmware number per board: a fix for one board is no longer an update for every screen.
