@@ -117,6 +117,12 @@ def main():
             if re.search(r'(?m)^\s+(?:- )?id: ' + name + '$', own):
                 fail(f'{path.relative_to(ROOT)} defines {name}, which packages/core.yaml owns for every board')
 
+    # The boot steps are the core's. ESPHome joins two on_boot lists but lets a list replace one trigger whole, so a
+    # board's own on_boot threw away the core's boot block: the Waveshare 4B up to firmware 0.3.9 never took a layout.
+    for path in sorted((ROOT / 'packages' / 'boards').glob('*.yaml')):
+        if re.search(r'(?m)^  on_boot:', without_comments(path.read_text())):
+            fail(f'{path.relative_to(ROOT)} has its own esphome: on_boot:, which replaces the boot block of packages/core.yaml')
+
     # A board file holds what is its own.
     blocks = {board: own_blocks(path) for board, path in boards.items()}
     seen = {}
