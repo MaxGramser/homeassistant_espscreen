@@ -3691,6 +3691,16 @@ inline int tile_height(const Widgets &w) { return lv_obj_get_height(w.tile); }
 inline int content_width(const Widgets &w) {
   return tile_width(w) - lv_obj_get_style_space_left(w.tile, LV_PART_MAIN) - lv_obj_get_style_space_right(w.tile, LV_PART_MAIN);
 }
+// The name of a plain card. The compact look draws it in small letters for a cell of two columns (a CYD lying down);
+// a card whose name has more room than that (one column standing up, a double-width card, a 4-inch glass) gets the
+// same bold letters a little larger (label_wide in looks/compact.yaml), so the words are not small in a wide empty
+// card (GitHub #50). The standard look keeps one size. The room is the name's own, after a panel or a graph took
+// theirs.
+inline const lv_font_t *wide_name_font = nullptr;
+inline int wide_name_room() { return ui::mm(30); }
+inline const lv_font_t *name_font(const Widgets &w, int room) {
+  return !ui::large() && wide_name_font && room >= wide_name_room() ? wide_name_font : w.title_font;
+}
 inline int content_height(const Widgets &w) {
   return tile_height(w) - lv_obj_get_style_space_top(w.tile, LV_PART_MAIN) - lv_obj_get_style_space_bottom(w.tile, LV_PART_MAIN);
 }
@@ -5571,11 +5581,6 @@ inline void render_slot(size_t slot) {
     else render_forecast(w,t,large_tile,content_w,content_h);
     lap(swipe_profile::CUSTOM);
   }else{
-  // A slot that just held a full card gets its own name font, one-line box and left-aligned text back.
-  set_font(w.title,w.title_font);set_text_align(w.title,LV_TEXT_ALIGN_LEFT);set_text_align(w.value,LV_TEXT_ALIGN_LEFT);
-  title_height=lv_font_get_line_height(w.title_font);lv_obj_set_height(w.title,title_height);
-  int line_gap=head_gap(large_tile),text_height=title_height+line_gap+value_height;
-  int slider_height=ui::px(large_tile?28:8);
   // A single-width graph takes the slider strip; a wide graph takes the right half.
   bool graph_strip=graph && !w.wide, graph_side=graph && w.wide;
   int chart_w=graph_side?content_w*55/100:0;
@@ -5583,6 +5588,13 @@ inline void render_slot(size_t slot) {
   int panel_w=with_panel && !graph?layout_panel(w,t,large_tile,content_w,content_h):0;
   if(!panel_w)hide_panel(w);
   lap(swipe_profile::PANEL);
+  // A slot that just held a full card gets its own name font, one-line box and left-aligned text back. A name with
+  // room gets bigger letters (name_font).
+  const lv_font_t *title_face=name_font(w,content_w-chart_w-panel_w);
+  set_font(w.title,title_face);set_text_align(w.title,LV_TEXT_ALIGN_LEFT);set_text_align(w.value,LV_TEXT_ALIGN_LEFT);
+  title_height=lv_font_get_line_height(title_face);lv_obj_set_height(w.title,title_height);
+  int line_gap=head_gap(large_tile),text_height=title_height+line_gap+value_height;
+  int slider_height=ui::px(large_tile?28:8);
   // The circle follows the board's icon size (TILE_ICON_SIZE), so a 73 pt icon on a 294 dpi panel gets its disc;
   // the watch and mini circles keep their ratios to it.
   const int base_circle=w.base_circle>0?w.base_circle:(ui::px(large_tile?54:36));

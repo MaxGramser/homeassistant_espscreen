@@ -1,3 +1,14 @@
+## 0.4.6 (firmware 0.6.0)
+
+Bigger tile names on small screens standing up, and the right colours on the ILI9342 CYD (GitHub #50).
+
+- **Tile names.** On the CYD and the 4-inch Hosyond, a tile with room for its name, such as one column of tiles on a
+  screen standing up or a double-width tile, now writes the name a little larger. Narrow tiles, like the CYD's two
+  columns lying down, keep the size they had. The editor's preview shows the same.
+- **CYD ESP32-2432S028 ILI9342** (experimental): red and blue were swapped. The screen now sends its colours in the
+  order this display expects.
+- Every screen gets the new firmware; other boards look the same as before.
+
 ## 0.4.5 (firmware 0.5.0)
 
 Locks on every screen (GitHub #55), and 97 KB more room on a CYD so its updates keep fitting.

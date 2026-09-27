@@ -159,6 +159,17 @@ export const deviceStyle = computed(() => {
 // still the standard look, and on its width alone it would have read as a CYD.
 export const isCompact = computed(() =>
   screenShape.value.look ? screenShape.value.look === "compact" : Math.min(screenShape.value.width, screenShape.value.height) < 300);
+// A plain card's name gets larger letters on the compact look where its cell has 30 mm of room
+// (runtime_tiles::name_font): one column standing up, a 4-inch glass. The cell's width as the screen lays it out:
+// its 9 px margins and 8 px gaps, then the card's padding (8 px of the look) and border.
+export const roomyNames = computed(() => {
+  const shape = screenShape.value;
+  if (!isCompact.value || !shape.dpi) return false;
+  const columns = state.documentGrid?.columns ?? shape.columns;
+  const pad = Math.round((8 * shape.dpi) / 143);
+  const cell = (shape.width - 18 - (columns - 1) * 8) / columns - 2 * pad - 2;
+  return cell >= Math.floor((shape.dpi * 30 + 12) / 25);
+});
 export const editorLayout = createLayout(() => state.documentGrid ?? screenShape.value);
 export const grid = editorLayout.grid;
 const { arrange, cellsOf, firstFree, fits, nearestFree, normalize, occupied, pageCount, pageOf, reorderPages, rowStart, startOf, strandedPages, tileLimit: limitFor } = editorLayout;
