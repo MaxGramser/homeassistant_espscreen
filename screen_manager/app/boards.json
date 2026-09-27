@@ -304,6 +304,78 @@
   "rows": 4,
   "width": 1024
  },
+ "checkout/jc3248w535.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "board": "jc3248w535",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "JC3248W535",
+   "name": "Guition",
+   "order": 10,
+   "status": "experimental",
+   "touch": "AXS15231"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "height": 320,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "width": 480
+ },
  "checkout/jc8012p4a1.yaml": {
   "alert": {
    "line": 21,
@@ -939,6 +1011,78 @@
   "rows": 4,
   "width": 1024
  },
+ "jc3248w535": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "board": "jc3248w535",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "JC3248W535",
+   "name": "Guition",
+   "order": 10,
+   "status": "experimental",
+   "touch": "AXS15231"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "height": 320,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "width": 480
+ },
  "jc8012p4a1": {
   "alert": {
    "line": 21,
@@ -1315,6 +1459,78 @@
   },
   "rows": 4,
   "width": 1024
+ },
+ "packages/jc3248w535.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "board": "jc3248w535",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "JC3248W535",
+   "name": "Guition",
+   "order": 10,
+   "status": "experimental",
+   "touch": "AXS15231"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "height": 320,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "width": 480
  },
  "packages/jc8012p4a1.yaml": {
   "alert": {

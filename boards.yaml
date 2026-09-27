@@ -81,3 +81,9 @@ hosyond40:
   name: Hosyond
   model: ESP32-32E E32R40T
   status: experimental
+
+jc3248w535:
+  file: guition-jc3248w535.yaml
+  name: Guition
+  model: JC3248W535
+  status: experimental
