@@ -28,6 +28,13 @@ cyd:
     # Some of these boards carry an ST7789V display controller instead of the ILI9341 (GitHub #6).
     DISPLAY_MODEL: [ILI9341, ST7789V]
 
+cyd9342:
+  file: cyd-2432s028-ili9342.yaml
+  name: CYD
+  model: ESP32-2432S028 ILI9342
+  status: experimental
+  # The same board with an ILI9342 display controller (GitHub #50): the CYD's own file with only the display changed.
+
 guition:
   file: guition-4848s040.yaml
   name: Guition

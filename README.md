@@ -261,6 +261,7 @@ while it keeps your country's clock and numbers.
 | Screen | Resolution | Display / touch |
 | --- | --- | --- |
 | [CYD ESP32-2432S028](https://tessera-maxgramser.on-forge.com/screens/cyd) | 320 × 240, 2 × 3 tiles | ILI9341 / resistive XPT2046 |
+| CYD ESP32-2432S028 with ILI9342 (experimental) | 320 × 240, 2 × 3 tiles | ILI9342 / resistive XPT2046; hardware acceptance pending |
 | [Guition ESP32-S3-4848S040](https://tessera-maxgramser.on-forge.com/screens/guition), 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911 |
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
 | [Waveshare ESP32-S3-Touch-LCD-7](https://tessera-maxgramser.on-forge.com/screens/waveshare7) (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; backlight always on, hardware acceptance pending ([details](docs/WAVESHARE7.md)) |

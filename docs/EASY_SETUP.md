@@ -14,6 +14,7 @@ ESPHome Device Builder is optional:
 | Choice | Hardware |
 | --- | --- |
 | CYD, 2.8 inch | ESP32-2432S028, 320×240, ILI9341 and XPT2046 |
+| CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
 | Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911 |
 | Waveshare, 7 inch (experimental) | ESP32-S3-Touch-LCD-7, 800×480, RGB and GT911 |

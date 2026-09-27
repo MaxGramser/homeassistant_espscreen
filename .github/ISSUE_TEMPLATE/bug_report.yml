@@ -14,6 +14,7 @@ body:
       description: Which board is this about?
       options:
         - CYD (ESP32-2432S028)
+        - CYD (ESP32-2432S028 ILI9342)
         - Guition (ESP32-S3-4848S040)
         - Waveshare (ESP32-S3-Touch-LCD-4.3)
         - Guition (JC8012P4A1)

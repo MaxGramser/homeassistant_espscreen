@@ -1,0 +1,112 @@
+# ESP Screens - the CYD ESP32-2432S028 apart from its display controller, for a board file that includes this one.
+#
+# Boards sold as the ESP32-2432S028 carry one of several display controllers on the same 2.8-inch glass, pins and
+# XPT2046 resistive touch: an ILI9341 or an ST7789V (cyd-2432s028.yaml, which picks one with DISPLAY_MODEL) and an
+# ILI9342 (cyd-2432s028-ili9342.yaml). This is the ESP32, the two SPI buses, the backlight and the RGB LED, the touch
+# and the display block; the board file names the controller (DISPLAY_MODEL) and anything that controller needs.
+#
+# Only the ILI9342 board includes this file for now. The first CYD carries the same sections in its own board file:
+# moving them here changes nothing it builds, but it would count as a firmware update for every CYD
+# (docs/BOARD_RELEASES.md). The next shared release moves them, and cyd-2432s028.yaml includes this file then.
+esp32:
+  board: esp32dev
+  framework:
+    advanced:
+      # ESPHome recommends this itself in the boot log. Yields ~40KB extra IRAM
+      # and a smaller binary, and every KB counts on this board.
+      sram1_as_iram: true
+      # minimum_chip_revision deliberately left out: that was here for the
+      # 032c board (rev 3.1 confirmed), but this is a different physical board
+      # with an unknown chip revision. With an unjustifiably high minimum
+      # the firmware simply refuses to boot.
+  variant: esp32
+
+# Two SPI buses used by the CYD:
+# - lcd: built-in display
+# - my_touchscreen: built-in touch controller
+# Two SPI buses on the 2432S028: one for the display, a separate one for the
+# resistive XPT2046 touch (no I2C on this board, unlike the 032c).
+spi:
+  - id: lcd
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+
+  - id: my_touchscreen
+    clk_pin: GPIO25
+    mosi_pin: GPIO32
+    miso_pin: GPIO39
+
+output:
+  - platform: ledc
+    pin: GPIO21
+    id: gpio_backlight_pwm
+    # ESPHome's ledc default is 1kHz. You don't see that while still (well
+    # above what the eye perceives as flicker), but moving the screen reveals
+    # motion blur turning the on/off pulses into streaks (the same effect as
+    # a PWM LED that "judders" when you move it). 20kHz sits well above the
+    # speed at which motion still makes that visible, and still leaves ample
+    # duty-cycle resolution left over for smooth dimming.
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+  - platform: ledc
+    id: output_red
+    pin: GPIO4
+    inverted: true
+  - platform: ledc
+    id: output_green
+    pin: GPIO16
+    inverted: true
+  - platform: ledc
+    id: output_blue
+    pin: GPIO17
+    inverted: true
+
+
+# Touchscreen configuration (XPT2046, resistive, via SPI)
+# XPT2046 calibration is board-specific. Poll at 50Hz; LVGL rotates touch
+# with the display. GPIO36 IRQ is deliberately unused (driver requests a
+# pull-up that this input-only pin cannot provide).
+touchscreen:
+  - platform: xpt2046
+    id: ts_touch
+    spi_id: my_touchscreen
+    cs_pin: 33
+    # Polling avoids GPIO36 pull-up errors and noisy PENIRQ edges.
+    update_interval: 20ms
+    # Diagnosis caught a false corner contact at pressure 422. Deliberate
+    # contacts measured 936-2643; reject the low-pressure tail on release.
+    threshold: 800
+
+# Display configuration (the controller is the board file's DISPLAY_MODEL)
+display:
+  - platform: mipi_spi
+    id: my_display
+    spi_id: lcd
+    # 40MHz matches ESPHome's presets for these boards (ESP32-2432S028, -7789 and -9342).
+    model: ${DISPLAY_MODEL}
+    data_rate: ${DISPLAY_DATA_RATE}
+    cs_pin: 15
+    dc_pin: 2
+    invert_colors: ${DISPLAY_INVERT_COLORS}
+    update_interval: never
+    auto_clear_enabled: false
+
+    # Panel tuning, appended after ESPHome's built-in sequence for the controller (written for the ILI9341; the
+    # ILI9342 has the same commands). With the
+    # defaults (line inversion, 79 Hz) the cheap CYD panel shows a fine vertical
+    # stripe pattern that flickers when you move your eyes or the board: the
+    # two polarities of adjacent columns differ in brightness. Frame inversion
+    # (0xB4 = 0x07) removes the stripes; the maximum frame rate (0xB1 = 0x10,
+    # 119 Hz) keeps the resulting whole-frame flicker above what the eye sees.
+    # VCOM (0xC5) stayed at the default; sweeping it changed contrast, not the
+    # stripes. Checked on the bench CYD on 2026-09-15.
+    init_sequence:
+      - [0xB4, 0x07]
+      - [0xB1, 0x00, 0x10]
+
+    # The canvas (portrait), as an ILI9341 scans it. Do NOT swap these per orientation: rotation is handled by
+    # LVGL. A controller that scans the glass another way turns onto this canvas with a transform in its board
+    # file (cyd-2432s028-ili9342.yaml); ESPHome 2026.6+ rejects swapped dimensions here with "Invalid offsets".
+    dimensions:
+      width: 240
+      height: 320

@@ -9,6 +9,7 @@ holds one file per board, named after the board's key in `boards.yaml`:
 | File | Board |
 |---|---|
 | `cyd.yaml` | CYD, ESP32-2432S028 |
+| `cyd9342.yaml` | CYD, ESP32-2432S028 with an ILI9342 display controller (experimental) |
 | `guition.yaml` | Guition ESP32-S3-4848S040, 4 inch |
 | `waveshare43.yaml` | Waveshare ESP32-S3-Touch-LCD-4.3 |
 | `jc8012p4a1.yaml` | Guition JC8012P4A1, 10.1 inch |

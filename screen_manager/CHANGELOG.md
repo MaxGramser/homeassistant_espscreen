@@ -1,3 +1,14 @@
+## 0.3.26 (firmware 0.3.10)
+
+The CYD with an ILI9342 display controller, experimental (GitHub #50).
+
+- **New screen** offers the CYD ESP32-2432S028 ILI9342. Some boards sold as the ESP32-2432S028 carry an ILI9342
+  instead of the ILI9341 or ST7789V. It scans the glass lying down, so the other two display controllers show a
+  garbled picture on it. This board is the CYD with only the display changed: the firmware has the ILI9342 swap its
+  axes, so the layout, the touch and the calibration on the first start are the CYD's. It is built but not yet tried
+  on the glass: please report how it runs.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
 ## 0.3.25 (firmware 0.3.10)
 
 The 3.5-inch Guition JC3248W535, experimental (GitHub #54).
