@@ -72,15 +72,25 @@ def own_blocks(path):
 def firmware_problem(shared, own):
     """What is wrong with the boards' own firmware versions, or None. `shared` is the core's SCREEN_FIRMWARE_VERSION,
     `own` maps a board file to the one it sets ('' for none). A board's own version is strict X.Y.Z (the add-on reads
-    nothing else as a firmware) and above the shared one: equal or below, the board would report a firmware it does
-    not have, and the feature gates would believe it."""
+    nothing else as a firmware): the core's X.Y, the core it is built on, with a board revision Z above the core's.
+    Another core would make the feature gates believe the board has a core it does not have; the same number or lower
+    would report a firmware it does not have (docs/BOARD_RELEASES.md "How the version numbers work")."""
     version = lambda text: tuple(map(int, text.split('.'))) if re.fullmatch(r'\d+\.\d+\.\d+', text) else None
-    if not version(shared):
+    core = version(shared)
+    if not core:
         return f'packages/core.yaml has SCREEN_FIRMWARE_VERSION "{shared}", not X.Y.Z'
     for path, value in sorted(own.items()):
-        if value and not (version(value) and version(value) > version(shared)):
-            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", which is not above the shared {shared}: '
-                    f'a shared release overtook the board, so remove the line (docs/BOARD_RELEASES.md)')
+        if not value:
+            continue
+        board = version(value)
+        if not board:
+            return f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", not X.Y.Z'
+        if board[:2] != core[:2]:
+            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}" on another core than the shared {shared}: a shared '
+                    f'release took the board\'s fix along, so remove the line (docs/BOARD_RELEASES.md)')
+        if board[2] <= core[2]:
+            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", which is no board revision above the shared '
+                    f'{shared}: remove the line, or raise the last number (docs/BOARD_RELEASES.md)')
     return None
 
 

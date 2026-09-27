@@ -1754,6 +1754,8 @@
         "no_screens": "Nog geen scherm gekoppeld. Nieuwe schermen krijgen firmware {version}.",
         "available": "Firmware {version} is beschikbaar voor {n} scherm. | Firmware {version} is beschikbaar voor {n} schermen.",
         "current": "Alle schermen hebben firmware {version}.",
+        "available_mixed": "Er is een update voor {n} scherm. | Er is een update voor {n} schermen.",
+        "current_mixed": "Alle schermen zijn bijgewerkt.",
         "all": "1 scherm bijwerken | Alle {n} schermen bijwerken",
         "whats_new": "Nieuw in firmware {version}",
         "auto_label": "Elke nacht automatisch bijwerken",

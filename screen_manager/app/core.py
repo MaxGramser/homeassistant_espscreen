@@ -63,7 +63,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/RELEASING.md "Firmware
 # for one board"). The feature gates below compare against it, so a feature always ships with a new shared version.
-FIRMWARE_VERSION = '0.3.9'
+FIRMWARE_VERSION = '0.4.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.

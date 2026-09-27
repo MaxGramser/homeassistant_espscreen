@@ -6,11 +6,12 @@ persistent add-on data; Wi-Fi/API/OTA stay in the device's own ESPHome YAML. Rea
 docs/RELEASING.md before publishing updates. Main distributes every board in tools/profiles.py.
 Every push to GitHub is a release: always also bump the add-on version in
 screen_manager/config.yaml (with a CHANGELOG line), otherwise HA won't see an update.
-The firmware number is per board (app 0.3.20): before any release run `tools/affected_boards.py`, which says
-whether the change reaches no screen, a new board, one or a few boards, or every board, and prints the number,
-the CHANGELOG heading and the checks. A new board takes no firmware number; a fix for one board sets the number in
-that board file only, so no other screen is asked to update, and builds only that board
-(`tools/check.sh --firmware --affected`). docs/BOARD_RELEASES.md is the recipe; never reuse a firmware number.
+The firmware number is core and board (firmware 0.4.0+): X.Y.Z with Y the core (a shared release is the next X.Y.0)
+and Z a board's revision on it (a fix for one board alone is X.Y.1, X.Y.2 in that board file only). Before any
+release run `tools/affected_boards.py`, which says whether the change reaches no screen, a new board, one or a few
+boards, or every board, and prints the number, the CHANGELOG heading and the checks. A new board takes no firmware
+number and makes no screen update; a board fix makes only that board's screens update and builds only that board
+(`tools/check.sh --firmware --affected`). docs/BOARD_RELEASES.md is the recipe.
 A screen's YAML is packages/core.yaml (shared by every board) plus one file under packages/boards/;
 packages/<board>.yaml and the two profiles in the root only include them. Read docs/PROFILES.md before
 touching them: a board-dependent number is a `${NAME}` in the board file, board-only code inside a shared

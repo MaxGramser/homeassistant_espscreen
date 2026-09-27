@@ -1,3 +1,15 @@
+## 0.3.20 (firmware 0.4.0)
+
+A firmware number per board: a fix for one board is no longer an update for every screen.
+
+- **Firmware per board.** The firmware number now reads as core and board: 0.4.0 is core 4, and a fix for one board
+  alone becomes 0.4.1, 0.4.2 for that board only. Every other screen stays up to date and is not asked to update.
+  A new board needs no firmware update at all.
+- **Updates.** Each screen is offered its own board's firmware, What's new shows only what its board gets, and the
+  nightly round only flashes the screens that have something new.
+- Firmware 0.4.0 is the start of this count and brings nothing else new: update the app, then the screens when it
+  suits you.
+
 ## 0.3.19 (firmware 0.3.9)
 
 A calmer editor: every setting has one place, and the pages and panels read at a glance.

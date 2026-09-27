@@ -75,10 +75,40 @@ class WhatAChangeReaches(unittest.TestCase):
             self.assertEqual(reach(name)[name], EVERY)
 
 
+CORE = tuple(map(int, FIRMWARE_VERSION.split('.')))
+
+
 class TheReleasePlan(unittest.TestCase):
     def following(self):
-        highest = max(number for number, _ in affected_boards.firmware_numbers())
-        return affected_boards.dotted((*highest[:2], highest[2] + 1))
+        """A board's next number while no board is ahead: the core's, one board revision up."""
+        return affected_boards.dotted((*CORE[:2], CORE[2] + 1))
+
+    def test_the_core_counts_in_the_middle_and_a_board_at_the_end(self):
+        """docs/BOARD_RELEASES.md "How the version numbers work": a shared release raises the core and starts at .0, a
+        board release keeps the core and takes a revision above what those boards build now."""
+        shared, board = affected_boards.next_numbers(['cyd'])
+        self.assertEqual(shared, (CORE[0], CORE[1] + 1, 0))
+        self.assertEqual(board, (*CORE[:2], CORE[2] + 1))
+        # Counted from what a base shows: core 0.4.0 with the Waveshare 4B at its second fix.
+        fourb = str(profiles.BOARDS['waveshare4b'].relative_to(ROOT))
+        base = {str(profiles.CORE.relative_to(ROOT)): 'substitutions:\n  SCREEN_FIRMWARE_VERSION: "0.4.0"\n',
+                fourb: 'substitutions:\n  BOARD_ID: "waveshare4b"\n  SCREEN_FIRMWARE_VERSION: "0.4.2"\n'}
+        read = lambda path: base.get(path, 'substitutions:\n')
+        # The board that is ahead counts on from its own revision; with another board, both take the one number.
+        self.assertEqual(affected_boards.next_numbers(['waveshare4b'], read)[1], (0, 4, 3))
+        self.assertEqual(affected_boards.next_numbers(['cyd', 'waveshare4b'], read)[1], (0, 4, 3))
+        self.assertEqual(affected_boards.next_numbers(['cyd'], read)[1], (0, 4, 1))
+        # The shared release overtakes them all, and from the old count 0.3.9 it is 0.4.0.
+        self.assertEqual(affected_boards.next_numbers(['cyd', 'waveshare4b'], read)[0], (0, 5, 0))
+        old = {str(profiles.CORE.relative_to(ROOT)): 'substitutions:\n  SCREEN_FIRMWARE_VERSION: "0.3.9"\n'}
+        self.assertEqual(affected_boards.next_numbers((), lambda path: old.get(path, ''))[0], (0, 4, 0))
+
+    def test_the_plan_says_when_the_number_is_set(self):
+        """Counted from the base, so a bump already made reads as done, not as the next one after it."""
+        old = {str(profiles.CORE.relative_to(ROOT)): f'substitutions:\n  SCREEN_FIRMWARE_VERSION: "{CORE[0]}.{CORE[1] - 1}.3"\n'}
+        text = affected_boards.plan(reach('packages/core.yaml'), read_base=lambda path: old.get(path, ''))
+        self.assertIn(f'the number is {FIRMWARE_VERSION} (set: every board builds it)', text)
+        self.assertNotIn('(set:', affected_boards.plan(reach('packages/core.yaml')))
 
     def test_no_firmware_is_an_app_release(self):
         text = affected_boards.plan(reach('screen_manager/app/core.py'))
@@ -123,12 +153,8 @@ class TheReleasePlan(unittest.TestCase):
     def test_a_shared_change_is_a_shared_release(self):
         text = affected_boards.plan(reach('packages/core.yaml', 'packages/boards/cyd-2432s028.yaml'))
         self.assertIn('Shared firmware: every board', text)
-        self.assertIn(f'FIRMWARE_VERSION: "{self.following()}"', text)
+        self.assertIn(f'FIRMWARE_VERSION: "{affected_boards.dotted((CORE[0], CORE[1] + 1, 0))}"', text)
         self.assertIn('tools/check.sh --firmware (every board', text)
-
-    def test_the_next_number_is_above_every_number_so_far(self):
-        numbers = [number for number, _ in affected_boards.firmware_numbers()]
-        self.assertGreater(tuple(map(int, self.following().split('.'))), max(numbers))
 
 
 class AForgottenNumber(unittest.TestCase):
@@ -144,9 +170,9 @@ class AForgottenNumber(unittest.TestCase):
         return lambda path: texts.get(path, 'substitutions:\n')
 
     def test_built_versions_take_the_board_files_own_over_the_core(self):
-        versions = affected_boards.built_versions(self.files('0.3.9', '0.3.10'))
-        self.assertEqual(versions['waveshare4b'], (0, 3, 10))
-        self.assertEqual(versions['cyd'], (0, 3, 9))
+        versions = affected_boards.built_versions(self.files('0.4.0', '0.4.1'))
+        self.assertEqual(versions['waveshare4b'], (0, 4, 1))
+        self.assertEqual(versions['cyd'], (0, 4, 0))
 
     def verdict(self, reached, before, after):
         with mock.patch.object(affected_boards, 'built_versions',
@@ -154,31 +180,40 @@ class AForgottenNumber(unittest.TestCase):
             return affected_boards.unraised({'x': set(reached)}, 'base')
 
     def test_a_board_fix_without_a_new_number_is_caught(self):
-        self.assertEqual(self.verdict({'waveshare4b'}, self.files('0.3.9'), self.files('0.3.9')), ['waveshare4b'])
-        self.assertEqual(self.verdict({'waveshare4b'}, self.files('0.3.9'), self.files('0.3.9', '0.3.10')), [])
+        self.assertEqual(self.verdict({'waveshare4b'}, self.files('0.4.0'), self.files('0.4.0')), ['waveshare4b'])
+        self.assertEqual(self.verdict({'waveshare4b'}, self.files('0.4.0'), self.files('0.4.0', '0.4.1')), [])
         # A second fix for a board that is already ahead needs the next number again.
-        self.assertEqual(self.verdict({'waveshare4b'}, self.files('0.3.9', '0.3.10'), self.files('0.3.9', '0.3.10')),
+        self.assertEqual(self.verdict({'waveshare4b'}, self.files('0.4.0', '0.4.1'), self.files('0.4.0', '0.4.1')),
                          ['waveshare4b'])
 
     def test_a_shared_change_needs_every_board_raised(self):
-        self.assertEqual(self.verdict(EVERY, self.files('0.3.9', '0.3.10'), self.files('0.3.11')), [])
-        # The core went up but the board that was ahead kept a line at or below it: that board stayed where it was.
-        self.assertEqual(self.verdict(EVERY, self.files('0.3.9', '0.3.10'), self.files('0.3.10', '0.3.10')), ['waveshare4b'])
-        self.assertEqual(sorted(self.verdict(EVERY, self.files('0.3.9'), self.files('0.3.9'))), sorted(EVERY))
+        self.assertEqual(self.verdict(EVERY, self.files('0.4.0', '0.4.1'), self.files('0.5.0')), [])
+        # The core went up but the board that was ahead kept its old line: that board stayed where it was.
+        self.assertEqual(self.verdict(EVERY, self.files('0.4.0', '0.4.1'), self.files('0.5.0', '0.4.1')), ['waveshare4b'])
+        self.assertEqual(sorted(self.verdict(EVERY, self.files('0.4.0'), self.files('0.4.0'))), sorted(EVERY))
 
     def test_a_new_board_needs_no_number(self):
         with mock.patch.object(affected_boards, 'built_versions',
-                               side_effect=[affected_boards.built_versions(self.files('0.3.9')),
-                                            affected_boards.built_versions(self.files('0.3.9'))]):
+                               side_effect=[affected_boards.built_versions(self.files('0.4.0')),
+                                            affected_boards.built_versions(self.files('0.4.0'))]):
             self.assertEqual(affected_boards.unraised({'x': {'waveshare4b'}}, 'base', new={'waveshare4b'}), [])
 
 
 class ABoardsOwnVersion(unittest.TestCase):
-    def test_only_above_the_shared_version(self):
-        self.assertIsNone(check_packages.firmware_problem('0.3.9', {'packages/boards/a.yaml': '', 'packages/boards/b.yaml': '0.3.10'}))
-        self.assertIn('not above', check_packages.firmware_problem('0.3.9', {'packages/boards/b.yaml': '0.3.9'}))
-        self.assertIn('not above', check_packages.firmware_problem('0.3.11', {'packages/boards/b.yaml': '0.3.10'}))
-        self.assertIn('not above', check_packages.firmware_problem('0.3.9', {'packages/boards/b.yaml': '0.3.10-fix'}))
+    def test_a_board_revision_on_the_shared_core(self):
+        """The core's X.Y with a revision above its Z: the core it is built on, and one step on top."""
+        problem = check_packages.firmware_problem
+        self.assertIsNone(problem('0.4.0', {'packages/boards/a.yaml': '', 'packages/boards/b.yaml': '0.4.1', 'packages/boards/c.yaml': '0.4.1'}))
+        self.assertIsNone(problem('0.4.0', {'packages/boards/b.yaml': '0.4.7'}))
+        # The same number or lower is no revision.
+        self.assertIn('no board revision', problem('0.4.0', {'packages/boards/b.yaml': '0.4.0'}))
+        # A shared release took the board along: the old line names another core.
+        self.assertIn('another core', problem('0.5.0', {'packages/boards/b.yaml': '0.4.1'}))
+        # A board can't claim a core that has not shipped.
+        self.assertIn('another core', problem('0.4.0', {'packages/boards/b.yaml': '0.5.1'}))
+        self.assertIn('not X.Y.Z', problem('0.4.0', {'packages/boards/b.yaml': '0.4.1-fix'}))
+        # The old count, before the core moved to the middle number: a board fix on 0.3.9 is 0.3.10.
+        self.assertIsNone(problem('0.3.9', {'packages/boards/b.yaml': '0.3.10'}))
         self.assertIn('X.Y.Z', check_packages.firmware_problem('0.3', {}))
 
     def test_what_a_board_builds_is_what_the_manager_offers(self):

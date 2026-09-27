@@ -33,30 +33,46 @@ def dotted(version):
     return '.'.join(map(str, version))
 
 
+# The last shared firmware counted in the last number. From the next one on (app 0.3.20) the middle number counts the
+# core and the last one a board's revisions on top of it: a shared release is X.Y.0, a board's fix X.Y.1, X.Y.2.
+LAST_OLD_COUNT = (0, 3, 9)
+
+
 def firmware_series(headings):
-    """(problem or None, the newest shared firmware) of CHANGELOG headings, top to bottom: oldest first, a heading names
-    the shared firmware again (a release of the app alone) or a number above every one before it; a firmware for some
-    boards alone always takes a new number and names real board keys (app 0.3.20, docs/BOARD_RELEASES.md)."""
-    shared, highest = None, None
+    """(problem or None, the newest shared firmware) of CHANGELOG headings, top to bottom (docs/BOARD_RELEASES.md "How
+    the version numbers work"). Oldest first:
+    - a heading names the shared firmware again (a release of the app alone), or a newer one; after LAST_OLD_COUNT a new
+      shared number raises the core (the middle number) and ends in .0, and before it just rises, as it always did;
+    - a firmware for some boards alone keeps the core of the shared firmware, takes a revision above it and above each
+      of those boards' own revision so far on that core, and names real board keys."""
+    shared, revisions = None, {}
     for version, rest in reversed(headings):
         firmware = FIRMWARE_IN_HEADING.search(rest)
         if not firmware:
             continue
-        number, boards = parse_firmware(firmware.group(1)), firmware.group(2)
-        fresh = highest is None or number > highest
+        number, boards, where = parse_firmware(firmware.group(1)), firmware.group(2), f'CHANGELOG {dotted(version)}'
         if boards:
-            if not fresh:
-                return (f'CHANGELOG {dotted(version)}: a fix for {boards} needs a firmware number above '
-                        f'{dotted(highest)}, the highest one so far'), None
-            for board in boards.split(', '):
-                if board not in BOARD_KEYS:
-                    return f'CHANGELOG {dotted(version)} names firmware for {board}, which is no board key', None
-        else:
-            if not (number == shared or fresh):
-                return (f'CHANGELOG {dotted(version)}: shared firmware {firmware.group(1)} is neither the one before '
-                        f'({dotted(shared) if shared else "none"}) nor above {dotted(highest)}, the highest so far'), None
-            shared = number
-        highest = number if highest is None else max(highest, number)
+            names = boards.split(', ')
+            unknown = [board for board in names if board not in BOARD_KEYS]
+            if unknown:
+                return f'{where} names firmware for {", ".join(unknown)}, which is no board key', None
+            if shared is None or number[:2] != shared[:2] or number[2] <= shared[2]:
+                return (f'{where}: a fix for {boards} is a board revision on the shared core, '
+                        f'{dotted((*shared[:2], shared[2] + 1)) if shared else "X.Y.1"} or higher, not {firmware.group(1)}'), None
+            for board in names:
+                if board in revisions and number <= revisions[board]:
+                    return (f'{where}: {board} was at {dotted(revisions[board])} already; its next fix takes a higher '
+                            f'revision than {firmware.group(1)}'), None
+                revisions[board] = number
+        elif number != shared:
+            highest = max([shared, *revisions.values()], default=None) if shared else None
+            if highest is not None and number <= highest:
+                return (f'{where}: shared firmware {firmware.group(1)} is neither the one before ({dotted(shared)}) nor '
+                        f'above {dotted(highest)}, the highest so far'), None
+            if number > LAST_OLD_COUNT and (number[2] != 0 or (shared and number[:2] <= shared[:2])):
+                return (f'{where}: a new shared firmware raises the core and starts at .0, '
+                        f'{dotted((shared[0], shared[1] + 1, 0)) if shared else "X.Y.0"}, not {firmware.group(1)}'), None
+            shared, revisions = number, {}
     return None, dotted(shared) if shared else None
 
 
@@ -82,33 +98,37 @@ class ReleaseVersionTests(unittest.TestCase):
                                  f'CHANGELOG {dotted(version)} names firmware {firmware.group(1)} for {board}, '
                                  f'which builds {firmware_target(board)}')
 
-    def test_firmware_numbers_are_one_rising_series(self):
-        """Oldest first, a heading names the shared firmware it ships with again (a release of the app alone) or a number
-        above every one before it. A number is never used twice: a screen on a board's own fix would otherwise read as
-        up to date, and its feature gates as newer, when the next shared release takes the same number (app 0.3.20)."""
+    def test_firmware_numbers_follow_the_core_and_board_count(self):
+        """The middle number counts the core and the last one a board's revisions on it, so a feature gate (a shared
+        X.Y.0) never reads a board fix as a newer core, and a board fix is never mistaken for what another board has."""
         problem, shared = firmware_series(app_headings())
         self.assertIsNone(problem)
         self.assertEqual(shared, FIRMWARE_VERSION, 'the newest shared firmware in the CHANGELOG is core.FIRMWARE_VERSION')
 
-    def test_the_series_rule_catches_a_number_used_twice(self):
+    def test_the_series_rule_on_made_up_histories(self):
         """The rule on made-up histories, so a change to it can't quietly turn it into a test of nothing."""
         def heading(app, firmware):
             return (tuple(map(int, app.split('.'))), f' (firmware {firmware})')
-        board = BOARD_KEYS[-1]
-        good = [heading('0.3.22', '0.3.12'), heading('0.3.21', f'0.3.11 for {board}'), heading('0.3.20', '0.3.10'),
-                heading('0.3.19', '0.3.10'), heading('0.3.18', '0.3.9')]
-        self.assertEqual(firmware_series(good), (None, '0.3.12'))
-        # The shared release after a board's own 0.3.11 took 0.3.11 again: that board's screens would stay behind.
-        reused = [heading('0.3.22', '0.3.11'), *good[1:]]
-        self.assertIn('neither', firmware_series(reused)[0])
-        # A board fix that takes a number already out.
-        behind = [heading('0.3.21', f'0.3.10 for {board}'), *good[2:]]
-        self.assertIn('above 0.3.10', firmware_series(behind)[0])
-        # A board key the catalog does not have.
-        unknown = [heading('0.3.21', '0.3.11 for nosuchboard'), *good[2:]]
-        self.assertIn('nosuchboard', firmware_series(unknown)[0])
+        board, other = BOARD_KEYS[-1], BOARD_KEYS[0]
+        # The way over: a board fix on 0.3.9 is 0.3.10, the next shared release is 0.4.0, then board revisions count
+        # per board on core 4 (two boards may both be at 0.4.1, each with its own fix).
+        good = [heading('0.3.26', '0.5.0'), heading('0.3.25', f'0.4.2 for {board}'), heading('0.3.24', f'0.4.1 for {other}'),
+                heading('0.3.23', f'0.4.1 for {board}'), heading('0.3.22', '0.4.0'), heading('0.3.21', f'0.3.10 for {board}'),
+                heading('0.3.20', '0.3.9'), heading('0.3.19', '0.3.9'), heading('0.3.18', '0.3.8')]
+        self.assertEqual(firmware_series(good), (None, '0.5.0'))
         # An app release while a board is ahead names the shared firmware again, which is fine.
-        self.assertEqual(firmware_series([heading('0.3.22', '0.3.10'), *good[1:]]), (None, '0.3.10'))
+        self.assertEqual(firmware_series([heading('0.3.27', '0.5.0'), *good]), (None, '0.5.0'))
+        # A shared release in the old count after the change: it would read as a board revision.
+        self.assertIn('raises the core', firmware_series([heading('0.3.21', '0.3.10'), *good[6:]])[0])
+        self.assertIn('raises the core', firmware_series([heading('0.3.27', '0.5.1'), *good])[0])
+        # A shared release that takes the number of a board fix: that board's screens would stay behind.
+        self.assertIn('neither', firmware_series([heading('0.3.22', '0.3.10'), *good[5:]])[0])
+        # A board fix on another core, at the core's own number, or at a revision its board already had.
+        self.assertIn('board revision on the shared core', firmware_series([heading('0.3.27', f'0.4.3 for {board}'), *good])[0])
+        self.assertIn('board revision on the shared core', firmware_series([heading('0.3.27', f'0.5.0 for {board}'), *good])[0])
+        self.assertIn('already', firmware_series([heading('0.3.25', f'0.4.1 for {board}'), *good[3:]])[0])
+        # A board key the catalog does not have.
+        self.assertIn('nosuchboard', firmware_series([heading('0.3.27', '0.5.1 for nosuchboard'), *good])[0])
 
     def test_a_board_ahead_of_the_shared_firmware_has_its_release_notes(self):
         """A board file that sets its own SCREEN_FIRMWARE_VERSION went out with a heading saying so, which is also what

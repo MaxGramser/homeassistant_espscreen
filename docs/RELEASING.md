@@ -78,8 +78,8 @@
    `tools/affected_boards.py` prints the number and the heading, and docs/BOARD_RELEASES.md is the recipe.
    Only publish compatible changes directly to main. `tests/test_release_lint.py`
    (part of `tools/check.sh`) holds `config.yaml`'s version, the first CHANGELOG heading and the
-   firmware it names, keeps the CHANGELOG headings unique and newest first and the firmware numbers one rising
-   series, and checks that every `fonts/...` file the packages fetch from GitHub is in the tree.
+   firmware it names, keeps the CHANGELOG headings unique and newest first, holds the firmware numbers to core and
+   board (a shared release the next X.Y.0, a board fix a revision on it), and checks that every `fonts/...` file the packages fetch from GitHub is in the tree.
 5. Commit and push main (the only release branch). Create an immutable tag
    `screens-vX.Y.Z` from the same commit, and a GitHub release on that tag with the release notes in English
    (`gh release create screens-vX.Y.Z --notes-file ...`). Test the remote YAML in an empty folder:

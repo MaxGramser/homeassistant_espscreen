@@ -31,8 +31,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profiles  # noqa: E402
 
 ROOT = profiles.ROOT
-CHANGELOG = ROOT / 'screen_manager/CHANGELOG.md'
-FIRMWARE_IN_HEADING = re.compile(r'^## \d+\.\d+\.\d+ \(firmware (\d+\.\d+\.\d+)(?: for ([a-z0-9]+(?:, [a-z0-9]+)*))?\)', re.M)
 # Everything a build of every board reads, whichever board file names it.
 SHARED_TREES = ('components/', 'fonts/')
 TRANSLATIONS = 'screen_manager/translations/'
@@ -113,24 +111,51 @@ def sort(paths, base):
     return reach
 
 
-def firmware_numbers():
-    """[(firmware tuple, boards or None)] of the CHANGELOG, newest first."""
-    return [(tuple(map(int, number.split('.'))), boards.split(', ') if boards else None)
-            for number, boards in FIRMWARE_IN_HEADING.findall(CHANGELOG.read_text())]
-
-
 def dotted(version):
     return '.'.join(map(str, version))
 
 
-def plan(reach, new=frozenset()):
-    """The release that follows from what each path reaches; `new` are boards no screen runs yet (new_boards)."""
+def parse(text):
+    return tuple(map(int, text.strip('"').split('.')))
+
+
+def read_now(path):
+    """A file's text in the working tree, or None."""
+    return (ROOT / path).read_text() if (ROOT / path).exists() else None
+
+
+def read_at(base):
+    """A reader of files as they are in `base`: None for a file the base does not have."""
+    def read(path):
+        try:
+            return git('show', f'{base}:{path}')
+        except subprocess.CalledProcessError:
+            return None
+    return read
+
+
+def next_numbers(boards=(), read=read_now):
+    """(the next shared number, the next number for `boards`) after the firmware `read` shows, which is the base the
+    change starts from (docs/BOARD_RELEASES.md "How the version numbers work"): the middle number counts the core and
+    the last one a board's revisions on top of it. A shared release raises the core and starts at .0; a board release
+    keeps the core and takes a revision above what each of those boards builds (several boards share one number, so it
+    is above the highest of them)."""
+    core = VERSION_LINE.search(read(str(profiles.CORE.relative_to(ROOT))) or '')
+    core = parse(core.group(1))
+    built = built_versions(read)
+    revisions = [built[board] for board in boards if built.get(board)] or [core]
+    return (core[0], core[1] + 1, 0), (core[0], core[1], max(version[2] for version in revisions) + 1)
+
+
+def plan(reach, new=frozenset(), read_base=read_now):
+    """The release that follows from what each path reaches, counted from the base (`read_base`); `new` are boards no
+    screen runs yet (new_boards). Once the working tree builds the numbers it asks for, it says so."""
     reached = set().union(*reach.values()) if reach else set()
     boards = reached - set(new)
     every = set(profiles.BOARDS)
-    numbers = firmware_numbers()
-    highest = max(number for number, _ in numbers)
-    following = dotted((*highest[:2], highest[2] + 1))
+    shared, board = next_numbers(sorted(boards) if boards != every else (), read_base)
+    shared_next, board_next = dotted(shared), dotted(board)
+    now = built_versions(read_now)
     ahead = {board: profiles.substitutions_of(path).get('SCREEN_FIRMWARE_VERSION', '').strip('"')
              for board, path in profiles.BOARDS.items()}
     ahead = {board: version for board, version in ahead.items() if version}
@@ -154,24 +179,27 @@ def plan(reach, new=frozenset()):
                   f'  "## <app> (firmware {profiles.substitutions_of(profiles.CORE)["SCREEN_FIRMWARE_VERSION"].strip(chr(34))})".',
                   '- Run tools/check.sh (no --firmware: no screen gets anything new).']
     elif boards == every:
-        lines += [f'Shared firmware: every board. The next firmware number is {following}.',
-                  f'- packages/core.yaml SCREEN_FIRMWARE_VERSION and screen_manager/app/core.py FIRMWARE_VERSION: "{following}".']
+        done = all(now[b] == shared for b in every)
+        lines += [f'Shared firmware: every board. The core goes up, so the number is {shared_next}'
+                  + (f' (set: every board builds it).' if done else '.'),
+                  f'- packages/core.yaml SCREEN_FIRMWARE_VERSION and screen_manager/app/core.py FIRMWARE_VERSION: "{shared_next}".']
         if ahead:
             lines.append('- Remove SCREEN_FIRMWARE_VERSION from the board files that went ahead, the shared release overtakes '
                          'them: ' + ', '.join(f'{board} ({version})' for board, version in sorted(ahead.items())) + '.')
         lines += ['- tools/generate_board_shapes.py, then bump screen_manager/config.yaml with the CHANGELOG entry',
-                  f'  "## <app> (firmware {following})".',
+                  f'  "## <app> (firmware {shared_next})".',
                   '- Run tools/check.sh and tools/check.sh --firmware (every board, the CYD flash budget).']
     else:
-        lines += [f'Firmware for {", ".join(sorted(boards))} alone: every other screen is left alone. '
-                  f'The next firmware number is {following}.']
+        done = all(now[b] == board for b in boards)
+        lines += [f'Firmware for {", ".join(sorted(boards))} alone: every other screen is left alone. The core stays, '
+                  f'the board revision goes up: {board_next}' + (' (set: those boards build it).' if done else '.')]
         for board in sorted(boards):
             path = profiles.BOARDS[board].relative_to(ROOT)
             now = f' (now "{ahead[board]}")' if board in ahead else ''
-            lines.append(f'- {path}: SCREEN_FIRMWARE_VERSION: "{following}"{now}, under BOARD_ID.')
+            lines.append(f'- {path}: SCREEN_FIRMWARE_VERSION: "{board_next}"{now}, under BOARD_ID.')
         lines += ['- Leave packages/core.yaml and core.FIRMWARE_VERSION as they are.',
                   '- tools/generate_board_shapes.py, then bump screen_manager/config.yaml with the CHANGELOG entry',
-                  f'  "## <app> (firmware {following} for {", ".join(sorted(boards))})".',
+                  f'  "## <app> (firmware {board_next} for {", ".join(sorted(boards))})".',
                   f'- Run tools/check.sh and tools/check.sh --firmware --board {" --board ".join(sorted(boards))}'
                   f' (or --affected).']
     return '\n'.join(lines)
@@ -194,14 +222,7 @@ def built_versions(read):
 def unraised(reach, base, new=frozenset()):
     """The existing boards a change reaches whose firmware number did not go up: their screens would never be offered
     the change. Empty when every reached board builds a higher number than in the base."""
-    def at_base(path):
-        try:
-            return git('show', f'{base}:{path}')
-        except subprocess.CalledProcessError:
-            return None
-    def now(path):
-        return (ROOT / path).read_text() if (ROOT / path).exists() else None
-    before, after = built_versions(at_base), built_versions(now)
+    before, after = built_versions(read_at(base)), built_versions(read_now)
     reached = set().union(*reach.values()) if reach else set()
     return sorted(board for board in reached - set(new)
                   if before.get(board) is not None and not (after.get(board) and after[board] > before[board]))
@@ -231,7 +252,7 @@ def main(argv=None):
         print(' '.join(board for board in profiles.BOARDS if board in boards))
     else:
         print(f'Against {base[:12]}\n')
-        print(plan(reach, new))
+        print(plan(reach, new, read_at(base)))
     return 0
 
 

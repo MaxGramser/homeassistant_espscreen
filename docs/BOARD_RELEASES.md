@@ -48,39 +48,54 @@ The firmware version is set in two places:
 - `SCREEN_FIRMWARE_VERSION` in `packages/core.yaml` is the **shared** version. `FIRMWARE_VERSION` in
   `screen_manager/app/core.py` holds the same number.
 - A board file may set its own `SCREEN_FIRMWARE_VERSION` under `BOARD_ID`. A board file's substitution wins over the
-  core's (docs/PROFILES.md, "Which value wins"), so that board builds and reports its own number. It must be higher than
-  the shared one.
+  core's (docs/PROFILES.md, "Which value wins"), so that board builds and reports its own number.
 
 `tools/generate_board_shapes.py` writes each board's version into `screen_manager/app/boards.json` (`firmware`).
 The add-on offers a screen the higher of the shared version and its board's version (`core.firmware_target`). It takes
 the board from the screen's own ESPHome YAML, because that is what an update builds, and falls back to the board the
 screen reports.
 
-### One rising series of numbers
+### Core and board in one number
 
-All firmware numbers, shared and per board, form a single series. **The next firmware number is always one above the
-highest number in the CHANGELOG**, whichever kind of release it is. `tools/affected_boards.py` prints it.
+A firmware number `X.Y.Z` reads as core and board (since firmware 0.4.0):
 
-This rule matters because the add-on uses the firmware number for two things: the update offer, and the feature
-gates. A feature gate says "this screen can draw a tall tile from firmware 0.2.xx". Suppose a board fix took 0.3.10 and
-the next shared release took 0.3.10 as well:
+- **Y is the core.** Every shared release raises it and starts the last number at 0: 0.4.0, 0.5.0, 0.6.0.
+- **Z is the board's revision on that core.** A fix for one board alone keeps the core and raises the last number
+  for that board only: 0.4.1, then 0.4.2. The other boards stay at 0.4.0. Two boards can both be at 0.4.1, each with
+  its own fix.
+- **X** stays 0.
 
-- screens of that board would already report 0.3.10 and never be offered the shared release;
-- and the add-on would believe they have every feature of shared 0.3.10, which they don't.
+| Release | Core | Waveshare 4B | CYD and the others |
+|---|---|---|---|
+| shared release | 0.4.0 | 0.4.0 | 0.4.0 |
+| fix for the 4B | 0.4.0 | 0.4.1 | 0.4.0 |
+| another fix for the 4B | 0.4.0 | 0.4.2 | 0.4.0 |
+| next shared release (has the 4B fixes too) | 0.5.0 | 0.5.0 | 0.5.0 |
 
-With one rising series, a board fix is 0.3.10, the next shared release is 0.3.11, and both problems are impossible.
-For the same reason a feature gate only ever names a shared version: a board-only release never brings a new feature
-the add-on has to know about.
+`tools/affected_boards.py` works the next number out from `origin/main` and prints it.
 
-When a shared release overtakes a board that went ahead, that board's own line goes: the shared release contains its
+The number has to stay three plain numbers: every app version and Home Assistant read a screen's firmware as strict
+`X.Y.Z`, and anything else would read as no firmware at all.
+
+This reading matters because the add-on uses the firmware number for two things: the update offer, and the feature
+gates. A feature gate says "this screen can draw a tall tile from firmware 0.2.xx". A feature belongs to the core, so
+from 0.4.0 on a gate always names a shared X.Y.0. A 4B on 0.4.2 passes a gate on 0.4.0 and stays below one on 0.5.0,
+which is exactly what it has: core 4 with fixes of its own. A board revision never brings a feature the add-on has to
+know about.
+
+When a shared release raises the core, a board that went ahead drops its own line: the shared release contains its
 fix too (the fix is in its board file, which the shared release builds). `tools/check_packages.py` fails as long as a
-board file states a version that is not above the shared one.
+board file names another core than the shared one, or no revision above it.
+
+Up to firmware 0.3.9 the last number counted the core (0.3.0 to 0.3.9 were all shared releases). The count above
+starts at 0.4.0; `tests/test_release_lint.py` knows 0.3.9 as the last number of the old count.
 
 ### What screens see
 
 - A screen of a board that went ahead is offered its board's version; every other screen stays up to date.
 - **What's new** under Update lists the CHANGELOG entries between the screen's firmware and its target, and leaves out
-  entries for other boards (`## 0.3.20 (firmware 0.3.10 for waveshare4b)` only shows on that board).
+  entries for other boards (`## 0.3.21 (firmware 0.4.1 for waveshare4b)` only shows on that board).
+- The Settings page names one firmware only when the screens share it, and otherwise says how many screens can update.
 - The nightly update round only picks up screens that have an update, so a board fix flashes only those screens.
 
 ### Older apps and newer firmware
@@ -100,7 +115,7 @@ other board.
    If it also names an existing board, you touched a shared file or another board's file on the way: that part is its
    own release (one of the recipes below), and it may be better as a separate change.
 4. Bump `screen_manager/config.yaml` and write a CHANGELOG entry that names the shared firmware:
-   `## 0.3.21 (firmware 0.3.10)`.
+   `## 0.3.21 (firmware 0.4.0)`.
 5. Checks:
 
    ```bash
@@ -125,13 +140,13 @@ only it includes, its entry files.
 
 1. Make the fix in the board's own files. If the fix needs `packages/core.yaml` or a component, it is a shared fix,
    even when only one board shows the bug.
-2. Run `tools/affected_boards.py`. It prints the next firmware number, say 0.3.11.
+2. Run `tools/affected_boards.py`. It prints the next firmware number, say 0.4.1 on core 0.4.0.
 3. In the board file, under `BOARD_ID`:
 
    ```yaml
    substitutions:
      BOARD_ID: "waveshare4b"
-     SCREEN_FIRMWARE_VERSION: "0.3.11"   # a fix for this board alone (docs/BOARD_RELEASES.md)
+     SCREEN_FIRMWARE_VERSION: "0.4.1"   # a fix for this board alone (docs/BOARD_RELEASES.md)
    ```
 
    If the board already has a line from an earlier fix, raise it to the new number.
@@ -140,10 +155,10 @@ only it includes, its entry files.
 6. Bump `screen_manager/config.yaml` and write the CHANGELOG entry with the board key:
 
    ```markdown
-   ## 0.3.22 (firmware 0.3.11 for waveshare4b)
+   ## 0.3.22 (firmware 0.4.1 for waveshare4b)
    ```
 
-   Several boards: `(firmware 0.3.11 for waveshare4b, guition)`, each board file set to 0.3.11. Use the keys of
+   Several boards: `(firmware 0.4.1 for waveshare4b, guition)`, each board file set to 0.4.1 (above what each of them builds now). Use the keys of
    `boards.yaml`. Say in the entry that other screens get nothing new.
 7. Checks:
 
@@ -163,12 +178,12 @@ only it includes, its entry files.
 
 Anything in `packages/core.yaml`, `components/`, `fonts/` or the screen texts, or a package every board includes.
 
-1. Run `tools/affected_boards.py`. It prints the next number, say 0.3.12, and lists the boards that went ahead.
+1. Run `tools/affected_boards.py`. It prints the next number, say 0.5.0, and lists the boards that went ahead.
 2. Set `SCREEN_FIRMWARE_VERSION` in `packages/core.yaml` and `FIRMWARE_VERSION` in `screen_manager/app/core.py` to it.
 3. Remove `SCREEN_FIRMWARE_VERSION` from every board file that went ahead: the new shared version is higher and
    includes their fixes. `tools/check_packages.py` fails until you do.
 4. A new feature the add-on has to know about gets a gate on this shared number (docs/RELEASING.md).
-5. `tools/generate_board_shapes.py`, bump `screen_manager/config.yaml`, CHANGELOG entry `## 0.3.23 (firmware 0.3.12)`.
+5. `tools/generate_board_shapes.py`, bump `screen_manager/config.yaml`, CHANGELOG entry `## 0.3.23 (firmware 0.5.0)`.
 6. Checks:
 
    ```bash
@@ -186,7 +201,7 @@ Anything in `packages/core.yaml`, `components/`, `fonts/` or the screen texts, o
 The add-on, the editor, docs or tools changed, and no firmware.
 
 1. Bump `screen_manager/config.yaml` and write a CHANGELOG entry that names the shared firmware again:
-   `## 0.3.24 (firmware 0.3.12)`. That is fine while a board is ahead of it.
+   `## 0.3.24 (firmware 0.5.0)`. That is fine while a board is ahead of it.
 2. Check with `tools/check.sh`. No firmware build: no screen gets anything new.
 
 A change to the README or docs alone can go to main without a release (docs/RELEASING.md).
@@ -197,12 +212,12 @@ These run in `tools/check.sh` and CI, so a release that breaks a rule fails befo
 
 | Check | Holds |
 |---|---|
-| `tools/check_packages.py` | only the core and a board file set `SCREEN_FIRMWARE_VERSION`; a board's own version is `X.Y.Z` and above the shared one |
+| `tools/check_packages.py` | only the core and a board file set `SCREEN_FIRMWARE_VERSION`; a board's own version is `X.Y.Z` on the shared core with a higher revision |
 | `tools/generate_board_shapes.py --check` | `boards.json` carries each board's version as its files work it out |
-| `tests/test_release_lint.py` | the numbers in the CHANGELOG are one rising series and never used twice; the newest entry names what it ships; a board that went ahead has its entry; board keys in headings exist |
+| `tests/test_release_lint.py` | a shared firmware raises the core and ends in .0, a board fix is a revision on the shared core above its last one; the newest entry names what it ships; a board that went ahead has its entry; board keys in headings exist |
 | `tests/test_board_releases.py` | what `tools/affected_boards.py` sorts where, the plan it prints, and that a board file's version wins over the core's |
 | `tests/test_updates.py` | a board fix is offered to that board alone, an update waits for the board's version, and the target is never below the shared one |
-| `web/tests/store.spec.ts` | What's new goes by the screen's own target and leaves out other boards' entries |
+| `web/tests/store.spec.ts`, `web/tests/components.spec.ts` | What's new goes by the screen's own target and leaves out other boards' entries; the Settings page names one firmware only when the screens share it |
 
 The precedence the whole scheme rests on (a board file's substitution over the core's) was checked with a real
 `esphome config` when this was built: a board file with its own version built and reported that version in its project
@@ -210,9 +225,11 @@ version, its Screen firmware sensor and its settings page, and the CYD next to i
 
 ## Mistakes to avoid
 
-- **Reusing a number.** Never give a shared release a number that a board fix already used, and never give a board fix
-  a number that is already out. Take the one `tools/affected_boards.py` prints.
-- **A feature gate on a board-only number.** A gate compares with shared versions only.
+- **A shared release that does not raise the core.** 0.4.3 after 0.4.0 reads as a board revision and is no update
+  for a board already at 0.4.3. A shared release is always the next X.Y.0; take the one `tools/affected_boards.py`
+  prints.
+- **A board fix on the wrong core.** A board revision keeps the shared core: on core 0.4.0 it is 0.4.1, never 0.5.1.
+- **A feature gate on a board revision.** A gate names a shared X.Y.0 only.
 - **A "board fix" in a shared file.** A change to the core or a component reaches every board, whatever it was meant for.
   Then it is a shared release.
 - **Forgetting to raise the version.** A fix in a board file without a new number reaches new screens (they build

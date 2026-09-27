@@ -73,9 +73,10 @@ component defined anywhere in the chain, and `!remove` takes one away (`backligh
 `esphome config checkout/<board>.yaml` shows the result.
 
 The firmware version is one of these values too. `SCREEN_FIRMWARE_VERSION` in the core is the version every board
-builds; a board file may set a higher one under `BOARD_ID` after a fix for that board alone, and that board then builds
-and reports its own number (docs/BOARD_RELEASES.md). Only the core and a board file may set it, and a board's own
-number must be above the core's; `tools/check_packages.py` holds both.
+builds; a board file may set its own under `BOARD_ID` after a fix for that board alone (the core's 0.4.0 becomes
+0.4.1 for that board), and that board then builds and reports its own number (docs/BOARD_RELEASES.md). Only the core
+and a board file may set it, and a board's own number keeps the core's X.Y with a higher last number;
+`tools/check_packages.py` holds both.
 
 ## Sizes: the look works them out
 

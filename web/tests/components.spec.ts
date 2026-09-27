@@ -640,6 +640,24 @@ describe("AppSettingsView", () => {
     delete state.inventory.changelog;
     expect(mount(AppSettingsView).find(".whatsnew").exists()).toBe(false);
   });
+  it("names one firmware only when the screens share it (app 0.3.20, a firmware per board)", () => {
+    const [living] = state.inventory.screens;
+    const kitchen = { ...living, id: "kitchen", name: "Kitchen", board: "waveshare4b" } as any;
+    const hint = () => mount(AppSettingsView).find("#updates-hint").text();
+    state.inventory.updates = { target: "0.4.0", pending: 1 };
+    state.inventory.screens = [{ ...living, update: { available: true, target: "0.4.0" } }, { ...kitchen, update: { available: false, target: "0.4.1" } }];
+    expect(hint()).toBe("Firmware 0.4.0 is available for 1 screen.");
+    state.inventory.screens[1].update = { available: true, target: "0.4.1" };
+    expect(hint()).toBe("An update is available for 2 screens.");
+    state.inventory.screens.forEach((s) => (s.update!.available = false));
+    expect(hint()).toBe("All screens are up to date.");
+    state.inventory.screens[1].update!.target = "0.4.0";
+    expect(hint()).toBe("All screens have firmware 0.4.0.");
+    // A running update names the firmware of the screen it is updating.
+    state.inventory.updates = { target: "0.4.0", pending: 1, busy: "kitchen" };
+    state.inventory.screens[1].update = { available: true, target: "0.4.1", state: "running" };
+    expect(hint()).toBe("Updating to firmware 0.4.1…");
+  });
 });
 
 describe("the title above a page (app 0.2.105, in the page's settings since 0.3.19)", () => {
