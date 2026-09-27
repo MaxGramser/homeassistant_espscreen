@@ -382,7 +382,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
-   "status": "experimental",
+   "status": "new",
    "touch": "AXS15231"
   },
   "chip": "ESP32-S3",
@@ -1229,7 +1229,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
-   "status": "experimental",
+   "status": "new",
    "touch": "AXS15231"
   },
   "chip": "ESP32-S3",
@@ -1810,7 +1810,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
-   "status": "experimental",
+   "status": "new",
    "touch": "AXS15231"
   },
   "chip": "ESP32-S3",

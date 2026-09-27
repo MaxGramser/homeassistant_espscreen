@@ -1,3 +1,12 @@
+## 0.4.7 (firmware 0.6.0)
+
+The Guition JC3248W535 3.5 inch is tried on a real screen (GitHub #54, thanks @govido).
+
+- New screen now marks the **Guition JC3248W535** as new instead of experimental: a community member installed it from
+  ESP Screens and it worked with no changes, taps in the right place, a camera tile on the glass and plenty of memory
+  to spare. docs/JC3248W535.md has what was tried and what is still open.
+- Nothing to do for your screens: the firmware is unchanged.
+
 ## 0.4.6 (firmware 0.6.0)
 
 Bigger tile names on small screens standing up, and the right colours on the ILI9342 CYD (GitHub #50).
