@@ -2,7 +2,10 @@
 FROM ghcr.io/esphome/esphome:2026.9.0
 ARG BUILD_VERSION
 ARG BUILD_ARCH
-LABEL io.hass.version="${BUILD_VERSION}" io.hass.type="app" io.hass.arch="${BUILD_ARCH}"
+# The Supervisor passes BUILD_ARCH (aarch64, amd64). The image GitHub builds for Docker (docker.yml) builds both
+# platforms at once, so there Docker's own TARGETARCH (arm64, amd64) fills the label.
+ARG TARGETARCH
+LABEL io.hass.version="${BUILD_VERSION}" io.hass.type="app" io.hass.arch="${BUILD_ARCH:-$TARGETARCH}"
 RUN pip install --no-cache-dir 'aiohttp>=3.12,<4' PyYAML
 COPY app /app
 # Every text of the app, the editor and the screens, one file per language (app 0.2.90).
