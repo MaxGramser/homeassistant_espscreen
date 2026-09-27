@@ -61,8 +61,8 @@ REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
 # The branch a screen's YAML builds its board package from. Which boards there are is boards.json's (BOARD_KEYS).
 REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
-# unless its own board file went ahead with a fix for that board alone (firmware_target, docs/RELEASING.md "Firmware
-# for one board"). The feature gates below compare against it, so a feature always ships with a new shared version.
+# unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
+# middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
 FIRMWARE_VERSION = '0.4.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
@@ -389,9 +389,9 @@ DEFAULT_SHAPE = SHAPES.get('cyd', {'width': 320, 'height': 240, 'columns': 2, 'r
 def firmware_target(board):
     """The firmware a screen of this board is offered (app 0.3.20): what a build of the board makes today, boards.json's
     `firmware`, and never less than the shared FIRMWARE_VERSION; an unknown board gets the shared one. A board that went
-    ahead with a fix of its own (its board file sets SCREEN_FIRMWARE_VERSION) is the only one offered that update. The
-    numbers are one rising series: a board's own fix takes a number above every one before it and the next shared
-    release one above that, so a feature gate never reads a board fix as a newer core."""
+    ahead with a fix of its own (its board file sets SCREEN_FIRMWARE_VERSION) is the only one offered that update. A
+    number reads as core and board (firmware 0.4.0+): 0.4.2 is core 4 with the board's second fix, so it passes the
+    gates of core 4 and no newer one."""
     shared = parse_firmware(FIRMWARE_VERSION)
     own = parse_firmware((SHAPES.get(board) or {}).get('firmware')) if isinstance(board, str) else None
     return '.'.join(map(str, max(shared, own) if own else shared))
