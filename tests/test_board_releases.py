@@ -105,10 +105,19 @@ class TheReleasePlan(unittest.TestCase):
 
     def test_the_plan_says_when_the_number_is_set(self):
         """Counted from the base, so a bump already made reads as done, not as the next one after it."""
-        old = {str(profiles.CORE.relative_to(ROOT)): f'substitutions:\n  SCREEN_FIRMWARE_VERSION: "{CORE[0]}.{CORE[1] - 1}.3"\n'}
-        text = affected_boards.plan(reach('packages/core.yaml'), read_base=lambda path: old.get(path, ''))
-        self.assertIn(f'the number is {FIRMWARE_VERSION} (set: every board builds it)', text)
-        self.assertNotIn('(set:', affected_boards.plan(reach('packages/core.yaml')))
+        core, fourb = str(profiles.CORE.relative_to(ROOT)), str(profiles.BOARDS['waveshare4b'].relative_to(ROOT))
+        tree = lambda core_version, board_version=None: (lambda path: {
+            core: f'substitutions:\n  SCREEN_FIRMWARE_VERSION: "{core_version}"\n',
+            fourb: 'substitutions:\n  BOARD_ID: "waveshare4b"\n'
+                   + (f'  SCREEN_FIRMWARE_VERSION: "{board_version}"\n' if board_version else '')}.get(path, 'substitutions:\n'))
+        with mock.patch.object(affected_boards, 'read_now', tree('0.5.0')):
+            text = affected_boards.plan(reach('packages/core.yaml'), read_base=tree('0.4.0', '0.4.2'))
+        self.assertIn('the number is 0.5.0 (set: every board builds it)', text)
+        with mock.patch.object(affected_boards, 'read_now', tree('0.4.0', '0.4.3')):
+            text = affected_boards.plan(reach(fourb), read_base=tree('0.4.0', '0.4.2'))
+        self.assertIn('the board revision goes up: 0.4.3 (set: those boards build it)', text)
+        with mock.patch.object(affected_boards, 'read_now', tree('0.4.0', '0.4.2')):
+            self.assertNotIn('(set:', affected_boards.plan(reach(fourb), read_base=tree('0.4.0', '0.4.2')))
 
     def test_no_firmware_is_an_app_release(self):
         text = affected_boards.plan(reach('screen_manager/app/core.py'))

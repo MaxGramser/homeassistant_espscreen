@@ -25,7 +25,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 240,
   "look": "compact",
   "orientations": {
@@ -78,7 +78,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -141,7 +141,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 320,
   "look": "compact",
   "orientations": {
@@ -194,7 +194,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 600,
   "look": "standard",
   "orientations": {
@@ -267,7 +267,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 600,
   "look": "standard",
   "orientations": {
@@ -340,7 +340,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 800,
   "look": "standard",
   "orientations": {
@@ -403,7 +403,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 320,
   "look": "standard",
   "orientations": {
@@ -456,7 +456,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -529,7 +529,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -602,7 +602,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -670,7 +670,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 240,
   "look": "compact",
   "orientations": {
@@ -723,7 +723,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -786,7 +786,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 320,
   "look": "compact",
   "orientations": {
@@ -839,7 +839,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 600,
   "look": "standard",
   "orientations": {
@@ -912,7 +912,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 600,
   "look": "standard",
   "orientations": {
@@ -985,7 +985,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 800,
   "look": "standard",
   "orientations": {
@@ -1053,7 +1053,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 240,
   "look": "compact",
   "orientations": {
@@ -1106,7 +1106,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -1169,7 +1169,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 320,
   "look": "compact",
   "orientations": {
@@ -1222,7 +1222,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 600,
   "look": "standard",
   "orientations": {
@@ -1295,7 +1295,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 600,
   "look": "standard",
   "orientations": {
@@ -1368,7 +1368,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 800,
   "look": "standard",
   "orientations": {
@@ -1431,7 +1431,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 320,
   "look": "standard",
   "orientations": {
@@ -1484,7 +1484,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -1557,7 +1557,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -1630,7 +1630,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -1693,7 +1693,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 320,
   "look": "standard",
   "orientations": {
@@ -1746,7 +1746,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -1819,7 +1819,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {
@@ -1892,7 +1892,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.4.0",
+  "firmware": "0.3.10",
   "height": 480,
   "look": "standard",
   "orientations": {

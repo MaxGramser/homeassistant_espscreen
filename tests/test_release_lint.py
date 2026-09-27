@@ -35,7 +35,7 @@ def dotted(version):
 
 # The last shared firmware counted in the last number. From the next one on (app 0.3.20) the middle number counts the
 # core and the last one a board's revisions on top of it: a shared release is X.Y.0, a board's fix X.Y.1, X.Y.2.
-LAST_OLD_COUNT = (0, 3, 9)
+LAST_OLD_COUNT = (0, 3, 10)
 
 
 def firmware_series(headings):
@@ -110,19 +110,19 @@ class ReleaseVersionTests(unittest.TestCase):
         def heading(app, firmware):
             return (tuple(map(int, app.split('.'))), f' (firmware {firmware})')
         board, other = BOARD_KEYS[-1], BOARD_KEYS[0]
-        # The way over: a board fix on 0.3.9 is 0.3.10, the next shared release is 0.4.0, then board revisions count
-        # per board on core 4 (two boards may both be at 0.4.1, each with its own fix).
+        # The way over, as it went: shared 0.3.10 is the last of the old count, a board fix on it is 0.3.11, the next
+        # shared release is 0.4.0, then board revisions count per board on core 4 (two boards may both be at 0.4.1).
         good = [heading('0.3.26', '0.5.0'), heading('0.3.25', f'0.4.2 for {board}'), heading('0.3.24', f'0.4.1 for {other}'),
-                heading('0.3.23', f'0.4.1 for {board}'), heading('0.3.22', '0.4.0'), heading('0.3.21', f'0.3.10 for {board}'),
-                heading('0.3.20', '0.3.9'), heading('0.3.19', '0.3.9'), heading('0.3.18', '0.3.8')]
+                heading('0.3.23', f'0.4.1 for {board}'), heading('0.3.22', '0.4.0'), heading('0.3.21', f'0.3.11 for {board}'),
+                heading('0.3.20', '0.3.10'), heading('0.3.19', '0.3.9'), heading('0.3.18', '0.3.8')]
         self.assertEqual(firmware_series(good), (None, '0.5.0'))
         # An app release while a board is ahead names the shared firmware again, which is fine.
         self.assertEqual(firmware_series([heading('0.3.27', '0.5.0'), *good]), (None, '0.5.0'))
         # A shared release in the old count after the change: it would read as a board revision.
-        self.assertIn('raises the core', firmware_series([heading('0.3.21', '0.3.10'), *good[6:]])[0])
+        self.assertIn('raises the core', firmware_series([heading('0.3.21', '0.3.11'), *good[6:]])[0])
         self.assertIn('raises the core', firmware_series([heading('0.3.27', '0.5.1'), *good])[0])
         # A shared release that takes the number of a board fix: that board's screens would stay behind.
-        self.assertIn('neither', firmware_series([heading('0.3.22', '0.3.10'), *good[5:]])[0])
+        self.assertIn('neither', firmware_series([heading('0.3.22', '0.3.11'), *good[5:]])[0])
         # A board fix on another core, at the core's own number, or at a revision its board already had.
         self.assertIn('board revision on the shared core', firmware_series([heading('0.3.27', f'0.4.3 for {board}'), *good])[0])
         self.assertIn('board revision on the shared core', firmware_series([heading('0.3.27', f'0.5.0 for {board}'), *good])[0])

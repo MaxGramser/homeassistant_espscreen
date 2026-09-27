@@ -1,14 +1,20 @@
-## 0.3.20 (firmware 0.4.0)
+## 0.3.21 (firmware 0.3.10)
 
 A firmware number per board: a fix for one board is no longer an update for every screen.
 
-- **Firmware per board.** The firmware number now reads as core and board: 0.4.0 is core 4, and a fix for one board
-  alone becomes 0.4.1, 0.4.2 for that board only. Every other screen stays up to date and is not asked to update.
-  A new board needs no firmware update at all.
+- **Firmware per board.** A fix for one board alone now gets a number for that board only, and every other screen
+  stays up to date. A new board needs no firmware update at all. From the next shared firmware, 0.4.0, the number
+  reads as core and board: 0.4.0 is core 4, and a fix for one board becomes 0.4.1, 0.4.2 for that board.
 - **Updates.** Each screen is offered its own board's firmware, What's new shows only what its board gets, and the
   nightly round only flashes the screens that have something new.
-- Firmware 0.4.0 is the start of this count and brings nothing else new: update the app, then the screens when it
-  suits you.
+- No new firmware in this release: update the app; the screens stay as they are.
+
+## 0.3.20 (firmware 0.3.10)
+
+The Waveshare ESP32-S3-Touch-LCD-4B takes its tiles.
+
+- **Waveshare 4B.** The board's own boot step replaced the shared one, so the screen started without its tiles: a light page with only the page buttons, and every save answered with "Use the Easy Setup profile". That step is gone (ESPHome prepares the panel's lines by itself) and a check keeps every board from replacing the shared boot steps again. The board is still experimental.
+- Update the Tessera Screen Manager app, then update a Waveshare 4B to firmware 0.3.10. Other screens gain nothing from this firmware.
 
 ## 0.3.19 (firmware 0.3.9)
 
