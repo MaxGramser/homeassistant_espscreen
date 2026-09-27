@@ -289,6 +289,12 @@
       "too_many": "Demasiados códigos errados",
       "letters": "Este código tem letras. Introduza-o no Home Assistant."
     },
+    "lock": {
+      "confirm": "Confirmar",
+      "really_unlock": "Desbloquear mesmo?",
+      "lock_only": "Só trancar neste ecrã",
+      "lock_only_short": "Só trancar"
+    },
     "ha": {
       "on": "Ligado",
       "off": "Desligado",
@@ -465,6 +471,22 @@
         "arm_vacation": "Armado férias",
         "arm_custom_bypass": "Bypass personalizado",
         "enter_code": "Inserir Código"
+      },
+      "lock": {
+        "locked": "Trancada",
+        "unlocked": "Destrancada",
+        "locking": "A trancar",
+        "unlocking": "A destrancar",
+        "open": "Aberto",
+        "opening": "A abrir",
+        "jammed": "Encravado"
+      },
+      "lock_action": {
+        "lock": "Bloquear",
+        "unlock": "Desbloquear",
+        "open": "Abrir",
+        "open_door": "Abrir porta",
+        "open_door_confirm": "Abrir mesmo?"
       }
     },
     "navigation": {

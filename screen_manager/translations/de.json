@@ -289,6 +289,12 @@
       "too_many": "Zu viele falsche Codes",
       "letters": "Dieser Code enthält Buchstaben. Gib ihn in Home Assistant ein."
     },
+    "lock": {
+      "confirm": "Bestätigen",
+      "really_unlock": "Wirklich entriegeln?",
+      "lock_only": "Hier nur verriegeln",
+      "lock_only_short": "Nur verriegeln"
+    },
     "ha": {
       "on": "Ein",
       "off": "Aus",
@@ -465,6 +471,22 @@
         "arm_vacation": "Aktivieren (Urlaub)",
         "arm_custom_bypass": "Aktivieren (Mit Bypass)",
         "enter_code": "Code eingeben"
+      },
+      "lock": {
+        "locked": "Abgeschlossen",
+        "unlocked": "Aufgeschlossen",
+        "locking": "Wird abgeschlossen",
+        "unlocking": "Wird aufgeschlossen",
+        "open": "Geöffnet",
+        "opening": "Wird geöffnet",
+        "jammed": "Verklemmt"
+      },
+      "lock_action": {
+        "lock": "Abschließen",
+        "unlock": "Aufschließen",
+        "open": "Öffnen",
+        "open_door": "Tür öffnen",
+        "open_door_confirm": "Wirklich öffnen?"
       }
     },
     "navigation": {

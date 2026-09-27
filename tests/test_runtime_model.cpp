@@ -12,7 +12,7 @@ int main() {
   using namespace runtime_tiles;
   Model m;
   assert(!m.ready());
-  assert(!valid_entity("light.a;script.bad") && !valid_entity("light.") && !valid_entity("lock.frontdoor"));
+  assert(!valid_entity("light.a;script.bad") && !valid_entity("light.") && !valid_entity("zone.home") && valid_entity("lock.frontdoor"));
   assert(m.begin(3, 2, "Home") && !m.configured && !m.ready());
   m.tiles[0].entity = "light.a";
   m.tiles[0].state = "on";

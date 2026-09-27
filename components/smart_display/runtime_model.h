@@ -110,7 +110,7 @@ inline bool valid_entity(const std::string &entity) {
     if (entity == "screen.clock" || entity == "screen.settings") return true;
     return page_entity(entity) && entity[12] >= '1' && entity[12] <= static_cast<char>('0' + grid.pages());
   }
-  for (const auto *allowed : {"light", "switch", "input_boolean", "scene", "script", "climate", "vacuum", "fan", "cover", "sensor", "binary_sensor", "input_select", "select", "number", "input_number", "weather", "media_player", "button", "input_button", "sun", "timer", "person", "camera", "image", "alarm_control_panel"})
+  for (const auto *allowed : {"light", "switch", "input_boolean", "scene", "script", "climate", "vacuum", "fan", "cover", "sensor", "binary_sensor", "input_select", "select", "number", "input_number", "weather", "media_player", "button", "input_button", "sun", "timer", "person", "camera", "image", "alarm_control_panel", "lock"})
     if (domain == allowed) return true;
   return false;
 }
@@ -234,6 +234,9 @@ struct Extra {
   std::string code_format, changed_by;
   bool arm_code_free = false, code_saved = false;
   uint32_t alarm_end = 0, alarm_delay = 0;
+  // A lock (firmware 0.4.0+) shares code_format, changed_by and code_saved with the alarm panel, and says whether the
+  // integration only assumes its state (assumed_state), which lets every key work as in Home Assistant's dialog.
+  bool assumed = false;
   Choice *choice(char kind) { for (auto &c : choices) if (c.kind == kind) return &c; return nullptr; }
   bool empty() const {
     return hvac_modes.empty() && fan_modes.empty() && swing_modes.empty() && fan_mode.empty() && swing_mode.empty() &&
@@ -244,7 +247,7 @@ struct Extra {
            choices.empty() && room.empty() && !charging && std::isnan(tilt) && action.empty() && action_data.empty() &&
            action_templates.empty() && state_word.empty() && subtitle.empty() && !subtitle_at && effect.empty() &&
            option_rows.empty() && number_rows.empty() && lamps.empty() && code_format.empty() && changed_by.empty() && !arm_code_free &&
-           !code_saved && !alarm_end && !alarm_delay;
+           !code_saved && !alarm_end && !alarm_delay && !assumed;
   }
 };
 // The numbers of a clock text ("0:05:00", "07:45"), at most `max` of them, each after optional white space, up to the
@@ -302,7 +305,7 @@ struct Tile {
   bool received = false;
   bool has_hs_color = false;
   int saturation = 0;
-  std::string tap = "auto", display = "standard", inline_control = "none";
+  std::string tap = "auto", display = "standard", inline_control = "none", guard = "confirm";
   // What the second line says (firmware 0.2.90+), as the option was stored: "auto" is the line the screen works
   // out itself, "none" leaves it empty, "text:<words>" says those words, and "attr:<name>" says a value of this
   // entity that Home Assistant itself names. Only the last one needs an answer from the app: the other three
@@ -472,6 +475,9 @@ struct Tile {
     if (d == "timer") return state == "active";
     if (d == "camera") return state == "streaming" || state == "recording";
     if (d == "alarm_control_panel") return state != "disarmed";
+    // Home Assistant calls every lock that is not locked active (state_active.ts); a locked one still has a colour
+    // of its own, green (lock_panel::color), where other inactive things are grey.
+    if (d == "lock") return state != "locked";
     return true;
   }
   // A slider shows the card's colour like Home Assistant's tile sliders: grey only while the entity is inactive

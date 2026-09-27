@@ -126,9 +126,11 @@ struct Attempt {
   uint32_t since = 0;
   void begin(unsigned m, bool code, uint32_t now) { active = true; with_code = code; mode = m; since = now ? now : 1; }
   // A state arrived, or time passed (`state` is the panel's state now).
-  Outcome settle(const std::string &state, uint32_t now) {
+  Outcome settle(const std::string &state, uint32_t now) { return settle_if(reached(state, mode), now); }
+  // The same for an attempt whose "reached" is decided elsewhere (a lock's, lock_panel::reached).
+  Outcome settle_if(bool there, uint32_t now) {
     if (!active) return Outcome::WAITING;
-    if (reached(state, mode)) { active = false; return Outcome::ACCEPTED; }
+    if (there) { active = false; return Outcome::ACCEPTED; }
     if (now - since >= ATTEMPT_WAIT_MS) { active = false; return Outcome::FAILED; }
     return Outcome::WAITING;
   }
@@ -193,7 +195,8 @@ struct Metrics {
   int hero_min() const { return ui::px(large ? 120 : 64); }    // the shield's card at its smallest
   // The card at its largest is the Guition's (480 x 480 in the reference look): a bigger screen shows the same card,
   // as large to the eye, in the middle of its glass, instead of a white field that grows with the panel.
-  int hero_max() const { return ui::px(large ? 150 : 96); }
+  int hero_cap = 0;     // a card whose hero is its control (the lock's) may take more height
+  int hero_max() const { return hero_cap ? hero_cap : ui::px(large ? 150 : 96); }
   int card_max() const { return ui::px(large ? 440 : 300); }
   int dot() const { return ui::px(large ? 16 : 10); }
   int least_key() const { return touch > text_h + ui::px(8) ? touch : text_h + ui::px(8); }

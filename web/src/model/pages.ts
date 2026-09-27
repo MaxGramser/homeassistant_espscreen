@@ -313,7 +313,7 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
         if (options[wire] !== undefined) Object.assign(appearance, { [key]: clone(options[wire]) });
       }
       const interaction: PageTile["interaction"] = {};
-      for (const key of ["tap", "inline", "controls", "action"] as const) {
+      for (const key of ["tap", "inline", "controls", "action", "guard"] as const) {
         if (options[key] !== undefined) Object.assign(interaction, { [key]: clone(options[key]) });
       }
       draft.pages[Math.floor(slot / cells)].tiles.push({ id: old?.id || instanceId(), content, appearance, interaction,

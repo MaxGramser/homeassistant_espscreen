@@ -21,7 +21,7 @@ APPEARANCE = {
     "display": "display", "icon": "icon", "background": "background",
     "historyHours": "history_hours", "refresh": "refresh", "subtitle": "sub", "fit": "fit", "overlay": "overlay",
 }
-INTERACTION = {"tap": "tap", "inline": "inline", "controls": "controls", "action": "action"}
+INTERACTION = {"tap": "tap", "inline": "inline", "controls": "controls", "action": "action", "guard": "guard"}
 
 
 class LayoutError(ValueError):

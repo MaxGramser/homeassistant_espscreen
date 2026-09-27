@@ -218,11 +218,11 @@ class MessageTests(unittest.TestCase):
             validate_header({'items': [pick['item']]})
 
     def test_discovery_offers_top_bar_domains_outside_the_tile_picker(self):
-        registry = [{'entity_id': 'lock.front_door'}, {'entity_id': 'light.hall'}, {'entity_id': 'update.core'}]
-        states = {'lock.front_door': state('locked'), 'light.hall': state('on'), 'update.core': state('off'), 'zone.home': state('2')}
+        registry = [{'entity_id': 'counter.visits'}, {'entity_id': 'light.hall'}, {'entity_id': 'update.core'}]
+        states = {'counter.visits': state('3'), 'light.hall': state('on'), 'update.core': state('off'), 'zone.home': state('2')}
         _, entities = discover(registry, states, [], [])
         flags = {e['id']: e.get('tile', True) for e in entities}
-        self.assertEqual(flags, {'lock.front_door': False, 'light.hall': True, 'zone.home': False})
+        self.assertEqual(flags, {'counter.visits': False, 'light.hall': True, 'zone.home': False})
 
 class ParityTests(unittest.TestCase):
     def test_text_font_carries_exactly_the_glyphs_the_add_on_sends(self):

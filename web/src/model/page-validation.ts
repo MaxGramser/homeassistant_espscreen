@@ -51,7 +51,7 @@ export function validatePageShape(layout: PageLayout) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
       fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay'], ['label']);
-      fields(tile.interaction, ['tap', 'inline', 'controls', 'action'], []);
+      fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard'], []);
       const content = tile.content;
       fields(content, ['kind', 'entityId', 'name', 'target'], ['kind']);
       if (content.kind === 'entity') {
@@ -78,7 +78,8 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
   const displays = (rules.displays as Record<string, string[]>)[domain] || ['standard', 'watch'];
   const controls = ['none', ...((rules.controls as Record<string, string[]>)[domain] || [])];
   for (const [value, choices] of [[a.display, displays], [a.background, rules.backgrounds], [a.historyHours, [1, 6, 24]],
-    [i.tap, ['auto', 'detail', 'toggle', 'none', 'action']], [i.inline, ['none', 'slider']], [i.controls, controls]] as [any, any[]][])
+    [i.tap, ['auto', 'detail', 'toggle', 'none', 'action']], [i.inline, ['none', 'slider']], [i.controls, controls],
+    [i.guard, domain === 'lock' ? ['confirm', 'lock_only'] : []]] as [any, any[]][])
     if (value !== undefined && !choices.includes(value)) fail();
   if (a.icon !== undefined && !icon(a.icon)) fail();
   if (rules.wideOnly.includes(a.display || '') && !['wide', 'square', 'full'].includes(size)) fail('normalization');

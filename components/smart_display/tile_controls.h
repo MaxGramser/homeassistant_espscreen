@@ -4,6 +4,7 @@
 // a -/+ step lands on the entity's grid, and the status line beside them. The
 // LVGL drawing lives in runtime_tiles.h; tests/test_tile_controls.cpp covers this.
 #include "alarm_panel.h"
+#include "lock_panel.h"
 #include "screen_input.h"
 #include "runtime_model.h"
 #include "screen_text.h"
@@ -168,6 +169,8 @@ inline uint32_t accent(const Tile &t) {
   if (d == "person") return t.state == "home" ? GREEN : BLUE;
   // An alarm panel: armed green, the delays orange, going off red (--state-alarm_control_panel-*-color).
   if (d == "alarm_control_panel") return alarm_panel::color(t.state);
+  // A lock: locked green, moving orange, unlocked, open or jammed red (--state-lock-*-color).
+  if (d == "lock") return lock_panel::color(t.state);
   if (d == "sensor") {
     // A battery by its charge, as Home Assistant's battery_color.ts: green from 70 %, orange from 30 %, red below.
     if (t.device_class == "battery") {
@@ -711,7 +714,8 @@ inline Action edit_action(const Tile &t, float value) {
 // CARD is the runtime detail card (show_detail), OVERLAY the board's own colour card; `busy` marks the
 // tile busy for a moment while the card opens.
 // CUSTOM (firmware 0.2.58+) is an action of the tile's own choosing from Home Assistant's list, with its data.
-enum class TapRoute : uint8_t { NONE, ACTION, CARD, OVERLAY, CUSTOM };
+// LOCK (firmware 0.4.0+) is a lock's own tap: lock at once, or unlock after a second tap (lock_panel::tap).
+enum class TapRoute : uint8_t { NONE, ACTION, CARD, OVERLAY, CUSTOM, LOCK };
 struct Tap { TapRoute route = TapRoute::NONE; std::string service; bool busy = false; };
 inline bool runtime_card_domain(const std::string &d) {
   return d == "sensor" || d == "binary_sensor" || d == "weather" || d == "number" || d == "input_number" || d == "select" ||
@@ -763,6 +767,8 @@ inline Tap tap_route(const Tile &t, bool hold) {
   // A tile whose action didn't arrive (an app before 0.2.67) taps automatically, as older firmware does.
   if (!hold && t.tap == "action" && !t.extra().action.empty()) return {TapRoute::CUSTOM, t.extra().action};
   if (!hold && t.tap == "toggle") return {TapRoute::ACTION, d + ".toggle"};
+  // A lock opens its card when held or set to; a tap locks or asks for the second tap that unlocks.
+  if (d == "lock") return hold || t.tap == "detail" ? Tap{TapRoute::CARD, "", false} : Tap{TapRoute::LOCK, "", false};
   bool open = hold || t.tap == "detail" || d == "vacuum" || d == "cover";
   // A short tap runs or pauses the timer; holding opens the card with a cancel button.
   if (d == "timer" && !open) return {TapRoute::ACTION, t.state == "active" ? "timer.pause" : "timer.start"};

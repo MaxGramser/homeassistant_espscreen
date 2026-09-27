@@ -289,6 +289,12 @@
       "too_many": "Too many wrong codes",
       "letters": "This code has letters. Enter it in Home Assistant."
     },
+    "lock": {
+      "confirm": "Confirm",
+      "really_unlock": "Really unlock?",
+      "lock_only": "Only locking on this screen",
+      "lock_only_short": "Lock only"
+    },
     "ha": {
       "on": "On",
       "off": "Off",
@@ -449,6 +455,15 @@
         "disarming": "Disarming",
         "triggered": "Triggered"
       },
+      "lock": {
+        "locked": "Locked",
+        "unlocked": "Unlocked",
+        "locking": "Locking",
+        "unlocking": "Unlocking",
+        "open": "Open",
+        "opening": "Opening",
+        "jammed": "Jammed"
+      },
       "alarm_mode": {
         "armed_home": "Home",
         "armed_away": "Away",
@@ -465,6 +480,13 @@
         "arm_vacation": "Arm vacation",
         "arm_custom_bypass": "Custom bypass",
         "enter_code": "Enter code"
+      },
+      "lock_action": {
+        "lock": "Lock",
+        "unlock": "Unlock",
+        "open": "Open",
+        "open_door": "Open door",
+        "open_door_confirm": "Really open?"
       }
     },
     "navigation": {

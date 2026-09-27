@@ -289,6 +289,12 @@
       "too_many": "Trop de codes erronés",
       "letters": "Ce code contient des lettres. Saisissez-le dans Home Assistant."
     },
+    "lock": {
+      "confirm": "Confirmer",
+      "really_unlock": "Vraiment déverrouiller ?",
+      "lock_only": "Verrouillage seul sur cet écran",
+      "lock_only_short": "Verrouillage seul"
+    },
     "ha": {
       "on": "Activé",
       "off": "Désactivé",
@@ -465,6 +471,22 @@
         "arm_vacation": "Activer (vacances)",
         "arm_custom_bypass": "Contournement personnalisé",
         "enter_code": "Saisir le code"
+      },
+      "lock": {
+        "locked": "Verrouillé",
+        "unlocked": "Déverrouillé",
+        "locking": "Verrouillage",
+        "unlocking": "Déverrouillage",
+        "open": "Ouvert",
+        "opening": "Ouverture",
+        "jammed": "Bloqué"
+      },
+      "lock_action": {
+        "lock": "Verrouiller",
+        "unlock": "Déverrouiller",
+        "open": "Ouvrir",
+        "open_door": "Ouvrir la porte",
+        "open_door_confirm": "Confirmer l'ouverture ?"
       }
     },
     "navigation": {

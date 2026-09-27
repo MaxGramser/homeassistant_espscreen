@@ -289,6 +289,12 @@
       "too_many": "Zbyt wiele błędnych kodów",
       "letters": "Ten kod zawiera litery. Wprowadź go w Home Assistant."
     },
+    "lock": {
+      "confirm": "Potwierdź",
+      "really_unlock": "Na pewno odblokować?",
+      "lock_only": "Tylko blokowanie na tym ekranie",
+      "lock_only_short": "Tylko blokada"
+    },
     "ha": {
       "on": "włączono",
       "off": "wyłączono",
@@ -465,6 +471,22 @@
         "arm_vacation": "Uzbrój (tryb wakacyjny)",
         "arm_custom_bypass": "Niestandardowy bypass",
         "enter_code": "Wprowadź kod"
+      },
+      "lock": {
+        "locked": "zablokowano",
+        "unlocked": "odblokowano",
+        "locking": "blokowanie",
+        "unlocking": "odblokowywanie",
+        "open": "otwarto",
+        "opening": "otwieranie",
+        "jammed": "zacięcie"
+      },
+      "lock_action": {
+        "lock": "Zablokuj",
+        "unlock": "Odblokuj",
+        "open": "O",
+        "open_door": "Otwórz drzwi",
+        "open_door_confirm": "Naprawdę otworzyć?"
       }
     },
     "navigation": {

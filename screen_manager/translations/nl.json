@@ -289,6 +289,12 @@
       "too_many": "Te veel onjuiste codes",
       "letters": "Deze code bevat letters. Voer hem in Home Assistant in."
     },
+    "lock": {
+      "confirm": "Bevestigen",
+      "really_unlock": "Echt ontgrendelen?",
+      "lock_only": "Alleen vergrendelen op dit scherm",
+      "lock_only_short": "Alleen op slot"
+    },
     "ha": {
       "on": "Aan",
       "off": "Uit",
@@ -465,6 +471,22 @@
         "arm_vacation": "Inschakelen vakantie",
         "arm_custom_bypass": "Inschakelen met overbrugging",
         "enter_code": "Code invoeren"
+      },
+      "lock": {
+        "locked": "Vergrendeld",
+        "unlocked": "Ontgrendeld",
+        "locking": "Vergrendelen",
+        "unlocking": "Ontgrendelen",
+        "open": "Open",
+        "opening": "Openen",
+        "jammed": "Vastgelopen"
+      },
+      "lock_action": {
+        "lock": "Vergrendelen",
+        "unlock": "Ontgrendelen",
+        "open": "Openen",
+        "open_door": "Open deur",
+        "open_door_confirm": "Open deur?"
       }
     },
     "navigation": {
