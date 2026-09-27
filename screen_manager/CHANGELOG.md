@@ -1,3 +1,15 @@
+## 0.3.25 (firmware 0.3.10)
+
+The 3.5-inch Guition JC3248W535, experimental (GitHub #54).
+
+- **New screen** offers the Guition JC3248W535: a 480 x 320 panel on a four-line QSPI bus with capacitive touch, on an
+  ESP32-S3 with 8 MB PSRAM. It has the glass and the two by two grid of the Waveshare 3.5-inch, and the memory for camera
+  pictures. It is built and rendered but not yet tried on the glass: please report how it runs (docs/JC3248W535.md
+  says what to check).
+- A screen set up by hand from the shared packages needs `BOARD_ID` and a `DEVICE_NAME` equal to its name, or Tessera
+  sees it but cannot send it tiles; building from `packages/jc3248w535.yaml` sets both.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
 ## 0.3.24 (firmware 0.3.10)
 
 Installing from the browser reaches the newest ESP32-P4 boards.
