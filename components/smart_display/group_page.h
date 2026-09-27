@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include "runtime_model.h"
+#include "tile_controls.h"
 #include "ui_scale.h"
 
 namespace group_page {
@@ -36,6 +37,13 @@ inline int kelvin_low(const Lamp &l) { return l.high > l.low ? l.low : KELVIN_LO
 inline int kelvin_high(const Lamp &l) { return l.high > l.low ? l.high : KELVIN_HIGH; }
 inline int kelvin_of(const Lamp &l, int value) { return std::max(kelvin_low(l), std::min(kelvin_high(l), value)); }
 
+// The colour a lamp's card paints in while the lamp is on (firmware 0.4.0+): the lamp's own, the way its tile shows it
+// (tile_controls::lamp_color), and the amber of a lamp that is on when Home Assistant names no colour. `held_hue` is
+// a hue just sent from the panel, shown at full colour until Home Assistant reports it.
+inline uint32_t color_of(const Lamp &l, int held_hue = -1) {
+  if (held_hue >= 0) return tile_controls::lamp_color(held_hue, 100);
+  return tile_controls::lamp_color(l.hue, l.saturation);
+}
 // Where the cards stand, in the page's own room (the card's width, overlay_card::content_width, and the glass's
 // height). As many columns as keep a card wide enough for a name and a slider a thumb can drag, as many rows as fit
 // between the top bar and the pager; the pager only takes its band when the lamps need more than one page.
@@ -101,7 +109,7 @@ struct Card {
   lv_obj_t *box = nullptr, *icon = nullptr, *slider = nullptr, *knob = nullptr, *key = nullptr;
   std::string entity;
   bool dirty = false;
-  Held level, on;
+  Held level, on, hue;
 };
 inline std::vector<Card> cards;
 // The panel of one lamp: the sheet under it that closes it, the panel, and its sliders.
@@ -156,6 +164,7 @@ inline void knob_color(PanelSlider &p, const Lamp &l) {
   lv_obj_set_style_bg_color(p.slider, p.hue ? lv_color_hsv_to_rgb(v % 360, 100, 100)
                                             : light_controls::kelvin_color(v, kelvin_low(l), kelvin_high(l)), LV_PART_KNOB);
 }
+inline void paint(Card &c, const Lamp &l, bool fresh_card);
 inline void panel_event(lv_event_t *e) {
   const size_t index = reinterpret_cast<intptr_t>(lv_event_get_user_data(e));
   if (index >= panel_sliders.size() || panel_card < 0 || panel_card >= static_cast<int>(cards.size())) return;
@@ -169,6 +178,8 @@ inline void panel_event(lv_event_t *e) {
     p.dirty = false;
     const int v = lv_slider_get_value(p.slider);
     p.held.send(v, clock());
+    // The card of the lamp takes the new colour at once, as its slider does.
+    if (p.hue) { cards[panel_card].hue.send(v, clock()); paint(cards[panel_card], *l, false); }
     if (p.hue) emit("light.turn_on", l->entity, "hs_color", "[" + std::to_string(v) + ", 100]", true);
     else emit("light.turn_on", l->entity, "color_temp_kelvin", std::to_string(kelvin_of(*l, v)));
   }
@@ -317,24 +328,29 @@ inline lv_obj_t *brightness_slider(lv_obj_t *parent, int x, int y, int w, int h)
 }
 // A card as the lamp is now: its icon, the fill of its slider (an off lamp shows only the track, as on the colour card,
 // until a finger moves it), or the word of a lamp that cannot be dimmed. A slider under a finger is left alone.
-inline void paint(Card &c, const Lamp &l, bool fresh_card = false) {
+inline void paint(Card &c, const Lamp &l, bool fresh_card) {
   const uint32_t now = clock();
   const bool on = c.on.show(l.on ? 1 : 0, now) == 1;
+  const int shown_hue = c.hue.show(l.hue, now);
+  const uint32_t color = color_of(l, c.hue.value >= 0 ? shown_hue : -1);
+  // The pale track under the fill: amber's own for an amber lamp, else the tile's tint of the lamp's colour.
+  const lv_color_t track = color == theme::ha::AMBER ? theme::color(theme::AMBER_TRACK) : lv_color_hex(theme::tint(color, 51));
   if (c.icon) {
     lv_label_set_text(c.icon, on ? "\U000F0335" : "\U000F0E4F");
-    lv_obj_set_style_text_color(c.icon, on ? lv_color_hex(theme::ha::AMBER) : theme::color(theme::MUTED), 0);
+    lv_obj_set_style_text_color(c.icon, on ? lv_color_hex(color) : theme::color(theme::MUTED), 0);
   }
-  // A lamp that only switches: the settings page's switch, amber while it is on like the other lamps' fill.
+  // A lamp that only switches: the settings page's switch, in the lamp's colour while it is on like the other lamps' fill.
   if (c.knob) {
     auto *track = lv_obj_get_parent(c.knob);
     const int w = lv_obj_get_style_width(track, LV_PART_MAIN), h = lv_obj_get_style_height(track, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(track, on ? lv_color_hex(theme::ha::AMBER) : theme::color(theme::TOGGLE_OFF), 0);
+    lv_obj_set_style_bg_color(track, on ? lv_color_hex(color) : theme::color(theme::TOGGLE_OFF), 0);
     lv_obj_set_x(c.knob, settings_screen::knob_x(w, h, on));
   }
   if (c.slider && (fresh_card || (!c.dirty && !lv_obj_has_state(c.slider, LV_STATE_PRESSED)))) {
     const int level = c.level.show(l.level, now);
     const bool lit = on && level > 0;
-    lv_obj_set_style_bg_color(c.slider, theme::color(lit ? theme::AMBER_TRACK : theme::TRACK), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(c.slider, lit ? track : theme::color(theme::TRACK), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(c.slider, lv_color_hex(color), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(c.slider, lit ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(c.slider, lit ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_KNOB);
     lv_slider_set_value(c.slider, std::max(1, level), LV_ANIM_OFF);
@@ -349,7 +365,7 @@ inline void card_event(lv_event_t *e) {
   const Lamp *l = lamp_of(cards[i].entity);
   if (!l || l->unavailable) return;
   cards[i].on.send(l->on ? 0 : 1, clock());
-  paint(cards[i], *l);
+  paint(cards[i], *l, false);
   emit("light.toggle", l->entity, "", "");
 }
 inline void slider_event(lv_event_t *e) {
@@ -360,8 +376,11 @@ inline void slider_event(lv_event_t *e) {
   if (code == LV_EVENT_VALUE_CHANGED) {
     c.dirty = true;
     if (lv_slider_get_value(c.slider) < 1) lv_slider_set_value(c.slider, 1, LV_ANIM_OFF);
-    // A lamp that was off shows its fill as soon as the slider moves.
-    lv_obj_set_style_bg_color(c.slider, theme::color(theme::AMBER_TRACK), LV_PART_MAIN);
+    // A lamp that was off shows its fill as soon as the slider moves, in the lamp's colour.
+    const Lamp *l = lamp_of(c.entity);
+    const uint32_t color = l ? color_of(*l) : theme::ha::AMBER;
+    lv_obj_set_style_bg_color(c.slider, color == theme::ha::AMBER ? theme::color(theme::AMBER_TRACK) : lv_color_hex(theme::tint(color, 51)), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(c.slider, lv_color_hex(color), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(c.slider, LV_OPA_COVER, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(c.slider, LV_OPA_COVER, LV_PART_KNOB);
   }
@@ -371,7 +390,7 @@ inline void slider_event(lv_event_t *e) {
     const int v = std::max(1, static_cast<int>(lv_slider_get_value(c.slider)));
     c.level.send(v, clock());
     c.on.send(1, clock());
-    if (const Lamp *l = lamp_of(c.entity)) paint(c, *l);
+    if (const Lamp *l = lamp_of(c.entity)) paint(c, *l, false);
     emit("light.turn_on", c.entity, "brightness_pct", std::to_string(v));
   }
 }
@@ -498,7 +517,7 @@ inline void updated(const Tile &t) {
     if (!lv_indev_get_active_obj()) draw();
     return;
   }
-  for (size_t i = 0; i < cards.size(); ++i) paint(cards[i], lamps[first + i]);
+  for (size_t i = 0; i < cards.size(); ++i) paint(cards[i], lamps[first + i], false);
   if (panel_card >= 0 && panel_card < static_cast<int>(cards.size())) {
     const Lamp &lamp = lamps[first + panel_card];
     const uint32_t now = clock();

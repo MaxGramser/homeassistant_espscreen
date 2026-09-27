@@ -12,6 +12,7 @@ import * as pages from "./model/pages";
 import { DraftHistory, type HistoryScope } from './model/draft-history';
 import { suggestedPageTitle } from './model/page-naming';
 import { validateCardOptions } from './model/page-validation';
+import { canonicalOptions, coupledOptions } from './model/tile-options';
 import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
 
@@ -347,6 +348,67 @@ export function liveOf(entity: string): Live | null {
   return known?.state ? { state: known.state, word: null, a: {} } : null;
 }
 
+// ---- The overview (app 0.4.0): every screen of the home with its home page, as its mockup draws it ----
+// Nothing selected is the add-on's home. Each screen's home page comes from its own saved document, drawn on its own
+// grid and glass, with what Home Assistant reports right now; a click opens the screen in the editor.
+export type HomeView = { screen: Screen; tiles: { tile: Tile; slot: number }[]; grid: { columns: number; rows: number; slots: number };
+  shape: NonNullable<Screen["shape"]>; title: string; items: HeaderItem[]; style: Record<string, string>; compact: boolean };
+const OVERVIEW_SIDE = 300;
+export function homeView(screen: Screen): HomeView | null {
+  const record = screen.page_document;
+  if (record?.format !== "pages-v2") return null;
+  const shape = screen.shape && screen.shape.columns > 0 && screen.shape.rows > 0 ? screen.shape : SMALLEST;
+  const source = record.sourceGrid, slots = source.columns * source.rows;
+  const index = Math.max(0, record.layout.pages.findIndex((page) => page.id === record.layout.homePageId));
+  const page = record.layout.pages[index];
+  if (!page) return null;
+  const view = pages.projectLayout(record.layout, source);
+  const tiles = view.tiles.filter((tile) => Math.floor(tile.slot / slots) === index).map((tile) => ({ tile, slot: tile.slot }));
+  // The same proportions as the editor's mockup (deviceStyle), at a size that lets several stand side by side.
+  const width = shape.width >= shape.height ? Math.min(560, (OVERVIEW_SIDE * shape.width) / shape.height) : OVERVIEW_SIDE;
+  return {
+    screen, tiles, grid: { columns: source.columns, rows: source.rows, slots }, shape: shape as NonNullable<Screen["shape"]>,
+    title: page.topbar.title.source === "text" ? page.topbar.title.text : record.layout.title,
+    items: page.topbar.trailing,
+    compact: shape.look ? shape.look === "compact" : Math.min(shape.width, shape.height) < 300,
+    style: { "--screen-aspect": `${shape.width} / ${shape.height}`, "--screen-columns": String(source.columns), "--screen-rows": String(source.rows),
+      "--screen-wide-span": String(Math.min(2, source.columns)), "--mockup-width": `${Math.round(width * 10) / 10}px` },
+  };
+}
+// What the overview draws with: the states of every home page's tiles and the values in their top bars.
+let overviewFlight = false;
+export async function loadOverview() {
+  if (overviewFlight) return;
+  overviewFlight = true;
+  try {
+    const views = state.inventory.screens.map(homeView).filter((view): view is HomeView => Boolean(view));
+    const entities = [...new Set(views.flatMap((view) => view.tiles.map(({ tile }) => tile.entity)).filter((id) => !id.startsWith("screen.")))];
+    for (let i = 0; i < entities.length; i += 60) {
+      const values = await getJson(`states?${entities.slice(i, i + 60).map((id) => `entity=${encodeURIComponent(id)}`).join("&")}`);
+      Object.assign(state.liveStates, values.states || {});
+    }
+    // One bar at a time: each home page's bar is one the add-on already accepted, which a mix of several bars is not
+    // (the same entity twice with another content is refused as a double).
+    const asked = new Set<string>();
+    for (const view of views) {
+      const batch = view.items.filter((item) => item.type === "entity" && !asked.has(itemKey(item)));
+      if (!batch.length) continue;
+      batch.forEach((item) => asked.add(itemKey(item)));
+      const data = await send("header-preview", "POST", { header: { items: batch.map(({ id: _id, ...item }) => item) } });
+      batch.forEach((item, i) => { state.topbarPreviews[itemKey(item)] = data.items[i]; });
+    }
+  } catch {
+    // The overview keeps what it has; the next visit asks again.
+  } finally {
+    overviewFlight = false;
+  }
+}
+// The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
+export function goHome() {
+  if (state.selected) select(null);
+  if (!state.selected) go("");
+}
+
 // ---- Selecting a screen and editing its layout ----
 // Every edit counts, so a save only clears the edits it sent (app 0.2.78).
 let edits = 0;
@@ -678,19 +740,15 @@ export function setTileOption(tile: Tile, key: string, value: unknown) {
   const domain = tile.entity.split(".")[0], caps = state.capabilities[tile.entity], wasSize = sizeOf(tile);
   if (key === "size" && ["tall", "square"].includes(String(value)) && (!tallerTilesEnabled.value || !currentScreen.value?.tile_sizes?.includes(String(value)))) return;
   if (key === "size" && value === "tall" && ["forecast", "sunpath"].includes(String(tile.options?.display))) return;
+  // Perform action is a choice with a second step (app 0.4.0, GitHub #47): nothing is stored until an action is
+  // chosen, which comes here as `action` and brings the tap choice with it.
+  if (key === "tap" && value === "action" && !tile.options?.action) return;
   const previousControls = effectiveControls(tile, state.inventory);
-  tile.options = { ...tile.options, [key]: value };
+  // Direct controls need the standard layout without a mini slider, and vice versa (tile-options.ts).
+  tile.options = coupledOptions(tile.options, key, value, Boolean(state.inventory.controls?.[domain]));
   if (key === 'size' && ['tall', 'square'].includes(String(value)) && dimensions(wasSize, grid).rows === 1 && !('controls' in tile.options))
     tile.options.controls = previousControls || 'none';
-  // Direct controls need the standard layout without a mini slider, and vice versa.
-  if (key === "display" && value === "watch") { tile.options.inline = "none"; if (state.inventory.controls?.[domain]) tile.options.controls = "none"; }
   if (key === "display" && ["forecast", "sunpath"].includes(value as string) && !isWide(tile)) tile.options.size = "wide";
-  // A live picture's own settings leave with it, and a default is not stored (the add-on's canonical form, app 0.3.8).
-  if (key === "display" && value !== "live") for (const own of ["refresh", "fit", "overlay"]) delete tile.options[own];
-  if ((key === "fit" && value === "fill") || (key === "overlay" && value === "name")) delete tile.options[key];
-  if (key === "inline" && value === "slider") { tile.options.display = "standard"; if (state.inventory.controls?.[domain]) tile.options.controls = "none"; }
-  if (key === "controls" && value === "none" && ["tall", "square"].includes(sizeOf(tile))) tile.options.inline = "none";
-  if (key === "controls" && value !== "none") { if (tile.options.display !== "cover") tile.options.display = "standard"; tile.options.inline = "none"; }
   // A card that becomes wide gets the first direct control Home Assistant offers when the usual one isn't there.
   const catalogue = state.inventory.controls?.[domain];
   if (key === "size" && ["wide", "square"].includes(String(value)) && caps && catalogue && !("controls" in tile.options) && !caps.controls.includes(catalogue.default))
@@ -719,6 +777,8 @@ export function setTileOption(tile: Tile, key: string, value: unknown) {
     if (slot >= 0) tile.slot = slot;
     else { tile.options.size = wasSize; toast(t("editor.layout.no_room", { page: pageOf(tile.slot) + 1 })); return; }
   }
+  // What the add-on would still change is never stored (its canonical form): a default, a stale action or picture setting.
+  tile.options = canonicalOptions(tile.entity, tile.options);
   normalize(layout);
   commitArrangement(layout.tiles.map((item) => ({ tile: item, slot: item.slot })));
 }
@@ -735,6 +795,16 @@ export function retargetPageTile(tile: Tile, page: number) {
     if (!source || source.content.kind !== "navigation") throw new Error(t("addon.errors.pages.tile_missing"));
     source.content.target = { kind: "page", pageId: draft.pages[page - 1].id };
   });
+}
+// Perform action with its action (app 0.4.0, GitHub #47): the tap choice and the action go into the document together,
+// and typing in one of the action's fields is one step of undo, as typing a name is.
+export function setTileAction(tile: Tile, action: { action: string; data?: Record<string, unknown> }, field?: string) {
+  return editDocument((draft) => {
+    const found = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === tile.id);
+    if (!found) throw new Error(t("addon.errors.pages.tile_missing"));
+    found.interaction.tap = "action";
+    found.interaction.action = pages.clone(action);
+  }, field);
 }
 export function setTileName(tile: Tile, value: string) {
   editDocument((draft) => { const found = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === tile.id); if (found) found.appearance.label = value; }, `tile:${tile.id}`);
@@ -1329,6 +1399,42 @@ export const languageName = (code: string | null | undefined) =>
 // A screen that doesn't run the chosen language yet needs its update as well.
 export const needsUpdate = (screen: Screen) => Boolean(screen.update?.available || screen.update?.language);
 export const newLanguageText = () => t("editor.update.new_language", { name: languageName(state.inventory.language?.effective) });
+// ---- A screen's status, as the sidebar and the overview show it ----
+// A screen that only needs the new language (app 0.2.90) says so instead of naming the version it already has.
+export const languageOnly = (screen: Screen) => {
+  const u = screen.update || {};
+  return Boolean(u.language) && (!u.target || versionAtLeast(firmwareVersion(screen), u.target));
+};
+export function updateState(screen: Screen) {
+  const u = screen.update || {};
+  if (u.state === "running" || state.updating.includes(screen.id)) return { kind: "running", text: phaseText(u.phase) };
+  if (u.state === "queued") return { kind: "queued", text: t("editor.sidebar.update.queued") };
+  // A screen ESP Screens did not install has no YAML here to build from, so there is nothing to press: say why
+  // instead of offering a button that cannot work (the nightly round already passes such a screen by).
+  if (needsUpdate(screen) && screen.online && !u.profile)
+    return { kind: "blocked", text: t("editor.sidebar.update.no_profile") };
+  if (needsUpdate(screen) && screen.online)
+    return { kind: "available", text: languageOnly(screen) ? newLanguageText() : t("editor.sidebar.update.available", { version: u.target }) };
+  if (u.result && Date.now() / 1000 - u.result.time < 86400) return { kind: u.result.state === "failed" ? "failed" : "done", text: u.result.message };
+  return null;
+}
+// The light beside the icon: green when all is well, amber when an update waits or runs, red when the screen is away.
+export const screenLight = (screen: Screen) => {
+  if (!screen.online) return "down";
+  const kind = updateState(screen)?.kind;
+  return kind === "available" || kind === "blocked" || kind === "running" || kind === "queued" ? "update" : kind === "failed" ? "down" : "ok";
+};
+// One quiet line under the name, only when there is something to say; a healthy screen shows its name alone.
+export const screenSubline = (screen: Screen) => {
+  if (!screen.online) return { kind: "down", text: t("editor.common.offline") };
+  const u = updateState(screen);
+  // An update nothing here can build is still an update: the line names it, the details say why it waits.
+  if (u?.kind === "blocked") return { kind: "update", text: t("editor.sidebar.update.available", { version: screen.update?.target }) };
+  return u && u.kind !== "done" ? u : null;
+};
+// Whether a screen asks for a look (app 0.4.0): away, an update waiting, running or failed. Only such a screen opens its
+// details in the sidebar by itself; a healthy one keeps them folded behind the chevron.
+export const needsAttention = (screen: Screen) => screenLight(screen) !== "ok";
 // Time and number format, for every screen at once under Settings → Language & region: a 24-hour clock and "1,234.5"
 // until the add-on says otherwise. The mockup's clocks and numbers follow what the add-on sends the screens: the style,
 // from how many digits a number is grouped, and the space before "%" (Home Assistant's language decides "auto").

@@ -2,11 +2,10 @@
 import { ref } from "vue";
 import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
-import { versionAtLeast } from "../model/layout";
 import { glyph } from "../model/topbar";
 import {
-  copyText, firmwareVersion, go, needsUpdate, newLanguageText, openIntegrations, phaseText, refresh, removeScreen, route, select, startUpdate,
-  state, updateProgress, whatsNew,
+  copyText, go, goHome, languageOnly, needsAttention, newLanguageText, openIntegrations, refresh, removeScreen, route, screenLight, screenSubline,
+  select, startUpdate, state, updateProgress, updateState, whatsNew,
 } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
@@ -18,47 +17,22 @@ const removeFor = ref<string | null>(null);
 async function remove(screen: Screen) {
   if (await removeScreen(screen)) removeFor.value = null;
 }
-// The screen whose details are open under its name; the others show only their name and light.
-const open = ref<string | null>(null);
-// A screen that only needs the new language (app 0.2.90) says so instead of naming the version it already has.
-const languageOnly = (screen: Screen) => {
-  const u = screen.update || {};
-  return Boolean(u.language) && (!u.target || versionAtLeast(firmwareVersion(screen), u.target));
-};
-function updateState(screen: Screen) {
-  const u = screen.update || {};
-  if (u.state === "running" || state.updating.includes(screen.id)) return { kind: "running", text: phaseText(u.phase) };
-  if (u.state === "queued") return { kind: "queued", text: t("editor.sidebar.update.queued") };
-  // A screen ESP Screens did not install has no YAML here to build from, so there is nothing to press: say why
-  // instead of offering a button that cannot work (the nightly round already passes such a screen by).
-  if (needsUpdate(screen) && screen.online && !u.profile)
-    return { kind: "blocked", text: t("editor.sidebar.update.no_profile") };
-  if (needsUpdate(screen) && screen.online)
-    return { kind: "available", text: languageOnly(screen) ? newLanguageText() : t("editor.sidebar.update.available", { version: u.target }) };
-  if (u.result && Date.now() / 1000 - u.result.time < 86400) return { kind: u.result.state === "failed" ? "failed" : "done", text: u.result.message };
-  return null;
-}
-// The light beside the icon: green when all is well, amber when an update waits or runs, red when the screen is away.
-const light = (screen: Screen) => {
-  if (!screen.online) return "down";
-  const kind = updateState(screen)?.kind;
-  return kind === "available" || kind === "blocked" || kind === "running" || kind === "queued" ? "update" : kind === "failed" ? "down" : "ok";
-};
-// One quiet line under the name, only when there is something to say; a healthy screen shows its name alone.
-const subline = (screen: Screen) => {
-  if (!screen.online) return { kind: "down", text: t("editor.common.offline") };
-  const u = updateState(screen);
-  // An update nothing here can build is still an update: the line names it, the details say why it waits.
-  if (u?.kind === "blocked") return { kind: "update", text: t("editor.sidebar.update.available", { version: screen.update?.target }) };
-  return u && u.kind !== "done" ? u : null;
-};
+// The details under a screen's name (app 0.4.0): a screen that asks for a look (away, an update, a failure) opens them
+// when it is chosen; a healthy one keeps them folded behind the chevron at its right. The chevron's choice holds
+// while the screen stays chosen.
+const folded = ref<{ id: string; open: boolean } | null>(null);
+const light = screenLight, subline = screenSubline;
 const isSelected = (screen: Screen) => screen.id === state.selected && route.value === "";
-const isOpen = (screen: Screen) => open.value === screen.id;
-// Choosing a screen opens its details; choosing it again folds them away.
+const isOpen = (screen: Screen) => folded.value?.id === screen.id ? folded.value.open : isSelected(screen) && needsAttention(screen);
+const chevronShown = (screen: Screen) => isSelected(screen) || isOpen(screen);
 function choose(screen: Screen) {
-  open.value = isSelected(screen) && isOpen(screen) ? null : screen.id;
+  if (!isSelected(screen)) folded.value = null;
   removeFor.value = null;
   select(screen.id);
+}
+function toggleDetails(screen: Screen) {
+  folded.value = { id: screen.id, open: !isOpen(screen) };
+  if (!folded.value.open) removeFor.value = null;
 }
 // The icon: a panel with tiles on it, a phone for a screen standing up, a monitor for a board this app does not know.
 // A board it knows carries its catalog entry in its shape (boards.json, app 0.2.129), which also names it.
@@ -92,7 +66,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
 
 <template>
   <aside class="side">
-    <div class="brand">
+    <button type="button" class="brand" :aria-label="t('editor.sidebar.home')" :title="t('editor.sidebar.home')" :aria-current="!state.selected && route === '' ? 'page' : undefined" @click="goHome">
       <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
         <rect x="4" y="4" width="43" height="43" rx="11" fill="#FFC107" />
         <path d="M63 4h22a11 11 0 0 1 11 11v36a11 11 0 0 1-11 11H73c-7 0-8-7-13-10-5-3-8-5-8-12V15A11 11 0 0 1 63 4Z" fill="#009FE3" />
@@ -100,15 +74,15 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
         <rect x="67" y="67" width="29" height="29" rx="10" fill="#4CAF50" />
       </svg>
       <span>Tessera</span>
-    </div>
+    </button>
     <span v-if="!state.reachable || !state.connected" id="connection" class="conn" role="status">
       {{ !state.reachable ? t("editor.sidebar.connection.unreachable") : t("editor.sidebar.connection.reconnecting") }}
     </span>
     <button type="button" class="search-btn" id="open-palette" @click="state.palette = true"><Icon name="magnify" />{{ t("editor.sidebar.search") }}<kbd>⌘K</kbd></button>
     <div class="label">{{ t("editor.sidebar.screens") }}</div>
     <div id="screens">
-      <div v-for="screen in state.inventory.screens" :key="screen.id" class="screen-item" :class="{ selected: isSelected(screen), open: isOpen(screen) }">
-        <button type="button" class="nav-item" :aria-current="isSelected(screen) ? 'true' : 'false'" :aria-expanded="isOpen(screen) ? 'true' : 'false'" @click="choose(screen)">
+      <div v-for="screen in state.inventory.screens" :key="screen.id" class="screen-item" :class="{ selected: isSelected(screen), open: isOpen(screen), 'has-chevron': chevronShown(screen) }">
+        <button type="button" class="nav-item" :aria-current="isSelected(screen) ? 'true' : 'false'" @click="choose(screen)">
           <span class="board-icon">
             <span class="mdi">{{ boardIcon(screen) }}</span>
             <span class="led" :class="light(screen)" role="img" :aria-label="screen.online ? t('editor.common.online') : t('editor.common.offline')"></span>
@@ -119,6 +93,11 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
           </span>
           <span v-if="screen.id === state.selected && state.dirty" class="unsaved" role="img" :aria-label="t('editor.common.unsaved')" :title="t('editor.common.unsaved')"></span>
           <span v-else-if="updateState(screen)?.kind === 'running'" class="spin small"></span>
+        </button>
+        <button v-if="chevronShown(screen)" type="button" class="details-toggle" :aria-expanded="isOpen(screen) ? 'true' : 'false'"
+          :aria-label="t(isOpen(screen) ? 'editor.sidebar.details.hide' : 'editor.sidebar.details.show', { name: screen.name })"
+          :title="t(isOpen(screen) ? 'editor.sidebar.details.hide' : 'editor.sidebar.details.show', { name: screen.name })" @click="toggleDetails(screen)">
+          <Icon name="chevron-down" />
         </button>
         <div v-if="isOpen(screen) && removeFor === screen.id" class="screen-details asking">
           <div class="screen-remove">

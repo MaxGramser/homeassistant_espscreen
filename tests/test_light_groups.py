@@ -43,8 +43,9 @@ class LampTests(unittest.TestCase):
         lamps = light_groups.lamps('light.living_room', living_room())
         self.assertEqual([l['e'] for l in lamps], ['light.tv', 'light.table', 'light.cabinet', 'light.hood', 'light.strip'])
         tv, table, cabinet, hood, strip = lamps
-        # A colour lamp with white shades: dims, colour and white, its hue, its range; no kelvin while it shows a colour.
-        self.assertEqual(tv, {'e': 'light.tv', 'n': 'TV light', 's': 1, 'd': 1, 'c': 3, 'b': 33, 'h': 4, 'lo': 2000, 'hi': 6535})
+        # A colour lamp with white shades: dims, colour and white, its hue and saturation, its range; no kelvin while it
+        # shows a colour.
+        self.assertEqual(tv, {'e': 'light.tv', 'n': 'TV light', 's': 1, 'd': 1, 'c': 3, 'b': 33, 'h': 4, 'sa': 100, 'lo': 2000, 'hi': 6535})
         # A lamp that only dims.
         self.assertEqual(table, {'e': 'light.table', 'n': 'Table lamp', 's': 1, 'd': 1, 'b': 23})
         # An off lamp with white shades: no brightness, its own range.
@@ -54,6 +55,24 @@ class LampTests(unittest.TestCase):
         # An unavailable lamp is sent as such.
         self.assertEqual(strip['u'], 1)
         self.assertNotIn('s', strip)
+
+    def test_the_colour_a_lamp_is_on_in(self):
+        # GitHub #47: the lamp page painted every lamp amber while the group's tile showed their green. A lamp that is on
+        # carries its hue and saturation (app 0.4.0); one showing a white shade too, as Home Assistant reports it then.
+        states = living_room()
+        states['light.cabinet'] = light('on', 'Cabinet', ['color_temp'], brightness=128, hs_color=[27.0, 55.0],
+                                        color_temp_kelvin=2700, min_color_temp_kelvin=2202, max_color_temp_kelvin=6535)
+        states['light.table']['attributes']['hs_color'] = [120, 0]
+        lamps = {l['e']: l for l in light_groups.lamps('light.living_room', states)}
+        self.assertEqual((lamps['light.tv']['h'], lamps['light.tv']['sa']), (4, 100))
+        self.assertEqual((lamps['light.cabinet']['h'], lamps['light.cabinet']['sa']), (27, 55))
+        # A saturation of nothing is no colour: the screen keeps the amber of a lamp that is on.
+        self.assertNotIn('sa', lamps['light.table'])
+        self.assertNotIn('h', lamps['light.table'])
+        # An off lamp has no colour to show.
+        states['light.tv']['state'] = 'off'
+        tv = light_groups.lamps('light.living_room', states)[0]
+        self.assertNotIn('sa', tv)
 
     def test_a_light_that_is_not_a_group_has_none(self):
         states = living_room()

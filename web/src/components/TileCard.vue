@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { editorLayout } from "../store";
-const { grid, pageOf } = editorLayout;
+const { grid: editorGrid } = editorLayout;
 
 // A card on the mockup, drawn with what Home Assistant reports right now. A placeholder is the tile being
 // dragged, drawn where it will land.
@@ -19,7 +19,12 @@ import CoverTilePreview from "./CoverTilePreview.vue";
 import MarqueeText from "./MarqueeText.vue";
 import SensorHistory from './SensorHistory.vue';
 
-const props = defineProps<{ tile: Tile; slot: number; placeholder?: boolean; preview?: boolean }>();
+// `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
+// screen otherwise.
+const props = defineProps<{ tile: Tile; slot: number; placeholder?: boolean; preview?: boolean; grid?: { columns: number; rows: number; slots: number } }>();
+const grid = computed(() => props.grid ?? editorGrid);
+// A card of another screen, on the overview: drawn only, never picked up, focused or opened.
+const foreign = computed(() => Boolean(props.grid));
 const emit = defineEmits<{ navigate: [tileId: string] }>();
 function activate() {
   if (props.preview) { if (goesTo.value && props.tile.id) emit('navigate', props.tile.id); }
@@ -27,7 +32,7 @@ function activate() {
 }
 // A built-in card is named as the screens name it, in their language (app 0.2.90).
 const name = computed(() => props.tile.name || (domain.value === "screen" && screenBuiltinName(props.tile.entity)) || entityName(props.tile.entity));
-const shape = computed(() => dimensions(sizeOf(props.tile), grid));
+const shape = computed(() => dimensions(sizeOf(props.tile), grid.value));
 const climateModes = computed(() => domain.value === 'climate' && effectiveControls(props.tile, state.inventory) === 'setpoint_mode' && shape.value.rows > 1);
 const tall = computed(() => shape.value.rows > 1 && (!full.value || coverExtended.value || climateModes.value) && ["standard", "cover"].includes(display.value));
 const full = computed(() => isFull(props.tile));
@@ -69,7 +74,7 @@ const cp = computed(() => state.inventory.icons?.controls || {});
 const key = (n: string) => (cp.value[n] ? glyph(cp.value[n]) : "");
 const chosen = computed(() => isSelected(props.tile) && state.inspector?.kind === "tile");
 const live = computed(() => !props.placeholder && state.layout?.tiles.some((tile) => tile.id === props.tile.id));
-const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.slots) + 1, page: pageOf(props.slot) + 1 }));
+const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.value.slots) + 1, page: Math.floor(props.slot / grid.value.slots) + 1 }));
 const now = computed(() => new Date(state.now));
 const hourAngle = computed(() => (now.value.getHours() % 12 + now.value.getMinutes() / 60) * 30);
 const minuteAngle = computed(() => now.value.getMinutes() * 6);
@@ -173,11 +178,11 @@ async function onKey(e: KeyboardEvent) {
   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); return; }
   if (props.preview) return;
   // Up and down are a row of the screen's grid, whatever its columns; left and right one cell.
-  const step = ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -grid.columns, ArrowDown: grid.columns } as Record<string, number>)[e.key];
+  const step = ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -grid.value.columns, ArrowDown: grid.value.columns } as Record<string, number>)[e.key];
   if (!step) return;
   e.preventDefault();
   // A wide card owns its row: every arrow means the row above or below. A full card moves by the page.
-  if (placeTile(props.tile, props.tile.slot + (full.value ? Math.sign(step) * grid.slots : step))) {
+  if (placeTile(props.tile, props.tile.slot + (full.value ? Math.sign(step) * grid.value.slots : step))) {
     await nextTick();
     document.querySelector<HTMLElement>(`.pages [data-slot="${props.tile.slot}"]`)?.focus();
   }
@@ -185,10 +190,10 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, photo: artworkLoaded && !!artwork, camera: cameraCard && cameraLoaded, bare, placeholder: placeholder || !live, chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
+  <div class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, photo: artworkLoaded && !!artwork, camera: cameraCard && cameraLoaded, bare, placeholder: placeholder || (!live && !foreign), chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
     :style="{ gridColumn: `${slot % grid.columns + 1} / span ${shape.columns}`, gridRow: `${Math.floor(slot % grid.slots / grid.columns) + 1} / span ${shape.rows}`, ...(background && !bare ? { backgroundColor: background } : {}), '--tile-icon': palette.icon, '--tile-circle': palette.circle, '--tile-accent': palette.accent }"
-    :tabindex="(preview ? goesTo : live) ? 0 : -1" :role="(preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
-    v-drag="preview ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
+    :tabindex="!foreign && (preview ? goesTo : live) ? 0 : -1" :role="!foreign && (preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
+    v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
     <template v-if="display === 'analog'">
       <svg class="clockface" viewBox="0 0 60 60" aria-hidden="true">
         <circle cx="30" cy="30" r="27" fill="#fff" stroke="#c9ccd1" />

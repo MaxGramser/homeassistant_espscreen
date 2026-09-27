@@ -177,6 +177,8 @@ struct Lamp {
   std::string entity, name;
   bool on = false, dimmable = false, color = false, temperature = false, unavailable = false;
   uint8_t level = 0;
+  // The lamp's colour while it is on (hs_color, app 0.4.0+): saturation 0 when Home Assistant names none.
+  uint8_t saturation = 0;
   uint16_t hue = 0, kelvin = 0, low = 0, high = 0;
 };
 constexpr size_t MAX_LAMPS = 24;

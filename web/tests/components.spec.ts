@@ -10,6 +10,7 @@ import Library from "../src/components/Library.vue";
 import DevicePage from "../src/components/DevicePage.vue";
 import InstallerView from "../src/components/InstallerView.vue";
 import Sidebar from "../src/components/Sidebar.vue";
+import HomeView from "../src/components/HomeView.vue";
 import SettingsTab from "../src/components/SettingsTab.vue";
 import TileCard from "../src/components/TileCard.vue";
 import TileInspector from "../src/components/TileInspector.vue";
@@ -537,23 +538,45 @@ describe("Sidebar", () => {
     expect(state.dirty).toBe(true);
     expect(state.tab).toBe("layout");
   });
-  it("shows a screen's name and light alone, and its details once it is chosen (app 0.2.108)", async () => {
+  it("shows a screen's name and light alone, and its details behind the chevron (app 0.4.0)", async () => {
+    state.selected = null;
     const sidebar = mount(Sidebar);
     const item = sidebar.find("#screens .screen-item");
     expect(item.find(".led").classes()).toContain("ok");
     expect(item.find(".sub").exists()).toBe(false);
     expect(item.find(".screen-details").exists()).toBe(false);
+    expect(item.find(".details-toggle").exists()).toBe(false);
+    // Chosen, a healthy screen keeps its details folded: the chevron at its right opens them.
     await item.find(".nav-item").trigger("click");
+    expect(item.classes()).not.toContain("open");
+    expect(item.find(".details-toggle").attributes("aria-expanded")).toBe("false");
+    await item.find(".details-toggle").trigger("click");
     expect(item.classes()).toContain("open");
     expect(item.findAll(".facts dt").map((dt) => dt.text())).toEqual(["Firmware", "Board"]);
     expect(item.findAll(".facts dd").map((dd) => dd.text())).toEqual(["0.2.60", "Guition · 4 inch"]);
-    // Chosen again, the details fold away; a screen that is off shows why in red.
-    await item.find(".nav-item").trigger("click");
+    await item.find(".details-toggle").trigger("click");
     expect(item.classes()).not.toContain("open");
+    // A screen that is off shows why in red, and opens its details by itself once it is chosen.
     Object.assign(state.inventory.screens[0], { online: false });
+    state.selected = null;
     await nextTick();
     expect(item.find(".led").classes()).toContain("down");
     expect(item.find(".sub").text()).toBe("Offline");
+    await item.find(".nav-item").trigger("click");
+    expect(item.classes()).toContain("open");
+  });
+  it("opens the details of a chosen screen with an update waiting (app 0.4.0)", async () => {
+    Object.assign(state.inventory.screens[0], { update: { available: true, target: "0.4.0", profile: "living.yaml" } });
+    const sidebar = mount(Sidebar);
+    const item = sidebar.find("#screens .screen-item");
+    expect(item.classes()).toContain("open");
+    expect(item.find(".screen-update .btn.primary").exists()).toBe(true);
+  });
+  it("goes home from the logo: the overview, nothing chosen (app 0.4.0)", async () => {
+    const sidebar = mount(Sidebar);
+    await sidebar.find(".brand").trigger("click");
+    expect(state.selected).toBeNull();
+    expect(state.layout).toBeNull();
   });
   it("asks what goes before it removes a screen, and then removes it (app 0.2.112)", async () => {
     Object.assign(state.inventory.screens[0], { online: false, update: { profile: "living.yaml" } });
@@ -583,12 +606,42 @@ describe("Sidebar", () => {
     const sidebar = mount(Sidebar);
     const item = sidebar.find("#screens .screen-item");
     await item.find(".nav-item").trigger("click");
+    await item.find(".details-toggle").trigger("click");
     await item.find(".remove-screen").trigger("click");
     expect(item.find(".screen-remove small.warn").text()).toContain("still connected");
     // Nothing goes until it is confirmed: Cancel puts the details back.
     await item.findAll(".screen-remove .btn")[1].trigger("click");
     expect(item.find(".screen-remove").exists()).toBe(false);
     expect(item.find(".facts").exists()).toBe(true);
+  });
+});
+
+describe("HomeView: every screen with its home page (app 0.4.0)", () => {
+  it("draws each screen's home page on its own grid, and opens a screen on a click", async () => {
+    state.inventory.screens = [
+      screenFixture({ ...state.inventory.screens[0], layout: { title: "Living room", tiles: [
+        { entity: "light.a", name: "Reading", slot: 0 }, { entity: "sensor.t", name: "", slot: 7 }] } }),
+      screenFixture({ id: "hall", name: "Hall", online: false, firmware: "0.3.9", board: "waveshare43",
+        shape: { width: 800, height: 480, columns: 3, rows: 3 }, layout: { title: "Hall", tiles: [{ entity: "cover.c", name: "", slot: 4 }] } } as any),
+    ];
+    state.selected = null;
+    seedLayout(null);
+    const home = mount(HomeView);
+    const cards = home.findAll(".home-card:not(.home-new)");
+    expect(cards.map((card) => card.find(".home-name strong").text())).toEqual(["Living room", "Hall"]);
+    // Only the tiles of the home page, on the screen's own grid: the sensor stands on page 2.
+    expect(cards[0].findAll(".tile").map((tile) => tile.text())).toEqual([expect.stringContaining("Reading")]);
+    expect(cards[1].find(".tile").attributes("style")).toContain("grid-column: 2 / span 1");
+    expect(cards[1].find(".home-page").attributes("style")).toContain("--screen-columns: 3");
+    // A tile of the overview is only drawn: not a button, not focusable.
+    expect(cards[0].find(".tile").attributes("tabindex")).toBe("-1");
+    expect(cards[1].classes()).toContain("away");
+    expect(cards[1].find(".home-name small").text()).toBe("Offline");
+    expect(home.find(".home-head p").text()).toBe("1 of 2 online");
+    await cards[1].trigger("click");
+    expect(state.selected).toBe("hall");
+    // The next test starts on the fixture's own grid again.
+    state.documentGrid = null;
   });
 });
 

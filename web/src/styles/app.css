@@ -51,7 +51,9 @@ a:hover { text-decoration: underline; }
 
 /* Sidebar */
 .side { background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px; gap: 4px; min-height: 0; overflow: auto; position: sticky; top: 0; height: 100vh; }
-.brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 6px; font-weight: 600; font-size: 13px; }
+/* The logo is the way home (app 0.4.0): the overview of every screen, the page shown with nothing selected. */
+.brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 6px; font-weight: 600; font-size: 13px; text-align: left; border-radius: 10px; }
+.brand:hover { background: var(--surface-2); }
 .brand .mark { width: 22px; height: 22px; flex: none; }
 /* Only while something is wrong: unreachable, or reconnecting. Connected says nothing. */
 .conn { display: block; padding: 0 8px 8px; font-size: 11px; color: var(--warn); }
@@ -74,7 +76,14 @@ a:hover { text-decoration: underline; }
    The screens keep the same air between them as the rest of the sidebar (.side's own gap), so an open card with its
    details does not touch the screen under it. */
 #screens { display: grid; gap: 4px; }
-.screen-item { display: grid; border-radius: 12px; }
+.screen-item { display: grid; border-radius: 12px; position: relative; }
+/* The chevron at the right of the chosen screen (app 0.4.0) folds its details out and in; a screen that asks for a
+   look opens them by itself (Sidebar.vue). It stands over the name's row, so the row keeps one background. */
+.screen-item.has-chevron .nav-item { padding-right: 38px; }
+.details-toggle { position: absolute; top: 6px; right: 6px; width: 28px; height: 32px; display: grid; place-items: center; color: var(--muted); border-radius: 8px; }
+.details-toggle:hover { color: var(--ink); background: var(--surface-2); }
+.details-toggle .ui-icon { display: inline-block; font-size: 18px; transition: transform 0.16s ease; }
+.details-toggle[aria-expanded="true"] .ui-icon { transform: rotate(180deg); }
 .screen-item.open { background: var(--seg); }
 .screen-item.open .nav-item, .screen-item.open .nav-item:hover { background: transparent; }
 .screen-item .nav-item { padding: 6px 8px; }

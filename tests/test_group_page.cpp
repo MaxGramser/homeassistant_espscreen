@@ -1,7 +1,7 @@
 #include "screen_text_en.h"
 // c++ -std=c++17 -Wall -Wextra -pedantic tests/test_group_page.cpp -o /tmp/test_group_page && /tmp/test_group_page
 // The model of a light group's lamp page (firmware 0.3.9+): which lights have one, which lamps get the colour panel,
-// where the cards stand on each board, and how a value just sent is held.
+// where the cards stand on each board, how a value just sent is held, and the colour a card paints in (0.4.0+).
 #define GROUP_PAGE_TEST
 #define THEME_TEST
 #include "../components/smart_display/group_page.h"
@@ -64,5 +64,23 @@ int main() {
   assert(held.show(80, 1600) == 80 && held.value < 0);
   held.send(70, 2000);
   assert(held.show(40, 2000 + SENT_HOLD_MS) == 40);
+
+  // A card paints in the lamp's own colour (firmware 0.4.0+, GitHub #47), by the same rule as the lamp's tile: a green
+  // lamp is green, a pale one lifted to 40 % saturation, a white one (or one Home Assistant names no colour for) amber.
+  Lamp green; green.hue = 120; green.saturation = 100;
+  assert(color_of(green) == tile_controls::hsv_rgb(120, 100, 100));
+  assert(color_of(green) != theme::ha::AMBER);
+  Lamp pale = green; pale.saturation = 20;
+  assert(color_of(pale) == tile_controls::hsv_rgb(120, 40, 100));
+  Lamp white = green; white.saturation = 5;
+  assert(color_of(white) == theme::ha::AMBER);
+  assert(color_of(Lamp{}) == theme::ha::AMBER);
+  // A hue just sent from the panel shows at full colour until Home Assistant reports it.
+  assert(color_of(white, 240) == tile_controls::hsv_rgb(240, 100, 100));
+  // LVGL's own conversion, to the bit: pure red, green and blue, and white.
+  assert(tile_controls::hsv_rgb(0, 100, 100) == 0xFF0000);
+  assert(tile_controls::hsv_rgb(0, 0, 100) == 0xFFFFFF);
+  assert(((tile_controls::hsv_rgb(120, 100, 100) >> 8) & 255) == 255);
+  assert((tile_controls::hsv_rgb(240, 100, 100) & 255) == 255);
   return 0;
 }

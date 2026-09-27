@@ -632,6 +632,7 @@ std::string receive(const std::string &payload) {
       lamp.color = caps & 1; lamp.temperature = caps & 2;
       lamp.level = static_cast<uint8_t>(std::min(100u, l["b"] | 0u));
       lamp.hue = static_cast<uint16_t>(std::min(360u, l["h"] | 0u));
+      lamp.saturation = static_cast<uint8_t>(std::min(100u, l["sa"] | 0u));
       auto kelvin = [](unsigned k) { return static_cast<uint16_t>(k >= 1000 && k <= 15000 ? k : 0); };
       lamp.kelvin = kelvin(l["k"] | 0u); lamp.low = kelvin(l["lo"] | 0u); lamp.high = kelvin(l["hi"] | 0u);
       if (!(lamp.high > lamp.low)) lamp.low = lamp.high = 0;

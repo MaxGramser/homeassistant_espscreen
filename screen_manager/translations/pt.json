@@ -1232,7 +1232,9 @@
       "details": {
         "room": "Divisão",
         "firmware": "Firmware",
-        "board": "Placa"
+        "board": "Placa",
+        "show": "Mostrar detalhes de {name}",
+        "hide": "Ocultar detalhes de {name}"
       },
       "remove": {
         "button": "Remover ecrã",
@@ -1244,7 +1246,8 @@
         "confirm": "Remover",
         "done": "{name} foi removido.",
         "kept": "{name} foi removido. O seu perfil {file} continua na pasta ESPHome."
-      }
+      },
+      "home": "Visão geral dos seus ecrãs"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1276,12 @@
         "text": "Ligue o seu ecrã por USB à máquina do Home Assistant. Perfil, firmware e primeira instalação ficam feitos de uma só vez.",
         "button": "Instalar novo ecrã"
       }
+    },
+    "home": {
+      "title": "Os seus ecrãs",
+      "summary": "{online} de {count} online",
+      "open": "Abrir {name}",
+      "no_layout": "Ainda sem disposição"
     },
     "screen_view": {
       "confirm": {

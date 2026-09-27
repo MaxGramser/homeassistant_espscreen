@@ -40,6 +40,9 @@ through its Override YAML (docs/GUITION.md, Relays).
 3. Install and start **ESP Screen Manager**. Turn on **Start on boot**
    and **Show in sidebar**. Open the **ESP Screens** web interface.
 
+ESP Screens opens on **Your screens**: every screen in the house with its home page as it looks
+right now. Click a screen to change it; the logo at the top of the sidebar brings you back.
+
 This app includes the tested ESPHome 2026.9.0 CLI and runs within your HA login.
 A second ESPHome management page, MQTT, blueprint, or long-lived token is not needed.
 Use the GitHub version for updates; a local test add-on is a separate app.
@@ -143,8 +146,9 @@ button. The card disappears once the screen is in the list.
    IP address, port 6053.
 2. Does HA ask for an encryption key? Paste the API key the window shows after
    installation (also found as **api → encryption → key** in the
-   profile). Don't use the OTA password. Once the screen is paired, open it in
-   the sidebar and use **Copy API key** there whenever HA asks for it again.
+   profile). Don't use the OTA password. Once the screen is paired, choose it in
+   the sidebar, open its details with the arrow at its right, and use **Copy API key**
+   there whenever HA asks for it again.
 3. On the ESPHome integration, open **Configure** and enable **Allow the device to
    perform Home Assistant actions**. Without this permission, values still show up,
    but the screen can't control lights and devices.
@@ -342,8 +346,8 @@ Reload any editor tabs left open during the update before saving changes.
 
 ## 6. Removing a screen
 
-A screen you no longer use goes in one place: open it in the sidebar and click
-**Remove screen**. The list in ESP Screens is Home Assistant's own, so removing
+A screen you no longer use goes in one place: choose it in the sidebar, open its
+details with the arrow at its right, and click **Remove screen**. The list in ESP Screens is Home Assistant's own, so removing
 only the YAML in ESPHome leaves the screen in the list. What the button does:
 
 - Home Assistant loses the screen's ESPHome integration, with its device and all

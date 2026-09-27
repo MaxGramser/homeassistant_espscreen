@@ -1232,7 +1232,9 @@
       "details": {
         "room": "Bereich",
         "firmware": "Firmware",
-        "board": "Board"
+        "board": "Board",
+        "show": "Details von {name} anzeigen",
+        "hide": "Details von {name} ausblenden"
       },
       "remove": {
         "button": "Bildschirm entfernen",
@@ -1244,7 +1246,8 @@
         "confirm": "Entfernen",
         "done": "{name} wurde entfernt.",
         "kept": "{name} wurde entfernt. Das Profil {file} liegt noch im ESPHome-Ordner."
-      }
+      },
+      "home": "Übersicht deiner Bildschirme"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1276,12 @@
         "text": "Schließe deinen Bildschirm per USB an deinen Home Assistant-Rechner an. Profil, Firmware und das erste Flashen laufen in einem Rutsch.",
         "button": "Neuen Bildschirm installieren"
       }
+    },
+    "home": {
+      "title": "Deine Bildschirme",
+      "summary": "{online} von {count} online",
+      "open": "{name} öffnen",
+      "no_layout": "Noch kein Layout"
     },
     "screen_view": {
       "confirm": {

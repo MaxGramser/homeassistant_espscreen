@@ -1232,7 +1232,9 @@
       "details": {
         "room": "Ruimte",
         "firmware": "Firmware",
-        "board": "Bord"
+        "board": "Bord",
+        "show": "Details van {name} tonen",
+        "hide": "Details van {name} verbergen"
       },
       "remove": {
         "button": "Scherm verwijderen",
@@ -1244,7 +1246,8 @@
         "confirm": "Verwijderen",
         "done": "{name} is verwijderd.",
         "kept": "{name} is verwijderd. Het profiel {file} staat nog in de ESPHome-map."
-      }
+      },
+      "home": "Overzicht van je schermen"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1276,12 @@
         "text": "Sluit je scherm via USB aan op je Home Assistant-machine. Profiel, firmware en de eerste flash gebeuren in één keer.",
         "button": "Nieuw scherm installeren"
       }
+    },
+    "home": {
+      "title": "Je schermen",
+      "summary": "{online} van {count} online",
+      "open": "{name} openen",
+      "no_layout": "Nog geen indeling"
     },
     "screen_view": {
       "confirm": {

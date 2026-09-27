@@ -58,7 +58,8 @@ on the screen itself, and how updates work.
 - **Light groups (firmware 0.3.9+):** a light group gets a lamps key beside the
   sparkles key on its colour card. It opens a page with a card per lamp of the
   group, in Home Assistant's order: tap a card to switch that lamp, drag its
-  slider to dim it. A lamp that can only switch shows a switch instead of a
+  slider to dim it. Each card shows its lamp in the colour it is on, the way the
+  group's tile does (firmware 0.4.0+). A lamp that can only switch shows a switch instead of a
   slider. A lamp that takes a colour or a white shade has a ⋮ key that opens a
   small panel with just those sliders; touching anywhere beside the panel closes
   it. A group with more lamps than fit on the glass is paged, the same way as the

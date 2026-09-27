@@ -1,3 +1,27 @@
+## 0.4.0 (firmware 0.4.0)
+
+A home for all your screens, lamps in their own colour, and tile choices that always save (GitHub #47).
+
+- **Your screens.** ESP Screens now opens on an overview of every screen in the house, each with its home page as it
+  looks right now: its tiles, its top bar and their live values. Click a screen to change it. The logo at the top of
+  the sidebar brings you back to it, like a home key.
+- **A calmer sidebar.** Choosing a screen no longer folds out its details. An arrow at its right opens them. A screen
+  that needs a look opens them by itself: one that is offline, has an update waiting or running, or whose last update
+  failed.
+- **Lamps in their own colour.** On a light group's lamp page, each lamp's slider, icon and switch now show the colour
+  the lamp is on, the same colour as the group's tile, instead of amber for every lamp. A colour picked in a lamp's
+  panel shows on its card at once.
+- **Tile choices that always save.** The tile panel only offers what the screen can save for that tile, checked with
+  the same rules the save uses. Two choices never saved: **Automatic** for the second line after another choice, and
+  **Perform action**. Both work now: Perform action opens the list of actions, and is stored once you pick one, with
+  its values.
+- New firmware for every board: update the app, then press **Update** on each screen for the lamp colours. The
+  overview, the sidebar and the tile panel need only the app update.
+- Tested: every board builds (the CYD image is 1,719,888 B, 93.7 % of its slot; this release only fixes the lamp
+  colours in firmware). The app ran on a Home Assistant with three screens (Guition 4 inch, CYD, Waveshare 4.3) on
+  firmware 0.4.0: a light group's lamp page on each showed every lamp in its own colour, and the overview, the
+  sidebar and the tile choices worked as described.
+
 ## 0.3.28 (firmware 0.3.10)
 
 Safer releases per board, and a check that no firmware build goes missing.

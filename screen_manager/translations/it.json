@@ -1232,7 +1232,9 @@
       "details": {
         "room": "Area",
         "firmware": "Firmware",
-        "board": "Scheda"
+        "board": "Scheda",
+        "show": "Mostra i dettagli di {name}",
+        "hide": "Nascondi i dettagli di {name}"
       },
       "remove": {
         "button": "Rimuovi schermo",
@@ -1244,7 +1246,8 @@
         "confirm": "Rimuovi",
         "done": "{name} è stato rimosso.",
         "kept": "{name} è stato rimosso. Il suo profilo {file} è ancora nella cartella ESPHome."
-      }
+      },
+      "home": "Panoramica dei tuoi schermi"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1276,12 @@
         "text": "Collega il tuo schermo via USB alla macchina di Home Assistant. Profilo, firmware e prima installazione in un colpo solo.",
         "button": "Installa un nuovo schermo"
       }
+    },
+    "home": {
+      "title": "I tuoi schermi",
+      "summary": "{online} di {count} online",
+      "open": "Apri {name}",
+      "no_layout": "Nessun layout ancora"
     },
     "screen_view": {
       "confirm": {

@@ -1232,7 +1232,9 @@
       "details": {
         "room": "Pièce",
         "firmware": "Firmware",
-        "board": "Carte"
+        "board": "Carte",
+        "show": "Afficher les détails de {name}",
+        "hide": "Masquer les détails de {name}"
       },
       "remove": {
         "button": "Retirer l'écran",
@@ -1244,7 +1246,8 @@
         "confirm": "Retirer",
         "done": "{name} a été retiré.",
         "kept": "{name} a été retiré. Son profil {file} est encore dans le dossier ESPHome."
-      }
+      },
+      "home": "Aperçu de vos écrans"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1276,12 @@
         "text": "Branchez votre écran en USB sur votre machine Home Assistant. Le profil, le firmware et la première installation se font en une seule fois.",
         "button": "Installer un nouvel écran"
       }
+    },
+    "home": {
+      "title": "Vos écrans",
+      "summary": "{online} sur {count} en ligne",
+      "open": "Ouvrir {name}",
+      "no_layout": "Pas encore de disposition"
     },
     "screen_view": {
       "confirm": {

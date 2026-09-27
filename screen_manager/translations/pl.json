@@ -1232,7 +1232,9 @@
       "details": {
         "room": "Obszar",
         "firmware": "Firmware",
-        "board": "Płytka"
+        "board": "Płytka",
+        "show": "Pokaż szczegóły: {name}",
+        "hide": "Ukryj szczegóły: {name}"
       },
       "remove": {
         "button": "Usuń ekran",
@@ -1244,7 +1246,8 @@
         "confirm": "Usuń",
         "done": "Ekran {name} został usunięty.",
         "kept": "Ekran {name} został usunięty. Jego profil {file} pozostaje w folderze ESPHome."
-      }
+      },
+      "home": "Przegląd twoich ekranów"
     },
     "palette": {
       "groups": {
@@ -1273,6 +1276,12 @@
         "text": "Podłącz swój ekran przez USB do komputera z Home Assistant. Profil, firmware i pierwsze wgranie za jednym razem.",
         "button": "Zainstaluj nowy ekran"
       }
+    },
+    "home": {
+      "title": "Twoje ekrany",
+      "summary": "{online} z {count} online",
+      "open": "Otwórz {name}",
+      "no_layout": "Jeszcze bez układu"
     },
     "screen_view": {
       "confirm": {
