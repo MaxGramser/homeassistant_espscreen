@@ -103,7 +103,15 @@ wifi:
   password: !secret wifi_password
   # Mains-powered panel: no modem sleep, so HA updates and OTA arrive without beacon latency.
   power_save_mode: none
-  ap:
+{hotspot_of(board)}'''
+
+
+def hotspot_of(board):
+    """The Wi-Fi fallback hotspot and captive portal, as a screen's own YAML has them (core.installation_yaml): not on
+    a board with 4 MB of flash (profiles.hotspot, app 0.4.2+), so tools/check.sh measures the image users get."""
+    if not profiles.hotspot(board):
+        return ''
+    return '''  ap:
     ssid: "Smartdisplay Fallback Hotspot"
     password: !secret ap_password
 

@@ -98,6 +98,10 @@ class WhatAChangeReaches(unittest.TestCase):
 
 
 CORE = tuple(map(int, FIRMWARE_VERSION.split('.')))
+# Two boards that build the shared firmware today, for the examples that need a board with no fix of its own (a board
+# that went ahead, like the CYD's 0.4.1, counts on from its own revision). The 4B is the example of one that did.
+A, B = [board for board in profiles.BOARDS if board != 'waveshare4b'
+        and profiles.board_values(board)['SCREEN_FIRMWARE_VERSION'].strip('"') == FIRMWARE_VERSION][:2]
 
 
 class TheReleasePlan(unittest.TestCase):
@@ -108,7 +112,7 @@ class TheReleasePlan(unittest.TestCase):
     def test_the_core_counts_in_the_middle_and_a_board_at_the_end(self):
         """docs/BOARD_RELEASES.md "How the version numbers work": a shared release raises the core and starts at .0, a
         board release keeps the core and takes a revision above what those boards build now."""
-        shared, board = affected_boards.next_numbers(['cyd'])
+        shared, board = affected_boards.next_numbers([A])
         self.assertEqual(shared, (CORE[0], CORE[1] + 1, 0))
         self.assertEqual(board, (*CORE[:2], CORE[2] + 1))
         # Counted from what a base shows: core 0.4.0 with the Waveshare 4B at its second fix.
@@ -170,18 +174,18 @@ class TheReleasePlan(unittest.TestCase):
         self.assertIn(f'(firmware {FIRMWARE_VERSION})', text)
         self.assertNotIn('SCREEN_FIRMWARE_VERSION: "', text)
         # A new board that also fixes an existing one: that one still gets its own number.
-        text = affected_boards.plan(reach(*paths, 'checkout/cyd.yaml'), new={board})
-        self.assertIn('Firmware for cyd alone', text)
-        self.assertIn(f'(firmware {self.following()} for cyd)', text)
+        text = affected_boards.plan(reach(*paths, f'checkout/{A}.yaml'), new={board})
+        self.assertIn(f'Firmware for {A} alone', text)
+        self.assertIn(f'(firmware {self.following()} for {A})', text)
 
     def test_new_boards_are_the_ones_the_base_lacks(self):
         with mock.patch.object(affected_boards, 'git', return_value='packages/boards/cyd-2432s028.yaml\n'):
             self.assertEqual(affected_boards.new_boards('base'), EVERY - {'cyd'})
 
     def test_two_boards_are_named_together(self):
-        text = affected_boards.plan(reach('checkout/cyd.yaml', 'checkout/guition.yaml'))
-        self.assertIn(f'(firmware {self.following()} for cyd, guition)', text)
-        self.assertIn('--board cyd --board guition', text)
+        text = affected_boards.plan(reach(f'checkout/{A}.yaml', f'checkout/{B}.yaml'))
+        self.assertIn(f'(firmware {self.following()} for {A}, {B})', text)
+        self.assertIn(f'--board {A} --board {B}', text)
 
     def test_a_shared_change_is_a_shared_release(self):
         text = affected_boards.plan(reach('packages/core.yaml', 'packages/boards/cyd-2432s028.yaml'))
@@ -453,7 +457,7 @@ class ABoardsOwnVersion(unittest.TestCase):
                                    {**own, 'SCREEN_FIRMWARE_VERSION': '"9.9.9"'} if Path(path) == profiles.BOARDS[board]
                                    else real(path))):
             self.assertEqual(profiles.board_values(board)['SCREEN_FIRMWARE_VERSION'].strip('"'), '9.9.9')
-            self.assertEqual(profiles.board_values('cyd')['SCREEN_FIRMWARE_VERSION'].strip('"'), FIRMWARE_VERSION)
+            self.assertEqual(profiles.board_values(A)['SCREEN_FIRMWARE_VERSION'].strip('"'), FIRMWARE_VERSION)
 
 
 if __name__ == '__main__':

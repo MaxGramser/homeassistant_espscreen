@@ -27,6 +27,7 @@
   "dpi": 143,
   "firmware": "0.4.0",
   "height": 240,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -70,6 +71,7 @@
   "dpi": 143,
   "firmware": "0.4.1",
   "height": 240,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -123,6 +125,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -186,6 +189,7 @@
   "dpi": 146,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -239,6 +243,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 600,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -312,6 +317,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 600,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -385,6 +391,7 @@
   "dpi": 165,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -458,6 +465,7 @@
   "dpi": 149,
   "firmware": "0.4.0",
   "height": 800,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -531,6 +539,7 @@
   "dpi": 149,
   "firmware": "0.4.0",
   "height": 800,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -594,6 +603,7 @@
   "dpi": 165,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -647,6 +657,7 @@
   "dpi": 217,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -720,6 +731,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -793,6 +805,7 @@
   "dpi": 133,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -861,6 +874,7 @@
   "dpi": 143,
   "firmware": "0.4.0",
   "height": 240,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -904,6 +918,7 @@
   "dpi": 143,
   "firmware": "0.4.1",
   "height": 240,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -957,6 +972,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1020,6 +1036,7 @@
   "dpi": 146,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -1073,6 +1090,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 600,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1146,6 +1164,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 600,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1219,6 +1238,7 @@
   "dpi": 165,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1292,6 +1312,7 @@
   "dpi": 149,
   "firmware": "0.4.0",
   "height": 800,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1365,6 +1386,7 @@
   "dpi": 149,
   "firmware": "0.4.0",
   "height": 800,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1433,6 +1455,7 @@
   "dpi": 143,
   "firmware": "0.4.0",
   "height": 240,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -1476,6 +1499,7 @@
   "dpi": 143,
   "firmware": "0.4.1",
   "height": 240,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -1529,6 +1553,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1592,6 +1617,7 @@
   "dpi": 146,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": false,
   "look": "compact",
   "orientations": {
    "landscape": {
@@ -1645,6 +1671,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 600,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1718,6 +1745,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 600,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1791,6 +1819,7 @@
   "dpi": 165,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1864,6 +1893,7 @@
   "dpi": 149,
   "firmware": "0.4.0",
   "height": 800,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -1937,6 +1967,7 @@
   "dpi": 149,
   "firmware": "0.4.0",
   "height": 800,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2000,6 +2031,7 @@
   "dpi": 165,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2053,6 +2085,7 @@
   "dpi": 217,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2126,6 +2159,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2199,6 +2233,7 @@
   "dpi": 133,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2262,6 +2297,7 @@
   "dpi": 165,
   "firmware": "0.4.0",
   "height": 320,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2315,6 +2351,7 @@
   "dpi": 217,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2388,6 +2425,7 @@
   "dpi": 170,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {
@@ -2461,6 +2499,7 @@
   "dpi": 133,
   "firmware": "0.4.0",
   "height": 480,
+  "hotspot": true,
   "look": "standard",
   "orientations": {
    "landscape": {

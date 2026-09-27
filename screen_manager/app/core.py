@@ -2275,7 +2275,15 @@ def installation_yaml(data):
     choice_lines = ''.join(f'  {key}: {quote(chosen[key])}\n' for key in offered if chosen.get(key, offered[key][0]) != offered[key][0])
     # An OTA password, not yet `ota: encryption:` with the api key: ESPHome before 2026.9 refuses that, and the owner's
     # ESPHome Device Builder may still be older (docs/RELEASING.md, Compatibility 0.2.89).
-    key, ota, ap = base64.b64encode(secrets.token_bytes(32)).decode(), secrets.token_urlsafe(24), secrets.token_urlsafe(12)
+    key, ota = base64.b64encode(secrets.token_bytes(32)).decode(), secrets.token_urlsafe(24)
+    # The Wi-Fi fallback hotspot and its captive portal, where the board has room for them (boards.json `hotspot`,
+    # app 0.4.2+): a board with 4 MB of flash leaves both out, some 90 KB of its 1.75 MB update slot. A screen whose
+    # Wi-Fi changed is then installed again over USB (docs/EASY_SETUP.md).
+    hotspot = (f'''  ap:
+    ssid: {quote(name + ' Setup')}
+    password: {quote(secrets.token_urlsafe(12))}
+captive_portal:
+''' if SHAPES[board].get('hotspot', True) else '')
     return f'''# Keep this file safe: it contains the unique keys for this screen.
 # Wi-Fi comes from the secrets.yaml of ESPHome Device Builder.
 substitutions:
@@ -2305,8 +2313,4 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
   power_save_mode: none
-  ap:
-    ssid: {quote(name + ' Setup')}
-    password: {quote(ap)}
-captive_portal:
-'''
+{hotspot}'''
