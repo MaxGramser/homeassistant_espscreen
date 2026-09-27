@@ -413,6 +413,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
+  "firmware": "0.3.10",
   "height": 800,
   "look": "standard",
   "orientations": {
@@ -1130,6 +1131,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
+  "firmware": "0.3.10",
   "height": 800,
   "look": "standard",
   "orientations": {
@@ -1585,6 +1587,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
+  "firmware": "0.3.10",
   "height": 800,
   "look": "standard",
   "orientations": {

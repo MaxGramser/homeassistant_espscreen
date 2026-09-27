@@ -3,8 +3,12 @@
 #
 # Guition ships this board in two builds: the first one (guition-jc8012p4a1.yaml), with a pre-v3 ESP32-P4 and the
 # first LCD, and the "V3" (guition-jc8012p4a1-v3.yaml), with rev3 silicon and the newer LCD behind the same JD9365
-# driver. Everything else is the same board, and lives here: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch),
-# and the GSL3680 touch panel. The board file adds its display and says which silicon it is built for.
+# driver. Everything else is the same board: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch), and the GSL3680
+# touch panel. The board file adds its display and says which silicon it is built for.
+#
+# Only the V3 includes this file for now. The first build carries the same touch panel and sensor in its own board file:
+# moving them here changes nothing it builds, but it would count as a firmware update for every screen of it
+# (docs/BOARD_RELEASES.md). The next shared release moves them, and the first build includes this file then.
 packages:
   hardware: !include guition-esp32p4.yaml
 

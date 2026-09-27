@@ -15,7 +15,7 @@
 # packages/jc8012p4a1v3.yaml (the package a screen builds from over GitHub).
 packages:
   # The board apart from its chip revision and its LCD: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch) and
-  # the GSL3680, shared with the first build.
+  # the GSL3680, the same as on the first build.
   hardware: !include ../hardware/guition-jc8012p4a1.yaml
   # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
   cells: !include ../cells/20.yaml
@@ -31,9 +31,6 @@ substitutions:
   BOARD_ID: "jc8012p4a1v3"
   DEVICE_NAME: "jc8012p4a1v3-new"
   DEVICE_FRIENDLY_NAME: "My Guition 10 V3"
-  # Rev3 silicon: the boot ROM of this board reports "esp32p4-eco7" and a firmware built for the earlier chips does not
-  # start on it (packages/hardware/guition-esp32p4.yaml).
-  ESP32P4_ENGINEERING_SAMPLE: "false"
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together, so nothing else on this board knows which way the glass hangs. 1509 diagonal pixels over
@@ -73,6 +70,13 @@ esphome:
   # Waveshare keep building on an older ESPHome; only a 10.1-inch screen asks for 2026.8 or newer.
   # docs/RELEASING.md says why the packages stay behind the add-on's ESPHome.
   min_version: 2026.8.0
+
+# Rev3 silicon: the boot ROM of this board reports "esp32p4-eco7". The first build's chips are pre-v3, which
+# packages/hardware/guition-esp32p4.yaml builds for; ESP-IDF lays out memory differently for the two and a pre-v3
+# firmware restarts a rev3 chip straight after its bootloader (CHIP_LP_WDT_RESET, GitHub issue #52). This board file's
+# value wins over that file's. The CPU stays at 360 MHz, as the community configurations for this board run it.
+esp32:
+  engineering_sample: false
 
 # ESPHome's own mipi_dsi platform knows the newer LCD by name (2026.8.0+): `model: JC8012P4A1-V2` brings the JD9365's
 # init sequence for it, its timings and its reset pin. ESPHome's "V2" is the LCD, not Guition's board label; the

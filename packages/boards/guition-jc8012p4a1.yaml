@@ -11,9 +11,8 @@
 # is added. Two entry files include this one: checkout/jc8012p4a1.yaml (a build on this computer) and
 # packages/jc8012p4a1.yaml (the package a screen builds from over GitHub).
 packages:
-  # The board apart from its chip revision and its LCD: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch) and
-  # the GSL3680, shared with the V3.
-  hardware: !include ../hardware/guition-jc8012p4a1.yaml
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, shared with the 7-inch JC1060P470.
+  hardware: !include ../hardware/guition-esp32p4.yaml
   # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
   cells: !include ../cells/20.yaml
   look: !include ../looks/standard.yaml
@@ -63,10 +62,31 @@ substitutions:
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its touch
   # platform (gsl3670) arrived in 2026.7.0 and that platform's `model: GUITION-JC8012P4A1` in 2026.8.0, which is
-  # what packages/hardware/guition-jc8012p4a1.yaml uses. A board file's min_version wins over the core's, so the CYD, the Guition and the
+  # what this file uses. A board file's min_version wins over the core's, so the CYD, the Guition and the
   # Waveshare keep building on an older ESPHome; only a 10.1-inch screen asks for 2026.8 or newer.
   # docs/RELEASING.md says why the packages stay behind the add-on's ESPHome.
   min_version: 2026.8.0
+
+text_sensor:
+  - platform: template
+    name: "Guition screen type"
+    entity_category: diagnostic
+    update_interval: never
+    lambda: 'return {"guition"};'
+
+# ESPHome's own gsl3670 platform (2026.7.0+) drives the GSL3680 on this panel. `model:` brings its pins and
+# the range the panel reports; the transform is this board's, because the shared tree reads those three names.
+# The driver loads a firmware table into the touch chip at boot, which ESPHome fetches from the release the
+# model points at and keeps in its own cache, so a build needs to reach GitHub once.
+touchscreen:
+  - platform: gsl3670
+    model: GUITION-JC8012P4A1
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    reset_pin: GPIO22
+    interrupt_pin: GPIO21
 
 # ESPHome's own mipi_dsi platform knows this panel by name: `model: JC8012P4A1` brings the JD9365's init
 # sequence, its timings and its reset pin. The panel is 800x1280; LVGL turns it a quarter (LVGL_ROTATION).

@@ -1,3 +1,14 @@
+## 0.3.23 (firmware 0.3.10)
+
+The 10.1-inch Guition JC8012P4A1 V3, experimental (GitHub #52).
+
+- **New screen** offers the Guition JC8012P4A1 V3. The V3 has a newer ESP32-P4 (revision 3) and a newer LCD, and the
+  firmware of the first JC8012P4A1 does not start on it: the board restarts right after its bootloader, over and over.
+  The V3 firmware is built for its chip and drives its LCD with ESPHome's own panel settings. It is built and rendered
+  but not yet tried on the glass: please report how it runs (docs/JC8012P4A1.md says how to tell the two apart and what
+  to check).
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
 ## 0.3.22 (firmware 0.3.10)
 
 A ready Docker image, so a Docker install no longer needs git.
