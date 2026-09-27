@@ -289,6 +289,12 @@
       "too_many": "Too many wrong codes",
       "letters": "This code has letters. Enter it in Home Assistant."
     },
+    "lock": {
+      "confirm": "Confirm",
+      "really_unlock": "Really unlock?",
+      "lock_only": "Only locking on this screen",
+      "lock_only_short": "Lock only"
+    },
     "ha": {
       "on": "On",
       "off": "Off",
@@ -449,6 +455,15 @@
         "disarming": "Disarming",
         "triggered": "Triggered"
       },
+      "lock": {
+        "locked": "Locked",
+        "unlocked": "Unlocked",
+        "locking": "Locking",
+        "unlocking": "Unlocking",
+        "open": "Open",
+        "opening": "Opening",
+        "jammed": "Jammed"
+      },
       "alarm_mode": {
         "armed_home": "Home",
         "armed_away": "Away",
@@ -465,6 +480,13 @@
         "arm_vacation": "Arm vacation",
         "arm_custom_bypass": "Custom bypass",
         "enter_code": "Enter code"
+      },
+      "lock_action": {
+        "lock": "Lock",
+        "unlock": "Unlock",
+        "open": "Open",
+        "open_door": "Open door",
+        "open_door_confirm": "Really open?"
       }
     },
     "navigation": {
@@ -1398,7 +1420,8 @@
         "person": "People",
         "timer": "Timers",
         "screen": "Screen",
-        "alarm_control_panel": "Alarm"
+        "alarm_control_panel": "Alarm",
+        "lock": "Locks"
       },
       "more": "More ({n})",
       "fewer": "Fewer",
@@ -1439,7 +1462,8 @@
       "camera": "Camera",
       "image": "Image",
       "entity": "Entity",
-      "alarm_control_panel": "Alarm panel"
+      "alarm_control_panel": "Alarm panel",
+      "lock": "Lock"
     },
     "displays": {
       "standard": "standard",
@@ -1547,6 +1571,13 @@
         "no_toggle": "Home Assistant can't turn this on and off, so a tap does nothing. Choose another option.",
         "toggle_needs_firmware": "The screen switches this from firmware 0.2.58: press Update on the screen. Until then a tap opens its card.",
         "hold": "Hold the tile to open its card."
+      },
+      "guard": {
+        "label": "Unlocking here",
+        "confirm": "After a confirm",
+        "lock_only": "Never",
+        "confirm_hint": "A locked lock unlocks after a second tap on the tile or its key. Locking always takes one tap.",
+        "lock_only_hint": "This screen can lock but never unlock or open. Good for a screen in a porch, a garage or a child's room."
       },
       "sub": {
         "label": "Second line",

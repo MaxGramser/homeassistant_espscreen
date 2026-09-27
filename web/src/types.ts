@@ -3,6 +3,7 @@ export type TileOptions = {
   size?: string;
   controls?: string;
   inline?: string;
+  guard?: string;
   tap?: string;
   icon?: string;
   background?: string;
@@ -21,7 +22,7 @@ export type PageTile = {
   // rectangles it supports; the page's grid is never user-overridable.
   placement: { row: number; column: number; columns: number; rows: number };
   appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full"; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; fit?: string; overlay?: string };
-  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"] };
+  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string };
 };
 export type Page = {
   id: string;

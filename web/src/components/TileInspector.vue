@@ -145,6 +145,9 @@ function pickTap(value: string) {
   if (choosingAction.value) state.actionPickerOpen = true;
   else setTileOption(props.tile, "tap", value);
 }
+// A lock's tile (firmware 0.5.0+): unlock after a second tap on it, or never unlock from this screen.
+const guard = computed(() => current("guard", "confirm") as string);
+const guards = computed(() => offer("guard", ["confirm", "lock_only"].map((key) => [key, t(`editor.tile.guard.${key}`)] as [string, string]), guard.value));
 const tapHint = computed(() => {
   if (tap.value === "toggle" && caps.value && !caps.value.toggle) return { text: t("editor.tile.tap.no_toggle"), warn: true };
   if (tap.value === "toggle" && !TOGGLE_BEFORE.includes(domain.value) && !supports(0, 2, 58)) return { text: t("editor.tile.tap.toggle_needs_firmware"), warn: false };
@@ -276,6 +279,10 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
         <small v-if="tapHint?.warn" class="help warn">{{ tapHint.text }}</small>
       </div>
       <ActionPicker v-if="domain !== 'screen' && !goesTo && tap === 'action'" :tile="tile" />
+      <div v-if="domain === 'lock'" class="f">
+        <span class="f-label">{{ t("editor.tile.guard.label") }}<HelpTip :text="t(guard === 'lock_only' ? 'editor.tile.guard.lock_only_hint' : 'editor.tile.guard.confirm_hint')" /></span>
+        <Segmented :choices="guards" :value="guard" @pick="(v) => setTileOption(tile, 'guard', v)" />
+      </div>
       <div v-if="catalogue && ['wide', 'tall', 'square', 'full'].includes(size) && !goesTo" class="f">
         <span class="f-label">{{ t("editor.tile.controls.label") }}<HelpTip v-if="controlHint && !controlHint.warn" :text="controlHint.text" /></span>
         <Segmented :choices="controlChoices" :value="primaryControl" @pick="pickControl" />

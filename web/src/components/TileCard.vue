@@ -117,7 +117,7 @@ const value = (state: string) => (unit.value || NUMERIC.includes(domain.value) ?
 // The screens' own words for a state where Home Assistant hands us none (screen.ha, Home Assistant's words in the
 // screens' language, app 0.2.90): a binary sensor's by its device class, on and off, and the states of the domains
 // the screen names itself. A weather's windy-variant is windy there too.
-const HA_WORDS: Record<string, string> = { climate: "climate", cover: "cover", media_player: "media", person: "person", sun: "sun", vacuum: "vacuum", weather: "weather", alarm_control_panel: "alarm" };
+const HA_WORDS: Record<string, string> = { climate: "climate", cover: "cover", media_player: "media", person: "person", sun: "sun", vacuum: "vacuum", weather: "weather", alarm_control_panel: "alarm", lock: "lock" };
 function haWord(c: { state: string; a: Record<string, any> }) {
   const key = (path: string) => (te(`screen.ha.${path}`) ? screenText(`screen.ha.${path}`) : "");
   const value = c.state === "windy-variant" ? "windy" : c.state.replace(/-/g, "_");

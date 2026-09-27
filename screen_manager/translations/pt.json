@@ -289,6 +289,12 @@
       "too_many": "Demasiados códigos errados",
       "letters": "Este código tem letras. Introduza-o no Home Assistant."
     },
+    "lock": {
+      "confirm": "Confirmar",
+      "really_unlock": "Desbloquear mesmo?",
+      "lock_only": "Só trancar neste ecrã",
+      "lock_only_short": "Só trancar"
+    },
     "ha": {
       "on": "Ligado",
       "off": "Desligado",
@@ -465,6 +471,22 @@
         "arm_vacation": "Armado férias",
         "arm_custom_bypass": "Bypass personalizado",
         "enter_code": "Inserir Código"
+      },
+      "lock": {
+        "locked": "Trancada",
+        "unlocked": "Destrancada",
+        "locking": "A trancar",
+        "unlocking": "A destrancar",
+        "open": "Aberto",
+        "opening": "A abrir",
+        "jammed": "Encravado"
+      },
+      "lock_action": {
+        "lock": "Bloquear",
+        "unlock": "Desbloquear",
+        "open": "Abrir",
+        "open_door": "Abrir porta",
+        "open_door_confirm": "Abrir mesmo?"
       }
     },
     "navigation": {
@@ -1398,7 +1420,8 @@
         "person": "Pessoas",
         "timer": "Temporizadores",
         "screen": "Ecrã",
-        "alarm_control_panel": "Alarme"
+        "alarm_control_panel": "Alarme",
+        "lock": "Fechaduras"
       },
       "more": "Mais ({n})",
       "fewer": "Menos",
@@ -1439,7 +1462,8 @@
       "camera": "Câmara",
       "image": "Imagem",
       "entity": "Entidade",
-      "alarm_control_panel": "Painel de alarme"
+      "alarm_control_panel": "Painel de alarme",
+      "lock": "Fechadura"
     },
     "displays": {
       "standard": "padrão",
@@ -1547,6 +1571,13 @@
         "no_toggle": "O Home Assistant não consegue ligar e desligar isto, por isso um toque não faz nada. Escolha outra opção.",
         "toggle_needs_firmware": "O ecrã liga e desliga isto a partir do firmware 0.2.58: prima Atualizar na lista de ecrãs. Até lá, um toque abre o respetivo cartão.",
         "hold": "Mantenha o mosaico premido para abrir o respetivo cartão."
+      },
+      "guard": {
+        "label": "Destrancar aqui",
+        "confirm": "Após confirmar",
+        "lock_only": "Nunca",
+        "confirm_hint": "Uma fechadura trancada só abre após um segundo toque no mosaico ou no botão. Trancar é sempre um toque.",
+        "lock_only_hint": "Este ecrã pode trancar mas nunca destrancar nem abrir. Bom para um ecrã na entrada, na garagem ou num quarto de criança."
       },
       "sub": {
         "label": "Segunda linha",

@@ -37,7 +37,6 @@ packages:
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "cyd9342"
-  SCREEN_FIRMWARE_VERSION: "0.4.1"   # a fix for this board alone (docs/BOARD_RELEASES.md)
   DEVICE_NAME: "cyd9342-new"
   DEVICE_FRIENDLY_NAME: "My CYD"
 
@@ -97,3 +96,6 @@ display:
       swap_xy: true
       mirror_x: true
       mirror_y: true
+    # ESPHome's mipi_spi sends colours in BGR order unless told otherwise, which the ILI9341 CYD wants; this panel
+    # takes them in RGB order, and in BGR its red and blue swapped places (GitHub #50).
+    color_order: rgb

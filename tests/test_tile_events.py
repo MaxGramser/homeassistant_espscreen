@@ -87,7 +87,7 @@ class AddAndUpdate(unittest.TestCase):
             apply_tile_event(start, 'add', {'entity': 'vacuum.s8', 'page': 1, 'row': 1, 'column': 'left'})
 
     def test_what_it_refuses(self):
-        for data, message in (({'entity': 'lock.front'}, 'cannot go on a screen'),
+        for data, message in (({'entity': 'zone.home'}, 'cannot go on a screen'),
                               ({'entity': ''}, 'Name the entity'),
                               ({'entity': 'light.a', 'page': 9}, 'page between 1 and 8'),
                               ({'entity': 'light.a', 'row': 4, 'page': 1}, 'row between 1 and 3'),

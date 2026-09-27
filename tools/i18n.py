@@ -272,6 +272,8 @@ def ha_sources():
     for state in ('disarmed', 'armed_home', 'armed_away', 'armed_night', 'armed_vacation', 'armed_custom_bypass', 'pending',
                   'arming', 'disarming', 'triggered'):
         sources[f'alarm.{state}'] = f'component.alarm_control_panel.entity_component._.state.{state}'
+    for state in ('locked', 'unlocked', 'locking', 'unlocking', 'open', 'opening', 'jammed'):
+        sources[f'lock.{state}'] = f'component.lock.entity_component._.state.{state}'
     english = json.loads((FOLDER / 'en.json').read_text(encoding='utf-8'))['screen']['ha']
     for key in english['weather']:
         sources[f'weather.{key}'] = f'component.weather.entity_component._.state.{key.replace("_", "-") if key != "partlycloudy" else key}'
@@ -289,7 +291,9 @@ FRONTEND_SOURCES = {'unavailable': 'state.default.unavailable', 'button.activate
                        for mode in ('armed_home', 'armed_away', 'armed_night', 'armed_vacation', 'armed_custom_bypass', 'disarmed')},
                     **{f'alarm_action.{key}': f'ui.card.alarm_control_panel.{key}'
                        for key in ('disarm', 'arm_home', 'arm_away', 'arm_night', 'arm_vacation', 'arm_custom_bypass')},
-                    'alarm_action.enter_code': 'ui.dialogs.enter_code.title'}
+                    'alarm_action.enter_code': 'ui.dialogs.enter_code.title',
+                    # The lock's keys, as its dialog names them (firmware 0.5.0+).
+                    **{f'lock_action.{key}': f'ui.card.lock.{key}' for key in ('lock', 'unlock', 'open', 'open_door', 'open_door_confirm')}}
 
 
 def frontend_words(url, codes):
@@ -356,6 +360,8 @@ def ha_words(write):
             else:
                 print(f'{code}: Home Assistant has no {source}')
         own.update(frontend.get(code, {}))
+        # French puts a no-break space before "?", which the screens' fonts do not carry: a plain space says the same.
+        own = {key: word.replace('\xa0', ' ').replace('\u202f', ' ') for key, word in own.items()}
         reference = dict(generator().flatten(data.get('screen', {}).get('ha', {})))
         if code == 'en':
             for key, word in own.items():

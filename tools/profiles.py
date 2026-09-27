@@ -59,6 +59,25 @@ def chain(path):
     return found
 
 
+def flash_mb(board):
+    """The flash chip a board's firmware is built for, in MB: the `flash_size` of the `esp32:` block in the board's
+    files, the last one that says it, and ESPHome's own 4 MB when none does (the CYD's esp32dev)."""
+    found = 4
+    for path in chain(BOARDS[board]):
+        block = re.search(r'(?m)^esp32:[ \t]*\n((?:[ \t]+.*\n|[ \t]*\n)*)', path.read_text())
+        size = re.search(r'(?m)^  flash_size:[ \t]*"?(\d+)MB"?', block[1]) if block else None
+        if size:
+            found = int(size[1])
+    return found
+
+
+def hotspot(board):
+    """Whether a screen of this board gets the Wi-Fi fallback hotspot and its captive portal (app 0.4.5+). On 4 MB of
+    flash both update slots are 1.75 MB, and the hotspot takes some 90 KB of one; a screen whose Wi-Fi changed is
+    installed again over USB instead (docs/EASY_SETUP.md). Every board with more flash keeps it."""
+    return flash_mb(board) > 4
+
+
 def cells_of(board_file):
     """The cells package a board file brings: the cards of its grid (packages/cells/<number>.yaml)."""
     return [path for path in packages_of(board_file) if path.parent.name == 'cells']

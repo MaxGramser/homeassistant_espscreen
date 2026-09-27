@@ -80,11 +80,11 @@ class CodesStayPrivate(unittest.TestCase):
                 self.assertNotIn('alarm_pad.code', line)
         # One place sends it, as the action's `code`, and wipes it right after.
         self.assertEqual(section.count('"code",alarm_pad.code'), 1)
-        self.assertIn('action(MODES[alarm_pad.mode].service,t.entity,"code",alarm_pad.code);\n  alarm_wipe(alarm_pad.code);', section)
+        self.assertIn('"code",alarm_pad.code);\n  alarm_wipe(alarm_pad.code);', section)
         # The event Home Assistant hears carries the panel, the count and the lock, never the code.
         event = body(section, 'inline void alarm_refused_event(const std::string &entity,uint32_t locked){')
         self.assertIn('{"entity_id","failures","locked"}', event)
-        self.assertNotIn('code', event.replace('screen_alarm_code_refused', ''))
+        self.assertNotIn('code', event.replace('screen_alarm_code_refused', '').replace('screen_lock_code_refused', ''))
         # What is saved across a restart is the count and the time left.
         self.assertIn('struct AlarmSaved { uint32_t failures=0, seconds=0; };', section)
         # The action logs its service and entity only.
@@ -103,7 +103,7 @@ class TheApp(unittest.TestCase):
     def test_an_alarm_panel_is_a_tile(self):
         self.assertIn('alarm_control_panel', core.DOMAINS)
         self.assertNotIn('alarm_control_panel', core.HEADER_ONLY_DOMAINS)
-        self.assertIn('"alarm_control_panel"})', MODEL)
+        self.assertIn('"alarm_control_panel", "lock"})', MODEL)
         self.assertTrue(core.entity_id('alarm_control_panel.house'))
 
     def test_the_card_gets_its_attributes(self):

@@ -267,6 +267,9 @@ a:hover { text-decoration: underline; }
 .tile .st { font-size: 10.5px; color: #5a5f66; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .device.compact .tile { padding: 6px 7px; }
 .device.compact .tile .nm { font-size: 10.5px; }
+/* A name with room (a single column standing up, a double-width card) a little larger, as the screen draws it
+   (runtime_tiles::name_font). */
+.device.compact.roomy .tile:not(.full) .nm, .device.compact .tile.wide .nm { font-size: 12.5px; }
 .device.compact .tile .ic { font-size: 15px; }
 .device.compact .tile .head { gap: 6px; }
 /* The screen's own numbers on its short tiles: 4 px above and below, an 8 px slider. */

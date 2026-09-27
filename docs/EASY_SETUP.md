@@ -21,7 +21,7 @@ ESPHome Device Builder is optional:
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
-| Guition, 3.5 inch (experimental) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
+| Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
@@ -372,6 +372,14 @@ should stay away.
   available. A renamed entity ID needs to be chosen again.
 - **No OTA:** check Wi-Fi/IP and the original OTA password. If needed,
   use the same own YAML over USB. Don't generate a new identity.
+- **New Wi-Fi network or password:** change `wifi_ssid` and `wifi_password` in ESPHome's
+  `secrets.yaml`. A screen that can't reach the old network can't be updated over Wi-Fi, so:
+  - Most boards open a fallback hotspot, `<screen name> Setup`, about 90 seconds after they lose
+    their network. Its password is under `wifi:` → `ap:` in the screen's own YAML. Join it with a
+    phone and pick the new network on the page that opens.
+  - A CYD and the other boards with 4 MB of flash have no hotspot (app 0.4.5+): it would take
+    some 90 KB of their update slot. Connect the screen to a computer over USB and install its own
+    profile again under **Firmware & USB**. The name, the keys and the calibration stay.
 - **Build fails:** read the first error, check the ESPHome version and internet for
   GitHub/font downloads. If the Raspberry Pi is low on memory, temporarily use a
   more powerful computer to compile; the YAML stays the same.

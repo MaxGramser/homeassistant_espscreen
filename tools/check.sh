@@ -195,7 +195,8 @@ esphome_version() {
 }
 
 # The builds users get come from the YAML core.installation_yaml() writes: the board's package plus the device's own
-# keys, the Wi-Fi fallback access point and captive_portal. The board profiles carry all of that (with !secret), so a
+# keys, and the Wi-Fi fallback access point and captive_portal where the board has room for them (boards.json
+# `hotspot`, not on 4 MB of flash since app 0.4.5). The board profiles carry all of that (with !secret), so a
 # copy of each profile compiles in a temporary checkout/ folder with placeholder secrets of the same length as real ones,
 # beside links to this tree's components, fonts and packages (the shared core and the board files the profile includes,
 # which a checkout entry names as ../packages): this commit's code, never GitHub's main, never the real secrets.yaml.
@@ -211,11 +212,17 @@ api_encryption_key: "Y2hlY2stYnVpbGQtcGxhY2Vob2xkZXIta2V5LTMyYnk="
 ota_password: "check-build-ota-password-0000000"
 ap_password: "check-ap-passwd0"
 EOF
-  # Every board that ships, by its checkout entry: the YAML users get, with the fallback hotspot.
+  # Every board that ships, by its checkout entry: the YAML users get, with the fallback hotspot where they get it.
+  local wants has
   while read -r board file; do
     cp "$ROOT/$file" "$config/check-$board.yaml" || return 1
-    if ! grep -q '^captive_portal:' "$config/check-$board.yaml" || ! grep -q '^  ap:' "$config/check-$board.yaml"; then
-      echo "$file has no captive_portal: or wifi ap: any more, unlike the YAML users get; the flash figures would read low."
+    wants=$("$PYTHON" -c 'import json, sys; print(json.load(open(sys.argv[1]))[sys.argv[2]].get("hotspot", True))' \
+      "$ROOT/screen_manager/app/boards.json" "$board") || return 1
+    has=False
+    if grep -q '^captive_portal:' "$config/check-$board.yaml" && grep -q '^  ap:' "$config/check-$board.yaml"; then has=True; fi
+    if [[ $has != "$wants" ]]; then
+      echo "$file: fallback hotspot and captive_portal $has, but a screen of $board gets them: $wants (boards.json);"
+      echo "the flash figures would not be the ones users get. Run tools/generate_entries.py."
       return 1
     fi
   done < <(board_entries)

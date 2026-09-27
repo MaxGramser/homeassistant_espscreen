@@ -31,8 +31,3 @@ wifi:
   password: !secret wifi_password
   # Mains-powered panel: no modem sleep, so HA updates and OTA arrive without beacon latency.
   power_save_mode: none
-  ap:
-    ssid: "Smartdisplay Fallback Hotspot"
-    password: !secret ap_password
-
-captive_portal:

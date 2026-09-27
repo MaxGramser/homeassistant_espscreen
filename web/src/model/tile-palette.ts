@@ -25,6 +25,7 @@ export function tileActive(entity: string, value: Value) {
   if (domain === "timer") return state === "active";
   if (domain === "camera") return ["streaming", "recording"].includes(state);
   if (domain === "alarm_control_panel") return state !== "disarmed";
+  if (domain === "lock") return state !== "locked";
   return true;
 }
 function accent(entity: string, value: Value) {
@@ -48,6 +49,7 @@ function accent(entity: string, value: Value) {
   if (domain === "sun") return state === "above_horizon" ? c.AMBER : c.INDIGO;
   if (domain === "person") return state === "home" ? c.GREEN : c.BLUE;
   if (domain === "alarm_control_panel") return state === "triggered" ? c.RED : ["arming", "pending", "disarming"].includes(state) ? c.ORANGE : c.GREEN;
+  if (domain === "lock") return state === "locked" ? c.GREEN : ["locking", "unlocking", "opening"].includes(state) ? c.ORANGE : c.RED;
   if (domain === "sensor") {
     const charge = Number(state);
     if (a.device_class === "battery" && Number.isFinite(charge)) return charge >= 70 ? c.GREEN : charge >= 30 ? c.ORANGE : c.RED;
@@ -60,7 +62,8 @@ function accent(entity: string, value: Value) {
 }
 export function tilePalette(entity: string, value: Value) {
   const available = entity.startsWith("screen.") || Boolean(value?.state && !["unknown", "unavailable"].includes(value.state));
-  const color = accent(entity, value), active = tileActive(entity, value), state = active ? color : c.GREY;
+  // A locked lock is inactive in Home Assistant and still green (--state-lock-locked-color), as on the screen.
+  const color = accent(entity, value), active = tileActive(entity, value) || (entity.startsWith("lock.") && available), state = active ? color : c.GREY;
   const fill = available && (entity.startsWith("cover.") || active) ? color : c.GREY;
   return {
     icon: hex(available ? mix(state, theme.iconBase, theme.iconWeight) : theme.roles.OFF.light),
