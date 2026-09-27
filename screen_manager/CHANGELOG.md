@@ -1,3 +1,12 @@
+## 0.4.3 (firmware 0.4.0)
+
+Give a screen its own name in the app.
+
+- **Rename.** Open a screen's details in the sidebar and choose Rename. The new name shows at once in the sidebar,
+  the header and the overview, with no flash. It is kept in the app only: Home Assistant, the screen's ESPHome name
+  and its YAML stay as they are. Save an empty name to get Home Assistant's name back.
+- No new firmware: update the app; the screens stay as they are.
+
 ## 0.4.2 (firmware 0.4.0)
 
 The editor shows your second line, and a few more rough edges are gone.
