@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Retour"
+    },
+    "schedule": {
+      "title": "Programme chauffage",
+      "new": "Nouveau programme",
+      "loading": "Chargement",
+      "saving": "Enregistrement",
+      "reload": "Recharger",
+      "timeout": "Aucune réponse. Rechargez avant de réessayer.",
+      "day_in_use": "Jour lié à un autre programme.",
+      "choose_days": "Choisissez au moins un jour.",
+      "keep": "Continuer",
+      "discard": "Abandonner",
+      "unsaved": "Modifications non enregistrées",
+      "save_leave": "Enregistrer et quitter",
+      "enabled": "Activé",
+      "vacation": "Vacances"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Effectuer une action",
         "no_toggle": "Home Assistant ne peut pas allumer ni éteindre ceci : toucher la tuile ne fait donc rien. Choisissez une autre option.",
         "toggle_needs_firmware": "L'écran allume et éteint ceci à partir du firmware 0.2.58 : appuyez sur Mettre à jour pour cet écran. D'ici là, toucher la tuile ouvre sa carte.",
-        "hold": "Maintenez le doigt sur la tuile pour ouvrir sa carte."
+        "hold": "Maintenez le doigt sur la tuile pour ouvrir sa carte.",
+        "schedule": "Programme chauffage",
+        "schedule_controller": "Télécharger le contrôleur de chauffage HA",
+        "schedule_setup": "Installez ce YAML comme package Home Assistant, puis redémarrez HA. Après enregistrement, les programmes sont dans Paramètres → Appareils et services → Entrées."
       },
       "guard": {
         "label": "Déverrouiller ici",

@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Zurück"
+    },
+    "schedule": {
+      "title": "Heizplan",
+      "new": "Neues Programm",
+      "loading": "Laden",
+      "saving": "Speichern",
+      "reload": "Neu laden",
+      "timeout": "Keine Antwort. Vor erneutem Versuch neu laden.",
+      "day_in_use": "Tag gehört zu einem anderen Programm.",
+      "choose_days": "Mindestens einen Tag wählen.",
+      "keep": "Weiter bearbeiten",
+      "discard": "Verwerfen",
+      "unsaved": "Ungespeicherte Änderungen",
+      "save_leave": "Speichern und schließen",
+      "enabled": "Aktiviert",
+      "vacation": "Urlaub"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Aktion ausführen",
         "no_toggle": "Home Assistant kann dies nicht ein- und ausschalten, daher bewirkt ein Tippen nichts. Wähle eine andere Option.",
         "toggle_needs_firmware": "Ab Firmware 0.2.58 schaltet der Bildschirm das ein und aus: Drücke beim Bildschirm auf „Aktualisieren“. Bis dahin öffnet ein Tippen die Karte.",
-        "hold": "Halte die Kachel gedrückt, um ihre Karte zu öffnen."
+        "hold": "Halte die Kachel gedrückt, um ihre Karte zu öffnen.",
+        "schedule": "Heizplan",
+        "schedule_controller": "HA-Heizungssteuerung herunterladen",
+        "schedule_setup": "Diese YAML als Home-Assistant-Paket installieren und HA neu starten. Nach dem Speichern stehen die Zeitpläne unter Einstellungen → Geräte & Dienste → Helfer."
       },
       "guard": {
         "label": "Hier entriegeln",

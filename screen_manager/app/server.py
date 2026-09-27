@@ -18,6 +18,9 @@ from firmware import Firmware
 import ha_catalogue
 import light_effects
 import light_groups
+import schedules
+import schedule_transport
+import heating_package
 import tile_icons
 from updates import Updater
 
@@ -171,6 +174,7 @@ class HomeAssistant:
         self.camera_requests = asyncio.Queue()
         # The names a light's picker lists (firmware 0.2.70+): {inbox, entity, page}, for Manager.card_options_loop.
         self.options_requests = asyncio.Queue()
+        self.schedule_requests = asyncio.Queue(maxsize=16)
 
     async def request(self, kind, **data):
         if self.ws is None or self.ws.closed:
@@ -210,6 +214,9 @@ class HomeAssistant:
                     self.camera_requests.put_nowait(body)
                 elif event.get('event_type') == light_effects.OPTIONS_EVENT:
                     self.options_requests.put_nowait(body)
+                elif event.get('event_type') == schedule_transport.EVENT:
+                    if not self.schedule_requests.full():
+                        self.schedule_requests.put_nowait(body)
                 elif event.get('event_type') == 'state_changed':
                     eid = body.get('entity_id')
                     if body.get('new_state'):
@@ -398,6 +405,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type='esphome.screen_history')
                     await self.request('subscribe_events', event_type='esphome.screen_camera')
                     await self.request('subscribe_events', event_type=light_effects.OPTIONS_EVENT)
+                    await self.request('subscribe_events', event_type=schedule_transport.EVENT)
                     for event_type in (*REGISTRY_EVENTS, *BROADCAST_EVENTS, ALERT_EVENT, *TILE_EVENTS, *SERVICE_EVENTS):
                         await self.request('subscribe_events', event_type=event_type)
                     self.states = {s['entity_id']: s for s in await self.request('get_states')}
@@ -480,6 +488,13 @@ class HomeAssistant:
         """One Home Assistant action, such as a screen's esphome.<node>_show_alert."""
         domain, service = action.split('.', 1)
         await self.request('call_service', domain=domain, service=service, service_data=data)
+
+    async def schedule_api(self, kind, **data):
+        """Native helper CRUD and services via HA's normal WebSocket connection."""
+        try:
+            return await self.request(kind, **data)
+        except (Refused, ConnectionError, TimeoutError) as error:
+            raise schedules.Unavailable('Home Assistant could not confirm the native schedule request: ' + str(error)) from error
 
     async def camera_image(self, entity):
         """The picture of a camera or image entity as Home Assistant hands it to its own frontend."""
@@ -631,6 +646,8 @@ class HomeAssistant:
 class Manager:
     def __init__(self, ha, path):
         self.ha, self.path = ha, Path(path)
+        self.schedules = schedules.Adapter(lambda *args, **kwargs: self.ha.schedule_api(*args, **kwargs),
+                                           lambda: self.ha.states, lambda: getattr(self.ha, 'units', {}))
         # sent: per inbox what the screen holds ({'layout', 'header', 'states', 'rev'}); status: how the
         # delivery went, in English with its key (the editor shows it in its own language, app 0.2.90);
         # last: the last full send; pinged: the last keepalive ping.
@@ -1303,6 +1320,39 @@ class Manager:
             LOG.info('%s answered "%s"; sending everything again in %d s', name, status, max(1, round(due - time.monotonic())))
             self.retries[inbox] = failures + 1
             self.retry_at[inbox] = due
+
+    async def schedule_loop(self):
+        while True:
+            request = await self.ha.schedule_requests.get()
+            try:
+                await self.answer_schedule(request)
+            except (ClientError, ConnectionError, TimeoutError, OSError, ValueError):
+                LOG.info('Schedule exchange was not confirmed')
+
+    async def answer_schedule(self, request):
+        if not isinstance(request, dict):
+            return
+        inbox = request.get('inbox')
+        if not isinstance(inbox, str):
+            return
+        inbox = self.aliases.get(inbox, inbox)
+        layout, screen = self.layouts.get(inbox), self.screen(inbox)
+        if not layout or not screen or not screen.get('online'):
+            return
+        sender = self.page_senders.get(inbox)
+        if not sender or sender.protocol != 2 or not sender.schedule:
+            return
+        # A delayed event from an old layout/session must not write to HA,
+        # even when its reply would be discarded by send_auxiliary.
+        if not sender.session or not sender.confirmed or request.get('session') != sender.session or request.get('rev') != sender.confirmed:
+            return
+        action = self.transport(inbox, screen)
+        if not action:
+            return
+        messages = await schedule_transport.exchange(self.schedules, request.get('payload'),
+                                                       schedule_transport.bound_entities(layout))
+        for message in messages:
+            await self.send_auxiliary(inbox, message, action, request)
 
     # ----- The names a light's picker lists (app 0.2.83, firmware 0.2.70+) -----
     async def card_options_loop(self):
@@ -2384,6 +2434,12 @@ def create_app(manager, development=False):
             response = await handler(request)
         except Conflict as error:
             return web.json_response({'error': str(error), 'conflict': True}, status=409)
+        except schedules.Conflict as error:
+            return web.json_response({'error': str(error), 'code': 'schedule_conflict'}, status=409)
+        except schedules.PartialSave as error:
+            return web.json_response({'error': str(error), 'code': 'schedule_partial'}, status=503)
+        except schedules.Unavailable as error:
+            return web.json_response({'error': str(error), 'code': 'schedule_unavailable'}, status=503)
         except ValueError as error:
             return web.json_response({'error': str(error)}, status=400)
         # Home Assistant said no, or can't be reached (Identify, Try it, a setting): a sentence the page shows, never a
@@ -2930,7 +2986,31 @@ def create_app(manager, development=False):
     app.router.add_post('/api/firmware/profiles/{file}/flashed', firmware_flashed)
     app.router.add_post('/api/firmware/profiles', firmware_create)
     app.router.add_get('/', index)
+    async def schedule_load(request):
+        return web.json_response(await manager.schedules.load(request.query.get('entity')))
+
+    async def schedule_package(request):
+        import yaml
+        entity = request.query.get('entity')
+        content = heating_package.package(entity, manager.schedules.capabilities(entity))
+        return web.Response(text=yaml.safe_dump(content, sort_keys=False, allow_unicode=True), content_type='text/yaml')
+
+    async def schedule_save(request):
+        data = await request.json()
+        if not isinstance(data, dict) or type(data.get('v')) is not int or data['v'] != 1 or set(data) - {'v', 'entity', 'revision', 'op', 'programme', 'vacation'}:
+            raise ValueError('Unsupported schedule request.')
+        if data.get('op') == 'save' and 'vacation' not in data:
+            result = await manager.schedules.save(data.get('entity'), data.get('revision'), data.get('programme'))
+        elif data.get('op') == 'vacation' and 'programme' not in data:
+            result = await manager.schedules.vacation(data.get('entity'), data.get('revision'), data.get('vacation'))
+        else:
+            raise ValueError('Unsupported schedule operation.')
+        return web.json_response(result)
+
     app.router.add_get('/api/inventory', inventory)
+    app.router.add_get('/api/schedules', schedule_load)
+    app.router.add_post('/api/schedules', schedule_save)
+    app.router.add_get('/api/schedules/package', schedule_package)
     app.router.add_get('/api/capabilities', capabilities)
     app.router.add_get('/api/states', states)
     app.router.add_get('/api/history-preview', preview_history)
@@ -2982,7 +3062,7 @@ async def main():
             LOG.error('Camera images are off: port %d is not available (%s)', camera_feed.port(), error)
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
-                                 manager.alert_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop())
+                                 manager.alert_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.schedule_loop())
         finally:
             await cameras.cleanup()
             await runner.cleanup()

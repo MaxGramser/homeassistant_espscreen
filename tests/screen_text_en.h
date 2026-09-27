@@ -3,7 +3,7 @@
 #pragma once
 #include "components/smart_display/screen_text.h"
 
-static_assert(screen_text::KEYS_HASH == 0x883B3A2Du && screen_text::KEY_COUNT == 388,
+static_assert(screen_text::KEYS_HASH == 0x6898FE7Au && screen_text::KEY_COUNT == 402,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 const char *const screen_text::TABLE[] = {
     ".",
@@ -393,7 +393,21 @@ const char *const screen_text::TABLE[] = {
     "Open",
     "Open door",
     "Really open?",
-    "Back"
+    "Back",
+    "Heating schedule",
+    "New programme",
+    "Loading",
+    "Saving",
+    "Reload",
+    "No reply. Reload before retrying.",
+    "Day belongs to another programme.",
+    "Choose at least one day.",
+    "Keep editing",
+    "Discard",
+    "Unsaved changes",
+    "Save and leave",
+    "Enabled",
+    "Vacation"
 };
 const char *const screen_text::LANGUAGE = "en";
 int screen_text::plural_index(int n) { return n == 1 ? 0 : 1; }

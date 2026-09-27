@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Wstecz"
+    },
+    "schedule": {
+      "title": "Plan ogrzewania",
+      "new": "Nowy program",
+      "loading": "Wczytywanie",
+      "saving": "Zapisywanie",
+      "reload": "Wczytaj",
+      "timeout": "Brak odpowiedzi. Wczytaj przed ponowną próbą.",
+      "day_in_use": "Dzień należy do innego programu.",
+      "choose_days": "Wybierz co najmniej jeden dzień.",
+      "keep": "Edytuj dalej",
+      "discard": "Odrzuć",
+      "unsaved": "Niezapisane zmiany",
+      "save_leave": "Zapisz i wyjdź",
+      "enabled": "Włączony",
+      "vacation": "Wakacje"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Wykonaj akcję",
         "no_toggle": "Home Assistant nie może tego włączać ani wyłączać, więc dotknięcie nic nie robi. Wybierz inną opcję.",
         "toggle_needs_firmware": "Włączanie i wyłączanie dotknięciem działa od wersji firmware 0.2.58: naciśnij „Aktualizuj” przy tym ekranie. Do tego czasu dotknięcie otwiera kartę.",
-        "hold": "Przytrzymaj kafelek, aby otworzyć jego kartę."
+        "hold": "Przytrzymaj kafelek, aby otworzyć jego kartę.",
+        "schedule": "Plan ogrzewania",
+        "schedule_controller": "Pobierz sterownik ogrzewania HA",
+        "schedule_setup": "Zainstaluj ten YAML jako pakiet Home Assistant i uruchom HA ponownie. Po zapisaniu harmonogramy są dostępne w Ustawienia → Urządzenia i usługi → Pomocnicy."
       },
       "guard": {
         "label": "Odblokowanie tutaj",

@@ -191,6 +191,11 @@ GROUPS = (
 
 # Glyphs the firmware draws itself (weather conditions, sun, checkmark, direct controls) that the picker does not offer.
 FIXED = (
+    ('content-save', 'F0193'),
+    ('bag-suitcase-outline', 'F158C'),
+    ('calendar-blank-outline', 'F0B66'),
+    ('plus-circle-outline', 'F0419'),
+    ('minus-circle-outline', 'F0377'),
     ('alert-circle-outline', 'F05D6'),
     ('check', 'F012C'),
     # Direct controls on wide cards (firmware 0.2.19+).

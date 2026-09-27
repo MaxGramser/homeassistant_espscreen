@@ -78,13 +78,14 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
   const displays = (rules.displays as Record<string, string[]>)[domain] || ['standard', 'watch'];
   const controls = ['none', ...((rules.controls as Record<string, string[]>)[domain] || [])];
   for (const [value, choices] of [[a.display, displays], [a.background, rules.backgrounds], [a.historyHours, [1, 6, 24]],
-    [i.tap, ['auto', 'detail', 'toggle', 'none', 'action']], [i.inline, ['none', 'slider']], [i.controls, controls],
+    [i.tap, ['auto', 'detail', 'toggle', 'none', 'action', 'schedule']], [i.inline, ['none', 'slider']], [i.controls, controls],
     [i.guard, domain === 'lock' ? ['confirm', 'lock_only'] : []]] as [any, any[]][])
     if (value !== undefined && !choices.includes(value)) fail();
   if (a.icon !== undefined && !icon(a.icon)) fail();
   if (rules.wideOnly.includes(a.display || '') && !['wide', 'square', 'full'].includes(size)) fail('normalization');
   if (tile.content.kind === 'navigation' && (size === 'full' || a.display !== undefined || i.inline !== undefined ||
       i.controls !== undefined || a.historyHours !== undefined)) fail('normalization');
+  if (i.tap === 'schedule' && domain !== 'climate') fail();
   if (i.tap === 'toggle' && domain === 'screen') fail();
   if (i.inline === 'slider' && (!['light', 'fan', 'cover', 'number', 'input_number', 'media_player'].includes(domain) || a.display === 'watch')) fail();
   if (a.refresh !== undefined && (a.display !== 'live' || !rules.refresh.includes(a.refresh))) fail('normalization');

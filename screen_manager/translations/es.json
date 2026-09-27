@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Volver"
+    },
+    "schedule": {
+      "title": "Horario calefacción",
+      "new": "Nuevo programa",
+      "loading": "Cargando",
+      "saving": "Guardando",
+      "reload": "Recargar",
+      "timeout": "Sin respuesta. Recargue antes de reintentar.",
+      "day_in_use": "Día de otro programa.",
+      "choose_days": "Elija al menos un día.",
+      "keep": "Seguir editando",
+      "discard": "Descartar",
+      "unsaved": "Cambios sin guardar",
+      "save_leave": "Guardar y salir",
+      "enabled": "Activado",
+      "vacation": "Vacaciones"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Realizar una acción",
         "no_toggle": "Home Assistant no puede encender y apagar esto, así que un toque no hace nada. Elige otra opción.",
         "toggle_needs_firmware": "La pantalla lo enciende y apaga a partir del firmware 0.2.58: pulsa Actualizar en la lista de pantallas. Hasta entonces, un toque abre su tarjeta.",
-        "hold": "Mantén pulsado el mosaico para abrir su tarjeta."
+        "hold": "Mantén pulsado el mosaico para abrir su tarjeta.",
+        "schedule": "Horario calefacción",
+        "schedule_controller": "Descargar controlador de calefacción HA",
+        "schedule_setup": "Instala este YAML como paquete de Home Assistant y reinicia HA. Tras guardar, los horarios estarán en Ajustes → Dispositivos y servicios → Ayudantes."
       },
       "guard": {
         "label": "Desbloquear aquí",

@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Back"
+    },
+    "schedule": {
+      "title": "Heating schedule",
+      "new": "New programme",
+      "loading": "Loading",
+      "saving": "Saving",
+      "reload": "Reload",
+      "timeout": "No reply. Reload before retrying.",
+      "day_in_use": "Day belongs to another programme.",
+      "choose_days": "Choose at least one day.",
+      "keep": "Keep editing",
+      "discard": "Discard",
+      "unsaved": "Unsaved changes",
+      "save_leave": "Save and leave",
+      "enabled": "Enabled",
+      "vacation": "Vacation"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Perform action",
         "no_toggle": "Home Assistant can't turn this on and off, so a tap does nothing. Choose another option.",
         "toggle_needs_firmware": "The screen switches this from firmware 0.2.58: press Update on the screen. Until then a tap opens its card.",
-        "hold": "Hold the tile to open its card."
+        "hold": "Hold the tile to open its card.",
+        "schedule": "Heating schedule",
+        "schedule_controller": "Download HA heating controller",
+        "schedule_setup": "Install this YAML as a Home Assistant package, then restart HA. After saving, schedules are available under Settings → Devices & services → Helpers."
       },
       "guard": {
         "label": "Unlocking here",

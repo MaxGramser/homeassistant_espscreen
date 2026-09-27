@@ -63,7 +63,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.6.0'
+FIRMWARE_VERSION = '0.7.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -892,6 +892,7 @@ def min_firmware(layout):
     domains = {t['entity'].split('.')[0] for t in tiles}
     options = [t.get('options', {}) for t in tiles]
     gates = [
+        (any(o.get('tap') == 'schedule' for o in options), (0, 7, 0)),
         (any(o.get('controls') in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode') for o in options), (0, 3, 1)),
         ('alarm_control_panel' in domains, ALARM_MIN_FIRMWARE),
         ('lock' in domains, LOCK_MIN_FIRMWARE),
@@ -1349,7 +1350,8 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 raise ValueError(t('addon.errors.choose_icon'))
             domain = tile['entity'].split('.')[0]
             displays = DISPLAYS.get(domain, ('standard', 'watch'))
-            choices = {'tap': ('auto', 'detail', 'toggle', 'none', 'action'), 'display': displays, 'inline': ('none', 'slider'), 'size': TILE_SIZES_ON_SCREEN}
+            taps = ('auto', 'detail', 'toggle', 'none', 'action') + (('schedule',) if domain == 'climate' else ())
+            choices = {'tap': taps, 'display': displays, 'inline': ('none', 'slider'), 'size': TILE_SIZES_ON_SCREEN}
             # A lock's tile (firmware 0.5.0+) unlocks after a second tap or only locks; no other tile has the choice.
             if 'guard' in options:
                 if domain != 'lock' or options['guard'] not in LOCK_GUARDS:

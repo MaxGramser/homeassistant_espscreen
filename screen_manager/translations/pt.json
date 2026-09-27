@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Voltar"
+    },
+    "schedule": {
+      "title": "Programa aquecimento",
+      "new": "Novo programa",
+      "loading": "A carregar",
+      "saving": "A guardar",
+      "reload": "Recarregar",
+      "timeout": "Sem resposta. Recarregue antes de tentar.",
+      "day_in_use": "Dia de outro programa.",
+      "choose_days": "Escolha pelo menos um dia.",
+      "keep": "Continuar",
+      "discard": "Descartar",
+      "unsaved": "Alterações não guardadas",
+      "save_leave": "Guardar e sair",
+      "enabled": "Ativado",
+      "vacation": "Férias"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Executar ação",
         "no_toggle": "O Home Assistant não consegue ligar e desligar isto, por isso um toque não faz nada. Escolha outra opção.",
         "toggle_needs_firmware": "O ecrã liga e desliga isto a partir do firmware 0.2.58: prima Atualizar na lista de ecrãs. Até lá, um toque abre o respetivo cartão.",
-        "hold": "Mantenha o mosaico premido para abrir o respetivo cartão."
+        "hold": "Mantenha o mosaico premido para abrir o respetivo cartão.",
+        "schedule": "Programa aquecimento",
+        "schedule_controller": "Transferir controlador de aquecimento HA",
+        "schedule_setup": "Instale este YAML como pacote do Home Assistant e reinicie o HA. Após guardar, os horários ficam em Definições → Dispositivos e serviços → Ajudantes."
       },
       "guard": {
         "label": "Destrancar aqui",

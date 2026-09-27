@@ -108,6 +108,13 @@ std::string receive(const std::string &payload) {
       return true;
     }
     sequenced = true;
+    if (op == "schedule") {
+      if (!transfer.active || revision != transfer.revision) return false;
+      if (!schedule_editor::receive(root)) return false;
+      last_received = esphome::millis();
+      result = "Synced";
+      return true;
+    }
     if (op == "begin") {
       if (!root["tiles"].is<unsigned>() || !root["pages"].is<unsigned>() || !root["home"].is<unsigned>() ||
           !root["title"].is<const char *>() || root["title"].as<std::string>().size() > 96 ||

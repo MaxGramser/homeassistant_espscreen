@@ -1,3 +1,15 @@
+## 0.4.9 (firmware 0.7.0)
+
+- **Heating schedule.** A climate tile can open a daily timeline with draggable time
+  boundaries, temperature controls and a Vacation override. Save confirms the
+  changes in Home Assistant before closing the draft.
+- Schedules use Home Assistant's built-in Schedule helpers and a downloadable YAML
+  controller package. No custom integration or dashboard card is required. Edit on
+  the screen or in Home Assistant's Helpers settings; see [setup and limits](../docs/HEATING_SCHEDULE.md).
+- Update the app and the screen firmware to use the new tap action.
+- CYD with ESPHome 2026.9.0: 1,674,400 bytes (91.2% of its OTA slot), 24,464 bytes
+  more than stock app 0.4.8. The tight flash budget needs maintainer review before release.
+
 ## 0.4.8 (firmware 0.6.1 for jc8012p4a1v3)
 
 The Guition JC8012P4A1 V3 starts its display (GitHub #52, thanks @ivanfmartinez).

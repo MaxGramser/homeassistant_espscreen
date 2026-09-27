@@ -135,6 +135,7 @@ const tap = computed(() => choosingAction.value ? "action" : current("tap", "aut
 watch(() => props.tile.options?.tap, (stored) => { if (stored === "action") choosingAction.value = false; });
 const taps = computed(() => {
   const keys = ["auto", "detail", "none"];
+  if (domain.value === "climate" && (supports(0, 7, 0) || tap.value === "schedule")) keys.push("schedule");
   // On / off where Home Assistant can toggle the entity, such as a cover; a speaker without on and off gets none.
   if ((caps.value ? caps.value.toggle : TOGGLE_BEFORE.includes(domain.value)) || tap.value === "toggle") keys.push("toggle");
   keys.push("action");
@@ -277,6 +278,11 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
         <span class="f-label">{{ t("editor.tile.tap.label") }}<HelpTip v-if="tapHint && !tapHint.warn" :text="tapHint.text" /></span>
         <Segmented :choices="taps" :value="tap" @pick="pickTap" />
         <small v-if="tapHint?.warn" class="help warn">{{ tapHint.text }}</small>
+        <template v-if="domain === 'climate' && tap === 'schedule'">
+          <a class="btn quiet" :href="`api/schedules/package?entity=${encodeURIComponent(tile.entity)}`"
+            :download="`esp_screen_heating_${tile.entity.split('.')[1]}.yaml`">{{ t('editor.tile.tap.schedule_controller') }}</a>
+          <small>{{ t('editor.tile.tap.schedule_setup') }}</small>
+        </template>
       </div>
       <ActionPicker v-if="domain !== 'screen' && !goesTo && tap === 'action'" :tile="tile" />
       <div v-if="domain === 'lock'" class="f">

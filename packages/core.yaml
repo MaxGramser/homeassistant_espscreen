@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.6.0"
+  SCREEN_FIRMWARE_VERSION: "0.7.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -303,7 +303,7 @@ esphome:
           settings_screen::restart_device = []() { ESP_LOGI("settings", "restart from the screen"); App.safe_reboot(); };
           // A dimmed screen, a calibration or an alert owns the glass; the page waits.
           settings_screen::may_open = []() {
-            return runtime_tiles::enabled && !id(display_dimmed) && !id(calibration_active) && !id(alert_active)${MAY_OPEN_EXTRA};
+            return runtime_tiles::enabled && !schedule_editor::visible() && !id(display_dimmed) && !id(calibration_active) && !id(alert_active)${MAY_OPEN_EXTRA};
           };
           settings_screen::drift = []() { return screen_input::touch_guard.distance(); };
           settings_screen::before_open = []() { id(close_cards).execute(); };
@@ -552,6 +552,7 @@ api:
                     root["appearance_updates"] = 1;
                     // A light group's lamps in its state message (firmware 0.3.9+, app 0.3.16+).
                     root["group_lamps"] = 1;
+                    root["schedule"] = 1;
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
                       if (size.fits(runtime_tiles::grid.columns, runtime_tiles::grid.rows)) sizes.add(size.name);
@@ -978,6 +979,11 @@ font:
       - "\U000F002A" # alert-outline
       - "\U000F0493" # cog
       - "\U000F00E2" # broom
+      - "\U000F0193" # content-save
+      - "\U000F158C" # bag-suitcase-outline
+      - "\U000F0B66" # calendar-blank-outline
+      - "\U000F0419" # plus-circle-outline
+      - "\U000F0377" # minus-circle-outline
       - "\U000F05D6" # alert-circle-outline
       - "\U000F012C" # check
       - "\U000F03E4" # pause
@@ -2259,6 +2265,7 @@ script:
           condition:
             lambda: |-
               if (!runtime_tiles::auto_home || id(touch_down) || id(calibration_active) || id(alert_active)) return false;
+              if (schedule_editor::busy()) return false;
               if (id(display_dimmed)) return false;
               bool away = settings_screen::visible() ||${AWAY_EXTRA} !id(active_entity).empty() || id(tile_page) != runtime_tiles::home_page() ||
                           (runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root, LV_OBJ_FLAG_HIDDEN));

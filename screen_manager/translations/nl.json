@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Terug"
+    },
+    "schedule": {
+      "title": "Verwarmingsschema",
+      "new": "Nieuw programma",
+      "loading": "Laden",
+      "saving": "Opslaan",
+      "reload": "Herladen",
+      "timeout": "Geen antwoord. Herlaad voor een nieuwe poging.",
+      "day_in_use": "Dag hoort bij een ander programma.",
+      "choose_days": "Kies minstens één dag.",
+      "keep": "Verder bewerken",
+      "discard": "Verwerpen",
+      "unsaved": "Niet opgeslagen",
+      "save_leave": "Opslaan en sluiten",
+      "enabled": "Ingeschakeld",
+      "vacation": "Vakantie"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Actie uitvoeren",
         "no_toggle": "Home Assistant kan dit niet aan- en uitzetten, dus een tik doet niets. Kies een andere optie.",
         "toggle_needs_firmware": "Het scherm schakelt dit vanaf firmware 0.2.58: druk bij het scherm op Bijwerken. Tot dan opent een tik de kaart.",
-        "hold": "Houd de tegel vast om de kaart te openen."
+        "hold": "Houd de tegel vast om de kaart te openen.",
+        "schedule": "Verwarmingsschema",
+        "schedule_controller": "HA-verwarmingsregeling downloaden",
+        "schedule_setup": "Installeer deze YAML als Home Assistant-pakket en herstart HA. Na opslaan staan de schema’s onder Instellingen → Apparaten & diensten → Helpers."
       },
       "guard": {
         "label": "Ontgrendelen hier",

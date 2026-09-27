@@ -25,6 +25,7 @@
 #include "media_card.h"
 #include "light_card.h"
 #include "weather_card.h"
+#include "schedule_editor.h"
 #include "forecast_tile.h"
 #include "climate_tile.h"
 #include "swipe_profile.h"
@@ -655,6 +656,13 @@ inline void setting_event(const std::string &key, int value) {
   for(int i=0;i<3;++i){esphome::api::HomeassistantServiceMap entry;entry.key=esphome::StringRef(keys[i]);entry.value=esphome::StringRef(values[i]);request.data.push_back(entry);}
   esphome::api::global_api_server->send_homeassistant_action(request);
 }
+inline void schedule_request(const std::string &payload) {
+  esphome::api::HomeassistantActionRequest request;
+  request.service=esphome::StringRef("esphome.screen_schedule");request.is_event=true;request.data.init(4);
+  const std::string keys[]={"inbox","payload","session","rev"},values[]={inbox,payload,protocol_key(transfer.lease),layout_rev};
+  for(int i=0;i<4;++i){esphome::api::HomeassistantServiceMap entry;entry.key=esphome::StringRef(keys[i]);entry.value=esphome::StringRef(values[i]);request.data.push_back(entry);}
+  esphome::api::global_api_server->send_homeassistant_action(request);
+}
 } // namespace runtime_tiles
 // Small shared native-LVGL detail cards. No images, canvas buffers or free scrolling.
 namespace runtime_tiles {
@@ -713,6 +721,7 @@ inline void lock_card_closed();
 // Every way a card closes (Back, standby, Back to page 1, another card) also forgets a code half typed on an alarm's
 // keypad: it never waits in memory for the next person at the screen.
 inline void hide_detail(){
+  if(schedule_editor::visible())schedule_editor::command(schedule_editor::BACK_CMD);
   alarm_close_pad();lock_card_closed();
   if(detail_backdrop)lv_obj_add_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);if(detail_root)lv_obj_add_flag(detail_root,LV_OBJ_FLAG_HIDDEN);}
 inline int slider_value(const Tile &t){
@@ -3338,6 +3347,14 @@ inline void render_media_detail(Tile &t,unsigned index,bool large,int width,int 
 }
 inline void show_detail(unsigned index){
   if(index>=model.count)return;
+  if(model.tiles[index].domain()=="climate" && model.tiles[index].tap=="schedule") {
+    if(!detail_font)detail_font=lv_obj_get_style_text_font(widgets[0].title,LV_PART_MAIN);
+    if(!schedule_editor::visible())hide_detail();
+    schedule_editor::open(model.tiles[index].entity,model.tiles[index].name,detail_font,control_font?control_font:detail_font,
+                          mini_icon_font?mini_icon_font:detail_font,widgets[0].icon_font?widgets[0].icon_font:mini_icon_font,
+                          small_font?small_font:detail_font,watch_icon_font?watch_icon_font:(mini_icon_font?mini_icon_font:detail_font),
+                          model.tiles[index].background,model.tiles[index].transparent,schedule_request);return;
+  }
   // Another tile's card: a keypad left open for an alarm does not come back with it.
   if(alarm_pad.open&&model.tiles[index].entity!=alarm_pad.entity)alarm_close_pad();
   // A card that opens starts on a day (an hour for a tile whose graph shows one); switching ranges keeps it open.
@@ -6477,6 +6494,7 @@ inline void show_page(int &page, lv_obj_t *previous, lv_obj_t *next, lv_obj_t *n
 }
 // A navigation tile (screen.page, firmware 0.2.62+): the page it names, kept within the pages the screen has.
 inline void go_to_page(int page, bool remember) {
+  if(schedule_editor::visible())return;
   if(!shown_page || !nav_number)return;
   if (!navigation_ready()) return;
   const int target=std::clamp(page,0,int(page_count())-1);
@@ -6663,6 +6681,12 @@ inline uint32_t last_live_second=0;
 inline int last_clock_minute=-2;
 inline bool was_fresh=false;
 inline void tick() {
+  if(schedule_editor::visible()) {
+    for(size_t i=0;i<model.count;++i)if(model.tiles[i].entity==schedule_editor::editor->entity) {
+      schedule_editor::palette(model.tiles[i].background,model.tiles[i].transparent);break;
+    }
+  }
+  schedule_editor::tick();
   if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_index<model.count){
     auto &t=model.tiles[detail_index];bool waiting=t.loading(esphome::millis());
     // The history the card waits for: drawn once it is here (a finger on the screen holds that back), asked for
@@ -6754,6 +6778,7 @@ inline void tick() {
 // A change of look (Dark mode). The paints follow by themselves (theme::set_dark); what the tiles, the top bar and an
 // open card painted in code is drawn again here, in the same pass, so no frame shows half of each look.
 inline void restyle() {
+  schedule_editor::restyle();
   each_card([](Widgets &w) { w.cached_active = -1; w.panel_dirty = true; });
   if (nav_number && applied_bar && applied_page >= 0)
     settings_screen::page_dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count(), ui::large());
@@ -7116,7 +7141,7 @@ inline camera_view::Feed live;  // entity: the list asked for
 inline std::string live_have;   // the list the strip on screen holds, "" for a tile without a picture
 inline ImageHooks camera_live;
 inline bool live_supported() { return static_cast<bool>(camera_live.load); }
-inline bool card_open() { return detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN); }
+inline bool card_open() { return schedule_editor::visible() || (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN)); }
 // The n-th item of a comma list, or -1 when it is not in it.
 inline int list_index(const std::string &list, const std::string &item) {
   int n = 0;
@@ -7829,7 +7854,7 @@ inline void moved(int x, int y, int id, int state) {
                       : !navigation_ready()     ? "configuration not ready"
                       : !swipe_pages            ? "setting off"
                       : camera_visible()        ? "camera open"
-                      : (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN)) ? "detail card open"
+                      : card_open() ? "detail card open"
                       : captured_slider         ? "a slider is being dragged"
                       : swipe_blocked           ? swipe_blocked()
                       : nullptr;

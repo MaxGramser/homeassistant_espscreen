@@ -491,6 +491,22 @@
     },
     "navigation": {
       "back": "Indietro"
+    },
+    "schedule": {
+      "title": "Programma riscaldamento",
+      "new": "Nuovo programma",
+      "loading": "Caricamento",
+      "saving": "Salvataggio",
+      "reload": "Ricarica",
+      "timeout": "Nessuna risposta. Ricarica prima di riprovare.",
+      "day_in_use": "Giorno di un altro programma.",
+      "choose_days": "Scegli almeno un giorno.",
+      "keep": "Continua",
+      "discard": "Scarta",
+      "unsaved": "Modifiche non salvate",
+      "save_leave": "Salva ed esci",
+      "enabled": "Attivato",
+      "vacation": "Vacanza"
     }
   },
   "addon": {
@@ -1570,7 +1586,10 @@
         "action": "Esegui azione",
         "no_toggle": "Home Assistant non può accendere e spegnere questa entità, quindi un tocco non fa nulla. Scegli un'altra opzione.",
         "toggle_needs_firmware": "Lo schermo accende e spegne questa entità a partire dal firmware 0.2.58: premi Aggiorna per questo schermo. Fino ad allora un tocco apre la sua scheda.",
-        "hold": "Tieni premuto il riquadro per aprire la sua scheda."
+        "hold": "Tieni premuto il riquadro per aprire la sua scheda.",
+        "schedule": "Programma riscaldamento",
+        "schedule_controller": "Scarica il controller riscaldamento HA",
+        "schedule_setup": "Installa questo YAML come pacchetto Home Assistant e riavvia HA. Dopo il salvataggio, i programmi sono in Impostazioni → Dispositivi e servizi → Aiutanti."
       },
       "guard": {
         "label": "Sblocco qui",
