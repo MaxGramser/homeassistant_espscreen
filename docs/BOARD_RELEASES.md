@@ -237,13 +237,17 @@ version, its Screen firmware sensor and its settings page, and the CYD next to i
 
 ## What CI builds
 
-The firmware job of CI builds only the boards a push or pull request reaches, with the same sorting as above against
-the commit before the push or the pull request's base. It builds every board every night, when started by hand, when
-there is no commit to compare with (a new branch), and when the add-on's ESPHome changed.
+The firmware job of CI builds only the boards that can have changed (`tools/affected_boards.py --build-keys`). A push
+compares with the last commit on main where the same build (same ESPHome) succeeded, so the commits of a run that was
+cancelled or failed are built by the next one; a pull request compares with its base. It builds every board every
+night, when started by hand, and when there is no such commit. `--build-keys` differs from `--keys` in one way: a
+change to what makes a build (the add-on's ESPHome, tools/check.sh, tools/profiles.py, boards.yaml, checkout/, the
+override fixtures, the CI workflow, the selector itself) builds every board, although no screen needs an update for it.
 
 | Push | CI builds |
 |---|---|
 | the app alone | no firmware |
+| the build tooling (check.sh, profiles.py, boards.yaml, the CI workflow) | every board |
 | a fix in one board file | that board, with both ESPHome versions |
 | a change to the core or a component | every board |
 | a new ESPHome in the add-on | every board |
