@@ -1,0 +1,23 @@
+ESP Screens (Tessera)
+Copyright (c) 2026 Max Gramser. Licensed under the MIT License (see LICENSE).
+
+The editor's browser installer (New screen and Firmware & USB, "This computer") contains third-party code.
+It is loaded only when someone installs a screen from the browser. The full licence texts ship with the app in
+screen_manager/app/static/THIRD_PARTY_LICENSES.txt (source: web/public/THIRD_PARTY_LICENSES.txt).
+
+esptool-js 0.7.x (https://github.com/espressif/esptool-js)
+  Copyright 2019-2023 Espressif Systems (Shanghai) Co. Ltd.
+  Licensed under the Apache License, Version 2.0. Bundled unmodified in the editor's build.
+
+ESPHome dashboard (https://github.com/esphome/dashboard, commit 72b9b1b8f41eabe223f0cf3ae5ebc1ce6b7fe18e)
+  Copyright (c) 2019 Nabu Casa. The repository's LICENSE file is the MIT License (its package.json names
+  Apache-2.0). web/src/flasher/esptool.ts is adapted from src/web-serial/create-esploader.ts, flash.ts and
+  hard-reset.ts: the loader settings, the write with its progress, and the reset after flashing. The order of an
+  installation in web/src/flasher/session.ts follows src/install-web/install-web-dialog.ts and
+  src/wizard/wizard-dialog.ts. Changes are described at the top of each file.
+
+pako 2.x (https://github.com/nodeca/pako), a dependency of esptool-js
+  Copyright (C) 2014-2017 by Vitaly Puzrin and Andrei Tuputcyn. MIT License; the zlib port also under the zlib License.
+
+atob-lite 2.x (https://github.com/hughsk/atob-lite), a dependency of esptool-js
+  By Hugh Kennedy. MIT License.

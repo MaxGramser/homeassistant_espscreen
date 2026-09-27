@@ -1,0 +1,96 @@
+# ESP Screens - Guition JC3248W535 board: a 3.5-inch 480 x 320 panel (AXS15231B over QSPI, ESPHome's mipi_spi model
+# JC3248W535) with AXS15231B capacitive touch over I2C, on an ESP32-S3 with 16MB flash and 8MB octal PSRAM.
+#
+# The same glass as the Waveshare 3.5 (waveshare-esp32s3-35.yaml), so the same density and grid; the rest differs: a
+# four-line panel bus, touch on the display chip itself, and PSRAM that works, which gives it camera pictures. The pins
+# are the ones ESPHome's model and the community configuration from GitHub #54 use.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/jc3248w535.yaml (a build on this computer) and
+# packages/jc3248w535.yaml (the package a screen builds from over GitHub).
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  cells: !include ../cells/4.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc3248w535"
+  DEVICE_NAME: "jc3248w535-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 3.5"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 3.5 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "164.825"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "3"
+  LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen; the one GitHub #54 booted with
+
+  # The backlight's PWM (see the output block). 150 Hz is what GitHub #54 dimmed with, as on the 4-inch Guition.
+  BACKLIGHT_FREQUENCY: "150Hz"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+# ESPHome's JC3248W535 model requires PSRAM: the panel is driven from a frame in it.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The panel's bus: four data lines. Chip select (GPIO45) comes with ESPHome's model.
+spi:
+  id: lcd
+  type: quad
+  clk_pin: GPIO47
+  data_pins: [GPIO21, GPIO48, GPIO40, GPIO39]
+
+# The touch half of the AXS15231B, at 0x3B.
+i2c:
+  id: touch_bus
+  sda: GPIO4
+  scl: GPIO8
+  frequency: 400kHz
+
+output:
+  - platform: ledc
+    pin: GPIO1
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# No interrupt line: polled, as in the configuration from GitHub #54.
+touchscreen:
+  - platform: axs15231
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+
+# ESPHome's model carries the init sequence, the size, the colour order, chip select and the data rate (40 MHz).
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: JC3248W535
+    spi_id: lcd
+    update_interval: never
+    auto_clear_enabled: false

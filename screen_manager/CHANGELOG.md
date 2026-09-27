@@ -1,3 +1,178 @@
+## 0.4.0 (firmware 0.4.0)
+
+A home for all your screens, lamps in their own colour, and tile choices that always save (GitHub #47).
+
+- **Your screens.** ESP Screens now opens on an overview of every screen in the house, each with its home page as it
+  looks right now: its tiles, its top bar and their live values. Click a screen to change it. The logo at the top of
+  the sidebar brings you back to it, like a home key.
+- **A calmer sidebar.** Choosing a screen no longer folds out its details. An arrow at its right opens them. A screen
+  that needs a look opens them by itself: one that is offline, has an update waiting or running, or whose last update
+  failed.
+- **Lamps in their own colour.** On a light group's lamp page, each lamp's slider, icon and switch now show the colour
+  the lamp is on, the same colour as the group's tile, instead of amber for every lamp. A colour picked in a lamp's
+  panel shows on its card at once.
+- **Tile choices that always save.** The tile panel only offers what the screen can save for that tile, checked with
+  the same rules the save uses. Two choices never saved: **Automatic** for the second line after another choice, and
+  **Perform action**. Both work now: Perform action opens the list of actions, and is stored once you pick one, with
+  its values.
+- New firmware for every board: update the app, then press **Update** on each screen for the lamp colours. The
+  overview, the sidebar and the tile panel need only the app update.
+- Tested: every board builds (the CYD image is 1,719,888 B, 93.7 % of its slot; this release only fixes the lamp
+  colours in firmware). The app ran on a Home Assistant with three screens (Guition 4 inch, CYD, Waveshare 4.3) on
+  firmware 0.4.0: a light group's lamp page on each showed every lamp in its own colour, and the overview, the
+  sidebar and the tile choices worked as described.
+
+## 0.3.28 (firmware 0.3.10)
+
+Safer releases per board, and a check that no firmware build goes missing.
+
+- **Release checks.** The tools that decide which boards a change reaches now stop when they fail instead of
+  building nothing, count a moved file at both ends, and treat a shared change next to a new board as a shared
+  release. CI builds from the last commit whose build passed, so a failed or cancelled run leaves no board unbuilt.
+- **Licenses.** The browser installer's list of third-party software no longer ends in a license text without a
+  name: tslib left with esptool-js 0.7 (app 0.3.24), and its text had stayed behind.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
+## 0.3.27 (firmware 0.3.10)
+
+A calmer sidebar.
+
+- The sidebar no longer shows **Firmware & USB**. It read as the way to add a screen, but it is a tool for rebuilding
+  or repairing one. **New screen** is the way in; the firmware tool is still under **Settings**, in the command
+  palette and in a screen's menu.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
+## 0.3.26 (firmware 0.3.10)
+
+The CYD with an ILI9342 display controller, experimental (GitHub #50).
+
+- **New screen** offers the CYD ESP32-2432S028 ILI9342. Some boards sold as the ESP32-2432S028 carry an ILI9342
+  instead of the ILI9341 or ST7789V. It scans the glass lying down, so the other two display controllers show a
+  garbled picture on it. This board is the CYD with only the display changed: the firmware has the ILI9342 swap its
+  axes, so the layout, the touch and the calibration on the first start are the CYD's. It is built but not yet tried
+  on the glass: please report how it runs.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
+## 0.3.25 (firmware 0.3.10)
+
+The 3.5-inch Guition JC3248W535, experimental (GitHub #54).
+
+- **New screen** offers the Guition JC3248W535: a 480 x 320 panel on a four-line QSPI bus with capacitive touch, on an
+  ESP32-S3 with 8 MB PSRAM. It has the glass and the two by two grid of the Waveshare 3.5-inch, and the memory for camera
+  pictures. It is built and rendered but not yet tried on the glass: please report how it runs (docs/JC3248W535.md
+  says what to check).
+- A screen set up by hand from the shared packages needs `BOARD_ID` and a `DEVICE_NAME` equal to its name, or Tessera
+  sees it but cannot send it tiles; building from `packages/jc3248w535.yaml` sets both.
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
+## 0.3.24 (firmware 0.3.10)
+
+Installing from the browser reaches the newest ESP32-P4 boards.
+
+- **This computer** (install from the browser) now uses esptool-js 0.7. It recognises an ESP32-P4 of revision 3.1 or
+  3.2, as on the Guition JC8012P4A1 V3, and switches its flash on before writing. The older version stopped with "The
+  board didn't answer" on such a board (GitHub #51); Download with ESPHome Web was the way around it until now.
+- No new firmware in this release: update the app; the screens stay as they are.
+
+## 0.3.23 (firmware 0.3.10)
+
+The 10.1-inch Guition JC8012P4A1 V3, experimental (GitHub #52).
+
+- **New screen** offers the Guition JC8012P4A1 V3. The V3 has a newer ESP32-P4 (revision 3) and a newer LCD, and the
+  firmware of the first JC8012P4A1 does not start on it: the board restarts right after its bootloader, over and over.
+  The V3 firmware is built for its chip and drives its LCD with ESPHome's own panel settings. It is built and rendered
+  but not yet tried on the glass: please report how it runs (docs/JC8012P4A1.md says how to tell the two apart and what
+  to check).
+- No new firmware for existing screens: update the app; the screens stay as they are.
+
+## 0.3.22 (firmware 0.3.10)
+
+A ready Docker image, so a Docker install no longer needs git.
+
+- **Docker image.** GitHub now builds the app's image for amd64 and arm64 on every change to main and publishes
+  it as `ghcr.io/maxgramser/homeassistant_espscreen`. `docker/compose.yaml` pulls it instead of building from Git,
+  which also makes it work in Synology Container Manager (GitHub #32). Thanks to @sriramsv (#53).
+- No new firmware in this release: update the app; the screens stay as they are.
+
+## 0.3.21 (firmware 0.3.10)
+
+A firmware number per board: a fix for one board is no longer an update for every screen.
+
+- **Firmware per board.** A fix for one board alone now gets a number for that board only, and every other screen
+  stays up to date. A new board needs no firmware update at all. From the next shared firmware, 0.4.0, the number
+  reads as core and board: 0.4.0 is core 4, and a fix for one board becomes 0.4.1, 0.4.2 for that board.
+- **Updates.** Each screen is offered its own board's firmware, What's new shows only what its board gets, and the
+  nightly round only flashes the screens that have something new.
+- No new firmware in this release: update the app; the screens stay as they are.
+
+## 0.3.20 (firmware 0.3.10)
+
+The Waveshare ESP32-S3-Touch-LCD-4B takes its tiles.
+
+- **Waveshare 4B.** The board's own boot step replaced the shared one, so the screen started without its tiles: a light page with only the page buttons, and every save answered with "Use the Easy Setup profile". That step is gone (ESPHome prepares the panel's lines by itself) and a check keeps every board from replacing the shared boot steps again. The board is still experimental.
+- Update the Tessera Screen Manager app, then update a Waveshare 4B to firmware 0.3.10. Other screens gain nothing from this firmware.
+
+## 0.3.19 (firmware 0.3.9)
+
+A calmer editor: every setting has one place, and the pages and panels read at a glance.
+
+- **One toolbar above the pages.** Choose **Row** (the pages side by side) or **Map** (where the page tiles lead), with Undo and Redo, **Preview**, **Add page** and a **?** that explains the rest in six short lines.
+- **One menu per page.** A page's header shows its number, its title and a Home label on the Home page. Everything you do to a page is in its **···** menu: its settings, its top bar, Set as Home, copies and Remove page.
+- **A page's title lives in its own settings.** The page settings are three groups: Title, Navigation and Top bar. The screen title that every page without its own shows is one click under the page title. The top bar's panel is about what stands on the right, and leads to the page for the rest.
+- **A tile's settings in five groups:** Text, Look, Size and place, Controls, and Icon and color. Sizes show the shape they take on the grid, the pastel colors are round swatches, and the head leads back to the tile's page.
+- **Switches instead of checkboxes**, menus and lists that open where they fit, and Home Assistant's own icons on every key. An explanation is a small tooltip beside the label where the words alone don't say it; warnings stay in sight.
+- Update the Tessera Screen Manager app to get this; the screens need no new firmware.
+
+## 0.3.18 (firmware 0.3.9)
+
+The app is called Tessera now, with the mosaic logo.
+
+- **Tessera Screen Manager.** The app in the App store, its page there and the panel in the sidebar carry the Tessera name and the mosaic mark, like the website and a screen that is starting. The store page links to the website, the quick start and the supported screens. The texts of the editor say Tessera where they said ESP Screens. The app's slug is unchanged, so this is the same app: your screens, layouts and profiles stay exactly as they are, and the `esp_screens_show_alert` and `esp_screens_dismiss_alert` events keep their names.
+- Update the Tessera Screen Manager app to get this; the screens need no new firmware.
+
+## 0.3.17 (firmware 0.3.9)
+
+The API key steps back.
+
+- Home Assistant often fills in a new screen's encryption key by itself, when the ESPHome Device Builder app is installed. So the API key no longer stands out: after an install and on a screen that is not yet in Home Assistant, it waits behind a small **Show the API key**, and the steps say to paste it only if Home Assistant asks.
+- Update the ESP Screen Manager app to get this; the screens need no new firmware.
+
+## 0.3.16 (firmware 0.3.9)
+
+The lamps of a light group, each on its own, from the group's colour card.
+
+- **Light groups.** Hold a light group's tile and its colour card gets a lamps key beside the sparkles key. It opens a page with a card per lamp of the group, in Home Assistant's order. Tap a card to switch that lamp, drag its slider to dim it. A lamp that can only switch has a switch instead of a slider. A lamp that takes a colour or a white shade has a ⋮ key: it opens a small panel with just those sliders, and a touch anywhere beside the panel closes it. A group with more lamps than fit on the glass gets page buttons, like the tile pages. Home Assistant decides what each lamp can do, so a group of mixed lamps shows each lamp as it is.
+- The colour card keeps the two keys on the right together and its title on one line, on every screen size.
+- Update the ESP Screen Manager app and the screens' firmware to get this; with older firmware a light group works as before. CYD firmware: 1,719,360 bytes, 93.7 % of the update slot (10,864 bytes more than 0.3.8).
+
+## 0.3.15 (firmware 0.3.8)
+
+Install a screen straight from your browser, and an ESP Screens that looks like Home Assistant in the dark.
+
+- **Install from this browser.** A screen plugged into the computer you are using now, not the Home Assistant machine, installs from ESP Screens itself: under **Install via**, choose **Install from this browser (Chrome or Edge)** and click **Connect & install**. ESP Screens builds the firmware on your Home Assistant machine, and this page puts it on the screen over USB, with a progress bar. No download and no second website. It checks the screen's chip before it builds, so a wrong board choice is refused at once. A new screen is erased first, like ESPHome does; from **Firmware & USB** the screen keeps its settings and touch calibration, which also rescues a screen that keeps restarting. It needs Chrome or Edge on a computer and Home Assistant opened over https (for example your Home Assistant Cloud address); over plain http the choice explains this, and **Download the file and flash it yourself** stays. Built on ESPHome's own browser installer and Espressif's esptool-js (see NOTICE).
+- **Install via** now groups the choices by where the screen is plugged in: **Plugged into the Home Assistant machine** (its USB ports), **Plugged into this computer** (install from this browser, or download), and, under Firmware & USB, **Over Wi-Fi**.
+- ESP Screens says up front that building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially.
+- **Dark mode** uses Home Assistant's own neutral near-black greys instead of a blue cast, so the panel matches the rest of Home Assistant.
+- Update the ESP Screen Manager app to get this; the screens need no new firmware.
+
+## 0.3.14 (firmware 0.3.8)
+
+The Tessera logo on a screen that is starting.
+
+- A screen that is starting shows the Tessera logo: the mosaic mark beside the name, as on the website, above what it is waiting for and the spinner. It stays there while the screen connects, waits for its tiles and prepares its pages. It follows the screen's light or dark look and has the same size in millimetres on every board. Update the firmware of a screen to see it. CYD firmware: 1,708,496 bytes, 93.1 % of the update slot (12,512 bytes more than 0.3.13).
+
+## 0.3.13 (firmware 0.3.7)
+
+A fix for screens that restart on "Loading tiles" with firmware 0.3.6, a live camera that fills its tile on every size and can refresh faster, and a new board: the Hosyond 4-inch ESP32-32E display (GitHub #42, thanks @afyounie).
+
+- **Display → Live picture** now fills the whole tile on every size: a single tile, a double-width one and a tile over the whole page too, not only 1×2 and 2×2. The small square in the icon's place is gone. Two 16:9 cameras fit side by side on a 4-inch Guition.
+- **Picture** (fill the tile or the whole picture) and **On the picture** (name or nothing) are there on every size.
+- **Refresh** adds every 5 and every 10 seconds, next to 15 and 30.
+- A page whose live cameras all refresh every 30 seconds loaded them every 15 seconds; it now keeps to 30.
+- New screen offers the Hosyond 4 inch: the 4-inch "CYD" with an ST7796 display and resistive XPT2046 touch, 480 x 320 lying down with two by three tiles, one column of four standing up. It calibrates its touch on the first start, like the CYD. It is marked experimental: built from the configuration a community member shared and the manufacturer's pin table, not yet tried on a real unit by the project. docs/HOSYOND40.md has the details.
+- **Fixes firmware 0.3.6 (0.3.12).** A screen that keeps its pages (every board with PSRAM) could restart over and over on "Loading tiles" when page 1 held a clock, a graph or a wide card: the size a card draws beyond its edges was read from a card that had just been swapped out. Update the firmware of any screen that runs 0.3.6.
+- Update the add-on first, then the screen: older firmware keeps the small square on a single, double-width or full-page tile. CYD firmware: 1,695,984 bytes, 92.4 % of the update slot (128 bytes more than 0.3.12).
+
 ## 0.3.12 (firmware 0.3.6)
 
 Two new clocks, a simple dial and a flip clock, that look right on every tile size.

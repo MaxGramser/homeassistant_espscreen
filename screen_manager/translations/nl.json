@@ -101,11 +101,11 @@
     },
     "status": {
       "connecting": "Verbinden met Home Assistant",
-      "waiting": "Wachten op ESP Screens",
+      "waiting": "Wachten op Tessera",
       "loading_tiles": "Tegels laden...",
       "preparing_pages": "Pagina's voorbereiden {n}/{total}",
       "ha_not_connected": "HA niet verbonden",
-      "manager_not_active": "ESP Screens niet actief",
+      "manager_not_active": "Tessera niet actief",
       "choose_tiles": "Kies tegels in HA",
       "home": "Thuis",
       "no_network": "Geen netwerk",
@@ -513,7 +513,7 @@
         "builtin_action": "Een ingebouwde kaart kan geen actie uitvoeren.",
         "no_mini_slider": "Deze entiteit ondersteunt geen kleine slider.",
         "history_hours": "Geschiedenis: kies 1, 6 of 24 uur.",
-        "refresh": "Livebeeld: ververs elke 15 of 30 seconden.",
+        "refresh": "Livebeeld: ververs elke 5, 10, 15 of 30 seconden.",
         "watch_or_slider": "Kies een grote waarde of een kleine slider, niet allebei.",
         "no_direct_control": "Deze entiteit ondersteunt die directe bediening niet.",
         "position": "Ongeldige tegelpositie; vernieuw de beheerpagina.",
@@ -612,7 +612,7 @@
         "override_symlink": "De lokale override is een symbolische link; vervang die eerst door een gewoon bestand.",
         "other_include": "Dit profiel heeft al een andere include voor local_overrides.",
         "profile_invalid": "Het schermprofiel is geen geldige YAML; herstel het voordat je een override toevoegt.",
-        "no_packages": "Dit profiel heeft geen packages-sectie die ESP Screens kan uitbreiden.",
+        "no_packages": "Dit profiel heeft geen packages-sectie die Tessera kan uitbreiden.",
         "override_invalid": "Ongeldige override-gegevens.",
         "yaml_needed": "Vul eerst YAML-tekst in.",
         "override_too_large": "De override is te groot. Houd hem onder 12 KB.",
@@ -620,11 +620,11 @@
         "yaml_error": "YAML-fout: {problem}.",
         "invalid_yaml": "ongeldige YAML",
         "override_object": "De override moet een YAML-object bevatten, bijvoorbeeld display: of substitutions:.",
-        "sections_managed": "Deze secties blijven in beheer van ESP Screens: {names}.",
-        "substitutions_managed": "Deze substitutions blijven in beheer van ESP Screens: {names}.",
+        "sections_managed": "Deze secties blijven in beheer van Tessera: {names}.",
+        "substitutions_managed": "Deze substitutions blijven in beheer van Tessera: {names}.",
         "substitutions_in_profile": "{names} staat in de eigen YAML van dit scherm (gekozen bij Nieuw scherm), en die wint van de override. Pas het daar aan.",
         "orientation": "Kies of het scherm liggend of staand hangt.",
-        "orientation_managed": "Hoe een scherm hangt kies je bij het bouwen, onder Nieuw scherm; daarom blijft LVGL_ROTATION in beheer van ESP Screens.",
+        "orientation_managed": "Hoe een scherm hangt kies je bij het bouwen, onder Nieuw scherm; daarom blijft LVGL_ROTATION in beheer van Tessera.",
         "usb_port": "Kies de aangesloten USB-poort uit de lijst.",
         "busy_wait": "Er loopt al een build of installatie. Wacht tot die klaar is.",
         "busy": "Er loopt al een build of installatie.",
@@ -699,7 +699,7 @@
         "comment": "Houd de toelichting onder 1000 tekens.",
         "unknown_board": "Feedback is voor dit bord nog niet beschikbaar.",
         "deleting": "Je gedeelde antwoord wordt nog verwijderd. Antwoord opnieuw zodra dat klaar is.",
-        "storage": "Feedback staat uit: de bewaarde gegevens zijn door een andere versie van ESP Screens geschreven."
+        "storage": "Feedback staat uit: de bewaarde gegevens zijn door een andere versie van Tessera geschreven."
       }
     },
     "status": {
@@ -881,7 +881,7 @@
         },
         "screen": {
           "label": "Scherm",
-          "help": "Welk scherm de melding krijgt: de apparaatnaam (zoals kitchen-screen), de naam die Home Assistant toont, of een ruimte, die elk scherm daarin bereikt. Een lijst, zoals [kitchen-screen, hallway], bereikt er meerdere. Laat het weg voor alle schermen. Een naam die bij geen scherm past stuurt niets; het log van ESP Screen Manager noemt dan de schermen die het kent. Alleen via de events esp_screens_show_alert en esp_screens_dismiss_alert."
+          "help": "Welk scherm de melding krijgt: de apparaatnaam (zoals kitchen-screen), de naam die Home Assistant toont, of een ruimte, die elk scherm daarin bereikt. Een lijst, zoals [kitchen-screen, hallway], bereikt er meerdere. Laat het weg voor alle schermen. Een naam die bij geen scherm past stuurt niets; het log van Tessera Screen Manager noemt dan de schermen die het kent. Alleen via de events esp_screens_show_alert en esp_screens_dismiss_alert."
         },
         "button_color": {
           "label": "Knopkleur",
@@ -1084,7 +1084,7 @@
       },
       "identify": {
         "title": "Dit is {name}",
-        "subtitle": "Identificeren, vanuit ESP Screens"
+        "subtitle": "Identificeren, vanuit Tessera"
       },
       "script_running": "Bezig",
       "states": {
@@ -1152,7 +1152,6 @@
       "results": "1 resultaat. Typ verder om te verfijnen. | {n} resultaten. Typ verder om te verfijnen.",
       "close": "Sluiten",
       "remove": "Verwijderen",
-      "change": "Wijzigen",
       "loading": "Laden…",
       "back": "← Terug",
       "copy": "Kopiëren"
@@ -1233,7 +1232,9 @@
       "details": {
         "room": "Ruimte",
         "firmware": "Firmware",
-        "board": "Bord"
+        "board": "Bord",
+        "show": "Details van {name} tonen",
+        "hide": "Details van {name} verbergen"
       },
       "remove": {
         "button": "Scherm verwijderen",
@@ -1245,7 +1246,8 @@
         "confirm": "Verwijderen",
         "done": "{name} is verwijderd.",
         "kept": "{name} is verwijderd. Het profiel {file} staat nog in de ESPHome-map."
-      }
+      },
+      "home": "Overzicht van je schermen"
     },
     "palette": {
       "groups": {
@@ -1275,6 +1277,12 @@
         "button": "Nieuw scherm installeren"
       }
     },
+    "home": {
+      "title": "Je schermen",
+      "summary": "{online} van {count} online",
+      "open": "{name} openen",
+      "no_layout": "Nog geen indeling"
+    },
     "screen_view": {
       "confirm": {
         "switch": "Je hebt niet-opgeslagen wijzigingen. Toch een ander scherm openen?",
@@ -1299,7 +1307,6 @@
         "identify": "Identificeren",
         "identify_hint": "scherm laten knipperen",
         "identify_needs": "Firmware 0.2.31 of nieuwer nodig",
-        "inspect_hint": "uit Home Assistant",
         "copy": "Indeling kopiëren van…",
         "copy_screens": "{n} scherm | {n} schermen",
         "copy_none": "geen ander scherm",
@@ -1307,10 +1314,13 @@
         "export": "Indeling exporteren",
         "import": "Indeling importeren…",
         "override": "YAML-override",
-        "override_hint": "geavanceerd",
         "override_none": "Geen ESPHome-profiel gevonden voor dit scherm",
-        "update": "Firmware bijwerken"
-      }
+        "update": "Firmware bijwerken",
+        "group_screen": "Dit scherm",
+        "group_layout": "Indeling",
+        "group_advanced": "Geavanceerd"
+      },
+      "sending": "Verzenden"
     },
     "layout": {
       "removed": "{name} verwijderd",
@@ -1319,23 +1329,34 @@
       "page_taken": "Dit scherm heeft al een tegel die naar pagina {page} gaat.",
       "copied": "Indeling van {name} gekopieerd. Druk op Opslaan & versturen als alles klopt.",
       "imported": "Indeling geïmporteerd. Druk op Opslaan & versturen als alles klopt.",
-      "not_json": "Dat is geen JSON. Exporteer eerst een indeling, of plak er een uit een andere ESP Screens.",
+      "not_json": "Dat is geen JSON. Exporteer eerst een indeling, of plak er een uit een andere Tessera.",
       "count": "{n} pagina · {tiles} / {limit} tegels | {n} pagina's · {tiles} / {limit} tegels",
       "no_tiles": "Voeg je eerste lamp, scène of apparaat toe uit de bibliotheek.",
-      "how_to": "Tik op de bovenbalk of een tegel om die aan te passen. Sleep om te verplaatsen, of naar de volgende pagina voor een nieuwe pagina.",
-      "how_to_pages": "Sleep een pagina aan zijn label om de hele pagina te verplaatsen.",
       "page_removed": "Pagina {page} is weg.",
       "page_removed_tiles": "Pagina {page} en één tegel zijn weg. | Pagina {page} en {n} tegels zijn weg.",
       "positions_hint": "Lege plekken en vaste posities werken vanaf firmware 0.2.26. Tot die update schuift dit scherm (firmware {firmware}) de tegels op naar de eerste vrije plek.",
       "aria": "Schermindeling",
-      "add_page": "+ Pagina toevoegen",
-      "max_pages": "Maximaal 1 pagina | Maximaal {n} pagina's"
+      "add_page": "Pagina toevoegen",
+      "max_pages": "Maximaal 1 pagina | Maximaal {n} pagina's",
+      "help": {
+        "title": "Zo werkt het",
+        "change_label": "Aanpassen",
+        "change": "Klik op een tegel of een bovenbalk.",
+        "add_label": "Toevoegen",
+        "add": "Klik op een lege plek en dan op iets in de bibliotheek. Of sleep het op de pagina.",
+        "move_label": "Verplaatsen",
+        "move": "Sleep een tegel. Laat hem los op de volgende pagina voor een nieuwe pagina.",
+        "pages_label": "Pagina’s",
+        "pages": "Sleep een pagina aan zijn nummer. De rest zit in zijn ···-menu.",
+        "map_label": "Kaart",
+        "map": "Laat zien waar elke Ga naar pagina-tegel heen gaat.",
+        "preview_label": "Voorvertoning",
+        "preview": "Probeer vegen en de pagina-tegels. Er schakelt niets in huis."
+      }
     },
     "page": {
       "label": "Pagina {page}",
       "remove": "Pagina weghalen",
-      "remove_title": "De pagina gaat weg met zijn tegels; de pagina's erna schuiven een plek op",
-      "remove_aria": "Pagina {page} weghalen",
       "edit_bar": "Bovenbalk aanpassen",
       "move_title": "Sleep deze pagina naar een andere plek in de rij, of gebruik ← en →",
       "move_aria": "Pagina {page} verplaatsen",
@@ -1458,10 +1479,9 @@
         "graph": "Grafiek",
         "sunpath": "Zonnebaan",
         "live": "Livebeeld",
-        "live_hint": "Een klein beeld van de camera op de plek van het icoon, ververst in het tempo hieronder zolang de pagina in beeld is. Een tik opent hem nog steeds schermvullend.",
         "live_needs_firmware": "Een livebeeld heeft firmware 0.2.77 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm.",
         "live_card_hint": "Het beeld vult de tile en ververst in het tempo hieronder zolang de pagina in beeld is. Een tik opent hem nog steeds schermvullend.",
-        "live_card_needs_firmware": "Een beeld dat de tile vult heeft firmware 0.3.3 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm. Tot dan toont het scherm een klein beeld op de plek van het icoon.",
+        "live_card_needs_firmware": "Een beeld dat de tile vult heeft firmware 0.3.7 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm. Tot dan toont het scherm een klein beeld op de plek van het icoon.",
         "cover": "Albumhoes",
         "cover_hint": "De albumhoes van wat er speelt op de plek van het icoon, zoals de eigen tile van Home Assistant; een speler zonder afbeelding houdt zijn icoon. Een tik opent nog steeds de kaart.",
         "cover_needs_firmware": "De albumhoes op de tile heeft firmware 0.2.78 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm.",
@@ -1538,8 +1558,6 @@
       },
       "slider": {
         "label": "Kleine slider op de tegel",
-        "no": "Nee",
-        "yes": "Ja, direct bedienen",
         "nothing": "Home Assistant heeft niets wat een slider bij deze entiteit kan aanpassen. Kies Nee."
       },
       "history": {
@@ -1553,6 +1571,13 @@
       "resize": {
         "columns": "Breedte aanpassen (pijltjes links/rechts)",
         "rows": "Hoogte aanpassen (pijltjes omhoog/omlaag)"
+      },
+      "sections": {
+        "text": "Tekst",
+        "look": "Uiterlijk",
+        "place": "Grootte en plek",
+        "controls": "Bediening",
+        "style": "Icoon en kleur"
       }
     },
     "tile_card": {
@@ -1604,20 +1629,17 @@
       "already": "Dit staat al in de bovenbalk.",
       "title": "Bovenbalk",
       "aria": "Bovenbalk: {name}",
-      "builtin": "Van het scherm zelf, werkt ook zonder Home Assistant",
       "items": "{used} van {n} onderdeel | {used} van {n} onderdelen",
       "name": "Titel boven de pagina",
       "name_placeholder": "Bijvoorbeeld: Woonkamer",
       "screen_name": "Titel van het scherm",
       "screen_name_hint": "Elke pagina zonder eigen titel zegt dit.",
-      "page_name": "Titel boven pagina {page}",
-      "page_name_hint": "Laat leeg en deze pagina zegt de titel van het scherm.",
       "right": "Rechts: tijd, sensoren of een klok",
       "item_label": "{name}, plek {slot}. Enter: instellen, pijltjes: verplaatsen",
       "remove_named": "{name} uit de bovenbalk halen",
       "max": "Maximaal 1 onderdeel | Maximaal {n} onderdelen",
       "add_title": "Tijd, datum, analoge klok of een entiteit toevoegen",
-      "add_button": "＋ Tijd, datum of entiteit toevoegen",
+      "add_button": "Tijd, datum of entiteit toevoegen",
       "hint": {
         "overflow": "Niet alles past naast de naam: het scherm laat de gestreepte onderdelen weg. Haal er een weg of kies een kortere naam.",
         "reorder": "Sleep om de volgorde te wijzigen; tik op een onderdeel om het in te stellen.",
@@ -1647,8 +1669,8 @@
       "clock_12": "12-uursklok · wijzigen onder {settings}",
       "clock_settings": "Instellingen → Taal & regio",
       "date_hint": "Vandaag is het {date}. De datum volgt de eigen klok van het scherm.",
-      "up": "↑ Omhoog",
-      "down": "↓ Omlaag",
+      "up": "Omhoog",
+      "down": "Omlaag",
       "add": {
         "title": "Toevoegen aan de bovenbalk",
         "slots": "{used} van {n} plek gebruikt | {used} van {n} plekken gebruikt",
@@ -1659,7 +1681,9 @@
         "search": "Zoek op naam, ruimte of entiteit, bijv. temperatuur of deur",
         "search_label": "Zoek een entiteit voor de bovenbalk",
         "none_found": "Geen entiteiten gevonden."
-      }
+      },
+      "left": "Links",
+      "left_hint": "Titel en huisje: in de pagina-instellingen"
     },
     "screen_settings": {
       "groups": {
@@ -1739,6 +1763,8 @@
         "no_screens": "Nog geen scherm gekoppeld. Nieuwe schermen krijgen firmware {version}.",
         "available": "Firmware {version} is beschikbaar voor {n} scherm. | Firmware {version} is beschikbaar voor {n} schermen.",
         "current": "Alle schermen hebben firmware {version}.",
+        "available_mixed": "Er is een update voor {n} scherm. | Er is een update voor {n} schermen.",
+        "current_mixed": "Alle schermen zijn bijgewerkt.",
         "all": "1 scherm bijwerken | Alle {n} schermen bijwerken",
         "whats_new": "Nieuw in firmware {version}",
         "auto_label": "Elke nacht automatisch bijwerken",
@@ -1747,7 +1773,7 @@
       "claude": {
         "installed": "Skill geïnstalleerd. Claude Code vindt hem meteen.",
         "installed_restart": "Skill geïnstalleerd. Start Claude Code één keer opnieuw, zodat het de nieuwe skills-map vindt.",
-        "text": "Leer Claude ESP Screens kennen en vraag dan: “Laat een melding zien op al mijn schermen als de brievenbus vol is.” Claude kent de gebeurtenissen van alerts en elk veld, elke kleur en elk icoon.",
+        "text": "Leer Claude Tessera kennen en vraag dan: “Laat een melding zien op al mijn schermen als de brievenbus vol is.” Claude kent de gebeurtenissen van alerts en elk veld, elke kleur en elk icoon.",
         "install": "Installeren voor Claude Code",
         "install_again": "Opnieuw installeren",
         "update": "Skill bijwerken",
@@ -1794,7 +1820,7 @@
     },
     "firmware": {
       "title": "Schermfirmware bouwen en installeren",
-      "intro": "De ingebouwde ESPHome CLI gebruikt je eigen profiel (YAML met sleutels) en secrets. Kies het profiel van het scherm, dan een USB-poort (scherm aan de Home Assistant-machine), {ota} met de hostnaam, of {download} om de firmware vanaf je eigen computer op het scherm te zetten. {check} valideert alleen, {build} compileert, {install} zet de firmware op het scherm. Je tegels blijven zoals ze in ESP Screens staan. De eerste build duurt enkele minuten.",
+      "intro": "De ingebouwde ESPHome CLI gebruikt je eigen profiel (YAML met sleutels) en secrets. Kies het profiel van het scherm, dan een USB-poort (scherm aan de Home Assistant-machine), {ota} met de hostnaam, of {download} om de firmware vanaf je eigen computer op het scherm te zetten. {check} valideert alleen, {build} compileert, {install} zet de firmware op het scherm. Je tegels blijven zoals ze in Tessera staan. De eerste build duurt enkele minuten.",
       "ota": "Wi-Fi / OTA",
       "download": "Downloaden",
       "check": "Controleren",
@@ -1805,8 +1831,8 @@
       "choose": "Kies het bedoelde profiel, dan een USB-poort, een IP-adres of Downloaden.",
       "profile": "ESPHome-profiel",
       "install_to": "Installeren naar",
-      "no_board": "USB · nog geen bord gevonden op de Home Assistant-machine",
-      "download_target": "Downloaden · flashen vanaf je eigen computer",
+      "no_board": "Daar is nog geen scherm aangesloten",
+      "download_target": "Bestand downloaden en zelf flashen",
       "host": "IP-adres of hostnaam",
       "download_file": "{name} downloaden",
       "download_how": "Zet het met {esphome_web} op het scherm, in Chrome of Edge: klik op Connect, kies de USB-poort van het scherm, klik op Install en selecteer dit bestand. Het bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf."
@@ -1820,7 +1846,7 @@
         "done": "Klaar.",
         "failed": "Dat lukte niet."
       },
-      "intro": "ESP Screens maakt een eigen profiel voor het scherm, met unieke sleutels, en bouwt de firmware. Sluit het scherm met een USB-datakabel aan op de machine waarop Home Assistant draait, of download de firmware en zet die vanaf je eigen computer op het scherm.",
+      "intro": "Tessera maakt een eigen profiel voor het scherm, met unieke sleutels, en bouwt de firmware. Sluit het scherm met een USB-datakabel aan op de machine waarop Home Assistant draait, of op de computer waar je nu achter zit.",
       "board": "Welk scherm heb je?",
       "board_title": "{name} · {inch} inch",
       "status": {
@@ -1864,15 +1890,15 @@
         "title": "Wi-Fi",
         "ssid": "Wi-Fi-naam (2,4 GHz)",
         "password": "Wi-Fi-wachtwoord",
-        "new": "Eén keer invullen: ESP Screens bewaart dit in ESPHome secrets.yaml, volgende schermen gebruiken het automatisch.",
-        "missing": "Je ESPHome secrets.yaml mist nog Wi-Fi-gegevens. ESP Screens vult alleen de ontbrekende regels aan.",
+        "new": "Eén keer invullen: Tessera bewaart dit in ESPHome secrets.yaml, volgende schermen gebruiken het automatisch.",
+        "missing": "Je ESPHome secrets.yaml mist nog Wi-Fi-gegevens. Tessera vult alleen de ontbrekende regels aan.",
         "ready": "Wi-Fi komt uit je ESPHome secrets.yaml.",
         "invalid": "secrets.yaml in de ESPHome-map is geen geldige YAML. Herstel het bestand eerst; het wordt niet overschreven."
       },
       "install_via": "Installeren via",
       "later": "Later · alleen het profiel bewaren",
       "target": {
-        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; de lijst ververst vanzelf. Of kies Downloaden om je eigen computer te gebruiken.",
+        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; de lijst ververst vanzelf. Zit het aan de computer waar je nu achter zit? Kies Installeren vanuit deze browser.",
         "download": "Download de firmware en zet die vanaf je eigen computer op het scherm, in Chrome of Edge. Daarna gaan updates via Wi-Fi.",
         "later": "Het profiel komt in de ESPHome-map. Installeren kan later via Firmware & USB, of vanuit ESPHome Device Builder.",
         "several": "Meer dan één bord aangesloten: kies de poort van dit scherm.",
@@ -1894,8 +1920,8 @@
       "detail": {
         "saved": "Installeren kan later via Firmware & USB: kies dit profiel, dan de USB-poort van de Home Assistant-machine, of Downloaden om de firmware vanaf je eigen computer op het scherm te zetten. Bewaar de API-sleutel voor de koppeling:",
         "uploading": "Haal de USB-kabel nog niet los.",
-        "building": "Een eerste build duurt op een Raspberry Pi enkele minuten. Je kunt deze pagina verlaten: de installatie loopt door en je vindt hem terug onder Nieuw scherm.",
-        "building_download": "Een eerste build duurt op een Raspberry Pi enkele minuten. Je kunt deze pagina verlaten: de build loopt door en je vindt hem terug onder Nieuw scherm.",
+        "building": "Bouwen kan op een Home Assistant-machine zoals een Raspberry Pi 20 minuten of langer duren, zeker de eerste keer. Dat is normaal. Je kunt deze pagina verlaten: de installatie loopt door en je vindt hem terug onder Nieuw scherm.",
+        "building_download": "Bouwen kan op een Home Assistant-machine zoals een Raspberry Pi 20 minuten of langer duren, zeker de eerste keer. Dat is normaal. Je kunt deze pagina verlaten: het bouwen loopt door en je vindt het terug onder Nieuw scherm.",
         "downloaded": "Zet de firmware vanaf je eigen computer op het scherm en koppel het scherm daarna aan Home Assistant.",
         "booted": "Het scherm start op en verbindt met je Wi-Fi. Koppel het nu aan Home Assistant:",
         "booted_calibrate": "Het scherm start op en verbindt met je Wi-Fi. Het vraagt eerst om een touch-kalibratie: tik op de kruisjes. Koppel het nu aan Home Assistant:",
@@ -1913,20 +1939,21 @@
       "download_keep": "Het bestand bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf.",
       "api_key": "API-sleutel",
       "pairing": {
-        "ha": "{bold} Dit gebeurt buiten ESP Screens. Home Assistant ontdekt {name} als ESPHome-apparaat; klik op Toevoegen. Niet ontdekt? Voeg ESPHome handmatig toe met het IP-adres van het scherm.",
+        "ha": "{bold} Dit gebeurt buiten Tessera. Home Assistant ontdekt {name} als ESPHome-apparaat; klik op Toevoegen. Niet ontdekt? Voeg ESPHome handmatig toe met het IP-adres van het scherm.",
         "ha_bold": "Ga naar Home Assistant → Instellingen → Apparaten & diensten.",
-        "key": "{bold} van hierboven zodra Home Assistant om een encryptiesleutel vraagt.",
+        "key": "{bold} (onder ‘Toon de API-sleutel’ hieronder) als Home Assistant om een versleutelingssleutel vraagt. Met de ESPHome Device Builder-app geïnstalleerd vult Home Assistant hem vaak zelf in.",
         "key_bold": "Plak de API-sleutel",
         "actions": "{bold} ESPHome-integratie → Configureren → “Allow the device to perform Home Assistant actions”. Zonder dit ziet het scherm alles, maar bedient het niets.",
         "actions_bold": "Sta HA-acties toe:",
-        "tiles": "{bold} Terug in ESP Screens verschijnt het scherm binnen een halve minuut in de lijst links; tot die tijd staat het daar als “nog niet in Home Assistant”.",
+        "tiles": "{bold} Terug in Tessera verschijnt het scherm binnen een halve minuut in de lijst links; tot die tijd staat het daar als “nog niet in Home Assistant”.",
         "tiles_bold": "Kies je tegels."
       },
       "log": "Log van ESPHome",
       "retry": "Opnieuw proberen",
       "another": "Nog een scherm installeren",
       "start_over": "Opnieuw beginnen",
-      "done": "Klaar"
+      "done": "Klaar",
+      "key_more": "Toon de API-sleutel"
     },
     "alerts": {
       "eyebrow": "Alerts · cheatsheet",
@@ -1999,7 +2026,7 @@
       "copy_yaml": "YAML kopiëren",
       "all": {
         "title": "Alle schermen tegelijk",
-        "text": "Vuur de gebeurtenis {show} af met dezelfde velden, en ESP Screens geeft de alert door aan elk scherm dat online is, ook aan schermen die je later toevoegt. {dismiss} haalt hem overal weg. Voeg in een automatisering de actie {event} toe, of plak het voorbeeld onder {edit}. Laat de velden die je niet gebruikt weg. ESP Screens moet hiervoor draaien.",
+        "text": "Vuur de gebeurtenis {show} af met dezelfde velden, en Tessera geeft de alert door aan elk scherm dat online is, ook aan schermen die je later toevoegt. {dismiss} haalt hem overal weg. Voeg in een automatisering de actie {event} toe, of plak het voorbeeld onder {edit}. Laat de velden die je niet gebruikt weg. Tessera moet hiervoor draaien.",
         "event": "Handmatige gebeurtenis activeren"
       },
       "fields": {
@@ -2062,7 +2089,7 @@
         "button_bold": "eigen knoptekst",
         "resolve": "Een alert die zichzelf oplost (de deur gaat open, de was is eruit gehaald) sluit je in dezelfde automatisering met {dismiss}.",
         "every": "Alle schermen? Vuur {event} één keer af (zie Alle schermen tegelijk). De schermen werken nog steeds los van elkaar en melden zich elk met hun eigen {screen}.",
-        "claude": "Liever {bold} om de automatisering te schrijven? Installeer de ESP Screens-skill onder Instellingen → Claude.",
+        "claude": "Liever {bold} om de automatisering te schrijven? Installeer de Tessera-skill onder Instellingen → Claude.",
         "claude_bold": "Claude vragen"
       },
       "wait_yaml": {
@@ -2072,7 +2099,7 @@
       "one": {
         "title": "Eén scherm, met een camera of een knopactie",
         "text": "Zet {screen} in hetzelfde event en alleen dat scherm krijgt de melding. Zo toont één scherm een beeld van {camera} of voert de knop een {action} uit: de eigen actie van het scherm heeft daar geen velden voor. Achter {screen} komt een van de waarden uit de lijst hieronder.",
-        "more": "Een paar schermen? Geef een lijst, zoals {list}. Een ruimte werkt ook en bereikt elk scherm daarin. Een naam die bij geen scherm past stuurt niets; het log van ESP Screen Manager noemt dan de schermen die het kent.",
+        "more": "Een paar schermen? Geef een lijst, zoals {list}. Een ruimte werkt ook en bereikt elk scherm daarin. Een naam die bij geen scherm past stuurt niets; het log van Tessera Screen Manager noemt dan de schermen die het kent.",
         "value": "Achter screen:",
         "name": "Naam in Home Assistant",
         "room": "Ruimte",
@@ -2092,9 +2119,9 @@
       "eyebrow": "Geavanceerd · lokale override",
       "title": "YAML-override",
       "title_named": "YAML-override · {name}",
-      "intro": "Dit kleine bestand is van jou. Het wordt na het gedeelde schermpakket geladen en blijft staan als ESP Screens wordt bijgewerkt. Pas hier hardwaredetails aan, zoals een displaymodel.",
+      "intro": "Dit kleine bestand is van jou. Het wordt na het gedeelde schermpakket geladen en blijft staan als Tessera wordt bijgewerkt. Pas hier hardwaredetails aan, zoals een displaymodel.",
       "safe_title": "Wat kun je veilig aanpassen?",
-      "safe_text": "Display, touchscreen, substitutions, pinnen en andere apparaatdetails. Naam, Wi-Fi, API, OTA en de koppelingen naar de packages beheert ESP Screens zelf.",
+      "safe_text": "Display, touchscreen, substitutions, pinnen en andere apparaatdetails. Naam, Wi-Fi, API, OTA en de koppelingen naar de packages beheert Tessera zelf.",
       "active": "Actief",
       "ready": "Klaar om te koppelen",
       "editor_label": "Lokale YAML-override",
@@ -2201,7 +2228,23 @@
       "selected_full": "Deze pagina is vol. Kies een lege cel op een andere pagina.",
       "choose_page": "Pagina",
       "all_connections": "Alle verbindingen",
-      "migration_adjusted": "Ongeldige oude instellingen zijn vervangen door standaardwaarden: {fields}. De originelen blijven in de migratieback-up bewaard."
+      "migration_adjusted": "Ongeldige oude instellingen zijn vervangen door standaardwaarden: {fields}. De originelen blijven in de migratieback-up bewaard.",
+      "view_row": "Rij",
+      "view_map": "Kaart",
+      "preview": "Voorvertoning",
+      "page_menu": "Pagina {page}: meer",
+      "home_chip": "Thuis",
+      "detail_chip": "Via een tegel",
+      "cells_used": "Plekken in gebruik",
+      "tiles_go": "1 tegel gaat mee | {n} tegels gaan mee",
+      "connections": "Verbindingen",
+      "connections_selected": "Selectie",
+      "sections": {
+        "title": "Titel",
+        "navigation": "Navigatie"
+      },
+      "home_hint": "Het huisje en omhoog vegen leiden hierheen.",
+      "bar_entities": "Ook rechts in de balk"
     },
     "feedback": {
       "question": "Werkt je scherm zoals je verwacht?",
@@ -2250,10 +2293,52 @@
         "model": "Het schermmodel: {model}",
         "answer": "Je antwoord, de gekozen problemen en je toelichting",
         "firmware": "De firmwareversie van het scherm: {version}",
-        "addon": "De versie van ESP Screens: {version}",
+        "addon": "De versie van Tessera: {version}",
         "nothing_else": "Verder niets: geen naam, account, entiteiten, logs of Home Assistant-instellingen. Elk scherm deelt onder een eigen willekeurige sleutel."
       },
       "privacy": "Privacy"
+    },
+    "webflash": {
+      "target": "Installeren vanuit deze browser (Chrome of Edge)",
+      "hint": "Sluit het scherm met een USB-datakabel aan op deze computer. Tessera bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Updates gaan daarna via wifi.",
+      "firmware_hint": "Sluit het scherm met een USB-datakabel aan op deze computer. Tessera bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Het scherm houdt zijn instellingen en aanraakkalibratie. Zo red je ook een scherm dat steeds herstart en nooit online komt.",
+      "go": "Verbinden & installeren",
+      "building": "Bouwen kan op een Home Assistant-machine zoals een Raspberry Pi 20 minuten of langer duren, zeker de eerste keer. Dat is normaal. Houd dit tabblad open en het scherm aangesloten: deze pagina installeert de firmware zodra hij klaar is.",
+      "keep_open": "Laat dit tabblad open en de USB-kabel aangesloten tot het klaar is.",
+      "unavailable": {
+        "insecure": "Installeren vanuit de browser kan alleen als Home Assistant via https open staat, bijvoorbeeld via je Home Assistant Cloud-adres, in Chrome of Edge. Deze pagina is via gewone http geopend. Kies Downloaden, of open Home Assistant via https.",
+        "browser": "Deze browser kan niet bij USB-poorten. Gebruik Chrome of Edge op een computer, of kies Downloaden."
+      },
+      "phase": {
+        "picking": "Kies de USB-poort van het scherm in het venster dat je browser toont.",
+        "connecting": "Verbinden met het bord…",
+        "waiting": "Verbonden met het bord ({chip}). De firmware gaat erop zodra die gebouwd is.",
+        "downloading": "Firmware ophalen bij Tessera…",
+        "erasing": "Geheugen van het bord wissen…",
+        "writing": "Installeren… {percent}%",
+        "restarting": "Scherm herstarten…",
+        "done": "Geïnstalleerd. Het scherm herstart."
+      },
+      "errors": {
+        "no_port": "Geen poort gekozen. Stond het scherm niet in de lijst?",
+        "blocked": "De browser laat deze pagina geen USB-poorten gebruiken. Controleer de sitemachtigingen in de browser, of kies Downloaden.",
+        "busy": "De poort van het scherm is in gebruik door een ander programma of tabblad, zoals een seriële monitor of ESPHome Web. Sluit dat en probeer het opnieuw.",
+        "connect": "Het bord reageerde niet. Houd de BOOT-knop op het bord ingedrukt terwijl je de poort kiest, tot de installatie begint, en probeer het opnieuw. De kabel los en weer vast maken helpt soms ook.",
+        "wrong_chip": "Het bord aan de kabel heeft een {found}-chip, maar de firmware van dit scherm is voor een {expected}. Sluit het juiste scherm aan, of kies het juiste bord.",
+        "wrong_image": "De firmware die Tessera bouwde is voor een {expected}, maar het bord aan de kabel heeft een {found}. Er is niets geschreven.",
+        "disconnected": "Het scherm is losgekoppeld. Sluit het opnieuw aan en probeer het nog eens.",
+        "download": "Kon de firmware niet ophalen bij Tessera: {error}",
+        "failed": "Installeren is niet gelukt: {error}"
+      },
+      "hints": {
+        "computer": "Sluit het scherm aan op deze computer, die waarop deze browser draait.",
+        "power": "Controleer of het bord stroom heeft: de meeste hebben een klein lampje.",
+        "cable": "Gebruik een USB-kabel die data doorgeeft. Sommige kabels laden alleen op.",
+        "driver": "Installeer het stuurprogramma voor de USB-chip van het bord als je computer erom vraagt (CP210x, CH340 of CH9102)."
+      },
+      "group_ha": "Aangesloten op de Home Assistant-machine",
+      "group_here": "Aangesloten op deze computer",
+      "group_wifi": "Via wifi"
     }
   }
 }

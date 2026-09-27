@@ -16,6 +16,7 @@ import feedback
 from firmware import Firmware
 import ha_catalogue
 import light_effects
+import light_groups
 import tile_icons
 from updates import Updater
 
@@ -1437,7 +1438,9 @@ class Manager:
         if tile['entity'].startswith('cover.'):
             return tuple(cover_related(tile['entity'], self.device_entries(tile['entity']), self.ha.states).values())
         if tile['entity'].startswith('light.'):
-            return light_effects.related(tile['entity'], self.device_entries(tile['entity']), self.ha.states)
+            # The selects and numbers of its device (effects page), and a group's lamps (lamp page, app 0.3.16).
+            return (tuple(light_effects.related(tile['entity'], self.device_entries(tile['entity']), self.ha.states)) +
+                    tuple(light_groups.lamp_ids(tile['entity'], self.ha.states)))
         return ()
 
     def device_name_of(self, entity):
@@ -1618,8 +1621,11 @@ class Manager:
     def watched_entities(self):
         """Entities whose state changes matter: tiles on any layout plus the screens' own diagnostics.
 
-        Cached per (registry, layouts): both are replaced as whole objects when they change."""
-        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts))
+        Cached per (registry, layouts, the lamps of the light groups on them): the first two are replaced as whole
+        objects when they change; a group's lamps live in its state."""
+        groups = tuple((tile['entity'], tuple(light_groups.lamp_ids(tile['entity'], self.ha.states)))
+                       for layout in self.layouts.values() for tile in layout['tiles'] if tile['entity'].startswith('light.'))
+        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups)
         if key != self._watched_key:
             watched = {tile['entity'] for layout in self.layouts.values() for tile in layout['tiles']}
             watched |= {item['entity'] for record in self.store.records().values() if record['format'] == PAGE_FORMAT
@@ -1643,8 +1649,9 @@ class Manager:
         hourly = self.forecasts.get((entity, 'hourly'))
         return not entry or not hourly or time.monotonic() - min(entry[0], hourly[0]) > FORECAST_SECONDS
 
-    async def tile_message(self, index, tile):
-        """The state message of one tile: state, options, extras, and the history the background task holds."""
+    async def tile_message(self, index, tile, lamps=False):
+        """The state message of one tile: state, options, extras, and the history the background task holds. `lamps`:
+        the screen takes a light group's lamps (its hello said `group_lamps`, firmware 0.3.9+)."""
         forecast=hourly=None
         if tile['entity'].startswith('weather.') and hasattr(self.ha,'forecast'):
             entity = tile['entity']
@@ -1673,6 +1680,11 @@ class Manager:
         word=ha_catalogue.screen_word(tile['entity'],message['state'],state.get('attributes'),entry,getattr(self.ha,'state_words',None))
         if word:
             message.setdefault('x',{})['w']=word
+        # A light group's lamps for its lamp page (app 0.3.16), to a screen that takes them.
+        if lamps and light:
+            members=light_groups.lamps(tile['entity'],self.ha.states)
+            if members:
+                message.setdefault('x',{})['lamps']=members
         if tile['entity'].startswith('alarm_control_panel.'):
             for key,value in alarm_extras(state,entry).items():
                 message.setdefault('x',{})[key]=value
@@ -2114,7 +2126,7 @@ class Manager:
         if any(entity not in tiles for entity in entities):
             LOG.info('Live pictures for %s: not the pictured tiles of %s', ', '.join(entities), screen['name'])
             return
-        paces = [min(option.get('refresh', camera_feed.LIVE_REFRESH[0]) if option.get('display') == 'live' else 0
+        paces = [min(option.get('refresh', camera_feed.LIVE_REFRESH_DEFAULT) if option.get('display') == 'live' else 0
                      for option in tiles[entity]) for entity in entities]
         # How each picture fills its card (app 0.3.8): one tile per entity on a screen, so its options are the tile's.
         modes = camera_feed.picture_modes(screen, lambda entity: next((o for o in tiles[entity] if o.get('display') == 'live'), None), entities) if atlas else None
@@ -2831,6 +2843,10 @@ def create_app(manager, development=False):
         path, name = manager.firmware.image(request.match_info['file'])
         return web.FileResponse(path, headers={'Content-Type': 'application/octet-stream',
                                                'Content-Disposition': f'attachment; filename="{name}"'})
+    async def firmware_flashed(request):
+        """New screen and Firmware & USB → This computer (browser): the page wrote the image it downloaded onto a
+        screen over Web Serial, so the screen list nudges pairing as for one flashed from Home Assistant's own USB port."""
+        return web.json_response(manager.firmware.flashed(request.match_info['file']))
     # The answers that are still waiting after a restart try again (feedback.py); a request never runs past shutdown.
     FEEDBACK_ERRORS = {'outcome': 'addon.errors.feedback.invalid', 'issues': 'addon.errors.feedback.invalid',
                        'comment': 'addon.errors.feedback.comment', 'board': 'addon.errors.feedback.unknown_board',
@@ -2890,6 +2906,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/firmware/profiles/{file}/override', firmware_override)
     app.router.add_put('/api/firmware/profiles/{file}/override', firmware_override_save)
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)
+    app.router.add_post('/api/firmware/profiles/{file}/flashed', firmware_flashed)
     app.router.add_post('/api/firmware/profiles', firmware_create)
     app.router.add_get('/', index)
     app.router.add_get('/api/inventory', inventory)

@@ -1,15 +1,20 @@
 # Camera images on a screen
 
-App 0.2.66 with firmware 0.2.57 shows camera images on every board with the memory for them: the
-4-inch Guition, the 4.3-inch and 7-inch Waveshare and the 10.1-inch Guition. The CYD is the one
-that cannot (see below). The numbers further down were measured on the 4-inch Guition.
+App 0.2.66 with firmware 0.2.57 shows camera images on every board with the memory (PSRAM) for them:
+the 4-inch, 7-inch (JC1060P470 and V2) and 10.1-inch Guition, and the 4B, 4.3-inch and 7-inch Waveshare.
+The CYD, the Waveshare 3.5-inch and the Hosyond 4-inch cannot (see below). Which boards can is
+`camera` in `screen_manager/app/boards.json`, worked out from whether the board file includes
+`packages/features/camera.yaml`. The numbers further down were measured on the 4-inch Guition.
 
 - **A camera tile.** Add a `camera.*` or `image.*` entity as a tile. A tap opens the image full
   screen, with the round back key at the top left like every card, and a spinner until the first
   image is there (firmware 0.2.73). The image is refreshed every four seconds while it is open. It
   is not video: ESPHome has no video decoder.
 - **An alert with a picture.** Add `camera: camera.front_door` to the `esp_screens_show_alert`
-  event, and `screen: hallway-screen` for one screen only (app 0.2.133). The card shows the picture of that moment (it stays that picture), with the card's round
+  event, and `screen: hallway_screen` for one screen only (app 0.2.133). The screen's own actions
+  `esphome.<screen>_show_alert` and `_show_alert_choice` have no `camera`: Home Assistant makes every
+  field of an ESPHome action required, so a new field would break every automation that calls it.
+  The event also takes the second button (`button2_text` and the rest, app 0.3.8, firmware 0.3.3). The card shows the picture of that moment (it stays that picture), with the card's round
   corners (firmware 0.2.73); a tap on it opens the camera full screen over the alert, and Back
   returns to the alert. Since firmware 0.2.103 the card makes room for the picture in the picture's
   own proportions: a wide camera across the top of the card, a square or standing doorbell camera
@@ -29,8 +34,9 @@ that cannot (see below). The numbers further down were measured on the 4-inch Gu
   Firmware before 0.2.103 has one fixed frame and gets the picture fitted into it.
 
 The CYD has no memory for images (a 320×180 image needs 115 KB in one piece, the CYD's largest
-free block is about 45 KB). It shows the alert without the picture, and the editor doesn't offer
-camera tiles for it.
+free block is about 45 KB), and neither have the Waveshare 3.5-inch and the Hosyond 4-inch (no
+PSRAM). They show the alert without the picture, and the app refuses a camera tile on them ("This
+screen cannot show camera pictures", `server.py` and `page_service.py`).
 
 ## The album cover on the media card
 
@@ -47,7 +53,8 @@ what plays, with the title, the artist and the album, a progress bar and the key
   when the page turns back to a full-page media tile. Nothing polls.
 - A player without a picture (a radio station, a player that is off) keeps the player's icon in
   the cover's place; the app answers with an empty link and the screen stops asking.
-- The CYD shows the same card without the picture: its icon stands in for the cover.
+- A board without camera pictures (CYD, Waveshare 3.5, Hosyond 4-inch) shows the same card without
+  the picture: its icon stands in for the cover.
 - One picture loads at a time. An alert closes an open card and its cover. Under a media tile of
   size *Full page* the alert's picture goes first: the tile's cover waits until the alert's picture
   is there, and a cover already on its way finishes before the alert's picture starts.
@@ -55,26 +62,33 @@ what plays, with the title, the artist and the album, a progress bar and the key
 ## A live picture on a camera tile
 
 App 0.2.91 with firmware 0.2.77 puts the camera on the tile itself: **Display → Live picture** in the
-tile's settings, with a pace of 15 or 30 seconds (`refresh`). The tile shows a small square of the
-camera's view in the icon's place, the middle of the snapshot cut square with the tile's rounded
-corners, and refreshes it while that page is on the screen. A tap still opens the camera full screen.
+tile's settings, with a pace of 15 or 30 seconds (`refresh`; 5 and 10 seconds too from app 0.3.13). The
+picture refreshes while that page is on the screen, and a tap still opens the camera full screen. From
+app 0.3.13 with firmware 0.3.7 the picture fills the whole tile on every size (see
+[A camera that fills its tile](#a-camera-that-fills-its-tile)). Older firmware shows a small square of the
+camera's view in the icon's place of a single, double-width or full-page tile: the middle of the snapshot
+cut square with the tile's rounded corners, delivered as described below.
 
-- **One download per page.** The screen asks ESP Screen Manager for all the live tiles of the page at
+- **One download per page.** Firmware before 0.3.7 asks for a strip (newer firmware asks for frames, see
+  [A camera that fills its tile](#a-camera-that-fills-its-tile)). The screen asks ESP Screen Manager for all the live tiles of the page at
   once (the event `esphome.screen_camera` with `tiles`, the entities in slot order, `size`, the side of
   the icon's circle, and `bg`, the colour of each tile behind the corners). The app answers with one
   BMP: a strip of squares, top to bottom in that order, and every tile draws its own square out of it
   (LVGL's image offset). Six live tiles cost the screen one download of about 50 KB; a tile over the
   whole page gets one square of 128 px.
-- **At the pace of the fastest tile.** The page loads its strip every 15 s when any of its tiles says
-  15 s. The app fetches a camera again only when that camera's own pace has passed, so a 30 s camera
-  on a 15 s page is fetched every other load. The strip comes whole every time, never as a 304:
+- **At the pace of the fastest tile.** The page loads its pictures at the pace of its fastest live
+  tile: every 15 s when any of its tiles says 15 s, every 30 s when all of them say 30 s (firmware before
+  0.3.7 loaded such a page every 15 s). The app fetches a camera again only when that camera's own pace
+  has passed, so a 30 s camera on a 15 s page is fetched every other load. The strip comes whole every time, never as a 304:
   ESPHome's `http_request` logs a 304 as a failed request and raises its error flag, which a page of
   slow cameras would do every 15 s. Nobody loading means nothing fetched, as with the camera full
   screen.
 - **After the other pictures.** The strip waits for the alert's picture, a cover on its way and the
-  camera full screen (one picture loads at a time), and does not load under an open card, in standby
-  or under a finger. A page turn, dark mode (other colours behind the corners) or a changed tile drops
-  the strip and asks for a new one.
+  camera full screen (one picture loads at a time), and does not load under an open card, in standby,
+  under a finger or while the pages are turning. Dark mode (other colours behind the corners) or a
+  changed tile asks for a new picture. On a board with PSRAM (firmware 0.3.2+, `picture_store.h`) a kept
+  page keeps its last pictures, so turning back shows them at once and the next load follows at the
+  tile's pace; the CYD-class boards have no live pictures at all.
 - **A camera without a picture** keeps its icon: the app names it with an empty entry in its answer
   and paints a plain square of the tile's colour in the strip.
 - **A media tile's album cover** (app 0.2.92, firmware 0.2.78) rides in the same strip: **Display →
@@ -83,13 +97,15 @@ corners, and refreshes it while that page is on the screen. A tap still opens th
   the camera's pace with the cover reused, and a page of media tiles alone loads once. The screen asks
   for the page again the moment a player's picture mark in its state changes. A player without a
   picture keeps its icon; the tile over the whole page keeps the card's big cover.
-- The strip lives in a third `online_image` of the Guition profile (`tile_image`, PSRAM); the CYD has
-  none and the editor does not offer the live picture there.
+- The strip lives in a third `online_image` (`tile_image`, PSRAM) in `packages/features/camera.yaml`,
+  which every board with camera pictures includes; the CYD, the Waveshare 3.5 and the Hosyond have none.
 
-### A camera that fills a taller tile
+### A camera that fills its tile
 
-From app 0.3.8 with firmware 0.3.3, a live camera on a 1 × 2 or 2 × 2 tile fills the whole card instead
-of the icon's place. Two settings appear in the tile's settings once the tile is taller:
+From app 0.3.13 with firmware 0.3.7, a live camera fills the whole card on every size: a single tile, a
+double-width one, a 1 × 2 or 2 × 2 tile and a tile over the whole page. Two cameras that film in 16:9 fit
+side by side on the 4-inch Guition, one single tile each. App 0.3.8 with firmware 0.3.3 did this on 1 × 2
+and 2 × 2 tiles only. Two settings appear in the tile's settings with the live picture:
 
 - **Picture**: **Fill the tile** (`fit` left out, the default) cuts the picture to the card, the way a
   photo fills a frame. **Whole picture** (`fit: contain`) shows all of it, with black above and below
@@ -102,8 +118,10 @@ the page's pictures as frames (`atlas`: the place, size and corner of each), and
 one BMP in which every picture already has its card's exact size in pixels, its crop or its black bars,
 its rounded corners and, under the name, a soft shade that keeps white text readable on a bright
 picture. The screen draws that image as it is. A smaller picture does not load faster: the picture
-already has exactly as many pixels as the card shows. What sets the pace is the 15 or 30 seconds of the
-tile and the time the camera takes to answer.
+already has exactly as many pixels as the card shows. What sets the pace is the refresh the tile chose
+and the time the camera takes to answer. On the 4-inch Guition two single tiles side by side are about
+50 KB per refresh, and a tile over the whole page about 160 KB. A refresh every 5 seconds works there,
+but the larger the picture and the slower the Wi-Fi, the longer the screen spends reading it.
 
 A screen with firmware 0.3.3 or newer gets its live pictures in 8-bit colour: a palette of the picture's own
 256 colours, dithered so a shade stays smooth. That is a third of the bytes of a 24-bit BMP (a 2 × 2 card
@@ -113,8 +131,9 @@ that arrives sooner and a screen that answers a touch sooner. Preparing the pale
 few milliseconds per picture, also on a Raspberry Pi. Older firmware keeps 24-bit pictures.
 
 The camera's state ("Idle") is not written on the picture. Until the first picture arrives, the tile
-shows its icon and name as any tile does. Older firmware ignores both settings and keeps the small
-picture in the icon's place.
+shows a spinner; a camera that has no picture for Home Assistant (a camera that only streams) keeps its
+icon and name as any tile does. Firmware before 0.3.7 ignores both settings on a single, double-width
+or full-page tile and keeps the small picture in the icon's place there.
 
 ## A doorbell
 
@@ -141,10 +160,13 @@ The screen never talks to Home Assistant about images, and it never holds a Home
 1. The screen asks ESP Screen Manager for a camera (the event `esphome.screen_camera`), or the app
    sends the picture of an alert by itself.
 2. The app fetches the snapshot from Home Assistant with its own access (the same pictures the
-   Home Assistant frontend shows), and makes it exactly as large as the screen draws it: at most
-   480×480 full screen, 392×220 on an alert card, proportions kept.
-3. It serves the result as an uncompressed 24-bit BMP on **port 8098** under a random link, and
-   sends the link to the screen. ESPHome's `online_image` loads it.
+   Home Assistant frontend shows), and makes it exactly as large as the screen draws it: full screen
+   at most the board's canvas (`camera.full` in boards.json: 480×480 on the 4-inch Guition, 800×480 on
+   the Waveshare 4.3 and 7, 1024×600 on the JC1060P470, 1280×800 on the JC8012P4A1), an alert card at
+   its frame (`camera.thumb`, 392×220 on the 4-inch Guition), proportions kept.
+3. It serves the result as an uncompressed BMP on **port 8098** under a random link, and sends the
+   link to the screen. ESPHome's `online_image` loads it. The full screen, the alert and the cover are
+   24-bit; live tile pictures go to firmware 0.3.3+ in 8-bit (see above).
 
 While a camera is open, the screen loads its link every four seconds, one image at a time. The app
 serves the last snapshot at once and starts fetching the next one, so each load gets a picture one
@@ -193,7 +215,7 @@ Guition it comes in about 1.8 s (2.8 s with 4 KB).
   (`tests/test_camera_view.cpp`).
 - `components/smart_display/runtime_tiles.h`: the full-screen view, the alert picture, the live tiles
   (`live_tick`, `live_place`) and the `camera` message.
-- `packages/boards/guition-4848s040.yaml`: the three `online_image` components (the camera full screen and the
+- `packages/features/camera.yaml` (included by every board with camera pictures): the three `online_image` components (the camera full screen and the
   cover, the alert's picture, the live tiles' strip), the alert frame, and the diagnostic action `preview_camera`
   (an entity opens it, an empty entity closes it).
 - `tests/test_camera.py`: the app side and the words both sides share.

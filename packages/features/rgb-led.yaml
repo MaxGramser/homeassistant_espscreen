@@ -1,0 +1,12 @@
+# ESP Screens - the RGB LED on the back of a board that has one, as a light in Home Assistant.
+#
+# The board file names the three outputs that drive it, `output_red`, `output_green` and `output_blue` (on these
+# boards common anode, so each is `inverted: true`); this file puts the light on them, off after every start.
+light:
+  - platform: rgb
+    name: LED
+    red: output_red
+    id: led
+    green: output_green
+    blue: output_blue
+    restore_mode: ALWAYS_OFF

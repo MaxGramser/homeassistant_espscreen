@@ -1,0 +1,124 @@
+############################################################
+# ESP Screens - Hosyond 4.0-inch ESP32-32E display (lcdwiki E32R40T), sold as a 4-inch "CYD".
+# ST7796S 320x480 display and XPT2046 resistive touch on one SPI bus, an ESP32 with 4MB flash and no PSRAM.
+#
+# The same family as the CYD: its resistive glass is features/resistive-touch.yaml (the calibration wizard, a page
+# swipe by LVGL's gesture), its backlight features/backlight.yaml. The pins come from the board's own documentation
+# (lcdwiki, "4.0inch ESP32-32E Display") and from the first working configuration a community member shared for it
+# (GitHub #42). docs/PROFILES.md says how the files of a screen fit together.
+############################################################
+packages:
+  # How every board's firmware is built (ESP-IDF, as ESPHome recommends it).
+  build: !include ../hardware/esp-idf.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/6.yaml
+  # Every size of the compact look, scaled to DISPLAY_DPI below: this glass has the CYD's density, so they are its own.
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/resistive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+  # The light on the RGB LED on the board (the outputs are below).
+  led: !include ../features/rgb-led.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "hosyond40"
+  DEVICE_NAME: "hosyond40-new"
+  DEVICE_FRIENDLY_NAME: "My Hosyond"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over the 100.4 mm (3.95 inch) diagonal of
+  # its 55.68 x 83.52 mm display area.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "146.000"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # LVGL's draw buffer as a share of the screen. No PSRAM: 12 % of 320 x 480 is 36 KB of the chip's own memory,
+  # twice the CYD's, so this board takes 8 % (24 KB) until a heap reading with a full layout says there is room.
+  LVGL_BUFFER_SIZE: "8%"
+
+  # TOUCH_SWAP_XY/MIRROR_X/MIRROR_Y stay the shared defaults (none mirrored), as the configuration shared in GitHub #42
+  # found them; the CYD mirrors X. The calibration wizard measures the rest on the first start.
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides").
+  DISPLAY_MODEL: "ST7796"                       # ESPHome's mipi_spi model of the display controller
+  DISPLAY_DATA_RATE: "40MHz"                    # the display's SPI clock
+  DISPLAY_INVERT_COLORS: "false"
+  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
+  # The XPT2046's raw range before a calibration: wide on purpose, the wizard measures this panel's own on the
+  # first start (docs/CALIBRATING.md).
+  TOUCH_CAL_X_MIN: "200"
+  TOUCH_CAL_X_MAX: "3900"
+  TOUCH_CAL_Y_MIN: "200"
+  TOUCH_CAL_Y_MAX: "3900"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32dev
+  framework:
+    advanced:
+      # ESPHome recommends this itself in the boot log: about 40 KB more IRAM and a smaller binary, as on the CYD.
+      sram1_as_iram: true
+  variant: esp32
+
+# One SPI bus, shared by the display (CS GPIO15) and the touch controller (CS GPIO33).
+spi:
+  - id: lcd
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+
+output:
+  # The backlight, lit at a high level. 20 kHz keeps the PWM out of sight when the screen moves (see the CYD).
+  - platform: ledc
+    pin: GPIO27
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+  # The RGB LED on the board: common anode, lit at a low level. GPIO4 is the speaker's amplifier here, not red.
+  - platform: ledc
+    id: output_red
+    pin: GPIO22
+    inverted: true
+  - platform: ledc
+    id: output_green
+    pin: GPIO16
+    inverted: true
+  - platform: ledc
+    id: output_blue
+    pin: GPIO17
+    inverted: true
+
+
+# XPT2046 on the display's bus. Polled at 50 Hz like the CYD; its interrupt (GPIO36) stays unused, as there.
+touchscreen:
+  - platform: xpt2046
+    id: ts_touch
+    spi_id: lcd
+    cs_pin: 33
+    update_interval: 20ms
+    # The CYD's threshold: a light brush of the film is not a touch.
+    threshold: 800
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    spi_id: lcd
+    model: ${DISPLAY_MODEL}
+    data_rate: ${DISPLAY_DATA_RATE}
+    cs_pin: 15
+    dc_pin: 2
+    invert_colors: ${DISPLAY_INVERT_COLORS}
+    update_interval: never
+    auto_clear_enabled: false
+    # Native panel dimensions (portrait); LVGL turns the picture (ROTATION_LANDSCAPE), never a display transform.
+    dimensions:
+      width: 320
+      height: 480

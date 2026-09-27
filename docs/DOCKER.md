@@ -14,7 +14,9 @@ This route is new. If something doesn't work on your setup, please
   as in the Home Assistant installation docs. Home Assistant on Docker's bridge network, as
   is usual with Docker Desktop on Windows or macOS, works too: see
   [Home Assistant on a bridge network](#home-assistant-on-a-bridge-network).
-- Docker with Compose on the same host.
+- Docker with Compose on the same host. Compose pulls a ready image from the GitHub Container Registry
+  (`ghcr.io/maxgramser/homeassistant_espscreen`, for amd64 and arm64), so no `git` is needed, which also makes
+  it work in Synology Container Manager.
 - The ESPHome integration in Home Assistant, to pair the screens. ESPHome Device Builder
   is optional: the ESPHome CLI is already in this image.
 
@@ -33,10 +35,10 @@ This route is new. If something doesn't work on your setup, please
 4. Start it:
 
    ```sh
-   docker compose up -d --build
+   docker compose up -d
    ```
 
-   The first build downloads the official ESPHome image. `docker compose logs -f` shows
+   The first start downloads the image, which is based on the official ESPHome image. `docker compose logs -f` shows
    `Home Assistant connected` once the token works.
 
 ## Open ESP Screens
@@ -89,7 +91,7 @@ services:
       - 8098:8098                    # camera images for the screens, published by this container
 
   esp-screens:
-    # ... build, restart, init, secrets, volumes and healthcheck as in docker/compose.yaml ...
+    # ... image, restart, init, secrets, volumes and healthcheck as in docker/compose.yaml ...
     network_mode: "service:homeassistant"   # replaces network_mode: host
     depends_on:
       - homeassistant
@@ -135,12 +137,14 @@ under **Settings → Devices & services** in Home Assistant, and then choose the
 - **Without USB passthrough (app 0.2.68+):** in **New screen**, choose **Download · flash from
   your own computer**. The container builds the firmware, and you put it on the screen with
   [ESPHome Web](https://web.esphome.io) in Chrome or Edge on the computer the screen is plugged into.
+  **This computer · install from this browser** does both in one step, but only on a page served
+  over https (or from `localhost` on the computer that runs the container).
 - **Backups:** Home Assistant backups don't include this container. Keep a copy of
   `data/screens.json` and `data/updates.json` (layouts and update settings) and of the
   ESPHome folder. `data/build`, `data/esphome`, `data/idf` and `data/platformio` are caches.
 - **Claude:** **Install for Claude Code** is meant for the Claude Code app on Home Assistant
   OS. Use **Download for claude.ai** instead.
-- **Camera images (Guition, app 0.2.66+):** the screens load camera pictures, and from app 0.2.77 the
+- **Camera images (every board except the CYD, the Waveshare 3.5-inch and the Hosyond 4-inch):** the screens load camera pictures, and from app 0.2.77 the
   album covers of the media card, from port **8098** of this host, on all its addresses, so keep that port open to the screens. The app uses Home
   Assistant's own LAN address; when the screens reach this host under another one, set
   `SCREEN_CAMERA_URL` (see below). The links are random and short-lived. [docs/CAMERA.md](CAMERA.md)
@@ -148,12 +152,12 @@ under **Settings → Devices & services** in Home Assistant, and then choose the
 ## Updating
 
 ```sh
-docker compose build --pull
+docker compose pull
 docker compose up -d
 ```
 
-This builds the latest version from `main`, the same one the App store offers. To stay on
-one version, replace `main` in `compose.yaml` with a release tag, such as `screens-v0.2.49`.
+This pulls the latest version from `main`, the same one the App store offers. To stay on
+one version, replace `latest` in the `image:` line of `compose.yaml` with a version number, such as `0.3.22`.
 After an update, ESP Screens shows per screen whether newer firmware is available, as usual.
 
 ## Settings in compose.yaml

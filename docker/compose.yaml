@@ -2,14 +2,16 @@
 # Guide: https://github.com/MaxGramser/homeassistant_espscreen/blob/main/docs/DOCKER.md
 #
 # Next to this file, create `ha_token` with a long-lived access token, then:
-#   docker compose up -d --build
+#   docker compose up -d
 
 services:
   esp-screens:
     container_name: esp-screens
-    build:
-      # The same image as the Home Assistant app, built from the main branch.
-      context: https://github.com/MaxGramser/homeassistant_espscreen.git#main:screen_manager
+    # The same image as the Home Assistant app, built by GitHub from the main branch. To stay on one version, use
+    # its number instead of latest, such as :0.3.22. To build it yourself instead (needs git), replace this line with:
+    #   build:
+    #     context: https://github.com/MaxGramser/homeassistant_espscreen.git#main:screen_manager
+    image: ghcr.io/maxgramser/homeassistant_espscreen:latest
     restart: unless-stopped
     # A small init as process 1, like the Home Assistant app gets: it passes on docker stop and reaps finished builds.
     init: true

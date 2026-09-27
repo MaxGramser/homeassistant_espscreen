@@ -1,8 +1,8 @@
-name: ESP Screen Manager
-version: "0.3.12"
+name: Tessera Screen Manager
+version: "0.4.0"
 slug: esp_screen_manager
-description: Choose tiles for your ESP32 touch screens, 2.8 to 10.1 inch, without reflashing.
-url: https://github.com/MaxGramser/homeassistant_espscreen
+description: "Tessera: touch screens for Home Assistant. Choose tiles for your ESP32 screens, 2.8 to 10.1 inch, without reflashing."
+url: https://tessera-maxgramser.on-forge.com
 arch: [aarch64, amd64]
 startup: application
 boot: auto
@@ -14,8 +14,8 @@ ports:
   8098/tcp: 8098
 ports_description:
   8098/tcp: Camera images for the screens (keep 8098)
-panel_icon: mdi:monitor-dashboard
-panel_title: ESP Screens
+panel_icon: mdi:view-grid
+panel_title: Tessera
 panel_admin: true
 options: {}
 schema: {}

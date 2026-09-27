@@ -16,6 +16,7 @@
 #include "screen_input.h"
 #include "light_controls.h"
 #include "effects_page.h"
+#include "group_page.h"
 #include "tile_controls.h"
 #include "history_view.h"
 #include "camera_view.h"
@@ -400,9 +401,10 @@ inline void grid_bind(lv_obj_t *container, int margin, int page_bar_height) {
 inline void live_place(Widgets &w, const Tile &t, int size, int x, int y);
 inline bool live_waiting(const Tile &t);
 inline bool live_marquee_ready(const Widgets &w, const Tile &t);
-// A picture over the whole card of a 1x2 or 2x2 tile: a media player's cover, dimmed under its track (firmware 0.3.1),
-// and a live camera in full colour with its name at the bottom (0.3.3), on a shade the app puts in the picture.
-inline bool tall_art(const Tile &t) {return t.row_span()>1 && !t.full && (t.cover_tile() || t.live());}
+// A picture over the whole card: a media player's cover on a 1x2 or 2x2 tile, dimmed under its track (firmware 0.3.1),
+// and a live camera in full colour with its name at the bottom, on a shade the app puts in the picture: on a 1x2 or 2x2
+// tile since 0.3.3, on every size since 0.3.7 (the small square in the icon's place said too little to be of use).
+inline bool card_art(const Tile &t) {return (t.row_span()>1 && !t.full && t.cover_tile()) || t.live();}
 // All icon fonts carry the same generated glyph set, so the first bound one answers for all.
 inline bool has_icon_glyph(uint32_t codepoint) {
   for (auto &w : widgets) if (w.icon_font) { lv_font_glyph_dsc_t dsc; return lv_font_get_glyph_dsc(w.icon_font, &dsc, codepoint, 0); }
@@ -553,6 +555,25 @@ inline void action(const std::string &service, const std::string &entity, const 
   if(!key.empty()) {esphome::api::HomeassistantServiceMap param;param.key=esphome::StringRef(key);param.value=esphome::StringRef(value);request.data.push_back(param);}
   send_action(request, entity, watch);
   ESP_LOGI("runtime_action","Sent service=%s entity=%s",service.c_str(),entity.c_str());
+}
+// An action whose one value Home Assistant renders itself: a list such as a lamp's hs_color "[20, 100]" does not
+// travel as text (firmware 0.3.9+, the lamp page of a light group).
+inline void action_template(const std::string &service, const std::string &entity, const std::string &key, const std::string &value) {
+  if (!fresh() || !valid_entity(entity)) return;
+  esphome::api::HomeassistantActionRequest request;
+  request.service = esphome::StringRef(service);
+  request.data.init(1);
+  esphome::api::HomeassistantServiceMap target;
+  target.key = esphome::StringRef("entity_id");
+  target.value = esphome::StringRef(entity);
+  request.data.push_back(target);
+  request.data_template.init(1);
+  esphome::api::HomeassistantServiceMap entry;
+  entry.key = esphome::StringRef(key);
+  entry.value = esphome::StringRef(value);
+  request.data_template.push_back(entry);
+  send_action(request, entity, true);
+  ESP_LOGI("runtime_action", "Sent service=%s entity=%s %s", service.c_str(), entity.c_str(), key.c_str());
 }
 // A tap's own action (firmware 0.2.58+): the tile's entity with the data the app sent, text as data and the values Home
 // Assistant renders itself (numbers, lists, true or false) as a data_template.
@@ -3580,8 +3601,20 @@ inline void end_extra(Widgets &w) {
 }
 // Two triangles per segment between the polyline and its baseline. No canvas
 // buffer is needed, so the CYD can afford it as well.
+// The Widgets whose extra layer this is, wherever keep_page moved it: the slots and the kept sets.
+inline Widgets *extra_owner(lv_obj_t *extra) {
+  for (auto &w : widgets) if (w.extra == extra) return &w;
+  for (auto *set : kept_sets) if (set) for (auto &w : *set) if (w.extra == extra) return &w;
+  return nullptr;
+}
 inline void extra_draw(lv_event_t *e) {
-  auto &w=*static_cast<Widgets *>(lv_event_get_user_data(e));
+  // The pointer given at creation names the slot the layer was made in; after keep_page swapped Widgets it may be
+  // another card's, so the layer's own card is looked up when they differ.
+  auto *given=static_cast<Widgets *>(lv_event_get_user_data(e));
+  auto *extra=static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  auto *owner=given && given->extra==extra?given:extra_owner(extra);
+  if(!owner)return;
+  auto &w=*owner;
   if(!w.fill_points || w.fill_count<2 || !w.fill_opa)return;
   auto *layer=lv_event_get_layer(e);lv_area_t area;lv_obj_get_coords(w.extra,&area);
   lv_draw_triangle_dsc_t dsc;lv_draw_triangle_dsc_init(&dsc);dsc.color=w.fill_color;dsc.opa=w.fill_opa;
@@ -3598,12 +3631,16 @@ inline void begin_extra(Widgets &w,const char *mode,int width,int height) {
     lv_obj_add_event_cb(w.extra,extra_draw,LV_EVENT_DRAW_MAIN,&w);
     // LVGL draws the children of an object whose overflow is visible only as far as its own extra draw size: a clock
     // face asks for the card's padding, so its dial and a date's descenders show up to the card's edge.
+    // It reads the object itself and its card, never a Widgets pointer: kept pages swap whole Widgets between a slot
+    // and a kept set (keep_page), so a pointer given here would name another card, or a fresh one without parts, and
+    // LVGL asks for this size in any layout pass, also of a hidden kept page (firmware 0.3.6 crash-looped on it).
     lv_obj_add_event_cb(w.extra,[](lv_event_t *e){
-      auto *owner=static_cast<Widgets *>(lv_event_get_user_data(e));
-      if(lv_obj_has_flag(owner->extra,LV_OBJ_FLAG_OVERFLOW_VISIBLE))
-        lv_event_set_ext_draw_size(e,std::max({lv_obj_get_style_space_left(owner->tile,LV_PART_MAIN),lv_obj_get_style_space_top(owner->tile,LV_PART_MAIN),
-                                               lv_obj_get_style_space_right(owner->tile,LV_PART_MAIN),lv_obj_get_style_space_bottom(owner->tile,LV_PART_MAIN)}));
-    },LV_EVENT_REFR_EXT_DRAW_SIZE,&w);
+      auto *extra=static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+      auto *tile=extra?lv_obj_get_parent(extra):nullptr;
+      if(tile && lv_obj_has_flag(extra,LV_OBJ_FLAG_OVERFLOW_VISIBLE))
+        lv_event_set_ext_draw_size(e,std::max({lv_obj_get_style_space_left(tile,LV_PART_MAIN),lv_obj_get_style_space_top(tile,LV_PART_MAIN),
+                                               lv_obj_get_style_space_right(tile,LV_PART_MAIN),lv_obj_get_style_space_bottom(tile,LV_PART_MAIN)}));
+    },LV_EVENT_REFR_EXT_DRAW_SIZE,nullptr);
   }
   if(w.extra_mode!=mode || w.extra_full!=w.full){end_extra(w);w.extra_mode=mode;w.extra_full=w.full;w.points=(w.extra_mode=="tall"||w.extra_mode=="cover_tilt")?nullptr:new lv_point_precise_t[POINT_BUFFER];w.cached_active=-1;}
   w.fill_points=nullptr;w.fill_count=0;
@@ -4763,6 +4800,25 @@ inline const lv_font_t *heading_icon(const Widgets &w,int &circle,int max_side,i
   circle=std::min({w.base_circle,max_side,width/2});
   return circle>=w.base_circle?w.icon_font:mini_icon_font;
 }
+// A live camera's picture is the card, on every size: its name at the bottom on the shade the app made there, or
+// nothing on it at all. A camera's state ("Idle") says nothing next to its own picture. The name stands where the
+// picture will put it while the card waits for it, so the card does not move when the picture comes. False for a
+// camera the app has no picture of (or a screen that cannot ask now): the caller then draws the head its size has.
+inline bool render_camera_card(Widgets &w,const Tile &t,int width,int height){
+  live_place(w,t,0,0,0);
+  const bool photo=w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN),waiting=!photo&&live_waiting(t);
+  set_loading(w,waiting,width,height);
+  if(!photo&&!waiting)return false;
+  // A tall card to style_tall, which gives the name the picture's ink; it only has no parts of its own.
+  hide_panel(w);begin_extra(w,"tall",width,height);
+  for(auto *part:w.parts)if(part)lv_obj_add_flag(part,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(w.unit,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(w.circle,LV_OBJ_FLAG_HIDDEN);set_hidden(w.value,true);set_hidden(w.title,!t.overlay);
+  const int name_h=lv_font_get_line_height(w.title_font);
+  set_font(w.title,w.title_font);set_text_align(w.title,LV_TEXT_ALIGN_LEFT);
+  lv_obj_set_pos(w.title,0,height-name_h);lv_obj_set_size(w.title,width,name_h);
+  return true;
+}
 // False only for a full-page cover whose slat group cannot be drawn here (no tilt, or too little room): the caller
 // then draws the ordinary full card with the primary controls, untouched by this function.
 inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int height) {
@@ -4808,22 +4864,6 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
   set_font(w.value,w.value_font);set_text_align(w.value,LV_TEXT_ALIGN_LEFT);
   lv_obj_set_pos(w.value,tx,y+m.name_h);lv_obj_set_size(w.value,tw,m.state_h);set_hidden(w.value,!l.state);
   live_place(w,t,circle,0,(l.header.h-circle)/2);
-  // A camera's picture is the card: its name at the bottom on the shade the app made there, or nothing on it at all.
-  // A camera's state ("Idle") says nothing next to its own picture. Until the picture is here, the head as above.
-  if(tall_art(t)&&t.live()){
-    // Still a tall card, so style_tall gives the name the picture's ink; it only has no parts of its own.
-    hide_panel(w);begin_extra(w,"tall",width,height);
-    for(auto *part:w.parts)if(part)lv_obj_add_flag(part,LV_OBJ_FLAG_HIDDEN);
-    const bool photo=w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN),waiting=!photo&&live_waiting(t);
-    set_loading(w,waiting,width,height);
-    // The name stands where the picture will put it, so the card does not move when the picture comes. A camera the
-    // app has no picture of keeps the head above.
-    if(photo||waiting){
-      lv_obj_add_flag(w.circle,LV_OBJ_FLAG_HIDDEN);set_hidden(w.value,true);set_hidden(w.title,!t.overlay);
-      lv_obj_set_pos(w.title,0,height-m.name_h);lv_obj_set_size(w.title,width,m.name_h);
-    }else set_hidden(w.title,false);
-    return true;
-  }
   if(cover.fits){render_cover_tile(w,t,cover,width,height);return true;}
   bool panel=selected&&layout_panel(w,t,large,width,height);
   if(!panel)hide_panel(w);
@@ -4974,8 +5014,8 @@ inline void style_tall(Widgets &w,const Tile &t){
     }
     set_color(w.pill_value,LV_STYLE_TEXT_COLOR,theme::color(tile_controls::climate_off(t)?theme::MUTED:theme::INK));
   }
-  if(t.row_span()<2||t.full||w.extra_mode!="tall")return;
-  const bool photo=tall_art(t)&&w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN);
+  if(w.extra_mode!="tall"||(!t.live()&&(t.row_span()<2||t.full)))return;
+  const bool photo=card_art(t)&&w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN);
   const auto ink=theme::color(photo?theme::CAMERA_INK:theme::INK),muted=theme::color(photo?theme::CAMERA_INK:theme::MUTED);
   set_color(w.title,LV_STYLE_TEXT_COLOR,ink);set_color(w.value,LV_STYLE_TEXT_COLOR,muted);
   for(unsigned i=0;i<2;++i)if(w.parts[i])set_color(w.parts[i],LV_STYLE_TEXT_COLOR,i?muted:ink);
@@ -5091,7 +5131,7 @@ inline void render_slot(size_t slot) {
   const auto &t = model.tiles[w.index];
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.
-  if(w.loading&&!(tall_art(t)&&t.live()))lv_obj_add_flag(w.loading,LV_OBJ_FLAG_HIDDEN);
+  if(w.loading&&!(card_art(t)&&t.live()))lv_obj_add_flag(w.loading,LV_OBJ_FLAG_HIDDEN);
   label(w.title, t.name.empty() ? t.entity : t.name);
   label(w.icon, icon_for(t));
   bool watch=t.display=="watch";
@@ -5192,7 +5232,9 @@ inline void render_slot(size_t slot) {
   lap(swipe_profile::BUSY);
   for(auto *o:{w.title,w.value,w.circle,w.unit})set_hidden(o,custom);  // a big-value card on a short cell hides its circle again below
   if(custom && w.picture)lv_obj_add_flag(w.picture,LV_OBJ_FLAG_HIDDEN);
-  if((taller||(w.full&&(tile_controls::cover_tilt_selected(t)||tile_controls::climate_modes_selected(t))))&&!custom&&!watch&&!graph&&
+  if(t.live()&&render_camera_card(w,t,content_w,content_h)){
+    lap(swipe_profile::GEOMETRY);
+  }else if((taller||(w.full&&(tile_controls::cover_tilt_selected(t)||tile_controls::climate_modes_selected(t))))&&!custom&&!watch&&!graph&&
      render_tall(w,t,with_panel,content_w,content_h)){
     lap(swipe_profile::GEOMETRY);
   }else if(w.full){
@@ -5369,7 +5411,7 @@ inline void render_slot(size_t slot) {
   // A closed blind's slider keeps the blind's colour while its card is grey, as in Home Assistant (Tile::slider_active).
   bool slider_on = fresh() && t.slider_active();
   bool available=fresh() && t.available();
-  int palette_state=(available?2:0)|(on?1:0)|(slider_on?4:0)|((tall_art(t)&&w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN))?8:0);
+  int palette_state=(available?2:0)|(on?1:0)|(slider_on?4:0)|((card_art(t)&&w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN))?8:0);
   // An alarm panel's circle beats while it counts down or goes off, and springs once when it arms or disarms.
   if (d == "alarm_control_panel" || alarm_tile_looks[slot] || alarm_tile_marks[slot]) alarm_tile_look(slot, &t);
   if (w.cached_active == palette_state && !w.panel_dirty) { style_tall(w,t);lap(swipe_profile::GEOMETRY); return; }
@@ -5377,12 +5419,9 @@ inline void render_slot(size_t slot) {
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
   uint32_t accent=tile_controls::accent(t);
   // A lamp's own colour goes through Home Assistant's contrast rule before it reaches the glass
-  // (hui-tile-card._computeStateColor, firmware 0.2.98+): anything under 40 % saturation is lifted to 40 %, or a
-  // pale bulb paints the tile in a colour that is no colour. Under 10 % there is nothing left to lift and Home
-  // Assistant only dims the white a little; a white icon on a dark card, or on a card of its own colour, then says
-  // the same as the grey of something off, so a white bulb keeps the amber of a lamp that is on.
-  if(d=="light" && on && t.has_hs_color && t.saturation>=10)
-    accent=lv_color_to_u32(lv_color_hsv_to_rgb(t.hue%360,t.saturation<40?40:t.saturation,100))&0xFFFFFF;
+  // (tile_controls::lamp_color, shared with the lamp page of a group): a white bulb keeps the amber of a lamp that is on.
+  if(d=="light" && on && t.has_hs_color)
+    accent=tile_controls::lamp_color(t.hue,t.saturation);
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
   auto circle_color=lv_color_hex(available?theme::tint(state_color,38):theme::hex(theme::TRACK));
@@ -5465,7 +5504,51 @@ inline void refresh_header_only() { dirty_header=true; if(refresh)refresh(); }
 inline void refresh_all() { mark_all(); if(refresh)refresh(); }
 // The starting screen (firmware 0.2.73+): what the screen waits for in the middle of the page with a spinner under it,
 // until the first layout arrives. The first render() makes it and the first layout deletes it, spinner and all.
-inline lv_obj_t *boot_panel = nullptr, *boot_text = nullptr, *boot_spinner = nullptr;
+// Above the text stands the Tessera lockup (firmware 0.3.8+): the mosaic mark beside the name, as the website draws it.
+inline const lv_font_t *brand_font = nullptr;
+inline const void *brand_mark = nullptr;  // the image's lv_image_dsc_t, from the YAML
+inline lv_obj_t *boot_panel = nullptr, *boot_text = nullptr, *boot_spinner = nullptr, *boot_brand = nullptr;
+// The mark and the name side by side in one box, sized to what they hold. Null where the build has neither.
+inline lv_obj_t *boot_brand_create(lv_obj_t *parent) {
+  if (!brand_font && !brand_mark) return nullptr;
+  auto *box = lv_obj_create(parent);
+  lv_obj_remove_style_all(box);
+  lv_obj_remove_flag(box, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+  int width = 0, height = 0, mark = 0;
+  lv_obj_t *image = nullptr;
+#if LV_USE_IMAGE
+  if (brand_mark) {
+    image = lv_image_create(box);
+    lv_image_set_src(image, brand_mark);
+    lv_obj_remove_flag(image, LV_OBJ_FLAG_CLICKABLE);
+    mark = static_cast<const lv_image_dsc_t *>(brand_mark)->header.w;
+    width = mark;
+    height = static_cast<const lv_image_dsc_t *>(brand_mark)->header.h;
+  }
+#endif
+  if (brand_font) {
+    // The website's wordmark: bold, the letters drawn a little closer together (-0.04 em).
+    const int space = -(int) lv_font_get_line_height(brand_font) / 28;
+    auto *name = lv_label_create(box);
+    lv_obj_add_style(name, theme::style(theme::Paint::ink), 0);
+    lv_obj_set_style_text_font(name, brand_font, 0);
+    lv_obj_set_style_text_letter_space(name, space, 0);
+    lv_label_set_text(name, "tessera");
+    lv_point_t size;
+    lv_text_get_size(&size, "tessera", brand_font, space, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    const int gap = mark ? mark / 3 : 0;
+    // Centred on the mark, as the website's header lines them up.
+    const int line = lv_font_get_line_height(brand_font);
+    lv_obj_set_pos(name, width + gap, (std::max(height, line) - line) / 2);
+    width += gap + size.x;
+    height = std::max(height, line);
+  }
+  // The mark centred on the name's line too, where that is the taller.
+  if (image) lv_obj_set_y(image, (height - (int) static_cast<const lv_image_dsc_t *>(brand_mark)->header.h) / 2);
+  lv_obj_set_size(box, width, height);
+  return box;
+}
 // `cover`: over everything on the page, opaque, with the spinner turning ("Preparing pages", firmware 0.3.2+).
 inline void boot_status(lv_obj_t *page, const char *text, bool waiting = true, bool cover = false) {
   const int width = lv_display_get_horizontal_resolution(lv_obj_get_display(page));
@@ -5480,6 +5563,7 @@ inline void boot_status(lv_obj_t *page, const char *text, bool waiting = true, b
     lv_obj_set_size(boot_panel, lv_pct(100), lv_pct(100));
     // The name's place in the drawing order: under the tiles, the cards and an alert.
     lv_obj_move_to_index(boot_panel, lv_obj_get_index(room_label));
+    boot_brand = boot_brand_create(boot_panel);
     boot_text = lv_label_create(boot_panel);
     lv_obj_add_style(boot_text, theme::style(theme::Paint::ink), 0);
     lv_obj_set_style_text_font(boot_text, font, 0);
@@ -5502,11 +5586,17 @@ inline void boot_status(lv_obj_t *page, const char *text, bool waiting = true, b
   }
   if (boot_spinner) set_hidden(boot_spinner, !waiting);
   lv_label_set_text(boot_text, text);
-  // The text and the spinner as one block in the middle of the page.
+  // The lockup, the text and the spinner as one block in the middle of the page, the lockup a wider step away: it
+  // names the screen, the text and the spinner say what it waits for.
   lv_point_t size;
   lv_text_get_size(&size, text, font, 0, 0, text_width, LV_TEXT_FLAG_NONE);
-  lv_obj_align(boot_text, LV_ALIGN_CENTER, 0, waiting ? -(ring + gap) / 2 : 0);
-  if (boot_spinner) lv_obj_align(boot_spinner, LV_ALIGN_CENTER, 0, (size.y + gap) / 2);
+  const int brand = boot_brand ? lv_obj_get_height(boot_brand) : 0, brand_gap = boot_brand ? 2 * gap : 0;
+  const int block = brand + brand_gap + size.y + (waiting ? gap + ring : 0);
+  int top = -block / 2;
+  if (boot_brand) { lv_obj_align(boot_brand, LV_ALIGN_CENTER, 0, top + brand / 2); top += brand + brand_gap; }
+  lv_obj_align(boot_text, LV_ALIGN_CENTER, 0, top + size.y / 2);
+  top += size.y + gap;
+  if (boot_spinner) lv_obj_align(boot_spinner, LV_ALIGN_CENTER, 0, top + ring / 2);
 }
 // A line of fun under "Preparing pages", about what the page being built holds: a joke is welcome where nothing is at
 // stake, and waiting for a screen to load is such a moment. Its first tile of a kind with a line of its own picks it;
@@ -5560,7 +5650,7 @@ inline void render(lv_obj_t *room) {
   if (!model.configured && !model.refusal.empty()) boot_status(lv_obj_get_parent(room), tr(txt::tile_refused), false);
   else if (!model.configured) boot_status(lv_obj_get_parent(room), tr(!ha_connected() ? txt::status_connecting : transfer.begun ? txt::status_loading_tiles : txt::status_waiting));
   else if (preparing.foreground) prepare_status();
-  else if (boot_panel) { lv_obj_delete(boot_panel); boot_panel = boot_text = boot_spinner = nullptr; }
+  else if (boot_panel) { lv_obj_delete(boot_panel); boot_panel = boot_text = boot_spinner = boot_brand = nullptr; }
   name_label(room, !model.configured ? std::string() : !model.ready() ? tr(txt::status_loading_tiles) : !ha_connected() ? tr(txt::status_ha_not_connected) : !feed_alive() ? tr(txt::status_manager_not_active) : model.title_of(applied_page));
   render_header();
   lap(swipe_profile::HEADER);
@@ -6694,7 +6784,7 @@ inline void cover_tick(uint32_t now) {
 // "display": "cover" the album cover of what plays. The pictured tiles of the page on screen share one image: the
 // screen asks for them together (the entities in slot order, the size of the icon's circle and the colour of each tile
 // behind the rounded corners) and the app serves one strip of squares, top to bottom, that every tile takes its own
-// square out of (LVGL's image offset). One download per page at the pace of the fastest camera, 15 or 30 s, in the
+// square out of (LVGL's image offset). One download per page at the pace of the fastest camera, 5 to 30 s, in the
 // board's third online_image; a page of covers alone loads once. It waits for the alert's picture, a cover or the
 // camera full screen: one picture loads at a time. A page turn, a card over the page, another look or another track
 // (the picture's mark in the media state) changes what is wanted: the strip is dropped and asked for again.
@@ -6733,7 +6823,7 @@ inline LiveWish live_wanted() {
   if (!model.ready()) return want;
   bool atlas=false;
   for(const auto &w:widgets)
-    if(w.tile&&!lv_obj_has_flag(w.tile,LV_OBJ_FLAG_HIDDEN)&&w.index<model.count&&tall_art(model.tiles[w.index]))atlas=true;
+    if(w.tile&&!lv_obj_has_flag(w.tile,LV_OBJ_FLAG_HIDDEN)&&w.index<model.count&&card_art(model.tiles[w.index]))atlas=true;
   if(atlas){
     lv_obj_update_layout(tile_grid);want.atlas="[";
     // The atlas starts at the top left of its pictures, not of the glass: a picture at the bottom right would
@@ -6741,7 +6831,7 @@ inline LiveWish live_wanted() {
     want.atlas_x=want.atlas_y=INT32_MAX;
     for(auto &w:widgets){
       if(!w.tile||lv_obj_has_flag(w.tile,LV_OBJ_FLAG_HIDDEN)||w.index>=model.count||!model.tiles[w.index].pictured())continue;
-      lv_area_t b;lv_obj_get_coords(tall_art(model.tiles[w.index])?w.tile:w.circle,&b);
+      lv_area_t b;lv_obj_get_coords(card_art(model.tiles[w.index])?w.tile:w.circle,&b);
       want.atlas_x=std::min<int>(want.atlas_x,b.x1);want.atlas_y=std::min<int>(want.atlas_y,b.y1);
     }
     if(want.atlas_x==INT32_MAX)want.atlas_x=want.atlas_y=0;
@@ -6753,19 +6843,20 @@ inline LiveWish live_wanted() {
     if (!want.entities.empty()) { want.entities += ','; want.grounds += ','; want.marks += ','; }
     want.entities += t.entity;
     char ground[8];
-    snprintf(ground, sizeof(ground), "%06X", (unsigned) ((t.transparent||tall_art(t)) ? theme::hex(theme::PAGE) : theme::surface(t.background)));
+    snprintf(ground, sizeof(ground), "%06X", (unsigned) ((t.transparent||card_art(t)) ? theme::hex(theme::PAGE) : theme::surface(t.background)));
     if(atlas){
-      lv_area_t bounds;lv_obj_get_coords(tall_art(t)?w.tile:w.circle,&bounds);
+      lv_area_t bounds;lv_obj_get_coords(card_art(t)?w.tile:w.circle,&bounds);
       const int width=lv_area_get_width(&bounds),height=lv_area_get_height(&bounds);
-      const int radius=tall_art(t)?lv_obj_get_style_radius(w.tile,LV_PART_MAIN):width/6;
+      const int radius=card_art(t)?lv_obj_get_style_radius(w.tile,LV_PART_MAIN):width/6;
       char frame[96];snprintf(frame,sizeof(frame),"%s[%d,%d,%d,%d,%d,%d]",want.atlas.size()>1?",":"",
-        (int)bounds.x1-want.atlas_x,(int)bounds.y1-want.atlas_y,width,height,std::min(radius,std::min(width,height)/2),tall_art(t)&&!t.live()?170:0);
+        (int)bounds.x1-want.atlas_x,(int)bounds.y1-want.atlas_y,width,height,std::min(radius,std::min(width,height)/2),card_art(t)&&!t.live()?170:0);
       want.atlas+=frame;
     }
     want.grounds += ground;
     if (t.cover_tile()) want.marks += t.extra().media_picture;
     if (!want.size) want.size = lv_obj_get_style_width(w.circle, LV_PART_MAIN);
-    if (t.live()) { want.cameras = true; want.every = std::min<uint32_t>(want.every, t.refresh * 1000u); }
+    // The page's pace is its quickest camera's: a page of 30 s cameras loaded every 15 s before firmware 0.3.7.
+    if (t.live()) { want.every = want.cameras ? std::min<uint32_t>(want.every, t.refresh * 1000u) : t.refresh * 1000u; want.cameras = true; }
   }
   if(atlas)want.atlas+="]";
   return want;
@@ -6838,7 +6929,7 @@ inline void live_place(Widgets &w, const Tile &t, int size, int x, int y) {
     lv_image_set_src(w.picture, src);
     if(!live_wish.atlas.empty()){
       lv_area_t tile;lv_obj_get_coords(w.tile,&tile);
-      const bool background=tall_art(t);
+      const bool background=card_art(t);
       const int left=lv_obj_get_style_space_left(w.tile,LV_PART_MAIN),top=lv_obj_get_style_space_top(w.tile,LV_PART_MAIN);
       const int ax=tile.x1+(background?0:left+x)-live_wish.atlas_x,ay=tile.y1+(background?0:top+y)-live_wish.atlas_y;
       const int width=background?lv_obj_get_width(w.tile):size,height=background?lv_obj_get_height(w.tile):size;
@@ -6853,7 +6944,7 @@ inline void live_place(Widgets &w, const Tile &t, int size, int x, int y) {
     lv_obj_remove_flag(w.picture, LV_OBJ_FLAG_HIDDEN);
     lv_obj_invalidate(w.picture);
   } else if (w.picture) lv_obj_add_flag(w.picture, LV_OBJ_FLAG_HIDDEN);
-  set_hidden(w.circle, src != nullptr && !tall_art(t));
+  set_hidden(w.circle, src != nullptr && !card_art(t));
 #else
   (void) w; (void) t; (void) size; (void) x; (void) y;
 #endif
@@ -6862,7 +6953,7 @@ inline void live_place(Widgets &w, const Tile &t, int size, int x, int y) {
 // until the picture is placed (or the load has failed), then reuse LVGL's reading
 // pause. No extra animation or per-tile timer is needed.
 inline bool live_marquee_ready(const Widgets &w, const Tile &t) {
-  if (!tall_art(t) || !live_supported()) return true;
+  if (!card_art(t) || !live_supported()) return true;
   // A picture already on the glass keeps its title scrolling through a refresh: pausing it for every camera round
   // started a long title from its first letter again, so it was never read to the end (firmware 0.3.1).
   if (w.picture && !lv_obj_has_flag(w.picture, LV_OBJ_FLAG_HIDDEN) && list_index(live_have, t.entity) >= 0) return true;
@@ -6874,7 +6965,7 @@ inline void live_marquees() {
   for (auto &w : widgets) {
     if (!w.tile || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN) || w.index >= model.count || w.extra_mode != "tall") continue;
     const auto &t = model.tiles[w.index];
-    if (tall_art(t)) marquee(w.parts[0], true, live_marquee_ready(w, t));
+    if (card_art(t)) marquee(w.parts[0], true, live_marquee_ready(w, t));
   }
 }
 // Asks for the page's strip: `esphome.screen_camera` with the tiles, the size and the grounds (app 0.2.91+).

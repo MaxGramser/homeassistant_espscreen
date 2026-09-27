@@ -327,8 +327,8 @@ class Editor(unittest.IsolatedAsyncioTestCase):
                 answer = await client.post('/api/screens/text.screen/identify', headers={'X-Screen-CSRF': csrf})
                 self.assertEqual(answer.status, 200)
             texts = [(action, data['title'], data['subtitle'], data['button_text']) for action, data in ha.calls]
-            self.assertEqual(texts, [('esphome.office_1_show_alert', 'This is Office 1', 'Identify, from ESP Screens', 'OK'),
-                                     ('esphome.office_1_show_alert', '[xx] This is Office 1', '[xx] Identify, from ESP Screens', '[xx] OK')])
+            self.assertEqual(texts, [('esphome.office_1_show_alert', 'This is Office 1', 'Identify, from Tessera', 'OK'),
+                                     ('esphome.office_1_show_alert', '[xx] This is Office 1', '[xx] Identify, from Tessera', '[xx] OK')])
             i18n.set_screens('en', 'point')
 
     async def test_a_tile_event_answers_home_assistant_in_english(self):

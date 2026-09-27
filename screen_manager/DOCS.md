@@ -1,6 +1,6 @@
 # Installation and everyday use
 
-See [the full installation guide](https://github.com/MaxGramser/homeassistant_espscreen/blob/main/docs/EASY_SETUP.md).
+Tessera is the new name for ESP Screens; the app and your screens are the same. The [quick start](https://tessera-maxgramser.on-forge.com/docs/quick-start) and [the full installation guide](https://tessera-maxgramser.on-forge.com/docs/getting-started) are on the Tessera website, with [the screens that work](https://tessera-maxgramser.on-forge.com/screens).
 
 Open **New screen** in the sidebar to install a screen: connect it via USB to the
 Home Assistant machine, choose the board, name and USB port, then click **Install**.
@@ -8,18 +8,19 @@ The profile with unique keys goes into the ESPHome folder of the HA configuratio
 any missing Wi-Fi goes into `secrets.yaml` (existing secrets are left untouched), and the
 build and flash run in the same window; it then shows the API key
 for pairing. Is the Home Assistant machine out of reach of the screen, such as a server or a
-virtual machine? Choose **Download** under **Install via**: ESP Screens builds the firmware and
-you put it on the screen from your own computer with [ESPHome Web](https://web.esphome.io) in
-Chrome or Edge. Pairing itself happens in Home Assistant under **Settings → Devices & services** (a button in the window and on the *not yet in Home Assistant* card under Screens in the sidebar). Each screen has its own profile. **Firmware & USB** in the sidebar is
-for existing profiles: check, build or reinstall via USB, the IP address (OTA) or
-Download. Existing ESPHome profiles in the HA config folder are
+virtual machine? Plug it into your own computer and choose **This computer** under **Install via**:
+Tessera builds the firmware and the page puts it on the screen, in Chrome or Edge with Home
+Assistant opened over https. Or choose **Download** and put it on the screen with
+[ESPHome Web](https://web.esphome.io). Pairing itself happens in Home Assistant under **Settings → Devices & services** (a button in the window and on the *not yet in Home Assistant* card under Screens in the sidebar). Each screen has its own profile. **Firmware & USB** in the sidebar is
+for existing profiles: check, build or reinstall via USB, the IP address (OTA), this computer
+or Download. Existing ESPHome profiles in the HA config folder are
 found automatically.
 
 **Alerts** in the sidebar is the cheatsheet, with a form to try an alert
 (an alert on one screen, or on every screen with the `esp_screens_show_alert` event). Its **One screen** part
 lists what to fill in after `screen:` for each screen, for an alert with a camera picture on one screen.
 **Settings** in the sidebar has the nightly firmware updates (the Update badge of a screen lists what's new, a
-running update shows its progress) and **Claude**: install the ESP Screens skill for Claude Code in Home Assistant, or
+running update shows its progress) and **Claude**: install the Tessera skill for Claude Code in Home Assistant, or
 download it for claude.ai, and ask Claude for the alert automation.
 
 Tap the bar at the top of any page in the mockup to set the **Top bar** of a screen: the name on the left, up
@@ -27,7 +28,7 @@ to six items on the right (time, analog clock, date, or an entity with an icon, 
 temperature, a door, the alarm, or "last changed"). Drag to reorder, tap
 to configure; firmware 0.2.32 or newer renders them.
 
-After pairing via the HA ESPHome integration, choose the tiles in ESP Screens.
+After pairing via the HA ESPHome integration, choose the tiles in Tessera.
 Tap a tile and its settings open in a drawer on the right, with the mockup still in view: click behavior, larger values, mini-sliders, a wider tile or one over the whole page, backgrounds.
 The mockup shows what Home Assistant reports right now: values, On or Off, positions, the song that plays. **Identify** in the ··· menu blinks a screen so you know which one it is; the same menu copies the layout of another screen, or exports and imports one as JSON. ⌘K searches screens, entities and actions.
 **Screen settings**, the tab next to Layout, has brightness, Dark mode and standby, the night hours, and the

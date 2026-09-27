@@ -20,15 +20,27 @@ changes them with the entity's own action, and leaves them out of the layout mes
 | Auto standby | `switch.<screen>_auto_standby` | `standby_enabled` |
 | Standby after | `number.<screen>_standby_after` | `standby_seconds` |
 | Standby brightness | `number.<screen>_standby_brightness` | `standby_brightness` |
+| Screen on in standby (backlight without levels) | `number.<screen>_standby_brightness` (0 or 100) | `standby_brightness` |
 | Night mode | `switch.<screen>_night_mode` | `night_enabled` |
 | Starts, Ends | `time.<screen>_night_starts`, `time.<screen>_night_ends` | `night_start`, `night_end` |
 | Night brightness | `number.<screen>_night_brightness` | `night_brightness` |
-| Back to page 1, After | `switch.<screen>_back_to_page_1`, `number.<screen>_back_to_page_1_after` | `auto_home`, `auto_home_seconds` |
+| Screen on at night (backlight without levels) | `number.<screen>_night_brightness` (0 or 100) | `night_brightness` |
+| Back to Home, After | `switch.<screen>_back_to_page_1`, `number.<screen>_back_to_page_1_after` | `auto_home`, `auto_home_seconds` |
 | Also on standby | `switch.<screen>_back_to_page_1_on_standby` | `home_on_standby` |
 | Swipe between pages | `switch.<screen>_swipe_between_pages` | `swipe_pages` |
 | Page buttons (0.2.69+) | `switch.<screen>_page_buttons` | `page_buttons` |
 | Show home button (0.2.100+) | `switch.<screen>_show_home_button` | `home_button` |
 | Rotation | `select.<screen>_rotation` | `rotation` (0.2.80+ on every board: a half turn on any glass, the quarter turns as well on a square one) |
+
+The row on the screen and in the editor says Back to Home; its three entities keep the names
+"Back to page 1", "Back to page 1 after" and "Back to page 1 on standby", which `SETTING_ENTITIES` and
+`OWNED_SETTINGS_MARKERS` match on. Don't rename them.
+
+Not every board has every row. A board whose screen cannot go dark (`CAN_STANDBY` false: the Waveshare 4.3 and
+7 inch) has no Auto standby, Standby after, Standby brightness, Also on standby or Night group, on the screen, in
+Home Assistant or in ESP Screens. A board whose backlight takes no levels (`BACKLIGHT_DIMMABLE` false) has no
+Brightness row and shows Standby and Night brightness as the Screen on in standby and Screen on at night toggles,
+which write 0 or 100 to the same keys.
 
 The 12 or 24-hour clock was a row and an entity of its own (`switch.<screen>_24_hour_clock`) from firmware 0.2.49 to
 0.2.75. Since app 0.2.90 and firmware 0.2.76 it is one setting for every screen, with the language and the number format:
@@ -46,7 +58,7 @@ layout without sending it back.
 
 ## What the user sees
 
-Holding the top bar of the overview for about one and a half seconds opens the page; a blue line grows
+Holding the top bar of the overview for about one and a half seconds opens the page; a line in the accent colour grows
 along the top edge while you hold, and letting go before it finishes cancels. A screen can also carry a
 `screen.settings` tile, which opens the page with or without Home Assistant, and Home Assistant can open it
 with `esphome.<screen>_open_settings`.
@@ -55,23 +67,25 @@ The page is a menu of groups, each of which opens a page of its own:
 
 | Group | Rows |
 |---|---|
-| Brightness | Brightness, Dark mode, Auto standby, Standby after, Standby brightness |
-| Night | Night mode, Starts, Ends, Night brightness |
-| Screen | Clock, Back to page 1, After, Also on standby, Swipe between pages, Page buttons, Show home button, Rotation (boards that turn) |
-| This screen | Screen, Address, Firmware, Home Assistant, Calibrate touch (a panel that has a wizard), Restart |
+| Brightness | Brightness (dimmable backlight), Dark mode, Auto standby, Standby after, Standby brightness or Screen on in standby (boards that can go dark) |
+| Night (boards that can go dark) | Night mode, Starts, Ends, Night brightness or Screen on at night |
+| Screen | Back to Home, After, Also on standby (boards that can go dark), Swipe between pages, Page buttons, Show home button, Rotation |
+| This screen | Screen, Address, Firmware, Home Assistant, Calibrate touch (a resistive panel that has a wizard), Restart |
 
 Every change is stored on the screen, applied at once and published on its entity, so Home Assistant and
 ESP Screens show it within a second. The editor's **Screen settings** panel has the first three groups as
-cards with the same rows: a switch for a toggle, `-` and `+` that repeat while held, chips for the clock
-and the rotation. A change there applies at once, without Save. An offline screen shows its values as
+cards with the same rows: a switch for a toggle, `-` and `+` that repeat while held, chips for the
+rotation. A screen whose device has a Calibrate touch button also gets a This screen card with that button.
+The 12 or 24-hour clock is not on this panel: it is Settings → Language & region, for every screen. A change there applies at once, without Save. An offline screen shows its values as
 unknown and takes no changes until it is back.
 
 ## The rules the page follows
 
 - **Two levels, never three.** A group page is the deepest place a setting can live.
 - **No free scrolling.** A group that does not fit gets the same pager as the tile pages: a chevron in each
-  half of the bar and a dot per page between them (firmware 0.2.69+). A 320x240 board shows five rows, a
-  480x480 board six; with the pager four and five.
+  half of the bar and a dot per page between them (firmware 0.2.69+). How many rows fit is measured on
+  the glass (`fitting_rows()` in `settings_screen.h`): a 320x240 board shows five rows, a 480x480 board six;
+  with the pager four and five.
 - **A row is a control, not a form.** Toggles flip on tap, numbers and times have `-` and `+`, a choice
   cycles through its options in a chip on the right.
 - **A row that depends on a switch above it is greyed out, not hidden**, so the page never jumps around.
@@ -95,7 +109,7 @@ settings, so a new setting never travels in the layout message.
 
 ```cpp
 // settings_screen.h, next to the others
-inline int32_t swipe_pages = 0, rotation = 0, auto_home = 1, auto_home_seconds = 120, beep = 0;
+inline int32_t swipe_pages = 0, rotation = 0, auto_home = 1, auto_home_seconds = 120, dark_mode = 0, page_buttons = 1, beep = 0;
 ```
 
 ### 2. The one write path, and the row
@@ -108,10 +122,12 @@ already has is not stored, applied or reported again:
 else if (key == "beep") reported = beep = flag(value);
 ```
 
-Then one line in the table of the group it belongs to:
+Then one line in the table of the group it belongs to. A row's label is a key into the screen's language
+(`screen.settings` in `screen_manager/translations/en.json`, turned into `screen_text_keys.h` by `tools/i18n.py`),
+not a string:
 
 ```cpp
-toggle("Beep on touch", [] { return beep; }, [](int32_t value) { set("beep", value); }),
+toggle(screen_text::txt::settings_beep, []() -> int32_t { return beep; }, [](int32_t value) { set("beep", value); }),
 ```
 
 `set()` calls `changed(key, value)`, which stores, applies and reports in one go; `key` must be the add-on's
@@ -128,7 +144,7 @@ it presses the screen's own entity for it: `Calibrate touch` is a button on the 
 there is also how the app knows this screen has a wizard at all (`core.calibrate_entity`).
 
 Watch the count: a group of more than five rows gets a pager on a 320x240 board. Six is the maximum
-that still fits a 480x480 board in one go.
+that still fits a 480x480 board in one go. The Screen group already has seven rows.
 
 ### 3. The entity
 
@@ -152,8 +168,9 @@ The screen's preferences hold the value, so the entity reads it in a lambda inst
 (`restore_value` cannot be combined with a lambda). A switch publishes its own changes. A number, time or
 select takes `update_interval: never` and one line in `apply_screen_settings`, which publishes it when it
 differs; that script runs after every change and on every Home Assistant connection (the time sync), so the
-entity has a value before Home Assistant reads the states. A setting only some boards have goes into their board
-files instead, like the Rotation select of the Guition (docs/PROFILES.md).
+entity has a value before Home Assistant reads the states. A setting only some boards have is hidden
+by a board fact rather than written into one board file: `shown` on the row, and on the entity the
+`internal` switch that `packages/features/backlight-always-on.yaml` uses for `CAN_STANDBY` (docs/PROFILES.md).
 
 ### 4. The add-on
 
@@ -163,7 +180,8 @@ files instead, like the Rotation select of the Guition (docs/PROFILES.md).
 - `screen_manager/app/server.py`: `settings_view` already leaves a key out for a screen whose device has no
   entity for it. Leave it out for a screen that does not own its settings too (`owner` `'layout'`), as
   `dark_mode` and `page_buttons` are: such firmware cannot have it.
-- `web/src/store.ts`: one row in `SETTING_GROUPS`, with the label the screen uses; then build the editor
+- `web/src/store.ts`: one row in `SETTING_GROUPS`; its label is `editor.screen_settings.rows.<key>` in
+  `screen_manager/translations/en.json`, in the words the screen uses; then build the editor
   (`cd web && npm test && npm run build`, AGENTS.md).
 - `screen_manager/app/claude_skill.py`: a row in the table of screen entities.
 

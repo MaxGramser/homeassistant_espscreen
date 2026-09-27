@@ -5,6 +5,7 @@ import Toast from "./components/Toast.vue";
 import CommandPalette from "./components/CommandPalette.vue";
 import ScreenView from "./components/ScreenView.vue";
 import EmptyState from "./components/EmptyState.vue";
+import HomeView from "./components/HomeView.vue";
 import AppSettingsView from "./components/AppSettingsView.vue";
 import InstallerView from "./components/InstallerView.vue";
 import FirmwareView from "./components/FirmwareView.vue";
@@ -18,7 +19,9 @@ const view = computed(() => {
   if (route.value === "#firmware") return FirmwareView;
   if (route.value === "#alerts") return AlertsView;
   if (route.value === "#override") return OverrideView;
-  return currentScreen.value && state.layout ? ScreenView : EmptyState;
+  // Nothing chosen is the overview of every screen (app 0.4.0); a house without screens starts with the first.
+  if (currentScreen.value && state.layout) return ScreenView;
+  return state.selected || !state.inventory.screens.length ? EmptyState : HomeView;
 });
 // ⌘K (Ctrl+K) opens the search from anywhere.
 function onKey(e: KeyboardEvent) {

@@ -32,10 +32,12 @@
    `npm ci`, `npm test`, `npm run check` and `npm run build`, and fails when that fresh build differs from the
    `screen_manager/app/static` in Git (committed or staged). For a firmware change, `tools/check.sh --firmware`
    compiles every board profile with placeholder secrets from a temporary folder (never the real `secrets.yaml`) and
-   applies the flash budget below; `--all` does both. `tools/check.sh --render` builds every board as a program for
+   applies the flash budget below; `--all` does both. A change that reaches one board or a few builds only those:
+   `--firmware --affected` (the boards `tools/affected_boards.py` finds) or `--firmware --board <key>`
+   (docs/BOARD_RELEASES.md). `tools/check.sh --render` builds every board as a program for
    this computer (tools/render/run.py, needs SDL2): its self test must pass lying down and standing up, and it saves
-   what every board draws under `.esphome/render/out`. CI (`.github/workflows/ci.yml`) runs the same script on every
-   push and pull request to main, and its render job compares the renders with the commit before (the `renders`
+   what every board draws under `.esphome/render/out`. CI (`.github/workflows/render.yml`) runs the same script on every
+   push and pull request to main and every night, and compares the renders with the commit before (the `renders`
    artifact: the pictures, a sheet, and a before/after/difference picture of every render that changed).
    docs/TESTING.md describes the levels of testing, up to the whole chain through a real Home Assistant. Compile sequentially: profiles with the same `DEVICE_NAME` share one build folder,
    and a parallel build can make an upload pick the wrong `firmware.bin` (the check builds are called `check-cyd` and
@@ -56,8 +58,8 @@
    |---|---|
    | up to 90 % | normal |
    | 90-93 % | tight: every release states its flash delta; a delta over 8 KB needs a matching saving or Max's OK |
-   | 93-95 % | only fixes ship |
-   | over 95 % | never: that keeps about 90 KB for ESPHome upgrades and users' own overrides |
+   | 93-97 % | only fixes ship |
+   | over 97 % | never: that keeps about 55 KB for ESPHome upgrades and users' own overrides |
 
    **The Xtensa literal range** (app 0.3.8). On the ESP32 and the ESP32-S3 an `l32r` instruction loads a constant
    from at most 256 KB back, and ESP-IDF puts a function's literals in front of the code that follows them. Every
@@ -70,11 +72,14 @@
 3. Test app start, saving, restarting/updating with existing layouts,
    reconnecting to HA, and an ESP restart. Test a new card on real
    hardware. A good build doesn't replace physical touch acceptance.
-4. Bump the app version and firmware project version; write the CHANGELOG and concrete
-   test results. Only publish compatible changes directly to main. `tests/test_release_lint.py`
-   (part of `tools/check.sh`) holds `config.yaml`'s version, the first CHANGELOG heading and its
-   firmware against `FIRMWARE_VERSION`, keeps the CHANGELOG headings unique and newest first, and checks
-   that every `fonts/...` file the packages fetch from GitHub is in the tree.
+4. Bump the app version and, for a firmware change, the firmware number; write the CHANGELOG and concrete
+   test results. Which firmware number goes where depends on the boards the change reaches: the shared one in
+   `packages/core.yaml` and `FIRMWARE_VERSION`, or a board file's own for a fix for that board alone.
+   `tools/affected_boards.py` prints the number and the heading, and docs/BOARD_RELEASES.md is the recipe.
+   Only publish compatible changes directly to main. `tests/test_release_lint.py`
+   (part of `tools/check.sh`) holds `config.yaml`'s version, the first CHANGELOG heading and the
+   firmware it names, keeps the CHANGELOG headings unique and newest first, holds the firmware numbers to core and
+   board (a shared release the next X.Y.0, a board fix a revision on it), and checks that every `fonts/...` file the packages fetch from GitHub is in the tree.
 5. Commit and push main (the only release branch). Create an immutable tag
    `screens-vX.Y.Z` from the same commit, and a GitHub release on that tag with the release notes in English
    (`gh release create screens-vX.Y.Z --notes-file ...`). Test the remote YAML in an empty folder:
@@ -207,11 +212,12 @@ new field is needed for it. No changed preferences or keys.
 
 ### Compatibility 0.2.16 / firmware 0.2.17
 
-`FIRMWARE_VERSION` in `screen_manager/app/core.py` is the firmware that belongs to this
+`FIRMWARE_VERSION` in `screen_manager/app/core.py` is the shared firmware that belongs to this
 app; `tests/test_updates.py` requires it to equal
 `SCREEN_FIRMWARE_VERSION` in both board profiles and packages (since app 0.2.84 one line in
 `packages/core.yaml` that every board and package takes). Bump them together.
-A screen with a lower `Schermfirmware` gets an update offer; a build
+Since app 0.3.20 a board file can go ahead with a number of its own after a fix for that board alone, and a screen
+is offered its board's number (docs/BOARD_RELEASES.md); a screen below that gets an update offer. A build
 fetches `main`, so publish firmware and app in the same commit.
 
 Firmware 0.2.17 adds the diagnostic text sensors `Apparaatnaam`
@@ -454,6 +460,22 @@ Tile colours as Home Assistant draws them. No protocol, storage or editor change
   airco that is off reads "Off", with the current temperature when it reports one.
 - App: `header_bar.ALARM_CLASSES` is Home Assistant's list of eleven red classes, the same list the firmware uses.
 - The editor's mockup still draws icons in one colour. Details: docs/TEST_RESULTS_0285.md.
+
+### Compatibility 0.3.16 / firmware 0.3.9
+
+A light group's lamp page. Negotiated like `bar_values`; storage unchanged.
+
+- Handshake: firmware 0.3.9+ answers the hello with `group_lamps: 1`. Only then does the app add `lamps` to the `x`
+  block of a light group's state: per lamp `e`, `n`, `s` (on), `u` (unavailable), `d` (dims), `c` (1 colour, 2 white
+  shades), `b` (1-100), `h`, `k`, `lo`, `hi`, built by `light_groups.lamps` from the group's `entity_id` attribute and
+  each lamp's `supported_color_modes`. At most 24 lamps and 2400 bytes, so the message stays under 4096 bytes. Older
+  firmware never gets them.
+- The app watches a group's lamps as related entities of the group's tile, so a lamp that changes sends the group
+  again.
+- The screen sends `light.turn_on` with `brightness_pct` or `color_temp_kelvin`, `light.turn_on` with `hs_color` as a
+  data template, and `light.toggle`, each for the lamp, never for the group.
+- Firmware: `group_page.h`; `Extra` gains `lamps`; `runtime_tiles::action_template`. The colour card's
+  `color_group_button` and `group_page::place_card_keys` keep both keys on the right together and the title on one line.
 
 ### Compatibility 0.2.84 (firmware stays 0.2.70)
 

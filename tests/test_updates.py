@@ -10,6 +10,7 @@ import re
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -176,6 +177,54 @@ class UpdaterTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(ValueError, 'latest'): m.updates.start('text.screen2')
             m.ha.states['text.fw1'] = {'state': FIRMWARE_VERSION}
             self.assertEqual(m.updates.pending(), [])
+
+    async def test_a_fix_for_one_board_is_offered_to_that_board_alone(self):
+        """A board file that went ahead of the shared firmware (app 0.3.21): its screens are offered its version, a screen
+        of any other board on the shared version is up to date, and the round waits for the board's version."""
+        import core
+        ahead = '.'.join(map(str, (*parse_version(FIRMWARE_VERSION)[:2], parse_version(FIRMWARE_VERSION)[2] + 1)))
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(core.SHAPES['waveshare4b'], {'firmware': ahead}):
+            m = self.setup_manager(tmp)
+            m.firmware.names['living-room.yaml']['package'] = 'packages/waveshare4b.yaml'
+            m.firmware.names['kitchen.yaml']['package'] = 'packages/cyd.yaml'
+            m.updates.hosts['text.screen2'] = '10.0.0.6'
+            m.ha.states.update({'text.fw1': {'state': FIRMWARE_VERSION}, 'text.fw2': {'state': FIRMWARE_VERSION}})
+            first, second = m.inventory()[0]
+            self.assertEqual(m.updates.state_for(first)['target'], ahead)
+            self.assertTrue(m.updates.state_for(first)['available'])
+            self.assertEqual(m.updates.state_for(second)['target'], FIRMWARE_VERSION)
+            self.assertFalse(m.updates.state_for(second)['available'])
+            self.assertEqual(m.updates.pending(), ['text.screen1'])
+            # What an update flashes decides: the profile's board, over the board a screen reports.
+            self.assertEqual(m.updates.target_for({**second, 'board': 'waveshare4b'}), FIRMWARE_VERSION)
+            # Without a profile here, the board the screen reports; an unknown board gets the shared version.
+            m.firmware.names = {}
+            self.assertEqual(m.updates.target_for({**second, 'board': 'waveshare4b'}), ahead)
+            self.assertEqual(m.updates.target_for({**second, 'board': 'nothing'}), FIRMWARE_VERSION)
+            m.firmware.names = {'living-room.yaml': {'node': 'living-room', 'friendly': 'Living room', 'package': 'packages/waveshare4b.yaml'}}
+            # A build that only reaches the shared version is no success for this board.
+            m.updates.start('text.screen1')
+            await m.updates.task
+            self.assertEqual(m.updates.results['text.screen1']['state'], 'failed')
+            self.assertIn(ahead, m.updates.results['text.screen1']['message'])
+            async def to_board_version(data):
+                await asyncio.sleep(0)
+                m.ha.states['text.fw1'] = {'state': ahead}
+                m.firmware.job['state'] = 'success'
+            m.firmware.run = to_board_version
+            m.updates.start('text.screen1')
+            await m.updates.task
+            self.assertEqual(m.updates.results['text.screen1'], {**m.updates.results['text.screen1'], 'state': 'success', 'version': ahead})
+            self.assertEqual(m.updates.pending(), [])
+
+    def test_firmware_target_is_never_below_the_shared_version(self):
+        import core
+        self.assertEqual(core.firmware_target('nothing'), FIRMWARE_VERSION)
+        self.assertEqual(core.firmware_target(None), FIRMWARE_VERSION)
+        with mock.patch.dict(core.SHAPES['cyd'], {'firmware': '0.0.1'}):
+            self.assertEqual(core.firmware_target('cyd'), FIRMWARE_VERSION)
+        with mock.patch.dict(core.SHAPES['cyd'], {'firmware': 'broken'}):
+            self.assertEqual(core.firmware_target('cyd'), FIRMWARE_VERSION)
 
     async def test_round_stops_after_failure_and_notifies(self):
         with tempfile.TemporaryDirectory() as tmp:

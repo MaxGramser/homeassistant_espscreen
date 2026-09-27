@@ -76,7 +76,13 @@ def text(name):
 
 def substitutions_of(path):
     """The `substitutions:` block of one file as written, block scalars included."""
-    block = re.search(r'^substitutions:\n(.*?)(?=^[a-z_0-9]+:|\Z)', Path(path).read_text(), re.M | re.S)
+    return substitutions_in(Path(path).read_text())
+
+
+def substitutions_in(text):
+    """The `substitutions:` block of a file's text as written (substitutions_of for text from elsewhere, such as the
+    same file in an older commit). YAML reads the values, so either kind of quote is gone."""
+    block = re.search(r'^substitutions:\n(.*?)(?=^[a-z_0-9]+:|\Z)', text, re.M | re.S)
     if not block:
         return {}
     values = yaml.safe_load('substitutions:\n' + block[1])['substitutions'] or {}

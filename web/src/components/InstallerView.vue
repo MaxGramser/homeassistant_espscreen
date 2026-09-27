@@ -6,6 +6,9 @@ import { t } from "../i18n";
 import { copyText, go, openIntegrations, toast } from "../store";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import type { BoardChoice, BoardOrientation, Orientation } from "../types";
+import BrowserFlash from "./BrowserFlash.vue";
+import { flashSupport } from "../flasher/logic";
+import { useBrowserFlash } from "../flasher/session";
 
 // Download: ESP Screens builds, the owner flashes the file from their own computer. ESPHome Web is ESPHome's own
 // browser flasher; this address opens it with its hint for a downloaded project (as ESPHome Device Builder does).
@@ -14,7 +17,13 @@ const form = reactive({ board: "", orientation: "landscape" as Orientation, choi
 const installer = reactive({
   view: "setup" as "setup" | "progress" | "done", file: null as string | null, friendly: "", calibrate: false, target: "",
   apiKey: null as string | null, nodeEdited: false, jobState: null as string | null, picked: false, action: null as string | null,
+  browser: false, chip: null as string | null,
 });
+// This computer (browser): the add-on builds as for Download, and this page writes the image over Web Serial, in
+// Chrome or Edge on a page served over https. The fallback for a screen that can't reach the Home Assistant machine;
+// Download stays for a browser that can't.
+const flash = useBrowserFlash();
+const support = flashSupport();
 const nodeVisible = ref(false);
 const data = ref<any>(null);
 const job = ref<any>(null);
@@ -95,20 +104,23 @@ const targetHint = computed(() => t(form.target === "usb"
   ? "editor.installer.target.usb"
   : form.target === "download"
     ? "editor.installer.target.download"
+    : form.target === "browser"
+      ? support === "ok" ? "editor.webflash.hint" : `editor.webflash.unavailable.${support}`
     : !form.target
       ? "editor.installer.target.later"
       : ports.value.length > 1
         ? "editor.installer.target.several"
         : "editor.installer.target.once"));
-const goLabel = computed(() => (form.target === "download" ? t("editor.firmware.build_download") : form.target ? t("editor.installer.install") : t("editor.installer.save_profile")));
+const goLabel = computed(() => (form.target === "download" ? t("editor.firmware.build_download") : form.target === "browser" ? t("editor.webflash.go") : form.target ? t("editor.installer.install") : t("editor.installer.save_profile")));
 const busyElsewhere = computed(() => data.value?.job?.state === "running" && !(installer.file && data.value.job.file === installer.file));
 const goDisabled = computed(() => submitting.value || wifi.value?.state === "invalid" || form.target === "usb" ||
+  (form.target === "browser" && support !== "ok") ||
   nodeTaken.value || nameTaken.value || (!!form.target && (busyElsewhere.value || !data.value?.available)));
 // USB on the Home Assistant machine is always listed first, also before a board is plugged in, so nobody
 // concludes it isn't possible; "usb" stands for that port until one shows up.
 function syncTarget() {
   const current = form.target;
-  const kept = current === "download" || current === "" ? installer.picked : ports.value.includes(current);
+  const kept = current === "download" || current === "browser" || current === "" ? installer.picked : ports.value.includes(current);
   if (!kept) form.target = ports.value[0] || "usb";
 }
 async function installerRefresh() {
@@ -144,30 +156,43 @@ function showProgress(current: any, lines: string[]) {
   job.value = current;
   logs.value = lines;
 }
-const running = computed(() => job.value?.state === "running");
-const ok = computed(() => installer.view === "done" || job.value?.state === "success");
-const download = computed(() => installer.action === "download");
+// From this browser the job only builds; the installation is done once the page has written the image.
+const flashing = computed(() => installer.browser && job.value?.state === "success" && flash.state.phase !== "done" && flash.state.phase !== "failed");
+const running = computed(() => job.value?.state === "running" || flashing.value);
+const ok = computed(() => installer.view === "done" || (job.value?.state === "success" && (!installer.browser || flash.state.phase === "done")));
+const download = computed(() => installer.action === "download" && !installer.browser);
+// The build is done: write it, erased first as ESPHome does for a new device. A retry after a finished build
+// connects again, and that writes the image it already has.
+watch(() => [job.value?.state, flash.state.phase], ([state, phase]) => {
+  if (installer.browser && installer.file && state === "success" && phase === "waiting") flash.install(installer.file, true);
+});
+// A build that fails lets go of the port. Only when the build ends: a retry connects while the failed job is on screen.
+watch(() => job.value?.state, (state) => {
+  if (installer.browser && state && state !== "running" && state !== "success" && flash.state.phase === "waiting") flash.cancel();
+});
 const title = computed(() => t(installer.view === "done"
   ? "editor.installer.title.saved"
   : running.value ? "editor.installer.title.running" : ok.value ? (download.value ? "editor.installer.title.ready" : "editor.installer.title.done") : "editor.installer.title.failed"));
 const progressTitle = computed(() => installer.view === "done"
   ? t("editor.installer.progress.saved", { file: installer.file })
   : running.value
-    ? job.value?.stage === "upload" ? t("editor.installer.progress.writing", { name: installer.friendly }) : t("editor.installer.progress.building")
+    ? job.value?.stage === "upload" || flashing.value ? t("editor.installer.progress.writing", { name: installer.friendly }) : t("editor.installer.progress.building")
     : ok.value
       ? download.value ? t("editor.installer.progress.ready", { name: installer.friendly }) : t("editor.installer.progress.installed", { name: installer.friendly })
       : t(download.value ? "editor.installer.progress.build_failed" : "editor.installer.progress.install_failed"));
 const progressDetail = computed(() => installer.view === "done"
   ? t("editor.installer.detail.saved")
   : running.value
-    ? job.value?.stage === "upload"
+    ? job.value?.stage === "upload" || flashing.value
       ? t("editor.installer.detail.uploading")
-      : t(download.value ? "editor.installer.detail.building_download" : "editor.installer.detail.building")
+      : t(installer.browser ? "editor.webflash.building" : download.value ? "editor.installer.detail.building_download" : "editor.installer.detail.building")
     : ok.value
       ? download.value
         ? t("editor.installer.detail.downloaded")
         : t(installer.calibrate ? "editor.installer.detail.booted_calibrate" : "editor.installer.detail.booted")
-      : logs.value.filter((l) => /error/i.test(l)).pop() || logs.value.filter((l) => /failed/i.test(l)).pop() || t("editor.installer.detail.see_log"));
+      : installer.browser && job.value?.state === "success"
+        ? ""
+        : logs.value.filter((l) => /error/i.test(l)).pop() || logs.value.filter((l) => /failed/i.test(l)).pop() || t("editor.installer.detail.see_log"));
 const image = computed(() => ({ href: `api/firmware/profiles/${encodeURIComponent(installer.file || "")}/download`, name: (installer.file || "").replace(/\.yaml$/, "") + ".factory.bin" }));
 async function submit(event: Event) {
   const element = event.target as HTMLFormElement;
@@ -175,25 +200,41 @@ async function submit(event: Event) {
   if (!element.reportValidity()) return;
   submitting.value = true;
   status.value = "";
+  const browser = form.target === "browser";
+  // The port picker opens only from this click, so it comes before anything else waits; nothing is written or built
+  // when no port is chosen, or the board on it has another chip than the chosen board (ESPHome's order).
+  if (browser && !(await flash.connect(chosen.value?.chip))) {
+    submitting.value = false;
+    return;
+  }
   try {
-    const payload: Record<string, unknown> = { board: form.board, orientation: form.orientation, friendly_name: form.friendly_name, name: form.name, target: form.target };
+    const payload: Record<string, unknown> = { board: form.board, orientation: form.orientation, friendly_name: form.friendly_name, name: form.name, target: browser ? "download" : form.target };
     // Only a choice that differs from the board file's own goes along: the add-on writes nothing for that one anyway.
     const picked = Object.fromEntries(choices.value.filter((choice) => form.choices[choice.key] !== choice.options[0]).map((choice) => [choice.key, form.choices[choice.key]]));
     if (Object.keys(picked).length) payload.choices = picked;
     if (askWifi.value) { if (wifiMissing.value.includes("wifi_ssid")) payload.wifi_ssid = form.wifi_ssid; if (wifiMissing.value.includes("wifi_password")) payload.wifi_password = form.wifi_password; }
     const result = await send("firmware/profiles", "POST", payload);
-    Object.assign(installer, { file: result.file, apiKey: result.api_key, friendly: form.friendly_name.trim(), calibrate: !!chosen.value?.calibrate, target: form.target });
+    Object.assign(installer, { file: result.file, apiKey: result.api_key, friendly: form.friendly_name.trim(), calibrate: !!chosen.value?.calibrate, target: form.target,
+      browser, chip: chosen.value?.chip || null });
     form.wifi_password = "";
     if (result.job) showProgress(result.job, []);
     else installer.view = "done";
   } catch (err: any) {
     status.value = err.message;
+    if (browser) flash.cancel();
   } finally {
     submitting.value = false;
   }
 }
 async function retry() {
   try {
+    if (installer.browser) {
+      // Again from this click: pick the port, then write the image that is already built, or build it first.
+      if (!(await flash.connect(installer.chip))) return;
+      if (job.value?.state === "success") return;
+      showProgress(await send("firmware/jobs", "POST", { file: installer.file, action: "download" }), []);
+      return;
+    }
     if (!download.value) {
       const { ports: fresh } = await getJson("firmware");
       // The board may have been replugged; a single visible port is unambiguous.
@@ -208,7 +249,8 @@ async function retry() {
   }
 }
 function reset() {
-  Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, jobState: null, target: "", picked: false, action: null });
+  flash.cancel();
+  Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, jobState: null, target: "", picked: false, action: null, browser: false, chip: null });
   Object.assign(form, { board: boardRows.value[0]?.key || "", orientation: "landscape", choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
   nodeVisible.value = false; job.value = null; logs.value = []; status.value = ""; note.value = ""; logOpen.value = false;
   installerRefresh();
@@ -218,7 +260,7 @@ function close() {
   go("");
 }
 onMounted(() => { installerRefresh(); poll = window.setInterval(installerRefresh, 3000); });
-onBeforeUnmount(() => clearInterval(poll));
+onBeforeUnmount(() => { clearInterval(poll); flash.cancel(); });
 </script>
 
 <template>
@@ -229,7 +271,7 @@ onBeforeUnmount(() => clearInterval(poll));
         <h1 id="install-title">{{ installer.view === "setup" ? t("editor.installer.title.setup") : title }}</h1>
         <p v-if="installer.view === 'setup'">{{ t("editor.installer.intro") }}</p>
       </div>
-      <button type="button" class="btn quiet" id="close-install" :aria-label="t('editor.common.close')" @click="close">{{ t("editor.common.back") }}</button>
+      <button type="button" class="btn quiet" id="close-install" :aria-label="t('editor.common.close')" :disabled="flash.busy()" @click="close">{{ t("editor.common.back") }}</button>
     </div>
     <form v-if="installer.view === 'setup'" id="install-form" class="card" @submit.prevent="submit">
       <fieldset>
@@ -301,13 +343,19 @@ onBeforeUnmount(() => clearInterval(poll));
       <div class="field">
         <label class="f-label" for="install-target">{{ t("editor.installer.install_via") }}</label>
         <select id="install-target" name="target" v-model="form.target" @change="installer.picked = true; installerRefresh()">
-          <option v-if="!ports.length" value="usb">{{ t("editor.firmware.no_board") }}</option>
-          <option v-for="p in ports" :key="p" :value="p">{{ portLabel(p) }}</option>
-          <option value="download">{{ t("editor.firmware.download_target") }}</option>
+          <optgroup :label="t('editor.webflash.group_ha')">
+            <option v-if="!ports.length" value="usb">{{ t("editor.firmware.no_board") }}</option>
+            <option v-for="p in ports" :key="p" :value="p">{{ portLabel(p) }}</option>
+          </optgroup>
+          <optgroup :label="t('editor.webflash.group_here')">
+            <option value="browser">{{ t("editor.webflash.target") }}</option>
+            <option value="download">{{ t("editor.firmware.download_target") }}</option>
+          </optgroup>
           <option value="">{{ t("editor.installer.later") }}</option>
         </select>
         <small id="target-hint">{{ targetHint }}</small>
       </div>
+      <BrowserFlash v-if="form.target === 'browser'" :state="flash.state" />
       <p v-if="note" class="hint" id="install-note">{{ note }}</p>
       <div class="actions">
         <button type="submit" class="btn primary" id="install-go" :disabled="goDisabled">{{ goLabel }}</button>
@@ -321,6 +369,7 @@ onBeforeUnmount(() => clearInterval(poll));
         <strong id="progress-title">{{ progressTitle }}</strong>
       </div>
       <p id="progress-detail">{{ progressDetail }}</p>
+      <BrowserFlash v-if="installer.browser" :state="flash.state" />
       <div v-if="ok && download && installer.view !== 'done'" id="install-download" class="card" style="background: var(--surface-2)">
         <a class="btn primary" id="download-firmware" :href="image.href" :download="image.name">{{ t("editor.firmware.download_file", { name: image.name }) }}</a>
         <ol class="steps" id="download-steps">
@@ -336,16 +385,19 @@ onBeforeUnmount(() => clearInterval(poll));
         <small>{{ t("editor.installer.download_keep") }}</small>
       </div>
       <div v-if="ok" id="install-result" class="field">
-        <div class="key-box">
-          <span>{{ t("editor.installer.api_key") }}</span><code id="api-key" ref="keyBox">{{ installer.apiKey || "" }}</code>
-          <button type="button" class="btn quiet mini" id="copy-key" @click="copyText(installer.apiKey || '', keyBox)">{{ t("editor.common.copy") }}</button>
-        </div>
         <ol class="steps" id="install-steps">
           <li><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ installer.friendly }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button></li>
           <li><i18n-t keypath="editor.installer.pairing.key" scope="global"><template #bold><b>{{ t("editor.installer.pairing.key_bold") }}</b></template></i18n-t></li>
           <li><i18n-t keypath="editor.installer.pairing.actions" scope="global"><template #bold><b>{{ t("editor.installer.pairing.actions_bold") }}</b></template></i18n-t></li>
           <li><i18n-t keypath="editor.installer.pairing.tiles" scope="global"><template #bold><b>{{ t("editor.installer.pairing.tiles_bold") }}</b></template></i18n-t></li>
         </ol>
+        <details class="key-more" id="key-more">
+          <summary>{{ t("editor.installer.key_more") }}</summary>
+          <div class="key-box">
+            <span>{{ t("editor.installer.api_key") }}</span><code id="api-key" ref="keyBox">{{ installer.apiKey || "" }}</code>
+            <button type="button" class="btn quiet mini" id="copy-key" @click="copyText(installer.apiKey || '', keyBox)">{{ t("editor.common.copy") }}</button>
+          </div>
+        </details>
       </div>
       <details v-if="installer.view !== 'done'" id="install-log-wrap" class="log-wrap" :open="logOpen" @toggle="logOpen = ($event.target as HTMLDetailsElement).open">
         <summary>{{ t("editor.installer.log") }}</summary>
@@ -353,8 +405,8 @@ onBeforeUnmount(() => clearInterval(poll));
       </details>
       <div class="actions">
         <button v-if="!running && !ok" type="button" class="btn primary" id="install-retry" @click="retry">{{ t("editor.installer.retry") }}</button>
-        <button type="button" class="btn quiet" id="install-close" @click="reset">{{ ok ? t("editor.installer.another") : t("editor.installer.start_over") }}</button>
-        <button type="button" class="btn" :class="ok ? 'primary' : 'quiet'" @click="close">{{ ok ? t("editor.installer.done") : t("editor.common.close") }}</button>
+        <button type="button" class="btn quiet" id="install-close" :disabled="flash.busy()" @click="reset">{{ ok ? t("editor.installer.another") : t("editor.installer.start_over") }}</button>
+        <button type="button" class="btn" :class="ok ? 'primary' : 'quiet'" :disabled="flash.busy()" @click="close">{{ ok ? t("editor.installer.done") : t("editor.common.close") }}</button>
       </div>
     </div>
   </div>

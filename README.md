@@ -8,13 +8,13 @@
 
 <p align="center">
   <a href="https://tessera-maxgramser.on-forge.com"><b>Website</b></a> ·
-  <a href="https://tessera-maxgramser.on-forge.com/docs/getting-started">Get started</a> ·
+  <a href="https://tessera-maxgramser.on-forge.com/docs/quick-start">Quick start</a> ·
   <a href="https://tessera-maxgramser.on-forge.com/screens">Supported screens</a> ·
   <a href="https://tessera-maxgramser.on-forge.com/community">Community</a> ·
   <a href="https://tessera-maxgramser.on-forge.com/community/share?type=installation">My screen works</a>
 </p>
 
-<p align="center"><sub>Tessera is the new name for ESP Screens. In Home Assistant the app is still called ESP Screen Manager and its panel ESP Screens; the repository, the add-on and your screens stay exactly as they are.</sub></p>
+<p align="center"><sub>Tessera is the new name for ESP Screens. In Home Assistant the app is called Tessera Screen Manager and its panel Tessera (app 0.3.18); the repository, the add-on and your screens stay exactly as they are.</sub></p>
 
 Thank you! I work on this project with a lot of love, and every bit of support helps. I truly love the Home Assistant community.
 
@@ -33,7 +33,7 @@ lights, the heating or the vacuum.
 
 **What.** Firmware for affordable panels, five of them today, from the 2.8-inch CYD to the 10.1-inch Guition, with
 tiles over up to eight pages, as many per page as the glass holds: lights, climate, blinds and curtains, the vacuum, media, the weather,
-history graphs, clocks and timers, your alarm with its keypad, and on every screen but the CYD your cameras. A tile can take the whole page, one big switch you push without
+history graphs, clocks and timers, your alarm with its keypad, and your cameras on every screen with room for pictures. A tile can take the whole page, one big switch you push without
 looking, and a tile can go to another page. An automation can put an alert on every screen when someone rings
 the bell, and a screen with room for pictures shows who is there with the doorbell camera's picture. A tap can run any
 action Home Assistant has for a tile, and Dark mode suits a screen beside the bed.
@@ -43,7 +43,9 @@ it over Wi-Fi and sends it your tiles. Changing a screen is pick, drag and **Sav
 no reflash, no YAML to write, no blueprint, MQTT or token. Brightness, night hours and Dark mode can
 also be changed on the screen or by an automation, and your own YAML for one screen survives every update.
 
-**[Install it](#installing-from-home-assistant)** · [Website](https://tessera-maxgramser.on-forge.com) · [Pages and navigation](docs/PAGES.md) · [Full reference](README_EXTENDED.md) · [What's new](screen_manager/CHANGELOG.md)
+**[Install it](#installing-from-home-assistant)** · [Documentation](https://tessera-maxgramser.on-forge.com/docs) · [Pages and tiles](https://tessera-maxgramser.on-forge.com/docs/pages-and-tiles) · [Troubleshooting](https://tessera-maxgramser.on-forge.com/docs/troubleshooting) · [What's new](screen_manager/CHANGELOG.md)
+
+> **The full documentation is on the [Tessera website](https://tessera-maxgramser.on-forge.com/docs):** a [quick start](https://tessera-maxgramser.on-forge.com/docs/quick-start), getting started, pages and tiles, screen settings, cameras, Docker and troubleshooting, kept up to date for users. This README is the overview; the files under `docs/` are the reference for contributors.
 
 ## In real life
 
@@ -150,13 +152,13 @@ home fits on one page.
   <img src="docs/images/guition-media-full.png" width="32%" alt="A media player over the whole page: the cover at the left, the track, the bar and the keys beside it, the volume row along the bottom">
   <img src="docs/images/guition-dark-media.png" width="32%" alt="The media card in dark mode: the same cover and keys on a black page">
 </p>
-<p align="center"><sub>Tap a tile to switch it, hold it for the full card. Keys and sliders right on the tile, pastel colors, a clock, the weather and history you can read with a finger. A lamp with modes (a WLED) gets an effects page with a drum picker, named and filled from what Home Assistant lists for it. The media card shows what plays with its album cover, fetched by ESP Screens like a camera picture, and a media tile can show that cover in the icon's place (<a href="docs/CAMERA.md">how</a>). Rendered from the firmware's own LVGL code with a demo home.</sub></p>
+<p align="center"><sub>Tap a tile to switch it, hold it for the full card. Keys and sliders right on the tile, pastel colors, a clock, the weather and history you can read with a finger. A lamp with modes (a WLED) gets an effects page with a drum picker, named and filled from what Home Assistant lists for it. The media card shows what plays with its album cover, fetched by ESP Screens like a camera picture, and a media tile can show that cover in the icon's place (<a href="https://tessera-maxgramser.on-forge.com/docs/cameras">how</a>). Rendered from the firmware's own LVGL code with a demo home.</sub></p>
 <p align="center">
   <img src="docs/images/guition-camera-tiles.png" width="32%" alt="Cameras as tiles on the Guition: the front door camera filling a tall tile with its name at the bottom, a porch camera showing its whole picture with black above and below, the porch light and Sam at home">
   <img src="docs/images/guition-camera.png" width="32%" alt="A camera tile tapped: the front door camera full screen, with the round back key and the camera's name at the top">
   <img src="docs/images/guition-alert-camera.png" width="32%" alt="The same camera in an alert: its picture across the top of the card, with the card's rounded corners">
 </p>
-<p align="center"><sub>Cameras are tiles too, not only part of an alert: any camera or snapshot in Home Assistant (a doorbell's last ring, for example) goes on a screen like any other tile. Tap it for the picture full screen, refreshed every four seconds, or let the tile itself show its live picture (Display → Live picture, every 15 or 30 s): in the icon's place, or on a taller tile over the whole card, filled or whole, with or without its name; an alert can carry the same picture. Every screen but the CYD, which has no memory for pictures (<a href="docs/CAMERA.md">how it works</a>).</sub></p>
+<p align="center"><sub>Cameras are tiles too, not only part of an alert: any camera or snapshot in Home Assistant (a doorbell's last ring, for example) goes on a screen like any other tile. Tap it for the picture full screen, refreshed every four seconds, or let the tile itself show its live picture (Display → Live picture, every 5 to 30 s) over the whole tile, on every size up to a full page, filled or whole, with or without its name; an alert can carry the same picture. Every screen but the CYD, the Waveshare 3.5-inch and the Hosyond 4-inch, which have no memory for pictures (<a href="https://tessera-maxgramser.on-forge.com/docs/cameras">how it works</a>).</sub></p>
 <p align="center">
   <img src="docs/images/cyd-home.png" width="32%" alt="CYD 2.8-inch screen: the weather forecast, a kitchen timer, the coffee machine, a lamp and power usage as a large value">
   <img src="docs/images/cyd-page-2.png" width="32%" alt="Second CYD page: Sonos volume, presence, a scene and an energy graph">
@@ -218,7 +220,7 @@ home fits on one page.
   <img src="docs/images/guition-french.png" width="31%" alt="The same screen in French: mardi 15 sept., Éclaircies with the days ma me je ve sa, and Sam is Maison">
   <img src="docs/images/guition-polish.png" width="31%" alt="The same screen in Polish: wtorek 15 wrz, częściowe zachmurzenie with the days wt śr cz pt sb, and Sam is w domu">
 </p>
-<p align="center"><sub>The same home in German, French and Polish. The screens follow your Home Assistant: its language, its words for a light or a robot, and how your country writes a date, a time and a number — 75 % in German and French, 75% in Polish and English.</sub></p>
+<p align="center"><sub>The same home in German, French and Polish. The screens follow your Home Assistant: its language, its words for a light or a robot, and how your country writes a date, a time and a number: 75 % in German and French, 75% in Polish and English.</sub></p>
 
 The screens, the editor and its messages speak **English (US and UK), Nederlands, Deutsch, Français, Italiano,
 Español, Português and Polski**. Nothing to set up: ESP Screens takes the language of your Home Assistant.
@@ -259,12 +261,16 @@ while it keeps your country's clock and numbers.
 | Screen | Resolution | Display / touch |
 | --- | --- | --- |
 | [CYD ESP32-2432S028](https://tessera-maxgramser.on-forge.com/screens/cyd) | 320 × 240, 2 × 3 tiles | ILI9341 / resistive XPT2046 |
+| CYD ESP32-2432S028 with ILI9342 (experimental) | 320 × 240, 2 × 3 tiles | ILI9342 / resistive XPT2046; hardware acceptance pending |
 | [Guition ESP32-S3-4848S040](https://tessera-maxgramser.on-forge.com/screens/guition), 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911 |
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
 | [Waveshare ESP32-S3-Touch-LCD-7](https://tessera-maxgramser.on-forge.com/screens/waveshare7) (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; backlight always on, hardware acceptance pending ([details](docs/WAVESHARE7.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-4B](https://tessera-maxgramser.on-forge.com/screens/waveshare4b), 4 inch (experimental) | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE4B.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-3.5](https://tessera-maxgramser.on-forge.com/screens/waveshare35) (new) | 480 × 320, 2 × 2 tiles | ST7796 SPI / capacitive FT6336; dimmable backlight, no camera pictures ([details](docs/WAVESHARE35.md)) |
-| [Guition JC8012P4A1](https://tessera-maxgramser.on-forge.com/screens/jc8012p4a1), 10.1 inch | 1280 × 800, 5 × 4 tiles | MIPI-DSI JD9365 / capacitive GSL3680, ESP32-P4 (new) |
+| [Hosyond ESP32-32E](https://tessera-maxgramser.on-forge.com/screens/hosyond40), 4 inch (experimental) | 480 × 320, 2 × 3 tiles | ST7796 SPI / resistive XPT2046; dimmable backlight, no camera pictures, hardware acceptance pending ([details](docs/HOSYOND40.md)) |
+| [Guition JC3248W535](docs/JC3248W535.md), 3.5 inch (experimental) | 480 × 320, 2 × 2 tiles | AXS15231B QSPI / capacitive AXS15231B; dimmable backlight, camera pictures, hardware acceptance pending |
+| [Guition JC8012P4A1](https://tessera-maxgramser.on-forge.com/screens/jc8012p4a1), 10.1 inch | 1280 × 800, 5 × 4 tiles | MIPI-DSI JD9365 / capacitive GSL3680, ESP32-P4 (new) ([details](docs/JC8012P4A1.md)) |
+| Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 4 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; hardware acceptance pending ([details](docs/JC1060P470.md)) |
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.
@@ -301,7 +307,8 @@ so far; rev3 silicon needs a firmware of its own.
 
 **You don't need to install the separate ESPHome Device Builder app.**
 ESP Screen Manager already includes the ESPHome CLI and can build firmware itself,
-install it via USB or give you the file to put on the screen from your own computer,
+install it via USB, put it on a screen plugged into your own computer from the browser, or give
+you the file,
 and later update it wirelessly over OTA.
 
 **You do need to pair the flashed screen via the ESPHome integration in HA.**
@@ -324,7 +331,7 @@ are generated per new screen and stay in that device's own profile.
 
 ### Step by step
 
-For Home Assistant Container (Docker) without the App store, follow [ESP Screens with Docker](docs/DOCKER.md).
+For Home Assistant Container (Docker) without the App store, follow [Install with Docker](https://tessera-maxgramser.on-forge.com/docs/docker).
 
 For Home Assistant OS with Apps/Add-ons on **aarch64 or amd64**:
 
@@ -340,9 +347,10 @@ For Home Assistant OS with Apps/Add-ons on **aarch64 or amd64**:
    and flash run in the same window (a first build takes a few minutes on a
    Raspberry Pi). Each screen gets its own profile.
    Is Home Assistant on a server or in a virtual machine, out of reach of the screen?
-   Choose **Download** under **Install via**: ESP Screens builds the firmware, and you put it
-   on the screen from your own computer with [ESPHome Web](https://web.esphome.io) in Chrome
-   or Edge. After that, updates go over Wi-Fi as usual.
+   Plug the screen into your own computer and choose **This computer** under **Install via**:
+   ESP Screens builds the firmware and the page puts it on the screen, in Chrome or Edge with
+   Home Assistant opened over https. Or choose **Download** and put it on the screen with
+   [ESPHome Web](https://web.esphome.io). After that, updates go over Wi-Fi as usual.
 4. **CYD:** go through the calibration on the screen. **Guition:** uses GT911
    without resistive calibration. Then pair the discovered ESPHome device in
    **Settings → Devices & services** using the API key the window
@@ -362,15 +370,17 @@ every night if you turn that on under **Settings**; **Firmware & USB → Wi-Fi /
 installs it by hand. For an existing screen, always use the existing profile; creating a new
 installation profile generates new keys.
 
-The [complete installation guide](docs/EASY_SETUP.md) walks through every step in more detail.
+The [getting started guide](https://tessera-maxgramser.on-forge.com/docs/getting-started) on the website walks through every step in more detail.
 
 ## More
 
+- **[Documentation on the Tessera website](https://tessera-maxgramser.on-forge.com/docs):** [getting started](https://tessera-maxgramser.on-forge.com/docs/getting-started),
+  [pages and tiles](https://tessera-maxgramser.on-forge.com/docs/pages-and-tiles), [screen settings](https://tessera-maxgramser.on-forge.com/docs/screen-settings),
+  [cameras](https://tessera-maxgramser.on-forge.com/docs/cameras), [Docker](https://tessera-maxgramser.on-forge.com/docs/docker) and [troubleshooting](https://tessera-maxgramser.on-forge.com/docs/troubleshooting).
 - **[Full reference](README_EXTENDED.md):** every card and setting, alerts and wake/sleep from an
   automation, the top bar, the settings page on the screen, and how updates keep your settings.
 - [Guition hardware, mounting, and rotation](docs/GUITION.md) ·
   [CYD calibration and USB diagnostics](docs/CALIBRATING.md) ·
-  [Troubleshooting](docs/TROUBLESHOOTING.md) ·
   [Release history](screen_manager/CHANGELOG.md)
 
 ## Credits and license

@@ -47,7 +47,7 @@ def _grids():
     return '; '.join(f'{columns} × {rows} on {_and(boards)}' for (columns, rows), boards in grids.items())
 
 NAMES = list(dict.fromkeys(SHAPES[board].get('catalog', {}).get('name', board) for board in BOARD_KEYS))
-DESCRIPTION = (f'ESP Screens ({_and(NAMES)} touchscreens run from Home Assistant): put, move or order tiles on a '
+DESCRIPTION = (f'ESP Screens ({_and(NAMES)} screens run from Home Assistant): put, move or order tiles on a '
                'screen, show an alert or open a page on it, and wake, sleep or keep a screen awake.')
 TYPES = {'string': 'text', 'int': 'number', 'bool': 'on/off'}
 
@@ -125,7 +125,7 @@ actions:
 | `from_page`, `from_slot` | Only for `esp_screens_move_tile`: which copy of a navigation tile that is on several pages to move (see below). |
 | `size` | `single`, `wide` or `full` (the whole page; firmware {FULL_PAGE_VERSION} or newer). |
 | `controls` | What you can operate on the tile itself (see below). |
-| `display` | How the tile draws itself (see below). On a screen that draws pictures (every board but {_and(f'the {_board(b)}' for b in BOARD_KEYS if 'camera' not in SHAPES[b])}) a camera or image tile takes `live` (firmware {LIVE_VERSION} or newer): a small live picture in the icon's place, with `refresh` 15 or 30 (seconds); a media player tile takes `cover` (firmware {COVER_TILE_VERSION} or newer): the album cover of what plays in the icon's place. |
+| `display` | How the tile draws itself (see below). On a screen that draws pictures (every board but {_and(f'the {_board(b)}' for b in BOARD_KEYS if 'camera' not in SHAPES[b])}) a camera or image tile takes `live` (firmware {LIVE_VERSION} or newer): its live picture, over the whole tile from firmware 0.3.7 (in the icon's place before), with `refresh` 5, 10, 15 or 30 (seconds), `fit` `contain` for the whole picture and `overlay` `none` for no name on it; a media player tile takes `cover` (firmware {COVER_TILE_VERSION} or newer): the album cover of what plays in the icon's place. |
 | `icon`, `color` | An icon from the list further down, and one of the pastel colors. |
 | `tap` | What a tap does: `auto`, `detail` (open the card), `toggle`, `action` or `none`. `toggle` works for anything Home Assistant can toggle for that entity, such as a light, a cover (open, close, or stop while it moves) or a speaker that turns on and off. Holding the tile still opens its card. |
 | `action`, `data` | Perform action: an action Home Assistant offers for the tile's own entity, such as `cover.set_cover_position`, with `data` for its fields (`position: 50`). Giving `action` sets `tap` to `action`. The target is always the tile's entity. Only actions and fields Home Assistant lists for that entity are accepted; the answer says what is missing. |

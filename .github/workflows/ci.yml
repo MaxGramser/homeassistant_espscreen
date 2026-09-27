@@ -1,5 +1,6 @@
 # The release checks of docs/RELEASING.md step 2 on every push and pull request to main (app 0.2.78). Both jobs run
-# tools/check.sh, the same script a release runs on a laptop, so CI and a local run can't drift apart.
+# tools/check.sh, the same script a release runs on a laptop, so CI and a local run can't drift apart. The renders
+# have a workflow of their own (render.yml), so a push does not wait up to two hours behind them.
 name: CI
 
 on:
@@ -7,9 +8,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 2 * * *"      # every board, every night
+  workflow_dispatch:          # the same, by hand
 
 permissions:
   contents: read
+  actions: read               # .github/actions/last-green reads which earlier runs succeeded
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -21,7 +26,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # The whole history: the firmware number check compares with the commit before this push, or the pull request's
+      # base (CHECK_BASE below, docs/BOARD_RELEASES.md).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/last-green
+        id: base
+        with:
+          job: checks
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -42,6 +55,9 @@ jobs:
         env:
           PYTHON: python
           CXX: clang++
+          # Without a green commit to compare with, the commit before the push: an empty CHECK_BASE would compare
+          # main with itself and check nothing (the firmware job builds everything instead).
+          CHECK_BASE: ${{ steps.base.outputs.base || github.event.before }}
 
   firmware:
     name: firmware (${{ matrix.esphome }})
@@ -57,7 +73,14 @@ jobs:
         # every screen builds from main with whichever its owner has (docs/RELEASING.md, Compatibility 0.2.89).
         esphome: [add-on, min_version]
     steps:
+      # The whole history, so the build can compare with the last commit it built (--affected below).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/last-green
+        id: base
+        with:
+          job: firmware (${{ matrix.esphome }})
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -97,70 +120,17 @@ jobs:
           key: firmware-build-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-${{ steps.sources.outputs.hash }}-${{ hashFiles('checkout/cyd.yaml', 'checkout/guition.yaml', 'packages/**', 'components/**') }}
           restore-keys: |
             firmware-build-${{ runner.os }}-esphome-${{ steps.esphome.outputs.version }}-${{ steps.sources.outputs.hash }}-
+      # Only the boards that can have changed since the last commit this same build succeeded on
+      # (tools/affected_boards.py --build-keys, docs/BOARD_RELEASES.md): a cancelled or failed run's commits are
+      # included. Every board at night, by hand, or without such a commit.
       - name: tools/check.sh --firmware
-        run: bash tools/check.sh --firmware
+        run: |
+          if [ "${{ github.event_name }}" = schedule ] || [ "${{ github.event_name }}" = workflow_dispatch ] \
+             || [ -z "$BASE" ]; then
+            bash tools/check.sh --firmware
+          else
+            CHECK_BASE="$BASE" bash tools/check.sh --firmware --affected
+          fi
         env:
           PYTHON: python
-
-  # Every board of the catalog built as a host program (tools/render/run.py), lying down and standing up: its own self
-  # test has to pass (every page's cards and bar, and the geometry check that nothing falls outside its area), which
-  # is how a board nobody here owns gets checked on every change. What each draws is compared with the commit before
-  # (a push) or the branch it goes into (a pull request); the renders, a contact sheet and the differences are the
-  # run's artifact, for a person to look at. A difference does not fail the run: a change to the screens makes one.
-  render:
-    name: render
-    needs: checks
-    runs-on: ubuntu-latest
-    # Sixteen host variants since 0.3.6 take 53 to 54 minutes on a runner: room so a slow one does not stop a release.
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - name: SDL2 and ccache
-        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev ccache
-      - name: ESPHome
-        run: |
-          version=$(sed -n 's|^FROM ghcr.io/esphome/esphome:||p' screen_manager/Dockerfile)
-          python -m pip install "esphome==$version" 'aiohttp>=3.12,<4' PyYAML Pillow jinja2
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/esphome
-            ~/.platformio
-            .esphome/render/build/.esphome
-          key: render-${{ runner.os }}-${{ hashFiles('screen_manager/Dockerfile') }}-${{ hashFiles('packages/**', 'components/**') }}
-          restore-keys: |
-            render-${{ runner.os }}-${{ hashFiles('screen_manager/Dockerfile') }}-
-      - name: tools/check.sh --render
-        run: bash tools/check.sh --render
-        env:
-          PYTHON: python
-          RENDER_PYTHON: python
-      - name: Renders of the commit this is compared with
-        id: base
-        if: always()
-        continue-on-error: true
-        run: |
-          base=${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          git worktree add --detach "$RUNNER_TEMP/base" "$base"
-          ESPHOME=esphome python tools/render/run.py --tree "$RUNNER_TEMP/base" --out .esphome/render/base \
-            --work .esphome/render/build-base
-      - name: What changed on the screens
-        if: always()
-        continue-on-error: true
-        run: |
-          boards=$(cd .esphome/render/out && ls -d */ | tr -d / | paste -sd, -)
-          python tools/compare_renders.py .esphome/render/base .esphome/render/out --boards "$boards" --out .esphome/render/diffs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: renders
-          path: |
-            .esphome/render/out
-            .esphome/render/base
-            .esphome/render/diffs
-          if-no-files-found: ignore
+          BASE: ${{ steps.base.outputs.base }}

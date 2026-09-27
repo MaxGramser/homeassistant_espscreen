@@ -10,11 +10,13 @@ import Library from "../src/components/Library.vue";
 import DevicePage from "../src/components/DevicePage.vue";
 import InstallerView from "../src/components/InstallerView.vue";
 import Sidebar from "../src/components/Sidebar.vue";
+import HomeView from "../src/components/HomeView.vue";
 import SettingsTab from "../src/components/SettingsTab.vue";
 import TileCard from "../src/components/TileCard.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
-import { openBar, setTileOption, state } from "../src/store";
+import PageInspector from "../src/components/PageInspector.vue";
+import { openBar, removePage, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
@@ -60,6 +62,11 @@ beforeEach(() => {
   state.dirty = false; state.tab = "layout";
 });
 
+// A field's explanation (app 0.3.19): a warning stays in sight under the field, anything else is the tooltip beside its label.
+function hint(field: { find: (selector: string) => any }) {
+  const warn = field.find("small.warn");
+  return warn.exists() ? { text: warn.text(), warn: true } : { text: field.find(".help-trigger").attributes("aria-label") || "", warn: false };
+}
 function inspector(tile: Tile) {
   const host = mount(defineComponent({ setup: () => () => h(TileInspector, { tile: tile.id ? current(tile) || tile : tile }) }));
   return host.findComponent(TileInspector);
@@ -81,10 +88,10 @@ describe("TileCard", () => {
     const tile: Tile = { entity: 'cover.c', name: '', slot: 0, options: { size: 'square', controls: 'position' } };
     appendTiles(tile);
     const settings = inspector(tile);
-    expect(settings.find('.tilt-choice input').exists()).toBe(true);
-    await settings.find('.tilt-choice input').setValue(true);
+    expect(settings.find('.tilt-choice [role=switch]').exists()).toBe(true);
+    await settings.find('.tilt-choice [role=switch]').trigger('click');
     expect(current(tile)?.options?.controls ?? tile.options?.controls).toBe('position_tilt');
-    await settings.find('.tilt-choice input').setValue(false);
+    await settings.find('.tilt-choice [role=switch]').trigger('click');
     expect(current(tile)?.options?.controls ?? tile.options?.controls).toBe('position');
     const card = mount(TileCard, { props: { tile: { ...tile, options: { size: 'tall', controls: 'position_tilt' } }, slot: 0 } });
     expect(card.findComponent({ name: 'CoverTilePreview' }).exists()).toBe(true);
@@ -378,38 +385,46 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(row(drawer, "Refresh")).toBeUndefined();
     await row(drawer, "Display").findAll(".seg button")[1].trigger("click");
     expect(current(tile).options).toEqual({ display: "live" });
-    expect(choices(drawer, "Refresh")).toEqual(["Every 15 s", "Every 30 s"]);
+    expect(choices(drawer, "Refresh")).toEqual(["Every 5 s", "Every 10 s", "Every 15 s", "Every 30 s"]);
     expect(row(drawer, "Refresh").find('[aria-pressed="true"]').text()).toBe("Every 15 s");
-    expect(row(drawer, "Display").find("small").text()).toMatch(/firmware 0\.2\.77/);
-    expect(row(drawer, "Display").find("small").classes()).toContain("warn");
-    await row(drawer, "Refresh").findAll(".seg button")[1].trigger("click");
+    expect(hint(row(drawer, "Display")).text).toMatch(/firmware 0\.2\.77/);
+    expect(hint(row(drawer, "Display")).warn).toBe(true);
+    await row(drawer, "Refresh").findAll(".seg button")[3].trigger("click");
     expect(current(tile).options).toEqual({ display: "live", refresh: 30 });
+    await row(drawer, "Refresh").findAll(".seg button")[1].trigger("click");
+    expect(current(tile).options).toEqual({ display: "live", refresh: 10 });
+    // Firmware that draws the small square in the icon's place is told what fills the tile (app 0.3.13).
     Object.assign(state.inventory.screens[0], { firmware: "0.2.77" });
     await drawer.vm.$nextTick();
-    expect(row(drawer, "Display").find("small").text()).toMatch(/icon's place/);
-    expect(row(drawer, "Display").find("small").classes()).not.toContain("warn");
+    expect(hint(row(drawer, "Display")).text).toMatch(/firmware 0\.3\.7/);
+    expect(hint(row(drawer, "Display")).warn).toBe(true);
+    Object.assign(state.inventory.screens[0], { firmware: "0.3.7" });
+    await drawer.vm.$nextTick();
+    expect(hint(row(drawer, "Display")).text).toMatch(/fills the tile/);
+    expect(hint(row(drawer, "Display")).warn).toBe(false);
     // A light has no such choice.
     const lamp = mount(TileInspector, { props: { tile: { entity: "light.a", name: "", slot: 1 } } });
     expect(choices(lamp, "Display")).not.toContain("Live picture");
-    // The mockup draws the picture's rounded square instead of the icon.
+    // The mockup draws the add-on's picture over the whole card, one cell high too.
     const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
-    expect(card.find(".ic").classes()).toContain("thumb");
+    expect(card.find("img.camera-art").attributes("src")).toBe("api/camera-preview?entity=camera.front");
   });
-  it("lets a live camera on a taller tile fill it, whole or cut, with its name or without, and keeps no defaults (app 0.3.8)", async () => {
+  it("lets a live camera fill its tile, whole or cut, with its name or without, and keeps no defaults (app 0.3.8, every size 0.3.13)", async () => {
     Object.assign(state.inventory, { editor_features: { tall_tiles: true } });
     Object.assign(state.inventory.screens[0], { firmware: "0.3.1", tile_sizes: ["single", "wide", "tall", "square", "full"] });
     state.inventory.entities.push({ id: "camera.garden", name: "Garden", state: "idle", area: "Garden" } as any);
     const tile: Tile = { entity: "camera.garden", name: "", slot: 0, options: { display: "live" } };
     appendTiles(tile);
     const drawer = inspector(tile);
-    // One cell high the picture stays in the icon's place: nothing to fill.
-    expect(row(drawer, "Picture")).toBeUndefined();
+    // One cell high it fills the card as well, from firmware 0.3.7.
+    expect(choices(drawer, "Picture")).toEqual(["Fill the tile", "Whole picture"]);
+    expect(hint(row(drawer, "Display")).text).toMatch(/firmware 0\.3\.7/);
     setTileOption(current(tile), "size", "tall");
     await drawer.vm.$nextTick();
     expect(choices(drawer, "Picture")).toEqual(["Fill the tile", "Whole picture"]);
     expect(choices(drawer, "On the picture")).toEqual(["Name", "Nothing"]);
-    expect(row(drawer, "Display").find("small").text()).toMatch(/firmware 0\.3\.3/);
-    expect(row(drawer, "Display").find("small").classes()).toContain("warn");
+    expect(hint(row(drawer, "Display")).text).toMatch(/firmware 0\.3\.7/);
+    expect(hint(row(drawer, "Display")).warn).toBe(true);
     await row(drawer, "Picture").findAll(".seg button")[1].trigger("click");
     await row(drawer, "On the picture").findAll(".seg button")[1].trigger("click");
     expect(current(tile).options).toMatchObject({ display: "live", size: "tall", fit: "contain", overlay: "none" });
@@ -422,7 +437,12 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     Object.assign(state.inventory.screens[0], { firmware: "0.3.3" });
     setTileOption(current(tile), "display", "live");
     await drawer.vm.$nextTick();
-    expect(row(drawer, "Display").find("small").classes()).not.toContain("warn");
+    // Firmware 0.3.3 fills a 1x2 or 2x2 tile, but a single one only from 0.3.7.
+    expect(hint(row(drawer, "Display")).warn).toBe(false);
+    setTileOption(current(tile), "size", "single");
+    await drawer.vm.$nextTick();
+    expect(hint(row(drawer, "Display")).warn).toBe(true);
+    setTileOption(current(tile), "size", "tall");
     // The mockup draws the add-on's picture over the whole card, cut as the tile asks.
     setTileOption(current(tile), "fit", "contain");
     const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
@@ -442,7 +462,7 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(choices(drawer, "Display")).toEqual(["Name and status", "Large value", "Album cover"]);
     await row(drawer, "Display").findAll(".seg button")[2].trigger("click");
     expect(current(tile).options).toEqual({ size: "wide", display: "cover" });
-    expect(row(drawer, "Display").find("small").text()).toMatch(/icon's place/);
+    expect(hint(row(drawer, "Display")).text).toMatch(/icon's place/);
     expect(row(drawer, "Refresh")).toBeUndefined();
     expect(row(drawer, "Direct control on the tile")).toBeDefined();
     const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
@@ -518,23 +538,45 @@ describe("Sidebar", () => {
     expect(state.dirty).toBe(true);
     expect(state.tab).toBe("layout");
   });
-  it("shows a screen's name and light alone, and its details once it is chosen (app 0.2.108)", async () => {
+  it("shows a screen's name and light alone, and its details behind the chevron (app 0.4.0)", async () => {
+    state.selected = null;
     const sidebar = mount(Sidebar);
     const item = sidebar.find("#screens .screen-item");
     expect(item.find(".led").classes()).toContain("ok");
     expect(item.find(".sub").exists()).toBe(false);
     expect(item.find(".screen-details").exists()).toBe(false);
+    expect(item.find(".details-toggle").exists()).toBe(false);
+    // Chosen, a healthy screen keeps its details folded: the chevron at its right opens them.
     await item.find(".nav-item").trigger("click");
+    expect(item.classes()).not.toContain("open");
+    expect(item.find(".details-toggle").attributes("aria-expanded")).toBe("false");
+    await item.find(".details-toggle").trigger("click");
     expect(item.classes()).toContain("open");
     expect(item.findAll(".facts dt").map((dt) => dt.text())).toEqual(["Firmware", "Board"]);
     expect(item.findAll(".facts dd").map((dd) => dd.text())).toEqual(["0.2.60", "Guition · 4 inch"]);
-    // Chosen again, the details fold away; a screen that is off shows why in red.
-    await item.find(".nav-item").trigger("click");
+    await item.find(".details-toggle").trigger("click");
     expect(item.classes()).not.toContain("open");
+    // A screen that is off shows why in red, and opens its details by itself once it is chosen.
     Object.assign(state.inventory.screens[0], { online: false });
+    state.selected = null;
     await nextTick();
     expect(item.find(".led").classes()).toContain("down");
     expect(item.find(".sub").text()).toBe("Offline");
+    await item.find(".nav-item").trigger("click");
+    expect(item.classes()).toContain("open");
+  });
+  it("opens the details of a chosen screen with an update waiting (app 0.4.0)", async () => {
+    Object.assign(state.inventory.screens[0], { update: { available: true, target: "0.4.0", profile: "living.yaml" } });
+    const sidebar = mount(Sidebar);
+    const item = sidebar.find("#screens .screen-item");
+    expect(item.classes()).toContain("open");
+    expect(item.find(".screen-update .btn.primary").exists()).toBe(true);
+  });
+  it("goes home from the logo: the overview, nothing chosen (app 0.4.0)", async () => {
+    const sidebar = mount(Sidebar);
+    await sidebar.find(".brand").trigger("click");
+    expect(state.selected).toBeNull();
+    expect(state.layout).toBeNull();
   });
   it("asks what goes before it removes a screen, and then removes it (app 0.2.112)", async () => {
     Object.assign(state.inventory.screens[0], { online: false, update: { profile: "living.yaml" } });
@@ -564,12 +606,42 @@ describe("Sidebar", () => {
     const sidebar = mount(Sidebar);
     const item = sidebar.find("#screens .screen-item");
     await item.find(".nav-item").trigger("click");
+    await item.find(".details-toggle").trigger("click");
     await item.find(".remove-screen").trigger("click");
     expect(item.find(".screen-remove small.warn").text()).toContain("still connected");
     // Nothing goes until it is confirmed: Cancel puts the details back.
     await item.findAll(".screen-remove .btn")[1].trigger("click");
     expect(item.find(".screen-remove").exists()).toBe(false);
     expect(item.find(".facts").exists()).toBe(true);
+  });
+});
+
+describe("HomeView: every screen with its home page (app 0.4.0)", () => {
+  it("draws each screen's home page on its own grid, and opens a screen on a click", async () => {
+    state.inventory.screens = [
+      screenFixture({ ...state.inventory.screens[0], layout: { title: "Living room", tiles: [
+        { entity: "light.a", name: "Reading", slot: 0 }, { entity: "sensor.t", name: "", slot: 7 }] } }),
+      screenFixture({ id: "hall", name: "Hall", online: false, firmware: "0.3.9", board: "waveshare43",
+        shape: { width: 800, height: 480, columns: 3, rows: 3 }, layout: { title: "Hall", tiles: [{ entity: "cover.c", name: "", slot: 4 }] } } as any),
+    ];
+    state.selected = null;
+    seedLayout(null);
+    const home = mount(HomeView);
+    const cards = home.findAll(".home-card:not(.home-new)");
+    expect(cards.map((card) => card.find(".home-name strong").text())).toEqual(["Living room", "Hall"]);
+    // Only the tiles of the home page, on the screen's own grid: the sensor stands on page 2.
+    expect(cards[0].findAll(".tile").map((tile) => tile.text())).toEqual([expect.stringContaining("Reading")]);
+    expect(cards[1].find(".tile").attributes("style")).toContain("grid-column: 2 / span 1");
+    expect(cards[1].find(".home-page").attributes("style")).toContain("--screen-columns: 3");
+    // A tile of the overview is only drawn: not a button, not focusable.
+    expect(cards[0].find(".tile").attributes("tabindex")).toBe("-1");
+    expect(cards[1].classes()).toContain("away");
+    expect(cards[1].find(".home-name small").text()).toBe("Offline");
+    expect(home.find(".home-head p").text()).toBe("1 of 2 online");
+    await cards[1].trigger("click");
+    expect(state.selected).toBe("hall");
+    // The next test starts on the fixture's own grid again.
+    state.documentGrid = null;
   });
 });
 
@@ -621,30 +693,49 @@ describe("AppSettingsView", () => {
     delete state.inventory.changelog;
     expect(mount(AppSettingsView).find(".whatsnew").exists()).toBe(false);
   });
+  it("names one firmware only when the screens share it (app 0.3.20, a firmware per board)", () => {
+    const [living] = state.inventory.screens;
+    const kitchen = { ...living, id: "kitchen", name: "Kitchen", board: "waveshare4b" } as any;
+    const hint = () => mount(AppSettingsView).find("#updates-hint").text();
+    state.inventory.updates = { target: "0.4.0", pending: 1 };
+    state.inventory.screens = [{ ...living, update: { available: true, target: "0.4.0" } }, { ...kitchen, update: { available: false, target: "0.4.1" } }];
+    expect(hint()).toBe("Firmware 0.4.0 is available for 1 screen.");
+    state.inventory.screens[1].update = { available: true, target: "0.4.1" };
+    expect(hint()).toBe("An update is available for 2 screens.");
+    state.inventory.screens.forEach((s) => (s.update!.available = false));
+    expect(hint()).toBe("All screens are up to date.");
+    state.inventory.screens[1].update!.target = "0.4.0";
+    expect(hint()).toBe("All screens have firmware 0.4.0.");
+    // A running update names the firmware of the screen it is updating.
+    state.inventory.updates = { target: "0.4.0", pending: 1, busy: "kitchen" };
+    state.inventory.screens[1].update = { available: true, target: "0.4.1", state: "running" };
+    expect(hint()).toBe("Updating to firmware 0.4.1…");
+  });
 });
 
-describe("the title above a page (app 0.2.105)", () => {
-  // You click a page's bar and answer one question: what stands above this page.
-  it("asks it for the page whose bar was clicked", async () => {
+describe("the title above a page (app 0.2.105, in the page's settings since 0.3.19)", () => {
+  // A title belongs to its page: you set it in that page's settings, and the top bar's panel only says where.
+  const settings = (page: number) => mount(PageInspector, { props: { id: state.document!.pages[page].id } });
+  it("asks each page for its own title", async () => {
     seedLayout({ title: "Living room", tiles: [], pages: 3 });
-    openBar(0, 1);
-    const drawer = mount(TopbarInspector, { props: { index: 0 } });
-    const field = drawer.find("#page-title");
-    expect(drawer.find("label[for='page-title']").text()).toBe("Title above page 2");
-    // Empty says what page 1 says, so a page that follows it looks like it does.
+    const drawer = settings(1);
+    const field = drawer.find("#owned-page-title");
+    expect(drawer.find("label[for='owned-page-title']").text()).toBe("Page title");
+    // Empty says the screen's title, so a page that follows page 1 looks like it does.
     expect((field.element as HTMLInputElement).value).toBe("");
     expect(field.attributes("placeholder")).toBe("Living room");
-    expect(drawer.find("#page-title-hint button").attributes("aria-label")).toBe("Leave empty and this page says the screen's title.");
+    expect(drawer.find(".f-label .help-trigger").attributes("aria-label")).toBe("Leave empty to use the screen title.");
     await field.setValue("Music");
     expect(state.layout!.page_titles).toEqual(["", "Music"]);
     // Clearing it hands the page back and leaves nothing behind.
     await field.setValue("");
     expect(state.layout!.page_titles).toBeUndefined();
   });
-  it("asks page 1 for the screen's title and for a title of its own", async () => {
+  it("keeps the screen's own title one click under the page's", async () => {
     seedLayout({ title: "Living room", tiles: [], pages: 2, page_titles: ["", "Music"] });
-    openBar(0, 0);
-    const drawer = mount(TopbarInspector, { props: { index: 0 } });
+    const drawer = settings(0);
+    expect(drawer.find("#screen-title").exists()).toBe(false);
+    await drawer.find(".disclosure").trigger("click");
     const screen = drawer.find("#screen-title");
     expect(drawer.find("label[for='screen-title']").text()).toBe("Screen title");
     expect((screen.element as HTMLInputElement).value).toBe("Living room");
@@ -653,9 +744,7 @@ describe("the title above a page (app 0.2.105)", () => {
     expect(state.layout!.title).toBe("Downstairs");
     expect(state.layout!.page_titles).toEqual(["", "Music"]);
     // Page 1 carries one of its own like any other page (app 0.2.123), and falls back to the screen's.
-    const own = drawer.find("#page-title");
-    expect(drawer.find("label[for='page-title']").text()).toBe("Title above page 1");
-    expect((own.element as HTMLInputElement).value).toBe("");
+    const own = drawer.find("#owned-page-title");
     expect(own.attributes("placeholder")).toBe("Downstairs");
     await own.setValue("Hall");
     expect(state.layout!.page_titles).toEqual(["Hall", "Music"]);
@@ -663,15 +752,24 @@ describe("the title above a page (app 0.2.105)", () => {
   });
   it("asks a screen with one page for one title only", () => {
     seedLayout({ title: "Living room", tiles: [] });
-    openBar(0, 0);
-    const one = mount(TopbarInspector, { props: { index: 0 } });
+    const one = settings(0);
     expect(one.findAll("#screen-title")).toHaveLength(1);
     expect(one.find("label[for='screen-title']").text()).toBe("Title above the page");
     // One page and the screen's title are the same thing, so there is no second field to fill.
-    expect(one.find("#page-title").exists()).toBe(false);
+    expect(one.find("#owned-page-title").exists()).toBe(false);
     // A title that page kept from a longer row does get its field back: nothing is set that nobody can see.
     seedLayout({ title: "Living room", tiles: [], page_titles: ["Hall"] });
-    expect(mount(TopbarInspector, { props: { index: 0 } }).find("#page-title").exists()).toBe(true);
+    expect(settings(0).find("#owned-page-title").exists()).toBe(true);
+  });
+  it("leaves the title out of the top bar's panel and leads to the page instead", async () => {
+    seedLayout({ title: "Living room", tiles: [], pages: 2, page_titles: ["", "Music"] });
+    openBar(0, 1);
+    const drawer = mount(TopbarInspector, { props: { index: 0 } });
+    expect(drawer.find("#screen-title").exists()).toBe(false);
+    expect(drawer.find("#page-title").exists()).toBe(false);
+    expect(drawer.find(".nav-row").text()).toContain("Music");
+    await drawer.find(".nav-row").trigger("click");
+    expect(state.inspector).toEqual({ kind: "page", id: state.document!.pages[1].id });
   });
   it("shows the page's own title in that page's mockup bar, and opens that page's field", async () => {
     seedLayout({ title: "Living room", tiles: [], pages: 2, page_titles: ["", "Music"] });
@@ -847,7 +945,7 @@ describe("a page that moves as a whole", () => {
     const grab = second.find(".grab");
     expect(grab.exists()).toBe(true);
     // The grip of the top bar's rows, so anything you drag by hand looks the same.
-    expect(grab.text()).toBe("⋮⋮Page 2");
+    expect(grab.text()).toContain("Page 2");
     expect(grab.find(".grip").attributes("aria-hidden")).toBe("true");
     expect(grab.attributes("aria-label")).toBe("Move page 2");
     expect(grab.attributes("title")).toBe("Drag this page to another place in the row, or use ← and →");
@@ -868,19 +966,15 @@ describe("a page that moves as a whole", () => {
     await row.find(".grab").trigger("keydown", { key: "Enter" });
     expect(state.layout!.tiles[0].slot).toBe(6);
   });
-  it("offers Remove page on every page of the row, filled or not", async () => {
-    // A page leaves whether it is empty or not (app 0.2.123): the way out stands beside the cells in use.
+  it("gives every page one menu, and Remove page takes the page with its tiles", async () => {
+    // A page leaves whether it is empty or not (app 0.2.123); since 0.3.19 the way out is in the page's ··· menu.
+    // jsdom cannot place Reka's popover, so opening it is checked in the browser; here the menu's key and its action.
     const second = mount(DevicePage, { props: props(1, 3) });
-    const remove = second.find(".page-remove");
-    expect(remove.exists()).toBe(true);
-    expect(remove.attributes("aria-label")).toBe("Remove page 2");
-    expect(second.find(".page-side").text()).toContain("1 / 6");
-    // The only page cannot leave, and neither can the page a tile can start behind the last one.
-    expect(mount(DevicePage, { props: props(3, 3) }).find(".page-remove").exists()).toBe(false);
-    seedPages(1);
-    expect(mount(DevicePage, { props: props(0, 1) }).find(".page-remove").exists()).toBe(false);
-    seedPages(3);
-    await remove.trigger("click");
+    expect(second.find(".page-menu").attributes("aria-label")).toBe("Page 2: more");
+    expect(second.find(".page-side").text()).toContain("1/6");
+    // The page a tile can start behind the last one is not a page yet, so it has no menu.
+    expect(mount(DevicePage, { props: props(3, 3) }).find(".page-menu").exists()).toBe(false);
+    removePage(1);
     expect(state.layout!.tiles).toEqual([]);
     expect(state.toast?.message).toBe("Page 2 and one tile are gone.");
   });

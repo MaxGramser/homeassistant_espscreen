@@ -45,7 +45,7 @@ class ReferenceTests(unittest.TestCase):
             text = (ROOT / f'packages/looks/{look}.yaml').read_text()
             for field, key in (('title', 'ALERT_TITLE_MAX'), ('subtitle', 'ALERT_SUBTITLE_MAX'), ('button_text', 'ALERT_BUTTON_MAX')):
                 self.assertEqual(ALERT_LIMITS[look][field], int(re.search(rf'^  {key}: "(\d+)"', text, re.M)[1]), (look, field))
-        self.assertEqual(reference['limit_boards']['compact'], ['CYD'])
+        self.assertEqual(reference['limit_boards']['compact'], ['CYD', 'Hosyond'])
         self.assertEqual(reference['limit_boards']['standard'], ['Guition', 'Waveshare'])
 
     def test_colours_icons_and_fallback_match_the_firmware_headers(self):

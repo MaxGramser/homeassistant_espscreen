@@ -5,6 +5,7 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
 import { iconNamed, state } from "../store";
+import Icon from "./ui/Icon.vue";
 
 const props = defineProps<{ selected: string; automatic: string; autoLabel: string; allowNone?: boolean; note?: string }>();
 const emit = defineEmits<{ (e: "pick", name: string): void }>();
@@ -27,10 +28,10 @@ const groups = computed(() => {
     <button type="button" class="row" :aria-expanded="state.iconPickerOpen ? 'true' : 'false'" @click="state.iconPickerOpen = !state.iconPickerOpen">
       <span class="av mdi">{{ currentGlyph }}</span>
       <span class="tx"><b>{{ currentText }}</b></span>
-      <span class="link">{{ state.iconPickerOpen ? t("editor.common.close") : t("editor.common.change") }}</span>
+      <Icon :name="state.iconPickerOpen ? 'chevron-up' : 'chevron-down'" class="row-chevron" />
     </button>
     <div v-if="state.iconPickerOpen" class="picker">
-      <input v-model="query" type="search" :placeholder="t('editor.icon.search')" :aria-label="t('editor.icon.search_label')" />
+      <label class="search-field"><Icon name="magnify" /><input v-model="query" type="search" :placeholder="t('editor.icon.search')" :aria-label="t('editor.icon.search_label')" /></label>
       <button type="button" class="icon-choice icon-auto" :aria-pressed="selected === 'auto' ? 'true' : 'false'" :title="autoLabel" @click="emit('pick', 'auto')">
         <span class="mdi">{{ glyph(automatic) }}</span><span>{{ autoLabel }}</span>
       </button>
@@ -48,6 +49,6 @@ const groups = computed(() => {
         <p v-if="!groups.length" class="hint">{{ t("editor.icon.none_found") }}</p>
       </div>
     </div>
-    <small v-if="note">{{ note }}</small>
+    <small v-if="note" class="help">{{ note }}</small>
   </div>
 </template>

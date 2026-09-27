@@ -1,11 +1,11 @@
-"""Render a live camera that fills a 1x2 and a 2x2 card (app 0.3.8, firmware 0.3.3): fill or contain, with its name or
-without, with the real firmware on the host (tools/render/host.py) and the add-on's own camera_feed and tile_art.
+"""Render a live camera that fills its card on every size (1x2 and 2x2 since app 0.3.8 and firmware 0.3.3, single,
+double-width and full page since app 0.3.13 and firmware 0.3.7): fill or contain, with its name or without, with the real firmware on the host (tools/render/host.py) and the add-on's own camera_feed and tile_art.
 
     python3 tools/render/camera_tiles.py guition waveshare43
 
 The program asks for its picture the way it asks ESP Screens (the esphome.screen_camera event with an atlas); this
 script answers as the add-on would (camera_feed.picture_modes, tile_art.encode), with a drawn porch as the camera: by
-day on the 1x2 tile, the hard case for white text, and by night on the 2x2.
+day on the first camera, the hard case for white text, and by night on the second. One page per size.
 """
 import argparse
 import asyncio
@@ -28,6 +28,11 @@ from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 CAMERA = 'camera.front_door'
 OVERLAYS = {'name': 'name at the bottom', 'none': 'nothing on the picture'}
+# A camera by day (the hard case for white text) and one by night, in turn.
+CAMERAS = [('camera.front_door', 'Front door'), ('camera.garden', 'Garden'), ('camera.porch', 'Porch'),
+           ('camera.driveway', 'Driveway'), ('camera.back_door', 'Back door')]
+DAY = {'camera.front_door', 'camera.porch', 'camera.back_door'}
+SIZES = {'single': '1×1', 'wide': 'double width', 'tall': '1×2', 'square': '2×2', 'full': 'full page'}
 NEIGHBOURS = [
     ('light.demo', 'Table lamp', {'state': 'on', 'attributes': {'brightness': 180}}),
     ('sensor.demo_temperature', 'Living room', {'state': '21.5', 'attributes': {'unit_of_measurement': '°C'}}),
@@ -87,7 +92,7 @@ class Study(run.Run):
         if atlas is None:
             self.warnings.append(f'no atlas in {data}')
             return
-        raw = scene(*self.camera, day=entities[0] == 'camera.front_door')
+        raw = scene(*self.camera, day=entities[0] in DAY)
         grounds = [int(c, 16) for c in data['bg'].split(',')]
         modes = camera_feed.picture_modes({'firmware': core.FIRMWARE_VERSION}, self.options.get, entities)
         # As the add-on answers this firmware: 8-bit colour (app 0.3.8).
@@ -138,8 +143,9 @@ class Study(run.Run):
         grid = send_layout.Grid(side['columns'], side['rows'])
         self.canvas = (side['width'], side['height'])
         self.sender = send_layout.api_sender(self.client, services)
-        cameras = [('camera.front_door', 'Front door'), ('camera.garden', 'Garden')]
-        sizes = ['tall', 'square'] if grid.columns >= 2 else ['tall']
+        sizes = [size for size in SIZES if size in ('single', 'tall', 'full') or grid.columns >= 2]
+        # One camera per page: an entity appears once on a screen.
+        cameras = CAMERAS[:len(sizes)]
         region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
         shots = 0
         for fit in ('fill', 'contain'):
@@ -186,7 +192,7 @@ def sheets(out, keys):
     font = ImageFont.truetype(str(run.REPO / 'fonts/Roboto-500.ttf'), 22)
     small = ImageFont.truetype(str(run.REPO / 'fonts/Roboto-400.ttf'), 17)
     for key in keys:
-        for size in ('tall', 'square'):
+        for size in SIZES:
             paths = [[out / key / f'{size}-{overlay}-{fit}.png' for fit in ('fill', 'contain')] for overlay in OVERLAYS]
             if not paths[0][0].exists():
                 continue
@@ -195,7 +201,7 @@ def sheets(out, keys):
             cw, ch = w * scale, h * scale
             sheet = Image.new('RGB', (2 * cw + 72, len(OVERLAYS) * (ch + 56) + 72), '#f5f6f8')
             draw = ImageDraw.Draw(sheet)
-            draw.text((24, 16), f'{key} · {w} × {h} · {"1×2" if size == "tall" else "2×2"}', font=font, fill='#17202c')
+            draw.text((24, 16), f'{key} · {w} × {h} · {SIZES[size]}', font=font, fill='#17202c')
             for row, overlay in enumerate(OVERLAYS):
                 for col, fit in enumerate(('fill', 'contain')):
                     x, y = 24 + col * (cw + 24), 60 + row * (ch + 56)

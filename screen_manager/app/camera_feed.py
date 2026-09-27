@@ -39,7 +39,7 @@ COVER_RADIUS_SHARE = 12  # the corner is a twelfth of the size, at least 4 px (m
 # Live pictures on camera tiles (app 0.2.91, firmware 0.2.77): a tile with "display": "live" shows a small square of its
 # camera in the icon's place. The camera tiles of a page share one image: the screen asks for them together and the
 # app serves one strip of squares, top to bottom in the screen's order, each cut to the middle of its snapshot with
-# the corners rounded over that tile's own colour. A camera is fetched again only when its tile's pace (15 or 30 s)
+# the corners rounded over that tile's own colour. A camera is fetched again only when its tile's pace (5 to 30 s)
 # has passed since the last fetch, so a page loading every 15 s leaves a 30 s camera alone in between.
 LIVE_MIN_FIRMWARE = (0, 2, 77)
 # A media tile's album cover in the same strip (app 0.2.92, firmware 0.2.78): "display": "cover" on a single or wide
@@ -48,12 +48,15 @@ LIVE_MIN_FIRMWARE = (0, 2, 77)
 COVER_TILE_MIN_FIRMWARE = (0, 2, 78)
 # A camera on a 1x2 or 2x2 tile fills the card (app 0.3.8, firmware 0.3.3): the tile's own `fit` and `overlay` say how
 # the app cuts its picture and whether it shades the bottom for the name. Older firmware draws the small square there.
+# From firmware 0.3.7 a live camera fills its card on every size (single, double-width and full page too).
 CAMERA_ART_FIRMWARE = (0, 3, 3)
+CAMERA_CARD_FIRMWARE = (0, 3, 7)
 # The same firmware is built with an ESPHome whose BMP decoder reads 8-bit pictures: a page's pictures go to it in 8-bit
 # colour (tile_art.bmp), a third of the bytes of 24-bit. Older screens keep 24-bit.
 LIVE_SIZES = (24, 160)   # a square's side, in pixels
 LIVE_MAX_TILES = 6       # one page
-LIVE_REFRESH = (15, 30)  # the paces a tile may choose, in seconds
+LIVE_REFRESH = (5, 10, 15, 30)  # the paces a tile may choose, in seconds
+LIVE_REFRESH_DEFAULT = 15
 LIVE_RADIUS_SHARE = 6    # a rounder corner than a cover's: the square is small
 PORT = 8098
 # A camera nobody loaded a picture of for this long is forgotten, its last snapshot with it.
@@ -170,13 +173,15 @@ def can_show_live(screen):
 
 
 def picture_modes(screen, options_of, entities):
-    """(fit, fade) per tile of a live strip: how the app prepares each picture. A camera on a taller card gets its own
-    choices once the screen's firmware draws it there; everything else is filled and left alone."""
-    art = (screen_firmware(screen) or (0, 0, 0)) >= CAMERA_ART_FIRMWARE
+    """(fit, fade) per tile of a live strip: how the app prepares each picture. A camera gets its own choices on every
+    card the screen's firmware fills with it (1x2 and 2x2 from 0.3.3, every size from 0.3.7); everything else is
+    filled and left alone."""
+    firmware = screen_firmware(screen) or (0, 0, 0)
+    sizes = None if firmware >= CAMERA_CARD_FIRMWARE else ('tall', 'square') if firmware >= CAMERA_ART_FIRMWARE else ()
     modes = []
     for entity in entities:
         options = options_of(entity) or {}
-        if art and supported(entity) and options.get('display') == 'live' and options.get('size') in ('tall', 'square'):
+        if supported(entity) and options.get('display') == 'live' and (sizes is None or options.get('size') in sizes):
             modes.append((options.get('fit', 'fill'), options.get('overlay', 'name') != 'none'))
         else:
             modes.append(('fill', False))

@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import firmware_count  # noqa: E402
 import profiles  # noqa: E402
 
 ROOT = profiles.ROOT
@@ -69,6 +70,35 @@ def own_blocks(path):
     return blocks
 
 
+def firmware_problem(shared, own):
+    """What is wrong with the boards' own firmware versions, or None. `shared` is the core's SCREEN_FIRMWARE_VERSION,
+    `own` maps a board file to the one it sets ('' for none). A board's own version is strict X.Y.Z (the add-on reads
+    nothing else as a firmware): the core's X.Y, the core it is built on, with a board revision Z above the core's.
+    Another core would make the feature gates believe the board has a core it does not have; the same number or lower
+    would report a firmware it does not have (tools/firmware_count.py, docs/BOARD_RELEASES.md)."""
+    core = firmware_count.parse(shared)
+    if not core:
+        return f'packages/core.yaml has SCREEN_FIRMWARE_VERSION "{shared}", not X.Y.Z'
+    for path, value in sorted(own.items()):
+        if not value:
+            continue
+        board = firmware_count.parse(value)
+        if not board:
+            return f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", not X.Y.Z'
+        problem = firmware_count.board_problem(core, board)
+        if problem == 'another core' and board[:2] > core[:2]:
+            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", a newer core than the shared {shared}: a board fix '
+                    f'keeps the shared core, {firmware_count.dotted(firmware_count.next_board(core, [board]))} or higher '
+                    f'(docs/BOARD_RELEASES.md)')
+        if problem == 'another core':
+            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}" on an older core than the shared {shared}: a shared '
+                    f'release took the board\'s fix along, so remove the line (docs/BOARD_RELEASES.md)')
+        if problem:
+            return (f'{path} sets SCREEN_FIRMWARE_VERSION "{value}", which is no board revision above the shared '
+                    f'{shared}: remove the line, or raise the last number (docs/BOARD_RELEASES.md)')
+    return None
+
+
 def main():
     boards = profiles.BOARDS
     for board in boards:
@@ -116,6 +146,12 @@ def main():
         for name in core_ids:
             if re.search(r'(?m)^\s+(?:- )?id: ' + name + '$', own):
                 fail(f'{path.relative_to(ROOT)} defines {name}, which packages/core.yaml owns for every board')
+
+    # The boot steps are the core's. ESPHome joins two on_boot lists but lets a list replace one trigger whole, so a
+    # board's own on_boot threw away the core's boot block: the Waveshare 4B up to firmware 0.3.9 never took a layout.
+    for path in sorted((ROOT / 'packages' / 'boards').glob('*.yaml')):
+        if re.search(r'(?m)^  on_boot:', without_comments(path.read_text())):
+            fail(f'{path.relative_to(ROOT)} has its own esphome: on_boot:, which replaces the boot block of packages/core.yaml')
 
     # A board file holds what is its own.
     blocks = {board: own_blocks(path) for board, path in boards.items()}
@@ -190,6 +226,19 @@ def main():
         if found and found != board:
             fail(f'{path.relative_to(ROOT)} says BOARD_ID "{found}" but the manager knows it as "{board}" '
                  f'(tools/profiles.py): boards.json and the screen would not agree')
+
+    # A board's own firmware version (app 0.3.21, docs/BOARD_RELEASES.md): only a board file sets one, on the shared
+    # core with a higher revision (firmware_problem). The feature gates compare against the core, so a board on another
+    # core, or at or below the core's number, would report a firmware it does not have; the next shared release takes
+    # the line back out.
+    for path in (ROOT / 'packages').rglob('*.yaml'):
+        if path != profiles.CORE and path not in boards.values() and 'SCREEN_FIRMWARE_VERSION' in profiles.substitutions_of(path):
+            fail(f'{path.relative_to(ROOT)} sets SCREEN_FIRMWARE_VERSION: only packages/core.yaml and a board file do')
+    problem = firmware_problem(profiles.substitutions_of(profiles.CORE)['SCREEN_FIRMWARE_VERSION'].strip('"'),
+                               {str(path.relative_to(ROOT)): profiles.substitutions_of(path).get('SCREEN_FIRMWARE_VERSION', '').strip('"')
+                                for path in boards.values()})
+    if problem:
+        fail(problem)
 
     # Nothing the shared files define is dead.
     shared = [profiles.CORE, *sorted((ROOT / 'packages' / 'looks').glob('*.yaml')),

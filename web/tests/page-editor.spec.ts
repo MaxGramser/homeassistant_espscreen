@@ -32,7 +32,8 @@ afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
 describe("one draft in both editor modes", () => {
   it('keeps spaces and temporary empty titles while storing valid text with one undo step', async () => {
-    const view = mount(TopbarInspector, { props: { index: -1 } });
+    const view = mount(PageInspector, { props: { id: state.document!.pages[0].id } });
+    await view.find('.disclosure').trigger('click');
     const input = view.find('#screen-title');
     const original = state.document!.title;
     await input.trigger('focus');
@@ -101,13 +102,13 @@ describe("one draft in both editor modes", () => {
     undo();
     expect(state.layout!.tiles[0].id).toBe(tile.id);
   });
-  it('offers participation in dots and swipes as an enabled-by-default checkbox', async () => {
+  it('offers participation in dots and swipes as a switch that starts on', async () => {
     const view = mount(PageInspector, { props: { id: state.document!.pages[0].id } });
-    const checkbox = view.find('.page-check input');
-    expect((checkbox.element as HTMLInputElement).checked).toBe(true);
-    await checkbox.setValue(false);
+    const toggle = view.find('.page-check [role=switch]');
+    expect(toggle.attributes('aria-checked')).toBe('true');
+    await toggle.trigger('click');
     expect(state.document!.pages[0].navigation.excludeFromPagination).toBe(true);
-    await checkbox.setValue(true);
+    await toggle.trigger('click');
     expect(state.document!.pages[0].navigation.excludeFromPagination).toBe(false);
   });
   it('adds a library item only to the selected page and leaves other pages alone when full', () => {
@@ -126,7 +127,7 @@ describe("one draft in both editor modes", () => {
     const view = mount(LayoutView);
     try {
       expect(view.findAll('#layout-preview .device')).toHaveLength(1);
-      await view.find('.mobile-page-picker select').setValue(state.document!.pages[1].id);
+      await view.findAll('.page-pills button')[1].trigger('click');
       expect(view.find('#layout-preview .page').attributes('data-page-id')).toBe(state.document!.pages[1].id);
       setEditorMode('advanced'); await nextTick();
       expect(view.find('.map-list').exists()).toBe(true);
@@ -427,8 +428,8 @@ describe('creating a page', () => {
     const before = JSON.stringify(state.document);
     const view = mount(PageWizard);
     await view.find('#new-page-title').setValue('Study');
-    await view.find('.bar-choices input').setValue(false);
-    await view.find('.entity-options input').setValue(true);
+    await view.find('.home-choice [role=switch]').trigger('click');
+    await view.find('.entity-option').trigger('click');
     await view.find('form').trigger('submit');
     const page = state.document!.pages.at(-1)!;
     expect(page.topbar.title).toEqual({ source: 'text', text: 'Study' });

@@ -1,12 +1,14 @@
 # Pages, top bars and navigation
 
-ESP Screens 0.3.0 stores each page as a complete unit: its tiles, top bar, navigation choice and stable identity. Moving a page keeps links pointing to that page. A page's number is its current position in the editor, not its identity.
+ESP Screens 0.3.1 stores each page as a complete unit: its tiles, top bar, navigation choice and stable identity. Moving a page keeps links pointing to that page. A page's number is its current position in the editor, not its identity.
 
 ## Editing
 
-**Simple** is the default. Drag entities from the library onto the page grid, or select an empty cell and add an entity. Page settings contain the title, top-bar items, Home designation and **Show in page dots and swipe navigation**. Every page can have different top-bar items. A title can follow the screen title or use custom text. Copying a bar creates independent items on the chosen pages.
+The toolbar above the pages switches between two views, **Row** and **Map**, and holds Undo, Redo, **Preview**, **Add page** and a **?** with a short how-to.
 
-**Advanced** adds a spatial page map and links from navigation tiles to their destinations. Workspace positions belong to the editor, so arranging pages vertically does not change their order on the device. Reordering pages changes the device order while preserving destinations. Returning to Simple removes the map connections and keeps the same pages and tiles.
+**Row** is the default: the pages side by side, as you swipe through them on the screen. Drag entities from the library onto the page grid, or select an empty cell and add an entity. Each page has a header with its number, its title, a **Home** label on the Home page and one **···** menu: **Page settings**, **Edit top bar**, **Set as Home**, **Duplicate page**, **New empty page with this top bar** and **Remove page**. Page settings hold the page title (the screen title, which every page without its own title shows, is one click under it), **Set as Home**, **Show in page dots and swipe navigation**, **Show a Home control on this page**, the page order and the page's top bar. Every page can have different top-bar items. Copying a bar creates independent items on the chosen pages.
+
+**Map** adds a spatial page map and links from navigation tiles to their destinations. Workspace positions belong to the editor, so arranging pages vertically does not change their order on the device. Reordering pages changes the device order while preserving destinations. Returning to Row removes the map connections and keeps the same pages and tiles.
 
 The navigation preview runs locally. It does not switch entities in Home Assistant. Entity values and available history come from Home Assistant; unavailable history is left empty.
 
@@ -17,13 +19,18 @@ The new page gets a title from its shared HA area, or from its entity domain whe
 there is no shared area. Mixed content without a common area uses the screen title.
 Suggestions are applied only at creation and never rename an existing page.
 
-Contextual help uses Floating Vue through `HelpTip.vue`. Help icons work with
-keyboard focus, pointer hover and a tap; Escape or leaving the help closes it.
-Errors, compatibility notices and unsaved-change status remain visible.
+Contextual help uses Floating Vue through `HelpTip.vue`: a small help icon beside a label, only where the
+words alone don't say it. Help icons work with keyboard focus, pointer hover and a tap; Escape or leaving the
+help closes it. Errors, compatibility notices and unsaved-change status remain visible.
+
+Menus, lists to pick from and switches use Reka UI (app 0.3.19), wrapped in `web/src/components/ui/` so every
+panel uses the same few building blocks. The inspector groups a tile's settings in five cards (Text, Look,
+Size and place, Controls, Icon and color) and a page's in three (Title, Navigation, Top bar). The icons of the
+editor's own controls are Material Design Icons, listed in `web/src/model/ui-icons.json`.
 
 ## Home and detail pages
 
-Choose any page as Home. Home controls, automatic return and return on standby use that destination. Existing Home settings and entity identifiers stay compatible. Home Assistant entities whose names still say "Back to page 1" now return to the configured Home page; their existing names and IDs are retained so automations keep working.
+Choose any page as Home. Home controls, automatic return and return on standby use that destination. Existing Home settings and entity identifiers stay compatible. The **Back to Home** setting (internally still named "Back to page 1") returns to the configured Home page, and so do the house in the top bar and a swipe up from the bottom edge; existing entity names and IDs are retained so automations keep working.
 
 Every page initially participates in the bottom paginator and sequential swipes. Turn off **Show in page dots and swipe navigation** to opt a page out. Links and the existing numeric Show page action can still open it. Numeric actions follow the current editor order; links stored in the layout follow stable page IDs.
 
@@ -44,17 +51,17 @@ Each size reserves two rows, including their normal gap. Tiles cannot overlap or
 
 Hover over a tile or focus its edge handle to resize it. The right handle changes width; the bottom handle changes height. Handles offer only supported sizes that fit at the current position without moving neighbours. Drag to preview, release to apply, or press Escape to cancel. Arrow keys work on a focused handle. Each completed resize is one undo step. Full-page cards retain their existing inspector setting and do not have edge handles.
 
-These sizes reuse existing designs. A 1 × 2 tile keeps the single-column design, including its optional slider or graph. A 2 × 2 tile keeps the double-width design and its direct controls. Extra height does not enable a different control set or force a full-page design. Moving, copying, exporting and undoing keep the rectangular footprint with the tile.
+Most kinds reuse existing designs. A 1 × 2 tile keeps the single-column design, including its optional slider or graph. A 2 × 2 tile keeps the double-width design and its direct controls. Some kinds use the height (app 0.3.8, firmware 0.3.3): a weather tile of two rows lists the days under each other with a low-to-high bar, and a thermostat shows its temperature between − and + with a mode bar under it. A **Live picture** fills its tile on every size (app 0.3.13, firmware 0.3.7). Extra height does not force a full-page design. Moving, copying, exporting and undoing keep the rectangular footprint with the tile.
 
-Taller standard tiles extend the existing header. Media uses the selected playback or volume controls below track information. Selecting **Album cover** uses the artwork as a dimmed background on boards that support pictures. Climate can put the target between round minus and plus controls, or show the measured temperature above selected HVAC modes. Light brightness and other sliders reuse the existing large controls. Unavailable entities keep their unavailable state and their detail action.
+Taller standard tiles extend the existing header. Media uses the selected playback or volume controls below track information. Selecting **Album cover** uses the artwork as a dimmed background on boards that support pictures; on a Normal tile the cover sits in the icon's place. A thermostat of two rows shows its temperature between − and + and a bar with one segment per mode (the active one filled; an airco shows heat and cool first, the rest behind "…"). Off is not on the bar: a tap on the tile's circle turns the thermostat on or off (firmware 0.3.3). Light brightness and other sliders reuse the existing large controls. Unavailable entities keep their unavailable state and their detail action.
 
-Controls remain an explicit choice in the tile inspector. Increasing height preserves a previously selected group and does not enable a default group on a previously unconfigured tile. There is one selected group per tile; additional height alone does not combine playback with volume or setpoint with modes. All single-row tiles and existing full-page designs keep their original renderer.
+Controls remain an explicit choice in the tile inspector. Increasing height preserves a previously selected group and does not enable a default group on a previously unconfigured tile. There is one selected group per tile, and additional height alone does not combine playback with volume. Two choices are combined groups on purpose: climate's **Temperature − / + and mode keys** (1 × 2, 2 × 2 and Full page only) and a cover's position or buttons with **Slat tilt**. All single-row tiles and existing full-page designs keep their original renderer.
 
 The layout measures the available content rectangle, active fonts and physical touch sizes. Optional text gives way before touch targets. A control group that cannot fit an unusually dense custom grid is left in the detail view instead of drawing overlapping buttons. Source artwork is cropped, dimmed and rounded by the add-on, then decoded into the screen's existing shared image buffer. It does not allocate an additional image per tile. The atlas is bounded by the reported screen canvas; a missing or changed picture returns to the normal tile palette. The editor fetches prepared pixels through its relative Ingress API, never a Home Assistant token or source URL.
 
 Update the screen before choosing a taller size. Its supported sizes are negotiated, separately from the page protocol. The add-on checks them before starting a replacement, so a saved rectangle cannot be silently reduced on an older screen. The storage version and migration path are unchanged.
 
-Before downgrading to 0.3.0, change taller tiles back to Normal, Double width or Full page and save. Older add-ons cannot read the new presentations, even though the surrounding page-document structure is unchanged.
+Add-ons older than 0.3.1 cannot read version 2 storage at all, so going back needs the pre-upgrade backup (see Storage and recovery). There is no public 0.3.0 release: it was the internal page-owned development round, and its test results are linked below.
 
 ## Updating at different times
 
@@ -63,9 +70,9 @@ Update the add-on and screens in either order. Screens are negotiated individual
 | Add-on | Screen | Behaviour |
 | --- | --- | --- |
 | Older | Older | Existing behaviour |
-| 0.3.0 | Older | Compatible layouts keep working through the add-on's older wire format. The editor asks to update that screen before enabling independent bars, a different Home target or pagination exclusions. |
-| Older | 0.3.0 | The screen displays a configuration problem asking to update the add-on. New firmware carries no old layout decoder. |
-| 0.3.0 | 0.3.0 | The latest saved layout is sent and activated automatically. No second Save or activation button is required. |
+| 0.3.1+ | Older | Compatible layouts keep working through the add-on's older wire format. The editor asks to update that screen before enabling independent bars, a different Home target or pagination exclusions. |
+| Older | 0.3.1+ | The screen displays a configuration problem asking to update the add-on. New firmware carries no old layout decoder. |
+| 0.3.1+ | 0.3.1+ | The latest saved layout is sent and activated automatically. No second Save or activation button is required. |
 
 An unsaved editor draft remains a draft during an update. Updating one screen does not change the capabilities of another. A firmware downgrade cannot represent features its version never supported; the saved document is retained instead of being flattened.
 
@@ -127,5 +134,5 @@ Tile placement has row, column, row span and column span, separated from content
 
 Historical readers and the older wire adapter are separate add-on concerns. They can be retired independently after documenting a minimum supported source version and an intermediate upgrade or offline conversion route. Removing them never requires keeping migration machinery in firmware or changing current documents.
 
-See the [0.3.0 test results](TEST_RESULTS_030.md) for upgrade checks, board builds, measured memory use and the limits of physical validation.
+See the [page-owned layout test results](TEST_RESULTS_030.md) (the internal 0.3.0 round) for upgrade checks, board builds, measured memory use and the limits of physical validation.
 The [0.3.1 test results](TEST_RESULTS_031.md) cover taller tiles, their responsive controls and the tests on real screens.

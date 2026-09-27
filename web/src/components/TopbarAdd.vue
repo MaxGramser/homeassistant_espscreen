@@ -3,8 +3,10 @@
 import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { BUILTIN_ICONS, clockText, dateText, glyph, itemKey } from "../model/topbar";
-import { addTopbarItem, automaticIcon, clock24, closeInspector, iconNamed, screenLanguage, state, topbarItems, topbarMax } from "../store";
+import { addTopbarItem, automaticIcon, clock24, closeInspector, iconNamed, openBar, screenLanguage, state, topbarItems, topbarMax } from "../store";
 import type { HeaderItem } from "../types";
+import Icon from "./ui/Icon.vue";
+import InspectorHead from "./ui/InspectorHead.vue";
 
 const query = ref("");
 const taken = computed(() => new Set(topbarItems().map(itemKey)));
@@ -22,11 +24,8 @@ const entityItem = (id: string): HeaderItem => ({ type: "entity", entity: id, co
 </script>
 
 <template>
-  <div class="dr-head">
-    <span class="av" style="background: var(--seg); color: var(--ink-2); font-size: 18px">＋</span>
-    <span class="tx"><b>{{ t("editor.topbar.add.title") }}</b><small>{{ t("editor.topbar.add.slots", { used: topbarItems().length }, topbarMax()) }}</small></span>
-    <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="closeInspector">✕</button>
-  </div>
+  <InspectorHead :title="t('editor.topbar.add.title')" icon="plus"
+    :crumbs="[{ text: t('editor.topbar.title'), open: () => openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbarItems().length }, topbarMax()) }]" />
   <div class="dr-body">
     <div class="f">
       <span class="f-label">{{ t("editor.topbar.add.builtin") }}</span>
@@ -48,7 +47,7 @@ const entityItem = (id: string): HeaderItem => ({ type: "entity", entity: id, co
     </div>
     <div class="f">
       <label class="f-label" for="topbar-search">{{ t("editor.topbar.add.entity") }}</label>
-      <input id="topbar-search" v-model="query" type="search" :placeholder="t('editor.topbar.add.search')" :aria-label="t('editor.topbar.add.search_label')" />
+      <label class="search-field"><Icon name="magnify" /><input id="topbar-search" v-model="query" type="search" :placeholder="t('editor.topbar.add.search')" :aria-label="t('editor.topbar.add.search_label')" /></label>
       <div class="options">
         <button v-for="e in matches.slice(0, 40)" :key="e.id" type="button" class="option" :disabled="taken.has(itemKey(entityItem(e.id)))" @click="addTopbarItem(entityItem(e.id))">
           <span class="mdi">{{ glyph(automaticIcon(e.id)) }}</span>

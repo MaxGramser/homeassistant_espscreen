@@ -2,7 +2,6 @@
 import { editorLayout } from "../store";
 const { pageCount } = editorLayout;
 
-import HelpTip from "./HelpTip.vue";
 // The top bar: the name on the left; on the right up to six items: the time, an analog clock, the date, or an
 // entity's state or last change. Edits belong to the selected page.
 import { computed, ref } from "vue";
@@ -11,19 +10,21 @@ import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
 import { barLayout, BUILTIN_ICONS, clockText, dateText, glyph, itemKey } from "../model/topbar";
 import {
-  automaticIcon, barMetrics, clock24, closeInspector, entityName, iconNamed, markDirty, moveTopbarItem, openBar, openBarAdd,
-  removeTopbarItem, screenLanguage, screenText, setTopbarItems, state, supports, topbarItems, topbarLabel, topbarMax, topbarView, pageTitle,
-  pageTitleShown, screenTitle, setPageTitle, setScreenTitle, pageReady,
+  automaticIcon, barMetrics, clock24, entityName, homeKeyShown, iconNamed, moveTopbarItem, openBar, openBarAdd, openPage,
+  removeTopbarItem, screenLanguage, screenText, setTopbarItems, state, supports, topbarItems, topbarLabel, topbarMax, topbarView,
+  pageTitleShown, pageReady,
 } from "../store";
 import type { HeaderItem } from "../types";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import CopyPageBar from './CopyPageBar.vue';
-import { textDraft } from '../model/text-draft';
+import Icon from './ui/Icon.vue';
+import InspectorHead from './ui/InspectorHead.vue';
+import Section from './ui/Section.vue';
+import HelpTip from './HelpTip.vue';
 
 const props = defineProps<{ index: number }>();
-const titleDraft = textDraft(screenTitle, setScreenTitle, true);
 const draggedItems = ref<HeaderItem[] | null>(null);
 const items = computed(() => draggedItems.value || topbarItems());
 const item = computed<HeaderItem | undefined>(() => items.value[props.index]);
@@ -46,15 +47,16 @@ const iconOf = (it: HeaderItem) => {
   return view.analog || it.type !== "entity" ? iconNamed(BUILTIN_ICONS[it.type])?.cp : view.icon;
 };
 const justAdded = (it: HeaderItem) => state.topbarAdded?.key === itemKey(it) && Date.now() - state.topbarAdded.time < 1200;
-// The page whose bar you clicked (app 0.2.105). The inspector asks one thing about the name: what stands above this
-// page, and what the screen says on the pages nobody named: the screen's own title. A page keeps its title wherever
-// it stands, page 1 included (app 0.2.123), so both fields are here and neither is the other's leftover; clearing a
-// page's own title hands that page back to the screen's.
+// The page whose bar you clicked (app 0.2.105). Its left side, the title and the Home key, belongs to the page and is
+// set in the page's own settings (app 0.3.19); this inspector is about what stands on the right.
 const page = computed(() => state.barPage ?? 0);
 const pages = computed(() => (state.layout ? pageCount(entriesOf(state.layout), state.layout.pages) : 1));
-// One page has no second title to ask about: the screen's own is what it says. A page that kept a title of its own
-// from a longer row keeps its field, so nothing is set that nobody can see.
-const asksPageTitle = computed(() => pages.value > 1 || !!pageTitle(page.value));
+const pageId = computed(() => state.document?.pages[page.value]?.id);
+const toPage = () => { if (pageId.value) openPage(pageId.value); };
+const crumbs = computed(() => [
+  { text: t("editor.page.label", { page: page.value + 1 }), open: pageId.value ? toPage : undefined },
+  ...(item.value ? [{ text: t("editor.topbar.title"), open: () => openBar(-1) }] : []),
+]);
 function update(patch: Partial<HeaderItem>) {
   const list = [...items.value];
   list[props.index] = { ...list[props.index], ...patch };
@@ -145,77 +147,66 @@ function onKey(e: KeyboardEvent, i: number) {
 </script>
 
 <template>
-  <div class="dr-head">
-    <span class="av mdi" style="background: var(--seg); color: var(--ink-2)">{{ item ? glyph(iconOf(item) || "F0150") : glyph("F0150") }}</span>
-    <span class="tx">
-      <b>{{ item ? (item.type === "entity" ? entityName(item.entity!) : topbarLabel(item)) : t("editor.topbar.title") }}</b>
-      <small :class="{ mono: item?.type === 'entity' }">{{ item ? (item.type === "entity" ? item.entity : t("editor.topbar.builtin")) : t("editor.topbar.items", { used: items.length }, topbarMax()) }}</small>
-    </span>
-    <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="closeInspector">✕</button>
-  </div>
+  <InspectorHead :title="item ? (item.type === 'entity' ? entityName(item.entity!) : topbarLabel(item)) : t('editor.topbar.title')"
+    :code="item ? iconOf(item) || 'F0150' : undefined" :icon="item ? undefined : 'page-layout-header'" :crumbs="crumbs" />
   <div class="dr-body">
-    <CopyPageBar v-if="pageReady && state.document && pages > 1" :page-id="state.document.pages[page].id" />
-    <small v-if="!pageReady" class="warn">{{ t('editor.pages.shared_bar') }}</small>
-    <div class="f">
-      <label class="f-label" for="screen-title">{{ pages > 1 ? t("editor.topbar.screen_name") : t("editor.topbar.name") }}</label>
-      <input id="screen-title" :value="titleDraft.value.value" maxlength="60" :aria-describedby="pages > 1 ? 'screen-title-hint' : undefined"
-        @focus="beginFieldEdit('screen-title'); titleDraft.focus()" @blur="endFieldEdit(); titleDraft.blur()"
-        :placeholder="t('editor.topbar.name_placeholder')" @input="titleDraft.input(($event.target as HTMLInputElement).value)" />
-      <HelpTip v-if="pages > 1" id="screen-title-hint" :text="t('editor.topbar.screen_name_hint')" />
-    </div>
-    <div v-if="asksPageTitle" class="f">
-      <label class="f-label" for="page-title">{{ t("editor.topbar.page_name", { page: page + 1 }) }}</label>
-      <input id="page-title" :value="pageTitle(page)" maxlength="60" aria-describedby="page-title-hint"
-        @focus="beginFieldEdit(`page:${state.document?.pages[page]?.id}`)" @blur="endFieldEdit"
-        :placeholder="screenTitle() || t('editor.topbar.name_placeholder')"
-        @input="setPageTitle(page, ($event.target as HTMLInputElement).value)" />
-      <HelpTip id="page-title-hint" :text="t('editor.topbar.page_name_hint')" />
-    </div>
-    <div class="f">
-      <span class="f-label" id="topbar-caption">{{ t("editor.topbar.right") }} <span style="text-transform: none; letter-spacing: 0; font-weight: 500"> · {{ items.length }} / {{ topbarMax() }}</span></span>
-      <div class="items" id="topbar-chips" role="list" aria-labelledby="topbar-caption">
+    <div v-if="!pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
+
+    <Section :title="t('editor.topbar.left')" icon="format-title">
+      <button type="button" class="nav-row" :disabled="!pageId" @click="toPage">
+        <Icon v-if="homeKeyShown(page)" name="home" class="nav-row-lead" />
+        <span class="tx"><b>{{ pageTitleShown(page) || screenText("editor.mockup.home") }}</b><small>{{ t('editor.topbar.left_hint') }}</small></span>
+        <Icon name="chevron-right" class="nav-row-chevron" />
+      </button>
+    </Section>
+
+    <Section :title="t('editor.topbar.right')" icon="format-list-bulleted" :aside="`${items.length} / ${topbarMax()}`" :hint="overflow.size > 0 || !supported ? undefined : hint">
+      <div class="items" id="topbar-chips" role="list" :aria-label="t('editor.topbar.right')">
         <div v-for="(it, i) in items" :key="itemKey(it) + i" class="item" role="listitem" tabindex="0" :data-index="i"
           :class="{ selected: i === index, 'is-hidden': !topbarView(it).shown, 'is-overflow': overflow.has(i), 'just-added': justAdded(it), 'dragging-chip': drag.active && drag.index === i }"
           :aria-label="t('editor.topbar.item_label', { name: topbarLabel(it), slot: i + 1 })"
           @pointerdown="down($event, i)" @click="pick(i)" @keydown="onKey($event, i)">
-          <span class="grip" aria-hidden="true">⋮⋮</span>
+          <Icon name="drag-vertical" class="grip" />
           <span class="av mdi" :style="topbarView(it).color ? { color: topbarView(it).color! } : undefined">{{ iconOf(it) ? glyph(iconOf(it)!) : "" }}</span>
           <span class="tx"><b>{{ topbarLabel(it) }}</b><small>{{ detail(it, i) }}</small></span>
-          <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbarLabel(it) })" @click.stop="removeTopbarItem(i)">✕</button>
+          <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbarLabel(it) })" @click.stop="removeTopbarItem(i)"><Icon name="close" /></button>
         </div>
-        <button type="button" class="ghost-btn" id="topbar-add" :disabled="items.length >= topbarMax()" :title="items.length >= topbarMax() ? t('editor.topbar.max', topbarMax()) : t('editor.topbar.add_title')" @click="openBarAdd">{{ t("editor.topbar.add_button") }}</button>
+        <button type="button" class="ghost-btn" id="topbar-add" :disabled="items.length >= topbarMax()" :title="items.length >= topbarMax() ? t('editor.topbar.max', topbarMax()) : t('editor.topbar.add_title')" @click="openBarAdd"><Icon name="plus" />{{ t("editor.topbar.add_button") }}</button>
       </div>
-      <small v-if="overflow.size > 0 || !supported" id="topbar-hint" class="warn">{{ hint }}</small><HelpTip v-else :text="hint" />
-    </div>
-    <template v-if="item">
+      <small v-if="overflow.size > 0 || !supported" id="topbar-hint" class="help warn">{{ hint }}</small>
+    </Section>
+
+    <Section v-if="item" :title="topbarLabel(item)" icon="tune-variant">
       <div class="live" id="topbar-live">
         <small>{{ liveNote }}</small>
         <TopbarSvg :items="[item]" single />
       </div>
       <template v-if="item.type === 'entity'">
         <div class="f">
-          <span class="f-label">{{ t("editor.topbar.content.label") }}</span>
+          <span class="f-label">{{ t("editor.topbar.content.label") }}<HelpTip :text="t('editor.topbar.content.hint')" /></span>
           <Segmented :choices="(state.inventory.header?.contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content" @pick="(v) => update({ content: v })" />
-          <HelpTip :text="t('editor.topbar.content.hint')" />
         </div>
         <IconPicker :selected="item.icon || 'auto'" :automatic="state.topbarPreviews[itemKey(item)]?.auto_icon || automaticIcon(item.entity!)" :auto-label="t('editor.topbar.auto_icon')" allow-none @pick="(n) => update({ icon: n })" />
         <div class="f">
-          <span class="f-label">{{ t("editor.topbar.show.label") }}</span>
+          <span class="f-label">{{ t("editor.topbar.show.label") }}<HelpTip :text="t('editor.topbar.show.hint')" /></span>
           <Segmented :choices="(state.inventory.header?.shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show" @pick="(v) => update({ show: v })" />
-          <HelpTip :text="t('editor.topbar.show.hint')" />
         </div>
       </template>
       <!-- The clock's format is one choice for every screen, under Settings → Language & region (app 0.2.90). -->
-      <i18n-t v-else-if="item.type !== 'date'" :keypath="clock24 ? 'editor.topbar.clock_24' : 'editor.topbar.clock_12'" tag="small" id="topbar-clock" scope="global">
+      <i18n-t v-else-if="item.type !== 'date'" :keypath="clock24 ? 'editor.topbar.clock_24' : 'editor.topbar.clock_12'" tag="small" id="topbar-clock" class="help" scope="global">
         <template #settings><a href="#settings">{{ t("editor.topbar.clock_settings") }}</a></template>
       </i18n-t>
-      <small v-else>{{ t("editor.topbar.date_hint", { date: samples.date }) }}</small>
-    </template>
+      <small v-else class="help">{{ t("editor.topbar.date_hint", { date: samples.date }) }}</small>
+    </Section>
+
+    <CopyPageBar v-if="pageReady && state.document && pages > 1" :page-id="state.document.pages[page].id" />
   </div>
   <div v-if="item" class="dr-foot">
-    <button type="button" class="btn danger" @click="removeTopbarItem(index)">{{ t("editor.common.remove") }}</button>
+    <button type="button" class="btn danger" @click="removeTopbarItem(index)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>
     <span class="spacer"></span>
-    <button type="button" class="btn quiet" :disabled="index === 0" @click="moveTopbarItem(index, index - 1) && openBar(index - 1)">{{ t("editor.topbar.up") }}</button>
-    <button type="button" class="btn quiet" :disabled="index >= items.length - 1" @click="moveTopbarItem(index, index + 1) && openBar(index + 1)">{{ t("editor.topbar.down") }}</button>
+    <div class="tool-group" role="group">
+      <button type="button" class="icon-btn" :disabled="index === 0" :aria-label="t('editor.topbar.up')" :title="t('editor.topbar.up')" @click="moveTopbarItem(index, index - 1) && openBar(index - 1)"><Icon name="arrow-up" /></button>
+      <button type="button" class="icon-btn" :disabled="index >= items.length - 1" :aria-label="t('editor.topbar.down')" :title="t('editor.topbar.down')" @click="moveTopbarItem(index, index + 1) && openBar(index + 1)"><Icon name="arrow-down" /></button>
+    </div>
   </div>
 </template>

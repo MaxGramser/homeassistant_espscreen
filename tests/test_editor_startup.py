@@ -26,11 +26,15 @@ class Startup(unittest.TestCase):
     def test_no_screen_opens_by_itself(self):
         self.assertNotIn('inventory.screens[0]', SCRIPT)
         # The ways into a screen are its button in the list and its row in the ⌘K search; both pass the chosen screen.
-        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )select\(([^)]*)\)', SCRIPT)), {'screen.id'})
-        # In the list a click chooses the screen and opens its details (app 0.2.108); the choosing is still select's.
+        # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen.
+        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )select\(([^)]*)\)', SCRIPT)), {'screen.id', 'null'})
+        self.assertIn('if (state.selected) select(null);', STORE)
+        # In the list a click chooses the screen (app 0.2.108; its details fold behind a chevron since app 0.4.0); the
+        # choosing is still select's. The overview's cards choose a screen the same way.
         sidebar = editor_sources.component('Sidebar')
         self.assertIn('@click="choose(screen)"', sidebar)
         self.assertIn('  select(screen.id);\n}', sidebar)
+        self.assertIn('@click="select(screen.id)"', editor_sources.component('HomeView'))
         self.assertIn('run: () => select(screen.id)', editor_sources.component('CommandPalette'))
         for name in ('refresh', 'applyLive'):
             body = STORE[STORE.index(f'function {name}('):]
@@ -45,8 +49,11 @@ class Startup(unittest.TestCase):
         self.assertNotIn('<button', choose[1], 'the list beside it is the choice')
         self.assertIn('id="empty" class="empty"', empty, 'the install card when there are no screens yet')
         self.assertIn('id="start"', empty)
+        # With screens and none chosen, the right side is the overview of every screen (app 0.4.0); the card that asks
+        # for a screen stays for a chosen screen whose layout is still on its way.
         app = editor_sources.source('App.vue')
-        self.assertIn('currentScreen.value && state.layout ? ScreenView : EmptyState', app)
+        self.assertIn('if (currentScreen.value && state.layout) return ScreenView;', app)
+        self.assertIn('return state.selected || !state.inventory.screens.length ? EmptyState : HomeView;', app)
 
     def test_a_light_poll_keeps_the_catalogue_and_names_follow_the_inventory(self):
         self.assertIn('state.inventory = full ? data : { ...state.inventory, ...data };', STORE)

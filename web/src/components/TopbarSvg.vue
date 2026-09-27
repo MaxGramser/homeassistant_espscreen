@@ -2,16 +2,17 @@
 // The bar at the top of a mockup page, drawn as the screen draws it: name left, items right.
 import { computed } from "vue";
 import { t } from "../i18n";
-import { barLayout, dotted, inkOf, type BarPart } from "../model/topbar";
+import { barLayout, dotted, inkOf, type BarMetrics, type BarPart } from "../model/topbar";
 import { barMetrics, state, topbarView } from "../store";
 
-const props = defineProps<{ items: any[]; nameText?: string; single?: boolean; home?: boolean; back?: boolean }>();
+// `metrics`: another screen's bar, for that screen's home page on the overview (app 0.4.0).
+const props = defineProps<{ items: any[]; nameText?: string; single?: boolean; home?: boolean; back?: boolean; metrics?: BarMetrics }>();
 
 const lay = computed(() => {
   void state.fontsVersion;
   void state.now;
   void state.topbarPreviews;
-  return barLayout(props.items, barMetrics.value, props.nameText ?? '', topbarView,
+  return barLayout(props.items, props.metrics ?? barMetrics.value, props.nameText ?? '', topbarView,
                    Boolean(props.home) && !props.single, Boolean(props.back) && !props.single);
 });
 const m = computed(() => lay.value.metrics);

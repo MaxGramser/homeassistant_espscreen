@@ -29,7 +29,7 @@ struct Feed {
   // once (firmware 0.2.64+): an album cover on the media card. It loads one time per link and stays; a new cover comes
   // with a new link (the card asks again when Home Assistant's picture changes), never on a clock.
   bool once = false, loaded = false;  // loaded: this link's image is on screen
-  // every (firmware 0.2.77+): the live pictures on a page's camera tiles load at their own pace, 15 or 30 s, where the
+  // every (firmware 0.2.77+): the live pictures on a page's camera tiles load at their own pace, 5 to 30 s, where the
   // camera full screen keeps REFRESH_MS.
   uint32_t every = REFRESH_MS;
   uint8_t failures = 0;

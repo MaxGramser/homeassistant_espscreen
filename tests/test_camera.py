@@ -577,7 +577,8 @@ class App(unittest.IsolatedAsyncioTestCase):
 
 
 class PictureCards(unittest.TestCase):
-    """A live camera that fills a 1x2 or 2x2 tile (app 0.3.8, firmware 0.3.3): fill or contain, name or nothing."""
+    """A live camera that fills its card (1x2 and 2x2 from app 0.3.8 and firmware 0.3.3, every size from app 0.3.13 and
+    firmware 0.3.7): fill or contain, name or nothing."""
 
     def test_fit_and_overlay_belong_to_the_live_picture_and_keep_no_defaults(self):
         tile = lambda options: validate_layout({'title': 'Hall', 'tiles': [{'entity': 'camera.front_door', 'name': '', 'options': options}]})['tiles'][0]['options']
@@ -612,6 +613,17 @@ class PictureCards(unittest.TestCase):
                          [('contain', True), ('fill', False), ('fill', False), ('fill', False)])
         # Firmware that draws a small square on a taller camera tile gets that square, as before.
         self.assertEqual(camera_feed.picture_modes({'firmware': '0.3.1'}, options.get, entities), [('fill', False)] * 4)
+        # From firmware 0.3.7 a camera fills its card on every size, so the single tile gets its picture made for that.
+        self.assertEqual(camera_feed.picture_modes({'firmware': '0.3.7'}, options.get, entities),
+                         [('contain', True), ('fill', False), ('fill', True), ('fill', False)])
+
+    def test_a_live_tile_may_refresh_every_5_to_30_seconds(self):
+        tile = lambda options: validate_layout({'title': 'Hall', 'tiles': [{'entity': 'camera.front_door', 'name': '', 'options': options}]})['tiles'][0]['options']
+        for seconds in (5, 10, 15, 30):
+            self.assertEqual(tile({'display': 'live', 'refresh': seconds})['refresh'], seconds)
+        for seconds in (1, 4, 20, 60, '10'):
+            with self.assertRaises(ValueError, msg=seconds):
+                tile({'display': 'live', 'refresh': seconds})
 
     def test_new_screens_get_their_live_pictures_in_8_bit_colour(self):
         import io, json, tile_art
@@ -657,8 +669,9 @@ class LiveTiles(unittest.TestCase):
     """A live picture on a camera tile (app 0.2.91, firmware 0.2.77): the page's tiles as one strip."""
 
     def test_the_live_display_and_its_pace_are_tile_settings(self):
-        from core import LIVE_MIN_FIRMWARE, LIVE_REFRESH
-        self.assertEqual((camera_feed.LIVE_MIN_FIRMWARE, camera_feed.LIVE_REFRESH), (LIVE_MIN_FIRMWARE, LIVE_REFRESH))
+        from core import LIVE_MIN_FIRMWARE, LIVE_REFRESH, LIVE_REFRESH_DEFAULT
+        self.assertEqual((camera_feed.LIVE_MIN_FIRMWARE, camera_feed.LIVE_REFRESH, camera_feed.LIVE_REFRESH_DEFAULT),
+                         (LIVE_MIN_FIRMWARE, LIVE_REFRESH, LIVE_REFRESH_DEFAULT))
         layout = validate_layout({'title': 'Hall', 'tiles': [{'entity': 'camera.front_door', 'name': '', 'options': {'display': 'live', 'refresh': 30}},
                                                              {'entity': 'image.doorbell', 'name': '', 'options': {'display': 'live'}}]})
         self.assertEqual(min_firmware(layout), LIVE_MIN_FIRMWARE)

@@ -792,6 +792,8 @@ class Run:
         if 'render_skip_calibration' in self.services:
             await self.call('render_skip_calibration')
         await self.call('render_time', epoch=int(MOMENT.timestamp()))
+        # The starting screen with its Tessera lockup, before any layout (firmware 0.3.8+).
+        await self.render('starting')
         side = json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board]['orientations']
         side = side['portrait' if self.item.rotation else 'landscape']
         grid = send_layout.Grid(side['columns'], side['rows'])

@@ -462,7 +462,7 @@ std::string receive(const std::string &payload) {
     tile.icon = icon && has_icon_glyph(icon) ? tile_icon::utf8(icon) : "";
     tile.tap = string(options["tap"]); if (tile.tap.empty()) tile.tap="auto";
     tile.display = string(options["display"]); if (tile.display.empty()) tile.display="standard";
-    // A live picture's pace (0.2.91+): 15 or 30 s; a missing or odd value keeps the default.
+    // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the default.
     const int refresh = options["refresh"].is<int>() ? options["refresh"].as<int>() : 0;
     tile.refresh = refresh >= 5 && refresh <= 3600 ? refresh : 15;
     tile.overlay = string(options["overlay"], 8) != "none";
@@ -618,6 +618,25 @@ std::string receive(const std::string &payload) {
       if (!(row.high > row.low)) continue;
       row.icon = tile_icon::codepoint(string(r["i"], 8));
       next.number_rows.push_back(std::move(row));
+    }
+    // A light group's lamps (app 0.3.16+, firmware 0.3.9+): what its lamp page shows, in Home Assistant's order.
+    if (tile.domain() == "light" && extra["lamps"].is<JsonArray>()) for (JsonVariant l : extra["lamps"].as<JsonArray>()) {
+      if (next.lamps.size() == MAX_LAMPS) break;
+      Lamp lamp; lamp.entity = string(l["e"], 120);
+      if (!valid_entity(lamp.entity) || lamp.entity.rfind("light.", 0) != 0) continue;
+      lamp.name = string(l["n"], 32);
+      lamp.on = (l["s"] | 0) == 1;
+      lamp.unavailable = (l["u"] | 0) == 1;
+      lamp.dimmable = (l["d"] | 0) == 1;
+      const unsigned caps = l["c"] | 0u;
+      lamp.color = caps & 1; lamp.temperature = caps & 2;
+      lamp.level = static_cast<uint8_t>(std::min(100u, l["b"] | 0u));
+      lamp.hue = static_cast<uint16_t>(std::min(360u, l["h"] | 0u));
+      lamp.saturation = static_cast<uint8_t>(std::min(100u, l["sa"] | 0u));
+      auto kelvin = [](unsigned k) { return static_cast<uint16_t>(k >= 1000 && k <= 15000 ? k : 0); };
+      lamp.kelvin = kelvin(l["k"] | 0u); lamp.low = kelvin(l["lo"] | 0u); lamp.high = kelvin(l["hi"] | 0u);
+      if (!(lamp.high > lamp.low)) lamp.low = lamp.high = 0;
+      next.lamps.push_back(std::move(lamp));
     }
     if (!std::isfinite(tile.battery)) tile.battery = number(extra["bat"]);
     next.charging = extra["chg"].is<int>() && extra["chg"].as<int>() == 1;

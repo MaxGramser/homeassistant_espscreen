@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 import time
 import changelog
-from core import FIRMWARE_VERSION, parse_firmware
+from core import FIRMWARE_VERSION, SHAPES, board_of, firmware_target, parse_firmware
 from i18n import Text, english, screen_t, shown, t
 
 LOG = logging.getLogger('screen_manager')
@@ -16,8 +16,6 @@ NIGHT_HOURS = range(3, 6)
 
 # Strict X.Y.Z, the one rule the feature gates follow too: an update goes by what the screen's sensor reports now.
 parse_version = parse_firmware
-
-TARGET = parse_version(FIRMWARE_VERSION)
 
 def result_text(result):
     """A kept result's message: a Text from its key where it has one (app 0.2.90+), else the English it was kept in."""
@@ -128,23 +126,38 @@ class Updater:
             return True
         return (screen.get('language') if screen.get('language_sensor') else 'en') == region.language()
 
+    def target_for(self, screen, profiles=None):
+        """The firmware this screen is offered (app 0.3.21): its board's (core.firmware_target), so a fix for one board is
+        no update for the others. The board is the one its profile builds, because that is what an update flashes;
+        without a profile here, the board the screen reports."""
+        if profiles is None:
+            profiles = self.manager.firmware.profile_names()
+        profile, _ = self.resolve(screen, profiles)
+        package = (profiles.get(profile) or {}).get('package') if profile else None
+        board = (SHAPES.get(package) or {}).get('board') if isinstance(package, str) else None
+        return firmware_target(board or board_of(screen))
+
     def state_for(self, screen, profiles=None):
+        if profiles is None:
+            profiles = self.manager.firmware.profile_names()
         version = parse_version(screen.get('firmware'))
         language = self.language_due(screen)
         profile, host = self.resolve(screen, profiles)
+        target = self.target_for(screen, profiles)
         if screen['id'] == self.current:
             state = 'running'
         elif screen['id'] in self.queue:
             state = 'queued'
         else:
             state = 'idle'
-        return {'available': bool(version and TARGET and version < TARGET) or (bool(version) and language),
-                'language': bool(version) and language, 'target': FIRMWARE_VERSION,
+        return {'available': bool(version and version < parse_version(target)) or (bool(version) and language),
+                'language': bool(version) and language, 'target': target,
                 'profile': profile, 'host': host, 'state': state, 'phase': self.phase if state == 'running' else None,
                 'result': shown_result(self.results.get(screen['id']))}
 
     def summary(self, screens=None, profiles=None):
         # The changelog goes with the full inventory only (app 0.2.78): this summary is in every live update of the page.
+        # `target` is the shared version; what one screen is offered is its own `update.target` (app 0.3.21).
         return {'auto': self.auto, 'target': FIRMWARE_VERSION, 'busy': self.current,
                 'pending': len(self.pending(screens, profiles)), 'last_round': self.last_round}
 
@@ -205,10 +218,14 @@ class Updater:
         self.current, self.queue, self.phase = inboxes[0], inboxes[1:], 'install'
         self.task = asyncio.create_task(self.run_round(inboxes, automatic))
 
-    def record(self, inbox, state, message):
+    def record(self, inbox, state, message, version=None):
         """A screen's last result. `message` keeps its key and params (a Text) next to the English, so the editor shows it
-        in its own language and an app from before 0.2.90 still reads the English."""
-        result = {'time': time.time(), 'state': state, 'message': str(message), 'version': FIRMWARE_VERSION}
+        in its own language and an app from before 0.2.90 still reads the English. `version` is the firmware the round
+        went for, the screen's own target unless given."""
+        if version is None:
+            screen = self.screen(inbox)
+            version = self.target_for(screen) if screen else FIRMWARE_VERSION
+        result = {'time': time.time(), 'state': state, 'message': str(message), 'version': version}
         if isinstance(message, Text) and message.key:
             result.update(message=message.into('en'), key=message.key, params=message.params)
         self.results[self.current_id(inbox)] = result
@@ -246,6 +263,8 @@ class Updater:
         if not profile or not host:
             self.record(inbox, 'skipped', english('addon.updates.unknown_target'))
             return 'skipped'
+        # Worked out before the build: the screen goes offline while it flashes, and this is what the build makes.
+        target = self.target_for(screen)
         self.phase = 'install'
         try:
             # Recheck when a queued/nightly screen reaches the front of the
@@ -261,24 +280,27 @@ class Updater:
             self.record(inbox, 'failed', english('addon.updates.build_failed'))
             return 'failed'
         self.phase = 'verify'
-        if not await self.wait_for_target(inbox):
-            self.record(inbox, 'failed', english('addon.updates.no_report', version=FIRMWARE_VERSION))
+        if not await self.wait_for_target(inbox, target):
+            self.record(inbox, 'failed', english('addon.updates.no_report', version=target), target)
             return 'failed'
         self.phase = 'settle'
         await asyncio.sleep(self.settle_seconds)
         current = self.screen(inbox)
         if not current or not current['online']:
-            self.record(inbox, 'failed', english('addon.updates.dropped_off'))
+            self.record(inbox, 'failed', english('addon.updates.dropped_off'), target)
             return 'failed'
-        self.record(inbox, 'success', english('addon.updates.updated', version=FIRMWARE_VERSION))
+        self.record(inbox, 'success', english('addon.updates.updated', version=target), target)
         return 'success'
 
-    async def wait_for_target(self, inbox):
+    async def wait_for_target(self, inbox, target=None):
+        """Whether the screen reports the firmware the round flashed (`target`, its own by default) and the region's
+        language within verify_timeout."""
+        wanted = parse_version(target or self.target_for(self.screen(inbox) or {'id': inbox}))
         deadline = time.monotonic() + self.verify_timeout
         while time.monotonic() < deadline:
             screen = self.screen(inbox)
             version = parse_version(screen.get('firmware')) if screen else None
-            if screen and screen['online'] and version and version >= TARGET and self.speaks_region(screen):
+            if screen and screen['online'] and version and version >= wanted and self.speaks_region(screen):
                 return True
             await asyncio.sleep(self.poll_seconds)
         return False
@@ -286,7 +308,7 @@ class Updater:
     async def notify(self, message):
         try:
             await self.manager.ha.request('call_service', domain='persistent_notification', service='create',
-                                          service_data={'notification_id': 'esp_screens_update', 'title': 'ESP Screens', 'message': message})
+                                          service_data={'notification_id': 'esp_screens_update', 'title': 'Tessera', 'message': message})
         except Exception as error:
             LOG.warning('Notifying Home Assistant failed (%s)', type(error).__name__)
 

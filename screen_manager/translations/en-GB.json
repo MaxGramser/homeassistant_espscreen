@@ -204,6 +204,9 @@
       },
       "display": {
         "tall_cover_hint": ""
+      },
+      "sections": {
+        "style": "Icon and colour"
       }
     }
   },

@@ -1,0 +1,91 @@
+############################################################
+# ESP Screens - CYD board with an ILI9342 display controller, EXPERIMENTAL (GitHub issue #50)
+# Some boards sold as the ESP32-2432S028 carry an ILI9342 instead of the ILI9341: the same 2.8-inch 320x240 glass,
+# the same pins and the same XPT2046 resistive touch. ESPHome knows this board as `ESP32-2432S028-9342`.
+#
+# Its hardware is the CYD's (packages/hardware/cyd-2432s028.yaml); this file names the display controller and turns it.
+# An ILI9341 scans the glass standing up (240 x 320), an ILI9342 lying down (320 x 240). The display block below has
+# the ILI9342 swap its axes, so it offers the same 240 x 320 canvas as the ILI9341, and the CYD's LVGL angle, touch and
+# calibration wizard stay as they are.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Its resistive glass is
+# features/resistive-touch.yaml (the calibration wizard, a page swipe by LVGL's gesture), its backlight
+# features/backlight.yaml and its self test features/self-test.yaml, as on the other boards; since app 0.2.129 it
+# has no behaviour of its own. Everything else (the LVGL tree, the cards, the scripts, the entities) is
+# packages/core.yaml, which every board shares.
+#
+# Two entry files include this: checkout/cyd9342.yaml (a build on this computer)
+# and packages/cyd9342.yaml (the package a screen builds from over GitHub).
+############################################################
+packages:
+  # The CYD's hardware: the ESP32, the two SPI buses, the backlight and the LED, the touch and the display, which
+  # this board's display block below turns onto the CYD's canvas.
+  hardware: !include ../hardware/cyd-2432s028.yaml
+  # How every board's firmware is built (ESP-IDF, as ESPHome recommends it).
+  build: !include ../hardware/esp-idf.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/6.yaml
+  # Every size of the compact look, scaled to DISPLAY_DPI below. This glass is where that look was drawn.
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/resistive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+  # The light on the RGB LED on the back of the board (the outputs are in the hardware file).
+  led: !include ../features/rgb-led.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "cyd9342"
+  DEVICE_NAME: "cyd9342-new"
+  DEVICE_FRIENDLY_NAME: "My CYD"
+
+  # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
+  # touch together, so nothing else on this board knows which way the glass hangs. The compact look takes 143 dpi
+  # (diagonal pixels / diagonal inches) as its reference, so every size here is the look's own.
+  PANEL_W: "240"
+  PANEL_H: "320"
+  DISPLAY_DPI: "143"
+  # The LVGL angle that lays this panel out lying down (320 x 240). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # true on this board (resistive XPT2046) — was false on the 032c board
+  # (capacitive GT911). This is the original upstream value for this panel.
+  TOUCH_MIRROR_X: "true"
+  # The tile grid: columns and rows of cells. The shared tree places every cell from these
+  # (runtime_tiles::place_page).
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  # The cells of a page when this screen stands up (firmware 0.2.92+).
+  # The 2.8-inch glass is 43 x 57 mm standing up: one column of four cards, each 39 x 10 mm.
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides"). Boards sold as
+  # a CYD differ: this one carries an ILI9342 (GitHub #50), some need a slower bus or other colours (GitHub #12, #15).
+  DISPLAY_MODEL: "ILI9342"                      # ESPHome's mipi_spi model of the display controller
+  DISPLAY_DATA_RATE: "40MHz"                    # the display's SPI clock; 40MHz matches ESPHome's board preset
+  DISPLAY_INVERT_COLORS: "false"
+  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
+
+  # The ILI9341 CYD's touch range (packages/boards/cyd-2432s028.yaml): the same XPT2046 on the same glass. The
+  # calibration on the first start measures this board's own.
+  TOUCH_CAL_X_MIN: "280"
+  TOUCH_CAL_X_MAX: "3860"
+  TOUCH_CAL_Y_MIN: "340"
+  TOUCH_CAL_Y_MAX: "3860"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+display:
+  - id: !extend my_display
+    # The ILI9342's own picture is 320 x 240 with its columns mirrored (ESPHome's model). Swapping the axes and
+    # mirroring both turns that picture a quarter, onto the 240 x 320 canvas of the CYD's dimensions, the way an
+    # ILI9341 is turned from standing up to lying down. The calibration wizard fits whatever the glass shows, so a
+    # board that turns out a half turn from the ILI9341 still touches right; a mirrored picture would not.
+    transform:
+      swap_xy: true
+      mirror_x: true
+      mirror_y: true

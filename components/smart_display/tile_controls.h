@@ -118,6 +118,33 @@ inline uint32_t weather_color(const std::string &condition) {
   if (condition == "exceptional") return RED;
   return AMBER;
 }
+// LVGL's lv_color_hsv_to_rgb (lv_color.c, LVGL 9) step for step, free of LVGL so the tests can reach it: a lamp's
+// colour comes out the same on its tile and on its group's lamp page, to the last bit.
+inline uint32_t hsv_rgb(unsigned h, unsigned s, unsigned v) {
+  h = h * 255 / 360; s = s * 255 / 100; v = v * 255 / 100;
+  if (s == 0) return (v << 16) | (v << 8) | v;
+  const unsigned region = h / 43, remainder = (h - region * 43) * 6;
+  const unsigned p = (v * (255 - s)) >> 8, q = (v * (255 - ((s * remainder) >> 8))) >> 8,
+                 t = (v * (255 - ((s * (255 - remainder)) >> 8))) >> 8;
+  unsigned r, g, b;
+  switch (region) {
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    default: r = v; g = p; b = q; break;
+  }
+  return ((r & 255) << 16) | ((g & 255) << 8) | (b & 255);
+}
+// A lamp's own colour while it is on, through Home Assistant's contrast rule (hui-tile-card._computeStateColor,
+// firmware 0.2.98+): anything under 40 % saturation is lifted to 40 %, or a pale bulb paints in a colour that is no
+// colour. Under 10 % there is nothing left to lift, and a white bulb keeps the amber of a lamp that is on. The tile
+// and the lamp page of a group (firmware 0.4.0+) both ask here.
+inline uint32_t lamp_color(int hue, int saturation) {
+  if (saturation < 10) return theme::ha::AMBER;
+  return hsv_rgb(static_cast<unsigned>(((hue % 360) + 360) % 360), static_cast<unsigned>(std::min(100, std::max(40, saturation))), 100);
+}
 // The colour of a tile while Home Assistant calls it active (Tile::active; anything inactive is grey): its
 // stateColorCss() (frontend src/common/entity/state_color.ts) for the domains it colours by state, and a colour of
 // our own per kind for those it draws in one neutral blue, such as scenes, selects, numbers and sensors (0.2.3).

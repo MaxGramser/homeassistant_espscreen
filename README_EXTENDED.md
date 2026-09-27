@@ -1,6 +1,6 @@
 # Tessera: the full reference
 
-<sub>Tessera is the new name for ESP Screens. Home Assistant still shows the app as ESP Screen Manager and its panel as ESP Screens, so this page uses those names. More on the [Tessera website](https://tessera-maxgramser.on-forge.com).</sub>
+<sub>Tessera is the new name for ESP Screens. Since app 0.3.18 Home Assistant shows the app as Tessera Screen Manager and its panel as Tessera; where this page says ESP Screens, read Tessera. More on the [Tessera website](https://tessera-maxgramser.on-forge.com).</sub>
 
 The [README](README.md) shows what ESP Screens is and how to install it. This page has the rest:
 every card and setting, what an automation can do with a screen, the top bar, the settings page
@@ -22,8 +22,8 @@ on the screen itself, and how updates work.
   the Waveshare 4.3-inch (63, over seven pages), twenty on the 10.1-inch Guition (60, over three), and sixteen on the
   [experimental Waveshare 7-inch](docs/WAVESHARE7.md) (64, over four), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md) (32), lying down (firmware 0.2.62+; twenty tiles before).
   Search by entity, device, or room, and drag to reorder. A whole page moves the same way: drag it by its
-  label to another place in the row, and its tiles, its own title and the Go to page tiles that lead to it come
-  along. Remove page beside the cell count takes a page away with those same tiles, with Undo beside the message.
+  number to another place in the row, and its tiles, its own title and the Go to page tiles that lead to it come
+  along. Remove page in the page's ··· menu takes a page away with those same tiles, with Undo beside the message.
 - **Per-tile settings:** a custom name, click behavior, a small slider where
   supported, or a large value for things like temperature and power usage.
   On a double-width tile the small slider stands beside the name, in the cell
@@ -55,6 +55,15 @@ on the screen itself, and how updates work.
   (speed, intensity). A row opens a drum picker with every name Home Assistant has
   at that moment; the check at the top right sends the choice. While an effect
   runs, the tile names it instead of the brightness.
+- **Light groups (firmware 0.3.9+):** a light group gets a lamps key beside the
+  sparkles key on its colour card. It opens a page with a card per lamp of the
+  group, in Home Assistant's order: tap a card to switch that lamp, drag its
+  slider to dim it. Each card shows its lamp in the colour it is on, the way the
+  group's tile does (firmware 0.4.0+). A lamp that can only switch shows a switch instead of a
+  slider. A lamp that takes a colour or a white shade has a ⋮ key that opens a
+  small panel with just those sliders; touching anywhere beside the panel closes
+  it. A group with more lamps than fit on the glass is paged, the same way as the
+  tile pages.
 - **More cards:** climate, vacuum, fan, cover, media player, sensors,
   select/input_select, number/input_number, switches, scenes, scripts, and
   buttons.
@@ -381,14 +390,14 @@ actions:
 </p>
 
 A camera or image entity also works as a **tile** on a Guition: a tap opens it full screen, refreshed
-every four seconds. From app 0.2.91 with firmware 0.2.77 a camera tile can show a **live picture** in
-the icon's place: in the tile's settings choose **Display → Live picture** and a pace, every 15 or
-30 seconds. The picture is a small square with the tile's rounded corners, the middle of the camera's
-view, and it refreshes while that page is on the screen; a tap still opens the camera full screen. The
-camera tiles of one page share one download, so six live tiles cost the screen no more than one.
-On a 1 × 2 or 2 × 2 tile (app 0.3.8, firmware 0.3.3) the live picture fills the whole card, with the
-camera's name at the bottom. The tile's settings choose **Fill the tile** or **Whole picture**, and
-**Name** or **Nothing** on the picture.
+every four seconds. A camera tile can also show a **live picture**: in the tile's settings choose
+**Display → Live picture** and a pace, every 5, 10, 15 or 30 seconds. From app 0.3.13 with firmware 0.3.7
+the picture fills the whole tile on every size, a single tile, a double-width one, a 1 × 2 or 2 × 2 tile
+and a tile over the whole page, with the camera's name at the bottom, so two cameras fit side by side on
+a 4-inch Guition. The tile's settings choose **Fill the tile** or **Whole picture**, and **Name** or
+**Nothing** on the picture. It refreshes while that page is on the screen, and a tap still opens the
+camera full screen. The camera tiles of one page share one download. Older firmware shows a small
+square of the camera in the icon's place (1 × 2 and 2 × 2 tiles fill the card from firmware 0.3.3).
 A media player tile can show its **album cover** the same way (app 0.2.92, firmware 0.2.78):
 **Display → Album cover** puts the cover of what plays in the icon's place, refreshed when the track
 changes, with the tile's controls kept. How the image travels (port 8098 of the app, no token on the
@@ -678,8 +687,10 @@ See the [release history](screen_manager/CHANGELOG.md) and
 **If you publish your own fork:** every push to GitHub is a release. Always also
 bump the add-on version in `screen_manager/config.yaml` and log the change in
 the CHANGELOG, otherwise the HA App store won't offer an update. A change to the
-screen also gets a new `SCREEN_FIRMWARE_VERSION` in `packages/core.yaml`, the one place both boards
-take it from, and the same `FIRMWARE_VERSION` in `screen_manager/app/core.py`.
+screen also gets a new firmware number: in `packages/core.yaml` and `FIRMWARE_VERSION` in
+`screen_manager/app/core.py` when it reaches every board, or in the board file alone when it is a fix for one
+board, so the other screens are not asked to update. `tools/affected_boards.py` says which, and
+[releases per board](docs/BOARD_RELEASES.md) is the recipe.
 
 ## Guides and installation help
 

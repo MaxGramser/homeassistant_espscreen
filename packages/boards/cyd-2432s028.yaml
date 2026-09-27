@@ -22,6 +22,8 @@ packages:
   touch: !include ../features/resistive-touch.yaml
   backlight: !include ../features/backlight.yaml
   self_test: !include ../features/self-test.yaml
+  # The light on the RGB LED on the back of the board (the outputs are below).
+  led: !include ../features/rgb-led.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -122,16 +124,6 @@ output:
     pin: GPIO17
     inverted: true
 
-light:
-  # The backlight's light (back_light) comes from features/backlight.yaml, on the output above. This is the RGB LED
-  # on the back of the board.
-  - platform: rgb
-    name: LED
-    red: output_red
-    id: led
-    green: output_green
-    blue: output_blue
-    restore_mode: ALWAYS_OFF
 
 # Touchscreen configuration (XPT2046, resistive, via SPI)
 # XPT2046 calibration is board-specific. Poll at 50Hz; LVGL rotates touch
