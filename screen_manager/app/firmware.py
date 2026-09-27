@@ -314,6 +314,49 @@ class Firmware:
         self._names.pop(profile.name, None)
         return True
 
+    def drop_hotspot(self, name):
+        """Take the Wi-Fi fallback hotspot (`wifi: ap:`) and `captive_portal:` out of a profile whose board has no room
+        for them (boards.json `hotspot`, app 0.4.2+), so its next build leaves both out as a new screen's does. ESPHome
+        lays the screen's own YAML over the packages, so a package cannot remove them; this app wrote them there.
+
+        Only a profile that builds from ESP Screens' board packages is touched, and only when both go: an `ap:` left
+        without a captive portal is refused by ESPHome, a captive portal without an `ap:` does nothing. The lines are
+        cut from the text, never reformatted, and the result is written only when those two keys are the one thing
+        that changed. True when it changed."""
+        profile = self.profile(name)
+        meta = self.profile_names().get(profile.name) or {}
+        if SHAPES.get(meta.get('package') or '', {}).get('hotspot', True):
+            return False
+        raw = profile.read_bytes().decode('utf-8')
+        newline = '\r\n' if '\r\n' in raw else '\n'
+        text = raw.replace('\r\n', '\n')
+        if not text.endswith('\n'):
+            text += '\n'
+        before = yaml.load(text, Loader=LenientLoader)
+        wifi = before.get('wifi') if isinstance(before, dict) else None
+        if not isinstance(wifi, dict) or 'ap' not in wifi or 'captive_portal' not in before:
+            return False
+        updated = text
+        # `captive_portal:` at the start of a line, with whatever is indented under it.
+        updated = re.sub(r'(?m)^captive_portal:.*\n(?:[ \t]+\S.*\n)*', '', updated, count=1)
+        # `ap:` inside the top-level wifi block, with every line indented deeper than it.
+        block = re.search(r'(?m)^wifi:[ \t]*(?:#.*)?\n((?:[ \t]+.*\n|[ \t]*\n)*)', updated)
+        ap = re.search(r'(?m)^([ \t]+)ap:.*\n', block[1]) if block else None
+        if ap:
+            deeper = re.compile(rf'(?:{re.escape(ap[1])}[ \t]+\S.*\n|[ \t]*\n(?={re.escape(ap[1])}[ \t]+\S))*')
+            end = deeper.match(block[1], ap.end()).end()
+            body = block[1][:ap.start()] + block[1][end:]
+            updated = updated[:block.start(1)] + body + updated[block.end(1):]
+        after = yaml.load(updated, Loader=LenientLoader)
+        expected = {k: v for k, v in before.items() if k != 'captive_portal'}
+        expected['wifi'] = {k: v for k, v in wifi.items() if k != 'ap'}
+        if after != expected:
+            LOG.warning('%s: its Wi-Fi hotspot could not be taken out without changing more, so it stays', profile.name)
+            return False
+        self._atomic_write(profile, updated.replace('\n', newline))
+        self._names.pop(profile.name, None)
+        return True
+
     def _override_path(self, name):
         profile = self.profile(name)
         path = self.root / (profile.stem + self.OVERRIDE_SUFFIX)
@@ -512,6 +555,13 @@ class Firmware:
                 self.set_language(profile.name, self.language())
             except (OSError, ValueError, yaml.YAMLError) as error:
                 LOG.warning('Could not write the language into %s (%s)', profile.name, error)
+        # A board without room for the Wi-Fi fallback hotspot builds without it, also a screen made before (app 0.4.2).
+        dropped = False
+        if action != 'validate':
+            try:
+                dropped = self.drop_hotspot(profile.name)
+            except (OSError, ValueError, yaml.YAMLError) as error:
+                LOG.warning('Could not take the Wi-Fi hotspot out of %s (%s)', profile.name, error)
         if not shutil.which('esphome'): raise ValueError(t('addon.errors.firmware.no_esphome'))
         target = data.get('target','')
         if action == 'install':
@@ -541,6 +591,9 @@ class Firmware:
             collect(yaml.compose(override_file.read_text()))
         self.images.pop(profile.name, None)  # until this job succeeds, the old image may no longer match the profile
         self.logs.clear()
+        if dropped:
+            self.logs.append(f'{profile.name}: the Wi-Fi fallback hotspot and captive portal are left out on this board '
+                             '(no room in its update slot); a screen whose Wi-Fi changed is installed again over USB.')
         self.job={'file':profile.name,'action':action,'target':target,'state':'running','started':time.time()}
         self.task=asyncio.create_task(self.run(profile,action,target))
         return dict(self.job)
