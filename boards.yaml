@@ -35,6 +35,12 @@ cyd9342:
   status: experimental
   # The same board with an ILI9342 display controller (GitHub #50): the CYD's own file with only the display changed.
 
+cyd3248s035c:
+  file: cyd-3248s035c.yaml
+  name: CYD
+  model: ESP32-3248S035C
+  status: experimental
+
 guition:
   file: guition-4848s040.yaml
   name: Guition

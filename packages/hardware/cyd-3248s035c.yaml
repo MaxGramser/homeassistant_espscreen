@@ -1,0 +1,142 @@
+# ESP Screens - the CYD ESP32-2432S028 apart from its display controller, for a board file that includes this one.
+#
+# Boards sold as the ESP32-2432S028 carry one of several display controllers on the same 2.8-inch glass, pins and
+# XPT2046 resistive touch: an ILI9341 or an ST7789V (cyd-2432s028.yaml, which picks one with DISPLAY_MODEL) and an
+# ILI9342 (cyd-2432s028-ili9342.yaml). This is the ESP32, the two SPI buses, the backlight and the RGB LED, the touch
+# and the display block; the board file names the controller (DISPLAY_MODEL) and anything that controller needs.
+#
+# Only the ILI9342 board includes this file for now. The first CYD carries the same sections in its own board file:
+# moving them here changes nothing it builds, but it would count as a firmware update for every CYD
+# (docs/BOARD_RELEASES.md). The next shared release moves them, and cyd-2432s028.yaml includes this file then.
+esp32:
+  board: esp32dev
+  framework:
+    advanced:
+      # ESPHome recommends this itself in the boot log. Yields ~40KB extra IRAM
+      # and a smaller binary, and every KB counts on this board.
+      sram1_as_iram: true
+      # minimum_chip_revision deliberately left out: that was here for the
+      # 032c board (rev 3.1 confirmed), but this is a different physical board
+      # with an unknown chip revision. With an unjustifiably high minimum
+      # the firmware simply refuses to boot.
+  variant: esp32
+
+
+# ============================================================ 
+# Home Assistant related setup
+# ============================================================
+
+# ==== Lights ====
+light:
+# LCD backlight
+  - platform: monochromatic
+    output: gpio_backlight_pwm
+    name: "Display Backlight"
+    id: backlight
+    restore_mode: ALWAYS_ON
+# onboard rgb led
+  - platform: rgb
+    name: "Front LED"
+    id: front_led
+    restore_mode: ALWAYS_OFF
+    red: led_red
+    green: led_green
+    blue: led_blue
+    effects:
+      - pulse:
+          name: "pulse_red"
+          transition_length: 2s
+          update_interval: 2s
+          min_brightness: 20%
+          max_brightness: 80%
+
+# ============================================================ 
+# Touchscreen Display related setup
+# ============================================================
+
+# Set pins to control the backlight and RGB LED
+output:
+  - platform: ledc
+    pin: GPIO27
+    id: gpio_backlight_pwm
+    #frequency: ${BACKLIGHT_FREQUENCY}
+  - platform: ledc
+    pin: GPIO22
+    id: led_red
+    inverted: true
+  - platform: ledc
+    pin: GPIO16  # Was green in original schematic
+    id: led_blue # Renamed (pins swapped)
+    inverted: true
+  - platform: ledc
+    pin: GPIO17  # Was blue in original schematic
+    id: led_green # Renamed (pins swapped)
+    inverted: true
+
+i2c:
+  id: touch_bus
+  sda: GPIO33
+  scl: GPIO32
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+
+# SPI bus for TFT display and touch controller
+spi:
+  - id: spi_tft
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+
+# Defining the display type and properties
+display:
+  - platform: ili9xxx
+    id: my_display
+    model: ST7796
+    spi_id: spi_tft
+    dc_pin: GPIO2
+    cs_pin: GPIO15
+    dimensions:
+      width: 480
+      height: 320
+    data_rate: 80MHz
+    color_order: BGR
+    invert_colors: false
+    update_interval: never
+    auto_clear_enabled: false
+    show_test_card: false
+    transform:
+      swap_xy: true
+      mirror_y: false
+      mirror_x: false
+
+# ============================================================ 
+# Home Assistant Sensors
+# ============================================================
+
+sensor:  
+  # LDR Light Sensor (GPIO34)
+  - platform: adc
+    pin: GPIO34
+    name: "Ambient Light"
+    id: ambient_light
+    update_interval: 5s
+    attenuation: 0db  # 0dB = 0~800mV range (matching the example code)
+    filters:
+      - multiply: 1000  # Convert to millivolts
+      - or:
+        - throttle: 5s  # Only send if changed
+        - delta: 10     # Only send if change > 10mV
+      - lambda: |-
+          // Convert millivolts to percentage (0-100%)
+          // Based on typical LDR behavior: 0-800mV range
+          float min_mv = 50.0;   // Very dark (adjust based on your environment)
+          float max_mv = 700.0;  // Very bright (adjust based on your environment)
+          float percentage = (x - min_mv) / (max_mv - min_mv) * 100.0;
+          return std::max(0.0f, std::min(100.0f, percentage));
+    unit_of_measurement: "%"
+    accuracy_decimals: 0

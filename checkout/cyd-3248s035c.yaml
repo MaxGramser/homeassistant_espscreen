@@ -1,0 +1,38 @@
+# ESP Screens - a CYD ESP32-3248S035C built from a clone of this repository. Written by tools/generate_entries.py
+# from boards.yaml; do not edit. checkout/README.md says how to build it.
+#
+# The screen is two packages: packages/core.yaml, which every board shares, and packages/boards/cyd-2432s028.yaml with
+# this board's hardware and sizes (docs/PROFILES.md). A screen installed from ESP Screens builds the same two over
+# GitHub through packages/cyd.yaml; this file only adds what a build from a checkout needs: the fonts and the
+# components of this checkout, and the secrets (api_encryption_key, ota_password, Wi-Fi) from checkout/secrets.yaml.
+substitutions:
+  FONT_DIR: "../fonts"
+
+packages:
+  core: !include ../packages/core.yaml
+  board: !include ../packages/boards/cyd-3248s035c.yaml
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [smart_display]
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # Mains-powered panel: no modem sleep, so HA updates and OTA arrive without beacon latency.
+  power_save_mode: none
+  ap:
+    ssid: "Smartdisplay Fallback Hotspot"
+    password: !secret ap_password
+
+captive_portal:

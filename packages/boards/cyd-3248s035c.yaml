@@ -1,0 +1,192 @@
+############################################################
+# ESP Screens - CYD board (ESP32-3248S035C, "Cheap Yellow Display")
+# Built-in ILI9341 320x240 display and XPT2046 resistive touch.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Its resistive glass is
+# features/resistive-touch.yaml (the calibration wizard, a page swipe by LVGL's gesture), its backlight
+# features/backlight.yaml and its self test features/self-test.yaml, as on the other boards; since app 0.2.129 it
+# has no behaviour of its own. Everything else (the LVGL tree, the cards, the scripts, the entities) is
+# packages/core.yaml, which every board shares.
+#
+# Two entry files include this: checkout/cyd.yaml (a build on this computer)
+# and packages/cyd.yaml (the package a screen builds from over GitHub).
+############################################################
+packages:
+  # How every board's firmware is built (ESP-IDF, as ESPHome recommends it).
+  build: !include ../hardware/esp-idf.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/6.yaml
+  # Every size of the compact look, scaled to DISPLAY_DPI below. This glass is where that look was drawn.
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  #camera: !include ../features/camera.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "cyd-3248s035c"
+  DEVICE_NAME: "cyd-new"
+  DEVICE_FRIENDLY_NAME: "My CYD"
+
+  # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
+  # touch together, so nothing else on this board knows which way the glass hangs. The compact look takes 143 dpi
+  # (diagonal pixels / diagonal inches) as its reference, so every size here is the look's own.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "165"
+  # The LVGL angle that lays this panel out lying down (320 x 240). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "0"
+  # true on this board (resistive XPT2046) — was false on the 032c board
+  # (capacitive GT911). This is the original upstream value for this panel.
+  TOUCH_SWAP_XY: "true"
+  TOUCH_MIRROR_Y: "true"
+  # The tile grid: columns and rows of cells. The shared tree places every cell from these
+  # (runtime_tiles::place_page).
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  # The cells of a page when this screen stands up (firmware 0.2.92+).
+  # The 2.8-inch glass is 43 x 57 mm standing up: one column of four cards, each 39 x 10 mm.
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  #BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32dev
+  framework:
+    advanced:
+      # ESPHome recommends this itself in the boot log. Yields ~40KB extra IRAM
+      # and a smaller binary, and every KB counts on this board.
+      sram1_as_iram: true
+      # minimum_chip_revision deliberately left out: that was here for the
+      # 032c board (rev 3.1 confirmed), but this is a different physical board
+      # with an unknown chip revision. With an unjustifiably high minimum
+      # the firmware simply refuses to boot.
+  variant: esp32
+
+
+# ============================================================ 
+# Home Assistant related setup
+# ============================================================
+
+# ==== Lights ====
+light:
+# LCD backlight
+  - platform: monochromatic
+    output: gpio_backlight_pwm
+    name: "Display Backlight"
+    id: backlight
+    restore_mode: ALWAYS_ON
+# onboard rgb led
+  - platform: rgb
+    name: "Front LED"
+    id: front_led
+    restore_mode: ALWAYS_OFF
+    red: led_red
+    green: led_green
+    blue: led_blue
+    effects:
+      - pulse:
+          name: "pulse_red"
+          transition_length: 2s
+          update_interval: 2s
+          min_brightness: 20%
+          max_brightness: 80%
+
+# ============================================================ 
+# Touchscreen Display related setup
+# ============================================================
+
+# Set pins to control the backlight and RGB LED
+output:
+  - platform: ledc
+    pin: GPIO27
+    id: gpio_backlight_pwm
+    #frequency: ${BACKLIGHT_FREQUENCY}
+  - platform: ledc
+    pin: GPIO22
+    id: led_red
+    inverted: true
+  - platform: ledc
+    pin: GPIO16  # Was green in original schematic
+    id: led_blue # Renamed (pins swapped)
+    inverted: true
+  - platform: ledc
+    pin: GPIO17  # Was blue in original schematic
+    id: led_green # Renamed (pins swapped)
+    inverted: true
+
+i2c:
+  id: touch_bus
+  sda: GPIO33
+  scl: GPIO32
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+
+# SPI bus for TFT display and touch controller
+spi:
+  - id: spi_tft
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+
+# Defining the display type and properties
+display:
+  - platform: ili9xxx
+    id: my_display
+    model: ST7796
+    spi_id: spi_tft
+    dc_pin: GPIO2
+    cs_pin: GPIO15
+    dimensions:
+      width: 480
+      height: 320
+    data_rate: 80MHz
+    color_order: BGR
+    invert_colors: false
+    update_interval: never
+    auto_clear_enabled: false
+    show_test_card: false
+    transform:
+      swap_xy: true
+      mirror_y: false
+      mirror_x: false
+
+# ============================================================ 
+# Home Assistant Sensors
+# ============================================================
+
+sensor:  
+  # LDR Light Sensor (GPIO34)
+  - platform: adc
+    pin: GPIO34
+    name: "Ambient Light"
+    id: ambient_light
+    update_interval: 5s
+    attenuation: 0db  # 0dB = 0~800mV range (matching the example code)
+    filters:
+      - multiply: 1000  # Convert to millivolts
+      - or:
+        - throttle: 5s  # Only send if changed
+        - delta: 10     # Only send if change > 10mV
+      - lambda: |-
+          // Convert millivolts to percentage (0-100%)
+          // Based on typical LDR behavior: 0-800mV range
+          float min_mv = 50.0;   // Very dark (adjust based on your environment)
+          float max_mv = 700.0;  // Very bright (adjust based on your environment)
+          float percentage = (x - min_mv) / (max_mv - min_mv) * 100.0;
+          return std::max(0.0f, std::min(100.0f, percentage));
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
