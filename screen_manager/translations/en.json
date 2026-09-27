@@ -1236,6 +1236,11 @@
         "show": "Show details of {name}",
         "hide": "Hide details of {name}"
       },
+      "rename": {
+        "button": "Rename",
+        "label": "Name in this app",
+        "save": "Save"
+      },
       "remove": {
         "button": "Remove screen",
         "title": "Remove {name}?",

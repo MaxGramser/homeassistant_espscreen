@@ -9,7 +9,7 @@ import { vDrag } from "../drag";
 import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
-import { clock24, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, unitSuffix } from "../store";
+import { clock24, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
 import { tilePalette, tileActive } from "../model/tile-palette";
 import type { Tile } from "../types";
 import TileResize from "./TileResize.vue";
@@ -68,7 +68,20 @@ const bodyText = computed(() => {
   if (domain.value === 'climate' || domain.value === 'screen') return '';
   return domain.value === 'light' && isOn.value ? `${fill.value}%` : status.value;
 });
-const headStatus = computed(() => bodyText.value && (status.value === bodyText.value || status.value.startsWith(bodyText.value + ' ')) ? '' : status.value);
+// The second line as chosen in the tile panel (app 0.2.105; drawn on the mockup since app 0.4.1): the screen's own
+// line, nothing, words of your own, or a value of the entity. A value Home Assistant does not report leaves the
+// line to the screen, as on the glass.
+const sub = computed(() => String(props.tile.options?.sub ?? "auto"));
+const line = computed(() => {
+  if (sub.value === "none") return "";
+  if (sub.value.startsWith("text:")) return sub.value.slice(5);
+  if (sub.value.startsWith("attr:")) {
+    const value = current.value?.a?.[sub.value.slice(5)];
+    if (value !== undefined && value !== null && value !== "") return typeof value === "number" ? num(value) : String(value);
+  }
+  return status.value;
+});
+const headStatus = computed(() => bodyText.value && (line.value === bodyText.value || line.value.startsWith(bodyText.value + ' ')) ? '' : line.value);
 const domain = computed(() => props.tile.entity.split(".")[0]);
 const cp = computed(() => state.inventory.icons?.controls || {});
 const key = (n: string) => (cp.value[n] ? glyph(cp.value[n]) : "");
@@ -182,12 +195,16 @@ async function onKey(e: KeyboardEvent) {
   if (!step) return;
   e.preventDefault();
   // A wide card owns its row: every arrow means the row above or below. A full card moves by the page.
-  if (placeTile(props.tile, props.tile.slot + (full.value ? Math.sign(step) * grid.value.slots : step))) {
-    // The card that moved, found by its id: the cards are keyed by their place, so the one under the old place is
-    // another tile now, and focusing that sent the next arrow key to the neighbour (app 0.4.1).
-    await nextTick();
-    document.querySelector<HTMLElement>(`.pages [data-tile-id="${props.tile.id}"]`)?.focus();
+  const to = props.tile.slot + (full.value ? Math.sign(step) * grid.value.slots : step);
+  if (!placeTile(props.tile, to)) {
+    // Nowhere to go without pushing a tile off its page (app 0.4.2): say so instead of doing nothing.
+    if (to >= 0 && to < grid.value.slots * 8) toast(t("editor.layout.no_room", { page: Math.floor(to / grid.value.slots) + 1 }));
+    return;
   }
+  // The card that moved, found by its id: the cards are keyed by their place, so the one under the old place is
+  // another tile now, and focusing that sent the next arrow key to the neighbour (app 0.4.1).
+  await nextTick();
+  document.querySelector<HTMLElement>(`.pages [data-tile-id="${props.tile.id}"]`)?.focus();
 }
 </script>
 
@@ -229,12 +246,12 @@ async function onKey(e: KeyboardEvent) {
       <span class="digital-clock"><span class="big">{{ clockText(clock24, now) }}</span><span class="st">{{ clockDate }}</span></span>
     </template>
     <template v-else-if="display === 'graph' && domain === 'sensor'">
-      <span class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ status }}</span></span></span>
+      <span class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ line }}</span></span></span>
       <SensorHistory :entity="tile.entity" :hours="Number(tile.options?.history_hours || 24)" />
     </template>
     <template v-else-if="cameraCard">
       <img v-if="cameraPicture" :key="cameraPicture" class="camera-art" :class="tile.options?.fit === 'contain' ? 'contain' : 'fill'" :src="cameraPicture" alt="" @load="cameraLoaded = true" @error="cameraLoaded = false" />
-      <span v-if="!cameraLoaded" class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span v-if="status" class="st" :class="{ off: gone }">{{ status }}</span></span></span>
+      <span v-if="!cameraLoaded" class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span v-if="line" class="st" :class="{ off: gone }">{{ line }}</span></span></span>
       <span v-else-if="tile.options?.overlay !== 'none'" class="camera-name"><span>{{ name }}</span></span>
     </template>
     <template v-else-if="full && !tall">
@@ -243,7 +260,7 @@ async function onKey(e: KeyboardEvent) {
         <span class="nm">{{ name }}</span>
         <span v-if="goesTo" class="goto">{{ pageLink }}</span>
         <span v-else-if="display === 'watch'" class="big">{{ bigValue }}<small v-if="unit && !gone">{{ unit }}</small></span>
-        <span v-else-if="status" class="st" :class="{ off: gone }">{{ status }}</span>
+        <span v-else-if="line" class="st" :class="{ off: gone }">{{ line }}</span>
       </span>
       <span v-if="tile.options?.inline === 'slider'" class="mini-slider" :style="sliderStyle"></span>
       <span v-if="controls" class="ctl">
@@ -294,7 +311,7 @@ async function onKey(e: KeyboardEvent) {
           <span class="nm">{{ name }}</span>
           <span v-if="goesTo" class="goto">{{ pageLink }}</span>
           <span v-else-if="display === 'watch'" class="big">{{ bigValue }}<small v-if="unit && !gone">{{ unit }}</small></span>
-          <span v-else-if="status" class="st" :class="{ off: gone }">{{ status }}</span>
+          <span v-else-if="line" class="st" :class="{ off: gone }">{{ line }}</span>
         </span>
       </span>
       <span v-if="tile.options?.inline === 'slider'" class="mini-slider" :style="sliderStyle"></span>
@@ -321,7 +338,7 @@ async function onKey(e: KeyboardEvent) {
         <span class="tx">
           <span class="nm">{{ name }}</span>
           <span v-if="goesTo" class="goto">{{ pageLink }}</span>
-          <span v-else-if="display !== 'watch' && status" class="st" :class="{ off: gone }">{{ status }}</span>
+          <span v-else-if="display !== 'watch' && line" class="st" :class="{ off: gone }">{{ line }}</span>
         </span>
       </span>
       <span v-if="display === 'watch'" class="big">{{ bigValue }}<small v-if="unit && !gone">{{ unit }}</small></span>

@@ -93,7 +93,8 @@ export type FeedbackView = {
   versions: { firmware_version?: string | null; addon_version?: string | null };
 };
 export type Screen = {
-  id: string; name: string; online: boolean; area?: string; firmware?: string; board?: string;
+  // name: the editor's own name when one is set (app 0.4.2); ha_name: what Home Assistant calls the screen.
+  id: string; name: string; ha_name?: string; online: boolean; area?: string; firmware?: string; board?: string;
   layout: Layout; update?: UpdateInfo; settings?: SettingsView; delivery?: string; status?: string;
   page_document?: PageDocument | PendingMigration | null;
   source_grid?: PageGrid | null;

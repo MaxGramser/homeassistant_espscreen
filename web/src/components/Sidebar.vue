@@ -4,7 +4,7 @@ import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { glyph } from "../model/topbar";
 import {
-  copyText, go, goHome, languageOnly, needsAttention, newLanguageText, openIntegrations, refresh, removeScreen, route, screenLight, screenSubline,
+  copyText, go, goHome, languageOnly, needsAttention, newLanguageText, openIntegrations, refresh, removeScreen, renameScreen, route, screenLight, screenSubline,
   select, startUpdate, state, updateProgress, updateState, whatsNew,
 } from "../store";
 import type { Screen } from "../types";
@@ -16,6 +16,16 @@ const host = ref("");
 const removeFor = ref<string | null>(null);
 async function remove(screen: Screen) {
   if (await removeScreen(screen)) removeFor.value = null;
+}
+// Rename (app 0.4.2): a label in this app only, so it takes effect at once, without a flash.
+const renameFor = ref<string | null>(null);
+const newName = ref("");
+function startRename(screen: Screen) {
+  renameFor.value = screen.id;
+  newName.value = screen.name;
+}
+async function saveName(screen: Screen) {
+  if (await renameScreen(screen, newName.value)) renameFor.value = null;
 }
 // The details under a screen's name (app 0.4.0): a screen that asks for a look (away, an update, a failure) opens them
 // when it is chosen; a healthy one keeps them folded behind the chevron at its right. The chevron's choice holds
@@ -150,6 +160,14 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
             <small v-else-if="updateState(screen)!.kind !== 'running'" :class="{ failed: updateState(screen)!.kind === 'failed' }">{{ updateState(screen)!.text }}</small>
           </div>
           <button v-if="screen.api_key" type="button" class="btn link mini copy-key" @click="copyText(screen.api_key!)">{{ t("editor.sidebar.copy_api_key") }}</button>
+          <form v-if="renameFor === screen.id" class="rename-screen" @submit.prevent="saveName(screen)">
+            <input v-model="newName" :placeholder="screen.ha_name" maxlength="40" :aria-label="t('editor.sidebar.rename.label')" autofocus @keydown.esc="renameFor = null" />
+            <div class="screen-actions">
+              <button type="submit" class="btn mini primary">{{ t("editor.sidebar.rename.save") }}</button>
+              <button type="button" class="btn link mini" @click="renameFor = null">{{ t("editor.common.cancel") }}</button>
+            </div>
+          </form>
+          <button v-else type="button" class="btn link mini rename-screen" @click="startRename(screen)">{{ t("editor.sidebar.rename.button") }}</button>
           <button type="button" class="btn link mini danger remove-screen" @click="removeFor = screen.id">{{ t("editor.sidebar.remove.button") }}</button>
         </div>
       </div>

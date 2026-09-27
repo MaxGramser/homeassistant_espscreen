@@ -37,6 +37,7 @@ packages:
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "cyd9342"
+  SCREEN_FIRMWARE_VERSION: "0.4.1"   # a fix for this board alone (docs/BOARD_RELEASES.md)
   DEVICE_NAME: "cyd9342-new"
   DEVICE_FRIENDLY_NAME: "My CYD"
 
@@ -78,6 +79,13 @@ substitutions:
 # ============================================================
 # No need to edit below this line.
 # ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml). Its display
+  # swaps the ILI9342's axes onto a 240 x 320 canvas, and mipi_spi before 2026.7.0 held those dimensions against the
+  # panel's own 320 x 240 without the swap and refused them ("Invalid offsets"). 2026.7.0 also rewrote how mipi_spi
+  # handles a transform. A board file's min_version wins over the core's, so the other CYDs keep building on 2026.6.2.
+  min_version: 2026.7.0
 
 display:
   - id: !extend my_display

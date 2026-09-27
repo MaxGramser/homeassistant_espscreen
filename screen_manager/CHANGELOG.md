@@ -1,3 +1,38 @@
+## 0.4.4 (firmware 0.4.1 for cyd9342)
+
+The CYD with an ILI9342 asks for ESPHome 2026.7.0 or newer (GitHub #50).
+
+- **CYD ESP32-2432S028 ILI9342** (experimental) needs ESPHome 2026.7.0 or newer. On an older ESPHome Device Builder
+  its build stopped with "Invalid offsets"; it now says to update ESPHome instead. ESP Screens itself builds with a
+  newer ESPHome, so installing from ESP Screens works as before. Nothing changes in what the screen shows.
+- For contributors: the release recipe (docs/BOARD_RELEASES.md) and `tools/affected_boards.py` now also build a new or
+  changed board on the oldest ESPHome the packages promise, the way CI does, so a board like this one is caught
+  before it ships.
+- Other screens get nothing new.
+
+## 0.4.3 (firmware 0.4.0)
+
+Give a screen its own name in the app.
+
+- **Rename.** Open a screen's details in the sidebar and choose Rename. The new name shows at once in the sidebar,
+  the header and the overview, with no flash. It is kept in the app only: Home Assistant, the screen's ESPHome name
+  and its YAML stay as they are. Save an empty name to get Home Assistant's name back.
+- No new firmware: update the app; the screens stay as they are.
+
+## 0.4.2 (firmware 0.4.0)
+
+The editor shows your second line, and a few more rough edges are gone.
+
+- **Second line on the preview.** The screen in the editor now shows the second line you chose for a tile: nothing,
+  your own words or a value of the entity. It used to show the screen's own line whatever you picked.
+- **Moving tiles.** A tile that is in the way only moves to a free spot on its own page. When there is none, the move
+  doesn't happen, and the arrow keys say so. A double-width tile no longer ends up alone on a new page at the end.
+- **Undo.** Typing your own words for the second line is one step of undo, as typing a name is.
+- **Page titles** are saved without spaces at the start or the end, while you can still type them.
+- **Go to Home links.** Sending a link that follows the home page to the home page's number keeps it following the
+  home page, instead of turning it into a link to that one page.
+- No new firmware: update the app; the screens stay as they are.
+
 ## 0.4.1 (firmware 0.4.0)
 
 Editor fixes from a hunt for features that quietly broke when pages got their own layout in 0.3.1.

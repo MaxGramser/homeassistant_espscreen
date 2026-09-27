@@ -553,7 +553,8 @@ export function select(id: string | null) {
 }
 export const liveEntries = () => (state.layout ? entriesOf(state.layout) : []);
 // Apply an arrangement; a new tile joins the layout. True when anything changed.
-export function commitArrangement(result: { tile: Tile; slot: number }[]) {
+// `field`: typing in one field is one step of undo (app 0.4.2), as with editDocument.
+export function commitArrangement(result: { tile: Tile; slot: number }[], field?: string) {
   if (!state.document || !state.documentGrid) return false;
   try {
     // Adding a numbered destination from the library explicitly creates that
@@ -568,7 +569,10 @@ export function commitArrangement(result: { tile: Tile; slot: number }[]) {
       const title = suggestedPageTitle(page, state.inventory.entities);
       page.topbar.title = title ? { source: 'text', text: title } : { source: 'screen' };
     }
-    return applyDocument(arranged);
+    const grouped = field !== undefined && focusedField === field;
+    const changed = applyDocument(arranged, !(grouped && groupedEdit === edits));
+    if (changed) groupedEdit = grouped ? edits : -1;
+    return changed;
   }
   catch (error: any) { toast(error.message); return false; }
 }
@@ -743,7 +747,7 @@ export function resizeTile(tile: Tile, size: Size, axis: 'columns' | 'rows') {
 }
 // Inspector resizing may find the nearest fitting rectangle. Edge handles above
 // keep the anchor fixed so that dragging an edge never moves the tile.
-export function setTileOption(tile: Tile, key: string, value: unknown) {
+export function setTileOption(tile: Tile, key: string, value: unknown, field?: string) {
   if (!state.layout) return;
   const layout = pages.clone(state.layout);
   tile = currentView(tile, layout) || tile;
@@ -790,7 +794,7 @@ export function setTileOption(tile: Tile, key: string, value: unknown) {
   // What the add-on would still change is never stored (its canonical form): a default, a stale action or picture setting.
   tile.options = canonicalOptions(tile.entity, tile.options);
   normalize(layout);
-  commitArrangement(layout.tiles.map((item) => ({ tile: item, slot: item.slot })));
+  commitArrangement(layout.tiles.map((item) => ({ tile: item, slot: item.slot })), field);
 }
 // A navigation tile goes to another page: its entity changes (screen.page_<n>). One tile per page it goes to, unless
 // the firmware takes several (0.2.65). The page after the last one becomes a new, empty page to fill (app 0.2.78).
@@ -803,6 +807,9 @@ export function retargetPageTile(tile: Tile, page: number) {
     while (draft.pages.length < page) draft.pages.push(pages.emptyPage(draft.pages.at(-1)!.topbar));
     const source = draft.pages.flatMap((item) => item.tiles).find((item) => item.id === tile.id);
     if (!source || source.content.kind !== "navigation") throw new Error(t("addon.errors.pages.tile_missing"));
+    // A link that follows Home stays one when the page it is sent to is the home page (app 0.4.2): it keeps following
+    // Home when another page becomes it, instead of turning into a fixed link to this page.
+    if (source.content.target.kind === "home" && draft.pages[page - 1].id === draft.homePageId) return;
     source.content.target = { kind: "page", pageId: draft.pages[page - 1].id };
   });
 }
@@ -962,6 +969,19 @@ export async function feedbackAction(screen: Screen, body: Record<string, unknow
 // ---- Removing a screen (app 0.2.112): the mirror of New screen ----
 // Home Assistant, the ESPHome profile and everything kept here, in one request. The sidebar says what goes
 // before it asks; here only what came back is shown.
+// A screen's own name in this app (app 0.4.2): only the editor shows it, so it needs no flash. Empty gives Home Assistant's back.
+export async function renameScreen(screen: Screen, name: string) {
+  try {
+    const result = await send<{ name: string }>(`screens/${encodeURIComponent(screen.id)}/name`, "PUT", { name });
+    const live = state.inventory.screens.find((s) => s.id === screen.id);
+    if (live && result?.name) live.name = result.name;
+    return true;
+  } catch (e: any) {
+    toast(e.message);
+    return false;
+  }
+}
+
 export async function removeScreen(screen: Screen) {
   if (state.removing) return false;
   state.removing = screen.id;

@@ -182,6 +182,16 @@ def next_numbers(boards=(), read=read_now):
     return firmware_count.next_shared(core), firmware_count.next_board(core, [built.get(board) for board in boards])
 
 
+def oldest(args):
+    """The same firmware check on the oldest ESPHome the packages promise (packages/core.yaml min_version), as CI's
+    min_version leg runs it. A throwaway uv environment, not a second venv; a board whose own min_version is newer is
+    skipped there, which is what that board should do (GitHub #50: an ILI9342 CYD passed on the add-on's ESPHome and
+    failed on 2026.6.2)."""
+    version = re.search(r'(?m)^  min_version: (\S+)', profiles.CORE.read_text()).group(1)
+    return [f'- And on the oldest ESPHome the packages promise ({version}), as CI does:',
+            f'  ESPHOME="uv run -q --no-project --with esphome=={version} esphome" tools/check.sh {args}']
+
+
 def plan(reach, new=frozenset(), read_base=read_now):
     """The release that follows from what each path reaches, counted from the base (`read_base`); `new` are boards no
     screen runs yet (new_boards). Once the working tree builds the numbers it asks for, it says so."""
@@ -209,7 +219,8 @@ def plan(reach, new=frozenset(), read_base=read_now):
         lines += [f'New board: {", ".join(added)}. No screen runs it yet, so it takes no firmware number of its own and',
                   'nothing else updates: it builds the shared firmware from main (docs/BOARD_RELEASES.md, "A new board").',
                   f'- Build and render it: tools/check.sh --firmware --board {" --board ".join(added)}, and',
-                  '  tools/render/run.py <board> (with <board>-portrait for glass that is not square).', '']
+                  '  tools/render/run.py <board> (with <board>-portrait for glass that is not square).']
+        lines += oldest(f'--firmware --board {" --board ".join(added)}') + ['']
     if not boards:
         lines += ['No firmware change for a screen that exists: an app release (or a docs push, docs/RELEASING.md).',
                   '- Bump screen_manager/config.yaml and write the CHANGELOG entry with the shared firmware it ships with:',
@@ -226,6 +237,7 @@ def plan(reach, new=frozenset(), read_base=read_now):
         lines += ['- tools/generate_board_shapes.py, then bump screen_manager/config.yaml with the CHANGELOG entry',
                   f'  "## <app> (firmware {shared_next})".',
                   '- Run tools/check.sh and tools/check.sh --firmware (every board, the CYD flash budget).']
+        lines += oldest('--firmware')
     else:
         done = all(built_now[key] == for_boards for key in boards)
         lines += [f'Firmware for {", ".join(sorted(boards))} alone: every other screen is left alone. The core stays, '
@@ -239,6 +251,7 @@ def plan(reach, new=frozenset(), read_base=read_now):
                   f'  "## <app> (firmware {board_next} for {", ".join(sorted(boards))})".',
                   f'- Run tools/check.sh and tools/check.sh --firmware --board {" --board ".join(sorted(boards))}'
                   f' (or --affected).']
+        lines += oldest(f'--firmware --board {" --board ".join(sorted(boards))}')
     return '\n'.join(lines)
 
 

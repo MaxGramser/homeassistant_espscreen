@@ -4,6 +4,7 @@ state of its own, and the release plan tools/affected_boards.py prints from both
 Standard library and PyYAML only.
 """
 import json
+import re
 from pathlib import Path
 import sys
 import unittest
@@ -154,6 +155,7 @@ class TheReleasePlan(unittest.TestCase):
         self.assertIn(f'{path}: SCREEN_FIRMWARE_VERSION: "{self.following()}"', text)
         self.assertIn(f'(firmware {self.following()} for {board})', text)
         self.assertIn(f'tools/check.sh --firmware --board {board}', text)
+        self.assertIn(self.oldest(f'--firmware --board {board}'), text)
         self.assertIn('Leave packages/core.yaml', text)
 
     def test_a_new_board_takes_no_number_and_updates_nothing(self):
@@ -163,6 +165,7 @@ class TheReleasePlan(unittest.TestCase):
         text = affected_boards.plan(reach(*paths), new={board})
         self.assertIn(f'New board: {board}', text)
         self.assertIn(f'tools/check.sh --firmware --board {board}', text)
+        self.assertIn(self.oldest(f'--firmware --board {board}'), text)
         self.assertIn('No firmware change for a screen that exists', text)
         self.assertIn(f'(firmware {FIRMWARE_VERSION})', text)
         self.assertNotIn('SCREEN_FIRMWARE_VERSION: "', text)
@@ -185,6 +188,16 @@ class TheReleasePlan(unittest.TestCase):
         self.assertIn('Shared firmware: every board', text)
         self.assertIn(f'FIRMWARE_VERSION: "{affected_boards.dotted((CORE[0], CORE[1] + 1, 0))}"', text)
         self.assertIn('tools/check.sh --firmware (every board', text)
+        self.assertIn(self.oldest('--firmware'), text)
+
+    def test_an_app_release_builds_nothing_on_the_oldest_esphome(self):
+        self.assertNotIn('uv run', affected_boards.plan(reach('screen_manager/app/core.py')))
+
+    @staticmethod
+    def oldest(args):
+        """The min_version build the plan asks for (GitHub #50 slipped through without it)."""
+        version = re.search(r'(?m)^  min_version: (\S+)', profiles.CORE.read_text()).group(1)
+        return f'ESPHOME="uv run -q --no-project --with esphome=={version} esphome" tools/check.sh {args}'
 
 
 class AForgottenNumber(unittest.TestCase):

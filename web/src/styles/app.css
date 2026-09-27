@@ -122,6 +122,10 @@ a:hover { text-decoration: underline; }
 .screen-remove ul { margin: 0; padding-left: 15px; display: grid; gap: 4px; }
 .screen-remove .btn.danger { border: 1px solid var(--danger); }
 .screen-host input { padding: 5px 8px; font-size: 12px; }
+/* Rename (app 0.4.2): the name gets the whole column, Save and Cancel sit under it. */
+.rename-screen { display: grid; gap: 6px; }
+.rename-screen input { width: 100%; padding: 5px 8px; font-size: 12px; }
+.screen-details button.rename-screen { justify-self: start; }
 .pending { margin: 4px 0; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 10px; display: grid; gap: 6px; }
 .pending strong { font-size: 12.5px; }
 .pending-actions { display: flex; flex-wrap: wrap; gap: 6px; }

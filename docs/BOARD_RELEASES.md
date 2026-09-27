@@ -141,6 +141,14 @@ other board.
    tools/check.sh --firmware --board <key>
    ```
 
+   The same build on the oldest ESPHome the packages promise (`min_version` in `packages/core.yaml`), as CI's
+   min_version leg runs it. `uv` makes a throwaway environment for it, not a second venv. A board that needs a newer
+   ESPHome says so with its own `min_version` in its board file, and is then skipped here instead of failing:
+
+   ```bash
+   ESPHOME="uv run -q --no-project --with esphome==2026.6.2 esphome" tools/check.sh --firmware --board <key>
+   ```
+
    ```bash
    tools/render/run.py <key>
    ```
@@ -184,6 +192,13 @@ only it includes, its entry files.
    ```bash
    tools/check.sh --firmware --affected
    ```
+
+   ```bash
+   ESPHOME="uv run -q --no-project --with esphome==2026.6.2 esphome" tools/check.sh --firmware --affected
+   ```
+
+   The second is CI's min_version leg: the oldest ESPHome the packages promise (`min_version` in
+   `packages/core.yaml`). `tools/affected_boards.py` prints it with the version filled in.
 
    `--affected` builds only the boards the change reaches (the same as `--board waveshare4b`). The CYD flash budget
    only runs when the CYD is one of them. Render the board with `tools/render/run.py <key>`, and test it on the glass

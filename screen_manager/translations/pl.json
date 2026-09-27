@@ -1236,6 +1236,11 @@
         "show": "Pokaż szczegóły: {name}",
         "hide": "Ukryj szczegóły: {name}"
       },
+      "rename": {
+        "button": "Zmień nazwę",
+        "label": "Nazwa w tej aplikacji",
+        "save": "Zapisz"
+      },
       "remove": {
         "button": "Usuń ekran",
         "title": "Usunąć {name}?",
