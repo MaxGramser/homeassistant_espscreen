@@ -180,7 +180,8 @@ function pickSubKind(kind: string) {
 }
 function writeSubText(value: string) {
   const words = value.trim();
-  setTileOption(props.tile, "sub", words ? `text:${words}` : "none");
+  // Typing words of your own is one step of undo, as typing the name is (app 0.4.2).
+  setTileOption(props.tile, "sub", words ? `text:${words}` : "none", `sub:${props.tile.id}`);
 }
 const inline = computed(() => current("inline", "none") as string);
 const showSlider = computed(() => !taller.value && SLIDER_DOMAINS.includes(domain.value) && (inline.value === "slider" ||
@@ -222,6 +223,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
         <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
           :aria-label="t('editor.tile.sub.value_aria')" @update:model-value="(key) => setTileOption(tile, 'sub', `attr:${key}`)" />
         <input v-if="subKind === 'text'" class="sub-text" :value="subText" maxlength="60"
+          @focus="beginFieldEdit(`sub:${tile.id}`)" @blur="endFieldEdit()"
           :placeholder="t('editor.tile.sub.text_placeholder')" :aria-label="t('editor.tile.sub.text_aria')"
           @input="writeSubText(($event.target as HTMLInputElement).value)" />
       </div>
