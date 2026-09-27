@@ -16,7 +16,7 @@ ESPHome supports many panels by name, and then one line sets the pins, the timin
 |---|---|---|
 | `mipi_spi` | small SPI panels | `ESP32-2432S028` (the CYD), `JC4827W543`, `WT32-SC01-PLUS`, `T-DISPLAY-S3` |
 | `mipi_rgb` | 16-bit parallel panels | `ST7701S` with a board's own pins (the Waveshare 4B), `GUITION-4848S040`, `ESP32-S3-TOUCH-LCD-4.3`, `ESP32-S3-TOUCH-LCD-7-800X480`, `ESP32-8048S070`, `WAVESHARE-5-1024X600` |
-| `mipi_dsi` | ESP32-P4 panels | `WAVESHARE-P4-86-PANEL`, `M5STACK-TAB5`, `JC8012P4A1`, `JC1060P470` |
+| `mipi_dsi` | ESP32-P4 panels | `WAVESHARE-P4-86-PANEL`, `M5STACK-TAB5`, `JC8012P4A1`, `JC8012P4A1-V2`, `JC1060P470` |
 
 A board that is not in those lists needs its pins, its init sequence and its timings from the manufacturer's
 example, which is the one genuinely difficult part of a new board.

@@ -131,7 +131,7 @@
    "inch": 4.0,
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
-   "order": 9,
+   "order": 10,
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -183,7 +183,7 @@
    "inch": 7.0,
    "model": "JC1060P470",
    "name": "Guition",
-   "order": 7,
+   "order": 8,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -255,7 +255,7 @@
    "inch": 7.0,
    "model": "JC1060P470 V2",
    "name": "Guition",
-   "order": 8,
+   "order": 9,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -376,6 +376,78 @@
   "rows": 4,
   "width": 1280
  },
+ "checkout/jc8012p4a1v3.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "board": "jc8012p4a1v3",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "JC8012P4A1 V3",
+   "name": "Guition",
+   "order": 4,
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "height": 800,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "rotation": 90,
+    "rows": 4,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 4,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 4,
+  "width": 1280
+ },
  "checkout/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -389,7 +461,7 @@
    "inch": 3.5,
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
-   "order": 6,
+   "order": 7,
    "status": "new",
    "touch": "FT63X6"
   },
@@ -513,7 +585,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
-   "order": 5,
+   "order": 6,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -585,7 +657,7 @@
    "inch": 7.0,
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 4,
+   "order": 5,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -766,7 +838,7 @@
    "inch": 4.0,
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
-   "order": 9,
+   "order": 10,
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -818,7 +890,7 @@
    "inch": 7.0,
    "model": "JC1060P470",
    "name": "Guition",
-   "order": 7,
+   "order": 8,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -890,7 +962,7 @@
    "inch": 7.0,
    "model": "JC1060P470 V2",
    "name": "Guition",
-   "order": 8,
+   "order": 9,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -964,6 +1036,78 @@
    "name": "Guition",
    "order": 3,
    "status": "new",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "height": 800,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "rotation": 90,
+    "rows": 4,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 4,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 4,
+  "width": 1280
+ },
+ "jc8012p4a1v3": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "board": "jc8012p4a1v3",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "JC8012P4A1 V3",
+   "name": "Guition",
+   "order": 4,
+   "status": "experimental",
    "touch": "GSL3670"
   },
   "chip": "ESP32-P4",
@@ -1143,7 +1287,7 @@
    "inch": 4.0,
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
-   "order": 9,
+   "order": 10,
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -1195,7 +1339,7 @@
    "inch": 7.0,
    "model": "JC1060P470",
    "name": "Guition",
-   "order": 7,
+   "order": 8,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1267,7 +1411,7 @@
    "inch": 7.0,
    "model": "JC1060P470 V2",
    "name": "Guition",
-   "order": 8,
+   "order": 9,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1388,6 +1532,78 @@
   "rows": 4,
   "width": 1280
  },
+ "packages/jc8012p4a1v3.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "board": "jc8012p4a1v3",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "JC8012P4A1 V3",
+   "name": "Guition",
+   "order": 4,
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "height": 800,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "rotation": 90,
+    "rows": 4,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 4,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 4,
+  "width": 1280
+ },
  "packages/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -1401,7 +1617,7 @@
    "inch": 3.5,
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
-   "order": 6,
+   "order": 7,
    "status": "new",
    "touch": "FT63X6"
   },
@@ -1525,7 +1741,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
-   "order": 5,
+   "order": 6,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1597,7 +1813,7 @@
    "inch": 7.0,
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 4,
+   "order": 5,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1659,7 +1875,7 @@
    "inch": 3.5,
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
-   "order": 6,
+   "order": 7,
    "status": "new",
    "touch": "FT63X6"
   },
@@ -1783,7 +1999,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
-   "order": 5,
+   "order": 6,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1855,7 +2071,7 @@
    "inch": 7.0,
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 4,
+   "order": 5,
    "status": "experimental",
    "touch": "GT911"
   },

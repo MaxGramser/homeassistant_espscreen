@@ -2,23 +2,28 @@
 #
 # The chip, its memory, the supply of the MIPI-DSI PHY, the Wi-Fi co-processor, the I2C bus of the touch panel and the
 # backlight's pin: what the 10.1-inch JC8012P4A1 and the 7-inch JC1060P470 share, pin for pin. The board file adds its
-# display and its touch panel. `HOSTED_SDIO_FREQUENCY` is the clock of the Wi-Fi link, which a board may lower.
+# display and its touch panel. `HOSTED_SDIO_FREQUENCY` is the clock of the Wi-Fi link, which a board may lower, and
+# `ESP32P4_ENGINEERING_SAMPLE` the silicon the firmware is built for, which a board with rev3 silicon sets to false.
 packages:
   build: !include esp-idf.yaml
 
 substitutions:
   HOSTED_SDIO_FREQUENCY: "40MHz"
+  ESP32P4_ENGINEERING_SAMPLE: "true"
 
 esp32:
   variant: esp32p4
   flash_size: 16MB
-  # Engineering-sample silicon (pre-v3) runs at 360 MHz at most; rev3 does 400 MHz.
+  # Engineering-sample silicon (pre-v3) runs at 360 MHz at most; rev3 does 400 MHz. Both build at 360 MHz, which is
+  # what the community configurations for rev3 panels run as well.
   cpu_frequency: 360MHz
-  # The chips in these panels are pre-v3 ("chip revision: v1.3" in the boot log). ESP-IDF links a different
-  # memory layout for pre-v3 and for rev3 (CONFIG_ESP32P4_SELECTS_REV_LESS_V3) and the two are NOT binary
-  # compatible: a firmware built with this flag does not boot on rev3 silicon, and the other way round.
-  # Checked on a real JC8012P4A1 (pull request #14); a panel that reports v3.0 or higher needs this set to false.
-  engineering_sample: true
+  # The first panels carry pre-v3 chips ("chip revision: v1.3" in the boot log). ESP-IDF links a different memory
+  # layout for pre-v3 and for rev3 (CONFIG_ESP32P4_SELECTS_REV_LESS_V3) and the two are NOT binary compatible: a
+  # firmware built with this flag does not boot on rev3 silicon, and the other way round. Checked on a real
+  # JC8012P4A1 (pull request #14). A rev3 chip (v3.0 or higher in the boot log, "esp32p4-eco7" in the ROM line) given
+  # a pre-v3 firmware restarts straight after the bootloader with CHIP_LP_WDT_RESET, over and over (GitHub issue #52);
+  # its board file sets ESP32P4_ENGINEERING_SAMPLE to false.
+  engineering_sample: ${ESP32P4_ENGINEERING_SAMPLE}
   framework:
     advanced:
       execute_from_psram: true

@@ -1,18 +1,21 @@
-# ESP Screens - Guition JC8012P4A1 board: 10.1-inch desk or wall panel, 1280x800 MIPI-DSI + GSL3680
-# capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+# ESP Screens - Guition JC8012P4A1 "V3" board, EXPERIMENTAL: the 10.1-inch JC8012P4A1 as Guition ships it now, with
+# rev3 ESP32-P4 silicon and a newer LCD behind the same JD9365 driver. 1280x800 MIPI-DSI + GSL3680 capacitive touch,
+# on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
 #
 # 1280x800 at 149 dpi, the standard look, a grid of 5 x 4 cells of 240 x 162 px. The panel itself is
 # 800x1280 (portrait); LVGL turns the picture and the touch a quarter, as it does on the CYD.
-# This is the first build of the board, with a pre-v3 ESP32-P4 ("chip revision: v1.3" in the boot log). A board sold
-# as "V3" carries rev3 silicon and a newer LCD and needs guition-jc8012p4a1-v3.yaml instead (docs/JC8012P4A1.md).
+# Everything but the chip revision and the LCD is the first JC8012P4A1's (packages/hardware/guition-jc8012p4a1.yaml), so
+# this file differs from guition-jc8012p4a1.yaml only there. The first build's firmware restarts a V3 straight after
+# its bootloader, over and over (CHIP_LP_WDT_RESET, GitHub issue #52), which is how someone finds out which of the two
+# they have. docs/JC8012P4A1.md has what to check on the glass.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
-# is added. Two entry files include this one: checkout/jc8012p4a1.yaml (a build on this computer) and
-# packages/jc8012p4a1.yaml (the package a screen builds from over GitHub).
+# is added. Two entry files include this one: checkout/jc8012p4a1v3.yaml (a build on this computer) and
+# packages/jc8012p4a1v3.yaml (the package a screen builds from over GitHub).
 packages:
   # The board apart from its chip revision and its LCD: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch) and
-  # the GSL3680, shared with the V3.
+  # the GSL3680, shared with the first build.
   hardware: !include ../hardware/guition-jc8012p4a1.yaml
   # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
   cells: !include ../cells/20.yaml
@@ -25,9 +28,12 @@ packages:
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
-  BOARD_ID: "jc8012p4a1"
-  DEVICE_NAME: "jc8012p4a1-new"
-  DEVICE_FRIENDLY_NAME: "My Guition 10"
+  BOARD_ID: "jc8012p4a1v3"
+  DEVICE_NAME: "jc8012p4a1v3-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 10 V3"
+  # Rev3 silicon: the boot ROM of this board reports "esp32p4-eco7" and a firmware built for the earlier chips does not
+  # start on it (packages/hardware/guition-esp32p4.yaml).
+  ESP32P4_ENGINEERING_SAMPLE: "false"
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together, so nothing else on this board knows which way the glass hangs. 1509 diagonal pixels over
@@ -68,12 +74,14 @@ esphome:
   # docs/RELEASING.md says why the packages stay behind the add-on's ESPHome.
   min_version: 2026.8.0
 
-# ESPHome's own mipi_dsi platform knows this panel by name: `model: JC8012P4A1` brings the JD9365's init
-# sequence, its timings and its reset pin. The panel is 800x1280; LVGL turns it a quarter (LVGL_ROTATION).
+# ESPHome's own mipi_dsi platform knows the newer LCD by name (2026.8.0+): `model: JC8012P4A1-V2` brings the JD9365's
+# init sequence for it, its timings and its reset pin. ESPHome's "V2" is the LCD, not Guition's board label; the
+# community configurations for V3 boards run this LCD's table. The panel is 800x1280; LVGL turns it a quarter
+# (LVGL_ROTATION).
 display:
   - platform: mipi_dsi
     id: my_display
-    model: JC8012P4A1
+    model: JC8012P4A1-V2
     dimensions: {width: 800, height: 1280}
     lanes: 2
     update_interval: never
