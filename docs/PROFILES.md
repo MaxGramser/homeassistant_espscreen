@@ -72,6 +72,11 @@ component defined anywhere in the chain, and `!remove` takes one away (`backligh
 `alert_flash` of `backlight.yaml` and defines its own). Any other list is joined, the earlier file's items first.
 `esphome config checkout/<board>.yaml` shows the result.
 
+The firmware version is one of these values too. `SCREEN_FIRMWARE_VERSION` in the core is the version every board
+builds; a board file may set a higher one under `BOARD_ID` after a fix for that board alone, and that board then builds
+and reports its own number (docs/BOARD_RELEASES.md). Only the core and a board file may set it, and a board's own
+number must be above the core's; `tools/check_packages.py` holds both.
+
 ## Sizes: the look works them out
 
 A size is a line in the look, for example:

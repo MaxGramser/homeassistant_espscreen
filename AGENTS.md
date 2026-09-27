@@ -6,6 +6,11 @@ persistent add-on data; Wi-Fi/API/OTA stay in the device's own ESPHome YAML. Rea
 docs/RELEASING.md before publishing updates. Main distributes every board in tools/profiles.py.
 Every push to GitHub is a release: always also bump the add-on version in
 screen_manager/config.yaml (with a CHANGELOG line), otherwise HA won't see an update.
+The firmware number is per board (app 0.3.20): before any release run `tools/affected_boards.py`, which says
+whether the change reaches no screen, a new board, one or a few boards, or every board, and prints the number,
+the CHANGELOG heading and the checks. A new board takes no firmware number; a fix for one board sets the number in
+that board file only, so no other screen is asked to update, and builds only that board
+(`tools/check.sh --firmware --affected`). docs/BOARD_RELEASES.md is the recipe; never reuse a firmware number.
 A screen's YAML is packages/core.yaml (shared by every board) plus one file under packages/boards/;
 packages/<board>.yaml and the two profiles in the root only include them. Read docs/PROFILES.md before
 touching them: a board-dependent number is a `${NAME}` in the board file, board-only code inside a shared
@@ -127,7 +132,8 @@ and screens for lookups and tests. If that file is missing you are not on his ma
   and LVGL 90°. A changed orientation also requires a new projection/tests.
 - Run `tools/check.sh` on code changes (the Python tests, every C++ test, the package check, the icon
   generator's check, the editor's tests, types and build); on a firmware change also `tools/check.sh --firmware`, which
-  compiles every board and applies the CYD's flash budget (docs/RELEASING.md step 2). CI runs the
+  compiles every board and applies the CYD's flash budget (docs/RELEASING.md step 2); a change that reaches one board
+  or a few builds only those with `tools/check.sh --firmware --affected` (docs/BOARD_RELEASES.md). CI runs the
   same script. Firmware tests and hardware acceptance are different checks.
 - `diagnostics/run_ui_test.py` renders without HA actions; don't touch the screen
   during that test. Use `--name` for the expected device identity.

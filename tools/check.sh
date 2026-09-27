@@ -5,6 +5,9 @@
 #   tools/check.sh                   the Python tests, every tests/*.cpp, the package check, the icon generator's --check, the editor's
 #                                    tests, types and build, and whether the editor bundle in Git equals that build
 #   tools/check.sh --firmware        compiles every board profile (tools/profiles.py) and applies the CYD's flash budget
+#   --board KEY                      with --firmware: only this board (repeat for more); a fix for one board builds one
+#   --affected                       with --firmware: only the boards the change reaches (tools/affected_boards.py);
+#                                    nothing to build when it reaches none (docs/BOARD_RELEASES.md)
 #   tools/check.sh --all             both
 #   tools/check.sh --render          builds every board as a host program (tools/render/run.py): its self test must pass,
 #                                    and what it draws is saved as PNGs under .esphome/render/out (needs SDL2)
@@ -28,7 +31,7 @@ read -r -a ESPHOME_CMD <<< "${ESPHOME:-esphome}"
 
 usage() { sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,1\}//'; }
 
-want_fast=1 want_firmware=0 want_render=0 saw_firmware=0 saw_all=0 saw_render=0 baseline=""
+want_fast=1 want_firmware=0 want_render=0 saw_firmware=0 saw_all=0 saw_render=0 baseline="" only=() affected=0
 while (($#)); do
   case $1 in
     --firmware) saw_firmware=1 ;;
@@ -38,6 +41,11 @@ while (($#)); do
       baseline=${2:-}
       [[ $baseline =~ ^[0-9]+$ ]] || { echo "--baseline needs a size in bytes, such as 1655584" >&2; exit 2; }
       shift ;;
+    --board)
+      [[ ${2:-} =~ ^[a-z0-9]+$ ]] || { echo "--board needs a board key from boards.yaml, such as cyd" >&2; exit 2; }
+      only+=("$2")
+      shift ;;
+    --affected) affected=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1 (see tools/check.sh --help)" >&2; exit 2 ;;
   esac
@@ -46,6 +54,7 @@ done
 if ((saw_firmware || saw_all)); then want_firmware=1; fi
 if ((saw_firmware && !saw_all)); then want_fast=0; fi
 if ((saw_render)); then want_render=1; if ((!saw_all && !saw_firmware)); then want_fast=0; fi; fi
+if ((${#only[@]} || affected)) && ((!want_firmware)); then echo "--board and --affected go with --firmware or --all" >&2; exit 2; fi
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/esp-screens-check.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
@@ -132,6 +141,13 @@ icons_current() { cd "$ROOT" && "$PYTHON" tools/generate_icons.py --check; }
 # What every board looks like, as the manager reads it (screen_manager/app/boards.json from the board files).
 shapes_current() { cd "$ROOT" && "$PYTHON" tools/generate_board_shapes.py --check; }
 entries_current() { cd "$ROOT" && "$PYTHON" tools/generate_entries.py --check; }
+# A firmware change against origin/main with no higher number for the boards it reaches (docs/BOARD_RELEASES.md): a
+# warning while the work goes on, and the reminder before a release that those screens would never be offered it.
+firmware_numbers_raised() {
+  local out
+  cd "$ROOT" || return 1
+  if out=$("$PYTHON" tools/affected_boards.py --verify 2>&1); then note "$out"; else warn "$out"; note "not raised yet"; fi
+}
 # The translations (app 0.2.90, docs/TRANSLATING.md): every language against English, the key header the firmware
 # builds against, and no English left in the firmware's code.
 translations_check() { cd "$ROOT" && "$PYTHON" tools/i18n.py check > "$WORK/i18n.txt" && "$PYTHON" tools/i18n.py header --check && "$PYTHON" tools/i18n.py lint; }
@@ -197,10 +213,18 @@ EOF
 }
 
 # The boards that ship and their checkout entries, one "board entry" per line (tools/profiles.py is the one list).
+# With --board or --affected only the chosen ones; the chosen keys are checked against the list, so a typo fails.
 board_entries() {
   cd "$ROOT" && "$PYTHON" -c 'import sys; sys.path.insert(0, "tools"); import profiles
-for name in profiles.PROFILES: print(profiles.board_of(name), name)'
+chosen = sys.argv[2:] if sys.argv[1] == "1" else None
+unknown = sorted(set(chosen or []) - set(profiles.BOARDS))
+if unknown:
+    sys.exit("No such board: " + ", ".join(unknown) + " (boards.yaml has " + ", ".join(profiles.BOARDS) + ")")
+for name in profiles.PROFILES:
+    if chosen is None or profiles.board_of(name) in chosen: print(profiles.board_of(name), name)' "$choosing" ${only[@]+"${only[@]}"}
 }
+choosing=0
+if ((${#only[@]})); then choosing=1; fi
 
 # A board's own ESPHome floor: its board file's `min_version` when it has one, else the core's. A board that asks
 # for more than the ESPHome running here is skipped instead of failed, which is what CI's min_version build needs
@@ -293,6 +317,8 @@ override_configs() {
   for fixture in "$ROOT"/tests/fixtures/overrides/*.yaml; do
     board=$(cd "$ROOT" && "$PYTHON" -c 'import sys; sys.path.insert(0, "tools"); import profiles
 name = sys.argv[1]; print(max((b for b in profiles.BOARDS if name.startswith(b + "-")), key=len))' "$(basename "$fixture" .yaml)") || return 1
+    # Only the chosen boards' check profiles exist with --board or --affected.
+    [[ -f "$config/check-$board.yaml" ]] || continue
     needs=$(board_needs "$board")
     if older_version "$running" "$needs"; then
       echo "$(basename "$fixture"): skipped, $board asks for ESPHome $needs"
@@ -327,6 +353,7 @@ if ((want_fast)); then
   run "Cards of every grid" cells_current
   run "Board shapes for the manager" shapes_current
   run "Entry files of every board" entries_current
+  run "Firmware numbers for what changed" firmware_numbers_raised
   run "Icons match tile_icons.py" icons_current
   run "Translations" translations_check
   run "Editor: npm ci" editor_install
@@ -340,7 +367,22 @@ if ((want_fast)); then
   fi
 fi
 
+if ((want_firmware && affected)); then
+  # The boards the change reaches (tools/affected_boards.py); none means no firmware changed and nothing needs a build.
+  read -r -a reached <<< "$(cd "$ROOT" && "$PYTHON" tools/affected_boards.py --keys)"
+  only+=(${reached[@]+"${reached[@]}"})
+  choosing=1
+  if ((${#only[@]} == 0)); then
+    echo "No firmware changed (tools/affected_boards.py): nothing to build."
+    want_firmware=0
+  else
+    echo "Firmware builds for what the change reaches: ${only[*]}"
+  fi
+fi
+
 if ((want_firmware)); then
+  # A board key that is not in boards.yaml stops here: in the loop below it would build nothing and pass.
+  if ((choosing)); then board_entries > /dev/null || exit 2; fi
   export ESPHOME_DATA_DIR=${ESPHOME_DATA_DIR:-$ROOT/.esphome/check}
   run "ESPHome" esphome_version
   if ((last_ok)); then run "Check profiles" prepare_profiles; fi

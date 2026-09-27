@@ -134,5 +134,16 @@ differs between boards sold under one name, the `choices` someone makes when a s
 Screens needs: New screen and the screen list draw every board from the catalog and the board's own files (the size in
 inches from its pixels and density, the touch controller from its `touchscreen:`, a touch calibration on the first
 start from `features/resistive-touch.yaml`), so no board is written into the editor or its translations. After a
-change to its board file, run `tools/generate_cells.py` and `tools/generate_board_shapes.py` again, and
-`tools/check.sh --all --render`, which from then on checks, compiles and renders it with the others.
+change to its board file, run `tools/generate_cells.py` and `tools/generate_board_shapes.py` again.
+
+## 8. Release it
+
+A new board is a release of the app, not of the firmware: no screen runs it yet, and it builds the shared firmware
+from main like every other board. So it takes no firmware number of its own, the shared number stays, and no other
+screen is offered an update. `tools/affected_boards.py` should say "New board" and nothing else; if it names an
+existing board, part of the change reaches that board and is a release of its own. docs/BOARD_RELEASES.md ("A new
+board") has the steps. The checks are `tools/check.sh`, `tools/check.sh --firmware --board <key>` and
+`tools/render/run.py <key>`; the other boards need no build.
+
+A later fix for this board alone gets its own firmware number in its board file, so only its screens are offered it
+(docs/BOARD_RELEASES.md, "A fix for one board").

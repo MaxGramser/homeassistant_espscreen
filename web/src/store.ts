@@ -994,8 +994,10 @@ export async function importLayout(text: string) {
 
 // ---- Updates with content (app 0.2.73): what a screen gets, and how far its update is ----
 // The changelog comes with the full inventory only (app 0.2.78): the live payload goes out every few seconds.
+// Each screen has its own target (app 0.3.20): a fix for one board is no update for another, and its notes are not
+// what another board gets either.
 export function whatsNew(screen: Screen): string[] {
-  const target = state.inventory.updates?.target;
+  const target = screen.update?.target || state.inventory.updates?.target;
   const sections: ChangelogSection[] | undefined = state.inventory.changelog;
   if (!Array.isArray(sections) || !target) return [];
   const since = firmwareVersion(screen);
@@ -1003,6 +1005,7 @@ export function whatsNew(screen: Screen): string[] {
   for (const section of sections) {
     if (versionAtLeast(section.firmware, target) && section.firmware !== target) continue;
     if (since && versionAtLeast(since, section.firmware)) continue;
+    if (section.boards?.length && !section.boards.includes(screen.board || "")) continue;
     for (const line of section.lines) if (!lines.includes(line)) lines.push(line);
   }
   return lines;

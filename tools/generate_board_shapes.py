@@ -160,7 +160,11 @@ def shapes():
                  # What New screen offers and the screen list names (boards.yaml with what the board's files say).
                  'catalog': catalog_of(board, values, lying),
                  # The chip it is built for, for the browser flasher's check of the board on the cable.
-                 'chip': chip_of(board)}
+                 'chip': chip_of(board),
+                 # The firmware a screen of this board builds today: the core's version, or the board file's own when
+                 # a fix for this board alone went out after it (docs/RELEASING.md, "Firmware for one board"). The
+                 # update offer goes by it, so a fix for one board is not an update for every other one.
+                 'firmware': values['SCREEN_FIRMWARE_VERSION'].strip('"')}
         # A board that draws camera pictures includes features/camera.yaml, which states the canvas they fill
         # (CAMERA_FULL_*). Without it the board has no camera at all, like the CYD: the manager then refuses a camera
         # tile instead of sending a picture that never arrives.

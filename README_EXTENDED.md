@@ -686,8 +686,10 @@ See the [release history](screen_manager/CHANGELOG.md) and
 **If you publish your own fork:** every push to GitHub is a release. Always also
 bump the add-on version in `screen_manager/config.yaml` and log the change in
 the CHANGELOG, otherwise the HA App store won't offer an update. A change to the
-screen also gets a new `SCREEN_FIRMWARE_VERSION` in `packages/core.yaml`, the one place both boards
-take it from, and the same `FIRMWARE_VERSION` in `screen_manager/app/core.py`.
+screen also gets a new firmware number: in `packages/core.yaml` and `FIRMWARE_VERSION` in
+`screen_manager/app/core.py` when it reaches every board, or in the board file alone when it is a fix for one
+board, so the other screens are not asked to update. `tools/affected_boards.py` says which, and
+[releases per board](docs/BOARD_RELEASES.md) is the recipe.
 
 ## Guides and installation help
 
