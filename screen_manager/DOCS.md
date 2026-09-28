@@ -4,6 +4,39 @@ Tessera is the new name for ESP Screens; the app and your screens are the same. 
 
 Looking for e-ink? Tessera is for colour LCD touch screens. [Tesserae (tesserae.ink)](https://tesserae.ink) is a separate open-source project with a similar name, for calm dashboards on e-ink panels.
 
+## Optional voice assistant (browser preview)
+
+Voice is off by default. In Home Assistant, open **Settings > Apps > Tessera
+Screen Manager > Configuration** (called **Add-ons** on older installations),
+turn on **Enable voice assistant**, save and restart the app. Then open
+**Settings > Voice assistant** in the Tessera editor. API keys, provider,
+reply speaker and timing are configured there, not in the add-on options.
+
+- **OpenAI:** enter an OpenAI API key. Audio goes directly to OpenAI Realtime;
+  no HA speech-to-text or text-to-speech installation is required. API usage is
+  billed separately from a ChatGPT subscription.
+- **Claude:** enter an Anthropic API key, and configure a Home Assistant voice
+  assistant with both speech-to-text and text-to-speech under **Settings > Voice
+  assistants**. Select that assistant in Tessera's **Voice & timing** section.
+  Incomplete assistants are unavailable; installing a Claude key alone is not enough.
+- **Replies:** the default output is the browser. To use Sonos, add the speaker
+  through HA's Sonos integration, then select it under **Reply speaker**. Keep
+  this app's published media port (**8098** by default) available to that speaker. Spotify is not
+  required for spoken answers.
+
+Expose the entities you want to control to Assist in Home Assistant. Open a
+screen's **Firmware preview**, select **Start voice**, and allow microphone access.
+Use HTTPS or localhost. Voice does not start automatically. **Stop voice**, closing
+the preview, the silence timeout or the ten-minute session limit ends capture.
+
+Turning the add-on option off and restarting hides voice controls and rejects
+voice requests. Saved credentials and preferences remain in the app's private
+data, so re-enabling voice restores them. Remove keys in the editor before
+disabling if you want to delete them. This option enables browser voice only;
+physical microphones and wake words are not implemented by this release.
+
+## Screen installation
+
 Open **New screen** in the sidebar to install a screen: connect it via USB to the
 Home Assistant machine, choose the board, name and USB port, then click **Install**.
 The profile with unique keys goes into the ESPHome folder of the HA configuration,

@@ -58,6 +58,12 @@ This app includes the tested ESPHome 2026.9.0 CLI and runs within your HA login.
 A second ESPHome management page, MQTT, blueprint, or long-lived token is not needed.
 Use the GitHub version for updates; a local test add-on is a separate app.
 
+Voice is optional and off by default. Enable **Voice assistant** in the app's
+**Configuration** tab, save and restart, then configure it in the editor's
+**Settings > Voice assistant**. OpenAI uses direct audio; Claude also requires an
+HA assistant with both STT and TTS. See the [voice setup guide](../screen_manager/DOCS.md#optional-voice-assistant-browser-preview).
+This currently enables the browser preview, not physical microphone or wake-word support.
+
 ## 2. New screen: connecting and installing
 
 1. Connect the screen with a **USB data cable** to the machine running Home

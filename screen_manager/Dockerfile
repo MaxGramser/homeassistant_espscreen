@@ -6,7 +6,7 @@ ARG BUILD_ARCH
 # platforms at once, so there Docker's own TARGETARCH (arm64, amd64) fills the label.
 ARG TARGETARCH
 LABEL io.hass.version="${BUILD_VERSION}" io.hass.type="app" io.hass.arch="${BUILD_ARCH:-$TARGETARCH}"
-RUN pip install --no-cache-dir 'aiohttp>=3.12,<4' PyYAML
+RUN pip install --no-cache-dir 'aiohttp>=3.12,<4' PyYAML 'mutagen>=1.47,<2'
 COPY app /app
 # Every text of the app, the editor and the screens, one file per language (app 0.2.90).
 COPY translations /app/translations

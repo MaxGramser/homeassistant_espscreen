@@ -55,3 +55,8 @@ packages/boards/lab-*.yaml
 # Claude Code's local state for this checkout (launch.json, settings.local.json). What Claude knows about the
 # project lives outside the repo, in its own memory; skills and rules for it are not part of this codebase.
 /.claude/
+# Server-managed voice credentials, including interrupted atomic writes.
+voice-api-key
+voice-claude-api-key
+voice-spotify.json
+.voice-key-*

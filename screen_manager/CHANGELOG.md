@@ -1,3 +1,12 @@
+## 0.4.64 (firmware 0.38.0)
+
+- Add an optional browser voice assistant, off by default in the add-on Configuration tab. Configure OpenAI or Claude credentials, voice, silence timeout and reply speaker in the editor. Saved credentials stay in private add-on data.
+- OpenAI uses native Realtime audio. Claude uses the selected Home Assistant assistant's speech-to-text and text-to-speech services. Both providers share visible tile names, HA aliases, Assist exposure checks and validated device actions.
+- Support light and switch commands, brightness, media playback and optional Spotify track search. General questions can use web lookup; answer text and source links are collapsed by default.
+- Place voice and tap controls together below the existing firmware preview with matching toggle buttons. Keep the active firmware page and successfully loaded layout as voice context; no tile renderer or physical voice firmware is added.
+- Share local and optional Sonos reply output across providers. Pause microphone input during external replies, restart the configured silence timeout after delivery, and end the conversation after music-start acknowledgements. Sonos completion uses downloaded audio duration plus a margin, since HA does not report exact announcement completion.
+- Include setup documentation, isolated clean-image verification, and automated provider, transport, permission, cancellation and timeout tests. Physical microphones and wake words remain separate work.
+
 ## 0.4.63 (firmware 0.38.0)
 
 - **The starting screen says what it is doing, step by step** ([#130](https://github.com/MaxGramser/homeassistant_espscreen/issues/130)).
