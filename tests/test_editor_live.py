@@ -194,6 +194,46 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         for query in ('', '?entity=bad', '?' + '&'.join(['entity=light.a'] * 129)):
             self.assertEqual((await self.client.get('/api/firmware-preview/events' + query)).status, 400)
 
+    async def test_many_preview_sockets_filter_entities_and_clean_up(self):
+        import asyncio
+        from aiohttp import ClientSession, ClientTimeout
+        from preview_events import Changes
+        self.ha.state_events = Changes()
+        async with ClientSession(timeout=ClientTimeout(total=2)) as session:
+            sockets = [await session.ws_connect(self.client.make_url(
+                f'/api/firmware-preview/events?entity=media_player.test_{index}')) for index in range(8)]
+            for socket in sockets:
+                self.assertEqual(await socket.receive_json(timeout=1), {})
+            self.assertEqual(len(self.ha.state_events.listeners), 8)
+            # The browser regression also verifies HTTP/1 connection headroom.
+            async with session.get(self.client.make_url('/api/states?entity=light.a')) as response:
+                self.assertEqual(response.status, 200)
+            pending = asyncio.create_task(sockets[0].receive_json(timeout=1))
+            self.ha.state_events.notify('light.other')
+            await asyncio.sleep(.02)
+            self.assertFalse(pending.done())
+            self.ha.state_events.notify('media_player.test_0')
+            self.assertEqual(await pending, {})
+            for socket in sockets:
+                await socket.close()
+            for _ in range(30):
+                if not self.ha.state_events.listeners: break
+                await asyncio.sleep(.01)
+            self.assertFalse(self.ha.state_events.listeners)
+        self.assertEqual(self.ha.calls, [])
+
+    async def test_inventory_socket_sends_initial_state_and_unregisters_on_close(self):
+        import asyncio
+        socket = await self.client.ws_connect('/api/events')
+        initial = await socket.receive_json(timeout=1)
+        self.assertIn('screens', initial)
+        self.assertEqual(len(self.manager.listeners), 1)
+        await socket.close()
+        for _ in range(30):
+            if not self.manager.listeners: break
+            await asyncio.sleep(.01)
+        self.assertFalse(self.manager.listeners)
+
     async def test_ha_changes_wake_unsaved_previews_outside_physical_screen_filter(self):
         import asyncio
         from types import SimpleNamespace

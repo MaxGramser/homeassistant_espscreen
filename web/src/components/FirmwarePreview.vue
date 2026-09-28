@@ -8,6 +8,7 @@ import { loadFirmware } from "../wasm/load";
 import { state } from "../store";
 import { t } from "../i18n";
 import { api, send } from "../api";
+import { liveEvents } from "../live-events";
 import type { PageLayout } from "../types";
 
 const props = withDefaults(defineProps<{
@@ -25,7 +26,7 @@ let lastLayout = "", lastMessages = new Map<string, string>();
 let session = "", sequence = 0;
 let sendingActions = false;
 let liveRefresh: ReturnType<typeof setTimeout> | undefined;
-let events: EventSource | null = null;
+let events: ReturnType<typeof liveEvents> | null = null;
 let fetchingImage = false;
 let visible = true, lastDraw = 0;
 let observer: IntersectionObserver | null = null;
@@ -201,11 +202,9 @@ function entityQuery() {
 function listen() {
   events?.close(); events = null;
   const query = entityQuery();
-  if (!module || disposed || !query || typeof EventSource === 'undefined') return;
-  const stream = new EventSource(`api/firmware-preview/events?${query}`);
-  events = stream;
-  stream.onmessage = () => { if (events === stream) refreshLiveState(); };
-  // EventSource reconnects itself. The normal ten-second refresh remains a fallback.
+  if (!module || disposed || !query) return;
+  events = liveEvents(`api/firmware-preview/events?${query}`, refreshLiveState);
+  // The normal ten-second refresh remains a fallback.
 }
 
 function contact(event: PointerEvent) {

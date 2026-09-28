@@ -1,3 +1,13 @@
+## 0.4.32 (firmware 0.18.0)
+
+- **Controls stay responsive with several previews open.** Live preview and editor updates use WebSockets so
+  previews and editor tabs do not fill the browser's HTTP/1 connection pool and block controls, pictures or state
+  requests. Existing event-stream clients remain compatible, and polling remains a fallback.
+- No screen firmware update is required.
+- Tested: tools/check.sh (all 17 checks pass), and Chromium with eight preview subscriptions plus the inventory
+  stream: state requests complete with all nine WebSockets open, and every listener is removed on disconnect.
+
+
 ## 0.4.31 (firmware 0.18.1 for guition)
 
 - **Four rows on the 4-inch Guition, as a choice.** New screen asks how many tiles go on a page: two columns of three,
