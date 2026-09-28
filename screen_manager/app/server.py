@@ -51,6 +51,7 @@ import page_delivery
 import page_service
 import preview_images
 import preview_events
+import voice_preview
 from page_capabilities import CapabilityCache, identity as page_identity
 
 
@@ -3326,6 +3327,7 @@ def create_app(manager, development=False):
     # authentication or firmware capabilities; taller tiles left that stage in 0.3.1.
     editor_features = {'tall_tiles': True}
     app = web.Application(middlewares=[guard], client_max_size=128*1024)
+    voice_preview.register(app, manager)
     static = Path(__file__).parent / 'static'
 
     async def cache_assets(request, response):
@@ -4083,7 +4085,9 @@ async def main():
         await runner.setup()
         await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
-        cameras = web.AppRunner(camera_feed.web_app(manager.camera), access_log=None)
+        media_app = camera_feed.web_app(manager.camera)
+        manager.voice_output.register_media(media_app)
+        cameras = web.AppRunner(media_app, access_log=None)
         await cameras.setup()
         try:
             await web.TCPSite(cameras, '0.0.0.0', camera_feed.port()).start()

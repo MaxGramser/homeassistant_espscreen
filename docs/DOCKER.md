@@ -171,5 +171,6 @@ After an update, Tessera shows per screen whether newer firmware is available, a
 | `HA_TOKEN_FILE` | The token file inside the container (the `ha_token` secret) |
 | `ESPHOME_CONFIG` | The ESPHome folder inside the container |
 | `SCREEN_DATA` | Layouts, update settings, and build caches |
+| `SCREEN_VOICE_ENABLED: "1"` | Optional browser voice assistant, off by default. Configure keys, provider and reply speaker in the editor. A saved `/data/options.json` with `voice_assistant` takes precedence. OpenAI needs no HA speech engine; Claude requires HA STT and TTS. |
 | `SCREEN_CAMERA_URL` | Optional: where screens load camera images, such as `http://192.168.1.20:8098`; by default Home Assistant's own LAN address |
 | `SCREEN_CAMERA_PORT` | Optional: the camera image port instead of 8098 |

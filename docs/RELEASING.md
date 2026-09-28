@@ -27,7 +27,7 @@
    `cd web && npm ci && npm test && npm run check && npm run build` and commit
    `screen_manager/app/static` with it (that folder is the build output; never edit it by hand).
 2. Run `tools/check.sh` (with `PYTHON=.venv-portal/bin/python` on a development machine). It runs all
-   Python tests with aiohttp, PyYAML, Pillow, fontTools and jinja2 installed, every `tests/*.cpp` with
+   Python tests with aiohttp, PyYAML, Pillow, fontTools, jinja2 and mutagen installed, every `tests/*.cpp` with
    `clang++ -std=c++17 -Wall -Wextra -Werror -I.`, `tools/check_packages.py`, `tools/generate_icons.py --check`, and the editor's
    `npm ci`, `npm test`, `npm run check` and `npm run build`, and fails when that fresh build differs from the
    `screen_manager/app/static` in Git (committed or staged). For a firmware change, `tools/check.sh --firmware --affected`
@@ -176,7 +176,7 @@ For backend tests on a development machine:
 
 ```sh
 python3 -m venv .venv-portal
-.venv-portal/bin/pip install aiohttp PyYAML Pillow fonttools jinja2
+.venv-portal/bin/pip install aiohttp PyYAML Pillow fonttools jinja2 'mutagen>=1.47,<2'
 .venv-portal/bin/python -m unittest discover -s tests
 ```
 
