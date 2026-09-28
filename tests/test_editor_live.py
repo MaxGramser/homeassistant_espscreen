@@ -128,6 +128,76 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         await self.client.close()
         self.tmp.cleanup()
 
+    async def test_speaker_view_uses_the_same_snapshot_for_device_and_browser(self):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, PropertyMock, patch
+        import media_groups
+        entity = 'media_player.test'
+        self.ha.states[entity] = {'state': 'playing', 'attributes': {'friendly_name': 'Kitchen',
+            'group_members': [entity], 'supported_features': media_groups.GROUPING | 12, 'volume_level': .27}}
+        self.ha.platform_of = lambda e: 'sonos'
+        self.ha.ws = SimpleNamespace(closed=False)
+        fields = {'inbox': self.screen['id'], 'entity': entity, 'schema': '1', 'count': '4',
+                  'view': '4', 'session': 'a' * 16, 'rev': 'b' * 16}
+        command = {'service': media_groups.EVENT, 'event': True, 'data': fields}
+        response = await self.client.post('/api/firmware-preview/speakers', json=command, headers=self.headers)
+        self.assertEqual(response.status, 200)
+        preview = await response.json()
+        self.assertEqual(preview['speakers'][0]['v'], 27)
+        self.manager.screen = lambda inbox: {**self.screen, 'online': True}
+        self.manager.transport = lambda *args: 'esphome.test_inbox'
+        self.manager.send_auxiliary = AsyncMock()
+        layout = {self.screen['id']: {'title': 'Media', 'tiles': [{'entity': entity}]}}
+        with patch.object(type(self.manager), 'layouts', new_callable=PropertyMock, return_value=layout):
+            await self.manager.answer_media_groups(fields)
+        native = self.manager.send_auxiliary.call_args.args[1]
+        self.assertEqual(native, {k: v for k, v in preview.items() if k not in {'view', 'session', 'rev'}})
+        self.assertEqual(self.ha.calls, [], 'reading groups sends no speaker commands')
+        self.manager.send_auxiliary.reset_mock()
+        with patch.object(type(self.manager), 'layouts', new_callable=PropertyMock, return_value=layout):
+            await self.manager.answer_media_groups({**fields, 'entity': 'media_player.not_on_panel'})
+        self.manager.send_auxiliary.assert_not_called()
+        response = await self.client.post('/api/firmware-preview/speakers', json={**command, 'event': False}, headers=self.headers)
+        self.assertEqual(response.status, 400)
+        self.ha.ws.closed = True
+        response = await self.client.post('/api/firmware-preview/speakers', json=command, headers=self.headers)
+        self.assertEqual(response.status, 503)
+
+    async def test_firmware_mute_uses_current_group_and_rejects_other_templates(self):
+        from unittest.mock import AsyncMock
+        from media_groups import mute_template
+        self.ha.entity_actions = AsyncMock(return_value={'media_player.volume_mute'})
+        main, other, third = 'media_player.main', 'media_player.other', 'media_player.third'
+        for entity in (main, other, third):
+            self.ha.states[entity] = {'state': 'playing', 'attributes': {'volume_level': .32}}
+        attrs = self.ha.states[main]['attributes']
+        attrs['group_members'] = [main, other, other]
+        command = {'service': 'media_player.volume_mute', 'event': False,
+                   'data': {'entity_id': main, 'is_volume_muted': 'true'},
+                   'templates': {'entity_id': mute_template(main)}}
+        async def send():
+            return await self.client.post('/api/firmware-preview/action', json=command, headers=self.headers)
+        self.assertEqual((await send()).status, 200)
+        self.assertEqual(self.ha.calls[-1], ('media_player.volume_mute', {'entity_id': [main, other], 'is_volume_muted': True}))
+        attrs['group_members'] = [third, main]
+        command['data']['is_volume_muted'] = 'false'
+        self.assertEqual((await send()).status, 200)
+        self.assertEqual(self.ha.calls[-1][1], {'entity_id': [main, third], 'is_volume_muted': False})
+        attrs['group_members'] = []
+        self.assertEqual((await send()).status, 200)
+        self.assertEqual(self.ha.calls[-1][1], {'entity_id': main, 'is_volume_muted': False})
+        self.assertEqual(attrs['volume_level'], .32)
+        for template in ('{{ states }}', mute_template(other), '{{ ["light.a"] }}'):
+            command['templates']['entity_id'] = template
+            self.assertEqual((await send()).status, 400)
+        command['templates']['entity_id'] = mute_template(main)
+        attrs['group_members'] = [main, 'light.a']
+        self.assertEqual((await send()).status, 400)
+        attrs['group_members'] = [main, other]
+        self.ha.states[other]['state'] = 'unavailable'
+        self.assertEqual((await send()).status, 400)
+        self.assertEqual(len(self.ha.calls), 3, 'invalid groups/templates must not partly mute a group')
+
     async def test_media_preview_hides_source_urls_and_preserves_image_proportions(self):
         import io
         from PIL import Image
@@ -287,6 +357,17 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         with Image.open(io.BytesIO(raw)) as image:
             self.assertEqual(image.size, (120, 120))
             self.assertEqual(image.getpixel((0, 0)), (0x12, 0x34, 0x56))
+        full = {**body, 'request': {**command, 'data': {**command['data'], 'size': '720', 'full': '1'}}}
+        response = await self.client.post('/api/firmware-preview/image', json=full, headers=self.headers)
+        self.assertEqual(response.status, 200, await response.text())
+        token = (await response.json())['u'].rsplit('/', 1)[1]
+        pixels = await self.client.get('/api/firmware-preview/images/' + token)
+        raw = await pixels.read()
+        expected = await self.manager.camera.cover('media_player.test', 720, 0x123456, full=True)
+        self.assertEqual(raw, expected[1])
+        with Image.open(io.BytesIO(raw)) as image:
+            self.assertEqual(image.size, (720, 720))
+            self.assertEqual(image.getpixel((0, 0)), (220, 30, 70), 'full artwork has no rounded mask')
         self.assertEqual(self.ha.calls, [])
         self.assertFalse(self.manager.layouts)
         for change in [{'size': '10000'}, {'entity': 'light.a'}, {'entity': 'media_player.unknown'},

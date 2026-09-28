@@ -156,6 +156,31 @@ class Covers(unittest.TestCase):
             self.assertIsNone(camera_feed.cover_request(bad), bad)
 
     @unittest.skipUnless(HAS_PIL, 'Pillow')
+    def test_full_screen_art_uses_original_pixels_without_rounded_corners(self):
+        from PIL import Image
+        self.assertEqual(camera_feed.cover_request({'size': '720', 'bg': '000000', 'full': '1'}), (720, 0))
+        self.assertIsNone(camera_feed.cover_request({'size': '720', 'bg': '000000'}))
+        self.assertIsNone(camera_feed.cover_request({'size': '2048', 'bg': '000000', 'full': '1'}))
+        out = camera_feed.encode_cover(picture((1200, 1200), fmt='PNG'), 720, 0, full=True)
+        with Image.open(io.BytesIO(out)) as image:
+            self.assertEqual(image.size, (720, 720))
+            self.assertEqual(image.getpixel((0, 0)), (200, 30, 90))
+            self.assertEqual(image.getpixel((719, 719)), (200, 30, 90))
+        async def scenario():
+            async def fetch(entity): return picture((1200, 1200), fmt='PNG')
+            feed = camera_feed.CameraFeed(lambda entity: None, fetch_cover=fetch, picture=lambda entity: 'art')
+            normal = await feed.cover('media_player.test', 320, 0)
+            full = await feed.cover('media_player.test', 320, 0, full=True)
+            self.assertNotEqual(normal, full, 'rounded and square art have separate cache keys')
+            link = feed.link('media_player.test', (720, 720), cover=(720, 0), full=True)
+            status, body, tag = await feed.serve(link)
+            self.assertEqual(status, 200)
+            with Image.open(io.BytesIO(body)) as image:
+                self.assertEqual(image.size, (720, 720))
+                self.assertEqual(image.getpixel((0, 0)), (200, 30, 90))
+        asyncio.run(scenario())
+
+    @unittest.skipUnless(HAS_PIL, 'Pillow')
     def test_the_cover_is_square_at_the_size_asked_with_rounded_corners_over_the_background(self):
         from PIL import Image
         out = camera_feed.encode_cover(picture((640, 640), fmt='PNG'), 160, 0x1A1A1A)

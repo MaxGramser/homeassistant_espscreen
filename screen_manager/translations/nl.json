@@ -238,7 +238,9 @@
     "media": {
       "muted": "Gedempt",
       "not_playing": "Speelt niet",
-      "loading": "Laden"
+      "loading": "Laden",
+      "speakers": "Speakers",
+      "no_groups": "Geen speakergroepen beschikbaar"
     },
     "timer": {
       "running": "Loopt",

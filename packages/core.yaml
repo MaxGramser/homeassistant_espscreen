@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.18.0"
+  SCREEN_FIRMWARE_VERSION: "0.19.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -1026,6 +1026,8 @@ font:
       - "\U000F0374" # minus
       - "\U000F0141" # chevron-left
       - "\U000F0142" # chevron-right
+      - "\U000F0140" # chevron-down
+      - "\U000F0143" # chevron-up
       - "\U000F0156" # close
       - "\U000F004D" # arrow-left
       - "\U000F1A79" # sun-snowflake-variant
@@ -1815,6 +1817,13 @@ lvgl:
         # (firmware 0.2.70+).
         - roller:
             id: roller_seed
+            hidden: true
+            width: 2
+            height: 2
+            options: ["-"]
+        # Enables the native group selector on the media speaker page.
+        - dropdown:
+            id: media_dropdown_seed
             hidden: true
             width: 2
             height: 2

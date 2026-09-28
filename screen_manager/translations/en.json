@@ -238,7 +238,9 @@
     "media": {
       "muted": "Muted",
       "not_playing": "Not playing",
-      "loading": "Loading"
+      "loading": "Loading",
+      "speakers": "Speakers",
+      "no_groups": "No speaker groups available"
     },
     "timer": {
       "running": "Running",

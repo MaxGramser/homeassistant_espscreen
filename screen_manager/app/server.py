@@ -45,6 +45,7 @@ import page_service
 import preview_images
 import preview_events
 import live_events
+import media_groups
 from page_capabilities import CapabilityCache, identity as page_identity
 
 
@@ -215,6 +216,7 @@ class HomeAssistant:
         self.camera_requests = asyncio.Queue()
         # The names a light's picker lists (firmware 0.2.70+): {inbox, entity, page}, for Manager.card_options_loop.
         self.options_requests = asyncio.Queue()
+        self.media_group_requests = asyncio.Queue()
 
     async def request(self, kind, **data):
         if self.ws is None or self.ws.closed:
@@ -254,6 +256,8 @@ class HomeAssistant:
                     self.camera_requests.put_nowait(body)
                 elif event.get('event_type') == light_effects.OPTIONS_EVENT:
                     self.options_requests.put_nowait(body)
+                elif event.get('event_type') == media_groups.EVENT:
+                    self.media_group_requests.put_nowait(body)
                 elif event.get('event_type') == 'state_changed':
                     eid = body.get('entity_id')
                     if body.get('new_state'):
@@ -444,6 +448,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type='esphome.screen_history')
                     await self.request('subscribe_events', event_type='esphome.screen_camera')
                     await self.request('subscribe_events', event_type=light_effects.OPTIONS_EVENT)
+                    await self.request('subscribe_events', event_type=media_groups.EVENT)
                     for event_type in (*REGISTRY_EVENTS, *BROADCAST_EVENTS, ALERT_EVENT, *TILE_EVENTS, *SERVICE_EVENTS):
                         await self.request('subscribe_events', event_type=event_type)
                     self.states = {s['entity_id']: s for s in await self.request('get_states')}
@@ -1402,6 +1407,29 @@ class Manager:
         all_pages = light_effects.pages(names)
         await self.send_auxiliary(inbox, light_effects.message(entity, page, all_pages), action, request)
 
+    async def media_groups_loop(self):
+        while True:
+            request = await self.ha.media_group_requests.get()
+            try:
+                await self.answer_media_groups(request)
+            except (ClientError, ConnectionError, TimeoutError, OSError, ValueError) as error:
+                LOG.info('Speaker view unavailable (%s)', type(error).__name__)
+
+    async def answer_media_groups(self, request):
+        if not isinstance(request, dict):
+            return
+        inbox = self.aliases.get(request.get('inbox'), request.get('inbox'))
+        layout = self.layouts.get(inbox) if isinstance(inbox, str) else None
+        screen = self.screen(inbox) if layout else None
+        if (not screen or not screen.get('online') or
+                request.get('entity') not in {tile['entity'] for tile in layout['tiles']}):
+            return
+        # The request negotiates speaker schema 1. Older firmware never receives
+        # these packets, and every reply retains the layout/session/view guards.
+        action = self.transport(inbox, screen)
+        if action:
+            await self.send_auxiliary(inbox, media_groups.snapshot(self.ha, request), action, request)
+
     # ----- History on a detail card (firmware 0.2.51+) -----
     async def card_history_loop(self):
         """Answer the history a screen asks for when a card opens, a few at a time."""
@@ -2171,7 +2199,7 @@ class Manager:
         action = self.transport(inbox, screen)
         if not action or not self.camera_allowed(inbox, entity):
             return
-        message = await self.cover_message(entity, *cover) if cover else await self.camera_message(entity, 'full', screen)
+        message = await self.cover_message(entity, *cover, **({'full': True} if request.get('full') == '1' else {})) if cover else await self.camera_message(entity, 'full', screen)
         await self.send_auxiliary(inbox, message, action, request)
         LOG.info('%s %s on %s%s', 'Cover of' if cover else 'Camera', entity, screen['name'], '' if message['u'] else ': no image')
 
@@ -2233,13 +2261,14 @@ class Manager:
         await self.send_auxiliary(inbox, {'v': 1, 'op': 'camera', 't': 'live', 'e': listing, 'u': url}, action, request)
         LOG.info('Live pictures of %s on %s%s', ', '.join(entities), screen['name'], '' if url else ': no image')
 
-    async def cover_message(self, entity, size, background):
+    async def cover_message(self, entity, size, background, *, full=False):
         """The screen message with a link to a media player's cover at `size` with `background` behind the corners,
         or an empty link when the player shows no picture (the card keeps its placeholder)."""
         url = ''
         base = await camera_feed.base_url(self.ha.request)
         if base:
-            token = self.camera.link(entity, (size, size), cover=(size, background)) if await self.camera.cover(entity, size, background) else None
+            extra = {'full': True} if full else {}
+            token = self.camera.link(entity, (size, size), cover=(size, background), **extra) if await self.camera.cover(entity, size, background, **extra) else None
             url = f'{base}/camera/{token}.bmp' if token else ''
         else:
             LOG.warning('Covers: no address for this app on the LAN; set SCREEN_CAMERA_URL')
@@ -2890,6 +2919,9 @@ def create_app(manager, development=False):
     async def firmware_preview_image(request):
         return web.json_response(await preview_images.answer(manager, await request.json()))
 
+    async def firmware_preview_speakers(request):
+        return web.json_response(media_groups.preview_answer(manager.ha, await request.json()))
+
     async def firmware_preview_events(request):
         return await preview_events.stream(manager.ha.state_events, request)
 
@@ -2906,7 +2938,7 @@ def create_app(manager, development=False):
         service, fields = data.get('service'), data.get('data')
         if not isinstance(service, str) or len(service) > 120 or not re.fullmatch(r'[a-z0-9_]+\.[a-z0-9_]+', service):
             raise ValueError('Invalid Home Assistant action.')
-        if data.get('event') or data.get('templates'):
+        if data.get('event'):
             raise ValueError('Preview event requests and templated actions are not supported yet.')
         if not isinstance(fields, dict) or len(fields) > 32 or any(
                 not isinstance(k, str) or not re.fullmatch(r'[a-z0-9_]{1,64}', k) or
@@ -2921,6 +2953,8 @@ def create_app(manager, development=False):
             raise ConnectionError('Home Assistant actions are not available yet.')
         if service not in actions:
             raise ValueError('Home Assistant does not offer this action for that entity.')
+        if data.get('templates'):
+            fields = await media_groups.firmware_mute(manager.ha, service, fields, data['templates'])
         await asyncio.wait_for(manager.ha.call(service, fields), timeout=5)
         return web.json_response({'success': True})
 
@@ -3091,6 +3125,7 @@ def create_app(manager, development=False):
     app.router.add_post('/api/firmware-preview/import', import_document)
     app.router.add_post('/api/firmware-preview/action', firmware_preview_action)
     app.router.add_post('/api/firmware-preview/image', firmware_preview_image)
+    app.router.add_post('/api/firmware-preview/speakers', firmware_preview_speakers)
     app.router.add_get('/api/firmware-preview/events', firmware_preview_events)
     app.router.add_get(r'/api/firmware-preview/images/{token:[A-Za-z0-9_-]{16,64}}.bmp', firmware_preview_pixels)
     app.router.add_post('/api/screens/{inbox}/identify', identify)
@@ -3139,7 +3174,7 @@ async def main():
             LOG.error('Camera images are off: port %d is not available (%s)', camera_feed.port(), error)
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
-                                 manager.alert_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop())
+                                 manager.alert_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.media_groups_loop())
         finally:
             await cameras.cleanup()
             await runner.cleanup()

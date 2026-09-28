@@ -238,7 +238,9 @@
     "media": {
       "muted": "Némítva",
       "not_playing": "Nincs lejátszás",
-      "loading": "Betöltés"
+      "loading": "Betöltés",
+      "speakers": "Hangszórók",
+      "no_groups": "Nincsenek elérhető hangszórócsoportok"
     },
     "timer": {
       "running": "Fut",

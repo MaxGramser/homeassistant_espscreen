@@ -736,6 +736,7 @@ board, so the other screens are not asked to update. `tools/affected_boards.py` 
 - [Guition hardware, mounting, and rotation](docs/GUITION.md)
 - [CYD calibration and USB diagnostics](docs/CALIBRATING.md)
 - [Camera images and album covers](docs/CAMERA.md)
+- [Media player setup, Sonos groups and playback controls](docs/MEDIA_CONTROLS.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Instructions for developers and LLMs](AGENTS.md), with [how a screen's YAML is put together](docs/PROFILES.md),
   [settings](docs/SETTINGS.md), [colours and Dark mode](docs/THEME.md) and [releases](docs/RELEASING.md)

@@ -55,6 +55,30 @@ async function preview(width = 720, height = 720, extra: Record<string, unknown>
 }
 
 describe("Firmware preview transport", () => {
+  it.each([false, true])('reads speaker groups but only sends media commands when controls=%s', async (controls) => {
+    const group = { service: 'esphome.screen_media_groups', event: true,
+      data: { entity: 'media_player.test', schema: '1', view: '7' } };
+    const command = { service: 'media_player.volume_set', event: false, call_id: 71,
+      data: { entity_id: 'media_player.speaker', volume_level: '0.3' }, templates: {} };
+    const packet = { op: 'media_groups', schema: 1, view: 7,
+      session: '2222222222222222', rev: '1111111111111111', speakers: [] };
+    const queue = [group, command];
+    firmware.ccall.mockImplementation((name, result, types, args) => {
+      if (name === 'preview_next_action') return queue.length ? JSON.stringify(queue.shift()) : '';
+      return response(name, result, types, args);
+    });
+    vi.mocked(send).mockImplementation(async path => (path === 'firmware-preview/speakers' ? packet : bundle()) as any);
+    await preview(720, 720, { controls });
+    expect(send).toHaveBeenCalledWith('firmware-preview/speakers', 'POST', group,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    const packets = firmware.ccall.mock.calls.filter(([name]) => name === 'preview_receive')
+      .map(([, , , args]) => JSON.parse(String(args?.[0])));
+    expect(packets.find(p => p.op === 'media_groups')).toMatchObject(packet);
+    const commands = vi.mocked(send).mock.calls.filter(([path]) => path === 'firmware-preview/action');
+    expect(commands).toHaveLength(controls ? 1 : 0);
+    if (controls) expect(commands[0]).toEqual(['firmware-preview/action', 'POST', command]);
+  });
+
   it('delivers firmware image events and pixels without invoking HA actions or drawing images in Vue', async () => {
     const request = { service: 'esphome.screen_camera', event: true, data: { entity: 'media_player.test', view: '1' } };
     const packet = { op: 'camera', t: 'cover', e: 'media_player.test', view: 1,
@@ -185,7 +209,7 @@ describe("Firmware preview transport", () => {
     });
     await preview(720, 720, mode);
     expect(vi.mocked(send).mock.calls.some(([path]) => path === "firmware-preview/action")).toBe(false);
-    expect(firmware.ccall).toHaveBeenCalledWith("preview_action_response", null, ["number", "number", "string"], [55, 1, ""]);
+    expect(firmware.ccall).toHaveBeenCalledWith("preview_action_response", null, ["number", "number", "string"], [55, -1, ""]);
     // The states go out again, so the tile lets go of what it expected.
     const states = firmware.ccall.mock.calls.filter(([name, , , args]) => name === "preview_receive" && JSON.parse(String(args?.[0])).op === "state");
     expect(states).toHaveLength(2);

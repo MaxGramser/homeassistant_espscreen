@@ -238,7 +238,9 @@
     "media": {
       "muted": "Sem som",
       "not_playing": "Inativo",
-      "loading": "A carregar"
+      "loading": "A carregar",
+      "speakers": "Colunas",
+      "no_groups": "Nenhum grupo de colunas disponível"
     },
     "timer": {
       "running": "Em curso",

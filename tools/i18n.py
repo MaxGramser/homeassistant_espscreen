@@ -204,7 +204,7 @@ LINT_KEEP = {
     # Only a log line or the rate limiter's reason shows these.
     'history range', 'card button ', 'header navigation', 'media key ', 'let go', 'too short (', 'already handled in this contact',
     'same button within the debounce window', 'no runtime tiles', 'setting off', 'screen dimmed', 'card open',
-    'detail card open', 'camera open', 'a slider is being dragged', 'USB calibration ready; no tile actions',
+    'detail card open', 'camera open', 'media view open', 'a slider is being dragged', 'USB calibration ready; no tile actions',
     'GT911 touch test ready; no tile actions',
     'configuration not ready',
     'UI_TEST START: page/overlay render stress, no HA actions', 'Color', 'Color temperature', 'Brightness',

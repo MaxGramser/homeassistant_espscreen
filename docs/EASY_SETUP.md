@@ -235,6 +235,8 @@ Click **Save & send** to send your changes.
   Assistant (its conditions are skipped). Under **On tap**, **Run automation actions** swaps the two: a tap runs it and holding the
   tile turns it on or off. The tile then looks like a script's button, coloured while the actions run (firmware 0.7.0+).
 - Media player: tap for the media card with the cover (boards with camera pictures), the keys, and the volume.
+  See [media player setup and controls](MEDIA_CONTROLS.md) for Sonos groups, individual speaker volume,
+  seeking and full-screen album art.
 - Camera or image (every board except the CYD, the Waveshare 3.5-inch and the Hosyond 4-inch): tap for the
   picture full screen, refreshed every four seconds. **Display → Live picture** fills the tile itself, on every size, and refreshes every 5, 10, 15 or 30 seconds (firmware 0.3.7+, [CAMERA.md](CAMERA.md)).
 - Alarm panel: tap for its card with a key per mode, and a keypad when the panel asks for a code (firmware 0.3.3+).

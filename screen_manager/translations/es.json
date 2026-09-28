@@ -238,7 +238,9 @@
     "media": {
       "muted": "Silenciado",
       "not_playing": "Inactivo",
-      "loading": "Cargando"
+      "loading": "Cargando",
+      "speakers": "Altavoces",
+      "no_groups": "No hay grupos de altavoces disponibles"
     },
     "timer": {
       "running": "En marcha",

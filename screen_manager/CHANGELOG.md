@@ -1,3 +1,16 @@
+## 0.4.39 (firmware 0.19.0)
+
+- Hold the media player's speaker icon to view current groups and adjust each speaker's volume. Selecting a group does not regroup speakers or transfer playback.
+- Tap the speaker icon to mute or unmute every speaker in the player's current group, preserving individual volume levels.
+- Tap album art to view it full screen. New tracks replace the image when it has downloaded, without a loading screen. Tap again to return to the player.
+- Seek using the native track slider when the Home Assistant player supports it. Position changes from other controllers follow the entity's updates.
+- An accepted seek keeps its new playback position while Home Assistant still reports the old anchor. Failed or unanswered commands revert; fresh position data and track changes take over normally.
+- The firmware preview uses the same controls and respects its **Taps control devices** setting.
+
+- Compile the media detail renderer alongside the other media views, keeping ESP32-S3 builds within Xtensa literal-pool reach after the upstream rebase.
+- Validation results and remaining hardware checks are recorded in the pull request. No physical screen was flashed.
+
+
 ## 0.4.38 (firmware 0.18.0)
 
 - Align issue-template generation and validation with the move of questions to Discussions. Keep the bug report's board choices checked without requiring or recreating the retired question template.

@@ -35,6 +35,7 @@
 #include "kept_pages.h"
 #include "picture_store.h"
 #include "media_card.h"
+#include "media_speakers.h"
 #include "light_card.h"
 #include "weather_card.h"
 #include "forecast_tile.h"
@@ -186,15 +187,18 @@ inline bool camera_supported();
 // The media card's album cover (firmware 0.2.64+): the card or a tile over the whole page says which cover it shows,
 // the board's online_image loads it; see the end of this file.
 // PREFETCH (firmware 0.3.2+): a media card on a kept page, fetched ahead while the screen is idle.
-enum class CoverOwner : uint8_t { NONE, DETAIL, TILE, PREFETCH };
+enum class CoverOwner : uint8_t { NONE, DETAIL, TILE, PREFETCH, ZOOM };
 inline void cover_want(const std::string &entity, const std::string &picture, int size, uint32_t background, CoverOwner owner, size_t slot);
-inline lv_image_dsc_t *cover_ready(const std::string &entity, int size, uint32_t background);
+inline lv_image_dsc_t *cover_ready(const std::string &entity, const std::string &picture, int size, uint32_t background, bool full = false);
+inline void cover_drop();
 struct Widgets;
 inline lv_image_dsc_t *kept_cover(const Widgets &w);
 // The card's cover on screen, and the part a media tile keeps its cover in; both go with the image buffer.
 inline lv_obj_t *media_detail_picture = nullptr;
 constexpr unsigned MEDIA_PICTURE = 14;
 inline void media_action(Tile &t, int cmd);
+inline lv_obj_t *media_zoom_root=nullptr,*media_zoom_picture=nullptr,*media_speakers_root=nullptr;
+inline std::string media_zoom_entity;
 inline const char *icon_for(const Tile &tile);
 inline void label(lv_obj_t *obj, const std::string &text);
 // An icon in a circle or a key sits on the centre of its ink, not of its label box: a Material Design glyph's box
@@ -516,6 +520,8 @@ inline void busy_watch(lv_timer_t *) {
 }
 inline void watch_busy() { if (!busy_timer) busy_timer = lv_timer_create(busy_watch, 200, nullptr); }
 
+inline uint32_t media_seek_call_id=0;
+inline void media_seek_answer(uint32_t id,bool success);
 #ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
 // Home Assistant answers an action sent with a call id (firmware 0.2.58+, Home Assistant 2025.10+). ESPHome keeps each
 // answer's callback until the answer arrives and has no timeout of its own, so a tap asks for at most four answers at a
@@ -531,10 +537,12 @@ inline void watch_call(esphome::api::HomeassistantActionRequest &request, const 
   const uint32_t id = ++last_id;
   *slot = {id, esphome::millis()};
   request.call_id = id;
+  if(std::strcmp(request.service.c_str(),"media_player.media_seek")==0)media_seek_call_id=id;
   const uint64_t session = transfer.lease, revision = transfer.revision;
   esphome::api::global_api_server->register_action_response_callback(id, [id, entity, session, revision](const esphome::api::ActionResponse &answer) {
     for (auto &c : watched_calls) if (c.id == id) c = {};
     if (!transfer.active || transfer.lease != session || transfer.revision != revision) return;
+    media_seek_answer(id,answer.is_success());
     if (answer.is_success() || answer.get_error_message().c_str() == NO_ANSWER) {
       // "It worked" without a new state (a stop on a cover that already stands still) ends the wait in a moment
       // instead of running to the cap.
@@ -542,6 +550,9 @@ inline void watch_call(esphome::api::HomeassistantActionRequest &request, const 
         for (size_t i = 0; i < model.tiles.size(); ++i)
           if (model.tiles[i].entity == entity && model.tiles[i].pending && !model.tiles[i].answered_at)
             model.tiles[i].answered_at = std::max<uint32_t>(1, esphome::millis());
+      if (!answer.is_success())
+        for (size_t i = 0; i < model.tiles.size(); ++i)
+          if (model.tiles[i].entity == entity && model.tiles[i].pending) end_wait(i);
       return;
     }
     ESP_LOGW("runtime_action", "Home Assistant refused the action for %s: %.*s", entity.c_str(),
@@ -743,6 +754,7 @@ inline void lock_card_closed();
 // Every way a card closes (Back, standby, Back to page 1, another card) also forgets a code half typed on an alarm's
 // keypad: it never waits in memory for the next person at the screen.
 inline void hide_detail(){
+  media_speakers_close();media_zoom_close();
   alarm_close_pad();lock_card_closed();
   if(detail_backdrop)lv_obj_add_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);if(detail_root)lv_obj_add_flag(detail_root,LV_OBJ_FLAG_HIDDEN);}
 inline int slider_value(const Tile &t){
@@ -3226,7 +3238,20 @@ inline void media_action(Tile &t,int cmd){
   if(cmd==20)action("media_player.media_play_pause",t.entity);
   if(cmd==21)action("media_player.media_previous_track",t.entity);
   if(cmd==22)action("media_player.media_next_track",t.entity);
-  if(cmd==23)action("media_player.volume_mute",t.entity,"is_volume_muted",t.muted?"false":"true");
+  if(cmd==23){
+    if(!fresh() || !valid_entity(t.entity))return;
+    // HA resolves membership when it receives the command, not when the tile was last refreshed.
+    const std::string target="{{ (['"+t.entity+"'] + (state_attr('"+t.entity+"', 'group_members') or [])) | unique | list }}";
+    esphome::api::HomeassistantActionRequest request;
+    request.service=esphome::StringRef("media_player.volume_mute");
+    request.data.init(2);
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key=esphome::StringRef("entity_id");entry.value=esphome::StringRef(t.entity);request.data.push_back(entry);
+    entry.key=esphome::StringRef("is_volume_muted");entry.value=esphome::StringRef(t.muted?"false":"true");request.data.push_back(entry);
+    request.data_template.init(1);
+    entry.key=esphome::StringRef("entity_id");entry.value=esphome::StringRef(target);request.data_template.push_back(entry);
+    send_action(request,t.entity,true);
+  }
   if(cmd==24)action("media_player.turn_on",t.entity);
 }
 // An off or standby player shows one key: power, when the player can be turned on from here.
@@ -3293,7 +3318,7 @@ inline lv_obj_t *media_picture_show(lv_obj_t *parent,lv_obj_t *existing,const me
 #if LV_USE_IMAGE
   if(!src || !src->data)return existing;
   auto *p=existing;
-  if(!p){p=lv_image_create(parent);lv_obj_remove_flag(p,LV_OBJ_FLAG_CLICKABLE);}
+  if(!p){p=lv_image_create(parent);lv_obj_add_flag(p,LV_OBJ_FLAG_CLICKABLE);lv_obj_add_event_cb(p,media_art_event,LV_EVENT_SHORT_CLICKED,nullptr);}
   lv_image_set_src(p,src);lv_obj_set_pos(p,r.x,r.y);lv_obj_set_size(p,r.w,r.h);lv_obj_invalidate(p);
   return p;
 #else
@@ -3317,77 +3342,75 @@ inline void marquee(lv_obj_t *label,bool reading_pause=false,bool ready=true){
   // LVGL cancels the old animation when long mode is assigned, even unchanged.
   lv_label_set_long_mode(label,LV_LABEL_LONG_SCROLL_CIRCULAR);
 }
-// The bar's fill and the elapsed time follow the track: once a second from tick(), without a redraw.
+inline lv_obj_t *media_seek_drag=nullptr;
+inline bool media_seek_changed=false,media_seek_accepted=false;
+inline std::string media_seek_entity,media_seek_track,media_seek_state;
+inline uint32_t media_seek_duration=0,media_seek_sent=0,media_seek_target=0,media_seek_old_position=0,media_seek_old_at=0;
+inline uint64_t media_seek_session=0,media_seek_revision=0;
+inline void media_seek_answer(uint32_t id,bool success){
+  if(!id||id!=media_seek_call_id)return;
+  media_seek_accepted=success;
+  if(!success)media_seek_sent=0;
+}
+inline std::string media_track_key(const Tile &t){return t.extra().media_title+"|"+t.extra().media_picture+"|"+std::to_string(t.extra().media_duration);}
+inline uint32_t media_elapsed(const Tile &t){
+  const auto &x=t.extra();
+  if(media_seek_sent&&media_seek_entity==t.entity){
+    // Sonos can accept a seek without publishing a new HA position anchor.
+    // Keep the accepted target until HA supplies new playback information;
+    // an unanswered action still expires with the normal eight-second timeout.
+    if((!media_seek_accepted&&esphome::millis()-media_seek_sent>=8000)||!fresh()||
+       media_seek_session!=transfer.lease||media_seek_revision!=transfer.revision||
+       media_seek_track!=media_track_key(t)||media_seek_state!=t.state||
+       x.media_position!=media_seek_old_position||x.media_position_at!=media_seek_old_at)media_seek_sent=0;
+    else return std::min(x.media_duration,media_seek_target+(media_card::playing(t.state)?(esphome::millis()-media_seek_sent)/1000:0));
+  }
+  return media_card::elapsed_seconds(x.media_position,x.media_position_at,now_epoch(),media_card::playing(t.state),x.media_duration);
+}
+inline void media_seek_event(lv_event_t *event){
+  auto *slider=lv_event_get_target_obj(event);const auto code=lv_event_get_code(event);
+  const unsigned index=(uintptr_t)lv_event_get_user_data(event);
+  if(code==LV_EVENT_DELETE||code==LV_EVENT_PRESS_LOST){if(media_seek_drag==slider){media_seek_drag=nullptr;media_seek_changed=false;}return;}
+  if(index>=model.count)return;const auto &t=model.tiles[index];
+  if(code==LV_EVENT_PRESSED){
+    media_seek_drag=slider;media_seek_changed=false;media_seek_sent=0;media_seek_accepted=false;media_seek_call_id=0;
+    media_seek_entity=t.entity;media_seek_track=media_track_key(t);media_seek_duration=t.extra().media_duration;
+  }else if(code==LV_EVENT_VALUE_CHANGED&&media_seek_drag==slider)media_seek_changed=true;
+  else if(code==LV_EVENT_RELEASED&&media_seek_drag==slider){
+    media_seek_drag=nullptr;
+    if(!media_seek_changed||!fresh()||!t.available()||!(t.supported&tile_controls::feature::MEDIA_SEEK)||!media_seek_duration||
+       media_seek_entity!=t.entity||media_seek_track!=media_track_key(t)||!screen_input::touch_guard.accept_slider(esphome::millis(),2000+index))return;
+    media_seek_changed=false;media_seek_target=(uint64_t)lv_slider_get_value(slider)*media_seek_duration/1000;
+    media_seek_old_position=t.extra().media_position;media_seek_old_at=t.extra().media_position_at;
+    media_seek_state=t.state;media_seek_session=transfer.lease;media_seek_revision=transfer.revision;
+    media_seek_sent=std::max<uint32_t>(1,esphome::millis());
+    action("media_player.media_seek",t.entity,"seek_position",std::to_string(media_seek_target));
+  }
+}
+inline lv_obj_t *media_timeline(lv_obj_t *parent,lv_obj_t *existing,const media_card::Rect &r,const Tile &t,bool large,unsigned index){
+  const bool enabled=fresh()&&t.available()&&t.extra().media_duration&&(t.supported&tile_controls::feature::MEDIA_SEEK);
+  auto *slider=media_slider(parent,existing,r,t,large,enabled,(void*)(uintptr_t)index);
+  if(!existing){lv_obj_remove_event_cb(slider,slider_event);lv_obj_add_event_cb(slider,media_seek_event,LV_EVENT_ALL,(void*)(uintptr_t)index);}
+  set_color(slider,LV_STYLE_BG_COLOR,theme::color(theme::TRACK),LV_PART_MAIN);
+  set_color(slider,LV_STYLE_BG_COLOR,theme::rgb(media_accent()),LV_PART_INDICATOR);
+  lv_obj_set_style_opa(slider,LV_OPA_COVER,LV_STATE_DISABLED);
+  lv_obj_set_style_bg_opa(slider,enabled?LV_OPA_COVER:LV_OPA_TRANSP,LV_PART_KNOB);
+  if(slider!=media_seek_drag)lv_slider_set_value(slider,t.extra().media_duration?(uint64_t)media_elapsed(t)*1000/t.extra().media_duration:0,LV_ANIM_OFF);
+  return slider;
+}
+// The seek slider and elapsed time follow HA's latest position, including seeks
+// from another controller. A finger owns the displayed value until release.
 inline void media_progress(const Tile &t,lv_obj_t *fill,lv_obj_t *elapsed,int bar_w){
   const auto &x=t.extra();
   if(!fill || !x.media_duration)return;
-  const bool play=media_card::playing(t.state);
-  const int p=media_card::progress(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration);
-  const int h=lv_obj_get_style_height(fill,LV_PART_MAIN);
-  const int w=std::max(h,bar_w*std::max(0,p)/1000);
-  if(lv_obj_get_style_width(fill,LV_PART_MAIN)!=w)lv_obj_set_width(fill,w);
-  if(elapsed)label(elapsed,media_card::clock_text(media_card::elapsed_seconds(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration)));
+  (void)bar_w;
+  uint32_t seconds=media_elapsed(t);
+  if(fill==media_seek_drag)seconds=(uint64_t)lv_slider_get_value(fill)*x.media_duration/1000;
+  else lv_slider_set_value(fill,(uint64_t)seconds*1000/x.media_duration,LV_ANIM_OFF);
+  if(elapsed)label(elapsed,media_card::clock_text(seconds));
 }
-// The card: everything under the top bar, from `top` down.
-inline void render_media_detail(Tile &t,unsigned index,bool large,int width,int height,int top){
-  using namespace media_card;
-  using namespace tile_controls;
-  const auto &x=t.extra();
-  const Metrics m=media_metrics(large);
-  const Layout l=layout(m,width,std::max(60,height-top-(ui::px(large?12:6))));
-  auto at=[&](Rect r){r.y+=top;return r;};
-  const bool usable=fresh()&&t.available(),track=usable&&has_track(t.state),play=media_card::playing(t.state);
-  const uint32_t f=t.supported;auto can=[&](uint32_t bit){return usable&&(!f||(f&bit));};
-  // The cover, or its placeholder with the player's icon; the cover comes over it once the app served it.
-  auto *frame=media_box(detail_root,nullptr,at(l.art),theme::tint(theme::ha::LIGHT_BLUE,51),l.art_radius);
-  const std::string glyph=icon_for(t);
-  const lv_font_t *placeholder_font=big_icon_font&&font_has(big_icon_font,glyph)?big_icon_font:tile_icon_font();
-  auto *icon=lv_label_create(frame);lv_obj_remove_flag(icon,LV_OBJ_FLAG_CLICKABLE);lv_obj_set_style_text_font(icon,placeholder_font,0);
-  lv_obj_set_style_text_color(icon,theme::rgb(theme::icon(theme::ha::LIGHT_BLUE)),0);lv_label_set_text(icon,glyph.c_str());center_icon(icon);
-  media_art_rect=at(l.art);media_detail_picture=nullptr;
-  const uint32_t ground=theme::hex(theme::PAGE);
-  if(camera_supported()&&track&&!x.media_picture.empty()){
-    cover_want(t.entity,x.media_picture,l.art.w,ground,CoverOwner::DETAIL,0);
-    media_detail_picture=media_picture_show(detail_root,nullptr,media_art_rect,cover_ready(t.entity,l.art.w,ground));
-  }
-  // Title, artist · album.
-  const lv_font_t *title_font=watch_font?watch_font:detail_font,*artist_font=control_font?control_font:detail_font,*small=small_font?small_font:detail_font;
-  const lv_text_align_t align=l.wide?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER;
-  // A title or artist line wider than the card rolls by, round and round (firmware 0.2.77+); a shorter one stands still.
-  marquee(detail_text(detail_root,track&&!x.media_title.empty()?x.media_title:std::string(idle_text(usable?t.state:"unavailable")),l.title.x,l.title.y+top,l.title.w,title_font,align,theme::INK));
-  if(l.artist)marquee(detail_text(detail_root,track?subtitle(x.media_artist,x.media_album):std::string(),l.artist_line.x,l.artist_line.y+top,l.artist_line.w,artist_font,align,theme::MUTED));
-  // The progress bar: the fill runs while the track plays; a stream without a length has no bar to show.
-  media_progress_fill=nullptr;media_elapsed_label=nullptr;media_bar_width=l.bar.w;
-  if(track && x.media_duration){
-    media_box(detail_root,nullptr,at(l.bar),theme::hex(theme::TRACK),LV_RADIUS_CIRCLE);
-    Rect fill=at(l.bar);fill.w=std::max(l.bar.h,l.bar.w*std::max(0,progress(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration))/1000);
-    media_progress_fill=media_box(detail_root,nullptr,fill,media_accent(),LV_RADIUS_CIRCLE);
-    if(l.times){
-      media_elapsed_label=detail_text(detail_root,clock_text(elapsed_seconds(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration)),l.elapsed.x,l.elapsed.y+top,l.elapsed.w,small,LV_TEXT_ALIGN_LEFT,theme::SUBTLE);
-      detail_text(detail_root,clock_text(x.media_duration),l.total.x,l.total.y+top,l.total.w,small,LV_TEXT_ALIGN_RIGHT,theme::SUBTLE);
-    }
-  }
-  // The keys: previous, play or pause on the accent, next; the mute key bare at the start of the volume row. An off
-  // player shows one power key instead, and no volume row: it reports no volume.
-  auto cb=[](lv_event_t *e){detail_command((intptr_t)lv_event_get_user_data(e));};
-  const lv_font_t *key_font=mini_icon_font?mini_icon_font:detail_font;
-  std::vector<lv_obj_t *> keys;
-  if(usable && media_off(t)){
-    if(can(feature::MEDIA_TURN_ON))keys.push_back(media_key(detail_root,nullptr,at(l.play),glyph::POWER,tile_icon_font(),true,false,true,cb,(void*)(intptr_t)24));
-  }else{
-    keys={media_key(detail_root,nullptr,at(l.prev),glyph::PREVIOUS,key_font,false,false,can(feature::MEDIA_PREVIOUS),cb,(void*)(intptr_t)21),
-          media_key(detail_root,nullptr,at(l.play),play?glyph::PAUSE:glyph::PLAY,tile_icon_font(),true,false,can(feature::MEDIA_PLAY|feature::MEDIA_PAUSE),cb,(void*)(intptr_t)20),
-          media_key(detail_root,nullptr,at(l.next),glyph::NEXT,key_font,false,false,can(feature::MEDIA_NEXT),cb,(void*)(intptr_t)22)};
-    if(std::isfinite(t.volume)){
-      keys.push_back(media_key(detail_root,nullptr,at(l.mute),t.muted?glyph::MUTED:glyph::VOLUME,key_font,false,true,can(feature::MEDIA_VOLUME_MUTE),cb,(void*)(intptr_t)23));
-      media_slider(detail_root,nullptr,at(l.volume),t,large,can(feature::MEDIA_VOLUME_SET),(void*)(uintptr_t)index);
-      detail_text(detail_root,media_volume_text(t),l.percent.x,l.percent.y+top,l.percent.w,small,LV_TEXT_ALIGN_RIGHT,theme::MUTED);
-    }
-  }
-  // Only the keys the player supports join the card's actions: tick() enables those again after a wait, and a key
-  // the player lacks stays faded.
-  for(auto *k:keys)if(!lv_obj_has_state(k,LV_STATE_DISABLED) && detail_action_count<32)detail_actions[detail_action_count++]=k;
-}
+// Kept out of main.cpp so the ESP32-S3 literal pool stays within reach.
+void render_media_detail(Tile &t,unsigned index,bool large,int width,int height,int top);
 inline void show_detail(unsigned index){
   if(index>=model.count)return;
   // Another tile's card: a keypad left open for an alarm does not come back with it.
@@ -3471,6 +3494,7 @@ inline void show_detail(unsigned index){
   // A card that leaves room sits in the middle of the glass; a picture fills it and stays where it is.
   // The back key and the name stay at the top of the card; the content under them is centred.
   if(kind==overlay_card::controls&&!detail_placed)overlay_card::centre(detail_root,2);
+  media_views_foreground();
 }
 }
 
@@ -5168,7 +5192,7 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   w.cover_size=l.art.w;w.cover_ground=ground;w.cover_rect=at(l.art);
   // Built off the glass (warm_page): the cover it may already have in the store, without asking for one.
   if(pictured&&warming)src=kept_cover(w);
-  else if(pictured&&!card_open){cover_want(t.entity,x.media_picture,l.art.w,ground,CoverOwner::TILE,slot);src=cover_ready(t.entity,l.art.w,ground);}
+  else if(pictured&&!card_open){cover_want(t.entity,x.media_picture,l.art.w,ground,CoverOwner::TILE,slot);src=cover_ready(t.entity,x.media_picture,l.art.w,ground);}
   if(src)w.parts[MEDIA_PICTURE]=media_picture_show(w.extra,w.parts[MEDIA_PICTURE],at(l.art),src);
   else if(w.parts[MEDIA_PICTURE]){lv_obj_delete(w.parts[MEDIA_PICTURE]);w.parts[MEDIA_PICTURE]=nullptr;}
   // Title, artist · album, left-aligned beside the cover.
@@ -5184,9 +5208,7 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   w.media_bar_w=l.bar.w;
   const bool timed=track&&x.media_duration;
   if(timed){
-    w.parts[4]=media_box(w.extra,w.parts[4],at(l.bar),theme::hex(theme::TRACK),LV_RADIUS_CIRCLE);lv_obj_remove_flag(w.parts[4],LV_OBJ_FLAG_HIDDEN);
-    Rect fill=at(l.bar);fill.w=std::max(l.bar.h,l.bar.w*std::max(0,progress(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration))/1000);
-    w.parts[5]=media_box(w.extra,w.parts[5],fill,media_accent(),LV_RADIUS_CIRCLE);lv_obj_remove_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN);
+    w.parts[5]=media_timeline(w.extra,w.parts[5],at(l.bar),t,big,w.index);lv_obj_remove_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN);
   }else for(unsigned i:{4u,5u})if(w.parts[i])lv_obj_add_flag(w.parts[i],LV_OBJ_FLAG_HIDDEN);
   if(timed&&l.times){
     text(6,small,l.elapsed,LV_TEXT_ALIGN_LEFT,clock_text(elapsed_seconds(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration)),theme::SUBTLE);
@@ -5209,7 +5231,12 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   }
   show(8,!off);show(10,!off);
   if(volume){
+    const bool new_mute=!w.parts[11];
     w.parts[11]=media_key(w.extra,w.parts[11],at(l.mute),t.muted?glyph::MUTED:glyph::VOLUME,key_font,false,true,can(feature::MEDIA_VOLUME_MUTE),media_tile_key_event,user(3));
+    if(new_mute)lv_obj_add_event_cb(w.parts[11],[](lv_event_t *e){
+      const size_t slot=(uintptr_t)lv_event_get_user_data(e);
+      if(slot<widgets.size()&&widgets[slot].extra_mode=="media")media_speakers_open(widgets[slot].index);
+    },LV_EVENT_LONG_PRESSED,(void*)(uintptr_t)slot);
     w.parts[12]=media_slider(w.extra,w.parts[12],at(l.volume),t,big,can(feature::MEDIA_VOLUME_SET),(void*)(uintptr_t)w.index);
     text(13,small,l.percent,LV_TEXT_ALIGN_RIGHT,media_volume_text(t),theme::MUTED);
   }
@@ -7065,6 +7092,8 @@ inline uint32_t last_live_second=0;
 inline int last_clock_minute=-2;
 inline bool was_fresh=false;
 inline void tick() {
+  media_zoom_tick();
+  media_speakers_tick();
   if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_index<model.count){
     auto &t=model.tiles[detail_index];bool waiting=t.loading(esphome::millis());
     // The history the card waits for: drawn once it is here (a finger on the screen holds that back), asked for
@@ -7338,6 +7367,7 @@ inline bool picture_shown(const lv_image_dsc_t *image) {
   each_card([&](Widgets &w) { on(w.picture); if (w.extra_mode == "media") on(w.parts[MEDIA_PICTURE]); });
   on(media_detail_picture);
   on(camera_picture);
+  on(media_zoom_picture);
   return shown;
 #else
   (void) image;
@@ -7363,7 +7393,7 @@ inline std::string cover_key(const std::string &entity, const std::string &mark,
   snprintf(tail, sizeof(tail), "|%d|%06X", size, (unsigned) background);
   return "cover|" + entity + "|" + mark + tail;
 }
-inline std::string cover_key(const CoverWish &w) { return cover_key(w.entity, w.picture, w.size, w.background); }
+inline std::string cover_key(const CoverWish &w) { return cover_key(w.entity, w.picture, w.size, w.background)+(w.owner==CoverOwner::ZOOM?"|full":""); }
 inline std::string cover_key(const Widgets &w) { return cover_key(w.cover_entity, w.cover_mark, w.cover_size, w.cover_ground); }
 // The cover a media card wants, when the store has it.
 inline lv_image_dsc_t *kept_cover(const Widgets &w) {
@@ -7371,9 +7401,10 @@ inline lv_image_dsc_t *kept_cover(const Widgets &w) {
 }
 inline camera_view::Feed cover;
 inline void camera_release();
-inline void camera_request(const std::string &entity, int size = 0, uint32_t background = 0);
+inline void camera_request(const std::string &entity, int size = 0, uint32_t background = 0, bool full = false);
 // The pictures on screen go before their buffer does.
 inline void cover_forget_pictures() {
+  media_zoom_close();
   if (media_detail_picture) { lv_obj_delete(media_detail_picture); media_detail_picture = nullptr; }
   for (auto &w : widgets) if (w.extra_mode == "media" && w.parts[MEDIA_PICTURE]) { lv_obj_delete(w.parts[MEDIA_PICTURE]); w.parts[MEDIA_PICTURE] = nullptr; }
 }
@@ -7386,15 +7417,17 @@ inline void cover_release() {
 }
 inline void cover_want(const std::string &entity, const std::string &picture, int size, uint32_t background, CoverOwner owner, size_t slot) {
   if (!camera_supported()) return;
-  const bool same = cover_wish.entity == entity && cover_wish.picture == picture && cover_wish.size == size && cover_wish.background == background;
+  if(!media_zoom_entity.empty()&&owner!=CoverOwner::ZOOM)return;
+  const bool same = cover_wish.entity == entity && cover_wish.picture == picture && cover_wish.size == size && cover_wish.background == background && (cover_wish.owner==CoverOwner::ZOOM)==(owner==CoverOwner::ZOOM);
   cover_wish = CoverWish{entity, picture, size, background, owner, slot};
   if (same) return;
   cover_release();  // another cover: asked for on the next tick
 }
-inline lv_image_dsc_t *cover_ready(const std::string &entity, int size, uint32_t background) {
+inline lv_image_dsc_t *cover_ready(const std::string &entity, const std::string &picture, int size, uint32_t background, bool full) {
   if (pictures_kept()) {
-    if (cover_wish.entity != entity || cover_wish.size != size || cover_wish.background != background) return nullptr;
-    return pictures.find(cover_key(cover_wish));
+    // The player keeps drawing its thumbnail while the fullscreen view owns
+    // the download. Looking up a cached picture must not depend on that owner.
+    return pictures.find(cover_key(entity,picture,size,background)+(full?"|full":""));
   }
   if (!cover.loaded || cover.entity != entity || cover_wish.size != size || cover_wish.background != background) return nullptr;
   auto *src = camera_full.source();
@@ -7403,6 +7436,7 @@ inline lv_image_dsc_t *cover_ready(const std::string &entity, int size, uint32_t
 inline void cover_drop() { cover_wish = CoverWish{}; cover_release(); }
 // Whether the owner still shows the cover: the card open on that player, or the tile on screen in its slot.
 inline bool cover_visible() {
+  if(cover_wish.owner==CoverOwner::ZOOM)return !media_zoom_entity.empty()&&cover_wish.entity==media_zoom_entity;
   if (cover_wish.owner == CoverOwner::DETAIL)
     return detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_index < model.count && model.tiles[detail_index].entity == cover_wish.entity;
   if (cover_wish.owner == CoverOwner::TILE && cover_wish.slot < widgets.size()) {
@@ -7422,6 +7456,7 @@ inline bool cover_visible() {
 // Nobody holds the cover and a media tile with a picture is on the page (the card over it just closed, or the
 // page turned): the tile draws itself again and asks.
 inline void cover_offer() {
+  if(media_zoom_root)return;
   if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN)) return;
   for (auto &w : widgets) {
     if (!w.tile || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN) || w.index >= model.count || w.extra_mode != "media") continue;
@@ -7459,6 +7494,7 @@ inline bool cover_prefetch() {
 inline void cover_arrived() {
   if (!cover_visible()) return;
   lv_image_dsc_t *src = camera_full.source();
+  if(cover_wish.owner==CoverOwner::ZOOM){media_zoom_show(src);return;}
   if (pictures_kept() && src && src->data) {
     src = pictures.put(cover_key(cover_wish), *src, esphome::millis());
     if (!src) ESP_LOGW("camera", "no room to keep the cover of %s", cover.entity.c_str());
@@ -7491,7 +7527,7 @@ inline void cover_tick(uint32_t now) {
   if (cover.should_ask(now)) {
     if (!fresh()) return;
     cover.ask(now);
-    camera_request(cover.entity, cover_wish.size, cover_wish.background);
+    camera_request(cover.entity, cover_wish.size, cover_wish.background, cover_wish.owner==CoverOwner::ZOOM);
   } else if (cover.should_load(now)) {
     auto *input = lv_indev_get_next(nullptr);
     if (input && lv_indev_get_state(input) == LV_INDEV_STATE_PRESSED) return;
@@ -7824,15 +7860,15 @@ inline void live_failed() {
 
 // Asks ESP Screen Manager for a link (app 0.2.66+ answers with op "camera"). An event, like history_request.
 // A cover (firmware 0.2.64+) adds the size it wants and the colour behind its rounded corners; the app bakes both in.
-inline void camera_request(const std::string &entity, int size, uint32_t background) {
+inline void camera_request(const std::string &entity, int size, uint32_t background, bool full) {
   if (inbox.empty()) return;
   esphome::api::HomeassistantActionRequest request;
   request.service = esphome::StringRef("esphome.screen_camera");
   request.is_event = true;
   char size_text[12] = "", background_text[8] = "";
   if (size > 0) { snprintf(size_text, sizeof(size_text), "%d", size); snprintf(background_text, sizeof(background_text), "%06X", (unsigned) background); }
-  const std::string keys[] = {"inbox", "entity", "size", "bg", "session", "rev", "view"}, values[] = {inbox, entity, size_text, background_text, protocol_key(transfer.lease), layout_rev, std::to_string(size > 0 ? ++cover_view_id : ++camera_view_id)};
-  const int count = 7;
+  const std::string keys[] = {"inbox", "entity", "size", "bg", "session", "rev", "view", "full"}, values[] = {inbox, entity, size_text, background_text, protocol_key(transfer.lease), layout_rev, std::to_string(size > 0 ? ++cover_view_id : ++camera_view_id), "1"};
+  const int count = full?8:7;
   request.data.init(count);
   for (int i = 0; i < count; ++i) {
     esphome::api::HomeassistantServiceMap entry;
@@ -7874,6 +7910,7 @@ inline void camera_close() {
 inline void camera_open(const std::string &entity, const std::string &name) {
   cover_in_flight.clear();  // the full camera takes the cover's image buffer
   if (!camera_supported() || !valid_entity(entity)) return;
+  media_zoom_close();  // this view may still draw directly from that buffer
   camera_close();
   // The last camera's image, or a media card's cover, goes before this one loads into the same online_image; the
   // cover is asked for again once the camera closes (cover_tick).
@@ -8297,6 +8334,7 @@ inline void moved(int x, int y, int id, int state) {
                       : !navigation_ready()     ? "configuration not ready"
                       : !swipe_pages            ? "setting off"
                       : camera_visible()        ? "camera open"
+                      : (media_zoom_root || media_speakers_root) ? "media view open"
                       : (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN)) ? "detail card open"
                       : captured_slider         ? "a slider is being dragged"
                       : swipe_blocked           ? swipe_blocked()

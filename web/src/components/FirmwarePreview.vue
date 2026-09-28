@@ -122,8 +122,13 @@ async function sendActions() {
         void requestImage(request); // A slow artwork source must not block play/pause.
         continue;
       }
+      if (request.event && request.service === 'esphome.screen_media_groups') {
+        void requestSpeakers(request);
+        continue;
+      }
       let success = true, message = "";
-      if (props.controls && !props.still) {
+      const dispatched = props.controls && !props.still;
+      if (dispatched) {
         try {
           await send("firmware-preview/action", "POST", request);
         } catch (e) {
@@ -136,7 +141,7 @@ async function sendActions() {
       }
       if (disposed || !module) break;
       time();
-      module.ccall("preview_action_response", null, ["number", "number", "string"], [request.call_id, success ? 1 : 0, message]);
+      module.ccall("preview_action_response", null, ["number", "number", "string"], [request.call_id, dispatched ? (success ? 1 : 0) : -1, message]);
       actionError.value = success ? "" : t("editor.preview.action_error", { message });
       // Read HA's resulting state through the same packets as a physical device.
       // No browser code invents the result of a switch or thermostat command.
@@ -157,6 +162,16 @@ async function requestImage(request: Record<string, unknown>) {
       module.ccall('preview_receive', 'string', ['string'], [JSON.stringify({ ...packet, v: 2, seq: ++sequence })]);
     }
   } catch { /* Firmware image timeouts keep the placeholder and retry. */ }
+}
+
+async function requestSpeakers(request: Record<string, unknown>) {
+  try {
+    const packet = await send<Record<string, unknown>>('firmware-preview/speakers', 'POST', request, { signal: downloads.signal });
+    if (!disposed && module && packet.session === session && packet.rev === lastLayout) {
+      time();
+      module.ccall('preview_receive', 'string', ['string'], [JSON.stringify({ ...packet, v: 2, seq: ++sequence })]);
+    }
+  } catch { /* Firmware times out and disables stale speaker controls. */ }
 }
 
 async function fetchImages() {

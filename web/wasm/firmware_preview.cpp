@@ -115,6 +115,14 @@ const char *preview_next_action() {
   return outgoing_action.c_str();
 }
 void preview_action_response(unsigned call_id, int success, const char *error) {
+  // A read-only preview did not send this request. Cancel the pending estimate
+  // through the normal no-answer path, without pretending HA accepted it or
+  // showing a refusal for an intentionally disabled transport.
+  if (success < 0) {
+    esphome::api::host_api_server.handle_action_response(call_id, false, esphome::StringRef(runtime_tiles::NO_ANSWER));
+    dirty = true;
+    return;
+  }
   esphome::api::host_api_server.handle_action_response(call_id, success != 0, esphome::StringRef(error ? error : ""));
   dirty = true;
 }
@@ -170,16 +178,44 @@ const char *preview_diagnostics() {
     tile["pending"] = runtime_tiles::model.tiles[w.index].pending;
   }
   auto icons = doc["icons"].to<JsonArray>();
+  auto labels = doc["labels"].to<JsonArray>();
+  auto sliders = doc["sliders"].to<JsonArray>();
+  auto dropdowns = doc["dropdowns"].to<JsonArray>();
   std::function<void(lv_obj_t *)> inspect = [&](lv_obj_t *object) {
     if (!lv_obj_is_visible(object)) return;
     if (lv_obj_check_type(object, &lv_label_class)) {
       const char *text = lv_label_get_text(object);
+      lv_area_t box;lv_obj_get_coords(object,&box);
+      auto shown=labels.add<JsonObject>();shown["text"]=text;shown["x"]=box.x1;shown["y"]=box.y1;
+      shown["width"]=lv_obj_get_width(object);shown["height"]=lv_obj_get_height(object);
       // Material Design Icons occupy Unicode's supplementary private-use plane.
       if (std::strlen(text) >= 4 && static_cast<unsigned char>(text[0]) == 0xF3) {
         lv_area_t bounds; lv_obj_get_coords(object, &bounds);
         auto icon = icons.add<JsonObject>();
         icon["x"] = bounds.x1; icon["y"] = bounds.y1;
         icon["width"] = lv_obj_get_width(object); icon["height"] = lv_obj_get_height(object);
+        size_t at=0;const auto cp=header_bar::next_codepoint(std::string(text),at);
+        const auto *font=lv_obj_get_style_text_font(object,LV_PART_MAIN);lv_font_glyph_dsc_t glyph;
+        icon["codepoint"]=cp;icon["present"]=font&&font->get_glyph_dsc(font,&glyph,cp,0);
+      }
+    }
+    if(lv_obj_check_type(object,&lv_slider_class)){
+      lv_area_t box;lv_obj_get_coords(object,&box);auto slider=sliders.add<JsonObject>();
+      slider["x"]=box.x1;slider["y"]=box.y1;slider["width"]=lv_obj_get_width(object);slider["height"]=lv_obj_get_height(object);
+      slider["value"]=lv_slider_get_value(object);slider["disabled"]=lv_obj_has_state(object,LV_STATE_DISABLED);
+    }
+    if(lv_obj_check_type(object,&lv_dropdown_class)){
+      lv_area_t box;lv_obj_get_coords(object,&box);auto dropdown=dropdowns.add<JsonObject>();
+      dropdown["x"]=box.x1;dropdown["y"]=box.y1;dropdown["width"]=lv_obj_get_width(object);dropdown["height"]=lv_obj_get_height(object);
+      dropdown["open"]=lv_dropdown_is_open(object);dropdown["options"]=lv_dropdown_get_options(object);dropdown["selected"]=lv_dropdown_get_selected(object);
+      const char *symbol=lv_dropdown_get_symbol(object);size_t at=0;const auto cp=header_bar::next_codepoint(std::string(symbol?symbol:""),at);
+      const auto *font=lv_obj_get_style_text_font(object,LV_PART_INDICATOR);lv_font_glyph_dsc_t glyph;
+      dropdown["codepoint"]=cp;dropdown["symbol_present"]=font&&font->get_glyph_dsc(font,&glyph,cp,0);
+      auto *list=lv_dropdown_get_list(object);
+      if(list&&lv_obj_is_visible(list)&&lv_obj_get_child_count(list)){
+        auto *label=lv_obj_get_child(list,0);lv_area_t bounds;lv_obj_get_coords(label,&bounds);
+        auto rows=dropdown["rows"].to<JsonObject>();rows["x"]=bounds.x1;rows["y"]=bounds.y1;rows["width"]=lv_obj_get_width(label);
+        rows["height"]=lv_font_get_line_height(lv_obj_get_style_text_font(label,LV_PART_MAIN))+lv_obj_get_style_text_line_space(label,LV_PART_MAIN);
       }
     }
     for (uint32_t i = 0; i < lv_obj_get_child_count(object); ++i) inspect(lv_obj_get_child(object, i));
@@ -193,6 +229,7 @@ const char *preview_diagnostics() {
       lv_area_t bounds; lv_obj_get_coords(object, &bounds);
       item["x"] = bounds.x1; item["y"] = bounds.y1;
       item["width"] = lv_obj_get_width(object); item["height"] = lv_obj_get_height(object);
+      item["scale"] = lv_image_get_scale_x(object);
     }
     for (uint32_t i = 0; i < lv_obj_get_child_count(object); ++i) inspect_images(lv_obj_get_child(object, i));
   };

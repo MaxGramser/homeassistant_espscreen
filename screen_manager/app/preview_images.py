@@ -17,8 +17,8 @@ async def answer(manager, data):
     fields = command.get('data')
     if command.get('service') != 'esphome.screen_camera' or command.get('event') is not True or command.get('templates'):
         raise ValueError('Only firmware image events are accepted.')
-    # `idx`: the tiles of a live strip by index (firmware 0.16.0+), which the preview does not need.
-    allowed = {'inbox', 'entity', 'tiles', 'idx', 'size', 'bg', 'session', 'rev', 'view', 'atlas'}
+    # idx supports repeated tiles; full requests the expanded album artwork.
+    allowed = {'inbox', 'entity', 'tiles', 'idx', 'size', 'bg', 'session', 'rev', 'view', 'atlas', 'full'}
     if (not isinstance(fields, dict) or set(fields) - allowed or
             any(not isinstance(v, str) or len(v) > 8192 for v in fields.values()) or
             not re.fullmatch(r'[0-9a-f]{16}', fields.get('session', '')) or
@@ -53,8 +53,9 @@ async def answer(manager, data):
         if cover is None:
             raise ValueError('Invalid cover dimensions or background.')
         size, background = cover
-        if await manager.camera.cover(entity, size, background):
-            token = manager.camera.link(entity, (size, size), cover=cover)
+        extra = {'full': True} if fields.get('full') == '1' else {}
+        if await manager.camera.cover(entity, size, background, **extra):
+            token = manager.camera.link(entity, (size, size), cover=cover, **extra)
     elif camera_feed.supported(entity) and entity in manager.ha.states:
         view = 'full'
         if await manager.camera.frame(entity, (width, height)):

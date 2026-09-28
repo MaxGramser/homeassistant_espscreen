@@ -209,6 +209,8 @@ FIXED = (
     ('minus', 'F0374'),
     ('chevron-left', 'F0141'),
     ('chevron-right', 'F0142'),
+    ('chevron-down', 'F0140'),
+    ('chevron-up', 'F0143'),
     ('close', 'F0156'),
     # Back button of every overlay (firmware 0.2.37+).
     ('arrow-left', 'F004D'),
@@ -399,7 +401,7 @@ BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.va
                                   'weather-sunset-up', 'weather-sunset-down']))
 CONTROL_GLYPHS = ('play', 'pause', 'stop', 'skip-next', 'skip-previous', 'volume-high', 'volume-off', 'arrow-up', 'arrow-down',
                   'blinds', 'blinds-open', 'arrow-expand-horizontal', 'arrow-collapse-horizontal', 'home-map-marker', 'plus', 'minus', 'chevron-left',
-                  'chevron-right', 'close', 'power', 'fire', 'snowflake', 'sun-snowflake-variant', 'thermostat-auto', 'water-percent', 'fan',
+                  'chevron-right', 'chevron-down', 'chevron-up', 'close', 'power', 'fire', 'snowflake', 'sun-snowflake-variant', 'thermostat-auto', 'water-percent', 'fan',
                   'dots-horizontal')
 WEATHER = {'sunny': 'weather-sunny', 'clear-night': 'weather-night', 'cloudy': 'weather-cloudy',
            'partlycloudy': 'weather-partly-cloudy', 'rainy': 'weather-rainy', 'pouring': 'weather-pouring',

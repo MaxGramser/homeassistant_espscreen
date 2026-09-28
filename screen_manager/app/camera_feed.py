@@ -35,6 +35,7 @@ MIN_FIRMWARE = (0, 2, 57)
 COVER_DOMAINS = ('media_player',)
 COVER_MIN_FIRMWARE = (0, 2, 64)
 COVER_SIZES = (48, 320)  # the smallest and largest cover a screen may ask for, in pixels
+ARTWORK_MAX = 1024  # separately requested full-screen art, no rounded mask
 COVER_RADIUS_SHARE = 12  # the corner is a twelfth of the size, at least 4 px (media_card.h radius_for)
 # Live pictures on camera tiles (app 0.2.91, firmware 0.2.77): a tile with "display": "live" shows a small square of its
 # camera in the icon's place. The camera tiles of a page share one image: the screen asks for them together and the
@@ -247,7 +248,8 @@ def cover_request(request):
     except (TypeError, ValueError):
         return None
     background = request.get('bg')
-    if not COVER_SIZES[0] <= size <= COVER_SIZES[1] or not isinstance(background, str) or not re.fullmatch(r'[0-9A-Fa-f]{6}', background):
+    maximum = ARTWORK_MAX if request.get('full') == '1' else COVER_SIZES[1]
+    if not COVER_SIZES[0] <= size <= maximum or not isinstance(background, str) or not re.fullmatch(r'[0-9A-Fa-f]{6}', background):
         return None
     return size, int(background, 16)
 
@@ -283,7 +285,7 @@ def encode(raw, box, exact=False):
     return out.getvalue()
 
 
-def encode_cover(raw, size, background):
+def encode_cover(raw, size, background, full=False):
     """A media player's picture as a square 24-bit BMP of `size` pixels with rounded corners, the corners filled with
     `background` (0xRRGGBB): what the screen draws on its card without any work of its own. A picture that is not
     square is cut to its middle."""
@@ -305,11 +307,13 @@ def encode_cover(raw, size, background):
             image = image.crop((left, top, left + side, top + side))
         if image.size != (size, size):
             image = image.resize((size, size), Image.Resampling.LANCZOS)
-        radius = max(4, size // COVER_RADIUS_SHARE)
-        mask = Image.new('L', (size, size), 0)
-        ImageDraw.Draw(mask).rounded_rectangle((0, 0, size - 1, size - 1), radius=radius, fill=255)
-        ground = Image.new('RGB', (size, size), tuple((background >> shift) & 0xFF for shift in (16, 8, 0)))
-        ground.paste(image, mask=mask)
+        ground = image
+        if not full:
+            radius = max(4, size // COVER_RADIUS_SHARE)
+            mask = Image.new('L', (size, size), 0)
+            ImageDraw.Draw(mask).rounded_rectangle((0, 0, size - 1, size - 1), radius=radius, fill=255)
+            ground = Image.new('RGB', (size, size), tuple((background >> shift) & 0xFF for shift in (16, 8, 0)))
+            ground.paste(image, mask=mask)
         out = io.BytesIO()
         ground.save(out, 'BMP')
     return out.getvalue()
@@ -380,12 +384,13 @@ class Watch:
 
 
 class Link:
-    __slots__ = ('entity', 'box', 'still', 'etag', 'used', 'lifetime', 'cover', 'live')
+    __slots__ = ('entity', 'box', 'still', 'etag', 'used', 'lifetime', 'cover', 'live', 'full')
 
-    def __init__(self, entity, box, now, still=None, cover=None, live=None):
+    def __init__(self, entity, box, now, still=None, cover=None, live=None, full=False):
         self.entity, self.box, self.used = entity, box, now
         self.still = still
         self.cover = cover  # (size, background) of a media player's cover, else None
+        self.full = full
         self.live = live    # (entities, size, grounds, paces[, {atlas, modes, compact}]) of a page's live tiles, else None
         self.etag = f'"{hashlib.sha1(still).hexdigest()[:16]}"' if still else ''
         self.lifetime = STILL_SECONDS if still else LINK_SECONDS
@@ -600,22 +605,22 @@ class CameraFeed:
             cached = watch.frames[key] = (watch.digest, image)
         return f'"{watch.digest[:16]}-editor"', cached[1]
 
-    async def cover(self, entity, size, background, wait=FIRST_FRAME_SECONDS):
+    async def cover(self, entity, size, background, wait=FIRST_FRAME_SECONDS, *, full=False):
         """(etag, BMP) of the player's cover at `size` with `background` behind its corners, or None when the player
         shows no picture or it cannot be fetched."""
         if await self.cover_raw(entity, wait) is None:
             return None
         watch = self.watch(entity)
-        key = ('cover', size, background)
+        key = ('artwork' if full else 'cover', size, background)
         cached = watch.frames.get(key)
         if cached is None or cached[0] != watch.digest:
             try:
-                image = await asyncio.get_running_loop().run_in_executor(None, encode_cover, watch.raw, size, background)
+                image = await asyncio.get_running_loop().run_in_executor(None, encode_cover, watch.raw, size, background, full)
             except Exception as error:
                 LOG.info('The cover of %s cannot be read (%s)', entity, type(error).__name__)
                 return None
             cached = watch.frames[key] = (watch.digest, image)
-        return f'"{watch.digest[:16]}-c{size}-{background:06X}"', cached[1]
+        return f'"{watch.digest[:16]}-{"a" if full else "c"}{size}-{background:06X}"', cached[1]
 
     # ----- links -----
     def prune(self):
@@ -625,12 +630,12 @@ class CameraFeed:
         while len(self.links) >= MAX_LINKS:
             del self.links[min(self.links, key=lambda token: self.links[token].used)]
 
-    def link(self, entity, box, still=None, cover=None, live=None):
+    def link(self, entity, box, still=None, cover=None, live=None, full=False):
         """A new random token for one camera at one size; `still` makes it one fixed image (an alert's), `cover`
         (size, background) a media player's cover, `live` (entities, size, grounds, paces) a page's live tiles."""
         self.prune()
         token = secrets.token_urlsafe(18)
-        self.links[token] = Link(entity, box, self.clock(), still, cover, live)
+        self.links[token] = Link(entity, box, self.clock(), still, cover, live, full)
         return token
 
     async def serve(self, token, etag=None):
@@ -650,7 +655,7 @@ class CameraFeed:
             # online_image warns at every load about a missing one.
             found = await self.live(*link.live[:4], **(link.live[4] if len(link.live) > 4 else {}))
             return (503, None, '') if found is None else (200, found[1], found[0])
-        found = await self.cover(link.entity, *link.cover) if link.cover else await self.frame(link.entity, link.box)
+        found = await self.cover(link.entity, *link.cover, full=link.full) if link.cover else await self.frame(link.entity, link.box)
         if found is None:
             return 503, None, ''
         tag, image = found

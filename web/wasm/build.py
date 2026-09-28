@@ -65,7 +65,8 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
                           ('font', ROOT / 'web/wasm/generated/font.cpp'),
                           ('bmp_decoder', ROOT / 'web/wasm/generated/image/bmp_decoder.cpp'),
                           ('image_decoder', ROOT / 'web/wasm/generated/image/image_decoder.cpp'),
-                          ('receiver', ROOT / 'components/smart_display/page_receiver.cpp')]:
+                          ('receiver', ROOT / 'components/smart_display/page_receiver.cpp'),
+                          ('media_speakers', ROOT / 'components/smart_display/media_speakers.cpp')]:
     obj = objects / f'{name}.o'
     run(['em++', *flags, '-std=c++17', '-c', source_path, '-o', obj])
     compiled.append(obj)

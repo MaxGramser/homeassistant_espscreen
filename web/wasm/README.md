@@ -85,6 +85,10 @@ Home Assistant connected to Screen Manager. Its normal action responses and upda
 entity states drive the firmware's confirmation/refusal behaviour. Taps can therefore
 operate real devices connected to that instance.
 
+The built-in media group-mute template is supported: the bridge resolves current
+Home Assistant group members and applies one explicit mute state. Physical devices
+send that same template through ESPHome for Home Assistant to evaluate.
+
 Hardware, persistent device settings, non-image ESPHome event requests
 (history/options/settings) and custom actions with data templates are not emulated. Runtime
 detail screens such as the weather card are firmware-rendered; board/YAML-specific

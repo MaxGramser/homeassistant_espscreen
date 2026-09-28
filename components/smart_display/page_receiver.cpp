@@ -402,6 +402,34 @@ std::string receive(const std::string &payload) {
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;
     }
+    if (op == "media_groups") {
+      if(!media_speakers_root||!root["view"].is<unsigned>()||root["view"].as<unsigned>()!=media_speakers_view||
+         string(root["e"],120)!=media_speakers.source||media_touching()) {result="Synced";return true;}
+      if(root["schema"].as<int>()!=1||!root["groups"].is<JsonArray>()||!root["speakers"].is<JsonArray>()||
+         root["groups"].as<JsonArray>().size()>4||root["speakers"].as<JsonArray>().size()>4)return false;
+      MediaSpeakers next;next.source=media_speakers.source;
+      next.group=string(root["group"],120);next.name=string(root["name"],80);
+      if(!next.group.empty()&&(!valid_entity(next.group)||next.group.rfind("media_player.",0)!=0))return false;
+      for(const char *key:{"page","pages","gp","group_pages"})if(!root[key].is<unsigned>()||root[key].as<unsigned>()>1024)return false;
+      next.page=root["page"].as<unsigned>();next.pages=root["pages"].as<unsigned>();
+      next.group_page=root["gp"].as<unsigned>();next.group_pages=root["group_pages"].as<unsigned>();
+      if(!next.pages||!next.group_pages||next.page>=next.pages||next.group_page>=next.group_pages)return false;
+      for(JsonVariant item:root["groups"].as<JsonArray>()){
+        MediaGroup group;group.entity=string(item["e"],120);group.name=string(item["n"],80);
+        if(!valid_entity(group.entity)||group.entity.rfind("media_player.",0)!=0)return false;
+        next.groups.push_back(std::move(group));
+      }
+      for(JsonVariant item:root["speakers"].as<JsonArray>()){
+        MediaSpeaker speaker;speaker.entity=string(item["e"],120);speaker.name=string(item["n"],80);
+        if(!valid_entity(speaker.entity)||speaker.entity.rfind("media_player.",0)!=0||!item["v"].is<int>()||
+           !item["muted"].is<bool>()||!item["enabled"].is<bool>())return false;
+        speaker.volume=item["v"].as<int>();if(speaker.volume< -1||speaker.volume>100)return false;
+        speaker.muted=item["muted"].as<bool>();speaker.enabled=item["enabled"].as<bool>()&&speaker.volume>=0;
+        next.speakers.push_back(std::move(speaker));
+      }
+      media_speakers_accept(std::move(next));
+      result="Synced";return true;
+    }
     if (op == "options") {
       if (!root["view"].is<unsigned>() || root["view"].as<unsigned>() != options_view_id) {
         result = "Synced"; return true;

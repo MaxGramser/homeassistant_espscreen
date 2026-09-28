@@ -238,7 +238,9 @@
     "media": {
       "muted": "Wyciszony",
       "not_playing": "Nic nie gra",
-      "loading": "Ładowanie"
+      "loading": "Ładowanie",
+      "speakers": "Głośniki",
+      "no_groups": "Brak dostępnych grup głośników"
     },
     "timer": {
       "running": "Działa",

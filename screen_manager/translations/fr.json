@@ -238,7 +238,9 @@
     "media": {
       "muted": "Muet",
       "not_playing": "Aucune lecture",
-      "loading": "Chargement"
+      "loading": "Chargement",
+      "speakers": "Enceintes",
+      "no_groups": "Aucun groupe d’enceintes disponible"
     },
     "timer": {
       "running": "En cours",
