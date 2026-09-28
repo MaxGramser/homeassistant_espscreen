@@ -1,3 +1,10 @@
+## 0.4.41 (firmware 0.22.0)
+
+- **Controls stay responsive with several previews open.** Live preview and editor updates use WebSockets so
+  previews and editor tabs do not fill the browser's HTTP/1 connection pool and block controls, pictures or state
+  requests. Existing event-stream clients remain compatible, and polling remains a fallback.
+- No screen firmware update is required.
+
 ## 0.4.40 (firmware 0.22.0)
 
 - **The editor on a phone is about your screen now.** On a phone the editor opens on the screen as it stands on the

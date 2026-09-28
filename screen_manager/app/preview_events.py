@@ -6,7 +6,7 @@ packets, never raw HA attributes, through its existing endpoint.
 import asyncio
 import re
 
-from aiohttp import web
+import live_events
 
 
 class Changes:
@@ -25,23 +25,19 @@ async def stream(changes, request):
     if (not 1 <= len(entities) <= 128 or
             any(len(entity) > 120 or not re.fullmatch(r'[a-z0-9_]+\.[a-z0-9_]+', entity) for entity in entities)):
         raise ValueError('Invalid preview entity subscription.')
-    response = web.StreamResponse(headers={'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store',
-                                           'X-Accel-Buffering': 'no', 'X-Content-Type-Options': 'nosniff'})
-    wake = asyncio.Event()
-    changes.listeners[wake] = frozenset(entities)
-    wake.set()  # Also refresh after reconnection; events may have been missed.
-    try:
-        await response.prepare(request)
-        while True:
-            try:
-                await asyncio.wait_for(wake.wait(), 15)
-            except TimeoutError:
-                await response.write(b': keepalive\n\n')
-            else:
-                wake.clear()
-                await response.write(b'data: {}\n\n')
-    except (ConnectionResetError, asyncio.CancelledError):
-        pass
-    finally:
-        changes.listeners.pop(wake, None)
-    return response
+    async def updates():
+        wake = asyncio.Event()
+        changes.listeners[wake] = frozenset(entities)
+        wake.set()  # Also refresh after reconnection; events may have been missed.
+        try:
+            while True:
+                try:
+                    await asyncio.wait_for(wake.wait(), 15)
+                except TimeoutError:
+                    yield None
+                else:
+                    wake.clear()
+                    yield '{}'
+        finally:
+            changes.listeners.pop(wake, None)
+    return await live_events.serve(request, updates())

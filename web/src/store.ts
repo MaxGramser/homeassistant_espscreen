@@ -3,6 +3,7 @@
 import { computed, reactive, ref, toRaw, watch } from "vue";
 import { isTallSize, sizeColumns, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
+import { liveEvents } from "./live-events";
 import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware as supportsVersion } from "./model/layout";
 import { agoText, barMetricsFor, clockText, dateText, itemKey, type ItemView, whenBarFontsLoad } from "./model/topbar";
@@ -1880,17 +1881,15 @@ function applyLive(data: Partial<Inventory>) {
   for (const screen of state.inventory.screens) if (screen.update?.state === "running") state.updating = state.updating.filter((id) => id !== screen.id);
   if (state.selected) { settleSettings(); reconcileDocument(); }
 }
-let pollTimer = 0, lastFull = Date.now(), live = false, stream: EventSource | null = null;
+let pollTimer = 0, lastFull = Date.now(), live = false, stream: ReturnType<typeof liveEvents> | null = null;
 function listen() {
-  if (stream || typeof EventSource === "undefined") return;
-  // An EventSource sends no headers of its own: the editor's language goes along in the address (app 0.2.90).
-  stream = new EventSource(`api/events?language=${encodeURIComponent(editorLanguage())}`);
-  stream.onopen = () => { live = true; poll(); };
-  stream.onmessage = (e) => { if (!document.hidden) applyLive(JSON.parse(e.data)); };
-  stream.onerror = () => { live = false; poll(); };
+  if (stream) return;
+  stream = liveEvents(`api/events?language=${encodeURIComponent(editorLanguage())}`,
+    data => { if (!document.hidden) applyLive(JSON.parse(data)); },
+    open => { live = open; poll(); });
 }
 // Poll only while the tab is visible; a hidden tab would otherwise keep the add-on busy.
-// Live updates arrive over server-sent events; polling is the fallback while the stream is down,
+// Live updates arrive over WebSocket; polling is the fallback while the stream is down,
 // plus a full catalogue refresh every 5 minutes.
 function poll() {
   clearTimeout(pollTimer);
