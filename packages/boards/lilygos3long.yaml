@@ -14,7 +14,7 @@ packages:
 
 substitutions:
   BOARD_ID: "lilygos3long"
-  SCREEN_FIRMWARE_VERSION: "0.11.1"
+  SCREEN_FIRMWARE_VERSION: "0.11.2"
   DEVICE_NAME: "lilygos3long-new"
   DEVICE_FRIENDLY_NAME: "My LilyGO Long"
   PANEL_W: "180"
@@ -32,6 +32,12 @@ substitutions:
   # This gives the single row of four buttons 13 more pixels of height.
   HEADER_Y: "8"
   SCROLL_Y: "42"
+  # Core extends ts_touch with these substitutions. Raw sensor X spans the
+  # long axis (10..627) and raw Y the short one (6..176); swap them into the
+  # panel's native 180 x 640 space before LVGL rotates the canvas 90 degrees.
+  TOUCH_SWAP_XY: "true"
+  TOUCH_MIRROR_X: "false"
+  TOUCH_MIRROR_Y: "true"
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -71,15 +77,13 @@ touchscreen:
     i2c_id: touch_bus
     display: my_display
     update_interval: 20ms
-    transform:
-      mirror_x: true
-      mirror_y: true
-      swap_xy: false
+    # packages/core.yaml extends this touchscreen and supplies the effective
+    # transform from the TOUCH_* substitutions above.
     calibration:
-      x_min: 10
-      x_max: 627
-      y_min: 6
-      y_max: 176
+      x_min: 6
+      x_max: 176
+      y_min: 10
+      y_max: 627
 
 display:
   - platform: mipi_spi

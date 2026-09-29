@@ -7,6 +7,8 @@ Update Tessera Screen Manager to 0.4.19 or later to see it in the catalog.
 Version 0.4.21 includes the touch calibration reported working on this board.
 Its header sits higher and the button grid starts at y=42 instead of roughly
 y=55, leaving about 13 more pixels of height for the four buttons.
+Version 0.4.22 fixes the effective touch transform and the native-axis
+calibration required by this firmware's separate LVGL rotation.
 
 The 3.4-inch panel has 180 x 640 native pixels, an ESP32-S3, 16 MB flash and 8 MB
 of octal PSRAM. Landscape uses a 640 x 180 canvas with four cells across;
@@ -34,8 +36,12 @@ EspControl board configuration both read it using ESPHome's `axs15231` I2C
 touchscreen platform. That platform name does not identify the touch chip.
 Touch is polled, so the separate GPIO2 reset and GPIO11 interrupt are not
 configured in this profile.
-The raw touch bounds (x 10..627, y 6..176) come from a working board
-configuration; the existing axis and mirror transforms are unchanged.
+The raw touch bounds (X 10..627, Y 6..176) come from a working board
+configuration. In this firmware touch is mapped to the panel's native
+180 x 640 space before LVGL rotates it 90 degrees. The board therefore swaps
+the axes, uses calibration x 6..176 and y 10..627, and mirrors the native Y
+axis. These transform values must be set as board substitutions because the
+shared core extends the touchscreen with its own transform fields.
 Rotation belongs to LVGL, because the panel cannot swap axes in hardware.
 
 The board sets `full_refresh: true`, a 100% LVGL buffer, and `draw_rounding: 4`
