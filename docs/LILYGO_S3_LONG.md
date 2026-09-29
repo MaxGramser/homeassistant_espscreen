@@ -19,12 +19,18 @@ The narrow glass is best suited to short tile names and simple controls.
 | QSPI clock | 17 |
 | QSPI data 0 / 1 / 2 / 3 | 13 / 18 / 21 / 14 |
 | Display chip select | 12 |
-| Shared display/touch reset | 16, owned by the display driver |
+| Display reset | 16, owned by the display driver |
 | Backlight PWM | 1 |
 | Touch I2C SDA / SCL | 15 / 10 |
+| CST3530 touch reset / interrupt | 2 / 11 |
+| SY6970 PMU | I2C 0x6A on SDA 15 / SCL 10 |
 
-The display uses ESPHome's `mipi_spi` model `AXS15231` at 10 MHz and the
-`axs15231` touch driver. Touch is polled; GPIO11 is not needed for polling.
+The display uses ESPHome's `mipi_spi` model `AXS15231` at 10 MHz. The touch
+controller is a **CST3530**. LilyGO's ESPHome example and the independent
+EspControl board configuration both read it using ESPHome's `axs15231` I2C
+touchscreen platform. That platform name does not identify the touch chip.
+Touch is polled, so the separate GPIO2 reset and GPIO11 interrupt are not
+configured in this profile.
 The raw touch calibration and mirrors follow the manufacturer's ESPHome example.
 Rotation belongs to LVGL, because the panel cannot swap axes in hardware.
 
@@ -34,8 +40,13 @@ rounding values, and the AXS15231 model defaults to 8, which does not divide 180
 Do not lower the buffer while full refresh is enabled. These settings avoid the
 partial-window and edge corruption described by LilyGO's example.
 
-USB-powered operation is the initial target. Battery charging, PMU controls and
-OTG power output are not configured by this profile.
+The **SY6970** battery charger/PMU shares the I2C bus at address `0x6A`.
+USB-powered operation is the initial target. The PMU component is deliberately
+not enabled yet: ESPHome's built-in `sy6970` writes charge voltage, current and
+enable settings during setup, and EspControl uses a patched version to service
+the chip's I2C watchdog. Copying its charge settings without checking the
+battery and the board would alter charging. Battery status, charging control
+and OTG power output therefore require a separate hardware-validated change.
 
 ## Before calling the board hardware-tested
 
@@ -57,3 +68,5 @@ The pin map, panel settings and touch transform follow the
 at commit `3deece89098f25e7d155e41e4e0f5dd8b368ab02`, particularly
 [the ESPHome example](https://github.com/Xinyuan-LilyGO/T-Display-S3-Long/blob/3deece89098f25e7d155e41e4e0f5dd8b368ab02/examples/ESPHome_LVGL_HelloWorld/esphome-lvgl-hello-world.yaml)
 and `examples/GFX_AXS15231B_Image/pins_config.h`.
+The [EspControl Long board definition](https://github.com/willumpie82/espcontrol/blob/add-lilygo-t-display-s3-long/devices/lilygo-t-display-s3-long/device/device.yaml)
+also identifies the CST3530 and SY6970 and documents its PMU watchdog workaround.

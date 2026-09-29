@@ -1,5 +1,6 @@
 # LilyGO T-Display-S3-Long: 3.4-inch 180 x 640 AXS15231B QSPI panel,
-# capacitive touch, ESP32-S3, 16 MB flash and 8 MB octal PSRAM.
+# CST3530 capacitive touch, SY6970 battery PMU, ESP32-S3, 16 MB flash
+# and 8 MB octal PSRAM.
 # Hardware and panel workarounds follow LilyGO's ESPHome_LVGL_HelloWorld example.
 # See docs/LILYGO_S3_LONG.md for sources and the hardware acceptance checklist.
 packages:
@@ -54,9 +55,11 @@ output:
     id: gpio_backlight_pwm
     frequency: ${BACKLIGHT_FREQUENCY}
 
-# The controller reports 640 x 180 raw coordinates. Keep the manufacturer's
-# transform; LVGL applies the selected rotation once, after the touch driver.
-# GPIO16 resets both halves of the controller, and is owned by the display.
+# The CST3530 touch interface is read using LilyGO's ESPHome example's
+# axs15231 I2C platform. This is the ESPHome driver name, not the touch IC.
+# Touch reports 640 x 180 raw coordinates; LVGL applies rotation afterwards.
+# The CST3530's separate reset and interrupt are GPIO2 and GPIO11; polling
+# needs neither. GPIO16 resets the AXS15231B display only.
 touchscreen:
   - platform: axs15231
     id: ts_touch
@@ -94,3 +97,8 @@ display:
 lvgl:
   full_refresh: true
   draw_rounding: 4
+
+# The SY6970 charger is present at I2C address 0x6A on touch_bus. Its ESPHome
+# component writes charge limits and charge enable on setup; enabling it here
+# without validated battery settings would change the board's charging policy.
+# See docs/LILYGO_S3_LONG.md before adding PMU controls.
