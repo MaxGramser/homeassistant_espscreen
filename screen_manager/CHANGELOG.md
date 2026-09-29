@@ -1,3 +1,8 @@
+## 0.4.25 (firmware 0.14.0)
+
+- Fix the compiler type mismatch in the two-column light control layout on
+  ESPHome's LVGL version. This shared component fix updates every board.
+
 ## 0.4.24 (firmware 0.13.0)
 
 - Give the light temperature and brightness sliders half the screen each when

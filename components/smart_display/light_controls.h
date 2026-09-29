@@ -317,7 +317,8 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
 inline void strip_resize(Row &row, int width) {
   lv_obj_set_width(row.box, width);
   const int inset = ui::px(10), track_w = width - 2 * inset;
-  lv_obj_set_width(row.title, std::max(1, width - lv_obj_get_x(row.title) - inset - ui::px(42)));
+  const int title_x = static_cast<int>(lv_obj_get_x(row.title));
+  lv_obj_set_width(row.title, std::max(1, width - title_x - inset - ui::px(42)));
   lv_obj_align(row.value, LV_ALIGN_TOP_RIGHT, -inset, ui::px(5));
   if (row.index < 2) {
     const int h = lv_obj_get_height(row.ends[0]), span = track_w - h;
