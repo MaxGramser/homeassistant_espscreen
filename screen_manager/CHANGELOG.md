@@ -1,3 +1,10 @@
+## 0.4.24 (firmware 0.13.0)
+
+- Give the light temperature and brightness sliders half the screen each when
+  the colour control is absent. Put media volume beside full-size playback
+  buttons on the Long display, rather than shrinking those buttons.
+- This shared responsive layout update raises firmware for every board.
+
 ## 0.4.23 (firmware 0.12.0)
 
 - Fit light colour, temperature and brightness controls side by side on very

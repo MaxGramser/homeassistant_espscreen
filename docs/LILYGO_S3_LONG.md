@@ -12,6 +12,8 @@ calibration required by this firmware's separate LVGL rotation.
 Version 0.4.23 / firmware 0.12.0 places a lamp's colour, temperature and
 brightness controls beside each other on this short landscape screen and
 keeps a media player's volume row clear of its playback buttons.
+Version 0.4.24 / firmware 0.13.0 expands temperature and brightness when the
+lamp has no colour slider, and puts media volume beside finger-sized controls.
 
 The 3.4-inch panel has 180 x 640 native pixels, an ESP32-S3, 16 MB flash and 8 MB
 of octal PSRAM. Landscape uses a 640 x 180 canvas with four cells across;

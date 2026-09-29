@@ -32,15 +32,20 @@ static void sound(const Layout &l, int width, int height) {
 
 int main() {
   // Long 640x180 panel: its content area is short after the top bar.
-  // Playback keys and the volume row must occupy separate bands.
+  // Playback keys stay finger-sized and volume sits to their right.
   {
     ui::configure(196, "compact");
     Metrics m; m.large = false; m.title_h = 25; m.artist_h = 20; m.small_h = 16;
     for (int height : {100, 110, 120}) {
       Layout l = layout(m, 640, height);
-      sound(l, 640, height);
       assert(l.wide && !l.artist && !l.times);
-      assert(l.play.bottom() < l.volume.y);
+      for (const Rect *r : {&l.art, &l.title, &l.bar, &l.prev, &l.play, &l.next,
+                            &l.mute, &l.volume, &l.percent}) assert(inside(*r, 640, height));
+      assert(l.play.w >= ui::touch_min());
+      assert(l.prev.w >= ui::touch_min());
+      assert(l.next.right() < l.mute.x && l.next.right() < l.volume.x);
+      assert(l.play.cy() == l.prev.cy() && l.play.cy() == l.next.cy());
+      assert(above(l.title, l.bar) && above(l.bar, l.play));
     }
     ui::configure(170, "standard");
   }
