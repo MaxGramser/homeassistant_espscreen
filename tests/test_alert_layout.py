@@ -24,8 +24,8 @@ import profiles  # noqa: E402
 FIELDS = ('card_w', 'card_h', 'icon_x', 'icon_y', 'text_x', 'text_w', 'title_y', 'title_h', 'subtitle_y', 'subtitle_h',
           'button_x', 'button_y', 'button_w', 'button_h', 'button_inset', 'image_x', 'image_y', 'image_w', 'image_h')
 LOOKS = ('standard', 'compact')
-DPIS = (110, 133, 143, 149, 170, 190, 217, 294)
-SIDES = (170, 240, 272, 320, 480, 600, 800, 1024, 1280)
+DPIS = (110, 133, 143, 149, 170, 190, 196, 217, 294)
+SIDES = (170, 180, 240, 272, 320, 480, 600, 800, 1024, 1280)
 # The proportions of a picture: none (no image), the default, 16:9, square, a standing doorbell (3:4), 21:9 and 9:16.
 SHAPES = ((0, 0), (392, 220), (16, 9), (1, 1), (3, 4), (21, 9), (9, 16))
 

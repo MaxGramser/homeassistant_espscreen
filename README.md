@@ -61,6 +61,8 @@ https://github.com/user-attachments/assets/f9f6a933-d388-4c8b-9c9a-011dfa37617b
 </p>
 <p align="center"><sub>Real photos, not renders: the 4-inch Guition next to the lamp it controls.</sub></p>
 
+The **LilyGO T-Display-S3-Long** is also available as an experimental profile: four cells across or down on its 3.4-inch strip display. See [setup and hardware checks](docs/LILYGO_S3_LONG.md).
+
 ## Five screens supported, 2.8 to 10.1 inch
 
 One home, five panels. A screen is built for the glass it runs on: it measures its own canvas at boot and gives a page

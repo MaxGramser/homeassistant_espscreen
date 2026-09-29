@@ -106,3 +106,9 @@ waveshare7b:
   name: Waveshare
   model: ESP32-S3-Touch-LCD-7B
   status: experimental
+
+lilygos3long:
+  file: lilygos3long.yaml
+  name: LilyGO
+  model: T-Display-S3-Long
+  status: experimental

@@ -1,3 +1,14 @@
+## 0.4.19 (firmware 0.11.0)
+
+- Add the experimental LilyGO T-Display-S3-Long profile to New screen: a 3.4-inch
+  180 x 640 QSPI display with capacitive touch and dimming.
+- Four cells per page, across in landscape or stacked in portrait. The profile
+  uses LilyGO's full-frame refresh settings for the AXS15231B controller.
+- Fit alert text and buttons on short or narrow glass. Existing layouts retain their
+  normal spacing when there is room. This shared layout change raises the core
+  firmware to 0.11.0. Camera support on the Long is deferred.
+- Physical display, touch, rotation and backlight acceptance is still required.
+
 ## 0.4.18 (firmware 0.10.0)
 
 The home button in the top bar is the Tessera logo, and the starting screen says which firmware a screen runs.

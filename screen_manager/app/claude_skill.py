@@ -46,9 +46,9 @@ def _grids():
         grids.setdefault((SHAPES[board]['columns'], SHAPES[board]['rows']), []).append(f'the {_board(board)}')
     return '; '.join(f'{columns} × {rows} on {_and(boards)}' for (columns, rows), boards in grids.items())
 
-NAMES = list(dict.fromkeys(SHAPES[board].get('catalog', {}).get('name', board) for board in BOARD_KEYS))
-DESCRIPTION = (f'ESP Screens ({_and(NAMES)} screens run from Home Assistant): put, move or order tiles on a '
-               'screen, show an alert or open a page on it, and wake, sleep or keep a screen awake.')
+# Keep the description independent of the growing catalog so it stays below 200 characters.
+DESCRIPTION = ('ESP Screens from Home Assistant: put, move or order tiles on a screen, show an alert or open a page, '
+               'and wake, sleep or keep a screen awake.')
 TYPES = {'string': 'text', 'int': 'number', 'bool': 'on/off'}
 
 def skill_dir(config=None):

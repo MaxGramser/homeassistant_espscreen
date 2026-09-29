@@ -1,0 +1,96 @@
+# LilyGO T-Display-S3-Long: 3.4-inch 180 x 640 AXS15231B QSPI panel,
+# capacitive touch, ESP32-S3, 16 MB flash and 8 MB octal PSRAM.
+# Hardware and panel workarounds follow LilyGO's ESPHome_LVGL_HelloWorld example.
+# See docs/LILYGO_S3_LONG.md for sources and the hardware acceptance checklist.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  cells: !include ../cells/4.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  BOARD_ID: "lilygos3long"
+  DEVICE_NAME: "lilygos3long-new"
+  DEVICE_FRIENDLY_NAME: "My LilyGO Long"
+  PANEL_W: "180"
+  PANEL_H: "640"
+  DISPLAY_DPI: "195.538"
+  ROTATION_LANDSCAPE: "90"
+  GRID_COLS: "4"
+  GRID_ROWS: "1"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # Full refresh must have a complete frame, per LilyGO's example.
+  LVGL_BUFFER_SIZE: "100%"
+  BACKLIGHT_FREQUENCY: "1000Hz"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+spi:
+  id: lcd
+  type: quad
+  clk_pin: GPIO17
+  data_pins: [GPIO13, GPIO18, GPIO21, GPIO14]
+
+i2c:
+  id: touch_bus
+  sda: GPIO15
+  scl: GPIO10
+
+output:
+  - platform: ledc
+    pin: GPIO1
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+# The controller reports 640 x 180 raw coordinates. Keep the manufacturer's
+# transform; LVGL applies the selected rotation once, after the touch driver.
+# GPIO16 resets both halves of the controller, and is owned by the display.
+touchscreen:
+  - platform: axs15231
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    transform:
+      mirror_x: true
+      mirror_y: true
+      swap_xy: false
+    calibration:
+      x_min: 0
+      x_max: 640
+      y_min: 0
+      y_max: 180
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: AXS15231
+    spi_id: lcd
+    dimensions:
+      width: 180
+      height: 640
+    cs_pin: GPIO12
+    reset_pin: GPIO16
+    data_rate: 10MHz
+    # ESPHome takes the maximum of display and LVGL rounding. Override both.
+    draw_rounding: 4
+    update_interval: never
+    auto_clear_enabled: false
+
+# The controller cannot rotate in hardware. The shared core sets LVGL rotation.
+# Avoid partial address windows and rounding 180 pixels up to a multiple of 8.
+lvgl:
+  full_refresh: true
+  draw_rounding: 4
