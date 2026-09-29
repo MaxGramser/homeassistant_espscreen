@@ -14,6 +14,7 @@ packages:
 
 substitutions:
   BOARD_ID: "lilygos3long"
+  SCREEN_FIRMWARE_VERSION: "0.11.1"
   DEVICE_NAME: "lilygos3long-new"
   DEVICE_FRIENDLY_NAME: "My LilyGO Long"
   PANEL_W: "180"
@@ -27,6 +28,10 @@ substitutions:
   # Full refresh must have a complete frame, per LilyGO's example.
   LVGL_BUFFER_SIZE: "100%"
   BACKLIGHT_FREQUENCY: "1000Hz"
+  # Move the compact header up and start the grid sooner on 180-pixel glass.
+  # This gives the single row of four buttons 13 more pixels of height.
+  HEADER_Y: "8"
+  SCROLL_Y: "42"
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -71,10 +76,10 @@ touchscreen:
       mirror_y: true
       swap_xy: false
     calibration:
-      x_min: 0
-      x_max: 640
-      y_min: 0
-      y_max: 180
+      x_min: 10
+      x_max: 627
+      y_min: 6
+      y_max: 176
 
 display:
   - platform: mipi_spi
