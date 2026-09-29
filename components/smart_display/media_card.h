@@ -146,6 +146,29 @@ inline Layout layout(const Metrics &m, int width, int height) {
     y += bar_row(x, w, y, with_times);
     keys(x, w, y + h);
   }
+  // A very short strip leaves only one compact row above volume. Keep the
+  // playback keys inside that row so their hit areas cannot cross the slider.
+  if (height <= 140 && width >= 3 * height) {
+    l.wide = true;
+    l.artist = false;
+    l.times = false;
+    const int art = std::max(32, std::min(above, ui::px(64)));
+    l.art = {margin, 0, art, art};
+    const int x = l.art.right() + 2 * g, w = std::max(1, width - x - margin);
+    l.title = {x, 0, w, m.title_h};
+    const int bar_y = m.title_h + g / 2;
+    l.bar = {x, bar_y, w, m.bar_h()};
+    const int key_y = bar_y + m.bar_h() + g / 2;
+    const int play = std::max(1, std::min(m.play_h(), above - key_y - 2));
+    int side = std::min(m.key_h(), std::max(1, play - ui::px(5)));
+    if ((play - side) % 2 && side > 1) --side;
+    const int key_gap = m.min_gap();
+    const int key_w = 2 * side + play + 2 * key_gap;
+    const int key_x = x + (w - key_w) / 2;
+    l.prev = {key_x, key_y + (play - side) / 2, side, side};
+    l.play = {key_x + side + key_gap, key_y, play, play};
+    l.next = {l.play.right() + key_gap, l.prev.y, side, side};
+  }
   l.art_radius = radius_for(l.art.w);
   return l;
 }
