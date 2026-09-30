@@ -1,3 +1,11 @@
+## 0.4.32 (firmware 0.19.0)
+
+- Add the experimental LilyGO T-Display-S3-Long profile with four cells,
+  calibrated CST3530 touch, dimming and full-frame display refresh.
+- Keep light sliders and finger-sized media controls inside its short screen.
+  Include the latest upstream boards, page limits and editor improvements.
+- Battery charging and PMU control still require separate validation.
+
 ## 0.4.31 (firmware 0.18.1 for guition)
 
 - **Four rows on the 4-inch Guition, as a choice.** New screen asks how many tiles go on a page: two columns of three,
@@ -378,9 +386,7 @@ Automations on every screen (GitHub #62, thanks @Crazyraf87).
   on the Guition, the CYD and the Waveshare 4.3 (lying down and standing up). On a Guition 4 inch with a Home
   Assistant 2026.9: tap switches, hold runs, a run button runs also while the automation is off, holding it switches,
   and "Running..." shows for as long as the actions run.
->>>>>>> ac5c271 (Release 0.4.10 (firmware 0.7.0): automations on every screen (GitHub #62))
 
-<<<<<<< HEAD
 ## 0.4.10 (firmware 0.6.1 for waveshare4b)
 
 The Waveshare ESP32-S3-Touch-LCD-4B draws after a cold start.
@@ -390,7 +396,6 @@ The Waveshare ESP32-S3-Touch-LCD-4B draws after a cold start.
   the board's IO expander, and after a cold start those lines were never driven (ESPHome issue #11748). The board now
   prepares them before the display starts. Update the 4B from Tessera; it runs, so the update goes over the air.
 - Other screens get nothing new.
-=======
 ## 0.4.9 (firmware 0.6.2 for jc8012p4a1v3)
 
 Touch on the Guition JC8012P4A1 V3 (GitHub #52, thanks @ivanfmartinez).

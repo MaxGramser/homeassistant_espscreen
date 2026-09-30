@@ -121,3 +121,9 @@ jc8012p4a1v2:
   name: Guition
   model: JC8012P4A1 V2
   status: experimental
+
+lilygos3long:
+  file: lilygos3long.yaml
+  name: LilyGO
+  model: T-Display-S3-Long
+  status: experimental

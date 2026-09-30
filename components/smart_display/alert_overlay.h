@@ -152,6 +152,29 @@ inline Layout plain(int canvas_w, int canvas_h, int title_line, int line) {
   l.button_x = l.card_w - inset - l.button_w;
   l.button_y = l.card_h - inset - l.button_h;
   l.subtitle_h = whole_lines(std::max(0, l.button_y - l.subtitle_y - ui::px(big ? 20 : 10)), line);
+  // A strip display needs its vertical space for words, not the normal outer margins.
+  // Keep the usual layout untouched whenever two subtitle lines already fit.
+  if (l.subtitle_h < 2 * line) {
+    const int gap = ui::px(4);
+    l.card_h = std::max(0, canvas_h - 16);
+    l.title_y = l.icon_y = gap;
+    l.subtitle_y = l.title_y + title_line + gap;
+    l.button_inset = gap;
+    l.button_h = std::min(l.button_h, std::max(line + gap, l.card_h - l.subtitle_y - 2 * line - 2 * gap));
+    l.button_y = l.card_h - gap - l.button_h;
+    l.subtitle_h = whole_lines(std::max(0, l.button_y - l.subtitle_y - gap), line);
+  }
+  // On upright narrow glass, put the icon above the text instead of leaving a sliver beside it.
+  if (l.text_w < ui::px(80)) {
+    const int gap = ui::px(4);
+    l.text_x = l.icon_x;
+    l.text_w = std::max(0, l.card_w - 2 * l.text_x);
+    l.title_y = l.icon_y + ui::px(big ? 54 : 36) + gap;
+    l.subtitle_y = l.title_y + title_line + gap;
+    l.subtitle_h = whole_lines(std::max(0, l.button_y - l.subtitle_y - gap), line);
+  }
+  l.button_w = std::max(0, std::min(l.button_w, l.card_w - 2 * l.button_inset));
+  l.button_x = l.card_w - l.button_inset - l.button_w;
   return l;
 }
 
@@ -186,6 +209,10 @@ inline Layout above(int canvas_w, int canvas_h, int title_line, int line, int aw
   l.subtitle_y += shift;
   l.subtitle_h = whole_lines(subtitle, line);
   l.button_y = l.card_h - l.button_inset - l.button_h;
+  // The narrow-card fallback in plain() can put the title below the icon.
+  // If adding a picture leaves those words over the buttons, keep plain().
+  if (l.subtitle_y + l.subtitle_h > l.button_y - button_gap)
+    return plain(canvas_w, canvas_h, title_line, line);
   return l;
 }
 

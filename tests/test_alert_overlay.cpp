@@ -107,7 +107,7 @@ int main() {
             assert(l.card_w <= w && l.card_h <= h);
             assert(l.text_x + l.text_w < l.card_w || l.text_w == 0);
             assert(l.title_h == title && l.title_y + l.title_h <= l.subtitle_y && l.subtitle_h % line == 0);
-            assert(l.button_x >= 0 && l.button_y >= 0 || l.card_w < l.button_w + 2 * l.button_inset);
+            assert((l.button_x >= 0 && l.button_y >= 0) || l.card_w < l.button_w + 2 * l.button_inset);
             assert(l.button_x + l.button_w <= l.card_w && l.button_y + l.button_h <= l.card_h);
             if (image) {
               assert(l.image_x + l.image_w <= l.card_w && l.image_y + l.image_h <= l.card_h);

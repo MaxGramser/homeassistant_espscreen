@@ -54,7 +54,7 @@ class Shape(unittest.TestCase):
             for way in ('landscape', 'portrait'):
                 side = core.board_shape(shape, way)
                 self.assertLessEqual(side['columns'] * side['rows'], core.FIRMWARE_MAX_TILES, f'{board} {way}')
-                self.assertGreaterEqual(min(side['width'], side['height']), 200, f'{board} {way}')
+                self.assertGreaterEqual(min(side['width'], side['height']), 180, f'{board} {way}')
             self.assertIn(shape['look'], ('standard', 'compact'), board)
 
     def test_the_firmware_publishes_the_sensor_the_manager_reads(self):
