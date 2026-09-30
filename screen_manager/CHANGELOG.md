@@ -1,3 +1,7 @@
+## 0.4.38 (firmware 0.18.0)
+
+- Align issue-template generation and validation with the move of questions to Discussions. Keep the bug report's board choices checked without requiring or recreating the retired question template.
+
 ## 0.4.32 (firmware 0.18.0)
 
 - **Controls stay responsive with several previews open.** Live preview and editor updates use WebSockets so

@@ -143,7 +143,7 @@ icons_current() { cd "$ROOT" && "$PYTHON" tools/generate_icons.py --check; }
 # What every board looks like, as the manager reads it (screen_manager/app/boards.json from the board files).
 shapes_current() { cd "$ROOT" && "$PYTHON" tools/generate_board_shapes.py --check; }
 entries_current() { cd "$ROOT" && "$PYTHON" tools/generate_entries.py --check; }
-# The board dropdown in the bug report and question issue templates (.github/ISSUE_TEMPLATE), from boards.yaml.
+# The board dropdown in the bug report template (.github/ISSUE_TEMPLATE), from boards.yaml.
 issue_templates_current() { cd "$ROOT" && "$PYTHON" tools/generate_issue_templates.py --check; }
 # A firmware change with no higher number for the boards it reaches (docs/BOARD_RELEASES.md): those screens would
 # never be offered it. Against origin/main it warns while the work goes on and fails once config.yaml names a new app

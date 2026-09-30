@@ -1,10 +1,8 @@
-"""Write the two issue templates whose board dropdown lists every board (bug_report.yml, question.yml).
+"""Generate the bug report template's board dropdown from boards.yaml.
 
-boards.yaml is the one list of boards ESP Screens ships; the issue templates a reporter meets on GitHub named
-each board by hand before this, so a new board (tools/ADDING_A_BOARD.md) meant also editing two YAML files
-under .github/ISSUE_TEMPLATE by hand, easy to forget. This writes both files whole from boards.yaml's own order and
-names, the same way tools/generate_board_shapes.py writes screen_manager/app/boards.json. `--check` fails when a
-file is out of date, which tools/check.sh runs.
+Write bug_report.yml with the catalog's board names and order, so adding a board also updates the issue form.
+Questions use Discussions; their retired issue template is no longer generated. `--check` fails when the bug
+report template is out of date, which tools/check.sh runs.
 
 usage: generate_issue_templates.py [--check]
 """
@@ -96,36 +94,7 @@ body:
 '''
 
 
-def question():
-    return f'''name: Question
-description: Ask about setup, usage, or how something works.
-title: "[Question]: "
-labels: ["question"]
-body:
-  - type: markdown
-    attributes:
-      value: |
-        Check README.md, README_EXTENDED.md, and the guides under docs/ first, most setup questions
-        are already answered there.
-  - type: dropdown
-    id: board
-    attributes:
-      label: Board
-      description: Which board is this about, if any?
-      options:
-{board_options(extra_trailing=('Not board-specific',))}
-    validations:
-      required: true
-  - type: textarea
-    id: question
-    attributes:
-      label: Your question
-    validations:
-      required: true
-'''
-
-
-FILES = {'bug_report.yml': bug_report, 'question.yml': question}
+FILES = {'bug_report.yml': bug_report}
 
 
 def main():
