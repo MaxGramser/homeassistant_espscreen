@@ -665,6 +665,12 @@
    "title_line": 29
   },
   "board": "lilygos3long",
+  "camera": {
+   "full": [
+    640,
+    180
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -680,12 +686,18 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 196,
-  "firmware": "0.19.0",
+  "firmware": "0.19.1",
   "height": 180,
   "hotspot": true,
   "look": "compact",
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      640,
+      180
+     ]
+    },
     "columns": 4,
     "height": 180,
     "rotation": 90,
@@ -693,6 +705,12 @@
     "width": 640
    },
    "portrait": {
+    "camera": {
+     "full": [
+      180,
+      640
+     ]
+    },
     "columns": 1,
     "height": 640,
     "rotation": 180,
@@ -1783,6 +1801,12 @@
    "title_line": 29
   },
   "board": "lilygos3long",
+  "camera": {
+   "full": [
+    640,
+    180
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1798,12 +1822,18 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 196,
-  "firmware": "0.19.0",
+  "firmware": "0.19.1",
   "height": 180,
   "hotspot": true,
   "look": "compact",
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      640,
+      180
+     ]
+    },
     "columns": 4,
     "height": 180,
     "rotation": 90,
@@ -1811,6 +1841,12 @@
     "width": 640
    },
    "portrait": {
+    "camera": {
+     "full": [
+      180,
+      640
+     ]
+    },
     "columns": 1,
     "height": 640,
     "rotation": 180,
@@ -2487,6 +2523,12 @@
    "title_line": 29
   },
   "board": "lilygos3long",
+  "camera": {
+   "full": [
+    640,
+    180
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -2502,12 +2544,18 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 196,
-  "firmware": "0.19.0",
+  "firmware": "0.19.1",
   "height": 180,
   "hotspot": true,
   "look": "compact",
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      640,
+      180
+     ]
+    },
     "columns": 4,
     "height": 180,
     "rotation": 90,
@@ -2515,6 +2563,12 @@
     "width": 640
    },
    "portrait": {
+    "camera": {
+     "full": [
+      180,
+      640
+     ]
+    },
     "columns": 1,
     "height": 640,
     "rotation": 180,

@@ -9,11 +9,13 @@ packages:
   look: !include ../looks/compact.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
 
 substitutions:
   BOARD_ID: "lilygos3long"
+  SCREEN_FIRMWARE_VERSION: "0.19.1"
   DEVICE_NAME: "lilygos3long-new"
   DEVICE_FRIENDLY_NAME: "My LilyGO Long"
   PANEL_W: "180"

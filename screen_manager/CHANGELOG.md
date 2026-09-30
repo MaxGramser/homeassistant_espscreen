@@ -1,3 +1,9 @@
+## 0.4.33 (firmware 0.19.1 for lilygos3long)
+
+- Enable the LilyGO Long image pipeline so media player overlays can load album
+  covers. The other boards keep their current firmware version.
+- Match the app's alert picture sizing to the firmware's overflow guard.
+
 ## 0.4.32 (firmware 0.19.0)
 
 - Add the experimental LilyGO T-Display-S3-Long profile with four cells,

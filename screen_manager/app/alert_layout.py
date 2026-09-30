@@ -170,6 +170,8 @@ def above(canvas_w, canvas_h, title_line, line, scale, big, aw, ah):
     l.subtitle_y += shift
     l.subtitle_h = whole_lines(subtitle[0], line)
     l.button_y = l.card_h - l.button_inset - l.button_h
+    if l.subtitle_y + l.subtitle_h > l.button_y - button_gap:
+        return plain(canvas_w, canvas_h, title_line, line, scale, big)
     return l
 
 

@@ -39,6 +39,12 @@ def picture(fmt, size, mode='RGB'):
 
 
 class Rules(unittest.TestCase):
+    def test_long_can_receive_media_cover_art(self):
+        screen = {'board': 'lilygos3long', 'firmware': '0.19.1'}
+        self.assertTrue(camera_feed.can_show_cover(screen))
+        self.assertEqual(camera_feed.BOXES['lilygos3long']['full'], (640, 180))
+        self.assertIn('BOOT_CAMERA_HOOKS', profiles.text('checkout/lilygos3long.yaml'))
+
     def test_the_alert_picture_is_sized_for_the_frame_of_its_proportions(self):
         guition = {'board': 'guition', 'firmware_known': '0.2.103'}
         self.assertEqual(camera_feed.alert_box(guition, (1920, 1080)), (391, 220))
@@ -64,6 +70,9 @@ class Rules(unittest.TestCase):
             for way in ('landscape', 'portrait'):
                 screen = {'board': board, 'orientation': way, 'firmware_known': '0.2.103'}
                 full = camera_feed.box(screen, 'full')
+                if camera_feed.box(screen, 'thumb') is None:
+                    self.assertIsNone(camera_feed.alert_box(screen, (1920, 1080)))
+                    continue
                 for picture in ((1920, 1080), (720, 720), (1080, 1440), (2560, 1080), (1080, 1920)):
                     w, h = camera_feed.alert_box(screen, picture)
                     self.assertLessEqual(w * h, full[0] * full[1], (board, way, picture))
@@ -81,7 +90,11 @@ class Rules(unittest.TestCase):
                 continue
             for way in ('landscape', 'portrait'):
                 for view in ('full', 'thumb'):
-                    w, h = camera_feed.box({'board': board, 'orientation': way}, view)
+                    box = camera_feed.box({'board': board, 'orientation': way}, view)
+                    if box is None:
+                        self.assertEqual(view, 'thumb')
+                        continue
+                    w, h = box
                     self.assertLessEqual(max(w, h), camera_feed.PICTURE_MAX_SIDE, (board, way, view))
                     self.assertLessEqual(w * h * 2, camera_feed.PICTURE_MAX_BYTES, (board, way, view))
         # The 10-inch's full screen keeps its proportions; up to the 1024x600 glass every board keeps its own pixels.

@@ -19,8 +19,9 @@ Version 0.4.25 / firmware 0.14.0 fixes a compiler type mismatch in the light lay
 The 3.4-inch panel has 180 x 640 native pixels, an ESP32-S3, 16 MB flash and 8 MB
 of octal PSRAM. Landscape uses a 640 x 180 canvas with four cells across;
 portrait has four cells down. Both use the compact look, capacitive touch,
-PWM backlight and the shared settings and page system. Camera images are not
-enabled on this profile while their layout on narrow glass remains unverified.
+PWM backlight and the shared settings and page system. Firmware 0.19.1 enables
+the image pipeline for media cover art and camera pictures. Camera layouts on
+the narrow glass still need physical testing.
 The narrow glass is best suited to short tile names and simple controls.
 
 ## Hardware
