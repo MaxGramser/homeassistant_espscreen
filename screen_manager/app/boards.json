@@ -25,7 +25,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -69,7 +69,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -128,7 +128,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.1",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -192,7 +192,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": false,
   "look": "compact",
@@ -246,7 +246,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -320,7 +320,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -394,7 +394,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -468,7 +468,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -542,7 +542,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -616,7 +616,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -659,6 +659,68 @@
   "rows": 5,
   "width": 1280
  },
+ "checkout/lilygos3long.yaml": {
+  "alert": {
+   "line": 22,
+   "title_line": 29
+  },
+  "board": "lilygos3long",
+  "camera": {
+   "full": [
+    640,
+    180
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.4,
+   "model": "T-Display-S3-Long",
+   "name": "LilyGO",
+   "order": 16,
+   "status": "experimental",
+   "touch": "AXS15231"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 196,
+  "firmware": "0.19.1",
+  "height": 180,
+  "hotspot": true,
+  "look": "compact",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      640,
+      180
+     ]
+    },
+    "columns": 4,
+    "height": 180,
+    "rotation": 90,
+    "rows": 1,
+    "width": 640
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      180,
+      640
+     ]
+    },
+    "columns": 1,
+    "height": 640,
+    "rotation": 180,
+    "rows": 4,
+    "width": 180
+   }
+  },
+  "rows": 1,
+  "width": 640
+ },
  "checkout/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -690,7 +752,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -754,7 +816,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -808,7 +870,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -882,7 +944,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -956,7 +1018,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -1030,7 +1092,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -1099,7 +1161,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1143,7 +1205,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1202,7 +1264,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.1",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -1266,7 +1328,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": false,
   "look": "compact",
@@ -1320,7 +1382,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -1394,7 +1456,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -1468,7 +1530,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -1542,7 +1604,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -1616,7 +1678,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -1690,7 +1752,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -1733,6 +1795,68 @@
   "rows": 5,
   "width": 1280
  },
+ "lilygos3long": {
+  "alert": {
+   "line": 22,
+   "title_line": 29
+  },
+  "board": "lilygos3long",
+  "camera": {
+   "full": [
+    640,
+    180
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.4,
+   "model": "T-Display-S3-Long",
+   "name": "LilyGO",
+   "order": 16,
+   "status": "experimental",
+   "touch": "AXS15231"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 196,
+  "firmware": "0.19.1",
+  "height": 180,
+  "hotspot": true,
+  "look": "compact",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      640,
+      180
+     ]
+    },
+    "columns": 4,
+    "height": 180,
+    "rotation": 90,
+    "rows": 1,
+    "width": 640
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      180,
+      640
+     ]
+    },
+    "columns": 1,
+    "height": 640,
+    "rotation": 180,
+    "rows": 4,
+    "width": 180
+   }
+  },
+  "rows": 1,
+  "width": 640
+ },
  "packages/cyd.yaml": {
   "alert": {
    "line": 16,
@@ -1759,7 +1883,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1803,7 +1927,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1862,7 +1986,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.1",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -1926,7 +2050,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": false,
   "look": "compact",
@@ -1980,7 +2104,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -2054,7 +2178,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -2128,7 +2252,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -2202,7 +2326,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -2276,7 +2400,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -2350,7 +2474,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -2393,6 +2517,68 @@
   "rows": 5,
   "width": 1280
  },
+ "packages/lilygos3long.yaml": {
+  "alert": {
+   "line": 22,
+   "title_line": 29
+  },
+  "board": "lilygos3long",
+  "camera": {
+   "full": [
+    640,
+    180
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.4,
+   "model": "T-Display-S3-Long",
+   "name": "LilyGO",
+   "order": 16,
+   "status": "experimental",
+   "touch": "AXS15231"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 196,
+  "firmware": "0.19.1",
+  "height": 180,
+  "hotspot": true,
+  "look": "compact",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      640,
+      180
+     ]
+    },
+    "columns": 4,
+    "height": 180,
+    "rotation": 90,
+    "rows": 1,
+    "width": 640
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      180,
+      640
+     ]
+    },
+    "columns": 1,
+    "height": 640,
+    "rotation": 180,
+    "rows": 4,
+    "width": 180
+   }
+  },
+  "rows": 1,
+  "width": 640
+ },
  "packages/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -2424,7 +2610,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2488,7 +2674,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -2542,7 +2728,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2616,7 +2802,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2690,7 +2876,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2764,7 +2950,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -2838,7 +3024,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2902,7 +3088,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -2956,7 +3142,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -3030,7 +3216,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -3104,7 +3290,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -3178,7 +3364,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.18.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",

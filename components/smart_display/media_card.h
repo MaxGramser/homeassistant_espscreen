@@ -146,6 +146,36 @@ inline Layout layout(const Metrics &m, int width, int height) {
     y += bar_row(x, w, y, with_times);
     keys(x, w, y + h);
   }
+  // The 640x180 strip cannot stack full-size playback keys above volume.
+  // Put the two controls beside each other under the title and progress bar.
+  if (height <= 140 && width >= 560 && width >= 3 * height) {
+    l.wide = true;
+    l.artist = false;
+    l.times = false;
+    const int art = std::max(32, std::min(height, ui::px(64)));
+    l.art = {margin, 0, art, art};
+    const int x = l.art.right() + 2 * g, w = std::max(1, width - x - margin);
+    l.title = {x, 0, w, m.title_h};
+    const int bar_y = m.title_h + g / 2;
+    l.bar = {x, bar_y, w, m.bar_h()};
+    const int key_y = bar_y + m.bar_h() + g / 2;
+    const int play = std::min(m.play_h(), height - key_y - 2);
+    const int side = std::max(m.key_h(), ui::touch_min());
+    const int key_gap = m.min_gap();
+    const int key_x = x;
+    l.prev = {key_x, key_y + (play - side) / 2, side, side};
+    l.play = {key_x + side + key_gap, key_y, play, play};
+    l.next = {l.play.right() + key_gap, l.prev.y, side, side};
+    const int row_x = l.next.right() + 2 * g;
+    const int row_w = std::max(1, width - margin - row_x);
+    const int row_h = std::max(m.mute_h(), m.slider_h());
+    const int row_y = key_y + (play - row_h) / 2;
+    l.mute = {row_x, row_y + (row_h - m.mute_h()) / 2, m.mute_h(), m.mute_h()};
+    l.percent = {row_x + row_w - m.percent_w(), row_y + (row_h - m.small_h) / 2, m.percent_w(), m.small_h};
+    const int volume_x = l.mute.right() + g;
+    l.volume = {volume_x, row_y + (row_h - m.slider_h()) / 2,
+                std::max(1, l.percent.x - g - volume_x), m.slider_h()};
+  }
   l.art_radius = radius_for(l.art.w);
   return l;
 }

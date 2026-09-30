@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -45,7 +46,12 @@ namespace light_controls {
 inline State states[8];
 inline State fallback;
 inline State *active = &fallback;
-struct Row { lv_obj_t *box{}, *slider{}, *value{}, *icon{}; bool dirty = false; unsigned index{}; bool off = false; int held = 0; };
+struct Row {
+  lv_obj_t *box{}, *slider{}, *value{}, *icon{}, *title{};
+  std::array<lv_obj_t *, 2> ends{};
+  std::array<lv_obj_t *, 6> stripes{};
+  bool dirty = false; unsigned index{}; bool off = false; int held = 0;
+};
 inline Row rows[3];
 // The card the rows stand on: a hand's width, in the middle of the overlay that covers the glass.
 inline lv_obj_t *card = nullptr;
@@ -56,6 +62,8 @@ inline void state_updated(State *state);
 // Where the three rows start, their pitch, the gap between them and the height of the glass they were built
 // for: open() puts the rows that show in the middle of the room under the title with them.
 inline int top, spacing, row_gap, glass_h;
+inline bool strip = false;
+inline int strip_width = 0, strip_row_width = 0, strip_gap = 0;
 inline void subscribe(const char *const *entities, size_t count) {
 #ifdef USE_API_HOMEASSISTANT_STATES
   static const char *attributes[] = {"hs_color", "color_temp_kelvin", "min_color_temp_kelvin", "max_color_temp_kelvin"};
@@ -191,6 +199,8 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   // The look decides the class, never the glass: a wide panel draws the same rows, only at its own density.
   const bool large = ui::large();
   top = ui::px(large ? 100 : 52);
+  strip = height <= 200 && width >= 3 * height;
+  strip_width = width;
   // The three rows share the room under the title. A row wants the look's pitch, keeps at least a finger and
   // its words, and the three together never take more than what is left, so the card fits any glass it lands
   // on (a 800 x 480 panel at 217 dpi asked for 122 x 1.28 = 156 px a row and ran off the bottom). Three rows
@@ -201,6 +211,12 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   spacing = std::max(least, std::min(wanted, (room + gap) / 3));
   row_gap = gap; glass_h = height;
   int margin = ui::px(large ? 20 : 12), w = width - 2 * margin, card_h = spacing - gap;
+  if (strip) {
+    strip_gap = ui::px(5);
+    w = (width - 2 * margin - 2 * strip_gap) / 3;
+    strip_row_width = w;
+    card_h = std::max(1, height - top - ui::px(8));
+  }
   int inset = ui::px(large ? 18 : 10), text_y = ui::px(large ? 14 : 5), track_h = ui::px(large ? 32 : 18);
   int track_x = inset, track_w = w - 2 * inset, track_y = card_h - inset + (ui::px(large ? 2 : 3)) - track_h;
   // A row squeezed by a short screen keeps its words: the track moves right under them and gets thinner,
@@ -215,7 +231,8 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   const char *icons[] = {"\U000F03D8", "\U000F050F", "\U000F0335"};
   for (unsigned i = 0; i < 3; ++i) {
     auto &row = rows[i]; row.index = i;
-    row.box = plain(parent, margin, top + i * spacing, w, card_h);
+    row.box = plain(parent, margin + (strip ? i * (w + strip_gap) : 0),
+                    strip ? top : top + i * spacing, w, card_h);
     lv_obj_set_style_bg_opa(row.box, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(row.box, ui::px(large ? 18 : 10), 0);
     lv_obj_set_style_border_width(row.box, 1, 0);
@@ -226,10 +243,15 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
       lv_obj_set_style_text_font(icon, icon_font, 0);
       int icon_h = lv_font_get_line_height(icon_font), text_h = lv_font_get_line_height(font);
       lv_obj_set_pos(icon, inset - (ui::px(large ? 2 : 1)), text_y + (text_h - icon_h) / 2);
-      text_x += icon_h + (ui::px(large ? 6 : 4));
+      if (strip) lv_obj_add_flag(icon, LV_OBJ_FLAG_HIDDEN);
+      else text_x += icon_h + (ui::px(large ? 6 : 4));
     }
-    auto *label = lv_label_create(row.box); lv_label_set_text(label, names[i]);
+    auto *label = row.title = lv_label_create(row.box); lv_label_set_text(label, names[i]);
     lv_obj_set_pos(label, text_x, text_y);
+    if (strip) {
+      lv_obj_set_width(label, std::max(1, w - text_x - inset - ui::px(42)));
+      lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
+    }
     row.value = lv_label_create(row.box); lv_obj_align(row.value, LV_ALIGN_TOP_RIGHT, -inset, text_y);
     row.slider = lv_slider_create(row.box);
     lv_obj_remove_style_all(row.slider);
@@ -237,13 +259,13 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
     lv_obj_set_ext_click_area(row.slider, ui::px(large ? 12 : 8));
     if (i < 2) {
       // The knob travels between the centres of the two round ends.
-      round_end(row.box, track_x, track_y, track_h, i == 0 ? RAINBOW[0] : WARM);
-      round_end(row.box, track_x + track_w - track_h, track_y, track_h, i == 0 ? RAINBOW[6] : COOL);
+      row.ends[0] = round_end(row.box, track_x, track_y, track_h, i == 0 ? RAINBOW[0] : WARM);
+      row.ends[1] = round_end(row.box, track_x + track_w - track_h, track_y, track_h, i == 0 ? RAINBOW[6] : COOL);
       unsigned segments = i == 0 ? 6 : 1;
       int span = track_w - track_h;
       for (unsigned n = 0; n < segments; ++n) {
         int start = n * span / segments, end = (n + 1) * span / segments;
-        auto *stripe = plain(row.box, track_x + radius + start, track_y, end - start, track_h);
+        auto *stripe = row.stripes[n] = plain(row.box, track_x + radius + start, track_y, end - start, track_h);
         lv_obj_set_style_bg_opa(stripe, LV_OPA_COVER, 0);
         lv_obj_set_style_bg_color(stripe, lv_color_hex(i == 0 ? RAINBOW[n] : WARM), 0);
         lv_obj_set_style_bg_grad_color(stripe, lv_color_hex(i == 0 ? RAINBOW[n + 1] : COOL), 0);
@@ -290,6 +312,34 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
     preview(row);
   }
 }
+// Reflow a short screen's card when the hue row is absent: temperature and
+// brightness get half the glass each, including the full width of their tracks.
+inline void strip_resize(Row &row, int width) {
+  lv_obj_set_width(row.box, width);
+  const int inset = ui::px(10), track_w = width - 2 * inset;
+  const int title_x = static_cast<int>(lv_obj_get_x(row.title));
+  lv_obj_set_width(row.title, std::max(1, width - title_x - inset - ui::px(42)));
+  lv_obj_align(row.value, LV_ALIGN_TOP_RIGHT, -inset, ui::px(5));
+  if (row.index < 2) {
+    const int h = lv_obj_get_height(row.ends[0]), span = track_w - h;
+    lv_obj_set_x(row.ends[1], inset + span);
+    const int segments = row.index == 0 ? 6 : 1;
+    for (int n = 0; n < segments; ++n) {
+      const int start = n * span / segments, end = (n + 1) * span / segments;
+      lv_obj_set_x(row.stripes[n], inset + h / 2 + start);
+      lv_obj_set_width(row.stripes[n], end - start);
+    }
+    lv_obj_set_width(row.slider, span);
+  } else {
+    const int value = lv_slider_get_value(row.slider);
+    lv_obj_set_width(row.slider, track_w);
+    const int h = lv_obj_get_height(row.slider), handle = ui::px(3);
+    const int stub = std::max(h / 3, 2 * std::max(1, h / 8) + handle);
+    const int below = track_w > stub ? 99 * stub / (track_w - stub) : 0;
+    lv_slider_set_range(row.slider, 1 - below, 100);
+    lv_slider_set_value(row.slider, value, LV_ANIM_OFF);
+  }
+}
 // Late capability attributes may arrive after opening the card. Enable the
 // waiting temperature slider without disturbing an in-progress gesture.
 inline void state_updated(State *state) {
@@ -310,12 +360,23 @@ inline void open(const std::string &entity, bool color, bool temperature, int br
   int showing = (color ? 1 : 0) + (temperature ? 1 : 0) + 1;
   const int block = showing * spacing - row_gap;
   const int over = glass_h - top - ui::px(ui::large() ? 18 : 8) - block;
-  int y = over > ui::touch_min() ? top + over / 2 : top;
+  int y = over > ui::touch_min() && !strip ? top + over / 2 : top;
+  if (strip) {
+    const int columns = std::max(2, showing);
+    strip_row_width = (strip_width - 2 * ui::px(12) - (columns - 1) * strip_gap) / columns;
+  }
+  const int strip_left = strip ? (strip_width - showing * strip_row_width - (showing - 1) * strip_gap) / 2 : 0;
+  int visible_slot = 0;
   for (unsigned i = 0; i < 3; ++i) {
     auto &row = rows[i];
     bool visible = i == 0 ? color : i == 1 ? temperature : true;
     if (!visible) { lv_obj_add_flag(row.box, LV_OBJ_FLAG_HIDDEN); continue; }
-    lv_obj_remove_flag(row.box, LV_OBJ_FLAG_HIDDEN); lv_obj_set_y(row.box, y); y += spacing;
+    lv_obj_remove_flag(row.box, LV_OBJ_FLAG_HIDDEN); lv_obj_set_y(row.box, y);
+    if (strip) {
+      lv_obj_set_x(row.box, strip_left + visible_slot++ * (strip_row_width + strip_gap));
+      strip_resize(row, strip_row_width);
+    }
+    else y += spacing;
     lv_obj_remove_state(row.slider, LV_STATE_DISABLED);
     if (i == 1 && !active->temperature_ready()) lv_obj_add_state(row.slider, LV_STATE_DISABLED);
     if (i == 1 && active->temperature_ready()) lv_slider_set_range(row.slider, active->minimum, active->maximum);

@@ -118,6 +118,25 @@ def plain(canvas_w, canvas_h, title_line, line, scale, big):
     l.button_x = l.card_w - inset - l.button_w
     l.button_y = l.card_h - inset - l.button_h
     l.subtitle_h = whole_lines(max(0, l.button_y - l.subtitle_y - p(20 if big else 10)), line)
+    # Keep this fallback identical to screen_alert::plain in alert_overlay.h.
+    if l.subtitle_h < 2 * line:
+        gap = p(4)
+        l.card_h = max(0, canvas_h - 16)
+        l.title_y = l.icon_y = gap
+        l.subtitle_y = l.title_y + title_line + gap
+        l.button_inset = gap
+        l.button_h = min(l.button_h, max(line + gap, l.card_h - l.subtitle_y - 2 * line - 2 * gap))
+        l.button_y = l.card_h - gap - l.button_h
+        l.subtitle_h = whole_lines(max(0, l.button_y - l.subtitle_y - gap), line)
+    if l.text_w < p(80):
+        gap = p(4)
+        l.text_x = l.icon_x
+        l.text_w = max(0, l.card_w - 2 * l.text_x)
+        l.title_y = l.icon_y + p(54 if big else 36) + gap
+        l.subtitle_y = l.title_y + title_line + gap
+        l.subtitle_h = whole_lines(max(0, l.button_y - l.subtitle_y - gap), line)
+    l.button_w = max(0, min(l.button_w, l.card_w - 2 * l.button_inset))
+    l.button_x = l.card_w - l.button_inset - l.button_w
     return l
 
 
@@ -151,6 +170,8 @@ def above(canvas_w, canvas_h, title_line, line, scale, big, aw, ah):
     l.subtitle_y += shift
     l.subtitle_h = whole_lines(subtitle[0], line)
     l.button_y = l.card_h - l.button_inset - l.button_h
+    if l.subtitle_y + l.subtitle_h > l.button_y - button_gap:
+        return plain(canvas_w, canvas_h, title_line, line, scale, big)
     return l
 
 
