@@ -525,7 +525,7 @@
         "page_titles": "Um ecrã tem no máximo {n} página. | Um ecrã tem no máximo {n} páginas.",
         "tiles_max": "Escolha no máximo {n} mosaico. | Escolha no máximo {n} mosaicos.",
         "unsupported": "Esta entidade não é suportada.",
-        "once": "Uma entidade só pode aparecer uma vez num ecrã.",
+        "once": "O relógio de cabeceira só pode estar uma vez num ecrã.",
         "tile_name": "O nome de um mosaico pode ter no máximo 80 bytes.",
         "unknown_settings": "Opções de mosaico desconhecidas.",
         "navigation_size": "Um mosaico de navegação tem largura normal ou dupla.",
@@ -575,6 +575,7 @@
         "not_for_a_screen": "{entity} não pode ir para um ecrã.",
         "not_on_screen": "{entity} não está neste ecrã.",
         "add_it_first": "{entity} não está neste ecrã; adicione-a primeiro.",
+        "key_stays": "{entity} está sob o relógio de cabeceira; mova-o aí no editor.",
         "not_on_spot": "{entity} não está no espaço {slot}.",
         "not_on_page": "{entity} não está na página {page}.",
         "move_where": "Indique a página ou o espaço para onde a mover.",
@@ -1256,6 +1257,8 @@
         "not_flashed": "Ainda não está no Home Assistant. Já instalou o firmware? Adicione o dispositivo ESPHome em Configuração → Dispositivos & serviços e depois permita as ações do Home Assistant em Configurar. Ainda não? Firmware e USB → {file}."
       },
       "copy_api_key": "Copiar chave API",
+      "files": "Transferir ficheiros do ecrã",
+      "files_hint": "O YAML ESPHome do ecrã com as suas chaves, o Override YAML e um secrets.yaml com o Wi-Fi, para o compilar com o ESPHome no seu computador.",
       "details": {
         "room": "Divisão",
         "firmware": "Firmware",
@@ -1435,6 +1438,7 @@
       "all_rooms": "Todas as divisões",
       "hide_placed": "Ocultar adicionadas",
       "hide_placed_title": "Ocultar o que já está neste ecrã",
+      "again": "Já está neste ecrã; adicione-o de novo para outro mosaico",
       "all_placed": "Tudo o que está aqui já está neste ecrã.",
       "none_found": "Nenhuma entidade encontrada. Experimente outro nome, divisão ou filtro.",
       "full": "Neste ecrã cabe {n} mosaico. | Neste ecrã cabem {n} mosaicos.",
@@ -1634,7 +1638,9 @@
       },
       "keys": {
         "hint": "Arraste uma lâmpada, uma temperatura ou uma fechadura para os lugares redondos por baixo da hora, ou toque num lugar e escolha. São mosaicos: toque num para o configurar.",
-        "under": "Por baixo do relógio de cabeceira: um mosaico na sua forma redonda. Um toque faz o mesmo que num mosaico, e mantê-lo premido abre o seu cartão."
+        "under": "Por baixo do relógio de cabeceira: um mosaico na sua forma redonda. Um toque faz o mesmo que num mosaico, e mantê-lo premido abre o seu cartão.",
+        "name_shown": "Nome por baixo da tecla",
+        "name_shown_hint": "Desligado mostra só o círculo."
       }
     },
     "tile_card": {
@@ -1691,6 +1697,7 @@
       "name_placeholder": "Por exemplo: Sala de estar",
       "screen_name": "Título do ecrã",
       "screen_name_hint": "Todas as páginas sem título próprio mostram este.",
+      "no_title_hint": "Deixe vazio para mostrar apenas o logótipo.",
       "right": "Direita: hora, sensores ou um relógio",
       "item_label": "{name}, espaço {slot}. Enter: configurar; setas: mover",
       "remove_named": "Remover {name} da barra superior",
@@ -1924,10 +1931,12 @@
         "calibration": "Calibração do toque no primeiro arranque"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controlador do ecrã"
+        "DISPLAY_MODEL": "Controlador do ecrã",
+        "GRID_ROWS": "Blocos por página"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "A maioria destas placas tem o primeiro. Escolha o outro se o ecrã mostrar ruído ou uma imagem distorcida."
+        "DISPLAY_MODEL": "A maioria destas placas tem o primeiro. Escolha o outro se o ecrã mostrar ruído ou uma imagem distorcida.",
+        "GRID_ROWS": "Quatro linhas cabem oito blocos menores numa página, para um ecrã com muitos interruptores. Três linhas mantêm os blocos maiores e mais fáceis de ler."
       },
       "choice_usual": "a maioria",
       "orientation": "Como vai ficar pendurado?",
@@ -2010,7 +2019,16 @@
       "another": "Instalar outro ecrã",
       "start_over": "Recomeçar",
       "done": "Concluído",
-      "key_more": "Mostrar a chave API"
+      "key_more": "Mostrar a chave API",
+      "choice_option": {
+        "GRID_ROWS": {
+          "3": "3 linhas",
+          "4": "4 linhas, blocos menores"
+        }
+      },
+      "choice_first": {
+        "GRID_ROWS": "o tamanho habitual"
+      }
     },
     "alerts": {
       "eyebrow": "Alertas · guia rápido",
@@ -2398,6 +2416,34 @@
       "group_ha": "Ligado ao computador do Home Assistant",
       "group_here": "Ligado a este computador",
       "group_wifi": "Por Wi-Fi"
+    },
+    "preview": {
+      "type": "Tipo de novo ecrã",
+      "physical": "Ecrã físico",
+      "virtual": "Pré-visualização virtual",
+      "intro": "Crie um ecrã com entidades do Home Assistant sem emparelhar hardware. As pré-visualizações são guardadas neste navegador. Na pré-visualização do firmware, os toques só chegam ao Home Assistant se o ativar.",
+      "profile": "Placa / perfil",
+      "design_only": "Apenas um perfil de pré-visualização. Não adiciona suporte de firmware para esta placa física.",
+      "override": "Alterar resolução ou grelha",
+      "width": "Largura (píxeis)",
+      "height": "Altura (píxeis)",
+      "columns": "Colunas",
+      "rows": "Linhas",
+      "name": "Nome da pré-visualização",
+      "name_placeholder": "Pré-visualização Waveshare 4B",
+      "create": "Criar dispositivo virtual",
+      "created": "Dispositivo virtual \"{name}\" criado.",
+      "invalid_shape": "Escolha um nome, um perfil suportado, uma grelha de 1–8 colunas/linhas e uma área de 160–2560 píxeis.",
+      "canvas": "Pré-visualização do firmware LVGL",
+      "packet_error": "O firmware rejeitou um pacote de pré-visualização: {message}",
+      "stopped": "Pré-visualização do firmware parada: {message}",
+      "action_error": "O comando do Home Assistant falhou: {message}",
+      "remove": "A pré-visualização e a sua disposição guardada neste navegador.",
+      "save": "Guardar pré-visualização",
+      "saved": "Guardado neste navegador",
+      "hint": "O próprio firmware do ecrã, desenhado a partir do layout que está a editar. Toque, mantenha premido e deslize como no ecrã. Nada é guardado.",
+      "control": "Os toques controlam dispositivos",
+      "control_hint": "Ligado: um toque num mosaico executa a sua ação no Home Assistant, como no ecrã. Desligado: a pré-visualização mostra apenas o que um toque faz."
     }
   }
 }

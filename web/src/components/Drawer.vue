@@ -18,7 +18,7 @@ const open = computed(() => Boolean(state.inspector && (state.inspector.kind !==
       <TopbarInspector v-else-if="state.inspector.kind === 'bar'" :index="state.inspector.index" />
       <TopbarAdd v-else-if="state.inspector.kind === 'bar-add'" />
       <PageInspector v-else-if="state.inspector.kind === 'page'" :id="state.inspector.id" />
-      <InspectPanel v-else-if="state.inspector.kind === 'inspect'" :entity="state.inspector.entity" />
+      <InspectPanel v-else-if="state.inspector.kind === 'inspect'" :entity="state.inspector.entity" :slot="state.inspector.slot" :tile-key="state.inspector.key" />
     </template>
   </aside>
 </template>

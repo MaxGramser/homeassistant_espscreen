@@ -1,6 +1,6 @@
 // The grid rules: the same ones the add-on applies (core.pack_slots, validate_layout) and the firmware draws.
 import { describe, expect, it } from "vitest";
-import { ACTS_ON_TAP, createLayout, controlsLabel, holdHintKey, defaultOptions, effectiveControls, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, versionAtLeast } from "../src/model/layout";
+import { ACTS_ON_TAP, createLayout, legacyPages, controlsLabel, holdHintKey, defaultOptions, effectiveControls, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, versionAtLeast } from "../src/model/layout";
 let shape = { columns: 2, rows: 3 };
 const setGrid = (columns = 2, rows = 3) => { shape = { columns, rows }; };
 const { arrange, cellsOf, firstFree, fits, grid, hasGaps, nearestFree, normalize, occupied, packSlots, pageCount, pageStart, reorderPages, rowStart, spanOf, strandedPages, tileLimit } = createLayout(() => shape);
@@ -79,14 +79,17 @@ describe("the grid of the screen being edited", () => {
     expect(pageStart(5)).toBe(4);
     setGrid(2, 3);
   });
-  it("takes the pages from the firmware's cap of 64 tiles", () => {
-    // components/smart_display/runtime_model.h: grid.pages = min(64 / grid.slots, 8).
+  it("gives every grid eight pages, and older firmware the pages its 64 tiles fill", () => {
+    // components/smart_display/runtime_model.h: grid.pages = 8 (firmware 0.18.0+), 64 tiles over all of them.
     setGrid(3, 3);
-    expect([grid.pages, grid.maxSlots, grid.pages]).toEqual([7, 63, 7]);
-    expect(pageCount(entries([tile("a", 0)]), 99)).toBe(7);
+    expect([grid.pages, grid.maxSlots]).toEqual([8, 72]);
+    expect(pageCount(entries([tile("a", 0)]), 99)).toBe(8);
+    expect(tileLimit("0.18.0")).toBe(64);
+    // Before 0.18.0 a grid had min(64 / cells, 8) pages: seven of nine cells.
     expect(tileLimit("0.2.80")).toBe(63);
+    expect(legacyPages({ columns: 5, rows: 4 })).toBe(3);
     setGrid(4, 4);
-    expect([grid.pages, grid.maxSlots]).toEqual([4, 64]);
+    expect([grid.pages, grid.maxSlots]).toEqual([8, 128]);
     setGrid(1, 4);
     expect([grid.pages, grid.maxSlots]).toEqual([8, 32]);
     setGrid(2, 3);
@@ -278,8 +281,10 @@ it('keeps simultaneous layout instances independent and reads a shape change imm
   expect(other.cellsOf(0, 'square')).toEqual([0, 1, 3, 4]);
   documentGrid = { columns: 4, rows: 4 };
   expect(editor.cellsOf(0, 'square')).toEqual([0, 1, 4, 5]);
-  expect(editor.grid.pages).toBe(4);
-  expect(other.grid.pages).toBe(7);
+  expect(editor.grid.pages).toBe(8);
+  expect(other.grid.pages).toBe(8);
+  // A screen's own page limit (page_limit, older firmware) caps the pages the editor offers.
+  expect(createLayout(() => documentGrid, () => 4).grid.pages).toBe(4);
 });
 
 describe("the alarm panel's colours (app 0.3.8)", () => {

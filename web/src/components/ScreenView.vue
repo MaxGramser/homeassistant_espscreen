@@ -17,7 +17,7 @@ import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import UiMenuSub from "./ui/UiMenuSub.vue";
 
 const screen = computed(() => currentScreen.value!);
-const statusText = computed(() => screen.value.online
+const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
   ? `${screen.value.delivery} · ${screen.value.status}`
   : t("editor.screen_view.offline"));
 // The head says whether the screen is there in one word; the details of its delivery stay in the chip's tooltip.
@@ -79,15 +79,15 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
       <button type="button" id="tab-layout" role="tab" :aria-pressed="state.tab === 'layout' ? 'true' : 'false'" :aria-selected="state.tab === 'layout'" @click="state.tab = 'layout'">
         <Icon name="view-dashboard-outline" />{{ t("editor.screen_view.tabs.layout") }}
       </button>
-      <button type="button" id="tab-settings" role="tab" :aria-pressed="state.tab === 'settings' ? 'true' : 'false'" :aria-selected="state.tab === 'settings'" @click="state.tab = 'settings'; closeInspector()">
+      <button v-if="!screen.virtual" type="button" id="tab-settings" role="tab" :aria-pressed="state.tab === 'settings' ? 'true' : 'false'" :aria-selected="state.tab === 'settings'" @click="state.tab = 'settings'; closeInspector()">
         <Icon name="cog-outline" />{{ t("editor.screen_view.tabs.settings") }}
       </button>
     </div>
     <div class="head-right">
-      <span v-if="!state.dirty" id="dirty" class="saved-note" :class="{ sent: state.saved }"><Icon name="check" />{{ state.saved ? t("editor.screen_view.sent") : t("editor.screen_view.all_saved") }}</span>
+      <span v-if="!state.dirty" id="dirty" class="saved-note" :class="{ sent: state.saved }"><Icon name="check" />{{ state.saved ? t(screen.virtual ? "editor.preview.saved" : "editor.screen_view.sent") : t("editor.screen_view.all_saved") }}</span>
       <span v-else id="dirty" class="chip dirty">{{ t("editor.common.unsaved") }}</span>
       <button v-if="state.dirty" id="save" type="button" class="btn primary" :disabled="state.busy" title="⌘S" @click="save()">
-        <span v-if="state.busy" class="spin small"></span>{{ state.busy ? t("editor.common.saving") : t("editor.common.save_send") }}
+        <span v-if="state.busy" class="spin small"></span>{{ state.busy ? t("editor.common.saving") : t(screen.virtual ? "editor.preview.save" : "editor.common.save_send") }}
       </button>
       <UiMenu v-model:open="state.menuOpen" width="264px">
         <template #trigger>

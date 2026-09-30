@@ -41,13 +41,15 @@ class Rules(unittest.TestCase):
         self.assertEqual((DEFAULT_GRID.columns, DEFAULT_GRID.rows, DEFAULT_GRID.slots, DEFAULT_GRID.pages, DEFAULT_GRID.max_tiles), (2, 3, 6, 8, 48))
         self.assertEqual((core.SLOTS_PER_PAGE, core.MAX_PAGES, core.MAX_SLOTS, core.MAX_TILES), (6, 8, 48, 48))
 
-    def test_pages_follow_the_firmware_cap_of_sixty_four_tiles(self):
-        # components/smart_display/runtime_model.h: MAX_PAGES = min(64 / SLOTS_PER_PAGE, 8).
-        self.assertEqual((WIDE.pages, WIDE.max_slots), (7, 63))
-        self.assertEqual((TALL.pages, TALL.max_slots), (8, 32))
-        self.assertEqual((BIG.pages, BIG.max_slots), (4, 64))
-        self.assertEqual((Grid(8, 8).pages, Grid(8, 8).max_slots), (1, 64))
-        self.assertEqual((Grid(5, 4).pages, Grid(5, 4).max_slots), (3, 60))
+    def test_every_grid_has_eight_pages_and_sixty_four_tiles(self):
+        # components/smart_display/runtime_model.h (firmware 0.18.0+): eight pages whatever the grid, 64 tiles over them.
+        self.assertEqual((WIDE.pages, WIDE.max_slots, WIDE.max_tiles), (8, 72, 64))
+        self.assertEqual((TALL.pages, TALL.max_slots, TALL.max_tiles), (8, 32, 32))
+        self.assertEqual((BIG.pages, BIG.max_slots, BIG.max_tiles), (8, 128, 64))
+        self.assertEqual((Grid(8, 8).pages, Grid(8, 8).max_tiles), (8, 64))
+        self.assertEqual((Grid(5, 5).pages, Grid(5, 5).max_slots, Grid(5, 5).max_tiles), (8, 200, 64))
+        # Older firmware had as many pages as 64 tiles fill: seven of nine cells, three of twenty.
+        self.assertEqual((WIDE.legacy_pages, BIG.legacy_pages, Grid(5, 4).legacy_pages, Grid(8, 8).legacy_pages), (7, 4, 3, 1))
         for columns, rows in ((0, 3), (2, 0), (9, 8), (13, 5)):
             with self.assertRaises(ValueError):
                 Grid(columns, rows)
@@ -68,8 +70,8 @@ class Rules(unittest.TestCase):
         self.assertEqual(pack_slots(tiles), [0, 1, 2, 4, 6, 12])
         # Past the last page the packing is refused, on this screen's pages.
         with self.assertRaises(ValueError):
-            packed_slots([tile(f'light.{i}') for i in range(64)], WIDE)
-        self.assertEqual(len(packed_slots([tile(f'light.{i}') for i in range(63)], WIDE)), 63)
+            packed_slots([tile(f'light.{i}') for i in range(73)], WIDE)
+        self.assertEqual(len(packed_slots([tile(f'light.{i}') for i in range(72)], WIDE)), 72)
 
     def test_rows_columns_and_pages_are_read_back_from_a_slot(self):
         self.assertEqual((WIDE.page_of(13), WIDE.row_of(13), WIDE.column_of(13), WIDE.column_word(13)), (1, 2, 2, 2))
@@ -102,6 +104,10 @@ class Screens(unittest.TestCase):
         self.assertEqual(tile_limit((0, 2, 80)), 48)
         self.assertEqual(tile_limit((0, 2, 40), WIDE), 20)
         self.assertEqual(firmware_features((0, 2, 80), WIDE)['tile_limit'], 63)
+        # Eight pages on every grid (firmware 0.18.0+): 64 tiles on nine cells a page, eight pages where it had seven.
+        self.assertEqual(tile_limit((0, 18, 0), WIDE), 64)
+        self.assertEqual((firmware_features((0, 17, 0), WIDE)['page_limit'], firmware_features((0, 18, 0), WIDE)['page_limit']), (7, 8))
+        self.assertEqual(firmware_features((0, 17, 0), Grid(5, 5))['page_limit'], 2)
 
 
 class Layouts(unittest.TestCase):
@@ -114,12 +120,12 @@ class Layouts(unittest.TestCase):
             validate_layout(data, grid=DEFAULT_GRID)
         for bad, why in (({'title': 'Hall', 'tiles': [tile('light.a', 2, size='wide')]}, 'left column'),
                          ({'title': 'Hall', 'tiles': [tile('light.a', 10, size='full')]}, 'top of its page'),
-                         ({'title': 'Hall', 'tiles': [tile('light.a', 63)]}, 'position'),
+                         ({'title': 'Hall', 'tiles': [tile('light.a', 72)]}, 'position'),
                          ({'title': 'Hall', 'tiles': [tile('light.a', 4, size='wide'), tile('light.b', 5)]}, 'same spot'),
-                         ({'title': 'Hall', 'tiles': [], 'pages': 8}, 'pages')):
+                         ({'title': 'Hall', 'tiles': [], 'pages': 9}, 'pages')):
             with self.assertRaisesRegex(ValueError, why):
                 validate_layout(bad, grid=WIDE)
-        self.assertEqual(validate_layout({'title': 'Hall', 'tiles': [], 'pages': 7}, grid=WIDE)['pages'], 7)
+        self.assertEqual(validate_layout({'title': 'Hall', 'tiles': [], 'pages': 8}, grid=WIDE)['pages'], 8)
         # Without positions the tiles are packed on that grid.
         packed = validate_layout({'title': 'Hall', 'tiles': [tile('light.a'), tile('light.b'), tile('light.c', size='wide')]}, grid=WIDE)
         self.assertEqual([t['slot'] for t in packed['tiles']], [0, 1, 3])
@@ -146,7 +152,7 @@ class Events(unittest.TestCase):
         self.assertEqual(event_slot({'row': 4, 'column': 'left'}, 1, TALL), 7)
         self.assertEqual(event_slot({'slot': 62}, None, WIDE), 62)
         for data, why in (({'row': 4, 'column': 'left'}, 'row between 1 and 3'), ({'row': 1, 'column': 4}, 'column between 1 and 3'),
-                          ({'row': 1, 'column': 'top'}, 'column between 1 and 3'), ({'slot': 63}, 'spot between 0 and 62')):
+                          ({'row': 1, 'column': 'top'}, 'column between 1 and 3'), ({'slot': 72}, 'spot between 0 and 71')):
             with self.assertRaisesRegex(ValueError, why):
                 event_slot(data, 0, WIDE)
         # Two columns keep their words, and their message.
@@ -164,23 +170,23 @@ class Events(unittest.TestCase):
         self.assertEqual(next(t['slot'] for t in result['tiles'] if t['entity'] == 'light.f'), 9)
         result = apply_tile_event(start, 'add', {'entity': 'light.d', 'page': 7, 'row': 3, 'column': 3}, grid=WIDE)
         self.assertEqual(next(t['slot'] for t in result['tiles'] if t['entity'] == 'light.d'), 62)
-        with self.assertRaisesRegex(ValueError, 'page between 1 and 7'):
-            apply_tile_event(start, 'add', {'entity': 'light.d', 'page': 8}, grid=WIDE)
+        with self.assertRaisesRegex(ValueError, 'page between 1 and 8'):
+            apply_tile_event(start, 'add', {'entity': 'light.d', 'page': 9}, grid=WIDE)
         # A wide tile dropped on the last column moves one column left, into the same row.
         result = apply_tile_event({'title': 'Hall', 'tiles': []}, 'add', {'entity': 'light.w', 'size': 'wide', 'slot': 5}, grid=WIDE)
         self.assertEqual(result['tiles'][0]['slot'], 4)
         # A single column: a wide tile is one cell, a page is four.
         result = apply_tile_event({'title': 'Hall', 'tiles': [tile('light.a', 0)]}, 'add', {'entity': 'light.w', 'size': 'wide'}, grid=TALL)
         self.assertEqual(next(t['slot'] for t in result['tiles'] if t['entity'] == 'light.w'), 1)
-        full = {'title': 'Hall', 'tiles': [tile(f'light.{i}', i) for i in range(63)]}
-        with self.assertRaisesRegex(ValueError, '63 tiles'):
+        full = {'title': 'Hall', 'tiles': [tile(f'light.{i}', i) for i in range(64)]}
+        with self.assertRaisesRegex(ValueError, '64 tiles'):
             apply_tile_event(full, 'add', {'entity': 'light.extra'}, grid=WIDE)
 
     def test_the_sensor_reads_back_in_the_screens_own_grid(self):
         screen = {'name': 'Hall', 'node': 'hall', 'shape': {'width': 800, 'height': 480, 'columns': 3, 'rows': 3}}
         data = {'title': 'Hall', 'tiles': [tile('light.a', 0), tile('light.w', 4, size='wide'), tile('light.b', 13)]}
         snapshot = layout_snapshot(screen, data)
-        self.assertEqual((snapshot['columns'], snapshot['rows'], snapshot['max_pages'], snapshot['pages']), (3, 3, 7, 2))
+        self.assertEqual((snapshot['columns'], snapshot['rows'], snapshot['max_pages'], snapshot['pages']), (3, 3, 8, 2))
         self.assertEqual([(t['entity'], t['page'], t['row'], t['column']) for t in snapshot['tiles']],
                          [('light.a', 1, 1, 1), ('light.w', 1, 2, 2), ('light.b', 2, 2, 2)])
         # The first boards keep left and right.

@@ -1,7 +1,7 @@
 // What a drag near an edge scrolls (app 0.2.78): on a phone the row of pages sideways and the page itself up and
 // down, on a wide window the canvas both ways.
 import { beforeEach, describe, expect, it } from "vitest";
-import { dragScrollers, edgeStep, nearestRect, scrollsAlong, slotAt } from "../src/drag";
+import { dragScrollers, edgeStep, nearestRect, scrollsAlong, slotAt, vDrag } from "../src/drag";
 import { state } from '../src/store';
 
 // jsdom has no layout: give an element the sizes a browser would measure, and the overflow longhands it computes.
@@ -86,5 +86,32 @@ describe("the place in the row under the pointer", () => {
     expect(nearestRect(row, 1200, 200)).toBe(-1);
     expect(nearestRect(row, 400, 600)).toBe(-1);
     expect(nearestRect([], 100, 200)).toBe(-1);
+  });
+});
+
+// A press belongs to the innermost button or draggable under it (GitHub #93): a bedside clock's key drags and opens
+// as the key, its empty place is pressed as a button, and neither is taken over by the clock's card around them.
+describe("who a press belongs to", () => {
+  function pointer(type: string, target: Element, x: number) {
+    const event = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 10, button: 0 });
+    Object.defineProperties(event, { pointerId: { value: 1 }, pointerType: { value: "mouse" } });
+    target.dispatchEvent(event);
+  }
+  it("drags a key under its clock, not the clock", () => {
+    const clock = { entity: "screen.nightstand", name: "", slot: 0, id: "clock" }, key = { entity: "light.bed", name: "Bed", slot: -1, id: "key", in: "screen.nightstand", key: 0 };
+    pages.innerHTML = '<div class="tile"><span class="key-place"><button class="round-key">Bed</button></span><button class="key-empty">+</button></div>';
+    const card = pages.querySelector<HTMLElement>(".tile")!, round = pages.querySelector<HTMLElement>(".round-key")!;
+    vDrag.mounted!(card, { value: { kind: "tile", tile: clock } } as any, null as any, null as any);
+    vDrag.mounted!(round, { value: { kind: "tile", tile: key } } as any, null as any, null as any);
+    pointer("pointerdown", round, 0);
+    pointer("pointermove", round, 20);
+    expect(state.drag.active).toBe(true);
+    expect(state.drag.moving).toEqual(key);
+    pointer("pointerup", document.documentElement, 20);
+    expect(state.drag.active).toBe(false);
+    // The empty place is a button of its own: pressing it starts no drag of the clock.
+    pointer("pointerdown", pages.querySelector(".key-empty")!, 0);
+    pointer("pointermove", card, 20);
+    expect(state.drag.active).toBe(false);
   });
 });

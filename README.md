@@ -66,7 +66,7 @@ The **LilyGO T-Display-S3-Long** is also available as an experimental profile: f
 ## Five screens supported, 2.8 to 10.1 inch
 
 One home, five panels. A screen is built for the glass it runs on: it measures its own canvas at boot and gives a page
-the cells that board has, six tiles on the 2.8-inch CYD and twenty on the 10.1-inch Guition, while a tile stays about
+the cells that board has, six tiles on the 2.8-inch CYD and twenty-five on the 10.1-inch Guition, while a tile stays about
 the same size in millimetres. The same tiles, the same cards, the same editor; the bigger the glass, the more of your
 home fits on one page.
 
@@ -102,7 +102,7 @@ home fits on one page.
   <img src="docs/images/tall-waveshare43-media.png" width="49%" alt="The 4.3-inch Waveshare: the media tile two by two with its album cover, a bedroom thermostat one cell wide and two high, a lamp dimmer and a person">
   <img src="docs/images/tall-waveshare43-climate.png" width="49%" alt="The same screen in dark mode: the heating two by two with its mode keys beside the setpoint, the blinds one by two, a temperature graph and the coffee machine">
 </p>
-<p align="center"><sub>A tile can be 1 × 2 or 2 × 2 cells as well as one cell, double width or the whole page, and the card follows the room it gets: a player shows its album cover behind the track (every screen but the CYD), the heating shows its setpoint and the modes Home Assistant lists for it (the last key opens the card when they do not all fit), a blind shows its position, and its slats where there is room, an on/off tile stands centred with its switch. Every board works out the same card from its own glass. Each page has its own title and top bar, any page can be Home, and a page can stay out of the page dots and be opened from a tile, with a Back key to return. Rendered from the firmware's own LVGL code with a demo home.</sub></p>
+<p align="center"><sub>A tile can be 1 × 2 or 2 × 2 cells as well as one cell, double width or the whole page, and the card follows the room it gets: a player shows its album cover behind the track (every screen but the CYD), the heating shows its setpoint and the modes Home Assistant lists for it (the last key opens the card when they do not all fit), a blind shows its position, and its slats where there is room, and a lamp, a switch, a script or a scene two cells high is one big key. Every board works out the same card from its own glass. Each page has its own title and top bar, any page can be Home, and a page can stay out of the page dots and be opened from a tile, with a Back key to return. Rendered from the firmware's own LVGL code with a demo home.</sub></p>
 
 ## Weather, heating, cameras, your alarm and your locks
 
@@ -280,12 +280,14 @@ while it keeps your country's clock and numbers.
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
 | [Waveshare ESP32-S3-Touch-LCD-7](https://tessera-maxgramser.on-forge.com/screens/waveshare7) (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; backlight always on, hardware acceptance pending ([details](docs/WAVESHARE7.md)) |
 | Waveshare ESP32-S3-Touch-LCD-7B (experimental) | 1024 × 600, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE7B.md)) |
+| Sunton ESP32-8048S070, 7 inch (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/SUNTON8048S070.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-4B](https://tessera-maxgramser.on-forge.com/screens/waveshare4b), 4 inch (experimental) | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE4B.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-3.5](https://tessera-maxgramser.on-forge.com/screens/waveshare35) (new) | 480 × 320, 2 × 2 tiles | ST7796 SPI / capacitive FT6336; dimmable backlight, no camera pictures ([details](docs/WAVESHARE35.md)) |
 | [Hosyond ESP32-32E](https://tessera-maxgramser.on-forge.com/screens/hosyond40), 4 inch (experimental) | 480 × 320, 2 × 3 tiles | ST7796 SPI / resistive XPT2046; dimmable backlight, no camera pictures, hardware acceptance pending ([details](docs/HOSYOND40.md)) |
 | [Guition JC3248W535](docs/JC3248W535.md), 3.5 inch (new) | 480 × 320, 2 × 2 tiles | AXS15231B QSPI / capacitive AXS15231B; dimmable backlight, camera pictures |
-| [Guition JC8012P4A1](https://tessera-maxgramser.on-forge.com/screens/jc8012p4a1), 10.1 inch | 1280 × 800, 5 × 4 tiles | MIPI-DSI JD9365 / capacitive GSL3680, ESP32-P4 (new) ([details](docs/JC8012P4A1.md)) |
-| Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 4 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
+| [Guition JC8012P4A1](https://tessera-maxgramser.on-forge.com/screens/jc8012p4a1), 10.1 inch | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, ESP32-P4 (new) ([details](docs/JC8012P4A1.md)) |
+| Guition JC8012P4A1 V2, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, early ESP32-P4 with the newer LCD; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
+| Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; hardware acceptance pending ([details](docs/JC1060P470.md)) |
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.

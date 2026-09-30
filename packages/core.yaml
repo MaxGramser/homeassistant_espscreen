@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.14.0"
+  SCREEN_FIRMWARE_VERSION: "0.19.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -120,6 +120,7 @@ esphome:
           runtime_tiles::watch_icon_font = id(watch_icon)->get_lv_font();
           runtime_tiles::clock_font = id(clock_digits)->get_lv_font();
           runtime_tiles::bedside_font = id(bedside_digits)->get_lv_font();
+          runtime_tiles::display_font = id(display_digits)->get_lv_font();
           runtime_tiles::brand_font = id(brand_wordmark)->get_lv_font();
           runtime_tiles::brand_mark = id(tessera_mark)->get_lv_image_dsc();
           runtime_tiles::firmware_version = "${SCREEN_FIRMWARE_VERSION}";
@@ -267,6 +268,11 @@ esphome:
           effects_page::roller_font = id(sublabel_big)->get_lv_font();
           effects_page::icon_font = id(materialdesign_icons_mini)->get_lv_font();
           effects_page::tile_of = [](const std::string &entity) -> const runtime_tiles::Tile * {
+            // The tile whose card is open (active_index, set by every tap or hold that opens one): an entity may
+            // stand on several tiles (firmware 0.16.0+), and the pages behind its card belong to that one.
+            const int active = runtime_tiles::active_index;
+            if (active >= 0 && static_cast<size_t>(active) < runtime_tiles::model.count && runtime_tiles::model.tiles[active].entity == entity)
+              return &runtime_tiles::model.tiles[active];
             for (size_t i = 0; i < runtime_tiles::model.count; ++i) if (runtime_tiles::model.tiles[i].entity == entity) return &runtime_tiles::model.tiles[i];
             return nullptr;
           };
@@ -556,6 +562,10 @@ api:
                     root["group_lamps"] = 1;
                     // Tiles without a place of their own, the keys of a bedside clock (firmware 0.8.0+, app 0.4.12+).
                     root["tile_keys"] = 1;
+                    // One entity on several tiles (firmware 0.16.0+, app 0.4.26+).
+                    root["tile_repeats"] = 1;
+                    // Eight pages on every grid, at most 64 tiles over all of them (firmware 0.18.0+, app 0.4.30+).
+                    root["free_pages"] = 1;
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
                       if (size.fits(runtime_tiles::grid.columns, runtime_tiles::grid.rows)) sizes.add(size.name);
@@ -721,12 +731,6 @@ image:
 
 font:
   - file: "${FONT_DIR}/Roboto-500.ttf"
-    id: time_label
-    size: ${FONT_TIME_SIZE}
-    bpp: 4
-    glyphs: ['0','1','2','3','4','5','6','7','8','9',':',' ', 'A', 'M', 'P']
-
-  - file: "${FONT_DIR}/Roboto-500.ttf"
     id: headline
     size: ${FONT_HEADLINE_SIZE}
     bpp: 4
@@ -767,8 +771,16 @@ font:
     bpp: 4
     glyphs: [':','-','0','1','2','3','4','5','6','7','8','9']
 
-  # The bedside clock's digits (firmware 0.8.0+): the largest the board's page takes in both orientations
-  # (FONT_BEDSIDE_SIZE, packages/looks/shared/bedside.yaml); only the digits and the colon.
+  # The display step (firmware 0.17.0+): half a page's width, the flip clock's blocks and the bedside clock
+  # (FONT_DISPLAY_SIZE, packages/looks/shared/digits.yaml); only the digits and the colon.
+  - file: "${FONT_DIR}/Roboto-400.ttf"
+    id: display_digits
+    size: ${FONT_DISPLAY_SIZE}
+    bpp: 4
+    glyphs: [':','0','1','2','3','4','5','6','7','8','9']
+
+  # The bedside clock's own step (firmware 0.8.0+), only where the whole page takes a fifth larger digits than the display
+  # step; elsewhere it stays at 8 px and the clock takes the display step (packages/looks/shared/digits.yaml).
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: bedside_digits
     size: ${FONT_BEDSIDE_SIZE}
@@ -1221,6 +1233,7 @@ font:
       - "\U000F059C" # weather-sunset-up
       - "\U000F059B" # weather-sunset-down
 
+
   - file: "${FONT_DIR}/materialdesignicons-webfont.ttf"
     id: watch_icon
     size: ${FONT_WATCH_ICON_SIZE}
@@ -1624,7 +1637,8 @@ lvgl:
       text_opa: 100%
 
     - id: style_time
-      text_font: time_label
+      # The top bar's clock anchor is never shown (page_header.h draws the bar); it keeps the headline's letters.
+      text_font: headline
       text_opa: 100%
 
     - id: style_title
@@ -1808,7 +1822,8 @@ lvgl:
         - label:
             id: lbl_room
             x: ${HEADER_INSET}
-            y: ${HEADER_Y}
+            # page_header::Renderer moves it down until the top bar keeps HEADER_INSET from the top as well.
+            y: 0
             text: "${ROOM_NAME}"
             styles: style_room
 
@@ -1824,7 +1839,7 @@ lvgl:
             id: lbl_time
             align: TOP_RIGHT
             x: -${HEADER_INSET}
-            y: ${HEADER_Y}
+            y: 0
             text: ""
             styles: style_time
 
@@ -1901,7 +1916,7 @@ lvgl:
             widgets:
               - label:
                   align: LEFT_MID
-                  x: ${PAGE_CHEVRON_INSET}
+                  x: ${GRID_MARGIN}   # runtime_tiles::nav_align puts the ink on this line
                   text: "\U000F0141" # chevron-left
                   text_font: materialdesign_icons_mini
                   styles: paint_ink
@@ -1941,7 +1956,7 @@ lvgl:
             widgets:
               - label:
                   align: RIGHT_MID
-                  x: -${PAGE_CHEVRON_INSET}
+                  x: -${GRID_MARGIN}
                   text: "\U000F0142" # chevron-right
                   text_font: materialdesign_icons_mini
                   styles: paint_ink

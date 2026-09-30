@@ -16,9 +16,16 @@ DOMAINS = frozenset('light switch input_boolean scene script climate vacuum fan 
 # its language and the editor in its own (builtin_name, app 0.2.90).
 BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 9)}}
 # A navigation tile (firmware 0.2.62+): screen.page_<n> goes to page n. Firmware 0.2.65+ takes the same one on several
-# pages (a "Back to page 1" on every page); every other entity still appears once on a screen.
+# pages (a "Back to page 1" on every page), firmware 0.16.0+ any entity on several tiles (GitHub #83) but the bedside
+# clock, whose keys name it by its entity.
 PAGE_TILE = 'screen.page_'
 PAGE_TILE_REPEAT_MIN_FIRMWARE = (0, 2, 65)
+ENTITY_REPEAT_MIN_FIRMWARE = (0, 16, 0)
+# A screen without a title (firmware 0.17.0+): the top bar shows its home key alone. Older firmware said "Home" instead.
+NO_TITLE_MIN_FIRMWARE = (0, 17, 0)
+# Eight pages on every grid (firmware 0.18.0+), at most 64 tiles over all of them; older firmware had 64 / cells pages
+# (Grid.legacy_pages), three on a 5 x 4 grid. It says so in its hello (`free_pages`, page_delivery.Sender).
+FREE_PAGES_MIN_FIRMWARE = (0, 18, 0)
 
 def page_target(entity):
     """The page a navigation tile opens, counted from one; 0 for any other entity."""
@@ -56,11 +63,12 @@ NIGHTSTAND = 'screen.nightstand'
 NIGHTSTAND_MIN_FIRMWARE = (0, 8, 0)
 NIGHTSTAND_KEYS = 3
 # A key is a tile without a cell of its own (app 0.4.12): in the compiled tiles it names the tile it stands under
-# (`in`, that tile's entity, which is on a screen once) and its place there (`key`, from 0), and it follows the placed
+# (`in`, that tile's entity: the bedside clock, which is on a screen once) and its place there (`key`, from 0), and it follows the placed
 # tiles. The tiles that hold keys and how many each holds; a key takes a tile's own settings but its size, and any
 # domain but a picture, which has no round form.
 KEY_HOLDERS = {NIGHTSTAND: NIGHTSTAND_KEYS}
-KEY_OPTIONS = ('icon', 'tap', 'action', 'guard')
+# A key's name under its circle can be hidden (`overlay`: "none", firmware 0.17.0+), as a picture's name on it can.
+KEY_OPTIONS = ('icon', 'tap', 'action', 'guard', 'overlay')
 KEY_DOMAINS = frozenset(DOMAINS - {'screen', 'camera', 'image'})
 
 def is_key(tile):
@@ -86,7 +94,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.14.0'
+FIRMWARE_VERSION = '0.19.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -154,21 +162,28 @@ WIDE_ONLY = ('forecast', 'sunpath')
 # cell (page * cells + row * columns + column); a wide tile starts in a column that has a cell to its right and
 # covers both; a full tile (firmware 0.2.62+) starts a page and covers every cell of it. Empty cells are allowed.
 #
-# The rules are the firmware's (components/smart_display/runtime_model.h): at most eight pages, and never more
-# than 64 tiles on one screen (one dirty bit each), so a page of nine cells gives seven pages. Everything that
+# The rules are the firmware's (components/smart_display/runtime_model.h): eight pages whatever the grid, and never more
+# than 64 tiles on one screen (one dirty bit each), so a page need not be full (firmware 0.18.0+). Older firmware had
+# as many pages as 64 tiles fill (legacy_pages): seven of nine cells, three of twenty. Everything that
 # counts cells, rows, pages or tiles goes through the screen's Grid (`grid_of(screen)`); DEFAULT_GRID is the two
 # by three of the first boards, which is also what every layout stored before app 0.2.94 was made on.
 FIRMWARE_MAX_PAGES = 8
 FIRMWARE_MAX_TILES = 64
 
 class Grid:
-    __slots__ = ('columns', 'rows')
+    __slots__ = ('columns', 'rows', 'page_cap')
 
-    def __init__(self, columns=2, rows=3):
+    def __init__(self, columns=2, rows=3, pages=FIRMWARE_MAX_PAGES):
         columns, rows = int(columns), int(rows)
         if columns < 1 or rows < 1 or columns * rows > FIRMWARE_MAX_TILES:
             raise ValueError(f'no screen holds a page of {columns} x {rows} cells')
         self.columns, self.rows = columns, rows
+        # The pages the screen's firmware takes (for_firmware); the cells alone say nothing about them any more.
+        self.page_cap = max(1, min(FIRMWARE_MAX_PAGES, int(pages)))
+
+    def for_firmware(self, version):
+        """The same cells with the pages firmware `version` takes (page_limit): eight from 0.18.0, fewer before."""
+        return Grid(self.columns, self.rows, page_limit(version, Grid(self.columns, self.rows)))
 
     def __eq__(self, other):
         return isinstance(other, Grid) and (self.columns, self.rows) == (other.columns, other.rows)
@@ -186,13 +201,20 @@ class Grid:
 
     @property
     def pages(self):
+        return self.page_cap
+
+    @property
+    def legacy_pages(self):
+        """The pages firmware before 0.18.0 takes on this grid: as many as 64 tiles fill, eight at most."""
         return min(FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES // self.slots)
 
     @property
     def max_slots(self):
         return self.pages * self.slots
 
-    max_tiles = max_slots
+    @property
+    def max_tiles(self):
+        return min(FIRMWARE_MAX_TILES, self.max_slots)
 
     @property
     def wide_span(self):
@@ -580,6 +602,11 @@ def shape_of(screen):
     # Which way it hangs, in the order of what knows best as well: the canvas the screen reports is one of its
     # board's two, and only when it says nothing does the word from its own profile decide.
     shape = board_shape(board, orientation_shown(board, reported) or screen.get('orientation'))
+    # The rows its own YAML was built with (a Guition with four rows, app 0.4.31), for the grid lying down, which on
+    # square glass is the grid either way.
+    rows = screen.get('grid_rows')
+    if type(rows) is int and rows > 0 and shape.get('width', 0) >= shape.get('height', 0):
+        shape = {**shape, 'rows': rows}
     if reported:
         shape = {**shape, **reported}
     return shape
@@ -624,18 +651,26 @@ def version_text(version):
     """"0.2.65" for (0, 2, 65); None for None."""
     return '.'.join(str(part) for part in version) if version else None
 
+def page_limit(version, grid=DEFAULT_GRID):
+    """How many pages firmware `version` (a tuple, or None when unknown) takes on a screen with this grid: eight from
+    firmware 0.18.0, as many as 64 tiles fill before."""
+    return grid.pages if (version or (0, 0, 0)) >= FREE_PAGES_MIN_FIRMWARE else grid.legacy_pages
+
 def tile_limit(version, grid=DEFAULT_GRID):
-    """How many tiles firmware `version` (a tuple, or None when unknown) takes on a screen with this grid: one per
-    cell of its pages (firmware 0.2.62+), twenty from 0.2.7, ten before."""
+    """How many tiles firmware `version` (a tuple, or None when unknown) takes on a screen with this grid: 64 over its
+    pages (firmware 0.18.0+), one per cell of its pages (0.2.62+), twenty from 0.2.7, ten before."""
     version = version or (0, 0, 0)
-    return grid.max_tiles if version >= FULL_PAGE_MIN_FIRMWARE else LEGACY_MAX_TILES if version >= TWENTY_TILES_MIN_FIRMWARE else FIRST_MAX_TILES
+    if version >= FREE_PAGES_MIN_FIRMWARE: return grid.max_tiles
+    return grid.legacy_pages * grid.slots if version >= FULL_PAGE_MIN_FIRMWARE else LEGACY_MAX_TILES if version >= TWENTY_TILES_MIN_FIRMWARE else FIRST_MAX_TILES
 
 def firmware_features(version, grid=DEFAULT_GRID):
     """What the editor may offer a screen with firmware `version` (a tuple, or None): the tile limit, full-page and
-    navigation tiles, and the same navigation tile on several pages."""
+    navigation tiles, the same navigation tile on several pages, any entity on several tiles and a screen without a
+    title."""
     version = version or (0, 0, 0)
-    return {'tile_limit': tile_limit(version, grid), 'full_page': version >= FULL_PAGE_MIN_FIRMWARE,
-            'page_tiles_repeat': version >= PAGE_TILE_REPEAT_MIN_FIRMWARE}
+    return {'tile_limit': tile_limit(version, grid), 'page_limit': page_limit(version, grid), 'full_page': version >= FULL_PAGE_MIN_FIRMWARE,
+            'page_tiles_repeat': version >= PAGE_TILE_REPEAT_MIN_FIRMWARE,
+            'entity_tiles_repeat': version >= ENTITY_REPEAT_MIN_FIRMWARE, 'no_title': version >= NO_TITLE_MIN_FIRMWARE}
 
 def entity_slug(name):
     """The end of an entity id Home Assistant derives from an entity name (ASCII names)."""
@@ -911,6 +946,11 @@ def repeated_page_tiles(tiles):
     pages = [tile['entity'] for tile in tiles if page_target(tile['entity'])]
     return len(pages) != len(set(pages))
 
+def repeated_entities(tiles):
+    """True when any other entity is on the screen more than once, as tiles or keys (firmware 0.16.0+)."""
+    others = [tile['entity'] for tile in tiles if not page_target(tile['entity'])]
+    return len(others) != len(set(others))
+
 def min_firmware(layout):
     """Oldest firmware that still accepts this layout; None when any version works. Every feature the layout uses names
     the firmware it needs, and the layout needs the newest of them: a tilting blind (0.3.1) beside an alarm panel
@@ -925,6 +965,8 @@ def min_firmware(layout):
         ('automation' in domains, AUTOMATION_MIN_FIRMWARE),
         (any(t['entity'] == NIGHTSTAND or is_key(t) for t in tiles), NIGHTSTAND_MIN_FIRMWARE),
         (repeated_page_tiles(tiles), PAGE_TILE_REPEAT_MIN_FIRMWARE),
+        (repeated_entities(tiles), ENTITY_REPEAT_MIN_FIRMWARE),
+        (layout.get('title') == '', NO_TITLE_MIN_FIRMWARE),
         (len(tiles) > LEGACY_MAX_TILES or any(is_full(t) or page_target(t['entity']) for t in tiles), FULL_PAGE_MIN_FIRMWARE),
         (any(o.get('display') == 'cover' for o in options), COVER_TILE_MIN_FIRMWARE),
         (any(o.get('display') == 'live' for o in options), LIVE_MIN_FIRMWARE),
@@ -1100,12 +1142,13 @@ def page_of(tile, grid=DEFAULT_GRID):
     return grid.page_of(tile.get('slot', 0))
 
 def copies_of(tiles, entity):
-    """The tiles of one entity in slot order: one, or several copies of a navigation tile (firmware 0.2.65+)."""
+    """The tiles of one entity in slot order: one, or several copies (a navigation tile from firmware 0.2.65, any
+    entity from 0.16.0)."""
     return sorted((tile for tile in tiles if tile['entity'] == entity), key=lambda tile: tile.get('slot', 0))
 
 def pick_copy(found, page=None, slot=None, grid=DEFAULT_GRID):
     """The copy an event means: the one covering `slot`, else the first on `page`, else the first; None when none is
-    there. Only a navigation tile has several; an event that doesn't say which acts on the first (app 0.2.78)."""
+    there. An event that doesn't say which acts on the first (app 0.2.78)."""
     if slot is not None:
         return next((tile for tile in found if 'slot' in tile and slot in grid.footprint(tile['slot'], tile_size(tile))), None)
     if page is not None:
@@ -1133,30 +1176,41 @@ def pack_page(tiles, page, grid=DEFAULT_GRID):
             raise ValueError(t('addon.errors.events.does_not_fit', page=page + 1))
         tile['slot'] = page * grid.slots + slot
 
-def run_tile_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID):
-    """run_tile_event for the placed tiles; the keys of a bedside clock stay where they are (app 0.4.12). An event may
-    remove a key, like any tile; it cannot place one, since a key has no cell: the editor puts them under their clock."""
+def run_tile_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID, repeat_entities=False):
+    """run_tile_event for the placed tiles; the keys of a bedside clock stay where they are (app 0.4.12). An event acts
+    on the placed tiles of its entity; one whose entity is only a key may remove that key, like any tile, and cannot
+    move it, since a key has no cell: the editor puts them under their clock. Adding such an entity puts a tile of its
+    own on the screen when the firmware takes an entity twice (`repeat_entities`, 0.16.0+)."""
     keys = [dict(tile) for tile in layout.get('tiles', []) if is_key(tile)]
     entity = str(data.get('entity') or '').strip()
     key = next((tile for tile in keys if tile['entity'] == entity), None)
-    if key is not None:
-        if action != 'remove':
-            raise ValueError(t('addon.errors.layout.once'))
-        return {**layout, 'tiles': [tile for tile in layout['tiles'] if tile.get('entity') != entity or not is_key(tile)]}, key
-    result, found = run_placed_event({**layout, 'tiles': placed(layout.get('tiles', []))}, action, data, repeat_pages, grid)
+    if key is not None and not any(tile['entity'] == entity for tile in placed(layout.get('tiles', []))):
+        if action == 'remove':
+            tiles = list(layout['tiles'])
+            tiles.remove(key)
+            return {**layout, 'tiles': tiles}, key
+        if action != 'add' or not repeat_entities:
+            raise ValueError(t('addon.errors.events.key_stays', entity=entity))
+    result, found = run_placed_event({**layout, 'tiles': placed(layout.get('tiles', []))}, action, data, repeat_pages, grid,
+                                     repeat_entities)
     # A key whose clock went goes with it.
     there = {tile['entity'] for tile in result['tiles']}
     result['tiles'] = result['tiles'] + [tile for tile in keys if tile['in'] in there]
     return result, found
 
-def run_placed_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID):
+def run_placed_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID, repeat_entities=False):
     """(layout, tile): the layout after one tile event and the tile it placed, changed, moved or removed (None for an
     order), on the screen's own grid. Raises ValueError with the sentence the log and the answer show.
 
-    Only a navigation tile can be on a screen more than once, and only when its firmware takes that (`repeat_pages`,
-    0.2.65+). An event then names the copy it means by a spot it covers or by its page: `slot` or `page` for add and
-    remove, `from_slot` or `from_page` for a move (whose `slot` and `page` say where to), and each mention in an order
-    takes the next copy. Without that it acts on the first copy in spot order (app 0.2.78)."""
+    An entity can be on a screen more than once when its firmware takes that: a navigation tile from 0.2.65
+    (`repeat_pages`), any other entity but the bedside clock from 0.16.0 (`repeat_entities`, GitHub #83). Add then
+    always puts a new tile on the screen. Remove and move name the copy they mean by a spot it covers or by its page:
+    `slot` or `page` for remove, `from_slot` or `from_page` for a move (whose `slot` and `page` say where to), and each
+    mention in an order takes the next copy. Without that they act on the first copy in spot order (app 0.2.78).
+
+    On older firmware an add of an entity that is there changes that tile, and moves it when it names another place;
+    a navigation tile it takes on several pages changes the copy on the named spot or page and gets a new copy
+    anywhere else."""
     result = {key: value for key, value in layout.items() if key != 'tiles'}
     tiles = [dict(tile) for tile in layout.get('tiles', [])]
     entity = str(data.get('entity') or '').strip()
@@ -1230,10 +1284,13 @@ def run_placed_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID
     else:
         if not entity_id(entity) and entity not in BUILTIN:
             raise ValueError(t('addon.errors.events.not_for_a_screen', entity=entity))
-        # A navigation tile the firmware takes more than once: the copy on the named spot or page changes, and anywhere
-        # else a new copy goes (app 0.2.78). Every other tile, or one without a place, is the one that is there.
+        # Add is add (firmware 0.16.0+): a new tile, whatever is there already; the bedside clock alone stays one.
+        # Before that a navigation tile the firmware takes more than once changes the copy on the named spot or page,
+        # and anywhere else a new copy goes (app 0.2.78). Every other tile, or one without a place, is the one there.
         chosen = False
-        if copies and repeat_pages and page_target(entity) and (page is not None or slot is not None):
+        if repeat_entities and entity not in KEY_HOLDERS:
+            found = None
+        elif copies and repeat_pages and page_target(entity) and (page is not None or slot is not None):
             found = pick_copy(copies, page, slot, grid)
             chosen = found is not None
         was_size, had_slot = tile_size(found) if found else 'single', (found or {}).get('slot')
@@ -1274,9 +1331,9 @@ def run_placed_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID
     result['tiles'] = tiles
     return result, found
 
-def apply_tile_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID):
+def apply_tile_event(layout, action, data, repeat_pages=False, grid=DEFAULT_GRID, repeat_entities=False):
     """The layout after one tile event (run_tile_event without the tile it acted on)."""
-    return run_tile_event(layout, action, data, repeat_pages, grid)[0]
+    return run_tile_event(layout, action, data, repeat_pages, grid, repeat_entities)[0]
 
 def layout_snapshot(screen, layout, grid=None):
     """What a screen shows, for the sensor the app publishes in Home Assistant: the grid of its pages and one entry
@@ -1361,7 +1418,8 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
         raise ValueError(t('addon.errors.layout.invalid'))
     title, tiles = data.get('title'), data.get('tiles')
     most = grid.max_tiles if grid else FIRMWARE_MAX_TILES
-    if not isinstance(title, str) or not title.strip() or len(title.encode()) > 96:
+    # An empty title is a screen without one (firmware 0.17.0+, min_firmware): its top bar shows the home key alone.
+    if not isinstance(title, str) or len(title.encode()) > 96:
         raise ValueError(t('addon.errors.layout.title'))
     if not isinstance(tiles, list) or len(tiles) > most:
         raise ValueError(t('addon.errors.layout.tiles_max', n=most))
@@ -1369,8 +1427,9 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
     for tile in tiles:
         if not isinstance(tile, dict) or not entity_id(tile.get('entity')):
             raise ValueError(t('addon.errors.layout.unsupported'))
-        # A navigation tile may go on several pages (min_firmware asks 0.2.65 for that); anything else appears once.
-        if tile['entity'] in seen and not page_target(tile['entity']):
+        # Any entity may stand on several tiles (min_firmware asks 0.2.65 for a navigation tile, 0.16.0 for the rest);
+        # the bedside clock appears once, as its keys name it.
+        if tile['entity'] in seen and tile['entity'] in KEY_HOLDERS:
             raise ValueError(t('addon.errors.layout.once'))
         name = tile.get('name', '')
         if not isinstance(name, str) or len(name.encode()) > 80:
@@ -1470,6 +1529,11 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     if key in options and options[key] not in allowed:
                         raise ValueError(t('addon.errors.layout.invalid_setting', setting=key))
                 options = {key: value for key, value in options.items() if key not in PICTURE_OPTIONS or value != PICTURE_OPTIONS[key][0]}
+            elif is_key(tile) and 'overlay' in options:
+                if options['overlay'] not in PICTURE_OPTIONS['overlay']:
+                    raise ValueError(t('addon.errors.layout.invalid_setting', setting='overlay'))
+                if options['overlay'] == PICTURE_OPTIONS['overlay'][0]:
+                    options = {key: value for key, value in options.items() if key != 'overlay'}
             elif set(options) & {'refresh', *PICTURE_OPTIONS}:
                 options = {key: value for key, value in options.items() if key not in ('refresh', *PICTURE_OPTIONS)}
             if options.get('display') == 'watch' and options.get('inline') == 'slider':

@@ -1,5 +1,18 @@
 #pragma once
 #include "runtime_model.h"
+#ifdef ESP_SCREEN_HOST
+#include "host_shims.h"
+#else
+#include "esphome/core/preferences.h"
+#include "esphome/components/json/json_util.h"
+#include "esphome/components/api/api_server.h"
+#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
+#include "esphome/components/api/homeassistant_service.h"
+#endif
+#include "esphome/core/hal.h"
+#include "esphome/core/util.h"
+#include "esphome/core/time.h"
+#endif
 #include "header_bar.h"
 #include "page_header.h"
 #include "tile_palette.h"
@@ -11,7 +24,6 @@
 #include "tile_icon.h"
 #include "screen_settings.h"
 #include "settings_screen.h"
-#include "esphome/core/preferences.h"
 #include "climate_card.h"
 #include "screen_input.h"
 #include "light_controls.h"
@@ -28,15 +40,6 @@
 #include "forecast_tile.h"
 #include "climate_tile.h"
 #include "swipe_profile.h"
-#include "esphome/components/json/json_util.h"
-#include "esphome/components/api/api_server.h"
-#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
-// ActionResponse (watch_call): main.cpp had it through esphome.h, page_receiver.cpp only has what this file includes.
-#include "esphome/components/api/homeassistant_service.h"
-#endif
-#include "esphome/core/hal.h"
-#include "esphome/core/util.h"
-#include "esphome/core/time.h"
 #include "lvgl.h"
 #include <functional>
 #include <algorithm>
@@ -89,8 +92,10 @@ inline const lv_font_t *watch_value_font = nullptr, *watch_icon_font = nullptr;
 inline const lv_font_t *clock_font = nullptr;
 // The climate card's setpoint, big enough to read across the room (FONT_SETPOINT_SIZE in the board file).
 inline const lv_font_t *setpoint_font = nullptr;
-// The bedside clock's digits (firmware 0.8.0+), the largest the board's page takes (FONT_BEDSIDE_SIZE, looks/shared/bedside.yaml).
+// The bedside clock's own digit step (firmware 0.8.0+), where the board has one (FONT_BEDSIDE_SIZE, looks/shared/digits.yaml).
 inline const lv_font_t *bedside_font = nullptr;
+// The display step (firmware 0.17.0+, packages/looks/shared/digits.yaml): digits as large as half a page's width.
+inline const lv_font_t *display_font = nullptr;
 // Text in the -/+ pill and the run key of direct controls; the board profile sets it.
 inline const lv_font_t *control_font = nullptr;
 // The smallest regular text (sublabel): axis labels and the legend of the history card.
@@ -314,6 +319,14 @@ struct Widgets {
   // A key of a bedside clock (firmware 0.8.0+): the card is the round key itself, `key_size` across, in the place its
   // clock gives it (place_page). The card, circle, icon and colours are a tile's; only the shape is the key's.
   bool key=false; int key_size=0;
+  // The heartbeat an alarm or lock circle of this card runs (an AlarmLook) and the state change it last marked
+  // (alarm_tile_look). They belong to the card, not to the slot: a kept page's cards leave the glass with their
+  // animation and come back with it (firmware 0.16.0+; before, a ring kept beating on a card whose lock had settled).
+  uint8_t alarm_look=0; uint32_t alarm_mark=0;
+  // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
+  // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
+  // which an idle timer never sends).
+  uint32_t cached_paint=UINT32_MAX;
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -2206,10 +2219,9 @@ inline bool alarm_arrived(const Tile &t){return t.changed_at&&esphome::millis()-
 // A lock's heartbeat: slow while it moves, quicker while its tile waits for the second tap (lock section below).
 inline AlarmLook lock_look(const Tile &t);
 inline uint32_t lock_accent(const Tile &t);
-inline uint8_t alarm_tile_looks[CELLS_MAX]{};
-inline uint32_t alarm_tile_marks[CELLS_MAX]{};
 inline void alarm_tile_look(size_t slot,const Tile *t){
   if(slot>=widgets.size()||!widgets[slot].circle)return;
+  auto &w=widgets[slot];
   // A key of a bedside clock is its circle (render_slot): the ring grows out of the round card, since the card cuts off
   // what its children draw past its edge, and a circle as large as the card has no room inside it.
   lv_obj_t *circle=widgets[slot].key?widgets[slot].tile:widgets[slot].circle;
@@ -2219,21 +2231,21 @@ inline void alarm_tile_look(size_t slot,const Tile *t){
   const bool alarm=t&&(t->domain()=="alarm_control_panel"||lock);
   // The slot shows another tile now: its circle stands still.
   if(!alarm){
-    if(alarm_tile_looks[slot]||alarm_tile_marks[slot])alarm_still(circle);
-    alarm_tile_looks[slot]=LOOK_NONE;alarm_tile_marks[slot]=0;
+    if(w.alarm_look||w.alarm_mark)alarm_still(circle);
+    w.alarm_look=LOOK_NONE;w.alarm_mark=0;
     return;
   }
   const AlarmLook want=alarm&&awake()&&fresh()?(lock?lock_look(*t):alarm_look(*t)):LOOK_NONE;
   const bool large=ui::large();
-  if(alarm&&want==LOOK_NONE&&alarm_arrived(*t)&&alarm_tile_marks[slot]!=t->changed_at&&awake()){
-    alarm_tile_marks[slot]=t->changed_at;alarm_still(circle);alarm_tile_looks[slot]=LOOK_NONE;
+  if(alarm&&want==LOOK_NONE&&alarm_arrived(*t)&&w.alarm_mark!=t->changed_at&&awake()){
+    w.alarm_mark=t->changed_at;alarm_still(circle);w.alarm_look=LOOK_NONE;
     const bool closed=lock?t->state=="locked":alarm_panel::armed(t->state);
     if(closed)alarm_beat(circle,theme::state(alarm_panel::GREEN),600,ui::px(large?10:5),true);
     alarm_spring(circle,closed?120:0);
     return;
   }
-  if(want==alarm_tile_looks[slot])return;
-  alarm_tile_looks[slot]=want;alarm_still(circle);
+  if(want==w.alarm_look)return;
+  w.alarm_look=want;alarm_still(circle);
   if(want==LOOK_NONE)return;
   const uint32_t colour=theme::state(lock?lock_accent(*t):alarm_panel::color(t->state));
   alarm_beat(circle,colour,want==LOOK_ARMING?1600:want==LOOK_PENDING?600:1000,ui::px(large?10:5),false);
@@ -2466,6 +2478,8 @@ inline void alarm_state_arrived(unsigned index,const std::string &before){
   if(alarm_attempt.active&&t.entity==alarm_attempt_entity)alarm_settled(alarm_attempt.settle(t.state,esphome::millis()),true);
   if(!alarm_panel::calls_for_attention(t.state)||alarm_panel::calls_for_attention(before)||!t.available())return;
   if(!enabled||!model.ready())return;
+  // A panel on several tiles gets a state message per tile: the first of them wakes the screen, once.
+  for(size_t i=0;i<index;++i)if(model.tiles[i].entity==t.entity)return;
   ESP_LOGI("alarm","%s is %s: the screen wakes with its card",t.entity.c_str(),t.state.c_str());
   if(alarm_wake)alarm_wake();
   settings_screen::close();
@@ -2538,22 +2552,33 @@ inline void alarm_command(int cmd){
 // the code is the second tap. The animations are the alarm panel's: a heartbeat while the lock moves or waits for its
 // second tap, a ring going round while it moves, and a ring that closes round the lock when it locks.
 inline constexpr int LOCK_KEY_FIRST=700;   // 700 lock, 701 unlock, 702 open
-// The one "tap again" the screen waits for: which lock, on its tile or on its card, and since when.
-struct LockAsk { lock_panel::Confirm confirm; std::string entity; bool card=false; bool shown=false; };
-inline LockAsk lock_ask;
-// A line in place of the tile's state for a moment: a lock-only tile tapped while locked.
-inline std::string lock_note_entity;
-inline uint32_t lock_note_at=0;
+// The "tap again" a tile waits for lives on the tile (Tile::ask_act, firmware 0.16.0+); one tile waits at a time, and
+// `lock_waits` says whether any does, so lock_tick has nothing to look at otherwise.
+inline bool lock_waits=false;
+inline lock_panel::Confirm lock_ask_of(const Tile &t){
+  lock_panel::Confirm c;if(t.ask_act>=0){c.act=(lock_panel::Act)t.ask_act;c.since=t.ask_since;}return c;
+}
+inline void lock_keep_ask(Tile &t,const lock_panel::Confirm &c){t.ask_act=c.act==lock_panel::NONE?-1:(int8_t)c.act;t.ask_since=c.since;}
 inline lv_obj_t *lock_ring=nullptr;
 inline lock_panel::Lock lock_of(const Tile &t){
   lock_panel::Lock l;l.state=t.state;l.supported=t.supported;l.assumed=t.extra().assumed;l.available=t.available()&&fresh();return l;
 }
 inline lock_panel::Guard lock_guard(const Tile &t){return lock_panel::guard_of(t.guard);}
-inline bool lock_noting(const Tile &t){return lock_note_entity==t.entity&&esphome::millis()-lock_note_at<3000;}
+inline bool lock_noting(const Tile &t){return t.noted_at&&esphome::millis()-t.noted_at<3000;}
 inline bool lock_asking(const Tile &t,bool card,lock_panel::Act a=lock_panel::NONE){
-  const uint32_t now=esphome::millis();
-  if(lock_ask.entity!=t.entity||lock_ask.card!=card)return false;
-  return a==lock_panel::NONE?lock_ask.confirm.any(now):lock_ask.confirm.waiting(a,now);
+  if(t.ask_act<0||t.ask_card!=card)return false;
+  const uint32_t now=esphome::millis();const auto c=lock_ask_of(t);
+  return a==lock_panel::NONE?c.any(now):c.waiting(a,now);
+}
+// Ends the "tap again" of every tile but `keep`: each shows its state again at once, on its tile or its open card.
+inline void lock_end_asks(size_t keep=SIZE_MAX){
+  for(size_t i=0;i<model.count;++i){
+    auto &t=model.tiles[i];
+    if(i==keep||t.ask_act<0)continue;
+    t.ask_act=-1;
+    if(!t.ask_card)refresh_tile(i);
+    else if(detail_index==i&&detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN))redraw_detail();
+  }
 }
 inline const char *lock_state_text(const std::string &state){
   using namespace screen_text;
@@ -2602,23 +2627,28 @@ inline void lock_do(unsigned index,lock_panel::Act act,bool card){
   if(!can(lock_of(t),act,lock_guard(t))||t.waiting(now))return;
   const auto &x=t.extra();
   if(needs_code(x.code_format,x.code_saved)){
-    lock_ask.confirm.clear();
+    t.ask_act=-1;
     if(!code_typable(x.code_format)){alarm_card_note=txt::alarm_letters;alarm_card_note_at=now;}
     else{alarm_wipe(alarm_pad.code);alarm_pad.open=true;alarm_pad.mode=act;alarm_pad.note=0;alarm_pad.entity=t.entity;}
     if(card)redraw_detail();else{active_index=(int)index;show_detail(index);}
     return;
   }
   if(confirms(act)){
-    if(lock_ask.entity!=t.entity||lock_ask.card!=card)lock_ask.confirm.clear();
-    lock_ask.entity=t.entity;lock_ask.card=card;
-    if(!lock_ask.confirm.press(act,now)){
-      lock_ask.shown=true;
+    // One tile waits at a time: a first tap here ends another tile's wait, and the card's wait is not the tile's.
+    lock_end_asks(index);
+    if(t.ask_card!=card)t.ask_act=-1;
+    t.ask_card=card;
+    auto c=lock_ask_of(t);
+    const bool second=c.press(act,now);
+    lock_keep_ask(t,c);
+    if(!second){
+      lock_waits=true;
       ESP_LOGI("lock","%s: tap again to %s",t.entity.c_str(),act==OPEN?"open":"unlock");
       if(card)redraw_detail();else refresh_tile(index);
       return;
     }
   }
-  lock_ask.confirm.clear();lock_ask.shown=false;
+  t.ask_act=-1;
   alarm_attempt.begin(act,false,now);alarm_attempt_entity=t.entity;
   action(service(act),t.entity);
   if(card)redraw_detail();else refresh_tile(index);
@@ -2629,7 +2659,7 @@ inline void lock_tap(unsigned index){
   auto &t=model.tiles[index];
   const auto act=lock_panel::tap(lock_of(t),lock_guard(t));
   if(act==lock_panel::NONE){
-    if(t.state=="locked"&&lock_guard(t)==lock_panel::Guard::LOCK_ONLY){lock_note_entity=t.entity;lock_note_at=esphome::millis();refresh_tile(index);}
+    if(t.state=="locked"&&lock_guard(t)==lock_panel::Guard::LOCK_ONLY){t.noted_at=std::max<uint32_t>(1,esphome::millis());refresh_tile(index);}
     return;
   }
   lock_do(index,act,false);
@@ -2766,19 +2796,22 @@ inline void lock_state_arrived(unsigned index,const std::string &before){
   auto &t=model.tiles[index];
   if(alarm_attempt.active&&t.entity==alarm_attempt_entity)
     alarm_settled(alarm_attempt.settle_if(lock_panel::reached(t.state,(lock_panel::Act)alarm_attempt.mode),esphome::millis()),true);
-  if(before!=t.state&&lock_ask.entity==t.entity){lock_ask.confirm.clear();}
+  if(before!=t.state)t.ask_act=-1;
 }
 // Every tick (tick()): a "tap again" that ran out, or a screen that went to sleep, puts the tile or the card back.
 inline void lock_tick(){
-  if(!lock_ask.shown)return;
+  if(!lock_waits)return;
   const uint32_t now=esphome::millis();
-  if(!awake())lock_ask.confirm.clear();
-  if(lock_ask.confirm.any(now))return;
-  lock_ask.shown=false;
-  for(size_t i=0;i<model.count;++i)if(model.tiles[i].entity==lock_ask.entity){
-    refresh_tile(i);
-    if(lock_ask.card&&detail_index==i&&detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN))redraw_detail();
+  bool waiting=false;
+  for(size_t i=0;i<model.count;++i){
+    auto &t=model.tiles[i];
+    if(t.ask_act<0)continue;
+    if(awake()&&lock_ask_of(t).any(now)){waiting=true;continue;}
+    t.ask_act=-1;
+    if(!t.ask_card)refresh_tile(i);
+    else if(detail_index==i&&detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN))redraw_detail();
   }
+  lock_waits=waiting;
 }
 inline void lock_command(int cmd){
   if(detail_index>=model.count)return;
@@ -2796,7 +2829,7 @@ inline AlarmLook lock_look(const Tile &t){
   return LOOK_NONE;
 }
 // A card that closes forgets the second tap its keys waited for.
-inline void lock_card_closed(){if(lock_ask.card)lock_ask.confirm.clear();}
+inline void lock_card_closed(){if(detail_index<model.count&&model.tiles[detail_index].ask_card)model.tiles[detail_index].ask_act=-1;}
 // ---- History card (firmware 0.2.51+): numbers as a line with axes, states as a timeline ----
 // Sensors, numbers, switches, binary sensors and people. The card asks the manager for the chosen range when it
 // opens (an hour, a day or a week; always 24 averages or 96 slots) and draws what comes back. A finger on the
@@ -3715,8 +3748,8 @@ inline int content_width(const Widgets &w) {
 }
 // The name of a plain card. The compact look draws it in small letters for a cell of two columns (a CYD lying down);
 // a card whose name has more room than that (one column standing up, a double-width card, a 4-inch glass) gets the
-// same bold letters a little larger (label_wide in looks/compact.yaml), so the words are not small in a wide empty
-// card (GitHub #50). The standard look keeps one size. The room is the name's own, after a panel or a graph took
+// L step of the text set a little larger (WIDE_NAME_FONT in looks/compact.yaml; a bold 14 of its own before firmware
+// 0.17.0), so the words are not small in a wide empty card (GitHub #50). The standard look keeps one size. The room is the name's own, after a panel or a graph took
 // theirs.
 inline const lv_font_t *wide_name_font = nullptr;
 inline int wide_name_room() { return ui::mm(30); }
@@ -4175,6 +4208,31 @@ inline void render_calm_dial(Widgets &w,const Tile &t,bool large,int width,int h
   second_hand(w,now);
   if(new_hand)lv_obj_move_to_index(w.parts[18],lv_obj_get_index(w.parts[14]));
 }
+// The digit steps, largest first (packages/looks/shared/digits.yaml): the display step, the setpoint's and the clock
+// card's. A card takes the largest one that fits (largest_digits) and never brings a size of its own
+// (tests/test_font_set.py).
+inline std::array<const lv_font_t *,3> digit_steps(){return {display_font,setpoint_font,clock_font};}
+// The largest digit step whose digits are at most `height` tall and whose `text` is at most `width` wide; null if none.
+inline const lv_font_t *largest_digits(const char *text,int width,int height){
+  for(const lv_font_t *f:digit_steps()){
+    if(!f)continue;int top,h;digit_box(f,top,h);
+    if(h<=height && text_width(text,f)<=width)return f;
+  }
+  return nullptr;
+}
+// The bedside clock's digits: its own step where the board has one (a page a fifth larger than the display step), else
+// the display step; the 8 px place holder a board without its own step keeps is never drawn.
+inline const lv_font_t *bedside_digits(){
+  if(bedside_font && (!display_font || lv_font_get_line_height(bedside_font)>lv_font_get_line_height(display_font)))return bedside_font;
+  return display_font?display_font:setpoint_font?setpoint_font:clock_font;
+}
+// A card that only switches (a lamp, a switch, a fan) or only runs (a script, a scene, a button), with no other control
+// chosen: two rows tall, one column or two, it is one big key (firmware 0.17.0+), as the same card over a whole page is.
+inline bool big_key(const Tile &t){
+  const auto d=t.domain();
+  return (d=="light"||d=="switch"||d=="input_boolean"||d=="fan"||d=="script"||d=="scene"||d=="button"||d=="input_button") && t.inline_control!="slider" &&
+         (t.controls.empty()||t.controls=="toggle"||t.controls=="run"||t.controls=="none"||t.controls=="auto");
+}
 inline void render_flip(Widgets &w,const Tile &t,bool large,int width,int height){
   begin_extra(w,"flip",width,height);
   auto now=now_time?now_time():esphome::ESPTime{};
@@ -4188,6 +4246,32 @@ inline void render_flip(Widgets &w,const Tile &t,bool large,int width,int height
   const lv_font_t *fonts[]={setpoint_font,clock_font,watch_value_font,watch_font,w.value_font};
   int stop,sh;digit_box(small,stop,sh);
   const int aw=ampm.empty()?0:text_width(ampm,small);
+  // A card as wide as two columns and two rows or more, or a whole page (firmware 0.17.0+): the two blocks share its
+  // width, and one line under them carries the day at the left and AM or PM at the right. The digits are the board's
+  // display step (looks/shared/digits.yaml), else the largest digit step that fits a block.
+  if(w.full || (w.wide && t.row_span()>=2)){
+    // The blocks keep room above them and under the day's line, so on a low card (a compact look) they never touch its
+    // edge: at least 6 px, a twentieth of the card on a taller one.
+    const int line_gap=ui::px(large?12:6),gb=std::max(ui::px(6),width/36),bw=(width-gb)/2,air=std::max(ui::px(6),height/20);
+    const int bh=std::min(height-2*air-line_gap-sh,bw*92/100);
+    const lv_font_t *font=largest_digits("88",bw*88/100,bh*72/100);int dh=0;
+    if(font){int top;digit_box(font,top,dh);}
+    for(unsigned q=0;q<7;++q)if(w.parts[q])set_hidden(w.parts[q],!font);
+    if(!font){hide_face_text(w);return;}
+    const int radius=std::max(ui::px(4),bh/12),seam=std::max(1,bh/60);
+    const int by=(height-(bh+line_gap+sh))/2;
+    for(int b=0;b<2;++b){
+      const int x=b*(bw+gb);
+      part_rect(w,b,x,by,bw,bh,radius);
+      digit_label(w,2+b,font,x,by+(bh-dh)/2,bw,LV_TEXT_ALIGN_CENTER,b?mm:hh);
+      part_rect(w,4+b,x,by+bh/2-seam/2,bw,seam,0);
+    }
+    const std::string day=weekday_text(now)+" "+fill(fill(txt::date_day_month,"day",now.is_valid()?std::to_string(now.day_of_month):"--"),"month",month_short(now));
+    digit_label(w,16,small,0,by+bh+line_gap,std::max(1,width-aw-ui::px(8)),LV_TEXT_ALIGN_LEFT,day);set_hidden(w.parts[16],false);
+    digit_label(w,6,small,width-aw-2,by+bh+line_gap,aw+2,LV_TEXT_ALIGN_RIGHT,ampm);set_hidden(w.parts[6],ampm.empty());
+    if(w.parts[15])set_hidden(w.parts[15],true);if(w.parts[17])set_hidden(w.parts[17],true);
+    return;
+  }
   // The blocks: the largest digits whose blocks fit. A block is as tall as the room allows (a one-row card: the
   // card, into its padding; a page: a bit over half of it) and a little wider than tall. A card that is not a page
   // takes the two blocks side by side or one over the other, whichever gives the bigger blocks.
@@ -4289,7 +4373,6 @@ struct BedsideLayout {
   std::array<int, BEDSIDE_KEYS> key_x{}, key_y{};  // each key's top-left corner, content coordinates
   std::array<int, BEDSIDE_KEYS> name_x{}, name_y{}, name_w{};
 };
-inline const lv_font_t *bedside_digits(){return bedside_font?bedside_font:setpoint_font?setpoint_font:clock_font;}
 // `pad`: the card's own padding, so the room above the time counts from the card's edge as it looks.
 inline BedsideLayout bedside_layout(int w,int h,int pad,const std::vector<std::string> &names_in){
   BedsideLayout l;
@@ -4300,7 +4383,7 @@ inline BedsideLayout bedside_layout(int w,int h,int pad,const std::vector<std::s
   l.keys=std::min<unsigned>(names_in.size(),BEDSIDE_KEYS);
   // Names under the keys in the standard look; the compact look (a CYD) keeps the keys alone, its smallest letters
   // would be under the size the owner reads in the dark.
-  l.names=l.keys && ui::large();
+  l.names=l.keys && ui::large() && std::any_of(names_in.begin(),names_in.begin()+l.keys,[](const std::string &n){return !n.empty();});
   l.name_h=l.names?lv_font_get_line_height(small):0;l.name_gap=l.names?ui::px(8):0;
   int name_w=0;if(l.names)for(unsigned i=0;i<l.keys;++i)name_w=std::max(name_w,text_width(names_in[i],small));
   // A long name ends in dots rather than push the keys apart: a third of the card, about five letters and a half of
@@ -4320,7 +4403,7 @@ inline BedsideLayout bedside_layout(int w,int h,int pad,const std::vector<std::s
   const bool column=!row && l.keys && time_w<=w-col_w-ui::px(28) && (int)l.keys*col_d+((int)l.keys-1)*vg<=h;
   const bool stack=!row && !column && pair_w<=w && 2*l.digit_h+l.line_gap+band+(l.keys?3:2)*least<=card_h;
   l.mode=row?BedsideLayout::ROW:column?BedsideLayout::COLUMN:stack?BedsideLayout::STACK:BedsideLayout::ROW;
-  // The board's digits (FONT_BEDSIDE_SIZE, looks/shared/bedside.yaml) are sized for one of the three to fit; the self test fails a
+  // The board's digits (bedside_digits, looks/shared/digits.yaml) are sized for one of the three to fit; the self test fails a
   // board where none does, instead of the time running into its keys.
   l.fits=row||column||stack;
   if(l.mode==BedsideLayout::COLUMN){
@@ -4354,7 +4437,8 @@ inline std::vector<std::string> bedside_names(size_t index){
   std::vector<std::string> names;
   for(unsigned k=0;k<bedside_key_room();++k)for(size_t i=0;i<model.count;++i){
     const auto &t=model.tiles[i];
-    if(t.is_key() && (size_t)t.parent==index && t.key==k){names.push_back(t.name.empty()?t.entity:t.name);break;}
+    // A key whose name is hidden (overlay "none", firmware 0.17.0+) keeps its place with an empty name.
+    if(t.is_key() && (size_t)t.parent==index && t.key==k){names.push_back(!t.overlay?std::string():t.name.empty()?t.entity:t.name);break;}
   }
   return names;
 }
@@ -4378,16 +4462,17 @@ inline void render_bedside(Widgets &w,const Tile &t,int width,int height){
     if(w.parts[1])set_hidden(w.parts[1],true);
   }
   set_color(w.parts[0],LV_STYLE_TEXT_COLOR,ink);if(w.parts[1])set_color(w.parts[1],LV_STYLE_TEXT_COLOR,ink);
-  // AM or PM after the time, on its baseline, when the screen shows 12 hours.
+  // AM or PM under the end of the time when the screen shows 12 hours (firmware 0.17.0+): beside it, "10:08" already
+  // fills the width the digits were sized for and the letters ran off the glass (GitHub #93).
   if(!ampm.empty()){
     const int tw=text_width(l.mode==BedsideLayout::STACK?time.substr(time.find(':')+1):time,font);
-    int stop,sh;digit_box(small,stop,sh);
     const int last=l.mode==BedsideLayout::STACK?l.digits_y+2*l.digit_h+l.line_gap:l.digits_y+l.digit_h;
-    auto *p=digit_label(w,2,small,l.digits_x+(l.digits_w+tw)/2+ui::px(6),last-sh,text_width(ampm,small)+2,LV_TEXT_ALIGN_LEFT,ampm);
+    const int aw=text_width(ampm,small)+2,end=l.digits_x+(l.digits_w+tw)/2;
+    auto *p=digit_label(w,2,small,end-aw,last+ui::px(10),aw,LV_TEXT_ALIGN_LEFT,ampm);
     set_color(p,LV_STYLE_TEXT_COLOR,muted);set_hidden(p,false);
   }else if(w.parts[2])set_hidden(w.parts[2],true);
   for(unsigned i=0;i<BEDSIDE_KEYS;++i){
-    if(i<l.keys && l.names){
+    if(i<l.keys && l.names && !names[i].empty()){
       auto *p=part_label(w,3+i,small,l.name_x[i],l.name_y[i],l.name_w[i],l.mode==BedsideLayout::COLUMN?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER,names[i]);
       lv_label_set_long_mode(p,LV_LABEL_LONG_DOT);set_color(p,LV_STYLE_TEXT_COLOR,muted);set_hidden(p,false);
     }else if(w.parts[3+i])set_hidden(w.parts[3+i],true);
@@ -5306,6 +5391,26 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
       return true;
     }
   }
+  // An on/off or run card two rows tall is one big key (firmware 0.17.0+, big_key): a large circle, the name in the
+  // page's headline size and the state under it, and no switch or run key: the whole card is what you tap.
+  if(t.row_span()>=2&&!w.full&&big_key(t)){
+    hide_panel(w);hide_extra(w);
+    // The page's headline size for the name when the whole name fits the card, else the tile's own title size.
+    const lv_font_t *name_font=room_label?lv_obj_get_style_text_font(room_label,LV_PART_MAIN):w.title_font;
+    if(text_width(lv_label_get_text(w.title),name_font)>width)name_font=w.title_font;
+    const int name_h=lv_font_get_line_height(name_font),side=std::min(width,height)*44/100;
+    const auto a=tall_tile::action(width,height,side,lv_font_get_line_height(w.icon_font),name_h,l.state?m.state_h:0,gap);
+    if(a.fits){
+      const lv_font_t *icon_font=big_icon_font&&font_has(big_icon_font,icon_for(t))&&a.icon.w>=ui::px(96)?big_icon_font:w.icon_font;
+      lv_obj_set_size(w.circle,a.icon.w,a.icon.h);lv_obj_set_pos(w.circle,a.icon.x,a.icon.y);
+      set_font(w.icon,icon_font);center_icon(w.icon);
+      set_font(w.title,name_font);set_text_align(w.title,LV_TEXT_ALIGN_CENTER);lv_obj_set_pos(w.title,a.title.x,a.title.y);lv_obj_set_size(w.title,a.title.w,a.title.h);
+      set_text_align(w.value,LV_TEXT_ALIGN_CENTER);lv_obj_set_pos(w.value,a.state.x,a.state.y);lv_obj_set_size(w.value,a.state.w,std::max(1,a.state.h));
+      set_hidden(w.value,a.state.empty());
+      live_place(w,t,a.icon.w,a.icon.x,a.icon.y);
+    }
+    return true;
+  }
   int circle=std::min({w.base_circle,l.header.h,width/3});
   const lv_font_t *heading_font=heading_icon(w,circle,l.header.h,width);
   const int tx=circle+gap,tw=std::max(1,width-tx),lines=m.name_h+(l.state?m.state_h:0);
@@ -5917,9 +6022,10 @@ inline void render_slot(size_t slot) {
   int palette_state=(available?2:0)|(on?1:0)|(slider_on?4:0)|((card_art(t)&&w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN))?8:0)|
                     (lock_tile&&lock_asking(t,false)?16:0)|(lock_tile?(int)(lock_panel::color(t.state)&0xFF)<<8:0);
   // An alarm panel's circle beats while it counts down or goes off, and springs once when it arms or disarms.
-  if (d == "alarm_control_panel" || d == "lock" || alarm_tile_looks[slot] || alarm_tile_marks[slot]) alarm_tile_look(slot, &t);
-  if (w.cached_active == palette_state && !w.panel_dirty) { style_tall(w,t);lap(swipe_profile::GEOMETRY); return; }
-  w.cached_active = palette_state;w.panel_dirty=false;
+  if (d == "alarm_control_panel" || d == "lock" || w.alarm_look || w.alarm_mark) alarm_tile_look(slot, &t);
+  const uint32_t paint=t.background|(t.transparent?1u<<24:0);
+  if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);lap(swipe_profile::GEOMETRY); return; }
+  w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
   uint32_t accent=lock_tile?lock_accent(t):tile_controls::accent(t);
   // A lamp's own colour goes through Home Assistant's contrast rule before it reaches the glass
@@ -6256,8 +6362,9 @@ inline bool check_tile_geometry() {
     if(w.wide && !w.full && grid.columns>1 && tile_grid){
       // A wide card is two cells of its row plus the gap between them.
       const int gap=lv_obj_get_style_pad_column(tile_grid,LV_PART_MAIN);
-      const int cell=(lv_obj_get_content_width(tile_grid)-(int)(grid.columns-1)*gap)/(int)grid.columns;
-      int expected=2*cell+gap;
+      // Two of the columns' free units: LVGL shares the room exactly and rounds each track, so the sum is rounded once.
+      const int room=lv_obj_get_content_width(tile_grid)-(int)(grid.columns-1)*gap;
+      int expected=(2*room+(int)grid.columns/2)/(int)grid.columns+gap;
       const bool width_ok=std::abs(lv_obj_get_width(w.tile)-expected)<=1;
       fits=fits && width_ok;
       if(!width_ok)ESP_LOGE("ui_test","Wide width FAIL slot=%u width=%d expected=%d",(unsigned)w.index,(int)lv_obj_get_width(w.tile),expected);
@@ -6398,10 +6505,11 @@ inline bool check_tile_geometry() {
         if(w.extra_mode=="graph" && !custom)fits=fits && (w.wide && !w.full?part.x1>value.x2:part.y1>value.y2);
       }
     }
-    // The board's bedside digits fit its page in one of the three arrangements (FONT_BEDSIDE_SIZE, looks/shared/bedside.yaml).
+    // The board's bedside digits fit its page in one of the three arrangements (bedside_digits, looks/shared/digits.yaml).
     if(w.extra_mode=="bedside" && w.index<model.count){
       const auto l=bedside_layout(content_width(w),content_height(w),lv_obj_get_style_space_top(w.tile,LV_PART_MAIN),bedside_names(w.index));
-      if(!l.fits){fits=false;ESP_LOGE("ui_test","Bedside digits fit FAIL slot=%u",(unsigned)w.index);}
+      if(!l.fits){fits=false;ESP_LOGE("ui_test","Bedside digits fit FAIL slot=%u w=%d h=%d pad=%d digit_h=%d key=%d names=%d",(unsigned)w.index,
+        (int)content_width(w),(int)content_height(w),(int)lv_obj_get_style_space_top(w.tile,LV_PART_MAIN),l.digit_h,l.key,l.name_h);}
     }
     if(!fits)ESP_LOGE("ui_test","Tile geometry FAIL slot=%u mode=%s wide=%d title_y=%d..%d value_y=%d..%d content_y=%d..%d",(unsigned)w.index,w.extra_mode.c_str(),w.wide,(int)title.y1,(int)title.y2,(int)value.y1,(int)value.y2,(int)content.y1,(int)content.y2);
     if(w.index<model.count && model.tiles[w.index].background){
@@ -6419,6 +6527,16 @@ inline bool check_tile_geometry() {
       fits=fits && opa_ok;
     }
     ok=ok && fits;
+  }
+  // The tiles start below the top bar with room to spare (firmware 0.15.0+, GitHub #90): the tail of a g in the
+  // page's name, the lowest any title can reach in its font, stays at least a pixel clear of the tile area.
+  if(room_label && tile_grid && !lv_obj_has_flag(room_label,LV_OBJ_FLAG_HIDDEN)){
+    const lv_font_t *font=lv_obj_get_style_text_font(room_label,LV_PART_MAIN);lv_font_glyph_dsc_t tail;
+    if(font && lv_font_get_glyph_dsc(font,&tail,'g',0) && tail.box_h){
+      const int baseline=lv_obj_get_y(room_label)+(font->line_height-font->base_line);
+      const int lowest=baseline-tail.ofs_y,grid_top=lv_obj_get_y(tile_grid);
+      if(grid_top<=lowest){ok=false;ESP_LOGE("ui_test","Top bar clear FAIL tail=%d grid=%d",lowest,grid_top);}
+    }
   }
   return ok;
 }
@@ -6475,7 +6593,7 @@ inline void key_shape(Widgets &w,bool key){
   // The heartbeat of an alarm or a lock moves from the circle to the card or back (alarm_tile_look): the old one stands
   // still, the next render starts it on the new one.
   alarm_still(key?w.circle:w.tile);
-  if(const size_t slot=&w-widgets.data();slot<CELLS_MAX){alarm_tile_looks[slot]=LOOK_NONE;alarm_tile_marks[slot]=0;}
+  w.alarm_look=LOOK_NONE;w.alarm_mark=0;
   w.key=key;w.cached_active=-1;
 }
 // The keys of the bedside clock on this page where its layout puts them, once the grid has placed the clock's card.
@@ -6714,8 +6832,17 @@ inline void forget_kept() {
   shelf.forget();
   for (auto *set : kept_sets) if (set) for (auto &w : *set) { w.index = grid.max_tiles(); w.cached_active = -1; }
 }
+// A page key's chevron with its ink on the tiles' margin (firmware 0.14.0+), the line the top bar and the cards keep
+// from the side of the glass, measured from the glyph itself so the font's side bearing does not push it inward.
+inline void nav_align(lv_obj_t *key,bool left){
+  auto *chevron=nav_glyph(key);if(!chevron)return;
+  const lv_font_t *font=lv_obj_get_style_text_font(chevron,LV_PART_MAIN);lv_font_glyph_dsc_t g;
+  if(!font||!lv_font_get_glyph_dsc(font,&g,left?0xF0141:0xF0142,0)||!g.box_w)return;
+  lv_obj_set_x(chevron,left?grid_margin-g.ofs_x:-(grid_margin-(int(g.adv_w)-g.ofs_x-int(g.box_w))));
+}
 inline void show_page(int &page, lv_obj_t *previous, lv_obj_t *next, lv_obj_t *number) {
   if(!nav_prev){nav_key_patch(previous);nav_key_patch(next);}
+  if(!nav_prev){nav_align(previous,true);nav_align(next,false);}
   nav_prev=previous;nav_next=next;nav_number=number;shown_page=&page;
   if(!nav_back_label && previous){
     nav_back_label=lv_label_create(previous);
@@ -7210,6 +7337,7 @@ inline bool picture_shown(const lv_image_dsc_t *image) {
   auto on = [&](lv_obj_t *obj) { if (draws(obj, image)) shown = true; };
   each_card([&](Widgets &w) { on(w.picture); if (w.extra_mode == "media") on(w.parts[MEDIA_PICTURE]); });
   on(media_detail_picture);
+  on(camera_picture);
   return shown;
 #else
   (void) image;
@@ -7385,7 +7513,9 @@ inline void cover_tick(uint32_t now) {
 // board's third online_image; a page of covers alone loads once. It waits for the alert's picture, a cover or the
 // camera full screen: one picture loads at a time. A page turn, a card over the page, another look or another track
 // (the picture's mark in the media state) changes what is wanted: the strip is dropped and asked for again.
-struct LiveWish { std::string entities, grounds, marks, atlas; int size = 0, atlas_x = 0, atlas_y = 0, atlas_scale = picture_store::SCALE_ONE; uint32_t every = 15000; bool cameras = false; };
+// `tiles`: the tiles' own indexes in the same order (firmware 0.16.0+): one entity may be on several tiles of a page,
+// each with its own square and settings, and the app takes each tile's own settings by its index.
+struct LiveWish { std::string entities, tiles, grounds, marks, atlas; int size = 0, atlas_x = 0, atlas_y = 0, atlas_scale = picture_store::SCALE_ONE; uint32_t every = 15000; bool cameras = false; };
 inline LiveWish live_wish;
 inline camera_view::Feed live;  // entity: the list asked for
 inline std::string live_have;   // the list the strip on screen holds, "" for a tile without a picture
@@ -7441,8 +7571,9 @@ inline LiveWish live_wanted() {
     if (!w.tile || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN) || w.index >= model.count) continue;
     const auto &t = model.tiles[w.index];
     if (!t.pictured()) continue;
-    if (!want.entities.empty()) { want.entities += ','; want.grounds += ','; want.marks += ','; }
+    if (!want.entities.empty()) { want.entities += ','; want.tiles += ','; want.grounds += ','; want.marks += ','; }
     want.entities += t.entity;
+    want.tiles += std::to_string(w.index);
     char ground[8];
     uint32_t behind=(t.transparent||card_art(t)) ? theme::hex(theme::PAGE) : theme::surface(t.background);
     if(atlas){
@@ -7473,24 +7604,33 @@ inline LiveWish live_wanted() {
 inline std::string live_key(const LiveWish &w) {
   char size[12];
   snprintf(size, sizeof(size), "%d", w.size);
-  return "live|" + w.entities + "|" + w.grounds + "|" + w.marks + "|" + w.atlas + "|" + size;
+  return "live|" + w.entities + "|" + w.tiles + "|" + w.grounds + "|" + w.marks + "|" + w.atlas + "|" + size;
 }
-// The strip's square for a tile, or nullptr while the strip is not here (or has no picture of this camera).
-inline lv_image_dsc_t *live_ready(const std::string &entity, int size, int &square) {
+// Whether the n-th item of a comma list is this one.
+inline bool list_has_at(const std::string &list, int n, const std::string &item) {
+  size_t start = 0;
+  for (int i = 0; i < n; ++i) { start = list.find(',', start); if (start == std::string::npos) return false; ++start; }
+  const size_t comma = list.find(',', start);
+  return list.compare(start, comma == std::string::npos ? std::string::npos : comma - start, item) == 0 &&
+         (comma == std::string::npos ? list.size() - start : comma - start) == item.size();
+}
+// The strip's square for a tile, or nullptr while the strip is not here (or has no picture of this camera). The square
+// is the tile's own place in the wish, found by its index: an entity on several tiles has a square on each.
+inline lv_image_dsc_t *live_ready(size_t index, const std::string &entity, int size, int &square) {
+  square = list_index(live_wish.tiles, std::to_string(index));
+  if (square < 0) return nullptr;
   if (pictures_kept()) {
     if (live_wish.atlas.empty() && live_wish.size != size) return nullptr;
     auto *kept = pictures.entry(live_key(live_wish));
     if (kept) {
-      square = list_index(kept->note, entity);  // the tiles the app answered for, "" where it had no picture
-      if (square < 0) return nullptr;
+      // The tiles the app answered for, "" where it had no picture.
+      if (!list_has_at(kept->note, square, entity)) return nullptr;
       return !live_wish.atlas.empty() || kept->image.header.h >= (square + 1) * size ? &kept->image : nullptr;
     }
     // Not kept (no room in the store): the download itself, as on a board without PSRAM, until the page turns
     // (live_release). Before firmware 0.9.0 such a page showed no picture at all (GitHub #68).
   }
-  if (!live.loaded || (live_wish.atlas.empty() && live_wish.size != size)) return nullptr;
-  square = list_index(live_have, entity);
-  if (square < 0) return nullptr;
+  if (!live.loaded || (live_wish.atlas.empty() && live_wish.size != size) || !list_has_at(live_have, square, entity)) return nullptr;
   auto *src = camera_live.source();
   return src && src->data && (!live_wish.atlas.empty() || src->header.h >= (square + 1) * size) ? src : nullptr;
 }
@@ -7543,7 +7683,7 @@ inline void live_release() {
 inline void live_place(Widgets &w, const Tile &t, int size, int x, int y) {
 #if LV_USE_IMAGE
   int square = -1;
-  lv_image_dsc_t *src = t.pictured() ? live_ready(t.entity, size, square) : nullptr;
+  lv_image_dsc_t *src = t.pictured() ? live_ready(w.index, t.entity, size, square) : nullptr;
   if (src) {
     if (!w.picture) {
       w.picture = lv_image_create(w.tile);
@@ -7610,8 +7750,9 @@ inline void live_request() {
   request.is_event = true;
   char size_text[12];
   snprintf(size_text, sizeof(size_text), "%d", live_wish.size);
-  const std::string keys[] = {"inbox", "tiles", "size", "bg", "session", "rev", "view", "atlas"}, values[] = {inbox, live_wish.entities, size_text, live_wish.grounds, protocol_key(transfer.lease), layout_rev, std::to_string(++live_view_id), live_wish.atlas};
-  const int count=live_wish.atlas.empty()?7:8;
+  // `idx` (firmware 0.16.0+): each square's tile by its index, so the app prepares it the way that tile asks.
+  const std::string keys[] = {"inbox", "tiles", "idx", "size", "bg", "session", "rev", "view", "atlas"}, values[] = {inbox, live_wish.entities, live_wish.tiles, size_text, live_wish.grounds, protocol_key(transfer.lease), layout_rev, std::to_string(++live_view_id), live_wish.atlas};
+  const int count=live_wish.atlas.empty()?8:9;
   request.data.init(count);
   for (int i = 0; i < count; ++i) {
     esphome::api::HomeassistantServiceMap entry;
@@ -7625,7 +7766,7 @@ inline void live_request() {
 inline void live_tick(uint32_t now) {
   if (!live_supported()) return;
   LiveWish want = live_wanted();
-  if (want.entities != live_wish.entities || want.grounds != live_wish.grounds || want.marks != live_wish.marks || want.size != live_wish.size || want.atlas != live_wish.atlas ||
+  if (want.entities != live_wish.entities || want.tiles != live_wish.tiles || want.grounds != live_wish.grounds || want.marks != live_wish.marks || want.size != live_wish.size || want.atlas != live_wish.atlas ||
       want.atlas_x != live_wish.atlas_x || want.atlas_y != live_wish.atlas_y || want.atlas_scale != live_wish.atlas_scale) {
     live_wish = want;
     live_release();
@@ -7716,11 +7857,16 @@ inline void camera_release() {
   if (camera_full.release) camera_full.release();
 }
 
+// The camera full screen's copy in the store (camera_loaded).
+inline std::string camera_key(const std::string &entity) { return "camera|" + entity; }
+
 inline void camera_close() {
   if (!camera_root) return;
   lv_obj_delete(camera_root);
   camera_root = camera_picture = camera_note = camera_back = camera_title = camera_spinner = nullptr;
   camera_release_due = true;
+  // Its copy goes with it, on the next tick (pictures_collect), as the download's buffer does.
+  pictures.retire(camera_key(camera.entity));
   ESP_LOGI("camera", "closed %s", camera.entity.c_str());
   camera = camera_view::Feed{};
 }
@@ -7976,9 +8122,19 @@ inline void camera_loaded(bool thumb, bool cached) {
   cover_in_flight.clear();      // the buffer is the camera's now: whatever lands next is not that cover
   if (!camera.loading) return;  // a cover's download that ended after the camera opened: not this camera's picture
   camera.finish(esphome::millis(), true);
-  if (auto *shown = camera_full.source()) picture_memory("after", "camera", shown->header.w * shown->header.h);
+  lv_image_dsc_t *src = camera_full.source();
+  if (src) picture_memory("after", "camera", src->header.w * src->header.h);
+  // Drawn from the store's copy, never from the download (firmware 0.13.0+). A download that breaks off halfway (Home
+  // Assistant or ESP Screens restarting) makes online_image free its buffer while the view still shows it: the glass
+  // kept the old picture, but every part of it drawn again after that, a tile changing underneath, came out black. The
+  // copy stays whole until the next picture is. An unchanged picture (304) has its copy already. Without room in the
+  // store the view draws the download, as a board without PSRAM does.
+  if (!cached && pictures_kept() && src && src->data) {
+    if (auto *kept = pictures.put(camera_key(camera.entity), *src, esphome::millis())) src = kept;
+    else ESP_LOGW("camera", "no room to keep the picture of %s", camera.entity.c_str());
+  }
   const bool first = camera_picture == nullptr;
-  camera_show(camera_root, camera_picture, camera_full.source(), !cached);
+  camera_show(camera_root, camera_picture, src, !cached);
   if (first && camera_picture) {
     camera_note_text("");
     lv_obj_move_foreground(camera_back);

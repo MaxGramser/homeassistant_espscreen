@@ -99,6 +99,7 @@ a:hover { text-decoration: underline; }
 .led { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); }
 .led::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid currentColor; opacity: 0; animation: sonar 3s ease-out infinite; }
 .led.ok { background: var(--good); color: var(--good); }
+.led.virtual { background: var(--accent); color: var(--accent); }
 .led.update { background: var(--led-update); color: var(--led-update); }
 .led.down { background: var(--danger); color: var(--danger); }
 .led.down::after { animation: none; }
@@ -208,6 +209,11 @@ a:hover { text-decoration: underline; }
 /* One line about the whole layout: an icon, what is up, and what you can do about it. */
 .canvas > .notice { margin-bottom: 10px; }
 .pages { display: flex; gap: 18px; align-items: flex-start; }
+/* The firmware's own pixels, drawn at the size the page gives them. */
+.firmware-preview { position: relative; width: 100%; overflow: hidden; touch-action: none; user-select: none; }
+.firmware-preview.still { pointer-events: none; }
+.firmware-preview canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
+.firmware-preview-error { margin-top: 8px; font-size: 12.5px; color: var(--danger); }
 .page { flex: 0 0 var(--mockup-width, 292px); display: grid; gap: 8px; }
 /* The head of a page (app 0.3.19): its handle with its number, its title, Home when it is Home, the cells in use and
    one menu for everything else. */
@@ -233,6 +239,8 @@ a:hover { text-decoration: underline; }
 .drag-ghost.grab { margin: 0; background: var(--surface); border: 1px solid var(--line); color: var(--accent); cursor: grabbing; }
 .page.carried .device { outline: 2px dashed var(--accent); outline-offset: 2px; opacity: 0.6; }
 .page.carried .grab { color: var(--accent); background: var(--accent-soft); }
+/* A page the dragged tile can't land on: a page-filling tile over tiles, a large one with no room around it. */
+.page.refused .device { outline: 2px dashed var(--danger, #d32f2f); outline-offset: 2px; opacity: 0.55; cursor: not-allowed; }
 .page.ghost .device { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border: 1.5px dashed var(--line-strong); background: transparent; color: var(--muted); font-weight: 500; cursor: pointer; }
 .ghost-plus { width: 38px; height: 38px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line-strong); display: grid; place-items: center; color: var(--accent); font-size: 20px; }
 .page.ghost .device:hover, .page.ghost .device:focus-visible { color: var(--accent); border-color: var(--accent); }

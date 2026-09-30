@@ -52,9 +52,11 @@ class Versions(unittest.TestCase):
 
     def test_what_a_firmware_may_be_offered(self):
         self.assertEqual([tile_limit(v) for v in (None, (0, 2, 6), (0, 2, 7), (0, 2, 61), (0, 2, 62), (0, 3, 0))], [10, 10, 20, 20, 48, 48])
-        self.assertEqual(firmware_features((0, 2, 64)), {'tile_limit': 48, 'full_page': True, 'page_tiles_repeat': False})
-        self.assertEqual(firmware_features((0, 2, 65)), {'tile_limit': 48, 'full_page': True, 'page_tiles_repeat': True})
-        self.assertEqual(firmware_features(None), {'tile_limit': 10, 'full_page': False, 'page_tiles_repeat': False})
+        self.assertEqual(firmware_features((0, 2, 64)), {'tile_limit': 48, 'page_limit': 8, 'full_page': True, 'page_tiles_repeat': False, 'entity_tiles_repeat': False, 'no_title': False})
+        self.assertEqual(firmware_features((0, 2, 65)), {'tile_limit': 48, 'page_limit': 8, 'full_page': True, 'page_tiles_repeat': True, 'entity_tiles_repeat': False, 'no_title': False})
+        self.assertEqual(firmware_features((0, 16, 0)), {'tile_limit': 48, 'page_limit': 8, 'full_page': True, 'page_tiles_repeat': True, 'entity_tiles_repeat': True, 'no_title': False})
+        self.assertEqual(firmware_features((0, 17, 0)), {'tile_limit': 48, 'page_limit': 8, 'full_page': True, 'page_tiles_repeat': True, 'entity_tiles_repeat': True, 'no_title': True})
+        self.assertEqual(firmware_features(None), {'tile_limit': 10, 'page_limit': 8, 'full_page': False, 'page_tiles_repeat': False, 'entity_tiles_repeat': False, 'no_title': False})
 
     def test_discovery_falls_back_to_the_registry(self):
         registry = [{'entity_id': 'text.hall_tile_settings', 'platform': 'esphome', 'original_name': 'Tile settings', 'device_id': 'd1'},

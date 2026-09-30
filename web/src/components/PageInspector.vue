@@ -6,10 +6,10 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
 import { beginFieldEdit, endFieldEdit } from '../store';
-import { currentScreen, duplicateEditorPage, homeKeyShown, pageTitleShown, movePage, moveWorkspacePage, openBar, openTile, pageReady, pageTitle, removePage, screenTitle,
+import { currentScreen, duplicateEditorPage, pageCopyable, homeKeyShown, pageTitleShown, movePage, moveWorkspacePage, openBar, openTile, pageReady, pageTitle, removePage, screenTitle,
   setHomePage, setPageExcluded, setPageHomeControl, setPageTitle, state, topbarItems, topbarMax, workspacePositions } from "../store";
 import { textDraft } from '../model/text-draft';
-import { setScreenTitle } from '../store';
+import { noTitle, setScreenTitle } from '../store';
 import TopbarSvg from "./TopbarSvg.vue";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
@@ -26,12 +26,13 @@ const home = computed(() => state.document?.homePageId === props.id);
 const point = computed(() => workspacePositions()[props.id] || { x: 0, y: 0 });
 const routes = computed(() => state.document ? connections(state.document).filter((route) => route.from === props.id || route.to === props.id) : []);
 const name = (id: string) => { const page = state.document?.pages.find((item) => item.id === id); return page ? titleOf(state.document!, page) : ""; };
-const canCopy = computed(() => page.value?.tiles.every((tile) => tile.content.kind === "navigation"));
+const canCopy = computed(() => pageCopyable(page.value?.tiles));
 function editRoute(tileId: string) { const tile = state.layout?.tiles.find((item) => item.id === tileId); if (tile) openTile(tile); }
 // One page and the screen's title are one thing: a single field. A page that kept a title of its own from a longer
 // row keeps its own field, so nothing is set that nobody can see.
 const ownTitle = computed(() => count.value > 1 || !!pageTitle(index.value));
-const titleDraft = textDraft(screenTitle, setScreenTitle, true);
+// Firmware 0.17.0+ takes a screen without a title: an empty field leaves the home key alone in the top bar.
+const titleDraft = textDraft(screenTitle, setScreenTitle, () => !noTitle.value);
 // A page's own title keeps the spaces you type while you type, and is saved without the ones at its ends (app 0.4.2).
 const pageTitleDraft = textDraft(() => page.value?.topbar.title.source === 'text' ? page.value.topbar.title.text : '', (value) => setPageTitle(index.value, value));
 const screenTitleOpen = ref(false);
@@ -60,7 +61,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
           <input id="screen-title" :value="titleDraft.value.value" maxlength="60" :placeholder="t('editor.topbar.name_placeholder')"
             @focus="beginFieldEdit('screen-title'); titleDraft.focus()" @blur="endFieldEdit(); titleDraft.blur()"
             @input="titleDraft.input(($event.target as HTMLInputElement).value)" />
-
+          <small v-if="noTitle" class="help">{{ t('editor.topbar.no_title_hint') }}</small>
         </div>
       </Section>
 

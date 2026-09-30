@@ -198,8 +198,9 @@ Guition it comes in about 1.8 s (2.8 s with 4 KB).
 
 ## Network
 
-- **Home Assistant OS:** the app publishes port 8098 on the Home Assistant host. Keep it at 8098 in
-  the app's network settings; the screens need to reach Home Assistant's address on that port.
+- **Home Assistant OS:** the app publishes port 8098 on the Home Assistant host. When another app
+  already uses 8098, pick another port in the app's network settings: the app sends the screens
+  links on the port you chose (app 0.4.24+). The screens need to reach Home Assistant's address on it.
 - **Docker** (docs/DOCKER.md): the container uses the host network, so 8098 is open as is. When
   the screens reach the host under another address, set `SCREEN_CAMERA_URL`, for example
   `http://192.168.1.20:8098`.

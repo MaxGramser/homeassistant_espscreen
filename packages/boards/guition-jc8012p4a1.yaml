@@ -1,7 +1,7 @@
 # ESP Screens - Guition JC8012P4A1 board: 10.1-inch desk or wall panel, 1280x800 MIPI-DSI + GSL3680
 # capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
 #
-# 1280x800 at 149 dpi, the standard look, a grid of 5 x 4 cells of 240 x 162 px. The panel itself is
+# 1280x800 at 149 dpi, the standard look, a grid of 5 x 5 cells. The panel itself is
 # 800x1280 (portrait); LVGL turns the picture and the touch a quarter, as it does on the CYD.
 # This is the first build of the board, with a pre-v3 ESP32-P4 ("chip revision: v1.3" in the boot log). A board sold
 # as "V3" carries rev3 silicon and a newer LCD and needs guition-jc8012p4a1-v3.yaml instead (docs/JC8012P4A1.md).
@@ -14,7 +14,7 @@ packages:
   # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, shared with the 7-inch JC1060P470.
   hardware: !include ../hardware/guition-esp32p4.yaml
   # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
-  cells: !include ../cells/20.yaml
+  cells: !include ../cells/25.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
@@ -43,16 +43,14 @@ substitutions:
   TOUCH_MIRROR_X: "true"
   # The tile grid: columns and rows of cells. The shared tree places every cell from these
   # (runtime_tiles::place_page), so a board with more room states more columns or rows.
+  # Five by five (firmware 0.18.0): a fifth row fits the glass, and a page need not be full since every grid has eight
+  # pages. Before, 5 x 4, and 4 x 5 standing up. A layout saved on those moves on to five rows by itself: every tile
+  # keeps its page, its row and its column (page_layout.grown in the app).
   GRID_COLS: "5"
-  GRID_ROWS: "4"
-  # The cells of a page when this screen stands up (firmware 0.2.92+).
-  # The 10.1-inch glass is 136 x 218 mm standing up: four columns of 31 mm and five rows of 38 mm. A cell that
-  # tall carries the stacked card (the icon above the name), which is what a big button on a wall wants.
-  # Twenty cells is also what this board carries lying down, so standing up costs it no card and no memory.
-  # Denser is possible here: eight rows of 23 mm would hold 32 cards a page, two pages within the 64 tiles a
-  # screen holds, and asks for packages/cells/32.yaml and 32 cards on every JC8012P4A1, this one included.
-  GRID_COLS_PORTRAIT: "4"
-  GRID_ROWS_PORTRAIT: "5"
+  GRID_ROWS: "5"
+  # Standing up (firmware 0.2.92+) the page keeps the same five by five, the default, so it holds the same 25 cells
+  # either way. The 10.1-inch glass is 136 x 218 mm standing up, columns of about 27 mm: a long name ends in dots
+  # sooner than lying down.
   LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
 
 # ============================================================

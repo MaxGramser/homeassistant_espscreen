@@ -9,10 +9,13 @@ import type { ChildTile, HeaderItem, Layout, Page, PageGrid, PageLayout, PageTar
 
 import { dimensions, SIZES, type Size } from "./layout";
 import { validateCardOptions, validatePageShape } from './page-validation';
+import rules from './page-rules.json';
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 export const instanceId = () => [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, "0")).join("");
-export const pageLimit = (grid: PageGrid) => Math.min(8, Math.floor(64 / (grid.columns * grid.rows)));
+// Eight pages on every grid (firmware 0.18.0+); a screen with older firmware has a lower limit, which the store checks
+// against the screen's own page_limit.
+export const pageLimit = (_grid: PageGrid) => 8;
 export const sameGrid = (a: PageGrid, b: PageGrid) => a.columns === b.columns && a.rows === b.rows;
 const byteLength = (value: string) => new TextEncoder().encode(value).length;
 
@@ -157,7 +160,7 @@ export function entityOf(layout: PageLayout, tile: PageTile): string {
   return `screen.page_${index + 1}`;
 }
 /** A bedside clock's key (app 0.4.12) as the tile it is, and back as the child its clock keeps in the document. */
-const KEY_APPEARANCE = ["icon"] as const, KEY_INTERACTION = ["tap", "action", "guard"] as const;
+const KEY_APPEARANCE = ["icon", "overlay"] as const, KEY_INTERACTION = ["tap", "action", "guard"] as const;
 export function keyTile(child: ChildTile, holder: string, key: number): Tile {
   const options: TileOptions = {};
   for (const field of KEY_APPEARANCE) if (child.appearance[field] !== undefined) options[field] = clone(child.appearance[field]);
@@ -232,16 +235,14 @@ export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
       }
       const entity = entityOf(layout, tile);
       validateCardOptions(tile, entity, footprintSize(tile, grid));
-      if (tile.content.kind !== "navigation") {
+      // Any entity may stand on several tiles (firmware 0.16.0+; the add-on asks an older screen to update first), but
+      // a clock with keys: its keys name it by its entity.
+      if (entity in rules.keyHolders) {
         if (entities.has(entity)) throw new Error(t("addon.errors.layout.once"));
         entities.add(entity);
       }
-      // A key is a tile on the screen too: its own id, and its entity once on the screen (app 0.4.12).
-      for (const child of tile.children || []) {
-        identity(child.id);
-        if (entities.has(child.content.entityId)) throw new Error(t("addon.errors.layout.once"));
-        entities.add(child.content.entityId);
-      }
+      // A key is a tile on the screen too, with its own id (app 0.4.12).
+      for (const child of tile.children || []) identity(child.id);
     }
   }
   return layout;
@@ -277,6 +278,8 @@ export function duplicatePage(layout: PageLayout, grid: PageGrid, pageId: string
       copy.navigation = clone(source.navigation);
       copy.tiles = source.tiles.map((tile) => {
         const next = { ...clone(tile), id: instanceId() };
+        // A key under a copied tile is a new key too: every tile and key has an id of its own.
+        if (next.children) next.children = next.children.map((child) => ({ ...child, id: instanceId() }));
         if (next.content.kind === "navigation" && next.content.target.kind === "page" && next.content.target.pageId === pageId)
           next.content.target.pageId = copy.id;
         return next;

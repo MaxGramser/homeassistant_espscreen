@@ -56,8 +56,26 @@ int main() {
   store.budget = 200;
   assert(!store.put("huge", c, 6));
 
-  // Another layout: what no card shows goes now, the rest once its card lets it go.
+  // A picture no longer wanted (the camera full screen closed): gone at the next collect once nothing draws it, while
+  // the budget alone would have kept it; a new picture under the same key is a copy of its own.
   store.budget = 1000;
+  Image *camera = store.put("camera", a, 7);
+  shown.insert(camera);
+  store.retire("camera");
+  store.retire("nothing");  // a key the store has not got: nothing happens
+  assert(!store.find("camera") && live == 2);
+  store.collect(on_card);
+  assert(live == 2);  // still drawn
+  Image *next = store.put("camera", b, 8);
+  assert(next && next != camera && next->data[0] == 2 && live == 3);
+  shown.erase(camera);
+  store.collect(on_card);
+  assert(live == 2 && store.find("camera") == next);
+  store.retire("camera");
+  store.collect(on_card);
+  assert(live == 1 && !store.find("camera") && store.find("cover"));
+
+  // Another layout: what no card shows goes now, the rest once its card lets it go.
   store.put("x", a, 7);
   store.forget(on_card);
   assert(!store.find("x") && !store.find("cover") && live == 1);

@@ -93,8 +93,10 @@ def replace_tiles(record, flat):
     """Apply a validated entity-addressed tile event without rewriting pages.
 
     These events edit tiles and their cells, never the page order or bars. Stable
-    IDs follow an existing tile; ambiguous repeated navigation sources require
-    a more specific event instead of choosing an arbitrary instance.
+    IDs follow an existing tile. A tile of an entity on several tiles (firmware
+    0.16.0+) that moved takes the id of a copy that moved too: one on its own
+    page first, else the first in page order. The event carries every setting
+    of the tile, so which copy's id it keeps changes nothing on the screen.
     """
     grid = grid_of_record(record)
     flat = validate_layout(flat, grid=grid)
@@ -123,9 +125,9 @@ def replace_tiles(record, flat):
     for n, (p, tile, wire) in enumerate(incoming):
         old = assigned.get(n)
         if old is None:
-            candidates = [old for old, view in existing if old['id'] not in used and view['entity'] == wire['entity']]
-            if len(candidates) > 1: raise LayoutError(t('addon.errors.pages.ambiguous_tile'))
-            old = candidates[0] if candidates else None
+            candidates = [(old, view) for old, view in existing if old['id'] not in used and view['entity'] == wire['entity']]
+            here = [old for old, view in candidates if view['slot'] // grid.slots == p]
+            old = here[0] if here else candidates[0][0] if candidates else None
         if old is not None:
             tile['id'] = old['id']
             used.add(old['id'])
@@ -194,6 +196,26 @@ def _entity(content, page_indexes, home):
     raise LayoutError(t('addon.errors.layout.unsupported'))
 
 
+def grown(layout, source, target):
+    """The layout of a grid that only grew (as many columns or more, as many rows or more) on the bigger grid, or None
+    for any other change. Every tile keeps its page, its row and its column, so nothing moves and nothing is lost: a
+    page gains empty cells, and a tile over the whole page covers the whole new one. The editor's adaptGrid gives the
+    same result for such a grid, which is why the app may take it without asking (a 10.1-inch screen went from 5 x 4
+    to 5 x 5 in firmware 0.18.0). A grid that shrank, or grew one way and shrank the other, still waits for a review."""
+    if target == source or target.columns < source.columns or target.rows < source.rows:
+        return None
+    layout = deepcopy(layout)
+    sizes = {"single": (1, 1), "wide": (target.wide_span, 1), "tall": (1, 2), "square": (2, 2), "full": (target.columns, target.rows)}
+    for page in layout["pages"]:
+        for tile in page["tiles"]:
+            placement, appearance = tile["placement"], tile["appearance"]
+            size = footprint_size(placement["columns"], placement["rows"], source, appearance.get("presentation"))
+            placement["columns"], placement["rows"] = sizes[size]
+            if size != "single":
+                appearance["presentation"] = size
+    return validate_document(layout, target)
+
+
 def footprint_size(columns, rows, grid, presentation=None):
     """Current rendering capability, separate from the persistent rectangle.
 
@@ -213,7 +235,7 @@ def footprint_size(columns, rows, grid, presentation=None):
     raise LayoutError(t('addon.errors.pages.footprint'))
 
 
-KEY_APPEARANCE = {"icon": "icon"}
+KEY_APPEARANCE = {"icon": "icon", "overlay": "overlay"}
 KEY_INTERACTION = {"tap": "tap", "action": "action", "guard": "guard"}
 
 
@@ -254,7 +276,10 @@ def attach_keys(layout, keys, id_factory=None, previous=None):
     """Put key tiles under the tiles they name, in their order, in place of the children those had. A key keeps its id
     while its clock keeps that entity as a key (`previous`: the children before), so an edit is not a new key."""
     id_factory = id_factory or new_id
-    old = {child["content"]["entityId"]: child["id"] for child in previous or ()}
+    # An entity may stand under the clock more than once (firmware 0.16.0+): its keys take its old ids in their order.
+    old = {}
+    for child in previous or ():
+        old.setdefault(child["content"]["entityId"], []).append(child["id"])
     holders = {}
     for p, page in enumerate(layout["pages"]):
         for tile in page["tiles"]:
@@ -265,7 +290,7 @@ def attach_keys(layout, keys, id_factory=None, previous=None):
         holder = holders.get(key["in"])
         if holder is None:
             raise LayoutError(t('addon.errors.layout.position'))
-        known = old.get(key["entity"])
+        known = old.get(key["entity"], [None]).pop(0) if old.get(key["entity"]) else None
         holder.setdefault("children", []).append(child_from_key(key, (lambda: known) if known else id_factory))
     return layout
 

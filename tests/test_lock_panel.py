@@ -108,8 +108,24 @@ class TheFirmware(unittest.TestCase):
         do = lock.split('inline void lock_do(', 1)[1].split('\n}\n', 1)[0]
         # A code comes first; then an action that confirms waits for the second tap before anything is sent.
         self.assertLess(do.index('needs_code('), do.index('if(confirms(act)){'))
-        self.assertLess(do.index('if(!lock_ask.confirm.press(act,now)){'), do.index('action(service(act),t.entity);'))
+        self.assertLess(do.index('const bool second=c.press(act,now);'), do.index('if(!second){'))
+        self.assertLess(do.index('if(!second){'), do.index('action(service(act),t.entity);'))
+        # The wait belongs to the tile (firmware 0.16.0+): a first tap ends every other tile's, so a second tap on another
+        # tile of the same lock is a first tap there and never unlocks.
+        self.assertLess(do.index('lock_end_asks(index);'), do.index('const bool second=c.press(act,now);'))
+        self.assertIn('int8_t ask_act = -1;', MODEL)
         self.assertIn('inline bool confirms(Act a) { return a == UNLOCK || a == OPEN; }', PANEL)
+
+    def test_a_heartbeat_travels_with_its_card(self):
+        # A kept page's cards leave the glass and come back by swapping places (keep_page). The heartbeat of a lock or an
+        # alarm panel belongs to the card, so a card whose lock settled while it was away does not keep beating (firmware
+        # 0.16.0; a lock on several pages showed it).
+        self.assertIn('uint8_t alarm_look=0; uint32_t alarm_mark=0;', TILES)
+        self.assertNotIn('alarm_tile_looks', TILES)
+        self.assertNotIn('alarm_tile_marks', TILES)
+        look = TILES.split('inline void alarm_tile_look(', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('if(want==w.alarm_look)return;', look)
+        self.assertIn('std::swap(widgets[i], (*set)[i]);', TILES)
 
 
 if __name__ == '__main__':

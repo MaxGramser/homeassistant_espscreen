@@ -19,11 +19,13 @@ ESPHome Device Builder is optional:
 | Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911 |
 | Waveshare, 7 inch (experimental) | ESP32-S3-Touch-LCD-7, 800×480, RGB and GT911 |
 | Waveshare, 7 inch 7B (experimental) | ESP32-S3-Touch-LCD-7B, 1024×600, RGB and GT911 ([details](WAVESHARE7B.md)) |
+| Sunton, 7 inch (experimental) | ESP32-8048S070, 800×480, RGB and GT911 ([details](SUNTON8048S070.md)) |
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
 | Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
+| Guition, 10.1 inch V2 (experimental) | JC8012P4A1 V2, 1280×800, JD9365 MIPI-DSI and GSL3680, early ESP32-P4 with the newer LCD ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
 
@@ -122,6 +124,13 @@ computer**. From the browser, Firmware & USB writes the firmware without erasing
 so the screen keeps its settings and touch calibration. That also rescues a screen that keeps
 restarting and so never comes online for an update over Wi-Fi.
 
+**Build it yourself.** To build a screen with ESPHome on your own computer instead, choose the screen
+in the sidebar, open its details with the arrow at its right and use **Download screen files** (a
+screen that isn't in Home Assistant yet has it under its API key). The zip holds the screen's own
+YAML, its Override YAML and a `secrets.yaml` with only the secrets the two use, normally the Wi-Fi.
+Unpack it and run `esphome run <name>.yaml` in that folder. Like the firmware file, it holds your
+Wi-Fi password and the screen's keys.
+
 **CYD:** calibration appears on first boot. Calmly tap the visible crosshair
 three times, hold each tap briefly, and follow each next crosshair in turn.
 There are five positions. The center checks accuracy. On a failed
@@ -165,13 +174,16 @@ under `wifi:` in the screen's own ESPHome YAML still wins.
 Select your screen, tap the bar at the top of a page to give the screen its name,
 and search for entities in the **Library** on the right. With more than one page that bar asks
 two things: the **Screen title**, which every page without a title of its own shows, and the
-**Title above page N** of the page you tapped, which belongs to that page and travels with it. It has domain filters with
+**Title above page N** of the page you tapped, which belongs to that page and travels with it. From
+firmware 0.17.0 the screen title may be empty: the top bar then shows only the logo, and a page with a
+title of its own still shows that. It has domain filters with
 colored icons, a room filter, and **Hide placed**. You can add one tile for every cell of the screen's pages,
 48 on a CYD, a 4-inch Guition or the experimental Waveshare 4B (firmware 0.2.62+; see below for older firmware).
 The screen preview shows their placement on the screen's own grid, lying down: two columns of three on a CYD, a 4-inch Guition,
 the Waveshare 4B or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch,
-four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md) and the 7-inch Guition, and five by four on the
-10.1-inch Guition; up to eight pages and 64 tiles. Every tile has a fixed slot that only changes if
+four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md) and the 7-inch Guition, and five by five on the
+10.1-inch Guition, either way up (firmware 0.18.0; five by four before, and a saved layout moves on by itself); up to
+eight pages and 64 tiles. Every tile has a fixed slot that only changes if
 you drag it; empty slots stay empty, wherever you leave them. Drag a tile
 onto an empty slot and it stays there; drag it onto another tile and the two
 swap (the other tile takes the freed-up slot, or otherwise the nearest free
@@ -232,9 +244,10 @@ Click **Save & send** to send your changes.
   shows 1, 6, or 24 hours.
 - Select/input_select: tap for a list of its options with a check at the current one (firmware 0.3.3+).
 
-From firmware 0.2.62, one tile fits in every cell of up to eight pages (48 on a CYD or a 4-inch Guition, 63 over
-seven pages on the Waveshare 4.3-inch, 60 over three on the 10.1-inch Guition). The experimental Waveshare 7-inch
-holds 64 over four pages lying down, or 56 over four standing up (firmware 0.2.94+). Firmware 0.2.7 to
+From firmware 0.2.62, one tile fits in every cell of up to eight pages, 64 tiles at most (48 on a CYD or a 4-inch
+Guition). From firmware 0.18.0 every screen has all eight pages and a page need not be full; before, a bigger grid had
+as many pages as 64 tiles fill (seven on the Waveshare 4.3-inch, four on the 7-inch boards, three on the 10.1-inch
+Guition). Firmware 0.2.7 to
 0.2.61 keeps the limit of twenty (four pages) and older firmware ten, until you
 update. In the **Screen settings** tab, **Swipe between pages** turns on swiping.
 On a board with capacitive touch (every board but the CYD and the Hosyond, firmware 0.2.24+), you then swipe inward from the left or right
@@ -315,6 +328,7 @@ that screen and says where it is set.
 | `DISPLAY_MODEL` | CYD, Hosyond | ESPHome's `mipi_spi` model of the display controller (`ILI9341`, `ST7789V`, ...) |
 | `DISPLAY_DATA_RATE` | CYD, Hosyond | the display's SPI clock (`40MHz`; some boards want `20MHz`) |
 | `DISPLAY_INVERT_COLORS` | CYD, Hosyond | `true` for a panel that shows its colours inverted |
+| `GRID_ROWS` | 4-inch Guition | `4` for two columns of four smaller tiles a page instead of three (firmware 0.18.1; New screen asks) |
 | `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150Hz` since firmware 0.3.5, the CYD `20000Hz`) |
 
 The parts an override names stay the same on every board and in every update:
@@ -419,7 +433,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Night mode | On/off; applies during standby | On |
 | Starts / Ends | Night hours, hour and minute, can span midnight | 22:00–07:00 |
 | Night brightness | 0–100%, capped at normal brightness | 10% |
-| Clock | 24 or 12 hour, the same on every screen: Settings → Language & region in ESP Screens (firmware 0.2.76+); the Simple dial and Flip clock faces show AM or PM beside the time (firmware 0.3.6+) | Follows the language |
+| Clock | 24 or 12 hour, the same on every screen: Settings → Language & region in ESP Screens (firmware 0.2.76+); the Simple dial shows AM or PM beside the time (firmware 0.3.6+); the Flip clock on a card as wide as the page and the bedside clock put it under the time (firmware 0.17.0+) | Follows the language |
 | Back to Home | Closes an open card and goes back to the Home page after 30 seconds to 60 minutes without a touch, firmware 0.2.44+ | On, 2 minutes |
 | Also on standby | Standby goes back to the Home page too (it always closes an open card) | Off |
 | Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | Off |

@@ -9,7 +9,7 @@ import { vDrag } from "../drag";
 import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
-import { clock24, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
+import { clock24, isCompact, supports, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
 import { tilePalette, tileActive } from "../model/tile-palette";
 import type { Tile } from "../types";
 import TileResize from "./TileResize.vue";
@@ -79,6 +79,24 @@ const tallKeys = computed(() => controlKeys(domain.value, tallControls.value, cu
 const modeKeys = computed(() => tallControls.value === 'setpoint_mode' ? controlKeys('climate', 'mode', current.value?.state || '', current.value?.a || {}, shape.value.columns > 1 ? 5 : 3) : []);
 // An on/off card stands as one centred stack, like the built-in action cards (firmware 0.3.1 render_tall).
 const tallStack = computed(() => tall.value && tallControls.value === 'toggle');
+// A card that only switches or only runs, two rows tall, is one big key (firmware 0.17.0 big_key): a large circle, the
+// name and the state, and the whole card is the key. A slider or another control keeps the head and its controls.
+const BIG_KEY_DOMAINS = ["light", "switch", "input_boolean", "fan", "script", "scene", "button", "input_button"];
+const bigKey = computed(() => tall.value && !full.value && supports(0, 17, 0) && BIG_KEY_DOMAINS.includes(domain.value)
+  && props.tile.options?.inline !== "slider" && (!tallControls.value || tallControls.value === "toggle" || tallControls.value === "run"));
+// The flip clock on a card two columns wide and two rows tall, or a whole page (firmware 0.17.0): the blocks share the
+// width and the day and AM or PM stand on one line under them.
+const flipWide = computed(() => (full.value || (shape.value.columns > 1 && shape.value.rows > 1)) && supports(0, 17, 0));
+// The day under the wide flip clock, as the screen writes it: "Tuesday 29 Sep".
+const flipDay = computed(() => `${screenText(`screen.date.weekdays.${now.value.getDay()}`)} ${screenText("screen.date.day_month", {
+  day: now.value.getDate(), month: screenText(`screen.date.months_short.${now.value.getMonth()}`) })}`);
+// The line under a big key's name, as the screen draws it: a lamp that is on says how bright, a script or scene when it
+// last ran, anything else its state.
+const bigKeyLine = computed(() => {
+  if (domain.value === "light" && isOn.value && !gone.value) return `${fill.value}%`;
+  if (NO_STATUS.includes(domain.value)) return current.value && !current.value.a?.last_triggered && ["script", "automation"].includes(domain.value) ? screenText("screen.script.never_run") : line.value;
+  return line.value;
+});
 // The value the body shows large; the same words are not repeated under the name (a second line of your own stays).
 const bodyText = computed(() => {
   if (!tall.value || tallAction.value || tallStack.value || gone.value || coverExtended.value) return '';
@@ -236,20 +254,20 @@ async function onKey(e: KeyboardEvent) {
     <button type="button" class="round-key" :aria-label="name" :disabled="preview && !live"
       v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click.stop="activate">
       <span class="disc" :class="{ lit: isOn }"><span v-if="roundValue" class="value">{{ roundValue }}</span><span v-else class="mdi">{{ glyph(tileIconCp(tile)) }}</span></span>
-      <span class="kn">{{ name }}</span>
+      <span v-if="tile.options?.overlay !== 'none' && !isCompact" class="kn">{{ name }}</span>
     </button>
     <!-- The same remove key as on a tile, at the circle's corner. -->
     <button v-if="live && !preview" type="button" class="remove" :title="t('editor.tile_card.remove')" :aria-label="t('editor.tile_card.remove_named', { name })" @click.stop="removeTile(tile)">✕</button>
   </span>
-  <div v-else class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, photo: artworkLoaded && !!artwork, camera: cameraCard && cameraLoaded, bare, placeholder: placeholder || (!live && !foreign), chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
+  <div v-else class="tile" :class="{ wide, full, tall, 'tall-action': tallAction || tallStack, 'big-key': bigKey, photo: artworkLoaded && !!artwork, camera: cameraCard && cameraLoaded, bare, placeholder: placeholder || (!live && !foreign), chosen }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
     :style="{ gridColumn: `${slot % grid.columns + 1} / span ${shape.columns}`, gridRow: `${Math.floor(slot % grid.slots / grid.columns) + 1} / span ${shape.rows}`, ...(background && !bare ? { backgroundColor: background } : {}), '--tile-icon': palette.icon, '--tile-circle': palette.circle, '--tile-accent': palette.accent }"
     :tabindex="!foreign && (preview ? goesTo : live) ? 0 : -1" :role="!foreign && (preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
     v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
     <template v-if="bedside">
-      <span class="bedside-clock">
-        <span class="big">{{ clockText(clock24, now) }}</span>
+      <span class="bedside-clock" :class="{ compact: isCompact }">
+        <span class="time"><span class="bedside-time">{{ clockText(clock24, now) }}</span><small v-if="!clock24 && supports(0, 17, 0)" class="am-pm">{{ amPm }}</small></span>
         <span v-if="keyPlaces.length" class="keys">
-          <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview ? undefined : place.key" :data-holder="preview ? undefined : tile.id"
+          <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview || placeholder ? undefined : place.key" :data-holder="preview || placeholder ? undefined : tile.id"
             :class="{ 'insert-here': state.insertKey?.holder === tile.id && state.insertKey?.key === place.key, over: state.drag.key?.holder === tile.id && state.drag.key?.key === place.key }">
             <TileCard v-if="place.tile" :tile="place.tile" :slot="-1" round :preview="preview" />
             <button v-else type="button" class="key-empty" :title="t('editor.page.cell.title')" @click.stop="markKey(place.key)"><span>+</span></button>
@@ -278,6 +296,12 @@ async function onKey(e: KeyboardEvent) {
           <circle cx="30" cy="30" r="3.6" fill="#2196f3" />
         </svg>
         <span v-if="wide || tall || full" class="face-text"><span class="big">{{ clockText(clock24, now) }}</span><span class="st">{{ clockDate }}</span></span>
+      </span>
+    </template>
+    <template v-else-if="display === 'flip' && domain === 'screen' && flipWide">
+      <span class="flip-wide">
+        <span class="blocks"><span class="block">{{ flipHours }}</span><span class="block">{{ flipMinutes }}</span></span>
+        <span class="under"><span>{{ flipDay }}</span><span v-if="!clock24">{{ amPm }}</span></span>
       </span>
     </template>
     <template v-else-if="display === 'flip' && domain === 'screen'">
@@ -316,6 +340,11 @@ async function onKey(e: KeyboardEvent) {
         <span v-else-if="controls === 'run'" class="run">{{ runText }}</span>
         <span v-else class="range" :style="sliderStyle"></span>
       </span>
+    </template>
+    <template v-else-if="bigKey">
+      <span class="ic mdi" :class="{ lit: isOn }">{{ glyph(tileIconCp(tile)) }}</span>
+      <span class="nm">{{ name }}</span>
+      <span v-if="bigKeyLine" class="st" :class="{ off: gone }">{{ bigKeyLine }}</span>
     </template>
     <template v-else-if="tall">
       <img v-if="artwork" :key="artwork" class="tall-art" :src="artwork" alt="" @load="artworkLoaded = true" @error="artworkLoaded = false" />
@@ -408,8 +437,27 @@ async function onKey(e: KeyboardEvent) {
 .face-clock .blocks { display: flex; align-items: baseline; gap: 3px; }
 .face-clock .block { background: #f1f1f1; border-radius: 4px; padding: 1px 5px; font-size: 24px; font-weight: 500; line-height: 1.25; background-image: linear-gradient(transparent calc(50% - .5px), #fff calc(50% - .5px), #fff calc(50% + .5px), transparent calc(50% + .5px)); }
 .face-clock .blocks small { font-size: 9px; margin-left: 2px; }
-.bedside-clock { display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; width: 100%; height: 100%; min-width: 0; }
-.bedside-clock .big { font-size: 64px; font-weight: 400; line-height: 1; letter-spacing: -1px; }
+.bedside-clock { display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; width: 100%; height: 100%; min-width: 0; container-type: inline-size; }
+/* As the screen draws it: the time about as wide as the card, the keys a quarter of its height. */
+.bedside-clock .bedside-time { font-size: 32cqw; font-weight: 400; line-height: 1; letter-spacing: -1px; }
+/* The compact look (a CYD) draws its display step smaller against the card. */
+.bedside-clock.compact .bedside-time { font-size: 24cqw; }
+.bedside-clock .round-tile .disc { width: 16cqw; height: 16cqw; font-size: 8cqw; }
+.bedside-clock .round-tile .disc .value { font-size: 4cqw; }
+.bedside-clock .key-place { width: auto; min-width: min(20cqw, 64px); }
+.bedside-clock .round-tile, .bedside-clock .round-key { max-width: none; }
+.bedside-clock .time { display: grid; justify-items: end; }
+.bedside-clock .am-pm { font-size: min(4cqw, 12px); opacity: .6; margin-top: 4px; }
+.flip-wide { display: flex; flex-direction: column; justify-content: center; gap: 6px; width: 100%; height: 100%; min-width: 0; container-type: size; }
+/* As the screen draws it: two blocks sharing the width, each about as tall as wide, the digits filling them. */
+.flip-wide .blocks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3%; height: min(calc(100cqh - 34px), 44cqw); }
+.flip-wide .block { display: grid; place-items: center; background: #f1f1f1; border-radius: 8px; font-size: min(36cqw, calc((100cqh - 34px) * .78)); font-weight: 400; line-height: 1;
+  background-image: linear-gradient(transparent calc(50% - .5px), #fff calc(50% - .5px), #fff calc(50% + .5px), transparent calc(50% + .5px)); }
+.flip-wide .under { display: flex; justify-content: space-between; font-size: 10px; opacity: .7; }
+.tile.tall.big-key { flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 4px; container-type: size; }
+.tile.tall.big-key .ic { width: 44cqmin; height: 44cqmin; display: grid; place-items: center; font-size: 24cqmin; padding: 0; }
+.tile.tall.big-key .nm { font-size: clamp(12px, 13cqmin, 26px); font-weight: 500; color: #1b1b1b; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile.tall.big-key .st { font-size: 10px; }
 .bedside-clock .keys { display: flex; gap: 14px; }
 .key-place { display: grid; place-items: center; width: 64px; min-height: 52px; border-radius: 12px; }
 .key-place.over, .key-place.insert-here { outline: 2px dashed var(--accent, #2196f3); outline-offset: 2px; }

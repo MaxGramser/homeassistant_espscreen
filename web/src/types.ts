@@ -15,7 +15,7 @@ export type TileOptions = {
 export type ChildTile = {
   id: string;
   content: { kind: "entity"; entityId: string };
-  appearance: { label: string; icon?: string };
+  appearance: { label: string; icon?: string; overlay?: string };
   interaction: { tap?: string; action?: TileOptions["action"]; guard?: string };
 };
 // A key of a bedside clock (app 0.4.12) is a tile like any other without a cell: it names the tile it stands under
@@ -87,7 +87,7 @@ export type BoardCatalog = {
 };
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
-  width: number; height: number; dpi: number; camera: boolean; dimmable: boolean; can_standby: boolean;
+  width: number; height: number; dpi: number; look?: string; camera: boolean; dimmable: boolean; can_standby: boolean;
   // The chip its firmware is built for, as esptool names it ("ESP32-S3"): the browser flasher checks the board on the cable.
   chip?: string | null;
 };
@@ -106,6 +106,7 @@ export type FeedbackView = {
 export type Screen = {
   // name: the editor's own name when one is set (app 0.4.2); ha_name: what Home Assistant calls the screen.
   id: string; name: string; ha_name?: string; online: boolean; area?: string; firmware?: string; board?: string;
+  virtual?: boolean;
   layout: Layout; update?: UpdateInfo; settings?: SettingsView; delivery?: string; status?: string;
   page_document?: PageDocument | PendingMigration | null;
   source_grid?: PageGrid | null;
@@ -125,7 +126,7 @@ export type Screen = {
   api_key?: string | null;
   // What the add-on reads from the firmware (app 0.2.78): its X.Y.Z (null when unknown), how many tiles it holds,
   // whether it draws full-page tiles, and whether it takes several tiles that go to the same page.
-  firmware_known?: string | null; tile_limit?: number; full_page?: boolean; page_tiles_repeat?: boolean;
+  firmware_known?: string | null; tile_limit?: number; page_limit?: number; full_page?: boolean; page_tiles_repeat?: boolean; entity_tiles_repeat?: boolean; no_title?: boolean;
   // The language its firmware was built in (app 0.2.90); null for older firmware, which is English.
   language?: string | null;
   // What the screen looks like (app 0.2.94): the glass it draws on, the cells of one page, its density and its look,
@@ -137,6 +138,7 @@ export type Screen = {
   // Whether its board draws pictures: camera tiles, an alert's snapshot, an album cover (app 0.2.94).
   pictures?: boolean;
 };
+export type ScreenShape = NonNullable<Screen["shape"]>;
 // Language & region of the screens (app 0.2.90): the language setting ("auto" follows Home Assistant), the language that
 // gives, Home Assistant's own, and every language there is, by its own name; the time and number format, each "auto"
 // (as the language writes it) or a choice, and what that gives.

@@ -97,16 +97,20 @@ def text(count):
 
 def counts(lab=False):
     """Every cell count the shipped boards ask for (GRID_COLS x GRID_ROWS), and the lab boards' with `lab`."""
-    boards = list(profiles.BOARDS.values())
+    boards = [(profiles.CATALOG[key].get('choices') or {}, path) for key, path in profiles.BOARDS.items()]
     if lab:
-        boards += sorted((ROOT / 'packages' / 'boards').glob('lab-*.yaml'))
+        boards += [({}, path) for path in sorted((ROOT / 'packages' / 'boards').glob('lab-*.yaml'))]
     found = set()
-    for board in boards:
+    for choices, board in boards:
         values = profiles.evaluate(profiles.raw_substitutions(board))
         if 'GRID_COLS' in values and 'GRID_ROWS' in values:
             # One file serves a board either way up, so it holds the cells of whichever page asks for most.
             found.add(max(int(values['GRID_COLS']) * int(values['GRID_ROWS']),
                           int(values.get('GRID_COLS_PORTRAIT', values['GRID_COLS'])) * int(values.get('GRID_ROWS_PORTRAIT', values['GRID_ROWS']))))
+            # A grid someone may choose when the screen is built (boards.yaml `choices`) needs its own file too; such a
+            # board names its cards file by GRID_CELLS, so the screen takes the file of the grid it was built with.
+            for rows in choices.get('GRID_ROWS', []):
+                found.add(int(values['GRID_COLS']) * int(rows))
     return sorted(found)
 
 

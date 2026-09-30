@@ -1,0 +1,40 @@
+# ESP Screens - the large digits, for every look: the display step and the bedside clock's own step (firmware 0.17.0+).
+#
+# The digit fonts are a fixed set of steps (tests/test_font_set.py): the clock card's (FONT_CLOCK_DIGITS_SIZE), the
+# setpoint's (FONT_SETPOINT_SIZE) and the two large ones worked out here from the glass. A new card takes the largest step
+# that fits (runtime_tiles::largest_digits); it never brings a size of its own.
+#
+# The display step (display_digits, FONT_DISPLAY_SIZE) fills half a page's width: the flip clock's two blocks on a card as
+# wide as the page each hold it with room at their sides ("00" in Roboto is 1.124 of the font size wide and fills 84 % of
+# a block). The page's shorter side is its width standing up, so the same size serves both orientations.
+#
+# The bedside step is the largest the whole-page bedside clock takes with its keys, lying down and standing up, by the
+# rules the screen lays the clock out with (runtime_tiles::bedside_layout): the time in a row over the keys, beside them,
+# or its hours over its minutes, with room above, between and below. Roboto's digits are 0.731 of the font size tall and
+# "00:00" is 2.49 of it wide. Where that is not a fifth larger than the display step (a 4-inch Guition, a CYD) the clock
+# takes the display step and its own font stays at its smallest, 8 px, a place holder (runtime_tiles::bedside_digits).
+# Both looks include this file, and each states BEDSIDE_WITH_NAMES: 1 when a key has its name under it, 0 when not.
+# A look states a plain value here, never an expression: ESPHome works these out in their order in the merged file.
+# tools/render/run.py renders the clock on every board, and the screen's self test fails one where the digits fit no
+# arrangement.
+substitutions:
+  DISPLAY_CARD_W: ${ ([PANEL_W | int, PANEL_H | int] | min) - 2 * (GRID_MARGIN | int) - 2 - 2 * (TILE_PAD | int) }
+  DISPLAY_BLOCK_W: ${ ((DISPLAY_CARD_W | float) - [6 * (LOOK_SCALE | float), (DISPLAY_CARD_W | float) / 36] | max) / 2 }
+  FONT_DISPLAY_SIZE: ${ [8, (0.84 * (DISPLAY_BLOCK_W | float) / 1.124) | int] | max }
+  BEDSIDE_NAMES: ${ (BEDSIDE_WITH_NAMES | float) * (8 * (LOOK_SCALE | float) + 1.17 * (FONT_SUBLABEL_SIZE | float)) }
+  BEDSIDE_MM7: ${ (DISPLAY_DPI | float) * 7 / 25 }
+  BEDSIDE_MM12: ${ (DISPLAY_DPI | float) * 12 / 25 }
+  BEDSIDE_LW: ${ ([PANEL_W | int, PANEL_H | int] | max) - 2 * (GRID_MARGIN | int) - 2 - 2 * (TILE_PAD | int) }
+  BEDSIDE_LC: ${ ([PANEL_W | int, PANEL_H | int] | min) - (SCROLL_Y | int) - (PAGE_BAR_H | int) - 2 }
+  BEDSIDE_PW: ${ ([PANEL_W | int, PANEL_H | int] | min) - 2 * (GRID_MARGIN | int) - 2 - 2 * (TILE_PAD | int) }
+  BEDSIDE_PC: ${ ([PANEL_W | int, PANEL_H | int] | max) - (SCROLL_Y | int) - (PAGE_BAR_H | int) - 2 }
+  BEDSIDE_LD: ${ [BEDSIDE_MM7 | float, [BEDSIDE_MM12 | float, 0.28 * ((BEDSIDE_LC | float) - 2 * (TILE_PAD | int))] | min] | max }
+  BEDSIDE_PD: ${ [BEDSIDE_MM7 | float, [BEDSIDE_MM12 | float, 0.28 * ((BEDSIDE_PC | float) - 2 * (TILE_PAD | int))] | min] | max }
+  BEDSIDE_LG: ${ (BEDSIDE_LC | float) - (BEDSIDE_LD | float) - (BEDSIDE_NAMES | float) - 3 * ([8 * (LOOK_SCALE | float), 0.07 * (BEDSIDE_LC | float)] | max) }
+  BEDSIDE_PG: ${ (BEDSIDE_PC | float) - (BEDSIDE_PD | float) - (BEDSIDE_NAMES | float) - 3 * ([8 * (LOOK_SCALE | float), 0.07 * (BEDSIDE_PC | float)] | max) }
+  BEDSIDE_LCOL: ${ [BEDSIDE_MM7 | float, [BEDSIDE_LD | float, ((BEDSIDE_LC | float) - 2 * (TILE_PAD | int) - 24 * (LOOK_SCALE | float)) / 3] | min] | max + ((12 * (LOOK_SCALE | float) + [(BEDSIDE_LW | float) / 3, 5.5 * (FONT_SUBLABEL_SIZE | float)] | min) if (BEDSIDE_NAMES | float) > 0 else 0) }
+  BEDSIDE_PCOL: ${ [BEDSIDE_MM7 | float, [BEDSIDE_PD | float, ((BEDSIDE_PC | float) - 2 * (TILE_PAD | int) - 24 * (LOOK_SCALE | float)) / 3] | min] | max + ((12 * (LOOK_SCALE | float) + [(BEDSIDE_PW | float) / 3, 5.5 * (FONT_SUBLABEL_SIZE | float)] | min) if (BEDSIDE_NAMES | float) > 0 else 0) }
+  BEDSIDE_L: ${ [[0.97 * (BEDSIDE_LW | float) / 2.49, (BEDSIDE_LG | float) / 0.731] | min, [0.97 * (BEDSIDE_LW | float) / 1.124, (BEDSIDE_LG | float) / 1.584] | min, [((BEDSIDE_LW | float) - (BEDSIDE_LCOL | float) - 28 * (LOOK_SCALE | float)) / 2.49, ((BEDSIDE_LC | float) - 2 * (TILE_PAD | int)) / 0.731] | min] | max }
+  BEDSIDE_P: ${ [[0.97 * (BEDSIDE_PW | float) / 2.49, (BEDSIDE_PG | float) / 0.731] | min, [0.97 * (BEDSIDE_PW | float) / 1.124, (BEDSIDE_PG | float) / 1.584] | min, [((BEDSIDE_PW | float) - (BEDSIDE_PCOL | float) - 28 * (LOOK_SCALE | float)) / 2.49, ((BEDSIDE_PC | float) - 2 * (TILE_PAD | int)) / 0.731] | min] | max }
+  BEDSIDE_FIT: ${ [8, [BEDSIDE_L | float, BEDSIDE_P | float] | min] | max | int }
+  FONT_BEDSIDE_SIZE: ${ (BEDSIDE_FIT | int) if (BEDSIDE_FIT | float) >= 1.2 * (FONT_DISPLAY_SIZE | float) else 8 }

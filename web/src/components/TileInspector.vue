@@ -9,7 +9,7 @@ import { t } from "../i18n";
 import { beginFieldEdit, endFieldEdit } from '../store';
 import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pageTarget, SLIDER_DOMAINS, SWITCHES_ON_TAP, TOGGLE_BEFORE } from "../model/layout";
 import { glyph } from "../model/topbar";
-import { currentScreen, automaticIcon, entityName, openPage, fullPage, loadSubtitleValues, setTileName, moveTileToPage, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
+import { currentScreen, automaticIcon, entityName, openPage, openTile, screenBuiltinName, fullPage, loadSubtitleValues, setTileName, moveTileToPage, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
 import type { Tile } from "../types";
 import ActionPicker from "./ActionPicker.vue";
 import IconPicker from "./IconPicker.vue";
@@ -34,7 +34,9 @@ const goesTo = computed(() => pageTarget(props.tile.entity));
 // Pages counted from 1. "Goes to page" offers the pages the screen has and the empty one after them, where a sub-page
 // starts (app 0.2.78), and keeps a target beyond those so the choice stays visible.
 const pageTotal = computed(() => (state.layout ? pageCount(entriesOf(state.layout), state.layout.pages) : 1));
-const pageHere = computed(() => pageOf(props.tile.slot) + 1);
+// A key stands on its clock's page (it has no cell of its own); the clock is on a screen once.
+const holder = computed(() => props.tile.in !== undefined ? state.layout?.tiles.find((item) => item.entity === props.tile.in && item.in === undefined) : undefined);
+const pageHere = computed(() => pageOf((holder.value || props.tile).slot) + 1);
 const emptyPage = (n: number) => !state.layout?.tiles.some((t) => pageOf(t.slot) === n - 1);
 const pages = computed(() => {
   const list = Array.from({ length: Math.min(grid.pages, pageTotal.value + 1) }, (_, i) => i + 1);
@@ -212,12 +214,14 @@ const backgrounds = computed(() => Object.entries(state.inventory.backgrounds ||
 const fromHA = computed(() => Boolean(state.inventory.entities.find((e) => e.id === props.tile.entity)?.icon));
 const showIcon = computed(() => Boolean(state.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
 function inspect() {
-  state.inspector = { kind: "inspect", entity: props.tile.entity };
+  // This tile's own data: its entity may be on several tiles (firmware 0.16.0+).
+  state.inspector = { kind: "inspect", entity: props.tile.entity, slot: props.tile.slot, key: props.tile.key };
 }
 // The way up in the head: the page the tile stands on opens that page's settings.
-const pageId = computed(() => state.document?.pages.find((page) => page.tiles.some((item) => item.id === props.tile.id))?.id);
+const pageId = computed(() => state.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => openPage(pageId.value!) : undefined },
+  ...(holder.value ? [{ text: holder.value.name || screenBuiltinName(holder.value.entity) || entityName(holder.value.entity), open: () => openTile(holder.value!) }] : []),
   { text: props.tile.entity, mono: true },
 ]);
 // The sizes as the shape they take on the grid, so the choice reads at a glance.
@@ -237,7 +241,8 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
           @focus="beginFieldEdit(`tile:${tile.id}`); nameDraft.focus()" @blur="endFieldEdit(); nameDraft.blur()"
           @input="nameDraft.input(($event.target as HTMLInputElement).value)" />
       </div>
-      <div class="f">
+      <!-- A bedside clock and its keys have no second line: the clock draws the time, a key its name alone. -->
+      <div v-if="!bedside && !key" class="f">
         <span class="f-label">{{ t("editor.tile.sub.label") }}<HelpTip :text="t(`editor.tile.sub.hint_${subKind}`)" /></span>
         <Segmented :choices="subChoices" :value="subKind" @pick="pickSubKind" />
         <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
@@ -251,6 +256,9 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
 
     <p v-if="bedside" class="hint">{{ t("editor.tile.keys.hint") }}</p>
     <p v-if="key" class="hint">{{ t("editor.tile.keys.under") }}</p>
+    <!-- A key's name under its circle (firmware 0.17.0+): off leaves the circle alone, as a picture can drop its name. -->
+    <SwitchRow v-if="key && supports(0, 17, 0)" class="key-name-choice" :label="t('editor.tile.keys.name_shown')" :description="t('editor.tile.keys.name_shown_hint')"
+      :model-value="tile.options?.overlay !== 'none'" @update:model-value="(on) => setTileOption(tile, 'overlay', on ? 'name' : 'none')" />
 
     <Section v-if="lookShown" :title="t('editor.tile.sections.look')" icon="eye-outline">
       <div v-if="tile.entity !== 'screen.settings'" class="f">

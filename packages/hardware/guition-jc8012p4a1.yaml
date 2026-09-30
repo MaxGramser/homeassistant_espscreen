@@ -6,8 +6,9 @@
 # driver. Everything else is the same board: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch), and the GSL3680
 # touch panel. The board file adds its display and says which silicon it is built for.
 #
-# Only the V3 includes this file. The first build carries the same touch panel and sensor in its own board file, and
-# keeps them there: its touch runs on ESPHome's own gsl3670, the V3's on components/gsl3680_v3 (below).
+# The V2 and the V3 include this file. The first build carries the same touch panel and sensor in its own board file,
+# and keeps them there: its touch runs on ESPHome's own gsl3670, the V2's and the V3's on components/gsl3680_v3
+# (below).
 packages:
   hardware: !include guition-esp32p4.yaml
 

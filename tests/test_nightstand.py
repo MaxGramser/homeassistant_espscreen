@@ -61,9 +61,12 @@ class NightstandTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_layout({"title": "B", "tiles": [CLOCK, KEYS[0], {**KEYS[1], "key": 0}]})
 
-    def test_an_entity_is_once_on_a_screen_as_a_tile_or_as_a_key(self):
-        with self.assertRaises(ValueError):
-            validate_layout({"title": "B", "tiles": [CLOCK, KEYS[0], {"entity": "light.bedside", "slot": 6}]})
+    def test_an_entity_may_be_a_key_and_a_tile_but_the_clock_is_once_on_a_screen(self):
+        # Any entity on several tiles, a key being one, from firmware 0.16.0 (GitHub #83).
+        both = validate_layout({"title": "B", "tiles": [CLOCK, KEYS[0], {"entity": "light.bedside", "slot": 6}]})
+        self.assertEqual(min_firmware(both), (0, 16, 0))
+        with self.assertRaisesRegex(ValueError, "bedside clock can only be on a screen once"):
+            validate_layout({"title": "B", "tiles": [CLOCK, {**CLOCK, "slot": 6}]})
 
     def test_a_key_is_checked_like_a_tile_of_its_own(self):
         with self.assertRaises(ValueError):
@@ -116,7 +119,7 @@ class NightstandTests(unittest.TestCase):
 
     def test_a_page_with_keys_is_not_copied_onto_the_same_screen(self):
         document = record([CLOCK, *KEYS])["layout"]
-        with self.assertRaises(ValueError):  # the copy would put every entity on the screen twice, as for any tile
+        with self.assertRaises(ValueError):  # the copy would put the bedside clock on the screen twice
             copy_page(document, document["pages"][0]["id"], Grid())
 
     def test_a_screen_that_does_not_take_keys_is_refused_before_anything_is_sent(self):

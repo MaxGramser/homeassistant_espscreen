@@ -1,52 +1,229 @@
-## 0.4.25 (firmware 0.14.0)
+## 0.4.32 (firmware 0.19.0)
 
-- Fix the compiler type mismatch in the two-column light control layout on
-  ESPHome's LVGL version. This shared component fix updates every board.
+- Add the experimental LilyGO T-Display-S3-Long profile with four cells,
+  calibrated CST3530 touch, dimming and full-frame display refresh.
+- Keep light sliders and finger-sized media controls inside its short screen.
+  Include the latest upstream boards, page limits and editor improvements.
+- Battery charging and PMU control still require separate validation.
 
-## 0.4.24 (firmware 0.13.0)
+## 0.4.31 (firmware 0.18.1 for guition)
 
-- Give the light temperature and brightness sliders half the screen each when
-  the colour control is absent. Put media volume beside full-size playback
-  buttons on the Long display, rather than shrinking those buttons.
-- This shared responsive layout update raises firmware for every board.
+- **Four rows on the 4-inch Guition, as a choice.** New screen asks how many tiles go on a page: two columns of three,
+  as before, or of four with smaller tiles, for a screen with many switches. Every card works in every size on four
+  rows too. The choice is one line in the screen's own YAML (`GRID_ROWS: "4"`), and a screen already built with three
+  rows gets four by adding that line and installing it again: its saved layout moves on to four rows by itself.
+- An offline screen built with four rows keeps its own grid in the editor; the app reads it from the screen's YAML.
+- Only the Guition gets new firmware (0.18.1), which is the same as before for a screen with three rows. Other screens
+  get nothing new.
+- Tested: tools/check.sh with new tests (the choice in New screen, the line in the screen's YAML, the eight cards the
+  board takes on four rows, the grid of an offline screen), the Guition built with three and with four rows on ESPHome
+  2026.9.0 and 2026.6.2, and rendered with four rows. Not yet seen on the glass of a Guition with four rows.
 
-## 0.4.23 (firmware 0.12.0)
+## 0.4.30 (firmware 0.18.0)
 
-- Fit light colour, temperature and brightness controls side by side on very
-  wide, short screens. Place media playback buttons above the volume row so
-  neither control covers the other. The larger screen layouts retain their
-  existing positions.
-- This shared responsive layout update raises firmware for every board.
+- **Every screen has eight pages, and a page need not be full.** A screen holds 64 tiles over up to eight pages, on
+  every board. Before, a bigger grid had fewer pages: as many as 64 tiles fill, so three on the 10.1-inch Guition and
+  seven on the Waveshare 4.3-inch. A page with a few tiles is fine now. A screen on older firmware keeps its old limit
+  until it is updated, and the editor offers it no more pages than it takes.
+- **The 10.1-inch Guition is five by five**, lying down and standing up (all three: JC8012P4A1, V2 and V3). Before it
+  was five by four lying down and four by five standing up.
+- **A saved layout moves on to a bigger grid by itself.** When a screen reports more rows or columns than its layout
+  was made for, ESP Screen Manager moves the layout to the new grid: every tile keeps its page, its row and its
+  column, and the new cells stay empty. Before, the screen waited for someone to review the change in the editor. A
+  grid that gets smaller still asks for that review.
+- Tested: tools/check.sh with new tests (the page limit per firmware in the add-on, the editor and the firmware, a grid
+  that grows, delivery to firmware that does not take the pages yet), the firmware of every board on ESPHome 2026.9.0
+  and 2026.6.2, and the 10.1-inch Guition rendered lying down and standing up. Not yet seen on the glass of a
+  10.1-inch screen.
 
-## 0.4.22 (LilyGO firmware 0.11.2)
+## 0.4.29 (firmware 0.17.0)
 
-- Fix the LilyGO Long touch mapping: pass the transform through the board's
-  TOUCH_* substitutions so the shared touchscreen config uses it. Swap the
-  raw calibration axes into the panel's native 180 x 640 space before LVGL
-  rotates the display. The previous calibration alone left taps misplaced.
+A new board, experimental: the Guition JC8012P4A1 V2 (GitHub #92).
 
-## 0.4.21 (LilyGO firmware 0.11.1)
+- **Guition JC8012P4A1 V2** in New screen, as **Guition · 10.1 inch** (JC8012P4A1 V2): the 10.1-inch Guition with the
+  first build's early ESP32-P4 and the newer LCD of the V3 (a label saying V2, a case number of 2628 or higher). On the
+  first build's firmware this LCD showed a washed-out picture with a coloured line across it, and the V3's firmware does
+  not start on this chip. The V2 runs the V3's LCD table and touch driver on the first build's chip, with ESPHome's own
+  display driver. docs/JC8012P4A1.md says how to tell the three builds apart and what to report.
+- Nothing changes for a screen you have: no firmware update.
+- Tested: the board builds with ESPHome 2026.9 (2,672,528 B, 32.9 % of its 8 MB slot) and with 2026.8.0, the oldest it
+  asks for, and its render check passes lying down and standing up. Not yet seen on the glass of a V2.
 
-- Calibrate the LilyGO T-Display-S3-Long touch panel to the tested raw bounds
-  x=10..627 and y=6..176. Keep its existing axis and mirror transforms. Move
-  the header up and give the button row 13 more pixels of height.
+## 0.4.28 (firmware 0.17.0)
+
+A new board, experimental: the Sunton ESP32-8048S070 (GitHub #94).
+
+- **Sunton 8048S070** in New screen, as **Sunton · 7 inch** (ESP32-8048S070): 800 x 480, four by four tiles lying down
+  and two by seven standing up, at the tile size of the 7-inch Waveshare. Its backlight dims, so brightness, standby and
+  night mode are all there. docs/SUNTON8048S070.md has the details and what to report.
+- Nothing changes for a screen you have: no firmware update.
+- Tested: the board builds with ESPHome 2026.9 (2,138,128 B, 26.3 % of its 8 MB slot) and with 2026.6.2, and its render
+  check passes lying down and standing up. Not yet seen on the glass of this board by the project: the panel is
+  ESPHome's own ESP32-8048S070 model, the touch bus and backlight pin follow a configuration a board owner ran.
+
+## 0.4.27 (firmware 0.17.0)
+
+- **A lamp, a switch, a script or a scene two cells high is one big key.** On a tile of 2 x 2 or 1 x 2 cells the card
+  shows a large circle, the name and the state, like the tile over a whole page, and the whole card is what you tap. A
+  tile with a control on it (a dimmer, the volume, a vacuum's keys) keeps its controls as before.
+- **The flip clock fills a wide card.** On a card as wide as the page and two rows high, or a whole page, the two blocks
+  share the width and the day and AM or PM stand on one line under them: a bedside clock of your own, with tiles under it.
+- **The bedside clock** (GitHub #93):
+  - AM or PM stands under the end of the time. Beside it, a time from 10:00 to 12:59 ran off the glass.
+  - The keys under the clock open their own settings and drag to another place or to an empty cell. A click on a key or
+    an empty place opened the clock instead, and dragging a key dragged the whole clock.
+  - **Name under the key** can be turned off per key; the circle then stands alone.
+- **A screen can do without a title.** Leave the screen title empty and the top bar shows only the logo. Pages with a
+  title of their own still show it.
+- **Download screen files.** A screen's details in the sidebar download its ESPHome YAML, its Override YAML and a
+  `secrets.yaml` with only the secrets they use, to build the screen with ESPHome on your own computer.
+- A tile's new background shows on the screen straight away. A change of background alone waited for the entity's next
+  state, so an idle timer, or any tile whose state stood still, kept its old colour.
+- Dragging a tile that fills a page shows where it can go: a page that has tiles says it has no room, and a drop tells
+  you so, instead of nothing happening.
+- **One fixed set of font sizes.** Every board renders the same short list of text, digit and icon steps, and a new card
+  takes the largest step that fits instead of bringing a size of its own. The flip clock and the bedside clock share the
+  large digits, so the bedside digits are a little smaller on the 4-inch Guition (164 to 153 px) and the CYD (81 to 73
+  px); larger screens keep theirs. A tile name with room on the CYD is no longer bold. The CYD firmware is 19.5 KB
+  smaller (90.1 % of its slot).
+- The editor's mockup draws all of this as the screen does, a script tile says "Never run" and "Running" in the screen's
+  language instead of a text key, and a change to a key under the bedside clock keeps its panel open.
+- Tested: tools/check.sh with new tests (the font set, the big key, the flip and bedside layouts, key names in the add-on
+  and the editor, the empty title, the screen files, the paint repaint, dragging a key). Every design rendered from the
+  firmware's own code on eight boards before it was built; on a Guition 4848S040 and a CYD ESP32-2432S028R with firmware
+  0.17.0 and a Home Assistant OS bench: a timer's new background, the empty title, the flip clock and the big key on the
+  glass, and the screen files built with ESPHome on a Mac.
+
+## 0.4.26 (firmware 0.16.0)
+
+- **One entity on several tiles** (GitHub #83). A light can now be a small tile on page 1 and a tile with its slider on
+  page 3, a camera can be on two pages, and a whole page can be copied with its tiles. Every copy has its own name,
+  icon, colour, size and tap. The library keeps offering an entity that is already on the screen and marks it with a
+  check, or with how often it is there. Only the bedside clock is on a screen once. It needs firmware 0.16.0; an older
+  screen asks for its update first.
+- On firmware 0.16.0 a lock's "tap again to unlock" counts only on the tile you tapped, an alarm going off opens its
+  card once, and each copy of a camera on a page gets its own picture and its own fit.
+- A lock or alarm panel no longer keeps a pulsing ring after it settled while its page was out of view. The ring stayed
+  with the place on the screen instead of the tile, so a page that came back could show the old animation.
+- `esp_screens_add_tile` now always puts a new tile on the screen, also when the entity is there already. To change a
+  tile through an event, remove it and add it again. On firmware older than 0.16.0 it works as before.
+- Tested: tools/check.sh with new tests for copies (validation, tile events, delivery to old and new firmware, live
+  pictures by tile, page copies, the editor's library and page menu). On a Guition 4848S040 with firmware 0.16.0 and a
+  Home Assistant OS bench: a lamp, a lock, an alarm panel and a camera on several pages, a whole page copied in the
+  editor, and a page with the same camera twice. A lamp switched in Home Assistant changed on every copy, also on a page
+  that was not on screen; tapping one lock copy and then another did not unlock, and each copy kept its own "unlock
+  never" setting; the alarm going off opened its card once; each camera copy and each album cover copy showed its own
+  fit, name and tile colour. A screen put back on firmware 0.13.0 was asked to update first and got nothing, then took
+  the layout with copies once it ran 0.16.0 again. Checked by hand on the Guition and on a CYD ESP32-2432S028R: lamp
+  copies switch together, a lock opens only on two taps on the same copy, the card and the effects page of a copy carry
+  its name, and an alarm going off opens its card once on each screen. Every board builds; the CYD firmware is 16 bytes smaller
+  than 0.4.25's (91.2 % of its slot).
+
+## 0.4.25 (firmware 0.15.0)
+
+- **The top bar lines up with its logo, and its text no longer touches the tiles** (GitHub #90). Since 0.4.23 the
+  page's name and the items on the right stood on the logo's bottom line, so they looked low next to it, and on the
+  compact look (the CYD and the Hosyond 4.0) the tail of a g, p or y touched the first row of tiles. Now the name, the
+  words and icons on the right and the analog clock all share the logo's middle line, and the tiles start one row gap
+  below the lowest a title can reach, never closer than 1.5 mm. The room follows from the fonts, so it is the same on
+  every page, in every language and on every board. The tiles keep all their height on the larger screens compared
+  with 0.4.22 and before; on the compact look they give back about 2 pixels of what 0.4.23 took from under the text.
+- Tested: tools/check.sh, and the host renders of the Hosyond 4.0, the CYD, the Guition 4848S040 and the Waveshare 4.3
+  with a temperature, the date and the clock in the top bar: every self test passes, the name, the clock and the
+  icons sit within 1.5 pixels of the logo's middle, and 9 to 14 pixels stay free under the tail of a g. A Guition
+  4848S040 runs it with its own layout. The CYD firmware is 336 bytes smaller than 0.4.23's.
+
+## 0.4.24 (firmware 0.14.0)
+
+- **Album covers, station logos and camera pictures follow the app's port** (GitHub #84). Home Assistant OS lets you
+  publish the app's picture port 8098 under another number in its network settings, for example when another app
+  already uses 8098. The screens were still sent links on 8098, so they asked the other app for their pictures and
+  showed none. The app now asks the Supervisor which port it published and puts that one in the links. Docker keeps
+  `SCREEN_CAMERA_PORT` and `SCREEN_CAMERA_URL` as before.
+- Tested: tools/check.sh, with new tests for a port published as 8099, a Supervisor that answers nothing usable
+  (8098 as before) and Docker's own setting. On a Home Assistant OS bench with the port published as 8099 (8098
+  closed), a camera alert on a Guition 4848S040 showed its picture.
+
+## 0.4.23 (firmware 0.14.0)
+
+- **Taller tiles on every screen.** Less of the glass goes to space around the tiles, and more to the tiles
+  themselves. The bar with the page arrows and dots is now at most 7 mm high, enough for a finger, where it was about
+  9 mm. The tiles start right under the top bar, one gap below it. A Guition 4848S040 gets about 8 pixels more height
+  per tile, a Waveshare 4.3 about 13, the 10.1-inch Guition about 6, and no tile on any board gets smaller, lying
+  down or standing up.
+- **One line for the whole page.** The top bar, the tiles and the page arrows now keep the same distance from the edge
+  of the glass, and the top bar keeps it from the top as well. The margin and the gaps between the tiles keep their size
+  in millimetres on every screen, but never take more pixels than before.
+- Tested: tools/check.sh, and the host renders of the Guition 4848S040, the CYD, the Waveshare 4.3, the Waveshare 7 and
+  the 10.1-inch Guition: every self test passes, and the top bar, the tiles and the page arrows line up on each. A
+  Guition 4848S040 runs it and draws its pages; the lower page bar has not been tried by hand yet. The CYD firmware grows
+  by 752 bytes.
+
+## 0.4.22 (firmware 0.13.0)
+
+- **A camera on full screen stays whole when Home Assistant or ESP Screens restarts.** A picture that broke off halfway
+  through its download made the screen let go of the picture it was showing. The old picture stayed on the glass, but
+  every part of it drawn again after that came out black: when the tiles below went unavailable, their icons and
+  states showed through the camera as black blocks. The full screen now draws a copy of its own, as album covers and
+  live camera tiles already did, so a broken download leaves the last picture as it was until the next one arrives.
+  While the camera is open this costs one more picture in PSRAM (from 300 KB on a Guition JC3248W535 to 1.25 MB on
+  the 10-inch), which is freed again when it closes; the memory inside the chip is not touched.
+- Tested: tools/check.sh, and every board built on ESPHome 2026.9.0 and on the oldest ESPHome it asks for (the CYD
+  stays at 91.2 % of its flash). On a Guition 4848S040 with a Home Assistant bench, the add-on was stopped halfway
+  through a picture of an open camera: with the camera alone, over a page with a live camera tile and an album cover,
+  and over a camera alert. Each time the picture stayed, only the download's own memory was freed, and new pictures
+  came once the add-on was back. A camera alert over an open camera closes it and frees its memory, and ten opens and
+  closes in a row started from the same free PSRAM within 20 bytes.
+
+## 0.4.21 (firmware 0.12.0)
+
+- **The top bar sits as far from the top as from the sides.** There was more room above the top bar than beside it
+  (24 against 16 pixels on a Guition 4848S040, 13 against 11 on a CYD). The bar now keeps the same margin all round,
+  and the tiles start that much higher, so every tile gets a little taller. This holds on every board, whatever its
+  density.
+- Tested: tools/check.sh, and the host renders of the Guition 4848S040, the CYD, the Waveshare 4.3 and the Waveshare 7:
+  every self test passes and the top bar's margin above equals the one at the sides (16, 11, 20 and 13 pixels).
 
 ## 0.4.20 (firmware 0.11.0)
 
-- Document the Long board's CST3530 touch controller, its separate reset and
-  interrupt pins, and the SY6970 battery charger. The existing touch driver
-  follows LilyGO's example; charging and PMU control await hardware validation.
+- **Preview fits its screen again.** The Preview dialog took a style meant for another part of the editor, so on a
+  tall window it stretched to the full height with empty space between its parts and the close button next to the
+  title. It now sizes to the screen it shows. Nothing changes on a screen.
+- Tested: tools/check.sh, and the add-on on a Home Assistant bench: Preview opened on a Guition 4848S040 at a tall
+  window size.
 
 ## 0.4.19 (firmware 0.11.0)
 
-- Add the experimental LilyGO T-Display-S3-Long profile to New screen: a 3.4-inch
-  180 x 640 QSPI display with capacitive touch and dimming.
-- Four cells per page, across in landscape or stacked in portrait. The profile
-  uses LilyGO's full-frame refresh settings for the AXS15231B controller.
-- Fit alert text and buttons on short or narrow glass. Existing layouts retain their
-  normal spacing when there is room. This shared layout change raises the core
-  firmware to 0.11.0. Camera support on the Long is deferred.
-- Physical display, touch, rotation and backlight acceptance is still required.
+See your screens as they really are: the editor runs the screen's own firmware in the browser (GitHub #74 and #81,
+thanks @woozer).
+
+- **Your screens, drawn by their firmware.** The home page of the editor shows every screen's home page as its own
+  firmware draws it: the real cards, fonts, icons, top bar and page dots, with live states from Home Assistant. It is a
+  picture, not a remote control: a click still opens the screen in the editor. A board the preview does not know yet
+  keeps the drawn mockup.
+- **Preview runs the firmware.** **Preview** in the layout editor opens the layout you are editing in the firmware
+  itself, so you can tap, hold and swipe through pages, detail views and album art exactly as on the glass, before
+  saving anything. Taps stay in the preview until you switch on **Taps control devices**; then a tile does what it
+  does on the screen.
+- **Virtual screens.** **New screen → Virtual preview** designs a screen for a board you don't have yet, kept in your
+  browser, with the same editor and the same preview.
+- How it works: the shared firmware and LVGL are compiled to WebAssembly and ship with the add-on, fed the same packets
+  a screen gets. Built by [@woozer](https://github.com/woozer) in
+  [#74](https://github.com/MaxGramser/homeassistant_espscreen/pull/74) (virtual screens and the browser firmware) and
+  [#81](https://github.com/MaxGramser/homeassistant_espscreen/pull/81) (album art and live updates); this release
+  brings it up to firmware 0.11.0 (the Tessera logo in the top bar now shows in the preview too), onto the home page and
+  into Preview, and in Hungarian.
+- New firmware number for every board, but nothing changes on a screen: the firmware's files were only rearranged so the
+  browser can build them. Updating a screen is optional.
+- For developers: GitHub rebuilds the browser firmware by itself whenever the firmware changes
+  (`.github/workflows/preview.yml`, docs/RELEASING.md). The renders no longer run in CI; `tools/check.sh --render` runs
+  them locally.
+- Tested: tools/check.sh (891 Python tests, 33 C++ tests, 384 editor tests, the WebAssembly firmware's own tests, types
+  and build). Every board built on ESPHome 2026.9.0 and on the oldest ESPHome it asks for; the CYD stays at 91.2 % of its
+  flash. The preview workflow rebuilt the browser firmware for 0.11.0 and the editor built from it matches a local
+  build. On a Home Assistant bench with a Guition 4848S040: the home page drawn by the firmware, Preview with swipes
+  between pages, and a tap with device control off that sent nothing to Home Assistant. Not looked at on other boards
+  in the browser.
 
 ## 0.4.18 (firmware 0.10.0)
 
@@ -209,9 +386,7 @@ Automations on every screen (GitHub #62, thanks @Crazyraf87).
   on the Guition, the CYD and the Waveshare 4.3 (lying down and standing up). On a Guition 4 inch with a Home
   Assistant 2026.9: tap switches, hold runs, a run button runs also while the automation is off, holding it switches,
   and "Running..." shows for as long as the actions run.
->>>>>>> ac5c271 (Release 0.4.10 (firmware 0.7.0): automations on every screen (GitHub #62))
 
-<<<<<<< HEAD
 ## 0.4.10 (firmware 0.6.1 for waveshare4b)
 
 The Waveshare ESP32-S3-Touch-LCD-4B draws after a cold start.
@@ -221,7 +396,6 @@ The Waveshare ESP32-S3-Touch-LCD-4B draws after a cold start.
   the board's IO expander, and after a cold start those lines were never driven (ESPHome issue #11748). The board now
   prepares them before the display starts. Update the 4B from Tessera; it runs, so the update goes over the air.
 - Other screens get nothing new.
-=======
 ## 0.4.9 (firmware 0.6.2 for jc8012p4a1v3)
 
 Touch on the Guition JC8012P4A1 V3 (GitHub #52, thanks @ivanfmartinez).

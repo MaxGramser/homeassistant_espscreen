@@ -7,10 +7,10 @@ it does not import the server or keep another copy of a page document.
 import time
 import camera_feed
 import page_delivery
-from core import BUILTIN, CAMERA_DOMAINS, board_of, firmware_features, page_target, state_message
+from core import BUILTIN, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, state_message, version_text
 from i18n import t, shown, english
 from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, bar_items, compile_tiles,
-                         grid_of_record, legacy_projection, validate_document)
+                         grid_of_record, grown, legacy_projection, validate_document)
 
 
 def preflight_update(manager, inbox):
@@ -80,9 +80,12 @@ def save_pages(manager, inbox, data):
     supported_sizes = getattr(sender, 'tile_sizes' if sender.protocol is not None else 'last_tile_sizes', set()) if sender else set()
     if required_sizes and not required_sizes <= supported_sizes:
         raise LayoutError(t('addon.errors.pages.update_tall'))
-    limit = firmware_features(manager.firmware_version(inbox, screen), grid)['tile_limit']
-    if len(flat['tiles']) > limit:
-        raise LayoutError(t('addon.errors.layout.tiles_max', n=limit))
+    features = firmware_features(manager.firmware_version(inbox, screen), grid)
+    if len(flat['tiles']) > features['tile_limit']:
+        raise LayoutError(t('addon.errors.layout.tiles_max', n=features['tile_limit']))
+    # More pages than 64 tiles fill needs firmware 0.18.0, and a screen that said so in its hello has it.
+    if len(document['pages']) > features['page_limit'] and not (sender and sender.free_pages):
+        raise LayoutError(t('addon.errors.layout.firmware_first', version=version_text(FREE_PAGES_MIN_FIRMWARE)))
     if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:
         raise LayoutError(t('addon.errors.layout.camera_unsupported'))
     needed = manager.needs_firmware(inbox, flat, screen)
@@ -112,7 +115,26 @@ def save_pages(manager, inbox, data):
     return record
 
 
+def grow_record(manager, inbox, record):
+    """The saved layout on the grid the screen now reports, when that grid only grew; else the record as it was.
+
+    Only the screen's own report counts: a board's catalog grid may be newer than the firmware still on the screen."""
+    grid = manager.reported_grid(inbox)
+    if grid is None or grid == grid_of_record(record):
+        return record
+    try:
+        layout = grown(record['layout'], grid_of_record(record), grid)
+        if layout is None: return record
+        record = manager.store.save(inbox, layout, record['revision'], adapt_grid=True)
+    except LayoutError:
+        return record
+    manager.sent.pop(inbox, None)
+    manager.notify()
+    return record
+
+
 async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, context=None):
+    record = grow_record(manager, inbox, record)
     grid = manager.verified_grid(inbox)
     if grid is None or grid != grid_of_record(record):
         manager.status[inbox] = english('addon.errors.pages.adaptation')

@@ -525,7 +525,7 @@
         "page_titles": "Uno schermo ha al massimo 1 pagina. | Uno schermo ha al massimo {n} pagine.",
         "tiles_max": "Scegli al massimo 1 riquadro. | Scegli al massimo {n} riquadri.",
         "unsupported": "Questa entità non è supportata.",
-        "once": "Un'entità può comparire una sola volta su uno schermo.",
+        "once": "L'orologio da comodino può stare una sola volta su uno schermo.",
         "tile_name": "Il nome di un riquadro può contenere al massimo 80 byte.",
         "unknown_settings": "Impostazioni del riquadro sconosciute.",
         "navigation_size": "Un riquadro di navigazione ha dimensione normale o larghezza doppia.",
@@ -575,6 +575,7 @@
         "not_for_a_screen": "{entity} non può andare su uno schermo.",
         "not_on_screen": "{entity} non è su questo schermo.",
         "add_it_first": "{entity} non è su questo schermo; aggiungila prima.",
+        "key_stays": "{entity} sta sotto l'orologio da comodino; spostalo lì nell'editor.",
         "not_on_spot": "{entity} non è nello spazio {slot}.",
         "not_on_page": "{entity} non è a pagina {page}.",
         "move_where": "Indica la pagina o lo spazio in cui spostarla.",
@@ -1256,6 +1257,8 @@
         "not_flashed": "Non ancora in Home Assistant. Firmware già installato? Aggiungi il dispositivo ESPHome in Impostazioni → Dispositivi e servizi, poi consenti le azioni di Home Assistant in Configura. Non ancora installato? Firmware e USB → {file}."
       },
       "copy_api_key": "Copia chiave API",
+      "files": "Scarica i file dello schermo",
+      "files_hint": "Lo YAML ESPHome dello schermo con le sue chiavi, l'Override YAML e un secrets.yaml con il Wi-Fi, per compilarlo con ESPHome sul tuo computer.",
       "details": {
         "room": "Area",
         "firmware": "Firmware",
@@ -1435,6 +1438,7 @@
       "all_rooms": "Tutte le aree",
       "hide_placed": "Nascondi quelle già inserite",
       "hide_placed_title": "Nascondi ciò che è già su questo schermo",
+      "again": "Già su questo schermo; aggiungilo di nuovo per un altro riquadro",
       "all_placed": "Tutto ciò che è qui è già su questo schermo.",
       "none_found": "Nessuna entità trovata. Prova un altro nome, un'altra area o un altro filtro.",
       "full": "Questo schermo può contenere 1 riquadro. | Questo schermo può contenere {n} riquadri.",
@@ -1634,7 +1638,9 @@
       },
       "keys": {
         "hint": "Trascina una lampada, una temperatura o una serratura sui posti rotondi sotto l'ora, oppure tocca un posto e scegli. Sono riquadri: toccane uno per impostarlo.",
-        "under": "Sotto l'orologio da comodino: un riquadro nella sua forma rotonda. Un tocco fa ciò che fa su un riquadro, e tenerlo premuto apre la sua scheda."
+        "under": "Sotto l'orologio da comodino: un riquadro nella sua forma rotonda. Un tocco fa ciò che fa su un riquadro, e tenerlo premuto apre la sua scheda.",
+        "name_shown": "Nome sotto il tasto",
+        "name_shown_hint": "Spento mostra solo il cerchio."
       }
     },
     "tile_card": {
@@ -1691,6 +1697,7 @@
       "name_placeholder": "Per esempio: Soggiorno",
       "screen_name": "Titolo dello schermo",
       "screen_name_hint": "Ogni pagina senza un titolo proprio mostra questo.",
+      "no_title_hint": "Lascia vuoto per mostrare solo il logo.",
       "right": "Destra: ora, sensori o orologio",
       "item_label": "{name}, spazio {slot}. Enter: configura, frecce: sposta",
       "remove_named": "Rimuovi {name} dalla barra superiore",
@@ -1924,10 +1931,12 @@
         "calibration": "Calibrazione del touch al primo avvio"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controller del display"
+        "DISPLAY_MODEL": "Controller del display",
+        "GRID_ROWS": "Riquadri per pagina"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "La maggior parte di queste schede ha il primo. Scegli l'altro se lo schermo mostra rumore o un'immagine disturbata."
+        "DISPLAY_MODEL": "La maggior parte di queste schede ha il primo. Scegli l'altro se lo schermo mostra rumore o un'immagine disturbata.",
+        "GRID_ROWS": "Quattro righe mettono otto riquadri più piccoli in una pagina, per uno schermo con molti interruttori. Tre righe mantengono i riquadri più grandi e più leggibili."
       },
       "choice_usual": "la maggior parte",
       "orientation": "Come lo appendi?",
@@ -2010,7 +2019,16 @@
       "another": "Installa un altro schermo",
       "start_over": "Ricomincia",
       "done": "Fatto",
-      "key_more": "Mostra la chiave API"
+      "key_more": "Mostra la chiave API",
+      "choice_option": {
+        "GRID_ROWS": {
+          "3": "3 righe",
+          "4": "4 righe, riquadri più piccoli"
+        }
+      },
+      "choice_first": {
+        "GRID_ROWS": "la dimensione abituale"
+      }
     },
     "alerts": {
       "eyebrow": "Avvisi · guida rapida",
@@ -2398,6 +2416,34 @@
       "group_ha": "Collegato al computer di Home Assistant",
       "group_here": "Collegato a questo computer",
       "group_wifi": "Via Wi-Fi"
+    },
+    "preview": {
+      "type": "Tipo di nuovo schermo",
+      "physical": "Schermo fisico",
+      "virtual": "Anteprima virtuale",
+      "intro": "Progetta uno schermo con entità di Home Assistant senza associare hardware. Le anteprime vengono salvate in questo browser. Nell’anteprima del firmware i tocchi raggiungono Home Assistant solo se lo attivi.",
+      "profile": "Scheda / profilo",
+      "design_only": "Solo profilo di anteprima. Non aggiunge il supporto firmware per questa scheda fisica.",
+      "override": "Modifica risoluzione o griglia",
+      "width": "Larghezza (pixel)",
+      "height": "Altezza (pixel)",
+      "columns": "Colonne",
+      "rows": "Righe",
+      "name": "Nome dell’anteprima",
+      "name_placeholder": "Anteprima Waveshare 4B",
+      "create": "Crea dispositivo virtuale",
+      "created": "Dispositivo virtuale \"{name}\" creato.",
+      "invalid_shape": "Scegli un nome, un profilo supportato, una griglia di 1–8 colonne/righe e un’area di 160–2560 pixel.",
+      "canvas": "Anteprima del firmware LVGL",
+      "packet_error": "Il firmware ha rifiutato un pacchetto di anteprima: {message}",
+      "stopped": "Anteprima del firmware interrotta: {message}",
+      "action_error": "Comando Home Assistant non riuscito: {message}",
+      "remove": "L’anteprima e il suo layout salvato in questo browser.",
+      "save": "Salva anteprima",
+      "saved": "Salvato in questo browser",
+      "hint": "Il firmware stesso dello schermo, disegnato dal layout che stai modificando. Tocca, tieni premuto e scorri come sullo schermo. Non viene salvato nulla.",
+      "control": "I tocchi controllano i dispositivi",
+      "control_hint": "Attivo: un tocco su un riquadro esegue la sua azione in Home Assistant, come sullo schermo. Disattivo: l’anteprima mostra solo cosa fa un tocco."
     }
   }
 }

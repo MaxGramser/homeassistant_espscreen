@@ -29,13 +29,11 @@ substitutions:
   BACKLIGHT_FREQUENCY: "1000Hz"
   # Move the compact header up and start the grid sooner on 180-pixel glass.
   # This gives the single row of four buttons 13 more pixels of height.
-  HEADER_Y: "8"
   SCROLL_Y: "42"
   # Core extends ts_touch with these substitutions. Raw sensor X spans the
   # long axis (10..627) and raw Y the short one (6..176); swap them into the
   # panel's native 180 x 640 space before LVGL rotates the canvas 90 degrees.
   TOUCH_SWAP_XY: "true"
-  TOUCH_MIRROR_X: "false"
   TOUCH_MIRROR_Y: "true"
 
 esp32:

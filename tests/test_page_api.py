@@ -187,6 +187,33 @@ class PageApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(fetch.await_count, 1)
             self.assertFalse(self.manager.ha.changed.is_set())
 
+    async def test_a_grid_the_screen_reports_bigger_takes_the_saved_layout_along(self):
+        # The screen reports more rows itself (the 10.1-inch Guition went from 5 x 4 to 5 x 5 in firmware 0.18.0): the
+        # saved layout moves on to that grid by itself, every tile where it was, and goes out without a visit to the editor.
+        before = self.record()
+        self.assertEqual(before['sourceGrid'], {'columns': 2, 'rows': 3})
+        spots = lambda record: [[(t['placement']['row'], t['placement']['column']) for t in p['tiles']] for p in record['layout']['pages']]
+        screen = self.manager.screen('text.screen')
+        sender = self.manager.page_sender('text.screen', screen)
+        with patch.object(self.manager, 'reported_grid', return_value=Grid(2, 4)), \
+                patch.object(self.manager, 'verified_grid', return_value=Grid(2, 4)), \
+                patch.object(sender, 'synchronize', new=AsyncMock(return_value='confirmed')) as sync:
+            self.assertTrue(await self.manager.sync_pages('text.screen', before, screen))
+        after = self.record()
+        self.assertEqual(after['sourceGrid'], {'columns': 2, 'rows': 4})
+        self.assertEqual(spots(after), spots(before))
+        self.assertEqual(len(after['layout']['pages']), len(before['layout']['pages']))
+        self.assertEqual(sync.await_args.args[1]['revision'], after['revision'])
+
+    async def test_a_grid_only_the_catalog_says_waits_for_the_screen(self):
+        # Offline, or on firmware from before the change, only the catalog says 2 x 4: the layout stays as it was.
+        before = self.record()
+        screen = self.manager.screen('text.screen')
+        with patch.object(self.manager, 'reported_grid', return_value=None), \
+                patch.object(self.manager, 'verified_grid', return_value=Grid(2, 4)):
+            self.assertFalse(await self.manager.sync_pages('text.screen', before, screen))
+        self.assertEqual(self.record(), before)
+
     async def test_value_changes_rebuild_only_the_dependent_page_bars(self):
         from copy import deepcopy
         from page_layout import new_id

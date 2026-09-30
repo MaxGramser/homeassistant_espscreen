@@ -181,7 +181,7 @@ std::string receive(const std::string &payload) {
         seen_tiles |= uint64_t{1} << index;
       }
       const std::string title = string(root["title"], 96);
-      model.title = title.empty() ? tr(txt::status_home) : title;
+      model.title = title;
       for (JsonVariant item : pages) model.page_data.records[item["p"].as<unsigned>()].title = string(item["title"], 96);
       transfer.revision = revision;
       layout_rev = protocol_key(revision);
@@ -451,7 +451,9 @@ std::string receive(const std::string &payload) {
         if (page_entity(entity) && static_cast<unsigned>(entity[12] - '0') > model.pages) return false;
         model.slots[index] = root["slot"].as<unsigned>();
       }
-      if (!page_entity(entity)) for (size_t i = 0; i < model.count; ++i)
+      // Any entity may stand on several tiles (firmware 0.16.0+), each its own index; the bedside clock stays one, as
+      // its keys name it.
+      if (entity == "screen.nightstand") for (size_t i = 0; i < model.count; ++i)
         if (i != index && model.tiles[i].received && model.tiles[i].entity == entity) return false;
       model.tiles[index].entity = entity;
     } else if (!root["o"].isNull() || !root["slot"].isNull() || !model.accepts(index, entity)) {

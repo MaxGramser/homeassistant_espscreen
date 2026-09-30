@@ -8,7 +8,7 @@ import asyncio
 from copy import deepcopy
 import json
 
-from core import NIGHTSTAND_MIN_FIRMWARE, is_key
+from core import ENTITY_REPEAT_MIN_FIRMWARE, FREE_PAGES_MIN_FIRMWARE, NIGHTSTAND_MIN_FIRMWARE, is_key, repeated_entities
 from page_layout import compile_tiles, fingerprint, grid_of_record, new_id
 from i18n import english
 
@@ -166,6 +166,8 @@ class Sender:
         self.appearance_updates = False
         self.group_lamps = False
         self.tile_keys = False
+        self.tile_repeats = False
+        self.free_pages = False
         self.structure, self.appearance = None, None
 
     def disconnected(self):
@@ -175,6 +177,8 @@ class Sender:
         self.appearance_updates = False
         self.group_lamps = False
         self.tile_keys = False
+        self.tile_repeats = False
+        self.free_pages = False
         self.structure, self.appearance = None, None
         self.phase = "waiting"
         self.failed_revision = self.failure = None
@@ -197,6 +201,10 @@ class Sender:
             self.group_lamps = answer.get("group_lamps") == 1
             # Tiles without a place, the keys of a bedside clock (firmware 0.8.0+).
             self.tile_keys = answer.get("tile_keys") == 1
+            # One entity on several tiles (firmware 0.16.0+).
+            self.tile_repeats = answer.get("tile_repeats") == 1
+            # Eight pages on every grid (firmware 0.18.0+); before, as many as 64 tiles fill.
+            self.free_pages = answer.get("free_pages") == 1
             return PROTOCOL
         # This is an answer from the running old firmware, not cached registry metadata.
         if isinstance(answer, dict) and answer.get("protocol") in (None, 1) and answer.get("status") == "Error: protocol version":
@@ -276,6 +284,10 @@ class Sender:
                         raise Refused(english('addon.errors.pages.update_tall'))
                     if not self.tile_keys and any("in" in message for message in initial_tiles):
                         raise Refused(english('addon.errors.layout.firmware_first', version='.'.join(map(str, NIGHTSTAND_MIN_FIRMWARE))))
+                    if not self.tile_repeats and repeated_entities(initial_tiles):
+                        raise Refused(english('addon.errors.layout.firmware_first', version='.'.join(map(str, ENTITY_REPEAT_MIN_FIRMWARE))))
+                    if not self.free_pages and begin["pages"] > grid_of_record(record).legacy_pages:
+                        raise Refused(english('addon.errors.layout.firmware_first', version='.'.join(map(str, FREE_PAGES_MIN_FIRMWARE))))
                     current()
                     answer = await self._packet(begin, revision)
                     self.revision = revision

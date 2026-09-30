@@ -31,7 +31,7 @@ const items = computed(() => draggedItems.value || topbarItems());
 const item = computed<HeaderItem | undefined>(() => items.value[props.index]);
 const lay = computed(() => {
   void state.fontsVersion; void state.now; void state.topbarPreviews;
-  return barLayout(items.value, barMetrics.value, pageTitleShown(page.value) || screenText("editor.mockup.home"), topbarView);
+  return barLayout(items.value, barMetrics.value, pageTitleShown(page.value), topbarView);
 });
 const overflow = computed(() => lay.value.dropped);
 const needed = computed(() => state.inventory.header?.min_firmware || "0.2.32");

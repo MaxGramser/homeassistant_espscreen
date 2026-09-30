@@ -525,7 +525,7 @@
         "page_titles": "Egy kijelzőn legfeljebb 1 oldal lehet. | Egy kijelzőn legfeljebb {n} oldal lehet.",
         "tiles_max": "Legfeljebb 1 csempét válassz. | Legfeljebb {n} csempét válassz.",
         "unsupported": "Ez az entitás nem támogatott.",
-        "once": "Egy entitás csak egyszer szerepelhet egy kijelzőn.",
+        "once": "Az éjjeliszekrény-óra csak egyszer lehet egy kijelzőn.",
         "tile_name": "A csempe neve legfeljebb 80 bájt lehet.",
         "unknown_settings": "Ismeretlen csempebeállítások.",
         "navigation_size": "A navigációs csempe egyszeres vagy dupla szélességű.",
@@ -575,6 +575,7 @@
         "not_for_a_screen": "A(z) {entity} nem tehető kijelzőre.",
         "not_on_screen": "A(z) {entity} nincs ezen a kijelzőn.",
         "add_it_first": "A(z) {entity} nincs ezen a kijelzőn; előbb add hozzá.",
+        "key_stays": "A(z) {entity} az éjjeliszekrény-óra alatt van; ott mozgasd a szerkesztőben.",
         "not_on_spot": "A(z) {entity} nem a(z) {slot}. helyen van.",
         "not_on_page": "A(z) {entity} nem a(z) {page}. oldalon van.",
         "move_where": "Add meg az oldalt vagy a helyet, ahová áthelyezed.",
@@ -1256,6 +1257,8 @@
         "not_flashed": "Még nincs a Home Assistantban. Már flashelted? Add hozzá az ESPHome-eszközt a Beállítások → Eszközök és szolgáltatások alatt, majd a Konfigurálás alatt engedélyezd a Home Assistant-műveleteket. Még nem flashelted? Firmware és USB → {file}."
       },
       "copy_api_key": "API-kulcs másolása",
+      "files": "Képernyőfájlok letöltése",
+      "files_hint": "A képernyő ESPHome YAML-je a kulcsaival, az Override YAML és egy secrets.yaml a Wi-Fi-vel, hogy a saját gépeden ESPHome-mal fordíthasd.",
       "details": {
         "room": "Helyiség",
         "firmware": "Firmware",
@@ -1435,6 +1438,7 @@
       "all_rooms": "Minden helyiség",
       "hide_placed": "Elhelyezettek elrejtése",
       "hide_placed_title": "Ami már ezen a kijelzőn van, azt elrejti",
+      "again": "Már szerepel ezen a kijelzőn; add hozzá újra egy újabb csempéhez",
       "all_placed": "Minden, ami itt van, már szerepel ezen a kijelzőn.",
       "none_found": "Nincs találat. Próbálj másik nevet, helyiséget vagy szűrőt.",
       "full": "Ezen a kijelzőn 1 csempe fér el. | Ezen a kijelzőn {n} csempe fér el.",
@@ -1634,7 +1638,9 @@
       },
       "keys": {
         "hint": "Húzz egy lámpát, hőmérsékletet vagy zárat az óra alatti kerek helyekre, vagy koppints egy helyre, és válassz egyet. Ezek csempék: koppints egyre a beállításához.",
-        "under": "Az éjjeliszekrény-óra alatt: egy csempe kerek formában. Koppintásra ugyanazt teszi, mint csempeként, nyomva tartva pedig megnyitja a kártyáját."
+        "under": "Az éjjeliszekrény-óra alatt: egy csempe kerek formában. Koppintásra ugyanazt teszi, mint csempeként, nyomva tartva pedig megnyitja a kártyáját.",
+        "name_shown": "Név a gomb alatt",
+        "name_shown_hint": "Kikapcsolva csak a kör látszik."
       }
     },
     "tile_card": {
@@ -1691,6 +1697,7 @@
       "name_placeholder": "Például: Nappali",
       "screen_name": "Kijelző címe",
       "screen_name_hint": "Minden saját cím nélküli oldal ezt mutatja.",
+      "no_title_hint": "Hagyd üresen, ha csak a logót szeretnéd látni.",
       "right": "Jobb oldal: idő, érzékelők vagy óra",
       "item_label": "{name}, {slot}. hely. Enter: beállítás, nyilak: áthelyezés",
       "remove_named": "{name} eltávolítása a felső sávból",
@@ -1924,10 +1931,12 @@
         "calibration": "Érintéskalibrálás az első indításkor"
       },
       "choice": {
-        "DISPLAY_MODEL": "Kijelzővezérlő"
+        "DISPLAY_MODEL": "Kijelzővezérlő",
+        "GRID_ROWS": "Csempék egy oldalon"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "A legtöbb ilyen panelen az első van. Ha a kijelző zajos vagy torz képet mutat, válaszd a másikat."
+        "DISPLAY_MODEL": "A legtöbb ilyen panelen az első van. Ha a kijelző zajos vagy torz képet mutat, válaszd a másikat.",
+        "GRID_ROWS": "Négy sorban nyolc kisebb csempe fér el egy oldalon, sok kapcsolóval rendelkező képernyőhöz. Három sorban a csempék nagyobbak és jobban olvashatók."
       },
       "choice_usual": "a legtöbb panel",
       "orientation": "Hogyan lesz felszerelve?",
@@ -2010,7 +2019,16 @@
       "another": "Másik kijelző telepítése",
       "start_over": "Újrakezdés",
       "done": "Kész",
-      "key_more": "API-kulcs megjelenítése"
+      "key_more": "API-kulcs megjelenítése",
+      "choice_option": {
+        "GRID_ROWS": {
+          "3": "3 sor",
+          "4": "4 sor, kisebb csempék"
+        }
+      },
+      "choice_first": {
+        "GRID_ROWS": "a szokásos méret"
+      }
     },
     "alerts": {
       "eyebrow": "Figyelmeztetések · puska",
@@ -2398,6 +2416,34 @@
       "group_ha": "A Home Assistant-géphez csatlakoztatva",
       "group_here": "Ehhez a számítógéphez csatlakoztatva",
       "group_wifi": "Wi-Fi-n keresztül"
+    },
+    "preview": {
+      "type": "Új kijelző típusa",
+      "physical": "Fizikai kijelző",
+      "virtual": "Virtuális előnézet",
+      "intro": "Tervezz kijelzőt Home Assistant entitásokkal, hardver párosítása nélkül. Az előnézetek ebben a böngészőben mentődnek. A firmware-előnézetben a koppintások csak akkor érik el a Home Assistantet, ha ezt bekapcsolod.",
+      "profile": "Kártya / profil",
+      "design_only": "Csak előnézeti profil. Ez nem ad fizikai firmware-támogatást ehhez a kártyához.",
+      "override": "Felbontás vagy rács felülírása",
+      "width": "Szélesség (pixel)",
+      "height": "Magasság (pixel)",
+      "columns": "Oszlopok",
+      "rows": "Sorok",
+      "name": "Előnézet neve",
+      "name_placeholder": "Waveshare 4B előnézet",
+      "create": "Virtuális eszköz létrehozása",
+      "created": "A(z) \"{name}\" virtuális eszköz létrejött.",
+      "invalid_shape": "Válassz nevet, támogatott profilt, 1–8 oszlopos/soros rácsot és 160–2560 pixeles vásznat.",
+      "canvas": "LVGL firmware-előnézet",
+      "packet_error": "A firmware elutasított egy előnézeti csomagot: {message}",
+      "stopped": "A firmware-előnézet leállt: {message}",
+      "action_error": "A Home Assistant parancs sikertelen: {message}",
+      "remove": "Az előnézet és a böngészőben mentett elrendezése.",
+      "save": "Előnézet mentése",
+      "saved": "Mentve ebben a böngészőben",
+      "hint": "A kijelző saját firmware-e, a szerkesztett elrendezésből rajzolva. Koppints, tartsd lenyomva és húzd, mint a kijelzőn. Semmi nem mentődik.",
+      "control": "A koppintások vezérlik az eszközöket",
+      "control_hint": "Bekapcsolva: egy csempére koppintás végrehajtja a műveletét a Home Assistantben, mint a kijelzőn. Kikapcsolva: az előnézet csak megmutatja, mit tenne a koppintás."
     }
   }
 }

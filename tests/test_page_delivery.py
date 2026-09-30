@@ -212,6 +212,28 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.sender.disconnected()
         self.assertNotIn('square', self.sender.tile_sizes)
 
+    async def test_more_pages_than_older_firmware_takes_wait_for_its_update(self):
+        # A 5 x 4 page on firmware before 0.18.0 had three pages (64 / 20); four go only to a screen whose hello says
+        # it takes eight on every grid (`free_pages`), and nothing replaces the layout on an older one.
+        self.record = migrate_legacy({"title": "Wall", "pages": 4, "tiles": [
+            {"entity": "light.test", "name": "Desk", "slot": 61}]}, Grid(5, 4))
+        self.values = [{"v": 1, "op": "state", "i": 0, "entity": "light.test", "name": "Desk", "state": "on", "a": {}}]
+        self.bars = [[{"k": "clock"}]] * 4
+        with self.assertRaisesRegex(Refused, '0.18.0'):
+            await self.sync()
+        self.assertEqual([message['op'] for message in self.screen.messages], ['hello'])
+
+        async def newer(message):
+            answer = await self.screen.send(message)
+            if message['op'] == 'hello': answer['free_pages'] = 1
+            return answer
+        self.sender = Sender(newer)
+        await self.sync()
+        self.assertEqual(self.screen.begin['pages'], 4)
+        self.assertTrue(self.screen.active)
+        self.sender.disconnected()
+        self.assertFalse(self.sender.free_pages)
+
     def setUp(self):
         self.record = migrate_legacy({"title": "Test", "pages": 2, "tiles": [
             {"entity": "light.test", "name": "Desk", "slot": 0, "options": {"size": "wide"}},

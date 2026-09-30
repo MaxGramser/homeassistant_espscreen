@@ -10,12 +10,15 @@
 import { t } from "../i18n";
 import type { Inventory, Layout, Tile, PageGrid } from "../types";
 
-// The firmware's own caps (components/smart_display/runtime_model.h): at most eight pages, and never more than 64
-// tiles on one screen (one dirty bit each), so a page of nine cells gives seven pages. The add-on counts the same way
-// (core.Grid) and tells the editor the tile limit per screen; the pages follow from the grid here.
+// The firmware's own caps (components/smart_display/runtime_model.h): eight pages whatever the grid, and never more than
+// 64 tiles on one screen (one dirty bit each), so a page need not be full (firmware 0.18.0+). Older firmware had as many
+// pages as 64 tiles fill (legacyPages). The add-on counts the same way (core.Grid) and tells the editor the tile and
+// page limit per screen (tile_limit, page_limit).
 export const FIRMWARE_MAX_PAGES = 8;
 export const FIRMWARE_MAX_TILES = 64;
 export const DEFAULT_GRID = { columns: 2, rows: 3 };
+/** The pages firmware before 0.18.0 takes on a grid: as many as 64 tiles fill, eight at most. */
+export const legacyPages = (grid: PageGrid) => Math.min(FIRMWARE_MAX_PAGES, Math.floor(FIRMWARE_MAX_TILES / (grid.columns * grid.rows)));
 export type Entry = { tile: Tile; slot: number };
 // Dimensions are resolved on the screen's grid; `true` still means wide.
 export type Size = "single" | "wide" | "tall" | "square" | "full";
@@ -74,12 +77,12 @@ export const keysOf = (layout: Layout | null | undefined, holder: Tile) =>
   (layout?.tiles || []).filter((tile) => tile.in === holder.entity).sort((a, b) => (a.key ?? 0) - (b.key ?? 0));
 
 /** A document-owned view of placement rules. Reading a new shape is synchronous. */
-export function createLayout(shape: () => PageGrid) {
+export function createLayout(shape: () => PageGrid, pageLimit: () => number | undefined = () => undefined) {
   const grid = {
     get columns() { return shape().columns; },
     get rows() { return shape().rows; },
     get slots() { return this.columns * this.rows; },
-    get pages() { return Math.min(FIRMWARE_MAX_PAGES, Math.floor(FIRMWARE_MAX_TILES / this.slots)); },
+    get pages() { return Math.min(FIRMWARE_MAX_PAGES, pageLimit() ?? FIRMWARE_MAX_PAGES); },
     get maxSlots() { return this.pages * this.slots; },
   };
   const tileDimensions = (size: SizeLike) => dimensions(size, grid);
@@ -224,7 +227,8 @@ export function createLayout(shape: () => PageGrid) {
 
   function tileLimit(firmware: string | undefined | null) {
     if (parseVersion(firmware).length !== 3) return 10;
-    return versionAtLeast(firmware, "0.2.62") ? grid.maxSlots : versionAtLeast(firmware, "0.2.7") ? 20 : 10;
+    if (versionAtLeast(firmware, "0.18.0")) return Math.min(FIRMWARE_MAX_TILES, grid.maxSlots);
+    return versionAtLeast(firmware, "0.2.62") ? legacyPages(grid) * grid.slots : versionAtLeast(firmware, "0.2.7") ? 20 : 10;
   }
   return { grid, dimensions: tileDimensions, pageStart, rowStart, pageOf, spanOf, cellsOf, startOf, packSlots, hasGaps, normalize, occupied, fits, firstFree, nearestFree, arrange, reorderPages, pageCount, strandedPages, tileLimit };
 }

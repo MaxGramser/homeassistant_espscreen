@@ -525,7 +525,7 @@
         "page_titles": "Una pantalla tiene como máximo 1 página. | Una pantalla tiene como máximo {n} páginas.",
         "tiles_max": "Elige como máximo 1 mosaico. | Elige como máximo {n} mosaicos.",
         "unsupported": "Esta entidad no es compatible.",
-        "once": "Una entidad solo puede aparecer una vez en una pantalla.",
+        "once": "El reloj de mesita solo puede estar una vez en una pantalla.",
         "tile_name": "El nombre de un mosaico puede tener 80 bytes como máximo.",
         "unknown_settings": "Opciones de mosaico desconocidas.",
         "navigation_size": "Un mosaico de navegación tiene ancho normal o doble.",
@@ -575,6 +575,7 @@
         "not_for_a_screen": "{entity} no puede ir en una pantalla.",
         "not_on_screen": "{entity} no está en esta pantalla.",
         "add_it_first": "{entity} no está en esta pantalla; añádela primero.",
+        "key_stays": "{entity} está bajo el reloj de mesita; muévelo allí en el editor.",
         "not_on_spot": "{entity} no está en el hueco {slot}.",
         "not_on_page": "{entity} no está en la página {page}.",
         "move_where": "Indica la página o el hueco al que moverla.",
@@ -1256,6 +1257,8 @@
         "not_flashed": "Aún no está en Home Assistant. ¿Ya has instalado el firmware? Añade el dispositivo ESPHome en Configuración → Dispositivos y servicios y luego permite las acciones de Home Assistant en Configurar. ¿Todavía no? Firmware y USB → {file}."
       },
       "copy_api_key": "Copiar clave API",
+      "files": "Descargar archivos de la pantalla",
+      "files_hint": "El YAML de ESPHome de la pantalla con sus claves, su Override YAML y un secrets.yaml con el Wi-Fi, para compilarla con ESPHome en tu ordenador.",
       "details": {
         "room": "Habitación",
         "firmware": "Firmware",
@@ -1435,6 +1438,7 @@
       "all_rooms": "Todas las habitaciones",
       "hide_placed": "Ocultar añadidas",
       "hide_placed_title": "Ocultar lo que ya está en esta pantalla",
+      "again": "Ya está en esta pantalla; añádelo de nuevo para otro mosaico",
       "all_placed": "Todo lo de aquí ya está en esta pantalla.",
       "none_found": "No se han encontrado entidades. Prueba con otro nombre, habitación o filtro.",
       "full": "En esta pantalla cabe 1 mosaico. | En esta pantalla caben {n} mosaicos.",
@@ -1634,7 +1638,9 @@
       },
       "keys": {
         "hint": "Arrastra una lámpara, una temperatura o una cerradura a los huecos redondos bajo la hora, o toca un hueco y elige. Son mosaicos: toca uno para configurarlo.",
-        "under": "Bajo el reloj de mesita: un mosaico en su forma redonda. Un toque hace lo mismo que en un mosaico, y mantenerlo pulsado abre su tarjeta."
+        "under": "Bajo el reloj de mesita: un mosaico en su forma redonda. Un toque hace lo mismo que en un mosaico, y mantenerlo pulsado abre su tarjeta.",
+        "name_shown": "Nombre bajo la tecla",
+        "name_shown_hint": "Desactivado muestra solo el círculo."
       }
     },
     "tile_card": {
@@ -1691,6 +1697,7 @@
       "name_placeholder": "Por ejemplo: Salón",
       "screen_name": "Título de la pantalla",
       "screen_name_hint": "Cada página sin título propio muestra este.",
+      "no_title_hint": "Déjalo vacío para mostrar solo el logotipo.",
       "right": "Derecha: hora, sensores o un reloj",
       "item_label": "{name}, hueco {slot}. Enter: configurar; flechas: mover",
       "remove_named": "Eliminar {name} de la barra superior",
@@ -1924,10 +1931,12 @@
         "calibration": "Calibración táctil al primer arranque"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controlador de pantalla"
+        "DISPLAY_MODEL": "Controlador de pantalla",
+        "GRID_ROWS": "Mosaicos por página"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "La mayoría de estas placas llevan el primero. Elige el otro si la pantalla muestra ruido o una imagen distorsionada."
+        "DISPLAY_MODEL": "La mayoría de estas placas llevan el primero. Elige el otro si la pantalla muestra ruido o una imagen distorsionada.",
+        "GRID_ROWS": "Cuatro filas caben ocho mosaicos más pequeños en una página, para una pantalla con muchos interruptores. Tres filas mantienen los mosaicos más grandes y fáciles de leer."
       },
       "choice_usual": "la mayoría",
       "orientation": "¿Cómo la vas a colgar?",
@@ -2010,7 +2019,16 @@
       "another": "Instalar otra pantalla",
       "start_over": "Empezar de nuevo",
       "done": "Hecho",
-      "key_more": "Mostrar la clave API"
+      "key_more": "Mostrar la clave API",
+      "choice_option": {
+        "GRID_ROWS": {
+          "3": "3 filas",
+          "4": "4 filas, mosaicos más pequeños"
+        }
+      },
+      "choice_first": {
+        "GRID_ROWS": "el tamaño habitual"
+      }
     },
     "alerts": {
       "eyebrow": "Alertas · guía rápida",
@@ -2398,6 +2416,34 @@
       "group_ha": "Conectada al equipo de Home Assistant",
       "group_here": "Conectada a este ordenador",
       "group_wifi": "Por wifi"
+    },
+    "preview": {
+      "type": "Tipo de pantalla nueva",
+      "physical": "Pantalla física",
+      "virtual": "Vista previa virtual",
+      "intro": "Diseña una pantalla con entidades de Home Assistant sin vincular hardware. Las vistas previas se guardan en este navegador. En la vista previa del firmware, los toques solo llegan a Home Assistant si lo activas.",
+      "profile": "Placa / perfil",
+      "design_only": "Solo es un perfil de vista previa. No añade compatibilidad con el firmware físico de esta placa.",
+      "override": "Modificar resolución o cuadrícula",
+      "width": "Ancho (píxeles)",
+      "height": "Alto (píxeles)",
+      "columns": "Columnas",
+      "rows": "Filas",
+      "name": "Nombre de la vista previa",
+      "name_placeholder": "Vista previa Waveshare 4B",
+      "create": "Crear dispositivo virtual",
+      "created": "Dispositivo virtual \"{name}\" creado.",
+      "invalid_shape": "Elige un nombre, un perfil compatible, una cuadrícula de 1–8 columnas/filas y un lienzo de 160–2560 píxeles.",
+      "canvas": "Vista previa del firmware LVGL",
+      "packet_error": "El firmware rechazó un paquete de vista previa: {message}",
+      "stopped": "Vista previa del firmware detenida: {message}",
+      "action_error": "Falló el comando de Home Assistant: {message}",
+      "remove": "La vista previa y su diseño guardado en este navegador.",
+      "save": "Guardar vista previa",
+      "saved": "Guardado en este navegador",
+      "hint": "El propio firmware de la pantalla, dibujado a partir del diseño que estás editando. Toca, mantén pulsado y desliza como en la pantalla. No se guarda nada.",
+      "control": "Los toques controlan dispositivos",
+      "control_hint": "Activado: un toque en un mosaico ejecuta su acción en Home Assistant, como en la pantalla. Desactivado: la vista previa solo muestra lo que hace un toque."
     }
   }
 }

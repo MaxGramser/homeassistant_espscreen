@@ -73,7 +73,9 @@ class SpecialTiles(unittest.TestCase):
                {'entity':'sensor.a','options':{'display':'forecast'}},{'entity':'screen.clock','options':{'display':'watch'}}]:
    with self.assertRaises(ValueError):validate_layout({'title':'T','tiles':[tile]})
   self.assertEqual(min_firmware(layout),(0,2,14))
-  self.assertEqual(min_firmware({'tiles':[{'entity':'light.a'}]*11}),(0,2,7))
+  self.assertEqual(min_firmware({'tiles':[{'entity':f'light.a{n}'} for n in range(11)]}),(0,2,7))
+  # One entity on several tiles is firmware 0.16.0's (GitHub #83).
+  self.assertEqual(min_firmware({'tiles':[{'entity':'light.a'}]*2}),(0,16,0))
   self.assertIsNone(min_firmware({'tiles':[{'entity':'light.a'}]}))
   tz=ZoneInfo('Europe/Amsterdam')
   states={'sun.sun':{'state':'above_horizon','attributes':{'next_rising':'2026-09-14T05:15:00+00:00','next_setting':'2026-09-13T17:50:12.000000+00:00'}},

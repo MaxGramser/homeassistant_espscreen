@@ -7,6 +7,7 @@ import DevicePage from "../src/components/DevicePage.vue";
 import TileCard from "../src/components/TileCard.vue";
 import PageInspector from "../src/components/PageInspector.vue";
 import { addPage, beginFieldEdit, endFieldEdit, goHome, liveEntries, placeTile, retargetPageTile, select, setTileOption, state } from "../src/store";
+import { validatePages } from "../src/model/pages";
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ states: {}, capabilities: {} }))));
@@ -101,6 +102,46 @@ describe("the editor", () => {
     await input.setValue("Study ");
     expect((input.element as HTMLInputElement).value).toBe("Study ");
     expect(state.document!.pages[1].topbar.title).toEqual({ source: "text", text: "Study" });
+  });
+
+  it("draws an on/off or run card two rows tall as one big key from firmware 0.17.0, and keeps controls where chosen", () => {
+    const card = (tile: any) => mount(TileCard, { props: { tile: { ...state.layout!.tiles[0], ...tile }, slot: 0 } });
+    const square = { entity: "light.a", options: { size: "square" } };
+    // Firmware 0.4.0 keeps the switch.
+    expect(card(square).classes()).not.toContain("big-key");
+    state.inventory.screens[0].firmware = "0.17.0";
+    for (const tile of [square, { entity: "light.a", options: { size: "tall" } }, { entity: "script.night", options: { size: "square" } }]) {
+      const view = card(tile);
+      expect(view.classes(), tile.entity).toContain("big-key");
+      expect(view.find(".tog").exists()).toBe(false);
+      expect(view.find(".nm").exists()).toBe(true);
+    }
+    // A slider, a single cell or another domain keeps today's card.
+    expect(card({ entity: "light.a", options: { size: "square", inline: "slider" } }).classes()).not.toContain("big-key");
+    expect(card({ entity: "light.a", options: {} }).classes()).not.toContain("big-key");
+    expect(card({ entity: "cover.c", options: { size: "square" } }).classes()).not.toContain("big-key");
+  });
+
+  it("empties the screen title from firmware 0.17.0, which shows the logo alone, and keeps it on older firmware", async () => {
+    const title = () => state.document!.title;
+    const type = async (text: string) => {
+      const view = mount(PageInspector, { props: { id: state.document!.pages[0].id } });
+      const input = view.find("#screen-title");
+      await input.trigger("focus");
+      await input.setValue(text);
+      await input.trigger("blur");
+      const hint = view.text().includes("show only the logo");
+      view.unmount();
+      return hint;
+    };
+    // Firmware 0.4.0 said "Home" for an empty title: the field keeps its last title.
+    const before = title();
+    expect(await type("")).toBe(false);
+    expect(title()).toBe(before);
+    state.inventory.screens[0].no_title = true;
+    expect(await type("")).toBe(true);
+    expect(title()).toBe("");
+    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
   });
 
   it("keeps a link that follows Home one when it is sent to the home page (app 0.4.2)", () => {

@@ -26,7 +26,7 @@ In its board file under `packages/boards/`, next to its hardware:
 | the look (`packages/looks/`) | `standard` (the Guition's sizes) or `compact` (the CYD's, for glass too small for the standard); the board file includes one |
 | `GRID_COLS`, `GRID_ROWS` | the cells of a page lying down; the shared tree places every cell from these |
 | `GRID_COLS_PORTRAIT`, `GRID_ROWS_PORTRAIT` | the cells of a page standing up (a square board repeats the first pair) |
-| `GRID_MARGIN`, `GRID_GAP_X`, `GRID_GAP_Y` | the side margin and the gaps between cells, in pixels |
+| `GRID_MARGIN`, `GRID_GAP_X`, `GRID_GAP_Y` | the margin to the glass and the gaps between cells, worked out by the look (see "One margin" below) |
 | the sizes (`TILE_ICON_SIZE`, `FONT_*_SIZE`, …) | worked out by the look at this board's density; a board states one only when its glass asks for another |
 
 A board states no size that follows from its canvas. The tile area, the cells, the page keys, the strip that
@@ -36,6 +36,27 @@ LVGL hands the screen, which is why one firmware serves a board either way round
 `tools/propose_grid.py` proposes the grid from the resolution and the diagonal: as many cells as hold a
 standard tile of about 33 × 16 mm, never smaller than 30 × 12 mm. `tools/new_board.py` writes a board file
 for a new panel from the nearest real board; its sizes come from the look (docs/ADDING_A_BOARD.md).
+
+## One margin for the whole page
+
+Since firmware 0.14.0 the page keeps one margin all round. The top bar keeps `GRID_MARGIN` from the sides of the
+glass and from its top edge (measured to the home key, the bar's tallest ink), the cards keep it from the sides, and
+the page keys put the ink of their chevrons on it (`runtime_tiles::nav_align`). The page bar is the look's own
+height but never more than 7 mm, the least a finger needs (`ui::touch_min`).
+
+Since firmware 0.15.0 (GitHub #90) everything in the top bar shares the home key's middle line: the page's name by
+its capitals, the items on the right by their digits, and their icons and the analog dial by their own middle, all
+measured from the fonts on the screen (`page_header::Renderer`). The bar's band (`BAR_BAND`) is the key, or the name
+centred on it with the tails of g, p, y and commas below, whichever reaches lower; it follows from the font sizes,
+so it does not change from one page name or language to the next. The tiles start `BAR_SPACE` below that band: one
+row gap, but never less than 1.5 mm. `SCROLL_Y` is `GRID_MARGIN` + `BAR_BAND` + `BAR_SPACE`, and the screen's self
+test fails a page where the tail of a g in the name would reach the tile area.
+
+The margin and the gaps keep their size in millimetres on every glass, but never take more pixels than the look
+gives them at its own density (16, 12 and 12 in the standard look, 9, 8 and 4 in the compact one). A denser glass
+therefore keeps the pixels it had and a less dense one gets the same millimetres in fewer pixels, so no board's
+tiles get smaller than before. A look states a size made of other sizes only after those sizes, because ESPHome
+works the substitutions of a file out in their order; tests/test_layout.py checks this.
 
 ## The cards are cells of an LVGL grid
 
@@ -58,9 +79,10 @@ show: a CYD six, a 4 x 4 board sixteen. `tools/check.sh` fails when a file is ou
   and the Guition the scale is exactly 100.
 - `ui::large()`: the class of cards and pages is the look's, never a cell's momentary height. (A class
   that flipped when the rows grew reused a clock's numeral labels as tick lines: the lab's crash.)
-- `GRID_COLS`/`GRID_ROWS` reach the C++ as build flags; `SLOTS_PER_PAGE` follows, `MAX_PAGES` is
-  capped so a screen never holds more than 64 tiles (one dirty bit each: seven pages of nine, four of
-  sixteen), and `runtime_tiles::widgets` holds exactly one entry per cell. The add-on (`core.Grid`) and
+- `GRID_COLS`/`GRID_ROWS` reach the C++ as build flags; `SLOTS_PER_PAGE` follows. Every grid has eight pages
+  (firmware 0.18.0+) and a screen never holds more than 64 tiles over them (one dirty bit each), so a page need not
+  be full; before, the pages were capped at as many as 64 tiles fill (seven of nine, four of sixteen), and a grid
+  that grew lost the pages of a saved layout. `runtime_tiles::widgets` holds exactly one entry per cell. The add-on (`core.Grid`) and
   the editor (`setGrid`) count with the same rule, so a page, a slot and a tile limit mean the same in
   all three.
 - A card's head (the icon circle, the name and the state beside it) is one computed row on every board

@@ -6,6 +6,7 @@ import ipaddress
 import json
 import logging
 import os
+import re
 from pathlib import Path
 import secrets
 import socket
@@ -27,8 +28,8 @@ from updates import Updater
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
 from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_cover, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
 from core import calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
-from core import BOARD_KEYS
-from core import (Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
+from core import BOARD_KEYS, is_key
+from core import (Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ENTITY_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
                   packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, version_text)
 import header_bar
 import history_card
@@ -41,6 +42,8 @@ from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, compile_tiles, grid
 from layout_migrations import migrate_legacy
 import page_delivery
 import page_service
+import preview_images
+import preview_events
 from page_capabilities import CapabilityCache, identity as page_identity
 
 
@@ -167,6 +170,7 @@ class HomeAssistant:
         self.registry, self.devices, self.areas = [], [], []
         self.online = False
         self.changed = asyncio.Event()
+        self.state_events = preview_events.Changes()
         # Entity ids the manager cares about; None wakes it for every state change.
         self.relevant = None
         # Entity ids whose state changed since the manager last looked; it only rebuilds those tiles.
@@ -255,6 +259,8 @@ class HomeAssistant:
                         self.states[eid] = body['new_state']
                     else:
                         self.states.pop(eid, None)
+                    # Unsaved/virtual previews also follow entities not used by a physical screen.
+                    self.state_events.notify(eid)
                     if self.relevant is None or eid in self.relevant:
                         self.dirty.add(eid)
                         self.changed.set()
@@ -447,6 +453,7 @@ class HomeAssistant:
                     await self.refresh_services()
                     self.online = True
                     self.changed.set()
+                    self.state_events.notify()
                     connected = time.monotonic()
                     LOG.info('Home Assistant connected')
                     # Refresh the registry when HA reports a change (debounced), with a slow
@@ -770,6 +777,21 @@ class Manager:
         legacy screen therefore uses 2x3 once it appears in HA's registry.
         An absent screen still waits for discovery rather than being guessed.
         """
+        screen = self._discovered(inbox)
+        if screen is None:
+            return None
+        reported = self.reported_grid(inbox)
+        if reported is not None:
+            return reported
+        profile = self.built_as(screen)
+        if profile.get('package') and board_of({**screen, 'package': profile['package']}) in SHAPES:
+            return self.grid_of(screen)
+        if board_of(screen) in SHAPES:
+            return self.grid_of(screen)
+        return Grid(2, 3)
+
+    def _discovered(self, inbox):
+        """The screen as discovery sees it now, or None while it is not in Home Assistant's registry."""
         # Discovery is pure here: following renames can write storage, so it must
         # not run recursively from the store's migration callback.
         ha = self.ha
@@ -778,18 +800,15 @@ class Manager:
         if key != self._verified_screens_key:
             self._verified_screens_key = key
             self._verified_screens = {item['id']: item for item in discover_screens(items, ha.states, ha.devices, ha.areas)}
-        screen = self._verified_screens.get(inbox)
-        if screen is None:
-            return None
-        shape = screen.get('shape')
+        return self._verified_screens.get(inbox)
+
+    def reported_grid(self, inbox):
+        """The grid the screen reports itself ("Screen layout", firmware 0.2.77+), or None when it says nothing.
+        verified_grid takes this one first; only this one may move a saved layout to a new grid on its own."""
+        shape = (self._discovered(inbox) or {}).get('shape')
         if isinstance(shape, dict) and all(type(shape.get(k)) is int and shape[k] > 0 for k in ('columns', 'rows')):
             return Grid(shape['columns'], shape['rows'])
-        profile = self.built_as(screen)
-        if profile.get('package') and board_of({**screen, 'package': profile['package']}) in SHAPES:
-            return self.grid_of(screen)
-        if board_of(screen) in SHAPES:
-            return self.grid_of(screen)
-        return Grid(2, 3)
+        return None
 
     def refresh_page_records(self):
         """Online metadata completes pending migrations without a browser Save."""
@@ -1107,11 +1126,12 @@ class Manager:
         """The grid of a screen's pages (core.grid_of), with the board its profile builds from and the way it was built
         to hang filled in, so a save, an event and the message to the screen count the same cells whether the screen is
         online or not."""
-        if isinstance(screen, dict) and not (screen.get('package') and screen.get('orientation')):
+        if isinstance(screen, dict) and not (screen.get('package') and screen.get('orientation') and 'grid_rows' in screen):
             # The profiles once, not once per question: reading them stats every file in the ESPHome folder.
             profiles = self.firmware.profile_names()
             screen = {**screen, 'package': screen.get('package') or self.package_of(screen, profiles),
-                      'orientation': screen.get('orientation') or self.orientation_of(screen, profiles)}
+                      'orientation': screen.get('orientation') or self.orientation_of(screen, profiles),
+                      'grid_rows': screen.get('grid_rows', self.built_as(screen, profiles).get('grid_rows'))}
         return grid_of(screen)
 
     def turns(self, screen):
@@ -1523,7 +1543,8 @@ class Manager:
             raise ValueError(t('addon.errors.not_paired'))
         # Every position on the grid of this screen's pages: two by three on the first boards, whatever a newer
         # screen reports or its profile builds from (Manager.grid_of).
-        grid = self.grid_of(screen)
+        # With the pages its firmware takes: eight from 0.18.0, as many as 64 tiles fill before.
+        grid = self.grid_of(screen).for_firmware(self.firmware_version(inbox, screen))
         layout = validate_layout(data, grid=grid)
         # A CYD has no memory for camera images, whatever its firmware; say so before asking for an update.
         if any(t['entity'].split('.')[0] in CAMERA_DOMAINS for t in layout['tiles']) and board_of(screen) not in camera_feed.BOXES:
@@ -1549,8 +1570,8 @@ class Manager:
         if 'settings' in layout and 'rotation' not in data.get('settings',{}):
             layout['settings']['rotation']=self.layouts.get(inbox,{}).get('settings',{}).get('rotation',0)
         self.check_turn(screen, layout.get('settings', {}).get('rotation', 0))
-        # A page from before an option existed sends its tiles without it. It never sends a navigation tile twice
-        # (firmware 0.2.65+), so a copy keeps exactly what it was sent with.
+        # A page from before an option existed sends its tiles without it. It never sends an entity twice (a navigation
+        # tile from firmware 0.2.65, any entity from 0.16.0), so a copy keeps exactly what it was sent with.
         old_list = self.layouts.get(inbox,{}).get('tiles',[])
         old_counts, new_counts = Counter(t['entity'] for t in old_list), Counter(t['entity'] for t in layout['tiles'])
         old_tiles = {t['entity']:t for t in old_list if old_counts[t['entity']] == 1 and new_counts[t['entity']] == 1}
@@ -1607,11 +1628,15 @@ class Manager:
             layout = {'title': document['title'], 'tiles': compile_tiles(document, grid)}
         else:
             layout = validate_layout(data, grid=self.grid_of(screen) if screen else None)
-        before = {tile['entity']: tile for tile in self.layouts.get(inbox, {}).get('tiles', [])}
+        # An entity may stand on several tiles (firmware 0.16.0+): a setting one of its tiles already has passes.
+        before = {}
+        for tile in self.layouts.get(inbox, {}).get('tiles', []):
+            before.setdefault(tile['entity'], []).append(tile)
         for tile in layout['tiles']:
-            previous = before.get(tile['entity'])
-            if tile['entity'] in BUILTIN or not tile.get('options') or (previous or {}).get('options') == tile['options']:
+            copies = before.get(tile['entity'], [])
+            if tile['entity'] in BUILTIN or not tile.get('options') or any(copy.get('options') == tile['options'] for copy in copies):
                 continue
+            previous = copies[0] if copies else None
             name = tile.get('name') or self.ha.states.get(tile['entity'], {}).get('attributes', {}).get('friendly_name') or tile['entity']
             found = ha_catalogue.unsupported(tile, previous, await capabilities(tile['entity']))
             if found:
@@ -2169,20 +2194,29 @@ class Manager:
         # The same entity may have a cover on one page and an ordinary tile on
         # another. Authorize against any configured pictured tile, not the last
         # occurrence of an entity in the document.
+        placed_tiles = self.layouts.get(inbox, {}).get('tiles', [])
+        pictured = lambda tile: (tile.get('options') or {}).get('display') in ('live', 'cover') and \
+            ((tile.get('options') or {}).get('display') == 'cover') == camera_feed.cover_supported(tile['entity'])
         tiles = {}
-        for tile in self.layouts.get(inbox, {}).get('tiles', []):
-            options = tile.get('options') or {}
-            display = options.get('display')
-            entity = tile['entity']
-            if display in ('live', 'cover') and (display == 'cover') == camera_feed.cover_supported(entity):
-                tiles.setdefault(entity, []).append(options)
+        for tile in placed_tiles:
+            if pictured(tile):
+                tiles.setdefault(tile['entity'], []).append(tile.get('options') or {})
         if any(entity not in tiles for entity in entities):
             LOG.info('Live pictures for %s: not the pictured tiles of %s', ', '.join(entities), screen['name'])
             return
         paces = [min(option.get('refresh', camera_feed.LIVE_REFRESH_DEFAULT) if option.get('display') == 'live' else 0
                      for option in tiles[entity]) for entity in entities]
-        # How each picture fills its card (app 0.3.8): one tile per entity on a screen, so its options are the tile's.
-        modes = camera_feed.picture_modes(screen, lambda entity: next((o for o in tiles[entity] if o.get('display') == 'live'), None), entities) if atlas else None
+        # Each square's own tile (firmware 0.16.0+ names them by index, `idx`): an entity may be on several tiles, each
+        # with its own fit and overlay. A screen without it has an entity on one tile at most, so its first is its own.
+        own = camera_feed.live_indexes(request, entities)
+        if own is not None and not all(i < len(placed_tiles) and placed_tiles[i]['entity'] == entity and pictured(placed_tiles[i])
+                                       for i, entity in zip(own, entities)):
+            LOG.info('Live pictures for %s: not the tiles %s of %s', ', '.join(entities), request.get('idx'), screen['name'])
+            return
+        options_of = (lambda n, entity: placed_tiles[own[n]].get('options') or {}) if own is not None else \
+            (lambda n, entity: next((o for o in tiles[entity] if o.get('display') == 'live'), None))
+        # How each picture fills its card (app 0.3.8).
+        modes = camera_feed.picture_modes(screen, options_of, entities) if atlas else None
         url, listing = '', ','.join(entities)
         base = await camera_feed.base_url(self.ha.request)
         if base:
@@ -2322,10 +2356,12 @@ class Manager:
         screen and the tile the event acted on (None for an order)."""
         screen = match_screen(self.screens(), data.get('screen'), self.layouts)
         inbox = self.aliases.get(screen['id'], screen['id'])
-        # Firmware 0.2.65+ takes a navigation tile on several pages; an older screen keeps one per page it goes to.
-        repeat = (self.firmware_version(inbox, screen) or (0, 0, 0)) >= PAGE_TILE_REPEAT_MIN_FIRMWARE
-        layout, tile = run_tile_event(self.layouts.get(inbox) or {'title': screen['name'], 'tiles': []}, TILE_EVENTS[event_type], data, repeat,
-                                      self.grid_of(screen))
+        # Firmware 0.2.65+ takes a navigation tile on several pages, 0.16.0+ any entity on several tiles; an older
+        # screen keeps one per page a navigation tile goes to, and one of everything else.
+        firmware = self.firmware_version(inbox, screen) or (0, 0, 0)
+        layout, tile = run_tile_event(self.layouts.get(inbox) or {'title': screen['name'], 'tiles': []}, TILE_EVENTS[event_type], data,
+                                      firmware >= PAGE_TILE_REPEAT_MIN_FIRMWARE, self.grid_of(screen).for_firmware(firmware),
+                                      firmware >= ENTITY_REPEAT_MIN_FIRMWARE)
         await self.check_supported(inbox, layout)
         record = self.store.get(inbox)
         if record and record['format'] == PAGE_FORMAT:
@@ -2366,7 +2402,7 @@ class Manager:
             layout, node = self.layouts.get(inbox), screen.get('node')
             if not layout or not node:
                 continue
-            snapshot = layout_snapshot(screen, layout, self.grid_of(screen))
+            snapshot = layout_snapshot(screen, layout, self.grid_of(screen).for_firmware(self.firmware_version(inbox, screen)))
             if self.published.get(inbox) == snapshot:
                 continue
             try:
@@ -2446,7 +2482,9 @@ def create_app(manager, development=False):
             return response  # streamed (SSE) responses set their headers before prepare()
         response.headers['Cache-Control'] = 'no-store'
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'"
+        # The LVGL preview compiles the bundled WASM module. Allow that narrowly;
+        # JavaScript eval and inline scripts remain disallowed.
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'"
         return response
 
     # A layout of 48 tiles with actions on their taps passes 16 KB, the limit from the twenty-tile days; the largest the
@@ -2524,6 +2562,8 @@ def create_app(manager, development=False):
             # And which way it was built to hang (app 0.2.107), for the same reason: a screen standing up has another
             # canvas and another grid, and while it is offline only its own YAML says so.
             screen['orientation'] = manager.orientation_of(screen, profiles)
+            # And the rows it was built with, when its own YAML chose them (a Guition with four rows, app 0.4.31).
+            screen['grid_rows'] = manager.built_as(screen, profiles).get('grid_rows')
             screen['shape'] = shape_of(screen)
             # Whether the board draws pictures (camera tiles, an alert's snapshot, an album cover): the boards with
             # memory for them say so with their camera sizes (boards.json); the firmware that draws them is a
@@ -2581,7 +2621,7 @@ def create_app(manager, development=False):
                                                               getattr(manager.ha, 'state_words', None))})
     async def import_document(request):
         """Validate an export into a draft; importing never saves or sends it."""
-        if manager.screen(request.match_info['inbox']) is None:
+        if 'inbox' in request.match_info and manager.screen(request.match_info['inbox']) is None:
             raise LayoutError(t('addon.errors.not_paired'))
         data = await request.json()
         if not isinstance(data, dict) or set(data) != {'document', 'sourceGrid'}:
@@ -2762,7 +2802,9 @@ def create_app(manager, development=False):
                       'word':state_word(t['entity'],manager.ha.states.get(t['entity'],{}).get('state'),manager.ha.states.get(t['entity'],{}).get('attributes'),
                                         manager.registry_index().get(t['entity']),getattr(manager.ha,'state_words',None)),
                       'attributes':state_message(i,t,manager.ha.states)['a'],
-                      'options':t.get('options',{})} for i,t in enumerate(layout['tiles'])]})
+                      'options':t.get('options',{}),
+                      # Which tile: an entity may be on several (firmware 0.16.0+); a key has no slot, its place instead.
+                      'slot':t.get('slot',-1),**({'in':t['in'],'key':t['key']} if is_key(t) else {})} for i,t in enumerate(layout['tiles'])]})
     preview_history_slots = asyncio.Semaphore(3)
     async def preview_history(request):
         """Read-only recorder data, sharing the screen detail-card cache."""
@@ -2828,6 +2870,66 @@ def create_app(manager, development=False):
             result[eid] = {'state': message['state'], 'a': attributes,
                            'word': state_word(eid, state.get('state'), state.get('attributes'), entry, getattr(manager.ha, 'state_words', None))}
         return web.json_response({'states': result})
+    async def firmware_preview(request):
+        """The device's normal packets, for an unsaved layout. No device registration or HA actions."""
+        from core import Grid
+        data = await request.json()
+        if not isinstance(data, dict) or not isinstance(data.get('shape'), dict):
+            raise ValueError('A preview shape is required.')
+        shape = data['shape']
+        columns, rows = shape.get('columns'), shape.get('rows')
+        if any(type(n) is not int or n < 1 or n > 8 for n in (columns, rows)) or columns * rows > 64:
+            raise ValueError('Invalid preview grid.')
+        record = {'format': PAGE_FORMAT, 'sourceGrid': {'columns': columns, 'rows': rows},
+                  'layout': validate_document(data.get('layout'), Grid(columns, rows))}
+        tiles = compile_tiles(record['layout'], grid_of_record(record))
+        values = [await manager.tile_message(index, tile, lamps=True) for index, tile in enumerate(tiles)]
+        bars = [manager.header_message({'header': {'items': bar_items(page)}})['items']
+                for page in record['layout']['pages']]
+        region = manager.page_region()
+        begin, initial_tiles, initial_bars, states = page_delivery.prepare('', record, region, values, bars)
+        return web.json_response({'revision': page_delivery.configuration(record, region),
+            'configuration': [begin, *initial_bars, *initial_tiles, {'op': 'commit'}],
+            'values': [*states, *[page_delivery.page_message(page, index, items, initial=False)
+                for index, (page, items) in enumerate(zip(record['layout']['pages'], bars))]]})
+
+    async def firmware_preview_image(request):
+        return web.json_response(await preview_images.answer(manager, await request.json()))
+
+    async def firmware_preview_events(request):
+        return await preview_events.stream(manager.ha.state_events, request)
+
+    async def firmware_preview_pixels(request):
+        status, body, tag = await manager.camera.serve(request.match_info['token'])
+        return web.Response(status=status, body=body, content_type=camera_feed.CONTENT_TYPE,
+                            headers={'Cache-Control': 'no-store', **({'ETag': tag} if tag else {})})
+
+    async def firmware_preview_action(request):
+        """Relay the firmware's ESPHome service request through this manager's HA connection."""
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError('A firmware command is required.')
+        service, fields = data.get('service'), data.get('data')
+        if not isinstance(service, str) or len(service) > 120 or not re.fullmatch(r'[a-z0-9_]+\.[a-z0-9_]+', service):
+            raise ValueError('Invalid Home Assistant action.')
+        if data.get('event') or data.get('templates'):
+            raise ValueError('Preview event requests and templated actions are not supported yet.')
+        if not isinstance(fields, dict) or len(fields) > 32 or any(
+                not isinstance(k, str) or not re.fullmatch(r'[a-z0-9_]{1,64}', k) or
+                not isinstance(v, str) or len(v) > 4096 for k, v in fields.items()):
+            raise ValueError('Invalid Home Assistant action data.')
+        target = fields.get('entity_id')
+        if not entity_id(target) or target not in manager.ha.states:
+            raise ValueError('The command must target an existing Home Assistant entity.')
+        # Keep this endpoint scoped to entity controls, not arbitrary HA administration.
+        actions = await manager.ha.entity_actions(target)
+        if actions is None:
+            raise ConnectionError('Home Assistant actions are not available yet.')
+        if service not in actions:
+            raise ValueError('Home Assistant does not offer this action for that entity.')
+        await asyncio.wait_for(manager.ha.call(service, fields), timeout=5)
+        return web.json_response({'success': True})
+
     def one_alert_target(inbox):
         screen = manager.screen(inbox)
         if screen is None:
@@ -2913,6 +3015,11 @@ def create_app(manager, development=False):
         path, name = manager.firmware.image(request.match_info['file'])
         return web.FileResponse(path, headers={'Content-Type': 'application/octet-stream',
                                                'Content-Disposition': f'attachment; filename="{name}"'})
+    async def firmware_files(request):
+        """A screen's menu → Download screen files: its YAML, Override YAML and the secrets they use, as a zip, to
+        build the screen with ESPHome on your own computer."""
+        body, name = manager.firmware.files(request.match_info['file'])
+        return web.Response(body=body, content_type='application/zip', headers={'Content-Disposition': f'attachment; filename="{name}"'})
     async def firmware_flashed(request):
         """New screen and Firmware & USB → This computer (browser): the page wrote the image it downloaded onto a
         screen over Web Serial, so the screen list nudges pairing as for one flashed from Home Assistant's own USB port."""
@@ -2976,6 +3083,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/firmware/profiles/{file}/override', firmware_override)
     app.router.add_put('/api/firmware/profiles/{file}/override', firmware_override_save)
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)
+    app.router.add_get('/api/firmware/profiles/{file}/files', firmware_files)
     app.router.add_post('/api/firmware/profiles/{file}/flashed', firmware_flashed)
     app.router.add_post('/api/firmware/profiles', firmware_create)
     app.router.add_get('/', index)
@@ -2985,6 +3093,12 @@ def create_app(manager, development=False):
     app.router.add_get('/api/history-preview', preview_history)
     app.router.add_get('/api/media-art', media_art_preview)
     app.router.add_get('/api/camera-preview', camera_preview)
+    app.router.add_post('/api/firmware-preview', firmware_preview)
+    app.router.add_post('/api/firmware-preview/import', import_document)
+    app.router.add_post('/api/firmware-preview/action', firmware_preview_action)
+    app.router.add_post('/api/firmware-preview/image', firmware_preview_image)
+    app.router.add_get('/api/firmware-preview/events', firmware_preview_events)
+    app.router.add_get(r'/api/firmware-preview/images/{token:[A-Za-z0-9_-]{16,64}}.bmp', firmware_preview_pixels)
     app.router.add_post('/api/screens/{inbox}/identify', identify)
     app.router.add_post('/api/screens/{inbox}/calibrate', calibrate)
     app.router.add_post('/api/alerts/test', test_alert)

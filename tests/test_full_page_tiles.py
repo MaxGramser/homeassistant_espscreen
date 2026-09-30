@@ -100,11 +100,11 @@ class Layouts(unittest.TestCase):
         for entity in ('screen.page_9', 'screen.page', 'screen.page_0'):
             with self.assertRaisesRegex(ValueError, "isn't supported"):
                 validate_layout({'title': 'Home', 'tiles': [tile(entity, 0)]})
-        # The same navigation tile on several pages is firmware 0.2.65's (app 0.2.78); any other entity stays once.
+        # The same navigation tile on several pages is firmware 0.2.65's (app 0.2.78), any other entity 0.16.0's.
         twice = validate_layout({'title': 'Home', 'tiles': [tile('screen.page_2', 0), tile('screen.page_2', 7)]})
         self.assertEqual(min_firmware(twice), (0, 2, 65))
-        with self.assertRaisesRegex(ValueError, 'only appear once'):
-            validate_layout({'title': 'Home', 'tiles': [tile('light.a', 0), tile('light.a', 1)]})
+        lamps = validate_layout({'title': 'Home', 'tiles': [tile('light.a', 0), tile('light.a', 1)]})
+        self.assertEqual(min_firmware(lamps), (0, 16, 0))
 
     def test_snapshot_and_wire(self):
         layout = validate_layout({'title': 'Home', 'tiles': [tile('screen.page_3', 0, icon='radiator'), tile('light.a', 6, size='full')]})

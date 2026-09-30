@@ -44,12 +44,15 @@ describe("bedside clock keys", () => {
     const next = arrangeTiles(layout, grid, entriesOf(view));
     expect(next.pages[0].tiles[0].children).toHaveLength(2);
   });
-  it("puts an entity on a screen once, as a tile or as a key", () => {
+  it("takes an entity as a key and as a tile (firmware 0.16.0+), but one bedside clock", () => {
     const layout = bedside();
     layout.pages.push({ ...layout.pages[0], id: "a".repeat(16), tiles: [{ id: "tile2", content: { kind: "entity", entityId: "light.bedside" },
       placement: { row: 0, column: 0, columns: 1, rows: 1 }, appearance: { label: "" }, interaction: {} }],
       topbar: { ...layout.pages[0].topbar, leading: [], trailing: [] } });
-    expect(() => validatePages(layout, grid)).toThrow();
+    expect(() => validatePages(layout, grid)).not.toThrow();
+    layout.pages[1].tiles[0].content = { kind: "builtin", name: "nightstand" };
+    layout.pages[1].tiles[0].placement = { row: 0, column: 0, columns: grid.columns, rows: grid.rows };
+    expect(() => validatePages(layout, grid)).toThrow("bedside clock can only be on a screen once");
   });
   it("gives children only to the bedside clock", () => {
     const layout = bedside();

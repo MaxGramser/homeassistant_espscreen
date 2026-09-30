@@ -44,7 +44,13 @@ def packages_of(path):
     block = re.search(r'^packages:\n(.*?)(?=^[a-z_0-9]+:|\Z)', Path(path).read_text(), re.M | re.S)
     if not block:
         return []
-    return [(Path(path).parent / include).resolve() for include in re.findall(r'!include (\S+)', block[1])]
+    includes = re.findall(r'!include (\S+)', block[1])
+    if any('${' in include for include in includes):
+        # A path worked out from the file's own substitutions, as ESPHome does it (the Guition's cards follow its
+        # rows, GRID_CELLS): the board file's own values, which a screen's YAML may change when it is built.
+        values = evaluate(substitutions_of(path))
+        includes = [_render(include, values, strict=False) for include in includes]
+    return [(Path(path).parent / include).resolve() for include in includes]
 
 
 def chain(path):

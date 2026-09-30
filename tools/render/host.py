@@ -223,7 +223,7 @@ def host_file(text, chain, rel):
     return host_common(text)
 
 
-INCLUDE = re.compile(r'!include\s+([^\s{}]+\.yaml)')
+INCLUDE = re.compile(r'!include\s+((?:[^\s{}]|\$\{[^{}]*\})+\.yaml)')
 
 
 def walk(tree, source, mirror, chain):
@@ -234,7 +234,13 @@ def walk(tree, source, mirror, chain):
         return
     chain.files.append(rel)
     text = source.read_text()
+    values = None
     for include in INCLUDE.findall(text):
+        if '${' in include:
+            # A path worked out from the file's own substitutions (the Guition's cards follow its rows, GRID_CELLS):
+            # the mirror copies the file ESPHome takes with the values the render builds with.
+            values = values if values is not None else profiles.evaluate(profiles.substitutions_of(source))
+            include = profiles._render(include, values, strict=True)
         target = (source.parent / include).resolve()
         if not target.is_file():
             raise SystemExit(f'{rel}: include {include} does not exist in {tree}')

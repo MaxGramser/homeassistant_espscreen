@@ -209,6 +209,10 @@ inline Layout above(int canvas_w, int canvas_h, int title_line, int line, int aw
   l.subtitle_y += shift;
   l.subtitle_h = whole_lines(subtitle, line);
   l.button_y = l.card_h - l.button_inset - l.button_h;
+  // The narrow-card fallback in plain() can put the title below the icon.
+  // If adding a picture leaves those words over the buttons, keep plain().
+  if (l.subtitle_y + l.subtitle_h > l.button_y - button_gap)
+    return plain(canvas_w, canvas_h, title_line, line);
   return l;
 }
 

@@ -1,0 +1,113 @@
+# The browser's firmware preview (web/wasm) is the shared firmware compiled to WebAssembly, and the add-on ships the
+# compiled file, so it has to be in the commit that goes out. Whenever the firmware sources move past the preview
+# (web/wasm/generate_renderer_manifest.py --check), this rebuilds it with Emscripten, runs its tests, builds the editor
+# and commits the result to the same branch. Push a firmware change to its branch first and let this run before it goes
+# to main (docs/RELEASING.md); on main it rebuilds too, for the next release.
+name: Firmware preview
+
+on:
+  push:
+    paths:
+      - "packages/**"
+      - "components/**"
+      - "fonts/**"
+      - "checkout/**"
+      - "web/wasm/**"
+      - "tools/profiles.py"
+      - "screen_manager/Dockerfile"
+      - "screen_manager/translations/en.json"
+      - ".github/workflows/preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The Emscripten the committed preview was built with; raise it on purpose, not by accident.
+  EMSDK_VERSION: "6.0.10"
+
+jobs:
+  preview:
+    name: preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: ESPHome
+        run: |
+          version=$(sed -n 's|^FROM ghcr.io/esphome/esphome:||p' screen_manager/Dockerfile)
+          python -m pip install "esphome==$version" PyYAML jinja2
+      - name: Is the preview current?
+        id: stale
+        run: |
+          if python web/wasm/generate_renderer_manifest.py --check; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/cache@v4
+        if: steps.stale.outputs.stale == 'true'
+        with:
+          path: ~/emsdk
+          key: emsdk-${{ runner.os }}-${{ env.EMSDK_VERSION }}
+      # generate_host_ui.py has ESPHome generate the UI for an SDL display, and ESPHome checks for sdl2-config.
+      - name: SDL2
+        if: steps.stale.outputs.stale == 'true'
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: Emscripten
+        if: steps.stale.outputs.stale == 'true'
+        run: |
+          [ -d ~/emsdk ] || git clone --depth 1 https://github.com/emscripten-core/emsdk.git ~/emsdk
+          ~/emsdk/emsdk install "$EMSDK_VERSION"
+          ~/emsdk/emsdk activate "$EMSDK_VERSION"
+      # LVGL and ArduinoJson at their pinned versions (web/wasm/build.py downloads them into PREVIEW_CACHE).
+      - uses: actions/cache@v4
+        if: steps.stale.outputs.stale == 'true'
+        with:
+          path: .preview-cache
+          key: preview-sources-${{ hashFiles('web/wasm/build.py') }}
+      - uses: actions/setup-node@v4
+        if: steps.stale.outputs.stale == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build the preview
+        if: steps.stale.outputs.stale == 'true'
+        run: |
+          source ~/emsdk/emsdk_env.sh
+          PYTHON=python PREVIEW_CACHE="$PWD/.preview-cache" sh web/wasm/build.sh
+          node web/wasm/test_profiles.mjs
+          node web/wasm/test_runtime.mjs
+          node web/wasm/test_images.mjs
+          PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_images.mjs
+          PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs
+          PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs
+          python web/wasm/generate_renderer_manifest.py --check
+      - name: Build the editor
+        if: steps.stale.outputs.stale == 'true'
+        working-directory: web
+        run: npm ci && npm run build
+      # Every commit on main carries Max as its author (the repository's rule), this one too.
+      - name: Commit the rebuilt preview
+        if: steps.stale.outputs.stale == 'true'
+        run: |
+          git config user.name "Max Gramser"
+          git config user.email "maxgramser@gmail.com"
+          git add web/src/wasm web/wasm/generated screen_manager/app/static
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Firmware preview: rebuilt for ${GITHUB_SHA::7}"
+          for attempt in 1 2 3; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((attempt * 5))
+          done
+          exit 1

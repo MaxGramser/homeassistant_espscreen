@@ -1,0 +1,98 @@
+# ESP Screens - Sunton ESP32-8048S070 (800 x 480, 7 inch), EXPERIMENTAL. Sold as one of the "Cheap Yellow Display" family.
+# ESP32-S3, 16 MB flash, 8 MB octal PSRAM, an RGB panel, a GT911 touch panel (the "C" model; the "R" model with a
+# resistive panel is not this file) and a USB-to-UART chip on its one USB port.
+# Pins and panel timings are ESPHome's own ESP32-8048S070 model; the touch bus and the backlight pin are those of the
+# configuration a board owner ran on the glass (GitHub #94). No physical acceptance by the project yet.
+# The standard look at 133 dpi, the density of the 7-inch Waveshare: 4 x 4 landscape, 2 x 7 portrait.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  # The chip and its memory for an RGB panel, as on the other ESP32-S3 boards with one.
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/16.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "sunton8048s070"
+  DEVICE_NAME: "sunton8048s070-new"
+  DEVICE_FRIENDLY_NAME: "My Sunton 7"
+
+  # The glass: the panel's own pixels and its density, 933 diagonal pixels over 7.0 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "133.279"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "7"
+  # LVGL's draw buffer as a share of the screen: 12 % of 800 x 480, as on the other 800 x 480 boards
+  # (docs/ADDING_A_BOARD.md, step 3).
+  LVGL_BUFFER_SIZE: "12%"
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM (see the output block)
+
+  # Set by hand when the home key came (firmware 0.2.100); the look would give 27, as on the 7-inch Waveshare
+  FONT_ICON_HOME_SIZE: "26"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  # The one USB port goes through a USB-to-UART chip, not the chip's own USB, so the log goes out over UART0.
+  hardware_uart: UART0
+
+# The GT911 has the board's I2C bus to itself.
+i2c:
+  id: touch_bus
+  sda: GPIO19
+  scl: GPIO20
+  scan: true
+
+output:
+  # GPIO2 switches the backlight's LED driver; its level is a PWM.
+  - platform: ledc
+    pin: GPIO2
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# The GT911 is polled: the configuration run on this board uses neither its reset nor its interrupt line. It reports
+# pixels of the panel, 0 to 799 by 0 to 479; the range is stated so a chip that carries a generic resolution in its own
+# configuration still maps onto the glass (GitHub #78).
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: ${PANEL_W}
+      y_min: 0
+      y_max: ${PANEL_H}
+
+# ESPHome's model for this board brings the pins, the 12.5 MHz pixel clock and the timings; the panel needs no init
+# sequence.
+display:
+  - platform: mipi_rgb
+    model: ESP32-8048S070
+    id: my_display
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    color_order: RGB
+    update_interval: never
+    auto_clear_enabled: false

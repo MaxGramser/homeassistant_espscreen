@@ -70,11 +70,11 @@ class ProfileNameTests(unittest.TestCase):
             # down carries no such line, and then the board file's own angle is the answer.
             self.assertEqual(names['living-room.yaml'], {'node': 'living-room', 'friendly': 'Living room', 'screen': True,
                                                          'api_key': names['living-room.yaml']['api_key'],
-                                                         'package': 'packages/cyd.yaml', 'rotation': None})
+                                                         'package': 'packages/cyd.yaml', 'rotation': None, 'grid_rows': None})
             self.assertEqual(len(names['living-room.yaml']['api_key']), 44)
             # A manual profile (no board package from this repo, key behind !secret) is not an ESP Screens profile.
             self.assertEqual(names['manual.yaml'], {'node': 'kitchen', 'friendly': 'Kitchen', 'screen': False, 'api_key': None,
-                                                    'package': None, 'rotation': None})
+                                                    'package': None, 'rotation': None, 'grid_rows': None})
             self.assertNotIn('broken.yaml', names)
             self.assertNotIn('secrets.yaml', names)
 
@@ -97,7 +97,7 @@ class ProfileNameTests(unittest.TestCase):
                 names = f.profile_names()
                 self.assertEqual(len(parsed), 3, 'only the changed file is parsed')
                 self.assertEqual(names['b.yaml'], {'node': 'b2', 'friendly': 'B2', 'screen': False, 'api_key': None,
-                                                   'package': None, 'rotation': None})
+                                                   'package': None, 'rotation': None, 'grid_rows': None})
                 a.unlink()
                 self.assertEqual(set(f.profile_names()), {'b.yaml'})
                 self.assertEqual(len(parsed), 3)

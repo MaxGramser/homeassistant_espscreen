@@ -27,7 +27,7 @@ class Startup(unittest.TestCase):
         self.assertNotIn('inventory.screens[0]', SCRIPT)
         # The ways into a screen are its button in the list and its row in the ⌘K search; both pass the chosen screen.
         # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen.
-        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )select\(([^)]*)\)', SCRIPT)), {'screen.id', 'null'})
+        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )select\(([^)]*)\)', SCRIPT)), {'screen.id', 'id', 'null'})
         self.assertIn('if (state.selected) select(null);', STORE)
         # In the list a click chooses the screen (app 0.2.108; its details fold behind a chevron since app 0.4.0); the
         # choosing is still select's. The overview's cards choose a screen the same way.

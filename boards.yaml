@@ -40,6 +40,9 @@ guition:
   name: Guition
   model: ESP32-S3-4848S040
   status: stable
+  choices:
+    # Two columns of three, or of four with smaller tiles (firmware 0.18.1): more on a page for a screen of switches.
+    GRID_ROWS: ["3", "4"]
 
 waveshare43:
   file: waveshare-esp32s3-43.yaml
@@ -105,6 +108,18 @@ waveshare7b:
   file: waveshare-esp32s3-7b.yaml
   name: Waveshare
   model: ESP32-S3-Touch-LCD-7B
+  status: experimental
+
+sunton8048s070:
+  file: sunton-8048s070.yaml
+  name: Sunton
+  model: ESP32-8048S070
+  status: experimental
+
+jc8012p4a1v2:
+  file: guition-jc8012p4a1-v2.yaml
+  name: Guition
+  model: JC8012P4A1 V2
   status: experimental
 
 lilygos3long:

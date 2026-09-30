@@ -29,7 +29,8 @@ int main() {
   assert(!m.begin(0, 9, "Too many pages"));
   assert(!m.begin(0, 0, "No page"));
   assert(m.begin(0, 1, "Empty")); m.configured = true; assert(m.ready());
-  assert(m.begin(0, 1, "") && m.title == screen_text::tr(screen_text::txt::status_home));
+  // An empty title stays empty (firmware 0.17.0+): the top bar shows its home key alone.
+  assert(m.begin(0, 1, "") && m.title.empty());
 }
 // Built-in and new Home Assistant domains, plus wide-tile packing.
 static void test_domains_and_sizes() {

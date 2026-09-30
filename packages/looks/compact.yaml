@@ -10,31 +10,29 @@
 # To change a size on every board that has this look, change the number here. docs/PROFILES.md says how the
 # files of a screen fit together.
 packages:
-  bedside: !include shared/bedside.yaml
+  digits: !include shared/digits.yaml
 
 substitutions:
   LOOK: "compact"
   LOOK_SCALE: ${ (DISPLAY_DPI | float) / 143 }
 
-  # The page: where the tiles start, the top bar, and the strip whose hold opens the settings
-  SCROLL_Y: ${ (40 * LOOK_SCALE | float) | round | int }
-  HEADER_Y: ${ (14 * LOOK_SCALE | float) | round | int }
-  HEADER_INSET: ${ (11 * LOOK_SCALE | float) | round | int }   # the room name and the clock from the glass edge
+  # The page: the strip whose hold opens the settings (the top bar and where the tiles start follow the fonts below)
   SETTINGS_HOLD_DRIFT_PX: ${ (24 * LOOK_SCALE | float) | round | int }
-  # The tile grid around the cells (not scaled: the grid of each board was chosen with these)
-  GRID_MARGIN: "9"
-  GRID_GAP_X: "8"
-  GRID_GAP_Y: "4"
+  # Spacing (firmware 0.14.0+): the margin to the glass and the gaps between the cards keep their millimetres on
+  # every glass, but never take more pixels than they had (9, 8 and 4 at this look's own density), so no tile gets smaller.
+  GRID_MARGIN: ${ [(9 * LOOK_SCALE | float) | round | int, 9] | min }
+  GRID_GAP_X: ${ [(6 * LOOK_SCALE | float) | round | int, 8] | min }
+  GRID_GAP_Y: ${ [(6 * LOOK_SCALE | float) | round | int, 4] | min }
 
   # Tiles
   TILE_RADIUS: ${ (18 * LOOK_SCALE | float) | round | int }    # corner of a tile
   TILE_PAD: ${ (8 * LOOK_SCALE | float) | round | int }       # inside a tile
   TILE_ICON_SIZE: ${ (36 * LOOK_SCALE | float) | round | int } # the icon circle
 
-  # The page bar under the tiles
-  PAGE_BAR_H: ${ (36 * LOOK_SCALE | float) | round | int }
+  # The page bar under the tiles: the look's own height, but never more than 7 mm, the least a finger needs
+  # (ui::touch_min, firmware 0.14.0+)
+  PAGE_BAR_H: ${ [(36 * LOOK_SCALE | float) | round | int, ((DISPLAY_DPI | float) * 7 / 25.4) | round | int] | min }
   PAGE_NUMBER_W: ${ (104 * LOOK_SCALE | float) | round | int }     # the dots in the middle
-  PAGE_CHEVRON_INSET: ${ (14 * LOOK_SCALE | float) | round | int } # the chevrons from the outer edge
 
   # Cards: the round keys and the brightness card
   CARD_KEY_X: ${ (10 * LOOK_SCALE | float) | round | int }     # a card's round key from the side
@@ -50,21 +48,32 @@ substitutions:
   ALERT_SUBTITLE_MAX: "160"   # bytes; wraps over the rows the card has
 
   # Font sizes (points = pixels); never below 8
-  FONT_TIME_SIZE: ${ [8, (18 * LOOK_SCALE | float) | round | int] | max }         # the clock in the top bar
   FONT_HEADLINE_SIZE: ${ [8, (18 * LOOK_SCALE | float) | round | int] | max }     # card titles
   FONT_WATCH_VALUE_SIZE: ${ [8, (22 * LOOK_SCALE | float) | round | int] | max }
   FONT_CLOCK_DIGITS_SIZE: ${ [8, (24 * LOOK_SCALE | float) | round | int] | max }
   FONT_SETPOINT_SIZE: ${ [8, (40 * LOOK_SCALE | float) | round | int] | max }     # the climate card's setpoint
 
-  # Whether a bedside clock's keys have their names under them (looks/shared/bedside.yaml works out its digits).
+  # Whether a bedside clock's keys have their names under them (looks/shared/digits.yaml works out its digits).
   BEDSIDE_WITH_NAMES: "0"   # the compact look keeps the keys without names
   FONT_LABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }        # tile titles
-  WIDE_NAME_FONT: "label_wide"    # a tile title with room: 14 px bold (the font at the end of this file)
+  WIDE_NAME_FONT: "sublabel_big"  # a tile title with room: the L step, 14 px (firmware 0.17.0; before, a bold 14 of its own)
   FONT_SUBLABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }     # tile values and small text
   FONT_SUBLABEL_BIG_SIZE: ${ [8, (14 * LOOK_SCALE | float) | round | int] | max } # the top bar and settings rows
   FONT_ICON_SIZE: ${ [8, (28 * LOOK_SCALE | float) | round | int] | max }         # tile icons
   FONT_ICON_MINI_SIZE: ${ [8, (18 * LOOK_SCALE | float) | round | int] | max }    # the top bar and card keys
   FONT_ICON_HOME_SIZE: ${ [8, (25 * LOOK_SCALE | float) | round | int] | max }    # the home key in the top bar
+  # The top bar and where the tiles start, after the sizes they are made of (ESPHome works substitutions out in order):
+  # the bar keeps the tiles' margin from the glass, sides and top (firmware 0.14.0+), and the tiles start BAR_SPACE
+  # below its band.
+  HEADER_INSET: ${GRID_MARGIN}
+  # The bar's band (firmware 0.15.0+): the key, or the name's capitals centred on it with the tails of g, p, y and
+  # commas below them, whichever reaches lower. Roboto's capitals are 0.711 of the font size and its tails 0.21, so
+  # the band follows from the fonts and not from the title on the page (GitHub #90).
+  BAR_BAND: ${ [(((FONT_ICON_HOME_SIZE | int) * 17 / 24) | round | int), (((((FONT_ICON_HOME_SIZE | int) * 17 / 24) | round | int) + 0.711 * (FONT_HEADLINE_SIZE | int)) / 2 + 0.21 * (FONT_HEADLINE_SIZE | int)) | round(0, 'ceil') | int] | max }
+  # The room between the bar and the tiles: one row gap, but never less than 1.5 mm, so a small look keeps a
+  # visible edge under the bar.
+  BAR_SPACE: ${ [GRID_GAP_Y | int, ((DISPLAY_DPI | float) * 1.5 / 25.4) | round | int] | max }
+  SCROLL_Y: ${ (GRID_MARGIN | int) + (BAR_BAND | int) + (BAR_SPACE | int) }
   FONT_ICON_BIG_SIZE: ${ [8, (40 * LOOK_SCALE | float) | round | int] | max }     # full-page tiles
   FONT_WATCH_ICON_SIZE: ${ [8, (12 * LOOK_SCALE | float) | round | int] | max }
   # The starting screen's Tessera lockup: the mosaic mark beside the name, as on the website (firmware 0.3.8+)
@@ -78,23 +87,3 @@ substitutions:
   TOUCH_TEST_TITLE_Y: "65"
   TOUCH_TEST_INSET: "10"          # the corner crosses from the edge
   TOUCH_TEST_SIZE: "20"           # a cross
-
-# A tile's name where its cell has room (runtime_tiles::name_font, firmware 0.6.0+): one column standing up, a
-# double-width card, a 4-inch glass. The name's own bold letters, a little larger; only this look carries them.
-font:
-  - file: "${FONT_DIR}/Roboto-700.ttf"
-    id: label_wide
-    size: ${ [8, (14 * LOOK_SCALE | float) | round | int] | max }
-    bpp: 4
-    glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
-             '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
-             'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
-             'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
-             'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
-             'ñ','ò','ó','ô','õ','ö','ø','ù','ú','û','ü','ý','þ','ÿ','Ą','ą','Ć','ć','Ę','ę','Ł','ł','Ń','ń',
-             'Ś','ś','Ź','ź','Ż','ż','Č','č','Ď','ď','Ě','ě','Ň','ň','Ř','ř','Š','š','Ť','ť','Ů','ů','Ž','ž',
-             'Ĺ','ĺ','Ľ','ľ','Ŕ','ŕ','Ő','ő','Ű','ű','Ă','ă','Ș','ș','Ț','ț','Đ','đ','Ā','ā','Ē','ē','Ģ','ģ',
-             'Ī','ī','Ķ','ķ','Ļ','ļ','Ņ','ņ','Ū','ū','Ė','ė','Į','į','Ų','ų','Ğ','ğ','İ','ı','Ş','ş','Ċ','ċ',
-             'Ġ','ġ','Ħ','ħ','Ŵ','ŵ','Ŷ','ŷ','Ŀ','ŀ','Œ','œ','Ÿ','„','“','”','‘','’','«','»','‹','›','¿','¡',
-             '€','£','²','³','µ']

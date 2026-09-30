@@ -1,19 +1,29 @@
 <script setup lang="ts">
 // The add-on's home (app 0.4.0): every screen of the house with its home page as it stands on the glass right now, the
 // page shown when no screen is chosen and where the logo leads. A click on a screen opens it in the editor.
-import { computed, onMounted } from "vue";
+import { computed, onMounted, reactive } from "vue";
 import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
 import { go, homeView, loadOverview, screenLight, screenSubline, select, state } from "../store";
+import { previewShapeOf } from "../model/preview";
 import type { Screen } from "../types";
+import FirmwarePreview from "./FirmwarePreview.vue";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
-const views = computed(() => state.inventory.screens.map((screen) => ({ screen, view: homeView(screen) })));
+const views = computed(() => state.inventory.screens.map((screen) => {
+  const view = homeView(screen), record = screen.page_document;
+  // The screen's own firmware draws its saved home page when the preview knows its board; the mockup stays until then.
+  const live = view && record?.format === "pages-v2" ? previewShapeOf(screen, record.sourceGrid) : null;
+  return { screen, view, live, layout: record?.format === "pages-v2" ? record.layout : null };
+}));
+const drawn = reactive(new Set<string>());
+const failed = reactive(new Set<string>());
+const liveWidth = (shape: { width: number; height: number }) => `min(100%, ${Math.round(STAGE * shape.width / shape.height)}px)`;
 const online = computed(() => state.inventory.screens.filter((screen) => screen.online).length);
 const scale = (style: Record<string, string>, shape: { width: number; height: number }) => {
   const width = parseFloat(style["--mockup-width"]), height = width * shape.height / shape.width + 20;
@@ -30,10 +40,16 @@ onMounted(loadOverview);
       <p>{{ t("editor.home.summary", { online, count: state.inventory.screens.length }) }}</p>
     </header>
     <div class="home-grid">
-      <div v-for="{ screen, view } in views" :key="screen.id" role="button" tabindex="0" class="home-card" :class="{ away: !screen.online }"
+      <div v-for="{ screen, view, live, layout } in views" :key="screen.id" role="button" tabindex="0" class="home-card" :class="{ away: !screen.online }"
         :aria-label="t('editor.home.open', { name: screen.name })" @click="select(screen.id)" @keydown.enter.prevent="select(screen.id)" @keydown.space.prevent="select(screen.id)">
         <span class="home-stage">
-          <span v-if="view" class="home-glass" :style="{ zoom: scale(view.style, view.shape) }" aria-hidden="true">
+          <span v-if="live && layout && !failed.has(screen.id)" class="home-live" :style="{ width: liveWidth(live) }" aria-hidden="true">
+            <FirmwarePreview :key="`${screen.id}:${JSON.stringify(live)}`" :width="live.width" :height="live.height" :dpi="live.dpi"
+              :columns="live.columns" :rows="live.rows" :layout="layout" still
+              @ready="drawn.add(screen.id)" @failed="failed.add(screen.id)" />
+          </span>
+          <span v-if="view && !(live && layout && drawn.has(screen.id) && !failed.has(screen.id))" class="home-glass"
+            :style="{ zoom: scale(view.style, view.shape) }" aria-hidden="true">
             <span class="page home-page" :style="view.style">
               <span class="device" :class="{ compact: view.compact }">
                 <TopbarSvg :items="view.items" :name-text="view.title" :home="view.home" :metrics="barMetricsFor(view.shape)" />
@@ -70,6 +86,10 @@ onMounted(loadOverview);
   text-align: left; transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s; }
 .home-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
 .home-stage { height: 236px; display: grid; place-items: center; background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 20px; }
+/* The live screen and the mockup it replaces share one place, the live one on top. */
+.home-stage > * { grid-area: 1 / 1; }
+.home-live { display: block; z-index: 1; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 2px rgba(20, 24, 40, 0.1); }
+.home-card.away .home-live { opacity: 0.55; filter: grayscale(0.6); }
 /* The mockup at the editor's own size, drawn smaller as a whole: its type and spacing stay the screen's. */
 .home-glass { display: block; pointer-events: none; }
 .home-page { display: block; }

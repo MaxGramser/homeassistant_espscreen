@@ -16,7 +16,7 @@ import tile_icons
 from core import (ALERT_ACTION_FIELD, ALERT_ACTION2_FIELD, ALERT_CHOICE_ACTION, ALERT_CHOICE_FIELDS, ALERT_CHOICE_MIN_FIRMWARE, ALERT_CAMERA_FIELD, ALERT_SCREEN_FIELD, ALERT_ENDINGS, ALERT_EVENT, ALERT_FALLBACK_ICON, ALERT_FIELDS, ALERT_LIMITS, ALERT_MAX_TIMEOUT, BOARD_KEYS, SHAPES, limit_boards,
                   ALERT_MIN_FIRMWARE, ALERT_SUGGESTED_ICONS, AUTO_STANDBY_MIN_FIRMWARE, BROADCAST_DISMISS, BROADCAST_SHOW,
                   CONTROLS, COVER_TILE_MIN_FIRMWARE, DISPLAYS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, FULL_PAGE_MIN_FIRMWARE, LIVE_MIN_FIRMWARE,
-                  PAGE_TILE_REPEAT_MIN_FIRMWARE, SETTINGS_PAGE_MIN_FIRMWARE, TILE_BACKGROUNDS, TILE_EVENTS, TILE_RESULT_EVENT,
+                  PAGE_TILE_REPEAT_MIN_FIRMWARE, ENTITY_REPEAT_MIN_FIRMWARE, SETTINGS_PAGE_MIN_FIRMWARE, TILE_BACKGROUNDS, TILE_EVENTS, TILE_RESULT_EVENT,
                   WAKE_SLEEP_MIN_FIRMWARE, SETTING_ENTITIES_MIN_FIRMWARE, DARK_MODE_MIN_FIRMWARE, PAGE_BUTTONS_MIN_FIRMWARE,
                   HOME_BUTTON_MIN_FIRMWARE, SHOW_PAGE_MIN_FIRMWARE)
 # Full-page tiles, navigation tiles and one tile per cell of the screen's pages.
@@ -25,6 +25,8 @@ LIVE_VERSION = '.'.join(str(part) for part in LIVE_MIN_FIRMWARE)
 COVER_TILE_VERSION = '.'.join(str(part) for part in COVER_TILE_MIN_FIRMWARE)
 # The same navigation tile on several pages (app 0.2.78).
 PAGE_TILE_REPEAT_VERSION = '.'.join(str(part) for part in PAGE_TILE_REPEAT_MIN_FIRMWARE)
+# Any entity on several tiles (app 0.4.26, GitHub #83).
+ENTITY_REPEAT_VERSION = '.'.join(str(part) for part in ENTITY_REPEAT_MIN_FIRMWARE)
 
 NAME = 'esp-screens'
 # claude.ai accepts at most 200 characters; Claude Code picks the skill by this sentence.
@@ -56,9 +58,9 @@ def skill_dir(config=None):
     return Path(config or os.environ.get('HA_CONFIG', '/homeassistant')) / '.claude' / 'skills' / NAME
 
 def _limit(name, kind):
-    """The bytes a text field holds on each look, with the boards that have it ("CYD 48 · Guition and Waveshare 64 bytes")."""
+    """The bytes a text field holds on each look, with the boards that have it ("CYD and Hosyond 48 · Guition, Waveshare and Sunton 64 bytes")."""
     boards = limit_boards()
-    parts = [f"{' and '.join(boards[look])} {values[name]}" for look, values in ALERT_LIMITS.items() if name in values and boards.get(look)]
+    parts = [f"{_and(boards[look])} {values[name]}" for look, values in ALERT_LIMITS.items() if name in values and boards.get(look)]
     if parts:
         return ' · '.join(parts) + ' bytes'
     return f'0 to {ALERT_MAX_TIMEOUT} s' if kind == 'int' else ''
@@ -77,7 +79,7 @@ def text():
                          for domain, choices in CONTROLS.items())
     displays = '\n'.join(f'| `{domain}` | ' + ', '.join(f'`{name}`' for name in names) + ' |' for domain, names in DISPLAYS.items())
     events = '\n'.join(f'| `{event}` | {what} |' for event, what in
-                       (('esp_screens_add_tile', 'Puts an entity on a screen, or changes the tile that is already there'),
+                       (('esp_screens_add_tile', 'Puts an entity on a screen as a new tile'),
                         ('esp_screens_remove_tile', 'Takes a tile off a screen'),
                         ('esp_screens_move_tile', 'Moves a tile to another page or spot'),
                         ('esp_screens_order_tiles', 'Puts tiles in the order you give')))
@@ -122,7 +124,7 @@ actions:
 | `page` | Page, counted from 1. Without a spot the tile takes the first free one on that page. |
 | `row`, `column` | An exact spot on that page: the row counted from 1, and the column as a number counted from 1 or as `left` or `right` (the first and the last column; `middle` on a screen with three). |
 | `slot` | An exact spot as the screen's sensor counts it, from 0 up to its pages times its cells minus one: instead of `page`, `row` and `column`. |
-| `from_page`, `from_slot` | Only for `esp_screens_move_tile`: which copy of a navigation tile that is on several pages to move (see below). |
+| `from_page`, `from_slot` | Only for `esp_screens_move_tile`: which copy of an entity that is on several tiles to move (see below). |
 | `size` | `single`, `wide` or `full` (the whole page; firmware {FULL_PAGE_VERSION} or newer). |
 | `controls` | What you can operate on the tile itself (see below). |
 | `display` | How the tile draws itself (see below). On a screen that draws pictures (every board but {_and(f'the {_board(b)}' for b in BOARD_KEYS if 'camera' not in SHAPES[b])}) a camera or image tile takes `live` (firmware {LIVE_VERSION} or newer): its live picture, over the whole tile from firmware 0.3.7 (in the icon's place before), with `refresh` 5, 10, 15 or 30 (seconds), `fit` `contain` for the whole picture and `overlay` `none` for no name on it; a media player tile takes `cover` (firmware {COVER_TILE_VERSION} or newer): the album cover of what plays in the icon's place. |
@@ -135,9 +137,9 @@ A tile with a control, a forecast or a sun path is drawn double-width on its own
 
 A navigation tile goes to another page: add the entity `screen.page_3` (for page 3, `screen.page_1` to `screen.page_{FIRMWARE_MAX_PAGES}`, as far as the screen's `max_pages` goes) with a `name` such as "Heating"; it shows an arrow (or an `icon`), its name and the page number, and a tap opens that page. Handy as a menu on page 2 when page 1 is one full-page light switch. It is single or double width, never full-page.
 
-On firmware {PAGE_TILE_REPEAT_VERSION} or newer the same navigation tile can be on several pages, such as a `screen.page_1` named "Back" on every other page: add it with the `page` (or spot) it goes on, and a page without a copy gets a new one. Older firmware has one per page it goes to, and adding it again moves that one. Every other entity is on a screen once.
+On firmware {ENTITY_REPEAT_VERSION} or newer an entity can be on a screen more than once, such as a light as a small tile on page 1 and with its slider on page 3, or a `screen.page_1` named "Back" on every other page. `esp_screens_add_tile` always puts a new tile on the screen, also when the entity is there already; to change a tile, remove it and add it again with what it should have. Only the bedside clock (`screen.nightstand`) is on a screen once. On older firmware an entity is on a screen once (a navigation tile once per page from firmware {PAGE_TILE_REPEAT_VERSION}), and adding it again changes the tile that is there, or moves it when you name another place.
 
-When a navigation tile is on several pages, say which copy you mean: `page` or `slot` for `esp_screens_add_tile` (change that copy) and `esp_screens_remove_tile`, `from_page` or `from_slot` for `esp_screens_move_tile` (its `page` and `slot` say where to), and in `esp_screens_order_tiles` each time you name it takes the next copy. An event that doesn't say acts on the first copy, the one with the lowest `slot` in the sensor.
+When an entity is on several tiles, say which copy you mean: `page` or `slot` for `esp_screens_remove_tile`, `from_page` or `from_slot` for `esp_screens_move_tile` (its `page` and `slot` say where to), and in `esp_screens_order_tiles` each time you name it takes the next copy. An event that doesn't say acts on the first copy, the one with the lowest `slot` in the sensor.
 
 ### What a tile can do, per kind of entity
 
@@ -153,7 +155,7 @@ Everything else shows its name and state, and opens a card of its own on a long 
 
 ### Reading a screen first
 
-Every screen also publishes what it shows, as `sensor.esp_screens_<device name>`: the state is the number of tiles, and the attributes hold `title`, the grid of its pages (`columns`, `rows` and `max_pages`), `pages` and `tiles` with `entity`, `name`, `page`, `row`, `column`, `slot`, `size`, `controls` and `display` per tile (and `to_page` for a `screen.page_<n>` tile), every copy of a navigation tile on its own. The `column` is `left` or `right` on a two-column screen and a number counted from 1 on any other. Read that before moving things around, so you know what is already there and where.
+Every screen also publishes what it shows, as `sensor.esp_screens_<device name>`: the state is the number of tiles, and the attributes hold `title`, the grid of its pages (`columns`, `rows` and `max_pages`), `pages` and `tiles` with `entity`, `name`, `page`, `row`, `column`, `slot`, `size`, `controls` and `display` per tile (and `to_page` for a `screen.page_<n>` tile), every copy of an entity on its own. The `column` is `left` or `right` on a two-column screen and a number counted from 1 on any other. Read that before moving things around, so you know what is already there and where.
 
 Ordering a page means naming the tiles that are on it, in the order you want:
 

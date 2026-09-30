@@ -525,7 +525,7 @@
         "page_titles": "Un écran a au maximum {n} page. | Un écran a au maximum {n} pages.",
         "tiles_max": "Choisissez au plus {n} tuile. | Choisissez au plus {n} tuiles.",
         "unsupported": "Cette entité n'est pas prise en charge.",
-        "once": "Une entité ne peut apparaître qu'une seule fois sur un écran.",
+        "once": "L'horloge de chevet ne peut être qu'une seule fois sur un écran.",
         "tile_name": "Un nom de tuile peut contenir au plus 80 octets.",
         "unknown_settings": "Réglages de tuile inconnus.",
         "navigation_size": "Une tuile de navigation est de taille normale ou double largeur.",
@@ -575,6 +575,7 @@
         "not_for_a_screen": "{entity} ne peut pas aller sur un écran.",
         "not_on_screen": "{entity} n'est pas sur cet écran.",
         "add_it_first": "{entity} n'est pas sur cet écran ; ajoutez-la d'abord.",
+        "key_stays": "{entity} se trouve sous l'horloge de chevet ; déplacez-le là dans l'éditeur.",
         "not_on_spot": "{entity} n'est pas à l'emplacement {slot}.",
         "not_on_page": "{entity} n'est pas sur la page {page}.",
         "move_where": "Indiquez la page ou l'emplacement où la déplacer.",
@@ -1256,6 +1257,8 @@
         "not_flashed": "Pas encore dans Home Assistant. Firmware déjà installé ? Ajoutez l'appareil ESPHome dans Paramètres → Appareils et services, puis autorisez les actions Home Assistant sous Configurer. Pas encore installé ? Firmware et USB → {file}."
       },
       "copy_api_key": "Copier la clé API",
+      "files": "Télécharger les fichiers de l'écran",
+      "files_hint": "Le YAML ESPHome de l'écran avec ses clés, son Override YAML et un secrets.yaml avec le Wi-Fi, pour le compiler avec ESPHome sur votre ordinateur.",
       "details": {
         "room": "Pièce",
         "firmware": "Firmware",
@@ -1435,6 +1438,7 @@
       "all_rooms": "Toutes les pièces",
       "hide_placed": "Masquer celles déjà placées",
       "hide_placed_title": "Masquer ce qui est déjà sur cet écran",
+      "again": "Déjà sur cet écran ; ajoutez-le encore pour une autre tuile",
       "all_placed": "Tout ce qui est ici est déjà sur cet écran.",
       "none_found": "Aucune entité trouvée. Essayez un autre nom, une autre pièce ou un autre filtre.",
       "full": "Cet écran peut contenir {n} tuile. | Cet écran peut contenir {n} tuiles.",
@@ -1634,7 +1638,9 @@
       },
       "keys": {
         "hint": "Glissez une lampe, une température ou une serrure sur les emplacements ronds sous l'heure, ou touchez un emplacement et choisissez. Ce sont des tuiles : touchez-en une pour la régler.",
-        "under": "Sous l'horloge de chevet : une tuile sous sa forme ronde. Un appui fait ce qu'il fait sur une tuile, et un appui long ouvre sa carte."
+        "under": "Sous l'horloge de chevet : une tuile sous sa forme ronde. Un appui fait ce qu'il fait sur une tuile, et un appui long ouvre sa carte.",
+        "name_shown": "Nom sous la touche",
+        "name_shown_hint": "Désactivé, seul le cercle reste."
       }
     },
     "tile_card": {
@@ -1691,6 +1697,7 @@
       "name_placeholder": "Par exemple : Salon",
       "screen_name": "Titre de l'écran",
       "screen_name_hint": "Chaque page sans titre propre affiche celui-ci.",
+      "no_title_hint": "Laissez vide pour n'afficher que le logo.",
       "right": "Droite : heure, capteurs ou horloge",
       "item_label": "{name}, emplacement {slot}. Enter : configurer, flèches : déplacer",
       "remove_named": "Retirer {name} de la barre supérieure",
@@ -1924,10 +1931,12 @@
         "calibration": "Étalonnage tactile au premier démarrage"
       },
       "choice": {
-        "DISPLAY_MODEL": "Contrôleur d'affichage"
+        "DISPLAY_MODEL": "Contrôleur d'affichage",
+        "GRID_ROWS": "Tuiles par page"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "La plupart de ces cartes ont le premier. Prenez l'autre si l'écran affiche du bruit ou une image brouillée."
+        "DISPLAY_MODEL": "La plupart de ces cartes ont le premier. Prenez l'autre si l'écran affiche du bruit ou une image brouillée.",
+        "GRID_ROWS": "Quatre rangées placent huit tuiles plus petites sur une page, pour un écran avec beaucoup d’interrupteurs. Trois rangées gardent les tuiles plus grandes et plus lisibles."
       },
       "choice_usual": "la plupart",
       "orientation": "Dans quel sens sera-t-il accroché ?",
@@ -2010,7 +2019,16 @@
       "another": "Installer un autre écran",
       "start_over": "Recommencer",
       "done": "Terminé",
-      "key_more": "Afficher la clé API"
+      "key_more": "Afficher la clé API",
+      "choice_option": {
+        "GRID_ROWS": {
+          "3": "3 rangées",
+          "4": "4 rangées, tuiles plus petites"
+        }
+      },
+      "choice_first": {
+        "GRID_ROWS": "la taille habituelle"
+      }
     },
     "alerts": {
       "eyebrow": "Alertes · aide-mémoire",
@@ -2398,6 +2416,34 @@
       "group_ha": "Branché sur la machine Home Assistant",
       "group_here": "Branché sur cet ordinateur",
       "group_wifi": "Par Wi-Fi"
+    },
+    "preview": {
+      "type": "Type du nouvel écran",
+      "physical": "Écran physique",
+      "virtual": "Aperçu virtuel",
+      "intro": "Créez un écran avec des entités Home Assistant sans associer de matériel. Les aperçus sont enregistrés dans ce navigateur. Dans l’aperçu du firmware, les appuis n’atteignent Home Assistant que si vous l’activez.",
+      "profile": "Carte / profil",
+      "design_only": "Profil d’aperçu uniquement. Cela n’ajoute pas de prise en charge du firmware physique pour cette carte.",
+      "override": "Modifier la résolution ou la grille",
+      "width": "Largeur (pixels)",
+      "height": "Hauteur (pixels)",
+      "columns": "Colonnes",
+      "rows": "Lignes",
+      "name": "Nom de l’aperçu",
+      "name_placeholder": "Aperçu Waveshare 4B",
+      "create": "Créer un appareil virtuel",
+      "created": "Appareil virtuel \"{name}\" créé.",
+      "invalid_shape": "Choisissez un nom, un profil compatible, une grille de 1–8 colonnes/lignes et une surface de 160–2560 pixels.",
+      "canvas": "Aperçu du firmware LVGL",
+      "packet_error": "Le firmware a refusé un paquet d’aperçu : {message}",
+      "stopped": "Aperçu du firmware arrêté : {message}",
+      "action_error": "Échec de la commande Home Assistant : {message}",
+      "remove": "L’aperçu et sa disposition enregistrée dans ce navigateur.",
+      "save": "Enregistrer l’aperçu",
+      "saved": "Enregistré dans ce navigateur",
+      "hint": "Le firmware de l’écran lui-même, dessiné à partir de la disposition que vous modifiez. Appuyez, maintenez et balayez comme sur l’écran. Rien n’est enregistré.",
+      "control": "Les appuis commandent les appareils",
+      "control_hint": "Activé : un appui sur une tuile exécute son action dans Home Assistant, comme sur l’écran. Désactivé : l’aperçu montre seulement ce que fait un appui."
     }
   }
 }

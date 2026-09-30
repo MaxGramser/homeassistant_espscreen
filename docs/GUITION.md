@@ -49,7 +49,17 @@ Six tiles of **218 × 108 pixels** per page, 12px spacing, and the page buttons
 below them. In ESP Screen Manager, up to 48 tiles fit across up to
 eight pages (firmware 0.2.62+; twenty over four pages before); the page buttons disappear
 at six or fewer, or with **Page buttons** off, and the tiles then grow to 218 × 122
-(firmware 0.2.69+). The interface has a light gray background, white cards,
+(firmware 0.2.69+).
+
+**Four rows** (app 0.4.31, firmware 0.18.1): New screen asks how many tiles go on a page, two columns of three or of
+four. Four rows fit eight smaller tiles on a page, about 11 mm high, for a screen with many switches; three keep them
+larger and easier to read. The choice is one line in the screen's own YAML, `GRID_ROWS: "4"`, and the board brings the
+eight cards that grid needs. A screen already built with three rows gets four by adding that line to its YAML and
+installing it again; its saved layout moves on to four rows by itself, every tile on its own page, row and column.
+
+<img src="images/guition-four-rows.png" width="100%" alt="The same thirteen tiles on the 4-inch Guition, rendered from the firmware: three pages with three rows each above, and three pages with four rows below, where the tiles are smaller and the same tiles need fewer pages">
+
+The interface has a light gray background, white cards,
 and colored domain icons; **Dark mode** (firmware 0.2.54+) turns it black with graphite
 cards. From 0.2.10, you can choose a pastel background with
 dark text per tile. Standby starts after ten minutes without touch by default and

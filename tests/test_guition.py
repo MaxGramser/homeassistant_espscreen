@@ -53,8 +53,9 @@ class GuitionTests(unittest.TestCase):
         band=480-v('SCROLL_Y')-v('PAGE_BAR_H')
         tile_h=(band-(rows-1)*v('GRID_GAP_Y'))//rows
         self.assertGreaterEqual(tile_w*tile_h,3*147*52)
-        # The page keys are the two halves of the band under the tiles (firmware 0.2.69+).
-        self.assertEqual(v('PAGE_BAR_H'),60)
+        # The page keys are the two halves of the band under the tiles (firmware 0.2.69+), 7 mm high since 0.14.0: the
+        # least a finger needs (ui::touch_min), where the look's own 60 px was 9 mm.
+        self.assertEqual(v('PAGE_BAR_H'),round(170*7/25.4))
         for key in ('page_prev','page_next'):
             block=SOURCE.split(f'id: {key}',1)[1][:200]
             self.assertIn('width: 50%\n',block);self.assertIn(f"height: {v('PAGE_BAR_H')}\n",block)

@@ -187,7 +187,7 @@ inline Placed place(const Metrics &m, int rows, int numbers, int text_h) {
 namespace effects_page {
 // ---- what the board profile wires up at boot ----
 inline const lv_font_t *title_font = nullptr, *row_font = nullptr, *roller_font = nullptr, *icon_font = nullptr;
-inline std::function<const Tile *(const std::string &)> tile_of;                                            // a tile by entity
+inline std::function<const Tile *(const std::string &)> tile_of;                                            // the open card's tile, else the first of that entity
 inline std::function<void(const std::string &, const std::string &, const std::string &, const std::string &)> send;  // service, entity, key, value
 inline std::function<void(const std::string &, unsigned)> ask;                                               // options_request
 inline std::function<int()> drift;                                                                           // finger travel this touch

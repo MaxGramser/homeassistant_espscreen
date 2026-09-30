@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
+import { readFileSync } from "node:fs";
 import { mount } from "@vue/test-utils";
 import PageWizard from "../src/components/PageWizard.vue";
 import LayoutView from "../src/components/LayoutView.vue";
@@ -171,6 +172,14 @@ describe("one draft in both editor modes", () => {
     expect(JSON.stringify(state.document)).toBe(document);
     expect(state.dirty).toBe(false);
     expect(fetch).not.toHaveBeenCalled();
+  });
+  it('gives the Preview dialog no class the app styles globally', () => {
+    // app.css styles `.live` as a grid card; on the dialog it stretched the Preview to the window's height (0.4.20).
+    const source = readFileSync('src/components/NavigationPreview.vue', 'utf8');
+    const global = new Set([...readFileSync('src/styles/app.css', 'utf8').matchAll(/^\.([\w-]+)\s*[{,]/gm)].map((m) => m[1]));
+    const classes = [...source.matchAll(/<dialog[^>]*?:class="\{([^}]*)\}"/g)].flatMap((m) => [...m[1].matchAll(/([\w-]+)\s*:/g)].map((c) => c[1]));
+    expect(classes.length).toBeGreaterThan(0);
+    expect(classes.filter((name) => global.has(name))).toEqual([]);
   });
   it('keeps the footer on detail pages and returns without needing a tile', async () => {
     state.document!.pages[1].navigation.excludeFromPagination = true;

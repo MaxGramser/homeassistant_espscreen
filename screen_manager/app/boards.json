@@ -25,7 +25,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -69,7 +69,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -111,7 +111,12 @@
   "can_standby": true,
   "catalog": {
    "calibrate": false,
-   "choices": {},
+   "choices": {
+    "GRID_ROWS": [
+     "3",
+     "4"
+    ]
+   },
    "inch": 4.0,
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
@@ -123,7 +128,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -187,7 +192,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": false,
   "look": "compact",
@@ -241,7 +246,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -315,7 +320,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -389,7 +394,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -463,7 +468,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -482,7 +487,7 @@
     "columns": 5,
     "height": 800,
     "rotation": 90,
-    "rows": 4,
+    "rows": 5,
     "width": 1280
    },
    "portrait": {
@@ -496,14 +501,88 @@
       193
      ]
     },
-    "columns": 4,
+    "columns": 5,
     "height": 1280,
     "rotation": 180,
     "rows": 5,
     "width": 800
    }
   },
-  "rows": 4,
+  "rows": 5,
+  "width": 1280
+ },
+ "checkout/jc8012p4a1v2.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "board": "jc8012p4a1v2",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "JC8012P4A1 V2",
+   "name": "Guition",
+   "order": 15,
+   "status": "experimental",
+   "touch": "GSL3680"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "firmware": "0.19.0",
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "rotation": 90,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 5,
   "width": 1280
  },
  "checkout/jc8012p4a1v3.yaml": {
@@ -537,7 +616,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -556,7 +635,7 @@
     "columns": 5,
     "height": 800,
     "rotation": 90,
-    "rows": 4,
+    "rows": 5,
     "width": 1280
    },
    "portrait": {
@@ -570,14 +649,14 @@
       193
      ]
     },
-    "columns": 4,
+    "columns": 5,
     "height": 1280,
     "rotation": 180,
     "rows": 5,
     "width": 800
    }
   },
-  "rows": 4,
+  "rows": 5,
   "width": 1280
  },
  "checkout/lilygos3long.yaml": {
@@ -593,7 +672,7 @@
    "inch": 3.4,
    "model": "T-Display-S3-Long",
    "name": "LilyGO",
-   "order": 14,
+   "order": 16,
    "status": "experimental",
    "touch": "AXS15231"
   },
@@ -601,7 +680,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 196,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 180,
   "hotspot": true,
   "look": "compact",
@@ -624,6 +703,80 @@
   "rows": 1,
   "width": 640
  },
+ "checkout/sunton8048s070.yaml": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "board": "sunton8048s070",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    304,
+    171
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ESP32-8048S070",
+   "name": "Sunton",
+   "order": 14,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "firmware": "0.19.0",
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "rows": 4,
+  "width": 800
+ },
  "checkout/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -645,7 +798,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -699,7 +852,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -773,7 +926,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -847,7 +1000,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -921,7 +1074,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -990,7 +1143,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1034,7 +1187,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1076,7 +1229,12 @@
   "can_standby": true,
   "catalog": {
    "calibrate": false,
-   "choices": {},
+   "choices": {
+    "GRID_ROWS": [
+     "3",
+     "4"
+    ]
+   },
    "inch": 4.0,
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
@@ -1088,7 +1246,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -1152,7 +1310,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": false,
   "look": "compact",
@@ -1206,7 +1364,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -1280,7 +1438,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -1354,7 +1512,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -1428,7 +1586,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -1447,7 +1605,7 @@
     "columns": 5,
     "height": 800,
     "rotation": 90,
-    "rows": 4,
+    "rows": 5,
     "width": 1280
    },
    "portrait": {
@@ -1461,14 +1619,88 @@
       193
      ]
     },
-    "columns": 4,
+    "columns": 5,
     "height": 1280,
     "rotation": 180,
     "rows": 5,
     "width": 800
    }
   },
-  "rows": 4,
+  "rows": 5,
+  "width": 1280
+ },
+ "jc8012p4a1v2": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "board": "jc8012p4a1v2",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "JC8012P4A1 V2",
+   "name": "Guition",
+   "order": 15,
+   "status": "experimental",
+   "touch": "GSL3680"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "firmware": "0.19.0",
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "rotation": 90,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 5,
   "width": 1280
  },
  "jc8012p4a1v3": {
@@ -1502,7 +1734,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -1521,7 +1753,7 @@
     "columns": 5,
     "height": 800,
     "rotation": 90,
-    "rows": 4,
+    "rows": 5,
     "width": 1280
    },
    "portrait": {
@@ -1535,14 +1767,14 @@
       193
      ]
     },
-    "columns": 4,
+    "columns": 5,
     "height": 1280,
     "rotation": 180,
     "rows": 5,
     "width": 800
    }
   },
-  "rows": 4,
+  "rows": 5,
   "width": 1280
  },
  "lilygos3long": {
@@ -1558,7 +1790,7 @@
    "inch": 3.4,
    "model": "T-Display-S3-Long",
    "name": "LilyGO",
-   "order": 14,
+   "order": 16,
    "status": "experimental",
    "touch": "AXS15231"
   },
@@ -1566,7 +1798,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 196,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 180,
   "hotspot": true,
   "look": "compact",
@@ -1615,7 +1847,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1659,7 +1891,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 240,
   "hotspot": false,
   "look": "compact",
@@ -1701,7 +1933,12 @@
   "can_standby": true,
   "catalog": {
    "calibrate": false,
-   "choices": {},
+   "choices": {
+    "GRID_ROWS": [
+     "3",
+     "4"
+    ]
+   },
    "inch": 4.0,
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
@@ -1713,7 +1950,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -1777,7 +2014,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": false,
   "look": "compact",
@@ -1831,7 +2068,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -1905,7 +2142,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -1979,7 +2216,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -2053,7 +2290,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -2072,7 +2309,7 @@
     "columns": 5,
     "height": 800,
     "rotation": 90,
-    "rows": 4,
+    "rows": 5,
     "width": 1280
    },
    "portrait": {
@@ -2086,14 +2323,88 @@
       193
      ]
     },
-    "columns": 4,
+    "columns": 5,
     "height": 1280,
     "rotation": 180,
     "rows": 5,
     "width": 800
    }
   },
-  "rows": 4,
+  "rows": 5,
+  "width": 1280
+ },
+ "packages/jc8012p4a1v2.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "board": "jc8012p4a1v2",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "JC8012P4A1 V2",
+   "name": "Guition",
+   "order": 15,
+   "status": "experimental",
+   "touch": "GSL3680"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "firmware": "0.19.0",
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "rotation": 90,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 5,
   "width": 1280
  },
  "packages/jc8012p4a1v3.yaml": {
@@ -2127,7 +2438,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 800,
   "hotspot": true,
   "look": "standard",
@@ -2146,7 +2457,7 @@
     "columns": 5,
     "height": 800,
     "rotation": 90,
-    "rows": 4,
+    "rows": 5,
     "width": 1280
    },
    "portrait": {
@@ -2160,14 +2471,14 @@
       193
      ]
     },
-    "columns": 4,
+    "columns": 5,
     "height": 1280,
     "rotation": 180,
     "rows": 5,
     "width": 800
    }
   },
-  "rows": 4,
+  "rows": 5,
   "width": 1280
  },
  "packages/lilygos3long.yaml": {
@@ -2183,7 +2494,7 @@
    "inch": 3.4,
    "model": "T-Display-S3-Long",
    "name": "LilyGO",
-   "order": 14,
+   "order": 16,
    "status": "experimental",
    "touch": "AXS15231"
   },
@@ -2191,7 +2502,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 196,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 180,
   "hotspot": true,
   "look": "compact",
@@ -2214,6 +2525,80 @@
   "rows": 1,
   "width": 640
  },
+ "packages/sunton8048s070.yaml": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "board": "sunton8048s070",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    304,
+    171
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ESP32-8048S070",
+   "name": "Sunton",
+   "order": 14,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "firmware": "0.19.0",
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "rows": 4,
+  "width": 800
+ },
  "packages/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -2235,7 +2620,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -2289,7 +2674,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2363,7 +2748,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2437,7 +2822,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2511,7 +2896,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",
@@ -2554,6 +2939,80 @@
   "rows": 4,
   "width": 1024
  },
+ "sunton8048s070": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "board": "sunton8048s070",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    304,
+    171
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ESP32-8048S070",
+   "name": "Sunton",
+   "order": 14,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "firmware": "0.19.0",
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "rows": 4,
+  "width": 800
+ },
  "waveshare35": {
   "alert": {
    "line": 23,
@@ -2575,7 +3034,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 320,
   "hotspot": true,
   "look": "standard",
@@ -2629,7 +3088,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2703,7 +3162,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2777,7 +3236,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 480,
   "hotspot": true,
   "look": "standard",
@@ -2851,7 +3310,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.14.0",
+  "firmware": "0.19.0",
   "height": 600,
   "hotspot": true,
   "look": "standard",

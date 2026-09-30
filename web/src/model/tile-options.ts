@@ -22,7 +22,7 @@ export const DEFAULTS: Record<string, unknown> = { sub: "auto", fit: rules.pictu
 const pageTile = (entity: string) => /^screen\.page_\d+$/.test(entity);
 
 /** Mirrors core.validate_layout's normalization, so the document the editor saves is already canonical. */
-export function canonicalOptions(entity: string, options: TileOptions = {}): TileOptions {
+export function canonicalOptions(entity: string, options: TileOptions = {}, key = false): TileOptions {
   const out: TileOptions = { ...options };
   if (typeof out.sub === "string" && out.sub.startsWith("text:")) {
     const words = out.sub.slice(5).trim();
@@ -31,8 +31,9 @@ export function canonicalOptions(entity: string, options: TileOptions = {}): Til
   if (out.sub === "auto") delete out.sub;
   // Perform action keeps its action; another tap choice leaves none behind.
   if (out.tap !== "action") delete out.action;
-  // A live picture's pace and fill belong to the live picture, and their defaults are not stored.
-  if (out.display !== "live") for (const key of PICTURE_OWN) delete out[key];
+  // A live picture's pace and fill belong to the live picture, and their defaults are not stored. A bedside clock's key
+  // keeps whether its name shows (`overlay`, firmware 0.17.0), as a picture does.
+  if (out.display !== "live") for (const field of PICTURE_OWN) if (!(key && field === "overlay")) delete out[field];
   for (const [key, value] of Object.entries(DEFAULTS)) if (out[key] === value) delete out[key];
   // A Go to page tile has a name, an icon, a colour and a width, nothing else.
   if (pageTile(entity)) for (const key of ["display", "inline", "controls", "history_hours"]) delete out[key];
@@ -80,7 +81,7 @@ export function optionsSave(tile: Tile, options: TileOptions): boolean {
  * choice is still there (a default the add-on drops counts as there). A choice with a second step is tried with a
  * sample of that step. */
 export function choiceOffered(tile: Tile, key: string, value: unknown, controlled: boolean): boolean {
-  let options = canonicalOptions(tile.entity, coupledOptions(tile.options, key, value, controlled));
+  let options = canonicalOptions(tile.entity, coupledOptions(tile.options, key, value, controlled), tile.in !== undefined);
   if (key === "tap" && value === "action" && !options.action) options = { ...options, action: tile.options?.action ?? SAMPLE_ACTION };
   if (!optionsSave(tile, options)) return false;
   const kept = options[key];

@@ -56,9 +56,9 @@ class Layouts(unittest.TestCase):
         self.assertEqual(min_firmware(validate_layout(layout(tile('light.a', 0), tile(BACK, 6)))), (0, 2, 62), 'one copy: as before')
         # Two on one page is odd but harmless, and what the editor allows too.
         validate_layout(layout(tile(BACK, 0), tile(BACK, 1)))
+        # Any other entity on several tiles is firmware 0.16.0's (GitHub #83).
         for entity in ('light.a', 'screen.clock', 'screen.settings'):
-            with self.assertRaisesRegex(ValueError, 'only appear once'):
-                validate_layout(layout(tile(entity, 0), tile(entity, 6)))
+            self.assertEqual(min_firmware(validate_layout(layout(tile(entity, 0), tile(entity, 6)))), (0, 16, 0), entity)
 
     def test_the_sensor_lists_every_copy(self):
         snapshot = layout_snapshot({'name': 'Hall', 'node': 'hall'}, validate_layout(MENU))

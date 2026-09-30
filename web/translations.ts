@@ -5,7 +5,7 @@ import { join } from "node:path";
 export const TRANSLATIONS = join(__dirname, "..", "screen_manager", "translations");
 // Of the screens' texts the page takes the ones its mockup draws: Home Assistant's words, times, dates, numbers and the
 // page label. The draft validator also shares the add-on's page/card errors.
-const SCREEN_PARTS = ["ha", "time", "date", "number", "navigation", "climate", "cover"];
+const SCREEN_PARTS = ["ha", "time", "date", "number", "navigation", "climate", "cover", "script"];
 
 // An empty text is one the language doesn't have yet: it stays out, so English shows, as on the screens. A space is
 // a text (French writes 1 234,5).

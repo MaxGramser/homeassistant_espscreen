@@ -37,7 +37,7 @@ describe("English", () => {
     // Only shared validation errors from the add-on accompany the editor and screen mockup texts.
     expect(Object.keys(en).sort()).toEqual(["addon", "editor", "screen"]);
     expect(Object.keys((en as any).addon.errors).sort()).toEqual(['layout', 'pages', 'top_bar']);
-    expect(Object.keys((en as any).screen).sort()).toEqual(["climate", "cover", "date", "ha", "navigation", "number", "tile", "time"]);
+    expect(Object.keys((en as any).screen).sort()).toEqual(["climate", "cover", "date", "ha", "navigation", "number", "script", "tile", "time"]);
     expect(Object.keys((en as any).screen.tile)).toEqual(["page"]);
     expect(languageMeta("en")?.plural).toBe("one_other");
     expect(languages()[0]).toBe("en");

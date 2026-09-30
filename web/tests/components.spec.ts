@@ -16,7 +16,7 @@ import TileCard from "../src/components/TileCard.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
 import PageInspector from "../src/components/PageInspector.vue";
-import { openBar, removePage, setTileOption, state } from "../src/store";
+import { openBar, removePage, repeatable, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
@@ -361,19 +361,35 @@ describe("full-page and navigation tiles on the mockup", () => {
   });
 });
 
-describe("several tiles that go to the same page in the library (firmware 0.2.65)", () => {
+describe("several tiles of one entity in the library (firmware 0.2.65 for a page tile, 0.16.0 for any)", () => {
   it("keeps offering a placed navigation tile when the screen takes several, and adds another copy", async () => {
-    Object.assign(state.inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true });
+    Object.assign(state.inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true, entity_tiles_repeat: false });
     appendTiles({ entity: "screen.page_1", name: "", slot: 0 }, { entity: "light.a", name: "", slot: 1 });
     const library = mount(Library);
-    const row = () => library.find('.ent[title="screen.page_1"]');
+    const row = () => library.find('.ent[title^="screen.page_1 "]');
     expect(row().attributes("disabled")).toBeUndefined();
-    expect(row().find(".add").text()).toBe("+");
+    expect(row().attributes("title")).toContain("add it again");
+    expect(row().find(".add").text()).toBe("✓");
     expect(library.find('.ent[title="light.a"]').attributes("disabled")).toBeDefined();
-    await library.find("#hide-placed").trigger("click");
-    expect(row().exists()).toBe(true);
     await row().trigger("click");
     expect(state.layout!.tiles.filter((t) => t.entity === "screen.page_1")).toHaveLength(2);
+    expect(row().find(".add").text()).toBe("×2");
+    // Hide placed hides what is on the screen, a copy it could take again too.
+    await library.find("#hide-placed").trigger("click");
+    expect(row().exists()).toBe(false);
+  });
+  it("offers any placed entity again from firmware 0.16.0 and says how often it is there, but one bedside clock", async () => {
+    Object.assign(state.inventory.screens[0], { firmware: "0.16.0", page_tiles_repeat: true, entity_tiles_repeat: true });
+    appendTiles({ entity: "light.a", name: "", slot: 0 });
+    const library = mount(Library);
+    const row = () => library.find('.ent[title^="light.a "]');
+    expect(row().attributes("disabled")).toBeUndefined();
+    expect(row().find(".add").text()).toBe("✓");
+    await row().trigger("click");
+    expect(state.layout!.tiles.filter((t) => t.entity === "light.a")).toHaveLength(2);
+    expect(row().find(".add").text()).toBe("×2");
+    expect(repeatable("screen.nightstand")).toBe(false);
+    expect(repeatable("light.b")).toBe(true);
   });
   it("marks it placed when the screen takes one per page", () => {
     Object.assign(state.inventory.screens[0], { page_tiles_repeat: false });
@@ -577,6 +593,26 @@ describe("Sidebar", () => {
     expect(item.find(".sub").text()).toBe("Offline");
     await item.find(".nav-item").trigger("click");
     expect(item.classes()).toContain("open");
+  });
+  it("downloads a screen's files, to build it with ESPHome on your own computer", async () => {
+    Object.assign(state.inventory.screens[0], { update: { profile: "living room.yaml" } });
+    state.inventory.pending = [{ file: "hall.yaml", friendly: "Hall", api_key: "key" } as any];
+    const sidebar = mount(Sidebar);
+    const item = sidebar.find("#screens .screen-item");
+    await item.find(".nav-item").trigger("click");
+    if (!item.classes().includes("open")) await item.find(".details-toggle").trigger("click");
+    const own = item.find("a.screen-files");
+    expect(own.attributes("href")).toBe("api/firmware/profiles/living%20room.yaml/files");
+    expect(own.attributes("download")).toBeDefined();
+    // A screen that isn't in Home Assistant yet has it in sight, not behind its API key.
+    const pending = sidebar.find("#pending a.screen-files");
+    expect(pending.attributes("href")).toBe("api/firmware/profiles/hall.yaml/files");
+    expect(pending.element.closest("details")).toBeNull();
+    // Without a profile the add-on has no files to give.
+    Object.assign(state.inventory.screens[0], { update: { profile: null } });
+    await nextTick();
+    expect(item.find("a.screen-files").exists()).toBe(false);
+    state.inventory.pending = [];
   });
   it("opens the details of a chosen screen with an update waiting (app 0.4.0)", async () => {
     Object.assign(state.inventory.screens[0], { update: { available: true, target: "0.4.0", profile: "living.yaml" } });
@@ -878,7 +914,7 @@ describe("the orientation of a new screen", () => {
     // Each glass in its own proportions with the cells of one page lying down.
     const glass = (key: string) => view.find(`input[value="${key}"]`).element.closest("label")!.querySelector(".orient-glass") as HTMLElement;
     expect(glass("jc8012p4a1").getAttribute("style")).toContain("1280 / 800");
-    expect(glass("jc8012p4a1").querySelectorAll(".orient-cells i")).toHaveLength(20);
+    expect(glass("jc8012p4a1").querySelectorAll(".orient-cells i")).toHaveLength(25);
     expect(glass("guition").getAttribute("style")).toContain("480 / 480");
     // The first board is chosen to begin with, with what it can do; the CYD asks for a touch calibration first.
     expect((rows[0].find("input").element as HTMLInputElement).checked).toBe(true);
@@ -934,6 +970,16 @@ describe("the orientation of a new screen", () => {
     const third = await installer();
     await third.find('input[value="guition"]').setValue("guition");
     expect(third.find("#choice-DISPLAY_MODEL").exists()).toBe(false);
+    // The Guition's rows (app 0.4.31): said in words, the usual size first, and four rows sent only when chosen.
+    const rows = third.findAll("#choice-GRID_ROWS .choice");
+    expect(third.find("#choice-GRID_ROWS legend").text()).toBe("Tiles on a page");
+    expect(rows.map((option) => option.find("b").text())).toEqual(["3 rows", "4 rows, smaller tiles"]);
+    expect(rows[0].find("small").text()).toBe("the usual size");
+    await rows[1].find("input").setValue("4");
+    await third.find("#friendly_name").setValue("Hall");
+    await third.find("#install-form").trigger("submit");
+    await flush();
+    expect(answers.pop()).toMatchObject({ board: "guition", choices: { GRID_ROWS: "4" } });
   });
 
   it("sends the chosen way with the new screen", async () => {

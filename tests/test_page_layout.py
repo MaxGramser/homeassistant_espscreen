@@ -7,7 +7,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "screen_manager/app"))
 from core import Grid, header_items, validate_layout
-from page_layout import (LayoutError, compile_tiles, copy_page, delete_page,
+from page_layout import (LayoutError, compile_tiles, copy_page, delete_page, grown,
                          fingerprint, legacy_projection, pagination, sequential_target, validate_document, replace_tiles, CompiledLayouts)
 from layout_migrations import migrate_legacy
 
@@ -182,11 +182,38 @@ class PageLayoutTests(unittest.TestCase):
             with self.subTest(region=region), self.assertRaises(LayoutError):
                 validate_document(layout, Grid())
 
+    def test_a_grid_that_only_grows_keeps_every_tile_where_it_was(self):
+        # The 10.1-inch Guition went from 5 x 4 to 5 x 5 (firmware 0.18.0): three pages, a full tile and a tall one.
+        old, new = Grid(5, 4), Grid(5, 5)
+        record = self.migrate({"title": "Wall", "pages": 3, "tiles": [
+            {"entity": "sensor.a", "slot": 4},
+            {"entity": "light.b", "slot": 20, "options": {"size": "full"}},
+            {"entity": "sensor.c", "slot": 47, "options": {"size": "tall"}},
+            {"entity": "light.d", "slot": 58, "options": {"size": "wide"}}]}, old)
+        layout = grown(record["layout"], old, new)
+        before = [[(t["placement"]["row"], t["placement"]["column"]) for t in page["tiles"]] for page in record["layout"]["pages"]]
+        after = [[(t["placement"]["row"], t["placement"]["column"]) for t in page["tiles"]] for page in layout["pages"]]
+        self.assertEqual(after, before)
+        self.assertEqual(len(layout["pages"]), 3)
+        full = layout["pages"][1]["tiles"][0]
+        self.assertEqual((full["placement"]["columns"], full["placement"]["rows"], full["appearance"]["presentation"]), (5, 5, "full"))
+        self.assertEqual([t["slot"] for t in compile_tiles(layout, new)], [4, 25, 57, 68])
+        validate_document(layout, new)
+        # More columns too: two by three to three by four. The ids and the pages stay.
+        small = self.migrate({"title": "Hall", "pages": 2, "tiles": [{"entity": "light.w", "slot": 2, "options": {"size": "wide"}},
+                                                                      {"entity": "sensor.e", "slot": 7}]}, Grid(2, 3))
+        wider = grown(small["layout"], Grid(2, 3), Grid(3, 4))
+        self.assertEqual([t["slot"] for t in compile_tiles(wider, Grid(3, 4))], [3, 13])
+        self.assertEqual([p["id"] for p in wider["pages"]], [p["id"] for p in small["layout"]["pages"]])
+        # Anything that shrinks one way, or stays the same, waits for a review in the editor.
+        for target in (Grid(5, 4), Grid(4, 5), Grid(6, 3)):
+            self.assertIsNone(grown(record["layout"], old, target), target)
+
     def test_board_limits_and_footprints_are_enforced(self):
         record = self.migrate({"title": "Screen", "pages": 7, "tiles": [{"entity": "sensor.a", "slot": 62}]}, Grid(3, 3))
         validate_document(record["layout"], Grid(3, 3))
         with self.assertRaises(ValueError):
-            self.migrate({"title": "Screen", "pages": 8, "tiles": []}, Grid(3, 3))
+            self.migrate({"title": "Screen", "pages": 9, "tiles": []}, Grid(3, 3))
         layout = record["layout"]
         tile = layout["pages"][-1]["tiles"][0]
         tile["placement"]["columns"] = 2
@@ -194,11 +221,14 @@ class PageLayoutTests(unittest.TestCase):
         tile["placement"] = {"row": True, "column": 0, "columns": 1, "rows": 1}
         with self.assertRaises(ValueError): validate_document(layout, Grid(3, 3))
 
-    def test_copy_does_not_silently_drop_duplicate_entity_tiles(self):
+    def test_copy_puts_the_entities_on_new_tiles(self):
         layout = self.migrate({"title": "Screen", "tiles": [{"entity": "sensor.a"}]})["layout"]
         before = deepcopy(layout)
-        with self.assertRaises(ValueError): copy_page(layout, layout["homePageId"], Grid())
+        # One entity on several tiles (firmware 0.16.0+): the copy's tiles have ids of their own.
+        full = copy_page(layout, layout["homePageId"], Grid())
         self.assertEqual(layout, before)
+        self.assertEqual([tile["content"] for tile in full["pages"][1]["tiles"]], [tile["content"] for tile in layout["pages"][0]["tiles"]])
+        self.assertNotEqual(full["pages"][1]["tiles"][0]["id"], layout["pages"][0]["tiles"][0]["id"])
         copied = copy_page(layout, layout["homePageId"], Grid(), empty=True)
         self.assertEqual(copied["pages"][1]["tiles"], [])
         self.assertFalse(copied["pages"][1]["navigation"]["excludeFromPagination"])

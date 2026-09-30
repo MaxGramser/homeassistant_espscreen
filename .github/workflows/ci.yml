@@ -1,6 +1,6 @@
 # The release checks of docs/RELEASING.md step 2 on every push and pull request to main (app 0.2.78). Both jobs run
 # tools/check.sh, the same script a release runs on a laptop, so CI and a local run can't drift apart. The renders
-# have a workflow of their own (render.yml), so a push does not wait up to two hours behind them.
+# (tools/check.sh --render) run by hand only; the browser's firmware preview is rebuilt by preview.yml.
 name: CI
 
 on:

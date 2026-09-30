@@ -3,7 +3,7 @@
 // copy, and removing it. The header of the page keeps only its name, its handle and this menu.
 import { computed } from "vue";
 import { t } from "../i18n";
-import { duplicateEditorPage, openBar, openPage, pageReady, removePage, setHomePage, state } from "../store";
+import { duplicateEditorPage, openBar, pageCopyable, openPage, pageReady, removePage, setHomePage, state } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
@@ -13,8 +13,8 @@ const props = defineProps<{ id: string }>();
 const index = computed(() => state.document?.pages.findIndex((page) => page.id === props.id) ?? -1);
 const page = computed(() => state.document?.pages[index.value]);
 const home = computed(() => state.document?.homePageId === props.id);
-// A full copy only when every tile on it is a page tile: another entity cannot stand on a screen twice.
-const canCopy = computed(() => page.value?.tiles.every((tile) => tile.content.kind === "navigation"));
+// A full copy only when the screen takes every tile on it twice (store.pageCopyable).
+const canCopy = computed(() => pageCopyable(page.value?.tiles));
 const tiles = computed(() => page.value?.tiles.length || 0);
 </script>
 

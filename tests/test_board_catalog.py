@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'screen_manager' / 'app'))
 import profiles  # noqa: E402
 import core  # noqa: E402
+import generate_cells  # noqa: E402
 import firmware as firmware_module  # noqa: E402
 
 SHAPES = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
@@ -69,6 +70,31 @@ class Choices(unittest.TestCase):
         same = lambda text: re.sub(r'(?m)^(\s+(?:key|password)): ".*"$', r'\1: ""', text)  # noqa: E731 (random keys)
         self.assertEqual(same(self.profile(choices={'DISPLAY_MODEL': 'ILI9341'})), same(self.profile()))
         self.assertNotIn('DISPLAY_MODEL', self.profile())
+
+    def test_the_guitions_four_rows_bring_the_cards_they_need(self):
+        # A Guition built with four rows (app 0.4.31, firmware 0.18.1): one line in the screen's YAML, and the board
+        # file's cards follow it (cells/${GRID_CELLS}.yaml), as ESPHome works the path out when it builds.
+        text = core.installation_yaml({'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall', 'choices': {'GRID_ROWS': '4'}})
+        self.assertIn('  GRID_ROWS: "4"', re.search(r'(?ms)^substitutions:\n(.*?)\n\n', text)[1].split('\n'))
+        self.assertNotIn('GRID_ROWS', core.installation_yaml({'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall'}))
+        board = profiles.BOARDS['guition']
+        include = re.search(r'cells: !include (\S+)', board.read_text())[1]
+        for rows, cards in (('3', 6), ('4', 8)):
+            values = profiles.evaluate({**profiles.substitutions_of(board), 'GRID_ROWS': rows})
+            path = (board.parent / profiles._render(include, values, strict=True)).resolve()
+            self.assertEqual(path.name, f'{cards}.yaml')
+            self.assertTrue(path.exists(), path)
+            self.assertEqual(path.read_text().count('runtime_tiles::bind('), cards)
+        self.assertIn(8, generate_cells.counts())
+        # Offline, the screen's own YAML says it has four rows: the app counts its cells on 2 x 4, not the catalog's 2 x 3.
+        import firmware
+        self.assertEqual(firmware.profile_meta(text)['grid_rows'], 4)
+        self.assertIsNone(firmware.profile_meta(core.installation_yaml({'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall'}))['grid_rows'])
+        self.assertEqual(core.grid_of({'board': 'guition', 'grid_rows': 4}), core.Grid(2, 4))
+        self.assertEqual(core.grid_of({'board': 'guition', 'grid_rows': None}), core.Grid(2, 3))
+        # What the screen reports itself still wins.
+        reported = {'width': 480, 'height': 480, 'columns': 2, 'rows': 3, 'dpi': 170, 'look': 'standard'}
+        self.assertEqual(core.grid_of({'board': 'guition', 'grid_rows': 4, 'shape': reported}), core.Grid(2, 3))
 
     def test_a_choice_the_board_does_not_offer_is_refused(self):
         for choices in ({'DISPLAY_MODEL': 'GC9A01'}, {'DISPLAY_DATA_RATE': '20MHz'}, ['DISPLAY_MODEL'], 'ST7789V'):

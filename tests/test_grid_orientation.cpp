@@ -14,19 +14,19 @@ using namespace runtime_tiles;
 
 static void the_grid_counts_like_the_manager_does() {
   // Every rule here has a twin in screen_manager/app/core.py, class Grid, and a slot number means the same
-  // thing on both sides of the wire. A screen holds 64 tiles at most, one dirty bit each, over eight pages.
+  // thing on both sides of the wire. A screen holds 64 tiles at most, one dirty bit each, over eight pages whatever its grid.
   const Grid lying{2, 3};
   assert(lying.slots() == 6 && lying.pages() == 8 && lying.max_slots() == 48 && lying.max_tiles() == 48);
   const Grid standing{1, 4};
   assert(standing.slots() == 4 && standing.pages() == 8 && standing.max_slots() == 32);
+  // Every grid has all eight pages (firmware 0.18.0+); only the tiles of the whole screen stop at 64, so a page need
+  // not be full and a grid that grows keeps the pages of a saved layout.
   const Grid wide{3, 3};
-  assert(wide.slots() == 9 && wide.pages() == 7 && wide.max_slots() == 63);
-  const Grid ten_inch{5, 4};
-  assert(ten_inch.slots() == 20 && ten_inch.pages() == 3 && ten_inch.max_slots() == 60);
-  const Grid ten_inch_standing{4, 5};
-  assert(ten_inch_standing.slots() == 20 && ten_inch_standing.pages() == 3);
+  assert(wide.slots() == 9 && wide.pages() == 8 && wide.max_slots() == 72 && wide.max_tiles() == 64);
+  const Grid ten_inch{5, 5};
+  assert(ten_inch.slots() == 25 && ten_inch.pages() == 8 && ten_inch.max_slots() == 200 && ten_inch.max_tiles() == 64);
   const Grid huge{8, 8};
-  assert(huge.slots() == 64 && huge.pages() == 1 && huge.max_slots() == 64);
+  assert(huge.slots() == 64 && huge.pages() == 8 && huge.max_tiles() == 64);
 
   // A wide card takes the cell beside it, and on a single column it is simply the cell itself.
   assert(lying.wide_span() == 2 && standing.wide_span() == 1);

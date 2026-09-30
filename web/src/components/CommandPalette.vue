@@ -4,7 +4,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { t } from "../i18n";
 import { domainInfo } from "../model/layout";
 import { glyph } from "../model/topbar";
-import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, go, identify, save, select, state, tileLimit } from "../store";
+import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, go, identify, repeatable, save, select, state, tileLimit } from "../store";
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
@@ -37,7 +37,8 @@ const items = computed<Item[]>(() => {
     const chosen = new Set(state.layout.tiles.map((t) => t.entity));
     const full = state.layout.tiles.length >= tileLimit.value;
     for (const e of state.inventory.entities) {
-      if (e.tile === false || chosen.has(e.id)) continue;
+      // One on the screen comes again when the firmware takes an entity on several tiles (0.16.0+).
+      if (e.tile === false || (chosen.has(e.id) && !repeatable(e.id))) continue;
       if (!`${e.name} ${e.id} ${e.area || ""} ${e.device || ""}`.toLocaleLowerCase().includes(q)) continue;
       list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: state.inventory.icons ? automaticIcon(e.id) : undefined,
         run: () => { if (!full) addTile(e.id); } });

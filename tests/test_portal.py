@@ -22,7 +22,7 @@ class ProtocolTests(unittest.TestCase):
         with self.assertRaises(ValueError): packets({'huge':'x'*4096})
 
     def test_layout_rejects_duplicates_unsupported_and_overflow(self):
-        for tiles in [[{'entity':'zone.home'}],[{'entity':'light.a'}]*2,[{'entity':f'light.a{i}'} for i in range(49)],[{'entity':'light.a;restart'}]]:
+        for tiles in [[{'entity':'zone.home'}],[{'entity':'screen.nightstand'}]*2,[{'entity':f'light.a{i}'} for i in range(49)],[{'entity':'light.a;restart'}]]:
             with self.assertRaises(ValueError): validate_layout({'title':'Home','tiles':tiles})
         self.assertEqual(validate_layout({'title':'Home','tiles':[]})['tiles'],[])
 

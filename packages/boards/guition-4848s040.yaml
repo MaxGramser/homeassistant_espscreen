@@ -10,8 +10,9 @@ packages:
   # The chip, its PSRAM and the ESP-IDF settings every ESP32-S3 RGB panel shares (and through it how every board's
   # firmware is built).
   hardware: !include ../hardware/esp32s3-rgb.yaml
-  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
-  cells: !include ../cells/6.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md). The file
+  # follows the grid (GRID_CELLS below), so a screen built with four rows takes the eight cards it needs.
+  cells: !include ../cells/${GRID_CELLS}.yaml
   # Every size of the standard look, scaled to DISPLAY_DPI below. This glass is where that look was drawn.
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
@@ -34,7 +35,11 @@ substitutions:
   # The tile grid: columns and rows of cells. The shared tree places every cell from these
   # (runtime_tiles::place_page). Square glass: the same six cells whichever way it hangs.
   GRID_COLS: "2"
+  # Three rows, or four when the screen is built that way (boards.yaml `choices`, firmware 0.18.1): eight smaller
+  # cells a page, about 11 mm high, for a screen of many switches. A saved layout follows to four rows by itself.
   GRID_ROWS: "3"
+  # The cells of a page, which name the cards file above; worked out, so a screen's own GRID_ROWS reaches it too.
+  GRID_CELLS: "${ (GRID_COLS | int) * (GRID_ROWS | int) }"
   LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")

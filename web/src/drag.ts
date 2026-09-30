@@ -1,5 +1,5 @@
 import { editorLayout } from "./store";
-const { grid, arrange, reorderPages } = editorLayout;
+const { grid, arrange, pageOf, reorderPages } = editorLayout;
 // Pointer-based drag & drop, mouse and touch, from the library into the mockup, between
 // cells, and a whole page to another place in the row (app 0.2.121). Touch starts after a
 // short hold so the page still scrolls. While dragging, the
@@ -7,8 +7,10 @@ const { grid, arrange, reorderPages } = editorLayout;
 // drop off the grid changes nothing. A finished drag never doubles as a click.
 import type { Directive } from "vue";
 import { entriesOf, newTile, pageOrder } from "./model/layout";
-import { commitArrangement, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, state } from "./store";
+import { commitArrangement, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, state, toast } from "./store";
 import type { Tile } from "./types";
+import rules from "./model/page-rules.json";
+import { t } from "./i18n";
 
 export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string } | { kind: "page"; page: number };
 type Drag = {
@@ -21,9 +23,14 @@ const drag: Drag = { source: null, element: null, ghost: null, timer: 0, start: 
 export const vDrag: Directive<HTMLElement, DragSource | null> = {
   mounted(element, binding) {
     (element as any).__dragSource = binding.value;
+    element.dataset.drag = "";
     element.addEventListener("pointerdown", (e: PointerEvent) => {
       const source = (element as any).__dragSource as DragSource;
-      if (!source || e.button !== 0 || (element as HTMLButtonElement).disabled || (e.target as HTMLElement).closest(".remove")) return;
+      // A press belongs to the innermost button or draggable under it: a bedside clock's key, its empty place and a
+      // card's remove key are pressed, not the card around them. The card that took the pointer here also took the
+      // click, so a key could never be opened (GitHub #93).
+      const owner = (e.target as HTMLElement).closest("button, [data-drag]");
+      if (!source || owner !== element || e.button !== 0 || (element as HTMLButtonElement).disabled) return;
       // No text selection while the mouse drags; touch keeps its default so the page can scroll.
       if (e.pointerType !== "touch") e.preventDefault();
       Object.assign(drag, { source, element, start: { x: e.clientX, y: e.clientY }, pointerId: e.pointerId });
@@ -133,8 +140,12 @@ function aim(x: number, y: number) {
   if (key) { drag.target = null; state.drag.preview = null; return; }
   setTarget(slotAt(x, y));
 }
+// Only a tile that may be a key looks for a key place (rules.keyDomains), and never one of its own clock's.
 function keyAt(x: number, y: number) {
-  for (const place of document.querySelectorAll<HTMLElement>(".pages [data-key]")) {
+  const moving = state.drag.moving;
+  if (!moving || !(rules.keyDomains as string[]).includes(moving.entity.split(".")[0])) return null;
+  for (const place of document.querySelectorAll<HTMLElement>(".pages [data-key][data-holder]")) {
+    if (place.dataset.holder === moving.id) continue;
     const r = place.getBoundingClientRect();
     if (x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6)
       return { holder: place.dataset.holder!, key: Number(place.dataset.key) };
@@ -189,10 +200,14 @@ function setTarget(slot: number) {
   if (state.drag.moving.in !== undefined) { state.drag.preview = null; return; }
   // Off the grid: a tile from the grid shows where it came from; a new one shows nowhere yet.
   state.drag.preview = slot >= 0 ? arrange(state.layout.tiles, state.drag.moving, slot) : null;
+  // A page the tile can't land on says so as a whole, instead of showing nothing: a page-filling tile over a page
+  // that has tiles, a large one where the tiles around it have nowhere to go.
+  state.drag.refused = slot >= 0 && !state.drag.preview ? pageOf(slot) : null;
 }
 function endDrag(drop: boolean) {
-  const preview = state.drag.preview, moving = state.drag.moving, page = state.drag.page, key = state.drag.key;
+  const preview = state.drag.preview, moving = state.drag.moving, page = state.drag.page, key = state.drag.key, refused = state.drag.refused;
   state.drag.key = null;
+  state.drag.refused = null;
   document.removeEventListener("pointermove", moveDrag);
   document.removeEventListener("pointerup", finishDrag);
   document.removeEventListener("pointercancel", finishDrag);
@@ -222,7 +237,7 @@ function endDrag(drop: boolean) {
   }
   if (drop && preview && moving && state.layout) {
     if (commitArrangement(preview)) loadCapabilities([moving.entity]);
-  }
+  } else if (drop && moving && refused !== null && refused !== undefined) toast(t("editor.layout.no_room", { page: refused + 1 }));
 }
 window.addEventListener("click", (e) => { if (Date.now() < drag.suppressUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
 export const dragSuppressed = () => Date.now() < drag.suppressUntil;

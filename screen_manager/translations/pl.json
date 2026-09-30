@@ -525,7 +525,7 @@
         "page_titles": "Ekran ma najwyżej 1 stronę. | Ekran ma najwyżej {n} strony. | Ekran ma najwyżej {n} stron.",
         "tiles_max": "Wybierz najwyżej 1 kafelek. | Wybierz najwyżej {n} kafelki. | Wybierz najwyżej {n} kafelków.",
         "unsupported": "Ta encja nie jest obsługiwana.",
-        "once": "Encja może się pojawić na ekranie tylko raz.",
+        "once": "Zegar przy łóżku może być na ekranie tylko raz.",
         "tile_name": "Nazwa kafelka może mieć najwyżej 80 bajtów.",
         "unknown_settings": "Nieznane ustawienia kafelka.",
         "navigation_size": "Kafelek nawigacji ma pojedynczą lub podwójną szerokość.",
@@ -575,6 +575,7 @@
         "not_for_a_screen": "{entity} nie może trafić na ekran.",
         "not_on_screen": "Encji {entity} nie ma na tym ekranie.",
         "add_it_first": "Encji {entity} nie ma na tym ekranie; najpierw ją dodaj.",
+        "key_stays": "Encja {entity} jest pod zegarem przy łóżku; przenieś ją tam w edytorze.",
         "not_on_spot": "Encji {entity} nie ma w miejscu {slot}.",
         "not_on_page": "Encji {entity} nie ma na stronie {page}.",
         "move_where": "Podaj stronę lub miejsce, do którego ją przenieść.",
@@ -1256,6 +1257,8 @@
         "not_flashed": "Jeszcze nie w Home Assistant. Firmware już wgrany? Dodaj urządzenie ESPHome w sekcji Ustawienia → Urządzenia oraz usługi, potem kliknij „Konfiguruj” i zezwól na akcje Home Assistant. Jeszcze nie wgrany? Firmware i USB → {file}."
       },
       "copy_api_key": "Kopiuj klucz API",
+      "files": "Pobierz pliki ekranu",
+      "files_hint": "YAML ESPHome ekranu z jego kluczami, Override YAML i secrets.yaml z Wi-Fi, aby zbudować go w ESPHome na własnym komputerze.",
       "details": {
         "room": "Obszar",
         "firmware": "Firmware",
@@ -1435,6 +1438,7 @@
       "all_rooms": "Wszystkie obszary",
       "hide_placed": "Ukryj dodane",
       "hide_placed_title": "Ukryj to, co już jest na tym ekranie",
+      "again": "Już jest na tym ekranie; dodaj ponownie, aby mieć kolejny kafelek",
       "all_placed": "Wszystko z tej listy jest już na tym ekranie.",
       "none_found": "Nie znaleziono encji. Spróbuj innej nazwy, obszaru lub filtra.",
       "full": "Ten ekran mieści 1 kafelek. | Ten ekran mieści {n} kafelki. | Ten ekran mieści {n} kafelków.",
@@ -1634,7 +1638,9 @@
       },
       "keys": {
         "hint": "Przeciągnij lampę, temperaturę lub zamek na okrągłe miejsca pod godziną albo dotknij miejsca i wybierz. To kafelki: dotknij jednego, aby go ustawić.",
-        "under": "Pod zegarem przy łóżku: kafelek w okrągłej formie. Dotknięcie działa jak na kafelku, a przytrzymanie otwiera jego kartę."
+        "under": "Pod zegarem przy łóżku: kafelek w okrągłej formie. Dotknięcie działa jak na kafelku, a przytrzymanie otwiera jego kartę.",
+        "name_shown": "Nazwa pod przyciskiem",
+        "name_shown_hint": "Wyłączone pokazuje sam okrąg."
       }
     },
     "tile_card": {
@@ -1691,6 +1697,7 @@
       "name_placeholder": "Na przykład: Salon",
       "screen_name": "Tytuł ekranu",
       "screen_name_hint": "Każda strona bez własnego tytułu pokazuje ten tytuł.",
+      "no_title_hint": "Zostaw puste, aby pokazać tylko logo.",
       "right": "Po prawej: godzina, sensory lub zegar",
       "item_label": "{name}, miejsce {slot}. Enter: konfiguruj, strzałki: przenieś",
       "remove_named": "Usuń {name} z górnego paska",
@@ -1924,10 +1931,12 @@
         "calibration": "Kalibracja dotyku przy pierwszym uruchomieniu"
       },
       "choice": {
-        "DISPLAY_MODEL": "Kontroler wyświetlacza"
+        "DISPLAY_MODEL": "Kontroler wyświetlacza",
+        "GRID_ROWS": "Kafelki na stronie"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "Większość tych płytek ma pierwszy. Wybierz drugi, gdy ekran pokazuje szum lub zniekształcony obraz."
+        "DISPLAY_MODEL": "Większość tych płytek ma pierwszy. Wybierz drugi, gdy ekran pokazuje szum lub zniekształcony obraz.",
+        "GRID_ROWS": "Cztery rzędy mieszczą osiem mniejszych kafelków na stronie, dla ekranu z wieloma przełącznikami. Trzy rzędy zostawiają kafelki większe i czytelniejsze."
       },
       "choice_usual": "większość",
       "orientation": "Jak będzie wisiał?",
@@ -2010,7 +2019,16 @@
       "another": "Zainstaluj kolejny ekran",
       "start_over": "Zacznij od nowa",
       "done": "Gotowe",
-      "key_more": "Pokaż klucz API"
+      "key_more": "Pokaż klucz API",
+      "choice_option": {
+        "GRID_ROWS": {
+          "3": "3 rzędy",
+          "4": "4 rzędy, mniejsze kafelki"
+        }
+      },
+      "choice_first": {
+        "GRID_ROWS": "zwykły rozmiar"
+      }
     },
     "alerts": {
       "eyebrow": "Alerty · ściąga",
@@ -2398,6 +2416,34 @@
       "group_ha": "Podłączony do komputera z Home Assistant",
       "group_here": "Podłączony do tego komputera",
       "group_wifi": "Przez Wi-Fi"
+    },
+    "preview": {
+      "type": "Typ nowego ekranu",
+      "physical": "Ekran fizyczny",
+      "virtual": "Podgląd wirtualny",
+      "intro": "Zaprojektuj ekran z encjami Home Assistant bez parowania sprzętu. Podglądy są zapisywane w tej przeglądarce. W podglądzie firmware dotknięcia docierają do Home Assistant tylko wtedy, gdy to włączysz.",
+      "profile": "Płytka / profil",
+      "design_only": "Tylko profil podglądu. Nie dodaje obsługi firmware dla fizycznej płytki.",
+      "override": "Zmień rozdzielczość lub siatkę",
+      "width": "Szerokość (piksele)",
+      "height": "Wysokość (piksele)",
+      "columns": "Kolumny",
+      "rows": "Wiersze",
+      "name": "Nazwa podglądu",
+      "name_placeholder": "Podgląd Waveshare 4B",
+      "create": "Utwórz urządzenie wirtualne",
+      "created": "Utworzono urządzenie wirtualne \"{name}\".",
+      "invalid_shape": "Wybierz nazwę, obsługiwany profil, siatkę 1–8 kolumn/wierszy i obszar 160–2560 pikseli.",
+      "canvas": "Podgląd firmware LVGL",
+      "packet_error": "Firmware odrzuciło pakiet podglądu: {message}",
+      "stopped": "Podgląd firmware zatrzymany: {message}",
+      "action_error": "Polecenie Home Assistant nie powiodło się: {message}",
+      "remove": "Podgląd i jego układ zapisany w tej przeglądarce.",
+      "save": "Zapisz podgląd",
+      "saved": "Zapisano w tej przeglądarce",
+      "hint": "Własny firmware ekranu, narysowany z układu, który edytujesz. Dotykaj, przytrzymuj i przesuwaj jak na ekranie. Nic nie jest zapisywane.",
+      "control": "Dotknięcia sterują urządzeniami",
+      "control_hint": "Włączone: dotknięcie kafelka wykonuje jego akcję w Home Assistant, jak na ekranie. Wyłączone: podgląd pokazuje tylko, co robi dotknięcie."
     }
   }
 }

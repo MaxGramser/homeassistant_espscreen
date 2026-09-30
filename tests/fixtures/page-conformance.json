@@ -694,6 +694,180 @@
     }
   },
   {
+    "name": "one entity on two tiles",
+    "valid": true,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "light",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "light2",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 1,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk again"
+              },
+              "interaction": {}
+            }
+          ]
+        }
+      ]
+    },
+    "pagination": [
+      "0000000000000001"
+    ]
+  },
+  {
+    "name": "two bedside clocks",
+    "valid": false,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "night1",
+              "content": {
+                "kind": "builtin",
+                "name": "nightstand"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 2,
+                "rows": 3
+              },
+              "appearance": {
+                "label": ""
+              },
+              "interaction": {}
+            }
+          ]
+        },
+        {
+          "id": "0000000000000002",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "night2",
+              "content": {
+                "kind": "builtin",
+                "name": "nightstand"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 2,
+                "rows": 3
+              },
+              "appearance": {
+                "label": ""
+              },
+              "interaction": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     "name": "unknown home",
     "valid": false,
     "grid": {

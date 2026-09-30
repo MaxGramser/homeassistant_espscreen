@@ -22,9 +22,16 @@ const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_
 // were out of reach. They wrap now, and all twenty at once would take nine lines of the library.
 const SHOWN = 7;
 const filtersOpen = ref(false);
-const chosen = computed(() => new Set(state.layout?.tiles.map((t) => t.entity) || []));
-// On the screen and not to be added again; a page tile can be, when the firmware takes several (0.2.65).
-const placed = (id: string) => chosen.value.has(id) && !repeatable(id);
+// How many tiles each entity has on the screen. One that is there stays addable when the firmware takes an entity on
+// several tiles (a page tile from 0.2.65, any entity but the bedside clock from 0.16.0): its mark says how often.
+const chosen = computed(() => {
+  const counts = new Map<string, number>();
+  for (const tile of state.layout?.tiles || []) counts.set(tile.entity, (counts.get(tile.entity) || 0) + 1);
+  return counts;
+});
+const onScreen = (id: string) => chosen.value.has(id);
+const placed = (id: string) => onScreen(id) && !repeatable(id);
+const mark = (id: string) => (chosen.value.get(id) || 0) > 1 ? `×${chosen.value.get(id)}` : onScreen(id) ? "✓" : "+";
 const rooms = computed(() => [...new Set(state.inventory.entities.map((e) => e.area).filter((a): a is string => Boolean(a)))].sort((a, b) => a.localeCompare(b)));
 // What the search, the room and the hide switch leave over, before the domain narrows it further. The chips are read
 // off this, not off the finished list, or picking one domain would take every other chip away with it.
@@ -35,7 +42,7 @@ const pool = computed(() => {
     e.tile !== false &&
     (pictures.value || !["camera", "image"].includes(e.id.split(".")[0])) &&
     (!room || e.area === room) &&
-    (!state.hidePlaced || !placed(e.id)) &&
+    (!state.hidePlaced || !onScreen(e.id)) &&
     `${e.name} ${e.id} ${e.device || ""} ${e.area || ""}`.toLocaleLowerCase().includes(query));
 });
 const inDomain = (id: string, filter: string) => !filter || id.startsWith(filter + ".") || ALIAS[filter] === id.split(".")[0];
@@ -89,14 +96,14 @@ const tone = (e: { id: string; state?: string }) => {
       </div>
     </div>
     <div class="lib-list" id="results" aria-live="polite">
-      <button v-for="entity in matches.slice(0, 80)" :key="entity.id" type="button" class="ent" :title="entity.id"
+      <button v-for="entity in matches.slice(0, 80)" :key="entity.id" type="button" class="ent" :title="onScreen(entity.id) && !placed(entity.id) ? `${entity.id} · ${t('editor.library.again')}` : entity.id"
         :disabled="placed(entity.id) || full" v-drag="{ kind: 'entity', id: entity.id }" @click="addTile(entity.id)">
         <span class="av mdi" :class="tone(entity)" :style="{ color: tilePalette(entity.id, liveOf(entity.id)).icon, background: tilePalette(entity.id, liveOf(entity.id)).circle }">{{ glyph(automaticIcon(entity.id)) }}</span>
         <span class="tx">
           <b>{{ entity.name }}</b>
           <small>{{ [domainInfo(entity.id)[0], entity.area, entity.device].filter(Boolean).join(" · ") }}</small>
         </span>
-        <span class="add" :class="{ done: placed(entity.id) }">{{ placed(entity.id) ? "✓" : "+" }}</span>
+        <span class="add" :class="{ done: onScreen(entity.id) }">{{ mark(entity.id) }}</span>
       </button>
       <p v-if="!matches.length" class="hint">{{ state.hidePlaced && !state.search && !state.filter && !state.room ? t("editor.library.all_placed") : t("editor.library.none_found") }}</p>
       <p v-else-if="matches.length > 80" class="hint">{{ t("editor.common.results", matches.length) }}</p>

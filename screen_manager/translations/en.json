@@ -525,7 +525,7 @@
         "page_titles": "A screen has at most 1 page. | A screen has at most {n} pages.",
         "tiles_max": "Choose at most 1 tile. | Choose at most {n} tiles.",
         "unsupported": "This entity isn't supported.",
-        "once": "An entity can only appear once on a screen.",
+        "once": "The bedside clock can only be on a screen once.",
         "tile_name": "A tile name may contain at most 80 bytes.",
         "unknown_settings": "Unknown tile settings.",
         "navigation_size": "A navigation tile is single or double width.",
@@ -575,6 +575,7 @@
         "not_for_a_screen": "{entity} cannot go on a screen.",
         "not_on_screen": "{entity} is not on this screen.",
         "add_it_first": "{entity} is not on this screen; add it first.",
+        "key_stays": "{entity} stands under the bedside clock; move it there in the editor.",
         "not_on_spot": "{entity} is not on spot {slot}.",
         "not_on_page": "{entity} is not on page {page}.",
         "move_where": "Name the page or the spot to move it to.",
@@ -1256,6 +1257,8 @@
         "not_flashed": "Not yet in Home Assistant. Already flashed? Add the ESPHome device under Settings → Devices & services, then allow the Home Assistant actions under Configure. Not flashed yet? Firmware & USB → {file}."
       },
       "copy_api_key": "Copy API key",
+      "files": "Download screen files",
+      "files_hint": "The screen's ESPHome YAML with its keys, its Override YAML and a secrets.yaml with its Wi-Fi, to build it with ESPHome on your own computer.",
       "details": {
         "room": "Room",
         "firmware": "Firmware",
@@ -1435,6 +1438,7 @@
       "all_rooms": "All rooms",
       "hide_placed": "Hide placed",
       "hide_placed_title": "Hide what is already on this screen",
+      "again": "Already on this screen; add it again for another tile",
       "all_placed": "Everything here is already on this screen.",
       "none_found": "No entities found. Try a different name, room or filter.",
       "full": "This screen holds 1 tile. | This screen holds {n} tiles.",
@@ -1634,7 +1638,9 @@
       },
       "keys": {
         "hint": "Drag a lamp, a temperature or a lock onto the round places under the time, or tap a place and pick one. They are tiles: tap one to set it up.",
-        "under": "Under the bedside clock: a tile in its round form. A tap does what it does on a tile, and holding it opens its card."
+        "under": "Under the bedside clock: a tile in its round form. A tap does what it does on a tile, and holding it opens its card.",
+        "name_shown": "Name under the key",
+        "name_shown_hint": "Off shows the circle alone."
       }
     },
     "tile_card": {
@@ -1691,6 +1697,7 @@
       "name_placeholder": "For example: Living room",
       "screen_name": "Screen title",
       "screen_name_hint": "Every page without a title of its own says this.",
+      "no_title_hint": "Leave it empty to show only the logo.",
       "right": "Right: time, sensors, or a clock",
       "item_label": "{name}, slot {slot}. Enter: configure, arrows: move",
       "remove_named": "Remove {name} from the top bar",
@@ -1924,10 +1931,12 @@
         "calibration": "Touch calibration on first start"
       },
       "choice": {
-        "DISPLAY_MODEL": "Display controller"
+        "DISPLAY_MODEL": "Display controller",
+        "GRID_ROWS": "Tiles on a page"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "Most of these boards have the first one. Take the other when the screen shows noise or a garbled picture."
+        "DISPLAY_MODEL": "Most of these boards have the first one. Take the other when the screen shows noise or a garbled picture.",
+        "GRID_ROWS": "Four rows fit eight smaller tiles on a page, for a screen with many switches. Three rows keep the tiles larger and easier to read."
       },
       "choice_usual": "most boards",
       "orientation": "Which way will it hang?",
@@ -2010,7 +2019,16 @@
       "another": "Install another screen",
       "start_over": "Start over",
       "done": "Done",
-      "key_more": "Show the API key"
+      "key_more": "Show the API key",
+      "choice_option": {
+        "GRID_ROWS": {
+          "3": "3 rows",
+          "4": "4 rows, smaller tiles"
+        }
+      },
+      "choice_first": {
+        "GRID_ROWS": "the usual size"
+      }
     },
     "alerts": {
       "eyebrow": "Alerts · cheatsheet",
@@ -2398,6 +2416,34 @@
       "group_ha": "Plugged into the Home Assistant machine",
       "group_here": "Plugged into this computer",
       "group_wifi": "Over Wi-Fi"
+    },
+    "preview": {
+      "type": "New screen type",
+      "physical": "Physical screen",
+      "virtual": "Virtual preview",
+      "intro": "Design a screen using Home Assistant entities without pairing hardware. Previews are saved in this browser. In the firmware preview, taps reach Home Assistant only when you switch that on.",
+      "profile": "Board / profile",
+      "design_only": "Preview profile only. This does not add physical firmware support for this board.",
+      "override": "Override resolution or grid",
+      "width": "Width (pixels)",
+      "height": "Height (pixels)",
+      "columns": "Columns",
+      "rows": "Rows",
+      "name": "Preview name",
+      "name_placeholder": "Waveshare 4B preview",
+      "create": "Create virtual device",
+      "created": "Virtual device \"{name}\" created.",
+      "invalid_shape": "Choose a name, a supported profile, a 1–8 column/row grid and a 160–2560 pixel canvas.",
+      "canvas": "LVGL firmware preview",
+      "packet_error": "Firmware rejected a preview packet: {message}",
+      "stopped": "Firmware preview stopped: {message}",
+      "action_error": "Home Assistant command failed: {message}",
+      "remove": "The preview and its saved layout in this browser.",
+      "save": "Save preview",
+      "saved": "Saved in this browser",
+      "hint": "The screen's own firmware, drawn from the layout you are editing. Tap, hold and swipe as on the screen. Nothing is saved.",
+      "control": "Taps control devices",
+      "control_hint": "When on, a tap on a tile runs its action in Home Assistant, as on the screen. When off, the preview only shows what a tap does."
     }
   }
 }

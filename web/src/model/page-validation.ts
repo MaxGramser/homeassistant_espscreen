@@ -20,7 +20,8 @@ const finite = (value: any): boolean => typeof value === 'number' ? Number.isFin
 
 export function validatePageShape(layout: PageLayout) {
   fields(layout, ['title', 'homePageId', 'pages']);
-  if (typeof layout.title !== 'string' || !layout.title.trim() || layout.title !== layout.title.trim() || bytes(layout.title) > 96)
+  // An empty title is a screen without one (firmware 0.17.0+): the top bar shows its home key alone.
+  if (typeof layout.title !== 'string' || layout.title !== layout.title.trim() || bytes(layout.title) > 96)
     throw new Error(t('addon.errors.layout.title'));
   if (!Array.isArray(layout.pages)) fail();
   for (const page of layout.pages) {
@@ -72,7 +73,7 @@ export function validatePageShape(layout: PageLayout) {
         for (const child of tile.children) {
           fields(child, ['id', 'content', 'appearance', 'interaction']);
           fields(child.content, ['kind', 'entityId']);
-          fields(child.appearance, ['label', 'icon'], ['label']);
+          fields(child.appearance, ['label', 'icon', 'overlay'], ['label']);
           fields(child.interaction, ['tap', 'action', 'guard'], []);
           if (child.content.kind !== 'entity' || !entity(child.content.entityId, rules.keyDomains))
             throw new Error(t('addon.errors.layout.unsupported'));

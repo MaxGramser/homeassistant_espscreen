@@ -23,12 +23,12 @@ WORK = ROOT / '.esphome' / 'render-topbar'
 PROFILES = {'guition': 'checkout/guition.yaml', 'cyd': 'checkout/cyd.yaml'}
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
-FONTS = ('headline', 'time_label', 'sublabel_big', 'label', 'materialdesign_icons', 'materialdesign_icons_mini')
+FONTS = ('headline', 'sublabel_big', 'label', 'materialdesign_icons', 'materialdesign_icons_mini')
 # Compile the renderer independently of the device model, transport and cards.
 HEADER_SOURCES = {'__init__.py', 'screen_text_gen.py', 'screen_text.h', 'screen_text_keys.h',
                   'header_bar.h', 'page_header.h', 'theme.h', 'tile_icon.h'}
 # Header band per board: page width and height above the tiles.
-BANDS = {'guition': (480, 72), 'cyd': (320, 40)}
+BANDS = {'guition': (480, 56), 'cyd': (320, 37)}
 
 # (slug, title, items) with items as C++ expressions of the render lambda's helpers.
 SCENARIOS = (
@@ -57,8 +57,8 @@ def font_blocks(board):
 
 def band(board, y):
     width, height = BANDS[board]
-    margin, top = (16, 22) if board == 'guition' else (11, 14)
-    tile_y, tile_w, tile_h, col2, radius = (72, 218, 108, 246, 22) if board == 'guition' else (40, 147, 52, 164, 18)
+    margin, top = (16, 0) if board == 'guition' else (9, 0)
+    tile_y, tile_w, tile_h, col2, radius = (56, 218, 117, 246, 22) if board == 'guition' else (37, 148, 53, 163, 18)
     return f'''        - obj:
             id: {board}_page
             x: 0

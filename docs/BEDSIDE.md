@@ -11,7 +11,9 @@ bedroom temperature and the front door lock. It needs app 0.4.12 and firmware 0.
    A tile that is already on the screen can be dragged onto a place too, and a key can be dragged back onto an empty
    cell.
 3. Tap a key to set it up. It is a tile like any other: its name, its icon, what a tap does and, for a lock, whether
-   it may unlock. What its clock decides for it (its size, its page and the colour of a card) is not there.
+   it may unlock. **Name under the key** off leaves the circle alone (firmware 0.17.0+). What its clock decides for it
+   (its size, its page and the colour of a card) is not there. Drag a key to another place under the clock, or onto an
+   empty cell to make it a tile again.
 
 On the screen a key behaves exactly like its tile would: a tap switches the lamp or opens its card as you chose,
 holding it opens its card, a lock asks for a second tap before it unlocks, and an alarm panel's circle beats while
@@ -22,8 +24,9 @@ The clock starts without a card behind it, so the digits stand on the page. Choo
 tile if you want the card. For the night, turn on **Dark mode** and the screen's **night hours**, so the page is black
 and the backlight dims when you go to bed.
 
-The keys have their names under them on every screen with the standard look. The CYD and the other small screens
-with the compact look show the keys alone, since their smallest letters are too small to read in the dark.
+The keys have their names under them on every screen with the standard look, unless a key's name is turned off; with
+every name off the keys stand closer to the time. The CYD and the other small screens with the compact look show the
+keys alone, since their smallest letters are too small to read in the dark.
 
 ## How it is built
 
@@ -34,7 +37,9 @@ leaves them out.
   a tile but a placement (`page_layout._keys`). The clock owns the order and the keys go with it.
 - **The compiled tiles** (`page_layout.compile_tiles`) list a key after the placed tiles, as
   `{"entity": ..., "name": ..., "in": "screen.nightstand", "key": 0, "options": {...}}`. `in` names the tile it
-  stands under by its entity, which is on a screen once; `key` is its place, from 0. Every other part of the add-on
+  stands under by its entity; `key` is its place, from 0. Any other entity may be on a screen several times
+  (firmware 0.16.0+), a key and a tile of the same entity too, but the bedside clock is on a screen once, so `in`
+  always names one tile. Every other part of the add-on
   (the watched entities, history, the layout sensor, the tile limit, the checks when saving) reads this list and
   treats a key as a tile. `core.KEY_HOLDERS` says which tiles hold keys and how many; `core.KEY_DOMAINS` which
   entities may be one (anything but a picture).
@@ -52,11 +57,17 @@ leaves them out.
 
 ### The size of the digits
 
-The digits are one font per board, `bedside_digits`, sized by `FONT_BEDSIDE_SIZE`. `packages/looks/shared/bedside.yaml`
-works it out from the glass (`PANEL_W`, `PANEL_H`), the density and the look's own sizes: the largest the whole-page
-card takes lying down and standing up, with the keys in a row under the time, in a column beside it, or under the
-hours stacked over the minutes. It follows the rules `bedside_layout` lays the clock out with, so a new board gets its
-size without a number of its own. A board may still state `FONT_BEDSIDE_SIZE` when a measurement on the glass says so.
+The digits come from the board's digit steps (`packages/looks/shared/digits.yaml`), the fixed set every large number
+on the screen takes its size from. `FONT_DISPLAY_SIZE` (`display_digits`) is as large as half a page's width; the flip
+clock's blocks use it too. `FONT_BEDSIDE_SIZE` works out from the glass (`PANEL_W`, `PANEL_H`), the density and the
+look's own sizes what the whole-page card takes lying down and standing up, with the keys in a row under the time, in a
+column beside it, or under the hours stacked over the minutes, by the rules `bedside_layout` lays the clock out with.
+Only where that is a fifth larger than the display step (the larger boards) the clock gets `bedside_digits` of its own;
+elsewhere that font stays at 8 px and the clock takes the display step (`runtime_tiles::bedside_digits`). A new board
+gets both without a number of its own.
+
+On a screen that shows 12 hours, AM or PM stands small under the end of the time (firmware 0.17.0+). Beside it, a time
+from 10:00 to 12:59 ran off the glass.
 
 `tools/render/run.py` renders the clock with three keys on every board, lying down and standing up, and the screen's
 self test fails a board where the digits fit no arrangement or a key leaves its clock. Run it for one board with

@@ -46,6 +46,25 @@ class LayoutTests(unittest.TestCase):
             if wide[0] == wide[1]:
                 self.assertEqual(grids['lying down'][0], grids['standing up'][0], f'{name}: square glass, one grid')
 
+    def test_a_look_names_a_size_only_after_stating_it(self):
+        """ESPHome works a file's substitutions out in their order, so a size made of another size of the same look
+        must come after it: SCROLL_Y ahead of GRID_MARGIN built a bedside clock a page too large (found building firmware 0.14.0)."""
+        for look in sorted((ROOT / 'packages' / 'looks').glob('*.yaml')):
+            stated = []
+            for name, value in re.findall(r'^  (\w+): (.*)$', look.read_text(), re.M):
+                later = set(re.findall(r'\b[A-Z][A-Z0-9_]+\b', value)) & set(re.findall(r'^  (\w+):', look.read_text(), re.M))
+                self.assertFalse(later - set(stated) - {name}, f'{look.name}: {name} names {sorted(later - set(stated))} before they are stated')
+                stated.append(name)
+
+    def test_the_top_bar_and_the_page_keys_keep_the_tiles_margin(self):
+        """One margin all round (firmware 0.14.0+): the top bar from the sides and the top, the tiles, and the ink of
+        the page keys' chevrons all keep GRID_MARGIN."""
+        for look in ('standard', 'compact'):
+            text = (ROOT / 'packages' / 'looks' / f'{look}.yaml').read_text()
+            self.assertIn('HEADER_INSET: ${GRID_MARGIN}', text, look)
+            self.assertNotIn('PAGE_CHEVRON_INSET', text, look)
+        self.assertIn('nav_align(previous,true);nav_align(next,false);', runtime_source())
+
     def test_a_board_brings_a_card_for_every_cell_of_both_its_grids(self):
         """One file of cards per board (packages/cells/<number>.yaml), and a screen is built lying down or standing up
         from that one file: it has to hold the cells of whichever page asks for most."""

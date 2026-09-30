@@ -8,7 +8,8 @@ import { state, toast } from "../store";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
 
-const props = defineProps<{ entity?: string }>();
+// One tile (an entity may be on several, firmware 0.16.0+): its entity, its slot and, for a key, its place.
+const props = defineProps<{ entity?: string; slot?: number; tileKey?: number }>();
 const summary = ref<any[] | null>(null);
 const raw = ref(t("editor.inspect.reading"));
 const error = ref("");
@@ -19,7 +20,8 @@ async function load() {
   raw.value = t("editor.inspect.fetching");
   try {
     const data = await getJson(`screens/${encodeURIComponent(state.selected)}/inspect`);
-    const tiles = props.entity ? data.tiles.filter((t: any) => t.entity === props.entity) : data.tiles;
+    const tiles = props.entity ? data.tiles.filter((t: any) => t.entity === props.entity &&
+      (props.slot === undefined || t.slot === undefined || (t.slot === props.slot && (t.key ?? null) === (props.tileKey ?? null)))) : data.tiles;
     summary.value = tiles;
     raw.value = JSON.stringify(props.entity ? tiles[0] : data, null, 2);
   } catch (e: any) {
@@ -28,8 +30,8 @@ async function load() {
     toast(e.message);
   }
 }
-const optionsText = (entity: string) => {
-  const options = state.layout?.tiles.find((t) => t.entity === entity)?.options || {};
+const optionsText = (entity: string, own?: Record<string, any>) => {
+  const options = own || state.layout?.tiles.find((t) => t.entity === entity)?.options || {};
   return t("editor.inspect.options", {
     slider: t(options.inline === "slider" ? "editor.inspect.yes" : "editor.inspect.no"),
     display: displayName(options.display || "standard"),
@@ -39,7 +41,7 @@ const optionsText = (entity: string) => {
   });
 };
 onMounted(load);
-watch(() => props.entity, load);
+watch(() => [props.entity, props.slot, props.tileKey], load);
 </script>
 
 <template>
@@ -51,7 +53,7 @@ watch(() => props.entity, load);
       <article v-for="(tile, i) in summary || []" :key="i" class="inspection-tile">
         <strong>{{ tile.entity }}</strong>
         <span>{{ t("editor.inspect.status", { status: tile.word || tile.state }) }}</span>
-        <small>{{ optionsText(tile.entity) }}</small>
+        <small>{{ optionsText(tile.entity, tile.options) }}</small>
       </article>
     </div>
     <pre id="inspection">{{ raw }}</pre>

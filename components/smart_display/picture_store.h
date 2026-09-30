@@ -110,6 +110,11 @@ template <class Image> struct Store {
       drop(*oldest);
     }
   }
+  // The picture for `key` is no longer wanted (the camera full screen closed): it goes at the next collect once nothing
+  // draws it, before any picture that is still wanted.
+  void retire(const std::string &key) {
+    if (Entry *e = entry(key)) e->retired = true;
+  }
   // Nothing kept is right any more (another layout, another look): what no card shows goes now, the rest as soon as
   // its card lets it go.
   void forget(const std::function<bool(const Image *)> &shown) {

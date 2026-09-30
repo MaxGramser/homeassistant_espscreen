@@ -6,12 +6,15 @@ import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, 
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware as supportsVersion } from "./model/layout";
 import { agoText, barMetricsFor, clockText, dateText, itemKey, type ItemView, whenBarFontsLoad } from "./model/topbar";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
-import type { Capability, ChildTile, FeedbackView, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, Screen, Tile, PageLayout, PageDocument, PageGrid, PageWorkspace } from "./types";
+import { validPreviewShape, type PreviewProfile } from "./model/preview";
+import renderer from "./wasm/renderer.json";
+import type { Capability, ChildTile, FeedbackView, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, Screen, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
 
 import * as pages from "./model/pages";
 import { DraftHistory, type HistoryScope } from './model/draft-history';
 import { suggestedPageTitle } from './model/page-naming';
 import { validateCardOptions } from './model/page-validation';
+import pageRules from './model/page-rules.json';
 import { canonicalOptions, coupledOptions } from './model/tile-options';
 import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
@@ -21,13 +24,13 @@ export type Inspector =
   | { kind: "bar"; index: number }
   | { kind: "bar-add" }
   | { kind: "page"; id: string }
-  | { kind: "inspect"; entity?: string };
+  | { kind: "inspect"; entity?: string; slot?: number; key?: number };
 // A whole page on its way to another place in the row (app 0.2.121): where it came from, where it is heading, and
 // the row as it stands while it is in the air (`order[position]` is the page drawn there).
 export type PageDrag = { from: number; to: number; order: number[] };
 // `key`: the key place under a bedside clock the pointer is on (app 0.4.12), where a drop puts the tile.
 export type DragState = { active: boolean; moving: Tile | null; preview: { tile: Tile; slot: number }[] | null; page: PageDrag | null;
-  key?: { holder: string; key: number } | null };
+  key?: { holder: string; key: number } | null; refused?: number | null };
 // What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
 export type Live = { state: string; word?: string | null; a: Record<string, any> };
 
@@ -98,6 +101,54 @@ export const state = reactive({
 // through document operations below, never through this flattened view.
 const renderedLayout = computed<Layout | null>(() => state.document && state.documentGrid
   ? pages.projectLayout(state.document, state.documentGrid) : null);
+const VIRTUAL_SCREENS_KEY = "esp-screens.virtual-screens";
+function virtualScreens(): Screen[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(VIRTUAL_SCREENS_KEY) || "[]");
+    if (!Array.isArray(value)) return [];
+    return value.filter((s) => s?.virtual && typeof s.id === "string" && s.id.startsWith("virtual.")
+      && s.shape && validPreviewShape(s.shape) && Array.isArray(s.layout?.tiles))
+      .map((s) => ({ ...s, firmware: renderer.firmware, firmware_known: renderer.firmware,
+        tile_sizes: ['single', 'wide', 'full', 'tall', 'square'], page_capability: 'ready' }));
+  } catch { return []; }
+}
+function persistVirtualScreens(screens = state.inventory.screens) {
+  localStorage.setItem(VIRTUAL_SCREENS_KEY, JSON.stringify(screens.filter((s) => s.virtual)));
+}
+async function migrateVirtualScreens() {
+  for (const screen of virtualScreens()) {
+    if (screen.page_document?.format === 'pages-v2') continue;
+    const sourceGrid = { columns: screen.shape!.columns, rows: screen.shape!.rows };
+    try {
+      const record = await send<PageDocument>('firmware-preview/import', 'POST', { document: screen.layout, sourceGrid });
+      record.revision = pages.instanceId();
+      persistVirtualScreens(virtualScreens().map(current => current.id === screen.id && !current.page_document
+        ? { ...current, page_document: record, source_grid: record.sourceGrid } : current));
+    } catch (error: any) { toast(error.message); } // Keep the original stored layout if migration fails.
+  }
+  return virtualScreens();
+}
+export function createVirtualScreen(name: string, profile: PreviewProfile) {
+  if (!name.trim() || !validPreviewShape(profile.shape)) throw new Error(t("editor.preview.invalid_shape"));
+  const { board, orientation } = profile;
+  const shape = JSON.parse(JSON.stringify(profile.shape));
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "preview";
+  const id = `virtual.${slug}-${Date.now().toString(36)}`;
+  const sourceGrid = { columns: shape.columns, rows: shape.rows };
+  const document: PageDocument = { format: 'pages-v2', revision: pages.instanceId(), sourceGrid,
+    layout: pages.emptyLayout(name.trim()), workspace: { revision: pages.instanceId(), positions: {} } };
+  const screen: Screen = {
+    id, name: name.trim(), online: false, virtual: true, board, orientation,
+    firmware: renderer.firmware, firmware_known: renderer.firmware, tile_limit: 64, full_page: true,
+    page_tiles_repeat: true, entity_tiles_repeat: true, no_title: true, in_sync: true, shape, layout: { title: name.trim(), tiles: [], pages: 1 },
+    source_grid: sourceGrid, page_document: document, page_capability: 'ready',
+    tile_sizes: ['single', 'wide', 'full', 'tall', 'square'],
+  };
+  persistVirtualScreens([...state.inventory.screens, screen]);
+  state.inventory.screens.push(screen);
+  select(id);
+  return screen;
+}
 
 export const currentScreen = computed<Screen | undefined>(() => state.inventory.screens.find((s) => s.id === state.selected));
 // The firmware version a screen's features go by, as the add-on works it out (firmware_known, app 0.2.78; null when it
@@ -116,13 +167,22 @@ export const fullPage = computed(() => {
   const full = currentScreen.value?.full_page;
   return typeof full === "boolean" ? full : supports(0, 2, 62);
 });
-// Several tiles that go to the same page, such as a way back to page 1 on every sub-page (firmware 0.2.65); every
-// other entity stays once per screen.
+// Several tiles that go to the same page, such as a way back to page 1 on every sub-page (firmware 0.2.65), and any
+// entity on several tiles (firmware 0.16.0, GitHub #83) but a clock with keys, which its keys name.
 export const pageTilesRepeat = computed(() => {
   const repeat = currentScreen.value?.page_tiles_repeat;
   return typeof repeat === "boolean" ? repeat : supports(0, 2, 65);
 });
-export const repeatable = (id: string) => pageTilesRepeat.value && pageTarget(id) > 0;
+export const entityTilesRepeat = computed(() => {
+  const repeat = currentScreen.value?.entity_tiles_repeat;
+  return typeof repeat === "boolean" ? repeat : supports(0, 16, 0);
+});
+// A screen without a title, its top bar showing the home key alone (firmware 0.17.0).
+export const noTitle = computed(() => {
+  const allowed = currentScreen.value?.no_title;
+  return typeof allowed === "boolean" ? allowed : supports(0, 17, 0);
+});
+export const repeatable = (id: string) => pageTarget(id) > 0 ? pageTilesRepeat.value : entityTilesRepeat.value && !(id in pageRules.keyHolders);
 // Whether the screen's board draws pictures (camera tiles, an album cover): the add-on says so per screen from the
 // board's own camera sizes (app 0.2.94), and this page always comes with that add-on.
 export const pictures = computed(() => Boolean(currentScreen.value?.pictures));
@@ -174,7 +234,7 @@ export const roomyNames = computed(() => {
   const cell = (shape.width - 18 - (columns - 1) * 8) / columns - 2 * pad - 2;
   return cell >= Math.floor((shape.dpi * 30 + 12) / 25);
 });
-export const editorLayout = createLayout(() => state.documentGrid ?? screenShape.value);
+export const editorLayout = createLayout(() => state.documentGrid ?? screenShape.value, () => currentScreen.value?.page_limit);
 export const grid = editorLayout.grid;
 const { arrange, cellsOf, firstFree, fits, nearestFree, normalize, occupied, pageCount, pageOf, reorderPages, rowStart, startOf, strandedPages, tileLimit: limitFor } = editorLayout;
 export const currentTile = computed<Tile | undefined>(() => state.selectedTile?.id
@@ -469,7 +529,9 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   if (state.editorMode === "advanced" || Object.keys(positions).length) initializeWorkspace();
   if (state.selectedPageId && !ids.has(state.selectedPageId)) state.selectedPageId = next.homePageId;
   if (state.focusedPageId && !ids.has(state.focusedPageId)) state.focusedPageId = null;
-  if (state.selectedTile?.id && !next.pages.some((page) => page.tiles.some((tile) => tile.id === state.selectedTile!.id))) closeInspector();
+  // A key under a bedside clock is a child of its clock: a change to it keeps it open like any tile.
+  if (state.selectedTile?.id && !next.pages.some((page) => page.tiles.some((tile) => tile.id === state.selectedTile!.id
+    || tile.children?.some((child) => child.id === state.selectedTile!.id)))) closeInspector();
   markDirty();
   loadTopbarPreview();
   return true;
@@ -580,7 +642,7 @@ export function commitArrangement(result: { tile: Tile; slot: number }[], field?
     // page, in the same undo operation as its navigation tile.
     const draft = pages.clone(state.document);
     const count = Math.max(draft.pages.length, ...result.filter(({ tile }) => !tile.id).map(({ tile }) => pageTarget(tile.entity)));
-    if (count > pages.pageLimit(state.documentGrid)) throw new Error(t("addon.errors.pages.pages_full"));
+    if (count > editorLayout.grid.pages) throw new Error(t("addon.errors.pages.pages_full"));
     while (draft.pages.length < count) draft.pages.push(pages.emptyPage(draft.pages.at(-1)!.topbar));
     const arranged = pages.arrangeTiles(draft, state.documentGrid, result);
     const existing = new Set(state.document.pages.map(page => page.id));
@@ -613,7 +675,9 @@ export function addTile(id: string) {
     state.insertKey = null;
     const clock = layout.tiles.find((item) => item.id === holder);
     if (clock && placeKey(newTile(id), clock, key)) {
-      const added = state.layout!.tiles.find((item) => item.entity === id && item.in === clock.entity);
+      // The key in the place it was put in: the same entity may stand under the clock twice (firmware 0.16.0+).
+      const added = state.layout!.tiles.find((item) => item.entity === id && item.in === clock.entity && item.key === key)
+        || state.layout!.tiles.find((item) => item.entity === id && item.in === clock.entity);
       if (added) openTile(added);
     }
     return;
@@ -684,6 +748,12 @@ export function connectTile(tileId: string, target: string | "home") {
 }
 export function setPageExcluded(id: string, excluded: boolean) {
   return editDocument((draft) => { const page = draft.pages.find((item) => item.id === id); if (page) page.navigation.excludeFromPagination = excluded; });
+}
+// A full copy of a page puts its tiles on the screen twice: a page tile when the firmware takes that (0.2.65), any
+// other entity from 0.16.0, but never a clock with keys, which is on a screen once.
+export function pageCopyable(page: PageTile[] | undefined) {
+  return Boolean(page?.every((tile) => tile.content.kind === "navigation" ? pageTilesRepeat.value :
+    entityTilesRepeat.value && !(tile.content.kind === "builtin" && `screen.${tile.content.name}` in pageRules.keyHolders)));
 }
 export function duplicateEditorPage(id: string, empty: boolean) {
   if (!state.document || !state.documentGrid) return false;
@@ -830,7 +900,7 @@ export function setTileOption(tile: Tile, key: string, value: unknown, field?: s
     else { tile.options.size = wasSize; toast(t("editor.layout.no_room", { page: pageOf(tile.slot) + 1 })); return; }
   }
   // What the add-on would still change is never stored (its canonical form): a default, a stale action or picture setting.
-  tile.options = canonicalOptions(tile.entity, tile.options);
+  tile.options = canonicalOptions(tile.entity, tile.options, tile.in !== undefined);
   normalize(layout);
   commitArrangement(layout.tiles.map((item) => ({ tile: item, slot: item.slot })), field);
 }
@@ -974,6 +1044,21 @@ function acceptSave(record: PageDocument, submitted: PageLayout, submittedWorksp
 }
 export async function save() {
   if (state.busy || !state.document || !state.selected || !state.documentGrid) return;
+  if (currentScreen.value?.virtual) {
+    const screen = currentScreen.value;
+    try {
+      const layout = pages.clone(pages.validatePages(state.document, state.documentGrid));
+      const record: PageDocument = { format: 'pages-v2', revision: pages.instanceId(), layout,
+        sourceGrid: pages.clone(state.documentGrid), workspace: { ...pages.clone(state.workspace), revision: pages.instanceId() } };
+      const updated = { ...screen, page_document: record, source_grid: record.sourceGrid,
+        layout: pages.projectLayout(layout, record.sourceGrid) };
+      persistVirtualScreens(state.inventory.screens.map(item => item.id === screen.id ? updated : item));
+      Object.assign(screen, updated);
+      acceptSave(record, layout, record.workspace, edits);
+      toast(t('editor.preview.saved'));
+    } catch (error: any) { toast(error.message); }
+    return;
+  }
   state.busy = true;
   const sent = edits, screen = state.selected, selection = selectionEpoch, submitted = pages.clone(state.document), submittedGrid = pages.clone(state.documentGrid);
   const workspace = state.workspaceDirty ? pages.clone(state.workspace) : undefined;
@@ -1004,7 +1089,17 @@ export async function save() {
 }
 const mapSaver = workspaceSaver(state, {
   epoch: () => selectionEpoch, committed: () => committedLayout,
-  put: (screen, revision, workspace) => send<PageWorkspace>(`screens/${encodeURIComponent(screen)}/workspace`, 'PUT', { revision, workspace }),
+  put: async (id, revision, workspace) => {
+    const screen = state.inventory.screens.find(item => item.id === id);
+    if (screen?.virtual && screen.page_document?.format === 'pages-v2') {
+      const saved = { ...pages.clone(workspace), revision: pages.instanceId() };
+      const updated = { ...screen, page_document: { ...screen.page_document, workspace: saved } };
+      persistVirtualScreens(state.inventory.screens.map(item => item.id === id ? updated : item));
+      Object.assign(screen, updated);
+      return saved;
+    }
+    return send<PageWorkspace>(`screens/${encodeURIComponent(id)}/workspace`, 'PUT', { revision, workspace });
+  },
   error: (error: any) => toast(error.message),
 });
 function scheduleWorkspaceSave() { mapSaver.schedule(); }
@@ -1054,6 +1149,12 @@ export async function feedbackAction(screen: Screen, body: Record<string, unknow
 // A screen's own name in this app (app 0.4.2): only the editor shows it, so it needs no flash. Empty gives Home Assistant's back.
 export async function renameScreen(screen: Screen, name: string) {
   try {
+    if (screen.virtual) {
+      const updated = { ...screen, name: name.trim() || screen.name };
+      persistVirtualScreens(state.inventory.screens.map(item => item.id === screen.id ? updated : item));
+      Object.assign(screen, updated);
+      return true;
+    }
     const result = await send<{ name: string }>(`screens/${encodeURIComponent(screen.id)}/name`, "PUT", { name });
     const live = state.inventory.screens.find((s) => s.id === screen.id);
     if (live && result?.name) live.name = result.name;
@@ -1066,6 +1167,14 @@ export async function renameScreen(screen: Screen, name: string) {
 
 export async function removeScreen(screen: Screen) {
   if (state.removing) return false;
+  if (screen.virtual) {
+    const remaining = state.inventory.screens.filter((s) => s.id !== screen.id);
+    try { persistVirtualScreens(remaining); } catch (e: any) { toast(e.message); return false; }
+    if (state.selected === screen.id) forgetOpenScreen();
+    state.inventory.screens = remaining;
+    toast(t("editor.sidebar.remove.done", { name: screen.name }));
+    return true;
+  }
   state.removing = screen.id;
   try {
     const result = await send<{ name?: string; kept?: string[] }>(`screens/${encodeURIComponent(screen.id)}`, "DELETE");
@@ -1123,7 +1232,9 @@ function adopt(record: PageDocument, message: string) {
 export const gridChanged = computed(() => !!state.documentGrid && !!currentScreen.value?.shape &&
   !pages.sameGrid(state.documentGrid, currentScreen.value.shape));
 function reviewGrid(record: PageDocument, target: PageGrid, copy: boolean, message = '') {
-  try { state.gridReview = { record: pages.clone(record), layout: pages.adaptGrid(record.layout, record.sourceGrid, target),
+  try {
+    if (record.layout.pages.length > editorLayout.grid.pages) throw new Error(t("addon.errors.pages.adapt_pages"));
+    state.gridReview = { record: pages.clone(record), layout: pages.adaptGrid(record.layout, record.sourceGrid, target),
     target: { columns: target.columns, rows: target.rows }, copy, message }; }
   catch (error: any) { toast(error.message); }
 }
@@ -1167,7 +1278,8 @@ export async function importLayout(text: string) {
   const screen = state.selected, selection = selectionEpoch;
   if (data?.esp_screens_layout !== 2 && !confirm(t("addon.errors.pages.import_grid", { columns: state.documentGrid.columns, rows: state.documentGrid.rows }))) return;
   try {
-    const record = await send<PageDocument>(`screens/${encodeURIComponent(screen)}/import`, "POST", {
+    const path = currentScreen.value?.virtual ? 'firmware-preview/import' : `screens/${encodeURIComponent(screen)}/import`;
+    const record = await send<PageDocument>(path, "POST", {
       document: data, sourceGrid: data?.sourceGrid || state.documentGrid,
     });
     if (state.selected === screen && selection === selectionEpoch) adopt(record, t("editor.layout.imported"));
@@ -1533,12 +1645,14 @@ export function updateState(screen: Screen) {
 }
 // The light beside the icon: green when all is well, amber when an update waits or runs, red when the screen is away.
 export const screenLight = (screen: Screen) => {
+  if (screen.virtual) return 'ok';
   if (!screen.online) return "down";
   const kind = updateState(screen)?.kind;
   return kind === "available" || kind === "blocked" || kind === "running" || kind === "queued" ? "update" : kind === "failed" ? "down" : "ok";
 };
 // One quiet line under the name, only when there is something to say; a healthy screen shows its name alone.
 export const screenSubline = (screen: Screen) => {
+  if (screen.virtual) return { kind: 'ok', text: t('editor.preview.virtual') };
   if (!screen.online) return { kind: "down", text: t("editor.common.offline") };
   const u = updateState(screen);
   // An update nothing here can build is still an update: the line names it, the details say why it waits.
@@ -1633,8 +1747,11 @@ function reconcileDocument() {
 export async function refresh(full = true) {
   try {
     const data = await getJson(full ? "inventory" : "inventory?light=1");
+    if (data.csrf) setCsrf(data.csrf);
+    const virtual = await migrateVirtualScreens();
     // A light poll carries only screens and update status; keep the catalogues we have.
     state.inventory = full ? data : { ...state.inventory, ...data };
+    state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtual];
     if (data.csrf) setCsrf(data.csrf);
     state.connected = Boolean(state.inventory.connected);
     state.reachable = true;
@@ -1646,6 +1763,7 @@ export async function refresh(full = true) {
 }
 function applyLive(data: Partial<Inventory>) {
   state.inventory = { ...state.inventory, ...data } as Inventory;
+  state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtualScreens()];
   state.connected = Boolean(state.inventory.connected);
   for (const screen of state.inventory.screens) if (screen.update?.state === "running") state.updating = state.updating.filter((id) => id !== screen.id);
   if (state.selected) { settleSettings(); reconcileDocument(); }

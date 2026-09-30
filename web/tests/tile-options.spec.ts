@@ -10,7 +10,7 @@ import ActionPicker from "../src/components/ActionPicker.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
 import { validatePages } from "../src/model/pages";
-import { state } from "../src/store";
+import { isSelected, openTile, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 
 function inventory(): Inventory {
@@ -138,6 +138,49 @@ describe("the tile panel", () => {
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(tap().find(".warn").text()).toContain("0.7.0");
+  });
+
+  it("shows a bedside clock and its keys only what they save: no second line (GitHub #93)", async () => {
+    const clock: Tile = { entity: "screen.nightstand", name: "", slot: 0, options: { size: "full" } };
+    const key: Tile = { entity: "light.a", name: "Bed", slot: -1, in: "screen.nightstand", key: 0 };
+    appendTiles(clock, key);
+    for (const tile of [clock, key]) {
+      const panel = mount(TileInspector, { props: { tile: current(tile)! } });
+      expect(panel.text(), tile.entity).not.toContain("Second line");
+      // Firmware 0.4.0 draws every key's name: the switch that hides it waits for 0.17.0.
+      expect(panel.find(".key-name-choice").exists()).toBe(false);
+      expect(panel.find("#tile-name").exists()).toBe(true);
+      for (const button of panel.findAll(".seg button")) {
+        if (button.attributes("disabled") !== undefined) continue;
+        state.toast = null;
+        await button.trigger("click");
+        expect(state.toast, `${tile.entity}: "${button.text()}"`).toBeNull();
+        expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+      }
+      panel.unmount();
+    }
+  });
+
+  it("hides a key's name from firmware 0.17.0, and saves it", async () => {
+    const clock: Tile = { entity: "screen.nightstand", name: "", slot: 0, options: { size: "full" } };
+    const key: Tile = { entity: "light.a", name: "Bed", slot: -1, in: "screen.nightstand", key: 0 };
+    appendTiles(clock, key);
+    state.inventory.screens[0].firmware = "0.17.0";
+    const panel = mount(TileInspector, { props: { tile: current(key)! } });
+    const choice = panel.find(".key-name-choice");
+    expect(choice.exists()).toBe(true);
+    openTile(current(key)!);
+    const id = current(key)!.id;
+    await choice.find("[role=switch]").trigger("click");
+    expect(current(key)!.options?.overlay).toBe("none");
+    // The key stays open in the panel: the same tile, still chosen.
+    expect(current(key)!.id).toBe(id);
+    expect(state.inspector?.kind).toBe("tile");
+    expect(isSelected(current(key)!)).toBe(true);
+    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+    const child = state.document!.pages.flatMap((page) => page.tiles).flatMap((tile) => tile.children || [])[0];
+    expect(child.appearance).toEqual({ label: "Bed", overlay: "none" });
+    panel.unmount();
   });
 
   const kinds: Tile[] = [

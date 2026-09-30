@@ -68,7 +68,7 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="page" :class="{ carried }" :style="deviceStyle" :data-page-id="owned?.id">
+  <div class="page" :class="{ carried, refused: state.drag.refused === page }" :style="deviceStyle" :data-page-id="owned?.id">
     <div v-if="!preview" class="page-head" :class="{ selected: state.selectedPageId === owned?.id && state.inspector?.kind === 'page' }">
       <button v-if="movable" type="button" class="grab" :data-page="page" v-drag="{ kind: 'page', page }"
         :title="t('editor.page.move_title')" :aria-label="t('editor.page.move_aria', { page: page + 1 })" @keydown="onKey">
