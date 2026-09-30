@@ -104,8 +104,10 @@ class CameraBoxes(unittest.TestCase):
                     self.assertNotIn('camera', entry['orientations'][way], f'{board} {way}')
                 self.assertNotIn(board, camera_feed.BOXES, board)
                 continue
-            stated = {'full': [int(values['CAMERA_FULL_W']), int(values['CAMERA_FULL_H'])],
-                      'thumb': entry['orientations']['landscape']['camera']['thumb']}
+            stated = {'full': [int(values['CAMERA_FULL_W']), int(values['CAMERA_FULL_H'])]}
+            thumb = entry['orientations']['landscape']['camera'].get('thumb')
+            if thumb:
+                stated['thumb'] = thumb
             self.assertEqual(entry['camera'], stated, board)
             self.assertEqual(entry['orientations']['landscape']['camera'], stated, board)
             self.assertEqual(camera_feed.BOXES[board], {view: tuple(box) for view, box in stated.items()}, board)
@@ -129,6 +131,9 @@ class CameraBoxes(unittest.TestCase):
                 continue
             for way in core.ORIENTATIONS:
                 side = entry['orientations'][way]
+                if 'thumb' not in side['camera']:
+                    self.assertIsNone(camera_feed.box({'board': board, 'orientation': way}, 'thumb'))
+                    continue
                 thumb_w, thumb_h = side['camera']['thumb']
                 self.assertGreater(thumb_w, 0, f'{board} {way}')
                 self.assertLessEqual(thumb_w, side['width'] - 2 * 14, f'{board} {way}: the still is wider than its card')
