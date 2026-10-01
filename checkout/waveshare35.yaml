@@ -7,6 +7,7 @@
 # components of this checkout, and the secrets (api_encryption_key, ota_password, Wi-Fi) from checkout/secrets.yaml.
 substitutions:
   FONT_DIR: "../fonts"
+  COMPONENTS_DIR: "../components"
 
 packages:
   core: !include ../packages/core.yaml
@@ -15,7 +16,7 @@ packages:
 external_components:
   - source:
       type: local
-      path: ../components
+      path: ${COMPONENTS_DIR}
     components: [smart_display]
 
 api:
