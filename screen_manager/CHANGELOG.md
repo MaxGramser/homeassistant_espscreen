@@ -1,3 +1,9 @@
+## 0.4.38 (firmware 0.21.1 for waveshare35)
+
+- **Waveshare ESP32-S3-Touch-LCD-3.5: fixed colours and PSRAM.** Colours were their RGB complement (orange showed as
+  blue, purple as green); `invert_colors: true` fixes it, confirmed on real hardware. PSRAM now runs in octal mode at
+  80MHz. Only waveshare35 screens are offered this update.
+
 ## 0.4.37 (firmware 0.21.0)
 
 - **The editor on a phone** (#124). On a narrow window the library stood in the middle of the page with the pages

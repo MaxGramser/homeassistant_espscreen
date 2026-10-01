@@ -886,7 +886,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.21.0",
+  "firmware": "0.21.1",
   "fonts": {
    "icon_mini": 25,
    "label": 17,
@@ -2932,7 +2932,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.21.0",
+  "firmware": "0.21.1",
   "fonts": {
    "icon_mini": 25,
    "label": 17,
@@ -3418,7 +3418,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.21.0",
+  "firmware": "0.21.1",
   "fonts": {
    "icon_mini": 25,
    "label": 17,
