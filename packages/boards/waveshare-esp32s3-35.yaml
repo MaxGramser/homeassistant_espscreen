@@ -1,8 +1,7 @@
 # ESP Screens - waveshare35: a 3.5-inch 480 x 320 panel (ST7796 over SPI, ESPHome's mipi_spi component) with
-# FT6336 capacitive touch over I2C, an ESP32-S3 with 16MB flash. PSRAM is embedded but stays disabled: enabling
-# it (any mode/speed) hangs the boot silently right after the bootloader, no panic or brownout message - not
-# fully root-caused, but disabling it entirely is sufficient and is the confirmed working config. A TCA9554 I2C
-# expander drives the display's reset (EXIO1) and CS (EXIO2) lines; no other on-board chips (RTC, IMU) are used.
+# FT6336 capacitive touch over I2C, an ESP32-S3 with 16MB flash and embedded PSRAM, enabled in octal mode at
+# 80MHz - confirmed working on real hardware. A TCA9554 I2C expander drives the display's reset (EXIO1) and
+# CS (EXIO2) lines; no other on-board chips (RTC, IMU) are used.
 packages:
   build: !include ../hardware/esp-idf.yaml
   cells: !include ../cells/4.yaml
@@ -28,7 +27,7 @@ substitutions:
   GRID_ROWS: "2"
   GRID_COLS_PORTRAIT: "1"
   GRID_ROWS_PORTRAIT: "3"
-  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen; no PSRAM to spare
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen; unchanged since PSRAM was enabled
 
   # TOUCH_SWAP_XY/MIRROR_X/MIRROR_Y not overridden: this panel's FT6336 needs none of packages/core.yaml's
   # "false" defaults changed, confirmed by logging raw touch.x/y at ROTATION_LANDSCAPE=0 against known tap
@@ -45,6 +44,10 @@ esp32:
   variant: esp32s3
   flash_size: 16MB
   cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 80MHz
 
 # One SPI bus (display only), one I2C bus (touch + the LCD reset/CS GPIO expander). No relay outputs.
 spi:
@@ -90,7 +93,7 @@ display:
     spi_id: lcd
     dimensions: {width: 320, height: 480}
     color_order: bgr   # confirmed on real hardware; rgb was the wrong initial guess
-    invert_colors: false
+    invert_colors: true   # confirmed on real hardware: without this, orange renders as blue and purple as green (RGB complement)
     dc_pin: GPIO3   # ESPHome flags this as a strapping pin; confirmed harmless in practice on this board
     cs_pin:   # via the expander, not grounded - confirmed on real hardware
       pca9554: io_expander
