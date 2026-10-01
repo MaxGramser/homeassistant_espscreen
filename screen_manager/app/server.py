@@ -48,6 +48,7 @@ import page_delivery
 import page_service
 import preview_images
 import preview_events
+import live_events
 from page_capabilities import CapabilityCache, identity as page_identity
 
 
@@ -2958,30 +2959,23 @@ def create_app(manager, development=False):
         manager.notify()
         return web.json_response(workspace)
     async def events(request):
-        """Server-sent events: pushes the light inventory whenever it changes, so the page need not poll."""
-        response = web.StreamResponse(headers={'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store',
-                                               'X-Accel-Buffering': 'no', 'X-Content-Type-Options': 'nosniff'})
-        await response.prepare(request)
-        wake, sent = asyncio.Event(), None
-        wake.set()  # first event goes out right away
-        manager.listeners.add(wake)
-        try:
-            while True:
-                # Sync results are pushed at once; updater phases are picked up by the 3 s check.
-                with contextlib.suppress(TimeoutError):
-                    await asyncio.wait_for(wake.wait(), 3)
-                wake.clear()
-                body = json.dumps(light_payload(), ensure_ascii=False)
-                if body != sent:
-                    await response.write(f'data: {body}\n\n'.encode())
+        """Push the light inventory without occupying the browser's HTTP request pool."""
+        async def updates():
+            wake, sent = asyncio.Event(), None
+            wake.set()
+            manager.listeners.add(wake)
+            try:
+                while True:
+                    # Sync results go out at once; updater phases are checked every 3 s.
+                    with contextlib.suppress(TimeoutError):
+                        await asyncio.wait_for(wake.wait(), 3)
+                    wake.clear()
+                    body = json.dumps(light_payload(), ensure_ascii=False)
+                    yield body if body != sent else None
                     sent = body
-                else:
-                    await response.write(b': keepalive\n\n')
-        except (ConnectionResetError, asyncio.CancelledError):
-            pass
-        finally:
-            manager.listeners.discard(wake)
-        return response
+            finally:
+                manager.listeners.discard(wake)
+        return await live_events.serve(request, updates())
     async def save(request):
         data = await request.json()
         inbox = manager.aliases.get(request.match_info['inbox'], request.match_info['inbox'])

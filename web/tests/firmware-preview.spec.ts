@@ -118,11 +118,12 @@ describe("Firmware preview transport", () => {
   });
 
   it('receives delayed track metadata from HA events without waiting for the poll or resetting the page', async () => {
-    const streams: { url: string; onmessage: (() => void) | null; close: ReturnType<typeof vi.fn> }[] = [];
-    vi.stubGlobal('EventSource', class {
+    const streams: { url: string; onmessage: ((event: { data: string }) => void) | null; close: ReturnType<typeof vi.fn> }[] = [];
+    vi.stubGlobal('WebSocket', class {
       onmessage = null;
       close = vi.fn();
-      constructor(public url: string) { streams.push(this); }
+      url: string;
+      constructor(url: URL) { this.url = url.href; streams.push(this); }
     });
     state.document = { title: 'Music', pages: [{ tiles: [{ content: { kind: 'entity', entityId: 'media_player.test' } }],
       topbar: { trailing: [{ type: 'entity', entity: 'sensor.temperature' }] } }] } as any;
@@ -131,11 +132,11 @@ describe("Firmware preview transport", () => {
       { op: 'state', i: 0, state: 'playing', a: { media_title: track }, x: { pic: track } },
     ] }) as any);
     await preview();
-    expect(streams[0].url).toBe('api/firmware-preview/events?entity=media_player.test&entity=sensor.temperature');
+    expect(streams[0].url).toMatch(/^ws:\/\/.*\/api\/firmware-preview\/events\?entity=media_player.test&entity=sensor.temperature$/);
     // The command has returned while HA still has the old metadata. Its later
     // state_changed event must reach the native decoder with title and picture.
     track = 'Next track';
-    streams[0].onmessage!(); streams[0].onmessage!();
+    streams[0].onmessage!({ data: '{}' }); streams[0].onmessage!({ data: '{}' });
     await vi.advanceTimersByTimeAsync(100);
     const packets = firmware.ccall.mock.calls.filter(([name]) => name === 'preview_receive')
       .map(([, , , args]) => JSON.parse(String(args?.[0])));
