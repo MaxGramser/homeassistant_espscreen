@@ -7,6 +7,12 @@
 - Audio validation before rebasing onto upstream 0.4.55: all 19 software check groups pass (1,125 Python tests and 38 C++ tests). ESPHome 2026.9.0 builds P4 modes `off`, `hardware` and `test`, using respectively 3,031,190, 3,113,752 and 3,553,160 bytes of the 16,515,072-byte OTA slot. The audio extension uses a pinned public ES7210 component; no local driver files are needed. The integrated audio build was tested successfully on a physical revision 1.3 panel.
 - New screen lists boards with different chips or resolutions separately, so the 720 × 720 P4 is not presented as the 480 × 480 S3. Revisions with matching hardware stay grouped.
 - Board validation before rebasing onto upstream 0.4.55: ESPHome 2026.9.0 builds the new profile and its override fixture. The base OTA image uses 3,031,536 of 16,515,072 bytes (18.4%). The host renderer passes three pages and 51 page checks; installation on a physical revision 1.3 panel passed, with tiles, touch and brightness confirmed working.
+- Add an optional browser voice assistant, off by default in the add-on Configuration tab. Configure OpenAI or Claude credentials, voice, silence timeout and reply speaker in the editor. Saved credentials stay in private add-on data.
+- OpenAI uses native Realtime audio. Claude uses the selected Home Assistant assistant's speech-to-text and text-to-speech services. Both providers share visible tile names, HA aliases, Assist exposure checks and validated device actions.
+- Support light and switch commands, brightness, media playback and optional Spotify track search. General questions can use web lookup; answer text and source links are collapsed by default.
+- Place voice and tap controls together below the existing firmware preview with matching toggle buttons. Keep the active firmware page and successfully loaded layout as voice context; no tile renderer or physical voice firmware is added.
+- Share local and optional Sonos reply output across providers. Pause microphone input during external replies, restart the configured silence timeout after delivery, and end the conversation after music-start acknowledgements. Sonos completion uses downloaded audio duration plus a margin, since HA does not report exact announcement completion.
+- Include setup documentation, isolated clean-image verification, and automated provider, transport, permission, cancellation and timeout tests. Physical microphones and wake words remain separate work.
 
 ## 0.4.63 (firmware 0.38.0)
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Everything around the screens: firmware updates, language and region, alerts, Claude.
 import { computed, ref } from "vue";
+import VoiceSettings from "./VoiceSettings.vue";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
 import { anyUpdating, autoMarks, go, installClaudeSkill, runUpdateAll, saveLanguage, setAutoUpdate, state, updateProgress } from "../store";
 
@@ -92,6 +93,7 @@ async function useProfile() {
       <button type="button" class="btn quiet" id="close-settings" @click="go('')">{{ t("editor.settings.back") }}</button>
     </div>
     <div class="card-grid">
+      <VoiceSettings />
       <section class="card">
         <h2>{{ t("editor.settings.screens.title") }}</h2>
         <p>{{ t("editor.settings.screens.text") }}</p>

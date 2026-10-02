@@ -9,13 +9,20 @@ import { state } from "../store";
 import { t } from "../i18n";
 import { api, send } from "../api";
 import type { PageLayout } from "../types";
+import VoicePreview from "./VoicePreview.vue";
 
 const props = withDefaults(defineProps<{
   width: number; height: number; dpi?: number; columns: number; rows: number;
-  layout?: PageLayout | null; still?: boolean; controls?: boolean;
+  layout?: PageLayout | null; still?: boolean; controls?: boolean; voiceToolsTarget?: HTMLElement;
 }>(), { still: false, controls: true });
 const emit = defineEmits<{ ready: []; failed: [message: string] }>();
 const canvas = ref<HTMLCanvasElement | null>(null);
+const voice = ref<InstanceType<typeof VoicePreview> | null>(null);
+let renderedLayout: PageLayout | null = null, visiblePage = -1;
+function voicePanel() {
+  if (!module || !renderedLayout || error.value) throw new Error('Wait for the firmware preview to load.');
+  return { shape: { columns: props.columns, rows: props.rows }, layout: renderedLayout, page: module._preview_page() };
+}
 const error = ref("");
 const actionError = ref("");
 let module: FirmwarePreviewModule | null = null;
@@ -46,8 +53,9 @@ function fail(message: string) {
 }
 
 async function receive() {
-  const document = layout();
-  if (!module || disposed || !document) return;
+  const current = layout();
+  if (!module || disposed || !current) return;
+  const document = JSON.parse(JSON.stringify(current)) as PageLayout;
   const revision = ++generation;
   clearTimeout(refreshTimer);
   try {
@@ -78,8 +86,11 @@ async function receive() {
       lastMessages.set(key, text);
     }
     deliver({ op: 'ping' });
+    const changed = JSON.stringify(renderedLayout) !== JSON.stringify(document);
+    renderedLayout = document;
     error.value = "";
     synced = true;
+    if (changed) void voice.value?.refreshContext();
   } catch (e) {
     if (!disposed && revision === generation) fail(e instanceof Error ? e.message : String(e));
   } finally {
@@ -96,6 +107,8 @@ function draw() {
       lastDraw = now;
       time();
       module._preview_render();
+      const page = module._preview_page();
+      if (page !== visiblePage) { visiblePage = page; void voice.value?.refreshContext(); }
       void sendActions();
       void fetchImages();
       const start = module._preview_frame();
@@ -258,6 +271,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <VoicePreview v-if="!still" ref="voice" :panel="voicePanel" :target="voiceToolsTarget" @action="refreshLiveState" />
   <div class="firmware-preview" :class="{ still }" :style="{ aspectRatio: `${width} / ${height}` }">
     <canvas ref="canvas" :width="width" :height="height" :aria-label="t('editor.preview.canvas')"
       @pointerdown.prevent="contact" @pointermove="contact" @pointerup="contact" @pointercancel="cancel" @lostpointercapture="cancel"></canvas>

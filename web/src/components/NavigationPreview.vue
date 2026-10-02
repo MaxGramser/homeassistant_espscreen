@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The layout being edited, as the screen shows it: the firmware itself where the preview knows the board, else the
-// editor's mockup with its page links. Nothing is saved; a tile reaches Home Assistant only when the switch says so.
+// editor's mockup with its page links. Nothing is saved; a tile reaches Home Assistant only when its control button is enabled.
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { t } from '../i18n';
 import { entriesOf } from '../model/layout';
@@ -10,9 +10,10 @@ import { currentScreen, navigationSettings, state } from '../store';
 import DevicePage from './DevicePage.vue';
 import FirmwarePreview from './FirmwarePreview.vue';
 import Icon from './ui/Icon.vue';
-import SwitchRow from './ui/SwitchRow.vue';
+import HelpTip from './HelpTip.vue';
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
+const voiceTools = ref<HTMLElement>();
 const live = computed(() => currentScreen.value ? previewShapeOf(currentScreen.value, state.documentGrid) : null);
 const failed = ref(false);
 const controls = ref(false);
@@ -53,9 +54,17 @@ onBeforeUnmount(() => previouslyFocused?.focus());
       <p>{{ t('editor.preview.hint') }}</p>
       <div class="preview-live" :style="{ width: liveWidth }">
         <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows"
-          :layout="state.document" :controls="controls" @failed="failed = true" />
+          :layout="state.document" :controls="controls" :voice-tools-target="voiceTools" @failed="failed = true" />
       </div>
-      <SwitchRow v-model="controls" class="preview-controls" :label="t('editor.preview.control')" :description="t('editor.preview.control_hint')" />
+      <div class="preview-footer">
+        <div ref="voiceTools" class="preview-voice"></div>
+        <div class="tool-group preview-controls">
+          <button type="button" class="btn" :class="{ primary: controls }" :aria-pressed="controls" @click="controls = !controls">
+            <Icon v-if="controls" name="check" />{{ t('editor.preview.control') }}
+          </button>
+          <HelpTip :text="t('editor.preview.control_hint')" />
+        </div>
+      </div>
     </template>
     <template v-else>
       <p>{{ t('editor.pages.preview_hint') }}</p>
@@ -81,5 +90,6 @@ p { max-width: 480px; font-size: 13px; color: var(--muted); }
 .navigation-preview.running p { max-width: none; width: 0; min-width: 100%; }
 .preview-route { overflow-wrap: anywhere; }
 .preview-live { margin: 16px auto; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(20, 24, 40, 0.18); }
-.preview-controls { max-width: 420px; }
+.preview-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.preview-voice { min-width: 0; }
 </style>
