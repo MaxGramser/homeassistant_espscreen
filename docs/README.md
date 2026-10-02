@@ -20,6 +20,7 @@
 - [JC8012P4A1.md](JC8012P4A1.md): the Guition JC8012P4A1, 10.1 inch, ESP32-P4, with its V2 and V3.
 - [WAVESHARE35.md](WAVESHARE35.md): the Waveshare ESP32-S3-Touch-LCD-3.5.
 - [WAVESHARE4B.md](WAVESHARE4B.md): the Waveshare ESP32-S3-Touch-LCD-4B.
+- [WAVESHAREP4.md](WAVESHAREP4.md): the Waveshare ESP32-P4-86-Panel-ETH-2RO, 4 inch, 720 × 720, using Wi-Fi.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.

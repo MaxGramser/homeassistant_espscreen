@@ -1,3 +1,12 @@
+## 0.4.64 (firmware 0.38.0)
+
+- Add the experimental Waveshare ESP32-P4-86-Panel-ETH-2RO (`wavesharep4`): a 4-inch, 720 × 720 display with a two-column, three-row grid, GT911 touch, dimmable backlight and ESP32-C6 Wi-Fi. New screen and checkout builds use the same board profile.
+- The profile targets pre-v3 P4 silicon with 32 MB flash and requires ESPHome 2026.9.0 or newer. Ethernet, relays, RS485, microSD and audio are not configured in the base profile. Ethernet support is planned separately.
+- Existing boards keep their firmware version and hardware configuration.
+- New screen lists boards with different chips or resolutions separately, so the 720 × 720 P4 is not presented as the 480 × 480 S3. Revisions with matching hardware stay grouped.
+- Validation: ESPHome 2026.9.0 builds the new profile and its override fixture. The base OTA image uses 3,031,536 of 16,515,072 bytes (18.4%). The host renderer passes three pages and 51 page checks; installation on a physical revision 1.3 panel passed, with tiles, touch and brightness confirmed working.
+- All 19 project check groups pass, including 1,116 Python tests, 35 C++ tests, editor tests and the rebuilt firmware preview.
+
 ## 0.4.63 (firmware 0.38.0)
 
 - **The starting screen says what it is doing, step by step** ([#130](https://github.com/MaxGramser/homeassistant_espscreen/issues/130)).
