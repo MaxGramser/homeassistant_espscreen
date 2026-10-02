@@ -1,0 +1,6 @@
+# Written by tools/new_board.py: the parts every board names the same way (docs/PROFILES.md, "What an override may
+# rely on"), extended the way a screen's Override YAML does it. tools/check.sh --firmware has ESPHome read it on this
+# board. Add the cases people with this board share, one file each.
+light:
+  - id: !extend back_light
+    default_transition_length: 200ms

@@ -28,7 +28,7 @@ const SHAPES = JSON.parse(readFileSync("../screen_manager/app/boards.json", "utf
 const BOARD_CHOICES = Object.fromEntries(Object.entries(SHAPES).filter(([key, shape]: [string, any]) => shape.board === key)
   .map(([key, shape]: [string, any]) => [key, {
     square: shape.width === shape.height, orientations: shape.orientations, width: shape.width, height: shape.height, dpi: shape.dpi,
-    camera: Boolean(shape.camera), dimmable: shape.dimmable ?? true, can_standby: shape.can_standby ?? true, ...shape.catalog,
+    camera: Boolean(shape.camera), dimmable: shape.dimmable ?? true, can_standby: shape.can_standby ?? true, chip: shape.chip, ...shape.catalog,
   }]));
 
 function inventory(): Inventory {
@@ -1185,9 +1185,10 @@ describe("the orientation of a new screen", () => {
   it("lists every board of the catalog in its order, named and described from its data alone", async () => {
     const view = await installer();
     const rows = view.findAll(".board");
-    // One card per screen: the models of one brand and size share it, in the catalog's order (app 0.4.32).
+    // Matching models share a card in catalog order; different chips or resolutions have their own specifications.
     const ordered = Object.entries(boards).sort(([, a]: any, [, b]: any) => a.order - b.order);
-    const firsts = ordered.filter(([, board]: any, index) => ordered.findIndex(([, other]: any) => other.name === board.name && other.inch === board.inch) === index).map(([key]) => key);
+    const firsts = ordered.filter(([, board]: any, index) => ordered.findIndex(([, other]: any) => other.name === board.name && other.inch === board.inch
+      && other.chip === board.chip && other.width === board.width && other.height === board.height) === index).map(([key]) => key);
     expect(rows.map((row) => row.find("input").attributes("value"))).toEqual(firsts);
     expect(rows[0].find("b").text()).toBe("CYD · 2.8 inch");
     expect(rows[0].findAll("small").map((line) => line.text())).toEqual(["320 × 240 · XPT2046", "2 models"]);
@@ -1204,6 +1205,24 @@ describe("the orientation of a new screen", () => {
     expect(view.findAll("#board-abilities li").map((li) => li.text())).toEqual(
       ["No camera pictures", "Dimmable backlight", "Standby and night", "Touch calibration on first start"]);
     expect(view.find("#board-status").exists()).toBe(false);
+  });
+
+  it("offers the Waveshare P4 separately from the S3 and installs the selected P4 profile", async () => {
+    const view = await installer();
+    const card = (key: string) => view.get(`input[name="board"][value="${key}"]`).element.closest("label")!;
+    expect(card("wavesharep4").textContent).toContain("ESP32-P4-86-Panel-ETH-2RO");
+    expect(card("wavesharep4").textContent).toContain("720 × 720");
+    expect(card("wavesharep4").textContent).not.toContain("480 × 480");
+    expect(card("waveshare4b").textContent).toContain("480 × 480");
+    expect(card("wavesharep4")).not.toBe(card("waveshare4b"));
+    await view.get('input[name="board"][value="wavesharep4"]').setValue();
+    await view.get("#setup-next").trigger("click");
+    expect(view.find("#board-model").exists()).toBe(false);
+    expect(view.get(".make-caption").text()).toContain("ESP32-P4-86-Panel-ETH-2RO");
+    await view.get("#friendly_name").setValue("Hall");
+    await view.get("#install-form").trigger("submit");
+    await flush();
+    expect(answers.at(-1).board).toBe("wavesharep4");
   });
 
   it("finds a board by brand, size or what is printed on it, and narrows by size (app 0.4.32)", async () => {

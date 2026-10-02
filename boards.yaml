@@ -143,3 +143,9 @@ waveshare5:
   name: Waveshare
   model: ESP32-S3-Touch-LCD-5
   status: new
+
+wavesharep4:
+  file: wavesharep4.yaml
+  name: Waveshare
+  model: ESP32-P4-86-Panel-ETH-2RO
+  status: experimental

@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Add the experimental Waveshare ESP32-P4-86-Panel-ETH-2RO: 720 × 720, GT911 touch, dimmable backlight and ESP32-C6 Wi-Fi. The base profile targets pre-v3 silicon with 32 MB flash and ESPHome 2026.9.0 or newer. Ethernet and relay configuration are separate follow-ups.
+- New screen lists boards with different chips or resolutions separately, so the P4 is not presented as the 480 × 480 S3. Matching revisions stay grouped.
+
 - **Zoom and move a map full screen.** A map opened full screen has round + and - keys at the bottom right, like the
   volume keys, and four arrows at the bottom left that move it about a centimetre each. The map follows at once and
   sharpens when the new picture comes, with a small spinner at the top right while it is on its way. The keys are

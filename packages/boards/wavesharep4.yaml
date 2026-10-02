@@ -1,0 +1,105 @@
+# ESP Screens - Waveshare ESP32-P4-86-Panel-ETH-2RO, 4-inch 720 x 720 (relay-equipped 86 panel).
+# Pin assignments: Waveshare's ESP32-P4-WIFI6-Touch-LCD-4B schematic, page 1.
+# docs/WAVESHAREP4.md records the hardware and the checks still needed on a new panel.
+packages:
+  hardware: !include ../hardware/esp-idf.yaml
+  cells: !include ../cells/6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  BOARD_ID: "wavesharep4"
+  DEVICE_NAME: "wavesharep4-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare"
+  PANEL_W: "720"
+  PANEL_H: "720"
+  DISPLAY_DPI: "254.558"
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  LVGL_BUFFER_SIZE: "50%"
+
+esphome:
+  min_version: 2026.9.0
+
+esp32:
+  variant: esp32p4
+  flash_size: 32MB
+  # Pre-v3 P4 silicon, identified as revision 1.3 on the first test panel. Revision 3 needs a different build.
+  engineering_sample: true
+  cpu_frequency: 360MHz
+  framework:
+    advanced:
+      execute_from_psram: true
+      # ESPHome requires this ESP-IDF option for OTA partitions on 32 MB flash.
+      enable_idf_experimental_features: true
+    sdkconfig_options:
+      CONFIG_ESP_HOSTED_USE_MEMPOOL: "n"
+      CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM: "y"
+      CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS: "1"
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+esp_ldo:
+  - channel: 3
+    id: dsi_phy_enable
+    voltage: 2.5V
+    adjustable: true
+
+# The ESP32-C6 provides Wi-Fi over SDIO. These are the P4-side pins in the schematic.
+esp32_hosted:
+  variant: esp32c6
+  reset_pin: GPIO54
+  active_high: true
+  cmd_pin: GPIO19
+  clk_pin: GPIO18
+  d0_pin: GPIO14
+  d1_pin: GPIO15
+  d2_pin: GPIO16
+  d3_pin: GPIO17
+  sdio_frequency: 40MHz
+
+logger:
+  tx_buffer_size: 2048
+  hardware_uart: UART0
+
+i2c:
+  id: touch_bus
+  sda: GPIO7
+  scl: GPIO8
+  frequency: 400kHz
+  sda_pullup_enabled: false
+  scl_pullup_enabled: false
+  scan: true
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    reset_pin: GPIO23
+    # TP_INT ends at a test point, so read the controller by polling.
+    update_interval: 20ms
+
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO26
+    frequency: 100Hz
+    inverted: true
+    # Conservative initial maximum, as used by the community firmware linked by Waveshare.
+    max_power: 0.8
+
+# ESPHome owns the ST7703 init sequence and timings. BL_EN powers the backlight boost; GPIO26 sets its brightness.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: WAVESHARE-P4-86-PANEL
+    enable_pin: GPIO33
+    update_interval: never
+    auto_clear_enabled: false

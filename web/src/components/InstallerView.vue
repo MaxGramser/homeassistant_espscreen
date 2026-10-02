@@ -310,11 +310,10 @@ const shownBoards = computed(() => {
   return boardRows.value.filter((board) => (!size.value || sizeOf(board.inch) === size.value) && words.every((word) =>
     `${boardTitle(board)} ${board.name} ${board.model} ${board.inch} ${board.touch} ${board.chip || ""} ${board.key}`.toLocaleLowerCase().includes(word.replace(/inch$/, ""))));
 });
-// One card per screen someone would recognise (app 0.4.32): the boards of one brand and size are the same screen in
-// other models (a CYD with another display controller, a V2 or V3 of a Guition), chosen in the next step by what is
-// printed on it. The list keeps growing; this keeps the gallery one card per screen.
+// Keep variants together only when brand, glass size, chip and resolution match. A board with a different chip or
+// resolution gets its own card and specifications; display-controller variants and board revisions stay in Model.
 type Row = (typeof boardRows.value)[number];
-const familyKey = (board: { name: string; inch: number }) => `${board.name}|${board.inch}`;
+const familyKey = (board: BoardChoice) => JSON.stringify([board.name, board.inch, board.chip || "", board.width, board.height]);
 const families = computed(() => {
   const found = new Map<string, Row[]>();
   for (const board of shownBoards.value) found.set(familyKey(board), [...(found.get(familyKey(board)) || []), board]);
