@@ -1,0 +1,457 @@
+smart_display:
+  audio_tests: true
+
+font:
+  - id: !extend materialdesign_icons_mini
+    glyphs:
+      - "\U000F036C" # microphone, only diagnostic builds need this settings glyph
+
+# Optional, local audio acceptance tests. The board supplies panel_microphone (stereo S16LE, 16 kHz),
+# panel_speaker (mono S16LE, 16 kHz) and panel_audio_amp. No assistant, audio upload or HA actions.
+# Tests are explicitly started from the panel or HA buttons. Microphone: five seconds then local playback.
+# Wake word: at most 30 seconds. Only meters/results reach HA; recording stays in PSRAM.
+globals:
+  - id: audio_test_kind
+    type: int
+    initial_value: '0'
+  - id: audio_test_wake_selection
+    type: int32_t
+    restore_value: true
+    initial_value: '0'
+  - id: audio_test_capture
+    type: audio_test::Capture
+    restore_value: false
+  - id: audio_test_play_offset
+    type: size_t
+    initial_value: '0'
+  - id: audio_test_play_started
+    type: uint32_t
+    initial_value: '0'
+  - id: audio_test_result
+    type: int
+    initial_value: '0'
+  # on_data runs on the audio task. Atomics hand measurements to main-loop sensors safely.
+  - id: audio_test_peaks
+    type: std::atomic<uint32_t>
+    restore_value: false
+  - id: audio_test_frames
+    type: std::atomic<uint32_t>
+    restore_value: false
+  - id: audio_test_manual_capture
+    type: bool
+    initial_value: 'false'
+  - id: audio_test_wakes
+    type: uint32_t
+    initial_value: '0'
+  - id: audio_test_wake_start
+    type: uint32_t
+    initial_value: '0'
+
+microphone:
+  - id: !extend panel_microphone
+    on_data:
+      - lambda: |-
+          id(audio_test_capture).push(x.data(), x.size());
+          uint32_t left = 0, right = 0;
+          for (size_t i = 0; i + 3 < x.size(); i += 4) {
+            const int l = static_cast<int16_t>(uint16_t(x[i]) | (uint16_t(x[i + 1]) << 8));
+            const int r = static_cast<int16_t>(uint16_t(x[i + 2]) | (uint16_t(x[i + 3]) << 8));
+            left = std::max(left, static_cast<uint32_t>(l < 0 ? -l : l));
+            right = std::max(right, static_cast<uint32_t>(r < 0 ? -r : r));
+          }
+          auto previous = id(audio_test_peaks).load();
+          uint32_t next;
+          do {
+            next = std::max(previous & 0xffffU, left) | (std::max(previous >> 16, right) << 16);
+          } while (!id(audio_test_peaks).compare_exchange_weak(previous, next));
+          id(audio_test_frames).fetch_add(x.size() / 4);
+
+micro_wake_word:
+  id: panel_test_wake_word
+  microphone:
+    microphone: panel_microphone
+    channels: 0
+  models:
+    - model: okay_nabu
+      id: audio_wake_okay_nabu
+    - model: hey_jarvis
+      id: audio_wake_hey_jarvis
+    - model: alexa
+      id: audio_wake_alexa
+    - model: hey_mycroft
+      id: audio_wake_hey_mycroft
+  stop_after_detection: false
+  on_wake_word_detected:
+    - lambda: |-
+        id(audio_test_wakes)++;
+        id(audio_test_wake_count).publish_state(id(audio_test_wakes));
+        id(audio_test_last_wake).publish_state(wake_word);
+        id(audio_test_status).publish_state(screen_text::fill(screen_text::txt::audio_heard, "word", wake_word) + " (" +
+            std::to_string(id(audio_test_wakes) - id(audio_test_wake_start)) + ")");
+        ESP_LOGI("audio_test", "Wake word detected: %s", wake_word.c_str());
+
+select:
+  - platform: template
+    id: panel_wake_word_setting
+    name: Wake word
+    entity_category: config
+    options: ["Okay Nabu", "Hey Jarvis", "Alexa", "Hey Mycroft"]
+    lambda: return settings_screen::wake_word_options[settings_screen::wake_word];
+    set_action:
+      - lambda: |-
+          for (size_t i = 0; i < std::size(settings_screen::wake_word_options); ++i)
+            if (x == settings_screen::wake_word_options[i]) settings_screen::set("wake_word", i);
+
+binary_sensor:
+  - platform: template
+    id: audio_test_active
+    name: Audio test active
+    entity_category: diagnostic
+    lambda: return settings_screen::audio_test_running && settings_screen::audio_test_running();
+
+text_sensor:
+  - platform: template
+    id: audio_test_status
+    name: Audio test status
+    entity_category: diagnostic
+    update_interval: never
+    on_value:
+      - lambda: |-
+          id(audio_test_mode).publish_state(x == screen_text::tr(screen_text::txt::audio_idle) ? 0 : id(audio_test_kind));
+      - lambda: settings_screen::refresh();
+  - platform: template
+    id: audio_test_last_wake
+    name: Last test wake word
+    entity_category: diagnostic
+    update_interval: never
+
+sensor:
+  - platform: template
+    id: audio_test_mode
+    name: Audio test mode
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: never
+  - platform: template
+    id: audio_test_left
+    name: Microphone left peak
+    entity_category: diagnostic
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    update_interval: never
+  - platform: template
+    id: audio_test_right
+    name: Microphone right peak
+    entity_category: diagnostic
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    update_interval: never
+  - platform: template
+    id: audio_test_input_rate
+    name: Microphone frames per interval
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: never
+  - platform: template
+    id: audio_test_wake_count
+    name: Test wake word detections
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: never
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          const uint32_t peaks = id(audio_test_peaks).exchange(0);
+          id(audio_test_left).publish_state((peaks & 0xffffU) * (100.0f / 32768.0f));
+          id(audio_test_right).publish_state((peaks >> 16) * (100.0f / 32768.0f));
+          id(audio_test_input_rate).publish_state(id(audio_test_frames).exchange(0));
+          settings_screen::refresh();
+
+script:
+  - id: audio_test_clear_result
+    mode: restart
+    then:
+      - delay: 5s
+      - lambda: |-
+          id(audio_test_kind) = 0;
+          id(audio_test_mode).publish_state(0);
+      - text_sensor.template.publish:
+          id: audio_test_status
+          state: !lambda return screen_text::tr(screen_text::txt::audio_idle);
+
+  - id: audio_test_stop
+    mode: restart
+    then:
+      - lambda: id(audio_test_capture).stop();
+      - script.stop: panel_tap_sound
+      - micro_wake_word.stop: {id: panel_test_wake_word}
+      - if:
+          condition:
+            lambda: return id(audio_test_manual_capture);
+          then:
+            - microphone.stop_capture: panel_microphone
+            - lambda: id(audio_test_manual_capture) = false;
+      - speaker.stop: panel_speaker
+      - switch.turn_off: panel_audio_amp
+      - wait_until:
+          condition:
+            lambda: return id(panel_microphone).is_stopped() && id(panel_speaker).is_stopped() && !id(panel_test_wake_word).is_running();
+          timeout: 3s
+      - lambda: |-
+          // is_stopped is the driver/task barrier: no callback can still be writing into this buffer.
+          if (id(panel_microphone).is_stopped() && id(audio_test_capture).data()) {
+            auto *data = id(audio_test_capture).data();
+            memset(data, 0, audio_test::Capture::MAX_SAMPLES * sizeof(int16_t));
+            esphome::RAMAllocator<int16_t> allocator(esphome::RAMAllocator<int16_t>::ALLOC_EXTERNAL);
+            allocator.deallocate(data, audio_test::Capture::MAX_SAMPLES);
+            id(audio_test_capture).discard();
+          }
+      - text_sensor.template.publish:
+          id: audio_test_status
+          state: !lambda |-
+            if (!id(panel_microphone).is_stopped() || !id(panel_speaker).is_stopped() || id(panel_test_wake_word).is_running())
+              return screen_text::tr(screen_text::txt::audio_stop_failed);
+            switch (id(audio_test_result)) {
+              case 1: return screen_text::tr(screen_text::txt::audio_no_memory);
+              case 2: return screen_text::tr(screen_text::txt::audio_no_audio);
+              case 3: return screen_text::tr(screen_text::txt::audio_speaker_failed);
+              case 4: return screen_text::tr(screen_text::txt::audio_stop_failed);
+              case 5:
+                if (id(audio_test_wakes) == id(audio_test_wake_start)) return screen_text::tr(screen_text::txt::audio_no_wake);
+                return screen_text::fill(screen_text::txt::audio_finished, "word", id(audio_test_last_wake).state) + " (" +
+                    std::to_string(id(audio_test_wakes) - id(audio_test_wake_start)) + ")";
+              default: return screen_text::tr(screen_text::txt::audio_idle);
+            }
+      - if:
+          condition:
+            lambda: return id(audio_test_result) == 5 && id(panel_microphone).is_stopped() && id(panel_speaker).is_stopped() && !id(panel_test_wake_word).is_running();
+          then:
+            - script.execute: audio_test_clear_result
+
+  - id: audio_test_run
+    mode: restart
+    parameters:
+      test: int
+    then:
+      - script.stop: audio_test_clear_result
+      - lambda: |-
+          id(audio_test_kind) = test;
+          id(audio_test_mode).publish_state(test);
+          id(audio_test_result) = 0;
+      - script.execute: audio_test_stop
+      - script.wait: audio_test_stop
+      - if:
+          condition:
+            lambda: return id(panel_microphone).is_stopped() && id(panel_speaker).is_stopped() && !id(panel_test_wake_word).is_running();
+          then:
+            - if:
+                condition:
+                  lambda: return test == 1 && !settings_screen::microphone_mute;
+                then:
+                  - lambda: |-
+                      esphome::RAMAllocator<int16_t> allocator(esphome::RAMAllocator<int16_t>::ALLOC_EXTERNAL);
+                      auto *data = allocator.allocate(audio_test::Capture::MAX_SAMPLES);
+                      if (data) id(audio_test_capture).begin(data);
+                      else id(audio_test_result) = 1;
+                  - if:
+                      condition:
+                        lambda: return id(audio_test_capture).data() != nullptr;
+                      then:
+                        - lambda: id(audio_test_manual_capture) = true;
+                        - microphone.capture: panel_microphone
+                        - repeat:
+                            count: 5
+                            then:
+                              - text_sensor.template.publish:
+                                  id: audio_test_status
+                                  state: !lambda return screen_text::fill(screen_text::txt::audio_recording, "seconds", 5 - iteration);
+                              - delay: 1s
+                        - lambda: id(audio_test_capture).stop();
+                        - microphone.stop_capture: panel_microphone
+                        - lambda: id(audio_test_manual_capture) = false;
+                        - wait_until:
+                            condition:
+                              lambda: return id(panel_microphone).is_stopped();
+                            timeout: 3s
+                        - if:
+                            condition:
+                              lambda: return id(panel_microphone).is_stopped() && id(audio_test_capture).size() > 0;
+                            then:
+                              - text_sensor.template.publish:
+                                  id: audio_test_status
+                                  state: !lambda return screen_text::tr(screen_text::txt::audio_playing_recording);
+                              # A queued stop can cancel start while the driver still reports stopped.
+                              # Re-request start on subsequent loop checks, bounded by this timeout.
+                              - wait_until:
+                                  condition:
+                                    lambda: |-
+                                      id(panel_speaker).start();
+                                      return id(panel_speaker).is_running();
+                                  timeout: 2s
+                              - if:
+                                  condition:
+                                    speaker.is_playing: panel_speaker
+                                  then:
+                                    - switch.turn_on: panel_audio_amp
+                                    - delay: 50ms
+                                    - lambda: |-
+                                        id(audio_test_play_offset) = 0;
+                                        id(audio_test_play_started) = millis();
+                                    - while:
+                                        condition:
+                                          lambda: return id(audio_test_play_offset) < id(audio_test_capture).size() && millis() - id(audio_test_play_started) < 8000;
+                                        then:
+                                          - lambda: |-
+                                              const size_t offset = id(audio_test_play_offset);
+                                              const size_t bytes = std::min<size_t>(1600, (id(audio_test_capture).size() - offset) * 2);
+                                              // Honour short writes without blocking LVGL; never discard unqueued audio.
+                                              const size_t sent = id(panel_speaker).play(reinterpret_cast<const uint8_t *>(id(audio_test_capture).data() + offset), bytes, 0);
+                                              id(audio_test_play_offset) += sent / 2;
+                                          - delay: 10ms
+                                    - lambda: |-
+                                        if (id(audio_test_play_offset) < id(audio_test_capture).size()) id(audio_test_result) = 3;
+                                    - speaker.finish: panel_speaker
+                                    - wait_until:
+                                        condition:
+                                          speaker.is_stopped: panel_speaker
+                                        timeout: 2s
+                                  else:
+                                    - lambda: id(audio_test_result) = 3;
+                            else:
+                              - lambda: 'id(audio_test_result) = id(panel_microphone).is_stopped() ? 2 : 4;'
+            - if:
+                condition:
+                  lambda: return test == 2;
+                then:
+                  - text_sensor.template.publish:
+                      id: audio_test_status
+                      state: !lambda return screen_text::tr(screen_text::txt::audio_speaker_test);
+                  # A queued stop can cancel start while the driver still reports stopped.
+                  # Re-request start on subsequent loop checks, bounded by this timeout.
+                  - wait_until:
+                      condition:
+                        lambda: |-
+                          id(panel_speaker).start();
+                          return id(panel_speaker).is_running();
+                      timeout: 2s
+                  - if:
+                      condition:
+                        speaker.is_playing: panel_speaker
+                      then:
+                        - switch.turn_on: panel_audio_amp
+                        - delay: 50ms
+                        - speaker.play:
+                            id: panel_speaker
+                            data: !lambda |-
+                              // 600 ms, 440 Hz, S16LE, about -6 dBFS peak. Fade both ends. The speaker
+                              // applies the selected volume; never override it during a test.
+                              constexpr int samples = 9600;
+                              std::vector<uint8_t> pcm(samples * 2);
+                              for (int i = 0; i < samples; i++) {
+                                const float fade = std::min(1.0f, std::min(i, samples - 1 - i) / 160.0f);
+                                const int16_t sample = static_cast<int16_t>(16000.0f * fade * sinf(i * (2.0f * 3.14159265f * 440.0f / 16000.0f)));
+                                pcm[2 * i] = uint16_t(sample) & 0xff;
+                                pcm[2 * i + 1] = uint16_t(sample) >> 8;
+                              }
+                              return pcm;
+                        - delay: 2s
+                      else:
+                        - lambda: |-
+                            id(audio_test_result) = 3;
+                            ESP_LOGW("audio_test", "Speaker did not start before the test timeout");
+            - if:
+                condition:
+                  lambda: return test == 3 && !settings_screen::microphone_mute;
+                then:
+                  - text_sensor.template.publish:
+                      id: audio_test_status
+                      state: !lambda return screen_text::fill(screen_text::txt::audio_say, "word", settings_screen::wake_word_options[settings_screen::wake_word]);
+                  # Change models only after the previous capture/task has stopped.
+                  - lambda: |-
+                      id(audio_test_wake_start) = id(audio_test_wakes);
+                      id(audio_test_result) = 5;
+                      id(audio_wake_okay_nabu).disable();
+                      id(audio_wake_hey_jarvis).disable();
+                      id(audio_wake_alexa).disable();
+                      id(audio_wake_hey_mycroft).disable();
+                      switch (settings_screen::wake_word) {
+                        case 1: id(audio_wake_hey_jarvis).enable(); break;
+                        case 2: id(audio_wake_alexa).enable(); break;
+                        case 3: id(audio_wake_hey_mycroft).enable(); break;
+                        default: id(audio_wake_okay_nabu).enable(); break;
+                      }
+                  - micro_wake_word.start: {id: panel_test_wake_word}
+                  - delay: 30s
+            - script.execute: audio_test_stop
+            - script.wait: audio_test_stop
+            - if:
+                condition:
+                  lambda: return (test == 1 || test == 3) && settings_screen::microphone_mute;
+                then:
+                  - text_sensor.template.publish:
+                      id: audio_test_status
+                      state: !lambda return screen_text::tr(screen_text::txt::audio_muted);
+
+button:
+  - platform: template
+    name: Test microphone
+    entity_category: diagnostic
+    on_press:
+      - script.execute:
+          id: audio_test_run
+          test: 1
+  - platform: template
+    name: Test speaker
+    entity_category: diagnostic
+    on_press:
+      - script.execute:
+          id: audio_test_run
+          test: 2
+  - platform: template
+    name: Test wake word
+    entity_category: diagnostic
+    on_press:
+      - script.execute:
+          id: audio_test_run
+          test: 3
+  - platform: template
+    name: Stop audio test
+    entity_category: diagnostic
+    on_press:
+      - script.stop: audio_test_run
+      - script.execute: audio_test_stop
+
+substitutions:
+  BOOT_AUDIO_TEST_HOOKS: |-
+    settings_screen::test_audio = [](int test) {
+      if (test == 0) { id(audio_test_run).stop(); id(audio_test_stop).execute(); }
+      else id(audio_test_run).execute(test);
+    };
+    settings_screen::audio_busy = [] {
+      return id(audio_test_run).is_running() || id(audio_test_stop).is_running()
+          || !id(panel_microphone).is_stopped() || !id(panel_speaker).is_stopped()
+          || id(panel_test_wake_word).is_running();
+    };
+    settings_screen::audio_test_running = [] {
+      return id(audio_test_run).is_running() || id(audio_test_stop).is_running();
+    };
+    settings_screen::wake_word = std::clamp<int32_t>(id(audio_test_wake_selection), 0, std::size(settings_screen::wake_word_options) - 1);
+    settings_screen::apply_wake_word = [] {
+      id(audio_test_wake_selection) = settings_screen::wake_word;
+      // A new choice cancels the old test; starting a test is always explicit.
+      if (settings_screen::audio_busy()) { id(audio_test_run).stop(); id(audio_test_stop).execute(); }
+      id(panel_wake_word_setting).publish_state(settings_screen::wake_word_options[settings_screen::wake_word]);
+    };
+    settings_screen::apply_wake_word();
+    settings_screen::audio_test_mode = []() -> int32_t { return id(audio_test_kind); };
+    settings_screen::audio_status = [] {
+      const auto &state = id(audio_test_status).state;
+      return state == screen_text::tr(screen_text::txt::audio_idle) || state == screen_text::tr(screen_text::txt::audio_speaker_test) ? std::string() : state;
+    };
+    id(audio_test_mode).publish_state(0);
+    id(audio_test_status).publish_state(screen_text::tr(screen_text::txt::audio_idle));
+    id(audio_test_wake_count).publish_state(0);
+    id(audio_test_left).publish_state(0);
+    id(audio_test_right).publish_state(0);

@@ -510,7 +510,10 @@ inline bool fresh() { return protocol_problem == ProtocolProblem::none && transf
 // A dropped tap is logged with its reason, so a missed touch can be read from the ESPHome log
 // instead of guessed: moved too far, too short, already used by this contact, or bounce.
 inline bool allowed(uint32_t now, int tile, const std::string &what) {
-  if (screen_input::touch_guard.accept(now, tile)) return true;
+  if (screen_input::touch_guard.accept(now, tile)) {
+    settings_screen::feedback();
+    return true;
+  }
   ESP_LOGI("touch", "tap on %s ignored: %s", what.c_str(), screen_input::touch_guard.reason().c_str());
   return false;
 }
@@ -5801,6 +5804,7 @@ inline void control_event(lv_event_t *e) {
   else if(step){ if(!screen_input::touch_guard.accept_repeat(now,400+slot*16+n)){ESP_LOGI("touch","tap on control %u ignored: %s",(unsigned)slot,screen_input::touch_guard.reason().c_str());return;} }
   else if(!allowed(now,400+slot*16+n,"control "+std::to_string(slot)))return;
   if(!t.available())return;
+  if(step && !held) settings_screen::feedback();
   // A range (firmware 0.19.0): the chip switches the end the -/+ move, heat or cool; the -/+ move that end.
   if(command==tile_controls::RANGE_SWITCH&&tile_controls::climate_range(t)){
     t.range_end=t.range_end==tile_controls::RANGE_HIGH?tile_controls::RANGE_LOW:tile_controls::RANGE_HIGH;

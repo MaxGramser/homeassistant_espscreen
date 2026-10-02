@@ -1216,6 +1216,11 @@ export async function identify(screen: Screen) {
 // Only a screen whose panel is one you calibrate has it, and the add-on says so by the button being on its device
 // in Home Assistant. It asks first: the screen goes to the crosses and stays there until someone standing in front
 // of it has tapped all five, so it is not something to set off by accident from a browser.
+export async function testAudio(screen: Screen, test: string) {
+  try {
+    await send(`screens/${encodeURIComponent(screen.id)}/audio-test`, "POST", { test });
+  } catch (e: any) { toast(e.message); }
+}
 export async function calibrateTouch(screen: Screen) {
   if (!confirm(t("editor.screen_settings.actions.calibrate.confirm", { name: screen.name }))) return;
   try {
@@ -1571,12 +1576,20 @@ export const SETTING_GROUPS = [
     { key: "home_button", kind: "toggle" },
     { key: "rotation", kind: "choice", options: [0, 90, 180, 270] },
   ] },
+  { group: "audio", icon: "F057E", rows: [
+    { key: "microphone_mute", kind: "toggle" },
+    { key: "microphone_alc", kind: "toggle" },
+    { key: "speaker_volume", kind: "number", min: 0, max: 100, step: 5, unit: "%" },
+    { key: "tap_sound", kind: "toggle" },
+    { key: "wake_word", kind: "choice", options: [0, 1, 2, 3] },
+  ] },
 ] as const;
 export type SettingRow = (typeof SETTING_GROUPS)[number]["rows"][number] & { min?: number; max?: number; step?: number; unit?: string; needs?: string; cap?: string; options?: readonly unknown[] };
 export const settingLabel = (row: SettingRow) => t(`editor.screen_settings.rows.${row.key}`);
-// A choice in the same words in every language: the rotation's angle. The clock left this page for Settings → Language
+// Choices with the same text in every language: rotation angles and trained wake-word names. The clock left this page for Settings → Language
 // & region, one choice for every screen (app 0.2.90).
-export const choiceText = (_row: SettingRow, value: unknown) => `${value}°`;
+export const choiceText = (row: SettingRow, value: unknown) => row.key === "wake_word"
+  ? ["Okay Nabu", "Hey Jarvis", "Alexa", "Hey Mycroft"][Number(value)] : `${value}°`;
 // Device navigation settings are separate from the page document. Unknown
 // settings remain permissive for warnings, avoiding a false unreachable report.
 export function navigationSettings(): pages.NavigationSettings {

@@ -81,3 +81,63 @@ Build and host-render checks do not replace testing on the physical panel. Befor
 revision as supported, check cold start, Wi-Fi and API connection, colour order, touch at the
 corners and during a drag, backlight dimming and waking, page navigation and OTA updates.
 Keep the profile experimental until those checks are recorded for that hardware revision.
+
+## Optional audio
+
+Audio is **off by default**. To include it, open the screen's firmware profile in Tessera,
+add one of these choices to **Override YAML**, then build and install that profile:
+
+```yaml
+substitutions:
+  AUDIO_MODE: "test"
+```
+
+| Mode | Included |
+| --- | --- |
+| `off` | Display, touch and Wi-Fi. No codec drivers, audio entities or wake-word models. |
+| `hardware` | ES7210 microphone ADC, ES8311 speaker DAC, I²S audio, saved audio settings and tap sound. |
+| `test` | Hardware plus local speaker, microphone and wake-word tests. |
+
+Use `test` for hardware acceptance. Nothing records or listens for a wake word at startup.
+Voice-assistant sessions and speech transport are separate work, and are not part of these tests.
+Other board profiles do not include these packages.
+
+The codecs share the touch I²C bus: ES7210 at `0x40`, ES8311 at `0x18`.
+Audio uses MCLK GPIO13, BCLK GPIO12, LRCLK GPIO10, microphone input GPIO11, speaker output
+GPIO9 and amplifier enable GPIO53. Connect a speaker suitable for the board to its speaker socket.
+Capture and playback take turns on the same I²S bus; this does not provide full-duplex audio or
+acoustic echo cancellation.
+
+**Settings → Audio** on the panel, its configuration entities in Home Assistant, and
+**Screen settings → Audio** in Tessera all change the same saved values. The editor shows audio
+only when the device actually exposes those entities. Controls include microphone mute,
+automatic gain, speaker volume and tap sound; test mode also offers a wake-word choice.
+The speaker's software volume controls the user percentage, with the ES8311 DAC fixed at unity gain.
+
+- **Test speaker** plays a two-second tone at the selected volume.
+- **Test microphone** records five seconds, shows a countdown in its row, then plays the recording
+  through the connected speaker. The recording stays in PSRAM and is cleared after playback.
+- **Test wake word** listens for at most 30 seconds. Choose Okay Nabu, Hey Jarvis, Alexa or
+  Hey Mycroft first. Detection feedback appears in the test row. These are the standard ESPHome
+  microWakeWord models; the test does not start a voice assistant.
+- **Stop** is available during a test. Muting the microphone stops capture. A new test first
+  stops the previous one; tap sounds never interrupt a test.
+
+The board defaults to 30 dB analogue microphone gain, 0 dB fixed digital gain and automatic
+level control (ALC) enabled with a +12 dB ceiling. These are starting values, not a measured
+recognition-accuracy guarantee. Only the automatic-gain switch is exposed in the UI. For a
+specific installation, the hardware package also accepts YAML substitutions:
+
+```yaml
+substitutions:
+  AUDIO_MODE: "test"
+  AUDIO_MICROPHONE_GAIN: "30dB"
+  AUDIO_FIXED_DIGITAL_GAIN: "0dB"
+  AUDIO_ALC_MAX_GAIN: "12dB"
+```
+
+ALC controls digital gain, independently of analogue microphone gain. Disabling it restores
+`AUDIO_FIXED_DIGITAL_GAIN`. The ES7210 extension is kept outside the panel renderer, as a
+[pinned external component](https://github.com/woozer/esphome/commit/ff380e19d41d0671975a44dd433091b035d45888);
+the ES8311 and I²S components remain standard ESPHome drivers. ESPHome downloads this component
+when an audio mode is selected; no local driver files or separate add-on are required.
