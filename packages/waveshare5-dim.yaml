@@ -1,0 +1,22 @@
+# ESP Screens - the package a Waveshare WAVESHARE5-DIM builds from over GitHub. Written by tools/generate_entries.py
+# from boards.yaml; do not edit.
+#
+# ESP Screen Manager writes every screen's own YAML with `packages: display: {url: <this repository>, files:
+# [packages/waveshare5-dim.yaml]}` and adds the name, the Wi-Fi reference and the unique keys (docs/EASY_SETUP.md); nothing
+# of that lives here. The screen is two packages: core.yaml, which every board shares, and boards/waveshare5-dim.yaml with this
+# board's hardware and sizes (docs/PROFILES.md). checkout/waveshare5-dim.yaml builds the same two from a checkout.
+substitutions:
+  FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/main/fonts"
+
+packages:
+  core: !include core.yaml
+  board: !include boards/waveshare5-dim.yaml
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/MaxGramser/homeassistant_espscreen.git
+      ref: main
+      path: components
+    refresh: 0s
+    components: [smart_display]

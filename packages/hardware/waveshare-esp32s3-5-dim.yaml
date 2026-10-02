@@ -1,0 +1,177 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-5 board
+# Available with 800x480 or 1024x600 pixels 5 inch display
+#
+# This is the hardware definition of a minimal but very useful modificated version which enables dimmable backlight.
+# For this GPIO06 which is originally meant for the RTC interrupt is wired to the PWM pad on the board.
+# This enables full dimmable control of the backlight.
+#
+# What the variants share: 
+# The chip (hardware/esp32s3-rgb.yaml)
+# I2C bus config
+# SDA on GPIO08
+# SDL on GPIO09
+#
+# CH422G expander with
+# IO0 / EXIO0 Digital input DI0
+# IO1 / EXIO1 GT911 Reset/CTP_RST
+# IO2 / EXIO2 Display enable/DISP, does nort work as expected
+# IO3 / EXIO3 Display reset/LCD_RST, is NC on Display so obsolete
+# IO4 / EXIO4 SD Card Slot CS/SDCS
+# IO5 / EXIO5 Digital Input DI1
+# IO6 / EXIO6 NC, not connected
+# IO7 / EXIO7 NC, not connected
+# OC0 / OD0 Digital output DO0
+# OC1 / OD1 Digital output DO1
+# OC2 not connected
+# OC3 not connected
+#
+# GT911 Touch Controller
+# Hooked up interrupt pin on ESP32 GPOI04, allows for polling free operation
+# Reset pin on CH422G IO1 / EXIO1
+#
+# Programming and logging is available via USB-C
+# Board has more facilities for RS485, CAN, RTC, SD Card Slot and battery charging, all not in use here
+packages:
+  chip: !include esp32s3-rgb.yaml
+
+logger:
+  tx_buffer_size: 2048
+  # The USB-C port for logs is the chip's own USB, not a separate UART chip like the Guition has: a log over the
+  # cable only comes out over USB_SERIAL_JTAG. On UART0 the log went to two header pins nobody has connected, so
+  # `esphome logs --device /dev/cu.usbmodem*` stayed empty and a crash left no trace.
+  hardware_uart: USB_SERIAL_JTAG
+
+# The GT911 and the CH422G share the board's only I2C bus.
+i2c:
+  id: touch_bus
+  sda: GPIO8
+  scl: GPIO9
+  scan: false
+  # Maximum the GT911 & PCG85063A support according to their datasheets, CH422G could go up to 1MHz
+  frequency: 400kHz
+
+ch422g:
+  - id: expander
+    i2c_id: touch_bus
+
+output:
+  # Backlight vio GPIO6 wired to pad PWM on board
+  # Below 8% the light begins to flicker
+  - platform: ledc
+    pin: GPIO06
+    id: gpio_backlight_pwm
+    inverted: true
+    min_power: 8%
+    frequency: 2000Hz
+    zero_means_zero: true
+
+# Provide to binary sensors available on the board
+# Pretty usefull to wire up a simple radar movement sensor i.e.
+binary_sensor:
+  - platform: gpio
+    name: Input DI0
+    id: input_di0
+    pin:
+      ch422g: expander
+      number: 0
+      inverted: true
+      mode:
+        input: true
+    filters: 
+      - delayed_on_off: 100ms
+  - platform: gpio
+    name: Input DI1
+    id: input_di1
+    pin:
+      ch422g: expander
+      number: 5
+      inverted: true
+      mode:
+        input: true
+    filters: 
+      - delayed_on_off: 100ms
+
+
+touchscreen:
+  # GT911 Touchscreen controller
+  # Dedicated interrupt line on ESP32 GPIO04 makes polling obsolete
+  # Reset Line/CTP_RST on EXIO1, driven by CH422G expander IO1
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO04
+    reset_pin:
+      ch422g: expander
+      number: 1
+      mode:
+        output: true
+
+# ESPHome's exact 5-inch model supplies the RGB pins and panel timings. 
+# Reset/LCD_RST line is EXIO2 but NC on Display
+# Enable/DISP line is EXIO2 but does not work as expected
+display:
+  - id: my_display
+    platform: mipi_rgb
+    model: WAVESHARE-5-1024X600
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    update_interval: never
+    auto_clear_enabled: false
+
+
+# Pin/manual configuration for reference:
+
+# 1024x600 Variant, covered by ESPHOME model WAVESHARE-5-1024X600
+# Timings below come from Waveshare source code, either seem to work fine
+# display:
+#   - platform: mipi_rgb
+#     model: rpi
+#     id: my_display
+#     auto_clear_enabled: false
+#     update_interval: never
+#     color_order: RGB
+#     pclk_frequency: 21MHz
+#     dimensions:
+#       width: 1024
+#       height: 600
+#     de_pin:
+#       number: 5
+#     hsync_pin:
+#       number: 46
+#       ignore_strapping_warning: true
+#     vsync_pin:
+#       number: 3
+#       ignore_strapping_warning: true
+#     pclk_pin: 7
+#     pclk_inverted: true
+#     hsync_back_porch: 160
+#     hsync_front_porch: 160
+#     hsync_pulse_width: 24
+#     vsync_back_porch: 23
+#     vsync_front_porch: 12
+#     vsync_pulse_width: 2
+#     data_pins:
+#       red:
+#         - 1         #r3
+#         - 2         #r4
+#         - 42        #r5
+#         - 41        #r6
+#         - 40        #r7
+#       blue:
+#         - 14        #b3
+#         - 38        #b4
+#         - 18        #b5
+#         - 17        #b6
+#         - 10        #b7
+#       green:
+#         - 39        #g2
+#         - 0         #g3
+#         - 45        #g4
+#         - 48        #g5
+#         - 47        #g6
+#         - 21        #g7
+
+# 800x480 Variant, shares the same pin configuration, timing unknown/untested
+
