@@ -20,26 +20,24 @@ Both combine `packages/core.yaml` with `packages/boards/waveshare-esp32s3-35.yam
 
 - Landscape: 480 x 320, two columns of two cells. Portrait: 320 x 480, one column of three cells.
 - Standard look at 165 dpi, following the existing physical size rules.
-- No camera package: the board's PSRAM stays disabled (see "PSRAM stays off" below), so camera tiles,
-  snapshots and media artwork are not included, the same as the CYD.
+- No camera package: camera tiles, snapshots and media artwork aren't included on this board yet. This is
+  no longer a PSRAM limitation (see "PSRAM" below) - the package simply hasn't been added.
 - FT6336 reports pixel coordinates, with no resistive calibration. The touch transform (`TOUCH_SWAP_XY`,
   `TOUCH_MIRROR_X`, `TOUCH_MIRROR_Y`) needs none of `packages/core.yaml`'s `false` defaults changed,
   confirmed on real hardware, see "Testing touch" below.
 - The backlight is a direct PWM GPIO (no I2C expander involved): dimming, standby, night mode and the
   alert's flashes all work as on the Guition.
-- LVGL uses a 12% draw buffer, since there's no PSRAM to spare.
+- LVGL uses a 12% draw buffer in internal RAM, unchanged since PSRAM was enabled: there's no current need
+  to grow it or move it into PSRAM.
 
-## PSRAM stays off
+## PSRAM
 
-The board has 8 MB of embedded PSRAM, but the profile disables it entirely. Enabling it, in any mode and at
-any SPI speed, hangs the boot silently right after the bootloader's last line, before any ESPHome log
-output; no panic, no brownout message. Lowering the PSRAM clock and disabling `execute_from_psram` had
-no effect, which pointed at something earlier than PSRAM SPI traffic itself (cache/MMU setup during
-octal PSRAM init), not a signal-timing issue. Removing the `psram:` block entirely was sufficient and
-is the confirmed working configuration; this hasn't been root-caused further since it wasn't needed to
-get a working unit. Worth trying `mode: quad` before `octal` if a future change (e.g. adding the camera
-package) makes LVGL buffer allocation actually fail at runtime. The 12% buffer currently fits
-comfortably in internal RAM.
+The board's 8 MB of embedded PSRAM is enabled, in octal mode at 80MHz, and is confirmed working on real
+hardware (firmware 0.21.1). An earlier revision of this profile shipped with PSRAM disabled entirely:
+enabling it in any mode or at any SPI speed hung the boot silently right after the bootloader's last
+line, before any ESPHome log output, with no panic or brownout message. That issue is no longer present
+with the current configuration below; it was not root-caused beyond that, since the fix (enabling octal
+mode at 80MHz as configured) was sufficient to get a stable, working unit.
 
 ## Testing touch
 
@@ -81,6 +79,6 @@ board file overrides none of them.
 3. Physical taps near each corner, slider drags and edge swipes, in both orientations.
 4. Brightness, standby after the timeout and wake by touch, and night mode, several times in a row.
 5. A full page of tiles, opening and closing the settings and detail cards, and the quarter/half-turn setting.
-6. Free internal heap with a full layout, any reset or I2C errors, and how long the screen stayed running.
+6. Free internal heap and free PSRAM with a full layout, any reset or I2C errors, and how long the screen stayed running.
 
 Do not publish Wi-Fi passwords or API/OTA keys with logs.
