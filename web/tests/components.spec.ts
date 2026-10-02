@@ -1598,3 +1598,42 @@ describe("a favourite from a pasted link (app 0.4.84)", () => {
     expect(picker.emitted("pick")).toEqual([[favorite]]);
   });
 });
+
+describe("Optional audio settings", () => {
+  function audioView(diagnostics = { active: "off", mode: "0", status: "Idle" }) {
+    state.settingPending = false;
+    state.inventory.screens[0].settings = {
+      owner: "screen", keys: ["speaker_volume", "microphone_mute", "microphone_alc", "tap_sound", "wake_word"],
+      values: { speaker_volume: 25, microphone_mute: false, microphone_alc: true, tap_sound: false, wake_word: 0 },
+      unavailable: [], audio_tests: ["speaker", "microphone", "wake_word", "stop"], audio_diagnostics: diagnostics,
+    };
+    return mount(SettingsTab);
+  }
+  it("omits idle status and offers audio only with device entities", () => {
+    const view = audioView();
+    expect(view.find('[data-audio-test="speaker"]').text()).toContain("Test speaker");
+    expect(view.find('[data-audio-test="stop"]').exists()).toBe(false);
+    expect(view.text()).not.toContain("Idle");
+    expect(view.find('[data-setting="microphone_gain"]').exists()).toBe(false);
+    view.unmount();
+    state.inventory.screens[0].settings = { owner: "screen", keys: [], values: {}, unavailable: [] };
+    expect(mount(SettingsTab).find('[data-audio-test]').exists()).toBe(false);
+  });
+  it("puts the countdown in the active button and offers Stop", () => {
+    const view = audioView({ active: "on", mode: "1", status: "Recording (4s)" });
+    const mic = view.get('[data-audio-test="microphone"]');
+    expect(mic.text()).toContain("Recording (4s)");
+    expect(mic.classes()).toContain("primary");
+    expect(view.get('[data-audio-test="stop"]').attributes("disabled")).toBeUndefined();
+    expect(view.get('[data-audio-test="speaker"]').attributes("disabled")).toBeDefined();
+    expect(view.get('[data-audio-test="speaker"]').text()).not.toContain("Recording");
+  });
+  it("routes a test to the selected screen", async () => {
+    const fetch = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })));
+    vi.stubGlobal("fetch", fetch);
+    const view = audioView();
+    await view.get('[data-audio-test="microphone"]').trigger("click");
+    await flushPromises();
+    expect(fetch).toHaveBeenCalledWith("api/screens/living/audio-test", expect.objectContaining({ method: "POST", body: JSON.stringify({ test: "microphone" }) }));
+  });
+});

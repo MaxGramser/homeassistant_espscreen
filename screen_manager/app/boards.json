@@ -1728,7 +1728,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.32.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -4445,7 +4445,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.32.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -5300,7 +5300,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.32.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,

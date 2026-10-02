@@ -186,7 +186,17 @@
       "hours": "{n} godz.",
       "hours_minutes": "{h} godz. {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Dźwięk",
+      "microphone_mute": "Wycisz mikrofon",
+      "microphone_alc": "Automatyczne wzmocnienie",
+      "speaker_volume": "Głośność głośnika",
+      "tap_sound": "Dźwięk dotknięcia",
+      "wake_word": "Słowo aktywacji",
+      "test_microphone": "Test mikrofonu",
+      "test_speaker": "Test głośnika",
+      "test_wake_word": "Test słowa aktywacji",
+      "stop_audio_test": "Zatrzymaj test dźwięku"
     },
     "tile": {
       "tap_to_open": "Otwórz",
@@ -548,6 +558,21 @@
       "home": "Dom",
       "other": "Inne",
       "no_power": "Brak czujników mocy w ustawieniach energii Home Assistant"
+    },
+    "audio": {
+      "idle": "Bezczynny",
+      "stop_failed": "Błąd zatrzymania: uruchom ponownie",
+      "no_memory": "Brak pamięci nagrywania",
+      "no_audio": "Brak dźwięku mikrofonu",
+      "speaker_failed": "Test głośnika nieudany",
+      "no_wake": "Nie wykryto hasła",
+      "heard": "Wykryto: {word}",
+      "finished": "Gotowe: {word}",
+      "recording": "Nagrywanie ({seconds}s)",
+      "playing_recording": "Odtwarzanie nagrania",
+      "speaker_test": "Test głośnika",
+      "say": "Powiedz {word} (30s)",
+      "muted": "Mikrofon wyciszony"
     }
   },
   "addon": {
@@ -796,7 +821,8 @@
         "not_allowed": "Home Assistant nie pozwala tej aplikacji zmieniać swoich integracji. Zrób to w samym Home Assistant, w sekcji Ustawienia → Urządzenia oraz usługi.",
         "no_entry": "Home Assistant nie ma tego ekranu jako urządzenia ESPHome.",
         "failed": "Home Assistant tego nie przyjął. W Home Assistant otwórz Ustawienia → Urządzenia oraz usługi → ESPHome, wybierz ten ekran, potem Konfiguruj, i włącz „Zezwalaj urządzeniu na wykonywanie akcji Home Assistant”."
-      }
+      },
+      "audio_test_unavailable": "Test dźwięku jest niedostępny na tym ekranie."
     },
     "status": {
       "first_tiles": "Wybierz pierwsze kafelki",
@@ -1999,7 +2025,8 @@
         "brightness": "Jasność",
         "night": "Noc",
         "screen": "Ekran",
-        "this_screen": "Ten ekran"
+        "this_screen": "Ten ekran",
+        "audio": "Dźwięk"
       },
       "rows": {
         "brightness": "Jasność",
@@ -2019,7 +2046,12 @@
         "swipe_pages": "Przesuwanie stron",
         "page_buttons": "Przyciski stron",
         "home_button": "Pokaż przycisk strony głównej",
-        "rotation": "Obrót"
+        "rotation": "Obrót",
+        "microphone_mute": "Wycisz mikrofon",
+        "microphone_alc": "Automatyczne wzmocnienie",
+        "speaker_volume": "Głośność głośnika",
+        "tap_sound": "Dźwięk dotknięcia",
+        "wake_word": "Słowo aktywacji"
       },
       "actions": {
         "calibrate": {
@@ -2101,6 +2133,14 @@
         "item_look": "Pokazuje",
         "item_hint": "Czarno-biało na wygaszaczu, niezależnie od koloru encji.",
         "items_add_title": "Dodaj do zegara"
+      },
+      "audio_tests": {
+        "test_microphone": "Test mikrofonu",
+        "test_speaker": "Test głośnika",
+        "test_wake_word": "Test słowa aktywacji",
+        "stop_audio_test": "Zatrzymaj test dźwięku",
+        "audio_status": "Stan dźwięku",
+        "hint": "Test mikrofonu nagrywa pięć sekund i odtwarza je na panelu. Zatrzymaj anuluje każdy test dźwięku."
       }
     },
     "update": {

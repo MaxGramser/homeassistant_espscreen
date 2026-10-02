@@ -27,12 +27,26 @@ def _language(value):
     return value
 
 
-CONFIG_SCHEMA = cv.Schema({cv.Optional(CONF_LANGUAGE, default="en"): _language})
+def _audio_options(config):
+    if config["audio_tests"] and not config["audio"]:
+        raise cv.Invalid("audio_tests requires audio hardware")
+    return config
+
+
+CONFIG_SCHEMA = cv.All(cv.Schema({
+    cv.Optional(CONF_LANGUAGE, default="en"): _language,
+    cv.Optional("audio", default=False): cv.boolean,
+    cv.Optional("audio_tests", default=False): cv.boolean,
+}), _audio_options)
 
 
 async def to_code(config):
     wanted = config[CONF_LANGUAGE]
-    language, code = screen_text_gen.definitions(wanted)
+    language, code = screen_text_gen.definitions(wanted, audio=config["audio"], audio_tests=config["audio_tests"])
+    if config["audio"]:
+        cg.add_define("USE_SCREEN_AUDIO")
+    if config["audio_tests"]:
+        cg.add_define("USE_SCREEN_AUDIO_TEST")
     if language != wanted:
         # ESP Screens only writes languages it has; a hand-written one it lacks builds in the nearest it does have.
         _LOGGER.warning("No translation for %s yet; the screen's texts are in %s", wanted, language)

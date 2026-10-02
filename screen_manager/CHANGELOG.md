@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Optional P4 audio adds ES7210 microphone input, ES8311 speaker output, saved volume, microphone mute, automatic gain and tap sounds. Audio is off by default. Hardware and local diagnostic tests are separate build choices; other boards include no audio drivers or wake-word models.
+- The panel and editor share audio settings through ESPHome entities. Tests offer a speaker tone, five-second recording with local playback and a bounded wake-word check, with feedback in the test row. Voice-assistant transport is not included.
+
 - Add the experimental Waveshare ESP32-P4-86-Panel-ETH-2RO: 720 × 720, GT911 touch, dimmable backlight and ESP32-C6 Wi-Fi. The base profile targets pre-v3 silicon with 32 MB flash and ESPHome 2026.9.0 or newer. Ethernet and relay configuration are separate follow-ups.
 - New screen lists boards with different chips or resolutions separately, so the P4 is not presented as the 480 × 480 S3. Matching revisions stay grouped.
 
