@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Shared firmware workspace; always a concrete profile and upload target.
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
 import { go, toast } from "../store";
@@ -12,7 +12,13 @@ const ESPHOME_WEB = "https://web.esphome.io/?dashboard_install";
 const data = ref<any>(null);
 const file = ref("");
 const target = ref("ota");
-const host = ref("");
+// Follow the paired panel's address until the user edits it. Manual targets belong to their profile,
+// including an intentionally cleared field; polling or switching profiles must not overwrite them.
+const manualHosts = reactive<Record<string, string>>({});
+const host = computed({
+  get: () => manualHosts[file.value] ?? data.value?.profiles?.find((p: { file: string; host?: string }) => p.file === file.value)?.host ?? "",
+  set: (value: string) => { manualHosts[file.value] = value; },
+});
 let timer = 0;
 // This computer (browser): reinstall or rescue a screen plugged into the computer this page runs on, for instance one
 // that restarts over and over and so never comes online for Wi-Fi / OTA. The add-on builds, this page writes the image

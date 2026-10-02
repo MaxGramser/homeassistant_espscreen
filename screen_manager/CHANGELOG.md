@@ -1,3 +1,9 @@
+## 0.4.50 (firmware 0.29.0)
+
+- Firmware & USB fills the Wi-Fi / OTA address from the selected screen's known address, using the same profile matching and saved-host fallback as the updater. Profiles without an address or with multiple matching screens keep an empty address field.
+- A manually entered address stays with its profile while the page is open. Polling and switching profiles preserve that edit, including an intentionally empty field.
+- This changes the add-on and editor only; screen firmware is unchanged.
+
 ## 0.4.49 (firmware 0.29.0)
 
 - **A screen's first build is quicker.** Every night and with every release, GitHub builds each board ahead and

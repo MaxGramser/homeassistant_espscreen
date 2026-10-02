@@ -3905,7 +3905,18 @@ def create_app(manager, development=False):
                             headers={'Content-Disposition': f'attachment; filename="{claude_skill.NAME}.zip"'})
     async def firmware_status(request):
         # New screen asks what is taken while the name is typed, so a clash is said before anything is written.
-        return web.json_response({**manager.firmware.status(), 'taken': manager.taken_names()})
+        status = manager.firmware.status()
+        profiles, addresses = manager.firmware.profile_names(), {}
+        for screen in manager.screens():
+            profile, host = manager.updates.resolve(screen, profiles)
+            if profile:
+                addresses.setdefault(profile, []).append(host)
+        for profile in status['profiles']:
+            matches = addresses.get(profile['file'], [])
+            # Use the same address as the paired-screen updater, only for an unambiguous match.
+            if len(matches) == 1 and matches[0]:
+                profile['host'] = matches[0]
+        return web.json_response({**status, 'taken': manager.taken_names()})
     async def firmware_start(request):
         data = await request.json()
         manager.preflight_profile(data)
