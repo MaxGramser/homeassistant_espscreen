@@ -1,3 +1,13 @@
+## 0.4.56 (firmware 0.34.0)
+
+- Add the experimental Waveshare ESP32-P4-86-Panel-ETH-2RO (`wavesharep4`): a 4-inch, 720 × 720 display with a two-column, three-row grid, GT911 touch, dimmable backlight and ESP32-C6 Wi-Fi. New screen and checkout builds use the same board profile.
+- The profile targets pre-v3 P4 silicon with 32 MB flash and requires ESPHome 2026.9.0 or newer. Ethernet, relays, RS485, microSD and audio are not configured in the base profile. Ethernet support is planned separately.
+- Optional P4 audio: ES7210 microphone input, ES8311 speaker output, saved volume, microphone mute, automatic gain and tap sounds. Audio is off by default; hardware and local diagnostic tests are separate build choices. Other boards do not include the audio drivers or wake-word models.
+- The panel and editor share audio settings through the screen's existing ESPHome entities. Tests offer a speaker tone, five-second recording with local playback, and a bounded wake-word check, with feedback in the test row. Voice-assistant transport is not included.
+- Audio validation before rebasing onto upstream 0.4.55: all 19 software check groups pass (1,125 Python tests and 38 C++ tests). ESPHome 2026.9.0 builds P4 modes `off`, `hardware` and `test`, using respectively 3,031,190, 3,113,752 and 3,553,160 bytes of the 16,515,072-byte OTA slot. The audio extension uses a pinned public ES7210 component; no local driver files are needed. The integrated audio build was tested successfully on a physical revision 1.3 panel.
+- New screen lists boards with different chips or resolutions separately, so the 720 × 720 P4 is not presented as the 480 × 480 S3. Revisions with matching hardware stay grouped.
+- Board validation before rebasing onto upstream 0.4.55: ESPHome 2026.9.0 builds the new profile and its override fixture. The base OTA image uses 3,031,536 of 16,515,072 bytes (18.4%). The host renderer passes three pages and 51 page checks; installation on a physical revision 1.3 panel passed, with tiles, touch and brightness confirmed working.
+
 ## 0.4.55 (firmware 0.33.0)
 
 - **Keys on the screensaver.** Over a cover three round keys stand in the bottom right corner: play or pause at the

@@ -1,5 +1,5 @@
 {
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "profiles": [
     {
       "dpi": 133,
@@ -31,6 +31,10 @@
     },
     {
       "dpi": 254,
+      "look": "standard"
+    },
+    {
+      "dpi": 255,
       "look": "standard"
     }
   ]

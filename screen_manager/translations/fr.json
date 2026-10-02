@@ -165,7 +165,17 @@
       "seconds": "{n} s",
       "minutes": "{n} min",
       "hours": "{n} h",
-      "hours_minutes": "{h} h {m}"
+      "hours_minutes": "{h} h {m}",
+      "audio": "Audio",
+      "microphone_mute": "Couper le micro",
+      "microphone_alc": "Gain automatique",
+      "speaker_volume": "Volume du haut-parleur",
+      "tap_sound": "Son au toucher",
+      "wake_word": "Mot-clé",
+      "test_microphone": "Tester le micro",
+      "test_speaker": "Tester le haut-parleur",
+      "test_wake_word": "Tester le mot-clé",
+      "stop_audio_test": "Arrêter le test audio"
     },
     "tile": {
       "tap_to_open": "Ouvrir",
@@ -500,6 +510,21 @@
     },
     "navigation": {
       "back": "Retour"
+    },
+    "audio": {
+      "idle": "Inactif",
+      "stop_failed": "Arrêt impossible : redémarrez",
+      "no_memory": "Mémoire insuffisante",
+      "no_audio": "Aucun son du microphone",
+      "speaker_failed": "Échec du test du haut-parleur",
+      "no_wake": "Aucun mot détecté",
+      "heard": "Détecté : {word}",
+      "finished": "Terminé : {word}",
+      "recording": "Enregistrement ({seconds}s)",
+      "playing_recording": "Lecture de l’enregistrement",
+      "speaker_test": "Test du haut-parleur",
+      "say": "Dites {word} (30s)",
+      "muted": "Microphone coupé"
     }
   },
   "addon": {
@@ -739,7 +764,8 @@
       },
       "media": {
         "browse": "{name} n’a pas répondu avec sa bibliothèque."
-      }
+      },
+      "audio_test_unavailable": "Le test audio est indisponible sur cet écran."
     },
     "status": {
       "first_tiles": "Choisissez vos premières tuiles",
@@ -1855,7 +1881,8 @@
         "brightness": "Luminosité",
         "night": "Nuit",
         "screen": "Écran",
-        "this_screen": "Cet écran"
+        "this_screen": "Cet écran",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Luminosité",
@@ -1875,7 +1902,12 @@
         "swipe_pages": "Balayer entre les pages",
         "page_buttons": "Boutons de page",
         "home_button": "Afficher le bouton accueil",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "microphone_mute": "Couper le micro",
+        "microphone_alc": "Gain automatique",
+        "speaker_volume": "Volume du haut-parleur",
+        "tap_sound": "Son au toucher",
+        "wake_word": "Mot-clé"
       },
       "actions": {
         "calibrate": {
@@ -1935,6 +1967,14 @@
           "camera_unset": "Choisis une caméra pour l'utiliser",
           "clock": "L'heure, la date et la température extérieure, en blanc sur noir"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Tester le micro",
+        "test_speaker": "Tester le haut-parleur",
+        "test_wake_word": "Tester le mot-clé",
+        "stop_audio_test": "Arrêter le test audio",
+        "audio_status": "État audio",
+        "hint": "Le test du micro enregistre cinq secondes, puis les lit sur le panneau. Arrêter annule tout test audio."
       }
     },
     "update": {

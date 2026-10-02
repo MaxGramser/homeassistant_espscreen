@@ -66,6 +66,40 @@ inline std::string features() {
 // from DISPLAY_W == DISPLAY_H at boot.
 inline bool quarter_turns = false;
 
+#ifdef USE_SCREEN_AUDIO
+// Optional peripheral settings. The hardware package owns their separate preference and binds
+// apply_audio; the frozen screen_settings block and screens without audio stay unchanged.
+inline bool audio_available = false;
+inline int32_t microphone_mute = 0, microphone_alc = 1, speaker_volume = 25, tap_sound = 0;
+inline void (*apply_audio)() = nullptr;
+#ifdef USE_SCREEN_AUDIO_TEST
+inline int32_t wake_word = 0;
+inline constexpr const char *wake_word_options[] = {"Okay Nabu", "Hey Jarvis", "Alexa", "Hey Mycroft"};
+inline void (*apply_wake_word)() = nullptr;
+inline void (*test_audio)(int) = nullptr;
+inline bool (*audio_busy)() = nullptr;
+inline bool (*audio_test_running)() = nullptr;
+inline int32_t (*audio_test_mode)() = nullptr;
+inline std::string (*audio_status)() = nullptr;
+#endif
+inline void (*tile_sound)() = nullptr;
+
+#ifdef USE_SCREEN_AUDIO_TEST
+inline bool test_active(int mode) {
+  return audio_test_mode && audio_test_mode() == mode && audio_test_running && audio_test_running();
+}
+inline std::string test_status(int mode) {
+  return audio_test_mode && audio_test_mode() == mode && audio_status ? audio_status() : std::string();
+}
+
+#endif
+#endif
+inline void feedback() {
+#ifdef USE_SCREEN_AUDIO
+  if (tile_sound) tile_sound();
+#endif
+}
+
 // ------------------------------------------------------------------ the table
 enum class Kind : uint8_t { page, toggle, number, duration, moment, choice, info, action };
 using Read = int32_t (*)();
@@ -88,11 +122,14 @@ struct Row {
   const char *const *options = nullptr;  // choice with the same words in every language ("90°")
   uint16_t option_keys = NO_TEXT;     // choice in words: the key of its first option, the others follow it
   uint8_t option_count = 0;
-  Text text = nullptr;                // info
+  Text text = nullptr;                // info or an action's current feedback (empty keeps its label)
   Run run = nullptr;                  // action
   uint16_t confirm = NO_TEXT;         // action: what the row asks before it does it
   Shown shown = nullptr;              // absent rows: the quarter turns on glass that is not square
   Shown enabled = nullptr;            // greyed out while the switch it depends on is off
+#ifdef USE_SCREEN_AUDIO_TEST
+  Shown active = nullptr;             // action highlighted while its work is in progress
+#endif
   uint8_t opens = 0;                  // page rows: the page they open
 };
 
@@ -126,11 +163,28 @@ constexpr Row choice(uint16_t label, Read read, Write write, uint16_t option_key
   r.option_keys = option_keys; r.option_count = count; r.shown = shown; return r;
 }
 inline const char *label_text(const Row &row) { return screen_text::tr(row.label); }
-constexpr Row info(uint16_t label, Text text) {
-  Row r{}; r.kind = Kind::info; r.label = label; r.text = text; return r;
+constexpr Row info(uint16_t label, Text text, Shown shown = nullptr) {
+  Row r{}; r.kind = Kind::info; r.label = label; r.text = text; r.shown = shown; return r;
 }
+#ifdef USE_SCREEN_AUDIO_TEST
+constexpr Row action(uint16_t label, const char *icon, Run run, uint16_t confirm, Shown shown = nullptr,
+                     Shown enabled = nullptr, Shown active = nullptr, Text text = nullptr) {
+  Row r{}; r.enabled = enabled; r.active = active; r.text = text; r.kind = Kind::action; r.label = label; r.icon = icon; r.run = run; r.confirm = confirm; r.shown = shown; return r;
+}
+#else
 constexpr Row action(uint16_t label, const char *icon, Run run, uint16_t confirm, Shown shown = nullptr) {
   Row r{}; r.kind = Kind::action; r.label = label; r.icon = icon; r.run = run; r.confirm = confirm; r.shown = shown; return r;
+}
+#endif
+inline std::string row_text(const Row &row, bool asking = false) {
+  if (asking) return screen_text::tr(row.confirm);
+#ifdef USE_SCREEN_AUDIO_TEST
+  if (row.kind == Kind::action && row.text) {
+    const auto feedback = row.text();
+    if (!feedback.empty()) return feedback;
+  }
+#endif
+  return label_text(row);
 }
 
 // ------------------------------------------------------------------ values
@@ -151,6 +205,32 @@ inline void changed(const char *key, int32_t value) {
 // again: an automation may set it on every light change.
 enum class SetResult : uint8_t { unknown, same, changed };
 inline SetResult set(const std::string &key, int32_t value) {
+#ifdef USE_SCREEN_AUDIO
+#ifdef USE_SCREEN_AUDIO_TEST
+  if (key == "wake_word" && audio_available && apply_wake_word) {
+    value = std::clamp<int32_t>(value, 0, std::size(wake_word_options) - 1);
+    if (wake_word == value) return SetResult::same;
+    wake_word = value;
+    apply_wake_word();
+    changed(key.c_str(), value);
+    return SetResult::changed;
+  }
+#endif
+  int32_t *audio_value = nullptr;
+  if (audio_available) {
+    if (key == "microphone_mute") { audio_value = &microphone_mute; value = value ? 1 : 0; }
+    else if (key == "microphone_alc") { audio_value = &microphone_alc; value = value ? 1 : 0; }
+    else if (key == "speaker_volume") { audio_value = &speaker_volume; value = std::clamp<int32_t>(value, 0, 100); }
+    else if (key == "tap_sound") { audio_value = &tap_sound; value = value ? 1 : 0; }
+  }
+  if (audio_value) {
+    if (*audio_value == value) return SetResult::same;
+    *audio_value = value;
+    if (apply_audio) apply_audio();
+    changed(key.c_str(), *audio_value);
+    return SetResult::changed;
+  }
+#endif
   auto &s = screen_settings::current;
   const auto before = s;
   const int32_t before_swipe = swipe_pages, before_rotation = rotation, before_home = auto_home,
@@ -267,6 +347,10 @@ struct Page {
   uint16_t title;
   const Row *rows;
   uint8_t count;
+#ifdef USE_SCREEN_AUDIO_TEST
+  Run stop = nullptr;
+  Shown busy = nullptr;
+#endif
 };
 
 // How many rows fit, and whether the page therefore needs its pager. Reserving the pager only when it
@@ -391,15 +475,54 @@ inline constexpr Row menu_rows[] = {
   page_row(screen_text::txt::settings_brightness, "\U000F0599", 1),
   page_row(screen_text::txt::settings_night, "\U000F0594", 2, [] { return can_standby; }),
   page_row(screen_text::txt::settings_screen, "\U000F0379", 3),
+#ifdef USE_SCREEN_AUDIO
+  page_row(screen_text::txt::settings_audio, "\U000F057E", 5, [] { return audio_available; }),
+#endif
   page_row(screen_text::txt::settings_this_screen, "\U000F02FD", 4),
 };
 
+#ifdef USE_SCREEN_AUDIO
+inline constexpr Row audio_rows[] = {
+  toggle(screen_text::txt::settings_microphone_mute, []() -> int32_t { return microphone_mute; },
+         [](int32_t value) { set("microphone_mute", value); }),
+  toggle(screen_text::txt::settings_microphone_alc, []() -> int32_t { return microphone_alc; },
+         [](int32_t value) { set("microphone_alc", value); }),
+  number(screen_text::txt::settings_speaker_volume, []() -> int32_t { return speaker_volume; },
+         [](int32_t value) { set("speaker_volume", value); }, 0, 100, 5, "%"),
+#ifdef USE_SCREEN_AUDIO_TEST
+  action(screen_text::txt::settings_test_speaker, "\U000F057E", [] { if (test_audio) test_audio(2); },
+         NO_TEXT, [] { return test_audio != nullptr; }, nullptr,
+         [] { return test_active(2); }, [] { return test_status(2); }),
+#endif
+  toggle(screen_text::txt::settings_tap_sound, []() -> int32_t { return tap_sound; },
+         [](int32_t value) { set("tap_sound", value); }),
+#ifdef USE_SCREEN_AUDIO_TEST
+  action(screen_text::txt::settings_test_microphone, "\U000F036C", [] { if (test_audio) test_audio(1); },
+         NO_TEXT, [] { return test_audio != nullptr; }, nullptr,
+         [] { return test_active(1); }, [] { return test_status(1); }),
+  choice(screen_text::txt::settings_wake_word, []() -> int32_t { return wake_word; },
+         [](int32_t value) { set("wake_word", value); }, wake_word_options, std::size(wake_word_options),
+         [] { return apply_wake_word != nullptr; }),
+  action(screen_text::txt::settings_test_wake_word, "\U000F036C", [] { if (test_audio) test_audio(3); },
+         NO_TEXT, [] { return test_audio != nullptr; }, nullptr,
+         [] { return test_active(3); }, [] { return test_status(3); }),
+#endif
+};
+
+#endif
 inline constexpr Page pages[] = {
   {screen_text::txt::settings_title, menu_rows, (uint8_t) std::size(menu_rows)},
   {screen_text::txt::settings_brightness, light_rows, (uint8_t) std::size(light_rows)},
   {screen_text::txt::settings_night, night_rows, (uint8_t) std::size(night_rows)},
   {screen_text::txt::settings_screen, screen_rows, (uint8_t) std::size(screen_rows)},
   {screen_text::txt::settings_this_screen, about_rows, (uint8_t) std::size(about_rows)},
+#ifdef USE_SCREEN_AUDIO
+  {screen_text::txt::settings_audio, audio_rows, (uint8_t) std::size(audio_rows)
+#ifdef USE_SCREEN_AUDIO_TEST
+   , [] { if (test_audio) test_audio(0); }, [] { return audio_test_running && audio_test_running(); }
+#endif
+  },
+#endif
 };
 constexpr uint8_t PAGE_COUNT = (uint8_t) std::size(pages);
 
@@ -427,12 +550,18 @@ inline int tap_limit = 0;
 // The page while it is on screen; nothing of it exists when it is closed, which is how a 320x240
 // board with 60 KB of free heap can afford a settings page at all.
 inline lv_obj_t *root = nullptr, *hold_area = nullptr, *hold_bar = nullptr;
+#ifdef USE_SCREEN_AUDIO_TEST
+inline lv_obj_t *stop_button = nullptr;
+#endif
 inline uint8_t current_page = 0, first_row = 0;
 inline int confirm_row = -1;             // the action row that asked "tap again"
 inline lv_timer_t *confirm_timer = nullptr;
 
 struct Drawn {
   lv_obj_t *card = nullptr, *value = nullptr, *knob = nullptr, *minus = nullptr, *plus = nullptr, *label = nullptr;
+#ifdef USE_SCREEN_AUDIO_TEST
+  lv_obj_t *icon = nullptr;
+#endif
   uint8_t row = 0;
 };
 inline std::array<Drawn, 8> drawn{};
@@ -553,9 +682,30 @@ inline void move_knob(Drawn &d, const Row &row) {
 inline void refresh() {
   if (!root) return;
   const Page &page = pages[current_page];
+#ifdef USE_SCREEN_AUDIO_TEST
+  const bool can_stop = page.stop && page.busy && page.busy();
+  if ((stop_button != nullptr) != can_stop) { draw(); return; }
+#endif
   for (uint8_t i = 0; i < drawn_count; ++i) {
     Drawn &d = drawn[i];
     const Row &row = page.rows[d.row];
+#ifdef USE_SCREEN_AUDIO_TEST
+    if (row.kind == Kind::action && row.text) {
+      const auto label = row_text(row, confirm_row == d.row);
+      if (label != lv_label_get_text(d.label)) lv_label_set_text(d.label, label.c_str());
+    }
+    if (row.kind == Kind::action && row.active) {
+      const bool highlighted = confirm_row == d.row || row.active();
+      const auto background = theme::color(highlighted ? theme::ACCENT : theme::CARD);
+      if (!lv_color_eq(lv_obj_get_style_bg_color(d.card, LV_PART_MAIN), background)) {
+        lv_obj_set_style_bg_color(d.card, background, 0);
+        lv_obj_set_style_bg_color(d.card, theme::color(highlighted ? theme::ACCENT_PRESSED : theme::CARD_PRESSED), LV_STATE_PRESSED);
+        lv_obj_set_style_border_color(d.card, theme::color(highlighted ? theme::ACCENT : theme::LINE), 0);
+        lv_obj_set_style_text_color(d.label, theme::color(highlighted ? theme::ON_ACCENT : theme::INK), 0);
+        if (d.icon) lv_obj_set_style_text_color(d.icon, theme::color(highlighted ? theme::ON_ACCENT : theme::ROW_ICON), 0);
+      }
+    }
+#endif
     if (d.value) {
       const std::string text = value_text(row);
       if (text != lv_label_get_text(d.value)) lv_label_set_text(d.value, text.c_str());
@@ -610,6 +760,7 @@ inline void step_event(lv_event_t *event) {
   int32_t next = stepped(row, value, data & 1 ? 1 : -1, held);
   if (next == value) return;
   row.write(next);
+  if (lv_event_get_code(event) != LV_EVENT_LONG_PRESSED_REPEAT) feedback();
   refresh();
 }
 inline void row_event(lv_event_t *event) {
@@ -619,17 +770,18 @@ inline void row_event(lv_event_t *event) {
   if (index < 0 || index >= page.count) return;
   const Row &row = page.rows[index];
   if (!live_row(row)) return;
-  if (row.kind == Kind::page) { current_page = row.opens; first_row = 0; forget_confirm(); draw(); return; }
-  if (row.kind == Kind::toggle && row.read && row.write) { row.write(row.read() ? 0 : 1); refresh(); return; }
+  if (row.kind == Kind::page) { feedback(); current_page = row.opens; first_row = 0; forget_confirm(); draw(); return; }
+  if (row.kind == Kind::toggle && row.read && row.write) { row.write(row.read() ? 0 : 1); feedback(); refresh(); return; }
   if (row.kind == Kind::choice && row.read && row.write && row.option_count) {
     row.write((row.read() + 1) % row.option_count);
+    feedback();
     refresh();
     return;
   }
   if (row.kind == Kind::action) {
     // Nothing on this page is worth a dialog, except the one row that takes the screen away for ten
     // seconds: it asks once, in place, and forgets the question after five.
-    if (confirm_row == index) { forget_confirm(); if (row.run) row.run(); return; }
+    if (row.confirm == NO_TEXT || confirm_row == index) { forget_confirm(); if (row.run) row.run(); return; }
     forget_confirm();
     confirm_row = index;
     confirm_timer = lv_timer_create([](lv_timer_t *) { forget_confirm(); draw(); }, 5000, nullptr);
@@ -639,6 +791,7 @@ inline void row_event(lv_event_t *event) {
 }
 inline void close();
 inline void back_event(lv_event_t *) {
+  feedback();
   forget_confirm();
   if (current_page == 0) { close(); return; }
   current_page = 0;
@@ -649,6 +802,7 @@ inline void pager_event(lv_event_t *event) {
   int direction = (int) (intptr_t) lv_event_get_user_data(event);
   int next = (int) first_row + direction;
   if (next < 0) return;
+  feedback();
   first_row = (uint8_t) next;
   forget_confirm();
   draw();
@@ -660,6 +814,9 @@ inline void draw() {
   Metrics m = metrics();
   lv_obj_clean(root);
   drawn_count = 0;
+#ifdef USE_SCREEN_AUDIO_TEST
+  stop_button = nullptr;
+#endif
 
   const Page &page = pages[current_page];
   // Rows a screen does not have (the quarter turns on glass that is not square) leave the table out of sight entirely.
@@ -684,13 +841,33 @@ inline void draw() {
   lv_obj_set_width(title, m.width - 2 * (m.pad + m.bar + 8));
   lv_obj_set_pos(title, m.pad + m.bar + 8, m.bar_y + (m.bar - lv_font_get_line_height(heading)) / 2);
 
+#ifdef USE_SCREEN_AUDIO_TEST
+  // An active test can be stopped from every slide without consuming a settings row.
+  if (page.stop && page.busy && page.busy()) {
+    stop_button = plain(root, m.width - m.pad - m.bar, m.bar_y, m.bar, m.bar);
+    lv_obj_add_flag(stop_button, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_opa(stop_button, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(stop_button, theme::color(theme::KEY), 0);
+    lv_obj_set_style_bg_color(stop_button, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
+    lv_obj_set_style_radius(stop_button, LV_RADIUS_CIRCLE, 0);
+    auto *stop_icon = text(stop_button, "\U000F04DB", icon_font ? icon_font : row_font, theme::INK);
+    lv_obj_set_width(stop_icon, LV_SIZE_CONTENT);
+    lv_obj_center(stop_icon);
+    lv_obj_add_event_cb(stop_button, [](lv_event_t *) {
+      if (tap_limit && drift && drift() > tap_limit) return;
+      const auto &page = pages[current_page];
+      if (page.stop && page.busy && page.busy()) page.stop();
+    }, LV_EVENT_SHORT_CLICKED, nullptr);
+  }
+
+#endif
+  const int label_h = lv_font_get_line_height(row_font);
   int span = m.height - m.rows_y - m.bottom;
   bool paged = false;
   uint8_t per_page = std::min<uint8_t>(fitting_rows(span, m.row_h, m.gap, m.pager, count, paged), drawn.size());
   // Always start a page on a page boundary, and never scroll a group that fits.
   first_row = paged && first_row < count ? (uint8_t) ((first_row / per_page) * per_page) : 0;
 
-  int label_h = lv_font_get_line_height(row_font);
   for (uint8_t slot = 0; slot < per_page && first_row + slot < count; ++slot) {
     uint8_t index = shown[first_row + slot];
     const Row &row = page.rows[index];
@@ -700,29 +877,36 @@ inline void draw() {
     bool tappable = row.kind == Kind::page || row.kind == Kind::toggle || row.kind == Kind::choice ||
                     row.kind == Kind::action;
     bool asking = row.kind == Kind::action && confirm_row == index;
+    bool highlighted = asking;
+#ifdef USE_SCREEN_AUDIO_TEST
+    highlighted = highlighted || (row.kind == Kind::action && row.active && row.active());
+#endif
 
     d.card = plain(root, m.pad, m.rows_y + slot * (m.row_h + m.gap), m.width - 2 * m.pad, m.row_h);
     lv_obj_set_style_bg_opa(d.card, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(d.card, theme::color(asking ? theme::ACCENT : theme::CARD), 0);
+    lv_obj_set_style_bg_color(d.card, theme::color(highlighted ? theme::ACCENT : theme::CARD), 0);
     lv_obj_set_style_radius(d.card, m.radius, 0);
     lv_obj_set_style_border_width(d.card, 1, 0);
-    lv_obj_set_style_border_color(d.card, theme::color(asking ? theme::ACCENT : theme::LINE), 0);
+    lv_obj_set_style_border_color(d.card, theme::color(highlighted ? theme::ACCENT : theme::LINE), 0);
     if (tappable) {
       lv_obj_add_flag(d.card, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_set_style_bg_color(d.card, theme::color(asking ? theme::ACCENT_PRESSED : theme::CARD_PRESSED), LV_STATE_PRESSED);
+      lv_obj_set_style_bg_color(d.card, theme::color(highlighted ? theme::ACCENT_PRESSED : theme::CARD_PRESSED), LV_STATE_PRESSED);
       lv_obj_add_event_cb(d.card, row_event, LV_EVENT_SHORT_CLICKED, (void *) (intptr_t) index);
     }
 
     int left = m.inset;
     if (row.icon && *row.icon) {
-      auto *glyph = text(d.card, row.icon, icon_font ? icon_font : row_font, asking ? theme::ON_ACCENT : theme::ROW_ICON);
+      auto *glyph = text(d.card, row.icon, icon_font ? icon_font : row_font, highlighted ? theme::ON_ACCENT : theme::ROW_ICON);
+#ifdef USE_SCREEN_AUDIO_TEST
+      d.icon = glyph;
+#endif
       int icon_h = lv_font_get_line_height(icon_font ? icon_font : row_font);
       lv_obj_set_width(glyph, LV_SIZE_CONTENT);
       lv_obj_set_pos(glyph, left, (m.row_h - icon_h) / 2);
       left += icon_h + (ui::px(m.large ? 12 : 8));
     }
-    d.label = text(d.card, screen_text::tr(asking ? row.confirm : row.label), row_font,
-                   asking ? theme::ON_ACCENT : theme::INK);
+    d.label = text(d.card, row_text(row, asking), row_font,
+                   highlighted ? theme::ON_ACCENT : theme::INK);
     lv_obj_set_pos(d.label, left, (m.row_h - label_h) / 2);
 
     int right = m.width - 2 * m.pad - m.inset;  // free space from the right edge of the card

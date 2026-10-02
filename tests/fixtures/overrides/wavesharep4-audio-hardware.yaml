@@ -1,0 +1,3 @@
+# Opt-in hardware only. No wake-word model or diagnostics are linked.
+substitutions:
+  AUDIO_MODE: "hardware"

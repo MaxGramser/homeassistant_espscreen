@@ -165,7 +165,17 @@
       "seconds": "{n} sec",
       "minutes": "{n} min",
       "hours": "{n} u",
-      "hours_minutes": "{h} u {m}"
+      "hours_minutes": "{h} u {m}",
+      "audio": "Audio",
+      "microphone_mute": "Microfoon dempen",
+      "microphone_alc": "Automatische versterking",
+      "speaker_volume": "Luidsprekervolume",
+      "tap_sound": "Tikgeluid",
+      "wake_word": "Wekwoord",
+      "test_microphone": "Microfoon testen",
+      "test_speaker": "Luidspreker testen",
+      "test_wake_word": "Wekwoord testen",
+      "stop_audio_test": "Audiotest stoppen"
     },
     "tile": {
       "tap_to_open": "Tik om te openen",
@@ -500,6 +510,21 @@
     },
     "navigation": {
       "back": "Terug"
+    },
+    "audio": {
+      "idle": "Inactief",
+      "stop_failed": "Stoppen mislukt: herstart paneel",
+      "no_memory": "Geen opnamegeheugen",
+      "no_audio": "Geen microfoongeluid",
+      "speaker_failed": "Luidsprekertest mislukt",
+      "no_wake": "Geen wake-word gehoord",
+      "heard": "Gehoord: {word}",
+      "finished": "Klaar: {word}",
+      "recording": "Opnemen ({seconds}s)",
+      "playing_recording": "Opname afspelen",
+      "speaker_test": "Luidsprekertest",
+      "say": "Zeg {word} (30s)",
+      "muted": "Microfoon is gedempt"
     }
   },
   "addon": {
@@ -739,7 +764,8 @@
       },
       "media": {
         "browse": "{name} gaf zijn bibliotheek niet."
-      }
+      },
+      "audio_test_unavailable": "De audiotest is niet beschikbaar op dit scherm."
     },
     "status": {
       "first_tiles": "Kies je eerste tegels",
@@ -1855,7 +1881,8 @@
         "brightness": "Helderheid",
         "night": "Nacht",
         "screen": "Scherm",
-        "this_screen": "Dit scherm"
+        "this_screen": "Dit scherm",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Helderheid",
@@ -1875,7 +1902,12 @@
         "swipe_pages": "Vegen tussen pagina's",
         "page_buttons": "Paginaknoppen",
         "home_button": "Thuisknop tonen",
-        "rotation": "Rotatie"
+        "rotation": "Rotatie",
+        "microphone_mute": "Microfoon dempen",
+        "microphone_alc": "Automatische versterking",
+        "speaker_volume": "Luidsprekervolume",
+        "tap_sound": "Tikgeluid",
+        "wake_word": "Wekwoord"
       },
       "actions": {
         "calibrate": {
@@ -1935,6 +1967,14 @@
           "camera_unset": "Kies een camera om hem te gebruiken",
           "clock": "De tijd, de datum en de buitentemperatuur, wit op zwart"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Microfoon testen",
+        "test_speaker": "Luidspreker testen",
+        "test_wake_word": "Wekwoord testen",
+        "stop_audio_test": "Audiotest stoppen",
+        "audio_status": "Audiostatus",
+        "hint": "De microfoontest neemt vijf seconden op en speelt dit af op het paneel. Stop annuleert elke audiotest."
       }
     },
     "update": {

@@ -28,7 +28,7 @@ import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 sys.path.insert(0, str(ROOT / 'tests'))
 import core  # noqa: E402
-from core import (FIRMWARE_VERSION, SETTING_ENTITIES, SETTING_ENTITIES_MIN_FIRMWARE, SETTING_RULES, forecast_kinds,  # noqa: E402
+from core import (AUDIO_SETTINGS, FIRMWARE_VERSION, SETTING_ENTITIES, SETTING_ENTITIES_MIN_FIRMWARE, SETTING_RULES, forecast_kinds,  # noqa: E402
                   setting_action, setting_entities, setting_from_state, validate_settings)
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
@@ -129,6 +129,8 @@ class CoreSettings(unittest.TestCase):
         for board, path in [*PROFILES.items(), *PACKAGES.items()]:
             text = profiles.text(path)
             for key, (domain, name) in SETTING_ENTITIES.items():
+                if key in AUDIO_SETTINGS:
+                    continue  # Optional audio entities belong only to an opted-in board.
                 block = top_block(text, blocks[domain])
                 self.assertIn(f'name: "{name}"', block, f'{path}: {key}')
                 at = block.index(f'name: "{name}"')
@@ -187,7 +189,7 @@ class OwnedSettings(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn('settings', m.layouts['text.screen'], 'a screen that owns its settings has none stored')
             view = m.settings_view(m.screen('text.screen'))
             self.assertEqual((view['owner'], view['unavailable']), ('screen', []))
-            self.assertEqual(view['keys'], [key for key in SETTING_RULES if key not in ('show_clock', 'clock_24h')])
+            self.assertEqual(view['keys'], [key for key in SETTING_RULES if key not in ('show_clock', 'clock_24h') and key not in AUDIO_SETTINGS])
             self.assertEqual({key: view['values'][key] for key in ('brightness', 'night_start', 'rotation', 'home_on_standby')},
                              {'brightness': 80, 'night_start': 1350, 'rotation': 90, 'home_on_standby': False})
             m.ha.states[ENTITY_IDS['night_end']] = {'state': 'unavailable'}

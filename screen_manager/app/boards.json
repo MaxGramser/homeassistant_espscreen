@@ -25,7 +25,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -83,7 +83,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -156,7 +156,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -234,7 +234,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -302,7 +302,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -390,7 +390,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -478,7 +478,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -566,7 +566,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -654,7 +654,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -742,7 +742,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -830,7 +830,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -908,7 +908,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -976,7 +976,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -1064,7 +1064,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -1152,7 +1152,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -1240,7 +1240,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -1297,6 +1297,94 @@
   },
   "width": 1024
  },
+ "checkout/wavesharep4.yaml": {
+  "alert": {
+   "line": 36,
+   "title_line": 47
+  },
+  "board": "wavesharep4",
+  "camera": {
+   "full": [
+    720,
+    720
+   ],
+   "thumb": [
+    588,
+    330
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ESP32-P4-86-Panel-ETH-2RO",
+   "name": "Waveshare",
+   "order": 16,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 255,
+  "firmware": "0.34.0",
+  "fonts": {
+   "headline": 40,
+   "icon_home": 51,
+   "icon_mini": 39,
+   "label": 27,
+   "sublabel": 24,
+   "sublabel_big": 31,
+   "watch_value": 57
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      720,
+      720
+     ],
+     "thumb": [
+      588,
+      330
+     ]
+    },
+    "columns": 2,
+    "height": 720,
+    "rotation": 0,
+    "rows": 3,
+    "width": 720
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      720
+     ],
+     "thumb": [
+      588,
+      330
+     ]
+    },
+    "columns": 2,
+    "height": 720,
+    "rotation": 0,
+    "rows": 3,
+    "width": 720
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "gap": 12,
+   "margin": 16,
+   "tile_pad": 18
+  },
+  "width": 720
+ },
  "cyd": {
   "alert": {
    "line": 16,
@@ -1323,7 +1411,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -1381,7 +1469,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -1454,7 +1542,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -1532,7 +1620,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -1600,7 +1688,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -1688,7 +1776,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -1776,7 +1864,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -1864,7 +1952,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -1952,7 +2040,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -2040,7 +2128,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -2123,7 +2211,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -2181,7 +2269,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -2254,7 +2342,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2332,7 +2420,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -2400,7 +2488,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2488,7 +2576,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2576,7 +2664,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -2664,7 +2752,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -2752,7 +2840,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -2840,7 +2928,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -2928,7 +3016,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -3006,7 +3094,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -3074,7 +3162,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -3162,7 +3250,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3250,7 +3338,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -3338,7 +3426,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -3395,6 +3483,94 @@
   },
   "width": 1024
  },
+ "packages/wavesharep4.yaml": {
+  "alert": {
+   "line": 36,
+   "title_line": 47
+  },
+  "board": "wavesharep4",
+  "camera": {
+   "full": [
+    720,
+    720
+   ],
+   "thumb": [
+    588,
+    330
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ESP32-P4-86-Panel-ETH-2RO",
+   "name": "Waveshare",
+   "order": 16,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 255,
+  "firmware": "0.34.0",
+  "fonts": {
+   "headline": 40,
+   "icon_home": 51,
+   "icon_mini": 39,
+   "label": 27,
+   "sublabel": 24,
+   "sublabel_big": 31,
+   "watch_value": 57
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      720,
+      720
+     ],
+     "thumb": [
+      588,
+      330
+     ]
+    },
+    "columns": 2,
+    "height": 720,
+    "rotation": 0,
+    "rows": 3,
+    "width": 720
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      720
+     ],
+     "thumb": [
+      588,
+      330
+     ]
+    },
+    "columns": 2,
+    "height": 720,
+    "rotation": 0,
+    "rows": 3,
+    "width": 720
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "gap": 12,
+   "margin": 16,
+   "tile_pad": 18
+  },
+  "width": 720
+ },
  "sunton8048s070": {
   "alert": {
    "line": 19,
@@ -3426,7 +3602,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -3504,7 +3680,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -3572,7 +3748,7 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -3660,7 +3836,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3748,7 +3924,7 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -3836,7 +4012,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.33.0",
+  "firmware": "0.34.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -3892,5 +4068,93 @@
    "tile_pad": 12
   },
   "width": 1024
+ },
+ "wavesharep4": {
+  "alert": {
+   "line": 36,
+   "title_line": 47
+  },
+  "board": "wavesharep4",
+  "camera": {
+   "full": [
+    720,
+    720
+   ],
+   "thumb": [
+    588,
+    330
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ESP32-P4-86-Panel-ETH-2RO",
+   "name": "Waveshare",
+   "order": 16,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 255,
+  "firmware": "0.34.0",
+  "fonts": {
+   "headline": 40,
+   "icon_home": 51,
+   "icon_mini": 39,
+   "label": 27,
+   "sublabel": 24,
+   "sublabel_big": 31,
+   "watch_value": 57
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      720,
+      720
+     ],
+     "thumb": [
+      588,
+      330
+     ]
+    },
+    "columns": 2,
+    "height": 720,
+    "rotation": 0,
+    "rows": 3,
+    "width": 720
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      720
+     ],
+     "thumb": [
+      588,
+      330
+     ]
+    },
+    "columns": 2,
+    "height": 720,
+    "rotation": 0,
+    "rows": 3,
+    "width": 720
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "gap": 12,
+   "margin": 16,
+   "tile_pad": 18
+  },
+  "width": 720
  }
 }
