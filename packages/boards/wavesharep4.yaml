@@ -10,6 +10,7 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  audio: !include ../hardware/wavesharep4-audio/${AUDIO_MODE}.yaml
 
 substitutions:
   BOARD_ID: "wavesharep4"
@@ -21,6 +22,10 @@ substitutions:
   GRID_COLS: "2"
   GRID_ROWS: "3"
   LVGL_BUFFER_SIZE: "50%"
+  AUDIO_MODE: "off"
+  AUDIO_MICROPHONE_GAIN: "30dB"
+  AUDIO_FIXED_DIGITAL_GAIN: "0dB"
+  AUDIO_ALC_MAX_GAIN: "12dB"
 
 esphome:
   min_version: 2026.9.0

@@ -182,7 +182,17 @@
       "hours": "{n} Std.",
       "hours_minutes": "{h} Std. {m}",
       "wifi": "WLAN",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Mikrofon stumm",
+      "microphone_alc": "Automatische Verstärkung",
+      "speaker_volume": "Lautsprecherlautstärke",
+      "tap_sound": "Tippton",
+      "wake_word": "Aktivierungswort",
+      "test_microphone": "Mikrofon testen",
+      "test_speaker": "Lautsprecher testen",
+      "test_wake_word": "Aktivierungswort testen",
+      "stop_audio_test": "Audiotest stoppen"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -518,6 +528,21 @@
     },
     "navigation": {
       "back": "Zurück"
+    },
+    "audio": {
+      "idle": "Inaktiv",
+      "stop_failed": "Stopp fehlgeschlagen: Neustart nötig",
+      "no_memory": "Kein Aufnahmespeicher",
+      "no_audio": "Kein Mikrofonton",
+      "speaker_failed": "Lautsprechertest fehlgeschlagen",
+      "no_wake": "Kein Aktivierungswort erkannt",
+      "heard": "Erkannt: {word}",
+      "finished": "Fertig: {word}",
+      "recording": "Aufnahme ({seconds}s)",
+      "playing_recording": "Aufnahme abspielen",
+      "speaker_test": "Lautsprechertest",
+      "say": "Sage {word} (30s)",
+      "muted": "Mikrofon ist stumm"
     }
   },
   "addon": {
@@ -757,7 +782,8 @@
       },
       "media": {
         "browse": "{name} hat seine Mediathek nicht geliefert."
-      }
+      },
+      "audio_test_unavailable": "Der Audiotest ist auf diesem Bildschirm nicht verfügbar."
     },
     "status": {
       "first_tiles": "Wähle deine ersten Kacheln",
@@ -1904,7 +1930,8 @@
         "brightness": "Helligkeit",
         "night": "Nacht",
         "screen": "Bildschirm",
-        "this_screen": "Dieser Bildschirm"
+        "this_screen": "Dieser Bildschirm",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Helligkeit",
@@ -1924,7 +1951,12 @@
         "swipe_pages": "Zwischen Seiten wischen",
         "page_buttons": "Seitentasten",
         "home_button": "Home-Taste zeigen",
-        "rotation": "Drehung"
+        "rotation": "Drehung",
+        "microphone_mute": "Mikrofon stumm",
+        "microphone_alc": "Automatische Verstärkung",
+        "speaker_volume": "Lautsprecherlautstärke",
+        "tap_sound": "Tippton",
+        "wake_word": "Aktivierungswort"
       },
       "actions": {
         "calibrate": {
@@ -1984,6 +2016,14 @@
           "camera_unset": "Wähle eine Kamera, um sie zu nutzen",
           "clock": "Uhrzeit, Datum und Außentemperatur, weiß auf Schwarz"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Mikrofon testen",
+        "test_speaker": "Lautsprecher testen",
+        "test_wake_word": "Aktivierungswort testen",
+        "stop_audio_test": "Audiotest stoppen",
+        "audio_status": "Audiostatus",
+        "hint": "Der Mikrofontest nimmt fünf Sekunden auf und spielt sie am Panel ab. Stopp beendet jeden Audiotest."
       }
     },
     "update": {

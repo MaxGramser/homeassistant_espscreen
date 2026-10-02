@@ -182,7 +182,17 @@
       "hours": "{n} h",
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Silenciar micrófono",
+      "microphone_alc": "Ganancia automática",
+      "speaker_volume": "Volumen del altavoz",
+      "tap_sound": "Sonido al tocar",
+      "wake_word": "Palabra clave",
+      "test_microphone": "Probar micrófono",
+      "test_speaker": "Probar altavoz",
+      "test_wake_word": "Probar palabra clave",
+      "stop_audio_test": "Detener prueba de audio"
     },
     "tile": {
       "tap_to_open": "Toca para abrir",
@@ -518,6 +528,21 @@
     },
     "navigation": {
       "back": "Volver"
+    },
+    "audio": {
+      "idle": "Inactivo",
+      "stop_failed": "Error al parar: reinicia el panel",
+      "no_memory": "Sin memoria de grabación",
+      "no_audio": "Sin audio del micrófono",
+      "speaker_failed": "Error de prueba del altavoz",
+      "no_wake": "No se detectó palabra clave",
+      "heard": "Detectado: {word}",
+      "finished": "Terminado: {word}",
+      "recording": "Grabando ({seconds}s)",
+      "playing_recording": "Reproduciendo grabación",
+      "speaker_test": "Prueba del altavoz",
+      "say": "Di {word} (30s)",
+      "muted": "Micrófono silenciado"
     }
   },
   "addon": {
@@ -757,7 +782,8 @@
       },
       "media": {
         "browse": "{name} no respondió con su biblioteca."
-      }
+      },
+      "audio_test_unavailable": "La prueba de audio no está disponible en esta pantalla."
     },
     "status": {
       "first_tiles": "Elige tus primeros mosaicos",
@@ -1904,7 +1930,8 @@
         "brightness": "Brillo",
         "night": "Noche",
         "screen": "Pantalla",
-        "this_screen": "Esta pantalla"
+        "this_screen": "Esta pantalla",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Brillo",
@@ -1924,7 +1951,12 @@
         "swipe_pages": "Deslizar entre páginas",
         "page_buttons": "Botones de página",
         "home_button": "Mostrar el botón de inicio",
-        "rotation": "Rotación"
+        "rotation": "Rotación",
+        "microphone_mute": "Silenciar micrófono",
+        "microphone_alc": "Ganancia automática",
+        "speaker_volume": "Volumen del altavoz",
+        "tap_sound": "Sonido al tocar",
+        "wake_word": "Palabra clave"
       },
       "actions": {
         "calibrate": {
@@ -1984,6 +2016,14 @@
           "camera_unset": "Elige una cámara para usarla",
           "clock": "La hora, la fecha y la temperatura exterior, en blanco sobre negro"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Probar micrófono",
+        "test_speaker": "Probar altavoz",
+        "test_wake_word": "Probar palabra clave",
+        "stop_audio_test": "Detener prueba de audio",
+        "audio_status": "Estado de audio",
+        "hint": "La prueba de micrófono graba cinco segundos y los reproduce en el panel. Detener cancela cualquier prueba de audio."
       }
     },
     "update": {

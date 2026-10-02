@@ -62,6 +62,9 @@ substitutions:
   CALIBRATION_PAINT_FILL: ""
   CLOSE_CARDS_HOOK: ""                             # in runtime_tiles::dismiss, after the detail card closes
   BOOT_CAMERA_HOOKS: ""                            # after the gesture: the camera images (features/camera.yaml)
+  BOOT_AUDIO_HOOKS: ""
+  BOOT_AUDIO_TEST_HOOKS: ""
+  APPLY_AUDIO_HOOK: ""
   BOOT_CARDS_TAIL: ""                              # after the cards' hooks, before the settings page's
   MAY_OPEN_EXTRA: ""                               # what else keeps the settings page closed (inline, in the condition)
   TICK_HOOK: ""                                    # every 250 ms after runtime_tiles::tick()
@@ -363,6 +366,9 @@ esphome:
           settings_screen::before_open = []() { id(close_cards).execute(); };
           settings_screen::hold_limit = ${SETTINGS_HOLD_DRIFT_PX};
           settings_screen::tap_limit = ${TOUCH_MOVE_LIMIT_PX};
+          ${BOOT_AUDIO_HOOKS}
+          ${BOOT_AUDIO_TEST_HOOKS}
+          ${APPLY_AUDIO_HOOK}
           // What a change of look draws again, now that everything is bound: the tiles, the top bar and an open card,
           // the colour card, the settings page and an alert.
           theme::redraw = []() {
@@ -2365,6 +2371,7 @@ script:
     then:
       - lambda: |-
           const auto &settings = screen_settings::current;
+          ${APPLY_AUDIO_HOOK}
           // Dark mode (firmware 0.2.54+): a look the screen already has costs nothing.
           theme::set_dark(settings_screen::dark_mode != 0);
           // Turning the screen: the chosen angle on top of the board's own LVGL rotation (${LVGL_ROTATION} here; a CYD's

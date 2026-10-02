@@ -1413,7 +1413,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.32.0",
+  "firmware": "0.38.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -1426,6 +1426,9 @@
   "height": 720,
   "hotspot": true,
   "look": "standard",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
   "orientations": {
    "landscape": {
     "camera": {
@@ -1468,6 +1471,7 @@
    "margin": 16,
    "tile_pad": 18
   },
+  "wide_slots": false,
   "width": 720
  },
  "cyd": {
@@ -3745,7 +3749,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.32.0",
+  "firmware": "0.38.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -3758,6 +3762,9 @@
   "height": 720,
   "hotspot": true,
   "look": "standard",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
   "orientations": {
    "landscape": {
     "camera": {
@@ -3800,6 +3807,7 @@
    "margin": 16,
    "tile_pad": 18
   },
+  "wide_slots": false,
   "width": 720
  },
  "sunton8048s070": {
@@ -4355,7 +4363,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.32.0",
+  "firmware": "0.38.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -4368,6 +4376,9 @@
   "height": 720,
   "hotspot": true,
   "look": "standard",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
   "orientations": {
    "landscape": {
     "camera": {
@@ -4410,6 +4421,7 @@
    "margin": 16,
    "tile_pad": 18
   },
+  "wide_slots": false,
   "width": 720
  }
 }

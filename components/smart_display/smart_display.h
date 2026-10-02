@@ -1,5 +1,8 @@
 #pragma once
 #include "runtime_tiles.h"
+#ifdef USE_SCREEN_AUDIO_TEST
+#include "audio_test_capture.h"
+#endif
 #include "chunk_transport.h"
 #include "esphome/components/text/text.h"
 #include "esphome/core/component.h"
