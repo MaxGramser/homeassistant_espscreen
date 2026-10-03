@@ -54,6 +54,15 @@ esp32_hosted:
   active_high: true
   sdio_frequency: ${HOSTED_SDIO_FREQUENCY}
 
+http_request:
+
+update:
+  - platform: esp32_hosted
+    type: http
+    source: https://esphome.github.io/esp-hosted-firmware/manifest/esp32c6.json
+    update_interval: 6h
+    id: esp32_cohost_update
+
 logger:
   tx_buffer_size: 2048
   hardware_uart: UART0
