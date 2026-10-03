@@ -1932,6 +1932,8 @@
         "add_media": "Un altro lettore",
         "players": "Lettori, il primo in alto",
         "choose_camera": "Scegli una telecamera",
+        "choose_motion_sensor": "Sensore di movimento opzionale",
+        "motion_hint": "Con un sensore selezionato, la videocamera viene mostrata durante il rilevamento e per un minuto dopo la fine.",
         "weather_auto": "Temperatura esterna da Home Assistant",
         "weather_none": "Nessuna temperatura",
         "kinds": {

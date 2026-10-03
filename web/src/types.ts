@@ -86,13 +86,14 @@ export type UpdateInfo = {
 // dark has no percentage, so standby and night are on or off there.
 // `calibrate` (app 0.2.117): this screen's panel is one you calibrate, so the panel offers Calibrate touch. The
 // add-on reads it from the screen's own button in Home Assistant, the same one its settings page has a row for.
-// The screensaver (app 0.4.48): a player, a camera and the order the screen tries them in, the clock a step of its own.
+// The screensaver (app 0.4.48): a player, a camera optionally gated by movement, and the order the screen tries them in.
 // `ready`: the screen's firmware takes one; `pictures`: its board draws pictures, else the clock alone; `standby`: it
 // goes into standby at all.
 export type SaverKind = "media" | "camera" | "clock";
 // `weather` (app 0.4.52): the temperature under the clock, "auto" for Home Assistant's first weather entity, "" for none.
 // `more` (app 0.4.54): the players the music step tries after `media`, in their order.
-export type ScreensaverChoice = { show: boolean; media: string; camera: string; order: SaverKind[]; off: SaverKind[]; weather?: string; more?: string[] };
+// `binary_sensor`: when selected, the camera shows while its movement sensor is on and for 60 seconds after it clears.
+export type ScreensaverChoice = { show: boolean; media: string; camera: string; binary_sensor?: string; order: SaverKind[]; off: SaverKind[]; weather?: string; more?: string[] };
 export type ScreensaverView = ScreensaverChoice & { ready: boolean; pictures: boolean; standby: boolean };
 export type SettingsView = { owner: string; keys: string[]; values: Record<string, any>; unavailable: string[]; rotations?: number[]; switches?: string[]; calibrate?: boolean };
 // The two ways a screen can hang (app 0.2.107), chosen when it is built: lying down or standing up. A board's own

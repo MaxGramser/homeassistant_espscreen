@@ -1932,6 +1932,8 @@
         "add_media": "Another player",
         "players": "Players, the first at the top",
         "choose_camera": "Choose a camera",
+        "choose_motion_sensor": "Optional movement sensor",
+        "motion_hint": "With a sensor selected, the camera shows while it detects movement and for one minute after it clears.",
         "weather_auto": "Outside temperature from Home Assistant",
         "weather_none": "No temperature",
         "kinds": {

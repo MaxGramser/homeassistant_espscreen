@@ -10,7 +10,9 @@ tries them. It shows the first one that is there right now. It needs app 0.4.48 
 2. Turn on **Show in standby**. The screen also needs **Auto standby** on, since the screensaver takes the place of
    the dimmed tiles.
 3. Choose a media player under **Music playing** and a camera under **Camera**. An `image` entity counts as a camera
-   too, such as the last snapshot a doorbell keeps.
+   too, such as the last snapshot a doorbell keeps. Under the camera, you can optionally choose a binary sensor for
+   movement detection. With one selected, the camera shows while the sensor is on and for one minute after it turns off.
+   If the sensor is unavailable, the camera step is skipped. Without a sensor, the camera behaves as before.
 4. Drag the rows into the order you want, and turn off a row you never want to see.
 
 **More than one player** (app 0.4.54). Once a player is chosen, an empty row under it adds the next, up to four. The
@@ -25,6 +27,10 @@ For example, with the order Music playing, Camera, Clock:
   artist;
 - nothing plays, or the player shows no cover (a radio station, a paused player): the screen shows the camera;
 - the camera is unavailable: the screen shows the clock.
+
+When a movement sensor is selected for the camera, the camera step is available only while that sensor detects movement
+and for one minute after it clears. If the sensor is missing or unavailable, the next available step in the chosen order
+is shown.
 
 With every row off or unavailable, standby shows the dimmed tiles as it did before.
 
@@ -83,8 +89,9 @@ has.
   every layout. `PUT api/screens/<inbox>/screensaver` stores the whole choice, and the screen's entry in the editor's
   inventory carries it as `screensaver`, with `ready` (the firmware takes one), `pictures` (the board draws pictures)
   and `standby` (the board goes into standby at all).
-- **The pick.** The app follows the chosen players and camera like a tile's entities (`watched_entities`). After every
-  pass of a screen it works out the first step that is on and available (`screen_saver.pick`): the first player of the
+- **The pick.** The app follows the chosen players, camera and optional movement sensor like a tile's entities
+  (`watched_entities`). After every pass of a screen it works out the first step that is on and available
+  (`screen_saver.pick`): the first player of the
   list (`media`, then `more`, `screen_saver.player`) whose state is `playing` with an `entity_picture`, a camera whose state is not `unavailable` or `unknown`, the clock always. A
   board without pictures has only the clock.
 - **On the wire** the answer is one message in the screen's session, sent when it changes and once in every new

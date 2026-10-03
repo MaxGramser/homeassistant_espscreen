@@ -1932,6 +1932,8 @@
         "add_media": "Nog een speler",
         "players": "Spelers, de eerste bovenaan",
         "choose_camera": "Kies een camera",
+        "choose_motion_sensor": "Optionele bewegingssensor",
+        "motion_hint": "Met een geselecteerde sensor wordt de camera getoond tijdens bewegingsdetectie en één minuut daarna.",
         "weather_auto": "Buitentemperatuur uit Home Assistant",
         "weather_none": "Geen temperatuur",
         "kinds": {

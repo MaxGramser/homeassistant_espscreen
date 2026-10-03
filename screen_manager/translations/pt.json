@@ -1932,6 +1932,8 @@
         "add_media": "Outro leitor",
         "players": "Leitores, o primeiro em cima",
         "choose_camera": "Escolhe uma câmara",
+        "choose_motion_sensor": "Sensor de movimento opcional",
+        "motion_hint": "Com um sensor selecionado, a câmara é apresentada durante a deteção de movimento e por um minuto após terminar.",
         "weather_auto": "Temperatura exterior do Home Assistant",
         "weather_none": "Sem temperatura",
         "kinds": {
