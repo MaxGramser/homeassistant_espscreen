@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Większość tych płytek ma pierwszy. Wybierz drugi, gdy ekran pokazuje szum lub zniekształcony obraz.",
-        "GRID_ROWS": "Cztery rzędy mieszczą osiem mniejszych kafelków na stronie, dla ekranu z wieloma przełącznikami. Trzy rzędy zostawiają kafelki większe i czytelniejsze."
+        "GRID_ROWS": "Cztery rzędy mieszczą więcej mniejszych kafelków na stronie. Trzy rzędy zostawiają kafelki większe i czytelniejsze."
       },
       "choice_usual": "większość",
       "orientation": "Jak będzie wisiał?",

@@ -54,7 +54,7 @@ class ShowPage(unittest.TestCase):
         self.assertIn('open a page', claude_skill.DESCRIPTION)
         # claude.ai takes at most 200 characters, and the boards are the catalog's.
         self.assertLessEqual(len(claude_skill.DESCRIPTION), 200)
-        self.assertIn('CYD, Guition, Waveshare, Hosyond and Sunton', claude_skill.DESCRIPTION)
+        self.assertIn('CYD, Guition, Waveshare, Hosyond, Sunton and M5Stack Tab5', claude_skill.DESCRIPTION)
         guide = (ROOT / 'README_EXTENDED.md').read_text(encoding='utf-8')
         self.assertIn('## Open a page from an automation', guide)
         self.assertIn(f'esphome.<screen>_show_page`** (firmware {SHOW_PAGE_MIN_FIRMWARE}+)', guide)

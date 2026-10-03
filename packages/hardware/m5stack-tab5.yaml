@@ -1,0 +1,101 @@
+# ESP Screens - M5Stack Tab5 hardware: early ESP32-P4 with ESP32-C6 Wi-Fi, I/O expander, DSI power and touch bus.
+packages:
+  build: !include esp-idf.yaml
+
+esp32:
+  board: esp32-p4-evboard
+  variant: esp32p4
+  flash_size: 16MB
+  cpu_frequency: 360MHz
+  engineering_sample: true
+  framework:
+    advanced:
+      execute_from_psram: true
+    sdkconfig_options:
+      CONFIG_ESP_HOSTED_USE_MEMPOOL: "n"
+      CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM: "y"
+      CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS: "1"
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+esp_ldo:
+  - channel: 3
+    voltage: 2.5V
+    adjustable: true
+
+esp32_hosted:
+  variant: esp32c6
+  active_high: true
+  clk_pin: GPIO12
+  cmd_pin: GPIO13
+  d0_pin: GPIO11
+  d1_pin: GPIO10
+  d2_pin: GPIO9
+  d3_pin: GPIO8
+  reset_pin: GPIO15
+  slot: 1
+  sdio_frequency: 20MHz
+  use_psram: true
+
+logger:
+  tx_buffer_size: 2048
+  hardware_uart: USB_SERIAL_JTAG
+
+i2c:
+  id: tab5_bus
+  sda: GPIO31
+  scl: GPIO32
+  frequency: 400kHz
+
+pi4ioe5v6408:
+  - id: tab5_ioe
+    address: 0x43
+
+sensor:
+  - platform: ina226
+    address: 0x41
+    i2c_id: tab5_bus
+    adc_averaging: 16
+    max_current: 8.192A
+    shunt_resistance: 0.005ohm
+    update_interval: 10s
+    bus_voltage:
+      id: tab5_battery_voltage
+      name: "Battery Voltage"
+      entity_category: diagnostic
+
+  - platform: template
+    name: "Battery Level"
+    device_class: battery
+    state_class: measurement
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: return id(tab5_battery_voltage).state;
+    filters:
+      - sliding_window_moving_average:
+          window_size: 6
+          send_every: 3
+      - calibrate_linear:
+          method: exact
+          datapoints:
+            - 6.00 -> 0
+            - 6.60 -> 5
+            - 7.00 -> 15
+            - 7.20 -> 30
+            - 7.40 -> 45
+            - 7.60 -> 60
+            - 7.80 -> 72
+            - 8.00 -> 85
+            - 8.20 -> 97
+            - 8.40 -> 100
+      - clamp:
+          min_value: 0
+          max_value: 100
+
+output:
+  - platform: ledc
+    pin: GPIO22
+    id: gpio_backlight_pwm

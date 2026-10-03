@@ -205,7 +205,8 @@ LINT_KEEP = {
     'history range', 'card button ', 'header navigation', 'media key ', 'screensaver play', 'screensaver mute', 'let go', 'too short (', 'already handled in this contact',
     'same button within the debounce window', 'no runtime tiles', 'setting off', 'screen dimmed', 'card open',
     'detail card open', 'camera open', 'a slider is being dragged', 'settings page open', 'alert showing', 'USB calibration ready; no tile actions',
-    'GT911 touch test ready; no tile actions',
+    'GT911 touch test ready; no tile actions', 'ST7121 touch test ready; no tile actions',
+    'My M5Stack Tab5',
     'configuration not ready',
     'UI_TEST START: page/overlay render stress, no HA actions', 'Color', 'Color temperature', 'Brightness',
     # Home Assistant's own values and units the code compares with, not words it shows.

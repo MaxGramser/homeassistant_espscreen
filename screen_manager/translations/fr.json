@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "La plupart de ces cartes ont le premier. Prenez l'autre si l'écran affiche du bruit ou une image brouillée.",
-        "GRID_ROWS": "Quatre rangées placent huit tuiles plus petites sur une page, pour un écran avec beaucoup d’interrupteurs. Trois rangées gardent les tuiles plus grandes et plus lisibles."
+        "GRID_ROWS": "Quatre rangées placent davantage de petites tuiles sur une page. Trois rangées gardent les tuiles plus grandes et plus lisibles."
       },
       "choice_usual": "la plupart",
       "orientation": "Dans quel sens sera-t-il accroché ?",

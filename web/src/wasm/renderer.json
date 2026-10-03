@@ -32,6 +32,10 @@
     {
       "dpi": 254,
       "look": "standard"
+    },
+    {
+      "dpi": 294,
+      "look": "standard"
     }
   ]
 }

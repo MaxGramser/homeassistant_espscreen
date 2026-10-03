@@ -29,6 +29,7 @@ body:
         - Waveshare (ESP32-S3-Touch-LCD-7B)
         - Sunton (ESP32-8048S070)
         - Guition (JC8012P4A1 V2)
+        - M5Stack Tab5 (Tab5 ST7121)
         - Other / not listed here
         - Not board-specific (add-on, editor, documentation)
     validations:

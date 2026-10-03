@@ -102,10 +102,14 @@ def boxes(screen):
     return {view: tuple(box) for view, box in found.items()}
 
 
-def capped(size):
-    """`size` (width, height), or the largest size of its proportions within PICTURE_MAX_SIDE and PICTURE_MAX_BYTES."""
+def capped(size, bounds=None):
+    """`size` (width, height), or the largest size of its proportions within the picture caps and optional bounds."""
     width, height = size
-    scale = min(1.0, PICTURE_MAX_SIDE / width, PICTURE_MAX_SIDE / height, (PICTURE_MAX_BYTES / (2 * width * height)) ** 0.5)
+    limits = [1.0, PICTURE_MAX_SIDE / width, PICTURE_MAX_SIDE / height,
+              (PICTURE_MAX_BYTES / (2 * width * height)) ** 0.5]
+    if bounds:
+        limits.extend((bounds[0] / width, bounds[1] / height))
+    scale = min(limits)
     return (width, height) if scale >= 1 else (max(1, int(width * scale)), max(1, int(height * scale)))
 
 
@@ -144,7 +148,7 @@ def alert_box(screen, picture):
     else:
         title_line, line = alert_layout.lines(dpi, look)
     card = alert_layout.layout(shape['width'], shape['height'], title_line, line, True, dpi, look, picture[0], picture[1])
-    return capped((card.image_w, card.image_h)) if card.image_w > 0 and card.image_h > 0 else default
+    return capped((card.image_w, card.image_h), box(screen, 'full')) if card.image_w > 0 and card.image_h > 0 else default
 
 
 def picture_size(raw):

@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "La mayoría de estas placas llevan el primero. Elige el otro si la pantalla muestra ruido o una imagen distorsionada.",
-        "GRID_ROWS": "Cuatro filas caben ocho mosaicos más pequeños en una página, para una pantalla con muchos interruptores. Tres filas mantienen los mosaicos más grandes y fáciles de leer."
+        "GRID_ROWS": "Cuatro filas caben más mosaicos pequeños en una página. Tres filas mantienen los mosaicos más grandes y fáciles de leer."
       },
       "choice_usual": "la mayoría",
       "orientation": "¿Cómo la vas a colgar?",

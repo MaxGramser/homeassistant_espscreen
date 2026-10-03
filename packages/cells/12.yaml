@@ -1,0 +1,488 @@
+############################################################
+# ESP Screens - the cards of a grid of 12 cells.
+#
+# Written by tools/generate_cells.py; do not edit. A board includes the file for its own number of cells
+# (GRID_COLS x GRID_ROWS) and the shared tree in packages/core.yaml places them: the container `tile_scroll`
+# is an LVGL grid and runtime_tiles::place_page gives every card its cell and span. A card carries no
+# coordinate, only the size its board's grid gives it; its circle, name and state are placed by the runtime
+# on the cell it got (runtime_tiles::head_row), so a board states the icon's size and nothing else of the head.
+############################################################
+substitutions:
+  # The shared boot lambda hands the cards to the runtime with this line (packages/core.yaml).
+  BIND_CELLS: |-
+    runtime_tiles::bind(0, id(tile1), id(t1_title), id(t1_value), id(tile1_icon_circle), id(tile1_icon_lbl));
+    runtime_tiles::bind(1, id(tile2), id(t2_title), id(t2_value), id(tile2_icon_circle), id(tile2_icon_lbl));
+    runtime_tiles::bind(2, id(tile3), id(t3_title), id(t3_value), id(tile3_icon_circle), id(tile3_icon_lbl));
+    runtime_tiles::bind(3, id(tile4), id(t4_title), id(t4_value), id(tile4_icon_circle), id(tile4_icon_lbl));
+    runtime_tiles::bind(4, id(tile5), id(t5_title), id(t5_value), id(tile5_icon_circle), id(tile5_icon_lbl));
+    runtime_tiles::bind(5, id(tile6), id(t6_title), id(t6_value), id(tile6_icon_circle), id(tile6_icon_lbl));
+    runtime_tiles::bind(6, id(tile7), id(t7_title), id(t7_value), id(tile7_icon_circle), id(tile7_icon_lbl));
+    runtime_tiles::bind(7, id(tile8), id(t8_title), id(t8_value), id(tile8_icon_circle), id(tile8_icon_lbl));
+    runtime_tiles::bind(8, id(tile9), id(t9_title), id(t9_value), id(tile9_icon_circle), id(tile9_icon_lbl));
+    runtime_tiles::bind(9, id(tile10), id(t10_title), id(t10_value), id(tile10_icon_circle), id(tile10_icon_lbl));
+    runtime_tiles::bind(10, id(tile11), id(t11_title), id(t11_value), id(tile11_icon_circle), id(tile11_icon_lbl));
+    runtime_tiles::bind(11, id(tile12), id(t12_title), id(t12_value), id(tile12_icon_circle), id(tile12_icon_lbl));
+
+lvgl:
+  pages:
+    - id: !extend home_page
+      widgets:
+        - obj:
+            id: !extend tile_scroll
+            widgets:
+              # ---------- CARD 1 ----------
+              - obj:
+                  id: tile1
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile1_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile1_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t1_title
+                        text: "Tile 1"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t1_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 2 ----------
+              - obj:
+                  id: tile2
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile2_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile2_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t2_title
+                        text: "Tile 2"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t2_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 3 ----------
+              - obj:
+                  id: tile3
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile3_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile3_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t3_title
+                        text: "Tile 3"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t3_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 4 ----------
+              - obj:
+                  id: tile4
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile4_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile4_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t4_title
+                        text: "Tile 4"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t4_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 5 ----------
+              - obj:
+                  id: tile5
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile5_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile5_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t5_title
+                        text: "Tile 5"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t5_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 6 ----------
+              - obj:
+                  id: tile6
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile6_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile6_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t6_title
+                        text: "Tile 6"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t6_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 7 ----------
+              - obj:
+                  id: tile7
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile7_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile7_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t7_title
+                        text: "Tile 7"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t7_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 8 ----------
+              - obj:
+                  id: tile8
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile8_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile8_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t8_title
+                        text: "Tile 8"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t8_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 9 ----------
+              - obj:
+                  id: tile9
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile9_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile9_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t9_title
+                        text: "Tile 9"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t9_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 10 ----------
+              - obj:
+                  id: tile10
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile10_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile10_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t10_title
+                        text: "Tile 10"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t10_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 11 ----------
+              - obj:
+                  id: tile11
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile11_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile11_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t11_title
+                        text: "Tile 11"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t11_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false
+              # ---------- CARD 12 ----------
+              - obj:
+                  id: tile12
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  # A seed: runtime_tiles::bind puts the card in a cell of the grid and LVGL stretches it to
+                  # that cell, whichever way the glass hangs (firmware 0.2.92+).
+                  width: 1
+                  height: 1
+                  styles: style_tile
+                  scrollable: false
+                  scrollbar_mode: 'OFF'
+                  widgets:
+                    - obj:
+                        id: tile12_icon_circle
+                        width: ${TILE_ICON_SIZE}
+                        height: ${TILE_ICON_SIZE}
+                        styles: style_icon_circle
+                        clickable: false
+                        scrollable: false
+                        scrollbar_mode: 'OFF'
+                        widgets:
+                          - label:
+                              id: tile12_icon_lbl
+                              align: CENTER
+                              text_font: materialdesign_icons
+                              text: "\U000F002A"
+                              clickable: false
+                    - label:
+                        id: t12_title
+                        text: "Tile 12"
+                        styles: style_title
+                        clickable: false
+                    - label:
+                        id: t12_value
+                        text: "—"
+                        styles: style_value
+                        clickable: false

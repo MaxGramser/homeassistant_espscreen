@@ -25,6 +25,9 @@ namespace standard_217 {
 namespace standard_254 {
 #include "standard_254/ui.h"
 }
+namespace standard_294 {
+#include "standard_294/ui.h"
+}
 static FirmwareUi setup_firmware_ui(lv_obj_t *root, int dpi) {
 if (dpi == 133) { using namespace standard_133; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cell, "standard"}; }
@@ -41,6 +44,8 @@ return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui,
 if (dpi == 217) { using namespace standard_217; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cell, "standard"}; }
 if (dpi == 254) { using namespace standard_254; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cell, "standard"}; }
+if (dpi == 294) { using namespace standard_294; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cell, "standard"}; }
 return {};
 }

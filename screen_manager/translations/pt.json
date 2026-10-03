@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "A maioria destas placas tem o primeiro. Escolha o outro se o ecrã mostrar ruído ou uma imagem distorcida.",
-        "GRID_ROWS": "Quatro linhas cabem oito blocos menores numa página, para um ecrã com muitos interruptores. Três linhas mantêm os blocos maiores e mais fáceis de ler."
+        "GRID_ROWS": "Quatro linhas cabem mais blocos pequenos numa página. Três linhas mantêm os blocos maiores e mais fáceis de ler."
       },
       "choice_usual": "a maioria",
       "orientation": "Como vai ficar pendurado?",

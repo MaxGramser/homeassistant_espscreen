@@ -260,7 +260,7 @@ def plan(reach, new=frozenset(), read_base=read_now):
                          'them: ' + ', '.join(f'{key} ({version})' for key, version in sorted(ahead.items())) + '.')
         lines += ['- tools/generate_board_shapes.py, then bump screen_manager/config.yaml with the CHANGELOG entry',
                   f'  "## <app> (firmware {shared_next})".',
-                  '- Run tools/check.sh and tools/check.sh --firmware --sample (the four boards of tools/profiles.py SAMPLE,',
+                  '- Run tools/check.sh and tools/check.sh --firmware --sample (the boards of tools/profiles.py SAMPLE,',
                   '  the CYD flash budget); --firmware --all builds every board when a change needs that.']
         lines += oldest('--firmware --affected')
     else:

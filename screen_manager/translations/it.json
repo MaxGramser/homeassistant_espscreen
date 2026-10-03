@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "La maggior parte di queste schede ha il primo. Scegli l'altro se lo schermo mostra rumore o un'immagine disturbata.",
-        "GRID_ROWS": "Quattro righe mettono otto riquadri più piccoli in una pagina, per uno schermo con molti interruttori. Tre righe mantengono i riquadri più grandi e più leggibili."
+        "GRID_ROWS": "Quattro righe mettono più riquadri piccoli in una pagina. Tre righe mantengono i riquadri più grandi e più leggibili."
       },
       "choice_usual": "la maggior parte",
       "orientation": "Come lo appendi?",

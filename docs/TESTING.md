@@ -59,8 +59,8 @@ placeholder secrets, and with the Wi-Fi fallback hotspot only where users get it
 from `tests/fixtures/overrides/` on its board, and applies the flash budget to every board with 4 MB of flash it builds (docs/RELEASING.md step 2).
 
 - `--affected` builds the boards the change reaches (`tools/affected_boards.py --build-keys`); when that is every
-  board, it builds the sample of four in `tools/profiles.py` `SAMPLE` instead (the CYD and the Guition always, and two
-  that differ in chip, flash or glass). `--affected --every-board` builds them all.
+  board, it builds the sample in `tools/profiles.py` `SAMPLE` instead (the CYD and Guition always, plus boards that
+  differ in chip, flash, glass or hardware). `--affected --every-board` builds them all.
 - `--sample` builds the sample directly, and `--board <key>` (repeatable) one board.
 - On an ESPHome older than the add-on's (the packages' `min_version`), a change that reaches every board builds one
   board, `MIN_VERSION_SAMPLE` in `tools/profiles.py` (the CYD), plus a board for each changed file the CYD doesn't
@@ -75,7 +75,7 @@ A build that passes says the YAML and the C++ compile and fit their slot. It say
 
 `tools/render/run.py` builds the real firmware of a board as a program for this computer: the same C++ and LVGL as on
 the glass, with an SDL surface in place of the panel and the touch chip. Lying down, and standing up where the glass is
-not square. `tools/check.sh --render` does it for every board, and `tools/check.sh --render --sample` for the three of
+not square. `tools/check.sh --render` does it for every board, and `tools/check.sh --render --sample` for the boards in
 `RENDER_SAMPLE` in `tools/profiles.py` (the smallest, a middle and the largest glass). It needs SDL2 and ESPHome's
 Python and takes long, so it runs by hand when a change reaches what a screen draws. CI does not run it. For each
 variant it:

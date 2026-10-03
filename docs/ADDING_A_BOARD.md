@@ -102,7 +102,7 @@ nothing falls outside its area), and saves every page, the alerts (a camera pict
 pictures) and Dark mode as PNGs under `.esphome/render/out/<board>/`, with a sheet of all of them. A board whose glass
 is not square is done standing up as well (`<board>-portrait`). That catches a cramped forecast, a clipped name or a
 card that falls outside its area without a board on the desk. `tools/check.sh --render` does it for every board and
-`tools/check.sh --render --sample` for the smallest, a middle and the largest glass (`RENDER_SAMPLE` in
+`tools/check.sh --render --sample` for the smallest, a middle and the largest glass, plus Tab5's high-density profile (`RENDER_SAMPLE` in
 `tools/profiles.py`). Renders run by hand, not in CI. docs/TESTING.md says what it checks and what only the glass shows.
 
 ## 6. Then the board itself
@@ -133,7 +133,7 @@ comes from the core, with the angles the glass allows. Its entry in `boards.yaml
 called, what is printed on it, how far it has been tried (`stable`, `new` or `experimental`), and, for a part that
 differs between boards sold under one name, the `choices` someone makes when a screen of it is built. That is all ESP
 Screens needs: New screen and the screen list draw every board from the catalog and the board's own files (the size in
-inches from its pixels and density, the touch controller from its `touchscreen:`, a touch calibration on the first
+inches from its pixels and density, the touch controller from its `touchscreen:` platform (or `TOUCH_CONTROLLER` if its driver name differs), a touch calibration on the first
 start from `features/resistive-touch.yaml`), so no board is written into the editor or its translations. After a
 change to its board file, run `tools/generate_cells.py` and `tools/generate_board_shapes.py` again, and after its
 `boards.yaml` entry `tools/generate_issue_templates.py`, which lists it in the board dropdown of the GitHub issue forms.

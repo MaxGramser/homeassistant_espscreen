@@ -121,3 +121,12 @@ jc8012p4a1v2:
   name: Guition
   model: JC8012P4A1 V2
   status: experimental
+
+tab5:
+  file: tab5.yaml
+  name: M5Stack Tab5
+  model: Tab5 ST7121
+  status: new
+  choices:
+    # Three columns of three, or four with smaller tiles and more on a page.
+    GRID_ROWS: ["3", "4"]

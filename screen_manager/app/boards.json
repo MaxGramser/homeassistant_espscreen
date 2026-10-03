@@ -898,6 +898,100 @@
   "wide_slots": false,
   "width": 800
  },
+ "checkout/tab5.yaml": {
+  "alert": {
+   "line": 42,
+   "title_line": 55
+  },
+  "board": "tab5",
+  "camera": {
+   "full": [
+    1280,
+    720
+   ],
+   "thumb": [
+    659,
+    370
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {
+    "GRID_ROWS": [
+     "3",
+     "4"
+    ]
+   },
+   "inch": 5.0,
+   "model": "Tab5 ST7121",
+   "name": "M5Stack Tab5",
+   "order": 16,
+   "status": "new",
+   "touch": "ST7121"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 294,
+  "firmware": "0.33.0",
+  "fonts": {
+   "headline": 47,
+   "icon_home": 59,
+   "icon_mini": 45,
+   "label": 31,
+   "sublabel": 28,
+   "sublabel_big": 36,
+   "watch_value": 66
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      720
+     ],
+     "thumb": [
+      659,
+      370
+     ]
+    },
+    "columns": 3,
+    "height": 720,
+    "rotation": 90,
+    "rows": 3,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      1280
+     ],
+     "thumb": [
+      595,
+      334
+     ]
+    },
+    "columns": 1,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 720
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "gap": 12,
+   "margin": 16,
+   "tile_pad": 21
+  },
+  "wide_slots": false,
+  "width": 1280
+ },
  "checkout/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -3022,6 +3116,100 @@
   "wide_slots": false,
   "width": 800
  },
+ "packages/tab5.yaml": {
+  "alert": {
+   "line": 42,
+   "title_line": 55
+  },
+  "board": "tab5",
+  "camera": {
+   "full": [
+    1280,
+    720
+   ],
+   "thumb": [
+    659,
+    370
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {
+    "GRID_ROWS": [
+     "3",
+     "4"
+    ]
+   },
+   "inch": 5.0,
+   "model": "Tab5 ST7121",
+   "name": "M5Stack Tab5",
+   "order": 16,
+   "status": "new",
+   "touch": "ST7121"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 294,
+  "firmware": "0.33.0",
+  "fonts": {
+   "headline": 47,
+   "icon_home": 59,
+   "icon_mini": 45,
+   "label": 31,
+   "sublabel": 28,
+   "sublabel_big": 36,
+   "watch_value": 66
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      720
+     ],
+     "thumb": [
+      659,
+      370
+     ]
+    },
+    "columns": 3,
+    "height": 720,
+    "rotation": 90,
+    "rows": 3,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      1280
+     ],
+     "thumb": [
+      595,
+      334
+     ]
+    },
+    "columns": 1,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 720
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "gap": 12,
+   "margin": 16,
+   "tile_pad": 21
+  },
+  "wide_slots": false,
+  "width": 1280
+ },
  "packages/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -3525,6 +3713,100 @@
   },
   "wide_slots": false,
   "width": 800
+ },
+ "tab5": {
+  "alert": {
+   "line": 42,
+   "title_line": 55
+  },
+  "board": "tab5",
+  "camera": {
+   "full": [
+    1280,
+    720
+   ],
+   "thumb": [
+    659,
+    370
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {
+    "GRID_ROWS": [
+     "3",
+     "4"
+    ]
+   },
+   "inch": 5.0,
+   "model": "Tab5 ST7121",
+   "name": "M5Stack Tab5",
+   "order": 16,
+   "status": "new",
+   "touch": "ST7121"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 294,
+  "firmware": "0.33.0",
+  "fonts": {
+   "headline": 47,
+   "icon_home": 59,
+   "icon_mini": 45,
+   "label": 31,
+   "sublabel": 28,
+   "sublabel_big": 36,
+   "watch_value": 66
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      720
+     ],
+     "thumb": [
+      659,
+      370
+     ]
+    },
+    "columns": 3,
+    "height": 720,
+    "rotation": 90,
+    "rows": 3,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      1280
+     ],
+     "thumb": [
+      595,
+      334
+     ]
+    },
+    "columns": 1,
+    "height": 1280,
+    "rotation": 180,
+    "rows": 5,
+    "width": 720
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "gap": 12,
+   "margin": 16,
+   "tile_pad": 21
+  },
+  "wide_slots": false,
+  "width": 1280
  },
  "waveshare35": {
   "alert": {

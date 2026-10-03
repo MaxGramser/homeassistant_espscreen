@@ -33,18 +33,17 @@ PACKAGES = tuple(f'packages/{board}.yaml' for board, _, _ in BOARD_TABLE)
 NAMES = PROFILES + PACKAGES
 
 # The boards a check builds instead of all of them (app 0.4.32): the list keeps growing, and most boards share the same
-# code. Four that differ where a build can break: the CYD (ESP32, 4 MB without a hotspot, SPI glass and the tightest
-# flash budget) and the Guition 4848S040 (ESP32-S3, square RGB glass, the bench board) always, then the 10.1-inch Guition
-# (ESP32-P4, MIPI-DSI, the largest glass and grid) and the 7-inch Waveshare (ESP32-S3 with a 4 MB app slot, 800 x 480).
-SAMPLE = ('cyd', 'guition', 'jc8012p4a1', 'waveshare7')
+# code. The CYD (ESP32, 4 MB, SPI glass and the tightest flash budget) and Guition 4848S040 (ESP32-S3, square RGB) always,
+# plus the 10.1-inch Guition (ESP32-P4, MIPI-DSI and largest glass), Tab5 (its distinct P4/C6 hardware) and 7-inch Waveshare.
+SAMPLE = ('cyd', 'guition', 'jc8012p4a1', 'tab5', 'waveshare7')
 # The boards a change that reaches every board builds on an ESPHome older than the add-on's, the packages' min_version
 # (app 0.4.41): what an older ESPHome refuses is a newer option or API in the shared YAML and C++, the same on every
 # board, so one board says it. The CYD, for its flash budget. tools/affected_boards.py --older-sample adds a board for a
 # changed file the CYD doesn't build (a feature package, another board's file), and CI builds every board on both
 # ESPHomes each night.
 MIN_VERSION_SAMPLE = ('cyd',)
-# The boards a render check draws the UI on: the smallest glass, one in the middle and the largest.
-RENDER_SAMPLE = ('cyd', 'guition', 'jc8012p4a1')
+# The boards a render check draws the UI on: the smallest, a middle and the largest glass, including Tab5's high density.
+RENDER_SAMPLE = ('cyd', 'guition', 'tab5', 'jc8012p4a1')
 ENTRIES = {**{profile: board for board, _, profile in BOARD_TABLE},
            **{f'packages/{board}.yaml': board for board, _, _ in BOARD_TABLE}}
 

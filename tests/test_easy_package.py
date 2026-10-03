@@ -155,7 +155,7 @@ class PackageTests(unittest.TestCase):
             # What a feature brings (the resistive panel's calibration, the capacitive one's edge swipe, camera images)
             # and the hardware a screen's own YAML may change on the board that has it. GRID_CELLS names the cards file of
             # a board whose grid is a choice (the Guition's rows, app 0.4.31).
-            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|GRID_CELLS$)', n) for n in own), f'{board}: {sorted(own)}')
+            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|GRID_CELLS$)', n) for n in own), f'{board}: {sorted(own)}')
 
     def test_the_checker_refuses_a_fixed_home_assistant_subscription(self):
         source = (ROOT / 'tools/check_packages.py').read_text()

@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "De meeste van deze borden hebben de eerste. Kies de andere als het scherm ruis of een verminkt beeld laat zien.",
-        "GRID_ROWS": "Vier rijen passen acht kleinere tegels op een pagina, voor een scherm met veel schakelaars. Drie rijen houden de tegels groter en beter leesbaar."
+        "GRID_ROWS": "Vier rijen passen meer kleinere tegels op een pagina. Drie rijen houden de tegels groter en beter leesbaar."
       },
       "choice_usual": "de meeste",
       "orientation": "Hoe komt hij te hangen?",

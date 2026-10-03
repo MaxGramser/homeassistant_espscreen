@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Die meisten dieser Boards haben den ersten. Nimm den anderen, wenn der Bildschirm Rauschen oder ein verzerrtes Bild zeigt.",
-        "GRID_ROWS": "Vier Reihen bringen acht kleinere Kacheln auf eine Seite, für einen Bildschirm mit vielen Schaltern. Drei Reihen halten die Kacheln größer und besser lesbar."
+        "GRID_ROWS": "Vier Reihen bringen mehr, kleinere Kacheln auf eine Seite. Drei Reihen halten die Kacheln größer und besser lesbar."
       },
       "choice_usual": "die meisten",
       "orientation": "Wie soll er hängen?",

@@ -1,0 +1,36 @@
+# Test the ST7121 Tab5 package from draft PR #1 in the Heronimonimo fork.
+# Physical display and touch validation will be done on the Tab5 unit.
+# Add wifi_ssid, wifi_password, api_encryption_key, ota_password, and ap_password to secrets.yaml.
+substitutions:
+  DEVICE_NAME: tab5-pr-test
+  DEVICE_FRIENDLY_NAME: "M5Stack Tab5 PR test"
+  LANGUAGE: en
+
+esphome:
+  name: ${DEVICE_NAME}
+  friendly_name: ${DEVICE_FRIENDLY_NAME}
+
+packages:
+  display:
+    url: https://github.com/Heronimonimo/homeassistant_espscreen
+    ref: refs/pull/1/head
+    files: [packages/tab5.yaml]
+    refresh: 0s
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+  ap:
+    ssid: "${DEVICE_FRIENDLY_NAME} Setup"
+    password: !secret ap_password
+
+captive_portal:

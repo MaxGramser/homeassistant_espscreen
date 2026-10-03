@@ -14,6 +14,7 @@ holds one file per board, named after the board's key in `boards.yaml`:
 | `waveshare43.yaml` | Waveshare ESP32-S3-Touch-LCD-4.3 |
 | `jc8012p4a1.yaml` | Guition JC8012P4A1, 10.1 inch |
 | `jc8012p4a1v3.yaml` | Guition JC8012P4A1 V3, 10.1 inch (experimental) |
+| `tab5.yaml` | M5Stack Tab5 ST7121 variant, 5 inch (experimental) |
 | `waveshare7.yaml` | Waveshare ESP32-S3-Touch-LCD-7 (experimental) |
 | `waveshare4b.yaml` | Waveshare ESP32-S3-Touch-LCD-4B (experimental) |
 

@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "A legtöbb ilyen panelen az első van. Ha a kijelző zajos vagy torz képet mutat, válaszd a másikat.",
-        "GRID_ROWS": "Négy sorban nyolc kisebb csempe fér el egy oldalon, sok kapcsolóval rendelkező képernyőhöz. Három sorban a csempék nagyobbak és jobban olvashatók."
+        "GRID_ROWS": "Négy sorban több kisebb csempe fér el egy oldalon. Három sorban a csempék nagyobbak és jobban olvashatók."
       },
       "choice_usual": "a legtöbb panel",
       "orientation": "Hogyan lesz felszerelve?",

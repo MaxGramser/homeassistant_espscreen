@@ -2064,7 +2064,7 @@
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Most of these boards have the first one. Take the other when the screen shows noise or a garbled picture.",
-        "GRID_ROWS": "Four rows fit eight smaller tiles on a page, for a screen with many switches. Three rows keep the tiles larger and easier to read."
+        "GRID_ROWS": "Four rows fit more, smaller tiles on a page. Three rows keep the tiles larger and easier to read."
       },
       "choice_usual": "most boards",
       "orientation": "Which way will it hang?",

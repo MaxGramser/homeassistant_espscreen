@@ -18,6 +18,7 @@
 - [JC3248W535.md](JC3248W535.md): the Guition JC3248W535, 3.5 inch.
 - [JC1060P470.md](JC1060P470.md): the Guition JC1060P470 and its V2, 7 inch, ESP32-P4.
 - [JC8012P4A1.md](JC8012P4A1.md): the Guition JC8012P4A1, 10.1 inch, ESP32-P4, with its V2 and V3.
+- [TAB5.md](TAB5.md): the M5Stack Tab5, 5 inch, ESP32-P4, for the confirmed ST7121 variant.
 - [WAVESHARE35.md](WAVESHARE35.md): the Waveshare ESP32-S3-Touch-LCD-3.5.
 - [WAVESHARE4B.md](WAVESHARE4B.md): the Waveshare ESP32-S3-Touch-LCD-4B.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
