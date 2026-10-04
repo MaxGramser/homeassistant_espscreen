@@ -1,4 +1,4 @@
-static_assert(screen_text::KEYS_HASH == 0x3F1A63D1u && screen_text::KEY_COUNT == 415,
+static_assert(screen_text::KEYS_HASH == 0xE9EECF71u && screen_text::KEY_COUNT == 428,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 const char *const screen_text::TABLE[] = {
     ".",
@@ -415,6 +415,19 @@ const char *const screen_text::TABLE[] = {
     "Open",
     "Open door",
     "Really open?",
+    "Normal",
+    "Eco",
+    "Away",
+    "Boost",
+    "Comfort",
+    "Home",
+    "Sleep",
+    "Auto",
+    "Baby",
+    "Humidifying",
+    "Drying",
+    "Idle",
+    "Off",
     "Back"
 };
 const char *const screen_text::LANGUAGE = "en";
