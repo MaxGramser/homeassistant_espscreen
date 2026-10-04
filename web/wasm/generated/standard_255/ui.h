@@ -295,6 +295,7 @@ runtime_tiles::header_text_font = sublabel_big;
 runtime_tiles::header_icon_font = materialdesign_icons_mini;
 runtime_tiles::header_home_mark = tessera_mark_bar;
 runtime_tiles::header_back_font = materialdesign_icons_back;
+runtime_tiles::header_status_font = materialdesign_icons_status;
 runtime_tiles::setpoint_font = setpoint_digits;
 screen_input::touch_guard.configure(0, 20);
 screen_input::edge_swipe.configure(48, 60);

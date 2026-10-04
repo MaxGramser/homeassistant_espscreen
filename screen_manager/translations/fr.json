@@ -192,7 +192,8 @@
       "test_microphone": "Tester le micro",
       "test_speaker": "Tester le haut-parleur",
       "test_wake_word": "Tester le mot-clé",
-      "stop_audio_test": "Arrêter le test audio"
+      "stop_audio_test": "Arrêter le test audio",
+      "wake_word_enabled": "Mot de réveil activé"
     },
     "tile": {
       "tap_to_open": "Ouvrir",
@@ -543,6 +544,18 @@
       "speaker_test": "Test du haut-parleur",
       "say": "Dites {word} (30s)",
       "muted": "Microphone coupé"
+    },
+    "voice": {
+      "start": "Démarrer la voix",
+      "stop": "Arrêter la voix",
+      "connecting": "Connexion",
+      "listening": "Écoute",
+      "thinking": "Réflexion",
+      "speaking": "Réponse",
+      "stopping": "Arrêt en cours",
+      "error": "Erreur vocale",
+      "idle": "Au repos",
+      "wake_ready": "Dites {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Gain automatique",
         "speaker_volume": "Volume du haut-parleur",
         "tap_sound": "Son au toucher",
-        "wake_word": "Mot-clé"
+        "wake_word": "Mot-clé",
+        "wake_word_enabled": "Mot de réveil activé"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
       "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Panneau vocal physique",
+      "hint": "Expérimental : lancez la voix par toucher ou activez un mot de réveil dans les réglages Audio du panneau. Utilise le fournisseur et les réglages de réponse ci-dessus.",
+      "no_panels": "Ajoutez d’abord un panneau P4 physique compatible à Home Assistant.",
+      "panel": "Panneau",
+      "address": "Adresse du module accessible au panneau",
+      "address_hint": "Utilisez l’adresse du réseau local et le port multimédia, pas ingress ou localhost. ws:// nécessite un réseau local de confiance ; wss:// nécessite un proxy TLS de confiance.",
+      "paired_hint": "Ce panneau est associé. Remplacer l’association le déconnecte jusqu’à l’installation de la nouvelle configuration.",
+      "pair": "Associer le panneau",
+      "replace": "Remplacer l’association",
+      "remove": "Révoquer l’association",
+      "install": "Téléchargez la configuration et fusionnez ses substitutions avec Override YAML de ce panneau dans Build & install. Conservez les réglages existants, puis compilez et installez le firmware vocal.",
+      "download": "Télécharger la configuration vocale",
+      "private": "Ce fichier contient le jeton privé du panneau, pas la clé API du fournisseur. Enregistrez-le maintenant ; il ne sera plus téléchargeable après avoir quitté cette page."
     }
   },
   "configuration": {

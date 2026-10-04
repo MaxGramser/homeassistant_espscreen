@@ -233,7 +233,9 @@ these ESPHome entities on the screen's device enables the corresponding editor r
 | Automatic gain | `switch`, Microphone automatic level control | `microphone_alc` |
 | Speaker volume | `number`, Speaker volume | `speaker_volume` |
 | Tap sound | `switch`, Tap sound | `tap_sound` |
-| Wake word (test builds) | `select`, Wake word | `wake_word` |
+| Wake word (test and voice builds) | `select`, Wake word | `wake_word` |
+
+| Wake word enabled (voice builds) | `switch`, Wake word enabled | `wake_word_enabled` |
 
 Diagnostic builds also expose buttons for speaker, microphone and wake-word tests and stopping
 a test. The editor presses only buttons belonging to that same ESPHome device. Test feedback

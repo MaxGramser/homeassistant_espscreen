@@ -32,8 +32,9 @@ the preview, the silence timeout or the ten-minute session limit ends capture.
 Turning the add-on option off and restarting hides voice controls and rejects
 voice requests. Saved credentials and preferences remain in the app's private
 data, so re-enabling voice restores them. Remove keys in the editor before
-disabling if you want to delete them. This option enables browser voice only;
-physical microphones and wake words are not implemented by this release.
+disabling if you want to delete them. Physical P4 microphones and wake words
+additionally require the optional `voice` firmware mode and per-panel pairing;
+see the [physical voice setup](../docs/DEVICE_VOICE.md).
 
 ## Screen installation
 

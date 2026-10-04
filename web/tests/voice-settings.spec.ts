@@ -4,6 +4,7 @@ import { getJson, send } from "../src/api";
 import VoiceSettings from "../src/components/VoiceSettings.vue";
 
 vi.mock("../src/api", () => ({ getJson: vi.fn(), send: vi.fn() }));
+vi.mock("../src/components/VoiceDeviceSettings.vue", () => ({ default: { template: '<div />' } }));
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getJson).mockResolvedValue({ enabled: true, configured: false, saved_key: false, source: "" });

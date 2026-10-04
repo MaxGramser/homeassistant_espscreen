@@ -186,6 +186,7 @@ class HomeAssistant:
         self.registry_changed = asyncio.Event()
         self.setting_events = []
         self.time_zone = None
+        self.location = {}
         # Home Assistant's unit system; a climate entity's temperature carries no unit of its own.
         self.units = {}
         # Home Assistant's own language (get_config), and the one the screens speak (Settings -> Language & region,
@@ -391,11 +392,12 @@ class HomeAssistant:
         return self.service_names_by_language[language]
 
     async def read_config(self):
-        """Units, time zone and language from Home Assistant's core config; again when someone changes them there."""
+        """Units, time zone, home location and language; refreshed when HA's core config changes."""
         self.config_stale = False
         try:
             config = await self.request('get_config')
             self.units = config.get('unit_system') or {}
+            self.location = {key: config.get(key) for key in ('location_name', 'latitude', 'longitude')}
             self.time_zone = ZoneInfo(config.get('time_zone') or 'UTC')
             language = config.get('language')
             changed = isinstance(language, str) and language != self.ha_language
@@ -4170,6 +4172,7 @@ async def main():
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
         media_app = camera_feed.web_app(manager.camera)
         manager.voice_output.register_media(media_app)
+        manager.device_voice.register(None, media_app)
         cameras = web.AppRunner(media_app, access_log=None)
         await cameras.setup()
         try:

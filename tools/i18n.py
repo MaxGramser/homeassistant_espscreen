@@ -185,6 +185,8 @@ EITHER_PLACEHOLDER = {'screen.date.top_bar': {'weekday', 'weekday_min', 'day', '
 # English that stays in the firmware on purpose, with why. Everything else a screen shows comes from the translations,
 # and `lint` fails on a new English text in the code, so it never slips back in.
 LINT_KEEP = {
+    # HTTP authentication header, never displayed or logged.
+    'Authorization: Bearer ',
     # Names of trained wake-word models and their HA select options, not translatable commands.
     'Okay Nabu', 'Hey Jarvis', 'Alexa', 'Hey Mycroft',
     # Statuses the app reads and acts on (screen_manager/app/server.py RESEND_STATES, the "Error" prefix): protocol.

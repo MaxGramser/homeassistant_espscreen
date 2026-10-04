@@ -52,6 +52,11 @@ class Renderer {
   }
   struct HeaderSlot { lv_obj_t *icon{}, *text{}; uint32_t icon_color = 0; bool own = false; };
   lv_obj_t *header_root = nullptr, *header_ring = nullptr;
+#ifdef USE_SCREEN_DEVICE_VOICE
+  static constexpr uint32_t MICROPHONE_GLYPH = 0xF036C, PENDING_GLYPH = 0xF051F, WAKE_GLYPH = 0xF07C5;
+  lv_obj_t *header_voice = nullptr;
+  uint32_t voice_glyph = 0;
+#endif
   std::array<lv_obj_t *, 2> header_hands{};
   std::array<HeaderSlot, header_bar::MAX_ITEMS> header_slots{};
   lv_point_precise_t header_points[4]{};
@@ -98,6 +103,15 @@ class Renderer {
   }
   // `live`: Home Assistant's values may show; without its link or the manager's feed only clocks stay.
 public:
+#ifdef USE_SCREEN_DEVICE_VOICE
+  // Ephemeral local voice state, independent of the saved page/header layout.
+  bool set_voice_state(bool listening, bool pending, bool wake_ready) {
+    const uint32_t glyph = listening ? MICROPHONE_GLYPH : pending ? PENDING_GLYPH : wake_ready ? WAKE_GLYPH : 0;
+    if (voice_glyph == glyph) return false;
+    voice_glyph = glyph;
+    return true;
+  }
+#endif
   lv_obj_t *leading_target() const { return header_home_tap; }
   void on_status(void (*action)()) { status_action = action; }
   void restyle() { for (auto &slot : header_slots) { slot.own = true; slot.icon_color = UINT32_MAX; } }
@@ -134,6 +148,10 @@ public:
         lv_obj_set_style_text_font(slot.icon, header_icon_font, 0);
         lv_obj_set_style_text_font(slot.text, header_text_font, 0);
       }
+#ifdef USE_SCREEN_DEVICE_VOICE
+      header_voice = header_part(header_root);
+      lv_obj_set_style_text_font(header_voice, header_icon_font, 0);
+#endif
       header_home_icon = header_part(header_root);
 #if LV_USE_IMAGE
       if (home_mark) {
@@ -306,7 +324,47 @@ public:
     lv_obj_set_x(room_label, home_on ? left - text_ink(name_font, header_name.c_str()).left : left);
     lv_point_t name_size;
     lv_text_get_size(&name_size, header_name.c_str(), name_font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_EXPAND);
+#ifdef USE_SCREEN_DEVICE_VOICE
+    // Wake readiness, the microphone and pending hourglass share one slot left of the clock.
+    // Include that slot in the clock's width to keep the clock's right edge
+    // fixed. Without a clock, keep the indicator at the right margin.
+    lv_font_glyph_dsc_t voice_icon{}, microphone{}, pending{}, wake{};
+    lv_font_get_glyph_dsc(header_icon_font, &microphone, MICROPHONE_GLYPH, 0);
+    lv_font_get_glyph_dsc(header_icon_font, &pending, PENDING_GLYPH, 0);
+    lv_font_get_glyph_dsc(header_icon_font, &wake, WAKE_GLYPH, 0);
+    const int voice_width = std::max({microphone.box_w, pending.box_w, wake.box_w});
+    const bool voice_on = voice_glyph &&
+        lv_font_get_glyph_dsc(header_icon_font, &voice_icon, voice_glyph, 0) && voice_icon.box_w && width >= voice_width;
+    const int voice_right = left + width;
+    size_t voice_clock = count;
+    int voice_space = 0;
+    if (voice_on) {
+      voice_space = voice_width + gaps.item;
+      for (size_t k = 0; k < count; ++k) {
+        const auto kind = bar.items[parts[k].item].kind;
+        if (kind == header_bar::Kind::clock || kind == header_bar::Kind::analog) {
+          voice_clock = k;
+          widths[k] += voice_space;
+          break;
+        }
+      }
+      if (voice_clock == count) width = std::max(0, width - voice_space);
+    }
+#endif
     auto placement = header_bar::place(widths.data(), count, gaps, width, name_size.x);
+#ifdef USE_SCREEN_DEVICE_VOICE
+    const bool voice_visible = voice_on && (voice_clock == count || voice_clock >= placement.first);
+    if (voice_visible) {
+      const int x = (voice_clock < count ? left + placement.x[voice_clock] : voice_right - voice_width)
+                    + (voice_width - voice_icon.box_w) / 2;
+      const int ink_top = (middle2 - voice_icon.box_h) / 2;
+      label(header_voice, tile_icon::utf8(voice_glyph));
+      lv_obj_set_pos(header_voice, x - voice_icon.ofs_x,
+                     ink_top - ((header_icon_font->line_height - header_icon_font->base_line) - voice_icon.box_h - voice_icon.ofs_y));
+      lv_obj_set_style_text_color(header_voice, theme::color(voice_glyph == WAKE_GLYPH ? theme::MUTED : theme::ACCENT), 0);
+    }
+    set_visible(header_voice, voice_visible);
+#endif
     lv_obj_set_width(room_label, std::max(1, std::min<int>(name_size.x, placement.name_room)));
     lv_obj_set_height(room_label, lv_font_get_line_height(name_font));
 
@@ -323,6 +381,9 @@ public:
         if (status_left < 0) status_left = x;
         status_right = x + p.width;
       }
+#ifdef USE_SCREEN_DEVICE_VOICE
+      if (voice_visible && k == voice_clock) x += voice_space;
+#endif
       if (p.dial) {
         int top = (middle2 - dial) / 2, stroke = std::max(1, (dial + 5) / 10), hand = std::max(1, (dial * 75 + 500) / 1000);
         lv_obj_set_pos(header_ring, x, top);

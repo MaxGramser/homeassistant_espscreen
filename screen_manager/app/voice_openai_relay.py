@@ -30,14 +30,15 @@ class OpenAIRelay:
         self.response_id = ''
         self.input_enabled = True
 
-    async def connect(self, context):
+    async def connect(self, context, *, listening=True):
         self.upstream = await self.owner.manager.ha.session.ws_connect(
             REALTIME_URL + '?' + urlencode({'model': self.owner.model}),
             headers={'Authorization': 'Bearer ' + self.owner.key}, heartbeat=20, max_msg_size=2*1024*1024)
         await self.upstream.send_json({'type': 'session.update', 'session': {
             'type': 'realtime', 'instructions': INSTRUCTIONS + '\nPANEL_CONTEXT_DATA:\n' + json.dumps(context, ensure_ascii=False),
             'tools': [{'type': 'function', **tool} for tool in TOOLS], 'tool_choice': 'auto', 'max_output_tokens': 1024,
-            'audio': {'input': {'format': {'type': 'audio/pcm', 'rate': 24000}, 'turn_detection': {'type': 'semantic_vad'}},
+            'audio': {'input': {'format': {'type': 'audio/pcm', 'rate': 24000},
+                                'turn_detection': {'type': 'semantic_vad'} if listening else None},
                       'output': {'format': {'type': 'audio/pcm', 'rate': 24000}, 'voice': self.owner.voice}}}})
         async with asyncio.timeout(20):
             while True:
@@ -45,6 +46,7 @@ class OpenAIRelay:
                 if event.get('type') == 'error':
                     raise ValueError('OpenAI refused the audio session. Check the API key and model access.')
                 if event.get('type') == 'session.updated':
+                    self.input_enabled = listening
                     return
 
     async def upstream_events(self):

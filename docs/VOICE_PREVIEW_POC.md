@@ -32,6 +32,10 @@ it are browser test controls, not replacement tile rendering or a completed
 firmware voice overlay. Physical microphone drivers and panel voice controls
 remain separate work.
 
+The P4 integration branch also provides an experimental [physical panel
+transport](DEVICE_VOICE.md) using these same providers and tools. Its setup and
+hardware acceptance are separate from this browser test.
+
 ## Start the experiment
 
 On Home Assistant OS, install this build of Tessera Screen Manager, open its
@@ -290,7 +294,13 @@ runs STT and TTS independently. It never runs HA's intent stage, avoiding duplic
 actions. HA credentials and Claude's key stay on the server. Generated speech is
 relayed from HA through a session-scoped endpoint; no HA token reaches the browser.
 Claude sees recognised text and exposed panel context, not microphone audio.
-Public web search receives only the question and current time, never HA context.
+Both providers receive context metadata with the current time, HA time zone and
+configured HA home name and coordinates. Local questions use that default when
+no place is specified; an explicitly requested place takes precedence. Missing
+or invalid home coordinates leave the default unknown. No second location setting
+is required in the editor.
+Public web search receives the question and current time, including the place
+needed to answer it, but no entity or screen inventory.
 
 The Claude key is saved as `voice-claude-api-key` with owner-only permissions.
 Optional server configuration is `ANTHROPIC_API_KEY` or `ANTHROPIC_API_KEY_FILE`.

@@ -99,7 +99,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.38.0'
+FIRMWARE_VERSION = '0.39.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -830,13 +830,14 @@ SETTING_RULES = {
     'speaker_volume': (25, 0, 100),
     'tap_sound': (False, None, None),
     'wake_word': (0, 0, 3),
+    'wake_word_enabled': (False, None, None),
 }
 # Firmware before 0.2.44 accepts a `settings` object with exactly its own eleven keys and refuses any
 # other size, so everything added after it travels as its own key in the layout message. Old firmware
 # ignores a key it does not know; a new screen with an old add-on keeps what it saved itself.
 # docs/SETTINGS.md walks through adding one.
 SETTINGS_BESIDE_BLOCK = ('swipe_pages', 'rotation', 'auto_home', 'auto_home_seconds', 'dark_mode', 'page_buttons',
-                         'home_button', 'microphone_mute', 'microphone_alc', 'speaker_volume', 'tap_sound', 'wake_word')
+                         'home_button', 'microphone_mute', 'microphone_alc', 'speaker_volume', 'tap_sound', 'wake_word', 'wake_word_enabled')
 
 # ----- The screen owns its settings (firmware 0.2.49+) -----
 # A screen offers every setting as an entity of its own device, and the settings page on the screen, Home
@@ -867,6 +868,7 @@ SETTING_ENTITIES = {
     'speaker_volume': ('number', 'Speaker volume'),
     'tap_sound': ('switch', 'Tap sound'),
     'wake_word': ('select', 'Wake word'),
+    'wake_word_enabled': ('switch', 'Wake word enabled'),
 }
 # Entities firmware 0.2.49 added; one of them on a device means the screen owns its settings. The first five
 # existed before, so they cannot tell.
@@ -886,7 +888,7 @@ SCREENSAVER_MIN_FIRMWARE = (0, 29, 0)
 # film and has to be told what that voltage means in pixels; a capacitive one reports the point it was touched on.
 CALIBRATE_BUTTON = ('button', 'Calibrate touch')
 # Optional: presence of these entities, not the board model, enables Audio in the editor.
-AUDIO_SETTINGS = frozenset(('microphone_mute', 'microphone_alc', 'speaker_volume', 'tap_sound', 'wake_word'))
+AUDIO_SETTINGS = frozenset(('microphone_mute', 'microphone_alc', 'speaker_volume', 'tap_sound', 'wake_word', 'wake_word_enabled'))
 AUDIO_DIAGNOSTICS = {'status': 'Audio test status', 'left': 'Microphone left peak',
                      'right': 'Microphone right peak', 'wakes': 'Test wake word detections',
                      'active': 'Audio test active', 'mode': 'Audio test mode'}

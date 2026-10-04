@@ -192,7 +192,8 @@
       "test_microphone": "Mikrofonteszt",
       "test_speaker": "Hangszóróteszt",
       "test_wake_word": "Ébresztőszó tesztje",
-      "stop_audio_test": "Hangteszt leállítása"
+      "stop_audio_test": "Hangteszt leállítása",
+      "wake_word_enabled": "Ébresztőszó engedélyezve"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -543,6 +544,18 @@
       "speaker_test": "Hangszóróteszt",
       "say": "Mondd: {word} (30s)",
       "muted": "Mikrofon némítva"
+    },
+    "voice": {
+      "start": "Hang indítása",
+      "stop": "Hang leállítása",
+      "connecting": "Kapcsolódás",
+      "listening": "Figyelés",
+      "thinking": "Gondolkodás",
+      "speaking": "Beszéd",
+      "stopping": "Leállítás",
+      "error": "Hanghiba",
+      "idle": "Készenlét",
+      "wake_ready": "Mondd: {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Automatikus erősítés",
         "speaker_volume": "Hangszóró hangereje",
         "tap_sound": "Érintési hang",
-        "wake_word": "Ébresztőszó"
+        "wake_word": "Ébresztőszó",
+        "wake_word_enabled": "Ébresztőszó engedélyezve"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
       "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Fizikai hangpanel",
+      "hint": "Kísérleti: indítsd el a hangvezérlést érintéssel, vagy engedélyezz egy ébresztőszót a panel Hang beállításaiban. A fenti szolgáltatót és válaszbeállításokat használja.",
+      "no_panels": "Először adjon hozzá egy támogatott fizikai P4 panelt a Home Assistanthoz.",
+      "panel": "Panel",
+      "address": "A kiegészítő panelről elérhető címe",
+      "address_hint": "A helyi hálózati címet és médiaportot használja, ne az ingress címet vagy a localhostot. A ws:// megbízható helyi hálózathoz való; a wss:// megbízható TLS-proxyt igényel.",
+      "paired_hint": "A panel párosítva van. A párosítás cseréje megszakítja a kapcsolatot az új konfiguráció telepítéséig.",
+      "pair": "Panel párosítása",
+      "replace": "Párosítás cseréje",
+      "remove": "Párosítás visszavonása",
+      "install": "Töltse le a konfigurációt, és egyesítse a substitutions értékeit a panel Override YAML beállításaival a Build & install alatt. Őrizze meg a meglévő beállításokat, majd fordítsa le és telepítse a hangfirmware-t.",
+      "download": "Hangkonfiguráció letöltése",
+      "private": "Ez a fájl a panel privát párosítási tokenjét tartalmazza, nem a szolgáltató API-kulcsát. Mentse most; az oldal elhagyása után nem tölthető le újra."
     }
   },
   "configuration": {

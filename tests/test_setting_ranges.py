@@ -18,7 +18,8 @@ from core import SETTING_RULES  # noqa: E402
 SCREEN = (ROOT / 'components/smart_display/settings_screen.h').read_text()
 CORE_YAML = (ROOT / 'packages/core.yaml').read_text()
 CORE_YAML += '\n' + (ROOT / 'packages/hardware/wavesharep4-audio/hardware.yaml').read_text()
-CORE_YAML += '\n' + (ROOT / 'packages/features/audio-hardware-test.yaml').read_text()
+for feature in ('audio-hardware-test', 'audio-wake-word', 'device-voice'):
+    CORE_YAML += '\n' + (ROOT / f'packages/features/{feature}.yaml').read_text()
 STORE = (ROOT / 'web/src/store.ts').read_text()
 CORE_PY = (ROOT / 'screen_manager/app/core.py').read_text()
 # The minutes of a day, the range of a night's start and end: Home Assistant's time entity (hour * 60 + minute) and the
@@ -35,7 +36,9 @@ def firmware_set():
     body = SCREEN.split('inline SetResult set(', 1)[1].split('else return SetResult::unknown;', 1)[0]
     out = {'wake_word': (0, len(WAKE_WORDS) - 1)}
     optional, body = body.split('auto &s = screen_settings::current;', 1)
-    for key, code in re.findall(r'key == "(\w+)"\) \{ ([^}]+)', optional):
+    for key, code in re.findall(r'key == "(\w+)"[^)\n]*\) \{\s*([^}]+)', optional):
+        if key == 'wake_word':
+            continue  # The range follows the shared trained-model option array above.
         if 'value ? 1 : 0' in code:
             out[key] = 'bool'
         else:

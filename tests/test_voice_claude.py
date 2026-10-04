@@ -98,7 +98,7 @@ class ClaudeTests(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     def tool(call='tool_1', name='control_switch', arguments=None):
         return {'stop_reason': 'tool_use', 'content': [{'type': 'tool_use', 'id': call, 'name': name,
-            'input': arguments or {'name': 'Reading light', 'area': '', 'action': 'turn_on'}}]}
+            'input': arguments if arguments is not None else {'name': 'Reading light', 'area': '', 'action': 'turn_on'}}]}
 
     async def setup_claude(self):
         for path, body in [('config/claude', {'api_key': 'claude-test-key-not-real'}),
@@ -149,6 +149,23 @@ class ClaudeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([stage['start_stage'] for stage in self.stages], ['stt', 'tts'])
         self.assertEqual((await self.client.get(f'/api/voice-preview/claude/sessions/{session}/turns/1/audio')).status, 404)
         self.ha.call.assert_not_awaited()  # Explicit reply delivery starts playback separately.
+
+    async def test_wait_has_no_spoken_followup_and_next_request_still_works(self):
+        session = await self.session()
+        self.answers = [self.tool('wait_1', 'wait_for_user', {})]
+        result = await (await self.turn(session)).json()
+        self.assertTrue(result['wait_for_user'])
+        self.assertEqual(result['text'], '')
+        self.assertNotIn('audio', result)
+        self.assertEqual(len(self.messages), 1)
+        self.assertEqual([stage['start_stage'] for stage in self.stages], ['stt'])
+        self.ha.call.assert_not_awaited()
+        self.answers = [self.tool('switch_1'), self.answer('Het licht is aan.')]
+        result = await (await self.turn(session, 2)).json()
+        self.assertTrue(result['audio'])
+        self.assertTrue(result['action'])
+        self.assertEqual([stage['start_stage'] for stage in self.stages], ['stt', 'stt', 'tts'])
+        self.ha.call.assert_awaited_once_with('light.turn_on', {'entity_id': 'light.a'})
 
     async def test_music_confirmation_stays_local_with_external_output_selected(self):
         from test_voice_output import add_speaker, SPEAKER, WAV

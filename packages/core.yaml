@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.38.0"
+  SCREEN_FIRMWARE_VERSION: "0.39.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -64,6 +64,7 @@ substitutions:
   BOOT_CAMERA_HOOKS: ""                            # after the gesture: the camera images (features/camera.yaml)
   BOOT_AUDIO_HOOKS: ""
   BOOT_AUDIO_TEST_HOOKS: ""
+  BOOT_VOICE_HOOKS: ""
   APPLY_AUDIO_HOOK: ""
   BOOT_CARDS_TAIL: ""                              # after the cards' hooks, before the settings page's
   MAY_OPEN_EXTRA: ""                               # what else keeps the settings page closed (inline, in the condition)
@@ -368,6 +369,7 @@ esphome:
           settings_screen::tap_limit = ${TOUCH_MOVE_LIMIT_PX};
           ${BOOT_AUDIO_HOOKS}
           ${BOOT_AUDIO_TEST_HOOKS}
+          ${BOOT_VOICE_HOOKS}
           ${APPLY_AUDIO_HOOK}
           // What a change of look draws again, now that everything is bound: the tiles, the top bar and an open card,
           // the colour card, the settings page and an alert.

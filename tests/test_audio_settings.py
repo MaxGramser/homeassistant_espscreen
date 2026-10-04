@@ -68,6 +68,9 @@ class AudioSettings(unittest.IsolatedAsyncioTestCase):
             m = self.manager(tmp)
             screen = m.screen('text.screen')
             self.assertEqual(m.settings_view(screen)['values']['wake_word'], 0)
+            self.assertFalse(m.settings_view(screen)['values']['wake_word_enabled'])
+            await m.change_settings('text.screen', {'wake_word_enabled': True})
+            self.assertIn(('switch.turn_on', {'entity_id': 'switch.office_1_wake_word_enabled'}), m.ha.calls)
             await m.change_settings('text.screen', {'wake_word': 1})
             self.assertIn(('select.select_option', {'entity_id': 'select.office_1_wake_word', 'option': 'Hey Jarvis'}), m.ha.calls)
             m.ha.states['select.office_1_wake_word']['state'] = 'Hey Jarvis'

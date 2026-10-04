@@ -192,7 +192,8 @@
       "test_microphone": "Test mikrofonu",
       "test_speaker": "Test głośnika",
       "test_wake_word": "Test słowa aktywacji",
-      "stop_audio_test": "Zatrzymaj test dźwięku"
+      "stop_audio_test": "Zatrzymaj test dźwięku",
+      "wake_word_enabled": "Słowo wybudzające włączone"
     },
     "tile": {
       "tap_to_open": "Otwórz",
@@ -543,6 +544,18 @@
       "speaker_test": "Test głośnika",
       "say": "Powiedz {word} (30s)",
       "muted": "Mikrofon wyciszony"
+    },
+    "voice": {
+      "start": "Uruchom głos",
+      "stop": "Zatrzymaj głos",
+      "connecting": "Łączenie",
+      "listening": "Słuchanie",
+      "thinking": "Przetwarzanie",
+      "speaking": "Odpowiedź",
+      "stopping": "Zatrzymywanie",
+      "error": "Błąd głosu",
+      "idle": "Bezczynny",
+      "wake_ready": "Powiedz {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Automatyczne wzmocnienie",
         "speaker_volume": "Głośność głośnika",
         "tap_sound": "Dźwięk dotknięcia",
-        "wake_word": "Słowo aktywacji"
+        "wake_word": "Słowo aktywacji",
+        "wake_word_enabled": "Słowo wybudzające włączone"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
       "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Fizyczny panel głosowy",
+      "hint": "Eksperymentalne: uruchom głos dotykiem lub włącz słowo wybudzające w ustawieniach Audio panelu. Korzysta z dostawcy i ustawień odpowiedzi powyżej.",
+      "no_panels": "Najpierw dodaj obsługiwany fizyczny panel P4 do Home Assistant.",
+      "panel": "Panel",
+      "address": "Adres dodatku dostępny z panelu",
+      "address_hint": "Użyj adresu sieci lokalnej i portu multimediów, nie ingress ani localhost. ws:// wymaga zaufanej sieci lokalnej; wss:// wymaga zaufanego proxy TLS.",
+      "paired_hint": "Ten panel jest sparowany. Zastąpienie parowania rozłącza go do czasu wgrania nowej konfiguracji.",
+      "pair": "Sparuj panel",
+      "replace": "Zastąp parowanie",
+      "remove": "Unieważnij parowanie",
+      "install": "Pobierz konfigurację i połącz jej substitutions z Override YAML tego panelu w Build & install. Zachowaj istniejące ustawienia, a następnie zbuduj i zainstaluj firmware głosowy.",
+      "download": "Pobierz konfigurację głosową",
+      "private": "Plik zawiera prywatny token parowania panelu, nie klucz API dostawcy. Zapisz go teraz; po opuszczeniu strony nie będzie można go pobrać ponownie."
     }
   },
   "configuration": {

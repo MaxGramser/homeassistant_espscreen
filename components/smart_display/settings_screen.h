@@ -72,10 +72,12 @@ inline bool quarter_turns = false;
 inline bool audio_available = false;
 inline int32_t microphone_mute = 0, microphone_alc = 1, speaker_volume = 25, tap_sound = 0;
 inline void (*apply_audio)() = nullptr;
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
 inline int32_t wake_word = 0;
 inline constexpr const char *wake_word_options[] = {"Okay Nabu", "Hey Jarvis", "Alexa", "Hey Mycroft"};
 inline void (*apply_wake_word)() = nullptr;
+#endif
+#ifdef USE_SCREEN_AUDIO_TEST
 inline void (*test_audio)(int) = nullptr;
 inline bool (*audio_busy)() = nullptr;
 inline bool (*audio_test_running)() = nullptr;
@@ -83,6 +85,14 @@ inline int32_t (*audio_test_mode)() = nullptr;
 inline std::string (*audio_status)() = nullptr;
 #endif
 inline void (*tile_sound)() = nullptr;
+#ifdef USE_SCREEN_DEVICE_VOICE
+inline int32_t wake_word_enabled = 0;
+inline void (*apply_voice_wake)() = nullptr;
+inline void (*voice_start)() = nullptr;
+inline void (*voice_stop)() = nullptr;
+inline bool (*voice_active)() = nullptr;
+inline std::string (*voice_status)() = nullptr;
+#endif
 
 #ifdef USE_SCREEN_AUDIO_TEST
 inline bool test_active(int mode) {
@@ -127,7 +137,7 @@ struct Row {
   uint16_t confirm = NO_TEXT;         // action: what the row asks before it does it
   Shown shown = nullptr;              // absent rows: the quarter turns on glass that is not square
   Shown enabled = nullptr;            // greyed out while the switch it depends on is off
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
   Shown active = nullptr;             // action highlighted while its work is in progress
 #endif
   uint8_t opens = 0;                  // page rows: the page they open
@@ -166,7 +176,7 @@ inline const char *label_text(const Row &row) { return screen_text::tr(row.label
 constexpr Row info(uint16_t label, Text text, Shown shown = nullptr) {
   Row r{}; r.kind = Kind::info; r.label = label; r.text = text; r.shown = shown; return r;
 }
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
 constexpr Row action(uint16_t label, const char *icon, Run run, uint16_t confirm, Shown shown = nullptr,
                      Shown enabled = nullptr, Shown active = nullptr, Text text = nullptr) {
   Row r{}; r.enabled = enabled; r.active = active; r.text = text; r.kind = Kind::action; r.label = label; r.icon = icon; r.run = run; r.confirm = confirm; r.shown = shown; return r;
@@ -178,7 +188,7 @@ constexpr Row action(uint16_t label, const char *icon, Run run, uint16_t confirm
 #endif
 inline std::string row_text(const Row &row, bool asking = false) {
   if (asking) return screen_text::tr(row.confirm);
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
   if (row.kind == Kind::action && row.text) {
     const auto feedback = row.text();
     if (!feedback.empty()) return feedback;
@@ -206,12 +216,22 @@ inline void changed(const char *key, int32_t value) {
 enum class SetResult : uint8_t { unknown, same, changed };
 inline SetResult set(const std::string &key, int32_t value) {
 #ifdef USE_SCREEN_AUDIO
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
   if (key == "wake_word" && audio_available && apply_wake_word) {
     value = std::clamp<int32_t>(value, 0, std::size(wake_word_options) - 1);
     if (wake_word == value) return SetResult::same;
     wake_word = value;
     apply_wake_word();
+    changed(key.c_str(), value);
+    return SetResult::changed;
+  }
+#endif
+#ifdef USE_SCREEN_DEVICE_VOICE
+  if (key == "wake_word_enabled" && audio_available && apply_voice_wake) {
+    value = value ? 1 : 0;
+    if (wake_word_enabled == value) return SetResult::same;
+    wake_word_enabled = value;
+    apply_voice_wake();
     changed(key.c_str(), value);
     return SetResult::changed;
   }
@@ -489,6 +509,13 @@ inline constexpr Row menu_rows[] = {
 
 #ifdef USE_SCREEN_AUDIO
 inline constexpr Row audio_rows[] = {
+#ifdef USE_SCREEN_DEVICE_VOICE
+  action(screen_text::txt::voice_start, "\U000F036C", [] { if (voice_start) voice_start(); },
+         NO_TEXT, [] { return voice_start != nullptr; }, [] { return !voice_active || !voice_active(); },
+         [] { return voice_active && voice_active(); }, [] { return voice_status ? voice_status() : std::string(); }),
+  action(screen_text::txt::voice_stop, "\U000F04DB", [] { if (voice_stop) voice_stop(); },
+         NO_TEXT, [] { return voice_stop != nullptr; }, [] { return voice_active && voice_active(); }),
+#endif
   toggle(screen_text::txt::settings_microphone_mute, []() -> int32_t { return microphone_mute; },
          [](int32_t value) { set("microphone_mute", value); }),
   toggle(screen_text::txt::settings_microphone_alc, []() -> int32_t { return microphone_alc; },
@@ -506,9 +533,17 @@ inline constexpr Row audio_rows[] = {
   action(screen_text::txt::settings_test_microphone, "\U000F036C", [] { if (test_audio) test_audio(1); },
          NO_TEXT, [] { return test_audio != nullptr; }, nullptr,
          [] { return test_active(1); }, [] { return test_status(1); }),
+#endif
+#ifdef USE_SCREEN_DEVICE_VOICE
+  toggle(screen_text::txt::settings_wake_word_enabled, []() -> int32_t { return wake_word_enabled; },
+         [](int32_t value) { set("wake_word_enabled", value); }),
+#endif
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
   choice(screen_text::txt::settings_wake_word, []() -> int32_t { return wake_word; },
          [](int32_t value) { set("wake_word", value); }, wake_word_options, std::size(wake_word_options),
          [] { return apply_wake_word != nullptr; }),
+#endif
+#ifdef USE_SCREEN_AUDIO_TEST
   action(screen_text::txt::settings_test_wake_word, "\U000F036C", [] { if (test_audio) test_audio(3); },
          NO_TEXT, [] { return test_audio != nullptr; }, nullptr,
          [] { return test_active(3); }, [] { return test_status(3); }),
@@ -565,7 +600,7 @@ inline lv_timer_t *confirm_timer = nullptr;
 
 struct Drawn {
   lv_obj_t *card = nullptr, *value = nullptr, *knob = nullptr, *minus = nullptr, *plus = nullptr, *label = nullptr;
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
   lv_obj_t *icon = nullptr;
 #endif
   uint8_t row = 0;
@@ -729,7 +764,7 @@ inline void refresh() {
   for (uint8_t i = 0; i < drawn_count; ++i) {
     Drawn &d = drawn[i];
     const Row &row = page.rows[d.row];
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
     if (row.kind == Kind::action && row.text) {
       const auto label = row_text(row, confirm_row == d.row);
       if (label != lv_label_get_text(d.label)) lv_label_set_text(d.label, label.c_str());
@@ -918,7 +953,7 @@ inline void draw() {
                     row.kind == Kind::action;
     bool asking = row.kind == Kind::action && confirm_row == index;
     bool highlighted = asking;
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
     highlighted = highlighted || (row.kind == Kind::action && row.active && row.active());
 #endif
 
@@ -937,7 +972,7 @@ inline void draw() {
     int left = m.inset;
     if (row.icon && *row.icon) {
       auto *glyph = text(d.card, row.icon, icon_font ? icon_font : row_font, highlighted ? theme::ON_ACCENT : theme::ROW_ICON);
-#ifdef USE_SCREEN_AUDIO_TEST
+#if defined(USE_SCREEN_AUDIO_TEST) || defined(USE_SCREEN_DEVICE_VOICE)
       d.icon = glyph;
 #endif
       int icon_h = lv_font_get_line_height(icon_font ? icon_font : row_font);

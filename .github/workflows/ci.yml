@@ -42,7 +42,7 @@ jobs:
       # brings it in the image), fontTools for tools/generate_icons.py, and jinja2 for tools/profiles.py, which works
       # out the sizes a look computes the way ESPHome does (ESPHome brings it too).
       - name: Python packages
-        run: python -m pip install 'aiohttp>=3.12,<4' PyYAML Pillow fonttools jinja2 'mutagen>=1.47,<2'
+        run: python -m pip install 'aiohttp>=3.12,<4' PyYAML Pillow fonttools jinja2 'mutagen>=1.47,<2' 'av>=16,<17'
       - uses: actions/setup-node@v4
         with:
           node-version: 22

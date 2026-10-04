@@ -1,0 +1,4 @@
+# Explicit experimental voice, with optional local wake-word activation. No test recordings.
+packages:
+  hardware: !include hardware.yaml
+  voice: !include ../../features/device-voice.yaml

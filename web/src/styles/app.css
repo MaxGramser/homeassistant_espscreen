@@ -645,6 +645,8 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .set-card > .s-action { padding: 2px 0 4px; }
 .srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
 .srow > .s-label { color: var(--ink-2); }
+.srow.setting-choice { flex-wrap: wrap; }
+.srow.setting-choice > .s-control { min-width: 0; max-width: 100%; }
 .srow.inactive .s-label, .srow.inactive .s-control { opacity: 0.45; }
 .settings.offline .set-grid { opacity: 0.6; }
 .step { display: inline-flex; align-items: center; gap: 2px; }

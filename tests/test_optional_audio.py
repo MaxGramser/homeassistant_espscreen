@@ -7,6 +7,15 @@ import screen_text_gen as texts
 
 
 class OptionalAudio(unittest.TestCase):
+    def test_voice_words_are_only_in_the_opted_in_build(self):
+        _, on = texts.definitions('en', audio=True, audio_tests=False, voice=True)
+        for audio, diagnostics in ((False, False), (True, False), (True, True)):
+            _, off = texts.definitions('en', audio=audio, audio_tests=diagnostics, voice=False)
+            self.assertEqual(on.splitlines()[0], off.splitlines()[0])
+            for word in ('Start voice', 'Stop voice', 'Listening'):
+                self.assertIn(texts.cpp_string(word), on)
+                self.assertNotIn(texts.cpp_string(word), off)
+
     def test_text_features_keep_the_abi_and_omit_disabled_words(self):
         _, off = texts.definitions('en', audio=False, audio_tests=False)
         _, hardware = texts.definitions('en', audio=True, audio_tests=False)

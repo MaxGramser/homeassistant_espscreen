@@ -192,7 +192,8 @@
       "test_microphone": "Test microphone",
       "test_speaker": "Test speaker",
       "test_wake_word": "Test wake word",
-      "stop_audio_test": "Stop audio test"
+      "stop_audio_test": "Stop audio test",
+      "wake_word_enabled": "Wake word enabled"
     },
     "tile": {
       "tap_to_open": "Tap to open",
@@ -543,6 +544,18 @@
       "speaker_test": "Speaker test",
       "say": "Say {word} (30s)",
       "muted": "Microphone is muted"
+    },
+    "voice": {
+      "start": "Start voice",
+      "stop": "Stop voice",
+      "connecting": "Connecting…",
+      "listening": "Listening",
+      "thinking": "Processing…",
+      "speaking": "Speaking",
+      "stopping": "Stopping…",
+      "error": "Voice stopped. Check the connection.",
+      "idle": "Idle",
+      "wake_ready": "Say {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Automatic gain",
         "speaker_volume": "Speaker volume",
         "tap_sound": "Tap sound",
-        "wake_word": "Wake word"
+        "wake_word": "Wake word",
+        "wake_word_enabled": "Wake word enabled"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
       "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Physical voice panel",
+      "hint": "Experimental: start voice by touch or enable a wake word in the panel’s Audio settings. Uses the provider and reply settings above.",
+      "no_panels": "Add a supported physical P4 panel to Home Assistant first.",
+      "panel": "Panel",
+      "address": "Add-on address reachable by the panel",
+      "address_hint": "Use the local network address and media port, not the browser ingress URL or localhost. ws:// is for a trusted local network; wss:// requires a trusted TLS proxy.",
+      "paired_hint": "This panel is paired. Replacing the pairing disconnects it until the new configuration is flashed.",
+      "pair": "Pair panel",
+      "replace": "Replace pairing",
+      "remove": "Revoke pairing",
+      "install": "Download the configuration and merge its substitutions into this panel’s Override YAML in Build & install. Keep existing settings, then build and install the voice firmware.",
+      "download": "Download voice configuration",
+      "private": "This file contains the panel’s private pairing token, not your provider API key. Save it now; it cannot be downloaded after leaving this page."
     }
   },
   "configuration": {

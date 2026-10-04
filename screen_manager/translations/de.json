@@ -192,7 +192,8 @@
       "test_microphone": "Mikrofon testen",
       "test_speaker": "Lautsprecher testen",
       "test_wake_word": "Aktivierungswort testen",
-      "stop_audio_test": "Audiotest stoppen"
+      "stop_audio_test": "Audiotest stoppen",
+      "wake_word_enabled": "Aktivierungswort aktiv"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -543,6 +544,18 @@
       "speaker_test": "Lautsprechertest",
       "say": "Sage {word} (30s)",
       "muted": "Mikrofon ist stumm"
+    },
+    "voice": {
+      "start": "Sprache starten",
+      "stop": "Sprache stoppen",
+      "connecting": "Verbinden",
+      "listening": "Zuhören",
+      "thinking": "Nachdenken",
+      "speaking": "Sprechen",
+      "stopping": "Wird beendet",
+      "error": "Sprachfehler",
+      "idle": "Bereit",
+      "wake_ready": "Sage {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Automatische Verstärkung",
         "speaker_volume": "Lautsprecherlautstärke",
         "tap_sound": "Tippton",
-        "wake_word": "Aktivierungswort"
+        "wake_word": "Aktivierungswort",
+        "wake_word_enabled": "Aktivierungswort aktiv"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
       "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Physisches Sprachpanel",
+      "hint": "Experimentell: Sprache per Berührung starten oder ein Aktivierungswort in den Audioeinstellungen des Panels einschalten. Verwendet den Anbieter und die Antwortoptionen oben.",
+      "no_panels": "Zuerst ein unterstütztes physisches P4-Panel zu Home Assistant hinzufügen.",
+      "panel": "Panel",
+      "address": "Vom Panel erreichbare Add-on-Adresse",
+      "address_hint": "Lokale Netzwerkadresse und Medienport verwenden, nicht Ingress oder localhost. ws:// ist für ein vertrauenswürdiges lokales Netzwerk; wss:// benötigt einen vertrauenswürdigen TLS-Proxy.",
+      "paired_hint": "Dieses Panel ist gekoppelt. Ersetzen trennt es, bis die neue Konfiguration geflasht wurde.",
+      "pair": "Panel koppeln",
+      "replace": "Kopplung ersetzen",
+      "remove": "Kopplung widerrufen",
+      "install": "Konfiguration herunterladen und ihre substitutions in die Override YAML dieses Panels unter Build & install übernehmen. Bestehende Einstellungen behalten, dann die Sprachfirmware bauen und installieren.",
+      "download": "Sprachkonfiguration herunterladen",
+      "private": "Die Datei enthält das private Kopplungstoken des Panels, keinen Anbieter-API-Schlüssel. Jetzt speichern; nach Verlassen dieser Seite ist kein erneuter Download möglich."
     }
   },
   "configuration": {

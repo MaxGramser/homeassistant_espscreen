@@ -161,16 +161,16 @@ def keys_header(keys):
     return '\n'.join(lines)
 
 
-def definitions(code, folder=TRANSLATIONS, *, audio=True, audio_tests=True):
+def definitions(code, folder=TRANSLATIONS, *, audio=True, audio_tests=True, voice=True):
     """The C++ a build adds to main.cpp: its language's table and plural rule, and the check against the keys header."""
     language, keys, texts, rule = table(code, folder)
     # Keep the shared indices/hash, but omit peripheral words on screens without that feature.
     # Empty entries share one literal; no translated audio strings enter an audio-off image.
     audio_keys = {"audio", "microphone_mute", "microphone_alc", "speaker_volume", "tap_sound"}
-    test_keys = {"wake_word", "test_microphone", "test_speaker", "test_wake_word", "stop_audio_test"}
+    test_keys = {"test_microphone", "test_speaker", "test_wake_word", "stop_audio_test"}
     for index, key in enumerate(keys):
         name = key.removeprefix("settings.")
-        if (key.startswith("audio.") and not (audio and audio_tests)) or (key.startswith("settings.") and ((name in audio_keys and not audio) or
+        if (key in ("settings.wake_word_enabled",) and not (audio and voice)) or (key == "settings.wake_word" and not (audio and (audio_tests or voice))) or (key.startswith("voice.") and not voice) or (key.startswith("audio.") and not (audio and audio_tests)) or (key.startswith("settings.") and ((name in audio_keys and not audio) or
                                             (name in test_keys and not (audio and audio_tests)))):
             texts[index] = ""
     rows = ',\n'.join(f'    {cpp_string(text)}' for text in texts)

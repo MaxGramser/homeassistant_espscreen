@@ -28,9 +28,7 @@ class Conversation:
                 answer = result['text']
                 if not answer or len(answer) > 12000:
                     raise ValueError('The assistant returned no complete spoken reply.')
-                self.turns.append(turn)
-                while len(self.turns) > 6 or len(json.dumps(self.turns)) > 128000:
-                    self.turns.pop(0)
+                self.remember(turn)
                 return {'text': answer, 'sources': list(sources.values()), 'action': action,
                         **({'end_voice': True} if end_voice else {})}
             if len(result['calls']) > 8:
@@ -44,5 +42,14 @@ class Conversation:
                 action |= output.get('status') == 'accepted'
                 end_voice |= output.get('end_voice') is True
             turn.append(self.provider.tool_results(outputs))
+            if all(call['name'] == 'wait_for_user' and output.get('wait_for_user') is True
+                   for call, (_, output) in zip(result['calls'], outputs)):
+                self.remember(turn)
+                return {'text': '', 'sources': [], 'action': False, 'wait_for_user': True}
         # Never automatically replay a partly executed turn after provider errors.
         raise ValueError('The assistant reached the tool limit. Check device state before trying again.')
+
+    def remember(self, turn):
+        self.turns.append(turn)
+        while len(self.turns) > 6 or len(json.dumps(self.turns)) > 128000:
+            self.turns.pop(0)

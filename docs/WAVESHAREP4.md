@@ -97,9 +97,11 @@ substitutions:
 | `off` | Display, touch and Wi-Fi. No codec drivers, audio entities or wake-word models. |
 | `hardware` | ES7210 microphone ADC, ES8311 speaker DAC, I²S audio, saved audio settings and tap sound. |
 | `test` | Hardware plus local speaker, microphone and wake-word tests. |
+| `voice` | Hardware plus opt-in voice through the add-on, by touch or local wake-word detection. No diagnostic recording engine. |
 
 Use `test` for hardware acceptance. Nothing records or listens for a wake word at startup.
 Voice-assistant sessions and speech transport are separate work, and are not part of these tests.
+The integration branch adds them in the separate [voice mode](DEVICE_VOICE.md).
 Other board profiles do not include these packages.
 
 The codecs share the touch I²C bus: ES7210 at `0x40`, ES8311 at `0x18`.
@@ -111,7 +113,7 @@ acoustic echo cancellation.
 **Settings → Audio** on the panel, its configuration entities in Home Assistant, and
 **Screen settings → Audio** in Tessera all change the same saved values. The editor shows audio
 only when the device actually exposes those entities. Controls include microphone mute,
-automatic gain, speaker volume and tap sound; test mode also offers a wake-word choice.
+automatic gain, speaker volume and tap sound; test and voice modes also offer a wake-word choice. Voice mode adds a saved Wake word enabled switch, initially off.
 The speaker's software volume controls the user percentage, with the ES8311 DAC fixed at unity gain.
 
 - **Test speaker** plays a two-second tone at the selected volume.

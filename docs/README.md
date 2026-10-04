@@ -9,6 +9,7 @@
 - [SCREENSAVER.md](SCREENSAVER.md): what a screen shows in standby instead of its dimmed tiles: a cover, a camera or the clock.
 - [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md): the CYD and the Hosyond get more room for firmware, and what to do
   if you flash them yourself.
+- [DEVICE_VOICE.md](DEVICE_VOICE.md): experimental physical P4 voice, pairing and the first hardware check.
 
 ## Per board
 

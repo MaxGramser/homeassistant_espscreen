@@ -56,6 +56,27 @@ const lookupCall = { type: "response.done", response: { status: "completed", out
 const lookupResult = { status: "ok", answer: "Cloudy.", sources: [{ url: "https://weather.example/forecast", title: "Forecast" }] };
 
 describe("Direct voice browser transport", () => {
+  it("returns to listening after a silent activation without creating a spoken follow-up", async () => {
+    await voice.start(); await flushPromises();
+    const normal = vi.mocked(send).getMockImplementation()!;
+    vi.mocked(send).mockImplementation((path, ...args) => path.endsWith("/tools")
+      ? Promise.resolve({ status: "ok", wait_for_user: true }) : normal(path, ...args));
+    const channel = Peer.last.channel;
+    channel.send.mockClear();
+    channel.message({ type: "response.created", response: { id: "wake" } });
+    channel.message({ type: "response.done", response: { id: "wake", status: "completed", output: [
+      { type: "function_call", call_id: "wait_1", name: "wait_for_user", arguments: "{}" },
+    ] } });
+    await flushPromises();
+    const events = channel.send.mock.calls.map(([value]) => JSON.parse(value));
+    expect(events.some(event => event.type === "response.create")).toBe(false);
+    expect(events.some(event => event.item?.type === "function_call_output")).toBe(true);
+    expect(track.enabled).toBe(true);
+    expect(hooks.phase).toHaveBeenLastCalledWith("listening");
+    expect(hooks.action).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(track.stop).toHaveBeenCalledOnce();
+  });
   it.each([false, true])("allows local interruption only when browser echo cancellation is enabled (%s)", async enabled => {
     Object.assign(track, { getSettings: () => ({ echoCancellation: enabled }) });
     await voice.start(); await flushPromises();

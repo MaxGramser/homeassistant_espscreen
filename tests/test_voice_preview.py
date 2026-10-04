@@ -7,6 +7,8 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from unittest.mock import AsyncMock, patch
 
 from aiohttp import ClientSession, web
@@ -105,19 +107,80 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
         return await self.client.post(f'/api/voice-preview/sessions/{session}/tools', json={
             'call_id': call, 'name': 'lookup_current_information', 'arguments': {'query': query}})
 
+    async def test_silent_wait_validates_arguments_without_accessing_ha(self):
+        session = await self.session()
+        self.ha.request.reset_mock()
+        path = f'/api/voice-preview/sessions/{session}/tools'
+        body = {'call_id': 'wait_1', 'name': 'wait_for_user', 'arguments': {}}
+        for _ in range(2):
+            result = await (await self.client.post(path, json=body)).json()
+            self.assertEqual(result, {'status': 'ok', 'wait_for_user': True})
+        result = await (await self.client.post(path, json={**body, 'call_id': 'invalid',
+            'arguments': {'seconds': 600}})).json()
+        self.assertEqual(result['status'], 'error')
+        self.assertNotIn('wait_for_user', result)
+        self.ha.request.assert_not_awaited()
+        self.ha.call.assert_not_awaited()
+
     async def test_lookup_is_independent_of_ha_and_duplicate_requests_search_once(self):
         session = await self.session()
         self.ha.online = False
         self.ha.request.reset_mock()
         result = {'status': 'ok', 'answer': 'Cloudy.', 'sources': [{'url': 'https://weather.example', 'title': 'Weather'}]}
         with patch.object(voice.voice_lookup, 'lookup', new_callable=AsyncMock, return_value=result) as search:
-            requests = await asyncio.gather(self.lookup(session), self.lookup(session))
+            with self.assertLogs('voice_preview', level='INFO') as logged:
+                requests = await asyncio.gather(self.lookup(session), self.lookup(session))
+            self.assertEqual(len(logged.output), 1)
+            self.assertRegex(logged.output[0], r'provider=openai elapsed=\d+\.\d+s$')
+            for private in ('Amsterdam', 'Cloudy', 'weather.example', 'test-only-not-a-key', session):
+                self.assertNotIn(private, logged.output[0])
             self.assertEqual([await r.json() for r in requests], [result, result])
             search.assert_awaited_once_with(self.http, 'test-only-not-a-key',
                                           {'query': 'Current weather in Amsterdam?'}, model=voice.voice_lookup.DEFAULT_MODEL)
             self.assertEqual((await self.lookup(session, query='A different question')).status, 400)
         self.ha.call.assert_not_awaited()
         self.ha.request.assert_not_awaited()
+
+    async def test_context_uses_ha_time_zone_and_refreshes_the_timestamp(self):
+        self.ha.time_zone = ZoneInfo('Europe/Amsterdam')
+        context = await assistant_tools.panel_context(self.manager, panel())
+        self.assertEqual(context['time_zone'], 'Europe/Amsterdam')
+        actual = datetime.fromisoformat(context['current_time'])
+        self.assertLess(abs((datetime.now(self.ha.time_zone) - actual).total_seconds()), 2)
+        self.assertNotIn('location', context)  # A room is not an inferred city.
+        self.assertIsNone(context['default_location'])
+        self.ha.call.assert_not_awaited()
+
+    async def test_home_metadata_comes_from_ha_config_and_reaches_the_provider(self):
+        from server import HomeAssistant
+        ha = HomeAssistant(self.http, 'http://ha.example/api', 'test')
+        ha.request = AsyncMock(return_value={'time_zone': 'Europe/Amsterdam',
+            'location_name': 'Home', 'latitude': 53.22, 'longitude': 6.57,
+            'internal_url': 'http://private.example', 'components': ['private']})
+        await ha.read_config()
+        self.ha.time_zone, self.ha.location = ha.time_zone, ha.location
+        supplied = panel()
+        supplied['default_location'] = {'name': 'Client-injected city', 'latitude': 0, 'longitude': 0}
+        await self.session(supplied)
+        context = json.loads(self.provider_calls[-1][1]['instructions'].split('\nPANEL_CONTEXT_DATA:\n', 1)[1])
+        self.assertEqual(context['default_location'], {'source': 'home_assistant',
+            'name': 'Home', 'latitude': 53.22, 'longitude': 6.57})
+        self.assertEqual(context['time_zone'], 'Europe/Amsterdam')
+        self.assertNotIn('private.example', json.dumps(context))
+        # HA's config refresh also replaces the location without an editor override.
+        ha.request.return_value['latitude'] = 52.37
+        await ha.read_config()
+        self.ha.location = ha.location
+        fresh = await assistant_tools.panel_context(self.manager, panel())
+        self.assertEqual(fresh['default_location']['latitude'], 52.37)
+
+    async def test_missing_or_invalid_home_coordinates_are_not_guessed(self):
+        for latitude, longitude in ((None, None), (True, 6), (float('nan'), 6),
+                                    (53, float('inf')), (91, 6), (53, -181), ('53', '6')):
+            with self.subTest(latitude=latitude, longitude=longitude):
+                self.ha.location = {'location_name': 'Living room', 'latitude': latitude, 'longitude': longitude}
+                context = await assistant_tools.panel_context(self.manager, panel())
+                self.assertIsNone(context['default_location'])
 
     async def test_failed_lookup_keeps_device_commands_available(self):
         session = await self.session()
@@ -152,6 +215,30 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
         result = await (await self.client.post(f'/api/voice-preview/sessions/{session}/tools', json={
             'call_id': 'help', 'name': 'get_panel_context', 'arguments': {}, 'context': data})).json()
         self.assertEqual(result['visible'][0]['label'], 'Desk')
+        self.ha.call.assert_not_awaited()
+
+    async def test_voice_reads_large_upstream_layouts_with_bounded_document_validation(self):
+        data = panel()
+        pages = []
+        for index in range(16):
+            tiles = []
+            for cell in range(6):
+                item = tile('light.a', f'Page {index + 1} light {cell + 1}', cell % 2)
+                item['id'] = f'page_{index}_tile_{cell}'
+                item['placement']['row'] = cell // 2
+                tiles.append(item)
+            pages.append(page(f'{index + 1:016x}', tiles))
+        data['layout']['pages'] = pages
+        data['page'] = 15
+        session = await self.session(data)
+        result = await (await self.client.post(f'/api/voice-preview/sessions/{session}/tools', json={
+            'call_id': 'large_help', 'name': 'get_panel_context', 'arguments': {}, 'context': data})).json()
+        self.assertEqual(len(result['visible']), 6)
+        self.assertEqual(result['visible'][0]['label'], 'Page 16 light 1')
+        oversized = deepcopy(data)
+        oversized['layout']['pages'].extend(page(f'{i + 1:016x}', []) for i in range(16, 33))
+        response = await self.client.post('/api/voice-preview/sessions', json={'sdp': 'v=0\r\noffer', 'context': oversized})
+        self.assertEqual(response.status, 400)
         self.ha.call.assert_not_awaited()
 
     async def test_audio_adapter_receives_shared_context_and_neutral_tool_schemas(self):

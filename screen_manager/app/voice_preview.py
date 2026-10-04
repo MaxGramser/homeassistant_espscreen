@@ -7,6 +7,7 @@ again on the server and never accepts an arbitrary service or entity ID.
 import asyncio
 import contextlib
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -27,6 +28,7 @@ from voice_output import ReplyOutput
 
 MAX_SECONDS = 600
 MAX_CALLS = 4
+LOG = logging.getLogger(__name__)
 
 
 def voice_enabled(data):
@@ -315,11 +317,16 @@ class VoicePreview:
         if len(session['receipts']) >= 256:
             raise ValueError('Start a new voice conversation.')
         try:
-            if name == 'lookup_current_information':
+            if name == 'wait_for_user':
+                if args:
+                    raise ValueError('Waiting takes no arguments.')
+                result = {'status': 'ok', 'wait_for_user': True}
+            elif name == 'lookup_current_information':
                 provider, key, model = ((self.lookup, self.key, self.search_model) if session['provider'] == 'openai'
                     else (LOOKUP_PROVIDERS['claude'], self.claude_key, self.claude_model))
                 task = asyncio.create_task(provider.lookup(self.manager.ha.session, key, args, model=model))
                 session['lookup'] = task
+                started = time.monotonic()
                 try:
                     result = await task
                 except asyncio.CancelledError:
@@ -328,6 +335,10 @@ class VoicePreview:
                     result = {'status': 'cancelled', 'sources': []}
                 finally:
                     session.pop('lookup', None)
+                    # Measure the external lookup without logging questions,
+                    # retrieved answers, session IDs or provider credentials.
+                    LOG.info('Voice current-information lookup provider=%s elapsed=%.2fs',
+                             session['provider'], time.monotonic()-started)
             else:
                 context = await panel_context(self.manager, panel, private=True, music=self.music)
                 # Stop may have been pressed while HA exposure was being read.
@@ -403,6 +414,9 @@ class VoicePreview:
 
 def register(app, manager):
     voice = VoicePreview(manager)
+    from voice_device import DeviceVoice
+    manager.device_voice = DeviceVoice(voice, write_private)
+    manager.device_voice.register(app)
     app.router.add_get('/api/voice-preview/status', voice.status)
     app.router.add_put('/api/voice-preview/spotify', voice.configure_music)
     app.router.add_delete('/api/voice-preview/spotify', voice.configure_music)

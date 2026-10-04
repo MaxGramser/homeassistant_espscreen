@@ -11,6 +11,7 @@ substitutions:
 packages:
   core: !include core.yaml
   board: !include boards/wavesharep4.yaml
+  hotspot: !include features/hotspot.yaml
 
 external_components:
   - source:

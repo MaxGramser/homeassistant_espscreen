@@ -1,3 +1,6 @@
+packages:
+  wake: !include audio-wake-word.yaml
+
 smart_display:
   audio_tests: true
 
@@ -13,10 +16,6 @@ font:
 globals:
   - id: audio_test_kind
     type: int
-    initial_value: '0'
-  - id: audio_test_wake_selection
-    type: int32_t
-    restore_value: true
     initial_value: '0'
   - id: audio_test_capture
     type: audio_test::Capture
@@ -67,19 +66,6 @@ microphone:
           id(audio_test_frames).fetch_add(x.size() / 4);
 
 micro_wake_word:
-  id: panel_test_wake_word
-  microphone:
-    microphone: panel_microphone
-    channels: 0
-  models:
-    - model: okay_nabu
-      id: audio_wake_okay_nabu
-    - model: hey_jarvis
-      id: audio_wake_hey_jarvis
-    - model: alexa
-      id: audio_wake_alexa
-    - model: hey_mycroft
-      id: audio_wake_hey_mycroft
   stop_after_detection: false
   on_wake_word_detected:
     - lambda: |-
@@ -89,18 +75,6 @@ micro_wake_word:
         id(audio_test_status).publish_state(screen_text::fill(screen_text::txt::audio_heard, "word", wake_word) + " (" +
             std::to_string(id(audio_test_wakes) - id(audio_test_wake_start)) + ")");
         ESP_LOGI("audio_test", "Wake word detected: %s", wake_word.c_str());
-
-select:
-  - platform: template
-    id: panel_wake_word_setting
-    name: Wake word
-    entity_category: config
-    options: ["Okay Nabu", "Hey Jarvis", "Alexa", "Hey Mycroft"]
-    lambda: return settings_screen::wake_word_options[settings_screen::wake_word];
-    set_action:
-      - lambda: |-
-          for (size_t i = 0; i < std::size(settings_screen::wake_word_options); ++i)
-            if (x == settings_screen::wake_word_options[i]) settings_screen::set("wake_word", i);
 
 binary_sensor:
   - platform: template
@@ -372,16 +346,7 @@ script:
                   - lambda: |-
                       id(audio_test_wake_start) = id(audio_test_wakes);
                       id(audio_test_result) = 5;
-                      id(audio_wake_okay_nabu).disable();
-                      id(audio_wake_hey_jarvis).disable();
-                      id(audio_wake_alexa).disable();
-                      id(audio_wake_hey_mycroft).disable();
-                      switch (settings_screen::wake_word) {
-                        case 1: id(audio_wake_hey_jarvis).enable(); break;
-                        case 2: id(audio_wake_alexa).enable(); break;
-                        case 3: id(audio_wake_hey_mycroft).enable(); break;
-                        default: id(audio_wake_okay_nabu).enable(); break;
-                      }
+                  - script.execute: panel_select_wake_word
                   - micro_wake_word.start: {id: panel_test_wake_word}
                   - delay: 30s
             - script.execute: audio_test_stop

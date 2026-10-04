@@ -192,7 +192,8 @@
       "test_microphone": "Microfoon testen",
       "test_speaker": "Luidspreker testen",
       "test_wake_word": "Wekwoord testen",
-      "stop_audio_test": "Audiotest stoppen"
+      "stop_audio_test": "Audiotest stoppen",
+      "wake_word_enabled": "Wake word aan"
     },
     "tile": {
       "tap_to_open": "Tik om te openen",
@@ -543,6 +544,18 @@
       "speaker_test": "Luidsprekertest",
       "say": "Zeg {word} (30s)",
       "muted": "Microfoon is gedempt"
+    },
+    "voice": {
+      "start": "Start spraak",
+      "stop": "Stop spraak",
+      "connecting": "Verbinden…",
+      "listening": "Luisteren",
+      "thinking": "Verwerken…",
+      "speaking": "Spreken",
+      "stopping": "Stoppen…",
+      "error": "Spraak gestopt. Controleer de verbinding.",
+      "idle": "Inactief",
+      "wake_ready": "Zeg {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Automatische versterking",
         "speaker_volume": "Luidsprekervolume",
         "tap_sound": "Tikgeluid",
-        "wake_word": "Wekwoord"
+        "wake_word": "Wekwoord",
+        "wake_word_enabled": "Wake word aan"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Luidspreker opgeslagen. Open het voorbeeld opnieuw om deze te gebruiken.",
       "output_unavailable": "Niet beschikbaar",
       "output_hint": "Kies waar de assistent algemene vragen beantwoordt. Externe antwoorden pauzeren de microfooninvoer. Bevestigingen voor het starten van muziek blijven op het scherm. Stop spraak voordat je deze instelling wijzigt."
+    },
+    "voice_device": {
+      "title": "Fysiek spraakpaneel",
+      "hint": "Experimenteel: start spraak via aanraking of schakel een wake word in bij Audio op het paneel. Gebruikt de provider en antwoordinstellingen hierboven.",
+      "no_panels": "Voeg eerst een ondersteund fysiek P4-paneel toe aan Home Assistant.",
+      "panel": "Paneel",
+      "address": "Add-onadres bereikbaar vanaf het paneel",
+      "address_hint": "Gebruik het lokale netwerkadres en de mediapoort, niet de ingress-URL of localhost. ws:// is voor een vertrouwd lokaal netwerk; wss:// vereist een vertrouwde TLS-proxy.",
+      "paired_hint": "Dit paneel is gekoppeld. Een nieuwe koppeling verbreekt de verbinding totdat de nieuwe configuratie is geflasht.",
+      "pair": "Paneel koppelen",
+      "replace": "Koppeling vervangen",
+      "remove": "Koppeling intrekken",
+      "install": "Download de configuratie en voeg de substitutions samen met de Override YAML van dit paneel onder Build & install. Behoud bestaande instellingen en bouw en installeer daarna de voicefirmware.",
+      "download": "Voiceconfiguratie downloaden",
+      "private": "Dit bestand bevat het privétoken van het paneel, niet je provider-API-key. Sla het nu op; na het verlaten van deze pagina kun je het niet meer downloaden."
     }
   },
   "configuration": {

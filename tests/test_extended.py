@@ -43,12 +43,14 @@ class FirmwareJobs(unittest.IsolatedAsyncioTestCase):
  async def test_cli_arguments_redaction_and_busy(self):
   with tempfile.TemporaryDirectory() as tmp:
    f=Firmware(tmp,tmp);f.create({'board':'guition','name':'test','friendly_name':'Test','wifi_ssid':'homewifi','wifi_password':'secretwifi'})
+   f.save_override('test.yaml', 'substitutions:\n  VOICE_TOKEN: "private-panel-voice-token"\n')
    async def waiting(*args):await asyncio.sleep(20)
    with patch('firmware.shutil.which',return_value='/bin/esphome'),patch.object(f,'run',side_effect=waiting):
     with self.assertRaises(ValueError):f.start({'file':'test.yaml','action':'install','target':'1.2.3.4;evil'})
     with self.assertRaises(ValueError):f.start({'file':'test.yaml','action':'install','target':'/dev/unknown'})
     f.start({'file':'test.yaml','action':'validate'})
     self.assertNotIn('secretwifi',f.redact('Using secretwifi on homewifi'))
+    self.assertNotIn('private-panel-voice-token',f.redact('generated_cpp("private-panel-voice-token")'))
     with self.assertRaises(ValueError):f.start({'file':'test.yaml','action':'build'})
     f.task.cancel()
     try:await f.task

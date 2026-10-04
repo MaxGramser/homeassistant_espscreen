@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
+import VoiceDeviceSettings from "./VoiceDeviceSettings.vue";
 
 type Status = { enabled: boolean; configured: boolean; key_configured?: boolean; saved_key: boolean; source: string;
   provider?: string; pipeline?: string; pipelines?: { id: string; name: string; language: string; ready: boolean; stt_ready: boolean; tts_ready: boolean }[];
@@ -231,6 +232,7 @@ async function saveOutput() {
         </div>
       </form>
     </details>
+    <VoiceDeviceSettings />
     <p v-if="saved" role="status">{{ t(saved) }}</p>
     <p v-if="error" role="alert">{{ error }}</p>
   </section>

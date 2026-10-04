@@ -77,6 +77,8 @@ class ClaudeSessions:
             return result
         result = await session['conversation'].reply(text, context, dispatch)
         result['heard'] = text
+        if result.get('wait_for_user'):
+            return result
         self.phase(session, 'preparing_speech')
         try:
             audio, mime = await speech.synthesize(result['text'])

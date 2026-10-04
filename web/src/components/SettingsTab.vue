@@ -101,7 +101,7 @@ const audioActions = computed(() => view.value?.audio_tests?.filter((test) => te
             <button v-if="isSwitch(row)" type="button" class="switch" :class="{ unknown: values[row.key] === null || values[row.key] === undefined }" role="switch"
               :id="`setting-${row.key}`" :aria-checked="Boolean(values[row.key]) ? 'true' : 'false'" :aria-labelledby="`setting-label-${row.key}`"
               :disabled="unavailable(row)" @click.stop="setSetting(row.key, flip(row), 150)"></button>
-            <div v-else-if="row.kind === 'choice'" class="seg" role="group" :aria-labelledby="`setting-label-${row.key}`">
+            <div v-else-if="row.kind === 'choice'" class="seg wrap" role="group" :aria-labelledby="`setting-label-${row.key}`">
               <button v-for="value in optionsOf(row)" :key="String(value)" type="button" :aria-pressed="values[row.key] === value ? 'true' : 'false'" :disabled="unavailable(row)" @click="setSetting(row.key, value, 150)">{{ choiceText(row, value) }}</button>
             </div>
             <div v-else class="step">

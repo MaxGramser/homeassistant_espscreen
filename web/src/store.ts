@@ -1608,6 +1608,7 @@ export const SETTING_GROUPS = [
     { key: "microphone_alc", kind: "toggle" },
     { key: "speaker_volume", kind: "number", min: 0, max: 100, step: 5, unit: "%" },
     { key: "tap_sound", kind: "toggle" },
+    { key: "wake_word_enabled", kind: "toggle" },
     { key: "wake_word", kind: "choice", options: [0, 1, 2, 3] },
   ] },
 ] as const;

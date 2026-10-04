@@ -192,7 +192,8 @@
       "test_microphone": "Testar microfone",
       "test_speaker": "Testar altifalante",
       "test_wake_word": "Testar palavra-chave",
-      "stop_audio_test": "Parar teste de áudio"
+      "stop_audio_test": "Parar teste de áudio",
+      "wake_word_enabled": "Palavra de ativação ativada"
     },
     "tile": {
       "tap_to_open": "Toque para abrir",
@@ -543,6 +544,18 @@
       "speaker_test": "Teste do altifalante",
       "say": "Diga {word} (30s)",
       "muted": "Microfone silenciado"
+    },
+    "voice": {
+      "start": "Iniciar voz",
+      "stop": "Parar voz",
+      "connecting": "A ligar",
+      "listening": "A ouvir",
+      "thinking": "A pensar",
+      "speaking": "A falar",
+      "stopping": "A parar",
+      "error": "Erro de voz",
+      "idle": "Inativo",
+      "wake_ready": "Diga {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Ganho automático",
         "speaker_volume": "Volume do altifalante",
         "tap_sound": "Som ao tocar",
-        "wake_word": "Palavra-chave"
+        "wake_word": "Palavra-chave",
+        "wake_word_enabled": "Palavra de ativação ativada"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
       "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Painel de voz físico",
+      "hint": "Experimental: inicie a voz por toque ou ative uma palavra de ativação nas definições de Áudio do painel. Utiliza o fornecedor e as definições de resposta acima.",
+      "no_panels": "Adicione primeiro um painel P4 físico compatível ao Home Assistant.",
+      "panel": "Painel",
+      "address": "Endereço do complemento acessível pelo painel",
+      "address_hint": "Use o endereço da rede local e a porta multimédia, não ingress ou localhost. ws:// requer uma rede local de confiança; wss:// requer um proxy TLS de confiança.",
+      "paired_hint": "Este painel está emparelhado. Substituir o emparelhamento desliga-o até instalar a nova configuração.",
+      "pair": "Emparelhar painel",
+      "replace": "Substituir emparelhamento",
+      "remove": "Revogar emparelhamento",
+      "install": "Descarregue a configuração e una as substitutions ao Override YAML deste painel em Build & install. Mantenha as definições existentes, depois compile e instale o firmware de voz.",
+      "download": "Descarregar configuração de voz",
+      "private": "Este ficheiro contém o token privado do painel, não a chave API do fornecedor. Guarde-o agora; não poderá descarregá-lo depois de sair desta página."
     }
   },
   "configuration": {

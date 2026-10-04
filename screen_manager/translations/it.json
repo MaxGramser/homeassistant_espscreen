@@ -192,7 +192,8 @@
       "test_microphone": "Prova microfono",
       "test_speaker": "Prova altoparlante",
       "test_wake_word": "Prova parola chiave",
-      "stop_audio_test": "Ferma prova audio"
+      "stop_audio_test": "Ferma prova audio",
+      "wake_word_enabled": "Parola di attivazione abilitata"
     },
     "tile": {
       "tap_to_open": "Tocca per aprire",
@@ -543,6 +544,18 @@
       "speaker_test": "Test altoparlante",
       "say": "Di’ {word} (30s)",
       "muted": "Microfono disattivato"
+    },
+    "voice": {
+      "start": "Avvia voce",
+      "stop": "Ferma voce",
+      "connecting": "Connessione",
+      "listening": "Ascolto",
+      "thinking": "Elaborazione",
+      "speaking": "Risposta",
+      "stopping": "Arresto",
+      "error": "Errore vocale",
+      "idle": "Inattivo",
+      "wake_ready": "Di’ {word}"
     }
   },
   "addon": {
@@ -1956,7 +1969,8 @@
         "microphone_alc": "Guadagno automatico",
         "speaker_volume": "Volume altoparlante",
         "tap_sound": "Suono al tocco",
-        "wake_word": "Parola chiave"
+        "wake_word": "Parola chiave",
+        "wake_word_enabled": "Parola di attivazione abilitata"
       },
       "actions": {
         "calibrate": {
@@ -2828,6 +2842,21 @@
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
       "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Pannello vocale fisico",
+      "hint": "Sperimentale: avvia la voce con un tocco o abilita una parola di attivazione nelle impostazioni Audio del pannello. Usa il fornitore e le impostazioni di risposta qui sopra.",
+      "no_panels": "Aggiungi prima un pannello P4 fisico compatibile a Home Assistant.",
+      "panel": "Pannello",
+      "address": "Indirizzo del componente aggiuntivo raggiungibile dal pannello",
+      "address_hint": "Usa l’indirizzo della rete locale e la porta multimediale, non ingress o localhost. ws:// richiede una rete locale affidabile; wss:// richiede un proxy TLS affidabile.",
+      "paired_hint": "Questo pannello è associato. Sostituire l’associazione lo disconnette fino all’installazione della nuova configurazione.",
+      "pair": "Associa pannello",
+      "replace": "Sostituisci associazione",
+      "remove": "Revoca associazione",
+      "install": "Scarica la configurazione e unisci le substitutions a Override YAML di questo pannello in Build & install. Mantieni le impostazioni esistenti, poi compila e installa il firmware vocale.",
+      "download": "Scarica configurazione vocale",
+      "private": "Questo file contiene il token privato del pannello, non la chiave API del fornitore. Salvalo ora; dopo aver lasciato questa pagina non potrai scaricarlo di nuovo."
     }
   },
   "configuration": {

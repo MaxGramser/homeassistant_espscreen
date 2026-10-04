@@ -1,0 +1,50 @@
+# Trained ESPHome wake-word models shared by optional diagnostic and voice builds.
+# Nothing starts capture here. Each consumer owns the detector lifecycle.
+globals:
+  - id: audio_test_wake_selection
+    type: int32_t
+    restore_value: true
+    initial_value: '0'
+
+micro_wake_word:
+  id: panel_test_wake_word
+  microphone:
+    microphone: panel_microphone
+    channels: 0
+  models:
+    - model: okay_nabu
+      id: audio_wake_okay_nabu
+    - model: hey_jarvis
+      id: audio_wake_hey_jarvis
+    - model: alexa
+      id: audio_wake_alexa
+    - model: hey_mycroft
+      id: audio_wake_hey_mycroft
+  stop_after_detection: true
+
+select:
+  - platform: template
+    id: panel_wake_word_setting
+    name: Wake word
+    entity_category: config
+    options: ["Okay Nabu", "Hey Jarvis", "Alexa", "Hey Mycroft"]
+    lambda: return settings_screen::wake_word_options[settings_screen::wake_word];
+    set_action:
+      - lambda: |-
+          for (size_t i = 0; i < std::size(settings_screen::wake_word_options); ++i)
+            if (x == settings_screen::wake_word_options[i]) settings_screen::set("wake_word", i);
+
+script:
+  - id: panel_select_wake_word
+    then:
+      - lambda: |-
+          id(audio_wake_okay_nabu).disable();
+          id(audio_wake_hey_jarvis).disable();
+          id(audio_wake_alexa).disable();
+          id(audio_wake_hey_mycroft).disable();
+          switch (settings_screen::wake_word) {
+            case 1: id(audio_wake_hey_jarvis).enable(); break;
+            case 2: id(audio_wake_alexa).enable(); break;
+            case 3: id(audio_wake_hey_mycroft).enable(); break;
+            default: id(audio_wake_okay_nabu).enable(); break;
+          }

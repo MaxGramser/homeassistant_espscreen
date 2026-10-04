@@ -168,6 +168,9 @@ substitutions:
       if (settings_screen::tap_sound && settings_screen::speaker_volume > 0 &&
           id(panel_microphone).is_stopped() && id(panel_speaker).is_stopped() &&
           !id(panel_tap_sound).is_running()
+          #ifdef USE_SCREEN_DEVICE_VOICE
+          && (!settings_screen::voice_active || !settings_screen::voice_active())
+          #endif
           #ifdef USE_SCREEN_AUDIO_TEST
           && (!settings_screen::audio_busy || !settings_screen::audio_busy())
           #endif

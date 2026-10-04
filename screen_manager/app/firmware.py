@@ -855,7 +855,7 @@ packages:
                 for child in node.value: collect(child)
             elif isinstance(node,yaml.MappingNode):
                 for key,value in node.value:
-                    if key.value in ('password','key','ssid','token') or profile.name=='secrets.yaml':collect(value)
+                    if key.value.lower() in ('password','key','ssid','token','voice_token') or profile.name=='secrets.yaml':collect(value)
                     elif isinstance(value,(yaml.MappingNode,yaml.SequenceNode)):collect(value)
         collect(yaml.compose(profile.read_text()))
         secret_file=self.root/'secrets.yaml'

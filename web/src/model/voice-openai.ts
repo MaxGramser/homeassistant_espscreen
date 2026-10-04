@@ -214,6 +214,7 @@ export class OpenAIVoiceConnection {
         const turn = this.turn;
         this.working = this.working.then(async () => {
           let answered = false;
+          let waiting = true;
           for (const call of calls) {
             if (generation !== this.generation) return;
             if (this.seen.has(call.call_id)) continue;
@@ -224,10 +225,11 @@ export class OpenAIVoiceConnection {
             const startsMusic = call.name === "play_music" ||
               (call.name === "control_media" && ["play", "next", "previous"].includes(args.action));
             if (startsMusic) this.muteInput(true);
-            const result = await send<{ status?: string; sources?: VoiceSource[]; end_voice?: boolean }>(`voice-preview/sessions/${encodeURIComponent(this.session)}/tools`, "POST", {
+            const result = await send<{ status?: string; sources?: VoiceSource[]; end_voice?: boolean; wait_for_user?: boolean }>(`voice-preview/sessions/${encodeURIComponent(this.session)}/tools`, "POST", {
               call_id: call.call_id, name: call.name, arguments: args, context: this.panel(),
             });
             if (generation !== this.generation) return;
+            waiting &&= call.name === "wait_for_user" && result.wait_for_user === true;
             if (result.end_voice === true) {
               this.muteInput(true); this.endAfterReply = true;
               // Bound a missing acknowledgement while the idle timer is paused.
@@ -242,8 +244,12 @@ export class OpenAIVoiceConnection {
             answered = true;
           }
           if (answered && turn === this.turn) {
-            // Keep waiting while the server creates the follow-up response.
-            this.responses.add("requested"); this.emit({ type: "response.create" });
+            if (waiting && !this.endAfterReply) {
+              // A silent activation has no spoken tool follow-up.
+              this.muteInput(false);
+            } else {
+              this.responses.add("requested"); this.emit({ type: "response.create" });
+            }
           }
         }).catch(() => this.fail("The voice action could not be confirmed. Check Home Assistant before retrying.", generation))
           .finally(() => { if (generation === this.generation) { --this.pendingTools; this.updatePhase(); } });
