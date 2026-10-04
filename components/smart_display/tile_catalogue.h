@@ -7,7 +7,7 @@
 namespace tile_catalogue {
 
 // Every type a tile can show, the screen's own cards (screen.*) included.
-inline constexpr const char *DOMAINS[] = {"alarm_control_panel", "automation", "binary_sensor", "button", "camera", "climate", "cover", "fan", "image", "input_boolean", "input_button", "input_number", "input_select", "light", "lock", "media_player", "number", "person", "remote", "scene", "screen", "script", "select", "sensor", "sun", "switch", "timer", "vacuum", "weather"};
+inline constexpr const char *DOMAINS[] = {"alarm_control_panel", "automation", "binary_sensor", "button", "camera", "climate", "cover", "fan", "humidifier", "image", "input_boolean", "input_button", "input_number", "input_select", "light", "lock", "media_player", "number", "person", "remote", "scene", "screen", "script", "select", "sensor", "sun", "switch", "timer", "vacuum", "weather"};
 
 // What one tile of each type keeps in the memory inside the chip besides the tile itself, in bytes, measured on a board
 // with PSRAM, and whether it keeps a block of extras (catalogue `memory`, docs/TILE_MEMORY.md): tile_memory.h works out
@@ -18,7 +18,7 @@ struct Memory { const char *domain; uint16_t bytes; bool extras; };
 inline constexpr uint16_t ACTION_BYTES = 256, LINE_BYTES = 96;
 // What a page keeps (its title) and an item of its top bar that shows an entity (its text).
 inline constexpr uint16_t PAGE_BYTES = 48, BAR_TEXT_BYTES = 48;
-inline constexpr Memory MEMORY[] = {{"alarm_control_panel", 160, true}, {"automation", 112, false}, {"binary_sensor", 112, false}, {"button", 144, false}, {"camera", 96, false}, {"climate", 304, true}, {"cover", 96, true}, {"fan", 96, false}, {"image", 144, false}, {"input_boolean", 112, false}, {"input_button", 144, false}, {"input_number", 112, false}, {"input_select", 1104, true}, {"light", 160, true}, {"lock", 160, true}, {"media_player", 1312, true}, {"number", 96, false}, {"person", 128, false}, {"remote", 928, true}, {"scene", 144, false}, {"screen", 32, false}, {"script", 96, false}, {"select", 1104, true}, {"sensor", 192, false}, {"sun", 32, true}, {"switch", 96, false}, {"timer", 96, true}, {"vacuum", 1088, true}, {"weather", 1152, true}};
+inline constexpr Memory MEMORY[] = {{"alarm_control_panel", 160, true}, {"automation", 112, false}, {"binary_sensor", 112, false}, {"button", 144, false}, {"camera", 96, false}, {"climate", 304, true}, {"cover", 96, true}, {"fan", 96, false}, {"humidifier", 192, true}, {"image", 144, false}, {"input_boolean", 112, false}, {"input_button", 144, false}, {"input_number", 112, false}, {"input_select", 1104, true}, {"light", 160, true}, {"lock", 160, true}, {"media_player", 1312, true}, {"number", 96, false}, {"person", 128, false}, {"remote", 928, true}, {"scene", 144, false}, {"screen", 32, false}, {"script", 96, false}, {"select", 1104, true}, {"sensor", 192, false}, {"sun", 32, true}, {"switch", 96, false}, {"timer", 96, true}, {"vacuum", 1088, true}, {"weather", 1152, true}};
 
 namespace alarm_control_panel {
 inline constexpr uint32_t ARM_AWAY = 2;
@@ -62,6 +62,9 @@ inline constexpr uint32_t SET_SPEED = 1;
 inline constexpr uint32_t TURN_OFF = 16;
 inline constexpr uint32_t TURN_ON = 32;
 }  // namespace fan
+namespace humidifier {
+inline constexpr uint32_t MODES = 1;
+}  // namespace humidifier
 namespace light {
 inline constexpr uint32_t EFFECT = 4;
 inline constexpr uint32_t FLASH = 8;

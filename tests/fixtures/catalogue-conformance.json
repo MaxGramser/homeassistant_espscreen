@@ -6294,6 +6294,2068 @@
 "expect": null,
 "kind": "resolve",
 "tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "single"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "wide"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "wide"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "wide"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "wide"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "wide"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "wide"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "wide"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "wide"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "wide"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "tall"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "tall"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "tall"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "tall"
+}
+}
+},
+{
+"expect": "setpoint_mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "tall"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "tall"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "tall"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "tall"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "tall"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "square"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "square"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "square"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "square"
+}
+}
+},
+{
+"expect": "setpoint_mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "square"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "square"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "square"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "square"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "square"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "full"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "full"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "full"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "full"
+}
+}
+},
+{
+"expect": "setpoint_mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "full"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "full"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "full"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "full"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "full"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "1x3"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "setpoint_mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "1x3"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "1x3"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "1x3"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "3x1"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "3x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "3x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "3x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "2x3"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "setpoint_mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "2x3"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "2x3"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "2x3"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"size": "3x2"
+}
+}
+},
+{
+"expect": "setpoint",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "slider",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "slider",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "mode",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "setpoint_mode",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "setpoint_mode",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "toggle",
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "toggle",
+"size": "3x2"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"controls": "none",
+"size": "3x2"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"display": "watch",
+"size": "3x2"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "humidifier.case",
+"options": {
+"inline": "slider",
+"size": "3x2"
+}
+}
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "slider",
+"features": null,
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "slider",
+"features": [],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "slider",
+"features": [
+"climate_range"
+],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": null,
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [
+"climate_range"
+],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": null,
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [
+"climate_range"
+],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": null,
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [
+"climate_range"
+],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": null,
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [
+"climate_range"
+],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": null,
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [
+"climate_range"
+],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": null,
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "slider",
+"features": [
+"climate_range"
+],
+"key": "slider",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "mode",
+"features": null,
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "mode",
+"features": [],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "mode",
+"features": [
+"climate_range"
+],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "none",
+"features": null,
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "none",
+"features": [],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "none",
+"features": [
+"climate_range"
+],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": null,
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": [],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": [
+"climate_range"
+],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": null,
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": [],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": [
+"climate_range"
+],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "none",
+"features": null,
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "none",
+"features": [],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "none",
+"features": [
+"climate_range"
+],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": null,
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": [],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "mode",
+"features": [
+"climate_range"
+],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "none",
+"features": null,
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "none",
+"features": [],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "none",
+"features": [
+"climate_range"
+],
+"key": "mode",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": null,
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [
+"climate_range"
+],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": null,
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [
+"climate_range"
+],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": null,
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [
+"climate_range"
+],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": null,
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "setpoint_mode",
+"features": [
+"climate_range"
+],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": null,
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "setpoint",
+"features": [
+"climate_range"
+],
+"key": "setpoint_mode",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "toggle",
+"features": null,
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [
+"climate_range"
+],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": null,
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [
+"climate_range"
+],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": null,
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [
+"climate_range"
+],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": null,
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [
+"climate_range"
+],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": null,
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [
+"climate_range"
+],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": null,
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [
+"climate_range"
+],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": null,
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "humidifier",
+"expect": "toggle",
+"features": [
+"climate_range"
+],
+"key": "toggle",
+"kind": "drawable"
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
 "entity": "input_boolean.case",
 "options": {
 "size": "single"

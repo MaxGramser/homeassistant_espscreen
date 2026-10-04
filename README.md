@@ -47,7 +47,7 @@ panel costs a fraction of that, sits on a table or in a wall box, and is always 
 lights, the heating or the vacuum.
 
 **What.** Firmware for affordable panels, five of them today, from the 2.8-inch CYD to the 10.1-inch Guition, with
-tiles over up to eight pages, or more on the boards with the memory for them, as many per page as the glass holds: lights, climate, blinds and curtains, the vacuum, media, the weather,
+tiles over up to eight pages, or more on the boards with the memory for them, as many per page as the glass holds: lights, climate, humidifiers, blinds and curtains, the vacuum, media, the weather,
 history graphs, clocks and timers, your alarm with its keypad, and your cameras and a map of where everyone is on every screen with room for pictures. A tile can take the whole page, one big switch you push without
 looking, and a tile can go to another page. An automation can put an alert on every screen when someone rings
 the bell, and a screen with room for pictures shows who is there with the doorbell camera's picture. A tap can run any

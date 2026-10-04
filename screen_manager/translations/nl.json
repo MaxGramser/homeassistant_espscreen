@@ -514,6 +514,23 @@
         "open": "Openen",
         "open_door": "Open deur",
         "open_door_confirm": "Open deur?"
+      },
+      "humidifier_mode": {
+        "normal": "Normaal",
+        "eco": "Eco",
+        "away": "Afwezig",
+        "boost": "Boost",
+        "comfort": "Comfortabel",
+        "home": "Thuis",
+        "sleep": "Slaapstand",
+        "auto": "Automatisch",
+        "baby": "Baby"
+      },
+      "humidifier_action": {
+        "humidifying": "Bevochtigen",
+        "drying": "Drogen",
+        "idle": "Inactief",
+        "off": "Uit"
       }
     },
     "navigation": {
@@ -875,6 +892,13 @@
           "run": "Knop Klik"
         },
         "remote": {
+          "toggle": "Aan/uit-schakelaar"
+        },
+        "humidifier": {
+          "setpoint": "Luchtvochtigheid − / +",
+          "slider": "Luchtvochtigheidsslider",
+          "mode": "Modusknoppen",
+          "setpoint_mode": "Luchtvochtigheid − / + en modusknoppen",
           "toggle": "Aan/uit-schakelaar"
         }
       },
@@ -1509,7 +1533,8 @@
         "timer": "Timers",
         "screen": "Scherm",
         "alarm_control_panel": "Alarm",
-        "lock": "Sloten"
+        "lock": "Sloten",
+        "humidifier": "Luchtbevochtigers"
       },
       "room": "Ruimte",
       "hide_placed": "Geplaatste verbergen",
@@ -1565,7 +1590,8 @@
       "image": "Afbeelding",
       "entity": "Entiteit",
       "alarm_control_panel": "Alarmpaneel",
-      "lock": "Slot"
+      "lock": "Slot",
+      "humidifier": "Luchtbevochtiger"
     },
     "displays": {
       "standard": "standaard",

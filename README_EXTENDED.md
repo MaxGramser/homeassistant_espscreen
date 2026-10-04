@@ -81,7 +81,7 @@ on the screen itself, and how updates work.
   small panel with just those sliders; touching anywhere beside the panel closes
   it. A group with more lamps than fit on the glass is paged, the same way as the
   tile pages.
-- **More cards:** climate, vacuum, fan, cover, media player, sensors,
+- **More cards:** climate, humidifiers and dehumidifiers, vacuum, fan, cover, media player, sensors,
   select/input_select, number/input_number, switches, scenes, scripts, and
   buttons.
 - **Special cards (firmware 0.2.14+):** a **clock** (digital or analog)
@@ -208,6 +208,11 @@ on the screen itself, and how updates work.
   Guition shows fan and swing right away on a card of their own, the CYD behind ···.
   A thermostat tile of two rows (firmware 0.3.3) has a − / + stepper and a mode bar with heat and
   cool first; a tap on its circle turns it on or off.
+- **Humidifiers and dehumidifiers** (firmware 0.42.0), such as a dehumidifier on a smart plug with Home
+  Assistant's Generic hygrostat: the thermostat's tile and card in percent. The tile says what it is doing and
+  the humidity now ("Drying · 68%"); the card has the target humidity in Home Assistant's ring between − / +
+  keys, the power key and its modes, as icons where Home Assistant names them and as words where the
+  integration has its own. A double-width tile takes − / +, a slider, the mode keys or an on/off switch.
 - **Weather tile** (firmware 0.3.3): the weather now in its colour, then the coming days with the
   high in bold, the low in grey and the chance of rain in blue when it matters; today stands on a pill.
   A tile of two rows lists the days under each other with the week's range as coloured bars.

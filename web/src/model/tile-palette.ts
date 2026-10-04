@@ -10,6 +10,9 @@ const modes: Record<string, number> = { heat: c.DEEP_ORANGE, cool: c.BLUE, heat_
 const hex = (color: number) => `#${color.toString(16).padStart(6, "0")}`;
 /** Home Assistant's colour for a climate mode, as tile_controls::mode_color gives it. */
 export const modeColor = (mode: string) => hex(modes[mode] ?? c.GREY);
+/** The colour of the mode a thermostat is in on its mode bar: a climate mode's own, a humidifier's blue for every mode
+ * (Home Assistant gives its modes no colour of their own; runtime_tiles mode_segment, firmware 0.42.0+). */
+export const thermostatModeColor = (domain: string, mode: string) => (domain === "humidifier" ? hex(c.BLUE) : modeColor(mode));
 const mix = (a: number, b: number, weight: number) => [16, 8, 0].reduce((out, shift) =>
   out | Math.floor((((a >> shift) & 255) * weight + ((b >> shift) & 255) * (255 - weight)) / 255) << shift, 0);
 
@@ -60,6 +63,8 @@ export function accent(entity: string, value: Value) {
   if (domain === "climate") return modes[state] || c.AMBER;
   if (domain === "vacuum") return state === "error" ? c.RED : c.TEAL;
   if (domain === "fan") return c.CYAN;
+  // A humidifier is Home Assistant's blue while it is on (--state-humidifier-on-color), drying or humidifying alike.
+  if (domain === "humidifier") return c.BLUE;
   if (["cover", "scene"].includes(domain)) return c.PURPLE;
   if (domain === "media_player") return c.LIGHT_BLUE;
   if (["select", "input_select"].includes(domain)) return c.INDIGO;

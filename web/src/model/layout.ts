@@ -311,6 +311,7 @@ export const inlineControlKind = (domain: string) => SLIDER_CONTROLS[domain] || 
 export const domains: Record<string, [string, string, string]> = {
   light: ["☀", "#ad7600", "#fff3d3"],
   climate: ["❄", "#c86620", "#ffebdc"],
+  humidifier: ["≋", "#3476b1", "#e5effa"],
   vacuum: ["◉", "#008577", "#def3ed"],
   fan: ["✣", "#008aab", "#def5fa"],
   cover: ["▤", "#8053af", "#eee5f8"],

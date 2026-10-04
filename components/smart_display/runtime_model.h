@@ -212,6 +212,9 @@ struct Extra {
   std::vector<Lamp> lamps;
   // Climate: the modes as JSON lists, the current fan and swing mode, and what it is doing now.
   std::string hvac_modes, fan_modes, swing_modes, fan_mode, swing_mode, hvac_action;
+  // A humidifier (firmware 0.42.0+) keeps its modes (available_modes) in hvac_modes and what it does (action) in
+  // hvac_action, as a thermostat; the mode it is in is an attribute of its own, not its state.
+  std::string humidifier_mode;
   // The range a thermostat keeps the room in (target_temp_low and target_temp_high, firmware 0.19.0), where it has
   // one instead of a single temperature: heat_cool, and auto on some.
   float target_low = NAN, target_high = NAN;
@@ -296,7 +299,7 @@ struct Extra {
   Choice *choice(char kind) { for (auto &c : choices) if (c.kind == kind) return &c; return nullptr; }
   bool empty() const {
     return hvac_modes.empty() && fan_modes.empty() && swing_modes.empty() && fan_mode.empty() && swing_mode.empty() &&
-           hvac_action.empty() && std::isnan(target_low) && std::isnan(target_high) && options.empty() && forecast.empty() && hours.empty() && std::isnan(wind) &&
+           hvac_action.empty() && humidifier_mode.empty() && std::isnan(target_low) && std::isnan(target_high) && options.empty() && forecast.empty() && hours.empty() && std::isnan(wind) &&
            std::isnan(feels) && wind_unit.empty() && sunrise.empty() && sunset.empty() && duration.empty() &&
            remaining.empty() && !timer_end && media_title.empty() && media_artist.empty() && media_album.empty() &&
            media_picture.empty() && map_mark.empty() && !media_duration && !media_position && !media_position_at && fan_speeds.empty() && fan_speed.empty() &&

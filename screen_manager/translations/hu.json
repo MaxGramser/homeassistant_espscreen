@@ -514,6 +514,23 @@
         "open": "Megnyit",
         "open_door": "Ajtónyitás",
         "open_door_confirm": "Valóban kinyitja?"
+      },
+      "humidifier_mode": {
+        "normal": "Normál",
+        "eco": "Takarékos",
+        "away": "Távol",
+        "boost": "Turbó",
+        "comfort": "Komfort",
+        "home": "Otthon",
+        "sleep": "Alvás",
+        "auto": "Automatikus",
+        "baby": "Baba"
+      },
+      "humidifier_action": {
+        "humidifying": "Párásítás",
+        "drying": "Párátlanítás",
+        "idle": "Tétlen",
+        "off": "Ki"
       }
     },
     "navigation": {
@@ -875,6 +892,13 @@
           "run": "Nyomógomb"
         },
         "remote": {
+          "toggle": "Be/ki kapcsoló"
+        },
+        "humidifier": {
+          "setpoint": "Páratartalom − / +",
+          "slider": "Páratartalom-csúszka",
+          "mode": "Módgombok",
+          "setpoint_mode": "Páratartalom − / + és módgombok",
           "toggle": "Be/ki kapcsoló"
         }
       },
@@ -1509,7 +1533,8 @@
         "timer": "Időzítők",
         "screen": "Kijelző",
         "alarm_control_panel": "Riasztó",
-        "lock": "Zárak"
+        "lock": "Zárak",
+        "humidifier": "Párásítók"
       },
       "room": "Helyiség",
       "hide_placed": "Elhelyezettek elrejtése",
@@ -1565,7 +1590,8 @@
       "image": "Kép",
       "entity": "Entitás",
       "alarm_control_panel": "Riasztópanel",
-      "lock": "Zár"
+      "lock": "Zár",
+      "humidifier": "Párásító"
     },
     "displays": {
       "standard": "normál",

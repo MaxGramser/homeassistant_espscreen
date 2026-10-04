@@ -42,7 +42,9 @@ function activate() {
 const favoritePlay = computed(() => display.value === 'favorite' && domain.value === 'media_player' ? (props.tile.options?.play as Record<string, string> | undefined) : undefined);
 const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && screenBuiltinName(props.tile.entity)) || entityName(props.tile.entity));
 const shape = computed(() => dimensions(sizeOf(props.tile), grid.value));
-const climateModes = computed(() => domain.value === 'climate' && effectiveControls(props.tile, state.inventory) === 'setpoint_mode' && shape.value.rows > 1);
+// A thermostat: a climate, or a humidifier drawn with its parts in percent (firmware 0.42.0+, tile_controls::thermostat).
+const thermostat = computed(() => domain.value === 'climate' || domain.value === 'humidifier');
+const climateModes = computed(() => thermostat.value && effectiveControls(props.tile, state.inventory) === 'setpoint_mode' && shape.value.rows > 1);
 const tall = computed(() => shape.value.rows > 1 && (!full.value || coverExtended.value || climateModes.value) && ["standard", "cover"].includes(display.value));
 const full = computed(() => isFull(props.tile));
 const wide = computed(() => isWide(props.tile) && !full.value);
@@ -119,7 +121,7 @@ const glassScale = computed(() => Number(deviceStyle.value["--glass"]) || 1);
 const wideFit = computed(() => rangeChip.value && wide.value
   ? wideChip(screenShape.value, state.documentGrid?.columns ?? screenShape.value.columns, widestSetpoint(current.value?.a || {})) : null);
 // A thermostat's modes on a card of one row or the whole page: its mode bar (ModeBar), as the screen draws it.
-const modeBar = computed(() => domain.value === 'climate' && controls.value === 'mode');
+const modeBar = computed(() => thermostat.value && controls.value === 'mode');
 // An on/off card stands as one centred stack, like the built-in action cards (firmware 0.3.1 render_tall).
 const tallStack = computed(() => tall.value && tallControls.value === 'toggle');
 // A card that only switches or only runs, two rows tall, is one big key (firmware 0.17.0 big_key): a large circle, the
@@ -144,7 +146,7 @@ const bigKeyLine = computed(() => {
 const bodyText = computed(() => {
   if (!tall.value || tallAction.value || tallStack.value || gone.value || coverExtended.value) return '';
   if (domain.value === 'media_player') return String(current.value?.a?.media_title || '');
-  if (domain.value === 'climate' || domain.value === 'screen') return '';
+  if (thermostat.value || domain.value === 'screen') return '';
   return domain.value === 'light' && isOn.value ? `${fill.value}%` : status.value;
 });
 // The second line as chosen in the tile panel (app 0.2.105; drawn on the mockup since app 0.4.1): the screen's own
@@ -187,7 +189,7 @@ const runs = computed(() => domain.value === "automation" && props.tile.options?
 const palette = computed(() => tilePalette(props.tile.entity, current.value, runs.value));
 const gone = computed(() => !current.value || ["unavailable", "unknown", ""].includes(current.value.state));
 const on = computed(() => tileActive(props.tile.entity, current.value, runs.value));
-const isOn = computed(() => (["light", "switch", "input_boolean", "fan", "remote"].includes(domain.value) || domain.value === "automation" && !runs.value) && current.value?.state === "on");
+const isOn = computed(() => (["light", "switch", "input_boolean", "fan", "remote", "humidifier"].includes(domain.value) || domain.value === "automation" && !runs.value) && current.value?.state === "on");
 const unit = computed(() => current.value?.a?.unit_of_measurement as string | undefined);
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).replace(/_/g, " ");
 // Numbers as the screens write them, "1,234.5" or "1.234,5" (app 0.2.90): a state only with a unit, or of an entity
@@ -226,6 +228,23 @@ function climateLine(c: { state: string; a?: Record<string, any> }, word: string
   if (c.state !== "off" && a.temperature != null) return `${num(String(a.temperature))}°`;
   return `${word}${now}`;
 }
+// A humidity as the screen writes it beside a humidifier (tile_controls::humidity_text): whole, or with the one decimal a
+// sensor sends (45.5%).
+const humidityText = (value: unknown) => {
+  const v = Number(value);
+  return `${num(Math.abs(v - Math.round(v)) < 0.05 ? Math.round(v) : Math.round(v * 10) / 10)}${unitSuffix("%")}`;
+};
+// What a thermostat measures, in its own unit: degrees, or a humidifier's humidity (tile_controls::reading_text).
+const reading = (value: unknown) => (domain.value === "humidifier" ? humidityText(value) : `${num(value)}°`);
+const measured = computed(() => current.value?.a?.[domain.value === "humidifier" ? "current_humidity" : "current_temperature"]);
+// A humidifier's line as the screen writes it (tile_controls::climate_card_status, brief): Home Assistant's word for what
+// it is doing (Off while it is off), else On or Off, and the humidity it measures. Home Assistant's tile line for it.
+function humidifierLine(c: { state: string; a?: Record<string, any> }) {
+  const a = c.a || {}, off = c.state !== "on", action = off ? "off" : String(a.action ?? "");
+  const key = `screen.ha.humidifier_action.${action}`;
+  const word = action && te(key) ? screenText(key) : screenText(off ? "screen.ha.off" : "screen.ha.on");
+  return a.current_humidity != null ? `${word} · ${humidityText(a.current_humidity)}` : word;
+}
 // A scene, script or button has no state worth a word: its state is the moment it last ran.
 const NO_STATUS = ["scene", "script", "button", "input_button"];
 // The text under the name: Home Assistant's word where it has one, the value with its unit for a sensor.
@@ -238,6 +257,7 @@ const status = computed(() => {
   const a = c.a || {};
   const word = c.word || haWord(c) || capital(c.state);
   if (domain.value === "climate") return climateLine(c, word);
+  if (domain.value === "humidifier") return humidifierLine(c);
   if (domain.value === "weather") return `${word}${a.temperature !== undefined ? ` · ${num(a.temperature)}°` : ""}`;
   if (domain.value === "cover" && a.current_position !== undefined && a.current_position > 0 && a.current_position < 100) return `${word} · ${a.current_position}${unitSuffix("%")}`;
   if (domain.value === "media_player" && a.media_title) return `${word} · ${a.media_title}`;
@@ -258,6 +278,11 @@ const fill = computed(() => {
   // A blind's bar fills with its closed part, as on the screen (firmware 0.2.66+) and in Home Assistant's cover dialog.
   if (domain.value === "cover") return 100 - (a.current_position ?? (c.state === "open" ? 100 : 0));
   if (domain.value === "media_player") return Math.round((a.volume_level ?? 0) * 100);
+  // A humidifier's slider is the humidity it is set to over its own range (runtime_tiles slider_value), on or off.
+  if (domain.value === "humidifier") {
+    const target = Number(a.humidity), min = Number(a.min_humidity ?? 0), max = Number(a.max_humidity ?? 100);
+    return a.humidity != null && Number.isFinite(target) && max > min ? Math.round(Math.min(1, Math.max(0, (target - min) / (max - min))) * 100) : 0;
+  }
   if (domain.value === "number" || domain.value === "input_number") {
     const value = Number(c.state), min = Number(a.min ?? 0), max = Number(a.max ?? 100);
     return Number.isFinite(value) && max > min ? Math.round(((value - min) / (max - min)) * 100) : 0;
@@ -303,6 +328,8 @@ const FILLS_CELL = ["brightness", "speed", "position", "slider", "volume", "setp
 const fillsCell = computed(() => FILLS_CELL.includes(controls.value || "") || (controls.value === "stepper" && !domain.value.endsWith("select")));
 const setpoint = computed(() => {
   if (rangeChip.value) return rangeChip.value.text;
+  // A humidifier's number is the humidity it is set to, in percent (tile_controls::setpoint_suffix).
+  if (domain.value === "humidifier") return current.value?.a?.humidity != null ? `${num(current.value.a.humidity)}${unitSuffix("%")}` : "—";
   const temperature = current.value?.a?.temperature;
   return temperature !== undefined && temperature !== null ? `${num(temperature)}°` : "—";
 });
@@ -425,7 +452,7 @@ async function onKey(e: KeyboardEvent) {
         <span v-if="controls === 'toggle'" class="tog" :class="{ off: !on }"></span>
         <span v-else-if="controls === 'setpoint'" class="stp"><span class="mdi">{{ key("minus") || "−" }}</span><span v-if="rangeChip" v-chip-fit class="range-chip" :style="{ '--end': rangeChip.color, '--chip-ems': rangeChip.ems }"><span class="mdi end-icon">{{ key(rangeChip.icon) }}</span><b>{{ rangeChip.text }}</b></span><b v-else :style="{ '--pill-ems': textEms(setpoint + '8') }">{{ setpoint }}</b><span class="mdi">{{ key("plus") || "+" }}</span></span>
         <template v-else-if="controls === 'volume'"><span class="range" :style="volumeStyle"></span><span class="key mdi">{{ key("volume-high") }}</span></template>
-        <ModeBar v-else-if="modeBar" :a="current?.a || {}" :mode="current?.state || ''" place="full" :columns="shape.columns" /><template v-else-if="panelKeys.length"><span v-for="(control, i) in panelKeys" :key="i" class="key mdi" :class="{ primary: control.primary, disabled: control.disabled, active: control.mode === current?.state }">{{ key(control.icon) }}</span></template>
+        <ModeBar v-else-if="modeBar" :a="current?.a || {}" :mode="current?.state || ''" :domain="domain" place="full" :columns="shape.columns" /><template v-else-if="panelKeys.length"><span v-for="(control, i) in panelKeys" :key="i" class="key mdi" :class="{ primary: control.primary, disabled: control.disabled, active: control.mode === current?.state }">{{ key(control.icon) }}</span></template>
         <span v-else-if="controls === 'run'" class="run">{{ runText }}</span>
         <span v-else class="range" :style="sliderStyle"></span>
       </span>
@@ -442,10 +469,10 @@ async function onKey(e: KeyboardEvent) {
         <span class="tx"><span class="nm">{{ name }}</span><span v-if="headStatus" class="st" :class="{ off: gone }">{{ headStatus }}</span></span>
       </span>
       <CoverTilePreview v-if="coverExtended" :primary="tallControls" :entity-state="current?.state || ''" :attributes="current?.a || {}" />
-      <span v-else-if="domain === 'climate' && (tallControls === 'setpoint' || tallControls === 'setpoint_mode')" class="tall-setpoint">
+      <span v-else-if="thermostat && (tallControls === 'setpoint' || tallControls === 'setpoint_mode')" class="tall-setpoint">
         <span class="target"><span class="key mdi">{{ key('minus') || '−' }}</span><span v-if="rangeChip" v-chip-fit class="range-chip" :style="{ '--end': rangeChip.color, '--chip-ems': rangeChip.ems }"><span class="mdi end-icon">{{ key(rangeChip.icon) }}</span><b>{{ rangeChip.text }}</b></span><b v-else>{{ setpoint }}</b><span class="key mdi">{{ key('plus') || '+' }}</span></span>
-        <span class="st">{{ current?.a?.current_temperature !== undefined ? screenText('screen.climate.now', { value: `${num(current.a.current_temperature)}°` }) : status }}</span>
-        <ModeBar v-if="tallControls === 'setpoint_mode'" class="ctl modes" :a="current?.a || {}" :mode="current?.state || ''" place="tall" :columns="shape.columns" />
+        <span class="st">{{ measured != null ? screenText('screen.climate.now', { value: reading(measured) }) : status }}</span>
+        <ModeBar v-if="tallControls === 'setpoint_mode'" class="ctl modes" :a="current?.a || {}" :mode="current?.state || ''" :domain="domain" place="tall" :columns="shape.columns" />
       </span>
       <template v-else>
         <span v-if="!tallAction" class="tall-body">
@@ -453,12 +480,14 @@ async function onKey(e: KeyboardEvent) {
             <MarqueeText class="track-title" :text="String(current?.a?.media_title || '')" /><span v-if="mediaSubtitle" class="st">{{ mediaSubtitle }}</span>
           </template>
           <span v-else-if="domain === 'climate' && !gone" class="target-value">{{ current?.a?.current_temperature !== undefined ? `${num(current.a.current_temperature)}°` : '—' }}</span>
+          <!-- A humidifier stands the humidity it measures large, else its line (runtime_tiles render_tall). -->
+          <span v-else-if="domain === 'humidifier' && !gone" class="target-value">{{ measured != null ? reading(measured) : status }}</span>
           <span v-else-if="domain !== 'screen' && !gone && tallControls !== 'toggle'" class="target-value">{{ domain === 'light' && isOn ? `${fill}%` : status }}</span>
         </span>
       <span v-if="tallControls" class="ctl" :class="{ playback: tallControls === 'playback' }">
         <span v-if="tallControls === 'toggle'" class="tog" :class="{ off: !on }"></span>
         <span v-else-if="tallControls === 'setpoint'" class="stp"><span class="mdi">{{ key("minus") || "−" }}</span><span v-if="rangeChip" v-chip-fit class="range-chip" :style="{ '--end': rangeChip.color, '--chip-ems': rangeChip.ems }"><span class="mdi end-icon">{{ key(rangeChip.icon) }}</span><b>{{ rangeChip.text }}</b></span><b v-else :style="{ '--pill-ems': textEms(setpoint + '8') }">{{ setpoint }}</b><span class="mdi">{{ key("plus") || "+" }}</span></span>
-        <ModeBar v-else-if="tallControls === 'mode' && domain === 'climate'" :a="current?.a || {}" :mode="current?.state || ''" place="tall" :columns="shape.columns" />
+        <ModeBar v-else-if="tallControls === 'mode' && thermostat" :a="current?.a || {}" :mode="current?.state || ''" :domain="domain" place="tall" :columns="shape.columns" />
         <template v-else-if="tallKeys.length"><span v-for="(control, i) in tallKeys" :key="i" class="key mdi" :class="{ primary: control.primary, disabled: control.disabled, active: control.mode === current?.state }">{{ key(control.icon) }}</span></template>
         <span v-else-if="tallControls === 'stepper'" class="stp"><span class="mdi">{{ key("minus") || "−" }}</span><b>{{ bigValue }}</b><span class="mdi">{{ key("plus") || "+" }}</span></span>
         <template v-else-if="tallControls === 'volume'"><span v-if="features & bits('media_player', 'VOLUME_SET')" class="range" :style="volumeStyle"></span><span v-if="features & bits('media_player', 'VOLUME_MUTE')" class="key mdi">{{ key(current?.a?.is_volume_muted ? 'volume-off' : 'volume-high') }}</span></template>
@@ -483,7 +512,7 @@ async function onKey(e: KeyboardEvent) {
         <span v-else-if="controls === 'setpoint'" class="stp"><span class="mdi">{{ key("minus") || "−" }}</span><span v-if="rangeChip" class="range-chip" :class="{ lone: wideFit && !wideFit.icon }" :style="{ '--end': rangeChip.color, '--chip-ems': rangeChip.ems, ...(wideFit ? { '--chip-face': `${(wideFit.face * glassScale).toFixed(2)}px` } : {}) }"><span class="mdi end-icon">{{ key(rangeChip.icon) }}</span><b>{{ rangeChip.text }}</b></span><b v-else :style="{ '--pill-ems': textEms(setpoint + '8') }">{{ setpoint }}</b><span class="mdi">{{ key("plus") || "+" }}</span></span>
         <template v-else-if="controls === 'stepper' && domain.endsWith('select')"><span class="key mdi">{{ key("chevron-left") }}</span><span class="key mdi">{{ key("chevron-right") }}</span></template>
         <span v-else-if="controls === 'stepper'" class="stp"><span class="mdi">{{ key("minus") || "−" }}</span><b>{{ bigValue }}</b><span class="mdi">{{ key("plus") || "+" }}</span></span>
-        <ModeBar v-else-if="modeBar" :a="current?.a || {}" :mode="current?.state || ''" place="row" :columns="shape.columns" /><template v-else-if="panelKeys.length"><span v-for="(control, i) in panelKeys" :key="i" class="key mdi" :class="{ primary: control.primary, disabled: control.disabled, active: control.mode === current?.state }">{{ key(control.icon) }}</span></template>
+        <ModeBar v-else-if="modeBar" :a="current?.a || {}" :mode="current?.state || ''" :domain="domain" place="row" :columns="shape.columns" /><template v-else-if="panelKeys.length"><span v-for="(control, i) in panelKeys" :key="i" class="key mdi" :class="{ primary: control.primary, disabled: control.disabled, active: control.mode === current?.state }">{{ key(control.icon) }}</span></template>
         <template v-else-if="controls === 'volume'"><span class="range" :style="volumeStyle"></span><span class="key mdi">{{ key("volume-high") }}</span></template>
         <span v-else-if="controls === 'run'" class="run">{{ runText }}</span>
         <span v-else class="range" :style="sliderStyle"></span>

@@ -8,6 +8,7 @@
     "climate",
     "cover",
     "fan",
+    "humidifier",
     "image",
     "input_boolean",
     "input_button",
@@ -168,6 +169,13 @@
     "fan": [
       "toggle",
       "speed"
+    ],
+    "humidifier": [
+      "setpoint",
+      "slider",
+      "mode",
+      "setpoint_mode",
+      "toggle"
     ],
     "input_boolean": [
       "toggle"
@@ -415,6 +423,7 @@
     "climate",
     "cover",
     "fan",
+    "humidifier",
     "input_boolean",
     "input_button",
     "input_number",

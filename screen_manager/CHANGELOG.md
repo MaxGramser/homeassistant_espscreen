@@ -1,3 +1,23 @@
+## 0.4.69 (firmware 0.42.0)
+
+- **Humidifiers and dehumidifiers as tiles** ([#128](https://github.com/MaxGramser/homeassistant_espscreen/issues/128)).
+  A `humidifier` entity is now in the library, a dehumidifier on a smart plug with Home Assistant's Generic hygrostat
+  too. It works like a thermostat in percent, with Home Assistant's own words, icons and colour:
+  - The tile says what it is doing and the humidity it measures ("Drying · 68%", "Humidifying · 38%", "Off · 52%"). When
+    the word does not fit a small tile, the humidity stays readable. Blue while it is on, grey while it is off, with
+    Home Assistant's crossed-out icon.
+  - A tap opens its card: the power key, the humidity it measures, and the target humidity big in Home Assistant's ring
+    between − and +. The ring fills up to the target for a humidifier and from the target up for a dehumidifier, and
+    shows the part still to go while the device is working.
+  - Its modes (normal, eco, away, boost, comfort, home, sleep, auto, baby) are round keys with Home Assistant's icons.
+    A device with modes of its own gets them as a row of their names instead, since those have no icon.
+  - A double-width tile takes the humidity − / +, a slider, the mode keys or an on/off switch; a tile of two rows
+    takes − / + with the mode keys under it, and a tap on its circle turns it on or off.
+- The editor shows humidifiers the same way and lists them under their own filter.
+- Tested with the firmware's own drawing on the host (the CYD, the Guition 4-inch, the Waveshare 4.3-inch and the
+  10.1-inch Guition, lying down and standing up, light and Dark mode), and every Python, C++, editor and WASM preview
+  check. Not yet on a real humidifier.
+
 ## 0.4.68 (firmware 0.41.0)
 
 - **A screen's battery in its top bar.** In the editor, click the top bar and choose Add, Battery: Home Assistant's

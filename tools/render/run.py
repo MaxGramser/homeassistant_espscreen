@@ -1022,6 +1022,119 @@ class Run:
                                  'box': tuple(int(n) for n in box.split(','))}
         return found
 
+    async def humidifier_panel(self, grid):
+        """Humidifiers and dehumidifiers (firmware 0.42.0+) as tiles of every size and as their card, in the states Home
+        Assistant has for them: drying, humidifying, idle, off, without a humidity sensor, unavailable. Each scene is its own layout; the cards a finger
+        opens are rendered, the laundry room's in Dark mode too."""
+        from core import extras, state_message
+        def unit(state, name, device_class='humidifier', action=None, current=None, target=None, modes=None, mode=None, **more):
+            attributes = {'friendly_name': name, 'device_class': device_class, 'min_humidity': 0, 'max_humidity': 100,
+                          'supported_features': 1 if modes else 0, **more}
+            if modes:
+                attributes.update(available_modes=modes, mode=mode)
+            if action:
+                attributes['action'] = action if state == 'on' else 'off'
+            if current is not None:
+                attributes['current_humidity'] = current
+            if target is not None:
+                attributes['humidity'] = target
+            return {'state': state, 'attributes': attributes, 'last_changed': MOMENT.isoformat()}
+        # A generic hygrostat on a smart plug in a laundry room (GitHub #128): a dehumidifier with Home Assistant's away
+        # mode; a bedroom humidifier with every standard mode; and the rest of what Home Assistant reports.
+        states = {'humidifier.laundry': unit('on', 'Laundry room', 'dehumidifier', 'drying', 68, 55, ['normal', 'away'], 'normal'),
+                  'humidifier.bedroom': unit('on', 'Bedroom', 'humidifier', 'humidifying', 38, 45,
+                                             ['normal', 'eco', 'sleep', 'boost', 'auto', 'baby'], 'sleep'),
+                  'humidifier.living': unit('on', 'Living room', 'humidifier', 'idle', 46, 45, ['normal', 'eco', 'boost'], 'eco'),
+                  'humidifier.office': unit('off', 'Office', 'dehumidifier', 'off', 52, 50),
+                  'humidifier.cellar': unit('on', 'Cellar', 'dehumidifier', None, None, 60),
+                  'humidifier.attic': unit('unavailable', 'Attic'),
+                  # An integration's own modes have no icon: the card lists them by name.
+                  'humidifier.closet': unit('on', 'Closet', 'dehumidifier', 'idle', 51, 50, ['continuous', 'laundry', 'auto'], 'laundry')}
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        async def show(name, tiles_in, title='Humidity'):
+            tiles_in = [dict(t) for t in tiles_in]
+            # First fit, page after page: a tile spans its size's columns and rows from the cell it starts in.
+            spans = {'single': (1, 1), 'wide': (2, 1), 'tall': (1, 2), 'square': (2, 2), 'full': (grid.columns, grid.rows)}
+            taken = set()
+            for tile in tiles_in:
+                tile.setdefault('name', states[tile['entity']]['attributes']['friendly_name'])
+                # A grid of one column (a board standing up) has no double width: its single cell is already the width.
+                if grid.columns < 2 and tile['options'].get('size') in ('wide', 'square'):
+                    tile['options'] = {**tile['options'], 'size': 'tall' if tile['options']['size'] == 'square' else 'single'}
+                    if tile['options']['size'] == 'single':
+                        tile['options'].pop('size')
+                w, h = spans[tile['options'].get('size', 'single')]
+                w, h = min(w, grid.columns), min(h, grid.rows)
+                slot = 0
+                while True:
+                    page, cell = divmod(slot, grid.slots)
+                    row, col = divmod(cell, grid.columns)
+                    cells = {(page, row + r, col + c) for r in range(h) for c in range(w)}
+                    if col + w <= grid.columns and row + h <= grid.rows and not cells & taken:
+                        break
+                    slot += 1
+                taken |= cells
+                tile['slot'] = slot
+            record = send_layout.migrate_legacy(dict(title=title, tiles=tiles_in), grid)
+            tiles = send_layout.compile_tiles(record['layout'], grid)
+            bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+            values = [state_message(index, tile, states, extras(tile, states)) for index, tile in enumerate(tiles)]
+            await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+            pages = len(record['layout']['pages'])
+            for page in range(pages):
+                await self.call('render_page', page=page)
+                await self.page_done(page)
+                await asyncio.sleep(1.0)
+                await self.render(name if pages == 1 else f'{name}-{page + 1}')
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            await asyncio.sleep(0.6)
+        async def card(name, entity, dark=False):
+            spots = await self.slots()
+            if entity not in spots:
+                self.warnings.append(f'humidifier: {entity} is not on the glass for {name}')
+                return
+            await self.hold(*spots[entity])
+            opened = await self.alarm_until(lambda c: c['open'], f'holding {entity} never opened its card')
+            await asyncio.sleep(0.8)
+            await self.render(name)
+            if opened['faults']:
+                self.warnings.append(f'humidifier card {entity}: {opened["faults"]}')
+            if dark:
+                self.client.switch_command(self.dark_switch.key, True)
+                await asyncio.sleep(1.5)
+                await self.render(name + '-dark')
+                self.client.switch_command(self.dark_switch.key, False)
+                await asyncio.sleep(1.5)
+            await self.tap(*opened['back'][:2])
+            await self.alarm_until(lambda c: not c['open'], 'Back never closed the card')
+        e = lambda entity, **options: dict(entity=entity, options=options)
+        everyone = [e(x) for x in states if x != 'humidifier.closet']
+        await show('humidifier-tiles', everyone)
+        self.client.switch_command(self.dark_switch.key, True)
+        await asyncio.sleep(1.5)
+        await self.render('humidifier-tiles-dark')
+        self.client.switch_command(self.dark_switch.key, False)
+        await asyncio.sleep(1.5)
+        for entity in ('humidifier.laundry', 'humidifier.bedroom', 'humidifier.office', 'humidifier.cellar'):
+            await card(f'humidifier-card-{entity.split(".")[1]}', entity, dark=entity == 'humidifier.laundry')
+        await show('humidifier-own-modes', [e('humidifier.closet')])
+        await card('humidifier-card-closet', 'humidifier.closet')
+        await show('humidifier-wide', [e('humidifier.laundry', size='wide', controls='setpoint'),
+                                       e('humidifier.bedroom', size='wide', controls='slider'),
+                                       e('humidifier.bedroom', size='wide', controls='mode'),
+                                       e('humidifier.office', size='wide', controls='toggle'),
+                                       e('humidifier.living', size='wide', controls='setpoint'),
+                                       e('humidifier.cellar', size='wide', controls='setpoint')])
+        await show('humidifier-square', [e('humidifier.bedroom', size='square', controls='setpoint_mode'),
+                                         e('humidifier.laundry'), e('humidifier.office')])
+        await show('humidifier-square-laundry', [e('humidifier.laundry', size='square', controls='setpoint_mode'),
+                                                 e('humidifier.bedroom'), e('humidifier.living')])
+        await show('humidifier-tall', [e('humidifier.laundry', size='tall', controls='setpoint_mode'),
+                                       e('humidifier.bedroom', size='tall', controls='setpoint_mode')])
+        await show('humidifier-full', [e('humidifier.bedroom', size='full', controls='setpoint_mode')])
+        return 1
+
     async def remote_panel(self, grid):
         """A remote (firmware 0.22.0, GitHub #117) the way it is used: a tap opens its card, as Home Assistant's tile card
         opens its dialog, with the power key in the top bar and the activities where the remote has them; the tap option
@@ -1969,6 +2082,7 @@ class Run:
         self.services = {s.name: s for s in services}
         self.inbox = next(e for e in entities if type(e).__name__ == 'TextInfo' and e.name == 'Tile settings')
         dark = next(e for e in entities if getattr(e, 'name', '') == 'Dark mode')
+        self.dark_switch = dark
         self.swipe_switch = next(e for e in entities if getattr(e, 'name', '') == 'Swipe between pages')
         self.subscribe_logs()
         if 'render_skip_calibration' in self.services:
@@ -2013,6 +2127,8 @@ class Run:
             return 1, await self.media_panel(grid)
         if self.only == 'saver':
             return 1, await self.saver_panel()
+        if self.only == 'humidifier':
+            return 1, await self.humidifier_panel(grid)
         checks = await self.self_test()
         await self.moments(pages)
         for page in range(pages):
@@ -2100,7 +2216,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'saver'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'saver', 'humidifier'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
     args = parser.parse_args()
     # The programs write their pictures from their own folder, so every path they get is absolute.

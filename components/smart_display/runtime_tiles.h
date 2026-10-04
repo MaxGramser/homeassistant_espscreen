@@ -942,6 +942,8 @@ inline int slider_value(const Tile &t){
   if(d=="cover")value=std::isfinite(t.position)?(100-t.position)/100:1;
   if(d=="media_player")value=std::isfinite(t.volume)?t.volume:0;
   if(d=="number"||d=="input_number") {char *end;float state=strtof(t.state.c_str(),&end);if(end!=t.state.c_str() && t.maximum>t.minimum)value=(state-t.minimum)/(t.maximum-t.minimum);}
+  // A humidifier's slider is the humidity it is set to, over its own range (Home Assistant's target-humidity slider).
+  if(d=="humidifier"&&std::isfinite(t.target)&&t.maximum>t.minimum)value=(t.target-t.minimum)/(t.maximum-t.minimum);
   return std::clamp((int)std::lround(value*1000),0,1000);
 }
 inline lv_obj_t *captured_slider=nullptr;
@@ -967,6 +969,10 @@ inline void commit_slider(unsigned i,int raw,bool tilt=false){
     if(!std::isfinite(t.minimum)||!std::isfinite(t.maximum)||t.maximum<=t.minimum||t.step<=0)return;
     value=std::clamp(t.minimum+std::round(value*(t.maximum-t.minimum)/t.step)*t.step,t.minimum,t.maximum);
     action(d+".set_value",t.entity,"value",std::to_string(value)); }
+  if(d=="humidifier"&&t.maximum>t.minimum){
+    const float step=std::max(1.0f,tile_controls::edit_step(t));
+    const int sent=(int)std::lround(std::clamp(t.minimum+std::round(value*(t.maximum-t.minimum)/step)*step,t.minimum,t.maximum));
+    action("humidifier.set_humidity",t.entity,"humidity",std::to_string(sent));}
 }
 // Where the finger landed on a slider, the value it had, and whether it landed beside the strip (in the tile's lower
 // half that the strip claims, slider_zone) and moved: a press beside the strip that never moves is a tap on the tile.
@@ -1135,7 +1141,12 @@ inline void detail_command(int cmd){
   if(cmd>=CLIMATE_MODE_FIRST&&cmd<CLIMATE_MODE_FIRST+8){
     const auto modes=tile_controls::climate_modes(t);
     const unsigned i=cmd-CLIMATE_MODE_FIRST;
-    if(i<modes.size()&&modes[i]!=tile_controls::lower_case(t.state)){
+    if(i<modes.size()&&tile_controls::humidifier(t)&&modes[i]!=t.extra().humidifier_mode){
+      t.edit_extra().humidifier_mode=modes[i];
+      t.begin(esphome::millis());
+      action("humidifier.set_mode",t.entity,"mode",modes[i]);
+      redraw_detail();
+    }else if(i<modes.size()&&!tile_controls::humidifier(t)&&modes[i]!=tile_controls::lower_case(t.state)){
       t.state=modes[i];
       t.edit_extra().hvac_action.clear();   // the line would still say what the mode before it did
       t.begin(esphome::millis());
@@ -1150,7 +1161,7 @@ inline void detail_command(int cmd){
     if(r<rows.size()&&i<rows[r].values.size()&&rows[r].values[i]!=rows[r].current){
       const char kind=rows[r].kind;
       const std::string value=rows[r].values[i];
-      (kind=='f'?t.edit_extra().fan_mode:t.edit_extra().swing_mode)=value;
+      (kind=='m'?t.edit_extra().humidifier_mode:kind=='f'?t.edit_extra().fan_mode:t.edit_extra().swing_mode)=value;
       t.begin(esphome::millis());
       const auto a=tile_controls::climate_row_action(kind,value);
       action(a.service,t.entity,a.key,a.value);
@@ -1171,7 +1182,7 @@ inline void detail_command(int cmd){
     const bool off=tile_controls::climate_off(t);
     t.begin(esphome::millis());
     if(!off)t.state="off";   // turning on restores the mode Home Assistant remembers, so that one waits
-    action(off?"climate.turn_on":"climate.turn_off",t.entity);
+    action(t.domain()+(off?".turn_on":".turn_off"),t.entity);
     redraw_detail();
     return;
   }
@@ -1725,7 +1736,7 @@ inline std::string cover_status_line(const Tile &t){return t.available()?tile_co
 inline std::string card_status(const Tile &t,bool brief=false){
   const auto d=t.domain();
   if(d=="cover")return cover_status_line(t);
-  if(d=="climate")return tile_controls::climate_card_status(t,brief);
+  if(d=="climate"||d=="humidifier")return tile_controls::climate_card_status(t,brief);
   if(d=="alarm_control_panel")return alarm_card_line(t);
   if(d=="lock")return lock_card_line(t);
   return detail_state(t);
@@ -2251,7 +2262,7 @@ inline int climate_columns(const Tile &t,bool large){
 }
 inline std::string climate_number_text(const Tile &t){
   const float shown=std::isfinite(t.edit_value)?t.edit_value:tile_controls::edit_target(t);
-  return tile_controls::format_value(shown,tile_controls::edit_step(t),"°");
+  return tile_controls::format_value(shown,tile_controls::edit_step(t),tile_controls::setpoint_suffix(t));
 }
 // A range (firmware 0.19.0): its two ends side by side in the number's place, as on Home Assistant's thermostat card.
 // A tap picks the end the -/+ move (Tile::range_end, the same one the tile's chip shows); that one is drawn in full,
@@ -2333,6 +2344,48 @@ inline void climate_hold(lv_event_t *e){
   if(!fresh()||!t.available()||esphome::millis()-t.edit_since<300)return;
   climate_step(t,direction);
 }
+// A humidifier's dial (firmware 0.42.0+): Home Assistant's humidity ring (ha-control-circular-slider) round the number,
+// as a picture and not a control (the - and + set it, a finger on a small ring would not): a 270 degree track, the part from the minimum to the target filled
+// at half strength (from the target to the maximum for a dehumidifier), the part still to go from the humidity now to
+// the target in full while the device has work to do, a dot at the humidity now and a white knob at the target.
+inline void humidity_ring(const Tile &t,const climate_card::Rect &card,const climate_card::Rect &minus,const climate_card::Rect &plus,bool large){
+#if LV_USE_ARC
+  const int d=std::min(plus.x-minus.right()-ui::px(large?16:8),card.h-ui::px(large?16:8));
+  if(d<ui::px(70))return;
+  const int cx=card.cx(),cy=card.cy(),w=std::max(ui::px(large?10:6),d/14);
+  const bool off=tile_controls::climate_off(t),dry=t.device_class=="dehumidifier";
+  const uint32_t colour=off?theme::hex(theme::OFF):theme::state(tile_controls::accent(t));
+  auto arc=[&](int a0,int a1,uint32_t c,lv_opa_t opa){
+    if(a1<=a0)return;
+    auto *o=lv_arc_create(detail_root);lv_obj_remove_style_all(o);lv_obj_set_size(o,d,d);lv_obj_set_pos(o,cx-d/2,cy-d/2);
+    lv_obj_remove_flag(o,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_width(o,w,LV_PART_MAIN);lv_obj_set_style_arc_rounded(o,true,LV_PART_MAIN);
+    lv_obj_set_style_arc_color(o,lv_color_hex(c),LV_PART_MAIN);lv_obj_set_style_arc_opa(o,opa,LV_PART_MAIN);
+    lv_obj_set_style_arc_opa(o,LV_OPA_TRANSP,LV_PART_INDICATOR);
+    lv_arc_set_bg_angles(o,a0%360,a1%360);
+  };
+  const float span=std::max(1.0f,t.maximum-t.minimum);
+  auto angle=[&](float v){return 135+(int)std::lround(std::clamp((v-t.minimum)/span,0.0f,1.0f)*270);};
+  auto point=[&](int a,int size,uint32_t c,lv_opa_t opa,bool knob){
+    const int r=d/2-w/2;
+    const int x=cx+(int)std::lround(r*std::cos(a*3.14159265f/180)),y=cy+(int)std::lround(r*std::sin(a*3.14159265f/180));
+    auto *o=detail_shape(detail_root,x-size/2,y-size/2,size,size,c,LV_RADIUS_CIRCLE);
+    lv_obj_remove_flag(o,LV_OBJ_FLAG_CLICKABLE);lv_obj_set_style_bg_opa(o,opa,0);
+    if(knob){lv_obj_set_style_shadow_width(o,ui::px(6),0);lv_obj_set_style_shadow_opa(o,LV_OPA_30,0);}
+  };
+  arc(135,405,theme::hex(theme::TRACK),LV_OPA_COVER);
+  const float target=std::isfinite(t.edit_value)?t.edit_value:t.target;
+  if(std::isfinite(target)){
+    if(!off)arc(dry?angle(target):135,dry?405:angle(target),colour,LV_OPA_50);
+    const bool work=!off&&std::isfinite(t.current)&&(dry?t.current>target:t.current<target);
+    if(work)arc(dry?angle(target):angle(t.current),dry?angle(t.current):angle(target),colour,LV_OPA_COVER);
+    if(!off&&std::isfinite(t.current))point(angle(t.current),std::max(ui::px(6),w*2/3),theme::hex(theme::INK),LV_OPA_50,false);
+    point(angle(target),w+ui::px(large?8:4),theme::hex(theme::CARD),LV_OPA_COVER,true);
+  }
+#else
+  (void)t;(void)card;(void)minus;(void)plus;(void)large;
+#endif
+}
 inline void render_climate_detail(Tile &t,bool large,int width,int height,int columns){
   const lv_font_t *text=large?detail_font:(control_font?control_font:detail_font);
   const lv_font_t *small=small_font?small_font:text;
@@ -2351,9 +2404,16 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
     const int knob=std::clamp(m.min_row()-ui::px(6),ui::px(18),ui::px(26));
     mr.caption_h=knob+ui::px(4)+m.caption_h;
   }
-  const auto l=climate_card::layout(mr,width,top,height-m.margin(),(int)modes.size(),(int)rows.size(),columns,range);
+  auto l=climate_card::layout(mr,width,top,height-m.margin(),(int)modes.size(),(int)rows.size(),columns,range);
+  // A humidifier's ring takes the setpoint card's height, the - and + a finger's size at its sides.
+  if(tile_controls::humidifier(t)){
+    const auto &c=l.setpoint;const int key=std::max(m.touch,ui::px(large?64:40)),in=m.key_inset();
+    l.minus={c.x+in,c.cy()-key/2,key,key};l.plus={c.right()-in-key,c.cy()-key/2,key,key};
+    const int block=l.number.h+(l.caption.empty()?0:l.caption.h);
+    l.number.y=c.cy()-block/2;if(!l.caption.empty())l.caption.y=l.number.bottom();
+  }
   const bool off=tile_controls::climate_off(t),known=std::isfinite(tile_controls::edit_target(t))||std::isfinite(t.edit_value);
-  const std::string mode=tile_controls::lower_case(t.state);
+  const std::string mode=tile_controls::current_mode(t);
   detail_placed=true;   // the layout has already put every block where the glass has room for it
 
   // The power key, across from the back key: lit while the device runs in any mode.
@@ -2456,6 +2516,7 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
     if(!cold&&!hot)lv_obj_add_flag(climate_now_mark,LV_OBJ_FLAG_HIDDEN);
     climate_paint_ends(t);
   }else{
+    if(tile_controls::humidifier(t))humidity_ring(t,l.setpoint,l.minus,l.plus,large);
     climate_number=detail_text(detail_root,climate_number_text(t),l.number.x,l.number.y,l.number.w,face,LV_TEXT_ALIGN_CENTER,off?theme::OFF:theme::INK);
   }
   // The word under the number, or what the thermostat is doing when the glass had no room for a line of its own.
@@ -2479,7 +2540,7 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
     const lv_font_t *mode_icons=tile_icons&&lv_font_get_line_height(tile_icons)<=l.modes.h-ui::px(6)?tile_icons:mini;
     for(int i=0;i<shown_modes;++i){
       const bool selected=!off&&keys[i]==mode;
-      const uint32_t colour=tile_controls::mode_color(keys[i]);
+      const uint32_t colour=tile_controls::humidifier(t)?tile_controls::accent(t):tile_controls::mode_color(keys[i]);
       auto *key=detail_button("",l.modes.x+i*(key_w+l.mode_gap),l.modes.y,key_w,l.modes.h,commands[i]);
       lv_obj_set_style_radius(key,l.modes.h/2,0);
       lv_obj_set_style_bg_color(key,selected?lv_color_hex(colour):theme::color(theme::CARD),0);
@@ -2488,7 +2549,7 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
       lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
       auto *glyph=lv_obj_get_child(key,0);
       if(mode_icons)lv_obj_set_style_text_font(glyph,mode_icons,0);
-      lv_label_set_text(glyph,tile_controls::climate_mode_icon(keys[i]));
+      lv_label_set_text(glyph,tile_controls::thermostat_mode_icon(t,keys[i]));
       lv_obj_set_style_text_color(glyph,theme::color(selected?theme::ON_ACCENT:theme::SLATE),0);
       lv_obj_set_size(glyph,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(glyph);
     }
@@ -4208,7 +4269,7 @@ inline void show_detail(unsigned index){
   const auto kind=d=="media_player"?overlay_card::picture:with_history?overlay_card::graph:overlay_card::controls;
   bool large=ui::large();
   // A card whose stack asks for more height than the glass has stands in two columns instead.
-  const int columns=d=="climate"?climate_columns(t,large):d=="cover"?cover_columns(t,large):d=="weather"?weather_columns(t,large)
+  const int columns=d=="climate"||d=="humidifier"?climate_columns(t,large):d=="cover"?cover_columns(t,large):d=="weather"?weather_columns(t,large)
                      :d=="light"||d=="fan"?light_columns(large):1;
   overlay_card::frame(detail_root,kind,columns);
   // The room the frame just gave the card; LVGL reports the new width only after its next layout pass.
@@ -4223,12 +4284,13 @@ inline void show_detail(unsigned index){
   if(d=="media_player")media_top_bar(t,back,heading,width,bar,bar_x,bar_y);
   std::string state=card_status(t);
   // The vacuum and history cards draw their own state.
-  if(d!="vacuum"&&d!="media_player"&&d!="climate"&&d!="light"&&d!="fan"&&d!="select"&&d!="input_select"&&!with_history){detail_status=detail_label(detail_root,screen_text::with_unit(state,t.unit),pad,ui::px(large?80:50),width-2*pad);lv_obj_set_style_text_align(detail_status,LV_TEXT_ALIGN_CENTER,0);lv_obj_set_style_text_color(detail_status,theme::color(theme::MUTED),0);}
+  if(d!="vacuum"&&d!="media_player"&&d!="climate"&&d!="humidifier"&&d!="light"&&d!="fan"&&d!="select"&&d!="input_select"&&!with_history){detail_status=detail_label(detail_root,screen_text::with_unit(state,t.unit),pad,ui::px(large?80:50),width-2*pad);lv_obj_set_style_text_align(detail_status,LV_TEXT_ALIGN_CENTER,0);lv_obj_set_style_text_color(detail_status,theme::color(theme::MUTED),0);}
   if(with_history){
     render_history_detail(t,large,width,height,pad);
   }else if(d=="vacuum"){
     render_vacuum_detail(t,large,width,height,pad);
-  }else if(d=="climate"){
+  }else if(d=="climate"||d=="humidifier"){
+    // A humidifier is the thermostat's card in percent: its power key, the humidity it is set to, its modes.
     render_climate_detail(t,large,width,height,columns);
   }else if(d=="cover"){
     if(detail_status && control_font){lv_obj_set_style_text_font(detail_status,control_font,0);lv_obj_set_height(detail_status,lv_font_get_line_height(control_font));}
@@ -4322,6 +4384,9 @@ inline const char *icon_for(const Tile &tile) {
   if (d == "light" && tile.state == "off") return "\U000F0E4F";
   if (d == "light") return "\U000F0335";
   if (d == "climate") return "\U000F001B";
+  // Home Assistant's humidifier icons (humidifier/icons.json), crossed out while off (firmware 0.42.0+).
+  if (d == "humidifier" && tile.state == "off") return "\U000F1466";
+  if (d == "humidifier") return "\U000F1099";
   if (d == "vacuum") return "\U000F070D";
   if (d == "fan") return "\U000F0210";
   if (d == "cover") return "\U000F111C";
@@ -4660,12 +4725,12 @@ inline void climate_circle_event(lv_event_t *e){
   auto &w=widgets[slot];
   if(!enabled||!fresh()||w.index>=model.count)return;
   auto &t=model.tiles[w.index];const uint32_t now=esphome::millis();
-  if(t.domain()!="climate"||!t.available()||t.waiting(now))return;
+  if(!tile_controls::thermostat(t)||!t.available()||t.waiting(now))return;
   if(!allowed(now,2000+slot,"power "+std::to_string(slot)))return;
   const bool off=tile_controls::climate_off(t);
   t.begin(now);
   if(!off)t.state="off";
-  action(off?"climate.turn_on":"climate.turn_off",t.entity);
+  action(t.domain()+(off?".turn_on":".turn_off"),t.entity);
   refresh_tile(w.index);
 }
 // A card into its set at `index`. Its callbacks name the index and `widgets[index]`: they only fire while the card is on
@@ -5870,7 +5935,7 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
     if(panel_w)draw_mode_bar(w,t,w.panel,w.pill,w.segments.data(),{0,0,panel_w,panel_h},room,cm,large);
   }else if(mode=="setpoint"||mode=="stepper"){
     float shown=std::isfinite(t.edit_value)?t.edit_value:tile_controls::edit_target(t);
-    std::string suffix=d=="climate"?"°":screen_text::unit_suffix(t.unit);
+    std::string suffix=tile_controls::thermostat(t)?tile_controls::setpoint_suffix(t):screen_text::unit_suffix(t.unit);
     // A range: the chip says the chosen end (range_chip); the number keeps it too, which the tall form measures by.
     const float step=tile_controls::edit_step(t);
     label(w.pill_value,tile_controls::format_value(tile_controls::climate_range(t)?tile_controls::range_end(t,t.range_end):shown,step,suffix.c_str()));
@@ -5975,7 +6040,7 @@ inline void control_event(lv_event_t *e) {
     float current=std::isfinite(t.edit_value)?t.edit_value:tile_controls::edit_target(t);
     t.edit_value=tile_controls::step_value(current,tile_controls::edit_step(t),t.minimum,t.maximum,command==tile_controls::STEP_UP?1:-1);
     t.edit_since=now;t.edit_sent=false;
-    if(w.pill_value){std::string suffix=t.domain()=="climate"?"°":screen_text::unit_suffix(t.unit);label(w.pill_value,tile_controls::format_value(t.edit_value,tile_controls::edit_step(t),suffix.c_str()));}
+    if(w.pill_value){std::string suffix=tile_controls::thermostat(t)?tile_controls::setpoint_suffix(t):screen_text::unit_suffix(t.unit);label(w.pill_value,tile_controls::format_value(t.edit_value,tile_controls::edit_step(t),suffix.c_str()));}
     return;
   }
   if(command==tile_controls::OPEN_CARD){active_index=w.index;show_detail(w.index);return;}
@@ -6162,7 +6227,7 @@ inline void climate_mode_key_event(lv_event_t *e){
   unsigned room=0;
   for(int i=0;i<CLIMATE_MODE_PARTS;++i)if(segments[i]&&!lv_obj_has_flag(segments[i],LV_OBJ_FLAG_HIDDEN))++room;
   auto &t=model.tiles[w.index];const uint32_t now=esphome::millis();
-  if(n>=room||!enabled||!fresh()||!t.available()||t.waiting(now)||t.domain()!="climate")return;
+  if(n>=room||!enabled||!fresh()||!t.available()||t.waiting(now)||!tile_controls::thermostat(t))return;
   std::array<tile_controls::Key,CLIMATE_MODE_PARTS> keys;
   if(n>=tile_controls::climate_bar_keys(t,keys,room))return;
   if(!allowed(now,700+slot*8+n,"control "+std::to_string(slot)))return;
@@ -6173,7 +6238,7 @@ inline void climate_mode_key_event(lv_event_t *e){
 // One segment of a thermostat's mode bar: the mode's icon, its word where the bar has room, and the mode it is in
 // filled in Home Assistant's colour for it with a white icon on it. `code`: its card's slot * 16 and its place.
 inline void mode_segment(lv_obj_t *&p,lv_obj_t *parent,unsigned code,climate_tile::Rect r,const tile_controls::Key &k,bool words,
-                         const lv_font_t *glyphs,const lv_font_t *text,bool ready){
+                         const lv_font_t *glyphs,const lv_font_t *text,bool ready,const Tile &t){
   if(!p){
     p=lv_obj_create(parent);lv_obj_remove_style_all(p);lv_obj_set_style_radius(p,LV_RADIUS_CIRCLE,0);
     lv_obj_set_style_bg_opa(p,LV_OPA_COVER,LV_STATE_PRESSED);lv_obj_set_style_opa(p,LV_OPA_40,LV_STATE_DISABLED);
@@ -6184,13 +6249,14 @@ inline void mode_segment(lv_obj_t *&p,lv_obj_t *parent,unsigned code,climate_til
   lv_obj_set_pos(p,r.x,r.y);lv_obj_set_size(p,r.w,r.h);lv_obj_remove_flag(p,LV_OBJ_FLAG_HIDDEN);
   const bool mode=k.command==tile_controls::HVAC_MODE;
   lv_obj_set_style_bg_opa(p,k.checked?LV_OPA_COVER:LV_OPA_TRANSP,0);
-  if(k.checked)set_color(p,LV_STYLE_BG_COLOR,lv_color_hex(theme::foreground(tile_controls::mode_color(k.arg))));
+  // A humidifier's mode has no colour of its own in Home Assistant: the one it is in takes the humidifier's blue.
+  if(k.checked)set_color(p,LV_STYLE_BG_COLOR,lv_color_hex(theme::foreground(tile_controls::humidifier(t)?tile_controls::accent(t):tile_controls::mode_color(k.arg))));
   set_color(p,LV_STYLE_BG_COLOR,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
   const auto ink=k.checked?theme::color(theme::ON_ACCENT):theme::color(mode?theme::SLATE:theme::MUTED);
   auto *icon=lv_obj_get_child(p,0),*word=lv_obj_get_child(p,1);
   set_font(icon,glyphs);label(icon,k.icon);set_color(icon,LV_STYLE_TEXT_COLOR,ink);
   const bool with_word=words&&mode;
-  const std::string name=with_word?tile_controls::climate_mode_text(k.arg):"";
+  const std::string name=with_word?tile_controls::thermostat_mode_text(t,k.arg):"";
   const int gh=lv_font_get_line_height(glyphs),space=ui::px(ui::large()?6:3),tw=with_word?text_width(name,text)+2:0;
   const int x0=(r.w-gh-(with_word?space+tw:0))/2;
   lv_obj_set_pos(icon,x0,(r.h-gh)/2);lv_obj_set_size(icon,gh,gh);lv_obj_set_style_text_align(icon,LV_TEXT_ALIGN_CENTER,0);
@@ -6216,11 +6282,11 @@ inline void draw_mode_bar(Widgets &w,const Tile &t,lv_obj_t *parent,lv_obj_t *&t
   bool words=count>0;
   for(unsigned n=0;n<count&&words;++n)
     words=modes[n].command!=tile_controls::HVAC_MODE||seg[n].w>=lv_font_get_line_height(glyphs)+ui::px(large?26:14)+
-          text_width(tile_controls::climate_mode_text(modes[n].arg),w.value_font);
+          text_width(tile_controls::thermostat_mode_text(t,modes[n].arg),w.value_font);
   const unsigned slot=&w-widgets.data();
   const bool ready=fresh()&&t.available()&&!t.waiting(esphome::millis());
   for(unsigned n=0;n<(unsigned)CLIMATE_MODE_PARTS;++n){
-    if(n<count)mode_segment(segments[n],parent,slot*16+n,seg[n],modes[n],words,glyphs,w.value_font,ready);
+    if(n<count)mode_segment(segments[n],parent,slot*16+n,seg[n],modes[n],words,glyphs,w.value_font,ready,t);
     else if(segments[n])lv_obj_add_flag(segments[n],LV_OBJ_FLAG_HIDDEN);
   }
 }
@@ -6475,7 +6541,7 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
     if(state!=headline&&state.rfind(headline+" ",0)!=0)return;
     set_hidden(w.value,true);lv_obj_set_y(w.title,(l.header.h-m.name_h)/2);
   };
-  if(d=="climate"&&panel&&w.panel_mode=="setpoint"){
+  if((d=="climate"||d=="humidifier")&&panel&&w.panel_mode=="setpoint"){
     // Home Assistant's thermostat in two groups (firmware 0.3.3, climate_tile.h): the number between - and + is the
     // first thing, the mode bar the second; off is the circle in the head. The big form stands the number large in
     // the middle with the bar under it, the row form puts a stepper and the bar on one finger's row. Which modes the
@@ -6518,7 +6584,7 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
       auto *now_line=lv_obj_get_child(w.pill,3);
       set_hidden(now_line,!(cl.caption&&std::isfinite(t.current)));
       if(cl.caption&&std::isfinite(t.current)){
-        set_font(now_line,w.value_font);label(now_line,screen_text::fill(txt::climate_now,"value",tile_controls::temperature_text(t.current)));
+        set_font(now_line,w.value_font);label(now_line,screen_text::fill(txt::climate_now,"value",tile_controls::reading_text(t,t.current)));
         set_color(now_line,LV_STYLE_TEXT_COLOR,theme::color(theme::MUTED));
         lv_obj_set_pos(now_line,cl.caption_box.x-area.x,cl.caption_box.y-area.y);lv_obj_set_size(now_line,cl.caption_box.w,cl.caption_box.h);
       }
@@ -6556,9 +6622,9 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
     int y=body.y+std::max(0,(body.h-fh-(secondary?m.state_h+gap/2:0))/2);
     if(text(0,title,font,{0,y,width,fh},LV_TEXT_ALIGN_LEFT))drop_repeat(title);
     if(secondary)text(1,artist,w.value_font,{0,y+fh+gap/2,width,m.state_h},LV_TEXT_ALIGN_LEFT);
-  }else if(d=="climate"&&std::isfinite(t.current)){
+  }else if((d=="climate"||d=="humidifier")&&std::isfinite(t.current)){
     const auto *font=watch_value_font&&lv_font_get_line_height(watch_value_font)<=body.h?watch_value_font:w.value_font;
-    text(0,tile_controls::temperature_text(t.current),font,{0,body.y+std::max(0,(body.h-static_cast<int>(lv_font_get_line_height(font)))/2),width,body.h},LV_TEXT_ALIGN_CENTER);
+    text(0,tile_controls::reading_text(t,t.current),font,{0,body.y+std::max(0,(body.h-static_cast<int>(lv_font_get_line_height(font)))/2),width,body.h},LV_TEXT_ALIGN_CENTER);
   }else if(!t.builtin() && fresh() && t.available()){
     const std::string value=d=="light"?light_value_text(t):card_status(t,true);
     const lv_font_t *font=w.value_font;
@@ -6589,7 +6655,7 @@ inline void ring_favorite(Widgets &w,const Tile &t){
 inline void style_tall(Widgets &w,const Tile &t){
   // A thermostat's stepper (render_tall, climate_tile.h): a grey pill with white keys on one row, or the keys alone
   // in grey beside a big number. The number is grey while the thermostat is off.
-  if(t.domain()=="climate"&&w.extra_mode=="tall"&&w.panel_mode=="setpoint"&&w.pill&&(w.hand_r==1||w.hand_r==2)){
+  if(tile_controls::thermostat(t)&&w.extra_mode=="tall"&&w.panel_mode=="setpoint"&&w.pill&&(w.hand_r==1||w.hand_r==2)){
     const bool row=w.hand_r==1;
     lv_obj_set_style_bg_opa(w.pill,row?LV_OPA_COVER:LV_OPA_TRANSP,0);set_color(w.pill,LV_STYLE_BG_COLOR,theme::color(theme::TRACK));
     for(int n=0;n<2;++n)if(w.keys[n]){
@@ -6710,7 +6776,7 @@ inline void render_full(Widgets &w,const Tile &t,bool custom,bool clock,bool sun
   // The large value font carries digits, the degree sign and the percent sign; the clock font only digits and a colon.
   std::string middle;const lv_font_t *mid_font=watch_value_font?watch_value_font:w.value_font;
   auto d=t.domain();
-  if(d=="climate" && std::isfinite(t.current))middle=tile_controls::temperature_text(t.current);
+  if((d=="climate"||d=="humidifier") && std::isfinite(t.current))middle=tile_controls::reading_text(t,t.current);
   else if(d=="cover" && std::isfinite(t.position)){middle=screen_text::percent(static_cast<int>(std::lround(t.position)));}
   else if(d=="media_player" && !t.extra().media_title.empty()){middle=t.extra().media_title;mid_font=room_label?lv_obj_get_style_text_font(room_label,LV_PART_MAIN):w.title_font;}
   int mid_font_h=lv_font_get_line_height(mid_font);
@@ -6774,6 +6840,9 @@ inline void render_slot(size_t slot) {
   // Without one temperature to reach (a range, dry, fan only) the line is Home Assistant's own tile line for a
   // thermostat, its state and the room's temperature (state-display: climate ["state", "current_temperature"]).
   else if (d == "climate") { value = tile_controls::climate_mode_text(tile_controls::lower_case(t.state)); if (std::isfinite(t.current)) value += " · " + tile_controls::temperature_text(t.current); }
+  // A humidifier says what it is doing (or On, Off) and the humidity it measures: Home Assistant's tile line for it,
+  // state and current_humidity, with its action in the state's place, as its dialog writes it (firmware 0.42.0+).
+  else if (d == "humidifier") value = tile_controls::climate_card_status(t, true);
   else if (d == "person") value = t.state=="home"?tr(txt::ha_person_home):t.state=="not_home"?tr(txt::ha_person_not_home):t.state;
   else if (d == "sun") value = !t.extra().sunrise.empty() && !t.extra().sunset.empty() ? screen_text::clock_text(t.extra().sunrise,screen_settings::current.clock_24h!=0,true)+" - "+screen_text::clock_text(t.extra().sunset,screen_settings::current.clock_24h!=0,true) : tr(t.state=="above_horizon"?txt::ha_sun_above_horizon:txt::ha_sun_below_horizon);
   else if (d == "timer") value = timer_text(t);
@@ -6812,6 +6881,8 @@ inline void render_slot(size_t slot) {
   // A lock-only tile's word where the whole of it does not fit.
   if(d=="lock"&&lock_noting(t))value_short=tr(txt::lock_lock_only_short);
   if(d=="vacuum" && std::isfinite(t.battery)){value_tail=" / "+screen_text::percent((int)t.battery);value+=value_tail;}
+  // A humidifier's humidity stays readable when its action word does not fit ("Humidif… · 38%").
+  if(d=="humidifier" && fresh() && t.available() && std::isfinite(t.current) && !set_by_hand)value_tail=" · "+tile_controls::humidity_text(t.current);
   // Direct controls: only a wide card in the standard layout has room for the panel.
   // A small slider on a double-width card is that panel's slider: it stands beside the name, where every other
   // control of a wide card stands and where the editor's mockup draws it. A single card keeps the strip under
@@ -6835,7 +6906,7 @@ inline void render_slot(size_t slot) {
   label(w.value, value);
   // Only a thermostat with controls takes a tap on its circle (climate_circle_event); every other card's circle is
   // part of the card and the card's own tap.
-  if(d=="climate"&&with_panel)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
+  if((d=="climate"||d=="humidifier")&&with_panel)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
   bool mini=t.inline_control=="slider" && !watch && t.available() && !with_panel;
   // The card's size class is the look's, never the cell's momentary height: a class that flips when the rows
   // grow (page buttons off) would reuse a clock's numeral labels as tick lines.

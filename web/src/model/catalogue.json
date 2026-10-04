@@ -701,6 +701,98 @@
    "map": null,
    "keypad": null
   },
+  "humidifier": {
+   "firmware": "0.42.0",
+   "memory": {
+    "bytes": 192,
+    "extras": true
+   },
+   "key": true,
+   "features": {
+    "MODES": 1
+   },
+   "actions": {
+    "set_humidity": [],
+    "set_mode": [
+     [
+      "MODES"
+     ]
+    ],
+    "toggle": [],
+    "turn_off": [],
+    "turn_on": []
+   },
+   "displays": [
+    {
+     "key": "standard"
+    },
+    {
+     "key": "watch"
+    }
+   ],
+   "controls": [
+    {
+     "key": "setpoint",
+     "needs": {
+      "actions": [
+       {
+        "action": "humidifier.set_humidity"
+       }
+      ]
+     }
+    },
+    {
+     "key": "slider",
+     "needs": {
+      "actions": [
+       {
+        "action": "humidifier.set_humidity"
+       }
+      ]
+     }
+    },
+    {
+     "key": "mode",
+     "needs": {
+      "actions": [
+       {
+        "action": "humidifier.set_mode"
+       }
+      ],
+      "features": [
+       "MODES"
+      ]
+     }
+    },
+    {
+     "key": "setpoint_mode",
+     "rows": 2,
+     "of": [
+      "setpoint",
+      "mode"
+     ],
+     "one_row": "setpoint",
+     "fallback": "setpoint"
+    },
+    {
+     "key": "toggle",
+     "needs": {
+      "actions": [
+       {
+        "action": "humidifier.toggle"
+       }
+      ]
+     }
+    }
+   ],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
   "image": {
    "firmware": "0.2.57",
    "memory": {

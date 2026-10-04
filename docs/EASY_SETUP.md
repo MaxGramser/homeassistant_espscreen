@@ -216,7 +216,7 @@ Click a tile and its settings open in a drawer on the right, with the preview
 still in view: a custom name, click behavior, a mini-slider, a large value, a graph
 (sensors), a weather forecast (weather), the size: **Normal**, **Double-width**, **1 × 2**, **2 × 2** (firmware 0.3.1+) or **Full
 page** (firmware 0.2.62+), and on a screen with more pages the **Page** it is on, to move it without dragging.
-A double-width tile for a climate, switch, light, fan,
+A double-width tile for a climate, humidifier, switch, light, fan,
 vacuum, cover, media player, number, select, timer, scene, script, or button gets **direct
 control** on the right, like the rows in Home Assistant (for example temperature − / +,
 open/stop/close, volume with mute, a toggle); under **Direct control
@@ -237,7 +237,7 @@ Click **Save & send** to send your changes.
 - Light, switch, input_boolean, and fan: tap to turn on/off.
 - Long press a light: brightness, rainbow color, and white temperature, as far as
   the light supports those features.
-- Climate, vacuum, and cover: tap to open the control card. Under **On tap**, choose **On / off**
+- Climate, humidifier, vacuum, and cover: tap to open the control card. Under **On tap**, choose **On / off**
   to open, close, or stop a cover with a tap instead (firmware 0.2.58+); holding it still opens the card.
   Tessera offers **On / off**, a small slider, and direct controls only when Home Assistant has
   the action for that entity. **Perform action** runs any action Home Assistant offers for the

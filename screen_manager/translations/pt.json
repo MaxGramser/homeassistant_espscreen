@@ -514,6 +514,23 @@
         "open": "Abrir",
         "open_door": "Abrir porta",
         "open_door_confirm": "Abrir mesmo?"
+      },
+      "humidifier_mode": {
+        "normal": "Normal",
+        "eco": "Eco",
+        "away": "Ausente",
+        "boost": "Turbo",
+        "comfort": "Conforto",
+        "home": "Em casa",
+        "sleep": "Baixo consumo",
+        "auto": "Auto",
+        "baby": "Bebé"
+      },
+      "humidifier_action": {
+        "humidifying": "Humidificação",
+        "drying": "Desumidificação",
+        "idle": "Inativo",
+        "off": "Desligado"
       }
     },
     "navigation": {
@@ -875,6 +892,13 @@
           "run": "Botão para premir"
         },
         "remote": {
+          "toggle": "Interruptor"
+        },
+        "humidifier": {
+          "setpoint": "Humidade − / +",
+          "slider": "Controlo deslizante de humidade",
+          "mode": "Botões de modo",
+          "setpoint_mode": "Humidade − / + e botões de modo",
           "toggle": "Interruptor"
         }
       },
@@ -1509,7 +1533,8 @@
         "timer": "Temporizadores",
         "screen": "Ecrã",
         "alarm_control_panel": "Alarme",
-        "lock": "Fechaduras"
+        "lock": "Fechaduras",
+        "humidifier": "Humidificadores"
       },
       "room": "Divisão",
       "hide_placed": "Ocultar adicionadas",
@@ -1565,7 +1590,8 @@
       "image": "Imagem",
       "entity": "Entidade",
       "alarm_control_panel": "Painel de alarme",
-      "lock": "Fechadura"
+      "lock": "Fechadura",
+      "humidifier": "Humidificador"
     },
     "displays": {
       "standard": "padrão",

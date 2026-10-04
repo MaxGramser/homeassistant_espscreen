@@ -166,6 +166,45 @@ describe("TileCard", () => {
     expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
   });
 
+  it("draws a humidifier as a thermostat in percent, with its action, its own modes in blue and its slider (firmware 0.42.0)", () => {
+    state.inventory.controls!.humidifier = { default: 'setpoint', choices: [] };
+    const a = { supported_features: 1, current_humidity: 68, humidity: 55, min_humidity: 30, max_humidity: 80, action: 'drying',
+      device_class: 'dehumidifier', available_modes: ['normal', 'eco', 'boost'], mode: 'eco' };
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
+    // Home Assistant's word for what it is doing and the humidity now; Off while it is off; On without an action.
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Drying · 68%');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: 'humidifying', current_humidity: 38 } };
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Humidifying · 38%');
+    state.liveStates['humidifier.h'] = { state: 'off', word: 'Off', a: { ...a, action: 'off', current_humidity: 52 } };
+    const off = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 });
+    expect(off.find('.st').text()).toBe('Off · 52%');
+    expect(off.attributes('style')).toContain('--tile-accent: #9e9e9e');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: undefined, current_humidity: undefined } };
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('On');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, current_humidity: 45.5 } };
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Drying · 45.5%');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
+    // On it is Home Assistant's blue.
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).attributes('style')).toContain('--tile-accent: #2196f3');
+    // The humidity it is set to between - and +, on a wide card and a tall one with the humidity now under it.
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'setpoint' } }).find('.stp b').text()).toBe('55%');
+    const tall = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
+    expect(tall.find('.target b').text()).toBe('55%');
+    expect(tall.find('.tall-setpoint .st').text()).toBe('Now 68%');
+    // Its modes as the mode bar with Home Assistant's icons, the one it is in filled blue.
+    const modes = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'mode' } });
+    const segs = modes.findAll('.ctl .mode-bar .seg');
+    expect(segs.map((s) => s.find('.mdi').text())).toEqual([String.fromCodePoint(0xF058E), String.fromCodePoint(0xF032A), String.fromCodePoint(0xF14DE)]);
+    expect(segs.map((s) => s.classes('on'))).toEqual([false, true, false]);
+    expect(segs[1].attributes('style')).toContain('#2196f3');
+    const both = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'square', controls: 'setpoint_mode' } });
+    expect(both.find('.tall-setpoint .target b').text()).toBe('55%');
+    expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
+    // The slider fills to the humidity it is set to over its own range: 55 of 30 to 80 is half.
+    const slider = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'slider' } });
+    expect(slider.find('.ctl .range').attributes('style')).toContain('50%');
+  });
+
   it("writes a thermostat set to a range as Home Assistant does, with the chip for its end between - and + (firmware 0.19.0)", () => {
     state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
     state.liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75, target_temp_step: 1 } };

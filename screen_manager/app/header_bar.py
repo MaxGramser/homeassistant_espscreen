@@ -105,7 +105,7 @@ DOMAIN_ICONS = {
     'button': 'gesture-tap-button', 'input_button': 'gesture-tap-button', 'person': 'account', 'device_tracker': 'map-marker',
     'zone': 'account-group', 'lock': 'lock', 'alarm_control_panel': 'shield-home', 'timer': 'timer-outline', 'counter': 'gauge',
     'event': 'bell-ring', 'input_datetime': 'calendar', 'input_text': 'script-text', 'water_heater': 'water-boiler',
-    'humidifier': 'air-purifier', 'select': 'cog', 'input_select': 'cog', 'number': 'gauge', 'input_number': 'gauge',
+    'humidifier': 'air-humidifier', 'select': 'cog', 'input_select': 'cog', 'number': 'gauge', 'input_number': 'gauge',
     'sensor': 'gauge', 'binary_sensor': 'gauge',
 }
 # Their state is the moment they last ran or fired: the bar shows how long ago.
@@ -264,6 +264,9 @@ def accent(entity, state):
     if domain == 'lock':
         return GREEN if raw == 'locked' else ORANGE if raw in ('locking', 'unlocking', 'opening') else RED if raw in ('unlocked', 'open', 'jammed') else None
     if domain == 'media_player' and raw == 'playing':
+        return BLUE
+    # A humidifier is Home Assistant's blue while it is on, drying or humidifying alike (--state-humidifier-on-color).
+    if domain == 'humidifier' and raw == 'on':
         return BLUE
     if domain == 'vacuum' and raw == 'cleaning':
         return TEAL

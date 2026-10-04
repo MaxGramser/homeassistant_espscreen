@@ -514,6 +514,23 @@
         "open": "O",
         "open_door": "Otwórz drzwi",
         "open_door_confirm": "Naprawdę otworzyć?"
+      },
+      "humidifier_mode": {
+        "normal": "Normal",
+        "eco": "Eco",
+        "away": "Away",
+        "boost": "Zwiększyć",
+        "comfort": "Komfort",
+        "home": "w domu",
+        "sleep": "Spać",
+        "auto": "Auto",
+        "baby": "Dziecko"
+      },
+      "humidifier_action": {
+        "humidifying": "Humidifying",
+        "drying": "Drying",
+        "idle": "brak aktywności",
+        "off": "wyłączono"
       }
     },
     "navigation": {
@@ -875,6 +892,13 @@
           "run": "Przycisk Naciśnij"
         },
         "remote": {
+          "toggle": "Przełącznik wł./wył."
+        },
+        "humidifier": {
+          "setpoint": "Wilgotność − / +",
+          "slider": "Suwak wilgotności",
+          "mode": "Przyciski trybu",
+          "setpoint_mode": "Wilgotność − / + i przyciski trybu",
           "toggle": "Przełącznik wł./wył."
         }
       },
@@ -1509,7 +1533,8 @@
         "timer": "Minutniki",
         "screen": "Ekran",
         "alarm_control_panel": "Alarm",
-        "lock": "Zamki"
+        "lock": "Zamki",
+        "humidifier": "Nawilżacze"
       },
       "room": "Obszar",
       "hide_placed": "Ukryj dodane",
@@ -1565,7 +1590,8 @@
       "image": "Obraz",
       "entity": "Encja",
       "alarm_control_panel": "Panel alarmowy",
-      "lock": "Zamek"
+      "lock": "Zamek",
+      "humidifier": "Nawilżacz"
     },
     "displays": {
       "standard": "standardowy",

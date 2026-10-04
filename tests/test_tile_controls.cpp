@@ -192,6 +192,42 @@ int main() {
   // The room's temperature as Home Assistant sends it, not always with one decimal.
   assert(temperature_text(73) == "73°" && temperature_text(21.5f) == "21.5°" && temperature_text(21.25f) == "21.25°");
 
+  // A humidifier (firmware 0.42.0) is a thermostat in percent: its humidity between - and +, its modes as the mode bar,
+  // its words and icons Home Assistant's, its action in the line; Home Assistant's blue whether it dries or humidifies.
+  Tile dry = make("humidifier.laundry", "on", 1); dry.device_class = "dehumidifier";
+  dry.edit_extra().hvac_modes = "[\"normal\",\"away\"]"; dry.edit_extra().humidifier_mode = "normal"; dry.edit_extra().hvac_action = "drying";
+  dry.current = 68; dry.target = 55; dry.minimum = 0; dry.maximum = 100; dry.step = 1;
+  assert(thermostat(dry) && humidifier(dry) && !climate_off(dry) && accent(dry) == theme::ha::BLUE);
+  assert(climate_card_status(dry, true) == "Drying · 68%" && climate_card_status(dry) == "Drying · Now 68%");
+  assert(status_text(dry) == "Drying · 68%" && humidity_text(45.5f) == "45.5%" && reading_text(dry, 68) == "68%");
+  assert(std::strcmp(setpoint_suffix(dry), "%") == 0 && edit_target(dry) == 55);
+  const auto humid = edit_action(dry, step_value(55, 1, 0, 100, 1));
+  assert(humid.service == "humidifier.set_humidity" && humid.key == "humidity" && humid.value == "56");
+  assert(edit_action(dry, 54.6f).value == "55");   // Home Assistant takes a whole percentage
+  assert(humidifier_named_modes(dry) && climate_modes(dry).size() == 2 && climate_rows(dry).empty());
+  assert(climate_bar_keys(dry, mode_row) == 2 && mode_row[0].arg == "normal" && mode_row[0].checked && !mode_row[1].checked);
+  assert(std::strcmp(mode_row[1].icon, humidifier_mode_icon("away")) == 0);
+  const auto away = key_action(dry, HVAC_MODE, "away");
+  assert(away.service == "humidifier.set_mode" && away.key == "mode" && away.value == "away");
+  dry.controls = "setpoint"; assert(panel_available(dry));
+  dry.controls = "slider"; assert(panel_available(dry));
+  dry.controls = "mode"; assert(panel_available(dry));
+  dry.controls = "toggle"; assert(panel_available(dry) && key_action(dry, TOGGLE).service == "humidifier.turn_off");
+  dry.controls = "setpoint_mode"; assert(climate_modes_selected(dry) && panel_kind(dry) == "setpoint");
+  assert(tap_route(dry, false).route == TapRoute::CARD);
+  // Off: Home Assistant reports the action off, the line says so with the humidity it measures.
+  Tile off = dry; off.state = "off"; off.edit_extra().hvac_action = "off";
+  assert(climate_off(off) && climate_card_status(off, true) == "Off · 68%" && key_action(off, TOGGLE).service == "humidifier.turn_on");
+  // Without an action or a sensor (a plain integration): On or Off alone.
+  Tile plain = make("humidifier.cellar", "on"); plain.target = 60;
+  assert(climate_card_status(plain, true) == "On" && climate_modes(plain).empty() && climate_bar_keys(plain, mode_row) == 0);
+  // A mode of the integration's own has no icon: the card lists the modes as a row of words instead of round keys.
+  Tile own = dry; own.edit_extra().hvac_modes = "[\"normal\",\"laundry\",\"auto\"]";
+  assert(!humidifier_named_modes(own) && climate_modes(own).empty());
+  const auto word_rows = climate_rows(own);
+  assert(word_rows.size() == 1 && word_rows[0].kind == 'm' && word_rows[0].labels[1] == "laundry" && word_rows[0].labels[2] == "Auto");
+  assert(climate_row_action('m', "laundry").service == "humidifier.set_mode");
+
   // Numbers edit their own state; selects step through their options with wrap-around.
   Tile number = make("number.target", "55"); number.minimum = 0; number.maximum = 100; number.step = 5;
   assert(edit_target(number) == 55 && edit_action(number, step_value(55, 5, 0, 100, -1)).value == "50");

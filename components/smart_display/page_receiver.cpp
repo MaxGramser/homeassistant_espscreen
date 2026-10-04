@@ -777,6 +777,15 @@ std::string receive(const std::string &payload) {
     next.fan_modes = list(a["fan_modes"]); next.swing_modes = list(a["swing_modes"]);
     next.fan_mode = string(a["fan_mode"], 48); next.swing_mode = string(a["swing_mode"], 48);
     next.target_low = number(a["target_temp_low"]); next.target_high = number(a["target_temp_high"]);
+    // A humidifier (firmware 0.42.0+) in a thermostat's fields: the humidity it measures and the one it is set to, its
+    // range (Home Assistant's defaults 0 and 100) and step, its modes and what it is doing.
+    if (tile.domain() == "humidifier") {
+      tile.current = number(a["current_humidity"]); tile.target = number(a["humidity"]); tile.humidity = NAN;
+      tile.minimum = number(a["min_humidity"], 0); tile.maximum = number(a["max_humidity"], 100);
+      tile.step = std::max(1.0f, number(a["target_humidity_step"], 1));
+      next.hvac_modes = list(a["available_modes"]); next.hvac_action = string(a["action"], 24);
+      next.humidifier_mode = string(a["mode"], 48);
+    }
     float hue = number(a["hs_color"][0]);
     float saturation = number(a["hs_color"][1]);
     tile.has_hs_color = std::isfinite(hue) && std::isfinite(saturation);

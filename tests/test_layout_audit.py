@@ -102,6 +102,11 @@ KINDS = {
     'cover': {'entity': 'cover.audit', 'state': 'open',
               'attributes': {'current_position': 70, 'current_tilt_position': 40, 'supported_features': 255}},
     'fan': {'entity': 'fan.audit', 'state': 'on', 'attributes': {'percentage': 60, 'supported_features': 49}},
+    # A dehumidifier with every standard mode (firmware 0.42.0): the thermostat's parts in percent.
+    'humidifier': {'entity': 'humidifier.audit', 'state': 'on',
+                   'attributes': {'device_class': 'dehumidifier', 'action': 'drying', 'current_humidity': 68.5, 'humidity': 55,
+                                  'min_humidity': 30, 'max_humidity': 80, 'supported_features': 1, 'mode': 'comfort',
+                                  'available_modes': ['normal', 'eco', 'away', 'boost', 'comfort', 'home', 'sleep', 'auto']}},
     'image': {'entity': 'image.audit', 'state': iso(hours=-1), 'attributes': {}},
     'input_boolean': {'entity': 'input_boolean.audit', 'state': 'on', 'attributes': {}},
     'input_button': {'entity': 'input_button.audit', 'state': iso(minutes=-20), 'attributes': {}},
@@ -428,6 +433,7 @@ TOUCH_FLOORS = {
     **{domain: {'floor': 5.3, 'cause': _STEPPER} for domain in ('input_number', 'number')},
     'cover': {'floor': 5.3, 'cause': 'the position slider, slider_h of the look (runtime_tiles.h:5047 panel_metrics), touch area '
                                      'grown by m.ext + 2 (runtime_tiles.h:5241); its keys are the panel\'s (panel_metrics)'},
+    'humidifier': {'floor': 4.9, 'cause': 'a humidifier is drawn with the thermostat\'s mode bar and -/+ keys (the climate entry)'},
     'climate': {'floor': 4.9, 'cause': 'the mode bar\'s segments and the -/+ keys take the panel\'s key_h as their finger '
                                        '(runtime_tiles.h:5041 bar_metrics, cm.touch=m.key_h), not ui::touch_min()'},
     'media_player': {'floor': 2.0, 'cause': 'the full card\'s volume slider is drawn as a 12 px track (media_card.h) and grows '

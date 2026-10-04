@@ -514,6 +514,23 @@
         "open": "Open",
         "open_door": "Open door",
         "open_door_confirm": "Really open?"
+      },
+      "humidifier_mode": {
+        "normal": "Normal",
+        "eco": "Eco",
+        "away": "Away",
+        "boost": "Boost",
+        "comfort": "Comfort",
+        "home": "Home",
+        "sleep": "Sleep",
+        "auto": "Auto",
+        "baby": "Baby"
+      },
+      "humidifier_action": {
+        "humidifying": "Humidifying",
+        "drying": "Drying",
+        "idle": "Idle",
+        "off": "Off"
       }
     },
     "navigation": {
@@ -875,6 +892,13 @@
           "run": "Press button"
         },
         "remote": {
+          "toggle": "On/off switch"
+        },
+        "humidifier": {
+          "setpoint": "Humidity − / +",
+          "slider": "Humidity slider",
+          "mode": "Mode keys",
+          "setpoint_mode": "Humidity − / + and mode keys",
           "toggle": "On/off switch"
         }
       },
@@ -1509,7 +1533,8 @@
         "timer": "Timers",
         "screen": "Screen",
         "alarm_control_panel": "Alarm",
-        "lock": "Locks"
+        "lock": "Locks",
+        "humidifier": "Humidifiers"
       },
       "room": "Room",
       "hide_placed": "Hide placed",
@@ -1565,7 +1590,8 @@
       "image": "Image",
       "entity": "Entity",
       "alarm_control_panel": "Alarm panel",
-      "lock": "Lock"
+      "lock": "Lock",
+      "humidifier": "Humidifier"
     },
     "displays": {
       "standard": "standard",

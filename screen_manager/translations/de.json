@@ -514,6 +514,23 @@
         "open": "Öffnen",
         "open_door": "Tür öffnen",
         "open_door_confirm": "Wirklich öffnen?"
+      },
+      "humidifier_mode": {
+        "normal": "Normal",
+        "eco": "Eco",
+        "away": "Abwesend",
+        "boost": "Boost",
+        "comfort": "Komfort",
+        "home": "Zuhause",
+        "sleep": "Schlafen",
+        "auto": "Auto",
+        "baby": "Baby"
+      },
+      "humidifier_action": {
+        "humidifying": "Befeuchtung",
+        "drying": "Entfeuchtung",
+        "idle": "Leerlauf",
+        "off": "Aus"
       }
     },
     "navigation": {
@@ -875,6 +892,13 @@
           "run": "Taste „Drücken“"
         },
         "remote": {
+          "toggle": "Ein/Aus-Schalter"
+        },
+        "humidifier": {
+          "setpoint": "Luftfeuchtigkeit − / +",
+          "slider": "Luftfeuchtigkeitsregler",
+          "mode": "Modustasten",
+          "setpoint_mode": "Luftfeuchtigkeit − / + und Modustasten",
           "toggle": "Ein/Aus-Schalter"
         }
       },
@@ -1509,7 +1533,8 @@
         "timer": "Timer",
         "screen": "Bildschirm",
         "alarm_control_panel": "Alarm",
-        "lock": "Schlösser"
+        "lock": "Schlösser",
+        "humidifier": "Luftbefeuchter"
       },
       "room": "Bereich",
       "hide_placed": "Platzierte ausblenden",
@@ -1565,7 +1590,8 @@
       "image": "Bild",
       "entity": "Entität",
       "alarm_control_panel": "Alarmanlage",
-      "lock": "Schloss"
+      "lock": "Schloss",
+      "humidifier": "Luftbefeuchter"
     },
     "displays": {
       "standard": "Standard",

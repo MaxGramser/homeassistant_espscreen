@@ -401,6 +401,14 @@ HA_DEFAULTS = (
     ('wifi', 'F05A9'),
     ('window-closed', 'F05AE'),
     ('window-open', 'F05B1'),
+    # A humidifier's modes (firmware 0.42.0+), as Home Assistant draws them (humidifier/icons.json); a mode of the
+    # integration's own takes Home Assistant's default, circle-medium.
+    ('baby-carriage', 'F068F'),
+    ('circle-medium', 'F09DE'),
+    ('leaf', 'F032A'),
+    ('power-sleep', 'F0904'),
+    ('refresh-auto', 'F18F2'),
+    ('rocket-launch', 'F14DE'),
 )
 
 # Pickable icons by name, and every glyph the firmware fonts contain.
@@ -408,7 +416,7 @@ ICONS = {name: (codepoint, label) for _, icons in GROUPS for name, codepoint, la
 GLYPHS = {**{name: codepoint for name, (codepoint, _) in ICONS.items()}, **dict(FIXED), **dict(HA_DEFAULTS)}
 
 # Mirrors runtime_tiles::icon_for() so the editor mockup shows what the screen draws.
-DEFAULTS = {'light': 'lightbulb', 'climate': 'air-conditioner', 'vacuum': 'robot-vacuum', 'fan': 'fan',
+DEFAULTS = {'light': 'lightbulb', 'climate': 'air-conditioner', 'humidifier': 'air-humidifier', 'vacuum': 'robot-vacuum', 'fan': 'fan',
             'cover': 'window-shutter', 'scene': 'sofa', 'script': 'sofa', 'automation': 'robot', 'remote': 'remote', 'sensor': 'gauge', 'binary_sensor': 'gauge',
             'timer': 'timer-outline', 'person': 'account', 'camera': 'cctv', 'image': 'cctv', 'screen': 'clock-outline'}
 # The cards the screen brings itself: one icon per entity, not per domain.
@@ -417,7 +425,7 @@ FALLBACK = 'power'
 # The large icon font of a card that takes the whole page (firmware 0.2.62+): what the screen draws on its own for a
 # domain, a state or a built-in card, at 64 px on the Guition and 40 px on the CYD. Kept to these so the CYD's flash
 # stays free; a chosen icon outside this set shows at its usual size in the big circle.
-BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.values()) + ['lightbulb-off', 'robot-off', 'remote-off', FALLBACK] +
+BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.values()) + ['lightbulb-off', 'robot-off', 'remote-off', 'air-humidifier-off', FALLBACK] +
                                  ['weather-sunny', 'weather-night', 'weather-cloudy', 'weather-partly-cloudy', 'weather-rainy',
                                   'weather-pouring', 'weather-snowy', 'weather-snowy-rainy', 'weather-fog', 'weather-hail',
                                   'weather-lightning', 'weather-lightning-rainy', 'weather-windy', 'alert-circle-outline',

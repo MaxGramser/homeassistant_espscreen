@@ -47,6 +47,25 @@ it('limits modes to real choices and disables selects with fewer than two option
   expect(controlKeys('select', 'stepper', 'Eco', { options: ['Eco'] }).every(k => k.disabled)).toBe(true);
 });
 
+// A humidifier (firmware 0.42.0+) is a thermostat in percent: its humidity between - and + and as a slider whatever it
+// reports, its own modes in the order its integration lists them with Home Assistant's icons, and its toggle.
+it('gives a humidifier its controls and its own modes', () => {
+  for (const kind of ['setpoint', 'setpoint_mode', 'slider', 'toggle']) expect(availableControl('humidifier', kind, 'on', {})).toBe(kind);
+  expect(availableControl('humidifier', 'stepper', 'on', {})).toBe('');
+  expect(availableControl('humidifier', 'setpoint', 'unavailable', {})).toBe('');
+  const a = { supported_features: 1, available_modes: ['normal', 'eco', 'turbo'], mode: 'eco' };
+  expect(controlKeys('humidifier', 'mode', 'on', a)).toEqual([
+    { icon: '', cp: 'F058E', mode: 'normal' }, { icon: '', cp: 'F032A', mode: 'eco' }, { icon: '', cp: 'F09DE', mode: 'turbo' },
+  ]);
+  expect(availableControl('humidifier', 'mode', 'on', a)).toBe('mode');
+  // The mode it is in stays in sight, a mode of its own name kept as it is.
+  const many = { available_modes: ['normal', 'eco', 'away', 'boost', 'comfort', 'home', 'sleep', 'auto'], mode: 'Auto' };
+  expect(barKeys(many, 'on', 3, 'humidifier').map(k => k.mode ?? k.icon)).toEqual(['normal', 'eco', 'dots-horizontal']);
+  expect(barKeys({ ...many, mode: 'sleep' }, 'on', 3, 'humidifier').map(k => k.mode ?? k.icon)).toEqual(['normal', 'sleep', 'dots-horizontal']);
+  expect(barKeys({ available_modes: ['normal'], mode: 'normal' }, 'on', 6, 'humidifier')).toEqual([]);
+  expect(availableControl('humidifier', 'mode', 'on', { available_modes: ['normal'] })).toBe('');
+});
+
 it('keeps slats independent of the primary choice and follows every cover feature mask', async () => {
   const { coverPrimary, hasCoverTilt, withCoverTilt, coverTiltKind, coverTiltKeys } = await import('../src/model/tall-controls');
   for (const primary of ['none', 'buttons', 'position']) {

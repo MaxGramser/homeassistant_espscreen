@@ -133,6 +133,32 @@
    "supported_features": 63
   }
  },
+ "humidifier": {
+  "entity": "humidifier.laundry_room_dehumidifier_by_the_window",
+  "state": "on",
+  "attributes": {
+   "friendly_name": "Laundry Room Dehumidifier By The Window",
+   "device_class": "dehumidifier",
+   "available_modes": [
+    "normal",
+    "eco",
+    "away",
+    "boost",
+    "comfort",
+    "home",
+    "sleep",
+    "auto"
+   ],
+   "mode": "comfort",
+   "action": "drying",
+   "current_humidity": 68.5,
+   "humidity": 55,
+   "min_humidity": 30,
+   "max_humidity": 80,
+   "target_humidity_step": 1,
+   "supported_features": 1
+  }
+ },
  "image": {
   "entity": "image.living_room_floor_lamp_left",
   "state": "2026-10-03T09:00:00+00:00",
