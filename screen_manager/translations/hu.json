@@ -182,7 +182,18 @@
       "hours": "{n} óra",
       "hours_minutes": "{h} ó {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Hang",
+      "microphone_mute": "Mikrofon némítása",
+      "microphone_alc": "Automatikus erősítés",
+      "speaker_volume": "Hangszóró hangereje",
+      "tap_sound": "Érintési hang",
+      "wake_word": "Ébresztőszó",
+      "test_microphone": "Mikrofonteszt",
+      "test_speaker": "Hangszóróteszt",
+      "test_wake_word": "Ébresztőszó tesztje",
+      "stop_audio_test": "Hangteszt leállítása",
+      "wake_word_enabled": "Ébresztőszó engedélyezve"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -518,6 +529,33 @@
     },
     "navigation": {
       "back": "Vissza"
+    },
+    "audio": {
+      "idle": "Inaktív",
+      "stop_failed": "Leállítási hiba: indítsd újra",
+      "no_memory": "Nincs felvételi memória",
+      "no_audio": "Nincs mikrofonhang",
+      "speaker_failed": "Hangszóróteszt sikertelen",
+      "no_wake": "Nincs észlelt ébresztőszó",
+      "heard": "Észlelve: {word}",
+      "finished": "Kész: {word}",
+      "recording": "Felvétel ({seconds}s)",
+      "playing_recording": "Felvétel lejátszása",
+      "speaker_test": "Hangszóróteszt",
+      "say": "Mondd: {word} (30s)",
+      "muted": "Mikrofon némítva"
+    },
+    "voice": {
+      "start": "Hang indítása",
+      "stop": "Hang leállítása",
+      "connecting": "Kapcsolódás",
+      "listening": "Figyelés",
+      "thinking": "Gondolkodás",
+      "speaking": "Beszéd",
+      "stopping": "Leállítás",
+      "error": "Hanghiba",
+      "idle": "Készenlét",
+      "wake_ready": "Mondd: {word}"
     }
   },
   "addon": {
@@ -757,7 +795,8 @@
       },
       "media": {
         "browse": "{name} nem adta meg a könyvtárát."
-      }
+      },
+      "audio_test_unavailable": "A hangteszt ezen a képernyőn nem érhető el."
     },
     "status": {
       "first_tiles": "Válaszd ki az első csempéidet",
@@ -1904,7 +1943,8 @@
         "brightness": "Fényerő",
         "night": "Éjszaka",
         "screen": "Kijelző",
-        "this_screen": "Ez a kijelző"
+        "this_screen": "Ez a kijelző",
+        "audio": "Hang"
       },
       "rows": {
         "brightness": "Fényerő",
@@ -1924,7 +1964,13 @@
         "swipe_pages": "Lapozás húzással",
         "page_buttons": "Lapozógombok",
         "home_button": "Kezdőlap gomb",
-        "rotation": "Elforgatás"
+        "rotation": "Elforgatás",
+        "microphone_mute": "Mikrofon némítása",
+        "microphone_alc": "Automatikus erősítés",
+        "speaker_volume": "Hangszóró hangereje",
+        "tap_sound": "Érintési hang",
+        "wake_word": "Ébresztőszó",
+        "wake_word_enabled": "Ébresztőszó engedélyezve"
       },
       "actions": {
         "calibrate": {
@@ -1984,6 +2030,14 @@
           "camera_unset": "Válassz kamerát a használatához",
           "clock": "Az idő, a dátum és a kinti hőmérséklet, fehéren feketén"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Mikrofonteszt",
+        "test_speaker": "Hangszóróteszt",
+        "test_wake_word": "Ébresztőszó tesztje",
+        "stop_audio_test": "Hangteszt leállítása",
+        "audio_status": "Hangállapot",
+        "hint": "A mikrofonteszt öt másodpercet rögzít, majd lejátssza a panelen. A leállítás minden hangtesztet megszakít."
       }
     },
     "update": {
@@ -2714,6 +2768,101 @@
       "later": "Talán később",
       "donated": "Már adományoztam",
       "thanks": "Köszönöm! Ez az üzenet többé nem jelenik meg."
+    },
+    "voice": {
+      "title": "Voice experiment",
+      "start": "Start voice",
+      "stop": "Stop voice",
+      "connecting": "Connecting…",
+      "listening": "Listening",
+      "thinking": "Thinking",
+      "speaking": "Speaking",
+      "privacy": "OpenAI Realtime audio. The microphone stops on the configured idle timeout, Stop voice, or leaving this preview. Maximum 10 minutes. Voice controls Assist-exposed lights, switches and media players, including brightness and playback where supported. Current information uses OpenAI web search; text and sources are optional in the preview. Commands that start music end voice after the short acknowledgement.",
+      "setup": " Commands that start music end voice after the short acknowledgement.",
+      "settings_title": "Applies to both providers while waiting for you. Pauses during speech and processing. Minimum 1 second; default 5. Reopen the preview after saving.",
+      "settings_description": "",
+      "configure": "Configure voice",
+      "api_key": "OpenAI API key",
+      "key_configured": "API key configured",
+      "key_missing": "No API key configured",
+      "key_server": "Using an API key configured on the server",
+      "key_replace": "Enter a replacement key",
+      "key_enter": "Paste your API key",
+      "key_private": "Stored privately on Screen Manager. The saved key is never sent back to the editor.",
+      "key_save": "Save API key",
+      "key_remove": "Remove saved key",
+      "key_saved": "Saved. Open Firmware preview to start voice; no restart needed.",
+      "voice_label": "Voice",
+      "voice_hint": "Used for new voice sessions. Stop and start voice to hear a change.",
+      "voice_save": "Save voice",
+      "voice_saved": "Voice saved. New sessions will use this voice.",
+      "sources": "Sources",
+      "provider": "",
+      "openai_route": "",
+      "claude_route": "",
+      "claude_key": "",
+      "pipeline": "",
+      "pipeline_choose": "",
+      "pipeline_incomplete": "",
+      "pipeline_hint": "",
+      "pipeline_missing": "",
+      "pipeline_save": "",
+      "claude_privacy": "",
+      "transcribing": "",
+      "searching": "Searching…",
+      "preparing_speech": "",
+      "details": "",
+      "idle_label": "",
+      "idle_hint": "",
+      "idle_save": "",
+      "idle_saved": "",
+      "spotify_title": "Spotify search",
+      "spotify_hint": "Shared by OpenAI and Claude. Find tracks by title and artist; playback uses your Home Assistant Sonos or Spotify player. For Sonos, keep Spotify linked in the Sonos app. Use the Client ID and Client Secret of your Spotify developer app.",
+      "spotify_configured": "Spotify search credentials saved",
+      "spotify_missing": "Optional: configure search to play a track by name. Existing playback controls work without it.",
+      "spotify_market": "Country code",
+      "spotify_market_hint": "The two-letter code for your Spotify account country, such as NL or GB. Used to find tracks available there.",
+      "spotify_save": "Save Spotify search",
+      "spotify_remove": "Remove Spotify search",
+      "spotify_saved": "Saved. Start a new voice session. Spotify access is checked on the first search.",
+      "credentials_title": "API credentials",
+      "speech_title": "Voice & timing",
+      "idle_summary": "{seconds} s silence",
+      "spotify_status_saved": "Saved",
+      "spotify_status_optional": "Optional · Not configured",
+      "spotify_replace_hint": "Saved credentials are hidden. Enter both fields only to replace them.",
+      "spotify_id_replace": "Enter replacement Client ID",
+      "spotify_secret_replace": "Enter replacement Client Secret",
+      "spotify_id_enter": "Enter Client ID",
+      "spotify_secret_enter": "Enter Client Secret",
+      "output_title": "Reply speaker",
+      "output_local": "Screen / this browser",
+      "output_volume": "Reply volume",
+      "output_save": "Save reply speaker",
+      "output_saved": "Reply speaker saved. Reopen the preview to use it.",
+      "output_unavailable": "Unavailable",
+      "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Fizikai hangpanel",
+      "hint": "Kísérleti: indítsd el a hangvezérlést érintéssel, vagy engedélyezz egy ébresztőszót a panel Hang beállításaiban. A fenti szolgáltatót és válaszbeállításokat használja.",
+      "no_panels": "Először adjon hozzá egy támogatott fizikai P4 panelt a Home Assistanthoz.",
+      "panel": "Panel",
+      "address": "A kiegészítő panelről elérhető címe",
+      "address_hint": "A helyi hálózati címet és médiaportot használja, ne az ingress címet vagy a localhostot. A ws:// megbízható helyi hálózathoz való; a wss:// megbízható TLS-proxyt igényel.",
+      "paired_hint": "A panel párosítva van. A párosítás cseréje megszakítja a kapcsolatot az új konfiguráció telepítéséig.",
+      "pair": "Panel párosítása",
+      "replace": "Párosítás cseréje",
+      "remove": "Párosítás visszavonása",
+      "install": "Töltse le a konfigurációt, és egyesítse a substitutions értékeit a panel Override YAML beállításaival a Build & install alatt. Őrizze meg a meglévő beállításokat, majd fordítsa le és telepítse a hangfirmware-t.",
+      "download": "Hangkonfiguráció letöltése",
+      "private": "Ez a fájl a panel privát párosítási tokenjét tartalmazza, nem a szolgáltató API-kulcsát. Mentse most; az oldal elhagyása után nem tölthető le újra."
+    }
+  },
+  "configuration": {
+    "voice_assistant": {
+      "name": "Enable voice assistant",
+      "description": "Optional voice control in the browser preview. Configure provider, API keys and reply speaker in the editor. Save and restart to apply."
     }
   }
 }

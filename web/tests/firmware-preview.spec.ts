@@ -1,15 +1,16 @@
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FirmwarePreview from "../src/components/FirmwarePreview.vue";
+import VoicePreview from "../src/components/VoicePreview.vue";
 import createModule from "../src/wasm/firmware_preview.js";
-import { api, send } from "../src/api";
+import { api, getJson, send } from "../src/api";
 import { state } from "../src/store";
 
 vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
-vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn() }));
+vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn(), getJson: vi.fn(async () => ({ enabled: false })) }));
 vi.mock("../src/store", async () => {
   const { reactive } = await import("vue");
-  return { state: reactive({ document: { title: "Test panel", pages: [] }, liveStates: {} }) };
+  return { state: reactive({ document: { title: "Test panel", pages: [] }, liveStates: {} }), go: vi.fn() };
 });
 const bundle = () => ({ revision: "1111111111111111", configuration: [{ op: "begin" }, { op: "commit" }], values: [{ op: "state", i: 0, state: "on" }] });
 function response(name: string, _result?: unknown, _types?: unknown, args?: unknown[]) {
@@ -21,6 +22,7 @@ function response(name: string, _result?: unknown, _types?: unknown, args?: unkn
 const firmware = {
   HEAPU8: new Uint8Array(800 * 800 * 4),
   _preview_init: vi.fn(() => 1), _preview_time: vi.fn(),
+  _preview_page: vi.fn(() => 0),
   _preview_render: vi.fn(), _preview_frame: vi.fn(() => 0),
   _preview_image_buffer: vi.fn(() => 128), _preview_image_ready: vi.fn(() => 1),
   _preview_touch: vi.fn(), _preview_cancel: vi.fn(), ccall: vi.fn(response),
@@ -32,6 +34,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
   vi.clearAllMocks();
   firmware.ccall.mockImplementation(response);
+  firmware._preview_page.mockReturnValue(0);
   state.document = { title: "Test panel", pages: [] } as any;
   vi.mocked(createModule).mockResolvedValue(firmware as any);
   vi.mocked(send).mockResolvedValue(bundle());
@@ -55,6 +58,35 @@ async function preview(width = 720, height = 720, extra: Record<string, unknown>
 }
 
 describe("Firmware preview transport", () => {
+  it('uses the displayed layout and firmware page for voice, including while an edit is pending', async () => {
+    const shown = { title: 'Shown panel', homePageId: 'first', pages: [] };
+    firmware._preview_page.mockReturnValue(1);
+    const editor = await preview(720, 720, { layout: shown });
+    const panel = editor.getComponent(VoicePreview).props('panel');
+    expect(panel()).toEqual({ shape: { columns: 2, rows: 3 }, layout: shown, page: 1 });
+    expect(panel().layout).not.toBe(shown);
+    expect(panel().layout.title).not.toBe(state.document!.title);
+
+    let finish!: (value: ReturnType<typeof bundle>) => void;
+    vi.mocked(send).mockImplementationOnce(() => new Promise(resolve => { finish = resolve as typeof finish; }));
+    await editor.setProps({ layout: { ...shown, title: 'Pending edit' } });
+    await flushPromises();
+    expect(panel().layout.title).toBe('Shown panel');
+    firmware.ccall.mockImplementation((name, result, types, args) => {
+      if (name === 'preview_receive' && JSON.parse(String(args?.[0])).op === 'commit') return 'Rejected';
+      return response(name, result, types, args);
+    });
+    finish({ ...bundle(), revision: '3333333333333333' });
+    await flushPromises();
+    expect(panel).toThrow('Wait for the firmware preview to load.');
+  });
+
+  it('does not mount voice controls or request voice settings for overview thumbnails', async () => {
+    const editor = await preview(720, 720, { still: true });
+    expect(editor.findComponent(VoicePreview).exists()).toBe(false);
+    expect(getJson).not.toHaveBeenCalled();
+  });
+
   it('delivers firmware image events and pixels without invoking HA actions or drawing images in Vue', async () => {
     const request = { service: 'esphome.screen_camera', event: true, data: { entity: 'media_player.test', view: '1' } };
     const packet = { op: 'camera', t: 'cover', e: 'media_player.test', view: 1,

@@ -1,0 +1,3 @@
+# The same one-line choice accepted by the screen editor's Override YAML.
+substitutions:
+  AUDIO_MODE: "test"

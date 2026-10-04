@@ -17,6 +17,9 @@ from core import SETTING_RULES  # noqa: E402
 
 SCREEN = (ROOT / 'components/smart_display/settings_screen.h').read_text()
 CORE_YAML = (ROOT / 'packages/core.yaml').read_text()
+CORE_YAML += '\n' + (ROOT / 'packages/hardware/wavesharep4-audio/hardware.yaml').read_text()
+for feature in ('audio-hardware-test', 'audio-wake-word', 'device-voice'):
+    CORE_YAML += '\n' + (ROOT / f'packages/features/{feature}.yaml').read_text()
 STORE = (ROOT / 'web/src/store.ts').read_text()
 CORE_PY = (ROOT / 'screen_manager/app/core.py').read_text()
 # The minutes of a day, the range of a night's start and end: Home Assistant's time entity (hour * 60 + minute) and the
@@ -25,12 +28,22 @@ DAY = (0, 24 * 60 - 1)
 # The brightness a dim level may not exceed: the firmware clamps it to the normal brightness, ESP Screens refuses a
 # value above it and the editor caps it there.
 CAPPED = 'brightness'
+WAKE_WORDS = re.findall(r'"([^"]+)"', re.search(r'wake_word_options\[\] = \{([^}]+)', SCREEN)[1])
 
 
 def firmware_set():
     """{key: 'bool' | (low, high)} from settings_screen::set(); a high of the normal brightness is CAPPED."""
     body = SCREEN.split('inline SetResult set(', 1)[1].split('else return SetResult::unknown;', 1)[0]
-    out = {}
+    out = {'wake_word': (0, len(WAKE_WORDS) - 1)}
+    optional, body = body.split('auto &s = screen_settings::current;', 1)
+    for key, code in re.findall(r'key == "(\w+)"[^)\n]*\) \{\s*([^}]+)', optional):
+        if key == 'wake_word':
+            continue  # The range follows the shared trained-model option array above.
+        if 'value ? 1 : 0' in code:
+            out[key] = 'bool'
+        else:
+            low, high = re.search(r'std::clamp<int32_t>\(value, (-?\d+), (\d+)\)', code).groups()
+            out[key] = (int(low), int(high))
     for key, code in re.findall(r'key == "(\w+)"\)(.*?)(?=else if \(key ==|\Z)', body, re.S):
         if 'flag(value)' in code:
             out[key] = 'bool'
@@ -59,6 +72,7 @@ def page_rows():
     if 'set("rotation", std::clamp<int32_t>(value, 0, 3) * 90)' in SCREEN:
         turns |= {0, 90, 180, 270}
     out['rotation'] = tuple(sorted(turns))
+    out['wake_word'] = tuple(range(len(WAKE_WORDS)))
     return out
 
 
@@ -82,6 +96,11 @@ def entities():
         elif section == 'datetime':
             out[key] = ('time',)
         elif section == 'select':
+            if key == 'wake_word':
+                words = re.findall(r'"([^"]+)"', re.search(r'options: \[([^\]]+)', text)[1])
+                assert words == WAKE_WORDS
+                out[key] = ('select', tuple(range(len(words))))
+                continue
             # Every option the entity can have: the quarter turns of square glass and the half turn of the rest.
             options = re.search(r'options: \$\{ (\[.*?\]) if', text).group(1)
             out[key] = ('select', tuple(sorted(int(v) for v in re.findall(r'"(\d+)°"', options))))
@@ -126,7 +145,7 @@ class OneRange(unittest.TestCase):
     def test_a_number_has_the_same_ends_everywhere(self):
         for key in self.owned:
             _, low, high = SETTING_RULES[key]
-            if low is None or key in ('rotation', 'night_start', 'night_end'):
+            if low is None or key in ('rotation', 'night_start', 'night_end', 'wake_word'):
                 continue
             firmware = self.firmware[key]
             # A dim level ends at the normal brightness on the screen, whose own highest is the end everywhere else.
@@ -165,6 +184,13 @@ class OneRange(unittest.TestCase):
         self.assertEqual(self.page['rotation'], turns)
         self.assertEqual(self.entities['rotation'], ('select', turns))
         self.assertEqual(tuple(self.editor['rotation']['options']), turns)
+
+    def test_wake_word_choices_match_the_model_selection(self):
+        choices = tuple(range(len(WAKE_WORDS)))
+        self.assertEqual(self.firmware['wake_word'], SETTING_RULES['wake_word'][1:])
+        self.assertEqual(self.page['wake_word'], choices)
+        self.assertEqual(self.entities['wake_word'], ('select', choices))
+        self.assertEqual(tuple(self.editor['wake_word']['options']), choices)
 
 
 if __name__ == '__main__':

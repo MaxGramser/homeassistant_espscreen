@@ -182,7 +182,18 @@
       "hours": "{n} h",
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Microphone mute",
+      "microphone_alc": "Automatic gain",
+      "speaker_volume": "Speaker volume",
+      "tap_sound": "Tap sound",
+      "wake_word": "Wake word",
+      "test_microphone": "Test microphone",
+      "test_speaker": "Test speaker",
+      "test_wake_word": "Test wake word",
+      "stop_audio_test": "Stop audio test",
+      "wake_word_enabled": "Wake word enabled"
     },
     "tile": {
       "tap_to_open": "Tap to open",
@@ -518,6 +529,33 @@
     },
     "navigation": {
       "back": "Back"
+    },
+    "audio": {
+      "idle": "Idle",
+      "stop_failed": "Stop failed: restart panel",
+      "no_memory": "No recording memory",
+      "no_audio": "No microphone audio",
+      "speaker_failed": "Speaker test failed",
+      "no_wake": "No wake word detected",
+      "heard": "Heard: {word}",
+      "finished": "Finished: {word}",
+      "recording": "Recording ({seconds}s)",
+      "playing_recording": "Playing recording",
+      "speaker_test": "Speaker test",
+      "say": "Say {word} (30s)",
+      "muted": "Microphone is muted"
+    },
+    "voice": {
+      "start": "Start voice",
+      "stop": "Stop voice",
+      "connecting": "Connecting…",
+      "listening": "Listening",
+      "thinking": "Processing…",
+      "speaking": "Speaking",
+      "stopping": "Stopping…",
+      "error": "Voice stopped. Check the connection.",
+      "idle": "Idle",
+      "wake_ready": "Say {word}"
     }
   },
   "addon": {
@@ -757,7 +795,8 @@
       },
       "media": {
         "browse": "{name} did not answer with its library."
-      }
+      },
+      "audio_test_unavailable": "Audio test is unavailable on this screen."
     },
     "status": {
       "first_tiles": "Choose your first tiles",
@@ -1904,7 +1943,8 @@
         "brightness": "Brightness",
         "night": "Night",
         "screen": "Screen",
-        "this_screen": "This screen"
+        "this_screen": "This screen",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Brightness",
@@ -1924,7 +1964,13 @@
         "swipe_pages": "Swipe between pages",
         "page_buttons": "Page buttons",
         "home_button": "Show home button",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "microphone_mute": "Microphone mute",
+        "microphone_alc": "Automatic gain",
+        "speaker_volume": "Speaker volume",
+        "tap_sound": "Tap sound",
+        "wake_word": "Wake word",
+        "wake_word_enabled": "Wake word enabled"
       },
       "actions": {
         "calibrate": {
@@ -1984,6 +2030,14 @@
           "camera_unset": "Choose a camera to use it",
           "clock": "The time, the date and the outside temperature, white on black"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Test microphone",
+        "test_speaker": "Test speaker",
+        "test_wake_word": "Test wake word",
+        "stop_audio_test": "Stop audio test",
+        "audio_status": "Audio status",
+        "hint": "The microphone test records five seconds, then plays it back on the panel. Stop cancels any audio test."
       }
     },
     "update": {
@@ -2714,6 +2768,101 @@
       "later": "Maybe later",
       "donated": "I already donated",
       "thanks": "Thank you! This won't ask again."
+    },
+    "voice": {
+      "title": "Voice experiment",
+      "start": "Start voice",
+      "stop": "Stop voice",
+      "connecting": "Connecting…",
+      "listening": "Listening",
+      "thinking": "Thinking",
+      "speaking": "Speaking",
+      "privacy": "OpenAI Realtime audio. The microphone stops on the configured idle timeout, Stop voice, or leaving this preview. Maximum 10 minutes. Voice controls Assist-exposed lights, switches and media players, including brightness and playback where supported. Current information uses OpenAI web search; text and sources are optional in the preview. Commands that start music end voice after the short acknowledgement.",
+      "setup": "Configure the selected voice provider in editor Settings to start voice.",
+      "settings_title": "Voice assistant",
+      "settings_description": "Choose your voice provider. Each provider keeps its own API key and settings.",
+      "configure": "Configure voice",
+      "api_key": "OpenAI API key",
+      "key_configured": "API key configured",
+      "key_missing": "No API key configured",
+      "key_server": "Using an API key configured on the server",
+      "key_replace": "Enter a replacement key",
+      "key_enter": "Paste your API key",
+      "key_private": "Stored privately on Screen Manager. The saved key is never sent back to the editor.",
+      "key_save": "Save API key",
+      "key_remove": "Remove saved key",
+      "key_saved": "Saved. Open Firmware preview to start voice; no restart needed.",
+      "voice_label": "Voice",
+      "voice_hint": "Used for new voice sessions. Stop and start voice to hear a change.",
+      "voice_save": "Save voice",
+      "voice_saved": "Voice saved. New sessions will use this voice.",
+      "sources": "Sources",
+      "provider": "Provider",
+      "openai_route": "Direct OpenAI Realtime audio. No Home Assistant speech services are used.",
+      "claude_route": "Home Assistant recognises your speech, Claude answers, and Home Assistant reads the reply aloud.",
+      "claude_key": "Claude API key",
+      "pipeline": "Home Assistant voice assistant",
+      "pipeline_choose": "Choose a voice assistant",
+      "pipeline_incomplete": "Speech services missing",
+      "pipeline_hint": "Uses only this assistant’s speech recognition, language and voice. Its conversation agent is skipped. Pause after speaking; the microphone listens again after the reply.",
+      "pipeline_missing": "In Home Assistant, configure a voice assistant with speech-to-text and text-to-speech (for example Whisper and Piper), then reopen Settings.",
+      "pipeline_save": "Save speech settings",
+      "claude_privacy": "Claude receives recognised text and panel context. Audio goes through the selected Home Assistant speech services. Pause after speaking; listening resumes after the spoken reply. Up to 30 seconds per turn, 10 minutes per session. The microphone stops on the configured idle timeout, Stop voice, or leaving the preview. Claude web search supplies source links for current information. Commands that start music end voice after the short acknowledgement.",
+      "transcribing": "Recognising speech…",
+      "searching": "Searching…",
+      "preparing_speech": "Preparing spoken reply…",
+      "details": "Text and sources",
+      "idle_label": "Stop after silence (seconds)",
+      "idle_hint": "Applies to both providers while waiting for you. Pauses during speech and processing. Minimum 1 second; default 5. Reopen the preview after saving.",
+      "idle_save": "Save timeout",
+      "idle_saved": "Timeout saved. Reopen the preview to use it.",
+      "spotify_title": "Spotify search",
+      "spotify_hint": "Shared by OpenAI and Claude. Find tracks by title and artist; playback uses your Home Assistant Sonos or Spotify player. For Sonos, keep Spotify linked in the Sonos app. Use the Client ID and Client Secret of your Spotify developer app.",
+      "spotify_configured": "Spotify search credentials saved",
+      "spotify_missing": "Optional: configure search to play a track by name. Existing playback controls work without it.",
+      "spotify_market": "Country code",
+      "spotify_market_hint": "The two-letter code for your Spotify account country, such as NL or GB. Used to find tracks available there.",
+      "spotify_save": "Save Spotify search",
+      "spotify_remove": "Remove Spotify search",
+      "spotify_saved": "Saved. Start a new voice session. Spotify access is checked on the first search.",
+      "credentials_title": "API credentials",
+      "speech_title": "Voice & timing",
+      "idle_summary": "{seconds} s silence",
+      "spotify_status_saved": "Saved",
+      "spotify_status_optional": "Optional · Not configured",
+      "spotify_replace_hint": "Saved credentials are hidden. Enter both fields only to replace them.",
+      "spotify_id_replace": "Enter replacement Client ID",
+      "spotify_secret_replace": "Enter replacement Client Secret",
+      "spotify_id_enter": "Enter Client ID",
+      "spotify_secret_enter": "Enter Client Secret",
+      "output_title": "Reply speaker",
+      "output_local": "Screen / this browser",
+      "output_volume": "Reply volume",
+      "output_save": "Save reply speaker",
+      "output_saved": "Reply speaker saved. Reopen the preview to use it.",
+      "output_unavailable": "Unavailable",
+      "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Physical voice panel",
+      "hint": "Experimental: start voice by touch or enable a wake word in the panel’s Audio settings. Uses the provider and reply settings above.",
+      "no_panels": "Add a supported physical P4 panel to Home Assistant first.",
+      "panel": "Panel",
+      "address": "Add-on address reachable by the panel",
+      "address_hint": "Use the local network address and media port, not the browser ingress URL or localhost. ws:// is for a trusted local network; wss:// requires a trusted TLS proxy.",
+      "paired_hint": "This panel is paired. Replacing the pairing disconnects it until the new configuration is flashed.",
+      "pair": "Pair panel",
+      "replace": "Replace pairing",
+      "remove": "Revoke pairing",
+      "install": "Download the configuration and merge its substitutions into this panel’s Override YAML in Build & install. Keep existing settings, then build and install the voice firmware.",
+      "download": "Download voice configuration",
+      "private": "This file contains the panel’s private pairing token, not your provider API key. Save it now; it cannot be downloaded after leaving this page."
+    }
+  },
+  "configuration": {
+    "voice_assistant": {
+      "name": "Enable voice assistant",
+      "description": "Optional voice control in the browser preview. Configure provider, API keys and reply speaker in the editor. Save and restart to apply."
     }
   }
 }

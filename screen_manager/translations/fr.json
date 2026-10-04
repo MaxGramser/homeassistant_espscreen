@@ -182,7 +182,18 @@
       "hours": "{n} h",
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Couper le micro",
+      "microphone_alc": "Gain automatique",
+      "speaker_volume": "Volume du haut-parleur",
+      "tap_sound": "Son au toucher",
+      "wake_word": "Mot-clé",
+      "test_microphone": "Tester le micro",
+      "test_speaker": "Tester le haut-parleur",
+      "test_wake_word": "Tester le mot-clé",
+      "stop_audio_test": "Arrêter le test audio",
+      "wake_word_enabled": "Mot de réveil activé"
     },
     "tile": {
       "tap_to_open": "Ouvrir",
@@ -518,6 +529,33 @@
     },
     "navigation": {
       "back": "Retour"
+    },
+    "audio": {
+      "idle": "Inactif",
+      "stop_failed": "Arrêt impossible : redémarrez",
+      "no_memory": "Mémoire insuffisante",
+      "no_audio": "Aucun son du microphone",
+      "speaker_failed": "Échec du test du haut-parleur",
+      "no_wake": "Aucun mot détecté",
+      "heard": "Détecté : {word}",
+      "finished": "Terminé : {word}",
+      "recording": "Enregistrement ({seconds}s)",
+      "playing_recording": "Lecture de l’enregistrement",
+      "speaker_test": "Test du haut-parleur",
+      "say": "Dites {word} (30s)",
+      "muted": "Microphone coupé"
+    },
+    "voice": {
+      "start": "Démarrer la voix",
+      "stop": "Arrêter la voix",
+      "connecting": "Connexion",
+      "listening": "Écoute",
+      "thinking": "Réflexion",
+      "speaking": "Réponse",
+      "stopping": "Arrêt en cours",
+      "error": "Erreur vocale",
+      "idle": "Au repos",
+      "wake_ready": "Dites {word}"
     }
   },
   "addon": {
@@ -757,7 +795,8 @@
       },
       "media": {
         "browse": "{name} n’a pas répondu avec sa bibliothèque."
-      }
+      },
+      "audio_test_unavailable": "Le test audio est indisponible sur cet écran."
     },
     "status": {
       "first_tiles": "Choisissez vos premières tuiles",
@@ -1904,7 +1943,8 @@
         "brightness": "Luminosité",
         "night": "Nuit",
         "screen": "Écran",
-        "this_screen": "Cet écran"
+        "this_screen": "Cet écran",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Luminosité",
@@ -1924,7 +1964,13 @@
         "swipe_pages": "Balayer entre les pages",
         "page_buttons": "Boutons de page",
         "home_button": "Afficher le bouton accueil",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "microphone_mute": "Couper le micro",
+        "microphone_alc": "Gain automatique",
+        "speaker_volume": "Volume du haut-parleur",
+        "tap_sound": "Son au toucher",
+        "wake_word": "Mot-clé",
+        "wake_word_enabled": "Mot de réveil activé"
       },
       "actions": {
         "calibrate": {
@@ -1984,6 +2030,14 @@
           "camera_unset": "Choisis une caméra pour l'utiliser",
           "clock": "L'heure, la date et la température extérieure, en blanc sur noir"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Tester le micro",
+        "test_speaker": "Tester le haut-parleur",
+        "test_wake_word": "Tester le mot-clé",
+        "stop_audio_test": "Arrêter le test audio",
+        "audio_status": "État audio",
+        "hint": "Le test du micro enregistre cinq secondes, puis les lit sur le panneau. Arrêter annule tout test audio."
       }
     },
     "update": {
@@ -2714,6 +2768,101 @@
       "later": "Plus tard",
       "donated": "J'ai déjà fait un don",
       "thanks": "Merci ! Ce message ne reviendra plus."
+    },
+    "voice": {
+      "title": "Voice experiment",
+      "start": "Start voice",
+      "stop": "Stop voice",
+      "connecting": "Connecting…",
+      "listening": "Listening",
+      "thinking": "Thinking",
+      "speaking": "Speaking",
+      "privacy": "OpenAI Realtime audio. The microphone stops on the configured idle timeout, Stop voice, or leaving this preview. Maximum 10 minutes. Voice controls Assist-exposed lights, switches and media players, including brightness and playback where supported. Current information uses OpenAI web search; text and sources are optional in the preview. Commands that start music end voice after the short acknowledgement.",
+      "setup": "",
+      "settings_title": "",
+      "settings_description": "",
+      "configure": "Configure voice",
+      "api_key": "OpenAI API key",
+      "key_configured": "API key configured",
+      "key_missing": "No API key configured",
+      "key_server": "Using an API key configured on the server",
+      "key_replace": "Enter a replacement key",
+      "key_enter": "Paste your API key",
+      "key_private": "Stored privately on Screen Manager. The saved key is never sent back to the editor.",
+      "key_save": "Save API key",
+      "key_remove": "Remove saved key",
+      "key_saved": "Saved. Open Firmware preview to start voice; no restart needed.",
+      "voice_label": "Voice",
+      "voice_hint": "Used for new voice sessions. Stop and start voice to hear a change.",
+      "voice_save": "Save voice",
+      "voice_saved": "Voice saved. New sessions will use this voice.",
+      "sources": "Sources",
+      "provider": "",
+      "openai_route": "",
+      "claude_route": "",
+      "claude_key": "",
+      "pipeline": "",
+      "pipeline_choose": "",
+      "pipeline_incomplete": "",
+      "pipeline_hint": "",
+      "pipeline_missing": "",
+      "pipeline_save": "",
+      "claude_privacy": "",
+      "transcribing": "",
+      "searching": "Searching…",
+      "preparing_speech": "",
+      "details": "",
+      "idle_label": "",
+      "idle_hint": "",
+      "idle_save": "",
+      "idle_saved": "",
+      "spotify_title": "Spotify search",
+      "spotify_hint": "Shared by OpenAI and Claude. Find tracks by title and artist; playback uses your Home Assistant Sonos or Spotify player. For Sonos, keep Spotify linked in the Sonos app. Use the Client ID and Client Secret of your Spotify developer app.",
+      "spotify_configured": "Spotify search credentials saved",
+      "spotify_missing": "Optional: configure search to play a track by name. Existing playback controls work without it.",
+      "spotify_market": "Country code",
+      "spotify_market_hint": "The two-letter code for your Spotify account country, such as NL or GB. Used to find tracks available there.",
+      "spotify_save": "Save Spotify search",
+      "spotify_remove": "Remove Spotify search",
+      "spotify_saved": "Saved. Start a new voice session. Spotify access is checked on the first search.",
+      "credentials_title": "API credentials",
+      "speech_title": "Voice & timing",
+      "idle_summary": "{seconds} s silence",
+      "spotify_status_saved": "Saved",
+      "spotify_status_optional": "Optional · Not configured",
+      "spotify_replace_hint": "Saved credentials are hidden. Enter both fields only to replace them.",
+      "spotify_id_replace": "Enter replacement Client ID",
+      "spotify_secret_replace": "Enter replacement Client Secret",
+      "spotify_id_enter": "Enter Client ID",
+      "spotify_secret_enter": "Enter Client Secret",
+      "output_title": "Reply speaker",
+      "output_local": "Screen / this browser",
+      "output_volume": "Reply volume",
+      "output_save": "Save reply speaker",
+      "output_saved": "Reply speaker saved. Reopen the preview to use it.",
+      "output_unavailable": "Unavailable",
+      "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+    },
+    "voice_device": {
+      "title": "Panneau vocal physique",
+      "hint": "Expérimental : lancez la voix par toucher ou activez un mot de réveil dans les réglages Audio du panneau. Utilise le fournisseur et les réglages de réponse ci-dessus.",
+      "no_panels": "Ajoutez d’abord un panneau P4 physique compatible à Home Assistant.",
+      "panel": "Panneau",
+      "address": "Adresse du module accessible au panneau",
+      "address_hint": "Utilisez l’adresse du réseau local et le port multimédia, pas ingress ou localhost. ws:// nécessite un réseau local de confiance ; wss:// nécessite un proxy TLS de confiance.",
+      "paired_hint": "Ce panneau est associé. Remplacer l’association le déconnecte jusqu’à l’installation de la nouvelle configuration.",
+      "pair": "Associer le panneau",
+      "replace": "Remplacer l’association",
+      "remove": "Révoquer l’association",
+      "install": "Téléchargez la configuration et fusionnez ses substitutions avec Override YAML de ce panneau dans Build & install. Conservez les réglages existants, puis compilez et installez le firmware vocal.",
+      "download": "Télécharger la configuration vocale",
+      "private": "Ce fichier contient le jeton privé du panneau, pas la clé API du fournisseur. Enregistrez-le maintenant ; il ne sera plus téléchargeable après avoir quitté cette page."
+    }
+  },
+  "configuration": {
+    "voice_assistant": {
+      "name": "Enable voice assistant",
+      "description": "Optional voice control in the browser preview. Configure provider, API keys and reply speaker in the editor. Save and restart to apply."
     }
   }
 }

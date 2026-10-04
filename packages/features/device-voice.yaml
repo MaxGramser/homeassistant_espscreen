@@ -1,0 +1,126 @@
+# Reuse ESPHome microphone-source conversion, speaker and buffers. The add-on
+# owns provider credentials, recognition and actions. Nothing captures at boot.
+packages:
+  wake: !include audio-wake-word.yaml
+
+globals:
+  - id: voice_wake_enabled
+    type: bool
+    restore_value: true
+    initial_value: 'false'
+
+micro_wake_word:
+  on_wake_word_detected:
+    - lambda: |-
+        id(panel_voice).start();
+        id(wake_display).execute();
+        id(last_use_ms) = millis();
+        id(panel_voice_last_wake).publish_state(wake_word);
+        settings_screen::refresh();
+
+switch:
+  - platform: template
+    id: setting_voice_wake_enabled
+    name: Wake word enabled
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::wake_word_enabled != 0;
+    turn_on_action:
+      - lambda: settings_screen::set("wake_word_enabled", 1);
+    turn_off_action:
+      - lambda: settings_screen::set("wake_word_enabled", 0);
+
+smart_display:
+  voice:
+    id: panel_voice
+    url: ${VOICE_URL}
+    token: ${VOICE_TOKEN}
+    microphone:
+      microphone: panel_microphone
+      channels: 0
+    speaker: panel_speaker
+    amplifier: panel_audio_amp
+
+font:
+  - id: !extend materialdesign_icons_mini
+    glyphs:
+      - "\U000F036C"
+      - "\U000F051F"
+
+substitutions:
+  BOOT_VOICE_HOOKS: |-
+    id(panel_voice).set_wake_callbacks(
+      [] { id(panel_select_wake_word).execute(); id(panel_test_wake_word).start(); },
+      [] { id(panel_test_wake_word).stop(); },
+      [] { return id(panel_test_wake_word).is_running(); });
+    settings_screen::wake_word = std::clamp<int32_t>(id(audio_test_wake_selection), 0, std::size(settings_screen::wake_word_options) - 1);
+    settings_screen::wake_word_enabled = id(voice_wake_enabled) ? 1 : 0;
+    settings_screen::apply_voice_wake = [] {
+      id(voice_wake_enabled) = settings_screen::wake_word_enabled != 0;
+      id(panel_voice).configure_wake(settings_screen::wake_word_enabled != 0, settings_screen::wake_word);
+    };
+    settings_screen::apply_wake_word = [] {
+      id(audio_test_wake_selection) = settings_screen::wake_word;
+      settings_screen::apply_voice_wake();
+      id(panel_wake_word_setting).publish_state(settings_screen::wake_word_options[settings_screen::wake_word]);
+    };
+    settings_screen::apply_wake_word();
+    id(panel_voice).set_page([] { return runtime_tiles::shown_page ? *runtime_tiles::shown_page : 0; });
+    id(panel_voice).set_revision([] {
+      char revision[17];
+      snprintf(revision, sizeof(revision), "%016llx", static_cast<unsigned long long>(runtime_tiles::transfer.active ? runtime_tiles::transfer.revision : 0));
+      return std::string(revision);
+    });
+    settings_screen::voice_start = [] { id(panel_voice).start(); settings_screen::refresh(); };
+    settings_screen::voice_stop = [] { id(panel_voice).stop(); settings_screen::refresh(); };
+    settings_screen::voice_active = [] { return id(panel_voice).active(); };
+    settings_screen::voice_status = [] {
+      using namespace screen_text;
+      switch (id(panel_voice).phase()) {
+        case 1: return std::string(tr(txt::voice_connecting));
+        case 2: return std::string(tr(txt::voice_listening));
+        case 3: return std::string(tr(txt::voice_thinking));
+        case 4: return std::string(tr(txt::voice_speaking));
+        case 5: return std::string(tr(txt::voice_stopping));
+        case 6: return std::string(tr(txt::voice_error));
+        default:
+          return id(panel_voice).wake_ready()
+              ? fill(txt::voice_wake_ready, "word", settings_screen::wake_word_options[settings_screen::wake_word])
+              : std::string();
+      }
+    };
+
+interval:
+  - interval: 100ms
+    then:
+      - lambda: |-
+          const bool pending = id(panel_voice).phase() == esphome::smart_display::PanelVoice::THINKING;
+          if (runtime_tiles::header_renderer.set_voice_state(id(panel_voice).listening(), pending, id(panel_voice).wake_ready()))
+            runtime_tiles::render_header();
+  - interval: 500ms
+    then:
+      - lambda: settings_screen::refresh();
+
+button:
+  - platform: template
+    name: Start voice
+    on_press:
+      - lambda: id(panel_voice).start();
+  - platform: template
+    name: Stop voice
+    on_press:
+      - lambda: id(panel_voice).stop();
+
+text_sensor:
+  - platform: template
+    id: panel_voice_last_wake
+    name: Last voice wake word
+    entity_category: diagnostic
+    update_interval: never
+  - platform: template
+    name: Voice status
+    entity_category: diagnostic
+    update_interval: 1s
+    lambda: |-
+      const auto status = settings_screen::voice_status ? settings_screen::voice_status() : std::string();
+      return status.empty() ? std::string(screen_text::tr(screen_text::txt::voice_idle)) : status;

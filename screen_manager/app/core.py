@@ -99,7 +99,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.38.0'
+FIRMWARE_VERSION = '0.39.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -825,13 +825,19 @@ SETTING_RULES = {
     # The house at the far left of the top bar (firmware 0.2.100+), which takes the screen back to page 1. Page 1
     # draws none. Only a screen that owns its settings has it, like dark_mode.
     'home_button': (True, None, None),
+    'microphone_mute': (False, None, None),
+    'microphone_alc': (True, None, None),
+    'speaker_volume': (25, 0, 100),
+    'tap_sound': (False, None, None),
+    'wake_word': (0, 0, 3),
+    'wake_word_enabled': (False, None, None),
 }
 # Firmware before 0.2.44 accepts a `settings` object with exactly its own eleven keys and refuses any
 # other size, so everything added after it travels as its own key in the layout message. Old firmware
 # ignores a key it does not know; a new screen with an old add-on keeps what it saved itself.
 # docs/SETTINGS.md walks through adding one.
 SETTINGS_BESIDE_BLOCK = ('swipe_pages', 'rotation', 'auto_home', 'auto_home_seconds', 'dark_mode', 'page_buttons',
-                         'home_button')
+                         'home_button', 'microphone_mute', 'microphone_alc', 'speaker_volume', 'tap_sound', 'wake_word', 'wake_word_enabled')
 
 # ----- The screen owns its settings (firmware 0.2.49+) -----
 # A screen offers every setting as an entity of its own device, and the settings page on the screen, Home
@@ -857,6 +863,12 @@ SETTING_ENTITIES = {
     'dark_mode': ('switch', 'Dark mode'),
     'page_buttons': ('switch', 'Page buttons'),
     'home_button': ('switch', 'Show home button'),
+    'microphone_mute': ('switch', 'Microphone mute'),
+    'microphone_alc': ('switch', 'Microphone automatic level control'),
+    'speaker_volume': ('number', 'Speaker volume'),
+    'tap_sound': ('switch', 'Tap sound'),
+    'wake_word': ('select', 'Wake word'),
+    'wake_word_enabled': ('switch', 'Wake word enabled'),
 }
 # Entities firmware 0.2.49 added; one of them on a device means the screen owns its settings. The first five
 # existed before, so they cannot tell.
@@ -865,6 +877,7 @@ SETTING_ENTITIES = {
 OWNED_SETTINGS_MARKERS = frozenset(('Night mode', 'Night starts', 'Night ends', '24-hour clock', 'Back to page 1',
                                     'Back to page 1 after', 'Back to page 1 on standby', 'Swipe between pages'))
 ROTATION_OPTIONS = ('0°', '90°', '180°', '270°')
+WAKE_WORD_OPTIONS = ('Okay Nabu', 'Hey Jarvis', 'Alexa', 'Hey Mycroft')
 # Every board turns since this firmware; the Guition turned since 0.2.9.
 ROTATION_MIN_FIRMWARE = (0, 2, 80)
 # The screensaver (screen_saver.py): what the screen shows in standby instead of its dimmed tiles; its hello lists it.
@@ -874,6 +887,14 @@ SCREENSAVER_MIN_FIRMWARE = (0, 29, 0)
 # board list here, and a board added later needs nothing of this app. A resistive panel reads a voltage off the
 # film and has to be told what that voltage means in pixels; a capacitive one reports the point it was touched on.
 CALIBRATE_BUTTON = ('button', 'Calibrate touch')
+# Optional: presence of these entities, not the board model, enables Audio in the editor.
+AUDIO_SETTINGS = frozenset(('microphone_mute', 'microphone_alc', 'speaker_volume', 'tap_sound', 'wake_word', 'wake_word_enabled'))
+AUDIO_DIAGNOSTICS = {'status': 'Audio test status', 'left': 'Microphone left peak',
+                     'right': 'Microphone right peak', 'wakes': 'Test wake word detections',
+                     'active': 'Audio test active', 'mode': 'Audio test mode'}
+AUDIO_TEST_BUTTONS = {'microphone': 'Test microphone', 'speaker': 'Test speaker',
+                      'wake_word': 'Test wake word', 'stop': 'Stop audio test'}
+
 
 def turns_of(shape):
     """The angles a screen of this shape may be turned to: a half turn on any glass (its canvas, its grid and its size
@@ -923,6 +944,8 @@ def setting_from_state(key, state):
             hour, minute = (int(part) for part in value.split(':')[:2])
             return hour * 60 + minute if 0 <= hour < 24 and 0 <= minute < 60 else None
         if domain == 'select':
+            if key == 'wake_word':
+                return WAKE_WORD_OPTIONS.index(value) if value in WAKE_WORD_OPTIONS else None
             return int(value.rstrip('°')) if value in ROTATION_OPTIONS else None
     except ValueError:
         return None
@@ -938,7 +961,8 @@ def setting_action(key, entity, value):
         return 'number.set_value', {'entity_id': entity, 'value': value}
     if domain == 'time':
         return 'time.set_value', {'entity_id': entity, 'time': f'{value // 60:02d}:{value % 60:02d}:00'}
-    return 'select.select_option', {'entity_id': entity, 'option': f'{value}°'}
+    option = WAKE_WORD_OPTIONS[value] if key == 'wake_word' else f'{value}°'
+    return 'select.select_option', {'entity_id': entity, 'option': option}
 
 
 def validate_settings(data):

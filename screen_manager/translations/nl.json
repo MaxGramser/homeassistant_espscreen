@@ -182,7 +182,18 @@
       "hours": "{n} u",
       "hours_minutes": "{h} u {m}",
       "wifi": "Wifi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Microfoon dempen",
+      "microphone_alc": "Automatische versterking",
+      "speaker_volume": "Luidsprekervolume",
+      "tap_sound": "Tikgeluid",
+      "wake_word": "Wekwoord",
+      "test_microphone": "Microfoon testen",
+      "test_speaker": "Luidspreker testen",
+      "test_wake_word": "Wekwoord testen",
+      "stop_audio_test": "Audiotest stoppen",
+      "wake_word_enabled": "Wake word aan"
     },
     "tile": {
       "tap_to_open": "Tik om te openen",
@@ -518,6 +529,33 @@
     },
     "navigation": {
       "back": "Terug"
+    },
+    "audio": {
+      "idle": "Inactief",
+      "stop_failed": "Stoppen mislukt: herstart paneel",
+      "no_memory": "Geen opnamegeheugen",
+      "no_audio": "Geen microfoongeluid",
+      "speaker_failed": "Luidsprekertest mislukt",
+      "no_wake": "Geen wake-word gehoord",
+      "heard": "Gehoord: {word}",
+      "finished": "Klaar: {word}",
+      "recording": "Opnemen ({seconds}s)",
+      "playing_recording": "Opname afspelen",
+      "speaker_test": "Luidsprekertest",
+      "say": "Zeg {word} (30s)",
+      "muted": "Microfoon is gedempt"
+    },
+    "voice": {
+      "start": "Start spraak",
+      "stop": "Stop spraak",
+      "connecting": "Verbinden…",
+      "listening": "Luisteren",
+      "thinking": "Verwerken…",
+      "speaking": "Spreken",
+      "stopping": "Stoppen…",
+      "error": "Spraak gestopt. Controleer de verbinding.",
+      "idle": "Inactief",
+      "wake_ready": "Zeg {word}"
     }
   },
   "addon": {
@@ -757,7 +795,8 @@
       },
       "media": {
         "browse": "{name} gaf zijn bibliotheek niet."
-      }
+      },
+      "audio_test_unavailable": "De audiotest is niet beschikbaar op dit scherm."
     },
     "status": {
       "first_tiles": "Kies je eerste tegels",
@@ -1904,7 +1943,8 @@
         "brightness": "Helderheid",
         "night": "Nacht",
         "screen": "Scherm",
-        "this_screen": "Dit scherm"
+        "this_screen": "Dit scherm",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Helderheid",
@@ -1924,7 +1964,13 @@
         "swipe_pages": "Vegen tussen pagina's",
         "page_buttons": "Paginaknoppen",
         "home_button": "Thuisknop tonen",
-        "rotation": "Rotatie"
+        "rotation": "Rotatie",
+        "microphone_mute": "Microfoon dempen",
+        "microphone_alc": "Automatische versterking",
+        "speaker_volume": "Luidsprekervolume",
+        "tap_sound": "Tikgeluid",
+        "wake_word": "Wekwoord",
+        "wake_word_enabled": "Wake word aan"
       },
       "actions": {
         "calibrate": {
@@ -1984,6 +2030,14 @@
           "camera_unset": "Kies een camera om hem te gebruiken",
           "clock": "De tijd, de datum en de buitentemperatuur, wit op zwart"
         }
+      },
+      "audio_tests": {
+        "test_microphone": "Microfoon testen",
+        "test_speaker": "Luidspreker testen",
+        "test_wake_word": "Wekwoord testen",
+        "stop_audio_test": "Audiotest stoppen",
+        "audio_status": "Audiostatus",
+        "hint": "De microfoontest neemt vijf seconden op en speelt dit af op het paneel. Stop annuleert elke audiotest."
       }
     },
     "update": {
@@ -2714,6 +2768,101 @@
       "later": "Misschien later",
       "donated": "Ik heb al gedoneerd",
       "thanks": "Dank je wel! Dit komt niet meer terug."
+    },
+    "voice": {
+      "title": "Spraakexperiment",
+      "start": "Start spraak",
+      "stop": "Stop spraak",
+      "connecting": "Verbinden…",
+      "listening": "Luisteren",
+      "thinking": "Verwerken",
+      "speaking": "Spreken",
+      "privacy": "Audio via OpenAI Realtime. De microfoon stopt na de ingestelde wachttijd, als je stopt of dit voorbeeld sluit. Maximaal 10 minuten. Spraak kan vrijgegeven lampen, schakelaars en mediaspelers bedienen, met dimmen en afspeelbediening waar ondersteund. Actuele informatie wordt via OpenAI op het web opgezocht; tekst en bronnen zijn optioneel in het voorbeeld. Na een opdracht die muziek start, stopt de spraaksessie na de korte bevestiging.",
+      "setup": "Configureer de gekozen spraakprovider in de editorinstellingen om te beginnen.",
+      "settings_title": "Spraakassistent",
+      "settings_description": "Kies je spraakprovider. Elke provider bewaart zijn eigen API-key en instellingen.",
+      "configure": "Spraak instellen",
+      "api_key": "OpenAI API-sleutel",
+      "key_configured": "API-sleutel ingesteld",
+      "key_missing": "Geen API-sleutel ingesteld",
+      "key_server": "API-sleutel op de server ingesteld",
+      "key_replace": "Voer een vervangende sleutel in",
+      "key_enter": "Plak je API-sleutel",
+      "key_private": "Privé opgeslagen op Screen Manager. De opgeslagen sleutel wordt nooit teruggestuurd naar de editor.",
+      "key_save": "API-sleutel opslaan",
+      "key_remove": "Opgeslagen sleutel verwijderen",
+      "key_saved": "Opgeslagen. Open het firmwarevoorbeeld om spraak te starten; opnieuw starten is niet nodig.",
+      "voice_label": "Stem",
+      "voice_hint": "Voor nieuwe spraaksessies. Stop en start spraak om de wijziging te horen.",
+      "voice_save": "Stem opslaan",
+      "voice_saved": "Stem opgeslagen. Nieuwe sessies gebruiken deze stem.",
+      "sources": "Bronnen",
+      "provider": "Provider",
+      "openai_route": "Directe OpenAI Realtime-audio. Gebruikt geen spraakdiensten van Home Assistant.",
+      "claude_route": "Home Assistant herkent je spraak, Claude antwoordt en Home Assistant leest het antwoord voor.",
+      "claude_key": "Claude API-key",
+      "pipeline": "Home Assistant-spraakassistent",
+      "pipeline_choose": "Kies een spraakassistent",
+      "pipeline_incomplete": "Spraakdiensten ontbreken",
+      "pipeline_hint": "Gebruikt alleen de spraakherkenning, taal en stem van deze assistent. De gespreksagent wordt overgeslagen. Pauzeer na het spreken; de microfoon luistert weer na het antwoord.",
+      "pipeline_missing": "Configureer in Home Assistant een spraakassistent met spraakherkenning en een voorleesstem (bijvoorbeeld Whisper en Piper). Open daarna Instellingen opnieuw.",
+      "pipeline_save": "Spraakinstellingen opslaan",
+      "claude_privacy": "Claude ontvangt herkende tekst en schermcontext. Audio gaat via de gekozen Home Assistant-spraakdiensten. Pauzeer na het spreken; luisteren hervat na het antwoord. Maximaal 30 seconden per beurt en 10 minuten per sessie. De microfoon stopt na de ingestelde wachttijd, bij Stop voice of bij sluiten van het voorbeeld. Claude-webzoekopdrachten leveren bronlinks bij actuele informatie. Na een opdracht die muziek start, stopt de spraaksessie na de korte bevestiging.",
+      "transcribing": "Spraak herkennen…",
+      "searching": "Zoeken…",
+      "preparing_speech": "Gesproken antwoord voorbereiden…",
+      "details": "Tekst en bronnen",
+      "idle_label": "Stoppen na stilte (seconden)",
+      "idle_hint": "Geldt voor beide providers tijdens het wachten op jou. Pauzeert tijdens spreken en verwerken. Minimaal 1 seconde; standaard 5. Open het voorbeeld opnieuw na opslaan.",
+      "idle_save": "Wachttijd opslaan",
+      "idle_saved": "Wachttijd opgeslagen. Open het voorbeeld opnieuw om deze te gebruiken.",
+      "spotify_title": "Spotify zoeken",
+      "spotify_hint": "Voor OpenAI en Claude. Zoek nummers op titel en artiest; afspelen gaat via je Sonos- of Spotify-speler in Home Assistant. Houd Spotify voor Sonos gekoppeld in de Sonos-app. Gebruik de Client ID en Client Secret van je Spotify-developerapp.",
+      "spotify_configured": "Gegevens voor Spotify zoeken opgeslagen",
+      "spotify_missing": "Optioneel: stel zoeken in om een nummer op naam af te spelen. Bestaande afspeelbediening werkt ook zonder.",
+      "spotify_market": "Landcode",
+      "spotify_market_hint": "De tweelettercode van het land van je Spotify-account, bijvoorbeeld NL of BE. Zo vinden we nummers die daar beschikbaar zijn.",
+      "spotify_save": "Spotify zoeken opslaan",
+      "spotify_remove": "Spotify zoeken verwijderen",
+      "spotify_saved": "Opgeslagen. Start een nieuwe spraaksessie. Spotify-toegang wordt bij de eerste zoekopdracht gecontroleerd.",
+      "credentials_title": "API-gegevens",
+      "speech_title": "Stem en wachttijd",
+      "idle_summary": "{seconds} s stilte",
+      "spotify_status_saved": "Opgeslagen",
+      "spotify_status_optional": "Optioneel · Niet ingesteld",
+      "spotify_replace_hint": "Opgeslagen gegevens zijn verborgen. Vul beide velden alleen in om ze te vervangen.",
+      "spotify_id_replace": "Vul vervangende Client ID in",
+      "spotify_secret_replace": "Vul vervangende Client Secret in",
+      "spotify_id_enter": "Vul Client ID in",
+      "spotify_secret_enter": "Vul Client Secret in",
+      "output_title": "Luidspreker voor antwoorden",
+      "output_local": "Scherm / deze browser",
+      "output_volume": "Volume van antwoorden",
+      "output_save": "Luidspreker opslaan",
+      "output_saved": "Luidspreker opgeslagen. Open het voorbeeld opnieuw om deze te gebruiken.",
+      "output_unavailable": "Niet beschikbaar",
+      "output_hint": "Kies waar de assistent algemene vragen beantwoordt. Externe antwoorden pauzeren de microfooninvoer. Bevestigingen voor het starten van muziek blijven op het scherm. Stop spraak voordat je deze instelling wijzigt."
+    },
+    "voice_device": {
+      "title": "Fysiek spraakpaneel",
+      "hint": "Experimenteel: start spraak via aanraking of schakel een wake word in bij Audio op het paneel. Gebruikt de provider en antwoordinstellingen hierboven.",
+      "no_panels": "Voeg eerst een ondersteund fysiek P4-paneel toe aan Home Assistant.",
+      "panel": "Paneel",
+      "address": "Add-onadres bereikbaar vanaf het paneel",
+      "address_hint": "Gebruik het lokale netwerkadres en de mediapoort, niet de ingress-URL of localhost. ws:// is voor een vertrouwd lokaal netwerk; wss:// vereist een vertrouwde TLS-proxy.",
+      "paired_hint": "Dit paneel is gekoppeld. Een nieuwe koppeling verbreekt de verbinding totdat de nieuwe configuratie is geflasht.",
+      "pair": "Paneel koppelen",
+      "replace": "Koppeling vervangen",
+      "remove": "Koppeling intrekken",
+      "install": "Download de configuratie en voeg de substitutions samen met de Override YAML van dit paneel onder Build & install. Behoud bestaande instellingen en bouw en installeer daarna de voicefirmware.",
+      "download": "Voiceconfiguratie downloaden",
+      "private": "Dit bestand bevat het privétoken van het paneel, niet je provider-API-key. Sla het nu op; na het verlaten van deze pagina kun je het niet meer downloaden."
+    }
+  },
+  "configuration": {
+    "voice_assistant": {
+      "name": "Spraakassistent inschakelen",
+      "description": "Optionele spraakbediening in de browserpreview. Configureer provider, API-sleutels en antwoordluidspreker in de editor. Sla op en herstart om de wijziging toe te passen."
     }
   }
 }

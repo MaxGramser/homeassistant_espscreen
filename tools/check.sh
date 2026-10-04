@@ -21,7 +21,7 @@
 #   --baseline BYTES                 with --firmware: the CYD image of the last release, to print the growth
 #
 # Environment:
-#   PYTHON            python3 by default; needs aiohttp, PyYAML, Pillow, fontTools and jinja2 (.venv-portal/bin/python has them)
+#   PYTHON            python3 by default; needs aiohttp, PyYAML, Pillow, fontTools, jinja2, mutagen and av
 #   CXX               clang++ by default
 #   ESPHOME           the ESPHome command, esphome by default ("python -m esphome", or a newer Device Builder's)
 #   RENDER_PYTHON     for --render: a Python with aioesphomeapi and Pillow, by default the one next to ESPHOME
@@ -118,7 +118,7 @@ skip() { printf '%-40s SKIP (%s)\n' "$1" "$2"; }
 python_packages() {
   "$PYTHON" - <<'EOF' || return 1
 import importlib.util, sys
-wanted = {'aiohttp': 'aiohttp', 'yaml': 'PyYAML', 'PIL': 'Pillow', 'fontTools': 'fonttools', 'jinja2': 'jinja2'}
+wanted = {'aiohttp': 'aiohttp', 'yaml': 'PyYAML', 'PIL': 'Pillow', 'fontTools': 'fonttools', 'jinja2': 'jinja2', 'mutagen': 'mutagen', 'av': 'av'}
 missing = [package for module, package in wanted.items() if importlib.util.find_spec(module) is None]
 print(sys.executable, sys.version.split()[0])
 # Without them the server and camera tests skip themselves, and a skipped test proves nothing.

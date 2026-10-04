@@ -34,7 +34,7 @@ from updates import Updater
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
 from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_cover, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
-from core import MAP_TILE_MIN_FIRMWARE, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
+from core import AUDIO_DIAGNOSTICS, AUDIO_SETTINGS, AUDIO_TEST_BUTTONS, MAP_TILE_MIN_FIRMWARE, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
 from core import BOARD_KEYS, is_key, drawn_controls, FAVORITE_KINDS, SCREENSAVER_MIN_FIRMWARE, short
 from core import (FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ENTITY_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
                   packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, version_text)
@@ -51,6 +51,7 @@ import page_delivery
 import page_service
 import preview_images
 import preview_events
+import voice_preview
 from page_capabilities import CapabilityCache, identity as page_identity
 
 
@@ -185,6 +186,7 @@ class HomeAssistant:
         self.registry_changed = asyncio.Event()
         self.setting_events = []
         self.time_zone = None
+        self.location = {}
         # Home Assistant's unit system; a climate entity's temperature carries no unit of its own.
         self.units = {}
         # Home Assistant's own language (get_config), and the one the screens speak (Settings -> Language & region,
@@ -390,11 +392,12 @@ class HomeAssistant:
         return self.service_names_by_language[language]
 
     async def read_config(self):
-        """Units, time zone and language from Home Assistant's core config; again when someone changes them there."""
+        """Units, time zone, home location and language; refreshed when HA's core config changes."""
         self.config_stale = False
         try:
             config = await self.request('get_config')
             self.units = config.get('unit_system') or {}
+            self.location = {key: config.get(key) for key in ('location_name', 'latitude', 'longitude')}
             self.time_zone = ZoneInfo(config.get('time_zone') or 'UTC')
             language = config.get('language')
             changed = isinstance(language, str) and language != self.ha_language
@@ -1376,6 +1379,28 @@ class Manager:
         self.setting_index()  # the same walk fills the calibrate index
         return self._calibrate_index.get(device) if device else None
 
+    def audio_test_entities(self, screen):
+        device = screen.get('device_id')
+        if not device:
+            return {}
+        return {key: item['entity_id'] for item in self.ha.registry
+                if item.get('device_id') == device and item.get('platform') == 'esphome'
+                and item.get('entity_id', '').startswith('button.')
+                for key, name in AUDIO_TEST_BUTTONS.items() if item.get('original_name') == name}
+
+    def audio_diagnostic_entities(self, screen):
+        device = screen.get('device_id')
+        if not device:
+            return {}
+        return {key: item['entity_id'] for item in self.ha.registry
+                if item.get('device_id') == device and item.get('platform') == 'esphome'
+                and item.get('entity_id', '').startswith(('sensor.', 'binary_sensor.'))
+                for key, name in AUDIO_DIAGNOSTICS.items() if item.get('original_name') == name}
+
+    def audio_diagnostics(self, screen):
+        return {key: self.ha.states.get(entity, {}).get('state', 'unknown')
+                for key, entity in self.audio_diagnostic_entities(screen).items()}
+
     def settings_view(self, screen):
         """What the editor shows under Screen settings.
 
@@ -1408,7 +1433,7 @@ class Manager:
                 keys = [key for key in keys if key not in ('auto_home', 'auto_home_seconds')]
             # Dark mode, the page buttons and the home key came after the screens took over their settings: firmware
             # that gets them with the layout lacks them.
-            keys = [key for key in keys if key not in ('dark_mode', 'page_buttons', 'home_button')]
+            keys = [key for key in keys if key not in {'dark_mode', 'page_buttons', 'home_button'} | AUDIO_SETTINGS]
             return {'owner': 'layout', 'values': values, 'keys': keys, 'unavailable': [], 'rotations': list(turns),
                     'switches': switches, 'calibrate': calibrate}
         # Only the settings this screen has an entity for: one added in later firmware stays out of the panel.
@@ -1416,13 +1441,17 @@ class Manager:
         values = {key: setting_from_state(key, self.ha.states.get(entities[key])) for key in keys}
         # `rotations` are the angles this screen's glass allows (app 0.2.94): the editor offers those and no others.
         return {'owner': 'screen', 'values': values, 'keys': keys, 'unavailable': [key for key in keys if values[key] is None],
-                'rotations': list(turns), 'switches': switches, 'calibrate': calibrate}
+                'rotations': list(turns), 'switches': switches, 'calibrate': calibrate,
+                'audio_tests': list(self.audio_test_entities(screen)), 'audio_diagnostics': self.audio_diagnostics(screen)}
 
     def settings_states_key(self):
         """The states of every setting entity, so the sync loop notices a change the editor should show."""
         states = self.ha.states
         return tuple((entity, states.get(entity, {}).get('state')) for device in self.setting_index().values()
-                     for entity in device.values())
+                     for entity in device.values()) + tuple(
+                         (item['entity_id'], states.get(item['entity_id'], {}).get('state'))
+                         for item in self.ha.registry if item.get('platform') == 'esphome'
+                         and item.get('original_name') in AUDIO_DIAGNOSTICS.values())
 
     def store_settings(self, inbox, settings, screen=None, on_screen=False):
         """Settings of a screen that does not own them, kept with its layout.
@@ -3361,6 +3390,7 @@ def create_app(manager, development=False):
     # authentication or firmware capabilities; taller tiles left that stage in 0.3.1.
     editor_features = {'tall_tiles': True}
     app = web.Application(middlewares=[guard], client_max_size=128*1024)
+    voice_preview.register(app, manager)
     static = Path(__file__).parent / 'static'
 
     async def cache_assets(request, response):
@@ -3922,6 +3952,17 @@ def create_app(manager, development=False):
             i18n.SCREEN.reset(token)
         await manager.ha.call(alert_service(screen['node']), data)
         return web.json_response({'ok': True})
+    async def audio_test(request):
+        screen = manager.screen(request.match_info['inbox'])
+        if screen is None:
+            raise ValueError(t('addon.errors.unknown_screen'))
+        body = await request.json()
+        test = body.get('test') if isinstance(body, dict) else None
+        button = manager.audio_test_entities(screen).get(test) if isinstance(test, str) else None
+        if not button or not screen.get('online') or manager.ha.states.get(button, {}).get('state') == 'unavailable':
+            raise ValueError(t('addon.errors.audio_test_unavailable'))
+        await manager.ha.call('button.press', {'entity_id': button})
+        return web.json_response({'ok': True})
     async def calibrate(request):
         """Screen settings → Calibrate touch (app 0.2.117): the screen starts its calibration wizard, the same one it
         runs the first time it is switched on and the same one its own settings page starts. Nothing is measured here:
@@ -4092,6 +4133,7 @@ def create_app(manager, development=False):
     app.router.add_get(r'/api/firmware-preview/images/{token:[A-Za-z0-9_-]{16,64}}.bmp', firmware_preview_pixels)
     app.router.add_post('/api/screens/{inbox}/identify', identify)
     app.router.add_post('/api/screens/{inbox}/calibrate', calibrate)
+    app.router.add_post('/api/screens/{inbox}/audio-test', audio_test)
     app.router.add_post('/api/alerts/test', test_alert)
     app.router.add_get('/api/entity-actions', entity_actions)
     app.router.add_get('/api/entity-subtitle', entity_subtitle)
@@ -4128,7 +4170,10 @@ async def main():
         await runner.setup()
         await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
-        cameras = web.AppRunner(camera_feed.web_app(manager.camera), access_log=None)
+        media_app = camera_feed.web_app(manager.camera)
+        manager.voice_output.register_media(media_app)
+        manager.device_voice.register(None, media_app)
+        cameras = web.AppRunner(media_app, access_log=None)
         await cameras.setup()
         try:
             await web.TCPSite(cameras, '0.0.0.0', camera_feed.port()).start()

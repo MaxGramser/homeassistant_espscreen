@@ -7,7 +7,7 @@ import { glyph } from "../model/topbar";
 import FeedbackPanel from "./FeedbackPanel.vue";
 import ScreensaverCard from "./ScreensaverCard.vue";
 import {
-  calibrateTouch, choiceText, currentScreen, pageReachWarning, SETTING_GROUPS, setSetting, settingLabel, settingText, settingValues, settingsView, state, steppedSetting,
+  testAudio, calibrateTouch, choiceText, currentScreen, pageReachWarning, SETTING_GROUPS, setSetting, settingLabel, settingText, settingValues, settingsView, state, steppedSetting,
   type SettingRow,
 } from "../store";
 
@@ -28,7 +28,7 @@ const flip = (row: SettingRow) => (asSwitch(row) ? (Number(values.value[row.key]
 // Page buttons and swiping off: the pages that only Go to page tiles could reach, and don't.
 const reachWarning = computed(() => pageReachWarning());
 const unavailable = (row: SettingRow) => offline.value || Boolean(view.value?.unavailable.includes(row.key));
-const needs = (row: SettingRow) => (row.needs ? Boolean(values.value[row.needs]) : true);
+const needs = (row: SettingRow) => row.needs ? Boolean(values.value[row.needs]) : true;
 const status = computed(() => offline.value
   ? t("editor.screen_settings.status.offline")
   : state.settingPending
@@ -73,6 +73,17 @@ function click(e: MouseEvent, row: SettingRow, direction: number) {
 // Calibrate touch (app 0.2.117): the screen has to be there to show the crosses, whoever owns its settings.
 const calibrateReady = computed(() => Boolean(currentScreen.value?.online));
 const startCalibration = () => currentScreen.value && calibrateTouch(currentScreen.value);
+const audioActive = computed(() => view.value?.audio_diagnostics?.active === 'on');
+const audioMode = computed(() => ({ 1: 'microphone', 2: 'speaker', 3: 'wake_word' }[Number(view.value?.audio_diagnostics?.mode)]));
+const audioRunning = (test: string) => audioActive.value && audioMode.value === test;
+const audioDisabled = (test: string) => !currentScreen.value?.online || Boolean(state.settingPending)
+  || (test !== 'stop' && (audioActive.value || (test !== 'speaker' && Boolean(values.value.microphone_mute))));
+function audioLabel(test: string) {
+  const diagnostic = view.value?.audio_diagnostics?.status;
+  return audioMode.value === test && diagnostic
+    ? diagnostic : t(`editor.screen_settings.audio_tests.${test === 'stop' ? 'stop_audio_test' : 'test_' + test}`);
+}
+const audioActions = computed(() => view.value?.audio_tests?.filter((test) => test !== 'stop' || audioActive.value) || []);
 </script>
 
 <template>
@@ -90,7 +101,7 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
             <button v-if="isSwitch(row)" type="button" class="switch" :class="{ unknown: values[row.key] === null || values[row.key] === undefined }" role="switch"
               :id="`setting-${row.key}`" :aria-checked="Boolean(values[row.key]) ? 'true' : 'false'" :aria-labelledby="`setting-label-${row.key}`"
               :disabled="unavailable(row)" @click.stop="setSetting(row.key, flip(row), 150)"></button>
-            <div v-else-if="row.kind === 'choice'" class="seg" role="group" :aria-labelledby="`setting-label-${row.key}`">
+            <div v-else-if="row.kind === 'choice'" class="seg wrap" role="group" :aria-labelledby="`setting-label-${row.key}`">
               <button v-for="value in optionsOf(row)" :key="String(value)" type="button" :aria-pressed="values[row.key] === value ? 'true' : 'false'" :disabled="unavailable(row)" @click="setSetting(row.key, value, 150)">{{ choiceText(row, value) }}</button>
             </div>
             <div v-else class="step">
@@ -101,6 +112,15 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
           </div>
         </div>
         <p v-if="reachWarning && group.rows.some((row) => row.key === 'page_buttons')" class="hint warn" id="settings-page-reach">{{ reachWarning }}</p>
+        <template v-if="group.group === 'audio' && view.audio_tests?.length">
+          <p class="hint">{{ t('editor.screen_settings.audio_tests.hint') }}</p>
+          <div v-for="test in audioActions" :key="test" class="srow">
+            <button type="button" class="btn audio-test" :class="audioRunning(test) ? 'primary' : 'quiet'" :data-audio-test="test" :disabled="audioDisabled(test)" :aria-busy="audioRunning(test)" @click="currentScreen && testAudio(currentScreen, test)">
+              <span class="mdi">{{ glyph(test === 'stop' ? 'F04DB' : test === 'speaker' ? 'F057E' : 'F036C') }}</span>
+              <span role="status">{{ audioLabel(test) }}</span>
+            </button>
+          </div>
+        </template>
       </section>
       <!-- The screensaver (app 0.4.48) goes with standby, so it stands right after the group that turns standby on. -->
       <ScreensaverCard v-if="group.group === 'brightness'" />
@@ -127,4 +147,6 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
 <style scoped>
 .feedback-grid { margin-top: 14px; }
 .offline .feedback-grid { opacity: 1; }
+.audio-test { width: 100%; justify-content: flex-start; white-space: normal; text-align: left; }
+.audio-test.primary:disabled { opacity: 1; }
 </style>

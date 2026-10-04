@@ -219,3 +219,30 @@ shared number from `tools/affected_boards.py` in `packages/core.yaml` and `FIRMW
 and the CHANGELOG. `settings_screen.h` is part of the firmware preview's sources, so the preview is rebuilt
 (`sh web/wasm/build.sh`, or `.github/workflows/preview.yml` on the branch). The user docs that list the settings follow:
 the tables at the top of this page, README_EXTENDED.md and docs/EASY_SETUP.md.
+
+## Optional audio settings
+
+An audio-enabled board adds an **Audio** group before **This screen**. Its settings use the
+same entity-based write path as the other groups; they never enter the legacy eleven-key
+layout settings block. The hardware package owns separate saved preferences. Presence of
+these ESPHome entities on the screen's device enables the corresponding editor rows:
+
+| Setting | Entity name | Key |
+| --- | --- | --- |
+| Microphone mute | `switch`, Microphone mute | `microphone_mute` |
+| Automatic gain | `switch`, Microphone automatic level control | `microphone_alc` |
+| Speaker volume | `number`, Speaker volume | `speaker_volume` |
+| Tap sound | `switch`, Tap sound | `tap_sound` |
+| Wake word (test and voice builds) | `select`, Wake word | `wake_word` |
+
+| Wake word enabled (voice builds) | `switch`, Wake word enabled | `wake_word_enabled` |
+
+Diagnostic builds also expose buttons for speaker, microphone and wake-word tests and stopping
+a test. The editor presses only buttons belonging to that same ESPHome device. Test feedback
+appears inside the action row; Stop is shown only during a test. Microphone measurements remain
+available as HA diagnostic entities, without permanent meter rows in the settings page.
+
+`smart_display.audio` and `smart_display.audio_tests` are compile-time feature flags supplied
+by the optional packages, not runtime switches. Without them, the audio menu, callbacks and
+recording helper are excluded. Audio-off builds also omit translated audio strings; the shared
+text index table retains empty entries for compatibility. See [P4 audio setup](WAVESHAREP4.md#optional-audio).
