@@ -97,6 +97,11 @@ jc1060p470v2:
   model: JC1060P470 V2
   status: experimental
 
+waveshare5-dim:
+  file: waveshare5-dim.yaml
+  name: Waveshare
+  model: WAVESHARE5-DIM
+  
 hosyond40:
   file: hosyond40.yaml
   name: Hosyond
