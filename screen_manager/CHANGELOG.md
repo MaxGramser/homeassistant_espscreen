@@ -1,5 +1,6 @@
 ## 0.4.64 (firmware 0.39.0)
 
+- Load the voice transport's newer ESPHome certificate helper only when voice is configured. Screens without voice continue to load on the shared packages' minimum ESPHome version.
 - Voice builds show their status to the left of the top-bar clock on every tile page: a muted grey ear when local wake-word detection is ready, a blue microphone while listening, and a blue hourglass while a response is pending. The three icons share one fixed slot. Playback and mute hide it; other builds omit the indicator and its additional glyphs.
 - Keep voice activation silent. A wake phrase alone can return to listening without a greeting, spoken tool follow-up or renewed panel silence budget; a question after the wake phrase is still processed. OpenAI and Claude share this behaviour.
 - Integration branch: optional physical P4 voice with Start/Stop under Audio, per-panel pairing and the existing OpenAI/Claude provider layer. Microphone input and speaker replies take turns; silence, mute and connection loss end capture. Pairing tokens are separate from provider credentials. Optional local wake-word activation reuses ESPHome models, stops during a conversation, and resumes locally after the session ends.

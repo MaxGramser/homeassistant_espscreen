@@ -11,7 +11,6 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.core import CORE
 from esphome.components import microphone, speaker, switch
-from esphome.components.esp32 import add_idf_component, require_certificate_bundle
 
 from . import screen_text_gen
 
@@ -71,6 +70,10 @@ async def to_code(config):
     wanted = config[CONF_LANGUAGE]
     language, code = screen_text_gen.definitions(wanted, audio=config["audio"], audio_tests=config["audio_tests"], voice="voice" in config)
     if "voice" in config:
+        # Voice uses the P4 profile's newer ESPHome APIs. Keep ordinary screens
+        # importable on the shared packages' older minimum ESPHome version.
+        from esphome.components.esp32 import add_idf_component, require_certificate_bundle
+
         voice = config["voice"]
         cg.add_define("USE_SCREEN_DEVICE_VOICE")
         add_idf_component(name="espressif/esp_websocket_client", ref="1.8.0")
