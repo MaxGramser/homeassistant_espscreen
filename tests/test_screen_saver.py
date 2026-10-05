@@ -27,11 +27,12 @@ HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
     from server import Manager
 
-PLAYER, CAMERA = 'media_player.living_room', 'camera.front_door'
+PLAYER, CAMERA, MOTION = 'media_player.living_room', 'camera.front_door', 'binary_sensor.hall_motion'
 PLAYING = {'state': 'playing', 'attributes': {'friendly_name': 'Living room', 'media_title': 'Song', 'media_artist': 'Band',
                                               'media_duration': 200, 'entity_picture': '/api/media_player_proxy/x?cache=1'}}
 DOOR = {'state': 'idle', 'attributes': {'friendly_name': 'Front door'}}
-CHOICE = {'show': True, 'media': PLAYER, 'camera': CAMERA, 'order': ['media', 'camera', 'clock'], 'off': [], 'weather': 'auto', 'more': []}
+CHOICE = {'show': True, 'media': PLAYER, 'camera': CAMERA, 'binary_sensor': '', 'order': ['media', 'camera', 'clock'],
+          'off': [], 'weather': 'auto', 'more': []}
 
 
 class Choice(unittest.TestCase):
@@ -39,11 +40,13 @@ class Choice(unittest.TestCase):
         self.assertEqual(screen_saver.validate({}), screen_saver.DEFAULT)
         self.assertEqual(screen_saver.validate({'show': True})['order'], ['media', 'camera', 'clock'])
         for wrong in ({'show': 'yes'}, {'media': 'camera.front'}, {'camera': 'media_player.x'}, {'media': 'Media Player'},
+                      {'binary_sensor': 'sensor.motion'}, {'binary_sensor': 'Binary Sensor'},
                       {'order': ['media', 'clock']}, {'order': ['media', 'media', 'clock']}, {'off': ['tv']}, {'colour': 1}, None):
             with self.assertRaises(ValueError, msg=wrong):
                 screen_saver.validate(wrong)
         # An image entity is a camera too (a doorbell's last snapshot), as on an alert.
         self.assertEqual(screen_saver.validate({'camera': 'image.doorbell'})['camera'], 'image.doorbell')
+        self.assertEqual(screen_saver.validate({'binary_sensor': MOTION})['binary_sensor'], MOTION)
         # What is off keeps the order's order.
         self.assertEqual(screen_saver.validate({'order': ['clock', 'camera', 'media'], 'off': ['media', 'clock']})['off'], ['clock', 'media'])
 
@@ -61,6 +64,27 @@ class Choice(unittest.TestCase):
         self.assertEqual(screen_saver.pick({**CHOICE, 'show': False}, states, True), '')
         # A board without pictures: the clock alone.
         self.assertEqual(screen_saver.pick(CHOICE, states, False), 'clock')
+
+    def test_motion_sensor_keeps_the_camera_for_one_minute(self):
+        now = 1_800_000_000
+        stamp = lambda ago: datetime.fromtimestamp(now - ago, timezone.utc).isoformat()
+        choice = {**CHOICE, 'binary_sensor': MOTION, 'order': ['camera', 'clock', 'media'], 'off': ['media']}
+        states = {CAMERA: DOOR, MOTION: {'state': 'on'}}
+        self.assertEqual(screen_saver.pick(choice, states, True, now=now), 'camera')
+        self.assertIn(MOTION, screen_saver.entities(choice))
+        for age in (0, 59, 60):
+            states[MOTION] = {'state': 'off', 'last_changed': stamp(age)}
+            self.assertEqual(screen_saver.pick(choice, states, True, now=now), 'camera', age)
+        states[MOTION] = {'state': 'off', 'last_changed': stamp(61)}
+        self.assertEqual(screen_saver.pick(choice, states, True, now=now), 'clock')
+        for sensor_state in (None, {}, {'state': 'unknown', 'last_changed': stamp(1)},
+                             {'state': 'unavailable', 'last_changed': stamp(1)},
+                             {'state': 'off'}, {'state': 'off', 'last_changed': 'not-a-time'}):
+            state = {CAMERA: DOOR}
+            if sensor_state is not None:
+                state[MOTION] = sensor_state
+            self.assertEqual(screen_saver.pick(choice, state, True, now=now), 'clock', sensor_state)
+        self.assertEqual(screen_saver.pick({**choice, 'binary_sensor': ''}, {CAMERA: DOOR}, True), 'camera')
 
     def test_the_music_step_tries_its_players_in_their_order(self):
         """App 0.4.54: a speaker first and the television under it next; the step shows the first that plays with a cover."""
@@ -316,6 +340,36 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
             m.savers.set('d1', CHOICE)
             self.assertEqual(m.saver_entities('text.d1_tiles'), {PLAYER, CAMERA})
             self.assertEqual(m.saver_message(screen)['k'], 'media')
+
+    async def test_motion_changes_are_delivered_and_timeout_to_the_next_step(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = self.ha()
+            m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
+            seed_layout(m, 'text.d1_tiles', validate_layout({'title': 'Hall', 'tiles': [{'entity': 'light.hall', 'name': 'Hall'}]}))
+            sent = []
+
+            class Sender:
+                protocol, session, confirmed, features = 2, 'S1', 'R1', {screen_saver.FEATURE}
+
+                async def auxiliary(self, message, *, session, revision):
+                    sent.append(dict(message))
+                    return True
+
+            m.page_senders['text.d1_tiles'] = Sender()
+            screen = m.screen('text.d1_tiles')
+            choice = {**CHOICE, 'media': '', 'binary_sensor': MOTION, 'order': ['camera', 'clock', 'media'], 'off': ['media']}
+            m.savers.set('d1', choice)
+            self.assertIn(MOTION, m.watched_entities())
+            ha.states[MOTION] = {'state': 'on'}
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(sent[-1], {'op': 'saver', 'k': 'camera', 'e': CAMERA, 'n': 'Front door'})
+            current = datetime.now(timezone.utc)
+            ha.states[MOTION] = {'state': 'off', 'last_changed': current.isoformat()}
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(len(sent), 1, 'the camera remains selected during the grace period')
+            ha.states[MOTION]['last_changed'] = datetime.fromtimestamp(current.timestamp() - 61, timezone.utc).isoformat()
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(sent[-1], {'op': 'saver', 'k': 'clock'})
 
 
 if __name__ == '__main__':

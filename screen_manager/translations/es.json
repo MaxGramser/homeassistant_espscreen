@@ -2022,6 +2022,8 @@
         "add_media": "Otro reproductor",
         "players": "Reproductores, el primero arriba",
         "choose_camera": "Elige una cámara",
+        "choose_motion_sensor": "Sensor de movimiento opcional",
+        "motion_hint": "Con un sensor seleccionado, la cámara se muestra mientras detecte movimiento y durante un minuto después.",
         "weather_auto": "Temperatura exterior de Home Assistant",
         "weather_none": "Sin temperatura",
         "kinds": {

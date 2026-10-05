@@ -2022,6 +2022,8 @@
         "add_media": "Kolejny odtwarzacz",
         "players": "Odtwarzacze, pierwszy na górze",
         "choose_camera": "Wybierz kamerę",
+        "choose_motion_sensor": "Opcjonalny czujnik ruchu",
+        "motion_hint": "Po wybraniu czujnika kamera jest wyświetlana podczas wykrywania ruchu i przez minutę po jego ustaniu.",
         "weather_auto": "Temperatura zewnętrzna z Home Assistant",
         "weather_none": "Bez temperatury",
         "kinds": {

@@ -2022,6 +2022,8 @@
         "add_media": "Még egy lejátszó",
         "players": "Lejátszók, az első legfelül",
         "choose_camera": "Válassz kamerát",
+        "choose_motion_sensor": "Opcionális mozgásérzékelő",
+        "motion_hint": "Érzékelő kiválasztásakor a kamera mozgásérzékelés közben és annak megszűnése után egy percig látható.",
         "weather_auto": "Kinti hőmérséklet a Home Assistantból",
         "weather_none": "Nincs hőmérséklet",
         "kinds": {

@@ -2022,6 +2022,8 @@
         "add_media": "Weiterer Player",
         "players": "Player, der erste oben",
         "choose_camera": "Kamera wählen",
+        "choose_motion_sensor": "Bewegungsmelder (optional)",
+        "motion_hint": "Mit ausgewähltem Sensor wird die Kamera während der Bewegungserkennung und eine Minute danach angezeigt.",
         "weather_auto": "Außentemperatur aus Home Assistant",
         "weather_none": "Keine Temperatur",
         "kinds": {

@@ -59,6 +59,13 @@ const weatherChoices = computed(() => [
     .map((e) => [e.id, e.area ? `${e.name} · ${e.area}` : e.name] as const)
     .sort((a, b) => a[1].localeCompare(b[1])),
 ]);
+const motionChoices = computed(() => [
+  ["", t("editor.screen_settings.screensaver.choose_motion_sensor")] as const,
+  ...state.inventory.entities
+    .filter((e) => e.id.startsWith("binary_sensor."))
+    .map((e) => [e.id, e.area ? `${e.name} · ${e.area}` : e.name] as const)
+    .sort((a, b) => a[1].localeCompare(b[1])),
+]);
 const detail = (kind: SaverKind) => {
   if (kind === "media" && chosen.value.length > 1) return t("editor.screen_settings.screensaver.details.media_more");
   if (kind === "media" ? !chosen.value.length : kind !== "clock" && !saver.value?.[kind]) return t(`editor.screen_settings.screensaver.details.${kind}_unset`);
@@ -179,8 +186,15 @@ const playerSort = sorter<string>("#screensaver-players .saver-player[data-row]"
               <UiSelect v-if="adding" class="saver-pick saver-add" :class="{ indented: players.length > 1 }" :id="players.length ? `screensaver-media-${players.length + 1}` : 'screensaver-media'"
                 model-value="" :options="playerChoices(players.length)" @update:model-value="(value: string) => setPlayer(players.length, value)" />
             </div>
-            <UiSelect v-else-if="kind === 'camera'" class="saver-pick" id="screensaver-camera" :model-value="saver.camera" :options="choices('camera')"
-              @update:model-value="(value: string) => change({ camera: value })" />
+            <template v-else-if="kind === 'camera'">
+              <UiSelect class="saver-pick" id="screensaver-camera" :model-value="saver.camera" :options="choices('camera')"
+                @update:model-value="(value: string) => change({ camera: value })" />
+              <template v-if="saver.camera">
+                <UiSelect class="saver-pick" id="screensaver-motion-sensor" :model-value="saver.binary_sensor || ''" :options="motionChoices"
+                  @update:model-value="(value: string) => change({ binary_sensor: value })" />
+                <small>{{ t("editor.screen_settings.screensaver.motion_hint") }}</small>
+              </template>
+            </template>
             <UiSelect v-else class="saver-pick" id="screensaver-weather" :model-value="saver.weather ?? 'auto'" :options="weatherChoices"
               @update:model-value="(value: string) => change({ weather: value })" />
             <small>{{ detail(kind) }}</small>

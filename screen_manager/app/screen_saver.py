@@ -2,8 +2,10 @@
 
 Each screen has its own choice, kept per Home Assistant device as the screen's label is (screen_labels.py), so it
 outlives a renamed inbox and leaves the layouts' storage alone: a media player (or a few, tried in their order, app
-0.4.54), a camera and the order the screen tries them in, with the clock as a step of its own. This app decides which
-step is available right now (a player that plays and has a cover, a camera Home Assistant has, the clock always) and tells the screen in one small message whenever that
+0.4.54), a camera optionally gated by a movement sensor, and the order the screen tries them in, with the clock as a step
+of its own. This app decides which step is available right now (a player that plays and has a cover, a camera Home
+Assistant has with recent movement when a sensor is configured, the clock always) and tells the screen in one small
+message whenever that
 changes. The screen asks for its picture the way a camera's full view does, and the app makes one picture of the whole
 glass (camera_feed.encode_saver): a camera filling it, a cover filling it or beside its own colour, all a little darker
 for the words over it. Nothing on it takes a tap, so the first touch only wakes the screen.
@@ -37,8 +39,10 @@ PICTURE_KINDS = frozenset(('media', 'camera'))
 # entity that reports one, '' shows none, and a weather entity of your choice is that one.
 # `more` (app 0.4.54): the players the music step tries after `media`, in their order. The step shows the first of them
 # that plays with a cover: a speaker's own music first, say, and the poster of what the television under it plays next.
-DEFAULT = {'show': False, 'media': '', 'camera': '', 'order': list(KINDS), 'off': [], 'weather': 'auto', 'more': []}
+DEFAULT = {'show': False, 'media': '', 'camera': '', 'binary_sensor': '', 'order': list(KINDS), 'off': [],
+           'weather': 'auto', 'more': []}
 MORE_PLAYERS = 3
+MOTION_SECONDS = 60
 ENTITY = re.compile(r'[a-z0-9_]+\.[a-z0-9_]+')
 DOMAINS = {'media': ('media_player',), 'camera': ('camera', 'image')}
 # What a player does while its cover counts: playing, as Home Assistant's own media card shows its art.
@@ -62,6 +66,11 @@ def validate(value):
                                                         or entity.split('.')[0] not in DOMAINS[kind])):
             raise ValueError(f'screensaver {kind}')
         result[kind] = entity
+    sensor = value.get('binary_sensor', '')
+    if not isinstance(sensor, str) or (sensor and (len(sensor) > 120 or not ENTITY.fullmatch(sensor)
+                                                    or sensor.split('.')[0] != 'binary_sensor')):
+        raise ValueError('screensaver binary_sensor')
+    result['binary_sensor'] = sensor
     if 'more' in value:
         more = value['more']
         if not isinstance(more, list) or len(more) > MORE_PLAYERS or len(set(more)) != len(more) or any(
@@ -139,6 +148,27 @@ def _paused_lately(state, now, seconds=PAUSED_SECONDS):
     return now - moment.timestamp() < seconds
 
 
+def _motion_detected(choice, states, now=None):
+    """Whether the selected binary sensor is on or has been off for at most one minute."""
+    entity = choice.get('binary_sensor')
+    if not entity:
+        return True
+    state = states.get(entity) or {}
+    value = state.get('state')
+    if value == 'on':
+        return True
+    if value != 'off':
+        return False
+    try:
+        moment = datetime.fromisoformat(str(state.get('last_changed')).replace('Z', '+00:00'))
+    except (ValueError, TypeError):
+        return False
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    age = (time.time() if now is None else now) - moment.timestamp()
+    return 0 <= age <= MOTION_SECONDS
+
+
 def player(choice, states, keys=False, now=None, held=''):
     """The player the music step shows now, or '' for none: the first of its players that plays with a cover. On a
     screen with keys (KEYS_FEATURE) a player paused a short while ago counts after those, the first of them in the
@@ -157,6 +187,8 @@ def player(choice, states, keys=False, now=None, held=''):
 def entities(choice, states=None):
     """The entities a choice follows; with the states, also the weather entity its clock reads."""
     found = set(players(choice)) | ({choice['camera']} if choice.get('camera') else set())
+    if choice.get('binary_sensor'):
+        found.add(choice['binary_sensor'])
     weather = weather_entity(choice, states) if states is not None and choice.get('show') else ''
     return found | ({weather} if weather else set())
 
@@ -170,7 +202,10 @@ def available(kind, choice, states, pictures, keys=False, now=None, held=''):
         return False
     if kind == 'media':
         return bool(player(choice, states, keys, now, held))
-    return bool(choice.get(kind)) and (states.get(choice[kind]) or {}).get('state', '') not in GONE
+    if kind == 'camera':
+        return (bool(choice.get(kind)) and (states.get(choice[kind]) or {}).get('state', '') not in GONE
+                and _motion_detected(choice, states, now))
+    return False
 
 
 def pick(choice, states, pictures, keys=False, now=None, held=''):

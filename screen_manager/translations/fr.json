@@ -2022,6 +2022,8 @@
         "add_media": "Un autre lecteur",
         "players": "Lecteurs, le premier en haut",
         "choose_camera": "Choisir une caméra",
+        "choose_motion_sensor": "Capteur de mouvement facultatif",
+        "motion_hint": "Avec un capteur sélectionné, la caméra s'affiche pendant la détection et pendant une minute après sa fin.",
         "weather_auto": "Température extérieure de Home Assistant",
         "weather_none": "Pas de température",
         "kinds": {
