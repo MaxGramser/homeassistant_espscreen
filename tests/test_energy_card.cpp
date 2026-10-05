@@ -52,6 +52,13 @@ static Measure measure(const Board &b) {
   return m;
 }
 
+// The card's words as the screen gives them (screen.energy.* in English).
+static Words W() {
+  Words w;
+  w.solar = "Solar"; w.grid = "Grid"; w.battery = "Battery"; w.home = "Home"; w.other = "Other";
+  return w;
+}
+
 // The noon of the bench house: sun 5.2 kW, the battery charging 1.5 kW, 1.2 kW to the grid, four devices.
 static Data noon() {
   Data d;
@@ -160,7 +167,7 @@ int main() {
       if (!size.name) continue;
       for (const Data &data : {noon(), night_car(), busy()}) {
         ui::configure(b.dpi, b.standard ? "standard" : "compact");
-        const Scene sc = build(data, m, size.w, size.h, Words{});
+        const Scene sc = build(data, m, size.w, size.h, W());
         check(sc.ok == size.fits, size.fits ? "the diagram fits" : "too small says so", b, size.name);
         check(offered(size.w, size.h) == size.fits, "the editor offers the sizes that fit", b, size.name);
         if (!sc.ok) continue;
@@ -183,7 +190,7 @@ int main() {
           for (const Data &data : {noon(), night_car(), busy()}) {
             ui::configure(l.dpi, l.standard ? "standard" : "compact");
             assert(offered(w, h));
-            const Scene sc = build(data, m, w, h, Words{});
+            const Scene sc = build(data, m, w, h, W());
             check(sc.ok, "an offered size fits", b, "sweep");
             audit(sc, m, b, "sweep", w, h);
           }
@@ -194,24 +201,24 @@ int main() {
     const Board &g = BOARDS[2];
     const Measure m = measure(g);
     ui::configure(g.dpi, "standard");
-    const Scene sc = build(noon(), m, 424, 353, Words{});
+    const Scene sc = build(noon(), m, 424, 353, W());
     assert(sc.ok && sc.devices >= 2);
   }
   // A tall, narrow card turns the diagram; a wide one keeps it lying.
   {
     const Board &cyd = BOARDS[1];
     const Measure m = measure(cyd);
-    assert(build(noon(), m, 206, 232, Words{}).vertical);
+    assert(build(noon(), m, 206, 232, W()).vertical);
     const Board &g = BOARDS[2];
     const Measure mg = measure(g);
-    assert(!build(noon(), mg, 424, 223, Words{}).vertical);
+    assert(!build(noon(), mg, 424, 223, W()).vertical);
   }
   // Seven devices on the 10-inch: three of them and Other with the rest.
   {
     const Board &p4 = BOARDS[5];
     const Measure m = measure(p4);
     ui::configure(p4.dpi, "standard");
-    const Scene sc = build(busy(), m, 1230, 687, Words{});
+    const Scene sc = build(busy(), m, 1230, 687, W());
     assert(sc.devices == 4);
     bool other = false;
     for (auto &t : sc.texts) other |= t.s == "Other";
@@ -224,7 +231,7 @@ int main() {
     ui::configure(p4.dpi, "standard");
     Data d = busy();
     std::rotate(d.devices.begin(), d.devices.end() - 1, d.devices.end());  // the fridge (85 W) listed first
-    const Scene sc = build(d, m, 1230, 687, Words{});
+    const Scene sc = build(d, m, 1230, 687, W());
     std::vector<std::string> names;
     for (auto &t : sc.texts) if (t.s == "EV" || t.s == "Oven Power" || t.s == "Dishwasher Power" || t.s == "Fridge Power" || t.s == "Other") names.push_back(t.s);
     assert(sc.devices == 4);
@@ -235,7 +242,7 @@ int main() {
     const Board &g = BOARDS[2];
     const Measure m = measure(g);
     ui::configure(g.dpi, "standard");
-    const Scene sc = build(noon(), m, 424, 353, Words{});
+    const Scene sc = build(noon(), m, 424, 353, W());
     const Circle *solar = nullptr;
     for (auto &c : sc.circles) if (c.entity == "sensor.inverter_solar_power") solar = &c;
     assert(solar);

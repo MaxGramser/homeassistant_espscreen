@@ -79,7 +79,7 @@ inline std::string utf8(uint32_t c) {
 }
 // The card's own words in the screen's language (screen_text): the draw step fills them.
 struct Words {
-  std::string solar = "Solar", grid = "Grid", battery = "Battery", home = "Home", other = "Other";
+  std::string solar, grid, battery, home, other;  // the screen's own words (screen.energy.*)
   // How the screen writes numbers (screen_text.h, Home Assistant's own rule for the language and region): the decimal
   // mark, and what follows a number for a percentage ("%" or " %").
   char decimal = '.';

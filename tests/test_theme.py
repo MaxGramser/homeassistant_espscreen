@@ -63,7 +63,7 @@ class OnePlace(unittest.TestCase):
 
     def test_every_role_has_a_light_and_a_dark_value(self):
         roles = re.search(r'enum Role : uint8_t \{(.*?)ROLE_COUNT', THEME, re.S)[1]
-        names = re.findall(r'^\s+([A-Z_]+),', roles, re.M)
+        names = re.findall(r'^\s+([A-Z][A-Z0-9_]*),', roles, re.M)
         values = re.findall(r'/\* (\w+) \*/\s+\{0x([0-9A-F]{6}), 0x([0-9A-F]{6})\}', THEME)
         self.assertEqual(names, [name for name, _, _ in values], 'the table follows the enum, one row per role')
         self.assertGreater(len(names), 40)

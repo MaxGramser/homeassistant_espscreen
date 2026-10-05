@@ -13,7 +13,14 @@
   a page of its own on the CYD and the Waveshare 4.3-inch.
 - The card keeps more memory than a clock, and the memory meter in the editor counts it at its own price.
 - Every screen is offered this firmware, 0.47.0, which the energy card needs.
-- Tested: TESTED_PLACEHOLDER
+- Tested: the card rendered from the real firmware on the CYD lying down and standing up, the 4-inch Guition and the
+  Waveshare 4.3-inch, light and dark, with seven moments of a house read from a Home Assistant with a fake house in its
+  Energy settings (noon, a car charging at night, selling at the peak, solar only, grid only, seven devices, no power
+  sensors), and a tap on the solar circle opening its history. On the bench, the CYD, the Guition and the Waveshare
+  4.3-inch run it with live data from the bench Home Assistant. Every Python, C++, editor and WASM preview check; the
+  layout of the diagram is checked on every density and look a board has, from the least room the editor offers up.
+  Firmware builds on ESPHome 2026.9.0 for the CYD (89.9 % of its slot, 39 KB more than 0.46.0, agreed for this
+  card), the 4-inch Guition, the 10.1-inch Guition and the Waveshare 7-inch, and on 2026.6.2 for the CYD (91.7 %).
 
 ## 0.4.76 (firmware 0.46.0)
 
