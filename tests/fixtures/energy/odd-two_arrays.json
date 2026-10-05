@@ -1,0 +1,323 @@
+{
+ "prefs": {
+  "device_consumption": [
+   {
+    "name": "EV",
+    "stat_consumption": "sensor.wallbox_charging_energy",
+    "stat_rate": "sensor.wallbox_charging_power"
+   },
+   {
+    "stat_consumption": "sensor.heat_pump_energy",
+    "stat_rate": "sensor.heat_pump_power"
+   },
+   {
+    "stat_consumption": "sensor.washing_machine_energy",
+    "stat_rate": "sensor.washing_machine_power"
+   },
+   {
+    "stat_consumption": "sensor.dishwasher_energy",
+    "stat_rate": "sensor.dishwasher_power"
+   },
+   {
+    "stat_consumption": "sensor.dryer_energy",
+    "stat_rate": "sensor.dryer_power"
+   },
+   {
+    "stat_consumption": "sensor.oven_energy",
+    "stat_rate": "sensor.oven_power"
+   },
+   {
+    "stat_consumption": "sensor.fridge_energy",
+    "stat_rate": "sensor.fridge_power"
+   },
+   {
+    "stat_consumption": "sensor.office_energy",
+    "stat_rate": "sensor.office_power"
+   },
+   {
+    "stat_consumption": "sensor.tv_energy",
+    "stat_rate": "sensor.tv_power"
+   },
+   {
+    "stat_consumption": "sensor.hot_water_boiler_energy",
+    "stat_rate": "sensor.hot_water_boiler_power"
+   }
+  ],
+  "device_consumption_water": [],
+  "energy_sources": [
+   {
+    "cost_adjustment_day": 0.0,
+    "entity_energy_price": null,
+    "entity_energy_price_export": null,
+    "number_energy_price": null,
+    "number_energy_price_export": null,
+    "power_config": {
+     "stat_rate_from": "sensor.grid_import_power",
+     "stat_rate_to": "sensor.grid_export_power"
+    },
+    "stat_compensation": null,
+    "stat_cost": null,
+    "stat_energy_from": "sensor.p1_meter_energy",
+    "stat_energy_to": "sensor.grid_export_energy",
+    "stat_rate": "sensor.energy_grid_grid_import_power_grid_export_power_net_power",
+    "type": "grid"
+   },
+   {
+    "stat_energy_from": "sensor.inverter_solar_energy",
+    "stat_rate": "sensor.inverter_solar_power",
+    "type": "solar"
+   },
+   {
+    "stat_energy_from": "sensor.garage_roof_solar_energy",
+    "stat_rate": "sensor.garage_roof_solar_power",
+    "type": "solar"
+   },
+   {
+    "power_config": {
+     "stat_rate_inverted": "sensor.battery_charge_power_inverted"
+    },
+    "stat_energy_from": "sensor.battery_energy",
+    "stat_energy_to": "sensor.battery_charged_energy",
+    "stat_rate": "sensor.battery_charge_power_inverted_inverted",
+    "stat_soc": "sensor.battery_state_of_charge",
+    "type": "battery"
+   }
+  ]
+ },
+ "states": {
+  "sensor.battery_charge_power_inverted_inverted": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Battery Charge Power Inverted Inverted",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "-900.0"
+  },
+  "sensor.battery_state_of_charge": {
+   "attributes": {
+    "device_class": "battery",
+    "friendly_name": "Battery State of Charge",
+    "state_class": "measurement",
+    "unit_of_measurement": "%"
+   },
+   "state": "73.0"
+  },
+  "sensor.dishwasher_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Dishwasher Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.dishwasher_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Dishwasher Power",
+    "icon": "mdi:dishwasher",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "0.0"
+  },
+  "sensor.dryer_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Dryer Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.dryer_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Dryer Power",
+    "icon": "mdi:tumble-dryer",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "0.0"
+  },
+  "sensor.energy_grid_grid_import_power_grid_export_power_net_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Grid Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "-2900.0"
+  },
+  "sensor.fridge_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Fridge Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.fridge_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Fridge Power",
+    "icon": "mdi:fridge",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "85.0"
+  },
+  "sensor.garage_roof_solar_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Garage Roof Solar Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "kW"
+   },
+   "state": "2.4"
+  },
+  "sensor.heat_pump_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Heat Pump Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.heat_pump_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Heat Pump Power",
+    "icon": "mdi:heat-pump",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "0.0"
+  },
+  "sensor.hot_water_boiler_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Hot Water Boiler Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.hot_water_boiler_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Hot Water Boiler Power",
+    "icon": "mdi:water-boiler",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "1000.0"
+  },
+  "sensor.inverter_solar_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Inverter Solar Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "3100.0"
+  },
+  "sensor.office_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Office Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.office_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Office Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "120.0"
+  },
+  "sensor.oven_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Oven Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.oven_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Oven Power",
+    "icon": "mdi:stove",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "0.0"
+  },
+  "sensor.tv_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "TV Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.tv_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "TV Power",
+    "icon": "mdi:television",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "0.0"
+  },
+  "sensor.wallbox_charging_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Wallbox Charging Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.wallbox_charging_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Wallbox Charging Power",
+    "icon": "mdi:car-electric",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "0.0"
+  },
+  "sensor.washing_machine_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Washing Machine Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.washing_machine_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Washing Machine Power",
+    "icon": "mdi:washing-machine",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "650.0"
+  }
+ }
+}

@@ -29,13 +29,14 @@ import light_groups
 import media_library
 import speakers
 import map_card
+import energy_flow
 import map_tiles
 import tile_icons
 from updates import Updater
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
 from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_cover, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
-from core import MAP_TILE_MIN_FIRMWARE, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
+from core import ENERGY_TILE, MAP_TILE_MIN_FIRMWARE, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
 from core import BOARD_KEYS, has_battery, is_key, drawn_controls, FAVORITE_KINDS, SCREENSAVER_MIN_FIRMWARE, short
 from core import (FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ENTITY_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
                   packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, version_text)
@@ -97,6 +98,9 @@ def status_text(status):
             return t('addon.status.screen.error', reason=status[len('Error: '):])
     return status
 FORECAST_SECONDS = 1800
+# Home Assistant's Energy settings, which the energy card is drawn from (energy_flow.py): read again every five minutes,
+# so a sensor added there reaches the card without a restart.
+ENERGY_PREFS_SECONDS = 300
 # A screen that answers its ping (firmware 0.2.49+) is asked with this timeout, so a busy screen never holds
 # up the others. An answer that the screen lacks something repeats everything, after this many seconds right
 # after a full send, doubling up to RESEND_GUARD_SECONDS while it keeps failing.
@@ -188,6 +192,9 @@ class HomeAssistant:
         self.issues_changed = asyncio.Event()
         self.setting_events = []
         self.time_zone = None
+        # The home's name in Home Assistant (get_config `location_name`): the energy card names the house with it, as
+        # Home Assistant's own live power view does.
+        self.location_name = ''
         # Home Assistant's unit system; a climate entity's temperature carries no unit of its own.
         self.units = {}
         # Home Assistant's own language (get_config), and the one the screens speak (Settings -> Language & region,
@@ -401,6 +408,7 @@ class HomeAssistant:
             config = await self.request('get_config')
             self.units = config.get('unit_system') or {}
             self.time_zone = ZoneInfo(config.get('time_zone') or 'UTC')
+            self.location_name = config.get('location_name') if isinstance(config.get('location_name'), str) else ''
             language = config.get('language')
             changed = isinstance(language, str) and language != self.ha_language
             self.ha_language = language if isinstance(language, str) else self.ha_language
@@ -2007,7 +2015,11 @@ class Manager:
         layout, screen = self.layouts.get(inbox), self.screen(inbox) if isinstance(inbox, str) else None
         if hours not in history_card.RANGES or not layout or not screen or not screen.get('online'):
             return
-        if entity not in {tile['entity'] for tile in layout['tiles']}:
+        # A tile's own entity, or a sensor an energy card on the layout opens from its circles (app 0.4.77).
+        shown = {tile['entity'] for tile in layout['tiles']}
+        if ENERGY_TILE in shown:
+            shown |= set(energy_flow.related_entities(self.energy_prefs()))
+        if entity not in shown:
             return
         what = history_card.kind(entity, self.ha.states.get(entity))
         action = self.transport(inbox, screen)
@@ -2090,6 +2102,9 @@ class Manager:
             followed = (tuple(e for e in self.ha.states if isinstance(e, str) and e.split('.')[0] in ('person', 'device_tracker'))
                         if everyone else tuple(map_card.shown(tile, self.ha.states)))
             return tuple(e for e in followed if e != tile['entity']) + tuple(e for e in self.ha.states if isinstance(e, str) and e.startswith('zone.'))
+        # The energy card (app 0.4.77) reads every sensor of the Energy settings.
+        if tile['entity'] == ENERGY_TILE:
+            return tuple(energy_flow.related_entities(self.energy_prefs()))
         if tile['entity'].startswith('media_player.'):
             # The speakers of its menu: who it groups with, the speakers that play its library, and the one it follows.
             entity = tile['entity']
@@ -2302,7 +2317,7 @@ class Manager:
         # The speakers a player's menu lists change with what this app started and the libraries it read.
         media = (tuple(sorted(self.outputs.items())), tuple(sorted(e for e, known in self.accounts.items() if known[1])))
         savers = tuple(sorted(e for choice in self.savers.choices.values() for e in screen_saver.entities(choice, self.ha.states)))
-        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups, media, savers)
+        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups, media, savers, id(self.energy_prefs()))
         if key != self._watched_key:
             watched = {tile['entity'] for layout in self.layouts.values() for tile in layout['tiles']}
             watched |= {item['entity'] for record in self.store.records().values() if record['format'] == PAGE_FORMAT
@@ -2313,6 +2328,11 @@ class Manager:
             watched |= set(savers)
             self._watched_key, self._watched = key, watched
         return set(self._watched)
+
+    def energy_prefs(self):
+        """Home Assistant's Energy settings as last read (energy/get_prefs), {} before the first answer."""
+        entry = self.forecasts.get('energy/get_prefs')
+        return entry[1] if entry and isinstance(entry[1], dict) else {}
 
     async def cached(self, store, key, ttl, fetch):
         entry=store.get(key)
@@ -2360,7 +2380,18 @@ class Manager:
             tile={**tile,'name':options['play'].get('title') or ''}
         # A light's effects page (app 0.2.83) names the device's selects and numbers as Home Assistant does, with its icons.
         light=tile['entity'].startswith('light.')
-        extra=extras(tile,states,forecast,getattr(self.ha,'time_zone',None),hourly,device=device,
+        if tile['entity'] == ENERGY_TILE and hasattr(self.ha, 'request'):
+            async def prefs():
+                try:
+                    return await self.ha.request('energy/get_prefs')
+                except Refused:
+                    return {}  # no Energy settings yet: the card says where to add them
+            await self.cached(self.forecasts, 'energy/get_prefs', ENERGY_PREFS_SECONDS, prefs)
+            # Home Assistant away is no answer: asked again with the next message rather than in five minutes.
+            if not isinstance(self.forecasts['energy/get_prefs'][1], dict):
+                self.forecasts.pop('energy/get_prefs', None)
+        extra=extras(tile,states,forecast,getattr(self.ha,'time_zone',None),hourly,device=device,energy=self.energy_prefs() if tile['entity'] == ENERGY_TILE else None,
+                     home_name=getattr(self.ha,'location_name','') if tile['entity'] == ENERGY_TILE else '',
                      entries=self.registry_index() if light or (tile.get('options') or {}).get('display') == 'map' else None,words=getattr(self.ha,'state_words',None) if light else None,
                      icon_of=row_icon if light else None,device_name=self.device_name_of(tile['entity']) if light else None)
         if tile['entity'].startswith('vacuum.'):

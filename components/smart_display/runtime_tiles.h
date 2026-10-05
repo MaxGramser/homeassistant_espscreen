@@ -49,6 +49,7 @@
 #include "picture_store.h"
 #include "media_card.h"
 #include "saver_view.h"
+#include "energy_view.h"
 #include "light_card.h"
 #include "weather_card.h"
 #include "forecast_tile.h"
@@ -426,6 +427,8 @@ struct Widgets {
   // The album cover a media card over the whole page shows (firmware 0.3.2+): the player, its picture's mark, the size
   // and colour asked for and where it goes on the card, so a kept page can have it fetched ahead and put on the card.
   std::string cover_entity, cover_mark; int cover_size=0; uint32_t cover_ground=0; media_card::Rect cover_rect{};
+  // The energy card's scene and running dots (firmware 0.47.0+, energy_view.cpp); it goes with the card's extra layer.
+  energy_view::View *energy{};
 };
 // A page is being built off the glass (warm_page): its cards ask for no pictures and wake nothing.
 inline bool warming=false;
@@ -894,6 +897,12 @@ enum RemoteKey : int { RK_UP, RK_DOWN, RK_LEFT, RK_RIGHT, RK_OK, RK_BACK, RK_HOM
 inline void climate_step(Tile &t,int direction);
 inline const lv_font_t *tile_icon_font();
 inline unsigned detail_index=0;
+// A sensor that is no tile of its own, on the card a tap opened (firmware 0.47.0+): an energy card's circle opens its
+// sensor's history, as a node of Home Assistant's own live view opens its more-info. Its index lies past every tile, so
+// what works on a tile's card (its keys, its tile) finds nothing to do; what reads the open card asks detail_tile().
+inline constexpr unsigned SENSOR_DETAIL=0xFFFFu;
+inline Tile detail_sensor;
+inline Tile *detail_tile(){return detail_index<model.count?&model.tiles[detail_index]:detail_index==SENSOR_DETAIL?&detail_sensor:nullptr;}
 inline const lv_font_t *detail_font=nullptr;
 inline lv_obj_t *detail_actions[32]{};
 inline unsigned detail_action_count=0;
@@ -1065,7 +1074,7 @@ inline void detail_command(int cmd){
   // History ranges (firmware 0.2.51+): redraw after this event, which belongs to a key the redraw deletes.
   if(cmd>=160&&cmd<163){
     static const uint32_t hours[]={1,24,168};
-    if(detail_index<model.count&&allowed(esphome::millis(),300+cmd,"history range")&&history_hours!=hours[cmd-160]){
+    if(detail_tile()&&allowed(esphome::millis(),300+cmd,"history range")&&history_hours!=hours[cmd-160]){
       history_hours=hours[cmd-160];
       lv_async_call([](void *){if(detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN))show_detail(detail_index);},nullptr);
     }
@@ -4240,14 +4249,15 @@ inline void render_media_detail(Tile &t,unsigned index,bool large,int width,int 
   for(auto *k:keys)if(!lv_obj_has_state(k,LV_STATE_DISABLED) && detail_action_count<32)detail_actions[detail_action_count++]=k;
 }
 inline void show_detail(unsigned index){
-  if(index>=model.count)return;
+  if(index>=model.count&&index!=SENSOR_DETAIL)return;
+  Tile &t=index==SENSOR_DETAIL?detail_sensor:model.tiles[index];
   // Another tile's card: a keypad left open for an alarm does not come back with it.
-  if(alarm_pad.open&&model.tiles[index].entity!=alarm_pad.entity)alarm_close_pad();
+  if(alarm_pad.open&&t.entity!=alarm_pad.entity)alarm_close_pad();
   // A card that opens starts on a day (an hour for a tile whose graph shows one); switching ranges keeps it open.
   if(!detail_root||lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)||detail_index!=index){
-    history_hours=model.tiles[index].history_hours==1?1:24;history_asked_entity.clear();weather_page=0;select_page=0;
+    history_hours=t.history_hours==1?1:24;history_asked_entity.clear();weather_page=0;select_page=0;
   }
-  detail_index=index;auto &t=model.tiles[index];
+  detail_index=index;
   // The card's own font is the tile title's as the look gave it (style_title), not the one the first cell wears right
   // now: a wide name there switches to another step, and this is kept for every card that opens after it.
   if(!detail_font)detail_font=widgets[0].title_font?widgets[0].title_font:lv_obj_get_style_text_font(widgets[0].title,LV_PART_MAIN);
@@ -4343,8 +4353,18 @@ inline void show_detail(unsigned index){
 
 namespace runtime_tiles {
 inline void history_received(){
-  if(detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)&&detail_index<model.count&&
-     model.tiles[detail_index].entity==history.entity&&history_hours==history.hours)refresh_detail(detail_index);
+  if(detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)&&detail_tile()&&
+     detail_tile()->entity==history.entity&&history_hours==history.hours)refresh_detail(detail_index);
+}
+// An energy card's circle opens its sensor (firmware 0.47.0+), and the card's next moment brings the sensor's state.
+inline void open_sensor_detail(const std::string &entity,const std::string &name,const std::string &state,const std::string &unit){
+  detail_sensor=Tile{};detail_sensor.entity=entity;detail_sensor.name=name;detail_sensor.state=state;detail_sensor.unit=unit;
+  detail_sensor.received=true;
+  show_detail(SENSOR_DETAIL);
+}
+inline void sensor_detail_update(const std::string &entity,const std::string &state){
+  if(detail_index!=SENSOR_DETAIL||detail_sensor.entity!=entity||detail_sensor.state==state)return;
+  detail_sensor.state=state;refresh_detail(SENSOR_DETAIL);
 }
 inline void refresh_detail(unsigned index){
   if(!detail_root || lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) || detail_index!=index)return;
@@ -4420,7 +4440,7 @@ inline const char *icon_for(const Tile &tile) {
   if (d == "timer") return "\U000F051B";
   if (d == "person") return "\U000F0004";
   // The map tile's marker (firmware 0.21.0) only shows while its picture is on its way.
-  if (d == "screen") return tile.is_settings() ? "\U000F0493" : tile.is_page() ? "\U000F0054" : tile.entity == "screen.map" ? "\U000F034E" : "\U000F0150";
+  if (d == "screen") return tile.is_settings() ? "\U000F0493" : tile.is_page() ? "\U000F0054" : tile.entity == "screen.map" ? "\U000F034E" : tile.is_energy() ? "\U000F140B" : "\U000F0150";
   if (d == "camera" || d == "image") return "\U000F07AE";
   if (d == "alarm_control_panel") return alarm_panel::icon(tile.state);
   if (d == "lock") return lock_icon(tile);
@@ -4521,6 +4541,13 @@ inline void event(lv_event_t *event) {
     if (card.is_map()) {
       if (code == LV_EVENT_SHORT_CLICKED && card.tap != "none" && camera_supported() && allowed(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), card.entity))
         camera_open(card.entity, card.name, (int)w.index);  // its name comes with its state ("Map")
+      return;
+    }
+    // The energy card: a circle with a sensor behind it opens that sensor's history (firmware 0.47.0+).
+    if (card.is_energy()) {
+      lv_point_t at;
+      if (code == LV_EVENT_SHORT_CLICKED && card.tap != "none" && finger_at(at) && allowed(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), card.entity))
+        energy_view::tap(w, card, at);
       return;
     }
     if (!card.is_settings() || card.tap == "none" || (settings_screen::may_open && !settings_screen::may_open())) return;
@@ -4859,6 +4886,7 @@ inline void end_extra(Widgets &w) {
   hide_extra(w);
   if(!w.extra_mode.empty()){
     if(captured_slider&&std::find(w.parts.begin(),w.parts.end(),captured_slider)!=w.parts.end()){captured_slider=nullptr;slider_changed=false;}
+    if(w.energy)energy_view::release(w);
     lv_obj_clean(w.extra);w.parts.fill(nullptr);w.extra_mode.clear();delete[] w.points;w.points=nullptr;}
 }
 // Two triangles per segment between the polyline and its baseline. No canvas
@@ -6954,7 +6982,9 @@ inline void render_slot(size_t slot) {
   bool clock=t.is_clock(), forecast=d=="weather" && t.display=="forecast" && w.wide && t.extra().forecast.size()>0 && fresh() && t.available();
   bool sunpath=d=="sun" && t.display=="sunpath" && w.wide && !t.extra().sunrise.empty() && !t.extra().sunset.empty() && fresh() && t.available();
   bool graph=d=="sensor" && t.display=="graph" && t.has_history && !clock;
-  bool custom=clock||forecast||sunpath||bedside;
+  // The energy card (firmware 0.47.0+) draws its own diagram, on any size it takes.
+  bool energy=t.is_energy();
+  bool custom=clock||forecast||sunpath||bedside||energy;
   if(!large_tile)pad_vertical(w.tile,watch||custom||graph?2:4);
   // A big value that stepped up to the setpoint's digits (the watch block below) keeps them until that block
   // decides again, so a card is not restyled twice a render.
@@ -6989,6 +7019,11 @@ inline void render_slot(size_t slot) {
       const int vh=lv_font_get_line_height(face);lv_obj_set_size(w.value,d,vh);lv_obj_set_pos(w.value,(content_w-d)/2,(content_h-vh)/2);
     }
     lap(swipe_profile::GEOMETRY);
+  }else if(energy){
+    lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);hide_panel(w);lv_obj_add_flag(w.progress,LV_OBJ_FLAG_HIDDEN);
+    lap(swipe_profile::GEOMETRY);
+    energy_view::render(w,t,content_w,content_h);
+    lap(swipe_profile::CUSTOM);
   }else if((t.live()||t.is_map())&&render_camera_card(w,t,content_w,content_h)){
     lap(swipe_profile::GEOMETRY);
   }else if(t.favorite()&&render_favorite_card(w,t,content_w,content_h)){
@@ -7257,7 +7292,7 @@ inline void render_slot(size_t slot) {
   // in the media colours, not the card's.
   if(w.extra_mode=="bedside"){}  // render_bedside paints its own parts
   else if(w.extra_mode=="calm"||w.extra_mode=="flip")paint_face(w,title_color,value_color,icon_color);
-  else for(unsigned i=0;i<w.parts.size() && w.extra_mode!="media" && w.extra_mode!="tall" && w.extra_mode!="cover_tilt" && w.extra_mode!="forecast" && w.extra_mode!="forecast_rows" && w.extra_mode!="favorite";++i){
+  else for(unsigned i=0;i<w.parts.size() && w.extra_mode!="media" && w.extra_mode!="tall" && w.extra_mode!="cover_tilt" && w.extra_mode!="forecast" && w.extra_mode!="forecast_rows" && w.extra_mode!="favorite" && w.extra_mode!="energy";++i){
     auto *p=w.parts[i];if(!p)continue;
     bool muted=w.extra_mode=="sunpath" ? i>=1 : w.extra_mode=="calendar" ? i==15||i==17 : w.extra_mode=="digital" ? i==16||i==17 : i==16;
     if(lv_obj_check_type(p,&lv_label_class))set_color(p,LV_STYLE_TEXT_COLOR,muted?value_color:title_color);
@@ -8348,7 +8383,7 @@ inline size_t layout_cost() {
   size_t sum = 0;
   for (size_t i = 0; i < model.count && i < model.tiles.size(); ++i) {
     const auto &t = model.tiles[i];
-    sum += tile_memory::cost(tile_memory::domain_of(t.entity), tile_memory::own_action(t.tap), tile_memory::own_line(t.subtitle), board);
+    sum += tile_memory::cost(t.entity, tile_memory::own_action(t.tap), tile_memory::own_line(t.subtitle), board);
   }
   // And its pages: a page's title, and each item of its top bar that shows an entity (a text or a moment).
   for (const auto &page : model.page_data.records) {
@@ -8436,7 +8471,7 @@ inline size_t kept_capacity() {
 inline void release_kept(size_t from) {
   for (size_t i = from; i < kept_sets.size(); ++i) {
     if (!kept_sets[i]) continue;
-    for (auto &w : *kept_sets[i]) if (w.tile) lv_obj_delete(w.tile);
+    for (auto &w : *kept_sets[i]) { if (w.energy) energy_view::release(w); if (w.tile) lv_obj_delete(w.tile); }
     kept_sets[i]->~CardSet();
     kept_free(kept_sets[i]);
     kept_sets[i] = nullptr;
@@ -8720,8 +8755,8 @@ inline void tick() {
     else ESP_LOGI("wifi_status", "Wi-Fi back: the pages again");
     if (room_label) { mark_all(); render(room_label); } else refresh_all();
   }
-  if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_index<model.count){
-    auto &t=model.tiles[detail_index];bool waiting=t.loading(esphome::millis());
+  if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_tile()){
+    auto &t=*detail_tile();bool waiting=t.loading(esphome::millis());
     // The history the card waits for: drawn once it is here (a finger on the screen holds that back), asked for
     // again every 30 s, and after 8 s without it (an app from before 0.2.59, Home Assistant away) the card says so.
     if(history_chart.status&&!history_chart.ready){
@@ -8862,7 +8897,7 @@ inline void restyle() {
     settings_screen::page_dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count(), ui::large());
   header_renderer.restyle();
   if (room_label) { mark_all(); render(room_label); }
-  if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_index < model.count) show_detail(detail_index);
+  if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_tile()) show_detail(detail_index);
   media_library::restyle();
 }
 inline std::string vacuum_option(unsigned index) {

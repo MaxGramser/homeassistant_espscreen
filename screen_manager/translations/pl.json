@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Wstecz"
+    },
+    "energy": {
+      "solar": "Słońce",
+      "grid": "Sieć",
+      "battery": "Bateria",
+      "home": "Dom",
+      "other": "Inne",
+      "no_power": "Brak czujników mocy w ustawieniach energii Home Assistant"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Zegar",
         "nightstand": "Zegar przy łóżku",
         "page": "Przejdź do strony {page}",
-        "map": "Mapa"
+        "map": "Mapa",
+        "energy": "Energia"
       },
       "identify": {
         "title": "To jest {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Głośnik",
         "speaker_now": "Tam, gdzie gra",
         "speaker_hint": "Gdzie startuje. „Tam, gdzie gra” prosi na ekranie o głośnik, gdy odtwarzacz nigdzie nie gra."
+      },
+      "energy": {
+        "hint": "Moc domu w tej chwili, narysowana tak, jak rysuje ją widok Energia w Home Assistant: słońce, sieć, bateria i twoje urządzenia, z ustawień Energii w Home Assistant. Dotknięcie koła otwiera historię tego czujnika.",
+        "needs_firmware": "Karta energii wymaga oprogramowania 0.47.0 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie."
       }
     },
     "tile_card": {

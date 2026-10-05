@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Volver"
+    },
+    "energy": {
+      "solar": "Solar",
+      "grid": "Red",
+      "battery": "Batería",
+      "home": "Casa",
+      "other": "Otros",
+      "no_power": "No hay sensores de potencia en los ajustes de energía de Home Assistant"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Reloj",
         "nightstand": "Reloj de mesita",
         "page": "Ir a la página {page}",
-        "map": "Mapa"
+        "map": "Mapa",
+        "energy": "Energía"
       },
       "identify": {
         "title": "Esta es {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Altavoz",
         "speaker_now": "Donde suena",
         "speaker_hint": "Dónde empieza. «Donde suena» pide un altavoz en la pantalla cuando el reproductor no suena en ninguno."
+      },
+      "energy": {
+        "hint": "La potencia de la casa en este momento, dibujada como la dibuja la vista de Energía de Home Assistant: solar, red, batería y tus dispositivos, desde los ajustes de Energía de Home Assistant. Un toque en un círculo abre el historial de ese sensor.",
+        "needs_firmware": "La tarjeta de energía necesita el firmware 0.47.0 o posterior: tras guardar, pulsa Actualizar en la pantalla."
       }
     },
     "tile_card": {

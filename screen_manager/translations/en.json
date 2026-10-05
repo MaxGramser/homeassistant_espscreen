@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Back"
+    },
+    "energy": {
+      "solar": "Solar",
+      "grid": "Grid",
+      "battery": "Battery",
+      "home": "Home",
+      "other": "Other",
+      "no_power": "No power sensors in Home Assistant's energy settings"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Clock",
         "nightstand": "Bedside clock",
         "page": "Go to page {page}",
-        "map": "Map"
+        "map": "Map",
+        "energy": "Energy"
       },
       "identify": {
         "title": "This is {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Speaker",
         "speaker_now": "Where it plays",
         "speaker_hint": "Where it starts. \"Where it plays\" asks for a speaker on the screen when the player plays nowhere."
+      },
+      "energy": {
+        "hint": "The power of the house right now, drawn the way Home Assistant's own Energy view draws it: solar, grid, battery and your devices, from the Energy settings in Home Assistant. A tap on a circle opens that sensor's history.",
+        "needs_firmware": "The energy card needs firmware 0.47.0 or newer: press Update on the screen after saving."
       }
     },
     "tile_card": {

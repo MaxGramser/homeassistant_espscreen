@@ -9,6 +9,7 @@
 #include "screen_text.h"
 #include "ui_scale.h"
 #include "page_protocol.h"
+#include "energy_card.h"
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -126,8 +127,10 @@ inline bool valid_entity(const std::string &entity) {
   // screen.* are built-in cards without a Home Assistant entity behind them; screen.page_<n> (firmware 0.2.62+)
   // only goes to page n. Several pages may each carry the same one (firmware 0.2.65+, Model::set_layout).
   if (domain == "screen") {
-    // screen.map (firmware 0.21.0+): the map of the screen's own cards, a picture the app draws.
-    if (entity == "screen.clock" || entity == "screen.settings" || entity == "screen.nightstand" || entity == "screen.map") return true;
+    // screen.map (firmware 0.21.0+): the map of the screen's own cards, a picture the app draws. screen.energy
+    // (firmware 0.47.0+): the house's power, Home Assistant's energy distribution live (energy_card.h).
+    if (entity == "screen.clock" || entity == "screen.settings" || entity == "screen.nightstand" || entity == "screen.map" ||
+        entity == "screen.energy") return true;
     return page_entity(entity) && page_number(entity) <= grid.pages();
   }
   // The types the tile catalogue has (catalogue/*.yaml, tile_catalogue.h): the same list the add-on and the editor take.
@@ -242,6 +245,8 @@ struct Extra {
   // are, their states, the zones and the card's own choices (map_card.fingerprint). The screen never sees a place; it
   // folds this into the picture it asks for, so a map is drawn again when something moved and never on a clock.
   std::string map_mark;
+  // The energy card's moment (firmware 0.47.0+): its own block, so no other tile's extras grow by it.
+  std::shared_ptr<const energy_card::Data> energy;
   uint32_t media_duration = 0, media_position = 0, media_position_at = 0;
   // More of a media player (firmware 0.24.0+, app 0.4.42+): the speaker it plays on and the ones it may (source_list,
   // sixteen at most), shuffle (-1 for a player without it) and repeat ("" without it), the features it reported at its
@@ -310,7 +315,7 @@ struct Extra {
            media_source.empty() && media_repeat.empty() && media_sources.empty() && media_shuffle < 0 && !media_features &&
            speaker_flags.empty() && speaker_volumes.empty() && media_inputs.empty() && media_input.empty() && media_target.empty() &&
            !has_ground && !ground_known && !media_library && fav_kind.empty() && fav_source.empty() && fav_mark.empty() &&
-           fav_glyph.empty() && !fav_playing;
+           fav_glyph.empty() && !fav_playing && !energy;
   }
 };
 // The numbers of a clock text ("0:05:00", "07:45"), at most `max` of them, each after optional white space, up to the
@@ -416,6 +421,8 @@ struct Tile {
   // card, its name included, and sends it in the page's strip like a live camera, so no map arithmetic lives here.
   // The map tile of the screen's own cards (firmware 0.21.0+) is the same picture, following whom the app is told to.
   bool is_map() const { return display == "map" && (domain() == "person" || entity == "screen.map"); }
+  // The energy card (firmware 0.47.0+): the house's power, drawn from the numbers the app sends (energy_card.h).
+  bool is_energy() const { return entity == "screen.energy"; }
   // A favourite (firmware 0.24.0+): a player's tile that plays one thing of its library on a tap, with that thing's
   // picture over the card where the board draws pictures. Never a whole page: the player's card is that.
   bool favorite() const { return display == "favorite" && domain() == "media_player" && !full; }

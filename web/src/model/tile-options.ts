@@ -10,6 +10,7 @@ import { isTallSize, isWideSize } from "./sizes";
 import { validateCardOptions } from "./page-validation";
 import { ofType } from "./catalogue";
 import type { PageTile, Tile, TileOptions } from "../types";
+import { BUILTIN_CARDS, type BuiltinName } from "../types";
 
 const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
@@ -84,7 +85,7 @@ function cardOf(tile: Tile, options: TileOptions): PageTile {
   const interaction: PageTile["interaction"] = {};
   for (const key of INTERACTION) if (options[key] !== undefined) Object.assign(interaction, { [key]: options[key] });
   const content: PageTile["content"] = pageTile(tile.entity) ? { kind: "navigation", target: { kind: "home" } }
-    : tile.entity === "screen.clock" || tile.entity === "screen.nightstand" || tile.entity === "screen.settings" || tile.entity === "screen.map" ? { kind: "builtin", name: tile.entity.slice(7) as "clock" | "nightstand" | "settings" | "map" }
+    : BUILTIN_CARDS.includes(tile.entity) ? { kind: "builtin", name: tile.entity.slice(7) as BuiltinName }
     : { kind: "entity", entityId: tile.entity };
   return { id: tile.id || "trial", content, appearance, interaction, placement: { row: 0, column: 0, columns: 1, rows: 1 } };
 }

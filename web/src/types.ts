@@ -1,3 +1,6 @@
+/** The cards built into a screen, with no Home Assistant entity of their own (core.py BUILTIN, the page tiles aside). */
+export type BuiltinName = "clock" | "nightstand" | "settings" | "map" | "energy";
+export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "screen.settings", "screen.map", "screen.energy"];
 export type TileOptions = {
   display?: string;
   size?: string;
@@ -37,7 +40,7 @@ export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number;
 export type PageTarget = { kind: "page"; pageId: string } | { kind: "home" };
 export type PageTile = {
   id: string;
-  content: { kind: "entity"; entityId: string } | { kind: "builtin"; name: "clock" | "nightstand" | "settings" | "map" } | { kind: "navigation"; target: PageTarget };
+  content: { kind: "entity"; entityId: string } | { kind: "builtin"; name: BuiltinName } | { kind: "navigation"; target: PageTarget };
   // A footprint is a rectangle. The renderer's capabilities decide which
   // rectangles it supports; the page's grid is never user-overridable.
   placement: { row: number; column: number; columns: number; rows: number };

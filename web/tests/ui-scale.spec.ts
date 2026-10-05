@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { pillMetrics, textEms, uiScale, widestSetpoint, cardContent, cardHeight, cellContent, modeBar, watchCard, watchPadding, wideChip } from "../src/model/ui-scale";
+import boardShapes from "../../screen_manager/app/boards.json";
+import { energyFits, pillMetrics, textEms, uiScale, widestSetpoint, cardContent, cardHeight, cellContent, modeBar, watchCard, watchPadding, wideChip } from "../src/model/ui-scale";
 
 describe("the firmware's sizes in the mockup (app 0.4.32)", () => {
   it("scales as ui::px does, from the board's density and look", () => {
@@ -65,5 +66,27 @@ describe("a Big number card as the glass lays it out (app 0.4.74)", () => {
     const content = cardHeight(guition, 4, 1, 3, true) - 2 * (watchPadding(guition, 4) + 1);
     const card = watchCard(guition, cardContent(guition, 2, 1), content, "217", "mg/dl");
     expect(card).toMatchObject({ stacked: false, title: { y: 0, size: 16 }, value: { size: 38 } });
+  });
+});
+
+describe("the sizes the energy card is offered (app 0.4.77)", () => {
+  // The boards' own shapes, as the editor gets them: energy_card::offered on the glass with a page bar.
+  const boards = boardShapes as Record<string, any>;
+  const shape = (board: string, side = "landscape") => {
+    const entry = Object.values(boards).find((b) => b.board === board)!, o = entry.orientations[side];
+    return { shape: { ...entry, width: o.width, height: o.height }, across: o.columns, down: o.rows };
+  };
+  const fits = (board: string, columns: number, rows: number, side = "landscape") => {
+    const { shape: s, across, down } = shape(board, side);
+    return energyFits(s, across, down, columns, rows);
+  };
+  it("takes 2 x 2 where the diagram fits it, and a page of its own on a small glass", () => {
+    expect(fits("guition", 2, 2)).toBe(true);
+    expect(fits("waveshare7", 2, 2)).toBe(true);
+    expect(fits("cyd", 2, 2)).toBe(false);
+    expect(fits("cyd", 2, 3)).toBe(true);
+    expect(fits("waveshare43", 2, 2)).toBe(false);
+    expect(fits("cyd", 1, 3, "portrait")).toBe(true);
+    expect(fits("cyd", 1, 2, "portrait")).toBe(false);
   });
 });

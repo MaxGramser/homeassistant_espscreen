@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Vissza"
+    },
+    "energy": {
+      "solar": "Nap",
+      "grid": "Hálózat",
+      "battery": "Akkumulátor",
+      "home": "Otthon",
+      "other": "Egyéb",
+      "no_power": "Nincs teljesítményérzékelő a Home Assistant energiabeállításaiban"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Óra",
         "nightstand": "Éjjeliszekrény-óra",
         "page": "Ugrás: {page}. oldal",
-        "map": "Térkép"
+        "map": "Térkép",
+        "energy": "Energia"
       },
       "identify": {
         "title": "Ez itt: {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Hangszóró",
         "speaker_now": "Ahol éppen szól",
         "speaker_hint": "Ahol indul. Az „Ahol éppen szól” a képernyőn kér hangszórót, ha a lejátszó sehol sem szól."
+      },
+      "energy": {
+        "hint": "A ház teljesítménye most, úgy rajzolva, ahogy a Home Assistant saját Energia nézete rajzolja: nap, hálózat, akkumulátor és az eszközeid, a Home Assistant Energia beállításaiból. Egy kör megérintése megnyitja annak az érzékelőnek az előzményeit.",
+        "needs_firmware": "Az energiakártyához 0.47.0 vagy újabb firmware kell: mentés után nyomd meg a Frissítés gombot a kijelzőnél."
       }
     },
     "tile_card": {

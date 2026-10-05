@@ -260,6 +260,9 @@ export function defaultOptions(id: string, covers = false): Partial<Tile> {
   if (id === "screen.nightstand") return { options: { size: "full", background: "none" } };
   // The map tile (app 0.4.36) starts double width, following everyone Home Assistant knows the place of.
   if (id === "screen.map") return { options: { display: "map", size: "wide" } };
+  // The energy card (app 0.4.77) starts 2 x 2, the least power-flow-card-plus takes; the store takes a larger size where
+  // the glass is too low for that (startTile).
+  if (id === "screen.energy") return { options: { size: "square" } };
   return {};
 }
 export const newTile = (id: string, covers = false): Tile => ({ entity: id, name: "", slot: -1, ...defaultOptions(id, covers) } as Tile);

@@ -202,6 +202,7 @@ describe("the tile panel", () => {
     { entity: "person.p", name: "", slot: 0, options: { display: "map" } },
     { entity: "person.p", name: "", slot: 0, options: { size: "square", display: "map", framing: "home", map: ["person.q"] } },
     { entity: "screen.map", name: "", slot: 0, options: { size: "wide", display: "map" } },
+    { entity: "screen.energy", name: "", slot: 0, options: { size: "square" } },
   ];
   it.each(kinds.map((tile) => [`${tile.entity} ${tile.options?.size || "single"}`, tile] as const))("saves every choice it shows: %s", async (_, kind) => {
     const tile: Tile = JSON.parse(JSON.stringify(kind));

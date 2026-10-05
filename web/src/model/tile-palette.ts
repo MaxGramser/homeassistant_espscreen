@@ -96,3 +96,9 @@ export function tilePalette(entity: string, value: Value, runs = false) {
     accent: hex(fill), track: hex(mix(fill, theme.roles.CARD.light, 51)),
   };
 }
+
+/** The energy card's paints (theme.h ENERGY_*, firmware 0.47.0), for its picture on the mockup. */
+export const energyPaints = () => ({
+  solar: hex(theme.roles.ENERGY_SOLAR.light), grid: hex(theme.roles.ENERGY_GRID.light), battery: hex(theme.roles.ENERGY_BATTERY_OUT.light),
+  ink: hex(theme.roles.INK.light), line: hex(theme.roles.LINE.light),
+});

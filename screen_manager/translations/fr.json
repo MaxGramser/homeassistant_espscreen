@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Retour"
+    },
+    "energy": {
+      "solar": "Solaire",
+      "grid": "Réseau",
+      "battery": "Batterie",
+      "home": "Maison",
+      "other": "Autres",
+      "no_power": "Aucun capteur de puissance dans les réglages d'énergie de Home Assistant"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Horloge",
         "nightstand": "Horloge de chevet",
         "page": "Aller à la page {page}",
-        "map": "Carte"
+        "map": "Carte",
+        "energy": "Énergie"
       },
       "identify": {
         "title": "Voici {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Enceinte",
         "speaker_now": "Là où il joue",
         "speaker_hint": "Où il démarre. « Là où il joue » demande une enceinte sur l’écran quand le lecteur ne joue nulle part."
+      },
+      "energy": {
+        "hint": "La puissance de la maison en ce moment, dessinée comme la vue Énergie de Home Assistant la dessine : solaire, réseau, batterie et vos appareils, depuis les paramètres Énergie de Home Assistant. Un appui sur un cercle ouvre l'historique de ce capteur.",
+        "needs_firmware": "La carte énergie nécessite le firmware 0.47.0 ou plus récent : après l'enregistrement, appuyez sur Mettre à jour pour l'écran."
       }
     },
     "tile_card": {

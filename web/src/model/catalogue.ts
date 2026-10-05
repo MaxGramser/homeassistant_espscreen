@@ -12,7 +12,7 @@ type Option = { key: string; needs?: Needs; screen?: Screen; sizes?: { full: boo
   one_row?: string; fallback?: string; range?: { when?: Needs; screen?: Screen } };
 // What one tile of a type keeps in the memory inside a screen's chip (firmware 0.34.0+, model/memory.ts).
 export type TypeMemory = { bytes: number; extras: boolean };
-type Type = { firmware: string | null; key: boolean; memory: TypeMemory; features: Record<string, number>; actions: Record<string, string[][]>;
+type Type = { firmware: string | null; key: boolean; memory: TypeMemory; cards?: Record<string, TypeMemory>; features: Record<string, number>; actions: Record<string, string[][]>;
   displays: Option[]; controls: Option[]; inline: Option | null; toggle: Needs | null; taps: string[]; guards: string[]; picture: Record<string, unknown[]> | null;
   map: { framing: string[]; distance: string[]; overlay: string[]; follow: string[]; markers: string[]; names: string[];
     zones: string[]; streets: string[]; look: string[]; with: string[]; max: number } | null };

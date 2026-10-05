@@ -50,7 +50,8 @@ What a tile costs comes from the tile catalogue, the one place every type is des
 
 - Every `catalogue/<type>.yaml` states `memory: {bytes, extras}`: what one tile of the type keeps in the memory inside
   the chip, measured on a board with PSRAM, and whether it keeps a block of extras. `tools/generate_catalogue.py` refuses
-  a type without it.
+  a type without it. A screen card that keeps more than its type has a price of its own in `catalogue/screen.yaml`
+  (`cards`), counted by its entity first: the energy card (docs/ENERGY.md).
 - `catalogue/_tile.yaml` states what a tile's own choices add: `action` for a tap that runs an action of its own, `line`
   for a second line set to one of its values. Each also keeps a block of extras on a tile whose type keeps none. It also
   states what a page keeps (`page`, its title) and an item of its top bar that shows an entity (`bar_text`, its text).

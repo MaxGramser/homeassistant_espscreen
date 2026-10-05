@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Terug"
+    },
+    "energy": {
+      "solar": "Zon",
+      "grid": "Net",
+      "battery": "Batterij",
+      "home": "Thuis",
+      "other": "Overig",
+      "no_power": "Geen vermogenssensoren in de energie-instellingen van Home Assistant"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Klok",
         "nightstand": "Nachtkastjesklok",
         "page": "Ga naar pagina {page}",
-        "map": "Kaart"
+        "map": "Kaart",
+        "energy": "Energie"
       },
       "identify": {
         "title": "Dit is {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Speaker",
         "speaker_now": "Waar hij speelt",
         "speaker_hint": "Waar hij start. \"Waar hij speelt\" vraagt op het scherm om een speaker als de speler nergens speelt."
+      },
+      "energy": {
+        "hint": "Het vermogen van het huis op dit moment, getekend zoals de Energie-weergave van Home Assistant het tekent: zon, net, batterij en je apparaten, uit de Energie-instellingen van Home Assistant. Een tik op een cirkel opent de geschiedenis van die sensor.",
+        "needs_firmware": "De energiekaart heeft firmware 0.47.0 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm."
       }
     },
     "tile_card": {

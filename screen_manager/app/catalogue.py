@@ -23,6 +23,8 @@ DOMAINS = frozenset(TYPES)
 # type's entry, the dearest for a type the catalogue does not know, and what a tile's own choices add.
 MEMORY = {domain: data['memory'] for domain, data in TYPES.items()}
 DEAREST = max(MEMORY.values(), key=lambda entry: entry['bytes'])
+# The screen's own cards that keep more than their type (the energy card), by entity.
+CARD_MEMORY = {entity: price for data in TYPES.values() for entity, price in data.get('cards', {}).items()}
 CHOICE_MEMORY = TILE['memory']
 # The commands a remote of each integration takes, read from Home Assistant's source and the libraries it pins
 # (tools/read_remote_commands.py, GitHub #117): {integration: {'from': [...], 'commands': [...]}}.

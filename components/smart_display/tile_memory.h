@@ -26,8 +26,13 @@ struct Board {
   bool psram = true;
   uint32_t tile_bytes = 0, extra_bytes = 0, page_bytes = 0;
 };
-// The catalogue's entry for a type; a type it does not know (none should reach a screen) costs as the dearest.
-inline const tile_catalogue::Memory &entry(const std::string &domain) {
+inline std::string domain_of(const std::string &entity) { return entity.substr(0, entity.find('.')); }
+// The catalogue's entry for a tile's entity or type: a screen card with a price of its own (the energy card), else its
+// type's; a type it does not know (none should reach a screen) costs as the dearest.
+inline const tile_catalogue::Memory &entry(const std::string &what) {
+  for (const auto &m : tile_catalogue::CARDS)
+    if (what == m.domain) return m;
+  const std::string domain = domain_of(what);
   const tile_catalogue::Memory *dearest = &tile_catalogue::MEMORY[0];
   for (const auto &m : tile_catalogue::MEMORY) {
     if (domain == m.domain) return m;
@@ -38,8 +43,8 @@ inline const tile_catalogue::Memory &entry(const std::string &domain) {
 // What one tile costs inside the chip: its type's bytes, what its own choices add (a tap that runs its own action, a
 // second line set to one of its values), and on a board without PSRAM the tile itself and, where it keeps one, its block
 // of extras.
-inline uint32_t cost(const std::string &domain, bool action, bool line, const Board &board) {
-  const auto &m = entry(domain);
+inline uint32_t cost(const std::string &what, bool action, bool line, const Board &board) {
+  const auto &m = entry(what);
   uint32_t bytes = m.bytes + (action ? tile_catalogue::ACTION_BYTES : 0) + (line ? tile_catalogue::LINE_BYTES : 0);
   if (!board.psram) bytes += board.tile_bytes + ((m.extras || action || line) ? board.extra_bytes : 0);
   return bytes;
@@ -49,7 +54,6 @@ inline uint32_t cost(const std::string &domain, bool action, bool line, const Bo
 inline uint32_t page_cost(unsigned entity_items, const Board &board) {
   return tile_catalogue::PAGE_BYTES + entity_items * tile_catalogue::BAR_TEXT_BYTES + (board.psram ? 0 : board.page_bytes);
 }
-inline std::string domain_of(const std::string &entity) { return entity.substr(0, entity.find('.')); }
 // A tile's own choices as the cost counts them: the tap option "action", and a second line "attr:<name>".
 inline bool own_action(const std::string &tap) { return tap == "action"; }
 inline bool own_line(const std::string &subtitle) { return subtitle.compare(0, 5, "attr:") == 0; }

@@ -139,6 +139,11 @@ KINDS = {
     'screen-nightstand': {'entity': 'screen.nightstand', 'state': 'ok', 'attributes': {}, 'sizes': ('full',)},
     # The map tile is a map and nothing else (core.validate_layout), its frame here without the picture.
     'screen-map': {'entity': 'screen.map', 'state': 'ok', 'attributes': {}, 'options': {'display': 'map'}},
+    # The energy card (app 0.4.77) with a busy house: seven devices, a car charging, every source; `energy` is Home
+    # Assistant's Energy settings and the states of their sensors (tests/fixtures/energy). A size too low for the diagram
+    # shows the house's use alone, which is laid out too.
+    'screen-energy': {'entity': 'screen.energy', 'state': 'ok', 'attributes': {},
+                      'energy': json.loads((ROOT / 'tests/fixtures/energy/full-busy.json').read_text())},
     'script': {'entity': 'script.audit', 'state': 'off', 'attributes': {'last_triggered': iso(hours=-2, minutes=-8)}},
     'select': {'entity': 'select.audit', 'state': 'Comfort', 'attributes': {'options': ['Eco', 'Comfort', 'Boost']}},
     'sensor': {'entity': 'sensor.audit', 'state': '21.4', 'attributes': {'unit_of_measurement': '°C', 'device_class': 'temperature'},
@@ -247,7 +252,11 @@ def message(kind, size, name, display=None, controls=None):
         options['controls'] = controls
     tile = {'entity': case['entity'], 'name': name, 'slot': 0, 'options': options}
     states = {case['entity']: {'state': case['state'], 'attributes': case['attributes']}}
-    extra = None if case['entity'] in BUILTIN else extras(tile, states, case.get('forecast'), None, case.get('hourly'), now=NOW)
+    if case.get('energy'):
+        states = case['energy']['states']
+        extra = extras(tile, states, energy=case['energy']['prefs'])
+    else:
+        extra = None if case['entity'] in BUILTIN else extras(tile, states, case.get('forecast'), None, case.get('hourly'), now=NOW)
     out = drawn_controls(state_message(0, tile, states, extra), None)
     if case.get('history') and case['entity'].startswith('sensor.'):
         out['history'] = case['history']

@@ -10,7 +10,7 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clock24, currentScreen, deviceStyle, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
-import { modeColor, tilePalette, tileActive } from "../model/tile-palette";
+import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
 import type { Tile } from "../types";
@@ -55,6 +55,10 @@ const bare = computed(() => props.tile.options?.background === "none");
 // A settings card stays a plain card, as the screen draws it, even when an older layout gave it a clock face (GitHub #47).
 // The bedside clock (app 0.4.12): big digits over its three key places, as the screen draws it.
 const bedside = computed(() => props.tile.entity === "screen.nightstand");
+// The energy card (app 0.4.77): the screen draws the house live from Home Assistant's Energy settings, as its own live view
+// does; the mockup shows the diagram's shape, the sources around the house, in their paints.
+const energyTile = computed(() => props.tile.entity === "screen.energy");
+const energy = energyPaints();
 const bedsideKeys = computed(() => props.keys ?? keysOf(state.layout, props.tile));
 // As many places as the add-on lets this clock hold (page-rules.json, keyHolders).
 const keyPlaces = computed(() => Array.from({ length: (rules.keyHolders as Record<string, number>)[props.tile.entity] || 0 }, (_, key) =>
@@ -409,6 +413,27 @@ async function onKey(e: KeyboardEvent) {
           </span>
         </span>
       </span>
+    </template>
+    <template v-else-if="energyTile">
+      <svg class="energy-diagram" viewBox="0 0 200 100" aria-hidden="true">
+        <g fill="none" stroke-width="1.5">
+          <path d="M100 32 V40 Q100 46 106 46 H161" :stroke="energy.solar" />
+          <path d="M39 50 H161" :stroke="energy.grid" />
+          <path d="M100 68 V60 Q100 54 106 54 H161" :stroke="energy.battery" />
+        </g>
+        <g fill="#fff" stroke-width="1.5">
+          <circle cx="100" cy="18" r="14" :stroke="energy.solar" />
+          <circle cx="25" cy="50" r="14" :stroke="energy.grid" />
+          <circle cx="100" cy="82" r="14" :stroke="energy.battery" />
+          <circle cx="175" cy="50" r="14" :stroke="energy.ink" stroke-width="2" />
+        </g>
+        <g class="mdi" text-anchor="middle" dominant-baseline="central" font-size="13" :fill="energy.ink">
+          <text x="100" y="18">{{ glyph("F0A72") }}</text>
+          <text x="25" y="50">{{ glyph("F0D3E") }}</text>
+          <text x="100" y="82">{{ glyph("F007F") }}</text>
+          <text x="175" y="50">{{ glyph("F02DC") }}</text>
+        </g>
+      </svg>
     </template>
     <template v-else-if="display === 'analog'">
       <svg class="clockface" viewBox="0 0 60 60" aria-hidden="true">

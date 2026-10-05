@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Voltar"
+    },
+    "energy": {
+      "solar": "Solar",
+      "grid": "Rede",
+      "battery": "Bateria",
+      "home": "Casa",
+      "other": "Outros",
+      "no_power": "Sem sensores de potência nas definições de energia do Home Assistant"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Relógio",
         "nightstand": "Relógio de cabeceira",
         "page": "Ir para a página {page}",
-        "map": "Mapa"
+        "map": "Mapa",
+        "energy": "Energia"
       },
       "identify": {
         "title": "Este é {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Coluna",
         "speaker_now": "Onde está a tocar",
         "speaker_hint": "Onde começa. «Onde está a tocar» pede uma coluna no ecrã quando o leitor não toca em nenhuma."
+      },
+      "energy": {
+        "hint": "A potência da casa neste momento, desenhada como a vista de Energia do Home Assistant a desenha: solar, rede, bateria e os seus dispositivos, a partir das definições de Energia do Home Assistant. Um toque num círculo abre o histórico desse sensor.",
+        "needs_firmware": "O cartão de energia precisa do firmware 0.47.0 ou mais recente: depois de guardar, prima Atualizar no ecrã."
       }
     },
     "tile_card": {

@@ -17,7 +17,7 @@ import tile_icons
 DOMAINS = catalogue.DOMAINS
 # Built-in cards without a Home Assistant entity; firmware 0.2.14+ renders them. The names in English: a screen gets them in
 # its language and the editor in its own (builtin_name, app 0.2.90).
-BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
+BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', 'screen.energy': 'Energy', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
 # A navigation tile (firmware 0.2.62+): screen.page_<n> goes to page n, up to page 32 on a board that holds that many
 # (firmware 0.34.0+); whether the screen has page n is the screen's Grid's to say. Firmware 0.2.65+ takes the same one on several
 # pages (a "Back to page 1" on every page), firmware 0.16.0+ any entity on several tiles (GitHub #83) but the bedside
@@ -45,6 +45,8 @@ def builtin_name(entity, text=screen_t):
         return text('addon.screen.builtin.nightstand')
     if entity == MAP_TILE:
         return text('addon.screen.builtin.map')
+    if entity == ENERGY_TILE:
+        return text('addon.screen.builtin.energy')
     return text('screen.settings.title' if entity == 'screen.settings' else 'addon.screen.builtin.clock')
 # A camera or an image entity opens full screen on a Guition with firmware 0.2.57+ (camera_feed.py).
 CAMERA_DOMAINS = frozenset(('camera', 'image'))
@@ -99,7 +101,7 @@ REF = 'main'
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.46.0'
+FIRMWARE_VERSION = '0.47.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -173,6 +175,10 @@ MAP_OPTIONS = {key: tuple(MAP_CARD[key]) for key in ('framing', 'distance', 'fol
 # everyone Home Assistant knows the place of or the people and trackers chosen (`follow`).
 MAP_TILE = 'screen.map'
 MAP_TILE_MIN_FIRMWARE = (0, 21, 0)
+# The energy card (app 0.4.77, firmware 0.47.0): the house's power now, drawn as Home Assistant's own live view and
+# power-flow-card-plus draw it, from the Energy settings (energy_flow.py). It is a diagram and nothing else.
+ENERGY_TILE = 'screen.energy'
+ENERGY_MIN_FIRMWARE = (0, 47, 0)
 MAP_DOMAINS = frozenset(MAP_CARD['with'])
 MAP_MAX_ENTITIES = MAP_CARD['max']
 MAP_OWN = ('map', *MAP_OPTIONS)
@@ -732,7 +738,8 @@ def tile_cost(tile, memory):
     one of its values), and on a board without PSRAM the tile itself and, where it keeps one, its block of extras, whose
     sizes the screen gave in its hello (page_delivery.memory_of). The screen counts the same way (tile_memory::cost), and
     so does the editor (web/src/model/memory.ts): tests/fixtures/memory-conformance.json holds the cases."""
-    entry = catalogue.MEMORY.get(str(tile.get('entity', '')).split('.', 1)[0], catalogue.DEAREST)
+    entity = str(tile.get('entity', ''))
+    entry = catalogue.CARD_MEMORY.get(entity) or catalogue.MEMORY.get(entity.split('.', 1)[0], catalogue.DEAREST)
     options = tile.get('options') or {}
     action = options.get('tap') == 'action'
     line = isinstance(options.get('sub'), str) and options['sub'].startswith('attr:')
@@ -1103,6 +1110,7 @@ def min_firmware(layout):
         (repeated_entities(tiles), ENTITY_REPEAT_MIN_FIRMWARE),
         (layout.get('title') == '', NO_TITLE_MIN_FIRMWARE),
         (any(t['entity'] == MAP_TILE for t in tiles), MAP_TILE_MIN_FIRMWARE),
+        (any(t['entity'] == ENERGY_TILE for t in tiles), ENERGY_MIN_FIRMWARE),
         (len(tiles) > LEGACY_MAX_TILES or any(is_full(t) or page_target(t['entity']) for t in tiles), FULL_PAGE_MIN_FIRMWARE),
         (any(t['entity'] == 'screen.settings' for t in tiles), (0, 2, 44)),
         (any(o.get('background') == 'none' for o in options), (0, 2, 16)),
@@ -1685,6 +1693,9 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             if tile['entity'] == MAP_TILE:
                 displays = ('map',)
                 options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub')}, 'display': 'map'}
+            # The energy card draws its diagram on every size it takes, with no face, slider or second line of its own.
+            if tile['entity'] == ENERGY_TILE:
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
             # Every tile's taps and its type's own (run, an automation's alone: firmware 0.7.0+), from the catalogue.
             taps = tuple(catalogue.taps(domain))
             choices = {'tap': taps, 'display': displays, 'inline': ('none', 'slider')}
@@ -2099,9 +2110,14 @@ def media_extras(attrs):
     return result or None
 
 
-def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=None, entries=None, words=None, icon_of=None, device_name=None):
+def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=None, entries=None, words=None, icon_of=None, device_name=None,
+           energy=None, home_name=''):
     """Small, pre-computed values the firmware cannot derive itself (time zones, forecasts, a vacuum's device, the rows of
-    a light's effects page)."""
+    a light's effects page, the house's power split for the energy card from `energy`, Home Assistant's Energy settings)."""
+    if tile['entity'] == ENERGY_TILE:
+        import energy_flow
+        glyph = lambda icon: tile_icons.GLYPHS.get(icon[4:]) if isinstance(icon, str) and icon.startswith('mdi:') else None
+        return energy_flow.payload(energy or {}, states, glyph, home_name)
     domain = tile['entity'].split('.')[0]
     attrs = states.get(tile['entity'], {}).get('attributes', {})
     # A map card carries only its movement mark (app 0.4.33): the screen asks for a new picture when it changes, so

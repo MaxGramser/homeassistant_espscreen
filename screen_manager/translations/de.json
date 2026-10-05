@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Zurück"
+    },
+    "energy": {
+      "solar": "Solar",
+      "grid": "Netz",
+      "battery": "Batterie",
+      "home": "Zuhause",
+      "other": "Andere",
+      "no_power": "Keine Leistungssensoren in den Energie-Einstellungen von Home Assistant"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Uhr",
         "nightstand": "Nachttischuhr",
         "page": "Zu Seite {page}",
-        "map": "Karte"
+        "map": "Karte",
+        "energy": "Energie"
       },
       "identify": {
         "title": "Das ist {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Lautsprecher",
         "speaker_now": "Wo er gerade spielt",
         "speaker_hint": "Wo er startet. „Wo er gerade spielt“ fragt auf dem Bildschirm nach einem Lautsprecher, wenn der Player nirgends spielt."
+      },
+      "energy": {
+        "hint": "Die Leistung des Hauses in diesem Moment, gezeichnet wie die Energie-Ansicht von Home Assistant sie zeichnet: Solar, Netz, Batterie und deine Geräte, aus den Energie-Einstellungen von Home Assistant. Ein Tippen auf einen Kreis öffnet den Verlauf dieses Sensors.",
+        "needs_firmware": "Die Energiekarte braucht Firmware 0.47.0 oder neuer: Nach dem Speichern beim Bildschirm auf Aktualisieren drücken."
       }
     },
     "tile_card": {

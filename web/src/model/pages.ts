@@ -6,6 +6,7 @@ import { t } from "../i18n";
  * delivery boundaries translate to another format.
  */
 import type { ChildTile, HeaderItem, Layout, Page, PageGrid, PageLayout, PageTarget, PageTile, Tile, TileOptions } from "../types";
+import { BUILTIN_CARDS, type BuiltinName } from "../types";
 import { spanOf, spanOffered } from "./sizes";
 
 import { STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES, dimensions, type Size } from "./layout";
@@ -343,8 +344,8 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
         if (!page) throw new Error(t("addon.errors.pages.page_missing"));
         content = old?.content.kind === "navigation" && old.content.target.kind === "home" && entityOf(layout, old) === tile.entity
           ? clone(old.content) : { kind: "navigation", target: { kind: "page", pageId: page.id } };
-      } else if (tile.entity === "screen.clock" || tile.entity === "screen.nightstand" || tile.entity === "screen.settings" || tile.entity === "screen.map") {
-        content = { kind: "builtin", name: tile.entity.slice(7) as "clock" | "nightstand" | "settings" | "map" };
+      } else if (BUILTIN_CARDS.includes(tile.entity)) {
+        content = { kind: "builtin", name: tile.entity.slice(7) as BuiltinName };
       } else content = { kind: "entity", entityId: tile.entity };
       const size = options.size ?? "single";
       if (!isSize(size)) throw new Error(t("addon.errors.pages.size"));

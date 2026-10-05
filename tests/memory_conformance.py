@@ -24,13 +24,15 @@ CHOICES = [(False, False), (True, False), (False, True), (True, True)]
 
 
 def cases():
-    for domain in sorted(catalogue.TYPES) + ['nonsense']:
+    # A screen card with a price of its own (catalogue/screen.yaml `cards`) is named by its entity in `domain`.
+    for domain in sorted(catalogue.TYPES) + ['nonsense'] + sorted(catalogue.CARD_MEMORY):
         for board in BOARDS:
             for action, line in CHOICES:
                 options = {**({'tap': 'action'} if action else {}), **({'sub': 'attr:battery'} if line else {})}
                 memory = {'room': 0, 'used': 0, **board}
+                entity = domain if '.' in domain else f'{domain}.thing'
                 yield {'domain': domain, 'action': action, 'line': line, **board,
-                       'cost': tile_cost({'entity': f'{domain}.thing', 'options': options}, memory)}
+                       'cost': tile_cost({'entity': entity, 'options': options}, memory)}
     # A page with a top bar of builtins and entity items: only the entity items keep a text.
     for board in BOARDS:
         for entities in (0, 1, 6, 12):

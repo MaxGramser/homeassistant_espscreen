@@ -869,6 +869,48 @@ std::string receive(const std::string &payload) {
     next.subtitle_at = extra["sm"].is<unsigned>() ? extra["sm"].as<unsigned>() : 0;
     // A map card's movement mark (app 0.4.33): a hash, never a place. A changed mark is a changed picture.
     next.map_mark = string(extra["mk"], 16);
+    // The energy card (app 0.4.77, firmware 0.47.0): the house now, split as Home Assistant's own live view splits it
+    // (screen_manager/app/energy_flow.py): which sources it has, their power, the flows between them, the batteries'
+    // charge, the sensor behind each source and the devices drawing power, biggest first.
+    if (tile.is_energy() && extra["p"].is<JsonArray>()) {
+      auto e = std::make_shared<energy_card::Data>();
+      const unsigned has = extra["h"].is<unsigned>() ? extra["h"].as<unsigned>() : 0;
+      e->solar = has & 1; e->grid = has & 2; e->battery = has & 4;
+      auto watts = [](JsonVariant list, unsigned i) { const float v = number(list[i], 0); return std::isfinite(v) ? std::max(0.f, v) : 0.f; };
+      JsonVariant p = extra["p"], f = extra["f"];
+      e->solar_w = watts(p, 0); e->from_grid = watts(p, 1); e->to_grid = watts(p, 2);
+      e->from_battery = watts(p, 3); e->to_battery = watts(p, 4); e->home = watts(p, 5);
+      if (f.is<JsonArray>()) {
+        e->s2h = watts(f, 0); e->s2g = watts(f, 1); e->s2b = watts(f, 2); e->g2h = watts(f, 3);
+        e->g2b = watts(f, 4); e->b2h = watts(f, 5); e->b2g = watts(f, 6);
+      }
+      e->soc = extra["c"].is<int>() ? std::clamp(extra["c"].as<int>(), 0, 100) : -1;
+      if (extra["e"].is<JsonArray>()) {
+        e->solar_entity = string(extra["e"][0], 64); e->grid_entity = string(extra["e"][1], 64); e->battery_entity = string(extra["e"][2], 64);
+        for (auto *id : {&e->solar_entity, &e->grid_entity, &e->battery_entity}) if (!valid_entity(*id)) id->clear();
+      }
+      if (extra["u"].is<JsonArray>()) {
+        const std::string *ids[3] = {&e->solar_entity, &e->grid_entity, &e->battery_entity};
+        for (unsigned i = 0; i < 3; ++i)
+          if (!ids[i]->empty()) e->readings.push_back({*ids[i], string(extra["u"][i][0], 32), string(extra["u"][i][1], 16)});
+      }
+      if (extra["d"].is<JsonArray>()) for (JsonVariant dev : extra["d"].as<JsonArray>()) {
+        if (e->devices.size() == 8) break;
+        energy_card::Device d;
+        d.name = string(dev["n"], 48);
+        d.entity = string(dev["e"], 64);
+        if (!valid_entity(d.entity)) d.entity.clear();
+        const uint32_t icon = tile_icon::codepoint(string(dev["i"], 8));
+        d.icon = icon && has_icon_glyph(icon) ? icon : 0;
+        d.w = std::max(0.f, number(dev["w"], 0));
+        if (d.name.empty() || d.w <= 0) continue;
+        if (!d.entity.empty()) e->readings.push_back({d.entity, string(dev["s"], 32), string(dev["u"], 16)});
+        e->devices.push_back(std::move(d));
+      }
+      e->rest = std::max(0.f, number(extra["o"], 0));
+      e->home_name = string(extra["n"], 32);
+      next.energy = std::move(e);
+    }
     // An alarm panel (app 0.3.8+, firmware 0.3.3+): how it takes codes, who changed it, and a delay's end.
     if (tile.domain() == "alarm_control_panel") {
       next.code_format = string(a["code_format"], 8);

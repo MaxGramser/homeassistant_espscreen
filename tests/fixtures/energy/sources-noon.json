@@ -1,0 +1,71 @@
+{
+ "prefs": {
+  "device_consumption": [],
+  "device_consumption_water": [],
+  "energy_sources": [
+   {
+    "cost_adjustment_day": 0.0,
+    "entity_energy_price": null,
+    "entity_energy_price_export": null,
+    "number_energy_price": null,
+    "number_energy_price_export": null,
+    "stat_compensation": null,
+    "stat_cost": null,
+    "stat_energy_from": "sensor.p1_meter_energy",
+    "stat_energy_to": "sensor.grid_export_energy",
+    "stat_rate": "sensor.p1_meter_power",
+    "type": "grid"
+   },
+   {
+    "stat_energy_from": "sensor.inverter_solar_energy",
+    "stat_rate": "sensor.inverter_solar_power",
+    "type": "solar"
+   },
+   {
+    "stat_energy_from": "sensor.battery_energy",
+    "stat_energy_to": "sensor.battery_charged_energy",
+    "stat_rate": "sensor.battery_power",
+    "stat_soc": "sensor.battery_state_of_charge",
+    "type": "battery"
+   }
+  ]
+ },
+ "states": {
+  "sensor.battery_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Battery Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "-1500.0"
+  },
+  "sensor.battery_state_of_charge": {
+   "attributes": {
+    "device_class": "battery",
+    "friendly_name": "Battery State of Charge",
+    "state_class": "measurement",
+    "unit_of_measurement": "%"
+   },
+   "state": "64.0"
+  },
+  "sensor.inverter_solar_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Inverter Solar Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "5200.0"
+  },
+  "sensor.p1_meter_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "P1 Meter Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "-1200.0"
+  }
+ }
+}

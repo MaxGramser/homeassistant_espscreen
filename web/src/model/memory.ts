@@ -13,7 +13,7 @@ const DEAREST: TypeMemory = Object.values(TYPES).reduce<TypeMemory>((most, type)
 /** What one tile costs on that screen, in bytes: its type's price, what its own action and second line add, and on a
  * board without PSRAM the tile itself and, where it keeps one, its block of extras. */
 export function tileCost(tile: PricedTile, memory: Pick<ScreenMemory, "psram" | "tile" | "extra">) {
-  const type = TYPES[tile.entity.split(".", 1)[0]]?.memory ?? DEAREST;
+  const type = TYPES.screen?.cards?.[tile.entity] ?? TYPES[tile.entity.split(".", 1)[0]]?.memory ?? DEAREST;
   const options = (tile.options || {}) as { tap?: string; sub?: string };
   const action = options.tap === "action", line = typeof options.sub === "string" && options.sub.startsWith("attr:");
   let bytes = type.bytes + (action ? TILE.memory.action : 0) + (line ? TILE.memory.line : 0);

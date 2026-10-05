@@ -98,6 +98,8 @@ thermostat's modes, a player's sources). It is the type's price in the screen's 
 and the editor all count a layout with it (docs/TILE_MEMORY.md says how to measure it and how a board without PSRAM adds
 the tile itself and its extras). `catalogue/_tile.yaml` says what a tile's own choices add (`memory: {action, line}`).
 `tools/generate_catalogue.py` refuses a type without it, so a new type cannot leave the budget guessing.
+`catalogue/screen.yaml` may also give one of the screen's own cards a price of its own (`cards: {energy: {bytes,
+extras}}`), counted by its entity (`screen.energy`) before the type's: the energy card keeps far more than a clock.
 
 **`needs`**, what an entity must have:
 

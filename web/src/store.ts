@@ -6,7 +6,7 @@ import { api, getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware as supportsVersion } from "./model/layout";
 import { agoText, barMetricsFor, batteryView, clockText, dateText, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, whenBarFontsLoad, wifiView } from "./model/topbar";
-import { frameOf, pillMetrics, uiScale } from "./model/ui-scale";
+import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
 import { memoryCrossing, memoryUse } from "./model/memory";
 import { validPreviewShape, type PreviewProfile } from "./model/preview";
@@ -778,6 +778,15 @@ export function placeTile(tile: Tile, target: number) {
 }
 // A click in the picker: the marked empty cell, else the selected page's first
 // free cell. Never silently spill a library click onto another page.
+/** A new tile from the picker or a drag: its default options, and for the energy card the smallest size its diagram fits
+ * on this glass (app 0.4.77), since a 2 x 2 card is too low for it on some. */
+export function startTile(id: string): Tile {
+  const tile = newTile(id, coversByDefault());
+  if (id !== "screen.energy") return tile;
+  const area = (size: Size) => { const d = dimensions(size, grid); return d.columns * d.rows; };
+  const fitting = tileSizeChoices(tile).sort((a, b) => area(a) - area(b));
+  return { ...tile, options: { ...tile.options, size: fitting.includes("square") ? "square" : fitting[0] ?? "full" } };
+}
 export function addTile(id: string) {
   const layout = state.layout;
   if (!layout || (!repeatable(id) && layout.tiles.some((t) => t.entity === id)) || layout.tiles.length >= tileLimit.value) return;
@@ -794,7 +803,7 @@ export function addTile(id: string) {
     }
     return;
   }
-  const tile = newTile(id, coversByDefault());
+  const tile = startTile(id);
   const page = Math.max(0, state.document!.pages.findIndex((page) => page.id === state.selectedPageId));
   const target = state.insertAt >= 0 ? state.insertAt : firstFree(occupied(entriesOf(layout)), sizeOf(tile), page * grid.slots);
   const slot = state.insertAt >= 0 || target < (page + 1) * grid.slots ? target : -1;
@@ -960,6 +969,11 @@ export function tileSizeChoices(tile: Tile): Size[] {
     choices.push(size as Size);
   }
   if (!pageTarget(tile.entity)) choices.push('full');
+  // The energy card's diagram takes a size it fits (app 0.4.77): on a small glass a page of its own, never a single cell.
+  if (tile.entity === "screen.energy") return choices.filter((size) => {
+    const { columns, rows } = dimensions(size, grid);
+    return energyFits(screenShape.value, grid.columns, grid.rows, columns, rows);
+  });
   return choices;
 }
 /** Edge resizing keeps the anchor and every neighbouring tile in place. */

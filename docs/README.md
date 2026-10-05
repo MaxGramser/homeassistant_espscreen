@@ -46,6 +46,7 @@
   without losing its settings (the technical side of UPDATING_4MB_SCREENS.md).
 - [CAMERA.md](CAMERA.md): camera pictures and album covers, from Home Assistant to the screen.
 - [MAP.md](MAP.md): the map card, drawn by the add-on and sent as a picture.
+- [ENERGY.md](ENERGY.md): the energy card, from Home Assistant's Energy settings to the diagram on the glass.
 - [EMULATOR_ARCHITECTURE.md](EMULATOR_ARCHITECTURE.md): the editor's firmware preview, the firmware built to
   WebAssembly.
 - [TRANSLATING.md](TRANSLATING.md): the languages, and adding one.

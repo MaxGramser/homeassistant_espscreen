@@ -262,6 +262,12 @@ on the screen itself, and how updates work.
   screen gets a picture, never a location. It is drawn again when someone moves, and a tap opens it over the whole
   screen. The map tile (app 0.4.36 / firmware 0.21.0) is the same map without a person of its own, following everyone
   Home Assistant knows the place of or only whom you choose, with photos in the markers. [docs/MAP.md](docs/MAP.md).
+- **The energy card** (app 0.4.77 / firmware 0.47.0): the power of your house right now, drawn the way Home
+  Assistant's own live Energy view and power-flow-card-plus draw it: solar, grid and battery around the house, with
+  dots that run faster as more power flows, and the devices drawing the most below or beside it, the rest as Other.
+  It reads the Energy settings you already have in Home Assistant, so there is nothing to set up. A tap on a circle
+  opens that sensor's history. It takes 2 × 2 where the diagram fits it and a page of its own on a small screen, and
+  turns upright on a screen standing up. [docs/ENERGY.md](docs/ENERGY.md).
 - **History card** for sensors, numbers, binary sensors, people, and switches, the way Home
   Assistant shows history: a line with an axis in round steps and clock times for numbers,
   with the highest and lowest moment, and a timeline with the time in each state for on/off,

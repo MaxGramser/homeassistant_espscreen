@@ -14,7 +14,7 @@ describe("the memory a layout takes", () => {
     expect(fixture.length).toBeGreaterThan(50);
     for (const c of (fixture as Record<string, unknown>[]).filter((c) => "domain" in c) as { domain: string; action: boolean; line: boolean; psram: boolean; tile: number; extra: number; cost: number }[]) {
       const options = { ...(c.action ? { tap: "action" } : {}), ...(c.line ? { sub: "attr:battery" } : {}) };
-      expect(tileCost({ entity: `${c.domain}.thing`, options }, c), JSON.stringify(c)).toBe(c.cost);
+      expect(tileCost({ entity: c.domain.includes(".") ? c.domain : `${c.domain}.thing`, options }, c), JSON.stringify(c)).toBe(c.cost);
     }
   });
   it("costs a type its price, keys included, and a board without PSRAM the tile and its extras", () => {

@@ -421,6 +421,9 @@ DEFAULTS = {'light': 'lightbulb', 'climate': 'air-conditioner', 'humidifier': 'a
             'timer': 'timer-outline', 'person': 'account', 'camera': 'cctv', 'image': 'cctv', 'screen': 'clock-outline'}
 # The cards the screen brings itself: one icon per entity, not per domain.
 BUILTIN_TILES = {'screen.clock': 'clock-outline', 'screen.settings': 'cog', 'screen.map': 'map-marker', **{f'screen.page_{n}': 'arrow-right' for n in range(1, 9)}}
+# The energy card's icon (app 0.4.77), Home Assistant's Energy panel's: never drawn big, since the card is its diagram on
+# every size, so it stays out of the big icon font.
+DIAGRAM_TILES = {'screen.energy': 'lightning-bolt'}
 FALLBACK = 'power'
 # The large icon font of a card that takes the whole page (firmware 0.2.62+): what the screen draws on its own for a
 # domain, a state or a built-in card, at 64 px on the Guition and 40 px on the CYD. Kept to these so the CYD's flash
@@ -547,7 +550,7 @@ def editor():
                                   for name, codepoint, _ in icons]}
                        for group, icons in GROUPS],
             'defaults': {domain: GLYPHS[name] for domain, name in DEFAULTS.items()}, 'fallback': GLYPHS[FALLBACK],
-            'builtin': {entity: GLYPHS[name] for entity, name in BUILTIN_TILES.items()},
+            'builtin': {entity: GLYPHS[name] for entity, name in {**BUILTIN_TILES, **DIAGRAM_TILES}.items()},
             'weather': {state: GLYPHS[name] for state, name in WEATHER.items()},
             'sun': {'above_horizon': GLYPHS['weather-sunset-down'], 'below_horizon': GLYPHS['weather-sunset-up']},
             # Glyphs of the direct controls on wide cards, so the mockup previews them.

@@ -31,7 +31,7 @@ VERSION = re.compile(r'^\d+\.\d+\.\d+$')
 FIRST_TYPES = frozenset('alarm_control_panel automation binary_sensor button camera climate cover fan image input_boolean input_button '
                         'input_number input_select light lock media_player number person scene screen script select sensor sun switch '
                         'timer vacuum weather'.split())
-TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'picture', 'map', 'key', 'keypad', 'memory'}
+TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'picture', 'map', 'key', 'keypad', 'memory', 'cards'}
 # What one tile of a type keeps in the memory inside a screen's chip (firmware 0.34.0+, docs/TILE_MEMORY.md): `bytes`
 # measured on a board with PSRAM, `extras` whether it keeps a block of extras. Every type says it, so a new one cannot
 # leave the screen's memory budget guessing; the most a tile may keep is a sanity bound, not a rule.
@@ -229,9 +229,18 @@ def normalise(tile, types, translations, facts, commands=None):
         if set(memory) != MEMORY or type(memory['bytes']) is not int or not 0 <= memory['bytes'] <= MOST_BYTES \
                 or type(memory['extras']) is not bool:
             fail(f'{where} memory', f'needs bytes (0 to {MOST_BYTES}) and extras (true or false)')
+        # The screen's own cards that keep more than their type (the energy card's diagram, app 0.4.77): priced by their
+        # entity, screen.<card>, before the type's price.
+        cards = data.get('cards') or {}
+        if cards and domain != 'screen':
+            fail(where, 'only the screen\'s own cards have a price of their own (cards)')
+        for card, price in cards.items():
+            if set(price) != MEMORY or type(price['bytes']) is not int or not 0 <= price['bytes'] <= MOST_BYTES or type(price['extras']) is not bool:
+                fail(f'{where} cards {card}', f'needs bytes (0 to {MOST_BYTES}) and extras (true or false)')
         domains[domain] = {
             'firmware': firmware,
             'memory': {'bytes': memory['bytes'], 'extras': memory['extras']},
+            **({'cards': {f'{domain}.{card}': {'bytes': price['bytes'], 'extras': price['extras']} for card, price in cards.items()}} if cards else {}),
             'key': bool(data.get('key', True)),
             'features': ha[domain]['features'],
             'actions': ha[domain]['actions'],
@@ -274,7 +283,11 @@ def header(catalogue):
               f'inline constexpr uint16_t PAGE_BYTES = {catalogue["tile"]["memory"]["page"]}, BAR_TEXT_BYTES = {catalogue["tile"]["memory"]["bar_text"]};',
               'inline constexpr Memory MEMORY[] = {' + ', '.join(
                   f'{{"{d}", {data["memory"]["bytes"]}, {"true" if data["memory"]["extras"] else "false"}}}'
-                  for d, data in catalogue['domains'].items()) + '};', '']
+                  for d, data in catalogue['domains'].items()) + '};',
+              '// The screen\'s own cards that keep more than their type, priced by their entity first (catalogue/screen.yaml `cards`).',
+              'inline constexpr Memory CARDS[] = {' + ', '.join(
+                  f'{{"{e}", {price["bytes"]}, {"true" if price["extras"] else "false"}}}'
+                  for data in catalogue['domains'].values() for e, price in data.get('cards', {}).items()) + '};', '']
     keywords = {'switch', 'case', 'default', 'delete', 'new', 'register', 'template', 'this', 'union', 'volatile'}
     for domain, data in catalogue['domains'].items():
         if not data['features']:

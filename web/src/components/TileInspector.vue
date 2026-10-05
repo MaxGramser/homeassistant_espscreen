@@ -108,6 +108,8 @@ const mapCard = computed(() => display.value === "map");
 const mapWith = computed(() => (props.tile.options?.map as string[] | undefined) ?? []);
 // The map tile of the screen's own cards (app 0.4.36): no person of its own, following everyone or whom it lists.
 const mapTile = computed(() => props.tile.entity === "screen.map");
+// The energy card (app 0.4.77) is its diagram: no face and no second line to choose, its sensors are Home Assistant's.
+const energyTile = computed(() => props.tile.entity === "screen.energy");
 const mapFollow = computed(() => current("follow", MAP?.follow[0]) as string);
 const mapListed = computed(() => !mapTile.value || mapFollow.value === "chosen");
 const mapFull = computed(() => mapWith.value.length >= (MAP?.max ?? 8) - (mapTile.value ? 0 : 1));
@@ -322,12 +324,13 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     <!-- What the card shows first, then where it stands, what a finger does to it, and last its icon and colour. -->
     <template v-if="!phone || more">
     <Section v-if="lookShown || (!bedside && !key)" :title="t('editor.tile.sections.look')">
-      <PropRow v-if="lookShown && tile.entity !== 'screen.settings' && !mapTile" :label="t('editor.tile.display.label')" icon="eye-outline" :hint="displayHint && !displayWarns ? displayHint : undefined">
+      <p v-if="energyTile" class="hint">{{ t(supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
+      <PropRow v-if="lookShown && tile.entity !== 'screen.settings' && !mapTile && !energyTile" :label="t('editor.tile.display.label')" icon="eye-outline" :hint="displayHint && !displayWarns ? displayHint : undefined">
         <ChoiceField :choices="displays" :value="display" :tile="tile" preview-key="display" :aria-label="t('editor.tile.display.label')" @pick="(v) => setTileOption(tile, 'display', v)" />
         <template v-if="displayHint && displayWarns" #note><small class="help warn">{{ displayHint }}</small></template>
       </PropRow>
       <!-- A bedside clock and its keys have no second line: the clock draws the time, a key its name alone. -->
-      <PropRow v-if="!bedside && !key && !mapCard" :label="t('editor.tile.sub.label')" icon="text-short" :hint="t(`editor.tile.sub.hint_${subKind}`)">
+      <PropRow v-if="!bedside && !key && !mapCard && !energyTile" :label="t('editor.tile.sub.label')" icon="text-short" :hint="t(`editor.tile.sub.hint_${subKind}`)">
         <ChoiceField :choices="subChoices" :value="subKind" :tile="tile" preview-key="sub" :sample="subSample" :aria-label="t('editor.tile.sub.label')" @pick="pickSubKind" />
         <template v-if="subKind === 'attr' || subKind === 'text'" #note>
           <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"

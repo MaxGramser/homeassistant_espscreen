@@ -408,6 +408,7 @@
   ],
   "builtins": [
     "clock",
+    "energy",
     "map",
     "nightstand",
     "settings"

@@ -1,3 +1,20 @@
+## 0.4.77 (firmware 0.47.0)
+
+- **The energy card.** A new card in the library, Energy, shows the power of your house right now the way Home
+  Assistant's own live Energy view and power-flow-card-plus show it: solar, the grid and the battery around the house,
+  a line for every flow with dots that run faster as more power flows, the house's ring coloured by where its power
+  comes from, and the devices that draw the most, with Other for the rest. It reads the Energy settings you already
+  have in Home Assistant (power sensors, the battery's charge, the devices), so there is nothing to set up, and it
+  splits the moment exactly as Home Assistant does. A tap on a circle opens that sensor's history. It is in Home
+  Assistant's energy colours, light and dark.
+- It fits itself to every screen like the other cards: the largest of the board's fonts that fit, the arrows and the
+  names only where there is room, and the diagram turned upright on a screen standing up. A long device name takes
+  two lines before the card shows a device fewer. The editor offers the sizes the diagram fits: 2 × 2 on most screens,
+  a page of its own on the CYD and the Waveshare 4.3-inch.
+- The card keeps more memory than a clock, and the memory meter in the editor counts it at its own price.
+- Every screen is offered this firmware, 0.47.0, which the energy card needs.
+- Tested: TESTED_PLACEHOLDER
+
 ## 0.4.76 (firmware 0.46.0)
 
 - **No empty album cover on a screen without pictures.** The CYD, the Waveshare 3.5-inch and the Hosyond 4-inch have

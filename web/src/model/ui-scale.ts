@@ -195,3 +195,16 @@ export function wideChip(shape: Shape, across: number, widest: string) {
   const icon = line(fonts.icon_mini ?? (uiScale(shape).large ? 26 : 18));
   return { face, icon: icon + pad / 2 + ems * face + pad <= chip };
 }
+
+/** The least room the energy card's diagram takes, in millimetres of the card's content (energy_card.h MIN_WIDTH_MM and
+ * MIN_HEIGHT_MM, firmware 0.47.0): a card lower than that on its look shows the house's use alone, so the editor does
+ * not offer it. tests/test_energy_card.cpp proves the firmware draws the diagram from there up on every board. */
+export const ENERGY_MIN_MM = { width: 30, compact: 25, standard: 32 };
+/** Whether the energy card's diagram fits `columns` x `rows` of the glass's `across` x `down` cells, with a page bar
+ * under them (the lowest the card can be), as energy_card::offered measures it with ui::mm. */
+export function energyFits(shape: Shape, across: number, down: number, columns: number, rows: number) {
+  const { compact } = uiScale(shape), dpi = Math.round(shape.dpi || (compact ? 143 : 170)), pad = frameOf(shape).tile_pad;
+  const mm = (n: number) => Math.floor((dpi * n + 12) / 25);
+  const width = cardContent(shape, across, columns), height = cardHeight(shape, down, rows, 0, true) - 2 * (pad + 1);
+  return width >= mm(ENERGY_MIN_MM.width) && height >= mm(compact ? ENERGY_MIN_MM.compact : ENERGY_MIN_MM.standard);
+}

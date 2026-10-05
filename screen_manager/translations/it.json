@@ -539,6 +539,14 @@
     },
     "navigation": {
       "back": "Indietro"
+    },
+    "energy": {
+      "solar": "Solare",
+      "grid": "Rete",
+      "battery": "Batteria",
+      "home": "Casa",
+      "other": "Altro",
+      "no_power": "Nessun sensore di potenza nelle impostazioni energia di Home Assistant"
     }
   },
   "addon": {
@@ -1203,7 +1211,8 @@
         "clock": "Orologio",
         "nightstand": "Orologio da comodino",
         "page": "Vai alla pagina {page}",
-        "map": "Mappa"
+        "map": "Mappa",
+        "energy": "Energia"
       },
       "identify": {
         "title": "Questo è {name}",
@@ -1832,6 +1841,10 @@
         "speaker": "Altoparlante",
         "speaker_now": "Dove suona",
         "speaker_hint": "Dove inizia. «Dove suona» chiede un altoparlante sullo schermo quando il lettore non suona da nessuna parte."
+      },
+      "energy": {
+        "hint": "La potenza della casa in questo momento, disegnata come la disegna la vista Energia di Home Assistant: solare, rete, batteria e i tuoi dispositivi, dalle impostazioni Energia di Home Assistant. Un tocco su un cerchio apre la cronologia di quel sensore.",
+        "needs_firmware": "La scheda energia richiede il firmware 0.47.0 o successivo: dopo il salvataggio premi Aggiorna sullo schermo."
       }
     },
     "tile_card": {

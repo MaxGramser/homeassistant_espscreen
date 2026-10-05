@@ -99,6 +99,18 @@ enum Role : uint8_t {
   MARK_BLUE,
   MARK_PURPLE,
   MARK_GREEN,
+  // ---- the energy card (firmware 0.47.0): Home Assistant's energy colours (--energy-*-color), the same in both looks
+  // but the power going back to the grid, which Home Assistant lightens in its dark theme; and power-flow-card-plus's
+  // four device colours, in the order of their places (above the house, below it, top right, bottom right)
+  ENERGY_SOLAR,
+  ENERGY_GRID,
+  ENERGY_RETURN,
+  ENERGY_BATTERY_OUT,
+  ENERGY_BATTERY_IN,
+  ENERGY_DEVICE_1,
+  ENERGY_DEVICE_2,
+  ENERGY_DEVICE_3,
+  ENERGY_DEVICE_4,
   ROLE_COUNT
 };
 
@@ -177,6 +189,15 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* MARK_BLUE */                {0x009FE3, 0x009FE3},
   /* MARK_PURPLE */              {0x926BC7, 0x926BC7},
   /* MARK_GREEN */               {0x4CAF50, 0x4CAF50},
+  /* ENERGY_SOLAR */             {0xFF9800, 0xFF9800},
+  /* ENERGY_GRID */              {0x488FC2, 0x488FC2},
+  /* ENERGY_RETURN */            {0x8353D1, 0xA280DB},
+  /* ENERGY_BATTERY_OUT */       {0x4DB6AC, 0x4DB6AC},
+  /* ENERGY_BATTERY_IN */        {0xF06292, 0xF06292},
+  /* ENERGY_DEVICE_1 */          {0xD0CC5B, 0xD0CC5B},
+  /* ENERGY_DEVICE_2 */          {0x964CB5, 0x964CB5},
+  /* ENERGY_DEVICE_3 */          {0xB54C9D, 0xB54C9D},
+  /* ENERGY_DEVICE_4 */          {0x5BD0CC, 0x5BD0CC},
 };
 
 // The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the

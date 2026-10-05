@@ -393,6 +393,12 @@ constexpr uint16_t ha_humidifier_action_drying = 428;
 constexpr uint16_t ha_humidifier_action_idle = 429;
 constexpr uint16_t ha_humidifier_action_off = 430;
 constexpr uint16_t navigation_back = 431;
+constexpr uint16_t energy_solar = 432;
+constexpr uint16_t energy_grid = 433;
+constexpr uint16_t energy_battery = 434;
+constexpr uint16_t energy_home = 435;
+constexpr uint16_t energy_other = 436;
+constexpr uint16_t energy_no_power = 437;
 constexpr uint16_t date_weekdays = 18;
 constexpr uint16_t date_weekdays_count = 7;
 constexpr uint16_t date_weekdays_short = 25;
@@ -404,6 +410,6 @@ constexpr uint16_t date_months_count = 12;
 constexpr uint16_t date_months_short = 51;
 constexpr uint16_t date_months_short_count = 12;
 }  // namespace txt
-constexpr uint16_t KEY_COUNT = 432;
-constexpr uint32_t KEYS_HASH = 0xC6833EBEu;
+constexpr uint16_t KEY_COUNT = 438;
+constexpr uint32_t KEYS_HASH = 0xC9D71CCAu;
 }  // namespace screen_text
