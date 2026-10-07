@@ -197,6 +197,8 @@ LINT_KEEP = {
     'Configuration problem. Update add-on.', 'Session:', 'Error: obsolete message',
     'Error: layout', 'Error: invalid layout', 'Error: incomplete layout', 'Error: insufficient layout memory',
     'Error: outdated tile or configuration in state',
+    # Picture-loader diagnostic reasons, never labels on the screen.
+    'not wanted now', 'asks again', 'breaks off for the glass', 'load failed',
     # Only a log line or the rate limiter's reason shows these.
     'history range', 'card button ', 'header navigation', 'media key ', 'screensaver play', 'screensaver mute', 'let go', 'too short (', 'already handled in this contact',
     'same button within the debounce window', 'no runtime tiles', 'setting off', 'screen dimmed', 'card open',
