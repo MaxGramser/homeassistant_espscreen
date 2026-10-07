@@ -150,6 +150,71 @@ class ClaudeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.get(f'/api/voice-preview/claude/sessions/{session}/turns/1/audio')).status, 404)
         self.ha.call.assert_not_awaited()  # Explicit reply delivery starts playback separately.
 
+    async def test_spoken_stop_skips_tts_and_any_further_provider_turn(self):
+        session = await self.session()
+        self.answers = [self.tool('stop_1', 'end_conversation', {})]
+        result = await (await self.turn(session)).json()
+        self.assertTrue(result['end_voice_immediately'])
+        self.assertTrue(result['end_voice'])
+        self.assertEqual(result['text'], '')
+        self.assertNotIn('audio', result)
+        self.assertNotIn('audio_error', result)
+        self.assertEqual(len(self.messages), 1)
+        self.assertEqual([stage['start_stage'] for stage in self.stages], ['stt'])
+        self.ha.call.assert_not_awaited()
+
+    async def test_completed_command_skips_provider_followup_and_tts_but_keeps_history(self):
+        session = await self.session()
+        self.answers = [self.tool(arguments={'name': 'Reading light', 'area': '',
+                                            'action': 'turn_on', 'complete_request': True})]
+        result = await (await self.turn(session)).json()
+        self.assertTrue(result['complete_request'])
+        self.assertTrue(result['action'])
+        self.assertEqual(result['text'], '')
+        self.assertNotIn('audio', result)
+        self.assertNotIn('audio_error', result)
+        self.assertEqual(len(self.messages), 1)
+        self.assertEqual([s['start_stage'] for s in self.stages], ['stt'])
+        self.ha.call.assert_awaited_once()
+        self.assertEqual(result, await (await self.turn(session)).json())
+        self.assertEqual(len(self.messages), 1)
+        self.answers = [self.answer('Een volgend antwoord.')]
+        followup = await (await self.turn(session, 2)).json()
+        self.assertTrue(followup['audio'])
+        history = self.messages[-1]['messages']
+        receipts = [part for message in history for part in message['content']
+                    if isinstance(part, dict) and part.get('type') == 'tool_result']
+        self.assertEqual(json.loads(receipts[0]['content'])['status'], 'accepted')
+        self.ha.call.assert_awaited_once()
+
+    async def test_completion_hint_cannot_silence_an_action_failure(self):
+        session = await self.session()
+        self.ha.call.side_effect = ConnectionError('Disconnected')
+        self.answers = [self.tool(arguments={'name': 'Reading light', 'area': '',
+                                            'action': 'turn_on', 'complete_request': True}),
+                        self.answer('De opdracht is niet bevestigd.')]
+        result = await (await self.turn(session)).json()
+        self.assertNotIn('complete_request', result)
+        self.assertFalse(result['action'])
+        self.assertTrue(result['audio'])
+        self.assertEqual(len(self.messages), 2)
+        self.ha.call.assert_awaited_once()
+
+    async def test_action_with_question_and_multi_action_batch_keep_followup(self):
+        session = await self.session()
+        for index, batch in enumerate((False, True), start=1):
+            call = self.tool(f'action_{index}', arguments={'name': 'Reading light', 'area': '',
+                'action': 'turn_on', 'complete_request': batch})
+            if batch:
+                call['content'] += self.tool(f'read_{index}', 'resolve_target',
+                    {'name': 'Reading light', 'area': ''})['content']
+            self.answers = [call, self.answer('Het antwoord op je vraag.')]
+            result = await (await self.turn(session, index)).json()
+            self.assertNotIn('complete_request', result)
+            self.assertEqual(result['text'], 'Het antwoord op je vraag.')
+            self.assertTrue(result['audio'])
+            self.assertEqual(len(self.messages), index * 2)
+
     async def test_wait_has_no_spoken_followup_and_next_request_still_works(self):
         session = await self.session()
         self.answers = [self.tool('wait_1', 'wait_for_user', {})]
@@ -261,6 +326,36 @@ class ClaudeTests(unittest.IsolatedAsyncioTestCase):
         self.ha.call.assert_any_await('media_player.play_media', {'entity_id': 'media_player.music', 'media_content_id': 'spotify:track:' + 'a'*22, 'media_content_type': 'music'})
         self.ha.call.assert_any_await('media_player.repeat_set', {'entity_id': 'media_player.music', 'repeat': 'one'})
         self.assertNotIn('test-spotify-secret', json.dumps(self.messages))
+        self.assertEqual(self.provider_calls, [])
+
+    async def test_named_song_can_finish_without_a_second_provider_round_or_tts(self):
+        context = base.VoiceTests.media_panel(self)
+        self.ha.registry.append({'entity_id': 'media_player.music', 'platform': 'sonos'})
+        self.media_actions.add('media_player.play_media')
+        response = await self.client.put('/api/voice-preview/spotify', json={
+            'client_id': 'test-spotify-client-id', 'client_secret': 'test-spotify-secret', 'market': 'NL'})
+        self.assertEqual(response.status, 200)
+        session = await self.session()
+        response = await self.client.put(f'/api/voice-preview/claude/sessions/{session}/context', json=context)
+        self.assertEqual(response.status, 200)
+        self.answers = [self.tool('named_1', 'play_named_track',
+                                 {'name': 'Spotify', 'area': '', 'title': 'Song', 'artist': 'Artist',
+                                  'complete_request': True})]
+        with patch.object(voice_music.SpotifyCatalogue, 'search', new_callable=AsyncMock, return_value={
+                'status': 'ok', 'tracks': [{'title': 'Song', 'artists': ['Artist'], 'album': 'Album',
+                                          'uri': 'spotify:track:' + 'a'*22}]}) as search:
+            result = await (await self.turn(session)).json()
+            search.assert_awaited_once()
+        self.assertEqual(len(self.messages), 1)
+        self.assertTrue(result['complete_request'])
+        self.assertTrue(result['action'])
+        self.assertTrue(result['end_voice'])
+        self.assertEqual(result['text'], '')
+        self.assertNotIn('audio', result)
+        self.assertEqual([s['start_stage'] for s in self.stages], ['stt'])
+        self.ha.call.assert_awaited_once_with('media_player.play_media', {
+            'entity_id': 'media_player.music', 'media_content_id': 'spotify:track:' + 'a'*22,
+            'media_content_type': 'music'})
         self.assertEqual(self.provider_calls, [])
 
     async def test_tts_failure_preserves_successful_action_and_text(self):

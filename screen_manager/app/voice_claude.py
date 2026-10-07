@@ -77,7 +77,7 @@ class ClaudeSessions:
             return result
         result = await session['conversation'].reply(text, context, dispatch)
         result['heard'] = text
-        if result.get('wait_for_user'):
+        if result.get('wait_for_user') or result.get('end_voice_immediately') or result.get('complete_request'):
             return result
         self.phase(session, 'preparing_speech')
         try:

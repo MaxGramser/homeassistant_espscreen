@@ -13,6 +13,10 @@ This branch combines board/audio support and the browser voice assistant. It is
 not part of either independent contribution until the integration is reviewed.
 Hardware acceptance of local recording does not establish end-to-end voice quality.
 
+The default transport remains half duplex. [FULL_DUPLEX.md](FULL_DUPLEX.md)
+describes the separately opted-in P4 AEC experiment, its provider limitations,
+upstream research and hardware acceptance checks.
+
 ## Set up
 
 1. Install this add-on build and enable **Enable voice assistant** in its
@@ -37,6 +41,16 @@ Hardware acceptance of local recording does not establish end-to-end voice quali
    You can speak directly after a recognized wake word. **Stop voice** and microphone mute end
    capture. Provider settings choose the same reply destination as the browser;
    **Screen / this browser** means the panel's connected speaker here.
+
+To end a conversation by voice, address the assistant with its wake phrase and
+say "stop" or "stop listening", for example "Hey Jarvis, stop". The provider
+interprets the complete request and calls `end_conversation`; the add-on closes
+capture and playback without a goodbye. This requires the provider connection,
+not a separate offline stop-word model. "Hey Jarvis, stop the music" remains a
+media command, and a bare "stop" is not an unconditional session shutdown.
+The normal half-duplex path can receive this command while listening; interrupting
+a spoken reply requires the experimental full-duplex path. Recognition of these
+different phrases still needs validation with the user's language and hardware.
 
 The voice indicator sits to the left of the top-bar clock on every tile page,
 not just Home. All three states use the same space so the clock stays in place:
@@ -73,6 +87,48 @@ Provider keys, name resolution, Assist exposure and action validation remain in
 the add-on. Spotify track search reuses the existing **Spotify search** settings
 and credentials there; playback still uses Home Assistant. Neither Spotify keys
 nor catalogue code enter the firmware. No media or other tile renderer is replaced.
+
+For a music request without a named speaker, the assistant is given the sole
+media player on the current page as its default target. Asking for a track from
+Spotify still uses that target, including a Sonos tile. A named speaker overrides
+the default. With multiple visible players, or no exposed visible player, the
+assistant asks which one to use. An explicitly selected Spotify player without
+an active output still needs an output choice.
+
+Known targets can go straight to the action tool. Name resolution, Assist exposure
+and capabilities are still checked by the add-on on every action; a separate AI
+resolution round is only needed for an unclear target. An explicit named-song
+request can use `play_named_track` to search and play in one tool call. It accepts
+an exact title and artist match, checks permissions again after the search, and
+returns choices without playing if the artist or version is unclear. Search-only
+requests remain read-only. Duplicate delivery of a tool call does not repeat playback.
+
+Action results acknowledge Home Assistant accepting the command. They do not attach
+cached state as proof of the physical outcome: a state update can arrive after the
+service result, so a stopped player can still appear as playing in that cache.
+For a simple command handled by one action, the model sets `complete_request: true`.
+If HA accepts it, the add-on records the tool result and skips the AI confirmation
+round. There is no spoken acknowledgement. Listening resumes with its configured
+timeout, or closes immediately when the command starts music. OpenAI on the panel
+and in the preview, and Claude through HA speech, use this same policy. Claude
+also skips TTS for these completed commands.
+
+Errors and ambiguous targets still need a reply. Combined requests, further steps,
+explicit verification and questions keep their normal response; the completion
+hint must be omitted or false. Batches never skip their follow-up. The hint alone
+cannot turn a failure into acceptance. Explicit state questions use the read tools,
+without polling or repeating an action just to acknowledge it.
+
+The initial provider context includes only entity IDs, names, nonempty aliases
+and rooms for Assist-exposed entities, plus visible tile labels and the default
+media target. The entity ID prefix identifies the device type. State, track
+metadata, brightness, volume and capabilities stay out of the initial prompt.
+The assistant uses `resolve_target` to read fresh details for a specific device
+when needed, for example before a relative volume change. `get_panel_context`
+remains available for a whole-page overview. This reduces prompt size without
+limiting control to the current page. Instructions and tools are shared by both providers.
+Actual API usage also includes conversation history, tool results and audio;
+prompt character counts are not token measurements. API rate limits still apply.
 
 With wake-word activation enabled, the panel prepares an authenticated connection
 while the detector listens locally. OpenAI's Realtime session is opened ahead of
@@ -123,7 +179,7 @@ open indefinitely. There is currently no greeting setting.
 
 Microphone and speaker take turns because this board shares one I²S bus. This is
 half-duplex, not acoustic echo cancellation: the panel pauses capture during its
-reply and resumes only after playback. Music-start confirmations end the session
+reply and resumes only after playback. Accepted music-start commands end the session
 to avoid listening to lyrics. Stop, microphone mute, HA loss, transport loss,
 silence timeout and the ten-minute session limit release audio resources.
 There is no automatic microphone restart after a failed conversation. If wake-word activation

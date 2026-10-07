@@ -44,6 +44,16 @@ Pictures
 
 The firmware preview (web/wasm) lists its third-party code in web/public/firmware-preview-licenses.txt.
 
+Optional experimental P4 duplex audio
+  ESPHome Audio Stack (https://github.com/n-IA-hane/esphome-audio-stack),
+  copyright (c) 2025 n-IA-hane, MIT License. The external component is fetched
+  at the commit recorded in docs/FULL_DUPLEX.md, not copied into this repository.
+  Its MIT notice and the primary Espressif audio-library notices are preserved
+  in docs/licenses/full-duplex/. They retain their own terms. Espressif's
+  hardware-restricted libraries are not relicensed under Tessera's AGPL.
+  See docs/FULL_DUPLEX.md for the outstanding combined-firmware redistribution
+  review; these notices alone do not resolve license compatibility.
+
 The editor's browser installer (New screen and Firmware & USB, "This computer") contains third-party code.
 It is loaded only when someone installs a screen from the browser. The full licence texts ship with the app in
 screen_manager/app/static/THIRD_PARTY_LICENSES.txt (source: web/public/THIRD_PARTY_LICENSES.txt).

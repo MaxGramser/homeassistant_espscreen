@@ -103,6 +103,20 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
             'arguments': {'name': 'Reading light', 'area': '', 'action': 'turn_on', **arguments},
             'context': context or panel()})
 
+    async def test_spoken_stop_is_validated_idempotent_and_blocks_late_actions(self):
+        key = await self.session()
+        owner = self.manager.device_voice.owner
+        result = await owner.dispatch(key, 'bad-stop', 'end_conversation', {'extra': True}, panel())
+        self.assertEqual(result['status'], 'error')
+        self.assertFalse(owner.sessions[key].get('end_voice'))
+        result = await owner.dispatch(key, 'stop', 'end_conversation', {}, panel())
+        self.assertTrue(result['end_voice_immediately'])
+        self.assertEqual(result, await owner.dispatch(key, 'stop', 'end_conversation', {}, panel()))
+        with self.assertRaises(ValueError):
+            await owner.dispatch(key, 'late', 'control_switch',
+                {'name': 'Reading light', 'area': '', 'action': 'turn_on'}, panel())
+        self.ha.call.assert_not_awaited()
+
     async def lookup(self, session, call='lookup_1', query='Current weather in Amsterdam?'):
         return await self.client.post(f'/api/voice-preview/sessions/{session}/tools', json={
             'call_id': call, 'name': 'lookup_current_information', 'arguments': {'query': query}})
@@ -306,12 +320,13 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hangups, ['rtc_test'])
         self.assertEqual((await self.command(session)).status, 400)
 
-    async def test_duplicate_delivery_calls_ha_once_and_reports_observed_state(self):
+    async def test_duplicate_delivery_returns_acceptance_without_old_state_and_calls_ha_once(self):
         session = await self.session()
         results = await asyncio.gather(self.command(session), self.command(session))
         first, second = [await r.json() for r in results]
         self.assertEqual(first, second)
-        self.assertEqual(first, {'status': 'accepted', 'entity_id': 'light.a', 'action': 'turn_on', 'observed_state': 'off'})
+        self.assertEqual(first, {'status': 'accepted', 'entity_id': 'light.a', 'action': 'turn_on'})
+        self.assertEqual(self.ha.states['light.a']['state'], 'off', 'The delayed state is not a failed action')
         self.ha.call.assert_awaited_once_with('light.turn_on', {'entity_id': 'light.a'})
         self.assertEqual((await self.command(session, action='turn_off')).status, 400)
 
@@ -474,6 +489,83 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
         self.exposure.pop('media_player.music')
         self.assertNotIn('An artist', json.dumps(await assistant_tools.panel_context(self.manager, data)))
 
+    async def test_sole_visible_media_default_reaches_provider_despite_other_exposed_players(self):
+        data = self.media_panel()
+        data['layout']['pages'][0]['tiles'][-1]['appearance']['label'] = 'Music'
+        self.exposure['media_player.account'] = {'conversation': True}
+        self.ha.states['media_player.account'] = {'state': 'idle', 'attributes': {'friendly_name': 'Spotify account'}}
+        session = await self.session(data)
+        context = json.loads(self.provider_calls[-1][1]['instructions'].split('\nPANEL_CONTEXT_DATA:\n', 1)[1])
+        target = context['default_media_target']
+        self.assertEqual(target, {'name': 'Music', 'area': '', 'entity_id': 'media_player.music'})
+        result = await (await self.media_command(session, data, name=target['name'], area=target['area'], action='stop')).json()
+        self.assertEqual(result['status'], 'accepted')
+        self.ha.call.assert_awaited_once_with('media_player.media_stop', {'entity_id': 'media_player.music'})
+        # An explicitly named different player remains available.
+        self.assertIn({'entity_id': 'media_player.account', 'name': 'Spotify account'}, context['entities'])
+
+    async def test_media_default_counts_distinct_visible_targets_including_unexposed_tiles(self):
+        data = self.media_panel()
+        duplicate = tile('media_player.music', 'Other label')
+        duplicate['placement']['row'] = 1
+        data['layout']['pages'][0]['tiles'].append(duplicate)
+        self.assertEqual((await assistant_tools.panel_context(self.manager, data))['default_media_target']['entity_id'], 'media_player.music')
+        data['layout']['pages'][0]['tiles'][-1] = tile('media_player.private', 'Private speaker')
+        data['layout']['pages'][0]['tiles'][-1]['placement']['row'] = 1
+        context = await assistant_tools.panel_context(self.manager, data)
+        self.assertIsNone(context['default_media_target'])
+        self.assertNotIn('media_player.private', json.dumps(context))
+        data['layout']['pages'][0]['tiles'].pop()
+        self.exposure.pop('media_player.music')
+        self.assertIsNone((await assistant_tools.panel_context(self.manager, data))['default_media_target'])
+        self.ha.call.assert_not_awaited()
+
+    async def test_media_default_follows_page_without_switching_to_an_available_other_player(self):
+        data = self.media_panel()
+        data['page'] = 1
+        self.assertIsNone((await assistant_tools.panel_context(self.manager, data))['default_media_target'])
+        data['page'] = 0
+        self.ha.states['media_player.music']['state'] = 'unavailable'
+        context = await assistant_tools.panel_context(self.manager, data)
+        self.assertEqual(context['default_media_target']['entity_id'], 'media_player.music')
+        self.assertEqual(assistant_tools.resolve(context, 'Spotify')['matches'][0]['state'], 'unavailable')
+        self.ha.call.assert_not_awaited()
+
+    async def test_provider_gets_identity_only_and_can_read_fresh_details_of_one_target(self):
+        data = self.media_panel()
+        self.exposure['media_player.remote'] = {'conversation': True}
+        self.ha.states['media_player.remote'] = {'state': 'playing', 'attributes': {
+            'friendly_name': 'Other speaker', 'media_title': 'A different song'}}
+        context = await assistant_tools.panel_context(self.manager, data, private=True)
+        before = deepcopy(context)
+        slim = json.loads(assistant_tools.prompt(context).split('\nPANEL_CONTEXT_DATA:\n', 1)[1])
+        self.assertEqual(context, before)
+        self.assertNotIn('_blocked', slim)
+        self.assertEqual(slim['visible'], context['visible'])
+        self.assertEqual(slim['default_media_target'], context['default_media_target'])
+        identities = {e['entity_id']: e for e in slim['entities']}
+        self.assertEqual(identities['light.a'], {'entity_id': 'light.a', 'name': 'Corner lamp',
+            'aliases': ['Armchair'], 'area': 'Living room', 'area_aliases': ['Lounge']})
+        self.assertEqual(identities['media_player.music'], {'entity_id': 'media_player.music', 'name': 'Music account'})
+        self.assertEqual(identities['media_player.remote'], {'entity_id': 'media_player.remote', 'name': 'Other speaker'})
+        self.assertNotIn('A track', json.dumps(slim))
+        self.assertNotIn('A different song', json.dumps(slim))
+        for entry in slim['entities']:
+            for key in ('state', 'media', 'light', 'available_actions', 'can_control', 'unit'):
+                self.assertNotIn(key, entry)
+        session = await self.session(data)
+        for label, eid in [('Spotify', 'media_player.music'), ('Other speaker', 'media_player.remote')]:
+            self.ha.states[eid]['attributes'].update(media_title='New track', volume_level=0.2)
+            result = await (await self.client.post(f'/api/voice-preview/sessions/{session}/tools', json={
+                'call_id': eid.replace('.', '_'), 'name': 'resolve_target',
+                'arguments': {'name': label, 'area': ''}, 'context': data})).json()
+            self.assertEqual(result['status'], 'matched')
+            self.assertEqual(len(result['matches']), 1)
+            self.assertEqual(result['matches'][0]['media']['media_title'], 'New track')
+            self.assertEqual(result['matches'][0]['media']['volume_percent'], 20)
+            self.assertEqual(result['matches'][0]['available_actions'], assistant_tools.media_actions(self.media_actions))
+        self.ha.call.assert_not_awaited()
+
     async def test_media_playback_volume_and_source_use_existing_ha_services(self):
         data = self.media_panel()
         session = await self.session(data)
@@ -499,9 +591,62 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
                 result = await (await self.media_command(session, data, call=f'media_{i}', **arguments)).json()
                 self.assertEqual(result['status'], 'accepted')
                 self.assertEqual(result.get('end_voice', False), arguments['action'] in {'play', 'next', 'previous'})
-                self.assertEqual(result['observed_state'], 'playing')
-                self.assertEqual(result['observed_media']['media_title'], 'A track')
+                self.assertNotIn('observed_state', result)
+                self.assertNotIn('observed_media', result)
                 self.ha.call.assert_awaited_once_with('media_player.' + service, {'entity_id': 'media_player.music', **fields})
+
+    async def test_stop_receipt_does_not_mistake_delayed_state_for_failure(self):
+        data = self.media_panel()
+        session = await self.session(data)
+        result = await (await self.media_command(session, data, action='stop')).json()
+        self.assertEqual(self.ha.states['media_player.music']['state'], 'playing')
+        self.assertEqual(result, {'status': 'accepted', 'entity_id': 'media_player.music', 'action': 'stop'})
+        self.ha.call.assert_awaited_once_with('media_player.media_stop', {'entity_id': 'media_player.music'})
+        # The later state event belongs to reads, not to the immutable action receipt.
+        self.ha.states['media_player.music']['state'] = 'paused'
+        repeated = await (await self.media_command(session, data, action='stop')).json()
+        self.assertEqual(repeated, result)
+        self.ha.call.assert_awaited_once()
+        latest = await (await self.client.post(f'/api/voice-preview/sessions/{session}/tools', json={
+            'call_id': 'read_after_stop', 'name': 'resolve_target',
+            'arguments': {'name': 'Spotify', 'area': ''}, 'context': data})).json()
+        self.assertEqual(latest['matches'][0]['state'], 'paused')
+
+    async def test_rejected_stop_is_not_reported_as_accepted(self):
+        data = self.media_panel()
+        session = await self.session(data)
+        self.ha.call.side_effect = ValueError('Service rejected the request')
+        result = await (await self.media_command(session, data, action='stop')).json()
+        self.assertEqual(result['status'], 'error')
+        self.assertNotIn('observed_state', result)
+        repeated = await (await self.media_command(session, data, action='stop')).json()
+        self.assertEqual(repeated, result)
+        self.ha.call.assert_awaited_once()
+
+    async def test_silent_completion_requires_a_valid_accepted_action(self):
+        data = self.media_panel()
+        session = await self.session(data)
+        result = await (await self.media_command(session, data, action='stop', complete_request=True)).json()
+        self.assertTrue(result['complete_request'])
+        self.assertEqual(result['status'], 'accepted')
+        self.assertEqual(result, await (await self.media_command(
+            session, data, action='stop', complete_request=True)).json())
+        self.ha.call.assert_awaited_once()
+        for index, value in enumerate(('true', 1, None)):
+            result = await (await self.media_command(session, data, call=f'bad_{index}',
+                action='stop', complete_request=value)).json()
+            self.assertEqual(result['status'], 'error')
+            self.assertNotIn('complete_request', result)
+        self.ha.call.assert_awaited_once()
+        self.ha.call.side_effect = ConnectionError('Disconnected')
+        result = await (await self.media_command(session, data, call='rejected',
+            action='stop', complete_request=True)).json()
+        self.assertEqual(result['status'], 'error')
+        self.assertNotIn('complete_request', result)
+        result = await (await self.client.post(f'/api/voice-preview/sessions/{session}/tools', json={
+            'call_id': 'read', 'name': 'resolve_target',
+            'arguments': {'name': 'Spotify', 'area': '', 'complete_request': True}, 'context': data})).json()
+        self.assertEqual(result['status'], 'error')
 
     async def test_media_rechecks_capabilities_exposure_and_source_choices(self):
         data = self.media_panel()
@@ -533,14 +678,15 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(result['status'], 'error', args)
         self.ha.call.assert_not_awaited()
 
-    async def test_repeat_reports_observed_mode_and_rechecks_capability_and_exposure(self):
+    async def test_repeat_returns_receipt_and_rechecks_capability_and_exposure(self):
         data = self.media_panel()
         self.ha.states['media_player.music']['attributes']['repeat'] = 'off'
         session = await self.session(data)
         result = await (await self.media_command(session, data, action='repeat', repeat_mode='one')).json()
         self.assertEqual(result['status'], 'accepted')
         # Service acceptance is not evidence that the new state already arrived.
-        self.assertEqual(result['observed_media']['repeat_mode'], 'off')
+        self.assertNotIn('observed_media', result)
+        self.assertEqual(self.ha.states['media_player.music']['attributes']['repeat'], 'off')
         self.ha.call.reset_mock()
         self.media_actions.remove('media_player.repeat_set')
         result = await (await self.media_command(session, data, call='lost_capability', action='repeat', repeat_mode='all')).json()
@@ -576,7 +722,7 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
             'call_id': call, 'name': 'set_light_brightness',
             'arguments': {'name': 'Reading light', 'area': '', 'brightness_percent': level, **args}, 'context': panel()})
 
-    async def test_light_brightness_percent_uses_ha_field_and_reports_observed_level(self):
+    async def test_light_brightness_percent_uses_ha_field_without_post_action_state_claim(self):
         self.dimmable_light()
         context = await assistant_tools.panel_context(self.manager, panel())
         entity = assistant_tools.resolve(context, 'Reading light')['matches'][0]
@@ -587,7 +733,8 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
             self.ha.call.reset_mock()
             result = await (await self.brightness_command(session, value, call=f'brightness_{i}')).json()
             self.assertEqual(result['status'], 'accepted')
-            self.assertEqual(result['observed_light']['brightness_percent'], 40, 'Do not fabricate the requested state')
+            self.assertNotIn('observed_light', result)
+            self.assertEqual(self.ha.states['light.a']['attributes']['brightness'], 102)
             self.ha.call.assert_awaited_once_with('light.turn_on', {'entity_id': 'light.a', 'brightness_pct': value})
 
     async def test_light_brightness_rejects_invalid_levels_and_on_off_only_lights(self):

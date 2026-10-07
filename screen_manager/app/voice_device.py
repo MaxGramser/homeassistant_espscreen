@@ -18,7 +18,7 @@ from urllib.parse import urlsplit
 from aiohttp import ClientError, WSMsgType, web
 
 from assistant_conversation import Conversation
-from assistant_tools import INSTRUCTIONS, panel_context
+from assistant_tools import prompt, panel_context, completed_command
 import camera_feed
 import page_delivery
 from voice_claude import ClaudeSessions
@@ -144,6 +144,12 @@ class DeviceSession:
         self.reply_played = False
         self.turn_deadline = None
         self.finish_sent = False
+        self.duplex = False
+        self.playback_id = 0
+        self.interrupted = asyncio.Event()
+        self.interrupting = False
+        self.played_ms = 0
+        self.reply_item = None
         self.activation = asyncio.Event()
         self.warming = False
         self.configuration = self.settings()
@@ -172,7 +178,7 @@ class DeviceSession:
         return {'shape': record['sourceGrid'], 'layout': record['layout'], 'page': self.page}
 
     async def command(self, kind, **values):
-        if kind in ('prepared', 'listen', 'pause', 'play', 'error'):
+        if kind in ('prepared', 'listen', 'pause', 'play', 'interrupt', 'error'):
             LOG.info('Device voice #%d provider=%s event=%s elapsed=%.2fs input=%.2fs',
                      self.sequence, self.data['provider'], kind, time.monotonic()-self.started, self.audio_bytes/32000)
         async with asyncio.timeout(3):
@@ -180,10 +186,12 @@ class DeviceSession:
 
     async def listen(self, *, waiting=False):
         if self.data.get('end_voice'):
+            if self.data.get('end_voice_immediately'):
+                self.end_reason = 'spoken_stop'
             await self.ws.close()
             return
         self.utterance.reset()
-        if self.relay:
+        if self.relay and (not self.duplex or not hasattr(self, 'resampler')):
             self.resampler = await asyncio.to_thread(Resampler, 16000, 24000)
             await self.relay.upstream.send_json({'type': 'input_audio_buffer.clear'})
             await self.relay.upstream.send_json({'type': 'session.update', 'session': {
@@ -199,7 +207,7 @@ class DeviceSession:
             self.end_reason = 'silence_or_audio_timeout'
             await self.ws.close()
             return
-        await self.command('listen', idle_seconds=max(1, math.ceil(remaining)))
+        await self.command('listen', idle_seconds=max(1, math.ceil(remaining)), duplex=self.duplex)
 
     async def serve(self, request):
         try:
@@ -210,6 +218,11 @@ class DeviceSession:
                     ('start', 1), ('prepare', 2)} or hello.get('rate') != 16000:
                 raise ValueError('Unsupported device voice protocol.')
             self.warming = hello['type'] == 'prepare'
+            # AEC references this panel's speaker only. Claude and external
+            # reply speakers keep the existing half-duplex protocol.
+            self.duplex = (hello.get('duplex') is True and self.warming and
+                           self.data['provider'] == 'openai' and not self.data['reply_speaker'])
+            self.data['duplex'] = self.duplex
             if self.warming:
                 self.phase = 'warming'
             else:
@@ -251,8 +264,7 @@ class DeviceSession:
                 if self.relay:
                     context = await panel_context(self.owner.manager, self.data['panel'], music=self.owner.music)
                     await self.relay.upstream.send_json({'type': 'session.update', 'session': {
-                        'type': 'realtime', 'instructions': INSTRUCTIONS + '\nPANEL_CONTEXT_DATA:\n' +
-                        json.dumps(context, ensure_ascii=False)}})
+                        'type': 'realtime', 'instructions': prompt(context)}})
             await self.listen()
             done, _ = await asyncio.wait(self.tasks, return_when=asyncio.FIRST_COMPLETED)
             for task in done:
@@ -302,7 +314,8 @@ class DeviceSession:
                 pcm = message.data
                 if not pcm or len(pcm) > 4096 or len(pcm) % 2:
                     raise ValueError('Invalid microphone packet.')
-                if self.phase != 'listening' or (self.relay and not self.relay.input_enabled):
+                if (self.phase != 'listening' and not (self.duplex and not self.warming and hasattr(self, 'resampler'))) or (
+                        self.relay and not self.relay.input_enabled):
                     continue  # In-flight capture from before pause is discarded.
                 self.audio_bytes += len(pcm)
                 self.last_audio = time.monotonic()
@@ -325,6 +338,21 @@ class DeviceSession:
                 if not isinstance(data, dict):
                     raise ValueError('Invalid voice event.')
                 kind = data.get('type')
+                if self.duplex and kind in ('ready', 'credit', 'done', 'interrupted'):
+                    playback = data.get('playback')
+                    if type(playback) is not int or not 0 < playback <= self.playback_id:
+                        raise ValueError('Invalid playback acknowledgement.')
+                    if playback < self.playback_id:
+                        continue
+                    if kind == 'interrupted':
+                        value = data.get('played_ms')
+                        if not self.interrupting or type(value) is not int or not 0 <= value <= self.sent // 32:
+                            raise ValueError('Invalid played duration.')
+                        self.played_ms = value
+                        self.interrupted.set()
+                        continue
+                    if self.interrupting or self.phase != 'speaking':
+                        continue  # Acknowledgements sent before the interruption barrier.
                 if kind == 'stop':
                     self.end_reason = 'stop'
                     return
@@ -339,8 +367,7 @@ class DeviceSession:
                         context = await panel_context(self.owner.manager, self.data['panel'], music=self.owner.music)
                         async with asyncio.timeout(3):
                             await self.relay.upstream.send_json({'type': 'session.update', 'session': {
-                                'type': 'realtime', 'instructions': INSTRUCTIONS + '\nPANEL_CONTEXT_DATA:\n' +
-                                json.dumps(context, ensure_ascii=False)}})
+                                'type': 'realtime', 'instructions': prompt(context)}})
                 elif kind == 'ready' and self.phase == 'speaking':
                     self.ready.set()
                 elif kind == 'credit' and self.phase == 'speaking':
@@ -382,11 +409,14 @@ class DeviceSession:
 
     async def playback(self, audio, mime):
         pcm = await asyncio.to_thread(decode_reply, audio, mime)
+        LOG.info('Device voice #%d reply duration=%.2fs duplex=%s', self.sequence, len(pcm)/32000, self.duplex)
         self.phase = 'speaking'
         self.ready.clear(); self.done.clear(); self.credited.clear()
         self.credit = self.sent = 0
         self.finish_sent = False
-        await self.command('play', bytes=len(pcm), rate=16000)
+        self.playback_id += 1
+        identity = {'playback': self.playback_id} if self.duplex else {}
+        await self.command('play', bytes=len(pcm), rate=16000, **identity)
         async with asyncio.timeout(5):
             await self.ready.wait()
         # One bounded chunk in flight. The speaker acknowledges accepted bytes;
@@ -400,8 +430,45 @@ class DeviceSession:
                     self.credited.clear()
                     await self.credited.wait()
             self.finish_sent = True
-            await self.command('finish')
+            await self.command('finish', **identity)
             await self.done.wait()
+        LOG.info('Device voice #%d playback=%d completed', self.sequence, self.playback_id)
+
+    async def duplex_reply(self, reply):
+        await self.prepared_reply(reply)
+        if self.relay.audio_item == self.reply_item:
+            self.relay.audio_item = None
+        self.reply_item = None
+        await self.listen()
+
+    async def interrupt_reply(self):
+        # Cancel and join the sender before the barrier: no old binary frame
+        # may follow interrupt or be mistaken for the next reply's audio.
+        item = self.reply_item or self.relay.audio_item
+        was_playing = self.phase == 'speaking' and self.playback_id > 0
+        if self.worker:
+            worker, self.worker = self.worker, None
+            worker.cancel()
+            await asyncio.gather(worker, return_exceptions=True)
+        played = 0
+        if was_playing:
+            self.interrupting = True
+            self.interrupted.clear()
+            try:
+                await self.command('interrupt', playback=self.playback_id)
+                async with asyncio.timeout(3):
+                    await self.interrupted.wait()
+                played = self.played_ms
+                LOG.info('Device voice #%d playback=%d interrupted played_ms=%d sent_ms=%d',
+                         self.sequence, self.playback_id, played, self.sent//32)
+            finally:
+                self.interrupting = False
+        if item:
+            await self.relay.upstream.send_json({'type': 'conversation.item.truncate', **item, 'audio_end_ms': played})
+        self.reply_item = self.relay.audio_item = None
+        # Semantic VAD cancels in-progress generation. Keep the user's new PCM
+        # and resampler state; a clear here would discard the interruption.
+        await self.listen()
 
     async def prepared_reply(self, reply):
         if reply.speaker:
@@ -450,7 +517,11 @@ class DeviceEvents:
                 raise ValueError('Unexpected response before voice activation.')
             return
         if kind == 'input_audio_buffer.speech_started':
+            LOG.info('Device voice #%d speech started phase=%s duplex=%s',
+                     session.sequence, session.phase, session.duplex)
             session.activity = time.monotonic()
+            if session.duplex:
+                await session.interrupt_reply()
         elif kind in ('input_audio_buffer.speech_stopped', 'response.created'):
             session.phase = 'thinking'
             if session.turn_deadline is None:
@@ -458,24 +529,41 @@ class DeviceEvents:
             await session.command('pause')
         elif kind == 'reply.ready':
             reply = session.owner.output.get(session.key, event['reply']['id'])
-            await session.prepared_reply(reply)
+            if session.duplex:
+                if session.worker and not session.worker.done():
+                    raise ValueError('Overlapping voice replies.')
+                session.reply_item = event.get('audio_item')
+                session.worker = asyncio.create_task(session.duplex_reply(reply))
+            else:
+                await session.prepared_reply(reply)
         elif kind == 'response.done':
             response = event.get('response', {})
+            if session.duplex and response.get('status') == 'cancelled':
+                return  # Automatic VAD interruption, not a connection failure.
             if response.get('status') != 'completed':
                 raise ValueError('Incomplete voice response.')
             calls = [item for item in response.get('output', []) if item.get('type') == 'function_call']
             if len(calls) > 8:
                 raise ValueError('Too many voice actions.')
             waiting = bool(calls)
+            results = []
             for call in calls:
                 result = await session.owner.dispatch(session.key, call['call_id'], call['name'],
                                                       json.loads(call['arguments']), session.panel())
+                if result.get('end_voice_immediately') is True:
+                    session.end_reason = 'spoken_stop'
+                    session.relay.input_enabled = False
+                    # A normal close already stops the panel's speaker and
+                    # capture, then restores its configured wake detector.
+                    await session.ws.close()
+                    return
                 waiting &= call['name'] == 'wait_for_user' and result.get('wait_for_user') is True
+                results.append(result)
                 await session.relay.upstream.send_json({'type': 'conversation.item.create', 'item': {
                     'type': 'function_call_output', 'call_id': call['call_id'], 'output': json.dumps(result)}})
-            if calls and not waiting:
+            if calls and not waiting and not completed_command(results):
                 await session.relay.upstream.send_json({'type': 'response.create'})
-            else:
+            elif not (session.duplex and session.worker and not session.worker.done()):
                 await session.listen(waiting=waiting)
         elif kind == 'error':
             raise ValueError('Voice provider error.')

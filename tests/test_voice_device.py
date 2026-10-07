@@ -78,18 +78,18 @@ class DeviceHarness:
                            'revision':revision or page_delivery.configuration(self.record,{})})
         return ws
 
-    async def prepare(self, pair=None):
+    async def prepare(self, pair=None, *, duplex=False):
         pair = pair or await self.pairing()
         ws = await self.http.ws_connect(self.media.make_url('/voice-devices/' + pair['device']),
             headers={'Authorization': 'Bearer ' + pair['token']})
         await ws.send_json({'type': 'prepare', 'version': 2, 'rate': 16000, 'page': 0,
-            'revision': page_delivery.configuration(self.record, {})})
+            'revision': page_delivery.configuration(self.record, {}), 'duplex': duplex})
         return ws
 
     async def activate(self, ws):
         await ws.send_json({'type': 'start', 'page': 0,
             'revision': page_delivery.configuration(self.record, {})})
-        await self.until(ws, 'listen')
+        return await self.until(ws, 'listen')
 
     async def until(self,ws,kind):
         async with asyncio.timeout(20):
@@ -105,10 +105,12 @@ class DeviceTests(DeviceHarness, unittest.IsolatedAsyncioTestCase):
         self.provider_events=[]; self.provider_audio=[]; self.realtime_closed=asyncio.Event()
         self.answer = True
         self.wait_only = False
+        self.tool_calls = None
         self.connections = 0
         async def realtime(request):
             self.connections += 1
             ws=web.WebSocketResponse(); await ws.prepare(request)
+            self.realtime_ws = ws
             first=await ws.receive_json()
             self.provider_events.append(first)
             await ws.send_json({'type':'session.updated'})
@@ -122,7 +124,7 @@ class DeviceTests(DeviceHarness, unittest.IsolatedAsyncioTestCase):
                         answered=True
                         await ws.send_json({'type':'response.created','response':{'id':'response-a'}})
                         await ws.send_json({'type':'response.done','response':{'id':'response-a','status':'completed',
-                            'output':[{'type':'function_call','call_id':'test-call',
+                            'output':self.tool_calls or [{'type':'function_call','call_id':'test-call',
                                        'name':'wait_for_user' if self.wait_only else 'control_switch',
                                        'arguments':json.dumps({} if self.wait_only else
                                            {'name':'Reading light','area':'','action':'turn_on'})}]}})
@@ -356,6 +358,59 @@ class DeviceTests(DeviceHarness, unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.owner.sessions)
         self.ha.call.assert_not_awaited()
 
+    async def completed_command(self, *, duplex=False, rejected=False, end_voice=False):
+        self.owner.idle_seconds = 1
+        name, args = 'control_switch', {'name': 'Reading light', 'area': '', 'action': 'turn_on'}
+        if end_voice:
+            panel = base.VoiceTests.media_panel(self)
+            self.record['layout'] = panel['layout']
+            name, args = 'control_media', {'name': 'Spotify', 'area': '', 'action': 'next'}
+        self.tool_calls = [{'type': 'function_call', 'call_id': 'complete', 'name': name,
+                           'arguments': json.dumps({**args, 'complete_request': True})}]
+        if rejected:
+            self.ha.call.side_effect = ConnectionError('Disconnected')
+        if duplex:
+            ws = await self.prepare(duplex=True)
+            await self.until(ws, 'prepared')
+            await self.activate(ws)
+        else:
+            ws = await self.connect()
+            await self.until(ws, 'listen')
+        await ws.send_bytes(b'\0\x10' * 1600)
+        if rejected:
+            await self.until(ws, 'play')
+            self.assertIn('response.create', [e['type'] for e in self.provider_events])
+            await ws.close()
+            return
+        async with asyncio.timeout(3):
+            while not ws.closed:
+                event = await ws.receive()
+                if event.type != WSMsgType.TEXT:
+                    continue
+                data = event.json()
+                self.assertNotIn(data['type'], ('play', 'error'))
+                if data['type'] == 'listen':
+                    self.assertFalse(end_voice)
+                    self.assertEqual(data['idle_seconds'], 1)
+                    session = next(iter(self.service.active.values()))
+                    self.assertTrue(session.relay.input_enabled)
+        self.assertNotIn('response.create', [e['type'] for e in self.provider_events])
+        outputs = [e['item'] for e in self.provider_events if e['type'] == 'conversation.item.create']
+        self.assertTrue(json.loads(outputs[0]['output'])['complete_request'])
+        self.ha.call.assert_awaited_once()
+
+    async def test_completed_command_resumes_bounded_listening_without_ai_reply(self):
+        await self.completed_command()
+
+    async def test_duplex_completed_command_resumes_bounded_listening_without_ai_reply(self):
+        await self.completed_command(duplex=True)
+
+    async def test_rejected_command_still_requests_spoken_reply(self):
+        await self.completed_command(rejected=True)
+
+    async def test_completed_music_start_closes_capture_without_ai_reply(self):
+        await self.completed_command(end_voice=True)
+
     async def test_wake_only_resumes_silently_without_resetting_idle_budget(self):
         self.wait_only = True
         self.owner.idle_seconds = 2
@@ -424,6 +479,133 @@ class DeviceTests(DeviceHarness, unittest.IsolatedAsyncioTestCase):
         await asyncio.wait_for(self.realtime_closed.wait(), 2)
         await ws.close()
         self.ha.call.assert_awaited_once()
+
+    async def duplex_start(self):
+        self.answer = False
+        ws = await self.prepare(duplex=True)
+        await self.until(ws, 'prepared')
+        self.assertTrue((await self.activate(ws))['duplex'])
+        return ws
+
+    async def emit_reply(self, name='first'):
+        await self.realtime_ws.send_json({'type': 'response.created', 'response': {'id': name}})
+        await self.realtime_ws.send_json({'type': 'response.output_audio.delta', 'response_id': name,
+            'item_id': name + '-item', 'content_index': 0, 'delta': base64.b64encode(b'\0\x10'*24000).decode()})
+        await self.realtime_ws.send_json({'type': 'response.done', 'response': {'id': name, 'status': 'completed',
+            'output': [{'type': 'message', 'id': name + '-item', 'content': [{'type': 'audio'}]}]}})
+
+    async def test_spoken_stop_closes_playback_and_capture_without_a_goodbye(self):
+        ws = await self.duplex_start()
+        session = next(iter(self.service.active.values()))
+        await self.emit_reply()
+        play = await self.until(ws, 'play')
+        await ws.send_json({'type': 'ready', 'playback': play['playback']})
+        async with asyncio.timeout(2):
+            while (await ws.receive()).type != WSMsgType.BINARY: pass
+        # Simulate recognition by Realtime, not a local keyword/STT stage.
+        # Closing must release even a blocked speaker sender without credits.
+        await self.realtime_ws.send_json({'type': 'response.done', 'response': {
+            'status': 'completed', 'output': [{'type': 'function_call', 'call_id': 'stop-1',
+                'name': 'end_conversation', 'arguments': '{}'}]}})
+        async with asyncio.timeout(3):
+            while not ws.closed:
+                message = await ws.receive()
+                if message.type == WSMsgType.TEXT:
+                    self.assertNotIn(message.json()['type'], ('error', 'listen', 'play'))
+            while self.service.active: await asyncio.sleep(.01)
+        self.assertEqual(session.end_reason, 'spoken_stop')
+        self.assertTrue(session.worker.done())
+        self.assertFalse(self.owner.sessions)
+        self.assertFalse(any(e['type'] == 'response.create' for e in self.provider_events))
+        self.ha.call.assert_not_awaited()
+        # The next wake can prepare a fresh conversation normally.
+        ws = await self.prepare(duplex=True)
+        await self.until(ws, 'prepared')
+        await self.activate(ws)
+        await ws.close()
+
+    async def test_duplex_interrupt_drains_sender_preserves_mic_and_truncates_heard_duration(self):
+        ws = await self.duplex_start()
+        await self.emit_reply()
+        play = await self.until(ws, 'play')
+        identity = {'playback': play['playback']}
+        await ws.send_json({'type': 'ready', **identity})
+        async with asyncio.timeout(2):
+            while (message := await ws.receive()).type != WSMsgType.BINARY: pass
+        first = len(message.data)
+        count = len(self.provider_audio)
+        await ws.send_bytes(b'\0\x10'*1600)  # Mic remains accepted during speaker playback.
+        async with asyncio.timeout(2):
+            while len(self.provider_audio) == count: await asyncio.sleep(.01)
+        await self.realtime_ws.send_json({'type': 'input_audio_buffer.speech_started'})
+        interrupted = await self.until(ws, 'interrupt')
+        self.assertEqual(interrupted['playback'], play['playback'])
+        # A delayed credit from the cancelled stream must not fault or restart it.
+        await ws.send_json({'type': 'credit', **identity, 'bytes': first})
+        await ws.send_json({'type': 'interrupted', **identity, 'played_ms': 30})
+        await self.until(ws, 'listen')
+        async with asyncio.timeout(2):
+            while not any(e['type'] == 'conversation.item.truncate' for e in self.provider_events):
+                await asyncio.sleep(.01)
+        truncate = next(e for e in self.provider_events if e['type'] == 'conversation.item.truncate')
+        self.assertEqual(truncate, {'type': 'conversation.item.truncate', 'item_id': 'first-item',
+                                  'content_index': 0, 'audio_end_ms': 30})
+        self.assertEqual(sum(e['type'] == 'input_audio_buffer.clear' for e in self.provider_events), 1)
+        await self.emit_reply('second')
+        second = await self.until(ws, 'play')
+        self.assertGreater(second['playback'], play['playback'])
+        await ws.send_json({'type': 'done', **identity})  # Old acknowledgement cannot finish the second reply.
+        await ws.send_json({'type': 'ready', 'playback': second['playback']})
+        async with asyncio.timeout(2):
+            while (await ws.receive()).type != WSMsgType.BINARY: pass
+        await ws.send_json({'type': 'stop'})
+        await asyncio.wait_for(self.realtime_closed.wait(), 2)
+        await ws.close()
+        self.ha.call.assert_not_awaited()
+
+    async def test_duplex_complete_reply_is_not_truncated_by_next_question(self):
+        ws = await self.duplex_start()
+        await self.emit_reply()
+        play = await self.until(ws, 'play')
+        identity = {'playback': play['playback']}
+        await ws.send_json({'type': 'ready', **identity})
+        accepted = 0
+        async with asyncio.timeout(4):
+            async for message in ws:
+                if message.type == WSMsgType.BINARY:
+                    accepted += len(message.data)
+                    await ws.send_json({'type': 'credit', **identity, 'bytes': accepted})
+                elif message.type == WSMsgType.TEXT and message.json()['type'] == 'finish':
+                    self.assertEqual(accepted, play['bytes'])
+                    await ws.send_json({'type': 'done', **identity})
+                    break
+        await self.until(ws, 'listen')
+        await self.realtime_ws.send_json({'type': 'input_audio_buffer.speech_started'})
+        await self.until(ws, 'listen')
+        self.assertFalse(any(e['type'] == 'conversation.item.truncate' for e in self.provider_events))
+        await ws.close()
+
+    async def test_duplex_rejects_impossible_played_duration(self):
+        ws = await self.duplex_start()
+        await self.emit_reply()
+        play = await self.until(ws, 'play')
+        await self.realtime_ws.send_json({'type': 'input_audio_buffer.speech_started'})
+        await self.until(ws, 'interrupt')
+        await ws.send_json({'type': 'interrupted', 'playback': play['playback'], 'played_ms': 99999})
+        await self.until(ws, 'error')
+        await ws.close()
+        self.ha.call.assert_not_awaited()
+
+    async def test_duplex_vad_cancel_during_generation_is_not_a_connection_error(self):
+        ws = await self.duplex_start()
+        await self.realtime_ws.send_json({'type': 'response.created', 'response': {'id': 'cancel-me'}})
+        await self.until(ws, 'pause')
+        await self.realtime_ws.send_json({'type': 'input_audio_buffer.speech_started'})
+        await self.realtime_ws.send_json({'type': 'response.done', 'response': {'id': 'cancel-me', 'status': 'cancelled'}})
+        await self.until(ws, 'listen')
+        await self.emit_reply('next')
+        await self.until(ws, 'play')
+        await ws.close()
 
     async def test_replacing_pairing_closes_capture_and_old_token(self):
         pair = await self.pairing()

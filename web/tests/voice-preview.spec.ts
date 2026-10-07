@@ -56,6 +56,76 @@ const lookupCall = { type: "response.done", response: { status: "completed", out
 const lookupResult = { status: "ok", answer: "Cloudy.", sources: [{ url: "https://weather.example/forecast", title: "Forecast" }] };
 
 describe("Direct voice browser transport", () => {
+  it("records a completed command and resumes bounded listening without an AI acknowledgement", async () => {
+    await voice.start(); await flushPromises();
+    const normal = vi.mocked(send).getMockImplementation()!;
+    vi.mocked(send).mockImplementation((path, ...args) => path.endsWith("/tools")
+      ? Promise.resolve({ status: "accepted", complete_request: true }) : normal(path, ...args));
+    const channel = Peer.last.channel;
+    channel.send.mockClear();
+    channel.message({ type: "response.created" });
+    channel.message(call); await flushPromises();
+    const events = channel.send.mock.calls.map(([value]) => JSON.parse(value));
+    expect(events.some(e => e.type === "response.create")).toBe(false);
+    expect(JSON.parse(events.find(e => e.item?.type === "function_call_output").item.output).status).toBe("accepted");
+    expect(hooks.action).toHaveBeenCalledOnce();
+    expect(hooks.phase).toHaveBeenLastCalledWith("listening");
+    expect(track.enabled).toBe(true);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(track.stop).toHaveBeenCalledOnce();
+  });
+
+  it.each(["play_music", "play_named_track"])("closes capture after a completed %s without waiting for a reply", async name => {
+    await voice.start(); await flushPromises();
+    const normal = vi.mocked(send).getMockImplementation()!;
+    vi.mocked(send).mockImplementation((path, ...args) => {
+      if (!path.endsWith("/tools")) return normal(path, ...args);
+      expect(track.enabled).toBe(false);
+      return Promise.resolve({ status: "accepted", complete_request: true, end_voice: true });
+    });
+    const channel = Peer.last.channel;
+    channel.send.mockClear();
+    channel.message({ type: "response.done", response: { status: "completed", output: [
+      { type: "function_call", call_id: "music", name, arguments: "{}" },
+    ] } });
+    await flushPromises();
+    expect(channel.send.mock.calls.map(([value]) => JSON.parse(value)).some(e => e.type === "response.create")).toBe(false);
+    expect(hooks.action).toHaveBeenCalledOnce();
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(channel.readyState).toBe("closed");
+  });
+
+  it.each(["error", "ambiguous", "combined", "batch"])("keeps the spoken follow-up for %s results", async kind => {
+    await voice.start(); await flushPromises();
+    const normal = vi.mocked(send).getMockImplementation()!;
+    vi.mocked(send).mockImplementation((path, ...args) => path.endsWith("/tools")
+      ? Promise.resolve({ status: ["combined", "batch"].includes(kind) ? "accepted" : kind,
+          complete_request: kind !== "combined" }) : normal(path, ...args));
+    const channel = Peer.last.channel;
+    channel.send.mockClear();
+    const output = [...call.response.output];
+    if (kind === "batch") output.push({ ...output[0], call_id: "call_2" });
+    channel.message({ ...call, response: { ...call.response, output } }); await flushPromises();
+    expect(channel.send.mock.calls.map(([value]) => JSON.parse(value)).some(e => e.type === "response.create")).toBe(true);
+  });
+
+  it("ends a spoken-stop session immediately without requesting an acknowledgement", async () => {
+    await voice.start(); await flushPromises();
+    const normal = vi.mocked(send).getMockImplementation()!;
+    vi.mocked(send).mockImplementation((path, ...args) => path.endsWith("/tools")
+      ? Promise.resolve({ status: "ok", end_voice: true, end_voice_immediately: true }) : normal(path, ...args));
+    const channel = Peer.last.channel;
+    channel.send.mockClear();
+    channel.message({ type: "response.done", response: { status: "completed", output: [
+      { type: "function_call", call_id: "stop_1", name: "end_conversation", arguments: "{}" },
+    ] } });
+    await flushPromises();
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(channel.readyState).toBe("closed");
+    expect(channel.send.mock.calls.map(([value]) => JSON.parse(value)).some(e => e.type === "response.create")).toBe(false);
+    expect(hooks.action).not.toHaveBeenCalled();
+  });
+
   it("returns to listening after a silent activation without creating a spoken follow-up", async () => {
     await voice.start(); await flushPromises();
     const normal = vi.mocked(send).getMockImplementation()!;

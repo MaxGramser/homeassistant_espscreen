@@ -28,6 +28,7 @@ VOICE_SCHEMA = cv.Schema({
                                                                    min_channels=1, max_channels=1),
     cv.Required("speaker"): cv.use_id(speaker.Speaker),
     cv.Required("amplifier"): cv.use_id(switch.Switch),
+    cv.Optional("full_duplex", default=False): cv.boolean,
 }).extend(cv.COMPONENT_SCHEMA)
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,11 +60,26 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
     cv.Optional("voice"): VOICE_SCHEMA,
 }), _audio_options)
 
-FINAL_VALIDATE_SCHEMA = cv.Schema({
+def _duplex_hardware(config):
+    if config.get("voice", {}).get("full_duplex"):
+        from esphome import final_validate as fv
+        full = fv.full_config.get()
+        stack, aec = full.get("esp_audio_stack", {}), full.get("esp_aec", {})
+        if not stack or not aec or stack.get("processor_id") != aec.get("id"):
+            raise cv.Invalid("full_duplex requires esp_audio_stack with esp_aec as its processor")
+        voice = config["voice"]
+        for domain, wanted in (("microphone", voice["microphone"]["microphone"]), ("speaker", voice["speaker"])):
+            if not any(item.get("id") == wanted and item.get("platform") == "esp_audio_stack"
+                       for item in full.get(domain, [])):
+                raise cv.Invalid("full_duplex microphone and speaker must use esp_audio_stack")
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = cv.All(cv.Schema({
     cv.Optional("voice"): cv.Schema({
         cv.Required("microphone"): microphone.final_validate_microphone_source_schema("panel_voice", sample_rate=16000),
     }, extra=cv.ALLOW_EXTRA),
-}, extra=cv.ALLOW_EXTRA)
+}, extra=cv.ALLOW_EXTRA), _duplex_hardware)
 
 
 async def to_code(config):
@@ -76,6 +92,8 @@ async def to_code(config):
 
         voice = config["voice"]
         cg.add_define("USE_SCREEN_DEVICE_VOICE")
+        if voice["full_duplex"]:
+            cg.add_define("USE_SCREEN_VOICE_DUPLEX")
         add_idf_component(name="espressif/esp_websocket_client", ref="1.8.0")
         require_certificate_bundle()
         var = cg.new_Pvariable(voice["id"])

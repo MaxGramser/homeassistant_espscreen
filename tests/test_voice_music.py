@@ -77,6 +77,75 @@ class MusicTests(unittest.IsolatedAsyncioTestCase):
     async def play(self, session, result_id, call='play_1'):
         return await self.command(session, 'play_music', {'result_id': result_id}, call)
 
+    async def play_named(self, session, *, call='named_1', artist='Example artist'):
+        return await self.command(session, 'play_named_track',
+                                  {'title': 'Example song', 'artist': artist}, call)
+
+    async def test_named_play_searches_and_plays_once_without_model_round_trips(self):
+        await self.configure()
+        session = await self.session(self.context)
+        results = await asyncio.gather(self.play_named(session), self.play_named(session))
+        self.assertEqual(results[0], results[1])
+        self.assertEqual(results[0]['status'], 'accepted')
+        self.assertTrue(results[0]['end_voice'])
+        self.assertEqual(len(self.searches), 1)
+        self.ha.call.assert_awaited_once_with('media_player.play_media', {
+            'entity_id': 'media_player.music', 'media_content_id': TRACK['uri'], 'media_content_type': 'music'})
+
+    async def test_named_play_returns_choices_for_different_artists_or_versions(self):
+        await self.configure()
+        session = await self.session(self.context)
+        self.search_data['tracks']['items'].append({**TRACK, 'id': 'b'*22, 'uri': 'spotify:track:'+'b'*22,
+                                                  'artists': [{'name': 'Other artist'}]})
+        result = await self.play_named(session, artist='')
+        self.assertEqual(result['status'], 'needs_choice')
+        self.assertEqual(len(result['tracks']), 2)
+        self.ha.call.assert_not_awaited()
+        self.search_data['tracks']['items'] = [{**TRACK, 'name': 'Example song - Live'}]
+        result = await self.play_named(session, call='version')
+        self.assertEqual(result['status'], 'needs_choice')
+        self.ha.call.assert_not_awaited()
+        # The existing explicit selection flow still handles a clarified choice.
+        selected = await self.play(session, result['tracks'][0]['result_id'])
+        self.assertEqual(selected['status'], 'accepted')
+        self.ha.call.assert_awaited_once()
+
+    async def test_named_play_can_choose_ranked_release_of_the_same_song(self):
+        await self.configure()
+        session = await self.session(self.context)
+        self.search_data['tracks']['items'].append({**TRACK, 'id': 'b'*22, 'uri': 'spotify:track:'+'b'*22,
+                                                  'album': {'name': 'Compilation'}})
+        result = await self.play_named(session)
+        self.assertEqual(result['status'], 'accepted')
+        self.assertEqual(self.ha.call.call_args.args[1]['media_content_id'], TRACK['uri'])
+
+    async def test_named_play_rechecks_exposure_after_waiting_for_catalogue(self):
+        await self.configure()
+        session = await self.session(self.context)
+        self.delay = asyncio.Event()
+        pending = asyncio.create_task(self.play_named(session))
+        await asyncio.wait_for(self.started.wait(), 2)
+        self.exposure.pop('media_player.music')
+        self.delay.set()
+        self.assertEqual((await pending)['status'], 'not_exposed')
+        self.ha.call.assert_not_awaited()
+
+    async def test_named_play_rechecks_capabilities_and_spotify_output(self):
+        await self.configure()
+        session = await self.session(self.context)
+        self.delay = asyncio.Event()
+        pending = asyncio.create_task(self.play_named(session))
+        await asyncio.wait_for(self.started.wait(), 2)
+        self.media_actions.remove('media_player.play_media')
+        self.delay.set()
+        self.assertEqual((await pending)['status'], 'unsupported')
+        self.ha.call.assert_not_awaited()
+        self.media_actions.add('media_player.play_media')
+        self.ha.registry[-1]['platform'] = 'spotify'
+        self.ha.states['media_player.music']['attributes'].pop('source')
+        self.assertEqual((await self.play_named(session, call='output'))['status'], 'output_required')
+        self.ha.call.assert_not_awaited()
+
     async def test_private_settings_persist_and_remove_without_touching_ai_keys(self):
         status = await self.configure()
         self.assertEqual(status['spotify'], {'configured': True, 'market': 'NL'})

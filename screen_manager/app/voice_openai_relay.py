@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 
 from aiohttp import ClientError, WSMsgType, web
 
-from assistant_tools import INSTRUCTIONS, TOOLS, panel_context
+from assistant_tools import prompt, TOOLS, panel_context
 from voice_output import MAX_SECONDS as REPLY_SECONDS, pcm_wav
 
 REALTIME_URL = 'wss://api.openai.com/v1/realtime'
@@ -28,6 +28,8 @@ class OpenAIRelay:
         self.attached = False
         self.audio = bytearray()
         self.response_id = ''
+        self.audio_item = None
+        self.duplex = session.get('duplex') is True
         self.input_enabled = True
 
     async def connect(self, context, *, listening=True):
@@ -35,7 +37,7 @@ class OpenAIRelay:
             REALTIME_URL + '?' + urlencode({'model': self.owner.model}),
             headers={'Authorization': 'Bearer ' + self.owner.key}, heartbeat=20, max_msg_size=2*1024*1024)
         await self.upstream.send_json({'type': 'session.update', 'session': {
-            'type': 'realtime', 'instructions': INSTRUCTIONS + '\nPANEL_CONTEXT_DATA:\n' + json.dumps(context, ensure_ascii=False),
+            'type': 'realtime', 'instructions': prompt(context),
             'tools': [{'type': 'function', **tool} for tool in TOOLS], 'tool_choice': 'auto', 'max_output_tokens': 1024,
             'audio': {'input': {'format': {'type': 'audio/pcm', 'rate': 24000},
                                 'turn_detection': {'type': 'semantic_vad'} if listening else None},
@@ -57,14 +59,18 @@ class OpenAIRelay:
             kind = event.get('type')
             if kind == 'response.created':
                 self.audio.clear()
+                self.audio_item = None
                 self.response_id = event.get('response', {}).get('id', '')
-                self.input_enabled = False
-                await self.upstream.send_json({'type': 'session.update', 'session': {
-                    'type': 'realtime', 'audio': {'input': {'turn_detection': None}}}})
-                await self.upstream.send_json({'type': 'input_audio_buffer.clear'})
+                if not self.duplex:
+                    self.input_enabled = False
+                    await self.upstream.send_json({'type': 'session.update', 'session': {
+                        'type': 'realtime', 'audio': {'input': {'turn_detection': None}}}})
+                    await self.upstream.send_json({'type': 'input_audio_buffer.clear'})
             elif kind == 'response.output_audio.delta':
                 if event.get('response_id') != self.response_id:
                     raise ValueError('Unexpected reply audio.')
+                if event.get('item_id'):
+                    self.audio_item = {'item_id': event['item_id'], 'content_index': event.get('content_index', 0)}
                 self.audio.extend(base64.b64decode(event.get('delta', ''), validate=True))
                 if len(self.audio) > 24000 * 2 * REPLY_SECONDS:
                     raise ValueError('The spoken reply is too long.')
@@ -77,7 +83,8 @@ class OpenAIRelay:
                     speaker = '' if self.session.get('end_voice') else self.session['reply_speaker']
                     reply = self.owner.output.prepare(self.key, pcm_wav(self.audio), 'audio/wav', speaker,
                                                       self.session['reply_volume'])
-                    await self.browser.send_json({'type': 'reply.ready', 'response_id': self.response_id, 'reply': reply})
+                    await self.browser.send_json({'type': 'reply.ready', 'response_id': self.response_id,
+                                                  'audio_item': self.audio_item, 'reply': reply})
                 self.audio.clear()
             if kind in EVENTS:
                 await self.browser.send_json(event)

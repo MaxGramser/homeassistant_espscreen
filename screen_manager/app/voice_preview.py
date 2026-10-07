@@ -17,7 +17,7 @@ import time
 
 from aiohttp import web
 
-from assistant_tools import INSTRUCTIONS, TOOLS, execute, panel_context
+from assistant_tools import prompt, TOOLS, execute, panel_context
 from voice_providers import AUDIO_PROVIDERS, LOOKUP_PROVIDERS, TEXT_PROVIDERS
 from voice_ha_speech import pipelines
 from voice_claude import ClaudeSessions
@@ -256,7 +256,7 @@ class VoicePreview:
         self.require_enabled()
         context = await panel_context(self.manager, await request.json(), music=self.music)
         return web.json_response({'context': context,
-            'instructions': INSTRUCTIONS + '\nPANEL_CONTEXT_DATA:\n' + json.dumps(context, ensure_ascii=False)})
+            'instructions': prompt(context)})
 
     async def start(self, request):
         self.require_enabled()
@@ -282,7 +282,7 @@ class VoicePreview:
         self.sessions[session_id] = session
         try:
             answer = await session['audio'].connect(sdp, model=self.model, voice=self.voice,
-                instructions=INSTRUCTIONS + '\nPANEL_CONTEXT_DATA:\n' + json.dumps(context, ensure_ascii=False), tools=TOOLS)
+                instructions=prompt(context), tools=TOOLS)
             session['timer'] = asyncio.get_running_loop().call_later(MAX_SECONDS, lambda: asyncio.create_task(self.close(session_id)))
             return web.json_response({'id': session_id, 'sdp': answer, 'context': context, 'max_seconds': MAX_SECONDS})
         except BaseException:
@@ -314,6 +314,8 @@ class VoicePreview:
             if previous[0] != signature:
                 raise ValueError('A voice tool call ID cannot be reused for another action.')
             return previous[1]
+        if session.get('end_voice_immediately'):
+            raise ValueError('Voice session ended.')
         if len(session['receipts']) >= 256:
             raise ValueError('Start a new voice conversation.')
         try:
@@ -321,6 +323,10 @@ class VoicePreview:
                 if args:
                     raise ValueError('Waiting takes no arguments.')
                 result = {'status': 'ok', 'wait_for_user': True}
+            elif name == 'end_conversation':
+                if args:
+                    raise ValueError('Ending the conversation takes no arguments.')
+                result = {'status': 'ok', 'end_voice': True, 'end_voice_immediately': True}
             elif name == 'lookup_current_information':
                 provider, key, model = ((self.lookup, self.key, self.search_model) if session['provider'] == 'openai'
                     else (LOOKUP_PROVIDERS['claude'], self.claude_key, self.claude_model))
@@ -340,12 +346,14 @@ class VoicePreview:
                     LOG.info('Voice current-information lookup provider=%s elapsed=%.2fs',
                              session['provider'], time.monotonic()-started)
             else:
-                context = await panel_context(self.manager, panel, private=True, music=self.music)
+                async def refresh_context():
+                    return await panel_context(self.manager, panel, private=True, music=self.music)
+                context = await refresh_context()
                 # Stop may have been pressed while HA exposure was being read.
                 if session_id not in self.sessions:
                     raise asyncio.CancelledError()
                 task = asyncio.create_task(execute(self.manager, name, args, context, music=self.music,
-                    music_results=session.setdefault('music_results', {})))
+                    music_results=session.setdefault('music_results', {}), refresh_context=refresh_context))
                 session['action_task'] = task
                 try:
                     result = await task
@@ -357,6 +365,8 @@ class VoicePreview:
         session['receipts'][call_id] = (signature, result)
         if result.get('end_voice'):
             session['end_voice'] = True
+        if result.get('end_voice_immediately'):
+            session['end_voice_immediately'] = True
         return result
 
     def live_session(self, request):

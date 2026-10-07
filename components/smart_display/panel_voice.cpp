@@ -13,13 +13,31 @@ static const char *const TAG = "panel_voice";
 
 void PanelVoice::setup() {
   mic_->add_data_callback([this](const std::vector<uint8_t> &data) { capture_(data); });
+#ifdef USE_SCREEN_VOICE_DUPLEX
+  speaker_->add_audio_output_callback([this](uint32_t frames, int64_t) { played_frames_ += frames; });
+#endif
 }
 
 std::string PanelVoice::context_(const char *type) const {
   return json::build_json([&](JsonObject root) {
     root["type"] = type; root["page"] = page_(); root["revision"] = revision_();
     if (strcmp(type, "prepare") == 0) { root["version"] = 2; root["rate"] = 16000; }
+#ifdef USE_SCREEN_VOICE_DUPLEX
+    if (strcmp(type, "prepare") == 0) root["duplex"] = true;
+#endif
   });
+}
+
+void PanelVoice::acknowledge_(const char *type, size_t bytes) {
+  send_(json::build_json([&](JsonObject root) {
+    root["type"] = type;
+    if (strcmp(type, "credit") == 0) root["bytes"] = bytes;
+#ifdef USE_SCREEN_VOICE_DUPLEX
+    if (duplex_) root["playback"] = playback_id_;
+    if (strcmp(type, "interrupted") == 0)
+      root["played_ms"] = std::min<size_t>(played_frames_.load(), expected_ / 2) / 16;
+#endif
+  }));
 }
 
 void PanelVoice::start() {
@@ -71,6 +89,10 @@ void PanelVoice::prepare_() {
 
 void PanelVoice::begin_() {
   conversation_ = true;
+  duplex_ = false;
+#ifdef USE_SCREEN_VOICE_DUPLEX
+  interrupt_pending_ = false; playback_id_ = 0;
+#endif
   ready_ = finishing_ = finish_called_ = mic_started_ = false;
   expected_ = accepted_ = pending_size_ = pending_offset_ = 0;
   started_ = millis();
@@ -135,22 +157,44 @@ void PanelVoice::handle_(const char *text) {
       const int idle = root["idle_seconds"] | 0;
       if (!conversation_ || idle < 1 || idle > 300 || !speaker_->is_stopped()) return false;
       idle_ms_ = idle * 1000;
+#ifdef USE_SCREEN_VOICE_DUPLEX
+      duplex_ = root["duplex"] | false;
+#endif
       // Preserve the initial buffered command when the provider becomes ready.
-      if (phase_ != CONNECTING) input_->reset();
+      if (phase_ != CONNECTING && !duplex_) input_->reset();
       last_speech_ = now; send_audio_ = true;
       set_phase_(LISTENING, now);
     } else if (type == "pause") {
-      capture_enabled_ = false; send_audio_ = false; raw_mic_->stop(); mic_started_ = false; set_phase_(THINKING, now);
+      if (!duplex_) { capture_enabled_ = false; send_audio_ = false; raw_mic_->stop(); mic_started_ = false; }
+      set_phase_(THINKING, now);
     } else if (type == "play") {
       const int bytes = root["bytes"] | 0, rate = root["rate"] | 0;
       if (bytes <= 0 || bytes > 16000 * 2 * 45 || bytes % 2 || rate != 16000 || !speaker_->is_stopped()) return false;
-      capture_enabled_ = false; send_audio_ = false; raw_mic_->stop(); mic_started_ = false;
+      if (!duplex_) { capture_enabled_ = false; send_audio_ = false; raw_mic_->stop(); mic_started_ = false; }
+#ifdef USE_SCREEN_VOICE_DUPLEX
+      if (duplex_) {
+        const uint32_t playback = root["playback"] | uint32_t(0);
+        if (!playback || playback <= playback_id_ || interrupt_pending_) return false;
+        playback_id_ = playback; played_frames_ = 0;
+      }
+#endif
       expected_ = bytes; accepted_ = pending_size_ = pending_offset_ = 0;
       ready_ = finishing_ = finish_called_ = false; amp_at_ = 0;
       speaker_->set_audio_stream_info(audio::AudioStreamInfo(16, 1, 16000));
       output_->reset(); set_phase_(SPEAKING, now);
     } else if (type == "finish" && phase_ == SPEAKING && accepted_ == expected_) {
+#ifdef USE_SCREEN_VOICE_DUPLEX
+      if (duplex_ && (root["playback"] | uint32_t(0)) != playback_id_) return false;
+#endif
       finishing_ = true;
+#ifdef USE_SCREEN_VOICE_DUPLEX
+    } else if (type == "interrupt" && duplex_ && playback_id_ &&
+               (root["playback"] | uint32_t(0)) == playback_id_) {
+      speaker_->stop(); amp_->turn_off();
+      output_->reset(); pending_size_ = pending_offset_ = 0;
+      finishing_ = finish_called_ = false; interrupt_pending_ = true;
+      set_phase_(THINKING, now);
+#endif
     } else if (type == "error") {
       if (active()) fail_("add-on error"); else disconnect_();
     } else return false;
@@ -196,6 +240,13 @@ void PanelVoice::loop() {
   if (!running_) return;
   Command command;
   while (xQueueReceive(incoming_, &command, 0) == pdPASS && running_) handle_(command.text);
+#ifdef USE_SCREEN_VOICE_DUPLEX
+  // The add-on cancels its sender before interrupt, then waits for this barrier
+  // before sending another reply. Already queued PCM cannot leak into it.
+  if (interrupt_pending_ && speaker_->is_stopped()) {
+    interrupt_pending_ = false; acknowledge_("interrupted");
+  }
+#endif
   // Process a queued provider error before the close frame. A normal close
   // (silence, Stop or add-on shutdown) returns to idle without an error flash.
   if (server_closed_ || fault_ || (connected_ && elapsed(now, last_server_.load()) > 5000)) {
@@ -218,18 +269,18 @@ void PanelVoice::loop() {
   }
   if (conversation_ && (phase_ == LISTENING || phase_ == CONNECTING)) {
     if (phase_ == LISTENING && (elapsed(now, last_speech_.load()) >= idle_ms_ || elapsed(now, phase_started_) > 30000)) { stop(); return; }
-    if (!mic_started_ && raw_mic_->is_stopped() && speaker_->is_stopped()) {
+    if (!mic_started_ && raw_mic_->is_stopped() && (duplex_ || speaker_->is_stopped())) {
       capture_enabled_ = true; raw_mic_->start(); mic_started_ = true;
     }
     if (!raw_mic_->is_running() && elapsed(now, phase_started_) > 3000) fail_("microphone start timeout");
   } else if (phase_ == SPEAKING) {
     if (!ready_) {
-      if (!raw_mic_->is_stopped()) return;
+      if (!duplex_ && !raw_mic_->is_stopped()) return;
       speaker_->start();
       if (!speaker_->is_running()) return;
       if (!amp_at_) { amp_->turn_on(); amp_at_ = now; }
       if (elapsed(now, amp_at_) < 50) return;
-      ready_ = true; send_("{\"type\":\"ready\"}");
+      ready_ = true; acknowledge_("ready");
     }
     if (pending_offset_ == pending_size_) {
       pending_size_ = output_->read(pending_, sizeof(pending_), 0); pending_offset_ = 0;
@@ -238,12 +289,12 @@ void PanelVoice::loop() {
       const size_t sent = speaker_->play(pending_ + pending_offset_, pending_size_ - pending_offset_, 0);
       pending_offset_ += sent; accepted_ += sent;
       if (accepted_ > expected_) { fail_(); return; }
-      if (sent) send_("{\"type\":\"credit\",\"bytes\":" + std::to_string(accepted_) + "}");
+      if (sent) acknowledge_("credit", accepted_);
     }
     if (finishing_ && accepted_ == expected_) {
       if (!finish_called_) { speaker_->finish(); finish_called_ = true; }
       if (speaker_->is_stopped()) {
-        amp_->turn_off(); set_phase_(THINKING, now); send_("{\"type\":\"done\"}");
+        amp_->turn_off(); set_phase_(THINKING, now); acknowledge_("done");
       }
     }
   }

@@ -38,7 +38,8 @@ class PanelVoice : public Component {
   void stop();
   bool active() const { return wake_.pending() || conversation_; }
   bool listening() const {
-    return phase_ == LISTENING && capture_enabled_ && raw_mic_->is_running() && !raw_mic_->get_mute_state();
+    return (phase_ == LISTENING || duplex_) && conversation_ && capture_enabled_ &&
+           raw_mic_->is_running() && !raw_mic_->get_mute_state();
   }
   int phase() const { return phase_; }
 
@@ -59,6 +60,7 @@ class PanelVoice : public Component {
   bool transport_active_() const { return running_ || !worker_done_ || phase_ == STOPPING; }
   void set_phase_(Phase next, uint32_t now) { phase_ = next; phase_started_ = now; }
   std::string context_(const char *type) const;
+  void acknowledge_(const char *type, size_t bytes = 0);
 
   microphone::MicrophoneSource *mic_{nullptr};
   microphone::Microphone *raw_mic_{nullptr};
@@ -76,6 +78,12 @@ class PanelVoice : public Component {
   size_t expected_{0}, accepted_{0}, pending_size_{0}, pending_offset_{0};
   bool ready_{false}, finishing_{false}, finish_called_{false}, failed_{false}, mic_started_{false};
   bool warm_enabled_{false}, conversation_{false}, start_sent_{false};
+  bool duplex_{false}; // Enabled only after the add-on accepts the capability.
+#ifdef USE_SCREEN_VOICE_DUPLEX
+  bool interrupt_pending_{false};
+  uint32_t playback_id_{0};
+  std::atomic<uint32_t> played_frames_{0};
+#endif
   uint8_t pending_[2048];
   char text_[256]{};
   QueueHandle_t incoming_{nullptr}, outgoing_{nullptr};

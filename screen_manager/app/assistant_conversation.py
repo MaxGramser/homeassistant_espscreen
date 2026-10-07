@@ -5,7 +5,7 @@ and server tool dispatcher. It does not pass through this text-only transport.
 """
 import json
 
-from assistant_tools import INSTRUCTIONS, TOOLS
+from assistant_tools import prompt, TOOLS, completed_command
 
 
 class Conversation:
@@ -19,7 +19,7 @@ class Conversation:
         history = [message for turn in self.turns[-6:] for message in turn]
         turn = [{'role': 'user', 'content': text}]
         sources, action, end_voice = {}, False, False
-        instructions = INSTRUCTIONS + '\nPANEL_CONTEXT_DATA:\n' + json.dumps(context, ensure_ascii=False)
+        instructions = prompt(context)
         for _ in range(8):
             result = await self.provider.respond(self.http, self.key, model=self.model,
                 instructions=instructions, tools=TOOLS, messages=history + turn)
@@ -37,11 +37,20 @@ class Conversation:
             for call in result['calls']:
                 output = await dispatch(call['id'], call['name'], call['arguments'])
                 outputs.append((call['id'], output))
+                if output.get('end_voice_immediately') is True:
+                    # No further provider turn, device action or TTS after a
+                    # spoken stop. This session's history will be discarded.
+                    return {'text': '', 'sources': [], 'action': action,
+                            'end_voice': True, 'end_voice_immediately': True}
                 if call['name'] == 'lookup_current_information' and output.get('status') == 'ok':
                     sources.update((s['url'], s) for s in output.get('sources', []))
                 action |= output.get('status') == 'accepted'
                 end_voice |= output.get('end_voice') is True
             turn.append(self.provider.tool_results(outputs))
+            if completed_command([output for _, output in outputs]):
+                self.remember(turn)
+                return {'text': '', 'sources': [], 'action': action, 'complete_request': True,
+                        **({'end_voice': True} if end_voice else {})}
             if all(call['name'] == 'wait_for_user' and output.get('wait_for_user') is True
                    for call, (_, output) in zip(result['calls'], outputs)):
                 self.remember(turn)

@@ -100,6 +100,34 @@ it("sends native PCM, pauses input through external delivery and resumes with a 
   expect(source.start).not.toHaveBeenCalled(); // no double playback on the browser
 });
 
+it("resumes relay capture after a completed command without generating or playing a reply", async () => {
+  await start();
+  const normal = vi.mocked(send).getMockImplementation()!;
+  vi.mocked(send).mockImplementation((path, ...args) => path.endsWith("/tools")
+    ? Promise.resolve({ status: "accepted", complete_request: true }) : normal(path, ...args));
+  const socket = Socket.last;
+  socket.send.mockClear();
+  socket.message({ type: "response.created", response: { id: "stop" } });
+  expect(track.enabled).toBe(false);
+  socket.message({ type: "response.done", response: { id: "stop", status: "completed", output: [
+    { type: "function_call", call_id: "stop-1", name: "control_media", arguments: '{"action":"stop"}' },
+  ] } });
+  await flushPromises();
+  const events = socket.send.mock.calls.map(([value]) => JSON.parse(value));
+  expect(events.some(e => e.type === "response.create")).toBe(false);
+  expect(events.some(e => e.session?.audio?.input?.turn_detection?.type === "semantic_vad")).toBe(true);
+  expect(hooks.action).toHaveBeenCalledOnce();
+  expect(hooks.phase).toHaveBeenLastCalledWith("listening");
+  expect(track.enabled).toBe(true);
+  expect(source.start).not.toHaveBeenCalled();
+  expect(api).not.toHaveBeenCalled();
+  socket.send.mockClear();
+  node.port.onmessage?.({ data: new Float32Array([.5]) });
+  expect(socket.send.mock.calls[0][0]).toBeInstanceOf(ArrayBuffer);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(track.stop).toHaveBeenCalledOnce();
+});
+
 it("keeps a music confirmation local and closes voice after its actual audio ends", async () => {
   await start();
   Socket.last.message({ type: "response.created", response: { id: "command" } });

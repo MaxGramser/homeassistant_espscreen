@@ -215,6 +215,7 @@ export class OpenAIVoiceConnection {
         this.working = this.working.then(async () => {
           let answered = false;
           let waiting = true;
+          let complete = calls.length === 1;
           for (const call of calls) {
             if (generation !== this.generation) return;
             if (this.seen.has(call.call_id)) continue;
@@ -222,14 +223,16 @@ export class OpenAIVoiceConnection {
             const args = JSON.parse(call.arguments);
             // Stop transmitting before HA can start external speakers. Browser
             // echo cancellation has no reference audio for Sonos playback.
-            const startsMusic = call.name === "play_music" ||
+            const startsMusic = ["play_music", "play_named_track"].includes(call.name) ||
               (call.name === "control_media" && ["play", "next", "previous"].includes(args.action));
             if (startsMusic) this.muteInput(true);
-            const result = await send<{ status?: string; sources?: VoiceSource[]; end_voice?: boolean; wait_for_user?: boolean }>(`voice-preview/sessions/${encodeURIComponent(this.session)}/tools`, "POST", {
+            const result = await send<{ status?: string; sources?: VoiceSource[]; end_voice?: boolean; end_voice_immediately?: boolean; wait_for_user?: boolean; complete_request?: boolean }>(`voice-preview/sessions/${encodeURIComponent(this.session)}/tools`, "POST", {
               call_id: call.call_id, name: call.name, arguments: args, context: this.panel(),
             });
             if (generation !== this.generation) return;
+            if (result.end_voice_immediately === true) { await this.stop(); return; }
             waiting &&= call.name === "wait_for_user" && result.wait_for_user === true;
+            complete &&= result.status === "accepted" && result.complete_request === true;
             if (result.end_voice === true) {
               this.muteInput(true); this.endAfterReply = true;
               // Bound a missing acknowledgement while the idle timer is paused.
@@ -240,12 +243,15 @@ export class OpenAIVoiceConnection {
               this.sources = [...new Map([...this.sources, ...(result.sources ?? [])].map(source => [source.url, source])).values()];
               this.hooks.sources?.(this.sources);
             }
-            if (["control_switch", "control_media", "set_light_brightness", "play_music"].includes(call.name) && result.status === "accepted") this.hooks.action();
+            if (["control_switch", "control_media", "set_light_brightness", "play_music", "play_named_track"].includes(call.name) && result.status === "accepted") this.hooks.action();
             answered = true;
           }
           if (answered && turn === this.turn) {
-            if (waiting && !this.endAfterReply) {
-              // A silent activation has no spoken tool follow-up.
+            if (complete && this.endAfterReply) {
+              await this.stop();
+            } else if ((complete || waiting) && !this.endAfterReply) {
+              // Keep the tool receipt in history, but don't request an AI
+              // acknowledgement of a completed command or silent activation.
               this.muteInput(false);
             } else {
               this.responses.add("requested"); this.emit({ type: "response.create" });
