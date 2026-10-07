@@ -83,7 +83,8 @@ if (!process.env.PREVIEW_MESSAGES) {
   const nextAction = () => JSON.parse(m.ccall('preview_next_action', 'string', [], []));
   touch();
   const request = nextAction();
-  assert.equal(request.service, 'light.toggle', 'the command comes from the firmware tap route');
+  // A wish (docs/OPTIMISTIC.md) sends what the tap shows, as Home Assistant's toggle does: turn_off for a lamp that was on.
+  assert.equal(request.service, 'light.turn_off', 'the command comes from the firmware tap route');
   assert.deepEqual(request.data, { entity_id: 'light.yellow' }, 'StringRef fields must survive the firmware call stack');
   assert.equal(request.event, false);
   assert.ok(request.call_id > 0, 'the firmware must ask for a real action response');

@@ -199,18 +199,21 @@ LINT_KEEP = {
     'Configuration problem. Update add-on.', 'Session:', 'Error: obsolete message',
     'Error: layout', 'Error: invalid layout', 'Error: incomplete layout', 'Error: insufficient layout memory',
     'Error: outdated tile or configuration in state',
+    # Picture-loader diagnostic reasons, never labels on the screen.
+    'not wanted now', 'asks again', 'breaks off for the glass', 'load failed',
     # Only a log line or the rate limiter's reason shows these.
     'history range', 'card button ', 'header navigation', 'media key ', 'screensaver play', 'screensaver mute', 'let go', 'too short (', 'already handled in this contact',
     'same button within the debounce window', 'no runtime tiles', 'setting off', 'screen dimmed', 'card open',
     'detail card open', 'camera open', 'a slider is being dragged', 'settings page open', 'alert showing', 'USB calibration ready; no tile actions',
-    'GT911 touch test ready; no tile actions',
+    'GT911 touch test ready; no tile actions', 'ST7121 touch test ready; no tile actions',
+    'My M5Stack Tab5',
     'configuration not ready',
     'UI_TEST START: page/overlay render stress, no HA actions', 'Color', 'Color temperature', 'Brightness',
     # Home Assistant's own values and units the code compares with, not words it shows.
     'None', 'Auto', 'Wh',
     # Placeholders of the YAML tree that the runtime tiles replace before a screen shows them, and profile defaults.
     'Lamp', 'Plug', 'Evening', 'All off', 'AC', 'Vacuum', 'Tile 7', 'Tile 8', 'Tile 9', 'Tile 10', 'Light', 'Light Color',
-    'Climate', 'Example lamp', 'My CYD', 'My Guition', 'My Guition 10', 'My Guition 10 V3', 'My Guition 10 V2', 'My Guition 7', 'My Guition 7 V2', 'My Waveshare', 'My Waveshare 7', 'My Waveshare 7B', 'My Waveshare 4B', 'My Hosyond', 'My Guition 3.5', 'My Sunton 7',
+    'Climate', 'Example lamp', 'My CYD', 'My Guition', 'My Guition 10', 'My Guition 10 V3', 'My Guition 10 V2', 'My Guition 7', 'My Guition 7 V2', 'My Waveshare', 'My Waveshare 5', 'My Waveshare 7', 'My Waveshare 7B', 'My Waveshare 4B', 'My Hosyond', 'My Guition 3.5', 'My Sunton 7',
 }
 LINT_FILES = ('components/smart_display/*.h', 'packages/core.yaml', 'packages/boards/*.yaml', 'packages/looks/*.yaml',
               'packages/features/*.yaml', 'packages/hardware/*.yaml')
@@ -257,6 +260,11 @@ def ha_sources():
         sources[f'climate_fan.{mode}'] = f'component.climate.entity_component._.state_attributes.fan_mode.state.{mode}'
     for mode in ('on', 'off', 'both', 'vertical', 'horizontal'):
         sources[f'climate_swing.{mode}'] = f'component.climate.entity_component._.state_attributes.swing_mode.state.{mode}'
+    # A humidifier's modes and what it is doing (firmware 0.42.0+); an integration's own modes stay as it reports them.
+    for mode in ('normal', 'eco', 'away', 'boost', 'comfort', 'home', 'sleep', 'auto', 'baby'):
+        sources[f'humidifier_mode.{mode}'] = f'component.humidifier.entity_component._.state_attributes.mode.state.{mode}'
+    for action in ('humidifying', 'drying', 'idle', 'off'):
+        sources[f'humidifier_action.{action}'] = f'component.humidifier.entity_component._.state_attributes.action.state.{action}'
     for state in ('open', 'closed', 'opening', 'closing'):
         sources[f'cover.{state}'] = f'component.cover.entity_component._.state.{state}'
     for state in ('playing', 'paused', 'idle', 'standby'):

@@ -753,7 +753,8 @@ def marker_size(size, dpi_scale):
 
 
 def render(size, people, zones, tiles, framing='everyone', distance=DEFAULT_DISTANCE, dark=False, dpi_scale=1.0,
-           own=None, names=None, name=None, label_px=None, inset=None, photos=None, show_zones=True, full=False, focus=None):
+           own=None, names=None, name=None, label_px=None, inset=None, photos=None, show_zones=True, full=False, focus=None,
+           move=None):
     """The card's picture: the streets, the zones, the people and the tile's name, in the look asked for.
 
     `tiles` are the decoded vector tiles of `view_for` ({} draws a plain ground without streets); `name` goes on a pill at
@@ -761,7 +762,7 @@ def render(size, people, zones, tiles, framing='everyone', distance=DEFAULT_DIST
     `names`: None puts first names beside the markers where the card has room for them, True and False always and never.
     `photos` has a picture per entity that shows one in its marker. `full`: the view over the whole glass a tap opens,
     under the screen's own top bar (its round back key and the name), so the top keeps clear of people and the
-    attribution goes to the bottom."""
+    attribution goes to the bottom. `move`: the full view moved by the screen's keys (`moved`)."""
     look = DARK if dark else LIGHT
     label_px = label_px or 18 * dpi_scale
     inset = inset if inset is not None else 8 * dpi_scale
@@ -770,6 +771,7 @@ def render(size, people, zones, tiles, framing='everyone', distance=DEFAULT_DIST
     shown_zones = zones if show_zones else []
     keep = (BAR * dpi_scale, 16 * dpi_scale) if full else reserve(dpi_scale, pill_h, inset, bool(name))
     view = focus_view(focus, people, size, dpi_scale) or frame_view(framing, distance, people, zones, size, own, keep, marker * 0.6)
+    view = moved(view, move)
     canvas = Canvas(size, _rgb(look['land']))
     if tiles:
         draw_basemap(canvas, view, tiles, look, dpi_scale)
@@ -788,6 +790,37 @@ def render(size, people, zones, tiles, framing='everyone', distance=DEFAULT_DIST
     image = canvas.finish()
     image.info['hits'] = hits
     return image, view
+
+
+# A full view moved by the screen's own keys (dev): whole zoom steps from the framed view, within these.
+MOVE_ZOOM_STEPS = (-8, 5)
+
+
+def move_of(value):
+    """(steps, x, y) of a full view's `move` ("1,12.50,-3.00"), or None for the view as framed or a word not one."""
+    if not isinstance(value, str) or not value or len(value) > 48:
+        return None
+    try:
+        steps, x, y = value.split(',')
+        steps, x, y = int(steps), float(x), float(y)
+    except ValueError:
+        return None
+    if not all(math.isfinite(n) and abs(n) <= 1e7 for n in (x, y)):
+        return None
+    return max(MOVE_ZOOM_STEPS[0], min(MOVE_ZOOM_STEPS[1], steps)), round(x, 2), round(y, 2)
+
+
+def moved(view, move):
+    """The view moved by the screen's keys: `move` (steps, x, y) is whole zoom steps from `view` around its middle,
+    and that middle moved by x, y pixels at the zoom of `view`, so a step out and back in lands on the same place."""
+    if not move:
+        return view
+    steps, dx, dy = move
+    out = View(view.lat, view.lon, view.zoom + steps, (view.width, view.height))
+    f = 2 ** (out.zoom - view.zoom)
+    cx, cy = view.left + view.width / 2.0 + dx, view.top + view.height / 2.0 + dy
+    out.left, out.top = cx * f - view.width / 2.0, cy * f - view.height / 2.0
+    return out
 
 
 # A marker picked on the full view: closer in, in the middle of what the card over the bottom leaves free.
@@ -922,8 +955,12 @@ def _card(tile, states, registry):
     return options, people, zones_of(states)
 
 
-def view_for(tile, states, size, board, registry=None, full=False, focus=None):
+def view_for(tile, states, size, board, registry=None, full=False, focus=None, move=None):
     """The view a map tile shows at `size`: what its tiles are asked for with (View.tiles)."""
+    return moved(_framed(tile, states, size, board, registry, full, focus), move if full else None)
+
+
+def _framed(tile, states, size, board, registry, full, focus):
     options, people, zones = _card(tile, states, registry)
     focused = focus_view(focus, people, size, board.scale) if full else None
     if focused:
@@ -951,7 +988,7 @@ def pictures_wanted(tile, states, registry=None):
     return out
 
 
-def render_tile(tile, states, size, board, dark=False, tiles=None, registry=None, photos=None, full=False, focus=None):
+def render_tile(tile, states, size, board, dark=False, tiles=None, registry=None, photos=None, full=False, focus=None, move=None):
     """The picture of one map tile of a layout at exactly `size`, in the look `dark_for` gives it; `full` the view over
     the whole glass a tap on it opens, where the screen writes the name in its top bar."""
     options, people, zones = _card(tile, states, registry)
@@ -959,5 +996,6 @@ def render_tile(tile, states, size, board, dark=False, tiles=None, registry=None
     name = name_of(tile, states) if options['overlay'] == 'name' and not full else None
     image, _ = render(size, people, zones, (tiles or {}) if options['streets'] == 'show' else {}, options['framing'],
                       options['distance'], dark_for(tile, dark), board.scale, people[0] if people else None, names,
-                      name or None, board.label, board.inset, photos, options['zones'] == 'show', full, focus if full else None)
+                      name or None, board.label, board.inset, photos, options['zones'] == 'show', full, focus if full else None,
+                      move if full else None)
     return image

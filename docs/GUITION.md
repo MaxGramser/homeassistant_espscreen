@@ -133,8 +133,7 @@ the GT911 `TOUCH_SWAP_XY` / `TOUCH_MIRROR_X` / `TOUCH_MIRROR_Y` if the physical 
 
 ## HA and acceptance
 
-Add the new device via the ESPHome integration (name/IP, port 6053, the
-API key from the screen's profile, which the New screen window also shows), then choose its tiles in Tessera.
+Once the screen is on your Wi-Fi, Tessera adds it to Home Assistant by itself; then choose its tiles in Tessera.
 
 ```sh
 python diagnostics/run_ui_test.py --host wallbox-kitchen.local --name wallbox-kitchen

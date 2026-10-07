@@ -1,0 +1,29 @@
+# Humidifier and dehumidifier (a hygrostat). Home Assistant: homeassistant/components/humidifier.
+# Home Assistant's own facts for it (flags, actions) come from its source: catalogue/_ha.json (tools/read_ha_source.py).
+# docs/CATALOGUE.md says what every key means.
+#
+# The screen draws it with the thermostat's parts: the humidity it is set to between - and +, the modes as the mode bar,
+# the circle switches it on and off, as Home Assistant's tile does.
+domain: humidifier
+firmware: 0.42.0
+memory: {bytes: 192, extras: true}
+displays:
+  standard: {}
+  watch: {}
+controls:
+  # The humidity it is set to between - and + (Home Assistant's target-humidity feature, style buttons).
+  setpoint:
+    needs: {actions: [humidifier.set_humidity]}
+  # The same as a slider (the feature's default style).
+  slider:
+    needs: {actions: [humidifier.set_humidity]}
+  # The modes it has (humidifier-modes), only with MODES.
+  mode:
+    needs: {actions: [humidifier.set_mode], features: [MODES]}
+  setpoint_mode:
+    of: [setpoint, mode]
+    rows: 2
+    one_row: setpoint
+    fallback: setpoint
+  toggle:
+    needs: {actions: [humidifier.toggle]}

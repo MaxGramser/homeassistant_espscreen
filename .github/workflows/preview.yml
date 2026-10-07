@@ -1,12 +1,14 @@
 # The browser's firmware preview (web/wasm) is the shared firmware compiled to WebAssembly, and the add-on ships the
 # compiled file, so it has to be in the commit that goes out. Whenever the firmware sources move past the preview
 # (web/wasm/generate_renderer_manifest.py --check), this rebuilds it with Emscripten, runs its tests, builds the editor
-# and commits the result to the same branch. Push a firmware change to its branch first and let this run before it goes
-# to main (docs/RELEASING.md); on main it rebuilds too, for the next release.
+# and commits the result to the same branch: on dev, where the work goes, it follows every firmware change, so the
+# release commit carries a current preview (docs/RELEASING.md). Not on release-candidate: tools/release.py pushes that
+# branch only to point the packages at it for the upgrade test, and it never comes back.
 name: Firmware preview
 
 on:
   push:
+    branches-ignore: [release-candidate]
     paths:
       - "packages/**"
       - "components/**"
@@ -92,6 +94,7 @@ jobs:
           PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_images.mjs
           PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs
           PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs
+          node web/wasm/test_weather_detail.mjs
           python web/wasm/generate_renderer_manifest.py --check
       - name: Build the editor
         if: steps.stale.outputs.stale == 'true'

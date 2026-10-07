@@ -119,9 +119,13 @@ async function onKey(e: KeyboardEvent) {
 
 <style scoped>
 .page { min-width: 0; }
-.device { grid-template-rows: auto minmax(0, 1fr); }
-.device:has(.page-navigation) { grid-template-rows: auto minmax(0, 1fr) auto; }
-.bar-wrap { position: relative; }
+/* The page in the glass's proportions (store deviceStyle, app 0.4.74): the top bar from the top edge of the glass down
+   to where the tiles start, the grid's margins and gaps, and the page bar at its own height, so every card is as high
+   against its page as the screen draws it. */
+.device { padding: 0 var(--frame-side, 10px) var(--frame-bottom, 10px); gap: 0; grid-template-rows: var(--frame-top, 48px) minmax(0, 1fr); }
+.device:has(.page-navigation) { grid-template-rows: var(--frame-top, 48px) minmax(0, 1fr) var(--frame-bar, 32px); }
+.tiles { gap: var(--frame-gap-y, 8px) var(--frame-gap-x, 8px); }
+.bar-wrap { position: relative; min-height: 0; }
 .preview-home { position: absolute; inset: 0 auto 0 0; width: 30px; border: 0; background: transparent; }
 .preview-empty { visibility: hidden; }
 </style>

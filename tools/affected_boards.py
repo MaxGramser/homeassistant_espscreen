@@ -216,15 +216,34 @@ def oldest(args):
             f'  ESPHOME="uv run -q --no-project --with esphome=={version} esphome" tools/check.sh {args}']
 
 
-def plan(reach, new=frozenset(), read_base=read_now):
-    """The release that follows from what each path reaches, counted from the base (`read_base`); `new` are boards no
-    screen runs yet (new_boards). Once the working tree builds the numbers it asks for, it says so."""
+def release_of(reach, new=frozenset(), read_base=read_now):
+    """The release that follows from what each path reaches, as data, counted from the base (`read_base`); `new` are
+    boards no screen runs yet (new_boards). What plan() prints and tools/release.py writes:
+    {'kind': 'app', 'firmware': the shared number the working tree builds, 'boards': []} when no board a screen runs
+    changed; {'kind': 'shared', 'firmware': the next shared number, 'boards': every board} when all of them did; else
+    {'kind': 'boards', 'firmware': the next revision on the core, 'boards': the ones it reaches, in key order}."""
     reached = set().union(*reach.values()) if reach else set()
     # The boards that decide the release: those with screens. A new board builds the shared firmware and takes no part.
     existing = set(profiles.BOARDS) - set(new)
     boards = reached & existing
+    if not boards:
+        core = version_in(read_now(str(profiles.CORE.relative_to(ROOT))))
+        return {'kind': 'app', 'firmware': dotted(core) if core else None, 'boards': []}
     shared, for_boards = next_numbers(sorted(boards) if boards != existing else (), read_base)
-    shared_next, board_next = dotted(shared), dotted(for_boards)
+    if boards == existing:
+        return {'kind': 'shared', 'firmware': dotted(shared), 'boards': sorted(existing)}
+    return {'kind': 'boards', 'firmware': dotted(for_boards), 'boards': sorted(boards)}
+
+
+def plan(reach, new=frozenset(), read_base=read_now):
+    """The release that follows from what each path reaches, counted from the base (`read_base`); `new` are boards no
+    screen runs yet (new_boards). Once the working tree builds the numbers it asks for, it says so."""
+    reached = set().union(*reach.values()) if reach else set()
+    existing = set(profiles.BOARDS) - set(new)
+    release = release_of(reach, new, read_base)
+    boards = set(release['boards'])
+    shared_next = board_next = release['firmware']
+    shared, for_boards = firmware_count.parse(shared_next), firmware_count.parse(board_next)
     built_now = built_versions(read_now)
     every = set(profiles.BOARDS)
     ahead = {key: profiles.substitutions_of(path).get('SCREEN_FIRMWARE_VERSION', '')
@@ -245,12 +264,12 @@ def plan(reach, new=frozenset(), read_base=read_now):
                   f'- Build and render it: tools/check.sh --firmware --board {" --board ".join(added)}, and',
                   '  tools/render/run.py <board> (with <board>-portrait for glass that is not square).']
         lines += oldest(f'--firmware --board {" --board ".join(added)}') + ['']
-    if not boards:
+    if release['kind'] == 'app':
         lines += ['No firmware change for a screen that exists: an app release (or a docs push, docs/RELEASING.md).',
                   '- Bump screen_manager/config.yaml and write the CHANGELOG entry with the shared firmware it ships with:',
                   f'  "## <app> (firmware {profiles.substitutions_of(profiles.CORE)["SCREEN_FIRMWARE_VERSION"].strip(chr(34))})".',
                   '- Run tools/check.sh (no --firmware: no screen gets anything new).']
-    elif boards == existing:
+    elif release['kind'] == 'shared':
         done = all(built_now[key] == shared for key in existing)
         lines += [f'Shared firmware: every board. The core goes up, so the number is {shared_next}'
                   + (f' (set: every board builds it).' if done else '.'),

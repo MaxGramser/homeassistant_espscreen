@@ -54,7 +54,17 @@ int main() {
   w.add(100);  // and now 40 falls out
   assert(w.least() == 60);
   w.clear();
-  assert(w.least() == 0 && w.count == 0);
+  assert(w.least() == 0 && w.count == 0 && !w.known());
+  w.add(0);
+  assert(w.known() && w.least() == 0);  // a room of nothing, measured, is known
+  // A sample only with a layout that has settled (firmware 0.51.0): none before a layout landed, none in its first minute,
+  // then one a minute. The clock may wrap.
+  assert(!sample_due(500000, 0, false, 0));
+  assert(!sample_due(100000, 100000, false, 0) && !sample_due(100000 + SETTLE_MS - 1, 100000, false, 0));
+  assert(sample_due(100000 + SETTLE_MS, 100000, false, 0));
+  assert(!sample_due(300000, 100000, true, 280000) && sample_due(340000, 100000, true, 280000));
+  const uint32_t late = UINT32_MAX - 1000;
+  assert(!sample_due(late + 30000, late, false, 0) && sample_due(late + SETTLE_MS, late, false, 0));
   // Every case the three readers answer alike.
   std::ifstream in("tests/fixtures/memory-conformance.json");
   assert(in && "run from the repository root");

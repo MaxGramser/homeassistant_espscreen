@@ -5,7 +5,7 @@
 // form, what it sends and when, is the one it always was.
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { getJson, send } from "../api";
-import { t, te } from "../i18n";
+import { editorLanguage, languageMarks, numberText, t, te } from "../i18n";
 import { copyText, createVirtualScreen, go, openIntegrations, refresh, state, toast } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
@@ -13,7 +13,7 @@ import type { BoardChoice, BoardOrientation, Orientation } from "../types";
 import BrowserFlash from "./BrowserFlash.vue";
 import DeviceArt from "./DeviceArt.vue";
 import Icon from "./ui/Icon.vue";
-import { installProgress } from "../model/install-progress";
+import { installProgress, memoryNote } from "../model/install-progress";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
 
@@ -205,9 +205,19 @@ const progressDetail = computed(() => installer.view === "done"
       ? download.value
         ? t("editor.installer.detail.downloaded")
         : t(installer.calibrate ? "editor.installer.detail.booted_calibrate" : "editor.installer.detail.booted")
-      : installer.browser && job.value?.state === "success"
-        ? ""
+      : (installer.browser && job.value?.state === "success") || memory.value?.reason === "out" || memory.value?.reason === "limit"
+        ? ""  // the card under it says what happened
         : logs.value.filter((l) => /error/i.test(l)).pop() || logs.value.filter((l) => /failed/i.test(l)).pop() || t("editor.installer.detail.see_log"));
+// The memory the build has (build_memory.py, app 0.4.65): a card that says why it runs with fewer compilers than the
+// machine has cores, that it started again with one after the memory ran out, or why it stopped. The numbers are GB in
+// the editor's own language.
+const memory = computed(() => {
+  const note = memoryNote(job.value);
+  if (!note) return null;
+  const marks = languageMarks(editorLanguage());
+  const params = { free: `${numberText(note.free, marks)} GB`, need: `${numberText(note.need, marks)} GB`, jobs: note.jobs, cores: note.cores };
+  return { reason: note.reason, title: t(`editor.installer.memory.${note.reason}_title`, params), text: t(`editor.installer.memory.${note.reason}`, params) };
+});
 const image = computed(() => ({ href: `api/firmware/profiles/${encodeURIComponent(installer.file || "")}/download`, name: (installer.file || "").replace(/\.yaml$/, "") + ".factory.bin" }));
 async function submit(event: Event) {
   const element = event.target as HTMLFormElement;
@@ -369,7 +379,8 @@ async function saveWifi() {
 
 // ---- After the firmware is on it: did the screen reach the Wi-Fi? (app 0.4.32) ----
 // Home Assistant finds a screen on the network before anyone pairs it (the inventory's `seen`), so the page can say it
-// arrived, or after three minutes without it, that the Wi-Fi is the likely cause and what fixes it.
+// arrived, or after three minutes without it, that the Wi-Fi is the likely cause and what fixes it. Tessera then adds it
+// to Home Assistant itself (app 0.4.73): `failed` when Home Assistant asked something only the person can answer.
 const ARRIVE_MS = 3 * 60 * 1000;
 const doneAt = ref(0);
 const nodeName = computed(() => (installer.file || "").replace(/\.yaml$/, ""));
@@ -378,7 +389,8 @@ watch(waitsForWifi, (waits) => { if (waits && !doneAt.value) doneAt.value = Date
 const arrival = computed(() => {
   if (!waitsForWifi.value) return null;
   if (state.inventory.screens.some((screen: any) => screen.node === nodeName.value)) return "paired";
-  if (state.inventory.pending?.some((entry) => entry.file === installer.file && entry.seen)) return "seen";
+  const found = state.inventory.pending?.find((entry) => entry.file === installer.file && entry.seen);
+  if (found) return found.pairing === "failed" ? "failed" : "seen";
   return now.value - doneAt.value > ARRIVE_MS ? "missing" : "waiting";
 });
 let arrivalPoll = 0;
@@ -622,10 +634,15 @@ onBeforeUnmount(() => { clearInterval(poll); clearInterval(clock); clearInterval
         <h1 id="progress-title">{{ progressTitle }}</h1>
         <p id="progress-detail">{{ progressDetail }}</p>
       </div>
+      <!-- The memory the build has (app 0.4.65): a slower build the person understands, or why it stopped. -->
+      <div v-if="memory && !ok" class="memory-note" :class="[memory.reason, { stopped: memory.reason === 'out' || memory.reason === 'limit' }]" id="memory-note" role="status">
+        <h2><Icon name="alert-circle-outline" />{{ memory.title }}</h2>
+        <p>{{ memory.text }}</p>
+      </div>
       <!-- Did it reach the Wi-Fi: waiting, seen by Home Assistant, paired, or after three minutes the way to fix it. -->
       <div v-if="arrival" class="arrive" :class="arrival" id="arrive" role="status">
         <p v-if="arrival !== 'missing'" class="arrive-line">
-          <span v-if="arrival === 'waiting'" class="spin small"></span><Icon v-else name="check-circle" />
+          <span v-if="arrival === 'waiting' || arrival === 'seen'" class="spin small"></span><Icon v-else :name="arrival === 'failed' ? 'alert-circle-outline' : 'check-circle'" />
           {{ t(`editor.installer.arrive.${arrival}`, { name: installer.friendly }) }}
         </p>
         <template v-else>
@@ -672,13 +689,17 @@ onBeforeUnmount(() => { clearInterval(poll); clearInterval(clock); clearInterval
       <div v-if="ok" id="install-result" class="follow-card">
         <h2>{{ t("editor.installer.next_title") }}</h2>
         <ol class="steps" id="install-steps">
-          <li><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ installer.friendly }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button></li>
-          <li><i18n-t keypath="editor.installer.pairing.key" scope="global"><template #bold><b>{{ t("editor.installer.pairing.key_bold") }}</b></template></i18n-t></li>
-          <li><i18n-t keypath="editor.installer.pairing.actions" scope="global"><template #bold><b>{{ t("editor.installer.pairing.actions_bold") }}</b></template></i18n-t></li>
           <li><i18n-t keypath="editor.installer.pairing.tiles" scope="global"><template #bold><b>{{ t("editor.installer.pairing.tiles_bold") }}</b></template></i18n-t></li>
         </ol>
-        <details class="key-more" id="key-more">
-          <summary>{{ t("editor.installer.key_more") }}</summary>
+        <!-- Tessera adds the screen to Home Assistant and allows its actions by itself (app 0.4.73, ha_pairing.py), so
+             the way by hand only shows when that did not work out. -->
+        <details v-if="arrival === 'failed'" class="key-more" id="key-more" open>
+          <summary>{{ t("editor.installer.pair_yourself") }}</summary>
+          <ol class="steps" id="pair-steps">
+            <li><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ installer.friendly }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button></li>
+            <li><i18n-t keypath="editor.installer.pairing.key" scope="global"><template #bold><b>{{ t("editor.installer.pairing.key_bold") }}</b></template></i18n-t></li>
+            <li><i18n-t keypath="editor.installer.pairing.actions" scope="global"><template #bold><b>{{ t("editor.installer.pairing.actions_bold") }}</b></template></i18n-t></li>
+          </ol>
           <div class="key-box">
             <span>{{ t("editor.installer.api_key") }}</span><code id="api-key" ref="keyBox">{{ installer.apiKey || "" }}</code>
             <button type="button" class="btn quiet mini" id="copy-key" @click="copyText(installer.apiKey || '', keyBox)">{{ t("editor.common.copy") }}</button>

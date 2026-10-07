@@ -91,8 +91,8 @@ def catalog_of(board, values, lying):
     return {'order': list(profiles.CATALOG).index(board), 'name': entry['name'].strip(), 'model': entry['model'].strip(),
             'status': entry['status'],
             'inch': round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1),
-            # the chip, also when a board runs its own copy of a driver (gsl3680_v3 is a GSL3680)
-            'touch': touch[1].split('_')[0].upper() if touch else '',
+            # A controller can use a driver's protocol under another platform name (ST7121 on st7123).
+            'touch': values.get('TOUCH_CONTROLLER', touch[1].split('_')[0].upper() if touch else '').strip('"'),
             'calibrate': any(path.name == 'resistive-touch.yaml' for path in chain),
             'choices': choices}
 
@@ -170,11 +170,20 @@ def shapes():
                                                                    # The top bar's page title and home key, which the
                                                                    # mockup's bar takes as the board has them (topbar.ts).
                                                                    ('headline', 'FONT_HEADLINE_SIZE'),
-                                                                   ('icon_home', 'FONT_ICON_HOME_SIZE'))},
+                                                                   ('icon_home', 'FONT_ICON_HOME_SIZE'),
+                                                                   # A Big number card: its icon, and the digits a
+                                                                   # tall cell gives its number (app 0.4.74).
+                                                                   ('watch_icon', 'FONT_WATCH_ICON_SIZE'),
+                                                                   ('setpoint', 'FONT_SETPOINT_SIZE'))},
                  # The glass's grid in its own pixels (the look's GRID_MARGIN, GRID_GAP_X and TILE_PAD): the editor's
                  # mockup works out a card's width from them as runtime_tiles::cell_content_width does (app 0.4.32).
+                 # And its height (app 0.4.74): the tile area runs from under the top bar (SCROLL_Y) to the page bar
+                 # (PAGE_BAR_H) or the margin, its rows GRID_GAP_Y apart, so the mockup's page has the glass's
+                 # proportions; `circle` is a card's icon circle (TILE_ICON_SIZE), which a Big number card halves.
                  'spacing': {name: int(values[key]) for name, key in (('margin', 'GRID_MARGIN'), ('gap', 'GRID_GAP_X'),
-                                                                  ('tile_pad', 'TILE_PAD'))},
+                                                                  ('gap_y', 'GRID_GAP_Y'), ('tile_pad', 'TILE_PAD'),
+                                                                  ('top', 'SCROLL_Y'), ('page_bar', 'PAGE_BAR_H'),
+                                                                  ('circle', 'TILE_ICON_SIZE'))},
                  # What New screen offers and the screen list names (boards.yaml with what the board's files say).
                  'catalog': catalog_of(board, values, lying),
                  # The chip it is built for, for the browser flasher's check of the board on the cable.
@@ -187,6 +196,9 @@ def shapes():
                  # writes `allow_partition_access` into a screen's own YAML and sends a screen that still has
                  # ESPHome's table the wide one after an update (docs/FLASH_LAYOUT.md).
                  'wide_slots': profiles.wide_slots(board),
+                 # Whether it has a battery (firmware 0.41.0, profiles.battery): the editor offers the top bar's battery
+                 # item on a screen of this board before it ever connected; a screen's hello says `battery` itself.
+                 'battery': profiles.battery(board),
                  # The most tiles and pages a screen of this board takes (firmware 0.34.0+, SCREEN_MAX_TILES and
                  # SCREEN_MAX_PAGES in its board file, page_protocol.h): what New screen and the docs say a board holds.
                  # A screen says its own in its hello, which is what a save is held to (docs/TILE_MEMORY.md).

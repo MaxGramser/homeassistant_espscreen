@@ -108,6 +108,8 @@ const mapCard = computed(() => display.value === "map");
 const mapWith = computed(() => (props.tile.options?.map as string[] | undefined) ?? []);
 // The map tile of the screen's own cards (app 0.4.36): no person of its own, following everyone or whom it lists.
 const mapTile = computed(() => props.tile.entity === "screen.map");
+// The energy card (app 0.4.77) is its diagram: no face and no second line to choose, its sensors are Home Assistant's.
+const energyTile = computed(() => props.tile.entity === "screen.energy");
 const mapFollow = computed(() => current("follow", MAP?.follow[0]) as string);
 const mapListed = computed(() => !mapTile.value || mapFollow.value === "chosen");
 const mapFull = computed(() => mapWith.value.length >= (MAP?.max ?? 8) - (mapTile.value ? 0 : 1));
@@ -135,6 +137,16 @@ const speakers = computed(() => {
 });
 function pickFavorite(play: FavoritePlay) { setTileOption(props.tile, "play", play); choosing.value = false; }
 function pickSpeaker(name: string) { setTileOption(props.tile, "speaker", name || undefined); }
+// Its own shuffle and repeat (app 0.4.84), set as it starts: offered where Home Assistant lists the action for the
+// player (catalogue/media_player.yaml `favorite`), or wherever that is not known yet; a stored one always shows.
+// "keep" stores nothing: the player keeps its own.
+const favoriteSets = (key: "shuffle" | "repeat") => props.tile.options?.[key] !== undefined ||
+  (caps.value ? (caps.value.favorite ?? []).includes(key) : (ofType(domain.value)?.favorite ?? []).some((item) => item.key === key));
+const keepOr = (value: string) => value === "keep" ? undefined : value;
+const shuffleChoices = computed(() => offer("shuffle", (["keep", ...rules.favoriteShuffles] as string[])
+  .map((value) => [value, t(`editor.tile.favorite.shuffle_${value}`)] as [string, string]), current("shuffle", "keep"), keepOr));
+const repeatChoices = computed(() => offer("repeat", (["keep", ...rules.favoriteRepeats] as string[])
+  .map((value) => [value, t(`editor.tile.favorite.repeat_${value}`)] as [string, string]), current("repeat", "keep"), keepOr));
 function addMapEntity(id: string) { if (id) setTileOption(props.tile, "map", [...mapWith.value, id]); }
 function removeMapEntity(id: string) { setTileOption(props.tile, "map", mapWith.value.filter((item) => item !== id)); }
 const pictureChoices = (key: "fit" | "overlay") => offer(key, rules.picture[key].map((value) => [value, t(`editor.tile.picture.${key}.${value}`)] as [string, string]), current(key, rules.picture[key][0]));
@@ -206,7 +218,8 @@ const taps = computed(() => {
   const keys = ["auto", "detail", "none"];
   // On / off where Home Assistant can toggle the entity, such as a cover; a speaker without on and off gets none.
   if ((caps.value ? caps.value.toggle : TOGGLE_BEFORE.includes(domain.value)) || tap.value === "toggle") keys.push("toggle");
-  keys.push("action");
+  // A favourite plays on a tap and keeps no action of its own (the add-on drops it).
+  if (display.value !== "favorite") keys.push("action");
   return offer("tap", keys.map((key) => [key, t(`editor.tile.tap.${key}`)] as [string, string]), tap.value);
 });
 function pickTap(value: string) {
@@ -263,7 +276,7 @@ function writeSubText(value: string) {
   setTileOption(props.tile, "sub", words ? `text:${words}` : "none", `sub:${props.tile.id}`);
 }
 const inline = computed(() => current("inline", "none") as string);
-const showSlider = computed(() => !taller.value && SLIDER_DOMAINS.includes(domain.value) && (inline.value === "slider" ||
+const showSlider = computed(() => !taller.value && display.value !== "favorite" && SLIDER_DOMAINS.includes(domain.value) && (inline.value === "slider" ||
   ((!caps.value || caps.value.inline) && choiceOffered(props.tile, "inline", "slider", controlled.value))));
 const sliderWarn = computed(() => inline.value === "slider" && caps.value && !caps.value.inline);
 const history = computed(() => current("history_hours", 24) as number);
@@ -322,12 +335,13 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     <!-- What the card shows first, then where it stands, what a finger does to it, and last its icon and colour. -->
     <template v-if="!phone || more">
     <Section v-if="lookShown || (!bedside && !key)" :title="t('editor.tile.sections.look')">
-      <PropRow v-if="lookShown && tile.entity !== 'screen.settings' && !mapTile" :label="t('editor.tile.display.label')" icon="eye-outline" :hint="displayHint && !displayWarns ? displayHint : undefined">
+      <p v-if="energyTile" class="hint">{{ t(supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
+      <PropRow v-if="lookShown && tile.entity !== 'screen.settings' && !mapTile && !energyTile" :label="t('editor.tile.display.label')" icon="eye-outline" :hint="displayHint && !displayWarns ? displayHint : undefined">
         <ChoiceField :choices="displays" :value="display" :tile="tile" preview-key="display" :aria-label="t('editor.tile.display.label')" @pick="(v) => setTileOption(tile, 'display', v)" />
         <template v-if="displayHint && displayWarns" #note><small class="help warn">{{ displayHint }}</small></template>
       </PropRow>
       <!-- A bedside clock and its keys have no second line: the clock draws the time, a key its name alone. -->
-      <PropRow v-if="!bedside && !key && !mapCard" :label="t('editor.tile.sub.label')" icon="text-short" :hint="t(`editor.tile.sub.hint_${subKind}`)">
+      <PropRow v-if="!bedside && !key && !mapCard && !energyTile" :label="t('editor.tile.sub.label')" icon="text-short" :hint="t(`editor.tile.sub.hint_${subKind}`)">
         <ChoiceField :choices="subChoices" :value="subKind" :tile="tile" preview-key="sub" :sample="subSample" :aria-label="t('editor.tile.sub.label')" @pick="pickSubKind" />
         <template v-if="subKind === 'attr' || subKind === 'text'" #note>
           <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
@@ -367,6 +381,12 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
       </PropRow>
       <PropRow :label="t('editor.tile.favorite.speaker')" icon="speaker" :hint="t('editor.tile.favorite.speaker_hint')">
         <UiSelect :model-value="(tile.options?.speaker as string) || ''" :options="speakers" :aria-label="t('editor.tile.favorite.speaker')" @update:model-value="pickSpeaker" />
+      </PropRow>
+      <PropRow v-if="favoriteSets('shuffle')" :label="t('editor.tile.favorite.shuffle')" icon="shuffle-variant" :hint="t('editor.tile.favorite.shuffle_hint')">
+        <ChoiceField :choices="shuffleChoices" :value="current('shuffle', 'keep')" :aria-label="t('editor.tile.favorite.shuffle')" @pick="(v) => setTileOption(tile, 'shuffle', keepOr(v))" />
+      </PropRow>
+      <PropRow v-if="favoriteSets('repeat')" :label="t('editor.tile.favorite.repeat')" icon="repeat" :hint="t('editor.tile.favorite.repeat_hint')">
+        <ChoiceField :choices="repeatChoices" :value="current('repeat', 'keep')" :aria-label="t('editor.tile.favorite.repeat')" @pick="(v) => setTileOption(tile, 'repeat', keepOr(v))" />
       </PropRow>
     </Section>
 

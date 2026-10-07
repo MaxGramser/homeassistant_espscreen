@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include "picture_loader.h"
 
 namespace media_library {
 
@@ -222,10 +223,11 @@ void speakers(const std::string &entity, uint32_t then = 0, int tile = -1);
 void inputs(const std::string &entity);
 bool menu_visible();
 void received(Answer &&answer);
-// The covers of the page are here (or failed); a link from the app.
+// The covers of the page: what the library wants this round (runtime_tiles::pictures_round), the app's link for them,
+// and a download they were drawn from that goes (a board without the store).
+bool picture_want(picture_loader::Want &want);
 void art_answer(const std::string &entity, const std::string &url);
-void art_loaded(bool ok);
-bool art_loading();
+void art_forget_download();
 // A state of the player while the library or the menu is open.
 void updated(const std::string &entity);
 void restyle();

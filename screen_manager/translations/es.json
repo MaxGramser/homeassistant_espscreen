@@ -121,8 +121,12 @@
       "wifi_weak": "Señal demasiado débil ({dbm} dBm)",
       "wifi_failed": "No se pudo conectar, reintentando",
       "loading_tiles_count": "Cargando mosaicos {n}/{total}",
-      "hint_home_assistant": "Home Assistant aún no se ha conectado. ¿Está esta pantalla añadida en Ajustes > Dispositivos y servicios > ESPHome?",
+      "hint_home_assistant": "Tessera añade esta pantalla en cuanto Home Assistant la alcance en esta dirección.",
       "hint_tessera": "¿Se está ejecutando la app Tessera Screen Manager en Home Assistant?",
+      "first_tiles": "Elige tus mosaicos",
+      "first_tiles_open": "Abre Tessera en Home Assistant",
+      "first_tiles_pick": "Elige mosaicos para {name}",
+      "first_tiles_save": "Pulsa Guardar y enviar",
       "updating": "Actualizando firmware {percent}",
       "update_restart": "Actualizado, reiniciando",
       "update_failed": "La actualización falló",
@@ -200,6 +204,7 @@
       "page": "Página {n}",
       "refused": "Rechazado",
       "command_sent": "Orden enviada...",
+      "updating": "Actualizando...",
       "confirmed": "Confirmado por Home Assistant",
       "no_answer": "Sin respuesta"
     },
@@ -525,10 +530,35 @@
         "open": "Abierto",
         "open_door": "Abrir puerta",
         "open_door_confirm": "¿Realmente abrirla?"
+      },
+      "humidifier_mode": {
+        "normal": "Normal",
+        "eco": "Eco",
+        "away": "Fuera",
+        "boost": "Impulso",
+        "comfort": "Confort",
+        "home": "En casa",
+        "sleep": "Dormir",
+        "auto": "Auto",
+        "baby": "Bebé"
+      },
+      "humidifier_action": {
+        "humidifying": "Humidificación",
+        "drying": "Secando",
+        "idle": "Inactivo",
+        "off": "Apagado"
       }
     },
     "navigation": {
       "back": "Volver"
+    },
+    "energy": {
+      "solar": "Solar",
+      "grid": "Red",
+      "battery": "Batería",
+      "home": "Casa",
+      "other": "Otros",
+      "no_power": "No hay sensores de potencia en los ajustes de energía de Home Assistant"
     },
     "audio": {
       "idle": "Inactivo",
@@ -735,7 +765,8 @@
         "enter_ip": "Introduce la dirección IP de esta pantalla.",
         "no_profile": "No se ha encontrado ningún perfil de ESPHome para esta pantalla. Revisa el nombre en la carpeta de ESPHome.",
         "ip_unknown": "Dirección IP desconocida. Introdúcela una vez; después, el firmware nuevo la comunica por sí mismo.",
-        "all_updated": "Todas las pantallas accesibles ya están actualizadas."
+        "all_updated": "Todas las pantallas accesibles ya están actualizadas.",
+        "reinstall_dev": "Reinstalar el mismo firmware solo es posible en el canal dev."
       },
       "remove": {
         "not_allowed": "Esta aplicación no puede eliminar una integración de Home Assistant. Elimina la pantalla en el propio Home Assistant, en Configuración → Dispositivos y servicios.",
@@ -794,7 +825,15 @@
         "storage": "Los comentarios están desactivados: sus datos guardados los escribió otra versión de Tessera."
       },
       "media": {
-        "browse": "{name} no respondió con su biblioteca."
+        "browse": "{name} no respondió con su biblioteca.",
+        "link_invalid": "Esto no es un enlace de Spotify. Copia uno en la app de Spotify con Compartir > Copiar enlace.",
+        "link_short": "Una dirección spotify.link solo redirige. Ábrela en el navegador y copia la dirección larga a la que lleva.",
+        "link_player": "{name} no reproduce enlaces de Spotify."
+      },
+      "allow_actions": {
+        "not_allowed": "Home Assistant no deja que esta aplicación cambie sus integraciones. Hazlo en el propio Home Assistant, en Configuración → Dispositivos y servicios.",
+        "no_entry": "Home Assistant no tiene esta pantalla como dispositivo ESPHome.",
+        "failed": "Home Assistant no lo aceptó. En Home Assistant abre Ajustes → Dispositivos y servicios → ESPHome, elige esta pantalla, luego Configurar, y activa «Permitir que el dispositivo realice acciones de Home Assistant»."
       },
       "audio_test_unavailable": "La prueba de audio no está disponible en esta pantalla."
     },
@@ -821,6 +860,8 @@
       "offline": "La pantalla estaba sin conexión; se volverá a intentar la próxima vez.",
       "unknown_target": "Perfil o dirección IP desconocidos; actualiza esta pantalla a mano.",
       "build_failed": "Error al compilar o instalar; consulta el registro en Firmware y USB.",
+      "build_memory": "No hay memoria suficiente para compilar el firmware: deben estar libres unos {need} y hay {free}. Detén unos complementos un rato o dale más memoria a la máquina; consulta Firmware y USB.",
+      "build_memory_limit": "No hay memoria suficiente para compilar el firmware, ni con un compilador a la vez. Detén unos complementos un rato o dale más memoria a la máquina; consulta Firmware y USB.",
       "no_report": "La pantalla no ha vuelto a comunicarse con el firmware {version}; revisa la pantalla.",
       "dropped_off": "La pantalla se desconectó tras la actualización; revisa la pantalla.",
       "updated": "Actualizada al firmware {version}."
@@ -913,6 +954,13 @@
         },
         "remote": {
           "toggle": "Interruptor"
+        },
+        "humidifier": {
+          "setpoint": "Humedad − / +",
+          "slider": "Control deslizante de humedad",
+          "mode": "Botones de modo",
+          "setpoint_mode": "Humedad − / + y botones de modo",
+          "toggle": "Interruptor"
         }
       },
       "top_bar": {
@@ -921,7 +969,8 @@
           "analog": "Reloj analógico",
           "date": "Fecha",
           "wifi": "Señal Wi-Fi",
-          "link": "Aviso de conexión"
+          "link": "Aviso de conexión",
+          "battery": "Batería"
         },
         "contents": {
           "state": "Estado",
@@ -950,6 +999,14 @@
         "wifi_shows": {
           "always": "Siempre",
           "weak": "Solo cuando es débil"
+        },
+        "battery_contents": {
+          "icon": "Solo icono",
+          "percent": "Porcentaje"
+        },
+        "battery_shows": {
+          "always": "Siempre",
+          "low": "Solo si está baja"
         }
       }
     },
@@ -1189,7 +1246,8 @@
         "heart": "Favorito",
         "alert_outline": "Advertencia",
         "cog": "Configuración",
-        "broom": "Limpieza"
+        "broom": "Limpieza",
+        "diabetes": "Diabetes"
       }
     },
     "screen": {
@@ -1197,7 +1255,8 @@
         "clock": "Reloj",
         "nightstand": "Reloj de mesita",
         "page": "Ir a la página {page}",
-        "map": "Mapa"
+        "map": "Mapa",
+        "energy": "Energía"
       },
       "identify": {
         "title": "Esta es {name}",
@@ -1348,7 +1407,11 @@
         "no_profile": "No se ha encontrado ningún perfil de ESPHome con este nombre de dispositivo.",
         "whats_new": "Novedades",
         "full_log": "Registro completo",
-        "short": "Actualización"
+        "short": "Actualización",
+        "reinstall": "Reinstalar desde dev",
+        "reinstall_why": "Compila de nuevo esta pantalla con el dev más reciente y la instala por Wi-Fi. En dev el número de versión no cambia, así que un dev nuevo nunca se ofrece como actualización.",
+        "in_tessera": "Actualiza primero en Tessera",
+        "in_tessera_why": "Actualiza primero esta pantalla aquí en Tessera. Aún tiene la distribución de flash de su primera instalación y el firmware actual ya no cabe, así que ESPHome Device Builder no puede actualizarla. Tessera la pasa por el camino a la nueva distribución y conserva sus ajustes. Después, sirven las dos vías."
       },
       "host": {
         "hint": "La dirección IP, solo esta vez; el firmware nuevo la comunica por sí mismo.",
@@ -1357,9 +1420,11 @@
         "start": "Iniciar"
       },
       "pending": {
-        "installed": "Instalada, pero aún no está en Home Assistant. Añade el dispositivo ESPHome descubierto en Configuración → Dispositivos y servicios, pega allí la clave API y activa «Permite que el dispositivo realice acciones de Home Assistant» en Configurar.",
-        "downloaded": "Firmware descargado; aún no está en Home Assistant. Instálalo en la pantalla con ESPHome Web y luego añade el dispositivo ESPHome descubierto en Configuración → Dispositivos y servicios, pega allí la clave API y permite las acciones de Home Assistant en Configurar.",
-        "not_flashed": "Aún no está en Home Assistant. ¿Ya has instalado el firmware? Añade el dispositivo ESPHome en Configuración → Dispositivos y servicios y luego permite las acciones de Home Assistant en Configurar. ¿Todavía no? Firmware y USB → {file}."
+        "installed": "Instalada. Esperando a que se conecte a tu Wi-Fi...",
+        "downloaded": "Firmware descargado. Instálalo en la pantalla con ESPHome Web.",
+        "not_flashed": "Aún no instalada: Firmware y USB → {file}.",
+        "adding": "En tu Wi-Fi. Preparándola...",
+        "failed": "Tessera no puede añadirla a Home Assistant por sí sola. Añádela en Configuración → Dispositivos y servicios, con la clave API de abajo."
       },
       "copy_api_key": "Copiar clave API",
       "files": "Descargar archivos de la pantalla",
@@ -1421,7 +1486,8 @@
       "title": "Tus pantallas",
       "summary": "{online} de {count} en línea",
       "open": "Abrir {name}",
-      "no_layout": "Aún sin diseño"
+      "no_layout": "Aún sin diseño",
+      "in_tessera": "Actualiza primero en Tessera"
     },
     "screen_view": {
       "confirm": {
@@ -1536,7 +1602,8 @@
         "timer": "Temporizadores",
         "screen": "Pantalla",
         "alarm_control_panel": "Alarma",
-        "lock": "Cerraduras"
+        "lock": "Cerraduras",
+        "humidifier": "Humidificadores"
       },
       "room": "Habitación",
       "hide_placed": "Ocultar añadidas",
@@ -1560,7 +1627,12 @@
       "last_known": "Tal como lo dijo la pantalla la última vez que estuvo en línea.",
       "full_library": "La memoria de la pantalla para mosaicos está casi llena. Aún puedes añadir mosaicos.",
       "confirm_close": "Con este mosaico, la memoria de la pantalla para mosaicos está al {n} %. ¿Añadirlo de todos modos?",
-      "confirm_over": "Con este mosaico, el diseño necesita más memoria de la que la pantalla midió para los mosaicos ({n} %). Si le falta memoria, algunos mosaicos muestran menos, o rechaza el diseño. ¿Añadirlo de todos modos?"
+      "confirm_over": "Con este mosaico, el diseño necesita más memoria de la que la pantalla midió para los mosaicos ({n} %). Si le falta memoria, algunos mosaicos muestran menos, o rechaza el diseño. ¿Añadirlo de todos modos?",
+      "measuring": "Midiendo",
+      "measuring_title": "La pantalla mide su memoria para mosaicos cuando los mosaicos ya están puestos, más o menos un minuto después de arrancar o de recibir un diseño nuevo.",
+      "none": "Sin espacio",
+      "none_title": "La pantalla no tiene ahora memoria libre para mosaicos. Se puede guardar igualmente: si le falta memoria, algunos mosaicos muestran menos, o rechaza el diseño.",
+      "confirm_none": "La pantalla no tiene ahora memoria libre para mosaicos. Si le falta memoria, algunos mosaicos muestran menos, o rechaza el diseño. ¿Añadir este mosaico de todos modos?"
     },
     "domains": {
       "light": "Luz",
@@ -1592,7 +1664,8 @@
       "image": "Imagen",
       "entity": "Entidad",
       "alarm_control_panel": "Panel de alarma",
-      "lock": "Cerradura"
+      "lock": "Cerradura",
+      "humidifier": "Humidificador"
     },
     "displays": {
       "standard": "estándar",
@@ -1821,7 +1894,25 @@
         "open": "Abrir {name}",
         "speaker": "Altavoz",
         "speaker_now": "Donde suena",
-        "speaker_hint": "Dónde empieza. «Donde suena» pide un altavoz en la pantalla cuando el reproductor no suena en ninguno."
+        "speaker_hint": "Dónde empieza. «Donde suena» pide un altavoz en la pantalla cuando el reproductor no suena en ninguno.",
+        "link": "O pega un enlace de Spotify",
+        "link_hint": "Un enlace o URI de la app de Spotify, con Compartir > Copiar enlace: una playlist, un álbum, un artista, una canción o un podcast.",
+        "link_add": "Añadir",
+        "shuffle": "Aleatorio",
+        "shuffle_hint": "Se ajusta al empezar. Con aleatorio salta una canción, para que la primera ya sea aleatoria. \"Como esté\" deja el reproductor como está.",
+        "shuffle_keep": "Como esté",
+        "shuffle_on": "Activado",
+        "shuffle_off": "Apagado",
+        "repeat": "Repetir",
+        "repeat_hint": "Se ajusta al empezar. \"Como esté\" deja el reproductor como está.",
+        "repeat_off": "Apagado",
+        "repeat_all": "Repetir todo",
+        "repeat_one": "Repetir una",
+        "repeat_keep": "Como esté"
+      },
+      "energy": {
+        "hint": "La potencia de la casa en este momento, dibujada como la dibuja la vista de Energía de Home Assistant: solar, red, batería y tus dispositivos, desde los ajustes de Energía de Home Assistant. Un toque en un círculo abre el historial de ese sensor.",
+        "needs_firmware": "La tarjeta de energía necesita el firmware 0.47.0 o posterior: tras guardar, pulsa Actualizar en la pantalla."
       }
     },
     "tile_card": {
@@ -1895,7 +1986,8 @@
         "overflow": "No cabe junto al nombre",
         "dial": "Esfera",
         "hidden_signal": "Oculto mientras la señal es buena",
-        "hidden_link": "Oculto mientras todo está conectado"
+        "hidden_link": "Oculto mientras todo está conectado",
+        "hidden_battery": "Oculto mientras la batería esté por encima del 20 %"
       },
       "live": {
         "hidden": "Oculto ahora mismo: no está activo",
@@ -1933,9 +2025,12 @@
       "left_hint": "Título y botón de inicio: en los ajustes de la página",
       "wifi_sample": "La señal de esta pantalla",
       "link_sample": "Solo cuando falta Home Assistant o Tessera",
+      "battery_sample": "La batería de esta pantalla",
       "wifi_hint": "La pantalla lee su propia señal, así que este elemento sigue en la barra cuando Home Assistant no está. De cuatro barras a una, tachado sin red.",
       "wifi_show_hint": "Solo cuando es débil deja la barra libre hasta que la señal baja a una barra o la red desaparece.",
       "link_hint": "Solo aparece mientras falta Home Assistant o Tessera, para ver de un vistazo por qué faltan valores.",
+      "battery_hint": "La pantalla lee su propia batería, así que este elemento sigue en la barra cuando Home Assistant no está. El icono sigue el nivel como lo dibuja Home Assistant, con un rayo mientras se carga.",
+      "battery_show_hint": "Solo si está baja deja la barra libre hasta que la batería esté al 20 % o menos.",
       "status_firmware": "Este elemento aparece desde el firmware {version}. Hasta esa actualización, la pantalla lo omite."
     },
     "screen_settings": {
@@ -2007,29 +2102,51 @@
         "show": "Mostrar en reposo",
         "standby_off": "Activa Reposo automático para usarlo.",
         "needs_firmware": "Actualiza esta pantalla al firmware {version} para usar un salvapantallas.",
-        "order": "La pantalla muestra el primero que esté disponible. Arrastra para cambiar el orden.",
         "no_pictures": "Esta pantalla no tiene memoria para imágenes, así que muestra el reloj.",
-        "tap": "Un toque activa la pantalla. Solo los botones de un reproductor funcionan en el salvapantallas: reproducir o pausar y el volumen.",
+        "lead": "Muestra el primero disponible",
         "use": "Usar {name}",
-        "choose_media": "Elige un reproductor",
-        "add_media": "Otro reproductor",
-        "players": "Reproductores, el primero arriba",
-        "choose_camera": "Elige una cámara",
-        "weather_auto": "Temperatura exterior de Home Assistant",
-        "weather_none": "Sin temperatura",
         "kinds": {
           "media": "Música sonando",
           "camera": "Cámara",
           "clock": "Reloj"
         },
-        "details": {
-          "media": "Mientras suena, con su portada",
-          "media_unset": "Elige un reproductor para usarlo",
-          "media_more": "El primero que reproduce, con su carátula",
-          "camera": "Su imagen, cada 15 segundos",
-          "camera_unset": "Elige una cámara para usarla",
-          "clock": "La hora, la fecha y la temperatura exterior, en blanco sobre negro"
-        }
+        "summary": {
+          "media_none": "Aún sin reproductor",
+          "camera_none": "Aún sin cámara",
+          "temperature": "Temperatura exterior",
+          "time_date": "Hora y fecha",
+          "off": "Apagado"
+        },
+        "on": "Mostrar en el salvapantallas",
+        "place": "{n} de {count}",
+        "earlier": "Probar antes",
+        "later": "Probar después",
+        "players_title": "Reproductores",
+        "players": "Reproductores, el primero arriba",
+        "players_hint": "El primero que suena aparece con su portada.",
+        "player_add": "Añadir un reproductor",
+        "remove_player": "Quitar {name}",
+        "keys_hint": "Reproducir, pausa y volumen funcionan en el salvapantallas. Un toque en otro sitio despierta la pantalla.",
+        "choose_camera": "Elige una cámara",
+        "camera_hint": "Su imagen, cada 15 segundos",
+        "glass": "En la pantalla",
+        "temperature": "Temperatura",
+        "weather_auto": "Automática",
+        "weather_none": "Sin temperatura",
+        "beside": "Al lado",
+        "items_add": "Añadir una entidad",
+        "items_hint": "Junto a la temperatura, en una línea: un sensor, una puerta, una lámpara.",
+        "items_full": "El reloj tiene sitio para {n} entidades.",
+        "items_already": "Ya está en el reloj.",
+        "items_removed": "{name} quitado del reloj",
+        "items_title": "Entidades del reloj",
+        "items_slots": "{used} de {n}",
+        "item_text": "Texto",
+        "item_icon": "Icono",
+        "item_both": "Ambos",
+        "item_look": "Muestra",
+        "item_hint": "En blanco y negro en el salvapantallas, sea cual sea el color de la entidad.",
+        "items_add_title": "Añadir al reloj"
       },
       "audio_tests": {
         "test_microphone": "Probar micrófono",
@@ -2220,9 +2337,9 @@
         "uploading": "No desconectes todavía el cable USB.",
         "building": "La compilación puede tardar 20 minutos o más en un equipo de Home Assistant como una Raspberry Pi, sobre todo la primera vez. Es normal. Puedes salir de esta página: la instalación sigue en marcha y la volverás a encontrar en Nueva pantalla.",
         "building_download": "La compilación puede tardar 20 minutos o más en un equipo de Home Assistant como una Raspberry Pi, sobre todo la primera vez. Es normal. Puedes salir de esta página: la compilación sigue en marcha y la volverás a encontrar en Nueva pantalla.",
-        "downloaded": "Instálalo en la pantalla desde tu propio ordenador y luego empareja la pantalla con Home Assistant.",
-        "booted": "La pantalla arranca y se conecta a tu Wi-Fi. Empareja ahora la pantalla con Home Assistant:",
-        "booted_calibrate": "La pantalla arranca y se conecta a tu Wi-Fi. Primero pide una calibración táctil: toca las cruces. Empareja ahora la pantalla con Home Assistant:",
+        "downloaded": "Instálalo en la pantalla desde tu propio ordenador. Aparece aquí en cuanto esté en tu Wi-Fi.",
+        "booted": "La pantalla arranca, se conecta a tu Wi-Fi y se une a Home Assistant por sí sola.",
+        "booted_calibrate": "La pantalla arranca y se conecta a tu Wi-Fi. Primero pide una calibración táctil: toca las cruces. Después se une a Home Assistant por sí sola.",
         "see_log": "Consulta el registro de abajo."
       },
       "download_steps": {
@@ -2237,9 +2354,9 @@
       "download_keep": "El archivo contiene tu contraseña de Wi-Fi y las claves de la pantalla: no lo compartas.",
       "api_key": "Clave API",
       "pairing": {
-        "ha": "{bold} Esto se hace fuera de Tessera. Home Assistant descubre {name} como dispositivo ESPHome; haz clic en Añadir. ¿No aparece? Añade ESPHome manualmente con la dirección IP de la pantalla.",
+        "ha": "{bold} Home Assistant muestra {name} como dispositivo ESPHome descubierto; haz clic en Añadir. ¿No aparece? Añade ESPHome manualmente con la dirección IP de la pantalla.",
         "ha_bold": "Ve a Home Assistant → Configuración → Dispositivos y servicios.",
-        "key": "{bold} (en «Mostrar la clave API», abajo) si Home Assistant pide una clave de cifrado. Con la app ESPHome Device Builder instalada, Home Assistant suele rellenarla solo.",
+        "key": "{bold} abajo si Home Assistant pide una clave de cifrado.",
         "key_bold": "Pega la clave API",
         "actions": "{bold} integración ESPHome → Configurar → «Permite que el dispositivo realice acciones de Home Assistant». Sin esto, la pantalla lo ve todo pero no controla nada.",
         "actions_bold": "Permite las acciones de HA:",
@@ -2299,12 +2416,13 @@
       "models": "{n} modelo | {n} modelos",
       "arrive": {
         "waiting": "Esperando a que {name} aparezca en tu Wi-Fi...",
-        "seen": "{name} está en tu Wi-Fi. Vincúlala ahora en Home Assistant.",
+        "seen": "{name} está en tu Wi-Fi. Preparándola...",
         "paired": "{name} está vinculada con Home Assistant.",
         "missing": "{name} aún no está en tu Wi-Fi",
         "hotspot": "Mira la pantalla: muestra un punto de acceso y su contraseña. Conéctate con el móvil y elige ahí la Wi-Fi correcta. O pon aquí la Wi-Fi correcta e instala de nuevo.",
         "no_hotspot": "Probablemente el nombre o la contraseña de la Wi-Fi no son correctos. Pon aquí la Wi-Fi correcta e instala de nuevo, con la pantalla aún conectada al cable.",
-        "change": "Cambiar Wi-Fi e instalar de nuevo"
+        "change": "Cambiar Wi-Fi e instalar de nuevo",
+        "failed": "Tessera no puede añadir {name} a Home Assistant por sí sola. Añádela tú mismo abajo."
       },
       "choice_option": {
         "GRID_ROWS": {
@@ -2314,7 +2432,20 @@
       },
       "choice_first": {
         "GRID_ROWS": "el tamaño habitual"
-      }
+      },
+      "memory": {
+        "low_title": "Poca memoria libre en la máquina de Home Assistant",
+        "low": "Hay {free} de memoria libre, así que el firmware se compila con menos compiladores a la vez ({jobs} en vez de {cores}). Tarda más, pero cabe.",
+        "tight_title": "Puede que a la máquina de Home Assistant le falte memoria",
+        "tight": "Compilar el firmware necesita unos {need} de memoria libre y hay {free}. Lo intenta con un compilador a la vez. Si la compilación se detiene, detén unos complementos un rato o dale más memoria a la máquina y vuelve a intentarlo.",
+        "retry_title": "Se agotó la memoria; la compilación sigue con un compilador",
+        "retry": "El sistema detuvo el compilador porque se agotó la memoria (había {free} libres cuando empezó la compilación). La compilación sigue con un compilador a la vez, desde donde se detuvo. Tarda más, pero cabe.",
+        "out_title": "No hay memoria suficiente para compilar el firmware",
+        "out": "Compilar el firmware necesita unos {need} de memoria libre y esta máquina de Home Assistant tiene {free}. Detén unos complementos un rato o dale más memoria a la máquina, y vuelve a intentarlo.",
+        "limit_title": "No hay memoria suficiente para compilar el firmware",
+        "limit": "Se agotó la memoria, también con un compilador a la vez. Detén unos complementos un rato o dale más memoria a la máquina, y vuelve a intentarlo."
+      },
+      "pair_yourself": "Añadirla tú mismo en Home Assistant"
     },
     "alerts": {
       "eyebrow": "Alertas · guía rápida",
@@ -2606,7 +2737,9 @@
       },
       "home_hint": "El botón de inicio y deslizar hacia arriba llevan aquí.",
       "bar_entities": "También a la derecha",
-      "actions_blocked": "Home Assistant no deja que esta pantalla realice acciones, así que tocar un mosaico no hace nada. En Home Assistant abre Ajustes → Dispositivos y servicios → ESPHome, elige esta pantalla, luego Configurar, y activa «Permitir que el dispositivo realice acciones de Home Assistant»."
+      "actions_blocked": "Home Assistant todavía no deja que esta pantalla realice acciones, así que tocar un mosaico no hace nada.",
+      "allow_actions": "Permitir acciones",
+      "actions_allowed": "{name} ya puede controlar tus dispositivos."
     },
     "feedback": {
       "question": "¿Tu pantalla funciona como esperas?",
@@ -2626,8 +2759,9 @@
       },
       "comment_label": "Nota (opcional)",
       "comment_hint": "No incluyas datos personales, registros, contraseñas ni claves de API.",
-      "report_hint": "¿Hay algo que arreglar? Infórmalo en GitHub. Con tu placa, las versiones y un registro se puede investigar.",
-      "report_link": "Informar en GitHub",
+      "report_title": "¿Quieres que se arregle?",
+      "report_text": "Abre un issue en GitHub. Tu placa, las versiones y lo que nos contaste ya están rellenados. Añade un registro y podremos investigarlo y preguntarte.",
+      "report_open": "Abrir un issue en GitHub",
       "add_details": "Añadir detalles",
       "done": "Listo",
       "settings_title": "Comentarios",
@@ -2761,8 +2895,8 @@
       "simple_editor": "Vista sencilla"
     },
     "donate": {
-      "title": "Hecho por una sola persona",
-      "body": "Tessera es gratis y seguirá siéndolo. Lo desarrollo en mi tiempo libre. Si quieres que siga añadiendo tarjetas y pantallas nuevas, una pequeña aportación mensual lo hace posible. Un café puntual es igual de bienvenido.",
+      "title": "Apoya a Tessera",
+      "body": "Tessera es gratis y seguirá siéndolo. Dirijo el desarrollo y el mantenimiento, con aportaciones de la comunidad. Tu apoyo me da más tiempo para desarrollar, revisar y probar mejoras. Una aportación mensual o un café puntual son bienvenidos.",
       "monthly": "Apoyar cada mes",
       "once": "o invítame a un café una vez",
       "later": "Quizás más tarde",

@@ -17,7 +17,7 @@ import tile_icons
 DOMAINS = catalogue.DOMAINS
 # Built-in cards without a Home Assistant entity; firmware 0.2.14+ renders them. The names in English: a screen gets them in
 # its language and the editor in its own (builtin_name, app 0.2.90).
-BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
+BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', 'screen.energy': 'Energy', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
 # A navigation tile (firmware 0.2.62+): screen.page_<n> goes to page n, up to page 32 on a board that holds that many
 # (firmware 0.34.0+); whether the screen has page n is the screen's Grid's to say. Firmware 0.2.65+ takes the same one on several
 # pages (a "Back to page 1" on every page), firmware 0.16.0+ any entity on several tiles (GitHub #83) but the bedside
@@ -45,6 +45,8 @@ def builtin_name(entity, text=screen_t):
         return text('addon.screen.builtin.nightstand')
     if entity == MAP_TILE:
         return text('addon.screen.builtin.map')
+    if entity == ENERGY_TILE:
+        return text('addon.screen.builtin.energy')
     return text('screen.settings.title' if entity == 'screen.settings' else 'addon.screen.builtin.clock')
 # A camera or an image entity opens full screen on a Guition with firmware 0.2.57+ (camera_feed.py).
 CAMERA_DOMAINS = frozenset(('camera', 'image'))
@@ -96,10 +98,37 @@ FIRST_MAX_TILES = 10
 REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
 # The branch a screen's YAML builds its board package from. Which boards there are is boards.json's (BOARD_KEYS).
 REF = 'main'
+# The app's channel (docs/RELEASING.md, "Testing dev"): the branch of this repository the app was added from. The
+# Supervisor names an app `<hash>_<slug>`, the hash being the first eight characters of the sha1 of the repository URL
+# as it was added, in lower case (supervisor/store/utils.py, get_hash_from_repository). So the URL with `#dev` is
+# another app, with data of its own, and its screens build from dev. Any other hash (a local copy, a fork, another
+# spelling of the URL) and no Supervisor at all have no channel: new screens build from main, existing ones keep the
+# `ref:` they have.
+CHANNELS = {'ec8ae0ed': 'main', 'fa6a7b50': 'dev'}
+CHANNEL = None
+
+def channel_of(slug):
+    """'main' or 'dev' for the slug of an app added from this repository's URL or its `#dev` URL, else None."""
+    if not isinstance(slug, str) or '_' not in slug:
+        return None
+    return CHANNELS.get(slug.split('_', 1)[0])
+
+def set_channel(channel):
+    """The channel this app runs in, found once at the start (server.main)."""
+    global CHANNEL
+    CHANNEL = channel if channel in CHANNELS.values() else None
+
+def channel():
+    """'main', 'dev', or None when this app was not added from this repository."""
+    return CHANNEL
+
+def ref():
+    """The branch a screen of this app builds from: its channel, else main."""
+    return CHANNEL or REF
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.39.0'
+FIRMWARE_VERSION = '0.51.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -129,6 +158,10 @@ LOCK_GUARDS = tuple(catalogue.of_type('lock')['guards'])
 # `run` the other way round. Older firmware refuses the domain, so a layout with one waits for the update.
 AUTOMATION_MIN_FIRMWARE = catalogue.parse_version(catalogue.of_type('automation')['firmware'])
 ATTRS = frozenset('brightness percentage current_position current_tilt_position current_temperature temperature target_temp_low target_temp_high current_humidity min_temp max_temp target_temp_step supported_color_modes hvac_modes hvac_action hs_color color_temp_kelvin min_color_temp_kelvin max_color_temp_kelvin fan_speed_list unit_of_measurement battery_level fan_speed volume_level is_volume_muted media_title options min max step temperature_unit supported_features device_class next_rising next_setting finishes_at duration remaining humidity wind_speed wind_speed_unit apparent_temperature fan_modes swing_modes fan_mode swing_mode effect code_format code_arm_required changed_by assumed_state activity_list current_activity'.split())
+# A humidifier's own (firmware 0.42.0+): the range of the humidity it may be set to, its modes and the one it is in,
+# and what it is doing. Other domains use the same names for other things (an automation's `mode`), so only a humidifier
+# sends them.
+HUMIDIFIER_ATTRS = frozenset('min_humidity max_humidity target_humidity_step available_modes mode action'.split())
 # Attributes whose boolean value the screen needs; every other bool stays behind.
 BOOL_ATTRS = frozenset(['is_volume_muted', 'code_arm_required', 'assumed_state'])
 
@@ -169,6 +202,10 @@ MAP_OPTIONS = {key: tuple(MAP_CARD[key]) for key in ('framing', 'distance', 'fol
 # everyone Home Assistant knows the place of or the people and trackers chosen (`follow`).
 MAP_TILE = 'screen.map'
 MAP_TILE_MIN_FIRMWARE = (0, 21, 0)
+# The energy card (app 0.4.77, firmware 0.47.0): the house's power now, drawn as Home Assistant's own live view and
+# power-flow-card-plus draw it, from the Energy settings (energy_flow.py). It is a diagram and nothing else.
+ENERGY_TILE = 'screen.energy'
+ENERGY_MIN_FIRMWARE = (0, 47, 0)
 MAP_DOMAINS = frozenset(MAP_CARD['with'])
 MAP_MAX_ENTITIES = MAP_CARD['max']
 MAP_OWN = ('map', *MAP_OPTIONS)
@@ -559,6 +596,18 @@ def parse_shape(text):
         shape['look'] = match[6]
     return shape
 
+def update_in_tessera(screen):
+    """Whether this screen's next update has to come from Tessera itself (app 0.4.82): its board builds for the wide
+    partition table (boards.json `wide_slots`) and the screen does not say it has that table yet. Its firmware no longer
+    fits the update slot of ESPHome's own table, so an update from ESPHome Device Builder is refused by the screen; only
+    Tessera moves it to the wide table on the way (docs/FLASH_LAYOUT.md). A screen that is away says nothing, and one with
+    a table of its owner's own ('other') is left as it is."""
+    if not isinstance(screen, dict) or not screen.get('online'):
+        return False
+    if not SHAPES.get(board_of(screen), {}).get('wide_slots'):
+        return False
+    return screen.get('flash') in (None, 'old', 'widen', 'widen_next')
+
 def board_of(screen):
     """Which board a screen is, in the order of what knows best: what it reported itself (firmware 0.2.80, or
     the Guition's own sensor), else the board package the YAML of its profile includes. 'unknown' for a screen
@@ -618,6 +667,15 @@ def able(screen, feature):
     if words is not None:
         return feature in words
     return bool(SHAPES.get(board_of(screen), {}).get(FEATURES[feature], True))
+
+def has_battery(screen, said=()):
+    """Whether this screen has a battery the top bar can show (firmware 0.41.0, docs/BATTERY.md): the word `battery` in
+    its Screen features or in its hello (`said`), which a battery in its own Override YAML gives too, or its board's
+    `battery` in boards.json, so a Tab5 that still runs older firmware is offered the item with the note to update.
+    Unlike the other abilities a board this app does not know has none."""
+    if BATTERY_FEATURE in (features_of(screen) or ()) or BATTERY_FEATURE in (said or ()):
+        return True
+    return bool(SHAPES.get(board_of(screen), {}).get('battery'))
 
 def dimmable(screen):
     """Whether this screen's backlight takes levels: no normal brightness without it, and standby and night as the
@@ -719,7 +777,8 @@ def tile_cost(tile, memory):
     one of its values), and on a board without PSRAM the tile itself and, where it keeps one, its block of extras, whose
     sizes the screen gave in its hello (page_delivery.memory_of). The screen counts the same way (tile_memory::cost), and
     so does the editor (web/src/model/memory.ts): tests/fixtures/memory-conformance.json holds the cases."""
-    entry = catalogue.MEMORY.get(str(tile.get('entity', '')).split('.', 1)[0], catalogue.DEAREST)
+    entity = str(tile.get('entity', ''))
+    entry = catalogue.CARD_MEMORY.get(entity) or catalogue.MEMORY.get(entity.split('.', 1)[0], catalogue.DEAREST)
     options = tile.get('options') or {}
     action = options.get('tap') == 'action'
     line = isinstance(options.get('sub'), str) and options['sub'].startswith('attr:')
@@ -1003,12 +1062,19 @@ HEADER_BUILTIN = ('clock', 'analog', 'date')
 # The screen's own items (firmware 0.38.0, GitHub #130): its Wi-Fi signal, and a mark while Home Assistant or Tessera is
 # away. The screen reads both itself, so they stay when Home Assistant goes; a screen gets them once its hello names
 # BAR_STATUS_FEATURE, and an older one simply goes without (header_bar.message).
-HEADER_STATUS = ('wifi', 'link')
+HEADER_STATUS = ('wifi', 'link', 'battery')
 BAR_STATUS_FEATURE = 'bar_status'
 BAR_STATUS_MIN_FIRMWARE = (0, 38, 0)
 # What the Wi-Fi item shows beside its bars, and when it shows.
 WIFI_CONTENTS = ('icon', 'percent', 'dbm')
 WIFI_SHOWS = ('always', 'weak')
+# The battery item (firmware 0.41.0, docs/BATTERY.md): only a screen with a battery has it, which it says in its hello
+# (BATTERY_FEATURE) and which its board says before it ever connected (boards.json `battery`). It shows Home Assistant's
+# battery icon alone or with the percentage, always or only while the battery runs low.
+BATTERY_FEATURE = 'battery'
+BATTERY_MIN_FIRMWARE = (0, 41, 0)
+BATTERY_CONTENTS = ('icon', 'percent')
+BATTERY_SHOWS = ('always', 'low')
 # Only shown, never controlled: the top bar takes these besides every tile domain.
 HEADER_ONLY_DOMAINS = frozenset('device_tracker zone counter event input_datetime input_text water_heater humidifier'.split())
 # What an entity item shows: its status, when it last changed, or its icon alone (GitHub #144, any firmware with a top bar:
@@ -1039,11 +1105,12 @@ def validate_header(data, most=HEADER_MAX_ITEMS):
             if set(item) != {'type'}:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
             clean = {'type': kind}
-        elif kind == 'wifi':
+        elif kind in ('wifi', 'battery'):
             if set(item) - {'type', 'content', 'show'}:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))
-            clean = {'type': 'wifi', 'content': item.get('content', 'icon'), 'show': item.get('show', 'always')}
-            if clean['content'] not in WIFI_CONTENTS or clean['show'] not in WIFI_SHOWS:
+            clean = {'type': kind, 'content': item.get('content', 'icon'), 'show': item.get('show', 'always')}
+            contents, shows = (WIFI_CONTENTS, WIFI_SHOWS) if kind == 'wifi' else (BATTERY_CONTENTS, BATTERY_SHOWS)
+            if clean['content'] not in contents or clean['show'] not in shows:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
         elif kind == 'entity':
             if set(item) - {'type', 'entity', 'content', 'icon', 'show'}:
@@ -1106,6 +1173,7 @@ def min_firmware(layout):
         (repeated_entities(tiles), ENTITY_REPEAT_MIN_FIRMWARE),
         (layout.get('title') == '', NO_TITLE_MIN_FIRMWARE),
         (any(t['entity'] == MAP_TILE for t in tiles), MAP_TILE_MIN_FIRMWARE),
+        (any(t['entity'] == ENERGY_TILE for t in tiles), ENERGY_MIN_FIRMWARE),
         (len(tiles) > LEGACY_MAX_TILES or any(is_full(t) or page_target(t['entity']) for t in tiles), FULL_PAGE_MIN_FIRMWARE),
         (any(t['entity'] == 'screen.settings' for t in tiles), (0, 2, 44)),
         (any(o.get('background') == 'none' for o in options), (0, 2, 16)),
@@ -1144,7 +1212,9 @@ TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'displa
                       # How a map frames its people (app 0.4.33); who is on it is the editor's.
                       'framing': 'framing', 'distance': 'distance',
                       # A favourite (app 0.4.42): what it plays, as Home Assistant's library names it, and on which speaker.
-                      'play': 'play', 'speaker': 'speaker'}
+                      'play': 'play', 'speaker': 'speaker',
+                      # Its own shuffle and repeat (app 0.4.84).
+                      'shuffle': 'shuffle', 'repeat': 'repeat'}
 TILE_SIZES = {'full': 'full', 'fullscreen': 'full', 'full screen': 'full', 'full-screen': 'full', 'page': 'full', 'whole page': 'full',
               'wide': 'wide', 'double': 'wide', 'large': 'wide', 'big': 'wide',
               'single': 'single', 'small': 'single', 'normal': 'single', 'tall': 'tall', 'high': 'tall', 'square': 'square'}
@@ -1573,7 +1643,11 @@ def action_for_screen(value):
     return act
 
 # A favourite's own options (app 0.4.42): what it plays, as Home Assistant's library names it, and on which speaker.
-FAVORITE_OWN = ('play', 'speaker')
+# Since app 0.4.84 also its own shuffle ('on', 'off') and repeat ('off', 'all', 'one', Home Assistant's repeat_set), set
+# as it starts; without one the player keeps its own.
+FAVORITE_OWN = ('play', 'speaker', 'shuffle', 'repeat')
+FAVORITE_SHUFFLES = ('on', 'off')
+FAVORITE_REPEATS = ('off', 'all', 'one')
 FAVORITE_KINDS = ('playlist', 'album', 'artist', 'track', 'podcast', 'episode', 'channel', 'genre', 'directory', 'music')
 
 def validate_favorite(value):
@@ -1688,6 +1762,9 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             if tile['entity'] == MAP_TILE:
                 displays = ('map',)
                 options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub')}, 'display': 'map'}
+            # The energy card draws its diagram on every size it takes, with no face, slider or second line of its own.
+            if tile['entity'] == ENERGY_TILE:
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
             # Every tile's taps and its type's own (run, an automation's alone: firmware 0.7.0+), from the catalogue.
             taps = tuple(catalogue.taps(domain))
             choices = {'tap': taps, 'display': displays, 'inline': ('none', 'slider')}
@@ -1779,6 +1856,9 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     raise ValueError(t('addon.errors.layout.favorite_play'))
                 if 'speaker' in options and (not isinstance(options['speaker'], str) or not options['speaker'].strip() or len(options['speaker'].encode()) > 48):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='speaker'))
+                for key, allowed in (('shuffle', FAVORITE_SHUFFLES), ('repeat', FAVORITE_REPEATS)):
+                    if key in options and options[key] not in allowed:
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting=key))
                 options = {k: v for k, v in options.items() if k not in ('inline', 'controls', 'action') and not (k == 'tap' and v == 'action')}
             elif set(options) & set(FAVORITE_OWN):
                 options = {k: v for k, v in options.items() if k not in FAVORITE_OWN}
@@ -2102,9 +2182,14 @@ def media_extras(attrs):
     return result or None
 
 
-def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=None, entries=None, words=None, icon_of=None, device_name=None):
+def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=None, entries=None, words=None, icon_of=None, device_name=None,
+           energy=None, home_name=''):
     """Small, pre-computed values the firmware cannot derive itself (time zones, forecasts, a vacuum's device, the rows of
-    a light's effects page)."""
+    a light's effects page, the house's power split for the energy card from `energy`, Home Assistant's Energy settings)."""
+    if tile['entity'] == ENERGY_TILE:
+        import energy_flow
+        glyph = lambda icon: tile_icons.GLYPHS.get(icon[4:]) if isinstance(icon, str) and icon.startswith('mdi:') else None
+        return energy_flow.payload(energy or {}, states, glyph, home_name)
     domain = tile['entity'].split('.')[0]
     attrs = states.get(tile['entity'], {}).get('attributes', {})
     # A map card carries only its movement mark (app 0.4.33): the screen asks for a new picture when it changes, so
@@ -2276,11 +2361,12 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None, u
     state = states.get(tile['entity'], {})
     attrs = state.get('attributes', {})
     bounded = {}
-    for key in ATTRS:
+    for key in ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS:
         value = attrs.get(key)
         if isinstance(value, bool):
-            # assumed_state only matters to a lock's keys (firmware 0.5.0+); anywhere else it is bytes for nothing.
-            if key in BOOL_ATTRS and (key != 'assumed_state' or tile['entity'].startswith('lock.')):
+            # assumed_state only matters to a lock's keys (firmware 0.5.0+) and a player's power keys (firmware
+            # 0.39.0, both as Home Assistant's dialog has them); anywhere else it is bytes for nothing.
+            if key in BOOL_ATTRS and (key != 'assumed_state' or tile['entity'].startswith(('lock.', 'media_player.'))):
                 bounded[key] = value
             continue
         if value is None:
@@ -2724,6 +2810,9 @@ def installation_yaml(data):
     if not isinstance(chosen, dict) or any(key not in offered or value not in offered[key] for key, value in chosen.items()):
         raise ValueError(t('addon.errors.firmware.choice'))
     choice_lines = ''.join(f'  {key}: {quote(chosen[key])}\n' for key in offered if chosen.get(key, offered[key][0]) != offered[key][0])
+    # The components and fonts come from the branch the board package does (packages/<key>.yaml), main unless the app
+    # runs in another channel.
+    branch_line = f'  GITHUB_REF: {quote(ref())}\n' if ref() != REF else ''
     # An OTA password, not yet `ota: encryption:` with the api key: ESPHome before 2026.9 refuses that, and the owner's
     # ESPHome Device Builder may still be older (docs/RELEASING.md, "ESPHome versions").
     key, ota = base64.b64encode(secrets.token_bytes(32)).decode(), secrets.token_urlsafe(24)
@@ -2747,7 +2836,7 @@ substitutions:
   DEVICE_NAME: {quote(name)}
   DEVICE_FRIENDLY_NAME: {quote(friendly.strip())}
   LANGUAGE: {quote(language)}
-{rotation_line}{choice_lines}
+{rotation_line}{choice_lines}{branch_line}
 esphome:
   name: {quote(name)}
   friendly_name: {quote(friendly.strip())}
@@ -2755,7 +2844,7 @@ esphome:
 packages:
   display:
     url: {REPO}
-    ref: {REF}
+    ref: {ref()}
     files: [packages/{board}.yaml]
     refresh: 0s
   local_overrides: !include {name}.local.yaml

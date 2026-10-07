@@ -16,7 +16,8 @@ export function previewProfiles(boards: Record<string, BoardChoice>): PreviewPro
     .map(([orientation, shape]) => ({
       key: `${board.key}-${orientation}`, board: board.key, name: `${board.name} ${board.model}`,
       orientation: orientation as Orientation,
-      shape: { ...shape!, dpi: board.dpi, look: board.look || "standard", catalog: board },
+      shape: { ...shape!, dpi: board.dpi, look: board.look || "standard", ...(board.fonts ? { fonts: board.fonts } : {}),
+        ...(board.spacing?.margin !== undefined ? { spacing: board.spacing } : {}), catalog: board },
     }))), customPreview];
 }
 

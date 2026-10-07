@@ -283,7 +283,10 @@ profile YAML builds from (`screen_manager/app/boards.json`, written from the boa
 `tools/generate_board_shapes.py`), and the smallest screen there is when it knows nothing. Firmware from
 before the sensors says nothing, and every screen that ran it is a two by three board. The editor draws the
 mockup at that aspect with that grid and the top bar at that density, and places tiles on it; a save, a tile
-event and the layout sensor count rows, columns and pages the same way.
+event and the layout sensor count rows, columns and pages the same way. The mockup's page has the glass's
+proportions: the top bar down to where the tile area starts (`SCROLL_Y`), the grid's margins and gaps, and the
+page bar (`PAGE_BAR_H`) once the layout has more than one page, all from `boards.json`, so a card is as high
+against its page as on the screen (`cardHeight` in `web/src/model/ui-scale.ts`).
 
 ## What is still open, and the way it becomes durable
 

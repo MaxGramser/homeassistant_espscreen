@@ -53,6 +53,8 @@ class BuildEnvironment(unittest.IsolatedAsyncioTestCase):
                 os.environ.pop('CCACHE_MAXSIZE', None)
                 os.environ.pop('ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT', None)
                 f = Firmware(Path(tmp) / 'esphome', data)
+                # Not the memory of the machine the test runs on (build_memory, app 0.4.65): unknown, so every core.
+                f.MEMINFO, f.CGROUP = str(Path(tmp) / 'no-meminfo'), str(Path(tmp) / 'no-cgroup')
                 f.create(PROFILE)
                 f.start({'file': 'kitchen.yaml', 'action': 'build'})
                 await f.task

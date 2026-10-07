@@ -18,9 +18,12 @@
 #include "page_protocol.h"
 
 namespace kept_pages {
-// Seven pages beside the one on the glass, whatever the board's page ceiling (page_protocol.h MAX_PAGES): a kept set is
-// a page of cards made ahead of time, so more of them would only make the first opening of a layout slower.
-constexpr size_t MAX_KEPT = 7;
+// Every page beside the one on the glass, up to the board's page ceiling (page_protocol.h MAX_PAGES): with some pages
+// kept and others built when they come, paging through a long layout was quick on one page and slow on the next. The
+// board's PSRAM decides how many it makes (runtime_tiles::kept_capacity stops at KEEP_RESERVE), and the pictures of a
+// page out of sight make way when the picture store is full (picture_store::collect). The price is the first opening
+// of a layout, which prepares every page (docs/KEPT_PAGES.md, "Prepared pages"). Until GitHub #183's round: seven.
+constexpr size_t MAX_KEPT = page_protocol::MAX_PAGES - 1;
 constexpr size_t NONE = MAX_KEPT;
 
 // Where a page's cards come from when it goes on the glass.

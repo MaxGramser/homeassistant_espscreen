@@ -1,7 +1,7 @@
 // How far a new screen's installation is (app 0.4.32): counted from ESPHome's own log and the browser flasher's phase,
 // never guessed.
 import { describe, expect, it } from "vitest";
-import { buildShare, installProgress, readyShare, writeShare } from "../src/model/install-progress";
+import { buildShare, installProgress, memoryNote, readyShare, writeShare } from "../src/model/install-progress";
 
 const states = (p: ReturnType<typeof installProgress>) => p.steps.map((step) => `${step.key}:${step.state}${step.percent !== null ? `:${step.percent}` : ""}`);
 
@@ -45,6 +45,26 @@ describe("the steps of an installation", () => {
     expect(readyShare(["INFO Checking ESP-IDF 5.5.5 framework ...", "-- Configuring done (13.4s)"])).toBe(0.88);
     const job = { state: "running", stage: "compile", action: "install" };
     expect(states(installProgress(job, ["INFO Compiling app...", "-- Build files have been written to: /data/build"]))[0]).toBe("prepare:running:95");
+  });
+
+  it("goes on from where a build stopped when the add-on starts it again with one compiler (app 0.4.65)", () => {
+    // The memory ran out at step 851 of 1702; ninja counts the 851 that are left from one in the second run.
+    const first = ["ESPHome: compile", "[851/1702] Building CXX object main.cpp.obj", "xtensa-esp-elf-g++: fatal error: Killed signal terminated program cc1plus"];
+    expect(buildShare(first)).toBe(0.5);
+    expect(buildShare([...first, "ESPHome: compile", "INFO Compiling app..."])).toBe(0.5);
+    expect(buildShare([...first, "ESPHome: compile", "[1/11] Performing build step for 'bootloader'"])).toBeCloseTo(0.5 + 0.5 / 11);
+    expect(buildShare([...first, "ESPHome: compile", "[1/11] bootloader", "[425/851] Building CXX object page_receiver.cpp.obj"])).toBeCloseTo(0.75, 2);
+    expect(buildShare([...first, "ESPHome: compile", "[851/851] Linking", "INFO Creating factory.bin..."])).toBe(1);
+    // One run, as it always was.
+    expect(buildShare(["ESPHome: compile", "[312/1184] a", "[592/1184] b"])).toBe(0.5);
+  });
+
+  it("tells what the add-on found out about the machine's memory, in GB to one decimal (app 0.4.65)", () => {
+    expect(memoryNote({ state: "running", memory: { cores: 4, free_mb: 8000, need_mb: 1500, jobs: 4, reason: null } })).toBeNull();
+    expect(memoryNote({ state: "running" })).toBeNull();
+    expect(memoryNote({ state: "running", memory: { cores: 4, free_mb: 1258, need_mb: 1500, jobs: 1, reason: "tight" } }))
+      .toEqual({ reason: "tight", free: "1.2", need: "1.5", jobs: 1, cores: 4 });
+    expect(memoryNote({ state: "failed", memory: { cores: 4, free_mb: null, need_mb: 1500, jobs: 1, reason: "out" } })?.free).toBe("?");
   });
 
   it("marks the step it stopped in when it fails, and keeps the rest waiting", () => {

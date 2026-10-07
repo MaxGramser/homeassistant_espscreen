@@ -2,7 +2,9 @@
 // What a favourite plays (app 0.4.42): the player's library as Home Assistant browses it, folder by folder, with the
 // pictures the add-on prepares. A tap on something that plays chooses it; a folder opens; something that does both (an
 // artist, a playlist) is chosen on a tap and opened with its arrow. Nothing here knows a brand: the folders, the titles
-// and the pictures are Home Assistant's, through the add-on (api/media/browse).
+// and the pictures are Home Assistant's, through the add-on (api/media/browse). A player the add-on says plays a pasted
+// link (app 0.4.84, `spotify_link`) also takes one: the add-on reads it (api/media/link) and answers an item like the
+// library's, chosen the same way.
 import { computed, ref, watch } from "vue";
 import { getJson } from "../api";
 import { t } from "../i18n";
@@ -18,6 +20,11 @@ const trail = ref<{ folder: number; title: string }[]>([]);
 const items = ref<Item[]>([]);
 const loading = ref(false);
 const failed = ref("");
+const linkable = ref(false);
+const link = ref("");
+const linked = ref<Item | null>(null);
+const linkFailed = ref("");
+const linking = ref(false);
 const title = computed(() => trail.value[trail.value.length - 1]?.title || "");
 // The pictures of a folder that has them: a grid of covers; a folder of folders: rows.
 const pictured = computed(() => items.value.some((item) => item.picture));
@@ -26,8 +33,9 @@ async function open(folder: number, name: string, back = false) {
   loading.value = true;
   failed.value = "";
   try {
-    const answer = await getJson<{ title: string; folder: number; items: Item[] }>(`media/browse?entity=${encodeURIComponent(props.entity)}&folder=${folder}`);
+    const answer = await getJson<{ title: string; folder: number; items: Item[]; spotify_link?: boolean }>(`media/browse?entity=${encodeURIComponent(props.entity)}&folder=${folder}`);
     items.value = answer.items;
+    if (!folder) linkable.value = Boolean(answer.spotify_link);
     if (!back) trail.value = [...trail.value, { folder, title: answer.title || name }];
   } catch (error) {
     failed.value = error instanceof Error ? error.message : String(error);
@@ -45,8 +53,25 @@ function tap(item: Item) {
   if (item.play && item.favorite) emit("pick", item.favorite);
   else if (item.expand) void open(item.item, item.title);
 }
+async function readLink() {
+  const text = link.value.trim();
+  if (!text || linking.value) return;
+  linking.value = true;
+  linkFailed.value = "";
+  try {
+    linked.value = await getJson<Item>(`media/link?entity=${encodeURIComponent(props.entity)}&link=${encodeURIComponent(text)}`);
+  } catch (error) {
+    linked.value = null;
+    linkFailed.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    linking.value = false;
+  }
+}
 const isChosen = (item: Item) => Boolean(props.chosen && item.favorite && item.favorite.id === props.chosen.id && item.favorite.type === props.chosen.type);
-watch(() => props.entity, () => { trail.value = []; void open(0, ""); }, { immediate: true });
+watch(() => props.entity, () => {
+  trail.value = []; linkable.value = false; link.value = ""; linked.value = null; linkFailed.value = "";
+  void open(0, "");
+}, { immediate: true });
 </script>
 
 <template>
@@ -68,6 +93,23 @@ watch(() => props.entity, () => { trail.value = []; void open(0, ""); }, { immed
         <button v-if="item.play && item.expand" type="button" class="open icon-btn" :aria-label="t('editor.tile.favorite.open', { name: item.title })" @click="open(item.item, item.title)"><Icon name="chevron-right" /></button>
       </div>
     </div>
+    <form v-if="linkable" class="picker-link" @submit.prevent="readLink">
+      <label class="link-label" for="favorite-link">{{ t('editor.tile.favorite.link') }}</label>
+      <div class="link-row">
+        <input id="favorite-link" v-model="link" class="input" type="text" inputmode="url" autocomplete="off" spellcheck="false"
+          placeholder="https://open.spotify.com/playlist/…" @input="linkFailed = ''" />
+        <button type="submit" class="btn quiet mini" :disabled="!link.trim() || linking">{{ t('editor.tile.favorite.link_add') }}</button>
+      </div>
+      <p v-if="linkFailed" class="help warn">{{ linkFailed }}</p>
+      <p v-else class="help">{{ t('editor.tile.favorite.link_hint') }}</p>
+      <div v-if="linked" class="picker-item linked" :class="{ chosen: isChosen(linked) }">
+        <button type="button" class="pick" @click="tap(linked)">
+          <img v-if="linked.picture" class="art" :src="linked.picture" alt="" />
+          <span v-else class="badge mdi" aria-hidden="true">{{ glyph(linked.icon) }}</span>
+          <span class="name">{{ linked.title }}</span>
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 
@@ -88,5 +130,12 @@ watch(() => props.entity, () => { trail.value = []; void open(0, ""); }, { immed
 .chosen .art { outline: 3px solid var(--accent, #03a9f4); outline-offset: 2px; }
 .chosen .name { color: var(--accent, #03a9f4); }
 .open { position: absolute; right: 2px; }
+.picker-link { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line, rgba(0, 0, 0, .08)); }
+.link-label { font-weight: 600; }
+.link-row { display: flex; gap: 6px; }
+.link-row .input { flex: 1; min-width: 0; }
+.picker-link .help { margin: 0; }
+.linked .pick { padding: 6px; }
+.linked .art { width: 56px; flex: none; }
 .grid .open { top: 4px; right: 4px; background: rgba(255, 255, 255, .85); border-radius: 50%; }
 </style>

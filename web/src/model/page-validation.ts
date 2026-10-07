@@ -40,10 +40,12 @@ export function validatePageShape(layout: PageLayout) {
       let key: string;
       if (rules.headerBuiltin.includes(item.type) || item.type === rules.headerLink) {
         fields(item, ['id', 'type']); key = item.type;
-      } else if (item.type === rules.headerWifi) {
-        // The screen's own Wi-Fi item (firmware 0.38.0): what it shows beside its bars, and when.
+      } else if (item.type === rules.headerWifi || item.type === rules.headerBattery) {
+        // The screen's own Wi-Fi item (firmware 0.38.0) and its battery (firmware 0.41.0): what each shows beside its
+        // icon, and when.
         fields(item, ['id', 'type', 'content', 'show'], ['id', 'type']);
-        if (!rules.wifiContents.includes(item.content ?? 'icon') || !rules.wifiShows.includes(item.show ?? 'always')) fail();
+        const [contents, shows] = item.type === rules.headerWifi ? [rules.wifiContents, rules.wifiShows] : [rules.batteryContents, rules.batteryShows];
+        if (!contents.includes(item.content ?? 'icon') || !shows.includes(item.show ?? 'always')) fail();
         key = JSON.stringify([item.type, item.content ?? 'icon', item.show ?? 'always']);
       } else {
         if (['content', 'show', 'icon'].some(key => key in item && typeof (item as any)[key] !== 'string')) fail();
@@ -60,7 +62,7 @@ export function validatePageShape(layout: PageLayout) {
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
       fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',
         'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook'], ['label']);
-      fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard'], []);
+      fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard', 'play', 'speaker', 'shuffle', 'repeat'], []);
       const content = tile.content;
       fields(content, ['kind', 'entityId', 'name', 'target'], ['kind']);
       if (content.kind === 'entity') {
@@ -121,8 +123,11 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     [a.mapMarkers, map?.markers ?? []], [a.mapNames, map?.names ?? []], [a.mapZones, map?.zones ?? []], [a.mapStreets, map?.streets ?? []],
     [a.mapLook, map?.look ?? []]] as [string | undefined, string[]][])
     if (value !== undefined && (a.display !== 'map' || !choices.includes(value) || value === choices[0])) fail('normalization');
-  // A favourite (app 0.4.42): what it plays and its speaker, with the favourite alone.
-  if ((i.play !== undefined || i.speaker !== undefined) && a.display !== 'favorite') fail('normalization');
+  // A favourite (app 0.4.42): what it plays and its speaker, and its own shuffle and repeat (app 0.4.84), with the
+  // favourite alone.
+  if ((i.play !== undefined || i.speaker !== undefined || i.shuffle !== undefined || i.repeat !== undefined) && a.display !== 'favorite') fail('normalization');
+  if (i.shuffle !== undefined && !rules.favoriteShuffles.includes(i.shuffle)) fail();
+  if (i.repeat !== undefined && !rules.favoriteRepeats.includes(i.repeat)) fail();
   if (i.play !== undefined && (typeof i.play !== 'object' || !i.play || typeof i.play.id !== 'string' || typeof i.play.type !== 'string' || typeof i.play.title !== 'string')) fail();
   if (i.speaker !== undefined && (typeof i.speaker !== 'string' || !i.speaker.trim() || bytes(i.speaker) > 48)) fail();
   // The map tile (app 0.4.36) is a map, follows everyone or whom it lists, and alone has the choice.

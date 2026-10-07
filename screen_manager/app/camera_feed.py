@@ -68,8 +68,21 @@ LINK_SECONDS = 120
 STILL_SECONDS = 1800
 FIRST_FRAME_SECONDS = 8
 FETCH_SECONDS = 15
+# A screen loads a camera's next picture at its own pace: a tile's 5 to 30 s, the full view's (camera_view::REFRESH_MS),
+# each from the end of the last load. The next fetch starts that long after a load, less the time the camera took to
+# answer and this margin, so the next load finds a snapshot a fraction of a second old (GitHub #183). Before, a load got
+# the snapshot fetched at the load before it: a picture a whole pace old, at a 5 s pace up to 10 s.
+FULL_VIEW_SECONDS = 4
+AHEAD_MARGIN = 0.5
+# A load whose fetch ahead is still on its way (a slow camera) waits this long for it before it serves the last one.
+AHEAD_WAIT = 1.5
 MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024
-MAX_LINKS = 64
+# A screen with firmware that asks for each tile's picture alone (tile_picture.h, GitHub #183) holds a link per tile,
+# so a few screens with pages of cameras and covers hold a few dozen at once.
+MAX_LINKS = 256
+# The last picture made for each tile of the screens (or each page of an older screen), kept for the load that follows
+# the answer and for a picture that did not change since (a cover, a camera between its fetches).
+STRIPS_KEPT = 32
 # What the screens load (online_image `format: BMP`).
 CONTENT_TYPE = 'image/bmp'
 # The pixel box per board and view, for the board lying down; the image keeps its proportions inside it. Straight
@@ -84,6 +97,11 @@ CONTENT_TYPE = 'image/bmp'
 # sizes itself (a page's atlas) with the same numbers: picture_store::MAX_SIDE and MAX_BYTES (tests/test_camera.py).
 PICTURE_MAX_SIDE = 1024
 PICTURE_MAX_BYTES = 1024 * 640 * 2
+# A screen whose memory takes larger pictures says how large one may be (`cap`, its bytes, GitHub #183): a third of its
+# picture store, 2 MB on the 32 MB of the P4 boards, so a 10-inch glass gets its 1280x800 full view at its own pixels
+# (picture_store::cap_for). The app makes none larger than this, whatever a screen says.
+PICTURE_LARGE_SIDE = 2048
+PICTURE_LARGE_BYTES = 4 * 1024 * 1024
 BOXES = {shape['board']: {view: tuple(box) for view, box in shape['camera'].items()}
          for shape in SHAPES.values() if shape.get('camera')}
 
@@ -102,17 +120,34 @@ def boxes(screen):
     return {view: tuple(box) for view, box in found.items()}
 
 
-def capped(size):
-    """`size` (width, height), or the largest size of its proportions within PICTURE_MAX_SIDE and PICTURE_MAX_BYTES."""
+def picture_cap(request):
+    """(side, bytes) one picture may be for the screen that asked: the cap every screen takes, or the larger one its
+    memory takes (`cap`, firmware 0.52.0+), never more than PICTURE_LARGE_BYTES."""
+    try:
+        wanted = int((request or {}).get('cap') or 0)
+    except (TypeError, ValueError):
+        wanted = 0
+    if wanted <= PICTURE_MAX_BYTES:
+        return PICTURE_MAX_SIDE, PICTURE_MAX_BYTES
+    return PICTURE_LARGE_SIDE, min(wanted, PICTURE_LARGE_BYTES)
+
+
+def capped(size, bounds=None, cap=None):
+    """`size` (width, height), or the largest size of its proportions within the picture caps and optional bounds."""
     width, height = size
-    scale = min(1.0, PICTURE_MAX_SIDE / width, PICTURE_MAX_SIDE / height, (PICTURE_MAX_BYTES / (2 * width * height)) ** 0.5)
+    side, most = cap or (PICTURE_MAX_SIDE, PICTURE_MAX_BYTES)
+    limits = [1.0, side / width, side / height, (most / (2 * width * height)) ** 0.5]
+    if bounds:
+        limits.extend((bounds[0] / width, bounds[1] / height))
+    scale = min(limits)
     return (width, height) if scale >= 1 else (max(1, int(width * scale)), max(1, int(height * scale)))
 
 
-def box(screen, view):
-    """One of them ('full' or 'thumb') within the cap, or None on a screen whose board draws no pictures."""
+def box(screen, view, cap=None):
+    """One of them ('full' or 'thumb') within the cap (`cap`, picture_cap, for a screen that takes larger pictures), or
+    None on a screen whose board draws no pictures."""
     found = (boxes(screen) or {}).get(view)
-    return capped(found) if found else None
+    return capped(found, cap=cap) if found else None
 
 
 # Firmware 0.2.103 lays its alert out again for the picture it gets, in that picture's own proportions
@@ -144,7 +179,7 @@ def alert_box(screen, picture):
     else:
         title_line, line = alert_layout.lines(dpi, look)
     card = alert_layout.layout(shape['width'], shape['height'], title_line, line, True, dpi, look, picture[0], picture[1])
-    return capped((card.image_w, card.image_h)) if card.image_w > 0 and card.image_h > 0 else default
+    return capped((card.image_w, card.image_h), box(screen, 'full')) if card.image_w > 0 and card.image_h > 0 else default
 
 
 def picture_size(raw):
@@ -444,6 +479,8 @@ class Watch:
         self.retry_at = 0.0
         self.fetched_at = 0.0
         self.task = None
+        self.took = None            # how long the camera took to answer, smoothed: the lead of the next fetch ahead
+        self.ahead, self.ahead_at = None, 0.0  # the fetch ahead waiting for its moment, and that moment
 
 
 class Link:
@@ -460,19 +497,21 @@ class Link:
 
 
 class CameraFeed:
-    def __init__(self, fetch, clock=time.monotonic, fetch_cover=None, picture=None):
+    def __init__(self, fetch, clock=time.monotonic, fetch_cover=None, picture=None, sleep=asyncio.sleep):
         """`fetch(entity)` gives a camera's snapshot; `fetch_cover(entity)` a media player's picture and
-        `picture(entity)` the address that picture has in its state right now ('' without one)."""
-        self.fetch, self.clock = fetch, clock
+        `picture(entity)` the address that picture has in its state right now ('' without one). `clock` and `sleep`
+        are the time the feed keeps and waits by (a test's own)."""
+        self.fetch, self.clock, self.sleep = fetch, clock, sleep
         self.fetch_cover, self.picture = fetch_cover, picture
         self.watches, self.links = {}, {}
         self.strips = {}
 
     # ----- fetching -----
-    # A camera is fetched when a screen loads its picture: serving one starts fetching the next, so each load gets a
-    # picture exactly one load younger and the picture changes in the screen's own steady rhythm. A fetch that ran on
-    # its own clock next to the screen's made the picture change after 1.5 s one time and after 6 s the next (measured
-    # 2026-09-17 with an EZVIZ camera that takes a steady 2.4 s per snapshot). Nobody loading means nothing fetched.
+    # A camera is fetched in the screen's own rhythm: a load sets the next fetch for just before the next load (ahead),
+    # so each load gets a snapshot of that moment and the picture changes in the screen's steady rhythm. A fetch that ran
+    # on its own clock next to the screen's made the picture change after 1.5 s one time and after 6 s the next (measured
+    # 2026-09-17 with an EZVIZ camera that takes a steady 2.4 s per snapshot). Nobody loading means nothing fetched,
+    # beyond the one fetch ahead the last load set.
     def watch(self, entity):
         now = self.clock()
         for old in [e for e, w in self.watches.items() if now - w.used > WATCH_SECONDS and (w.task is None or w.task.done())]:
@@ -489,11 +528,45 @@ class CameraFeed:
             watch.fetched_at = self.clock()
             watch.task = asyncio.ensure_future(self.fetch_one(entity, watch))
 
+    def ahead(self, entity, watch, pace):
+        """After a load at `pace` seconds: the next fetch, timed to be done just before the next load. A fetch ahead
+        already set for sooner stays (a quicker tile of the same camera)."""
+        if pace <= 0:
+            return
+        delay = max(0.0, pace - (watch.took if watch.took is not None else 1.0) - AHEAD_MARGIN)
+        at = self.clock() + delay
+        if watch.ahead is not None and not watch.ahead.done():
+            if watch.ahead_at <= at:
+                return
+            watch.ahead.cancel()
+        watch.ahead_at = at
+
+        async def later():
+            await self.sleep(delay)
+            if self.watches.get(entity) is watch:  # still watched: someone loaded it lately (a failing camera keeps its pause)
+                self.refresh(entity, watch)
+        watch.ahead = asyncio.ensure_future(later())
+
+    async def fresh(self, entity, watch, pace):
+        """Before a load at `pace` seconds: a snapshot older than the pace (no fetch ahead came: the first loads, a
+        camera another, slower screen watched) is fetched now, and a fetch on its way is waited for a moment, so the
+        load gets the snapshot of now, not the last."""
+        if self.clock() - watch.fetched_at >= pace:
+            self.refresh(entity, watch)
+        if watch.task is not None and not watch.task.done():
+            try:
+                await asyncio.wait_for(asyncio.shield(watch.task), AHEAD_WAIT)
+            except asyncio.TimeoutError:
+                pass
+
     async def fetch_one(self, entity, watch):
+        started = self.clock()
         try:
             raw = await asyncio.wait_for(self.fetch(entity), FETCH_SECONDS)
             if not raw:
                 raise ValueError('empty image')
+            took = self.clock() - started
+            watch.took = took if watch.took is None else (watch.took + took) / 2
             digest = hashlib.sha1(raw).hexdigest()
             if digest != watch.digest:
                 watch.raw, watch.digest, watch.frames = raw, digest, {}
@@ -511,7 +584,7 @@ class CameraFeed:
 
     async def frame(self, entity, box, wait=FIRST_FRAME_SECONDS, fresh=True, now=False, exact=False):
         """(etag, BMP) of the camera's last snapshot at `box`, or None when it has none (yet). The first snapshot is
-        waited for; `fresh` starts fetching the next one for the next load. `now` (an alert) waits for a snapshot whose
+        waited for; `fresh` (the full view) gets the snapshot of now and sets the next fetch for just before the next load. `now` (an alert) waits for a snapshot whose
         fetch starts now or is already on its way, never one kept from an earlier load."""
         watch = self.watch(entity)
         if now:
@@ -531,11 +604,13 @@ class CameraFeed:
                     await asyncio.wait_for(asyncio.shield(watch.task), wait)
                 except asyncio.TimeoutError:
                     return None
+        elif fresh:
+            await self.fresh(entity, watch, FULL_VIEW_SECONDS)
         raw, digest = watch.raw, watch.digest
         if raw is None:
             return None
         if fresh:
-            self.refresh(entity, watch)
+            self.ahead(entity, watch, FULL_VIEW_SECONDS)
         if box is None:  # only the snapshot was asked for (snapshot_size)
             return digest, None
         key = (box, 'exact') if exact else box
@@ -567,9 +642,9 @@ class CameraFeed:
         return watch.size
 
     # ----- live tiles -----
-    # A page's strip is made when the screen loads its link, out of the last snapshot of every tile's camera, and
-    # serving it starts the next fetch of the cameras whose pace has passed: a 15 s page fetches a 30 s camera every
-    # other load. The first load waits for the cameras that have no snapshot yet, all at once.
+    # A tile's picture (or an older screen's strip of a page) is made when the screen loads its link, out of the snapshot
+    # of every tile's camera fetched just before (ahead, at the pace of the camera's quickest tile). The first load waits
+    # for the cameras that have no snapshot yet, all at once.
     async def live_one(self, entity, pace, wait):
         if cover_supported(entity):
             return await self.cover_raw(entity, wait)
@@ -581,8 +656,9 @@ class CameraFeed:
                     await asyncio.wait_for(asyncio.shield(watch.task), wait)
                 except asyncio.TimeoutError:
                     return None
-        elif self.clock() - watch.fetched_at >= pace:
-            self.refresh(entity, watch)
+        else:
+            await self.fresh(entity, watch, pace)
+        self.ahead(entity, watch, pace)
         return watch.raw
 
     async def live(self, entities, size, grounds, paces, wait=FIRST_FRAME_SECONDS, *, atlas=None, modes=None, compact=False, renders=None):
@@ -601,9 +677,12 @@ class CameraFeed:
             return None
         digests = [mark if render else (self.watches[entity].digest if raw is not None else '')
                    for entity, raw, render, mark in zip(entities, raws, renders, marks)]
-        key = ('live', size, tuple(grounds), tuple(digests), atlas, tuple(modes or ()), compact)
+        # The place a picture is made for, and what it shows there: a camera's next snapshot replaces its last picture.
+        place = ('live', tuple(entities), size, tuple(grounds), atlas, tuple(modes or ()), compact)
+        key = place + (tuple(digests),)
         tag = f'"{hashlib.sha1(repr(key).encode()).hexdigest()[:16]}-l{size}"'  # names the strip; not sent
-        cached = self.strips.get(key)
+        made = self.strips.pop(place, None)
+        cached = made[1] if made and made[0] == key else None
         if cached is None:
             try:
                 frames = atlas[2] if atlas else ()
@@ -617,10 +696,18 @@ class CameraFeed:
                 return None
             # A map drawn while some of its streets did not come is not kept: the next load asks for them again.
             if not any(getattr(raw, 'info', {}).get('provisional') for raw, render in zip(raws, renders) if render):
-                self.strips = {key: image}  # the last strip only: the next load makes another anyway
+                self.keep_strip(place, key, image)
         else:
             image = cached
+            self.keep_strip(place, key, image)
         return tag, image, [entity if raw is not None or render else '' for entity, raw, render in zip(entities, raws, renders)]
+
+    def keep_strip(self, place, key, image):
+        """Keeps the picture made for a page or a tile as the newest of STRIPS_KEPT places; the oldest goes. A screen that
+        asks per tile asks for several in turn, so with one kept picture each would be made again at every load."""
+        self.strips[place] = (key, image)
+        while len(self.strips) > STRIPS_KEPT:
+            del self.strips[next(iter(self.strips))]
 
     # ----- covers -----
     # A media player's picture is fetched when a screen loads its cover link and Home Assistant's picture is another

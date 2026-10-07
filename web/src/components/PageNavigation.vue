@@ -23,8 +23,9 @@ defineExpose({ visible });
   </div>
 </template>
 <style scoped>
-.page-navigation { display: flex; align-items: center; justify-content: space-between; height: 24px; color: #46525e; font-size: 11px; }
-button { border: 0; background: transparent; color: inherit; font-size: 24px; width: 40px; line-height: 24px; }
+.page-navigation { display: flex; align-items: center; justify-content: space-between; height: 100%; min-height: 0; color: #46525e; font-size: 11px; }
+/* Its chevrons at most as high as the page bar of the glass (--frame-bar, DevicePage): on a 10-inch it is 15 px. */
+button { border: 0; background: transparent; color: inherit; font-size: min(24px, var(--frame-bar, 24px)); width: 40px; line-height: 1; }
 button:disabled { opacity: .3; cursor: default; }
 .page-back { display: flex; align-items: center; gap: 6px; width: 50%; text-align: left; }
 .page-back span { font-size: 11px; }

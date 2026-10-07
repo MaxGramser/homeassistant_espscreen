@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../../tests/fixtures/memory-conformance.json";
 import { TILE, TYPES } from "../src/model/catalogue";
-import { kilobytes, layoutCost, memoryCrossing, memoryUse, NEARLY_FULL, tileCost } from "../src/model/memory";
+import { kilobytes, layoutCost, measuring, memoryCrossing, memoryUse, NEARLY_FULL, noRoom, NO_ROOM_SHARE, tileCost } from "../src/model/memory";
 import type { ScreenMemory } from "../src/types";
 
 // A screen's memory for tiles (firmware 0.34.0+): priced by the tile catalogue as the screen and the add-on price it
@@ -14,7 +14,7 @@ describe("the memory a layout takes", () => {
     expect(fixture.length).toBeGreaterThan(50);
     for (const c of (fixture as Record<string, unknown>[]).filter((c) => "domain" in c) as { domain: string; action: boolean; line: boolean; psram: boolean; tile: number; extra: number; cost: number }[]) {
       const options = { ...(c.action ? { tap: "action" } : {}), ...(c.line ? { sub: "attr:battery" } : {}) };
-      expect(tileCost({ entity: `${c.domain}.thing`, options }, c), JSON.stringify(c)).toBe(c.cost);
+      expect(tileCost({ entity: c.domain.includes(".") ? c.domain : `${c.domain}.thing`, options }, c), JSON.stringify(c)).toBe(c.cost);
     }
   });
   it("costs a type its price, keys included, and a board without PSRAM the tile and its extras", () => {
@@ -51,6 +51,20 @@ describe("the memory a layout takes", () => {
     const nearly = { ...said, room: 10 * each + price("weather") - 1, used: 0 };
     expect(memoryCrossing(tiles(10), { entity: "switch.b" }, nearly)).toBeNull();
     expect(memoryCrossing(tiles(10), { entity: "weather.c" }, nearly)?.line).toBe("over");
+  });
+  it("says in words that a screen has no room, where a share would read 999 % (GitHub #169)", () => {
+    const each = price("switch");
+    expect(noRoom(memoryUse([{ entity: "switch.a" }], { ...said, room: 0, used: 0 }))).toBe(true);
+    expect(noRoom(memoryUse(Array(NO_ROOM_SHARE).fill({ entity: "switch.a" }), { ...said, room: each, used: 0 }))).toBe(true);
+    expect(noRoom(memoryUse(Array(NO_ROOM_SHARE - 1).fill({ entity: "switch.a" }), { ...said, room: each, used: 0 }))).toBe(false);
+    expect(memoryCrossing([], { entity: "switch.a" }, { ...said, room: 0, used: 0 })?.line).toBe("none");
+    expect(memoryCrossing([], { entity: "switch.a" }, { ...said, room: each, used: 0 })?.line).toBe("close");
+    expect(memoryCrossing([{ entity: "switch.a" }], { entity: "switch.b" }, { ...said, room: each, used: 0 })?.line).toBe("over");
+  });
+  it("knows a screen that is still measuring its room (firmware 0.51.0)", () => {
+    expect(measuring({ ...said, room: null })).toBe(true);
+    expect(measuring({ ...said, room: 0 })).toBe(false);
+    expect(measuring(said)).toBe(false);
   });
   it("shows kilobytes, what is needed rounded up and what there is rounded down", () => {
     expect([kilobytes(2049, true), kilobytes(2049)]).toEqual([3, 2]);

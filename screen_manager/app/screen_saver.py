@@ -17,6 +17,8 @@ import tempfile
 import time
 from datetime import datetime, timezone
 
+import core
+
 LOG = logging.getLogger(__name__)
 
 FEATURE = 'screensaver'
@@ -24,6 +26,8 @@ FEATURE = 'screensaver'
 # hello lists it. For such a screen a paused player still counts, after every player that plays, so the key that
 # paused it can start it again; the message then carries the player's state and what Home Assistant says it can do.
 KEYS_FEATURE = 'saver_keys'
+# A screen that draws the clock's row of entities (firmware 0.50.0+, app 0.4.81): `wi` in the message.
+ITEMS_FEATURE = 'saver_items'
 # How long a paused player keeps the screensaver. A speaker stays "paused" in Home Assistant for days, and the camera
 # or the clock after it would never show again.
 PAUSED_SECONDS = 600
@@ -37,7 +41,11 @@ PICTURE_KINDS = frozenset(('media', 'camera'))
 # entity that reports one, '' shows none, and a weather entity of your choice is that one.
 # `more` (app 0.4.54): the players the music step tries after `media`, in their order. The step shows the first of them
 # that plays with a cover: a speaker's own music first, say, and the poster of what the television under it plays next.
-DEFAULT = {'show': False, 'media': '', 'camera': '', 'order': list(KINDS), 'off': [], 'weather': 'auto', 'more': []}
+# `items` (app 0.4.81): entities the clock shows beside the temperature, in one centred row: the top bar's entity items,
+# each with its state or its icon alone (content `state` or `icon`, with the icon `auto`, `none` or a named one).
+DEFAULT = {'show': False, 'media': '', 'camera': '', 'order': list(KINDS), 'off': [], 'weather': 'auto', 'more': [],
+           'items': []}
+ITEMS_MAX = 4
 MORE_PLAYERS = 3
 ENTITY = re.compile(r'[a-z0-9_]+\.[a-z0-9_]+')
 DOMAINS = {'media': ('media_player',), 'camera': ('camera', 'image')}
@@ -51,7 +59,7 @@ def validate(value):
     """A clean copy of a screensaver choice, or ValueError. Every field is optional; the default fills the rest."""
     if not isinstance(value, dict) or set(value) - set(DEFAULT):
         raise ValueError('screensaver fields')
-    result = {**DEFAULT, 'order': list(DEFAULT['order']), 'off': [], 'more': []}
+    result = {**DEFAULT, 'order': list(DEFAULT['order']), 'off': [], 'more': [], 'items': []}
     if 'show' in value:
         if not isinstance(value['show'], bool):
             raise ValueError('screensaver show')
@@ -75,6 +83,8 @@ def validate(value):
                 len(weather) > 120 or not ENTITY.fullmatch(weather) or weather.split('.')[0] != 'weather')):
             raise ValueError('screensaver weather')
         result['weather'] = weather
+    if 'items' in value:
+        result['items'] = valid_items(value['items'])
     if 'order' in value:
         order = value['order']
         if not isinstance(order, list) or sorted(order) != sorted(KINDS):
@@ -86,6 +96,20 @@ def validate(value):
             raise ValueError('screensaver off')
         result['off'] = [kind for kind in result['order'] if kind in off]
     return result
+
+
+def valid_items(items):
+    """The clock's entity items, checked as the top bar checks its own (core.validate_header): entity items only, shown
+    always, with their state or their icon."""
+    if not isinstance(items, list) or len(items) > ITEMS_MAX:
+        raise ValueError('screensaver items')
+    if any(not isinstance(item, dict) or item.get('type', 'entity') != 'entity' or item.get('show', 'always') != 'always'
+           or item.get('content', 'state') not in ('state', 'icon') for item in items):
+        raise ValueError('screensaver items')
+    try:
+        return core.validate_header({'items': [{**item, 'type': 'entity'} for item in items]}, ITEMS_MAX)['items']
+    except ValueError:
+        raise ValueError('screensaver items') from None
 
 
 def _degrees(state):
@@ -158,7 +182,8 @@ def entities(choice, states=None):
     """The entities a choice follows; with the states, also the weather entity its clock reads."""
     found = set(players(choice)) | ({choice['camera']} if choice.get('camera') else set())
     weather = weather_entity(choice, states) if states is not None and choice.get('show') else ''
-    return found | ({weather} if weather else set())
+    shown = {item['entity'] for item in choice.get('items') or ()} if choice.get('show') else set()
+    return found | ({weather} if weather else set()) | shown
 
 
 def available(kind, choice, states, pictures, keys=False, now=None, held=''):
@@ -183,10 +208,11 @@ def pick(choice, states, pictures, keys=False, now=None, held=''):
     return ''
 
 
-def message(choice, states, pictures, short, media_extras, ground=None, keys=False, now=None, held=''):
+def message(choice, states, pictures, short, media_extras, ground=None, keys=False, now=None, held='', bar=None):
     """The screen message for what the screensaver shows now. `short(text, n)` cuts a text the way every message does,
     `media_extras(attrs)` is the media card's (core.media_extras), `ground(entity, attrs)` the cover's colours, `keys`
-    whether the screen's screensaver has keys (KEYS_FEATURE), `held` the player it shows now."""
+    whether the screen's screensaver has keys (KEYS_FEATURE), `held` the player it shows now, `bar(item)` the top bar's
+    wire item for one of the clock's entity items (header_bar.entity_item), or None for a screen that takes none."""
     kind = pick(choice, states, pictures, keys, now, held)
     result = {'op': 'saver', 'k': kind}
     if kind == 'clock':
@@ -194,6 +220,14 @@ def message(choice, states, pictures, short, media_extras, ground=None, keys=Fal
         degrees = temperature(choice, states)
         if degrees:
             result['w'] = degrees
+        # The row of entities (app 0.4.81, firmware 0.50.0+): `wi` is the whole row, the temperature first, the way the
+        # top bar sends its items. Firmware before it reads `w` alone and shows the temperature.
+        if bar and choice.get('items'):
+            row = [{'k': 'text', 't': degrees}] if degrees else []
+            # One ink on the black glass: an entity's colour stays home.
+            row += [{key: value for key, value in bar(item).items() if key != 'c'} for item in choice['items']]
+            if row:
+                result['wi'] = row
     if kind not in PICTURE_KINDS:
         return result
     entity = player(choice, states, keys, now, held) if kind == 'media' else choice[kind]
@@ -243,7 +277,7 @@ class ScreenSavers:
     def get(self, device):
         choice = self.choices.get(device) or DEFAULT
         return {**DEFAULT, **choice, 'order': list(choice['order']), 'off': list(choice['off']),
-                'more': list(choice.get('more') or ())}
+                'more': list(choice.get('more') or ()), 'items': [dict(item) for item in choice.get('items') or ()]}
 
     def set(self, device, value):
         choice = validate(value)

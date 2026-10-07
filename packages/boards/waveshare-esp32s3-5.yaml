@@ -1,0 +1,52 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-5 board: a 5-inch 800 x 480 IPS panel with GT911 capacitive touch, an
+# ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM, and a CH422G expander that carries the panel's reset and the line
+# that lights it. Not the 5B, which has 1024 x 600 glass.
+#
+# This is the board of the Waveshare 4.3-inch with larger glass: the same pins, timings, touch and expander
+# (hardware/waveshare-esp32s3-43.yaml), and a screen built from the 4.3-inch package ran on it with picture, touch and
+# connection working. What is its own is the glass: 5 inches instead of 4.3, so the look draws a tile, a letter and a
+# key at their size in millimetres on it. The backlight never goes dark, as on the 4.3-inch
+# (features/backlight-always-on.yaml): the same boost converter lights it.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# like this one is added. Two entry files include this one: checkout/waveshare5.yaml (a build on this computer)
+# and packages/waveshare5.yaml (the package a screen builds from over GitHub).
+packages:
+  # The 4.3-inch's board: the chip, the CH422G expander, the GT911, the backlight line, the flash and the panel.
+  hardware: !include ../hardware/waveshare-esp32s3-43.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/9.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  backlight_always_on: !include ../features/backlight-always-on.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare5"
+  DEVICE_NAME: "waveshare5-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 5"
+
+  # The glass: the panel's own pixels, which the display block always drives, and its density, 933 diagonal pixels
+  # over 5 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "186.590"
+  # The tile grid: columns and rows of cells. The shared tree places every cell from these
+  # (runtime_tiles::place_page), so a board with more room states more columns or rows. Three by three as on the
+  # 4.3-inch, so a layout moved from one keeps its cells; each tile is 34 x 14 mm here.
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  # The cells of a page when this screen stands up. The glass is 65 x 109 mm standing up: two columns would be under
+  # the 30 mm a card needs, so it is one column of five cards.
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "5"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen

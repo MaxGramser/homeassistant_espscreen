@@ -5,13 +5,13 @@ import { isTallSize, sizeColumns, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware as supportsVersion } from "./model/layout";
-import { agoText, barMetricsFor, clockText, dateText, itemKey, LINK_GLYPH, SAMPLE_RSSI, type ItemView, whenBarFontsLoad, wifiView } from "./model/topbar";
-import { pillMetrics, uiScale } from "./model/ui-scale";
+import { agoText, barMetricsFor, batteryView, clockText, dateText, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, whenBarFontsLoad, wifiView } from "./model/topbar";
+import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
-import { memoryCrossing, memoryUse } from "./model/memory";
+import { measuring, memoryCrossing, memoryUse } from "./model/memory";
 import { validPreviewShape, type PreviewProfile } from "./model/preview";
 import renderer from "./wasm/renderer.json";
-import type { Capability, ChildTile, FeedbackView, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, Screen, ScreensaverChoice, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
+import type { BoardChoice, Capability, ChildTile, FeedbackView, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, SaverKind, Screen, ScreensaverChoice, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
 
 import * as pages from "./model/pages";
 import { DraftHistory, type HistoryScope } from './model/draft-history';
@@ -26,6 +26,9 @@ export type Inspector =
   | { kind: "tile" }
   | { kind: "bar"; index: number }
   | { kind: "bar-add" }
+  | { kind: "saver-item"; index: number }
+  | { kind: "saver-add" }
+  | { kind: "saver"; step: SaverKind }
   | { kind: "page"; id: string }
   | { kind: "inspect"; entity?: string; slot?: number; key?: number };
 // A whole page on its way to another place in the row (app 0.2.121): where it came from, where it is heading, and
@@ -97,6 +100,8 @@ export const state = reactive({
   updating: [] as string[],
   // The screen whose removal is running, so its button waits instead of being pressed twice (app 0.2.112).
   removing: null as string | null,
+  // The screen whose actions are being allowed (app 0.4.73).
+  allowing: null as string | null,
   toast: null as null | { message: string; action?: { label: string; run: () => void } },
   now: Date.now(),
   fontsVersion: 0,
@@ -218,13 +223,16 @@ export const tileLimit = computed(() => {
 // The memory this screen has for its tiles (firmware 0.34.0+, its hello) and how much of it the layout being edited
 // takes: the meter beside the tile count, and the library's "nearly full" (model/memory.ts).
 export const screenMemory = computed(() => currentScreen.value?.memory || null);
-export const memory = computed(() => (screenMemory.value && state.layout ? memoryUse(state.layout.tiles, screenMemory.value, state.document?.pages || []) : null));
+// A screen that is still measuring its room (firmware 0.51.0) has no share yet: the meter says so, and nothing asks.
+export const memoryMeasuring = computed(() => !!screenMemory.value && measuring(screenMemory.value));
+export const memory = computed(() => (screenMemory.value && !memoryMeasuring.value && state.layout
+  ? memoryUse(state.layout.tiles, screenMemory.value, state.document?.pages || []) : null));
 // Whether a new tile of this entity goes on, as a library click or drag makes it (its own action and line come later, in
 // its settings). Past nine tenths of the screen's memory for tiles, and past all of it, the editor asks first. A warning,
 // not a rule (app 0.4.61): a screen measured far less room than the screens it was priced on (GitHub #157), and a screen
 // protects itself when it runs short, so whoever wants to try may.
 export function confirmMemory(entity: string) {
-  if (!screenMemory.value || !state.layout) return true;
+  if (!screenMemory.value || memoryMeasuring.value || !state.layout) return true;
   const crossing = memoryCrossing(state.layout.tiles, { entity }, screenMemory.value, state.document?.pages || []);
   if (!crossing) return true;
   return window.confirm(t(`editor.memory.confirm_${crossing.line}`, { n: Math.min(999, Math.round(crossing.share * 100)) }));
@@ -252,6 +260,10 @@ export const repeatable = (id: string) => pageTarget(id) > 0 ? pageTilesRepeat.v
 // Whether the screen's board draws pictures (camera tiles, an album cover): the add-on says so per screen from the
 // board's own camera sizes (app 0.2.94), and this page always comes with that add-on.
 export const pictures = computed(() => Boolean(currentScreen.value?.pictures));
+// Whether a screen's board draws pictures, for its firmware preview (firmware 0.46.0 keeps no square for an album cover
+// on a board without them): the add-on says it per screen; a preview screen takes it from its board.
+export const drawsPictures = (screen?: Screen) =>
+  screen?.pictures ?? (screen?.shape?.catalog as Partial<BoardChoice> | undefined)?.camera ?? true;
 // What the screen being edited looks like. The manager works it out (core.shape_of): what the screen reported
 // itself, else the board package its YAML builds from, else its board. The editor only draws it, and falls
 // back to the smallest screen there is while it has heard nothing at all.
@@ -268,6 +280,9 @@ export const barMetrics = computed(() => barMetricsFor(screenShape.value));
 // narrower. Drawn the same height instead, a 480 x 800 screen came out 180 px wide, smaller than the 480 x 480
 // Guition though it has more glass. Very wide glass is capped so it still fits beside a neighbour on a laptop.
 const MOCKUP_SIDE = 300;
+// Whether the screen keeps room for its page bar under the tiles: on every page, once the layout has more than one
+// (page_protocol.h footer), so a card is lower on all of them.
+export const pageBarShown = computed(() => Boolean(state.document && pages.navigationFooter(state.document, navigationSettings())));
 export const deviceStyle = computed(() => {
   const shape = screenShape.value;
   // To a tenth of a pixel, not a whole one: on a 1280 x 800 screen the nearest whole pixel of width would make
@@ -277,8 +292,21 @@ export const deviceStyle = computed(() => {
   // The glass in editor pixels, and the -/+ pill at the size the screen draws it (model/ui-scale.ts).
   const glass = rounded / shape.width, pill = pillMetrics(shape);
   const [watch, text] = [pill.faces[0] ?? 22, pill.faces[1] ?? pill.faces[0] ?? 14];
+  // The page in the glass's proportions (app 0.4.74): the top bar from the top of the glass down to where the tile area
+  // starts, the margins and gaps of the grid, and the page bar where the layout has one, so a card is as high against
+  // its page as on the screen (ui-scale cardHeight). Before, the mockup's own 10 px frame, 8 px gaps and 24 px
+  // page bar left a card of a 4-inch Guition with three rows and three pages 65 px high where the glass's is 117 x 0.625.
+  const frame = frameOf(shape), paged = pageBarShown.value;
+  const g = (n: number) => `${(n * glass).toFixed(2)}px`;
   return {
     "--glass": String(glass),
+    "--frame-top": g(frame.top),
+    "--frame-side": g(frame.margin),
+    "--frame-bottom": g(paged ? 0 : frame.margin),
+    "--frame-bar": g(frame.page_bar),
+    "--frame-gap-x": g(frame.gap),
+    "--frame-gap-y": g(frame.gap_y),
+    "--frame-pad": g(frame.tile_pad),
     "--pill-h": `${(pill.height * glass).toFixed(2)}px`,
     "--pill-in": `${(pill.inset * glass).toFixed(2)}px`,
     "--pill-key": `${(pill.key * glass).toFixed(2)}px`,
@@ -756,6 +784,15 @@ export function placeTile(tile: Tile, target: number) {
 }
 // A click in the picker: the marked empty cell, else the selected page's first
 // free cell. Never silently spill a library click onto another page.
+/** A new tile from the picker or a drag: its default options, and for the energy card the smallest size its diagram fits
+ * on this glass (app 0.4.77), since a 2 x 2 card is too low for it on some. */
+export function startTile(id: string): Tile {
+  const tile = newTile(id, coversByDefault());
+  if (id !== "screen.energy") return tile;
+  const area = (size: Size) => { const d = dimensions(size, grid); return d.columns * d.rows; };
+  const fitting = tileSizeChoices(tile).sort((a, b) => area(a) - area(b));
+  return { ...tile, options: { ...tile.options, size: fitting.includes("square") ? "square" : fitting[0] ?? "full" } };
+}
 export function addTile(id: string) {
   const layout = state.layout;
   if (!layout || (!repeatable(id) && layout.tiles.some((t) => t.entity === id)) || layout.tiles.length >= tileLimit.value) return;
@@ -772,7 +809,7 @@ export function addTile(id: string) {
     }
     return;
   }
-  const tile = newTile(id, coversByDefault());
+  const tile = startTile(id);
   const page = Math.max(0, state.document!.pages.findIndex((page) => page.id === state.selectedPageId));
   const target = state.insertAt >= 0 ? state.insertAt : firstFree(occupied(entriesOf(layout)), sizeOf(tile), page * grid.slots);
   const slot = state.insertAt >= 0 || target < (page + 1) * grid.slots ? target : -1;
@@ -938,6 +975,11 @@ export function tileSizeChoices(tile: Tile): Size[] {
     choices.push(size as Size);
   }
   if (!pageTarget(tile.entity)) choices.push('full');
+  // The energy card's diagram takes a size it fits (app 0.4.77): on a small glass a page of its own, never a single cell.
+  if (tile.entity === "screen.energy") return choices.filter((size) => {
+    const { columns, rows } = dimensions(size, grid);
+    return energyFits(screenShape.value, grid.columns, grid.rows, columns, rows);
+  });
   return choices;
 }
 /** Edge resizing keeps the anchor and every neighbouring tile in place. */
@@ -1139,6 +1181,42 @@ export function openBarAdd() {
   state.selectedTile = null;
   state.inspector = { kind: "bar-add" };
 }
+// The clock's row of entities on the screensaver (app 0.4.81): the top bar's entity items, shown by their state, their icon
+// or both, in the drawer the top bar uses. At most four, in the order they stand on the glass after the temperature.
+export const SAVER_ITEMS_MAX = 4;
+export const saverItems = (): HeaderItem[] => currentScreen.value?.screensaver?.items || [];
+export function setSaverItems(items: HeaderItem[]) {
+  const screen = currentScreen.value;
+  if (!screen) return;
+  setScreensaver(screen, { items });
+  loadTopbarPreview(0);
+}
+export function openSaverItem(index: number) {
+  if (!(state.inspector?.kind === "saver-item" && state.inspector.index === index)) state.iconPickerOpen = false;
+  state.selectedTile = null;
+  state.inspector = { kind: "saver-item", index };
+}
+// One step of the screensaver in the drawer: its players, its camera or its clock.
+export function openSaverStep(step: SaverKind) {
+  state.iconPickerOpen = false;
+  state.selectedTile = null;
+  state.inspector = { kind: "saver", step };
+}
+export function openSaverAdd() {
+  state.selectedTile = null;
+  state.inspector = { kind: "saver-add" };
+}
+const saverList = itemList({
+  items: saverItems, set: setSaverItems, max: () => SAVER_ITEMS_MAX, open: openSaverItem, inspector: "saver-item",
+  // One entity once: the clock has no room for the same one twice, whatever it shows of it.
+  same: (a, b) => a.entity === b.entity,
+  full: () => t("editor.screen_settings.screensaver.items_full", { n: SAVER_ITEMS_MAX }),
+  already: () => t("editor.screen_settings.screensaver.items_already"),
+  removed: (name) => t("editor.screen_settings.screensaver.items_removed", { name }),
+  // An entity taken off in its own drawer leads back to the clock it stood on.
+  back: () => openSaverStep("clock"),
+});
+export const { add: addSaverItem, update: updateSaverItem, move: moveSaverItem, remove: removeSaverItem } = saverList;
 export function closeInspector() {
   state.inspector = null;
   state.selectedTile = null;
@@ -1282,8 +1360,9 @@ export async function setScreensaver(screen: Screen, patch: Partial<ScreensaverC
   if (screen.virtual) return;
   const edit = ++saverEdits;
   try {
-    const { show, media, camera, order, off, weather = "auto", more = [] } = next;
-    const result = await send<{ screensaver: ScreensaverChoice }>(`screens/${encodeURIComponent(screen.id)}/screensaver`, "PUT", { screensaver: { show, media, camera, order, off, weather, more } });
+    const { show, media, camera, order, off, weather = "auto", more = [], items = [] } = next;
+    const result = await send<{ screensaver: ScreensaverChoice }>(`screens/${encodeURIComponent(screen.id)}/screensaver`, "PUT",
+      { screensaver: { show, media, camera, order, off, weather, more, items: items.map(({ id: _id, ...item }) => item) } });
     if (result?.screensaver && edit === saverEdits) screen.screensaver = { ...next, ...result.screensaver };
   } catch (e: any) {
     if (edit === saverEdits) screen.screensaver = { ...before };
@@ -1324,6 +1403,21 @@ export async function forgetPending(file: string, name: string) {
     return false;
   } finally {
     state.removing = null;
+  }
+}
+// Home Assistant ignored a tap of this screen (app 0.4.63): one click turns on the switch in its ESPHome integration's
+// Configure dialog that lets it perform actions (app 0.4.73).
+export async function allowActions(screen: Screen) {
+  if (state.allowing) return;
+  state.allowing = screen.id;
+  try {
+    const result = await send<{ name?: string }>(`screens/${encodeURIComponent(screen.id)}/allow-actions`, "POST");
+    screen.actions_blocked = false;
+    toast(t("editor.pages.actions_allowed", { name: result?.name || screen.name }));
+  } catch (e: any) {
+    toast(e.message);
+  } finally {
+    state.allowing = null;
   }
 }
 export async function removeScreen(screen: Screen) {
@@ -1515,7 +1609,7 @@ export function loadTopbarPreview(delay = 150) {
   clearTimeout(topbarTimer);
   topbarTimer = window.setTimeout(async () => {
     const screen = state.selected;
-    const items = [...new Map((state.document?.pages.flatMap((page) => page.topbar.trailing) || []).map((item) => [itemKey(item), item])).values()];
+    const items = [...new Map([...(state.document?.pages.flatMap((page) => page.topbar.trailing) || []), ...saverItems()].map((item) => [itemKey(item), item])).values()];
     const entities = items.filter((item) => item.type === "entity");
     if (!entities.length) return;
     try {
@@ -1523,7 +1617,7 @@ export function loadTopbarPreview(delay = 150) {
       for (let at = 0; at < entities.length; at += 6) {
         const batch = entities.slice(at, at + 6), data = await send("header-preview", "POST", { header: { items: batch.map(({ id: _id, ...item }) => item) } });
         if (state.selected !== screen) return;
-        const stillUsed = new Set(state.document?.pages.flatMap((page) => page.topbar.trailing.map(itemKey)) || []);
+        const stillUsed = new Set([...(state.document?.pages.flatMap((page) => page.topbar.trailing) || []), ...saverItems()].map(itemKey));
         batch.forEach((item, i) => { if (stillUsed.has(itemKey(item))) state.topbarPreviews[itemKey(item)] = data.items[i]; });
       }
     } catch {
@@ -1544,37 +1638,63 @@ export function topbarView(item: HeaderItem): ItemView {
   // The screen's own items (firmware 0.38.0): a good signal, and every link there, so the link mark hides.
   if (item.type === "wifi") return wifiView(item, SAMPLE_RSSI, (n) => `${n}${t("screen.number.percent", {}, { locale: screenLanguage.value })}`);
   if (item.type === "link") return { icon: LINK_GLYPH, text: "", shown: false };
+  // The battery (firmware 0.41.0): three quarters and not charging, as the firmware's preview draws it.
+  if (item.type === "battery") return batteryView(item, SAMPLE_BATTERY, false, (n) => `${n}${t("screen.number.percent", {}, { locale: screenLanguage.value })}`);
   const p = state.topbarPreviews[itemKey(item)];
   if (!p) return { icon: item.icon === "none" ? null : iconNamed(item.icon)?.cp || automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
   return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(state.now / 1000), screenLanguage.value) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
 }
-export function moveTopbarItem(from: number, to: number) {
-  const items = [...topbarItems()];
-  if (to < 0 || to >= items.length || from === to) return false;
-  items.splice(to, 0, ...items.splice(from, 1));
-  setTopbarItems(items);
-  return true;
+// One ordered list of bar items with the editor's add, update, move and remove (undo included): a page's top bar and the
+// screensaver clock's row are both one.
+function itemList(o: {
+  items: () => HeaderItem[]; set: (items: HeaderItem[]) => void; max: () => number; open: (index: number) => void;
+  inspector: string; same: (a: HeaderItem, b: HeaderItem) => boolean;
+  full: () => string; already: () => string; removed: (name: string) => string; added?: (item: HeaderItem) => void; back?: () => void;
+}) {
+  return {
+    add(item: HeaderItem) {
+      const items = o.items();
+      if (items.length >= o.max()) return toast(o.full());
+      if (items.some((other) => o.same(other, item))) return toast(o.already());
+      o.added?.(item);
+      o.set([...items, item]);
+      o.open(items.length);
+    },
+    update(index: number, patch: Partial<HeaderItem>) {
+      const items = [...o.items()];
+      if (!items[index]) return;
+      items[index] = { ...items[index], ...patch };
+      o.set(items);
+    },
+    move(from: number, to: number) {
+      const items = [...o.items()];
+      if (to < 0 || to >= items.length || from === to) return false;
+      items.splice(to, 0, ...items.splice(from, 1));
+      o.set(items);
+      return true;
+    },
+    remove(index: number) {
+      const items = [...o.items()];
+      const [item] = items.splice(index, 1);
+      if (!item) return;
+      if (state.inspector?.kind === o.inspector) (o.back || closeInspector)();
+      o.set(items);
+      toast(o.removed(topbarLabel(item)), {
+        label: t("editor.common.undo"),
+        run: () => { const back = [...o.items()]; back.splice(Math.min(index, back.length), 0, item); o.set(back); },
+      });
+    },
+  };
 }
-export function removeTopbarItem(index: number) {
-  const items = [...topbarItems()];
-  const [item] = items.splice(index, 1);
-  if (!item) return;
-  if (state.inspector?.kind === "bar") closeInspector();
-  setTopbarItems(items);
-  toast(t("editor.topbar.removed", { name: topbarLabel(item) }), {
-    label: t("editor.common.undo"),
-    run: () => { const back = [...topbarItems()]; back.splice(Math.min(index, back.length), 0, item); setTopbarItems(back); },
-  });
-}
-export function addTopbarItem(item: HeaderItem) {
-  const items = topbarItems();
-  if (items.length >= topbarMax()) return toast(t("editor.topbar.full", topbarMax()));
-  if (items.some((other) => itemKey(other) === itemKey(item))) return toast(t("editor.topbar.already"));
+const topbarList = itemList({
+  items: () => topbarItems(), set: (items) => setTopbarItems(items), max: topbarMax, open: (index) => openBar(index), inspector: "bar",
+  same: (a, b) => itemKey(a) === itemKey(b),
+  full: () => t("editor.topbar.full", topbarMax()), already: () => t("editor.topbar.already"),
+  removed: (name) => t("editor.topbar.removed", { name }),
   // The new chip lights up briefly so the eye finds it.
-  state.topbarAdded = { key: itemKey(item), time: Date.now() };
-  setTopbarItems([...items, item]);
-  openBar(items.length);
-}
+  added: (item) => { state.topbarAdded = { key: itemKey(item), time: Date.now() }; },
+});
+export const { add: addTopbarItem, move: moveTopbarItem, remove: removeTopbarItem } = topbarList;
 
 // ---- Screen settings: the same groups and rows as the settings page on the screen itself ----
 // Every change applies at once, like on the screen; no Save needed. A screen with firmware 0.2.49+ owns its
@@ -1748,10 +1868,11 @@ export function settleSettings() {
 // What a running update is doing, by its phase.
 export const phaseText = (phase: string | undefined) =>
   ["install", "verify", "settle"].includes(phase || "") ? t(`editor.update.phases.${phase}`) : t("editor.update.starting");
-export async function startUpdate(screen: Screen, host?: string) {
+// `reinstall` builds the screen again although it runs this firmware: the dev channel's newest dev keeps its number.
+export async function startUpdate(screen: Screen, host?: string, reinstall = false) {
   state.updating.push(screen.id);
   try {
-    await send(`screens/${encodeURIComponent(screen.id)}/update`, "POST", host ? { host } : {});
+    await send(`screens/${encodeURIComponent(screen.id)}/update`, "POST", { ...(host ? { host } : {}), ...(reinstall ? { reinstall } : {}) });
     await refresh();
   } catch (e: any) {
     state.updating = state.updating.filter((id) => id !== screen.id);
@@ -1790,6 +1911,8 @@ export async function installClaudeSkill() {
 // the add-on tells which one it is.
 export const screenLanguage = computed(() => pickLanguage(state.inventory.language?.effective));
 watch(screenLanguage, (code) => loadLanguage(code), { immediate: true });
+// The screensaver's drawers belong to the settings: they close when the layout comes back.
+watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); });
 watch(() => state.libraryOpen, (open) => { try { localStorage.setItem("esp-screens.library-open", open ? "1" : "0"); } catch {} });
 /** A text as the screens show it: in their language, not the editor's. */
 export const screenText = (key: string, named: Record<string, unknown> = {}) => t(key, named, { locale: screenLanguage.value });

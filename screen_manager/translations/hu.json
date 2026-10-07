@@ -121,8 +121,12 @@
       "wifi_weak": "Túl gyenge jel ({dbm} dBm)",
       "wifi_failed": "Nem sikerült csatlakozni, újrapróbálás",
       "loading_tiles_count": "Csempék betöltése {n}/{total}",
-      "hint_home_assistant": "A Home Assistant még nem csatlakozott. Hozzá van adva ez a kijelző a Beállítások > Eszközök és szolgáltatások > ESPHome alatt?",
+      "hint_home_assistant": "A Tessera hozzáadja ezt a kijelzőt, amint a Home Assistant eléri ezen a címen.",
       "hint_tessera": "Fut a Tessera Screen Manager alkalmazás a Home Assistantban?",
+      "first_tiles": "Válaszd ki a csempéidet",
+      "first_tiles_open": "Nyisd meg a Tesserát a Home Assistantben",
+      "first_tiles_pick": "Válassz csempéket ehhez: {name}",
+      "first_tiles_save": "Nyomd meg: Mentés és küldés",
       "updating": "Firmware frissítése {percent}",
       "update_restart": "Frissítve, újraindítás",
       "update_failed": "A frissítés nem sikerült",
@@ -200,6 +204,7 @@
       "page": "{n}. oldal",
       "refused": "Elutasítva",
       "command_sent": "Parancs elküldve...",
+      "updating": "Frissítés...",
       "confirmed": "A Home Assistant megerősítette",
       "no_answer": "Nincs válasz"
     },
@@ -525,10 +530,35 @@
         "open": "Megnyit",
         "open_door": "Ajtónyitás",
         "open_door_confirm": "Valóban kinyitja?"
+      },
+      "humidifier_mode": {
+        "normal": "Normál",
+        "eco": "Takarékos",
+        "away": "Távol",
+        "boost": "Turbó",
+        "comfort": "Komfort",
+        "home": "Otthon",
+        "sleep": "Alvás",
+        "auto": "Automatikus",
+        "baby": "Baba"
+      },
+      "humidifier_action": {
+        "humidifying": "Párásítás",
+        "drying": "Párátlanítás",
+        "idle": "Tétlen",
+        "off": "Ki"
       }
     },
     "navigation": {
       "back": "Vissza"
+    },
+    "energy": {
+      "solar": "Nap",
+      "grid": "Hálózat",
+      "battery": "Akkumulátor",
+      "home": "Otthon",
+      "other": "Egyéb",
+      "no_power": "Nincs teljesítményérzékelő a Home Assistant energiabeállításaiban"
     },
     "audio": {
       "idle": "Inaktív",
@@ -735,7 +765,8 @@
         "enter_ip": "Add meg a kijelző IP-címét.",
         "no_profile": "Nem található ESPHome-profil ehhez a kijelzőhöz. Ellenőrizd a nevet az ESPHome mappában.",
         "ip_unknown": "Az IP-cím ismeretlen. Add meg egyszer; utána az új firmware maga jelenti.",
-        "all_updated": "Minden elérhető kijelző már frissítve van."
+        "all_updated": "Minden elérhető kijelző már frissítve van.",
+        "reinstall_dev": "Ugyanazt a firmware-t újratelepíteni csak a dev csatornán lehet."
       },
       "remove": {
         "not_allowed": "Ez az alkalmazás nem távolíthat el integrációt a Home Assistantból. Töröld a kijelzőt magában a Home Assistantban: Beállítások → Eszközök és szolgáltatások.",
@@ -794,7 +825,15 @@
         "storage": "A visszajelzés ki van kapcsolva: a mentett adatait a Tessera egy másik verziója írta."
       },
       "media": {
-        "browse": "{name} nem adta meg a könyvtárát."
+        "browse": "{name} nem adta meg a könyvtárát.",
+        "link_invalid": "Ez nem Spotify-link. Másolj egyet a Spotify alkalmazásban a Megosztás > Link másolása paranccsal.",
+        "link_short": "A spotify.link cím csak továbbirányít. Nyisd meg a böngészőben, és másold ki a hosszú címet, ahová visz.",
+        "link_player": "{name} nem játszik le Spotify-linkeket."
+      },
+      "allow_actions": {
+        "not_allowed": "A Home Assistant nem engedi, hogy ez az alkalmazás módosítsa az integrációit. Tedd meg magában a Home Assistantban: Beállítások → Eszközök és szolgáltatások.",
+        "no_entry": "A Home Assistantban ez a kijelző nem ESPHome-eszközként szerepel.",
+        "failed": "A Home Assistant nem fogadta el. A Home Assistantban nyisd meg: Beállítások → Eszközök és szolgáltatások → ESPHome, válaszd ki ezt a kijelzőt, majd Konfigurálás, és kapcsold be „Az eszköz Home Assistant-műveleteket hajthat végre” opciót."
       },
       "audio_test_unavailable": "A hangteszt ezen a képernyőn nem érhető el."
     },
@@ -821,6 +860,8 @@
       "offline": "A kijelző offline volt; legközelebb újrapróbáljuk.",
       "unknown_target": "A profil vagy az IP-cím ismeretlen; frissítsd ezt a kijelzőt kézzel.",
       "build_failed": "A fordítás vagy a telepítés sikertelen; nézd meg a naplót a Firmware és USB alatt.",
+      "build_memory": "Nincs elég memória a firmware fordításához: körülbelül {need} kell szabadon, és {free} van. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek; lásd Firmware és USB.",
+      "build_memory_limit": "Nincs elég memória a firmware fordításához, egy fordítóval sem. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek; lásd Firmware és USB.",
       "no_report": "A kijelző nem jelentkezett vissza a(z) {version} firmware-rel; ellenőrizd a kijelzőt.",
       "dropped_off": "A kijelző a frissítés után eltűnt; ellenőrizd a kijelzőt.",
       "updated": "Frissítve a(z) {version} firmware-re."
@@ -913,6 +954,13 @@
         },
         "remote": {
           "toggle": "Be/ki kapcsoló"
+        },
+        "humidifier": {
+          "setpoint": "Páratartalom − / +",
+          "slider": "Páratartalom-csúszka",
+          "mode": "Módgombok",
+          "setpoint_mode": "Páratartalom − / + és módgombok",
+          "toggle": "Be/ki kapcsoló"
         }
       },
       "top_bar": {
@@ -921,7 +969,8 @@
           "analog": "Analóg óra",
           "date": "Dátum",
           "wifi": "Wi-Fi-jel",
-          "link": "Kapcsolati figyelmeztetés"
+          "link": "Kapcsolati figyelmeztetés",
+          "battery": "Akkumulátor"
         },
         "contents": {
           "state": "Állapot",
@@ -950,6 +999,14 @@
         "wifi_shows": {
           "always": "Mindig",
           "weak": "Csak ha gyenge"
+        },
+        "battery_contents": {
+          "icon": "Csak ikon",
+          "percent": "Százalék"
+        },
+        "battery_shows": {
+          "always": "Mindig",
+          "low": "Csak ha alacsony"
         }
       }
     },
@@ -1189,7 +1246,8 @@
         "heart": "Kedvenc",
         "alert_outline": "Figyelmeztetés",
         "cog": "Beállítások",
-        "broom": "Takarítás"
+        "broom": "Takarítás",
+        "diabetes": "Cukorbetegség"
       }
     },
     "screen": {
@@ -1197,7 +1255,8 @@
         "clock": "Óra",
         "nightstand": "Éjjeliszekrény-óra",
         "page": "Ugrás: {page}. oldal",
-        "map": "Térkép"
+        "map": "Térkép",
+        "energy": "Energia"
       },
       "identify": {
         "title": "Ez itt: {name}",
@@ -1348,7 +1407,11 @@
         "no_profile": "Nem található ESPHome-profil ezzel az eszköznévvel.",
         "whats_new": "Újdonságok",
         "full_log": "Teljes napló",
-        "short": "Frissítés"
+        "short": "Frissítés",
+        "reinstall": "Újratelepítés dev-ről",
+        "reinstall_why": "Újraépíti ezt a kijelzőt a legfrissebb dev-ből, és Wi-Fi-n telepíti. A dev verziószáma nem változik, ezért egy új dev sosem jelenik meg frissítésként.",
+        "in_tessera": "Előbb frissítsd a Tesserában",
+        "in_tessera_why": "Előbb itt, a Tesserában frissítsd ezt a kijelzőt. Még az első telepítéskori flash-felosztása van, és a mostani firmware már nem fér bele, ezért az ESPHome Device Builder nem tudja frissíteni. A Tessera közben átállítja az új felosztásra, és megtartja a beállításait. Utána mindkét út működik."
       },
       "host": {
         "hint": "Az IP-cím, egyszer; az új firmware utána maga jelenti.",
@@ -1357,9 +1420,11 @@
         "start": "Indítás"
       },
       "pending": {
-        "installed": "Telepítve, de még nincs a Home Assistantban. Add hozzá a felfedezett ESPHome-eszközt a Beállítások → Eszközök és szolgáltatások alatt, illeszd be ott az API-kulcsot, majd a Konfigurálás alatt kapcsold be, hogy az eszköz Home Assistant-műveleteket hajthasson végre.",
-        "downloaded": "A firmware letöltve, de még nincs a Home Assistantban. Töltsd fel a kijelzőre az ESPHome Webbel, majd add hozzá a felfedezett ESPHome-eszközt a Beállítások → Eszközök és szolgáltatások alatt, illeszd be ott az API-kulcsot, és a Konfigurálás alatt engedélyezd a Home Assistant-műveleteket.",
-        "not_flashed": "Még nincs a Home Assistantban. Már flashelted? Add hozzá az ESPHome-eszközt a Beállítások → Eszközök és szolgáltatások alatt, majd a Konfigurálás alatt engedélyezd a Home Assistant-műveleteket. Még nem flashelted? Firmware és USB → {file}."
+        "installed": "Telepítve. Várakozás, amíg csatlakozik a Wi-Fi-hez...",
+        "downloaded": "Firmware letöltve. Tedd fel a kijelzőre az ESPHome Webbel.",
+        "not_flashed": "Még nincs telepítve: Firmware és USB → {file}.",
+        "adding": "A Wi-Fi-n van. Előkészítés...",
+        "failed": "A Tessera nem tudja magától hozzáadni a Home Assistanthez. Add hozzá a Beállítások → Eszközök és szolgáltatások alatt, a lenti API-kulccsal."
       },
       "copy_api_key": "API-kulcs másolása",
       "files": "Képernyőfájlok letöltése",
@@ -1421,7 +1486,8 @@
       "title": "Kijelzőid",
       "summary": "{online}/{count} online",
       "open": "{name} megnyitása",
-      "no_layout": "Még nincs elrendezés"
+      "no_layout": "Még nincs elrendezés",
+      "in_tessera": "Előbb frissítsd a Tesserában"
     },
     "screen_view": {
       "confirm": {
@@ -1536,7 +1602,8 @@
         "timer": "Időzítők",
         "screen": "Kijelző",
         "alarm_control_panel": "Riasztó",
-        "lock": "Zárak"
+        "lock": "Zárak",
+        "humidifier": "Párásítók"
       },
       "room": "Helyiség",
       "hide_placed": "Elhelyezettek elrejtése",
@@ -1560,7 +1627,12 @@
       "last_known": "Ahogy a kijelző legutóbb, még online állapotban jelentette.",
       "full_library": "A kijelző csempékre szánt memóriája majdnem megtelt. Továbbra is hozzáadhatsz csempéket.",
       "confirm_close": "Ezzel a csempével a kijelző csempékre szánt memóriája {n} %-ig telik meg. Mégis hozzáadod?",
-      "confirm_over": "Ezzel a csempével az elrendezésnek több memória kell, mint amennyit a kijelző a csempéknek mért ({n} %). Ha kevés a memória, egyes csempék kevesebbet mutatnak, vagy a kijelző elutasítja az elrendezést. Mégis hozzáadod?"
+      "confirm_over": "Ezzel a csempével az elrendezésnek több memória kell, mint amennyit a kijelző a csempéknek mért ({n} %). Ha kevés a memória, egyes csempék kevesebbet mutatnak, vagy a kijelző elutasítja az elrendezést. Mégis hozzáadod?",
+      "measuring": "Mérés",
+      "measuring_title": "A kijelző akkor méri a csempéknek jutó memóriát, amikor a csempék már a helyükön vannak, nagyjából egy perccel az indulás vagy egy új elrendezés után.",
+      "none": "Nincs hely",
+      "none_title": "A kijelzőnek most nincs szabad memóriája a csempéknek. Menteni így is lehet: ha kevés a memória, egyes csempék kevesebbet mutatnak, vagy a kijelző elutasítja az elrendezést.",
+      "confirm_none": "A kijelzőnek most nincs szabad memóriája a csempéknek. Ha kevés a memória, egyes csempék kevesebbet mutatnak, vagy a kijelző elutasítja az elrendezést. Mégis hozzáadod ezt a csempét?"
     },
     "domains": {
       "light": "Lámpa",
@@ -1592,7 +1664,8 @@
       "image": "Kép",
       "entity": "Entitás",
       "alarm_control_panel": "Riasztópanel",
-      "lock": "Zár"
+      "lock": "Zár",
+      "humidifier": "Párásító"
     },
     "displays": {
       "standard": "normál",
@@ -1821,7 +1894,25 @@
         "open": "{name} megnyitása",
         "speaker": "Hangszóró",
         "speaker_now": "Ahol éppen szól",
-        "speaker_hint": "Ahol indul. Az „Ahol éppen szól” a képernyőn kér hangszórót, ha a lejátszó sehol sem szól."
+        "speaker_hint": "Ahol indul. Az „Ahol éppen szól” a képernyőn kér hangszórót, ha a lejátszó sehol sem szól.",
+        "link": "Vagy illessz be egy Spotify-linket",
+        "link_hint": "Link vagy URI a Spotify alkalmazásból, a Megosztás > Link másolása útján: lejátszási lista, album, előadó, dal vagy podcast.",
+        "link_add": "Hozzáadás",
+        "shuffle": "Keverés",
+        "shuffle_hint": "Indításkor állítja be. Keveréssel egyszer továbblép, így már az első dal is kevert. Az \"Ahogy van\" a lejátszó saját beállítását hagyja.",
+        "shuffle_keep": "Ahogy van",
+        "shuffle_on": "Be",
+        "shuffle_off": "Ki",
+        "repeat": "Ismétlés",
+        "repeat_hint": "Indításkor állítja be. Az \"Ahogy van\" a lejátszó saját beállítását hagyja.",
+        "repeat_off": "Ki",
+        "repeat_all": "Összes ismétlése",
+        "repeat_one": "Egy ismétlése",
+        "repeat_keep": "Ahogy van"
+      },
+      "energy": {
+        "hint": "A ház teljesítménye most, úgy rajzolva, ahogy a Home Assistant saját Energia nézete rajzolja: nap, hálózat, akkumulátor és az eszközeid, a Home Assistant Energia beállításaiból. Egy kör megérintése megnyitja annak az érzékelőnek az előzményeit.",
+        "needs_firmware": "Az energiakártyához 0.47.0 vagy újabb firmware kell: mentés után nyomd meg a Frissítés gombot a kijelzőnél."
       }
     },
     "tile_card": {
@@ -1895,7 +1986,8 @@
         "overflow": "Nem fér el a név mellett",
         "dial": "Számlap",
         "hidden_signal": "Rejtve, amíg a jel jó",
-        "hidden_link": "Rejtve, amíg minden csatlakoztatva van"
+        "hidden_link": "Rejtve, amíg minden csatlakoztatva van",
+        "hidden_battery": "Rejtve, amíg az akkumulátor 20 % fölött van"
       },
       "live": {
         "hidden": "Most rejtve: nem aktív",
@@ -1933,9 +2025,12 @@
       "left_hint": "Cím és kezdőlap gomb: az oldal beállításaiban",
       "wifi_sample": "A kijelző saját jele",
       "link_sample": "Csak ha a Home Assistant vagy a Tessera nem elérhető",
+      "battery_sample": "A kijelző saját akkumulátora",
       "wifi_hint": "A kijelző a saját jelét olvassa, így ez az elem a sávban marad, amikor a Home Assistant nem elérhető. Négy csíktól egyig, hálózat nélkül áthúzva.",
       "wifi_show_hint": "A Csak ha gyenge üresen hagyja a sávot, amíg a jel egy csíkra nem esik vagy a hálózat el nem tűnik.",
       "link_hint": "Csak akkor jelenik meg, amikor a Home Assistant vagy a Tessera nem elérhető, így egy pillantással látod, miért hiányoznak értékek.",
+      "battery_hint": "A kijelző maga olvassa az akkumulátorát, így ez az elem a sávon marad, amikor a Home Assistant nem elérhető. Az ikon úgy követi a töltöttséget, ahogy a Home Assistant rajzolja, töltés közben villámmal.",
+      "battery_show_hint": "A Csak ha alacsony üresen hagyja a sávot, amíg az akkumulátor 20 % vagy kevesebb nem lesz.",
       "status_firmware": "Ez az elem a(z) {version} firmware-től jelenik meg. A frissítésig a kijelző kihagyja."
     },
     "screen_settings": {
@@ -2007,29 +2102,51 @@
         "show": "Megjelenítés készenlétben",
         "standby_off": "Kapcsold be az Automatikus készenlétet a használatához.",
         "needs_firmware": "Frissítsd ezt a képernyőt a(z) {version} firmware-re a képernyővédő használatához.",
-        "order": "A képernyő az elsőt mutatja, ami elérhető. Húzd a sorrend módosításához.",
         "no_pictures": "Ennek a képernyőnek nincs memóriája képekhez, ezért az órát mutatja.",
-        "tap": "Egy érintés felébreszti a képernyőt. A képernyővédőn csak a lejátszó gombjai működnek: lejátszás vagy szünet és a hangerő.",
+        "lead": "Az elsőt mutatja, amelyik elérhető",
         "use": "{name} használata",
-        "choose_media": "Válassz lejátszót",
-        "add_media": "Még egy lejátszó",
-        "players": "Lejátszók, az első legfelül",
-        "choose_camera": "Válassz kamerát",
-        "weather_auto": "Kinti hőmérséklet a Home Assistantból",
-        "weather_none": "Nincs hőmérséklet",
         "kinds": {
           "media": "Szóló zene",
           "camera": "Kamera",
           "clock": "Óra"
         },
-        "details": {
-          "media": "Lejátszás közben, a borítójával",
-          "media_unset": "Válassz lejátszót a használatához",
-          "media_more": "Az első, amelyik játszik, a borítóval",
-          "camera": "A képe, 15 másodpercenként",
-          "camera_unset": "Válassz kamerát a használatához",
-          "clock": "Az idő, a dátum és a kinti hőmérséklet, fehéren feketén"
-        }
+        "summary": {
+          "media_none": "Még nincs lejátszó",
+          "camera_none": "Még nincs kamera",
+          "temperature": "Kinti hőmérséklet",
+          "time_date": "Idő és dátum",
+          "off": "Ki"
+        },
+        "on": "Megjelenítés a képernyővédőn",
+        "place": "{n} / {count}",
+        "earlier": "Előrébb",
+        "later": "Hátrébb",
+        "players_title": "Lejátszók",
+        "players": "Lejátszók, az első legfelül",
+        "players_hint": "Az első, amelyik játszik, a borítójával jelenik meg.",
+        "player_add": "Lejátszó hozzáadása",
+        "remove_player": "{name} eltávolítása",
+        "keys_hint": "A lejátszás, a szünet és a hangerő működik a képernyővédőn. Máshol egy koppintás felébreszti a képernyőt.",
+        "choose_camera": "Válassz kamerát",
+        "camera_hint": "A képe, 15 másodpercenként",
+        "glass": "A képernyőn",
+        "temperature": "Hőmérséklet",
+        "weather_auto": "Automatikus",
+        "weather_none": "Nincs hőmérséklet",
+        "beside": "Mellette",
+        "items_add": "Entitás hozzáadása",
+        "items_hint": "A hőmérséklet mellett, egy sorban: egy érzékelő, egy ajtó, egy lámpa.",
+        "items_full": "Az órán {n} entitásnak van hely.",
+        "items_already": "Ez már az órán van.",
+        "items_removed": "{name} eltávolítva az óráról",
+        "items_title": "Az óra entitásai",
+        "items_slots": "{used} / {n}",
+        "item_text": "Szöveg",
+        "item_icon": "Ikon",
+        "item_both": "Mindkettő",
+        "item_look": "Mutatja",
+        "item_hint": "Fekete-fehéren a képernyőkímélőn, az entitás színétől függetlenül.",
+        "items_add_title": "Hozzáadás az órához"
       },
       "audio_tests": {
         "test_microphone": "Mikrofonteszt",
@@ -2220,9 +2337,9 @@
         "uploading": "Még ne húzd ki az USB-kábelt.",
         "building": "A fordítás egy Home Assistant-gépen, például Raspberry Pi-n, 20 percig vagy tovább is tarthat, főleg elsőre. Ez normális. Elhagyhatod ezt az oldalt: a telepítés tovább fut, és az Új kijelző alatt újra megtalálod.",
         "building_download": "A fordítás egy Home Assistant-gépen, például Raspberry Pi-n, 20 percig vagy tovább is tarthat, főleg elsőre. Ez normális. Elhagyhatod ezt az oldalt: a fordítás tovább fut, és az Új kijelző alatt újra megtalálod.",
-        "downloaded": "Töltsd fel a kijelzőre a saját számítógépedről, majd párosítsd a kijelzőt a Home Assistanttal.",
-        "booted": "A kijelző elindul, és csatlakozik a Wi-Fi-hez. Most párosítsd a Home Assistanttal:",
-        "booted_calibrate": "A kijelző elindul, és csatlakozik a Wi-Fi-hez. Előbb érintéskalibrálást kér: koppints a célkeresztekre. Most párosítsd a Home Assistanttal:",
+        "downloaded": "Tedd fel a kijelzőre a saját számítógépedről. Itt jelenik meg, amint a Wi-Fi-n van.",
+        "booted": "A kijelző elindul, csatlakozik a Wi-Fi-hez, és magától bekerül a Home Assistantbe.",
+        "booted_calibrate": "A kijelző elindul és csatlakozik a Wi-Fi-hez. Először érintéskalibrálást kér: koppints a keresztekre. Utána magától bekerül a Home Assistantbe.",
         "see_log": "Lásd a lenti naplót."
       },
       "download_steps": {
@@ -2237,9 +2354,9 @@
       "download_keep": "A fájl tartalmazza a Wi-Fi-jelszavadat és a kijelző kulcsait: ne add ki másnak.",
       "api_key": "API-kulcs",
       "pairing": {
-        "ha": "{bold} Ez a Tesserán kívül történik. A Home Assistant ESPHome-eszközként felfedezi ezt: {name}; kattints a Hozzáadás gombra. Nem találja? Add hozzá az ESPHome-ot kézzel a kijelző IP-címével.",
+        "ha": "{bold} A Home Assistant felfedezett ESPHome-eszközként mutatja ezt: {name}; kattints a Hozzáadás gombra. Nem találja? Add hozzá az ESPHome-ot kézzel a kijelző IP-címével.",
         "ha_bold": "Nyisd meg: Home Assistant → Beállítások → Eszközök és szolgáltatások.",
-        "key": "{bold} (lent, az „API-kulcs megjelenítése” alatt), ha a Home Assistant titkosítási kulcsot kér. Ha telepítve van az ESPHome Device Builder alkalmazás, a Home Assistant gyakran magától kitölti.",
+        "key": "{bold} lent, ha a Home Assistant titkosítási kulcsot kér.",
         "key_bold": "Illeszd be az API-kulcsot",
         "actions": "{bold} ESPHome integráció → Konfigurálás → kapcsold be, hogy az eszköz Home Assistant-műveleteket hajthasson végre. Enélkül a kijelző mindent lát, de semmit sem vezérel.",
         "actions_bold": "Engedélyezd a HA-műveleteket:",
@@ -2299,12 +2416,13 @@
       "models": "{n} modell | {n} modell",
       "arrive": {
         "waiting": "Várakozás, amíg {name} megjelenik a Wi-Fi-n...",
-        "seen": "{name} a Wi-Fi-n van. Párosítsd most a Home Assistantben.",
+        "seen": "{name} a Wi-Fi-n van. Előkészítés...",
         "paired": "{name} párosítva a Home Assistanttel.",
         "missing": "{name} még nincs a Wi-Fi-n",
         "hotspot": "Nézd meg a kijelzőt: kiír egy hotspotot és a jelszavát. Csatlakozz hozzá a telefonoddal, és ott válaszd ki a helyes Wi-Fi-t. Vagy add meg itt a helyes Wi-Fi-t, és telepítsd újra.",
         "no_hotspot": "Valószínűleg rossz a Wi-Fi neve vagy jelszava. Add meg itt a helyes Wi-Fi-t, és telepítsd újra, a kijelző még a kábelen legyen.",
-        "change": "Wi-Fi módosítása és újratelepítés"
+        "change": "Wi-Fi módosítása és újratelepítés",
+        "failed": "A Tessera nem tudja magától hozzáadni ezt a Home Assistanthez: {name}. Add hozzá magad lent."
       },
       "choice_option": {
         "GRID_ROWS": {
@@ -2314,7 +2432,20 @@
       },
       "choice_first": {
         "GRID_ROWS": "a szokásos méret"
-      }
+      },
+      "memory": {
+        "low_title": "Kevés a szabad memória a Home Assistant gépen",
+        "low": "{free} memória szabad, ezért a firmware kevesebb fordítóval készül egyszerre ({jobs} a {cores} helyett). Ez tovább tart, de így elfér.",
+        "tight_title": "A Home Assistant gépnek talán kevés a memóriája",
+        "tight": "A firmware fordításához körülbelül {need} szabad memória kell, és {free} van. Egy fordítóval próbálkozik egyszerre. Ha a fordítás leáll, állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek, és próbáld újra.",
+        "retry_title": "Elfogyott a memória; a fordítás egy fordítóval folytatódik",
+        "retry": "A rendszer leállította a fordítót, mert elfogyott a memória ({free} volt szabad, amikor a fordítás elkezdődött). A fordítás egy fordítóval folytatódik egyszerre, onnan, ahol megállt. Ez tovább tart, de így elfér.",
+        "out_title": "Nincs elég memória a firmware fordításához",
+        "out": "A firmware fordításához körülbelül {need} szabad memória kell, és ennek a Home Assistant gépnek {free} van. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek, majd próbáld újra.",
+        "limit_title": "Nincs elég memória a firmware fordításához",
+        "limit": "Elfogyott a memória, egy fordítóval is. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek, majd próbáld újra."
+      },
+      "pair_yourself": "Add hozzá magad a Home Assistanthez"
     },
     "alerts": {
       "eyebrow": "Figyelmeztetések · puska",
@@ -2606,7 +2737,9 @@
       },
       "home_hint": "A kezdőlap gomb és a felfelé húzás ide vezet.",
       "bar_entities": "Jobb oldalon is",
-      "actions_blocked": "A Home Assistant nem engedi, hogy ez a kijelző műveleteket hajtson végre, így egy csempe megérintése nem csinál semmit. A Home Assistantban nyisd meg: Beállítások → Eszközök és szolgáltatások → ESPHome, válaszd ki ezt a kijelzőt, majd Konfigurálás, és kapcsold be „Az eszköz Home Assistant-műveleteket hajthat végre” opciót."
+      "actions_blocked": "A Home Assistant még nem engedi, hogy ez a kijelző műveleteket hajtson végre, így egy csempe megérintése nem csinál semmit.",
+      "allow_actions": "Műveletek engedélyezése",
+      "actions_allowed": "{name} mostantól vezérelheti az eszközeidet."
     },
     "feedback": {
       "question": "Úgy működik a kijelződ, ahogy várod?",
@@ -2626,8 +2759,9 @@
       },
       "comment_label": "Van még valami? (nem kötelező)",
       "comment_hint": "Kérjük, ne írj bele személyes adatokat, naplókat, jelszavakat vagy API-kulcsokat.",
-      "report_hint": "Valamit javítani kellene? Jelentsd a GitHubon. A kijelződ típusával, a verziókkal és egy naplóval utána lehet járni.",
-      "report_link": "Jelentsd a GitHubon",
+      "report_title": "Szeretnéd, hogy javítsuk?",
+      "report_text": "Nyiss egy issue-t a GitHubon. A kijelződ típusa, a verziók és amit megírtál, már ki vannak töltve. Csatolj egy naplót, és utána tudunk járni, és kérdezni tudunk tőled.",
+      "report_open": "GitHub issue megnyitása",
       "add_details": "Részletek hozzáadása",
       "done": "Kész",
       "settings_title": "Visszajelzés",
@@ -2761,8 +2895,8 @@
       "simple_editor": "Egyszerű nézet"
     },
     "donate": {
-      "title": "Egyetlen ember készíti",
-      "body": "A Tessera ingyenes, és az is marad. A szabadidőmben fejlesztem. Ha szeretnéd, hogy továbbra is új kártyákat és kijelzőket adjak hozzá, egy kis havi támogatás ezt lehetővé teszi. Egy egyszeri kávé is ugyanolyan szívesen fogadott.",
+      "title": "Támogasd a Tesserát",
+      "body": "A Tessera ingyenes, és az is marad. Én vezetem a fejlesztést és a karbantartást, a közösség hozzájárulásaival. A támogatásod több időt ad a fejlesztésre, a módosítások átnézésére és tesztelésére. Egy havi hozzájárulást vagy egy egyszeri kávét is szívesen fogadok.",
       "monthly": "Havi támogatás",
       "once": "vagy hívj meg egyszer egy kávéra",
       "later": "Talán később",

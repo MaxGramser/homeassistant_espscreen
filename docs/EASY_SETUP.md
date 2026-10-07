@@ -17,6 +17,7 @@ ESPHome Device Builder is optional:
 | CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
 | Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911 |
+| Waveshare, 5 inch (new) | ESP32-S3-Touch-LCD-5 (not the 5B), 800×480, RGB and GT911 ([details](WAVESHARE5.md)) |
 | Waveshare, 7 inch (experimental) | ESP32-S3-Touch-LCD-7, 800×480, RGB and GT911 |
 | Waveshare, 7 inch 7B (experimental) | ESP32-S3-Touch-LCD-7B, 1024×600, RGB and GT911 ([details](WAVESHARE7B.md)) |
 | Sunton, 7 inch (experimental) | ESP32-8048S070, 800×480, RGB and GT911 ([details](SUNTON8048S070.md)) |
@@ -28,6 +29,7 @@ ESPHome Device Builder is optional:
 | Guition, 10.1 inch V2 (experimental) | JC8012P4A1 V2, 1280×800, JD9365 MIPI-DSI and GSL3680, early ESP32-P4 with the newer LCD ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
+| M5Stack Tab5, 5 inch (new) | Tab5 ST7121, 1280×720, ST7121 MIPI-DSI and touch, ESP32-P4 ([details](TAB5.md)) |
 
 Other screens with roughly the same name can have different pins. Use
 the board profile that matches the hardware. Use a USB cable that supports data.
@@ -88,9 +90,8 @@ This currently enables the browser preview, not physical microphone or wake-word
    starting up), each with how far it is, while the drawing of your screen fills in. **Show details** opens
    ESPHome's own log. A first build takes a few minutes on a Raspberry Pi. You can close the
    page: the installation keeps running and picks back up when you reopen it.
-5. When it is done, the page shows what comes next: the pairing steps from chapter 3, with the API key behind
-   **Show the API key**. If the build fails, the step it stopped in turns red, the log opens and
-   you can **Retry**.
+5. When it is done, the page follows the screen onto your Wi-Fi and into Home Assistant (chapter 3). If the build
+   fails, the step it stopped in turns red, the log opens and you can **Retry**.
 
 Every screen gets its own profile: four screens means going through **New
 screen** four times, with four different names. The shared board package is the
@@ -133,8 +134,9 @@ port, until the installation starts.
    computer (other browsers can't reach USB), click **Connect** and choose the screen's port.
 4. Click **Install** and select the downloaded file. The screen restarts and joins your Wi-Fi.
 
-The file holds your Wi-Fi password and the screen's keys: keep it to yourself. Pairing works
-as in chapter 3, and every later update goes over Wi-Fi, so the cable is only needed once.
+The file holds your Wi-Fi password and the screen's keys: keep it to yourself. Once the screen is on your Wi-Fi,
+Tessera adds it to Home Assistant as in chapter 3, and every later update goes over Wi-Fi, so the cable is only
+needed once.
 For an existing profile, both routes are under **Firmware & USB** (in the sidebar): choose the
 profile and **This computer · install from this browser** or **Download · flash from your own
 computer**. From the browser, Firmware & USB writes the firmware without erasing the board first,
@@ -143,7 +145,7 @@ restarting and so never comes online for an update over Wi-Fi.
 
 **Build it yourself.** To build a screen with ESPHome on your own computer instead, choose the screen
 in the sidebar, open its details with the arrow at its right and use **Download screen files** (a
-screen that isn't in Home Assistant yet has it under its API key). The zip holds the screen's own
+screen that isn't in Home Assistant yet has it on its card under Screens). The zip holds the screen's own
 YAML, its Override YAML and a `secrets.yaml` with only the secrets the two use, normally the Wi-Fi.
 Unpack it and run `esphome run <name>.yaml` in that folder. Like the firmware file, it holds your
 Wi-Fi password and the screen's keys. A CYD or a Hosyond you build yourself needs one more step once, for the
@@ -161,26 +163,36 @@ USB, see [CALIBRATING.md](CALIBRATING.md).
 
 **Every other board:** its capacitive touch reports pixels and its mapping is baked into the board profile; there's no ADC calibration.
 
-## 3. Pair the screen with Home Assistant
+## 3. The screen joins Home Assistant
 
-This happens in Home Assistant itself, outside Tessera. As long as a profile
-hasn't been added to Home Assistant yet, it appears in the sidebar under **Screens**
-as a *not yet in Home Assistant* card, with an **Open Devices & services**
-button and **Copy API key**; the done screen of **New screen** has the same
-button. The card disappears once the screen is in the list.
+There is nothing to do here. As soon as the screen is on your Wi-Fi, Tessera adds it to Home Assistant's ESPHome
+integration with the key it wrote into the screen's profile, and allows it to perform Home Assistant actions, which a
+tile needs to control anything (Home Assistant leaves that off for every new ESPHome device). The screen then shows up
+in Tessera's sidebar, ready for its tiles; until then it waits there under its name.
 
-1. Open **Settings → Devices & services**. Add the discovered ESPHome device.
-   Not discovered? Manually add the **ESPHome** integration with the screen's
-   IP address, port 6053.
-2. Does HA ask for an encryption key? Paste the API key the window shows after
-   installation (also found as **api → encryption → key** in the
-   profile). Don't use the OTA password. Once the screen is paired, choose it in
-   the sidebar, open its details with the arrow at its right, and use **Copy API key**
-   there whenever HA asks for it again.
-3. On the ESPHome integration, open **Configure** and enable **Allow the device to
-   perform Home Assistant actions**. Without this permission, values still show up,
-   but the screen can't control lights and devices.
-4. Open Tessera. The screen appears within about 30 seconds.
+Tessera keeps at it until that holds. It answers Home Assistant's discovery of the screen, finds the screen by its name
+on the network when Home Assistant didn't discover it (or the discovery was dismissed or ignored), gives Home Assistant
+the new key when **New screen** made new ones for a screen it already had, and turns the actions back on when Home
+Assistant ignored a tap. Should it still not work out, the screen's card in the sidebar says so.
+
+Tessera adds a screen by itself when it knows the screen's key: when the screen's YAML is in the ESPHome folder Tessera
+reads. That is every screen made with **New screen**, and a screen of your own whose YAML sits in Home Assistant's
+ESPHome folder (`/config/esphome`, the folder ESPHome Device Builder uses too; with [Docker](DOCKER.md), the folder
+you mounted as the ESPHome folder).
+
+### Adding a screen by hand
+
+A screen whose YAML lives somewhere else (built with the ESPHome CLI on your own computer, with an ESPHome Device
+Builder on another machine, or by a build system of your own) is added in Home Assistant itself. Doing it by hand never
+hurts, for any screen:
+
+1. Open **Settings → Devices & services**. Add the discovered ESPHome device. Not discovered? Choose **Add integration
+   → ESPHome** and enter the screen's IP address (from its USB log or your router) and port 6053.
+2. When Home Assistant asks for an encryption key, paste the screen's API key: **api → encryption → key** in its YAML,
+   or **Copy API key** in Tessera for a screen Tessera knows. Not the OTA password.
+3. Actions: Tessera turns **Allow the device to perform Home Assistant actions** on for a screen added this way too,
+   right after it is added or as soon as Home Assistant ignores one of its taps. In Home Assistant it is the ESPHome
+   integration's **Configure**.
 
 ## 4. Choose and edit your tiles
 
@@ -199,7 +211,7 @@ title of its own still shows that. It has domain filters with
 colored icons, a room filter, and **Hide placed**. You can add one tile for every cell of the screen's pages,
 48 on a CYD, a 4-inch Guition or the experimental Waveshare 4B (firmware 0.2.62+; see below for older firmware).
 The screen preview shows their placement on the screen's own grid, lying down: two columns of three on a CYD, a 4-inch Guition,
-the Waveshare 4B or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch,
+the Waveshare 4B or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch and 5-inch,
 four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md) and the 7-inch Guition, and five by five on the
 10.1-inch Guition, either way up (firmware 0.18.0; five by four before, and a saved layout moves on by itself); up to
 eight pages and 64 tiles, or more on a board with PSRAM ([TILE_MEMORY.md](TILE_MEMORY.md)). Every tile has a fixed slot that only changes if
@@ -221,7 +233,7 @@ Click a tile and its settings open in a drawer on the right, with the preview
 still in view: a custom name, click behavior, a mini-slider, a large value, a graph
 (sensors), a weather forecast (weather), the size: **Normal**, **Double-width**, **1 × 2**, **2 × 2** (firmware 0.3.1+) or **Full
 page** (firmware 0.2.62+), and on a screen with more pages the **Page** it is on, to move it without dragging.
-A double-width tile for a climate, switch, light, fan,
+A double-width tile for a climate, humidifier, switch, light, fan,
 vacuum, cover, media player, number, select, timer, scene, script, or button gets **direct
 control** on the right, like the rows in Home Assistant (for example temperature − / +,
 open/stop/close, volume with mute, a toggle); under **Direct control
@@ -242,7 +254,7 @@ Click **Save & send** to send your changes.
 - Light, switch, input_boolean, and fan: tap to turn on/off.
 - Long press a light: brightness, rainbow color, and white temperature, as far as
   the light supports those features.
-- Climate, vacuum, and cover: tap to open the control card. Under **On tap**, choose **On / off**
+- Climate, humidifier, vacuum, and cover: tap to open the control card. Under **On tap**, choose **On / off**
   to open, close, or stop a cover with a tap instead (firmware 0.2.58+); holding it still opens the card.
   Tessera offers **On / off**, a small slider, and direct controls only when Home Assistant has
   the action for that entity. **Perform action** runs any action Home Assistant offers for the
@@ -258,13 +270,16 @@ Click **Save & send** to send your changes.
   a key such as Play or Menu, add the remote again with **On tap** set to **Perform action** and **Send command**, and
   pick the command from the list under the field (Android TV, Apple TV, Roku and others) or type it as Home Assistant
   knows it (Harmony, Broadlink).
-- Media player: tap for the media card with the cover (boards with camera pictures), the keys, and the volume. The
+- Media player: tap for the media card with the cover (boards with camera pictures; the others give the player that
+  room), the keys, and the volume row:
+  volume down, the slider and volume up, as on the screensaver. Hold volume down to mute; the next tap on either key
+  takes the mute off. A player Home Assistant can turn off has its power key at the top right (firmware 0.39.0). The
   speaker it plays on is at the top of the card; tap it to choose another. A player that groups (Sonos and others that
   report it) lists the speakers it can play together with: the plus at the end of a row adds one, the tick takes it out,
   and each speaker in the group has its own volume. A speaker whose library holds your Spotify account is a speaker of
   the Spotify tile too: pick it and the music moves there, and the card follows it. Inputs, such as a Sonos's TV input or
-  its favourites, are behind their own key at the top (firmware 0.26.0+). Where Home Assistant can browse the player,
-  the library key opens its library down to a page of covers, and a tap plays one (firmware 0.24.0+, boards with camera
+  its favourites, are behind their own key at the end of the volume row (firmware 0.26.0+). Where Home Assistant can
+  browse the player, the library key beside it opens its library down to a page of covers, and a tap plays one (firmware 0.24.0+, boards with camera
   pictures). **Display → Favourite** makes the tile play one playlist, album or artist you pick from that library, on
   the speaker you choose. A new media tile shows its cover by default on a board with pictures.
 - Camera or image (every board except the CYD, the Waveshare 3.5-inch and the Hosyond 4-inch): tap for the
@@ -365,8 +380,8 @@ that screen and says where it is set.
 | `DISPLAY_MODEL` | CYD, Hosyond | ESPHome's `mipi_spi` model of the display controller (`ILI9341`, `ST7789V`, ...) |
 | `DISPLAY_DATA_RATE` | CYD, Hosyond | the display's SPI clock (`40MHz`; some boards want `20MHz`) |
 | `DISPLAY_INVERT_COLORS` | CYD, Hosyond | `true` for a panel that shows its colours inverted |
-| `GRID_ROWS` | 4-inch Guition, 10.1-inch Guition | 4-inch: `4` for two columns of four smaller tiles a page instead of three (firmware 0.18.1). 10.1-inch: `6`, `7` or `8` for up to forty tiles a page instead of twenty-five (firmware 0.35.0). New screen asks on both |
-| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0) |
+| `GRID_ROWS` | 4-inch Guition, M5Stack Tab5, 10.1-inch Guition | 4-inch Guition and Tab5: `4` for four rows of smaller tiles a page instead of three (firmware 0.18.1; the Tab5 from app 0.4.64). 10.1-inch: `6`, `7` or `8` for up to forty tiles a page instead of twenty-five (firmware 0.35.0). New screen asks on each |
+| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0, the Waveshare 4B `300000Hz` since firmware 0.39.0) |
 
 The parts an override names stay the same on every board and in every update:
 `my_display` (the display), `ts_touch` (the touch panel), `gpio_backlight_pwm`
@@ -378,6 +393,9 @@ firmware package updates. The editor protects the screen's name, Wi-Fi, API,
 OTA and package connection. Use **Save & check** before building a custom
 configuration. If the complete ESPHome profile is invalid, the firmware build
 does not start.
+
+Your own hardware goes here too: a wall button or a temperature sensor wired to a spare pin becomes an entity of the
+screen in Home Assistant. [EXTRA_HARDWARE.md](EXTRA_HARDWARE.md) has the snippets and the free pins of the CYD.
 
 The override is advanced configuration: the display model, dimensions, pins,
 touchscreen and initialization sequence must still match the physical board.
@@ -445,8 +463,14 @@ Assistant ignores says "No answer" and, the first time, shows where to allow the
     some 90 KB of their update slot. Connect the screen to a computer over USB and install its own
     profile again under **Firmware & USB**. The name, the keys and the calibration stay.
 - **Build fails:** read the first error, check the ESPHome version and internet for
-  GitHub/font downloads. If the Raspberry Pi is low on memory, temporarily use a
-  more powerful computer to compile; the YAML stays the same.
+  GitHub/font downloads.
+- **Build is slow, or the log says `Killed signal terminated program cc1plus`:** the machine is short of memory.
+  Compiling a screen's firmware needs about 1.5 GB free for its largest file. Before a build the app reads how much is
+  free and runs fewer compilers at once when needed, and when Linux stops a compiler all the same it builds again with
+  one compiler at a time, from where it stopped; the installer shows a card that says so (app 0.4.65). That is slower,
+  but it finishes. When even one compiler is more than the machine has, the card says how much is free and how much
+  is needed: stop a few add-ons for a while or give the machine more memory, then try again. Or compile on a more
+  powerful computer with ESPHome Device Builder, with the same YAML.
 - **Migrating an existing manual screen:** keep the old YAML and carry over the
   existing device name, API key, and OTA password into the new installation profile.
   Then choose the tiles in the app. The old fixed tile substitutions aren't
@@ -487,7 +511,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+ (a house before firmware 0.10.0) | On |
 | Rotation | 0° or 180°, and also 90° and 270° on a square screen; every board from firmware 0.2.80 | 0° |
 
-The Waveshare 4.3-inch and 7-inch have a backlight that is only on or off and no standby, so they show no
+The Waveshare 4.3-inch, 5-inch and 7-inch have a backlight that is only on or off and no standby, so they show no
 Brightness, standby or night rows. In Home Assistant the Back to Home entities keep their older names
 (**Back to page 1**, **Back to page 1 after**, **Back to page 1 on standby**) so automations keep working; they
 go to the Home page.

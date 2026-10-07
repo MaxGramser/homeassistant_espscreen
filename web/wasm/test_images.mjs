@@ -79,7 +79,7 @@ assert.equal(m._preview_image_buffer(stale.id, 100), 0, 'released downloads reje
 assert.equal(m._preview_image_ready(stale.id, 1), 0);
 assert.equal(diagnostics().images.length, 0);
 
-// Compact album-art tiles request the firmware's shared strip, decoded with
+// A compact album-art tile in the slot a full media card had asks for its own picture (tile_picture.h), decoded with
 // the same 8-bit BMP support as ESPHome. Include a padded row.
 layout([{ ...tile, x: { ...tile.x, pic: 'picture3' }, o: { display: 'cover' } }]);
 tick(); tick();

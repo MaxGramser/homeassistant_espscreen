@@ -21,8 +21,9 @@ static void the_ceilings_follow_the_board() {
   assert(changes.all == all && changes.tile_after(127, 0));
   changes.mark_tile(128);
   assert(changes.all > all);
-  // Seven kept pages, however many pages the board holds: the first opening of a layout stays as quick as it was.
-  static_assert(kept_pages::MAX_KEPT == 7, "kept pages do not grow with the page ceiling");
+  // Every page beside the one on the glass may be kept (GitHub #183): paging is as quick on page 13 as on page 2. The
+  // board's PSRAM decides how many it really makes (runtime_tiles::kept_capacity).
+  static_assert(kept_pages::MAX_KEPT == page_protocol::MAX_PAGES - 1, "every page beside the one on the glass may be kept");
 }
 
 static void a_layout_may_fill_them_and_no_more() {

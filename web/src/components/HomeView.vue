@@ -5,7 +5,7 @@ import { computed, onMounted, reactive } from "vue";
 import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
-import { go, homeView, loadOverview, phone, screenLight, screenSubline, select, setFullEditor, state } from "../store";
+import { drawsPictures, go, homeView, loadOverview, phone, screenLight, screenSubline, select, setFullEditor, state } from "../store";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
@@ -59,7 +59,7 @@ onMounted(loadOverview);
         <span class="home-stage">
           <span v-if="live && layout && !failed.has(screen.id)" class="home-live" :style="{ width: liveWidth(live) }" aria-hidden="true">
             <FirmwarePreview :key="`${screen.id}:${JSON.stringify(live)}`" :width="live.width" :height="live.height" :dpi="live.dpi"
-              :columns="live.columns" :rows="live.rows" :layout="layout" still
+              :columns="live.columns" :rows="live.rows" :layout="layout" :pictures="drawsPictures(screen)" still
               @ready="drawn.add(screen.id)" @failed="failed.add(screen.id)" />
           </span>
           <span v-if="view && !(live && layout && drawn.has(screen.id) && !failed.has(screen.id))" class="home-glass"
@@ -82,6 +82,10 @@ onMounted(loadOverview);
             <strong>{{ screen.name }}</strong>
             <small v-if="screenSubline(screen)" :class="screenSubline(screen)!.kind">{{ screenSubline(screen)!.text }}</small>
             <small v-else-if="place(screen)">{{ place(screen) }}</small>
+          </span>
+          <!-- A screen with 4 MB of flash on ESPHome's partition table (app 0.4.82): its next update comes from Tessera. -->
+          <span v-if="screen.update_in_tessera" class="home-badge" :title="t('editor.sidebar.update.in_tessera_why')">
+            <Icon name="information-outline" />{{ t("editor.home.in_tessera") }}
           </span>
           <Icon name="chevron-right" class="home-go" />
         </span>
@@ -120,6 +124,9 @@ onMounted(loadOverview);
 .home-name small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-name small.down, .home-name small.failed { color: var(--danger); }
 .home-name small.update, .home-name small.available, .home-name small.running, .home-name small.queued { color: var(--warn); }
+.home-badge { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px;
+  font-weight: 500; color: var(--accent); background: var(--accent-soft); white-space: nowrap; }
+.home-badge .ui-icon { font-size: 14px; }
 .home-go { color: var(--muted); font-size: 18px; }
 .home-card:hover .home-go { color: var(--accent); }
 /* Adding a screen: a quiet dashed card beside the screens, never as tall as one. */

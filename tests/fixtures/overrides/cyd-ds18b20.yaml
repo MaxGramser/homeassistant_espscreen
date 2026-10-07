@@ -1,0 +1,10 @@
+# A CYD with a DS18B20 temperature sensor on GPIO27 of CN1 (GitHub #189), as docs/EXTRA_HARDWARE.md shows it in a
+# screen's Override YAML: one-wire bus and the sensor, an entity of the screen in Home Assistant.
+one_wire:
+  - platform: gpio
+    pin: GPIO27
+
+sensor:
+  - platform: dallas_temp
+    name: "Temperature"
+    update_interval: 60s

@@ -2,10 +2,11 @@
 
 ## Layout of the code and data
 
-- `main` is the only distribution branch for the app **and all** firmware packages.
-  The old Guition branch is no longer updated; all board work goes to main.
-- `screen_manager/config.yaml` holds the app version. Bump it on every app release.
-  A Git push alone isn't enough to offer an existing app an update.
+- `main` is the distribution branch for the app **and all** firmware packages: Home Assistant installs the app from
+  it, and every screen builds its firmware from the packages on it. `dev` is where the work goes, and it reaches
+  nobody until a release (next section).
+- `screen_manager/config.yaml` holds the app version. A release bumps it once. A Git push alone isn't enough to offer
+  an existing app an update.
 - The app image contains only code (and the CHANGELOG, for the Update badge's What's new). Layouts live in `/data/screens.json`
   (`version: 2`, `screens: {...}` since 0.3.0). An update/rebuild preserves this volume data.
   Version 1 is backed up and migrated per screen when its source grid is known; see [Pages](PAGES.md).
@@ -18,98 +19,187 @@
   A changed storage version must get a tested migration with a backup.
   The app refuses unknown versions instead of overwriting the data blank.
 
-## For every release
+## Two branches
 
-1. Update `packages/core.yaml` (shared by every board), the board files under `packages/boards/` and the
-   shared components; docs/PROFILES.md says what goes where. `python3 tools/check_packages.py` checks that the
-   boards define every name the core uses (tools/check.sh runs it).
-   The editor is the Vue app in `web/`: after a change under `web/src`, run
-   `cd web && npm ci && npm test && npm run check && npm run build` and commit
-   `screen_manager/app/static` with it (that folder is the build output; never edit it by hand).
-2. Run `tools/check.sh` (with `PYTHON=.venv-portal/bin/python` on a development machine). It runs all
-   Python tests with aiohttp, PyYAML, Pillow, fontTools, jinja2 and mutagen installed, every `tests/*.cpp` with
-   `clang++ -std=c++17 -Wall -Wextra -Werror -I.`, `tools/check_packages.py`, `tools/generate_icons.py --check`, and the editor's
-   `npm ci`, `npm test`, `npm run check` and `npm run build`, and fails when that fresh build differs from the
-   `screen_manager/app/static` in Git (committed or staged). For a firmware change, `tools/check.sh --firmware --affected`
-   compiles the boards the change reaches with placeholder secrets from a temporary folder (never the real
-   `secrets.yaml`) and applies the flash budget below. A change that reaches one board or a few builds only those
-   (docs/BOARD_RELEASES.md); one that reaches every board builds the sample of four boards in `tools/profiles.py`
-   `SAMPLE` (the CYD and the Guition always, and two that differ in chip, flash layout or glass): with the list of
-   boards growing, a full build of every board is kept for when a change needs it (`--firmware` alone, or
-   `--affected --every-board`). `--sample` builds the sample directly. `tools/check.sh --render` builds every board as a program for
-   this computer (tools/render/run.py, needs SDL2; `--render --sample` only the three of `RENDER_SAMPLE`): its self test must pass lying down and standing up, and it saves
-   what every board draws under `.esphome/render/out`. Run it by hand when a change reaches what a screen draws; CI does
-   not run it (a run took up to four hours, and the next push nearly always cancelled it). What the renders were mostly
-   for, whether cards fit, is checked on every run without drawing: tests/test_layout_audit.py lays out every type of
-   the tile catalogue with each of its faces and control sets, in every size, on every board, through the firmware
-   preview, and checks where every object and text ended up and that no control shrinks below its type's touch floor.
-   A new catalogue type fails it until it has a case (or a reason it has none); what the firmware does today that the
-   checks would flag is listed in its `KNOWN` and `TOUCH_FLOORS` with the code behind it. Without Node or the preview
-   it is skipped on a laptop and fails in CI, and a preview older than the firmware sources fails everywhere.
-   **Firmware preview.** The editor's preview is the shared firmware compiled to WebAssembly (web/wasm/README.md), and
-   `tools/check.sh` fails when it is older than the firmware sources, which every firmware number bump makes it. Push a
-   firmware change to its own branch first: `.github/workflows/preview.yml` rebuilds the preview there and commits it
-   (a few minutes); pull that commit, then push to main. Locally, `sh web/wasm/build.sh` with Emscripten does the same.
-   docs/TESTING.md describes the levels of testing, up to the whole chain through a real Home Assistant. Compile sequentially: profiles with the same `DEVICE_NAME` share one build folder,
-   and a parallel build can make an upload pick the wrong `firmware.bin` (the check builds are called `check-<board>` and
-   build under `.esphome/check`, apart from the profiles of real screens). Check that no secrets are in Git.
+**dev** is where every change goes: features, fixes, issues, boards. Work there, or on a branch of your own that you
+merge into dev, and push to `origin dev`. Nobody installs dev unless they ask for it (below, "Testing dev"), so a push
+there reaches no ordinary Home Assistant and no screen; it is tested on a test Home Assistant with test screens
+(docs/TESTING.md). On dev:
 
-   **Flash budget of the CYD and every 4 MB board** (app 0.2.78). The CYD has 4 MB of flash and two update slots of
-   2,031,616 bytes since it builds with the wide partition table (app 0.4.56, docs/FLASH_LAYOUT.md); with ESPHome's
-   own table they were 1,835,008 bytes. A screen that still has that table gets the wide one after an update, and a
-   firmware that no longer fits its old slot reaches it over a bridge, so the budget goes by the wide slot. The
-   Guition's 16 MB leave it far from any limit. The same budget holds for every board with 4 MB
-   of flash (`flash_mb` in tools/profiles.py: the CYD, its ILI9342 variant `cyd9342` and the Hosyond 4.0-inch
-   `hosyond40`), and `tools/check.sh --firmware` applies it to each one it builds. A change that reaches every board
-   builds the sample, which has the CYD only: the other two share its chip, code and look and sit within a few KB of
-   it, so the nightly build of every board gates them, and when the CYD is over 90 % the check warns until they are
-   built too (`tools/check.sh --firmware --board cyd9342 --board hosyond40`). Measure the CYD on the build users get: the YAML
-   `core.installation_yaml()` writes has the Wi-Fi fallback access point (`wifi: ap:`) and `captive_portal:` only on a
-   board with more than 4 MB of flash (`hotspot` in boards.json, app 0.4.5+). On the CYD they cost 97 KB (1,720,768
-   against 1,623,552 bytes with ESPHome 2026.9), so a screen of a 4 MB board is written without them, and the manager
-   takes them out of an older screen's YAML before it builds (`Firmware.drop_hotspot`). The checkout profiles follow
-   the same flag (tools/generate_entries.py), and `tools/check.sh --firmware` refuses one that doesn't, so it measures
-   that shape; it reads the slot from the build's `partitions.csv` (`app0`, `ota_0`) and the image from
-   `firmware.ota.bin`, and `--baseline <bytes>` prints the delta against the last release. A check build without the shape users get reads
-   low: at 0.2.72 one without the hotspot read 1,453,647 bytes (79.2 %) where the user-shaped build was 1,538,032
-   bytes (83.8 %). Build with the add-on's pinned ESPHome (`screen_manager/Dockerfile`)
-   and, when the ESPHome Device Builder ships a newer ESPHome, with that one too (`ESPHOME=<its esphome command>`),
-   because users build their updates there.
+- no app version and no firmware number goes up: the release sets them once for everything since the last one;
+- what a user would notice gets a line under `## Unreleased` at the top of `screen_manager/CHANGELOG.md` (add the
+  heading when it is missing). What's new in the app shows releases only, and the release turns this section into its
+  heading;
+- the proof is a test Home Assistant with real screens: the change on the app and on the boards it concerns, looked at
+  and tapped. A push to dev starts no CI and no heavy check; those run once, at the release, on the commit that goes
+  out. A firmware change without its number only warns in `tools/check.sh` there (`CHECK_BRANCH`); the release sets
+  it.
 
-   | Image of a 4 MB board, share of its 2,031,616-byte slot | Rule |
-   |---|---|
-   | up to 90 % | normal |
-   | 90-93 % | tight: every release states its flash delta; a delta over 8 KB needs a matching saving or the maintainer's explicit OK |
-   | 93-97 % | only fixes ship |
-   | over 97 % | never: that keeps about 60 KB for ESPHome upgrades and users' own overrides |
+A pull request from someone else goes into dev as well: change its base to dev before it is merged, and its change
+reaches users with the next release, under its own line in the release notes.
 
-   **The Xtensa literal range** (app 0.3.8). On the ESP32 and the ESP32-S3 an `l32r` instruction loads a constant
-   from at most 256 KB back, and ESP-IDF puts a function's literals in front of the code that follows them. Every
-   header of the component compiles into `main.cpp`, so growing code there can push a function out of reach. The build
-   then fails at the link step with `dangerous relocation: l32r: literal target out of range`, often on an S3 board
-   while the CYD still links. The fix is its own compilation unit for a large part (the protocol parser has lived in
-   `components/smart_display/page_receiver.cpp` since 0.3.8), not a global compiler flag. To see the margin, compare
-   in a build's `.map` the address of a function's `.literal.<name>` with the end of its `.text.<name>`: 0.3.8 left
-   about 14 KB on the S3 boards and 66 KB on the CYD. The ESP32-P4 is RISC-V and has no such limit.
-3. Test app start, saving, restarting/updating with existing layouts,
-   reconnecting to HA, and an ESP restart. Test a new card on real
-   hardware. A good build doesn't replace physical touch acceptance.
-4. Bump the app version and, for a firmware change, the firmware number; write the CHANGELOG and concrete
-   test results. Which firmware number goes where depends on the boards the change reaches: the shared one in
-   `packages/core.yaml` and `FIRMWARE_VERSION`, or a board file's own for a fix for that board alone.
-   `tools/affected_boards.py` prints the number and the heading, and docs/BOARD_RELEASES.md is the recipe.
-   Only publish compatible changes directly to main. `tests/test_release_lint.py`
-   (part of `tools/check.sh`) holds `config.yaml`'s version, the first CHANGELOG heading and the
-   firmware it names, keeps the CHANGELOG headings unique and newest first, holds the firmware numbers to core and
-   board (a shared release the next X.Y.0, a board fix a revision on it), and checks that every `fonts/...` file the packages fetch from GitHub is in the tree.
-5. Commit and push main (the only release branch). Create an immutable tag
-   `screens-vX.Y.Z` from the same commit, and a GitHub release on that tag with the release notes in English
-   (`gh release create screens-vX.Y.Z --notes-file ...`). Test the remote YAML in an empty folder:
-   all components/fonts must be fetchable via GitHub.
-6. The user checks the App store for updates and updates Tessera Screen Manager.
-   For new screen features: **Update** on the screen in Tessera (or the nightly round); ESPHome Device
-   Builder's Install → Wirelessly on the existing device works too.
-   The existing YAML stays in place; `refresh: 0s` fetches current code on every build.
+**main** is what every user gets. It changes only in a release, in a hotfix, or by a change to README.md,
+README_EXTENDED.md or `docs/` alone (below, "Small rules"); after such a docs change, merge main into dev. A release
+is asked for, never the side effect of a push of work.
+
+## Testing dev
+
+Someone who wants to try what is on dev before a release adds the repository with `#dev` at the end, in Settings >
+Apps > App store > ⋮ > Repositories:
+
+```
+https://github.com/MaxGramser/homeassistant_espscreen#dev
+```
+
+The store then shows a second Tessera Screen Manager, under that repository. It is another app for Home Assistant, so:
+
+- it keeps its own data and starts without tiles. Screens and their YAML in the ESPHome folder are shared, the tiles
+  are not;
+- it uses the same port for camera images (8098) as the stable app, so stop the stable app before starting this one;
+- every screen it builds or updates comes from dev: the board package, the components and the fonts. It writes
+  `ref: dev` under `packages: display:` and `GITHUB_REF: "dev"` in the screen's substitutions. A `ref:` that names a
+  tag, a commit or another branch is left alone;
+- the version number of dev stays the same from one change to the next, so a new dev is never offered as an update.
+  Each screen has **Reinstall from dev** in its details instead, which builds the newest dev and installs it over
+  Wi-Fi like an update;
+- getting the newest app from dev: App store > ⋮ > Check for updates, then the app's ⋮ > Rebuild;
+- dev is tried on a few boards before it is pushed, not on every board, and it can break. Report what goes wrong on
+  GitHub, with the board and the app's log.
+
+To go back, stop the dev app and start the stable one. Its next update of a screen builds from main again, and sets
+both lines back to main.
+
+How the app knows: the Supervisor names an app `<hash>_<slug>`, where the hash comes from the repository URL as it
+was added. `screen_manager/app/core.py` (`CHANNELS`) knows the two hashes of this repository. An app from any other
+URL (a local copy, a fork) has no channel: new screens build from main and existing ones keep their `ref:`, so a
+screen pointed at dev or `release-candidate` by hand stays there.
+
+## The release
+
+About once a week, or when a fix can't wait for the next one, everything on dev goes out as one release. `tools/release.py`
+does the steps that can go wrong by hand, and refuses when something is missing.
+
+1. **Freeze dev.** Nobody pushes to dev until the release is out; whoever has work in progress keeps it on a branch of
+   their own. `tools/release.py status` lists the commits since main, the notes under `## Unreleased` and the firmware
+   it is. When main has commits dev lacks (a hotfix, a docs change), merge `origin/main` into dev first.
+2. **Prepare.** `tools/release.py prepare` writes the release's edits into the working tree: the app version (the last
+   number up, or `--version`), the CHANGELOG heading in place of `## Unreleased` with the firmware it ships with, the
+   firmware numbers `tools/affected_boards.py` works out (the shared one in `packages/core.yaml` and
+   `FIRMWARE_VERSION`, or a board file's own), and `screen_manager/app/boards.json`. docs/BOARD_RELEASES.md explains the
+   numbers. Read the CHANGELOG section once more: it is what Home Assistant shows under the update, with concrete test
+   results. With a new firmware number, rebuild the preview (below, "Firmware preview").
+3. **Check everything** (below, "The checks of a release"): `tools/check.sh` on the release's working tree, and the
+   renders when the release changes what screens draw. The firmware of every board, on both ESPHome versions and with
+   the flash budget, is built by CI on the release commit (step 4), so a laptop does not have to. Only compatible
+   changes go out (docs/PAGES.md, "Updating at different times"). This is where a week of work on dev meets every check
+   at once; what fails is fixed here, in the release.
+4. **Commit and push to dev**: `Release X.Y.Z (firmware A.B.C): what it brings`. `tests/test_release_lint.py` holds
+   `config.yaml`'s version, the first CHANGELOG heading and the firmware it names, keeps the CHANGELOG headings unique
+   and newest first, holds the firmware numbers to core and board (a shared release the next X.Y.0, a board fix a
+   revision on it), and checks that every `fonts/...` file the packages fetch from GitHub is in the tree. Then
+   `tools/release.py ci` starts CI on that commit: `tools/check.sh` and every board on both ESPHome versions, about an
+   hour. The upgrade test can run meanwhile.
+5. **The upgrade test.** `tools/release.py candidate` pushes the branch `release-candidate`: this commit with the
+   published packages pointing at it, so a test screen builds the release from GitHub, the way it will from main.
+   docs/TESTING.md, "6. The upgrade", is the test: the test Home Assistant on main's app and firmware, then the app of
+   the release, then each screen's own Update. Its builds fetch every component and font from GitHub, which is also
+   the test that the remote YAML is complete.
+6. **Publish.** Write the GitHub release notes in English, in a file, the way the earlier releases read. Then
+   `tools/release.py publish --notes <file> --yes`: it checks that HEAD is pushed, green in CI and the commit the
+   candidate was made of, then fast-forwards main to it, tags it `screens-vX.Y.Z`, makes the GitHub release and removes
+   the candidate. Without `--yes` it says what it would do.
+7. **After.** Point the test screens back at main. Users find the update in the App store and update Tessera Screen
+   Manager; for new screen features they use **Update** on the screen in Tessera (or the nightly round), and ESPHome
+   Device Builder's Install, Wirelessly, on the existing device works too. The existing YAML stays in place;
+   `refresh: 0s` fetches current code on every build. Every issue the release's CHANGELOG section names gets a short
+reply (which version has it, and how to get it) and is closed; `publish` lists them. Keep an eye on new issues that
+day.
+
+## A hotfix
+
+For something broken for users now, that can't wait for the next release: a screen that doesn't start, an app that
+doesn't start, data that is lost. Make a branch from main (`hotfix-<what>`), fix it there with its line under
+`## Unreleased`, and take steps 2 to 7 above on that branch (`prepare` and `publish` accept a branch whose name starts
+with `hotfix`). Then merge main into dev, so the next release has the fix and counts its numbers on from it.
+
+## The checks of a release
+
+Where things go: `packages/core.yaml` (shared by every board), the board files under `packages/boards/` and the shared
+components; docs/PROFILES.md says what goes where. `python3 tools/check_packages.py` checks that the boards define every
+name the core uses (tools/check.sh runs it). The editor is the Vue app in `web/`: after a change under `web/src`, run
+`cd web && npm ci && npm test && npm run check && npm run build` and commit `screen_manager/app/static` with it (that
+folder is the build output; never edit it by hand).
+
+Run `tools/check.sh` (with `PYTHON=.venv-portal/bin/python` on a development machine). It runs all
+Python tests with aiohttp, PyYAML, Pillow, fontTools and jinja2 installed, every `tests/*.cpp` with
+`clang++ -std=c++17 -Wall -Wextra -Werror -I.`, `tools/check_packages.py`, `tools/generate_icons.py --check`, and the editor's
+`npm ci`, `npm test`, `npm run check` and `npm run build`, and fails when that fresh build differs from the
+`screen_manager/app/static` in Git (committed or staged). For a firmware change, `tools/check.sh --firmware --affected`
+compiles the boards the change reaches with placeholder secrets from a temporary folder (never the real
+`secrets.yaml`) and applies the flash budget below. A change that reaches one board or a few builds only those
+(docs/BOARD_RELEASES.md); one that reaches every board builds the sample of four boards in `tools/profiles.py`
+`SAMPLE` (the CYD and the Guition always, and two that differ in chip, flash layout or glass): with the list of
+boards growing, a full build of every board is kept for when a change needs it (`--firmware` alone, or
+`--affected --every-board`). `--sample` builds the sample directly. `tools/check.sh --render` builds every board as a program for
+this computer (tools/render/run.py, needs SDL2; `--render --sample` only the three of `RENDER_SAMPLE`): its self test must pass lying down and standing up, and it saves
+what every board draws under `.esphome/render/out`. Run it by hand when a change reaches what a screen draws; CI does
+not run it (a run took up to four hours, and the next push nearly always cancelled it). What the renders were mostly
+for, whether cards fit, is checked on every run without drawing: tests/test_layout_audit.py lays out every type of
+the tile catalogue with each of its faces and control sets, in every size, on every board, through the firmware
+preview, and checks where every object and text ended up and that no control shrinks below its type's touch floor.
+A new catalogue type fails it until it has a case (or a reason it has none); what the firmware does today that the
+checks would flag is listed in its `KNOWN` and `TOUCH_FLOORS` with the code behind it. Without Node or the preview
+it is skipped on a laptop and fails in CI, and a preview older than the firmware sources fails everywhere.
+**Firmware preview.** The editor's preview is the shared firmware compiled to WebAssembly (web/wasm/README.md), and
+`tools/check.sh` fails when it is older than the firmware sources, which every firmware number bump makes it. On dev,
+`.github/workflows/preview.yml` rebuilds it after a push that changed the firmware and commits it to dev (a few
+minutes): pull that commit before your next push. The release commit changes the firmware number, so rebuild it there
+locally with `sh web/wasm/build.sh` (Emscripten) and `cd web && npm run build`, and commit it with the release.
+docs/TESTING.md describes the levels of testing, up to the whole chain through a real Home Assistant. Compile sequentially: profiles with the same `DEVICE_NAME` share one build folder,
+and a parallel build can make an upload pick the wrong `firmware.bin` (the check builds are called `check-<board>` and
+build under `.esphome/check`, apart from the profiles of real screens). Check that no secrets are in Git.
+
+**Flash budget of the CYD and every 4 MB board** (app 0.2.78). The CYD has 4 MB of flash and two update slots of
+2,031,616 bytes since it builds with the wide partition table (app 0.4.56, docs/FLASH_LAYOUT.md); with ESPHome's
+own table they were 1,835,008 bytes. A screen that still has that table gets the wide one after an update, and a
+firmware that no longer fits its old slot reaches it over a bridge, so the budget goes by the wide slot. The
+Guition's 16 MB leave it far from any limit. The same budget holds for every board with 4 MB
+of flash (`flash_mb` in tools/profiles.py: the CYD, its ILI9342 variant `cyd9342` and the Hosyond 4.0-inch
+`hosyond40`), and `tools/check.sh --firmware` applies it to each one it builds. A change that reaches every board
+builds the sample, which has the CYD only: the other two share its chip, code and look and sit within a few KB of
+it, so the nightly build of every board gates them, and when the CYD is over 90 % the check warns until they are
+built too (`tools/check.sh --firmware --board cyd9342 --board hosyond40`). Measure the CYD on the build users get: the YAML
+`core.installation_yaml()` writes has the Wi-Fi fallback access point (`wifi: ap:`) and `captive_portal:` only on a
+board with more than 4 MB of flash (`hotspot` in boards.json, app 0.4.5+). On the CYD they cost 97 KB (1,720,768
+against 1,623,552 bytes with ESPHome 2026.9), so a screen of a 4 MB board is written without them, and the manager
+takes them out of an older screen's YAML before it builds (`Firmware.drop_hotspot`). The checkout profiles follow
+the same flag (tools/generate_entries.py), and `tools/check.sh --firmware` refuses one that doesn't, so it measures
+that shape; it reads the slot from the build's `partitions.csv` (`app0`, `ota_0`) and the image from
+`firmware.ota.bin`, and `--baseline <bytes>` prints the delta against the last release. A check build without the shape users get reads
+low: at 0.2.72 one without the hotspot read 1,453,647 bytes (79.2 %) where the user-shaped build was 1,538,032
+bytes (83.8 %). Build with the add-on's pinned ESPHome (`screen_manager/Dockerfile`)
+and, when the ESPHome Device Builder ships a newer ESPHome, with that one too (`ESPHOME=<its esphome command>`),
+because users build their updates there.
+
+| Image of a 4 MB board, share of its 2,031,616-byte slot | Rule |
+|---|---|
+| up to 90 % | normal |
+| 90-93 % | tight: every release states its flash delta; a delta over 8 KB needs a matching saving or the maintainer's explicit OK |
+| 93-97 % | only fixes ship |
+| over 97 % | never: that keeps about 60 KB for ESPHome upgrades and users' own overrides |
+
+**The Xtensa literal range** (app 0.3.8). On the ESP32 and the ESP32-S3 an `l32r` instruction loads a constant
+from at most 256 KB back, and ESP-IDF puts a function's literals in front of the code that follows them. Every
+header of the component compiles into `main.cpp`, so growing code there can push a function out of reach. The build
+then fails at the link step with `dangerous relocation: l32r: literal target out of range`, often on an S3 board
+while the CYD still links. The fix is its own compilation unit for a large part (the protocol parser has lived in
+`components/smart_display/page_receiver.cpp` since 0.3.8), not a global compiler flag. To see the margin, compare
+in a build's `.map` the address of a function's `.literal.<name>` with the end of its `.text.<name>`: 0.3.8 left
+about 14 KB on the S3 boards and 66 KB on the CYD. The ESP32-P4 is RISC-V and has no such limit.
+
+Before a release, test app start, saving, restarting and updating with existing layouts, reconnecting to Home
+Assistant and an ESP restart (the upgrade test walks them), and a new card on real hardware. A good build doesn't
+replace physical touch acceptance.
 
 ## ESPHome versions
 
@@ -119,9 +209,8 @@ uses nothing the packages' `min_version` (in `packages/core.yaml`) lacks, and CI
 add-on's ESPHome and `min_version` to catch a form that is too new. On `min_version` a change that reaches every board
 builds the CYD alone (`MIN_VERSION_SAMPLE` in `tools/profiles.py`), plus a board for each changed file the CYD doesn't
 build: the shared code is the same on every board. Raise `min_version` only in a release of its own.
-Two moves wait for that release: the camera images' `image: - platform: online_image` form (ESPHome 2027.1 drops the
-top-level `online_image:`, `packages/features/camera.yaml`), and `ota:` with `encryption:` and the api key in
-`core.installation_yaml()` in place of the OTA password. A board that needs a newer ESPHome states its own
+One move waits for that release: `ota:` with `encryption:` and the api key in `core.installation_yaml()` in place of
+the OTA password. A board that needs a newer ESPHome states its own
 `min_version` in its board file; `tools/check.sh` then skips it on an older ESPHome instead of failing.
 
 ## Compile caches made ahead
@@ -156,7 +245,8 @@ out of the hash (they carry the screen's build folder and only map paths), and t
 - Images in `screen_manager/README.md` (the App store description) use absolute
   `https://raw.githubusercontent.com/...` URLs: the App store does not resolve relative paths.
 - A change to README.md, README_EXTENDED.md or `docs/` alone may go to main without a version bump: Home Assistant
-  installs nothing new for it, and `tools/affected_boards.py` reports no firmware change.
+  installs nothing new for it, and `tools/affected_boards.py` reports no firmware change. Merge main into dev after it.
+  A change that only touches `tools/` or `tests/`, which nobody installs, goes to dev like any other work.
 
 ## Local development
 

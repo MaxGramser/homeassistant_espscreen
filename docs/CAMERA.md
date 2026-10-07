@@ -59,11 +59,16 @@ what plays, with the title, the artist and the album, a progress bar and the key
   when the page turns back to a full-page media tile. Nothing polls.
 - A player without a picture (a radio station, a player that is off) keeps the player's icon in
   the cover's place; the app answers with an empty link and the screen stops asking.
-- A board without camera pictures (CYD, Waveshare 3.5, Hosyond 4-inch) shows the same card without
-  the picture: its icon stands in for the cover.
-- One picture loads at a time. An alert closes an open card and its cover. Under a media tile of
-  size *Full page* the alert's picture goes first: the tile's cover waits until the alert's picture
-  is there, and a cover already on its way finishes before the alert's picture starts.
+- A board without camera pictures (CYD, Waveshare 3.5, Hosyond 4-inch) has no place for a cover on its media card
+  or on a media tile over the whole page (firmware 0.46.0): the title, the bar and the keys stand together in the
+  middle and take the room, with shuffle and repeat where they fit. Before, an empty square with the player's icon
+  stood where a cover never came.
+- One picture loads at a time, the most urgent first (see "One route for every picture" below). An alert closes an
+  open card and its cover. Under a media tile of size *Full page* the alert's picture goes first: a cover already on
+  its way finishes, and the tile's cover follows the alert's picture.
+- A new track keeps the card's cover and colour until the next cover is here, then changes both at once. A media tile
+  over a whole page on a kept page has its next cover fetched ahead while the screen is in use, after everything on
+  the glass.
 
 ## A live picture on a camera tile
 
@@ -75,36 +80,46 @@ app 0.3.13 with firmware 0.3.7 the picture fills the whole tile on every size (s
 camera's view in the icon's place of a single, double-width or full-page tile: the middle of the snapshot
 cut square with the tile's rounded corners, delivered as described below.
 
-- **One download per page.** Firmware before 0.3.7 asks for a strip (newer firmware asks for frames, see
-  [A camera that fills its tile](#a-camera-that-fills-its-tile)). The screen asks Tessera Screen Manager for all the live tiles of the page at
-  once (the event `esphome.screen_camera` with `tiles`, the entities in slot order, `size`, the side of
-  the icon's circle, and `bg`, the colour of each tile behind the corners). The app answers with one
-  BMP: a strip of squares, top to bottom in that order, and every tile draws its own square out of it
-  (LVGL's image offset). Six live tiles cost the screen one download of about 50 KB; a tile over the
-  whole page gets one square of 128 px.
-- **At the pace of the fastest tile.** The page loads its pictures at the pace of its fastest live
-  tile: every 15 s when any of its tiles says 15 s, every 30 s when all of them say 30 s (firmware before
-  0.3.7 loaded such a page every 15 s). The app fetches a camera again only when that camera's own pace
-  has passed, so a 30 s camera on a 15 s page is fetched every other load. The strip comes whole every time, never as a 304:
-  ESPHome's `http_request` logs a 304 as a failed request and raises its error flag, which a page of
-  slow cameras would do every 15 s. Nobody loading means nothing fetched, as with the camera full
-  screen.
-- **After the other pictures.** The strip waits for the alert's picture, a cover on its way and the
-  camera full screen (one picture loads at a time), and does not load under an open card, in standby,
-  under a finger or while the pages are turning. Dark mode (other colours behind the corners) or a
-  changed tile asks for a new picture. On a board with PSRAM (firmware 0.3.2+, `picture_store.h`) a kept
-  page keeps its last pictures, so turning back shows them at once and the next load follows at the
-  tile's pace; the CYD-class boards have no live pictures at all.
-- **A camera without a picture** keeps its icon: the app names it with an empty entry in its answer
-  and paints a plain square of the tile's colour in the strip.
-- **A media tile's album cover** (app 0.2.92, firmware 0.2.78) rides in the same strip: **Display →
-  Album cover** on a single or double-width media player tile. The app fetches the player's picture
-  only when its address changes (a new track), so a page with a camera and a Sonos loads its strip at
-  the camera's pace with the cover reused, and a page of media tiles alone loads once. The screen asks
-  for the page again the moment a player's picture mark in its state changes. A player without a
-  picture keeps its icon; the tile over the whole page keeps the card's big cover.
-- The strip lives in a third `online_image` (`tile_image`, PSRAM) in `packages/features/camera.yaml`,
-  which every board with camera pictures includes; the CYD, the Waveshare 3.5 and the Hosyond have none.
+- **A picture per tile** (firmware 0.52.0, GitHub #183). Every tile with a picture asks for its own: a live camera,
+  a media tile's album cover, a favourite and a map. The screen asks Tessera Screen Manager with the event
+  `esphome.screen_camera` as for a page of one tile: `tiles` the entity, `idx` the tile's index (the app prepares the
+  picture the way that tile's settings say), `bg` the colour behind its corners, `dark` the look, and `atlas` one
+  frame at the top left with the picture's size in pixels, its corner radius and its shade
+  (`components/smart_display/tile_picture.h`). The app answers with a link to a BMP of exactly that frame and the
+  question's number, by which the screen finds the tile. Every app since 0.3.8 answers this question, so a new
+  screen works with an older app too.
+- **Each at its own pace.** A camera tile loads its next picture when its own pace has passed, 5 to 30 seconds. The
+  app fetches the camera just before that load, at the pace of the quickest of its tiles (as for the full view below),
+  so the picture on a tile is a fraction of a second old when it comes, not a whole pace. A new
+  track replaces the cover of its tile and sends no camera again; a page of covers alone loads once per track. The
+  picture comes whole every time, never as a 304. Nobody loading means nothing fetched, as with the camera full screen.
+- **No picture smaller for another.** The size cap (below) holds for each picture alone, so a page of five 2 × 2
+  cameras on the 10-inch glass shows every one at the full size of its tile, whatever else the page holds.
+- **After the other pictures.** One picture loads at a time, the most urgent first: the alert's picture, the camera
+  full screen, an open card's cover, then the tiles on the glass, and last what is fetched ahead for a page out of
+  sight, which breaks off for them. Of the tiles, one that has no picture yet goes first, then the one whose picture
+  is oldest, so cameras at the same pace take turns. Asking goes at once for all tiles of the page; a download waits
+  for the finger to leave the glass and the pages to stand still. In standby it keeps loading while the tiles are seen
+  (firmware 0.40.0+, `runtime_tiles::tiles_seen`): no screensaver over them, the clock included, and the glass at 5 %
+  or more. A screensaver or a darker glass stops it until the screen wakes. Dark mode (other colours behind the
+  corners) or a changed tile asks for a new picture.
+- **Kept pages.** On a board with PSRAM (`picture_store.h`) every tile's picture is kept under its own key, so turning
+  back shows them at once, and each camera loads its next picture at its own pace. A cover, a favourite or a map of a
+  kept page is fetched ahead while the screen is in use; a camera of a kept page is not.
+- **Until the next one comes** a card keeps the picture it shows of the same place: the last track's cover, a map
+  before someone moved. Until the first picture arrives, a camera card shows a spinner.
+- **A camera without a picture** keeps its icon: the app answers with an empty link.
+- **A media tile's album cover** (app 0.2.92, firmware 0.2.78): **Display → Album cover** on a single or
+  double-width media player tile. The app fetches the player's picture only when its address changes (a new track);
+  the screen asks again the moment the picture's mark in the player's state changes. A player without a picture keeps
+  its icon; the tile over the whole page keeps the card's big cover.
+- The tiles' pictures come through the third of the screen's three downloads (`picture_fetch::live`, decoded into
+  PSRAM), bound in `packages/features/camera.yaml`, which every board with camera pictures includes; the CYD, the
+  Waveshare 3.5 and the Hosyond have none.
+- **Older firmware** (0.51 and before) asks for all the pictures of a page at once, and the app still answers it that
+  way: one image spanning them all, from the top left of the first picture to the bottom right of the last (firmware
+  0.3.1+), or a strip of squares, top to bottom, before firmware 0.3.7. That image was under one cap for the whole
+  page, so on a large glass every picture of a page came smaller as soon as one more tile had a picture.
 
 ### A camera that fills its tile
 
@@ -119,28 +134,29 @@ and 2 × 2 tiles only. Two settings appear in the tile's settings with the live 
 - **On the picture**: **Name** (`overlay` left out, the default) writes the tile's name at the bottom
   in white. **Nothing** (`overlay: none`) leaves the picture alone.
 
-The screen does none of this work. On a page with a picture that fills its card, the screen asks for
-the page's pictures as frames (`atlas`: the place, size and corner of each), and the app answers with
-one BMP in which every picture already has its card's exact size in pixels, its crop or its black bars,
-its rounded corners and, under the name, a soft shade that keeps white text readable on a bright
-picture. The screen draws that image as it is. A smaller picture does not load faster: the picture
-already has exactly as many pixels as the card shows. What sets the pace is the refresh the tile chose
-and the time the camera takes to answer. On the 4-inch Guition two single tiles side by side are about
-50 KB per refresh, and a tile over the whole page about 160 KB. A refresh every 5 seconds works there,
-but the larger the picture and the slower the Wi-Fi, the longer the screen spends reading it.
+The screen does none of this work. The screen asks for each picture at its card's exact size in pixels
+(`atlas`, see above), and the app answers with a BMP that already has its crop or its black bars, its rounded corners
+and, under the name, a soft shade that keeps white text readable on a bright picture. The screen draws that image as
+it is. A smaller picture does not load faster: the picture already has exactly as many pixels as the card shows. What
+sets the pace is the refresh the tile chose and the time the camera takes to answer. On the 4-inch Guition two single
+tiles side by side are about 25 KB each per refresh, and a tile over the whole page about 160 KB. A refresh every 5
+seconds works there, but the larger the picture and the slower the Wi-Fi, the longer the screen spends reading it.
 
 From app 0.4.13 with firmware 0.9.0 no picture is larger than 1024 pixels either way or 1.25 MB once the
-screen has decoded it, whatever the size of the glass. A page whose pictures would be larger (three
-large cameras on a 10-inch screen) asks for all of them a little smaller, and each sits in the middle
-of its card on a dark ground, so the name under it stays readable. Every screen up to 1024x600 keeps
-its pictures at full size.
+screen has decoded it, on a board with 8 MB of PSRAM. Since firmware 0.52.0 that cap holds for each tile's picture
+alone, and a board with more memory takes larger pictures: one picture may be a third of its picture store, up to
+2048 pixels a side (`picture_store::cap_for`). The P4 boards with 32 MB keep 6 MB of pictures, so 2 MB a picture: the
+10-inch glass gets a camera over its whole page, its full view, a map and the screensaver at its own 1280 x 800. The
+screen says so with `cap` (the bytes) when it asks for a picture of the whole glass, and the app honours up to 4 MB
+(`camera_feed.picture_cap`); an older app keeps the common cap. A picture that is still smaller than its place sits in
+the middle of its card on a dark ground, so the name under it stays readable.
 
 A screen with firmware 0.3.3 or newer gets its live pictures in 8-bit colour: a palette of the picture's own
 256 colours, dithered so a shade stays smooth. That is a third of the bytes of a 24-bit BMP (a 2 × 2 card
 on the 4-inch Guition: about 100 KB instead of 300 KB), at about the quality of the screen's own 16-bit
-colour. ESPHome decodes a BMP while it downloads, in the screen's main loop, so fewer bytes means a picture
-that arrives sooner and a screen that answers a touch sooner. Preparing the palette costs Home Assistant a
-few milliseconds per picture, also on a Raspberry Pi. Older firmware keeps 24-bit pictures.
+colour. The screen decodes a BMP while it downloads, so fewer bytes means a picture that arrives sooner.
+Preparing the palette costs Home Assistant a few milliseconds per picture, also on a Raspberry Pi. Older
+firmware keeps 24-bit pictures.
 
 The camera's state ("Idle") is not written on the picture. Until the first picture arrives, the tile
 shows a spinner; a camera that has no picture for Home Assistant (a camera that only streams) keeps its
@@ -174,22 +190,30 @@ The screen never talks to Home Assistant about images, and it never holds a Home
 2. The app fetches the snapshot from Home Assistant with its own access (the same pictures the
    Home Assistant frontend shows), and makes it exactly as large as the screen draws it: full screen
    at most the board's canvas (`camera.full` in boards.json: 480×480 on the 4-inch Guition, 800×480 on
-   the Waveshare 4.3 and 7, 1024×600 on the JC1060P470), an alert card at its frame (`camera.thumb`,
+   the Waveshare 4.3, 5 and 7, 1024×600 on the JC1060P470), an alert card at its frame (`camera.thumb`,
    392×220 on the 4-inch Guition), proportions kept. Neither is ever larger than the cap above
    (`camera_feed.PICTURE_MAX_SIDE` and `PICTURE_MAX_BYTES`): the JC8012P4A1's 1280×800 canvas gets a
    full-screen picture of at most 1024×640, shown in the middle.
 3. It serves the result as an uncompressed BMP on **port 8098** under a random link, and sends the
-   link to the screen. ESPHome's `online_image` loads it. A screen on another network or VLAN than Home
-   Assistant needs to reach this port on Home Assistant's host; without it a camera tile shows its
-   name and state but no picture, and the screen's log says `HTTP Request failed` for the link. The full screen, the alert and the cover are
-   24-bit; live tile pictures go to firmware 0.3.3+ in 8-bit (see above).
+   link to the screen. The screen downloads it in a task of its own, beside its main loop
+   (`components/smart_display/picture_fetch.cpp`, firmware 0.49.0+), and decodes the rows as they arrive straight
+   into the pixels LVGL draws: touch, drawing and Home Assistant never wait for the network. Before, ESPHome's
+   `online_image` downloaded in the main loop, 16 KB a turn, each turn waiting for its chunk; a page of album
+   covers held the glass still for two to three seconds and a camera picture for the better part of one. A
+   screen on another network or VLAN than Home Assistant needs to reach this port on Home Assistant's host;
+   without it a camera tile shows its name and state but no picture, and the screen's log says
+   `no connection to` the link's address. The full screen, the alert and the cover are 24-bit; live tile
+   pictures go to firmware 0.3.3+ in 8-bit (see above).
 
-While a camera is open, the screen loads its link every four seconds, one image at a time. The app
-serves the last snapshot at once and starts fetching the next one, so each load gets a picture one
-load younger: the picture changes at the screen's steady pace. (A fetch on its own clock next to the
-screen's made the picture change after 1.5 s one time and 6 s the next.) A slow camera makes the
-images older, never the screen slower, and nothing queues up. Nobody loading means nothing fetched.
-A link that nobody loads for two minutes stops working; an alert's picture stays for half an hour.
+While a camera is open, the screen loads its link every four seconds, one image at a time. Each load sets the
+camera's next fetch for just before the next load: four seconds on, less the time the camera took to answer last
+time and half a second (`camera_feed.CameraFeed.ahead`), so the next load finds a snapshot a fraction of a second old
+and the picture changes at the screen's steady pace. A load whose fetch is still on its way waits up to 1.5 seconds
+for it, then takes the last snapshot. (Firmware before 0.52.0 got the snapshot fetched at the load before, a picture
+four seconds old; a fetch on its own clock next to the screen's made the picture change after 1.5 s one time and 6 s
+the next.) A slow camera makes the images older, never the screen slower, and nothing queues up. Nobody loading means
+nothing fetched, beyond the one fetch the last load set. A link that nobody loads for two minutes stops working; an
+alert's picture stays for half an hour.
 
 **Why BMP.** ESPHome decodes a BMP piece by piece while it downloads (16 KB per round of its main
 loop since firmware 0.2.73, 4 KB before). A JPEG of the full screen took 0.6 s in one piece on the
@@ -214,7 +238,8 @@ Guition it comes in about 1.8 s (2.8 s with 4 KB).
   the camera or the alert closes. A new alert closes an open camera first.
 - The internal heap stays level while a camera refreshes: 77.2 KB free after 91 images in six minutes,
   and PSRAM unchanged.
-- Standby, **Back to page 1** and a new layout close the camera; nothing loads in standby.
+- Standby, **Back to page 1** and a new layout close the camera. In standby only the screensaver's picture loads, or
+  the tiles' pictures while the dimmed tiles are seen (see the live pictures above).
 - The first image (firmware 0.2.73, measured 2026-09-19 with an EZVIZ camera): the screen asks when
   the camera opens and loads the link as soon as it comes. About 2 s when the app still has the
   camera's last snapshot (it keeps one for 30 s after the last load), 4.5 s when it must ask Home
@@ -224,15 +249,53 @@ Guition it comes in about 1.8 s (2.8 s with 4 KB).
   wait on its Wi-Fi less often while an image comes in: a loop held over 50 ms in one of eleven
   opens, against five of twelve with power save.
 
+## One route for every picture
+
+Every picture on a screen goes the same way (firmware 0.52.0, `components/smart_display/picture_loader.h`): the
+camera full screen and the screensaver, an alert's picture, the media card's cover, a player's library, each tile's own
+picture, and the cover of a media tile over a whole page (on the glass, and fetched ahead for a kept page). Each of them
+only says, every quarter second, what it wants to see: a key that names the picture, the download slot it comes
+through, how much it matters, and how the app is asked for it. One loader decides for all of them:
+
+- **The store says what is there.** Whether a picture is had is read from the store every round, never from a flag an
+  owner keeps, so a picture that left the store (to make room) is asked for again at once.
+- **One download at a time, the most urgent first:** an alert, the full view and the screensaver, the media card, the
+  library, the tiles on the glass, and last a picture fetched ahead for a page out of sight. Of equal ones, a picture
+  not yet there goes before a refresh, then the oldest picture. Something on the glass breaks off a download for a page
+  out of sight; a download nobody wants any more breaks off too. Pages turned fast, a card opened and closed before its
+  picture came: nothing is left behind, and the page that stays loads first.
+- **Asking is free, loading waits.** Asking the app is an event and goes at once; a download waits for the finger to
+  leave the glass and the pages to stand still. A picture fetched ahead asks only once nothing on the glass waits.
+- **One rule for cleaning up.** A picture its owner moved on from (another track, another focus on a map, someone on a
+  map who moved) goes once nothing draws it, and so does the cover of a track its player no longer plays. What an
+  owner still holds stays, so a page that comes back has its pictures at once; when the store is full, by bytes or by
+  places, the picture used longest ago that nothing draws makes way (`picture_store.h`). The screen's log says what
+  the store holds whenever that changes (`store: 5 pictures, 578 of 1638 KB (cover tile tile cover tile), 0 to go`).
+
 ## For developers
 
-- `screen_manager/app/camera_feed.py`: fetching, sizing, links and the port; `encode_live` and `CameraFeed.live`
-  make the strip for a page's live tiles (`Manager.answer_live` in `server.py` checks the tiles against the layout).
+- `screen_manager/app/camera_feed.py`: fetching, sizing, links and the port; `CameraFeed.live` makes a tile's picture
+  (with `tile_art.encode`) and an older screen's strip (`encode_live`); `Manager.answer_live` in `server.py` checks the
+  tiles against the layout.
 - `components/smart_display/camera_view.h`: when to ask for a link and when to load again
   (`tests/test_camera_view.cpp`).
-- `components/smart_display/runtime_tiles.h`: the full-screen view, the alert picture, the live tiles
-  (`live_tick`, `live_place`) and the `camera` message.
-- `packages/features/camera.yaml` (included by every board with camera pictures): the three `online_image` components (the camera full screen and the
-  cover, the alert's picture, the live tiles' strip), the alert frame, and the diagnostic action `preview_camera`
-  (an entity opens it, an empty entity closes it).
+- `components/smart_display/picture_loader.h`: the one route every picture goes (`tests/test_picture_loader.cpp`
+  drives it through fast page turns, cards closed before their picture, priorities, pictures that left the store,
+  refreshes, answers without a picture and failures).
+- `components/smart_display/tile_picture.h`: a tile's own picture, its frame, its key, the question and how an answer
+  finds its tile (`tests/test_tile_picture.cpp`).
+- `components/smart_display/runtime_tiles.h`: what each picture wants (`pictures_round` and the `*_want` functions
+  beside it), the full-screen view, the alert picture, the tiles' pictures (`card_picture_wants`, `tile_ask`,
+  `tile_picture_place`), the store (`picture_of`, `pictures_collect`) and the `camera` message.
+- `components/smart_display/picture_fetch.h` and `picture_fetch.cpp`: the download beside the main loop, one task per
+  picture, and the BMP decoder (`tests/test_picture_fetch.cpp` checks the link, the answer's head and the decoder).
+- `packages/features/camera.yaml` (included by every board with camera pictures): the three pictures bound to their
+  cards (the camera full screen and the cover, the alert's picture, the tiles' own pictures), the 50 ms hand-off of a
+  finished download, the `LV_USE_IMAGE` flag, the alert frame, and the diagnostic action `preview_camera` (an entity
+  opens it, an empty entity closes it).
 - `tests/test_camera.py`: the app side and the words both sides share.
+- Every step of every picture is in the screen's log at DEBUG (`logger: level: DEBUG` in a screen's Override YAML),
+  under the tag `picture`: who wants which picture, the question and its answer, the download, the store keeping,
+  renewing, retiring and freeing each copy (and why), a picture put on its card on the glass or on a kept page, and an
+  answer to an older question dropped. The `store:` line at INFO sums it up whenever it changes; "0 to go" means no
+  copy waits to be freed.

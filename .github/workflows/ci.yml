@@ -1,16 +1,18 @@
-# The release checks of docs/RELEASING.md step 2 on every push and pull request to main (app 0.2.78). Both jobs run
-# tools/check.sh, the same script a release runs on a laptop, so CI and a local run can't drift apart. The renders
-# (tools/check.sh --render) run by hand only; the browser's firmware preview is rebuilt by preview.yml.
+# The release checks of docs/RELEASING.md (app 0.2.78). Both jobs run tools/check.sh, the same script a release runs on
+# a laptop, so CI and a local run can't drift apart. The renders (tools/check.sh --render) run by hand only; the
+# browser's firmware preview is rebuilt by preview.yml. main is what every user gets and dev is where the work goes
+# (docs/RELEASING.md, "Two branches"): a push to dev starts nothing here, the work there is proven on the bench boards,
+# and the release runs this by hand on its commit (tools/release.py ci), every board on both ESPHome versions.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   schedule:
-    - cron: "0 2 * * *"      # every board, every night
-  workflow_dispatch:          # the same, by hand
+    - cron: "0 2 * * *"      # every board, every night, on main: what every screen builds today
+  workflow_dispatch:          # every board, by hand and for a release (tools/release.py ci)
 
 permissions:
   contents: read
@@ -58,6 +60,10 @@ jobs:
           # Without a green commit to compare with, the commit before the push: an empty CHECK_BASE would compare
           # main with itself and check nothing (the firmware job builds everything instead).
           CHECK_BASE: ${{ steps.base.outputs.base || github.event.before }}
+          # The branch the commit is on, or that a pull request goes to. On main every commit is a release, so a firmware
+          # change without its number fails against CHECK_BASE; on dev the numbers are set at the release, so it is held
+          # against main there and fails only once the app's version went up (tools/check.sh, firmware_numbers_raised).
+          CHECK_BRANCH: ${{ github.base_ref || github.ref_name }}
 
   firmware:
     name: firmware (${{ matrix.esphome }})

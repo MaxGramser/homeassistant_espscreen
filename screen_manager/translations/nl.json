@@ -121,8 +121,12 @@
       "wifi_weak": "Signaal te zwak ({dbm} dBm)",
       "wifi_failed": "Verbinden mislukt, opnieuw proberen",
       "loading_tiles_count": "Tegels laden {n}/{total}",
-      "hint_home_assistant": "Home Assistant heeft nog niet verbonden. Staat dit scherm onder Instellingen > Apparaten & diensten > ESPHome?",
+      "hint_home_assistant": "Tessera voegt dit scherm toe zodra Home Assistant het op dit adres bereikt.",
       "hint_tessera": "Draait de app Tessera Screen Manager in Home Assistant?",
+      "first_tiles": "Kies je tegels",
+      "first_tiles_open": "Open Tessera in Home Assistant",
+      "first_tiles_pick": "Kies tegels voor {name}",
+      "first_tiles_save": "Druk op Opslaan & versturen",
       "updating": "Firmware bijwerken {percent}",
       "update_restart": "Bijgewerkt, opnieuw opstarten",
       "update_failed": "Bijwerken mislukt",
@@ -200,6 +204,7 @@
       "page": "Pagina {n}",
       "refused": "Geweigerd",
       "command_sent": "Opdracht verstuurd...",
+      "updating": "Bezig...",
       "confirmed": "Bevestigd door Home Assistant",
       "no_answer": "Geen antwoord"
     },
@@ -525,10 +530,35 @@
         "open": "Openen",
         "open_door": "Open deur",
         "open_door_confirm": "Open deur?"
+      },
+      "humidifier_mode": {
+        "normal": "Normaal",
+        "eco": "Eco",
+        "away": "Afwezig",
+        "boost": "Boost",
+        "comfort": "Comfortabel",
+        "home": "Thuis",
+        "sleep": "Slaapstand",
+        "auto": "Automatisch",
+        "baby": "Baby"
+      },
+      "humidifier_action": {
+        "humidifying": "Bevochtigen",
+        "drying": "Drogen",
+        "idle": "Inactief",
+        "off": "Uit"
       }
     },
     "navigation": {
       "back": "Terug"
+    },
+    "energy": {
+      "solar": "Zon",
+      "grid": "Net",
+      "battery": "Batterij",
+      "home": "Thuis",
+      "other": "Overig",
+      "no_power": "Geen vermogenssensoren in de energie-instellingen van Home Assistant"
     },
     "audio": {
       "idle": "Inactief",
@@ -735,7 +765,8 @@
         "enter_ip": "Vul het IP-adres van dit scherm in.",
         "no_profile": "Geen ESPHome-profiel gevonden voor dit scherm. Controleer de naam in de ESPHome-map.",
         "ip_unknown": "IP-adres onbekend. Vul het eenmalig in; nieuwe firmware meldt het daarna zelf.",
-        "all_updated": "Alle bereikbare schermen zijn al bijgewerkt."
+        "all_updated": "Alle bereikbare schermen zijn al bijgewerkt.",
+        "reinstall_dev": "Dezelfde firmware opnieuw installeren kan alleen in het dev-kanaal."
       },
       "remove": {
         "not_allowed": "Deze app mag geen integratie uit Home Assistant verwijderen. Verwijder het scherm in Home Assistant zelf, onder Instellingen → Apparaten & diensten.",
@@ -794,7 +825,15 @@
         "storage": "Feedback staat uit: de bewaarde gegevens zijn door een andere versie van Tessera geschreven."
       },
       "media": {
-        "browse": "{name} gaf zijn bibliotheek niet."
+        "browse": "{name} gaf zijn bibliotheek niet.",
+        "link_invalid": "Dit is geen Spotify-link. Kopieer er een in de Spotify-app met Delen > Link kopiëren.",
+        "link_short": "Een spotify.link-adres verwijst alleen door. Open het in je browser en kopieer het lange adres waar het heen gaat.",
+        "link_player": "{name} speelt geen Spotify-links af."
+      },
+      "allow_actions": {
+        "not_allowed": "Home Assistant laat deze app zijn integraties niet wijzigen. Doe het in Home Assistant zelf, onder Instellingen → Apparaten & diensten.",
+        "no_entry": "Home Assistant heeft dit scherm niet als ESPHome-apparaat.",
+        "failed": "Home Assistant nam het niet over. Open in Home Assistant Instellingen → Apparaten & diensten → ESPHome, kies dit scherm, dan Configureren, en zet “Sta het apparaat toe om Home Assistant-acties uit te voeren” aan."
       },
       "audio_test_unavailable": "De audiotest is niet beschikbaar op dit scherm."
     },
@@ -821,6 +860,8 @@
       "offline": "Scherm was offline; volgende keer opnieuw.",
       "unknown_target": "Profiel of IP-adres onbekend; werk dit scherm handmatig bij.",
       "build_failed": "Bouwen of installeren mislukt; bekijk het log onder Firmware & USB.",
+      "build_memory": "Te weinig geheugen om de firmware te bouwen: er moet ongeveer {need} vrij zijn en dat is {free}. Stop een paar add-ons tijdelijk of geef de machine meer geheugen; zie Firmware & USB.",
+      "build_memory_limit": "Te weinig geheugen om de firmware te bouwen, ook met één compiler tegelijk. Stop een paar add-ons tijdelijk of geef de machine meer geheugen; zie Firmware & USB.",
       "no_report": "Scherm meldde zich niet met firmware {version}; controleer het scherm.",
       "dropped_off": "Scherm viel weg na de update; controleer het scherm.",
       "updated": "Bijgewerkt naar firmware {version}."
@@ -913,6 +954,13 @@
         },
         "remote": {
           "toggle": "Aan/uit-schakelaar"
+        },
+        "humidifier": {
+          "setpoint": "Luchtvochtigheid − / +",
+          "slider": "Luchtvochtigheidsslider",
+          "mode": "Modusknoppen",
+          "setpoint_mode": "Luchtvochtigheid − / + en modusknoppen",
+          "toggle": "Aan/uit-schakelaar"
         }
       },
       "top_bar": {
@@ -921,7 +969,8 @@
           "analog": "Analoge klok",
           "date": "Datum",
           "wifi": "Wifi-signaal",
-          "link": "Verbindingswaarschuwing"
+          "link": "Verbindingswaarschuwing",
+          "battery": "Accu"
         },
         "contents": {
           "state": "Status",
@@ -950,6 +999,14 @@
         "wifi_shows": {
           "always": "Altijd",
           "weak": "Alleen als zwak"
+        },
+        "battery_contents": {
+          "icon": "Alleen icoon",
+          "percent": "Percentage"
+        },
+        "battery_shows": {
+          "always": "Altijd",
+          "low": "Alleen als laag"
         }
       }
     },
@@ -1189,7 +1246,8 @@
         "heart": "Favoriet",
         "alert_outline": "Waarschuwing",
         "cog": "Instellingen",
-        "broom": "Schoonmaken"
+        "broom": "Schoonmaken",
+        "diabetes": "Diabetes"
       }
     },
     "screen": {
@@ -1197,7 +1255,8 @@
         "clock": "Klok",
         "nightstand": "Nachtkastjesklok",
         "page": "Ga naar pagina {page}",
-        "map": "Kaart"
+        "map": "Kaart",
+        "energy": "Energie"
       },
       "identify": {
         "title": "Dit is {name}",
@@ -1348,7 +1407,11 @@
         "no_profile": "Geen ESPHome-profiel met deze apparaatnaam gevonden.",
         "whats_new": "Wat is er nieuw",
         "full_log": "Volledig log",
-        "short": "Update"
+        "short": "Update",
+        "reinstall": "Opnieuw installeren vanaf dev",
+        "reinstall_why": "Bouwt dit scherm opnieuw vanuit de nieuwste dev en installeert het via wifi. Op dev blijft het versienummer gelijk, dus een nieuwe dev wordt nooit als update aangeboden.",
+        "in_tessera": "Update eerst via Tessera",
+        "in_tessera_why": "Update dit scherm eerst hier in Tessera. Het heeft nog de flash-indeling van zijn eerste installatie, en de huidige firmware past daar niet meer in, dus ESPHome Device Builder kan het niet updaten. Tessera zet het onderweg om naar de nieuwe indeling en houdt zijn instellingen. Daarna werken beide manieren."
       },
       "host": {
         "hint": "Eenmalig het IP-adres; nieuwe firmware meldt het zelf.",
@@ -1357,9 +1420,11 @@
         "start": "Starten"
       },
       "pending": {
-        "installed": "Geïnstalleerd, maar nog niet in Home Assistant. Voeg het ontdekte ESPHome-apparaat toe onder Instellingen → Apparaten & diensten, plak daar de API-sleutel en zet bij Configureren “Allow the device to perform Home Assistant actions” aan.",
-        "downloaded": "Firmware gedownload, nog niet in Home Assistant. Zet die met ESPHome Web op het scherm, voeg daarna het ontdekte ESPHome-apparaat toe onder Instellingen → Apparaten & diensten, plak daar de API-sleutel en sta bij Configureren de Home Assistant-acties toe.",
-        "not_flashed": "Nog niet in Home Assistant. Al geflasht? Voeg het ESPHome-apparaat toe onder Instellingen → Apparaten & diensten en sta daarna bij Configureren de Home Assistant-acties toe. Nog niet geflasht? Firmware & USB → {file}."
+        "installed": "Geïnstalleerd. Wachten tot hij op je wifi komt...",
+        "downloaded": "Firmware gedownload. Zet die met ESPHome Web op het scherm.",
+        "not_flashed": "Nog niet geïnstalleerd: Firmware & USB → {file}.",
+        "adding": "Op je wifi. Wordt klaargezet...",
+        "failed": "Tessera kan hem niet zelf aan Home Assistant toevoegen. Voeg hem toe onder Instellingen → Apparaten & diensten, met de API-sleutel hieronder."
       },
       "copy_api_key": "API-sleutel kopiëren",
       "files": "Schermbestanden downloaden",
@@ -1421,7 +1486,8 @@
       "title": "Je schermen",
       "summary": "{online} van {count} online",
       "open": "{name} openen",
-      "no_layout": "Nog geen indeling"
+      "no_layout": "Nog geen indeling",
+      "in_tessera": "Update eerst via Tessera"
     },
     "screen_view": {
       "confirm": {
@@ -1536,7 +1602,8 @@
         "timer": "Timers",
         "screen": "Scherm",
         "alarm_control_panel": "Alarm",
-        "lock": "Sloten"
+        "lock": "Sloten",
+        "humidifier": "Luchtbevochtigers"
       },
       "room": "Ruimte",
       "hide_placed": "Geplaatste verbergen",
@@ -1560,7 +1627,12 @@
       "last_known": "Zoals het scherm het zei toen het voor het laatst online was.",
       "full_library": "Het geheugen van het scherm voor tegels is bijna vol. Je kunt nog steeds tegels toevoegen.",
       "confirm_close": "Met deze tegel is het geheugen van het scherm voor tegels voor {n} % vol. Toch toevoegen?",
-      "confirm_over": "Met deze tegel heeft de indeling meer geheugen nodig dan het scherm voor tegels heeft gemeten ({n} %). Komt het scherm tekort, dan tonen sommige tegels minder, of weigert het de indeling. Toch toevoegen?"
+      "confirm_over": "Met deze tegel heeft de indeling meer geheugen nodig dan het scherm voor tegels heeft gemeten ({n} %). Komt het scherm tekort, dan tonen sommige tegels minder, of weigert het de indeling. Toch toevoegen?",
+      "measuring": "Meten",
+      "measuring_title": "Het scherm meet zijn geheugen voor tegels zodra de tegels staan, ongeveer een minuut nadat het start of een nieuwe indeling krijgt.",
+      "none": "Geen ruimte",
+      "none_title": "Het scherm heeft nu geen geheugen over voor tegels. Opslaan kan nog steeds: komt het scherm tekort, dan tonen sommige tegels minder, of weigert het de indeling.",
+      "confirm_none": "Het scherm heeft nu geen geheugen over voor tegels. Komt het tekort, dan tonen sommige tegels minder, of weigert het de indeling. Deze tegel toch toevoegen?"
     },
     "domains": {
       "light": "Licht",
@@ -1592,7 +1664,8 @@
       "image": "Afbeelding",
       "entity": "Entiteit",
       "alarm_control_panel": "Alarmpaneel",
-      "lock": "Slot"
+      "lock": "Slot",
+      "humidifier": "Luchtbevochtiger"
     },
     "displays": {
       "standard": "standaard",
@@ -1821,7 +1894,25 @@
         "open": "{name} openen",
         "speaker": "Speaker",
         "speaker_now": "Waar hij speelt",
-        "speaker_hint": "Waar hij start. \"Waar hij speelt\" vraagt op het scherm om een speaker als de speler nergens speelt."
+        "speaker_hint": "Waar hij start. \"Waar hij speelt\" vraagt op het scherm om een speaker als de speler nergens speelt.",
+        "link": "Of plak een Spotify-link",
+        "link_hint": "Een link of URI uit de Spotify-app, via Delen > Link kopiëren: een playlist, album, artiest, nummer of podcast.",
+        "link_add": "Toevoegen",
+        "shuffle": "Shuffle",
+        "shuffle_hint": "Wordt gezet bij het starten. Met shuffle aan slaat hij één nummer over, zodat het eerste nummer al geshuffled is. \"Zoals hij staat\" laat de speler zoals hij is.",
+        "shuffle_keep": "Zoals hij staat",
+        "shuffle_on": "Aan",
+        "shuffle_off": "Uit",
+        "repeat": "Herhalen",
+        "repeat_hint": "Wordt gezet bij het starten. \"Zoals hij staat\" laat de speler zoals hij is.",
+        "repeat_off": "Uit",
+        "repeat_all": "Herhaal alles",
+        "repeat_one": "Herhaal één",
+        "repeat_keep": "Zoals hij staat"
+      },
+      "energy": {
+        "hint": "Het vermogen van het huis op dit moment, getekend zoals de Energie-weergave van Home Assistant het tekent: zon, net, batterij en je apparaten, uit de Energie-instellingen van Home Assistant. Een tik op een cirkel opent de geschiedenis van die sensor.",
+        "needs_firmware": "De energiekaart heeft firmware 0.47.0 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm."
       }
     },
     "tile_card": {
@@ -1895,7 +1986,8 @@
         "overflow": "Past niet naast de naam",
         "dial": "Wijzerplaat",
         "hidden_signal": "Verborgen zolang het signaal goed is",
-        "hidden_link": "Verborgen zolang alles verbonden is"
+        "hidden_link": "Verborgen zolang alles verbonden is",
+        "hidden_battery": "Verborgen zolang de accu boven 20 % is"
       },
       "live": {
         "hidden": "Nu verborgen: niet actief",
@@ -1933,9 +2025,12 @@
       "left_hint": "Titel en thuisknop: in de pagina-instellingen",
       "wifi_sample": "Het signaal van dit scherm zelf",
       "link_sample": "Alleen als Home Assistant of Tessera weg is",
+      "battery_sample": "De accu van dit scherm zelf",
       "wifi_hint": "Het scherm leest zijn eigen signaal, dus dit item blijft in de balk staan als Home Assistant weg is. Vier streepjes tot één, doorgestreept zonder netwerk.",
       "wifi_show_hint": "Alleen als zwak houdt de balk leeg tot het signaal op één streepje staat of het netwerk weg is.",
       "link_hint": "Verschijnt alleen als Home Assistant of Tessera weg is, zodat je in één oogopslag ziet waarom waarden ontbreken.",
+      "battery_hint": "Het scherm leest zijn eigen accu, dus dit item blijft in de balk als Home Assistant weg is. Het icoon volgt het niveau zoals Home Assistant het tekent, met een bliksemschicht tijdens het laden.",
+      "battery_show_hint": "Alleen als laag houdt de balk leeg tot de accu op 20 % of minder staat.",
       "status_firmware": "Dit item verschijnt vanaf firmware {version}. Tot die update laat het scherm het weg."
     },
     "screen_settings": {
@@ -2007,29 +2102,51 @@
         "show": "Tonen in stand-by",
         "standby_off": "Zet Automatisch stand-by aan om hem te gebruiken.",
         "needs_firmware": "Werk dit scherm bij naar firmware {version} om een screensaver te gebruiken.",
-        "order": "Het scherm toont de eerste die beschikbaar is. Sleep om de volgorde te wijzigen.",
         "no_pictures": "Dit scherm heeft geen geheugen voor afbeeldingen en toont daarom de klok.",
-        "tap": "Een tik maakt het scherm wakker. Alleen de knoppen van een speler werken op de screensaver: afspelen of pauze en het volume.",
+        "lead": "Toont de eerste die er is",
         "use": "{name} gebruiken",
-        "choose_media": "Kies een speler",
-        "add_media": "Nog een speler",
-        "players": "Spelers, de eerste bovenaan",
-        "choose_camera": "Kies een camera",
-        "weather_auto": "Buitentemperatuur uit Home Assistant",
-        "weather_none": "Geen temperatuur",
         "kinds": {
           "media": "Muziek die speelt",
           "camera": "Camera",
           "clock": "Klok"
         },
-        "details": {
-          "media": "Terwijl hij speelt, met de hoes",
-          "media_unset": "Kies een speler om hem te gebruiken",
-          "media_more": "De eerste die speelt, met de hoes",
-          "camera": "Het beeld, elke 15 seconden",
-          "camera_unset": "Kies een camera om hem te gebruiken",
-          "clock": "De tijd, de datum en de buitentemperatuur, wit op zwart"
-        }
+        "summary": {
+          "media_none": "Nog geen speler",
+          "camera_none": "Nog geen camera",
+          "temperature": "Buitentemperatuur",
+          "time_date": "Tijd en datum",
+          "off": "Uit"
+        },
+        "on": "Tonen op de screensaver",
+        "place": "{n} van {count}",
+        "earlier": "Eerder proberen",
+        "later": "Later proberen",
+        "players_title": "Spelers",
+        "players": "Spelers, de eerste bovenaan",
+        "players_hint": "De eerste die speelt, verschijnt met zijn hoes.",
+        "player_add": "Speler toevoegen",
+        "remove_player": "{name} weghalen",
+        "keys_hint": "Afspelen, pauze en het volume werken op de screensaver. Een tik ergens anders maakt het scherm wakker.",
+        "choose_camera": "Kies een camera",
+        "camera_hint": "Het beeld, elke 15 seconden",
+        "glass": "Op het scherm",
+        "temperature": "Temperatuur",
+        "weather_auto": "Automatisch",
+        "weather_none": "Geen temperatuur",
+        "beside": "Ernaast",
+        "items_add": "Voeg een entiteit toe",
+        "items_hint": "Naast de temperatuur, op één regel: een sensor, een deur, een lamp.",
+        "items_full": "De klok heeft ruimte voor {n} entiteiten.",
+        "items_already": "Dit staat al op de klok.",
+        "items_removed": "{name} van de klok gehaald",
+        "items_title": "Entiteiten bij de klok",
+        "items_slots": "{used} van {n}",
+        "item_text": "Tekst",
+        "item_icon": "Icoon",
+        "item_both": "Beide",
+        "item_look": "Toont",
+        "item_hint": "Zwart-wit op de screensaver, welke kleur de entiteit ook heeft.",
+        "items_add_title": "Aan de klok toevoegen"
       },
       "audio_tests": {
         "test_microphone": "Microfoon testen",
@@ -2220,9 +2337,9 @@
         "uploading": "Haal de USB-kabel nog niet los.",
         "building": "Bouwen kan op een Home Assistant-machine zoals een Raspberry Pi 20 minuten of langer duren, zeker de eerste keer. Dat is normaal. Je kunt deze pagina verlaten: de installatie loopt door en je vindt hem terug onder Nieuw scherm.",
         "building_download": "Bouwen kan op een Home Assistant-machine zoals een Raspberry Pi 20 minuten of langer duren, zeker de eerste keer. Dat is normaal. Je kunt deze pagina verlaten: het bouwen loopt door en je vindt het terug onder Nieuw scherm.",
-        "downloaded": "Zet de firmware vanaf je eigen computer op het scherm en koppel het scherm daarna aan Home Assistant.",
-        "booted": "Het scherm start op en verbindt met je Wi-Fi. Koppel het nu aan Home Assistant:",
-        "booted_calibrate": "Het scherm start op en verbindt met je Wi-Fi. Het vraagt eerst om een touch-kalibratie: tik op de kruisjes. Koppel het nu aan Home Assistant:",
+        "downloaded": "Zet hem vanaf je eigen computer op het scherm. Hij verschijnt hier zodra hij op je wifi is.",
+        "booted": "Het scherm start op, maakt verbinding met je wifi en komt vanzelf in Home Assistant.",
+        "booted_calibrate": "Het scherm start op en maakt verbinding met je wifi. Eerst vraagt het om een aanraakkalibratie: tik op de kruisjes. Daarna komt het vanzelf in Home Assistant.",
         "see_log": "Bekijk het log hieronder."
       },
       "download_steps": {
@@ -2237,9 +2354,9 @@
       "download_keep": "Het bestand bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf.",
       "api_key": "API-sleutel",
       "pairing": {
-        "ha": "{bold} Dit gebeurt buiten Tessera. Home Assistant ontdekt {name} als ESPHome-apparaat; klik op Toevoegen. Niet ontdekt? Voeg ESPHome handmatig toe met het IP-adres van het scherm.",
+        "ha": "{bold} Home Assistant toont {name} als ontdekt ESPHome-apparaat; klik op Toevoegen. Niet ontdekt? Voeg ESPHome handmatig toe met het IP-adres van het scherm.",
         "ha_bold": "Ga naar Home Assistant → Instellingen → Apparaten & diensten.",
-        "key": "{bold} (onder ‘Toon de API-sleutel’ hieronder) als Home Assistant om een versleutelingssleutel vraagt. Met de ESPHome Device Builder-app geïnstalleerd vult Home Assistant hem vaak zelf in.",
+        "key": "{bold} hieronder als Home Assistant om een versleutelingssleutel vraagt.",
         "key_bold": "Plak de API-sleutel",
         "actions": "{bold} ESPHome-integratie → Configureren → “Allow the device to perform Home Assistant actions”. Zonder dit ziet het scherm alles, maar bedient het niets.",
         "actions_bold": "Sta HA-acties toe:",
@@ -2299,12 +2416,13 @@
       "models": "{n} model | {n} modellen",
       "arrive": {
         "waiting": "Wachten tot {name} op je wifi verschijnt...",
-        "seen": "{name} is op je wifi. Koppel hem nu in Home Assistant.",
+        "seen": "{name} is op je wifi. Wordt klaargezet...",
         "paired": "{name} is gekoppeld met Home Assistant.",
         "missing": "{name} is nog niet op je wifi",
         "hotspot": "Kijk op het scherm: het noemt een hotspot met wachtwoord. Verbind je telefoon ermee en kies daar het juiste wifi-netwerk. Of zet hier de juiste wifi en installeer opnieuw.",
         "no_hotspot": "Waarschijnlijk klopt de wifi-naam of het wachtwoord niet. Zet hier de juiste wifi en installeer opnieuw, met het scherm nog aan de kabel.",
-        "change": "Wifi wijzigen en opnieuw installeren"
+        "change": "Wifi wijzigen en opnieuw installeren",
+        "failed": "Tessera kan {name} niet zelf aan Home Assistant toevoegen. Voeg hem hieronder zelf toe."
       },
       "choice_option": {
         "GRID_ROWS": {
@@ -2314,7 +2432,20 @@
       },
       "choice_first": {
         "GRID_ROWS": "het gewone formaat"
-      }
+      },
+      "memory": {
+        "low_title": "Weinig geheugen vrij op de Home Assistant-machine",
+        "low": "Er is {free} geheugen vrij, dus de firmware bouwt met minder compilers tegelijk ({jobs} in plaats van {cores}). Dat duurt langer, maar het past.",
+        "tight_title": "De Home Assistant-machine heeft mogelijk te weinig geheugen",
+        "tight": "Het bouwen van de firmware heeft ongeveer {need} vrij geheugen nodig en er is {free} vrij. Het probeert het met één compiler tegelijk. Stopt het bouwen, stop dan een paar add-ons tijdelijk of geef de machine meer geheugen en probeer opnieuw.",
+        "retry_title": "Het geheugen was op; het bouwen gaat verder met één compiler",
+        "retry": "Het systeem heeft de compiler gestopt omdat het geheugen op was (er was {free} vrij toen het bouwen begon). Het bouwen gaat verder met één compiler tegelijk, vanaf waar het stopte. Dat duurt langer, maar het past.",
+        "out_title": "Te weinig geheugen om de firmware te bouwen",
+        "out": "Het bouwen van de firmware heeft ongeveer {need} vrij geheugen nodig en deze Home Assistant-machine heeft {free}. Stop een paar add-ons tijdelijk of geef de machine meer geheugen en probeer het dan opnieuw.",
+        "limit_title": "Te weinig geheugen om de firmware te bouwen",
+        "limit": "Het geheugen was op, ook met één compiler tegelijk. Stop een paar add-ons tijdelijk of geef de machine meer geheugen en probeer het dan opnieuw."
+      },
+      "pair_yourself": "Zelf toevoegen in Home Assistant"
     },
     "alerts": {
       "eyebrow": "Alerts · cheatsheet",
@@ -2606,7 +2737,9 @@
       },
       "home_hint": "De thuisknop en omhoog vegen leiden hierheen.",
       "bar_entities": "Ook rechts in de balk",
-      "actions_blocked": "Home Assistant laat dit scherm geen acties uitvoeren, dus een tik op een tegel doet niets. Open in Home Assistant Instellingen → Apparaten & diensten → ESPHome, kies dit scherm, dan Configureren, en zet “Sta het apparaat toe om Home Assistant-acties uit te voeren” aan."
+      "actions_blocked": "Home Assistant laat dit scherm nog geen acties uitvoeren, dus een tik op een tegel doet niets.",
+      "allow_actions": "Acties toestaan",
+      "actions_allowed": "{name} mag je apparaten nu bedienen."
     },
     "feedback": {
       "question": "Werkt je scherm zoals je verwacht?",
@@ -2626,8 +2759,9 @@
       },
       "comment_label": "Toelichting (optioneel)",
       "comment_hint": "Laat persoonsgegevens, logs, wachtwoorden en API-keys weg.",
-      "report_hint": "Moet er iets opgelost worden? Meld het op GitHub. Met je bord, de versies en een log kan het worden uitgezocht.",
-      "report_link": "Meld het op GitHub",
+      "report_title": "Wil je dat het opgelost wordt?",
+      "report_text": "Open een issue op GitHub. Je bord, de versies en wat je ons vertelde staan er al in. Voeg een log toe, dan kunnen we het uitzoeken en je ernaar vragen.",
+      "report_open": "Open een GitHub-issue",
       "add_details": "Details toevoegen",
       "done": "Klaar",
       "settings_title": "Feedback",
@@ -2761,8 +2895,8 @@
       "simple_editor": "Eenvoudige weergave"
     },
     "donate": {
-      "title": "Gemaakt door één persoon",
-      "body": "Tessera is gratis en blijft gratis. Ik bouw het in mijn vrije tijd. Wil je dat ik nieuwe kaarten en schermen blijf toevoegen? Met een kleine maandelijkse bijdrage kan dat. Een eenmalige koffie is net zo welkom.",
+      "title": "Steun Tessera",
+      "body": "Tessera is gratis en blijft gratis. Ik leid de ontwikkeling en het onderhoud, met bijdragen uit de community. Jouw steun geeft me meer tijd om verbeteringen te bouwen, te beoordelen en te testen. Een maandelijkse bijdrage of een eenmalige koffie is welkom.",
       "monthly": "Steun maandelijks",
       "once": "of trakteer één keer op koffie",
       "later": "Misschien later",

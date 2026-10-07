@@ -1,4 +1,7 @@
 # Standard ESPHome audio transport. Capture and playback take turns.
+substitutions:
+  AUDIO_CAPTURE_CHANNELS: "2"
+
 i2s_audio:
   - id: panel_audio_bus
     i2s_mclk_pin: GPIO13

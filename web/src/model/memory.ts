@@ -13,7 +13,7 @@ const DEAREST: TypeMemory = Object.values(TYPES).reduce<TypeMemory>((most, type)
 /** What one tile costs on that screen, in bytes: its type's price, what its own action and second line add, and on a
  * board without PSRAM the tile itself and, where it keeps one, its block of extras. */
 export function tileCost(tile: PricedTile, memory: Pick<ScreenMemory, "psram" | "tile" | "extra">) {
-  const type = TYPES[tile.entity.split(".", 1)[0]]?.memory ?? DEAREST;
+  const type = TYPES.screen?.cards?.[tile.entity] ?? TYPES[tile.entity.split(".", 1)[0]]?.memory ?? DEAREST;
   const options = (tile.options || {}) as { tap?: string; sub?: string };
   const action = options.tap === "action", line = typeof options.sub === "string" && options.sub.startsWith("attr:");
   let bytes = type.bytes + (action ? TILE.memory.action : 0) + (line ? TILE.memory.line : 0);
@@ -34,10 +34,15 @@ export const layoutCost = (tiles: readonly PricedTile[], memory: ScreenMemory, p
 
 export type MemoryUse = { need: number; room: number; share: number; level: "fine" | "close" | "full" | "over" };
 
+/** Whether the screen is still measuring its room (firmware 0.51.0): it samples it only once a layout has settled, a minute
+ * after it starts or gets a new one, and says no room until then. */
+export const measuring = (memory: ScreenMemory) => memory.room === null || memory.room === undefined;
+
 /** A layout against the room: how much it needs, the share of the room, and how close to full that is. A layout that
- * takes no more than the tiles on the screen now always counts as fitting, as the add-on lets it through. */
+ * takes no more than the tiles on the screen now always counts as fitting, as the add-on lets it through. A screen that is
+ * still measuring counts as having no room; the editor asks `measuring` first. */
 export function memoryUse(tiles: readonly PricedTile[], memory: ScreenMemory, pages: readonly PricedPage[] = []): MemoryUse {
-  const need = layoutCost(tiles, memory, pages), room = memory.room;
+  const need = layoutCost(tiles, memory, pages), room = memory.room ?? 0;
   const share = room > 0 ? need / room : need > 0 ? Infinity : 0;
   const over = need > room && need > memory.used;
   return { need, room, share, level: over ? "over" : share > 0.98 ? "full" : share >= 0.8 ? "close" : "fine" };
@@ -46,12 +51,17 @@ export function memoryUse(tiles: readonly PricedTile[], memory: ScreenMemory, pa
 /** The share of the room past which the editor calls the screen nearly full and asks before one more tile. */
 export const NEARLY_FULL = 0.9;
 
+/** Past ten times the room a share says nothing any more: the screen has no memory to spare for tiles, or next to none,
+ * and the editor says so in words instead of a number (it read "999 %"). */
+export const NO_ROOM_SHARE = 10;
+export const noRoom = (use: MemoryUse) => use.room === 0 || use.share >= NO_ROOM_SHARE;
+
 /** The line one more tile takes the layout past, if it was not past it yet: "close" for nine tenths of the room, "over"
- * for all of it. The budget is a warning since app 0.4.61, not a rule: the editor asks once at each line, and yes may be
- * the answer (GitHub #157). */
+ * for all of it, "none" for all of it on a screen with no room to speak of. The budget is a warning since app 0.4.61, not a
+ * rule: the editor asks once at each line, and yes may be the answer (GitHub #157). */
 export function memoryCrossing(tiles: readonly PricedTile[], tile: PricedTile, memory: ScreenMemory, pages: readonly PricedPage[] = []) {
   const before = memoryUse(tiles, memory, pages), after = memoryUse([...tiles, tile], memory, pages);
-  if (after.level === "over") return before.level === "over" ? null : { line: "over" as const, share: after.share };
+  if (after.level === "over") return before.level === "over" ? null : { line: noRoom(after) ? "none" as const : "over" as const, share: after.share };
   return after.share >= NEARLY_FULL && before.share < NEARLY_FULL ? { line: "close" as const, share: after.share } : null;
 }
 

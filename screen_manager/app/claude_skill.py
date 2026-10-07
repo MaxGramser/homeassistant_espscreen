@@ -49,8 +49,8 @@ def _grids():
     return '; '.join(f'{columns} × {rows} on {_and(boards)}' for (columns, rows), boards in grids.items())
 
 NAMES = list(dict.fromkeys(SHAPES[board].get('catalog', {}).get('name', board) for board in BOARD_KEYS))
-DESCRIPTION = (f'ESP Screens ({_and(NAMES)} screens in Home Assistant): put, move or order tiles on a '
-               'screen, show an alert or open a page on it, and wake, sleep or keep a screen awake.')
+DESCRIPTION = (f'ESP Screens ({_and(NAMES)} in Home Assistant): add, order or move tiles, show alerts, open a page, '
+               'and keep screens awake or asleep.')
 TYPES = {'string': 'text', 'int': 'number', 'bool': 'on/off'}
 
 def skill_dir(config=None):

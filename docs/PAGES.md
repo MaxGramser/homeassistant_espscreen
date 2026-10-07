@@ -51,6 +51,10 @@ grid is a span such as `3x2` (columns × rows, app 0.4.32, firmware 0.19.0+). A 
 its hello (`tile_sizes`), and the add-on never sends a size the screen did not name (`core.TILE_SIZES_ON_SCREEN`,
 `core.span_offered`).
 
+A hello from the add-on to a screen it has no tiles for yet carries `"empty": true` (app 0.4.74). The screen's starting
+screen then stops waiting for Tessera and says how its tiles are chosen, in three steps (firmware 0.45.0). The first
+layout's hello leaves the field out, and older firmware reads only the request.
+
 A tall or square tile reserves two rows, including their normal gap. Tiles cannot overlap or extend beyond a page, and the screen's tile capacity does not change. If there is no free rectangle during resizing, the previous size and position stay intact.
 
 Hover over a tile or focus its edge handle to resize it. The right handle changes width; the bottom handle changes height. Handles offer only supported sizes that fit at the current position without moving neighbours. Drag to preview, release to apply, or press Escape to cancel. Arrow keys work on a focused handle. Each completed resize is one undo step. Full-page cards retain their existing inspector setting and do not have edge handles.
@@ -61,7 +65,7 @@ Taller standard tiles extend the existing header. Media uses the selected playba
 
 Controls remain an explicit choice in the tile inspector. Increasing height preserves a previously selected group and does not enable a default group on a previously unconfigured tile. There is one selected group per tile, and additional height alone does not combine playback with volume. Two choices are combined groups on purpose: climate's **Temperature − / + and mode keys** (on a tile of two rows or more) and a cover's position or buttons with **Slat tilt**. All single-row tiles and existing full-page designs keep their original renderer.
 
-The layout measures the available content rectangle, active fonts and physical touch sizes. Optional text gives way before touch targets. A control group that cannot fit an unusually dense custom grid is left in the detail view instead of drawing overlapping buttons. Source artwork is cropped, dimmed and rounded by the add-on, then decoded into the screen's existing shared image buffer. It does not allocate an additional image per tile. The atlas is bounded by the reported screen canvas; a missing or changed picture returns to the normal tile palette. The editor fetches prepared pixels through its relative Ingress API, never a Home Assistant token or source URL.
+The layout measures the available content rectangle, active fonts and physical touch sizes. Optional text gives way before touch targets. A control group that cannot fit an unusually dense custom grid is left in the detail view instead of drawing overlapping buttons. Source artwork is cropped, dimmed and rounded by the add-on at exactly the tile's pixels, one picture per tile (docs/CAMERA.md, "A picture per tile"), and each picture is bounded by the size cap on its own; a missing or changed picture returns to the normal tile palette. The editor fetches prepared pixels through its relative Ingress API, never a Home Assistant token or source URL.
 
 Update the screen before choosing a taller size. Its supported sizes are negotiated, separately from the page protocol. The add-on checks them before starting a replacement, so a saved rectangle cannot be silently reduced on an older screen. The storage version and migration path are unchanged.
 

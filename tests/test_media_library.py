@@ -101,6 +101,11 @@ class TheLibrary(unittest.TestCase):
         started = ('spotify://album', 'spotify:album:' + '2'.zfill(22))
         flags = [e[2] & media_library.PLAYING for e in media_library.entries(folder, media_library.Shelf(), PLAYER, {}, started)]
         self.assertEqual(flags, [0, 0, media_library.PLAYING])
+        # A start Spotify dropped leaves the player paused with nothing: nothing of it plays.
+        self.assertTrue(media_library.holds_media({'state': 'playing', 'attributes': {}}))
+        self.assertTrue(media_library.holds_media({'state': 'paused', 'attributes': {'media_title': 'OFFLINE'}}))
+        self.assertFalse(media_library.holds_media({'state': 'paused', 'attributes': {'source': 'Laptop'}}))
+        self.assertFalse(media_library.holds_media({'state': 'idle', 'attributes': {'media_title': 'OFFLINE'}}))
 
     def test_pages_stay_under_the_message_limit(self):
         # The longest titles a folder can bring, in letters of two bytes.
@@ -179,6 +184,42 @@ class AStart(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(calls, ['select_source'])
 
 
+    async def test_a_favourite_sets_its_shuffle_and_repeat_once_it_plays(self):
+        """Measured on Spotify (2026-10-06): a context starts at its first track whatever shuffle says, so a shuffled
+        start skips once; shuffle and repeat go after play_media, where a new queue cannot reset them."""
+        states = {PLAYER: self.player(PLAYING, 'Kitchen', 'paused')}
+        calls, slept = [], []
+
+        async def call(domain, service, data):
+            calls.append((service, {k: v for k, v in data.items() if k != 'entity_id'}))
+            if service == 'play_media':
+                states[PLAYER] = self.player(PLAYING, 'Kitchen', 'playing')
+
+        async def sleep(seconds):
+            slept.append(seconds)
+        album = media_library.item_of(albums(1)['children'][0])
+        self.assertEqual(await media_library.start(states, call, PLAYER, album, shuffle='on', repeat='all', sleep=sleep), 'playing')
+        self.assertEqual([c[0] for c in calls], ['play_media', 'shuffle_set', 'repeat_set', 'media_next_track'])
+        self.assertEqual((calls[1][1], calls[2][1]), ({'shuffle': True}, {'repeat': 'all'}))
+        self.assertIn(media_library.SETTLE_SECONDS, slept)
+        # Shuffle off, or a single song: no skip. Nothing chosen: the player keeps its own.
+        for options, kind, wanted in (({'shuffle': 'off'}, 'album', ['play_media', 'shuffle_set']),
+                                      ({'shuffle': 'on'}, 'track', ['play_media', 'shuffle_set']),
+                                      ({'repeat': 'one'}, 'track', ['play_media', 'repeat_set']),
+                                      ({}, 'album', ['play_media'])):
+            calls.clear()
+            await media_library.start(states, call, PLAYER, {**album, 'class': kind}, sleep=sleep, **options)
+            self.assertEqual([c[0] for c in calls], wanted, (options, kind))
+        # A player without the actions keeps its own.
+        calls.clear()
+        bare = {PLAYER: self.player(media_library.PLAY_MEDIA, None, 'playing')}
+
+        async def plain(domain, service, data):
+            calls.append((service, data))
+        await media_library.start(bare, plain, PLAYER, album, shuffle='on', repeat='all', sleep=sleep)
+        self.assertEqual([c[0] for c in calls], ['play_media'])
+
+
 class ThePlayersState(unittest.TestCase):
     def test_the_extras_of_a_player(self):
         attrs = {'source': 'Kitchen', 'source_list': [f'Speaker {n}' for n in range(20)], 'shuffle': False, 'repeat': 'one',
@@ -226,6 +267,56 @@ class ThePlayersState(unittest.TestCase):
             self.assertIs(other.widened('media_player.other', resting), resting)
 
 
+DW = '37i9dQZEVXcEU0pQ6tFj16'
+
+
+class ASpotifyLink(unittest.TestCase):
+    """A link from Spotify's app (Share > Copy link) is a favourite like an item of the library (app 0.4.84)."""
+
+    def test_every_kind_and_every_way_it_is_written(self):
+        for text in (f'https://open.spotify.com/playlist/{DW}?si=abc123', f'https://open.spotify.com/intl-nl/playlist/{DW}',
+                     f'open.spotify.com/playlist/{DW}', f'  spotify:playlist:{DW}\n', f'https://open.spotify.com/playlist/{DW}#top',
+                     f'https://open.spotify.com/intl-pt-BR/playlist/{DW}/', f'https://open.spotify.com/embed/playlist/{DW}'):
+            self.assertEqual(media_library.spotify_link(text), ('playlist', DW), text)
+        for kind in ('album', 'artist', 'track', 'show', 'episode'):
+            self.assertEqual(media_library.spotify_link(f'https://open.spotify.com/{kind}/{DW}'), (kind, DW))
+            self.assertEqual(media_library.spotify_link(f'spotify:{kind}:{DW}'), (kind, DW))
+
+    def test_what_is_no_link(self):
+        for text in ('', '   ', 'Discover Weekly', f'https://open.spotify.com/user/{DW}', f'https://open.spotify.com/playlist/{DW[:-1]}',
+                     f'https://evil.example/open.spotify.com/playlist/{DW}', f'https://open.spotify.com.evil.example/playlist/{DW}',
+                     f'spotify:playlist:{DW}:extra', 'https://spotify.link/AbCdEf', None):
+            self.assertIsNone(media_library.spotify_link(text), text)
+
+    def test_a_short_link_is_named_for_what_it_is(self):
+        self.assertTrue(media_library.spotify_short('https://spotify.link/AbCdEf123'))
+        self.assertTrue(media_library.spotify_short('spoti.fi/3xYz'))
+        self.assertFalse(media_library.spotify_short(f'https://open.spotify.com/playlist/{DW}'))
+
+    def test_the_id_follows_the_player_as_home_assistants_browser_sends_it(self):
+        own = media_library.spotify_item('playlist', DW, None, 'Discover Weekly', 'https://pickasso.spotifycdn.com/x')
+        self.assertEqual((own['id'], own['type'], own['class'], own['icon']),
+                         (f'spotify:playlist:{DW}', 'spotify://playlist', 'playlist', media_library.CLASS_ICONS['playlist']))
+        sonos = media_library.spotify_item('show', DW, '01JABCDEF')
+        self.assertEqual((sonos['id'], sonos['type'], sonos['class']), (f'spotify://01JABCDEF/spotify:show:{DW}', 'spotify://show', 'podcast'))
+        # What a favourite stores of it passes the layout's own check, unchanged.
+        from core import validate_favorite
+        self.assertEqual(validate_favorite(media_library.favorite_of(own)), media_library.favorite_of(own))
+
+    def test_a_players_library_says_which_account_it_plays(self):
+        top = [{'id': 'A:ALBUMARTIST', 'type': 'library'}, {'id': 'spotify://01JABCDEF', 'type': 'spotify://library'},
+               {'id': 'spotify://01JOTHER', 'type': 'spotify://library'}]
+        self.assertEqual(media_library.spotify_entry(top), '01JABCDEF')
+        self.assertIsNone(media_library.spotify_entry([{'id': 'media-source://radio_browser', 'type': 'app'}]))
+        self.assertIsNone(media_library.spotify_entry([{'id': 'spotify://', 'type': 'spotify'}]))
+
+    def test_spotifys_own_description(self):
+        raw = json.dumps({'title': 'Discover Weekly', 'thumbnail_url': 'https://pickasso.spotifycdn.com/image/dw/cover/en', 'type': 'rich'})
+        self.assertEqual(media_library.oembed_card(raw), ('Discover Weekly', 'https://pickasso.spotifycdn.com/image/dw/cover/en'))
+        self.assertEqual(media_library.oembed_card(json.dumps({'title': ' ', 'thumbnail_url': 'http://plain.example/x'})), (None, None))
+        self.assertEqual(media_library.oembed_card(b'<html>'), (None, None))
+
+
 @unittest.skipUnless(HAS_AIOHTTP and HAS_PIL, 'Run using .venv-portal/bin/python for server tests')
 class TheApp(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
@@ -256,6 +347,8 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
                 self.log.append(('call', service, data))
                 if service == 'select_source':
                     self.states[PLAYER] = {'state': 'paused', 'attributes': {'supported_features': PLAYING, 'source': data['source'], 'source_list': ['Kitchen']}}
+                if service == 'play_media':
+                    self.states[PLAYER] = {**self.states[PLAYER], 'state': 'playing'}
 
             async def browse_image(self, entity, url):
                 self.log.append(('thumbnail', url))
@@ -333,6 +426,73 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
             new = await m.tile_message(0, tile, features=frozenset({media_library.FEATURE}))
             self.assertEqual(new['x'].get('lb'), 1)
 
+
+    async def test_the_editor_reads_a_spotify_link(self):
+        from aiohttp.test_utils import TestClient, TestServer
+        from server import create_app
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = self.ha()
+            ha.platform_of = lambda entity: 'spotify' if entity == PLAYER else 'sonos'
+            ha.states['media_player.sonos'] = {'state': 'idle', 'attributes': {'friendly_name': 'Kitchen'}}
+            ha.states['media_player.tv'] = {'state': 'idle', 'attributes': {'friendly_name': 'TV'}}
+            roots = {'media_player.sonos': {'title': 'Sonos', 'children': [
+                         {'title': 'Spotify', 'media_class': 'app', 'media_content_type': 'spotify://library',
+                          'media_content_id': 'spotify://01JABCDEF', 'can_play': False, 'can_expand': True}]},
+                     'media_player.tv': {'title': 'TV', 'children': [
+                         {'title': 'Apps', 'media_class': 'directory', 'media_content_type': 'apps', 'media_content_id': 'apps',
+                          'can_play': False, 'can_expand': True}]}}
+            own = ha.call_answer
+
+            async def call_answer(domain, service, data):
+                if data['entity_id'] in roots:
+                    return {data['entity_id']: roots[data['entity_id']]}
+                return await own(domain, service, data)
+            ha.call_answer = call_answer
+            m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
+            cards = [('Discover Weekly', 'https://pickasso.spotifycdn.com/image/dw/cover/en')]
+
+            async def spotify_card(kind, spotify_id):
+                return cards[0]
+            m.spotify_card = spotify_card
+            async with TestClient(TestServer(create_app(m, True))) as client:
+                async def get(path):
+                    response = await client.get(path)
+                    return response.status, await response.json()
+                # The library says which players take a link.
+                self.assertTrue((await get(f'/api/media/browse?entity={PLAYER}&folder=0'))[1]['spotify_link'])
+                self.assertTrue((await get('/api/media/browse?entity=media_player.sonos&folder=0'))[1]['spotify_link'])
+                self.assertNotIn('spotify_link', (await get('/api/media/browse?entity=media_player.tv&folder=0'))[1])
+                link = f'https%3A%2F%2Fopen.spotify.com%2Fplaylist%2F{DW}%3Fsi%3Dx'
+                status, item = await get(f'/api/media/link?entity={PLAYER}&link={link}')
+                self.assertEqual(status, 200)
+                self.assertEqual((item['title'], item['play'], item['expand']), ('Discover Weekly', True, False))
+                self.assertEqual(item['favorite'], {'id': f'spotify:playlist:{DW}', 'type': 'spotify://playlist', 'title': 'Discover Weekly',
+                                                    'thumb': 'https://pickasso.spotifycdn.com/image/dw/cover/en', 'class': 'playlist'})
+                self.assertEqual(item['picture'], f'api/media/picture?entity={PLAYER}&item={item["item"]}')
+                # The same playlist as a URI is the same item; on a Sonos, the account's address goes around it.
+                self.assertEqual((await get(f'/api/media/link?entity={PLAYER}&link=spotify:playlist:{DW}'))[1]['item'], item['item'])
+                status, sonos = await get(f'/api/media/link?entity=media_player.sonos&link=spotify:album:{DW}')
+                self.assertEqual((status, sonos['favorite']['id'], sonos['favorite']['type']),
+                                 (200, f'spotify://01JABCDEF/spotify:album:{DW}', 'spotify://album'))
+                # Without Spotify's description: the word of its kind and no picture, and it still plays.
+                cards[0] = (None, None)
+                status, bare = await get(f'/api/media/link?entity={PLAYER}&link=spotify:artist:{DW}')
+                self.assertEqual((status, bare['title'], bare['picture'], bare['favorite'].get('thumb')), (200, 'Artist', None, None))
+                # What is no link, a short link and a player without Spotify say so.
+                for path, words in ((f'/api/media/link?entity={PLAYER}&link=hello', 'not a Spotify link'),
+                                    (f'/api/media/link?entity={PLAYER}&link=https://spotify.link/AbC', 'spotify.link'),
+                                    (f'/api/media/link?entity=media_player.tv&link=spotify:album:{DW}', 'TV does not play')):
+                    status, answer = await get(path)
+                    self.assertEqual(status, 400)
+                    self.assertIn(words, answer['error'])
+                self.assertEqual((await client.get(f'/api/media/link?entity=light.x&link=spotify:album:{DW}')).status, 404)
+            # A tap on the favourite plays the link as the library's item would.
+            seed_layout(m, 'text.d1_tiles', validate_layout({'title': 'Music', 'tiles': [
+                {'entity': PLAYER, 'name': '', 'options': {'display': 'favorite', 'play': item['favorite'], 'speaker': 'Kitchen', 'shuffle': 'off'}}]}))
+            await m.answer_play({'inbox': 'text.d1_tiles', 'entity': PLAYER, 'tile': '0'})
+            self.assertEqual([e[2] for e in ha.log if e[0] == 'call' and e[1] == 'play_media'],
+                             [{'entity_id': PLAYER, 'media_content_type': 'spotify://playlist', 'media_content_id': f'spotify:playlist:{DW}'}])
+            self.assertEqual([e[2] for e in ha.log if e[0] == 'call' and e[1] == 'shuffle_set'], [{'entity_id': PLAYER, 'shuffle': False}])
 
 if __name__ == '__main__':
     unittest.main()

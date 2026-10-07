@@ -1,27 +1,524 @@
+## Unreleased
+
+- Optional physical voice adds local wake-word activation and an authenticated add-on connection. OpenAI supports direct audio and experimental full-duplex replies on the P4 panel; Claude uses Home Assistant speech services. Voice is a separate build mode and API keys remain in the add-on.
+- Optional browser voice shares provider settings, tile-name context and validated Home Assistant actions. Tap and voice controls use matching buttons beneath the firmware preview.
+- Simple accepted voice commands can finish without a second AI confirmation request. Errors, questions and incomplete requests still receive an assistant response.
+
+- Optional P4 hardware-reference AEC uses the ES7210 playback reference, Hane’s shared I²S transport and Espressif’s FD low-cost processor. Audio remains off by default. The driver keeps reference gain separate from microphone ALC, and a narrow startup workaround skips completely zero initial DSP frames. Local recording supports mono AEC output, and the speaker test retries bounded writes instead of silently losing a tone to a full buffer.
+
+- Optional P4 audio adds ES7210 microphone input, ES8311 speaker output, saved volume, microphone mute, automatic gain and tap sounds. Audio is off by default. Hardware and local diagnostic tests are separate build choices; other boards include no audio drivers or wake-word models.
+- The panel and editor share audio settings through ESPHome entities. Tests offer a speaker tone, five-second recording with local playback and a bounded wake-word check, with feedback in the test row. Voice-assistant transport is a separate opt-in build mode.
+
+- Add the experimental Waveshare ESP32-P4-86-Panel-ETH-2RO: 720 × 720, GT911 touch, dimmable backlight and ESP32-C6 Wi-Fi. The base profile targets pre-v3 silicon with 32 MB flash and ESPHome 2026.9.0 or newer. Ethernet and relay configuration are separate follow-ups.
+- New screen lists boards with different chips or resolutions separately, so the P4 is not presented as the 480 × 480 S3. Matching revisions stay grouped.
+
+- **Zoom and move a map full screen.** A map opened full screen has round + and - keys at the bottom right, like the
+  volume keys, and four arrows at the bottom left that move it about a centimetre each. The map follows at once and
+  sharpens when the new picture comes, with a small spinner at the top right while it is on its way. The keys are
+  dark in the light look and light in the dark, and let the map show through a little. Behind a map that is still on
+  its way is the page's own colour, not black.
+
+- **Every page turns as quickly as the next.** A screen with PSRAM now keeps every page of its layout ready, not only
+  seven, so paging through a long layout no longer feels quick on one page and slow on the next. Opening a new layout
+  for the first time takes a little longer, while the screen prepares every page.
+
+- **Every picture on a page at its tile's full size (GitHub #183).** A camera, an album cover, a favourite and a map
+  each load their own picture now, at their own pace. Before, the pictures of a page came as one image, so on a large
+  screen every picture of the page came smaller with a dark edge as soon as a player on that page started to play, and
+  every new song sent all the cameras of the page again. Now a new song replaces only its cover, and a page with
+  several cameras shows each one at the full size of its tile. A camera's picture is also newer: the app fetches it
+  just before the screen loads it, so it is a fraction of a second old instead of up to twice the refresh time you
+  chose. The 10-inch and the other screens with 32 MB of memory
+  also show a camera over the whole page, the camera full screen and the screensaver at the glass's own pixels, no
+  longer a little smaller in the middle.
+- **Try dev before a release (GitHub #180).** Add the repository with `#dev` at the end of its URL and the store
+  offers a second Tessera that builds every screen from dev, with a Reinstall from dev button for each screen.
+  docs/RELEASING.md, "Testing dev", says how it works and how to go back. The stable app is unchanged.
+- **A Spotify link makes a favourite.** Paste a link from the Spotify app (Share > Copy link) under the library in a
+  favourite's picker and it becomes a favourite like any other, with its cover and name. That reaches what Home
+  Assistant's library never lists, such as Discover Weekly, Release Radar and the Daily Mixes. It works on a Spotify
+  player and on a speaker whose library lists your Spotify account, such as a Sonos.
+- **A favourite sets its own shuffle and repeat.** Next to its speaker, a favourite can turn shuffle on or off and set
+  repeat as it starts, or leave the player as it is. With shuffle on it skips once, because Spotify always begins a
+  playlist or album at its first song, so the first song you hear is a shuffled one.
+- **The ring of a favourite that plays sits on the tile.** It was a wider border, which moved the inside of the tile,
+  so its picture slid a few pixels out past the ring and the tile looked to grow. The ring is now drawn over the
+  tile's picture, and nothing moves.
+- **Choosing what a favourite plays works again.** The editor refused every choice with "Invalid or unsupported page
+  settings", so a new favourite could not be saved. It also no longer offers a small slider or a tap action on a
+  favourite, which the app drops anyway.
+- **A slider you can see on a lamp that is off.** An off light or fan shows only the grey track on its tile, so a
+  finger dragging it moved nothing you could see until you let go. Now a faint fill and handle in the tile's colour
+  follow the finger, and letting go turns the lamp on at that level as before.
+- **A picture on a tile in the editor keeps its rounded bottom corners.** The shade under a camera or favourite name
+  had an invalid corner rule, and some browsers let a picture overflow the tile's corners.
+- **A new track without a flash on the media card** ([#177](https://github.com/MaxGramser/homeassistant_espscreen/issues/177)).
+  The card changes its words and its bar at once, and its cover and colour together, in one go, once the new cover is
+  here. Until then it keeps the cover and colour of the track before. Before, the card was drawn again on a black
+  ground with an empty square, and once more when the new colour came, so the keys and the bar flashed and the cover
+  was gone for a second or two. A media tile over a whole page keeps its cover the same way.
+- **Live radio says Live.** A station plays without a length, so the card had no bar for it. Now the bar stays, empty,
+  with "Live" where the time stands, as Music Assistant keeps its bar for a station. Between two tracks the bar stands
+  at nought with 0:00 at both ends, where it went and came back.
+- **Covers keep coming after many tracks.** Each track's cover stayed in the screen's picture memory, and after some
+  sixteen of them there was no place left for a new picture: the media card stood on its empty square, and a camera or a
+  library page could not keep its picture either. A cover the card or a tile has moved on from now goes, and when every
+  place is taken the picture used longest ago that is not on the glass makes way.
+- **One way for every picture.** The camera full screen, the screensaver, an alert's picture, the media card's cover,
+  a player's library, the page's covers and cameras, and the covers fetched ahead for other pages now all go one way:
+  each says what it wants to see, and one part of the screen decides what loads, in what order, and when to stop.
+  What is on the glass loads first, an alert before everything; a picture nobody wants any more stops loading at
+  once, so turning pages fast or closing a card before its picture came leaves nothing behind. Whether a picture is
+  there is read from the screen's picture memory every time, so a picture that had to make room is fetched again
+  right away instead of waited for. Pictures nobody will show again (the cover of a track that ended, the last frame
+  of a closed camera) go once they are off the glass.
+- **Air around the knobs.** The volume knob at 0 or 100 % no longer touches the volume keys beside it, and the knob of
+  the track's bar keeps clear of the times.
+- **The play key's triangle stands in the middle** of its key, where it sat a few pixels to the left.
+- The card stands on one colour from its cover. The app has sent one colour since the bands of #135; the card's code
+  for a colour at the top and another at the bottom is gone.
+- **The energy card shows the grid on Home Assistant 2025.12 to 2026.2.** Those versions keep a grid's power sensor in
+  a list of its own, which the card did not read, so the grid was missing (discussion #104). It now adds them up as
+  Home Assistant's own live view did then.
+- **A tap on solar or the grid with more than one sensor opens their sum** (#180). Two solar arrays or two grid
+  connections had no single sensor to open. The card now opens the history of all of them added up, the way Home
+  Assistant's Power sources graph shows them.
+- **The energy card's dots run smoothly.** A dot's place was worked out from the time since the card started, so every
+  new value made it jump, worse the longer the screen ran and most on a battery that reports often (discussion #104).
+  A new value now changes how fast a dot runs, not where it is. Back on the card's page after another page, the dots
+  stood still until the next value came in; they run again at once.
+
+## 0.4.83 (firmware 0.51.0)
+
+- **A calmer Screensaver card.** In a screen's settings the Screensaver card is now a short list of its three steps,
+  Music playing, Camera and Clock, in the order the screen tries them. Each has one line that says what it will show
+  ("Apple TV, Speaker", "No camera yet", "Outside temperature") and its switch. On a wide window the card stands in a
+  narrow column, where its player and weather fields pushed the rows wider than the card and the switches over the
+  next card. The card has no fields now, so nothing sticks out.
+- **A step opens in the drawer.** Click a step and it opens on the right, as a tile and the top bar do, or in a sheet
+  from the bottom on a phone. Music playing lists its players numbered in the order they are tried: drag them into
+  place, take one out with its cross, and add the next from a menu. Camera has its camera. Clock shows the clock as the
+  screen draws it, in the screen's own shape, with the temperature and the entities beside it; a line too wide for the
+  glass drops its last entities there as it does on the screen. An entity of the clock leads back to the clock.
+- Drag the steps into their order in the card, with the mouse or a finger, or move the open step with the arrows at
+  the bottom of its drawer. The temperature's first choice is now called Automatic.
+- No screen gets new firmware: this release is the editor alone, and what Tessera stores stays the same.
+- Tested: the editor's tests, with new ones for the card and the drawer, the type check, the build, the translations
+  check and every Python, C++ and WASM preview check. In the editor of the bench Home Assistant, at a desktop and a
+  phone width, light and dark: opened each step, added, dragged and removed players, dragged the steps, turned steps
+  off, removed an entity of the clock, and read back the choice the editor sent.
+
+## 0.4.82 (firmware 0.51.0)
+
+- **No more "999 %" right after a screen starts** ([#169](https://github.com/MaxGramser/homeassistant_espscreen/issues/169)).
+  A screen measures how much memory it has for tiles, and it used to take its first measurement the moment Tessera said
+  hello, before its tiles were there. That minute is the busiest one: Home Assistant sends every state at once and the
+  cards are built, so the screen has some 25 KB less than a minute later. The screen reports the lowest of its last five
+  measurements, so on a board with little memory to spare that one bad minute read as no room at all for ten minutes, and
+  a restart started it over. A screen now measures only once its tiles have been on it for a minute.
+- **"Measuring" instead of a number.** Until that first measurement the screen says nothing about its room, and the
+  editor shows "Measuring" beside the tile count and asks nothing when you add a tile. Tessera keeps the last room the
+  screen measured for when it is offline.
+- **"No room" in words.** A screen that really has no memory to spare for tiles, or a layout that needs ten times what it
+  has, shows "No room" instead of a share such as 999 %, and the pop-up says the same in a sentence. It is still a
+  warning: you can add the tile, and the screen protects itself if it runs short.
+- An older app with this firmware shows no meter until the first measurement, instead of 999 %.
+- **"Update in Tessera first"** on a CYD, a CYD with an ILI9342 or a Hosyond 4-inch that still has the flash layout
+  it was first installed with. Since firmware 0.48.0 the firmware of these boards no longer fits that layout's update
+  slot, so the screen turns down an update from ESPHome Device Builder before it writes anything. Tessera moves the screen
+  to the new layout on the way (app 0.4.56). The screen's details in the sidebar now say so with an (i) that explains
+  why, and open by themselves while an update waits; its card on the overview carries the same (i). The hint goes once
+  the screen says it has the new layout.
+- Tested on the bench with Home Assistant, this app and real screens. With an older app (0.4.77) a CYD and a Waveshare
+  4.3-inch on this firmware showed no meter for about two minutes after a start and then their room (63 KB and 48 KB),
+  steady after. With this app the meter read "Measuring" six seconds after the Waveshare restarted and 16 % two minutes
+  later. A CYD flashed back to firmware 0.2.104 with ESPHome's own table carried "Update in Tessera first" on its card
+  and in its details, and no other screen did. Earlier the same day an Update in Tessera took such a CYD from 0.2.104 to
+  0.48.0 over the bridge in eleven minutes, with the new layout. Checked with every Python, C++, editor and WASM preview
+  check. Firmware builds on ESPHome 2026.9.0 for the CYD (90.6 % of its slot), the 4-inch and 10.1-inch Guition, the
+  Waveshare 7-inch and the bridge (34.9 % of the old slot), and on 2026.6.2 for the CYD (92.5 %). "No room" in words is
+  covered by the editor's tests only: no bench screen is that full.
+
+## 0.4.81 (firmware 0.50.0)
+
+- **Entities on the screensaver clock.** Under the clock's weather choice, **Add an entity** puts up to four entities in
+  the same line as the outside temperature, centred at the bottom with a dot between two, in white on black: anything
+  the top bar can show. Pick them from the top bar's own list, and for each one choose its text, its icon or both. They
+  look as they do in the top bar, and a moment such as "5 min ago" counts on. A screen on older firmware keeps showing
+  the temperature alone.
+- The top bar and the screensaver clock draw their entities with the same code, and the editor's top bar and screensaver
+  share one entity list and one way to add, move and remove.
+- Checked with every Python, C++, editor and WASM preview check, and the clock with its row rendered from the real
+  firmware on the CYD, the 4-inch Guition and the 10.1-inch Guition. Firmware builds on ESPHome 2026.9.0 for the CYD
+  (90.6 % of its slot, 2 KB more than 0.48.0), the Hosyond 4-inch (93.4 %), the 4-inch and 10.1-inch Guition and the
+  Waveshare 7-inch, and on 2026.6.2 for the CYD (92.5 %). Not yet seen on a real screen.
+
+## 0.4.80 (firmware 0.49.0)
+
+- **Pictures no longer hold the screen still.** Opening a folder of album covers in a speaker's library, a camera full
+  screen, an alert with a snapshot or a page of live camera tiles used to freeze the whole screen while the picture
+  downloaded: a tap landed late or not at all, and a page of covers took two to three seconds on a 4-inch screen. The
+  screen now downloads every picture in a task of its own beside its main loop, so you can tap Back, turn the page or
+  switch folders at once, also while the covers are still on their way. The pictures also arrive sooner: a full-screen
+  camera picture on the 4-inch Guition in one second instead of two. Every board with pictures gets the fix.
+
+## 0.4.79 (firmware 0.48.0)
+
+- **What you tap changes at once.** Play and pause, mute, shuffle and repeat on a speaker, a mode of a thermostat or a
+  humidifier (on its card and on the mode bar of its tile), an option of a select (its card and the arrows of its tile),
+  a remote's activity and every on and off switch now show the new value the moment your finger touches them, also
+  while the speaker or the airco takes a few seconds. The progress bar stops the moment you pause.
+- **Tap as fast as you like.** The first tap goes to Home Assistant the moment you touch the screen. Taps that follow
+  while it is on its way only change what you want, and the last one goes out as soon as Home Assistant has taken the
+  first, so a fast Home Assistant gets every tap and a slow speaker a burst as one action, without any waiting time
+  built in. A second tap is no longer ignored while the first is on its way.
+- **The screen squares it with Home Assistant**, the way Home Assistant's own switches and mode buttons do: a message
+  that still carries the old value keeps your choice, Home Assistant's own word wins when it says something else (a
+  fan that took its nearest speed), a refused action springs back with "Refused", and an action that worked but
+  changed nothing springs back after two seconds. A device that takes more than a second says "Updating..." on its
+  tile and card, as Apple's Home app does, and no busy sheet covers the tile any more.
+- **Cards no longer rebuild themselves for every change.** A card is built once and then changes only what changed.
+  A new state from Home Assistant used to rebuild the whole card, which took about 400 ms on a 4-inch screen and made
+  the title of a song stutter and a tap wait; now a card follows in 2 to 11 ms, a tap reaches Home Assistant within
+  20 ms and the title keeps rolling. Every card works this way (docs/CARD_PARTS.md). The lock and alarm cards keep
+  being built anew on every change of their state, code or attempt, exactly as before, with their animations; only
+  their status line follows in place.
+- The - and + of a thermostat no longer grey out while the value is on its way, and a - or + at the end of the span
+  stays faded instead of lighting up again a moment later.
+- **The lamps of a light group, its effects and a vacuum's chips** work the same way: a lamp switched, dimmed or
+  coloured on the group's lamp page, an effect or a setting of the light's device, a cleaning mode or suction, all
+  show at once, spring back when Home Assistant refuses them, and no longer wait four seconds for a stale value.
+- Under the hood this is one mechanism for every control, with its rules in docs/OPTIMISTIC.md, and one way for a
+  card to follow a change, in docs/CARD_PARTS.md. A test in the editor's preview builds every card both ways, painted
+  and built anew, on three screen sizes and wants them pixel for pixel the same.
+- Every screen is offered this firmware, 0.48.0.
+- Tested: on the bench, the 4-inch Guition and the CYD against the bench Home Assistant, tapped by hand: switches that
+  work, refuse, do nothing and take four seconds, fast bursts on a lamp, a select, a thermostat's modes, fan and swing,
+  its -/+, a player's play, pause, shuffle, repeat, mute and volume, a blind, a fan, the alarm with a wrong code and
+  the right one, three locks (unlock asks a second tap), a timer, a vacuum, a remote's activity, a light group's lamp
+  page (on, off, dim, colour), a light's effects, a sensor's graph and the weather card; the screen's log shows every
+  tap leaving within 20 ms and Home Assistant's answer. A card follows a change in 2 to 11 ms where it took 430 ms on
+  the Guition. Every Python, C++, editor and WASM preview check, with a new one that builds every card both ways on the
+  CYD's, the Guition's and the 10.1-inch glass and wants the same pixels. Firmware builds on ESPHome 2026.9.0 for the
+  CYD (90.5 % of its slot, 12 KB more than 0.47.0), the CYD 9342 (90.5 %), the Hosyond 4-inch (93.2 %), the 4-inch and
+  10.1-inch Guition and the Waveshare 7-inch, and on 2026.6.2 for the CYD (92.3 %).
+
+## 0.4.78 (firmware 0.47.0)
+
+- **"Not quite" leads to a GitHub issue that is already filled in.** When you tell Tessera a screen doesn't work as you
+  expect, the card no longer ends with a small link under the problem boxes. After you pick what goes wrong (or skip
+  it), it asks whether you want it fixed and offers one button, Open a GitHub issue. The bug report opens with your
+  board, the add-on and firmware versions, the problems you ticked and your note already in it, so only the dropdowns
+  and a log are left. Nothing goes to GitHub until you post it yourself, under your own name, so you can be asked
+  about it and hear when it is fixed.
+- No screen gets new firmware: this release is the editor alone.
+- Tested: the editor's tests, with new ones for the filled-in link with and without a note, the type check, the build
+  and the translations check. On the bench Home Assistant, the card of a Waveshare 4.3-inch driven in a browser: Not
+  quite, Touch and a note, then the button, whose link carries the title, the versions, the board, the problem and
+  the note, while the answer itself reached the Tessera website.
+
+## 0.4.77 (firmware 0.47.0)
+
+- **The energy card.** A new card in the library, Energy, shows the power of your house right now the way Home
+  Assistant's own live Energy view and power-flow-card-plus show it: solar, the grid and the battery around the house,
+  a line for every flow with dots that run faster as more power flows, the house's ring coloured by where its power
+  comes from, and the devices that draw the most, with Other for the rest. It reads the Energy settings you already
+  have in Home Assistant (power sensors, the battery's charge, the devices), so there is nothing to set up, and it
+  splits the moment exactly as Home Assistant does. A tap on a circle opens that sensor's history. It is in Home
+  Assistant's energy colours, light and dark.
+- It fits itself to every screen like the other cards: the largest of the board's fonts that fit, the arrows and the
+  names only where there is room, and the diagram turned upright on a screen standing up. A long device name takes
+  two lines before the card shows a device fewer. The editor offers the sizes the diagram fits:
+  2 × 2 on most screens, two columns of the whole height on the Waveshare 4.3-inch, three rows on the CYD standing up
+  and a page of its own on the CYD lying down.
+- The card keeps more memory than a clock, and the memory meter in the editor counts it at its own price.
+- Every screen is offered this firmware, 0.47.0, which the energy card needs.
+- Tested: the card rendered from the real firmware on the CYD lying down and standing up, the 4-inch Guition and the
+  Waveshare 4.3-inch, light and dark, with seven moments of a house read from a Home Assistant with a fake house in its
+  Energy settings (noon, a car charging at night, selling at the peak, solar only, grid only, seven devices, no power
+  sensors), and a tap on the solar circle opening its history. On the bench, the CYD, the Guition and the Waveshare
+  4.3-inch run it with live data from the bench Home Assistant. Every Python, C++, editor and WASM preview check; the
+  layout of the diagram is checked on every density and look a board has, from the least room the editor offers up.
+  Firmware builds on ESPHome 2026.9.0 for the CYD (89.9 % of its slot, 39 KB more than 0.46.0, agreed for this
+  card), the 4-inch Guition, the 10.1-inch Guition and the Waveshare 7-inch, and on 2026.6.2 for the CYD (91.7 %).
+
+## 0.4.76 (firmware 0.46.0)
+
+- **No empty album cover on a screen without pictures.** The CYD, the Waveshare 3.5-inch and the Hosyond 4-inch have
+  no memory for pictures, so they never get an album cover, yet the media card and a media tile over the whole page
+  kept a square for one, with the player's icon in it. People took it for a cover that failed to load. Those boards now
+  have no square at all: the title, the artist, the bar and the keys stand together in the middle of the card and take
+  its room, a hand's width at most. The bar is wider, shuffle and repeat fit beside the keys on the CYD's card, and a
+  player at rest shows its whole line ("Tap a cover in the library to play") instead of a piece of it beside an empty
+  Spotify square. Boards with pictures keep their cover as before. The layout follows the room, not the board: what
+  does not fit still goes in the same order, the artist line first.
+- **The times beside a media card's bar fit a track of an hour or more.** Their place was as wide as "12:34", so a
+  podcast, an audiobook or a long mix showed "1:02:..." at both ends. The place is now as wide as the track's length
+  in the screen's own font.
+- The editor's live preview of a screen follows its board: a CYD's preview shows the media card without a cover's place,
+  as its glass does.
+- Every screen is offered this firmware, 0.46.0.
+- Tested: the media card and a media tile over a whole page rendered from the real firmware on the CYD before and
+  after (no square, the words and keys in its room), and on the 4-inch Guition after (the cover as before). The layout
+  audit now checks the boards without pictures as shapes of their own, so every card on the CYD, the Waveshare
+  3.5-inch and the Hosyond 4-inch is checked without a cover's place. Every Python, C++, editor and WASM preview
+  check. Firmware builds on ESPHome 2026.9.0 for the CYD (87.9 % of its slot), the 4-inch Guition, the 10.1-inch
+  Guition and the Waveshare 7-inch, and on 2026.6.2 for the CYD (89.7 %).
+
+## 0.4.75 (firmware 0.45.0)
+
+- **A Big number card's number stays inside its card in the editor** ([#167](https://github.com/MaxGramser/homeassistant_espscreen/issues/167)).
+  The editor drew a page in sizes of its own: a frame of 10 pixels, gaps of 8 and a page bar of 24, on every board.
+  On a 4-inch Guition with three rows and more than one page that left a card 65 pixels high where the screen's card,
+  at the editor's scale, is 73, and a Big number card stacked its icon, its name and its number in sizes of its own
+  too, so the number was cut off at its middle. The editor's page now has the glass's proportions: the top bar from
+  the top of the glass down to where the tiles start, the board's margins and gaps, and its page bar once the layout
+  has more than one page. A Big number card is laid out as the screen lays it out: the icon and the name above the
+  number in the largest face that fits, its unit at the right, and in a cell too low for that the name small at the
+  top and the number under it, without the icon. The board's top bar, page bar and gaps now come with its other
+  sizes (`boards.json`), a preview screen made in the editor gets the board's fonts and sizes too, and a test
+  compares the editor's card heights and Big number cards with the firmware's on every board, lying down and
+  standing up, with and without a page bar. The screen itself draws as before.
+
+## 0.4.74 (firmware 0.45.0)
+
+- **A new screen asks for its first tiles.** Once a new screen was in Home Assistant, its starting screen said
+  "Waiting for Tessera", while it was really waiting for someone to choose its tiles. Tessera now tells a screen that
+  it has no tiles for it yet, and the screen says what to do in three short steps: open Tessera in Home Assistant, pick
+  tiles for the screen, by its own name, and press Save & send. A small tile in one of the Tessera mark's colours
+  stands before each step. The words take the largest of the screen's faces that leaves them air, with the Tessera
+  lockup over them where the glass has room for both: large words without the lockup on the 2.8- to 4.3-inch screens,
+  the lockup over them on the 10.1-inch. The tiles take their place as soon as they are saved.
+- The starting screen's hint after half a minute without Home Assistant no longer asks whether the screen was added
+  under Devices & services. Tessera adds it by itself since 0.4.73, so the hint says that, and that Home Assistant has
+  to reach the screen at its address.
+- A long hint on the 2.8-inch ran into the version number at the foot of the starting screen. The number now steps
+  aside when the words need the room.
+- Every screen is offered this firmware, 0.45.0.
+- Tested: the starting screen rendered from the real firmware on the CYD lying down and standing up, the 4-inch
+  Guition, the Waveshare 4.3-inch and the 10.1-inch Guition, light and dark, before and after. On the bench, a
+  Waveshare 4.3-inch without tiles runs 0.45.0 with this app and got the hello that asks for its first tiles. Every
+  Python, C++, editor and WASM preview check, the layout audit included. Firmware builds on ESPHome 2026.9.0 for the
+  CYD (87.9 % of its slot), the 4-inch Guition, the 10.1-inch Guition and the Waveshare 7-inch, and on 2026.6.2 for the
+  CYD (89.7 %). The steps on glass were not looked at yet.
+
+## 0.4.73 (firmware 0.44.0)
+
+- **A new screen joins Home Assistant by itself.** After flashing, there were two steps left in Home Assistant: add
+  the discovered ESPHome device (pasting the screen's API key when asked) and turn on **Allow the device to perform
+  Home Assistant actions**, without which a tap on a tile does nothing. Tessera now takes both, through the same
+  config flow and options flow Home Assistant's own dialogs use, and keeps checking until they hold instead of
+  trying once. It answers Home Assistant's discovery of the screen with the key it wrote into the screen's YAML; finds
+  the screen by its name on the network when Home Assistant did not discover it, or the discovery was dismissed or
+  ignored; offers the key again a little later when the screen still ran older firmware; gives Home Assistant the new
+  key when New screen made new ones for a screen it already had; takes Home Assistant's own "migrate" when a new board
+  takes over a screen's name; and turns the actions on for a new screen, checks them once for every screen it made,
+  and turns them back on at once when Home Assistant reports that it ignored a tap. It only adds screens whose YAML,
+  with its key, is in the ESPHome folder it reads. New screen now goes from flashing straight to choosing tiles; the
+  way by hand only shows when Tessera could not do it, and the manual describes it for screens built elsewhere
+  ([docs/EASY_SETUP.md](../docs/EASY_SETUP.md#adding-a-screen-by-hand)).
+- **Allow actions** on a screen's page, for the rare case Tessera could not turn the switch on itself (a Docker install
+  whose token is not an administrator's): one click instead of Home Assistant's Configure dialog.
+- New screen said "on your Wi-Fi" only for a screen whose friendly name and device name were the same: Home Assistant
+  titles a discovered device "Friendly name (device-name)", and Tessera compared the whole title. It now reads the
+  device name inside it.
+- No firmware for a screen that exists: every screen stays on 0.44.0 and is offered nothing new.
+- The screen's own hint after half a minute without Home Assistant still asks whether it was added under Devices &
+  services: that text is part of the firmware, which this release leaves alone.
+- Tested: on a Home Assistant 2026.9.4 test install with a Waveshare 4.3-inch, the whole way a user goes. A screen made
+  with New screen and flashed over USB was discovered by Home Assistant and added by Tessera, actions allowed, 12
+  seconds later. Taken out of Home Assistant again with its discovery set to Ignore, Tessera added it back by its name
+  on the network within half a minute. Allow actions through the app's own address on a second screen. The answers Home
+  Assistant gave in that test and in its source drive the unit tests of the rest: an older key still on the screen,
+  new keys after New screen, a board that takes over a name, a refused tap, a Configure form without the switch.
+  Every Python, C++, editor and WASM preview check. Not tested: a tap Home Assistant refused on real glass.
+
+## 0.4.72 (firmware 0.44.0)
+
+- **The Waveshare ESP32-S3-Touch-LCD-5 as a board of its own** ([docs/WAVESHARE5.md](../docs/WAVESHARE5.md)). The
+  5-inch with 800 x 480 glass is the board of the Waveshare 4.3-inch with a larger panel: the same pins, timings,
+  GT911 touch and CH422G expander in Waveshare's own library, and a 5-inch built from the 4.3-inch package ran with
+  picture, touch and connection working. As its own board it draws tiles, text and keys at their size in millimetres
+  on the larger glass (186.6 dpi instead of 217), three by three lying down like the 4.3-inch and one column of five
+  standing up. It starts as **new**, not experimental. Choose **Waveshare · 5 inch** in New screen; a 5-inch that runs
+  the 4.3-inch package can switch to `packages/waveshare5.yaml` in its own YAML. Not the 5B (1024 x 600). Thanks to
+  jlwinland, who ran it and reported it on the Tessera website.
+- Its hardware comes from the new `packages/hardware/waveshare-esp32s3-43.yaml`, which only the 5-inch includes for
+  now; the 4.3-inch's board file is untouched and moves onto it at the next shared release.
+- No firmware for a screen that exists: every screen stays on 0.44.0 and is offered nothing new.
+- Tested: the 5-inch's firmware builds on ESPHome 2026.9.0. Not rendered (the 4.3-inch renders stand for it: the
+  same canvas) and not tried on glass with this package.
+
+## 0.4.71 (firmware 0.44.0)
+
+- **The simple dial stays inside its card.** The clock's Simple dial face reached into the card's padding on a card
+  of one row, so its black disc stood against the card's edge, and on larger cards it filled the card to the padding.
+  Now the dial always stays inside the padding, like the content of every other card, and on a card of more rows or a
+  whole page it keeps an eighth of its size as air too. A card of more rows also puts the dial beside or above the time,
+  whichever draws the time larger: a near-square card (two columns by three rows on the 10.1-inch) drew a dial as tall
+  as the card with a small time squeezed beside it, and now shows the dial over a time in full size.
+- **The layout audit gives the same answer on every computer.** It cut each screen's layouts into pieces by the
+  number of processors and named two overlapping texts in the order the firmware made them, so the flip clock's date
+  under its digits, which is how the card is drawn, failed on one computer and passed on another. The pieces are now
+  the same everywhere and the texts are named in reading order. Nothing changed on the screen: the 0.4.70 notes called
+  this a case 0.4.69 already failed, but the picture was the same all along.
+- The touch calibration of the CYD and the other resistive boards is now compiled on its own. With this release the
+  CYD's firmware had grown past what an Xtensa instruction can reach back for its constants, by about 0.6 KB; it now
+  has 35 KB to spare. Nothing changes in how the calibration works.
+- Every screen is offered this firmware, 0.44.0.
+- Tested: the Simple dial rendered from the real firmware (the WASM preview) in every size on the CYD, the 4-inch
+  Guition and the 10.1-inch Guition, before and after. Every Python, C++, editor and WASM preview check, the layout
+  audit included, which now passes on the computer where it failed. Firmware builds on ESPHome 2026.9.0 for the CYD
+  (87.8 % of its slot), the 4-inch Guition, the 10.1-inch Guition and the Waveshare 7-inch, and on 2026.6.2 for the
+  CYD (89.6 %). Not tested on glass.
+
+## 0.4.70 (firmware 0.43.0)
+
+- **The weather card's full view keeps its own text sizes**
+  ([#52](https://github.com/MaxGramser/homeassistant_espscreen/issues/52)). The card borrowed its small text from the
+  first tile on the page, in whatever size that tile showed at the moment. With a large value there (a sensor shown as
+  Large value), the hours, the conditions, the rain and the low temperatures came out twice as large as the rest of
+  the card, the rain amounts ended in dots, and the lows stood larger than the highs. Where a large number had grown
+  into the largest digits (on a large screen with tall cells), it was worse: those digits carry no letters, so the
+  words turned into empty boxes. The card now always uses the screen's own small text, so it looks the same whatever
+  the first tile shows. Every board had this.
+- Every screen is offered this firmware, 0.43.0.
+- Tested: the full view rendered from the real firmware (the WASM preview) on the 10.1-inch Guition with a light, a
+  large number and a large word in the first tile now gives the same picture three times, and the picture with a light
+  and every tile page are unchanged pixel for pixel. A new preview test checks this on the CYD, the 4-inch Guition and
+  the 10.1-inch, and fails on the firmware before this one. Every Python, C++, editor and WASM preview check passes
+  but one layout audit case that 0.4.69 already fails (the flip clock's date on the 10.1-inch with eight rows), which
+  this change does not touch. Firmware builds on ESPHome 2026.9.0 for the CYD (87.6 % of its slot), the 4-inch
+  Guition, the 10.1-inch Guition and the Waveshare 7-inch, and on 2026.6.2 for the CYD. Not tested on glass.
+
+## 0.4.69 (firmware 0.42.0)
+
+- **Humidifiers and dehumidifiers as tiles** ([#128](https://github.com/MaxGramser/homeassistant_espscreen/issues/128)).
+  A `humidifier` entity is now in the library, a dehumidifier on a smart plug with Home Assistant's Generic hygrostat
+  too. It works like a thermostat in percent, with Home Assistant's own words, icons and colour:
+  - The tile says what it is doing and the humidity it measures ("Drying · 68%", "Humidifying · 38%", "Off · 52%"). When
+    the word does not fit a small tile, the humidity stays readable. Blue while it is on, grey while it is off, with
+    Home Assistant's crossed-out icon.
+  - A tap opens its card: the power key, the humidity it measures, and the target humidity big in Home Assistant's ring
+    between − and +. The ring fills up to the target for a humidifier and from the target up for a dehumidifier, and
+    shows the part still to go while the device is working.
+  - Its modes (normal, eco, away, boost, comfort, home, sleep, auto, baby) are round keys with Home Assistant's icons.
+    A device with modes of its own gets them as a row of their names instead, since those have no icon.
+  - A double-width tile takes the humidity − / +, a slider, the mode keys or an on/off switch; a tile of two rows
+    takes − / + with the mode keys under it, and a tap on its circle turns it on or off.
+- The editor shows humidifiers the same way and lists them under their own filter.
+- Tested with the firmware's own drawing on the host (the CYD, the Guition 4-inch, the Waveshare 4.3-inch and the
+  10.1-inch Guition, lying down and standing up, light and Dark mode), and every Python, C++, editor and WASM preview
+  check. Not yet on a real humidifier.
+
+## 0.4.68 (firmware 0.41.0)
+
+- **A screen's battery in its top bar.** In the editor, click the top bar and choose Add, Battery: Home Assistant's
+  battery icon at the level the screen has, with the lightning bolt while it charges, and the percentage beside it if
+  you choose. Show it always, or only when the battery is at 20 % or less. The screen reads its battery itself, so the
+  item stays right while Home Assistant is away. It is offered only on a screen that has a battery.
+- **Any ESPHome battery sensor works.** The firmware finds the screen's sensor in Home Assistant's `battery` device
+  class and its binary sensor in the `battery_charging` class, the way Home Assistant itself knows a battery. A fuel
+  gauge, a power chip, a voltage on a pin with a formula or a curve of your own all work, also from a screen's
+  Override YAML. Two packages turn a voltage into a level for a board: `battery-adc.yaml` reads a pin through a
+  divider, and `battery-voltage.yaml` applies a formula you can replace. [docs/BATTERY.md](../docs/BATTERY.md) has the
+  recipes, the pins that work next to Wi-Fi, and the Override YAML for a battery of your own.
+- **The M5Stack Tab5 is the first board with it**: its level from the INA226 on the battery, and a new **Battery
+  Charging** sensor in Home Assistant, on while more than 50 mA flows into the pack (the way M5Stack's own firmware
+  reads that current), with **Battery Current** beside it.
+- Every screen is offered this firmware, 0.41.0. A screen without a battery only gets the few new icons in its font.
+- Tested: every Python, C++, editor and WASM preview check, with Home Assistant's battery icon rules as a test of their
+  own. Firmware builds on ESPHome 2026.9.0 for the CYD (87.2 % of its slot), the 4-inch Guition, the 10.1-inch Guition,
+  the Waveshare 7-inch and the Tab5, on 2026.6.2 for the CYD and on 2026.7.1 for the Tab5. The pin recipe compiles on a
+  CYD (87.6 %), and the battery item was rendered from the real firmware in the top bar. Not tested on glass: the
+  Tab5's charging current and its sign come from M5Stack's own firmware, and its owner is asked to try it.
+
+## 0.4.67 (firmware 0.40.0)
+
+- **A live camera tile keeps refreshing on a dimmed screen**
+  ([#161](https://github.com/MaxGramser/homeassistant_espscreen/issues/161)). When Auto standby dimmed a screen and the
+  screensaver had nothing to show (say only a music player is chosen and nothing plays), the dimmed tiles stayed on the
+  glass, but their camera pictures stopped loading: the picture stood still and the camera looked broken. Now the
+  pictures on the tiles keep loading as long as the tiles are seen: in standby without a screensaver over them, at a
+  standby or night brightness of 5 % or more. A screensaver, the clock included, covers the tiles, and below 5 % nobody
+  reads a picture, so then they wait until the screen wakes, as before. The same goes for a media card's album cover.
+  Sleep pressed in Home Assistant follows the same rule.
+- The backlight in standby and this rule take the level from one place in the firmware, so they always agree.
+- Tested on the bench Guition 4-inch with a live camera tile: in standby at 40 % it kept loading every 15 seconds, at
+  3 % it stopped and went on again at 40 %, the clock screensaver stopped it, and a touch brought it back. Every Python,
+  C++, editor and WASM preview check, and the firmware of the sample boards on ESPHome 2026.9.0 and the CYD on 2026.6.2.
+- Every screen is offered firmware 0.40.0, the Tab5 too: its own 0.39.1 is part of it.
+
+## 0.4.66 (firmware 0.39.1 for tab5)
+
+- **Wi-Fi on the M5Stack Tab5 after a cold start** ([#150](https://github.com/MaxGramser/homeassistant_espscreen/pull/150)).
+  The Tab5's Wi-Fi is an ESP32-C6 beside the ESP32-P4, and it gets its power from an output of the board's second I/O
+  expander (0x44). The firmware never switched that output on, so the C6 only had power when an earlier firmware had
+  left it on, and after the battery was off the screen stopped at "esp_wifi_init failed: ESP_FAIL". The firmware now
+  switches the C6 on at boot, together with the battery charger and its quick charge, the same three outputs M5Stack's
+  own firmware and ESPHome's Tab5 configuration switch on. Thanks to @Heronimonimo for the report.
+- Only the Tab5 is offered this firmware, 0.39.1. Every other screen keeps 0.39.0.
+- Tested: every Python, C++, editor and WASM preview check, and the Tab5 firmware builds on ESPHome 2026.9.0 and on
+  2026.7.1. Not tested on glass: there is no Tab5 here, and its owner is asked to try it.
+
+## 0.4.65 (firmware 0.39.0)
+
+- **A build on a machine with little memory finishes instead of being killed**
+  ([#162](https://github.com/MaxGramser/homeassistant_espscreen/issues/162)). Compiling a screen's firmware takes well
+  over a gigabyte for its largest file, and on a Raspberry Pi or a small virtual machine with Home Assistant beside it
+  that is more than is free: Linux stopped a compiler ("Killed signal terminated program cc1plus") and the build failed
+  with nothing wrong in the code. Now the app reads how much memory is free before a build and runs only as many
+  compilers at once as fit. When a compiler is stopped all the same, the build runs again with one compiler at a time,
+  from where it stopped, and the progress bar goes on from there. The installer shows a card that says what is
+  happening and why it takes longer; Firmware & USB says the same under its status line. When even one compiler is
+  more than the machine has, the card says how much is free and how much is needed, and what to do about it, instead
+  of the compiler's own words; a nightly update that fails for the same reason says so in its result.
+- **What counts as free memory** is Linux's own count (`MemAvailable`), and less when the app's container has a memory
+  limit of its own (Docker's `--memory`, some NAS systems), which that count leaves out. A build counts as out of memory
+  when a compiler says so and also when Linux stops ESPHome itself, which leaves no line in the log.
+- Tested on a Home Assistant Yellow (4 cores, 8 GB): with all four compilers a build of the Guition peaks at 2.0 GB, with
+  one at 1.6 GB, and a compiler that really runs out of memory is followed by a build with one compiler that finishes.
+- No firmware change: every screen stays on 0.39.0. Update the app.
+
 ## 0.4.64 (firmware 0.39.0)
 
-- Load the voice transport's newer ESPHome certificate helper only when voice is configured. Screens without voice continue to load on the shared packages' minimum ESPHome version.
-- Voice builds show their status to the left of the top-bar clock on every tile page: a muted grey ear when local wake-word detection is ready, a blue microphone while listening, and a blue hourglass while a response is pending. The three icons share one fixed slot. Playback and mute hide it; other builds omit the indicator and its additional glyphs.
-- Keep voice activation silent. A wake phrase alone can return to listening without a greeting, spoken tool follow-up or renewed panel silence budget; a question after the wake phrase is still processed. OpenAI and Claude share this behaviour.
-- Integration branch: optional physical P4 voice with Start/Stop under Audio, per-panel pairing and the existing OpenAI/Claude provider layer. Microphone input and speaker replies take turns; silence, mute and connection loss end capture. Pairing tokens are separate from provider credentials. Optional local wake-word activation reuses ESPHome models, stops during a conversation, and resumes locally after the session ends.
-- Screen settings in the editor wrap long choice rows so all wake-word names remain visible in narrow cards.
-- Prepare the optional voice connection before a wake word, retain a short local audio buffer and remove the post-detection delay. A fresh conversation still requires wake or Start; silence, Stop and mute end audio. Refresh panel context at activation and include the current time, HA time zone and configured home location as metadata for both providers.
-- Prevent callback timestamps newer than the main loop's clock snapshot from triggering an immediate voice timeout. Drop late microphone packets as soon as the provider pauses input. Log session phases, timing and error categories without recording audio, transcripts or credentials.
-- Strengthen conversational language instructions so wake phrases and tool results do not change the reply language. Keep general questions and follow-ups in the shared conversation, and measure current-information lookup latency separately without logging questions or answers.
-- Use Dutch by default and follow clearly spoken other languages. Prefer concise spoken answers, direct answers for stable knowledge and focused lookups for current facts. Keep available HA actions separate from information questions and do not promise unsupported actions.
-- Add the experimental Waveshare ESP32-P4-86-Panel-ETH-2RO (`wavesharep4`): a 4-inch, 720 × 720 display with a two-column, three-row grid, GT911 touch, dimmable backlight and ESP32-C6 Wi-Fi. New screen and checkout builds use the same board profile.
-- The profile targets pre-v3 P4 silicon with 32 MB flash and requires ESPHome 2026.9.0 or newer. Ethernet, relays, RS485, microSD and audio are not configured in the base profile. Ethernet support is planned separately.
-- Optional P4 audio: ES7210 microphone input, ES8311 speaker output, saved volume, microphone mute, automatic gain and tap sounds. Audio is off by default; hardware and local diagnostic tests are separate build choices. Other boards do not include the audio drivers or wake-word models.
-- The panel and editor share audio settings through the screen's existing ESPHome entities. Tests offer a speaker tone, five-second recording with local playback, and a bounded wake-word check, with feedback in the test row. Voice transport uses a separate `voice` build mode.
-- Audio validation before rebasing onto upstream 0.4.55: all 19 software check groups pass (1,125 Python tests and 38 C++ tests). ESPHome 2026.9.0 builds P4 modes `off`, `hardware` and `test`, using respectively 3,031,190, 3,113,752 and 3,553,160 bytes of the 16,515,072-byte OTA slot. The audio extension uses a pinned public ES7210 component; no local driver files are needed. The integrated audio build was tested successfully on a physical revision 1.3 panel.
-- New screen lists boards with different chips or resolutions separately, so the 720 × 720 P4 is not presented as the 480 × 480 S3. Revisions with matching hardware stay grouped.
-- Board validation before rebasing onto upstream 0.4.55: ESPHome 2026.9.0 builds the new profile and its override fixture. The base OTA image uses 3,031,536 of 16,515,072 bytes (18.4%). The host renderer passes three pages and 51 page checks; installation on a physical revision 1.3 panel passed, with tiles, touch and brightness confirmed working.
-- Add an optional browser voice assistant, off by default in the add-on Configuration tab. Configure OpenAI or Claude credentials, voice, silence timeout and reply speaker in the editor. Saved credentials stay in private add-on data.
-- OpenAI uses native Realtime audio. Claude uses the selected Home Assistant assistant's speech-to-text and text-to-speech services. Both providers share visible tile names, HA aliases, Assist exposure checks and validated device actions.
-- Support light and switch commands, brightness, media playback and optional Spotify track search. General questions can use web lookup; answer text and source links are collapsed by default.
-- Place voice and tap controls together below the existing firmware preview with matching toggle buttons. Keep the active firmware page and successfully loaded layout as voice context; the firmware tile renderer stays unchanged.
-- Share local and optional Sonos reply output across providers. Pause microphone input during external replies, restart the configured silence timeout after delivery, and end the conversation after music-start acknowledgements. Sonos completion uses downloaded audio duration plus a margin, since HA does not report exact announcement completion.
-- Include setup documentation, isolated clean-image verification, and automated provider, transport, permission, cancellation and timeout tests. Physical voice acceptance is documented separately in the integration guide.
+- **New board: the M5Stack Tab5** ([#79](https://github.com/MaxGramser/homeassistant_espscreen/issues/79), PR
+  [#150](https://github.com/MaxGramser/homeassistant_espscreen/pull/150)), the 5-inch 1280 x 720 tablet with an ESP32-P4,
+  in its ST7121 variant (the factory log says "Detected ST7121 touch controller"). Three rows of three tiles, or four
+  rows when you choose that in New screen, camera tiles and pictures, the Wi-Fi hotspot with its QR code, and the
+  battery's voltage and level as sensors in Home Assistant. Other Tab5 variants are not covered yet: check the factory
+  log first ([docs/TAB5.md](docs/TAB5.md)). It needs ESPHome 2026.7 or newer, which the app has. Thanks to
+  @Heronimonimo, who built and tested it on his own Tab5.
+- **The Waveshare 4B dims over the whole range** ([#158](https://github.com/MaxGramser/homeassistant_espscreen/issues/158)).
+  Everything under about 74 % brightness was dark, so night and standby brightness turned the screen off instead of
+  dimming it. On this board GPIO4 is not a switch for the LEDs but the analog dim input of their driver (an AP3032),
+  behind a filter, and the driver stops altogether once that level passes about 1.78 V. At the 5 kHz it ran (as
+  Waveshare's own examples do), the ripple behind the filter crossed that line long before the average did. The pin now
+  runs at 300 kHz, the dimmest step stays just inside the range where the driver runs steadily, a brightness of 0 is
+  still dark, and the light no longer applies ESPHome's gamma, which pressed everything under 30 % onto the dimmest step.
+  Thanks to @EythorE for the schematic reading and the measurements on a real panel.
+- **A diabetes icon** for a tile or the top bar ([#156](https://github.com/MaxGramser/homeassistant_espscreen/issues/156),
+  PR [#160](https://github.com/MaxGramser/homeassistant_espscreen/pull/160)), `mdi:diabetes`, under Other in the icon
+  picker. Thanks to @Heronimonimo.
+- **A power key on the media card, and volume keys** ([#146](https://github.com/MaxGramser/homeassistant_espscreen/issues/146)).
+  A player that Home Assistant can turn off (a TV, an AV receiver, a speaker with a power switch) has its power key at
+  the top right of the card, where every other card keeps its keys, and only then: Spotify and other players that
+  cannot be turned off show none. A player whose state Home Assistant only assumes gets both power keys, as in Home
+  Assistant's own dialog, and the power keys use its icon. The row at the bottom of the card is new: volume down, a
+  shorter slider and volume up, round keys like the screensaver's, and after them the player's inputs and its
+  library, which moved down from the top bar. Every tap on volume down or up is a step, also when you tap fast. Hold
+  volume down to mute, and the next tap on either key takes the mute off. A media tile over a whole page has the same
+  row, without the percentage it showed.
+- **A player's card is plain black while nothing plays**, without the grey to black gradient it still had. A cover's
+  own colours still colour the card while it plays.
+- A camera picture on an alert stays within the screen's own full-screen picture, also on a large glass.
+- Every screen is offered this firmware, 0.39.0.
+- Tested: every Python, C++, editor and WASM preview check, and the layout audit of every card on every board shape.
+  Firmware builds on ESPHome 2026.9.0 for the CYD (87.0 % of its slot), the Guition, the 10.1-inch Guition, the
+  Waveshare 7-inch, the Waveshare 4B and the Tab5. The media card, its power key, the new volume row and the tile over
+  a whole page were rendered from the firmware on the CYD, the Guition, the Waveshare 4.3 and the 10.1-inch Guition.
+  Not tested on glass in this release: the Tab5 was tested by its contributor, the 4B dimming by its reporter's
+  measurements, and the volume keys and power key only in renders.
 
 ## 0.4.63 (firmware 0.38.0)
 

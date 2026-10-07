@@ -10,6 +10,8 @@
 #include "runtime_model.h"
 #include "screen_text.h"
 #include "theme.h"
+#include "media_card.h"
+#include "optimistic.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -29,6 +31,9 @@ constexpr uint32_t COVER_OPEN_TILT = ha::cover::OPEN_TILT, COVER_CLOSE_TILT = ha
 constexpr uint32_t MEDIA_PAUSE = ha::media_player::PAUSE, MEDIA_VOLUME_SET = ha::media_player::VOLUME_SET, MEDIA_VOLUME_MUTE = ha::media_player::VOLUME_MUTE,
                    MEDIA_PREVIOUS = ha::media_player::PREVIOUS_TRACK, MEDIA_NEXT = ha::media_player::NEXT_TRACK, MEDIA_TURN_ON = ha::media_player::TURN_ON,
                    MEDIA_PLAY = ha::media_player::PLAY;
+// The card's power key at the top right and its volume keys (firmware 0.39.0): Home Assistant offers volume_up and
+// volume_down to a player with either VOLUME_STEP or VOLUME_SET.
+constexpr uint32_t MEDIA_TURN_OFF = ha::media_player::TURN_OFF, MEDIA_VOLUME_STEP = ha::media_player::VOLUME_STEP;
 // The media card's seek, shuffle and repeat, and what a library start takes (firmware 0.24.0+).
 constexpr uint32_t MEDIA_SEEK = ha::media_player::SEEK, MEDIA_SHUFFLE = ha::media_player::SHUFFLE_SET, MEDIA_REPEAT = ha::media_player::REPEAT_SET,
                    MEDIA_PLAY_MEDIA = ha::media_player::PLAY_MEDIA, MEDIA_SELECT_SOURCE = ha::media_player::SELECT_SOURCE;
@@ -42,7 +47,7 @@ namespace glyph {
 constexpr const char *PLAY = "\U000F040A", *PAUSE = "\U000F03E4", *STOP = "\U000F04DB", *NEXT = "\U000F04AD", *PREVIOUS = "\U000F04AE";
 constexpr const char *VOLUME = "\U000F057E", *MUTED = "\U000F0581", *UP = "\U000F005D", *DOWN = "\U000F0045";
 constexpr const char *EXPAND = "\U000F084E", *COLLAPSE = "\U000F084C", *DOCK = "\U000F05F8", *PLUS = "\U000F0415", *MINUS = "\U000F0374";
-constexpr const char *LEFT = "\U000F0141", *RIGHT = "\U000F0142", *CLOSE = "\U000F0156", *POWER = "\U000F0425", *FIRE = "\U000F0238";
+constexpr const char *LEFT = "\U000F0141", *RIGHT = "\U000F0142", *CLOSE = "\U000F0156", *POWER = "\U000F0425", *STANDBY = "\U000F0906", *FIRE = "\U000F0238";
 constexpr const char *SNOWFLAKE = "\U000F0717", *HEAT_COOL = "\U000F1A79", *AUTO = "\U000F1B17", *DRY = "\U000F058E", *FAN = "\U000F0210";
 constexpr const char *BLINDS_OPEN = "\U000F1011", *BLINDS = "\U000F00AC", *MORE = "\U000F01D8";
 }
@@ -57,6 +62,10 @@ enum Command {
 struct Key { const char *icon = ""; int command = NONE; std::string arg; bool checked = false, disabled = false; };
 struct Action { std::string service, key, value; std::string key2 = {}, value2 = {}; bool valid() const { return !service.empty(); } };
 using runtime_tiles::Tile;
+// A humidifier (firmware 0.42.0+) is drawn with a thermostat's parts: the humidity it is set to between - and +, its
+// modes as the mode bar and the card's mode keys, and its circle or power key switches it. `thermostat` names both.
+inline bool humidifier(const Tile &t) { return t.domain() == "humidifier"; }
+inline bool thermostat(const Tile &t) { return t.domain() == "climate" || humidifier(t); }
 
 // Panel kinds: keys (a row of pill buttons), stepper (-/+ pill), slider, toggle, run.
 inline bool is_key_row(const std::string &c) { return c == "buttons" || c == "playback" || c == "chevrons"; }
@@ -79,13 +88,13 @@ inline bool cover_tilt_selected(const Tile &t) {
 }
 // A climate's second group (firmware 0.3.1+): the mode keys under the setpoint, where a taller card has the room.
 inline bool climate_modes_selected(const Tile &t) {
-  return t.domain()=="climate" && t.controls=="setpoint_mode";
+  return thermostat(t) && t.controls=="setpoint_mode";
 }
 // A select's "stepper" is a pair of chevron keys; numbers and climate get the -/+ pill.
 inline std::string panel_kind(const Tile &t) {
   auto c = t.controls, d = t.domain();
   if(d=="cover"){if(c=="tilt")return {};if(c=="buttons_tilt")return "buttons";if(c=="position_tilt")return "position";}
-  if(d=="climate"&&c=="setpoint_mode")return "setpoint";
+  if((d=="climate"||d=="humidifier")&&c=="setpoint_mode")return "setpoint";
   // The small slider of a wide card is that domain's slider: the manager sends no control set beside it
   // (resolve_controls), so the kind comes from the domain.
   if (c.empty() && t.inline_control == "slider") return inline_kind(d);
@@ -174,6 +183,8 @@ inline uint32_t accent(const Tile &t) {
   if (d == "climate") { const uint32_t c = mode_color(t.state); return c == GREY ? AMBER : c; }
   if (d == "vacuum") return t.state == "error" ? RED : TEAL;
   if (d == "fan") return CYAN;
+  // A humidifier is Home Assistant's blue while it is on (--state-humidifier-on-color), drying or humidifying alike.
+  if (d == "humidifier") return BLUE;
   if (d == "cover" || d == "scene") return PURPLE;
   if (d == "media_player") return LIGHT_BLUE;
   if (d == "select" || d == "input_select") return INDIGO;
@@ -218,7 +229,7 @@ inline float numeric_state(const Tile &t) {
   return end != t.state.c_str() && std::isfinite(value) ? value : NAN;
 }
 // Value the -/+ pill edits: the climate setpoint or the number itself.
-inline float edit_target(const Tile &t) { return t.domain() == "climate" ? t.target : numeric_state(t); }
+inline float edit_target(const Tile &t) { return thermostat(t) ? t.target : numeric_state(t); }
 // A thermostat that keeps the room between two temperatures (firmware 0.19.0), decided as Home Assistant's thermostat
 // card decides it (ha-state-control-climate-temperature): a single target it supports and reports comes first; else a
 // range it supports (feature 2) with both ends reported.
@@ -261,6 +272,15 @@ inline std::string temperature_text(float value) {
   for (float scaled = value; digits < 2 && std::fabs(scaled - std::round(scaled)) > 0.01f; scaled *= 10) ++digits;
   return screen_text::decimal(value, digits) + "°";
 }
+// A humidity, as Home Assistant writes it beside a humidifier: whole, or with the one decimal a sensor sends (45.5%).
+inline std::string humidity_text(float value) {
+  if (std::fabs(value - std::round(value)) < 0.05f) return screen_text::percent(static_cast<int>(std::lround(value)));
+  return screen_text::decimal(value, 1) + screen_text::percent_sign();
+}
+// What a thermostat measures, in its own unit: degrees, or a humidifier's humidity.
+inline std::string reading_text(const Tile &t, float value) { return humidifier(t) ? humidity_text(value) : temperature_text(value); }
+// The suffix of the number a thermostat is set to.
+inline const char *setpoint_suffix(const Tile &t) { return humidifier(t) ? screen_text::percent_sign() : "°"; }
 // Home Assistant's word for a climate fan ('f') or swing ('s') setting that Home Assistant names itself ("low" is
 // "Laag" in Dutch); an integration's own mode reads as its name ("fan_only" -> "Fan only").
 inline std::string climate_setting_text(char kind, std::string raw) {
@@ -320,6 +340,7 @@ inline std::vector<std::string> list_values(const std::string &json, unsigned li
 }
 // A thermostat is off when Home Assistant says its mode is off (or says nothing at all).
 inline bool climate_off(const Tile &t) {
+  if (humidifier(t)) return t.state != "on";
   const std::string mode = lower_case(t.state);
   return mode == "off" || mode.empty() || mode == "unknown" || mode == "unavailable";
 }
@@ -333,10 +354,66 @@ inline const char *climate_mode_icon(const std::string &mode) {
   if (mode == "fan_only") return glyph::FAN;
   return glyph::POWER;
 }
+// A humidifier's modes are its own (normal, eco, away, ... or an integration's words), apart from on and off: the mode it
+// is in is an attribute, not its state. Home Assistant's icon and word for the ones it names; another keeps its name
+// and Home Assistant's default icon.
+inline const char *humidifier_mode_icon(const std::string &mode) {
+  if (mode == "normal") return "\U000F058E";        // water-percent
+  if (mode == "eco") return "\U000F032A";           // leaf
+  if (mode == "away") return "\U000F0B53";          // account-arrow-right
+  if (mode == "boost") return "\U000F14DE";         // rocket-launch
+  if (mode == "comfort") return "\U000F04B9";       // sofa
+  if (mode == "home") return "\U000F02DC";          // home
+  if (mode == "sleep") return "\U000F0904";         // power-sleep
+  if (mode == "auto") return "\U000F18F2";          // refresh-auto
+  if (mode == "baby") return "\U000F068F";          // baby-carriage
+  return "\U000F09DE";                              // circle-medium
+}
+inline std::string humidifier_mode_text(const std::string &mode) {
+  using namespace screen_text;
+  if (mode == "normal") return tr(txt::ha_humidifier_mode_normal);
+  if (mode == "eco") return tr(txt::ha_humidifier_mode_eco);
+  if (mode == "away") return tr(txt::ha_humidifier_mode_away);
+  if (mode == "boost") return tr(txt::ha_humidifier_mode_boost);
+  if (mode == "comfort") return tr(txt::ha_humidifier_mode_comfort);
+  if (mode == "home") return tr(txt::ha_humidifier_mode_home);
+  if (mode == "sleep") return tr(txt::ha_humidifier_mode_sleep);
+  if (mode == "auto") return tr(txt::ha_humidifier_mode_auto);
+  if (mode == "baby") return tr(txt::ha_humidifier_mode_baby);
+  return mode;
+}
+// Whether Home Assistant names every mode the humidifier lists, so each has an icon of its own: the card shows them as
+// round keys with those icons. A mode of the integration's own has only Home Assistant's default dot, so a humidifier
+// with one shows its modes as a row of their words instead (climate_rows), as Home Assistant's mode list writes them.
+inline bool humidifier_named_modes(const Tile &t) {
+  for (const auto &mode : list_values(t.extra().hvac_modes, 8))
+    if (std::string(humidifier_mode_icon(mode)) == "\U000F09DE") return false;
+  return true;
+}
+inline const char *humidifier_action_text(const std::string &action) {
+  using namespace screen_text;
+  if (action == "humidifying") return tr(txt::ha_humidifier_action_humidifying);
+  if (action == "drying") return tr(txt::ha_humidifier_action_drying);
+  if (action == "idle") return tr(txt::ha_humidifier_action_idle);
+  if (action == "off") return tr(txt::ha_humidifier_action_off);
+  return "";
+}
+// The mode a thermostat is in: a climate's state, a humidifier's `mode`.
+inline std::string current_mode(const Tile &t) { return humidifier(t) ? t.extra().humidifier_mode : lower_case(t.state); }
+// The icon and the words of a mode, for either.
+inline const char *thermostat_mode_icon(const Tile &t, const std::string &mode) { return humidifier(t) ? humidifier_mode_icon(mode) : climate_mode_icon(mode); }
+inline std::string thermostat_mode_text(const Tile &t, const std::string &mode) { return humidifier(t) ? humidifier_mode_text(mode) : std::string(climate_mode_text(mode)); }
 // The modes the card offers, in Home Assistant's order, without "off": the power key already does that one.
 // A device that reports no modes at all still shows the one it is in, so the card is never empty.
 inline std::vector<std::string> climate_modes(const Tile &t) {
   std::vector<std::string> modes;
+  if (humidifier(t) && !humidifier_named_modes(t)) return modes;   // the row of words has them (climate_rows)
+  if (humidifier(t)) {
+    // As the integration lists them (available_modes), and the one it is in when it lists none.
+    for (const auto &mode : list_values(t.extra().hvac_modes, 8)) modes.push_back(mode);
+    if (modes.empty() && !t.extra().humidifier_mode.empty()) modes.push_back(t.extra().humidifier_mode);
+    return modes;
+  }
   for (const auto &raw : list_values(t.extra().hvac_modes, 8)) {
     const std::string mode = lower_case(raw);
     if (mode != "off") modes.push_back(mode);
@@ -355,6 +432,19 @@ struct ClimateRow {
 inline std::vector<ClimateRow> climate_rows(const Tile &t) {
   std::vector<ClimateRow> rows;
   const auto &x = t.extra();
+  if (humidifier(t)) {
+    if (humidifier_named_modes(t)) return rows;
+    auto values = list_values(x.hvac_modes, 6);
+    if (values.size() < 2) return rows;
+    ClimateRow out;
+    out.kind = 'm';
+    out.icon = "\U000F058E";   // water-percent: the row is the humidifier's, whichever mode it is in
+    out.current = x.humidifier_mode;
+    for (const auto &value : values) out.labels.push_back(humidifier_mode_text(value));
+    out.values = std::move(values);
+    rows.push_back(std::move(out));
+    return rows;
+  }
   const struct { char kind; const char *icon; const std::string &modes; const std::string &current; } wanted[] = {
       {'f', glyph::FAN, x.fan_modes, x.fan_mode},
       {'s', "\U000F1C91", x.swing_modes, x.swing_mode},
@@ -374,6 +464,7 @@ inline std::vector<ClimateRow> climate_rows(const Tile &t) {
 }
 // What a tap on a row sends.
 inline Action climate_row_action(char kind, const std::string &value) {
+  if (kind == 'm') return {"humidifier.set_mode", "mode", value};
   if (kind == 'f') return {"climate.set_fan_mode", "fan_mode", value};
   return {"climate.set_swing_mode", "swing_mode", value};
 }
@@ -382,6 +473,16 @@ inline Action climate_row_action(char kind, const std::string &value) {
 // under the setpoint: the temperature without the word before it, and no humidity.
 inline std::string climate_card_status(const Tile &t, bool brief = false) {
   if (!t.available()) return screen_text::tr(screen_text::txt::ha_unavailable);
+  if (humidifier(t)) {
+    // What it is doing (Home Assistant's action, off while it is off), else On or Off, and the humidity it measures.
+    std::string status = humidifier_action_text(climate_off(t) ? std::string("off") : t.extra().hvac_action);
+    if (status.empty()) status = screen_text::tr(climate_off(t) ? screen_text::txt::ha_off : screen_text::txt::ha_on);
+    if (std::isfinite(t.current)) {
+      const std::string value = humidity_text(t.current);
+      status += " · " + (brief ? value : screen_text::fill(screen_text::txt::climate_now, "value", value));
+    }
+    return status;
+  }
   std::string status = climate_off(t) ? std::string(screen_text::tr(screen_text::txt::ha_off))
                                       : std::string(climate_action_text(lower_case(t.extra().hvac_action)));
   if (status.empty()) status = climate_mode_text(lower_case(t.state));
@@ -452,6 +553,7 @@ inline const char *binary_state_text(const std::string &device_class, bool on) {
 // Status line beside a control panel: what Home Assistant shows under the name.
 inline std::string status_text(const Tile &t) {
   auto d = t.domain();
+  if (d == "humidifier") return climate_card_status(t, true);
   if (d == "climate") {
     std::string text = climate_action_text(t.extra().hvac_action);
     if (text.empty()) text = climate_mode_text(t.state);
@@ -533,6 +635,9 @@ template <size_t N> inline unsigned climate_bar_keys(const Tile &t, std::array<K
   room = std::min<unsigned>(room, N);
   std::vector<std::string> modes;
   const auto listed = list_values(t.extra().hvac_modes, 8);
+  // A humidifier's modes stand in the order its integration lists them.
+  if (humidifier(t)) modes = listed;
+  else
   for (const char *mode : ORDER)
     for (const auto &raw : listed)
       if (lower_case(raw) == mode) { modes.push_back(mode); break; }
@@ -540,11 +645,11 @@ template <size_t N> inline unsigned climate_bar_keys(const Tile &t, std::array<K
   const bool more = modes.size() > room;
   const unsigned shown = !more ? (unsigned) modes.size() : room == 2 ? 2 : room - 1;
   std::vector<std::string> pick(modes.begin(), modes.begin() + shown);
-  const std::string current = lower_case(t.state);
+  const std::string current = current_mode(t);
   if (std::find(modes.begin(), modes.end(), current) != modes.end() && std::find(pick.begin(), pick.end(), current) == pick.end())
     pick.back() = current;
   unsigned n = 0;
-  for (const auto &mode : pick) out[n++] = Key{mode_icon(mode), HVAC_MODE, mode, mode == current, false};
+  for (const auto &mode : pick) out[n++] = Key{humidifier(t) ? humidifier_mode_icon(mode) : mode_icon(mode), HVAC_MODE, mode, mode == current, false};
   if (more && shown < room) out[n++] = Key{glyph::MORE, OPEN_CARD, "", false, false};
   return n;
 }
@@ -583,7 +688,10 @@ inline unsigned keys_for(const Tile &t, std::array<Key, 3> &out, uint32_t now = 
     // them while it plays nowhere. They stand where they were, faded until the player reports them again.
     const uint32_t had = t.supported | t.extra().media_features;
     if (had & feature::MEDIA_PREVIOUS) add(glyph::PREVIOUS, MEDIA_PREVIOUS, !(t.supported & feature::MEDIA_PREVIOUS));
-    if (had & (feature::MEDIA_PLAY | feature::MEDIA_PAUSE)) add(t.state == "playing" ? glyph::PAUSE : glyph::PLAY, MEDIA_PLAY_PAUSE, !(t.supported & (t.state == "playing" ? feature::MEDIA_PAUSE : feature::MEDIA_PLAY)));
+    if (had & (feature::MEDIA_PLAY | feature::MEDIA_PAUSE)) {
+      const bool playing = media_card::playing(t.state);
+      add(playing ? glyph::PAUSE : glyph::PLAY, MEDIA_PLAY_PAUSE, !(t.supported & (playing ? feature::MEDIA_PAUSE : feature::MEDIA_PLAY)));
+    }
     if (had & feature::MEDIA_NEXT) add(glyph::NEXT, MEDIA_NEXT, !(t.supported & feature::MEDIA_NEXT));
   } else if (c == "chevrons") {
     // Nothing to step through is not a state that can lag: without two options there is no next one.
@@ -607,6 +715,14 @@ inline const char *run_label(const std::string &domain) {
   return screen_text::tr(screen_text::txt::ha_button_press);
 }
 // The Home Assistant action behind a key. STEP_* are handled locally (debounced) and return nothing.
+// Play or pause by what the player shows, as Home Assistant's media player row does (hui-media-player-entity-row): the
+// action of its own where the player has it, so a pause that follows a play is a pause, whatever the player said last.
+inline Action media_play_action(const Tile &t) {
+  const bool playing = media_card::playing(t.state);
+  if (playing && (t.supported & feature::MEDIA_PAUSE)) return {"media_player.media_pause", "", ""};
+  if (!playing && (t.supported & feature::MEDIA_PLAY)) return {"media_player.media_play", "", ""};
+  return {};
+}
 inline Action key_action(const Tile &t, int command, const std::string &arg = "") {
   auto d = t.domain();
   switch (command) {
@@ -622,16 +738,15 @@ inline Action key_action(const Tile &t, int command, const std::string &arg = ""
     case VACUUM_DOCK: return {"vacuum.return_to_base", "", ""};
     case MEDIA_PREVIOUS: return {"media_player.media_previous_track", "", ""};
     case MEDIA_PLAY_PAUSE:
-      if((t.supported&(feature::MEDIA_PLAY|feature::MEDIA_PAUSE))==(feature::MEDIA_PLAY|feature::MEDIA_PAUSE))return {"media_player.media_play_pause", "", ""};
-      if(t.state=="playing"&&(t.supported&feature::MEDIA_PAUSE))return {"media_player.media_pause", "", ""};
-      if(t.state!="playing"&&(t.supported&feature::MEDIA_PLAY))return {"media_player.media_play", "", ""};
-      return {};
+      return media_play_action(t);
     case MEDIA_NEXT: return {"media_player.media_next_track", "", ""};
     case MEDIA_MUTE: return {"media_player.volume_mute", "is_volume_muted", t.muted ? "false" : "true"};
     case TIMER_START: return {"timer.start", "", ""};
     case TIMER_PAUSE: return {"timer.pause", "", ""};
     case TIMER_CANCEL: return {"timer.cancel", "", ""};
-    case HVAC_MODE: return arg.empty() ? Action{} : Action{"climate.set_hvac_mode", "hvac_mode", arg};
+    case HVAC_MODE:
+      if (arg.empty()) return {};
+      return d == "humidifier" ? Action{"humidifier.set_mode", "mode", arg} : Action{"climate.set_hvac_mode", "hvac_mode", arg};
     case SELECT_PREVIOUS: case SELECT_NEXT: {
       std::string option = neighbour_option(t, command == SELECT_NEXT ? 1 : -1);
       return option.empty() ? Action{} : Action{d + ".select_option", "option", option};
@@ -644,23 +759,39 @@ inline Action key_action(const Tile &t, int command, const std::string &arg = ""
       if (d == "automation") return {"automation.trigger", "", ""};
       return {};
     case TOGGLE:
-      if (d == "light" || d == "switch" || d == "input_boolean" || d == "fan" || d == "automation" || d == "remote") return {d + (t.state == "on" ? ".turn_off" : ".turn_on"), "", ""};
+      if (d == "light" || d == "switch" || d == "input_boolean" || d == "fan" || d == "automation" || d == "remote" || d == "humidifier") return {d + (t.state == "on" ? ".turn_off" : ".turn_on"), "", ""};
       return {};
     default: return {};
   }
 }
-// A tap on a key: the action follows the stand the tile had, and a toggle then shows its new stand at once. The order
-// matters, because Tile::optimistic writes the new stand into `state`: asked afterwards, key_action sent an off light
-// light.turn_off, so the knob flipped on and back while the light stayed off (firmware 0.2.59 to 0.2.71).
-inline Action press_key(Tile &t, int command, const std::string &arg = "") {
-  Action a = key_action(t, command, arg);
-  if (command == TOGGLE && a.valid()) t.optimistic(t.state != "on");
-  return a;
+// The value a key wishes for (docs/OPTIMISTIC.md): what the tile shows at once while key_action's call is on its way.
+// A key without one (a cover's open, a timer's start) is an ordinary action. Asked before anything changes the tile, as
+// key_action is: both follow what the tile shows now, so a second tap in a burst undoes the first.
+struct Wanted {
+  bool valid = false;
+  optimistic::Field field = optimistic::Field::ON_OFF;
+  std::string value;
+};
+inline Wanted wanted(const Tile &t, int command, const std::string &arg = "") {
+  using F = optimistic::Field;
+  const auto d = t.domain();
+  switch (command) {
+    case TOGGLE: return key_action(t, command).valid() ? Wanted{true, F::ON_OFF, t.state == "on" ? "off" : "on"} : Wanted{};
+    case HVAC_MODE: return arg.empty() ? Wanted{} : Wanted{true, d == "humidifier" ? F::HUMIDIFIER_MODE : F::HVAC_MODE, arg};
+    case SELECT_PREVIOUS: case SELECT_NEXT: {
+      const std::string option = neighbour_option(t, command == SELECT_NEXT ? 1 : -1);
+      return option.empty() ? Wanted{} : Wanted{true, F::OPTION, option};
+    }
+    case MEDIA_PLAY_PAUSE:
+      return key_action(t, command).valid() ? Wanted{true, F::PLAYING, media_card::playing(t.state) ? "0" : "1"} : Wanted{};
+    default: return {};
+  }
 }
 // ---- Vacuum card rows (firmware 0.2.39+) ----
 // The value a row shows as chosen: the one just tapped while Home Assistant has not answered yet.
 inline const std::string &shown_value(const Tile &t, const runtime_tiles::Choice &c, uint32_t now) {
-  return !c.sent.empty() && t.waiting(now) ? c.sent : c.current;
+  (void)t; (void)now;  // a chip just tapped is the row's current already: the wish wrote it (docs/OPTIMISTIC.md)
+  return c.current;
 }
 // Role of the cleaning mode in use: 'v' vacuum only, 'm' mop only, 'b' both, 'a' automatic; 'b' when
 // the robot has no mode select or reports a mode the manager did not know.
@@ -749,6 +880,8 @@ inline Action edit_action(const Tile &t, float value) {
     return {"climate.set_temperature", "target_temp_low", format_number(low), "target_temp_high", format_number(high)};
   }
   if (d == "climate") return {"climate.set_temperature", "temperature", text};
+  // Home Assistant takes a whole percentage (set_humidity: Coerce(int)).
+  if (d == "humidifier") return {"humidifier.set_humidity", "humidity", std::to_string(static_cast<int>(std::lround(value)))};
   if (d == "number" || d == "input_number") return {d + ".set_value", "value", text};
   return {};
 }
@@ -766,7 +899,7 @@ struct Tap { TapRoute route = TapRoute::NONE; std::string service; bool busy = f
 inline bool runtime_card_domain(const std::string &d) {
   return d == "sensor" || d == "binary_sensor" || d == "weather" || d == "number" || d == "input_number" || d == "select" ||
          d == "input_select" || d == "media_player" || d == "vacuum" || d == "cover" || d == "sun" || d == "person" ||
-         d == "timer" || d == "climate" || d == "alarm_control_panel" ||
+         d == "timer" || d == "climate" || d == "humidifier" || d == "alarm_control_panel" ||
          // A remote opens its card, as Home Assistant's tile card opens its dialog: the power key and its activities
          // (firmware 0.22.0+). The tap option `toggle` switches it instead.
          d == "remote";
@@ -800,14 +933,14 @@ inline bool panel_available(const Tile &t) {
   const auto mode=panel_kind(t),domain=t.domain();
   if(is_key_row(mode)){std::array<Key,3> keys;return keys_for(t,keys)>0;}
   // A thermostat's modes are its mode bar (climate_bar_keys), the same one as under its -/+ (firmware 0.19.0).
-  if(mode=="mode"){std::array<Key,6> keys;return domain=="climate"&&climate_bar_keys(t,keys)>0;}
+  if(mode=="mode"){std::array<Key,6> keys;return thermostat(t)&&climate_bar_keys(t,keys)>0;}
   if(mode=="brightness")return domain=="light"&&light_dims(t);
   if(mode=="speed")return domain=="fan"&&(t.supported&feature::FAN_SPEED);
   if(mode=="position")return domain=="cover"&&(t.supported&feature::COVER_POSITION);
   if(mode=="volume")return domain=="media_player"&&(t.supported&(feature::MEDIA_VOLUME_SET|feature::MEDIA_VOLUME_MUTE));
-  if(mode=="setpoint")return domain=="climate"&&(t.supported&(feature::CLIMATE_TEMPERATURE|feature::CLIMATE_RANGE)); // one or a range (firmware 0.19.0)
-  if(mode=="slider"||mode=="stepper")return domain=="number"||domain=="input_number";
-  if(mode=="toggle")return domain=="light"||domain=="switch"||domain=="input_boolean"||domain=="fan"||domain=="automation"||domain=="remote";
+  if(mode=="setpoint")return (domain=="climate"&&(t.supported&(feature::CLIMATE_TEMPERATURE|feature::CLIMATE_RANGE)))||domain=="humidifier"; // one or a range (firmware 0.19.0)
+  if(mode=="slider"||mode=="stepper")return domain=="number"||domain=="input_number"||(mode=="slider"&&domain=="humidifier");
+  if(mode=="toggle")return domain=="light"||domain=="switch"||domain=="input_boolean"||domain=="fan"||domain=="automation"||domain=="remote"||domain=="humidifier";
   if(mode=="run")return domain=="scene"||domain=="script"||domain=="button"||domain=="input_button"||domain=="automation";
   return false;
 }

@@ -11,7 +11,7 @@ correct on all four physical corners on a real unit.
 Update Tessera Screen Manager and choose **Waveshare · 3.5 inch** (ESP32-S3-Touch-LCD-3.5) in **New screen**.
 Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi references and unique API/OTA keys.
 Choose the correct USB port, or download the firmware to flash with ESPHome Web from your own computer.
-Keep an existing working profile if the board is already installed. Pair it through the ESPHome integration before adding tiles.
+Keep an existing working profile if the board is already installed. Tessera adds it to Home Assistant by itself once it is on your Wi-Fi; then add its tiles.
 
 The remote package is `packages/waveshare35.yaml`; the checkout entry is `checkout/waveshare35.yaml`.
 Both combine `packages/core.yaml` with `packages/boards/waveshare-esp32s3-35.yaml`.
@@ -75,7 +75,7 @@ board file overrides none of them.
 
 ## What to report while testing
 
-1. Board revision, successful boot, pairing and appearance in Tessera.
+1. Board revision, successful boot and appearance in Tessera.
 2. Correct colours and a stable picture across several page changes and cold starts.
 3. Physical taps near each corner, slider drags and edge swipes, in both orientations.
 4. Brightness, standby after the timeout and wake by touch, and night mode, several times in a row.

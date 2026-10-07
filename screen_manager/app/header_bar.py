@@ -15,8 +15,9 @@ import unicodedata
 from datetime import datetime, time
 
 import tile_icons
-from core import (BAR_STATUS_FEATURE, BAR_STATUS_MIN_FIRMWARE, HEADER_BUILTIN, HEADER_CONTENTS, HEADER_MAX_ITEMS, HEADER_MIN_FIRMWARE,
-                  HEADER_SHOWS, HEADER_STATUS, WIFI_CONTENTS, WIFI_SHOWS, epoch, header_items, local_clock, one_mu, short, state_word)
+from core import (BAR_STATUS_FEATURE, BAR_STATUS_MIN_FIRMWARE, BATTERY_CONTENTS, BATTERY_FEATURE, BATTERY_MIN_FIRMWARE, BATTERY_SHOWS,
+                  HEADER_BUILTIN, HEADER_CONTENTS, HEADER_MAX_ITEMS, HEADER_MIN_FIRMWARE, HEADER_SHOWS, HEADER_STATUS, WIFI_CONTENTS,
+                  WIFI_SHOWS, epoch, header_items, local_clock, one_mu, short, state_word)
 import i18n
 from i18n import TRANSLATIONS, screen_number, screen_t, t
 
@@ -104,7 +105,7 @@ DOMAIN_ICONS = {
     'button': 'gesture-tap-button', 'input_button': 'gesture-tap-button', 'person': 'account', 'device_tracker': 'map-marker',
     'zone': 'account-group', 'lock': 'lock', 'alarm_control_panel': 'shield-home', 'timer': 'timer-outline', 'counter': 'gauge',
     'event': 'bell-ring', 'input_datetime': 'calendar', 'input_text': 'script-text', 'water_heater': 'water-boiler',
-    'humidifier': 'air-purifier', 'select': 'cog', 'input_select': 'cog', 'number': 'gauge', 'input_number': 'gauge',
+    'humidifier': 'air-humidifier', 'select': 'cog', 'input_select': 'cog', 'number': 'gauge', 'input_number': 'gauge',
     'sensor': 'gauge', 'binary_sensor': 'gauge',
 }
 # Their state is the moment they last ran or fired: the bar shows how long ago.
@@ -264,6 +265,9 @@ def accent(entity, state):
         return GREEN if raw == 'locked' else ORANGE if raw in ('locking', 'unlocking', 'opening') else RED if raw in ('unlocked', 'open', 'jammed') else None
     if domain == 'media_player' and raw == 'playing':
         return BLUE
+    # A humidifier is Home Assistant's blue while it is on, drying or humidifying alike (--state-humidifier-on-color).
+    if domain == 'humidifier' and raw == 'on':
+        return BLUE
     if domain == 'vacuum' and raw == 'cleaning':
         return TEAL
     return None
@@ -323,15 +327,19 @@ def entity_item(item, states, registry=None, units=None, tz=None, words=None):
         wire['c'] = color
     return wire, item['show'] == 'always' or active(entity, state)
 
-# What the Wi-Fi item's text says beside its bars on the screen (header_bar.h device_item): nothing, a percentage or dBm.
+# What the Wi-Fi item's text says beside its bars on the screen (header_bar.h device_item): nothing, a percentage or dBm;
+# and the battery's beside its icon (firmware 0.41.0): nothing or its percentage.
 WIFI_TEXT = {'icon': '', 'percent': '%', 'dbm': 'dBm'}
+BATTERY_TEXT = {'icon': '', 'percent': '%'}
 
 def status_item(item):
-    """The screen's own item as the screen reads it: Wi-Fi with its text and `a` for only when weak, or the link."""
+    """The screen's own item as the screen reads it: Wi-Fi or the battery with its text, and `a` for only while the signal
+    is weak or the battery low; or the link."""
     if item['type'] == 'link':
         return {'k': 'link'}
-    wire = {'k': 'wifi', 't': WIFI_TEXT[item['content']]}
-    if item['show'] == 'weak':
+    text = (WIFI_TEXT if item['type'] == 'wifi' else BATTERY_TEXT)[item['content']]
+    wire = {'k': item['type'], 't': text}
+    if item['show'] in ('weak', 'low'):
         wire['a'] = 1
     return wire
 
@@ -344,7 +352,10 @@ def message(layout, states, registry=None, units=None, tz=None, words=None, feat
             items.append({'k': item['type']})
             continue
         if item['type'] in HEADER_STATUS:
-            if features is None or BAR_STATUS_FEATURE in features:
+            # The battery only to a screen that said it has one (firmware 0.41.0): a layout copied from a Tab5 to a
+            # screen without a battery simply leaves it out there.
+            needs = BATTERY_FEATURE if item['type'] == 'battery' else BAR_STATUS_FEATURE
+            if features is None or needs in features:
                 items.append(status_item(item))
             continue
         wire, shown = entity_item(item, states, registry, units, tz, words)
@@ -406,4 +417,8 @@ def catalogue():
             'wifi_contents': [{'key': key, 'label': t(f'addon.labels.top_bar.wifi_contents.{key}')} for key in WIFI_CONTENTS],
             'wifi_shows': [{'key': key, 'label': t(f'addon.labels.top_bar.wifi_shows.{key}')} for key in WIFI_SHOWS],
             'status_types': list(HEADER_STATUS), 'status_min_firmware': '.'.join(map(str, BAR_STATUS_MIN_FIRMWARE)),
+            # The battery item's choices (firmware 0.41.0); the editor offers it on a screen whose `battery` is true.
+            'battery_contents': [{'key': key, 'label': t(f'addon.labels.top_bar.battery_contents.{key}')} for key in BATTERY_CONTENTS],
+            'battery_shows': [{'key': key, 'label': t(f'addon.labels.top_bar.battery_shows.{key}')} for key in BATTERY_SHOWS],
+            'battery_min_firmware': '.'.join(map(str, BATTERY_MIN_FIRMWARE)),
             'max_items': HEADER_MAX_ITEMS, 'min_firmware': '.'.join(map(str, HEADER_MIN_FIRMWARE))}

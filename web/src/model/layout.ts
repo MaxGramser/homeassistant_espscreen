@@ -260,6 +260,9 @@ export function defaultOptions(id: string, covers = false): Partial<Tile> {
   if (id === "screen.nightstand") return { options: { size: "full", background: "none" } };
   // The map tile (app 0.4.36) starts double width, following everyone Home Assistant knows the place of.
   if (id === "screen.map") return { options: { display: "map", size: "wide" } };
+  // The energy card (app 0.4.77) starts 2 x 2, the least power-flow-card-plus takes; the store takes a larger size where
+  // the glass is too low for that (startTile).
+  if (id === "screen.energy") return { options: { size: "square" } };
   return {};
 }
 export const newTile = (id: string, covers = false): Tile => ({ entity: id, name: "", slot: -1, ...defaultOptions(id, covers) } as Tile);
@@ -311,6 +314,7 @@ export const inlineControlKind = (domain: string) => SLIDER_CONTROLS[domain] || 
 export const domains: Record<string, [string, string, string]> = {
   light: ["☀", "#ad7600", "#fff3d3"],
   climate: ["❄", "#c86620", "#ffebdc"],
+  humidifier: ["≋", "#3476b1", "#e5effa"],
   vacuum: ["◉", "#008577", "#def3ed"],
   fan: ["✣", "#008aab", "#def5fa"],
   cover: ["▤", "#8053af", "#eee5f8"],

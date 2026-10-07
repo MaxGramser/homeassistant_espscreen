@@ -9,6 +9,11 @@
 # It has no display, so the glass is dark for the minute or two it runs, and no `api:`, on purpose: Home Assistant
 # removes the entities a device stops offering, so the bridge must not talk to it. checkout/bridge.yaml builds the
 # same from a clone of this repository, and tools/check.sh --firmware keeps it small enough for the old slot.
+substitutions:
+  # The branch of the components, as in the screen's own package (packages/<key>.yaml): the bridge carries the
+  # screen's substitutions, so a screen of the dev channel builds its bridge from dev as well.
+  GITHUB_REF: "main"
+
 packages:
   build: !include hardware/esp-idf.yaml
 
@@ -16,7 +21,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/MaxGramser/homeassistant_espscreen.git
-      ref: main
+      ref: ${GITHUB_REF}
       path: components
     refresh: 0s
     components: [flash_layout]

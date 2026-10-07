@@ -369,6 +369,17 @@ class WhatAScreenSays(unittest.TestCase):
             self.assertEqual(first['flash'], word, state)
             self.assertIsNone(second['flash'], 'a board with more flash has no such sensor')
 
+    def test_a_screen_without_the_wide_table_is_updated_in_tessera(self):
+        # Its firmware no longer fits ESPHome's slot, so ESPHome Device Builder's update is refused; Tessera moves the
+        # table on the way (app 0.4.82). Firmware from before the sensor says nothing, and counts as the old table.
+        for board in WIDE_BOARDS:
+            for word, expected in ((None, True), ('old', True), ('widen', True), ('widen_next', True), ('wide', False), ('other', False)):
+                self.assertIs(core.update_in_tessera({'online': True, 'board': board, 'flash': word}), expected, (board, word))
+            self.assertFalse(core.update_in_tessera({'online': False, 'board': board, 'flash': None}), 'away says nothing')
+        self.assertFalse(core.update_in_tessera({'online': True, 'board': 'guition', 'flash': None}))
+        self.assertFalse(core.update_in_tessera({'online': True, 'board': 'unknown', 'flash': None}))
+        self.assertTrue(core.update_in_tessera({'online': True, 'package': 'packages/cyd.yaml', 'flash': None}))
+
 
 class Screen:
     """A screen with 4 MB of flash, as the updater meets it: what ESPHome's upload answers, and what the screen says in

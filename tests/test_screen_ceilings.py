@@ -76,6 +76,28 @@ class Memory(unittest.TestCase):
             self.assertIsNone(memory_of(broken))
         self.assertEqual([ceiling_of(128, 1024), ceiling_of(0, 1024), ceiling_of(2000, 1024), ceiling_of("8", 32)], [128, None, None, None])
 
+    def test_a_screen_still_measuring_says_no_room_and_keeps_the_last_it_measured(self):
+        # Firmware 0.51.0 samples its room only once a layout has settled and leaves `room` out before: still measuring,
+        # not a room of nothing (GitHub #169).
+        measuring = {"memory": {k: v for k, v in MEMORY.items() if k != "room"}}
+        self.assertEqual(memory_of(measuring), {**MEMORY, "room": None, "short": False})
+        self.assertIsNone(memory_of({"memory": {**MEMORY, "room": None}}))
+        sender = Sender(lambda message: None)
+        sender.heard({"memory": MEMORY})
+        sender.heard(measuring)
+        self.assertIsNone(sender.memory["room"])
+        self.assertEqual(sender.last_memory["room"], MEMORY["room"])
+        with tempfile.TemporaryDirectory() as folder:
+            screen = {'device_id': 'd1', 'firmware_known': '0.51.0', 'node': 'wall', 'board': 'guition'}
+            sender.protocol = 2
+            CapabilityCache(Path(folder) / 'caps.json').remember('text.wall', screen, sender)
+            later = Sender(lambda message: None)
+            CapabilityCache(Path(folder) / 'caps.json').restore('text.wall', screen, later)
+            self.assertEqual(later.last_memory["room"], MEMORY["room"])
+        # Firmware without a budget still drops the figures.
+        sender.heard({})
+        self.assertEqual((sender.memory, sender.last_memory), (None, None))
+
 
     def test_a_big_layout_sensor_leaves_out_its_defaults_to_stay_recorded(self):
         def snapshot(count):

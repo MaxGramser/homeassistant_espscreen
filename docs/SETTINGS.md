@@ -36,7 +36,7 @@ The row on the screen and in the editor says Back to Home; its three entities ke
 "Back to page 1", "Back to page 1 after" and "Back to page 1 on standby", which `SETTING_ENTITIES` and
 `OWNED_SETTINGS_MARKERS` match on. Don't rename them.
 
-Not every board has every row. A board whose screen cannot go dark (`CAN_STANDBY` false: the Waveshare 4.3 and
+Not every board has every row. A board whose screen cannot go dark (`CAN_STANDBY` false: the Waveshare 4.3, 5 and
 7 inch) has no Auto standby, Standby after, Standby brightness, Also on standby or Night group, on the screen, in
 Home Assistant or in Tessera. A board whose backlight takes no levels (`BACKLIGHT_DIMMABLE` false) has no
 Brightness row and shows Standby and Night brightness as the Screen on in standby and Screen on at night toggles,

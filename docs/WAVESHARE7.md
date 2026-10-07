@@ -9,7 +9,7 @@ It is not the 7B ([its own page](WAVESHARE7B.md)), the 7C or the version without
 Update Tessera Screen Manager and choose **Waveshare · 7 inch** (ESP32-S3-Touch-LCD-7, marked Experimental) in **New screen**.
 Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi references and unique API/OTA keys.
 Choose the correct USB port, or download the firmware to flash with ESPHome Web from your own computer.
-Keep an existing working profile if the board is already installed. Pair it through the ESPHome integration before adding tiles.
+Keep an existing working profile if the board is already installed. Tessera adds it to Home Assistant by itself once it is on your Wi-Fi; then add its tiles.
 
 The remote package is `packages/waveshare7.yaml`; the checkout entry is `checkout/waveshare7.yaml`.
 Both combine `packages/core.yaml` with `packages/boards/waveshare-esp32s3-7.yaml`.
@@ -89,7 +89,7 @@ Reported working on a board revision 1.1 with 8 MB flash by [@Cjdavidson](https:
 
 ## What to report while testing
 
-1. Board revision and flash size, successful boot, pairing and appearance in Tessera.
+1. Board revision and flash size, successful boot and appearance in Tessera.
 2. Correct colours and a stable picture across several page changes and cold starts.
 3. Physical taps near each corner, slider drags and edge swipes, in the selected orientation.
 4. A full page of tiles, opening and closing the settings and detail cards, and the half-turn setting.

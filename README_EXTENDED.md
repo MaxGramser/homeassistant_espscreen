@@ -22,8 +22,8 @@ on the screen itself, and how updates work.
 - **One tile per cell**, across up to eight fixed pages and 64 tiles, or more on a board with PSRAM (up to 128 tiles on
   24 pages on an ESP32-S3 board, 256 on 16 pages on an ESP32-P4 board, firmware 0.34.0+), as many as the screen's memory
   holds; the editor shows how full it is ([TILE_MEMORY.md](docs/TILE_MEMORY.md)): six cells a page on a CYD, a 4-inch Guition or the
-  [experimental Waveshare 4B](docs/WAVESHARE4B.md) (48 tiles), nine on
-  the Waveshare 4.3-inch, twenty-five on the 10.1-inch Guition, sixteen on the
+  [experimental Waveshare 4B](docs/WAVESHARE4B.md) (48 tiles), nine on the
+  [M5Stack Tab5](docs/TAB5.md), the Waveshare 4.3-inch and the [Waveshare 5-inch](docs/WAVESHARE5.md), twenty-five on the 10.1-inch Guition, sixteen on the
   [experimental Waveshare 7-inch](docs/WAVESHARE7.md), the [experimental Waveshare 7B](docs/WAVESHARE7B.md) and the [experimental Sunton 7-inch](docs/SUNTON8048S070.md), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md) (32), lying down. A page need not be full: every screen has eight pages from firmware 0.18.0, where
   a bigger grid had fewer before (three on the 10.1-inch Guition, then five by four). Firmware 0.2.62+; twenty tiles before.
   Search by entity, device, or room, and drag to reorder. A whole page moves the same way: drag it by its
@@ -81,7 +81,7 @@ on the screen itself, and how updates work.
   small panel with just those sliders; touching anywhere beside the panel closes
   it. A group with more lamps than fit on the glass is paged, the same way as the
   tile pages.
-- **More cards:** climate, vacuum, fan, cover, media player, sensors,
+- **More cards:** climate, humidifiers and dehumidifiers, vacuum, fan, cover, media player, sensors,
   select/input_select, number/input_number, switches, scenes, scripts, and
   buttons.
 - **Special cards (firmware 0.2.14+):** a **clock** (digital or analog)
@@ -152,8 +152,9 @@ on the screen itself, and how updates work.
     Each wrong code fires the event `esphome.screen_lock_code_refused` with `entity_id`, `failures` and `locked`.
   - **Lock only.** Per tile, choose **Unlocking here: Never**. That screen can lock but never unlock or open. Use it
     for a screen in a porch, a garage or a child's room.
-  - **Locks and security.** A screen runs Home Assistant actions only when you allow it (**Allow the device to
-    perform Home Assistant actions** in the ESPHome integration's options). That switch is the real boundary: it
+  - **Locks and security.** A screen runs Home Assistant actions only when it is allowed to (**Allow the device to
+    perform Home Assistant actions** in the ESPHome integration's options, which Tessera turns on for the screens it
+    adds, because a tile needs it to control anything). That switch is the real boundary: it
     lets a screen call any action, so a lock tile does not add a new way in. It makes locking and unlocking easy and
     visible, and the screen adds its own care on top: a confirm to unlock, lock only per tile, and the keypad when
     the lock asks for a code. To require a code, set it on the lock in Home Assistant. Many integrations set a
@@ -208,6 +209,11 @@ on the screen itself, and how updates work.
   Guition shows fan and swing right away on a card of their own, the CYD behind ···.
   A thermostat tile of two rows (firmware 0.3.3) has a − / + stepper and a mode bar with heat and
   cool first; a tap on its circle turns it on or off.
+- **Humidifiers and dehumidifiers** (firmware 0.42.0), such as a dehumidifier on a smart plug with Home
+  Assistant's Generic hygrostat: the thermostat's tile and card in percent. The tile says what it is doing and
+  the humidity now ("Drying · 68%"); the card has the target humidity in Home Assistant's ring between − / +
+  keys, the power key and its modes, as icons where Home Assistant names them and as words where the
+  integration has its own. A double-width tile takes − / +, a slider, the mode keys or an on/off switch.
 - **Weather tile** (firmware 0.3.3): the weather now in its colour, then the coming days with the
   high in bold, the low in grey and the chance of rain in blue when it matters; today stands on a pill.
   A tile of two rows lists the days under each other with the week's range as coloured bars.
@@ -256,6 +262,12 @@ on the screen itself, and how updates work.
   screen gets a picture, never a location. It is drawn again when someone moves, and a tap opens it over the whole
   screen. The map tile (app 0.4.36 / firmware 0.21.0) is the same map without a person of its own, following everyone
   Home Assistant knows the place of or only whom you choose, with photos in the markers. [docs/MAP.md](docs/MAP.md).
+- **The energy card** (app 0.4.77 / firmware 0.47.0): the power of your house right now, drawn the way Home
+  Assistant's own live Energy view and power-flow-card-plus draw it: solar, grid and battery around the house, with
+  dots that run faster as more power flows, and the devices drawing the most below or beside it, the rest as Other.
+  It reads the Energy settings you already have in Home Assistant, so there is nothing to set up. A tap on a circle
+  opens that sensor's history. It takes 2 × 2 where the diagram fits it and a page of its own on a small screen, and
+  turns upright on a screen standing up. [docs/ENERGY.md](docs/ENERGY.md).
 - **History card** for sensors, numbers, binary sensors, people, and switches, the way Home
   Assistant shows history: a line with an axis in round steps and clock times for numbers,
   with the highest and lowest moment, and a timeline with the time in each state for on/off,
@@ -480,7 +492,8 @@ the picture fills the whole tile on every size, a single tile, a double-width on
 and a tile over the whole page, with the camera's name at the bottom, so two cameras fit side by side on
 a 4-inch Guition. The tile's settings choose **Fill the tile** or **Whole picture**, and **Name** or
 **Nothing** on the picture. It refreshes while that page is on the screen, and a tap still opens the
-camera full screen. The camera tiles of one page share one download. Older firmware shows a small
+camera full screen. Every camera tile loads its own picture at its own pace, so a page of several cameras
+keeps each one at the full size of its tile. Older firmware shows a small
 square of the camera in the icon's place (1 × 2 and 2 × 2 tiles fill the card from firmware 0.3.3).
 A media player tile can show its **album cover** the same way (app 0.2.92, firmware 0.2.78):
 **Display → Album cover** puts the cover of what plays in the icon's place, refreshed when the track
@@ -778,8 +791,9 @@ replaced by the `Last boot` timestamp.
 See the [release history](screen_manager/CHANGELOG.md), [how a release is made](docs/RELEASING.md) and
 [updating the app and the screens at different times](docs/PAGES.md#updating-at-different-times).
 
-**If you publish your own fork:** every push to GitHub is a release. Always also
-bump the add-on version in `screen_manager/config.yaml` and log the change in
+**If you publish your own fork:** every push to its main branch is a release, because the HA App store and the
+screens read main. This project works on `dev` and moves main only for a release ([how a release is
+made](docs/RELEASING.md)). A release bumps the add-on version in `screen_manager/config.yaml` and logs the change in
 the CHANGELOG, otherwise the HA App store won't offer an update. A change to the
 screen also gets a new firmware number: in `packages/core.yaml` and `FIRMWARE_VERSION` in
 `screen_manager/app/core.py` when it reaches every board, or in the board file alone when it is a fix for one
@@ -803,7 +817,7 @@ Give a developer or LLM a clean copy of this repository and, for example:
 > Read AGENTS.md, README.md, and docs/EASY_SETUP.md. Help me install this CYD or
 > Guition screen via USB on my Home Assistant. Identify
 > the board and use my existing profile if one already exists. Guide me through
-> calibration, HA pairing, tile selection, and physical tests. Keep keys local,
+> calibration, tile selection, and physical tests. Keep keys local,
 > and state which checks were actually carried out.
 
 A successful build doesn't prove the physical touch or panel image is correct. The owner

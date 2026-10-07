@@ -21,6 +21,7 @@ import screen_labels
 import screen_saver
 import feedback
 from firmware import Firmware
+import ha_pairing
 import catalogue
 import ha_catalogue
 import light_effects
@@ -28,16 +29,18 @@ import light_groups
 import media_library
 import speakers
 import map_card
+import energy_flow
 import map_tiles
 import tile_icons
 from updates import Updater
+import core
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
 from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_cover, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
-from core import AUDIO_DIAGNOSTICS, AUDIO_SETTINGS, AUDIO_TEST_BUTTONS, MAP_TILE_MIN_FIRMWARE, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
-from core import BOARD_KEYS, is_key, drawn_controls, FAVORITE_KINDS, SCREENSAVER_MIN_FIRMWARE, short
+from core import AUDIO_DIAGNOSTICS, AUDIO_SETTINGS, AUDIO_TEST_BUTTONS, ENERGY_TILE, MAP_TILE_MIN_FIRMWARE, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
+from core import BOARD_KEYS, has_battery, is_key, drawn_controls, FAVORITE_KINDS, SCREENSAVER_MIN_FIRMWARE, short
 from core import (FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ENTITY_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
-                  packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, version_text)
+                  packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, update_in_tessera, version_text)
 import header_bar
 import history_card
 import i18n
@@ -97,6 +100,9 @@ def status_text(status):
             return t('addon.status.screen.error', reason=status[len('Error: '):])
     return status
 FORECAST_SECONDS = 1800
+# Home Assistant's Energy settings, which the energy card is drawn from (energy_flow.py): read again every five minutes,
+# so a sensor added there reaches the card without a restart.
+ENERGY_PREFS_SECONDS = 300
 # A screen that answers its ping (firmware 0.2.49+) is asked with this timeout, so a busy screen never holds
 # up the others. An answer that the screen lacks something repeats everything, after this many seconds right
 # after a full send, doubling up to RESEND_GUARD_SECONDS while it keeps failing.
@@ -184,9 +190,13 @@ class HomeAssistant:
         # Entity ids whose state changed since the manager last looked; it only rebuilds those tiles.
         self.dirty = set()
         self.registry_changed = asyncio.Event()
+        # A repair issue came or went (app 0.4.73): one may say Home Assistant ignored a screen's tap (ha_pairing.py).
+        self.issues_changed = asyncio.Event()
         self.setting_events = []
         self.time_zone = None
         self.location = {}
+        # Home Assistant's name for the home, also used by the energy card.
+        self.location_name = ''
         # Home Assistant's unit system; a climate entity's temperature carries no unit of its own.
         self.units = {}
         # Home Assistant's own language (get_config), and the one the screens speak (Settings -> Language & region,
@@ -282,6 +292,8 @@ class HomeAssistant:
                         self.changed.set()
                 elif event.get('event_type') in REGISTRY_EVENTS:
                     self.registry_changed.set()
+                elif event.get('event_type') == 'repairs_issue_registry_updated':
+                    self.issues_changed.set()
                 elif event.get('event_type') == 'core_config_updated':
                     # Settings -> System -> General in Home Assistant, such as its language (app 0.2.90).
                     self.config_stale = True
@@ -399,6 +411,7 @@ class HomeAssistant:
             self.units = config.get('unit_system') or {}
             self.location = {key: config.get(key) for key in ('location_name', 'latitude', 'longitude')}
             self.time_zone = ZoneInfo(config.get('time_zone') or 'UTC')
+            self.location_name = config.get('location_name') if isinstance(config.get('location_name'), str) else ''
             language = config.get('language')
             changed = isinstance(language, str) and language != self.ha_language
             self.ha_language = language if isinstance(language, str) else self.ha_language
@@ -487,6 +500,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type=media_library.BROWSE_EVENT)
                     await self.request('subscribe_events', event_type=media_library.PLAY_EVENT)
                     await self.request('subscribe_events', event_type=speakers.SPEAKER_EVENT)
+                    await self.request('subscribe_events', event_type='repairs_issue_registry_updated')
                     for event_type in (*REGISTRY_EVENTS, *BROADCAST_EVENTS, ALERT_EVENT, *TILE_EVENTS, *SERVICE_EVENTS):
                         await self.request('subscribe_events', event_type=event_type)
                     self.states = {s['entity_id']: s for s in await self.request('get_states')}
@@ -718,17 +732,29 @@ class HomeAssistant:
         entries = await self.request('config_entries/get', domain='esphome')
         return {entry['entry_id']: entry for entry in entries or [] if isinstance(entry, dict) and entry.get('entry_id')}
 
+    async def flows(self):
+        """The config flows Home Assistant has under way, the devices under "Discovered" among them."""
+        return [flow for flow in await self.request('config_entries/flow/progress') or [] if isinstance(flow, dict)]
+
     async def discovered_esphome(self):
-        """The ESPHome devices Home Assistant found on the network and has not paired yet (app 0.4.32): a screen that
-        was just flashed shows up here once it is on the Wi-Fi, so New screen can say it arrived, or that it did not."""
-        flows = await self.request('config_entries/flow/progress')
-        names = set()
-        for flow in flows or []:
-            if isinstance(flow, dict) and flow.get('handler') == 'esphome':
-                name = ((flow.get('context') or {}).get('title_placeholders') or {}).get('name')
-                if isinstance(name, str) and name:
-                    names.add(name.lower())
-        return names
+        """The nodes of the ESPHome devices Home Assistant found on the network and has not paired yet (app 0.4.32): a
+        screen that was just flashed shows up here once it is on the Wi-Fi, so New screen can say it arrived, or that it
+        did not. By node, not by the title Home Assistant gives the device (app 0.4.73, ha_pairing.discovered_node)."""
+        return {node for node in map(ha_pairing.discovered_node, await self.flows()) if node}
+
+    async def flow(self, method, path, data=None):
+        """One step of a config flow or an options flow, the way Home Assistant's own dialogs take it (app 0.4.73):
+        `flow/<id>` answers a step of a discovered device, `options/flow` opens an integration's Configure dialog and
+        `options/flow/<id>` answers it. Over REST with the same token; the websocket has no command for these, and
+        Home Assistant lets only an administrator take them."""
+        async with self.session.request(method.upper(), f'{self.base}/config/config_entries/{path}',
+                                        headers={'Authorization': 'Bearer ' + self.token}, json=data,
+                                        timeout=ClientTimeout(total=60)) as response:
+            if response.status in (401, 403):
+                raise Refused(t('addon.errors.allow_actions.not_allowed'))
+            response.raise_for_status()
+            answer = await response.json(content_type=None)
+        return answer if isinstance(answer, dict) else {}
 
     async def delete_config_entry(self, entry_id):
         """Remove one integration with its device and its entities, the way Home Assistant's own Delete does
@@ -841,6 +867,9 @@ class Manager:
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
         # The names the editor shows instead of Home Assistant's (app 0.4.2).
         self.labels = screen_labels.ScreenLabels(self.path.parent / 'screen-labels.json')
+        # Screens this app made, added to Home Assistant with their actions allowed once it finds them (app 0.4.73).
+        self.pairing = ha_pairing.Pairing()
+        self._pairing_trouble = None
         # What each screen shows in standby instead of its dimmed tiles (app 0.4.48, screen_saver.py), and the last message
         # each screen holds, by its session: a screen that starts a new session gets it again.
         self.savers = screen_saver.ScreenSavers(self.path.parent / 'screensavers.json')
@@ -958,6 +987,12 @@ class Manager:
         return (said('max_pages') or FIRMWARE_MAX_PAGES, said('max_tiles') or FIRMWARE_MAX_TILES,
                 said('max_bar_items') or FIRMWARE_MAX_BAR_ITEMS)
 
+    def has_battery(self, screen):
+        """Whether this screen has a battery the top bar can show (core.has_battery): its Screen features or its hello
+        while it is connected, else its board."""
+        sender = self.page_senders.get(self.aliases.get(screen.get('id'), screen.get('id')))
+        return has_battery(screen, getattr(sender, 'features', None) or ())
+
     def memory(self, inbox):
         """The memory this screen has for its tiles and what each tile costs (firmware 0.34.0+, tile_memory.h): the
         figures of its last hello or ping, `live` while it is connected; None when it never said."""
@@ -1025,7 +1060,8 @@ class Manager:
         """
         sender = self.page_sender(inbox, screen)
         if sender.protocol is None and self.answers(inbox, screen):
-            await sender.probe()
+            # Only a screen without tiles is probed: its hello says so, and the screen asks for its first tiles.
+            await sender.probe(empty=inbox not in self.layouts)
             self.page_capabilities.remember(inbox, screen, sender)
         return sender
 
@@ -1206,14 +1242,64 @@ class Manager:
         self._inbox_devices.pop(inbox, None)
         self._screens_key = None
 
-    async def entry_of(self, screen):
+    async def entry_of(self, screen, missing='addon.errors.remove.no_entry'):
         """The ESPHome integration behind a screen: the one entry of its Home Assistant device that ESPHome owns."""
         device = next((d for d in getattr(self.ha, 'devices', []) if d.get('id') == screen.get('device_id')), None)
         entries = await self.ha.esphome_entries()
         mine = [entry for entry in (device or {}).get('config_entries') or [] if entry in entries]
         if len(mine) != 1:
-            raise ValueError(t('addon.errors.remove.no_entry'))
+            raise ValueError(t(missing))
         return mine[0]
+
+    async def allow_actions(self, inbox):
+        """Let a screen perform Home Assistant actions (app 0.4.73): the switch in its ESPHome integration's Configure
+        dialog, which Home Assistant leaves off for a new device. The editor's notice offers it when Home Assistant
+        ignored a tap of this screen."""
+        inbox = self.aliases.get(inbox, inbox)
+        screen = self.screen(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        entry = await self.entry_of(screen, 'addon.errors.allow_actions.no_entry')
+        try:
+            allowed = await ha_pairing.allow_actions(self.ha, entry)
+        except Refused as error:
+            raise ValueError(error.detail or t('addon.errors.allow_actions.failed')) from error
+        except ClientError as error:
+            raise ValueError(t('addon.errors.allow_actions.failed')) from error
+        if not allowed:
+            raise ValueError(t('addon.errors.allow_actions.failed'))
+        LOG.info('%s may perform Home Assistant actions', screen['name'])
+        return {'allowed': True, 'name': self.labels.get(screen.get('device_id')) or screen['name']}
+
+    async def pair_screens(self):
+        """One look of pairing_loop: the screens this app made (their profiles with the key New screen wrote), against
+        what Home Assistant has and has found."""
+        ours = {meta['node']: {'api_key': meta['api_key'], 'friendly': meta.get('friendly') or meta['node']}
+                for meta in self.firmware.profile_names().values()
+                if meta.get('screen') and meta.get('node') and ha_pairing.usable_key(meta.get('api_key'))}
+        await self.pairing.run(self.ha, ours, self.screens())
+
+    async def pairing_loop(self):
+        """Adds the screens this app made to Home Assistant as soon as it finds them on the network, and lets them
+        perform actions (ha_pairing.py, app 0.4.73)."""
+        told = getattr(self.ha, 'issues_changed', None) or asyncio.Event()
+        while True:
+            # A look every few seconds, and at once when Home Assistant reports that it ignored a screen's tap.
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(told.wait(), ha_pairing.INTERVAL)
+            if told.is_set():
+                told.clear()
+                self.pairing.issues_due = True
+            if not self.ha.online or not self.ha.registry:
+                continue
+            try:
+                await self.pair_screens()
+                self._pairing_trouble = None
+            except (ClientError, ConnectionError, TimeoutError, OSError, ValueError) as error:
+                # Said once, not every five seconds while Home Assistant stays away.
+                if self._pairing_trouble != type(error).__name__:
+                    LOG.info('Adding new screens to Home Assistant waits (%s)', type(error).__name__)
+                self._pairing_trouble = type(error).__name__
 
     def layout_sensors(self, screen):
         """The layout sensors this app published for a screen (publish_layouts), so they go with it.
@@ -1743,6 +1829,40 @@ class Manager:
         self.browsable[entity] = (time.monotonic(), True)
         return folder
 
+    async def spotify_route(self, entity, top=None):
+        """How a favourite of this player plays a Spotify link (app 0.4.84): '' for a Spotify account itself, the account's
+        config entry for a player whose library lists one (a Sonos), None for a player that plays no Spotify link. `top`
+        is the library's top when it was just read."""
+        if self.platform_lookup(entity) in speakers.SOURCE_SPEAKERS:
+            return ''
+        if top is None:
+            try:
+                top = await self.read_folder(entity, None)
+            except (ClientError, ConnectionError, TimeoutError, OSError, ValueError):
+                return None
+        return media_library.spotify_entry(top['items'])
+
+    async def spotify_card(self, kind, spotify_id):
+        """(title, picture) of a Spotify item from Spotify's public oEmbed, without signing in. Not an official API: a
+        favourite works without it, with the word of its kind for a name and the icon of its kind."""
+        url = f'https://open.spotify.com/{kind}/{spotify_id}'
+        try:
+            async with self.ha.session.get(media_library.OEMBED, params={'url': url}, allow_redirects=False,
+                                           timeout=ClientTimeout(total=media_library.OEMBED_SECONDS)) as response:
+                response.raise_for_status()
+                raw = bytearray()
+                async for chunk in response.content.iter_chunked(16384):
+                    raw += chunk
+                    if len(raw) > media_library.OEMBED_BYTES:
+                        raise ValueError('answer too large')
+        except Exception as error:
+            LOG.info('Spotify did not describe %s %s (%s)', kind, spotify_id, type(error).__name__)
+            return None, None
+        title, thumb = media_library.oembed_card(bytes(raw))
+        if thumb and not await HomeAssistant._allow_media_url(thumb):
+            thumb = None
+        return title, thumb
+
     def player_request(self, request):
         """(inbox, screen, entity, action) of a library request from a screen with that player on its layout, or None."""
         if not isinstance(request, dict):
@@ -1802,7 +1922,7 @@ class Manager:
                 LOG.info('The library of %s did not open (%s)', entity, type(error).__name__)
                 failed = True
         attrs = self.ha.states.get(entity, {}).get('attributes') or {}
-        started = self.started.get(entity) if self.ha.states.get(entity, {}).get('state') in ('playing', 'paused') else None
+        started = self.started.get(entity) if media_library.holds_media(self.ha.states.get(entity)) else None
         items = media_library.entries(folder, shelf, entity, attrs, started)
         all_pages = media_library.pages(items)
         await self.send_auxiliary(inbox, media_library.message(entity, token, folder['title'], page, all_pages, len(items), failed),
@@ -1825,7 +1945,9 @@ class Manager:
                 return
             item = media_library.favorite_item(options.get('play'))
             source = source or options.get('speaker')
+            order = {'shuffle': options.get('shuffle'), 'repeat': options.get('repeat')}
         else:
+            order = {}
             token = self.media_token(request.get('item'))
             item = self.shelves.get(inbox, media_library.Shelf()).get(entity, token) if token else None
         if item is None or not item['play']:
@@ -1845,7 +1967,7 @@ class Manager:
         elif source is not None and source not in (attrs.get('source_list') or []):
             LOG.info('%s on %s: no speaker %s', item['title'], entity, source)
             return
-        outcome = await media_library.start(self.ha.states, self.ha.call_service, where, item, source)
+        outcome = await media_library.start(self.ha.states, self.ha.call_service, where, item, source, **order)
         if outcome == 'playing':
             if where != entity:
                 self.outputs[entity] = where
@@ -1958,9 +2080,15 @@ class Manager:
         layout, screen = self.layouts.get(inbox), self.screen(inbox) if isinstance(inbox, str) else None
         if hours not in history_card.RANGES or not layout or not screen or not screen.get('online'):
             return
-        if entity not in {tile['entity'] for tile in layout['tiles']}:
+        # A tile's own entity, or a sensor an energy card on the layout opens from its circles (app 0.4.77).
+        shown = {tile['entity'] for tile in layout['tiles']}
+        summed = {}
+        if ENERGY_TILE in shown:
+            summed = energy_flow.sums(self.energy_prefs())
+            shown |= set(energy_flow.related_entities(self.energy_prefs())) | set(summed)
+        if entity not in shown:
             return
-        what = history_card.kind(entity, self.ha.states.get(entity))
+        what = 'line' if entity in summed else history_card.kind(entity, self.ha.states.get(entity))
         action = self.transport(inbox, screen)
         if what is None or not action:
             return
@@ -1994,6 +2122,9 @@ class Manager:
         entity without statistics); states from their changes. A fetch that fails raises, so nothing is kept."""
         start, end = history_card.window(hours)
         tz = getattr(self.ha, 'time_zone', None)
+        summed = energy_flow.sums(self.energy_prefs()).get(entity)
+        if summed:
+            return await self.summed_history(entity, summed, hours, start, end, tz)
         attrs = (self.ha.states.get(entity) or {}).get('attributes') or {}
         if what == 'timeline':
             return history_card.timeline(entity, hours, await self.ha.state_changes(entity, hours), start, end, tz, attrs,
@@ -2005,6 +2136,23 @@ class Manager:
             return history_card.line(entity, hours, means, start, end, tz, entry, unit, extreme)
         changes = [(moment, header_bar.numeric(value)) for moment, value in await self.ha.state_changes(entity, hours)]
         return history_card.line(entity, hours, changes, start, end, tz, entry, unit)
+
+    async def summed_history(self, key, entities, hours, start, end, tz):
+        """An energy source with several power sensors, as Home Assistant's "Power sources" graph shows it: their sum in
+        W (power-sources-graph-data.ts), from the hourly statistics for a day or a week, from the changes for an hour."""
+        scales = [energy_flow.scale(self.ha.states.get(e)) for e in entities]
+        if hours > 1:
+            rows = [[{**row, 'mean': row['mean'] * k} for row in await self.ha.statistic_rows(e, hours)
+                     if isinstance(row.get('mean'), (int, float))] for e, k in zip(entities, scales)]
+            summed = energy_flow.summed_rows(rows)
+            if summed:
+                means, extreme = history_card.statistic_changes(summed, 3600)
+                return history_card.line(key, hours, means, start, end, tz, None, 'W', extreme)
+        series = []
+        for e, k in zip(entities, scales):
+            changes = [(moment, header_bar.numeric(value)) for moment, value in await self.ha.state_changes(e, hours)]
+            series.append([(moment, None if value is None else value * k) for moment, value in changes])
+        return history_card.line(key, hours, energy_flow.summed_changes(series), start, end, tz, None, 'W')
 
     def registry_index(self):
         """Entity registry by id (display precision, entity category); rebuilt only when HA delivers a new registry."""
@@ -2041,6 +2189,9 @@ class Manager:
             followed = (tuple(e for e in self.ha.states if isinstance(e, str) and e.split('.')[0] in ('person', 'device_tracker'))
                         if everyone else tuple(map_card.shown(tile, self.ha.states)))
             return tuple(e for e in followed if e != tile['entity']) + tuple(e for e in self.ha.states if isinstance(e, str) and e.startswith('zone.'))
+        # The energy card (app 0.4.77) reads every sensor of the Energy settings.
+        if tile['entity'] == ENERGY_TILE:
+            return tuple(energy_flow.related_entities(self.energy_prefs()))
         if tile['entity'].startswith('media_player.'):
             # The speakers of its menu: who it groups with, the speakers that play its library, and the one it follows.
             entity = tile['entity']
@@ -2253,7 +2404,7 @@ class Manager:
         # The speakers a player's menu lists change with what this app started and the libraries it read.
         media = (tuple(sorted(self.outputs.items())), tuple(sorted(e for e, known in self.accounts.items() if known[1])))
         savers = tuple(sorted(e for choice in self.savers.choices.values() for e in screen_saver.entities(choice, self.ha.states)))
-        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups, media, savers)
+        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups, media, savers, id(self.energy_prefs()))
         if key != self._watched_key:
             watched = {tile['entity'] for layout in self.layouts.values() for tile in layout['tiles']}
             watched |= {item['entity'] for record in self.store.records().values() if record['format'] == PAGE_FORMAT
@@ -2264,6 +2415,11 @@ class Manager:
             watched |= set(savers)
             self._watched_key, self._watched = key, watched
         return set(self._watched)
+
+    def energy_prefs(self):
+        """Home Assistant's Energy settings as last read (energy/get_prefs), {} before the first answer."""
+        entry = self.forecasts.get('energy/get_prefs')
+        return entry[1] if entry and isinstance(entry[1], dict) else {}
 
     async def cached(self, store, key, ttl, fetch):
         entry=store.get(key)
@@ -2311,7 +2467,18 @@ class Manager:
             tile={**tile,'name':options['play'].get('title') or ''}
         # A light's effects page (app 0.2.83) names the device's selects and numbers as Home Assistant does, with its icons.
         light=tile['entity'].startswith('light.')
-        extra=extras(tile,states,forecast,getattr(self.ha,'time_zone',None),hourly,device=device,
+        if tile['entity'] == ENERGY_TILE and hasattr(self.ha, 'request'):
+            async def prefs():
+                try:
+                    return await self.ha.request('energy/get_prefs')
+                except Refused:
+                    return {}  # no Energy settings yet: the card says where to add them
+            await self.cached(self.forecasts, 'energy/get_prefs', ENERGY_PREFS_SECONDS, prefs)
+            # Home Assistant away is no answer: asked again with the next message rather than in five minutes.
+            if not isinstance(self.forecasts['energy/get_prefs'][1], dict):
+                self.forecasts.pop('energy/get_prefs', None)
+        extra=extras(tile,states,forecast,getattr(self.ha,'time_zone',None),hourly,device=device,energy=self.energy_prefs() if tile['entity'] == ENERGY_TILE else None,
+                     home_name=getattr(self.ha,'location_name','') if tile['entity'] == ENERGY_TILE else '',
                      entries=self.registry_index() if light or (tile.get('options') or {}).get('display') == 'map' else None,words=getattr(self.ha,'state_words',None) if light else None,
                      icon_of=row_icon if light else None,device_name=self.device_name_of(tile['entity']) if light else None)
         if tile['entity'].startswith('vacuum.'):
@@ -2351,7 +2518,7 @@ class Manager:
             if favorite:
                 play=options.get('play') or {}
                 state_now=states.get(tile['entity'],{}).get('state')
-                started=self.started.get(tile['entity']) if state_now in ('playing','paused') else None
+                started=self.started.get(tile['entity']) if media_library.holds_media(states.get(tile['entity'])) else None
                 word=screen_t(f"addon.screen.media.{play.get('class') or 'music'}") if (play.get('class') or 'music') in FAVORITE_KINDS else ''
                 message.setdefault('x',{}).update(media_library.favorite_extras(play,options.get('speaker'),attributes if state_now in ('playing','paused') else {},started,word))
         # Home Assistant's word where the screen would show the raw state (firmware 0.2.58+ shows it).
@@ -2759,8 +2926,14 @@ class Manager:
         sender = self.page_senders.get(screen.get('id'))
         keys = screen_saver.KEYS_FEATURE in (getattr(sender, 'features', None) or ())
         # The player it shows keeps the glass for a while after a pause (screen_saver.HELD_SECONDS).
+        row = screen_saver.ITEMS_FEATURE in (getattr(sender, 'features', None) or ())
         return screen_saver.message(choice, self.ha.states, pictures, short, media_extras, self.player_ground, keys,
-                                    held=self.saver_shown.get(screen.get('id'), ''))
+                                    held=self.saver_shown.get(screen.get('id'), ''), bar=self.saver_item if row else None)
+
+    def saver_item(self, item):
+        """One of the clock's entity items as the top bar sends it (header_bar.entity_item)."""
+        return header_bar.entity_item(item, self.ha.states, self.registry_index(), getattr(self.ha, 'units', {}),
+                                      getattr(self.ha, 'time_zone', None), getattr(self.ha, 'state_words', None))[0]
 
     async def sync_saver(self, inbox, screen):
         """Tell a screen that takes a screensaver (its hello lists it, firmware 0.29.0+) what it shows now, whenever that
@@ -2833,7 +3006,8 @@ class Manager:
         action = self.transport(inbox, screen)
         if not action or not self.camera_allowed(inbox, entity):
             return
-        message = await self.cover_message(entity, *cover) if cover else await self.camera_message(entity, 'full', screen)
+        message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
+            entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
         await self.send_auxiliary(inbox, message, action, request)
         LOG.info('%s %s on %s%s', 'Cover of' if cover else 'Camera', entity, screen['name'], '' if message['u'] else ': no image')
 
@@ -2845,7 +3019,7 @@ class Manager:
             return
         if (kind == 'media') != (entity.split('.')[0] == 'media_player'):
             return
-        box, action = camera_feed.box(screen, 'full'), self.transport(inbox, screen)
+        box, action = camera_feed.box(screen, 'full', camera_feed.picture_cap(request)), self.transport(inbox, screen)
         if not box or not action:
             return
         ground = 0
@@ -2994,14 +3168,16 @@ class Manager:
         # A person's own tile tapped (firmware 0.21.0+): where that person is, on a map of them alone, opened on them.
         if tile is None and entity.startswith('person.') and 0 <= index < len(tiles) and tiles[index]['entity'] == entity:
             tile = {'entity': entity, 'name': tiles[index].get('name', ''), 'options': {'display': 'map', 'distance': 'neighbourhood'}}
-        box = camera_feed.box(screen, 'full')
+        box = camera_feed.box(screen, 'full', camera_feed.picture_cap(request))
         if tile is None or not box:
             LOG.info('A map for %s: not a map tile of %s', entity, screen['name'])
             return
         width, height = box
         # A finger on a marker (firmware 0.21.0+): that one in the middle, closer in, with its card over the bottom.
         focus = request.get('focus') if request.get('focus') in map_card.shown(tile, self.ha.states, self.registry_index()) else ''
-        render = self.map_render(tile, camera_feed.shape_of(screen), camera_feed.live_dark(request), full=True, focus=focus)
+        # Zoomed and moved by the screen's own keys (dev): the same picture drawn around another middle.
+        move = map_card.move_of(request.get('move'))
+        render = self.map_render(tile, camera_feed.shape_of(screen), camera_feed.live_dark(request), full=True, focus=focus, move=move)
         extra = {'compact': camera_feed.compact_pictures(screen), 'atlas': (width, height, ((0, 0, width, height, 0, 0),)),
                  'modes': [('fill', False)], 'renders': [render]}
         url = ''
@@ -3063,7 +3239,7 @@ class Manager:
     # The maps kept drawn: a page's maps in both looks and the page before it.
     MAP_RENDERS_KEPT = 12
 
-    def map_render(self, tile, shape, dark, full=False, focus=None):
+    def map_render(self, tile, shape, dark, full=False, focus=None, move=None):
         """(mark, draw) of one saved map tile for CameraFeed.live: the mark is its movement mark and the look, `draw`
         reads Home Assistant's states and asks for the streets when it runs. A drawn card is kept by mark, frame and
         look, so two screens in different looks each keep their own, and one whose streets did not all come is not."""
@@ -3075,7 +3251,8 @@ class Manager:
         def mark():
             # Without streets to be had it is another picture, so the one with streets replaces it when they come back.
             streets = '' if self.map_source.available() or not map_card.wants_streets(tile) else '-'
-            return f'{map_card.fingerprint(tile, self.ha.states, self.registry_index())}{look}{streets}{"f" if full else ""}{focus or ""}'
+            moved = '@%d,%s,%s' % move if move else ''
+            return f'{map_card.fingerprint(tile, self.ha.states, self.registry_index())}{look}{streets}{"f" if full else ""}{focus or ""}{moved}'
 
         async def draw(width, height):
             key = (mark(), width, height, board.scale, board.label)
@@ -3084,12 +3261,12 @@ class Manager:
                 self.map_hits[key[:3]] = self.map_renders[key].info.get('hits', [])
                 return self.map_renders[key]
             registry = self.registry_index()
-            view = map_card.view_for(tile, self.ha.states, (width, height), board, registry, full, focus)
+            view = map_card.view_for(tile, self.ha.states, (width, height), board, registry, full, focus, move)
             wanted = view.tiles() if map_card.wants_streets(tile) else []
             streets = await self.map_source.tiles(wanted)
             photos = await self.map_photos(map_card.pictures_wanted(tile, self.ha.states, registry))
             image = await asyncio.get_running_loop().run_in_executor(
-                None, lambda: map_card.render_tile(tile, self.ha.states, (width, height), board, dark, streets, registry, photos, full, focus))
+                None, lambda: map_card.render_tile(tile, self.ha.states, (width, height), board, dark, streets, registry, photos, full, focus, move))
             # Where its markers are, for a full view's finger (answer_map_full): kept as long as the picture is.
             self.map_hits[key[:3]] = image.info.get('hits', [])
             while len(self.map_hits) > self.MAP_RENDERS_KEPT:
@@ -3462,12 +3639,17 @@ def create_app(manager, development=False):
             screen['package'] = manager.package_of(screen, profiles)
             # The board too: a screen that says nothing about itself is known by the YAML its profile builds from.
             screen['board'] = board_of(screen)
+            # A screen with 4 MB of flash that still has ESPHome's partition table (app 0.4.82): the editor says to update
+            # it in Tessera, which moves the table; ESPHome Device Builder's update does not fit its slot.
+            screen['update_in_tessera'] = update_in_tessera(screen)
             # And which way it was built to hang (app 0.2.107), for the same reason: a screen standing up has another
             # canvas and another grid, and while it is offline only its own YAML says so.
             screen['orientation'] = manager.orientation_of(screen, profiles)
             # And the rows it was built with, when its own YAML chose them (a Guition with four rows, app 0.4.31).
             screen['grid_rows'] = manager.built_as(screen, profiles).get('grid_rows')
             screen['shape'] = shape_of(screen)
+            # And whether it has a battery for the top bar (firmware 0.41.0): what its hello said, else its board.
+            screen['battery'] = manager.has_battery(screen)
             # Whether the board draws pictures (camera tiles, an alert's snapshot, an album cover): the boards with
             # memory for them say so with their camera sizes (boards.json); the firmware that draws them is a
             # separate question the editor asks by version, so an older screen still learns what an update brings.
@@ -3509,6 +3691,9 @@ def create_app(manager, development=False):
             return payload
         for entry in payload['pending']:
             entry['seen'] = str(entry.get('node') or '').lower() in names
+            # This app adds it itself (app 0.4.73): `adding` while it does, `failed` when Home Assistant asked something
+            # only the person can answer.
+            entry['pairing'] = manager.pairing.state.get(entry.get('node'))
         return payload
     async def inventory(request):
         if request.query.get('light') == '1':
@@ -3638,6 +3823,10 @@ def create_app(manager, development=False):
         await manager.check_supported(request.match_info['inbox'], data)
         record = manager.save(request.match_info['inbox'], data)
         return web.json_response({'saved': True, **({'document': record} if record else {})})
+    async def allow_actions(request):
+        """Let a screen perform Home Assistant actions (app 0.4.73), the editor's notice for a screen whose taps Home
+        Assistant ignored."""
+        return web.json_response(await manager.allow_actions(request.match_info['inbox']))
     async def remove_screen(request):
         """Remove a screen for good (app 0.2.112): out of Home Assistant, out of the ESPHome folder and out of
         this app. Everything the sidebar's own warning names before it asks."""
@@ -3724,7 +3913,7 @@ def create_app(manager, development=False):
         return web.json_response(view)
     async def update_screen(request):
         data = await request.json() if request.can_read_body else {}
-        return web.json_response(manager.updates.start(request.match_info['inbox'], data.get('host')))
+        return web.json_response(manager.updates.start(request.match_info['inbox'], data.get('host'), data.get('reinstall') is True))
     async def update_all(request):
         return web.json_response({'started': manager.updates.start_all()})
     async def update_settings(request):
@@ -3793,7 +3982,36 @@ def create_app(manager, development=False):
             items.append({'item': number, 'title': raw['title'], 'play': raw['play'], 'expand': raw['expand'], 'icon': raw['icon'],
                           'picture': f'api/media/picture?entity={entity}&item={number}' if raw['thumb'] else None,
                           'favorite': media_library.favorite_of(raw) if raw['play'] else None})
-        return web.json_response({'title': folder['title'], 'folder': token or 0, 'items': items})
+        answer = {'title': folder['title'], 'folder': token or 0, 'items': items}
+        # A player that plays a Spotify link (app 0.4.84): the editor offers a field for one, knowing no brand itself.
+        if not token and await manager.spotify_route(entity, folder) is not None:
+            answer['spotify_link'] = True
+        return web.json_response(answer)
+
+    async def media_link(request):
+        """A Spotify link or URI as one item of the library (app 0.4.84), in the shape media_browse gives an item: its
+        title and picture from Spotify's oEmbed, its id and type as Home Assistant's media browser sends them for this
+        player."""
+        entity = request.query.get('entity', '')
+        if not entity.startswith('media_player.') or entity not in manager.ha.states:
+            raise web.HTTPNotFound()
+        text = request.query.get('link', '')
+        if media_library.spotify_short(text):
+            return web.json_response({'error': t('addon.errors.media.link_short')}, status=400)
+        found = media_library.spotify_link(text)
+        if not found:
+            return web.json_response({'error': t('addon.errors.media.link_invalid')}, status=400)
+        entry = await manager.spotify_route(entity)
+        if entry is None:
+            name = manager.ha.states.get(entity, {}).get('attributes', {}).get('friendly_name') or entity
+            return web.json_response({'error': t('addon.errors.media.link_player', name=name)}, status=400)
+        kind, spotify_id = found
+        title, thumb = await manager.spotify_card(kind, spotify_id)
+        raw = media_library.spotify_item(kind, spotify_id, entry or None, title or t(f'addon.screen.media.{media_library.SPOTIFY_KINDS[kind]}'), thumb)
+        number = manager.shelves.setdefault('', media_library.Shelf()).token(entity, raw)
+        return web.json_response({'item': number, 'title': raw['title'], 'play': True, 'expand': False, 'icon': raw['icon'],
+                                  'picture': f'api/media/picture?entity={entity}&item={number}' if raw['thumb'] else None,
+                                  'favorite': media_library.favorite_of(raw)})
 
     async def media_picture(request):
         """An item's picture for the editor, prepared: an item of the library it browsed, or what a saved favourite
@@ -4125,6 +4343,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/camera-preview', camera_preview)
     app.router.add_get('/api/media/browse', media_browse)
     app.router.add_get('/api/media/picture', media_picture)
+    app.router.add_get('/api/media/link', media_link)
     app.router.add_post('/api/firmware-preview', firmware_preview)
     app.router.add_post('/api/firmware-preview/import', import_document)
     app.router.add_post('/api/firmware-preview/action', firmware_preview_action)
@@ -4147,12 +4366,28 @@ def create_app(manager, development=False):
     app.router.add_post('/api/screens/{inbox}/migration/reset', start_fresh)
     app.router.add_put('/api/screens/{inbox}/workspace', save_workspace)
     app.router.add_delete('/api/screens/{inbox}', remove_screen)
+    app.router.add_post('/api/screens/{inbox}/allow-actions', allow_actions)
     app.router.add_put('/api/screens/{inbox}/name', rename_screen)
     app.router.add_put('/api/screens/{inbox}/settings', change_settings)
     app.router.add_put('/api/screens/{inbox}/screensaver', change_screensaver)
     app.router.add_post('/api/screens/{inbox}/feedback', feedback_action)
     app.router.add_static('/assets/', static / 'assets')
     return app
+
+async def addon_slug(session):
+    """This app's slug from the Supervisor (/addons/self/info, which needs no role), None without a Supervisor."""
+    token = os.environ.get('SUPERVISOR_TOKEN', '')
+    if not token:
+        return None
+    try:
+        async with session.get('http://supervisor/addons/self/info', headers={'Authorization': f'Bearer {token}'},
+                               timeout=ClientTimeout(total=10)) as response:
+            info = await response.json()
+        slug = (info.get('data') or {}).get('slug')
+        return slug if isinstance(slug, str) else None
+    except Exception as error:
+        LOG.info('Reading the app slug failed (%s)', type(error).__name__)
+        return None
 
 async def main():
     development = os.environ.get('SCREEN_DEV') == '1'
@@ -4162,6 +4397,10 @@ async def main():
     if not token:
         raise SystemExit('No Home Assistant access. Start the app via Supervisor.')
     async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+        # The branch the screens build from (docs/RELEASING.md, "Testing dev"): dev for an app added from the `#dev` URL.
+        slug = await addon_slug(session)
+        core.set_channel(core.channel_of(slug))
+        LOG.info('App %s, channel %s', slug or 'without a Supervisor', core.channel() or 'none (screens keep their ref)')
         ha = HomeAssistant(session, os.environ.get('HA_API', 'http://supervisor/core/api'), token)
         manager = Manager(ha, Path(os.environ.get('SCREEN_DATA', '/data')) / 'screens.json')
         # handle_signals: SIGTERM (the Supervisor stopping the app, `docker stop`) and SIGINT end the app through the
@@ -4183,7 +4422,7 @@ async def main():
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
                                  manager.alert_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(),
-                                 manager.media_loop())
+                                 manager.media_loop(), manager.pairing_loop())
         finally:
             await cameras.cleanup()
             await runner.cleanup()

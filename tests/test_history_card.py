@@ -11,6 +11,7 @@ import json
 import re
 import sys
 import tempfile
+import time
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -272,7 +273,7 @@ class Messages(unittest.TestCase):
 class Requests(unittest.IsolatedAsyncioTestCase):
     """A screen's esphome.screen_history event and the one message the manager answers it with."""
 
-    def manager(self, tmp, firmware='0.2.51'):
+    def manager(self, tmp, firmware='0.2.51', extra_tiles=()):
         import test_scaling
         from server import Manager
         ha = test_scaling.fake_ha(firmware=firmware)
@@ -298,7 +299,7 @@ class Requests(unittest.IsolatedAsyncioTestCase):
         ha.statistic_rows, ha.state_changes = statistic_rows, state_changes
         m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
         m.save('text.screen', {'title': 'Office 1', 'tiles': [{'entity': 'sensor.t', 'name': ''}, {'entity': 'binary_sensor.door', 'name': ''},
-                                                              {'entity': 'light.a', 'name': ''}]})
+                                                              {'entity': 'light.a', 'name': ''}, *extra_tiles]})
         return m
 
     async def test_a_number_and_a_door_each_get_one_history_message(self):
@@ -319,6 +320,25 @@ class Requests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(hour['values'][-1], 22.5)
             for message in (day, door, hour):
                 self.assertLessEqual(len(json.dumps(message, separators=(',', ':'))), 4096)
+
+    async def test_an_energy_source_with_two_sensors_answers_their_sum(self):
+        # GitHub #180: two solar arrays open their sum, as Home Assistant's "Power sources" graph adds them up.
+        import energy_flow
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.manager(tmp, firmware='0.47.0', extra_tiles=[{'entity': 'screen.energy', 'name': '', 'options': {'size': 'square'}}])
+            m.ha.states['sensor.roof'] = {'state': '1.5', 'attributes': {'unit_of_measurement': 'kW'}}
+            m.ha.states['sensor.shed'] = {'state': '400', 'attributes': {'unit_of_measurement': 'W'}}
+            m.forecasts['energy/get_prefs'] = (time.monotonic(), {'energy_sources': [
+                {'type': 'solar', 'stat_rate': 'sensor.roof'}, {'type': 'solar', 'stat_rate': 'sensor.shed'}]})
+            key = energy_flow.SUMS['solar']
+            await m.answer_history({'inbox': 'text.screen', 'entity': key, 'hours': 24})
+            await m.answer_history({'inbox': 'text.screen', 'entity': key, 'hours': 1})
+            day, hour = (message for _, message, _ in m.ha.messages)
+            self.assertEqual((day['entity'], day['kind'], day['unit']), (key, 'line', 'W'))
+            # The fake recorder's means are 20..22 per sensor: kW counts a thousandfold.
+            self.assertEqual(max(v for v in day['values'] if v is not None), 22 * 1000 + 22)
+            self.assertEqual(hour['values'][-1], 22.5 * 1000 + 22.5)
+            self.assertEqual(sorted(f[1] for f in m.ha.fetches if f[0] == 'statistics'), ['sensor.roof', 'sensor.shed'])
 
     async def test_screens_asking_together_share_one_fetch_and_a_reopened_card_uses_it(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -392,7 +412,7 @@ class Firmware(unittest.TestCase):
         ranges = ranges[:ranges.index('\n}\n')]
         self.assertIn('if(detail_action_count&&detail_actions[detail_action_count-1]==segment)--detail_action_count;', ranges)
         self.assertIn('if(cmd>=160&&cmd<163){', RUNTIME)
-        self.assertLess(RUNTIME.index('if(cmd>=160&&cmd<163){'), RUNTIME.index('if(!fresh()||detail_index>=model.count || !allowed(esphome::millis(),300+cmd'))
+        self.assertLess(RUNTIME.index('if(cmd>=160&&cmd<163){'), RUNTIME.index('if(!(wish_command(cmd)?allowed_wish(esphome::millis(),300+cmd,what):allowed(esphome::millis(),300+cmd,what)))return;'))
 
     def test_the_scrub_area_keeps_the_finger_and_the_boards_carry_the_small_font(self):
         touch = RUNTIME[RUNTIME.index('inline void history_touch('):]

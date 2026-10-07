@@ -92,6 +92,28 @@ describe("one draft in both editor modes", () => {
     expect(view.text()).not.toContain('Update screen to use the new titlebar and layout');
     expect(view.text()).toContain('Waiting for the screen to reconnect');
   });
+  it('lets a screen whose taps Home Assistant ignored perform actions with one click', async () => {
+    // Home Assistant refused a tap (its repair issue, app 0.4.63); the notice offers its Configure switch (app 0.4.73).
+    Object.assign(state.inventory.screens[0], { actions_blocked: true });
+    const fetch = vi.fn(async () => reply({ allowed: true, name: 'Test' }));
+    vi.stubGlobal('fetch', fetch);
+    const view = mount(LayoutView);
+    expect(view.find('#actions-blocked').exists()).toBe(true);
+    await view.find('#allow-actions').trigger('click');
+    await vi.waitFor(() => expect(view.find('#actions-blocked').exists()).toBe(false));
+    const calls = fetch.mock.calls.map(([url, init]: any) => [String(url), init?.method]);
+    expect(calls).toContainEqual(['api/screens/test/allow-actions', 'POST']);
+    expect(state.toast?.message).toBe('Test may now control your devices.');
+  });
+  it('keeps the notice when Home Assistant does not take it, and says why', async () => {
+    Object.assign(state.inventory.screens[0], { actions_blocked: true });
+    vi.stubGlobal('fetch', vi.fn(async () => reply({ error: 'Home Assistant didn\'t take it.' }, 400)));
+    const view = mount(LayoutView);
+    await view.find('#allow-actions').trigger('click');
+    await vi.waitFor(() => expect(state.allowing).toBeNull());
+    expect(view.find('#actions-blocked').exists()).toBe(true);
+    expect(state.toast?.message).toContain("Home Assistant didn't take it.");
+  });
   it('retires a removal undo toast when a later edit becomes the history head', () => {
     const tile = state.layout!.tiles[0];
     removeTile(tile);

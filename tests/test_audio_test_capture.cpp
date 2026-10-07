@@ -31,4 +31,15 @@ int main() {
   for (size_t i = 0; i < audio_test::Capture::MAX_SAMPLES + 1; ++i) capture.push(stereo, 4);
   assert(capture.size() == audio_test::Capture::MAX_SAMPLES);
   assert(large[audio_test::Capture::MAX_SAMPLES] == 123 && !capture.active());
+  // AEC produces mono: preserve every sample at 16 kHz, without halving duration.
+  capture.begin(guarded + 1, 2, 1);
+  capture.push(stereo, 1);
+  assert(capture.size() == 0);
+  capture.push(stereo, sizeof(stereo));
+  assert(capture.size() == 2 && !capture.active());
+  assert(guarded[0] == 11 && guarded[3] == 22);
+  assert(guarded[1] == 0x1234 && guarded[2] == 0x5678);
+  capture.begin(guarded + 1, 2, 0);
+  capture.push(stereo, sizeof(stereo));
+  assert(capture.size() == 0 && !capture.active());
 }

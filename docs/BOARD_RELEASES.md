@@ -55,7 +55,8 @@ The four outcomes are the four recipes below.
 There are two version numbers, and they do different jobs.
 
 - **The app version** (`version:` in `screen_manager/config.yaml`) is what Home Assistant offers as an add-on update.
-  Every push to main is a release, so every push bumps it, with a CHANGELOG entry.
+  A release bumps it once, with its CHANGELOG entry, for everything on dev since the last release
+  (docs/RELEASING.md); work on dev bumps nothing.
 - **The firmware version** is what a screen reports in its **Screen firmware** sensor. The add-on compares it with the
   version the screen's board builds today, and offers **Update** when the screen is behind.
 

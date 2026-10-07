@@ -176,5 +176,13 @@ int main() {
   assert(!back.should_load(101000) && !back.should_load(114999) && back.should_load(115000));
   // Nothing loads between two quick page turns.
   assert(!settled(10500, 10000) && settled(10000 + SETTLE_MS, 10000));
+
+  // Pictures load while the tiles are seen (GitHub #161): a screen in use, whatever its levels.
+  assert(tiles_seen(true, false, 0) && tiles_seen(true, true, 0));
+  // In standby the dimmed tiles are seen without a screensaver over them, from SEEN_LEVEL % on.
+  assert(tiles_seen(false, false, SEEN_LEVEL) && tiles_seen(false, false, 40));
+  assert(!tiles_seen(false, false, SEEN_LEVEL - 1) && !tiles_seen(false, false, 0));
+  // A screensaver covers them, the clock as much as a camera, at any level.
+  assert(!tiles_seen(false, true, 40) && !tiles_seen(false, true, 100));
   return 0;
 }

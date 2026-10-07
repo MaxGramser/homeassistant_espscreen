@@ -1,9 +1,11 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include "screen_text.h"
+#include "battery_status.h"
 #include "wifi_status.h"
 
 namespace header_bar {
@@ -20,8 +22,9 @@ static_assert(MAX_ITEMS >= 6 && MAX_ITEMS <= 16, "a page's bar holds 6 to 16 ite
 // The items the app numbered a bar_value's targets by when it says nothing (page * 6 + index): every app before 0.4.57.
 constexpr size_t WIRE_ITEMS = 6;
 constexpr size_t TEXT_BYTES = 48;
-// `wifi` and `link` (firmware 0.38.0) are the screen's own: it reads them itself, so they stay when Home Assistant goes.
-enum class Kind : uint8_t { none, clock, analog, date, text, ago, wifi, link };
+// `wifi` and `link` (firmware 0.38.0) and `battery` (firmware 0.41.0) are the screen's own: it reads them itself, so they
+// stay when Home Assistant goes.
+enum class Kind : uint8_t { none, clock, analog, date, text, ago, wifi, link, battery };
 
 inline Kind kind(const std::string &name) {
   if (name == "clock") return Kind::clock;
@@ -31,6 +34,7 @@ inline Kind kind(const std::string &name) {
   if (name == "ago") return Kind::ago;
   if (name == "wifi") return Kind::wifi;
   if (name == "link") return Kind::link;
+  if (name == "battery") return Kind::battery;
   return Kind::none;
 }
 
@@ -41,7 +45,8 @@ struct Item {
   int64_t epoch = 0;   // Kind::ago: the moment, past or future
   uint32_t color = 0;  // accent of the icon while `has_color`
   bool has_color = false;
-  bool only_weak = false;  // Kind::wifi: shown only while the signal is weak or gone (`a`)
+  // Shown only now and then (`a`): Kind::wifi while the signal is weak or gone, Kind::battery while it runs low.
+  bool only_weak = false;
   bool operator==(const Item &o) const {
     return kind == o.kind && icon == o.icon && text == o.text && epoch == o.epoch && color == o.color && has_color == o.has_color &&
            only_weak == o.only_weak;
@@ -115,8 +120,9 @@ inline std::string date_text(int day_of_week, int day_of_month, int month) {
 
 // The screen's own items (firmware 0.38.0). Wi-Fi draws the signal as a phone does, four bars down to one, and the bars
 // struck through without a network; its text is "" (the icon alone), "%" or "dBm" as the app sends it. The link is a
-// mark that appears only while Home Assistant or Tessera is away. Both read the screen itself, so they also show, and
-// matter most, while Home Assistant is gone and every other item has left the bar.
+// mark that appears only while Home Assistant or Tessera is away. The battery (firmware 0.41.0) draws Home Assistant's
+// battery icon for its level and whether it charges, with "%" beside it when the app asks. All of them read the screen
+// itself, so they also show, and matter most, while Home Assistant is gone and every other item has left the bar.
 constexpr uint32_t WIFI_OFF_GLYPH = 0xF092E;  // wifi-strength-off-outline
 constexpr uint32_t WIFI_GLYPHS[5] = {WIFI_OFF_GLYPH, 0xF091F, 0xF0922, 0xF0925, 0xF0928};  // wifi-strength-1 .. 4
 constexpr uint32_t LINK_GLYPH = 0xF0319;  // lan-disconnect, one of the tile icons
@@ -124,6 +130,7 @@ struct Device {
   bool wifi = false;   // holds its network
   int rssi = 0;        // dBm
   bool linked = true;  // Home Assistant and Tessera both there
+  battery_status::Reading battery{};
 };
 struct Shown {
   bool shown = false;
@@ -141,6 +148,11 @@ inline Shown device_item(const Item &item, const Device &device) {
     s.shown = !item.only_weak || !strength || wifi_status::weak(device.rssi);
     if (strength && item.text == "%") s.text = screen_text::percent(wifi_status::percent(device.rssi));
     else if (strength && item.text == "dBm") s.text = std::to_string(device.rssi) + " dBm";
+  } else if (item.kind == Kind::battery) {
+    const auto &b = device.battery;
+    s.shown = b.present && (!item.only_weak || battery_status::low(b));
+    s.icon = battery_status::icon(b.level, b.charging == 1);
+    if (item.text == "%" && std::isfinite(b.level)) s.text = screen_text::percent(static_cast<int>(std::lround(b.level)));
   }
   return s;
 }
@@ -161,19 +173,34 @@ struct Placement {
   std::array<int, MAX_ITEMS> x{};
   int name_room = 0;
 };
+// The width of items `from` up to `to`, with the gaps between them.
+inline int span(const int *widths, size_t from, size_t to, const Gaps &g) {
+  int sum = 0;
+  for (size_t i = from; i < to; ++i) sum += widths[i] + (i > from ? g.item : 0);
+  return sum;
+}
 inline Placement place(const int *widths, size_t count, const Gaps &g, int width, int name_natural) {
   Placement p;
   count = std::min(count, MAX_ITEMS);
   int min_name = std::min(name_natural, width * 35 / 100);
-  auto total = [&](size_t from) {
-    int sum = 0;
-    for (size_t i = from; i < count; ++i) sum += widths[i] + (i > from ? g.item : 0);
-    return sum;
-  };
-  while (p.first < count && total(p.first) + g.name + min_name > width) ++p.first;
-  int x = width - total(p.first);
+  while (p.first < count && span(widths, p.first, count, g) + g.name + min_name > width) ++p.first;
+  int x = width - span(widths, p.first, count, g);
   for (size_t i = p.first; i < count; ++i) { p.x[i] = x; x += widths[i] + g.item; }
   p.name_room = p.first < count ? p.x[p.first] - g.name : width;
   return p;
+}
+// A row of the same items without a name, centred in `width` (the screensaver clock's, firmware 0.50.0+). Items leave
+// from the end until the rest fits, so the first stays; `count` is how many show.
+struct Centred {
+  size_t count = 0;
+  std::array<int, MAX_ITEMS> x{};
+};
+inline Centred centre(const int *widths, size_t count, const Gaps &g, int width) {
+  Centred c;
+  c.count = std::min(count, MAX_ITEMS);
+  while (c.count && span(widths, 0, c.count, g) > width) --c.count;
+  int x = (width - span(widths, 0, c.count, g)) / 2;
+  for (size_t i = 0; i < c.count; ++i) { c.x[i] = x; x += widths[i] + g.item; }
+  return c;
 }
 }  // namespace header_bar

@@ -121,8 +121,12 @@
       "wifi_weak": "Signal too weak ({dbm} dBm)",
       "wifi_failed": "Could not connect, trying again",
       "loading_tiles_count": "Loading tiles {n}/{total}",
-      "hint_home_assistant": "Home Assistant has not connected yet. Is this screen added under Settings > Devices & services > ESPHome?",
+      "hint_home_assistant": "Tessera adds this screen once Home Assistant can reach it at this address.",
       "hint_tessera": "Is the Tessera Screen Manager app running in Home Assistant?",
+      "first_tiles": "Choose your tiles",
+      "first_tiles_open": "Open Tessera in Home Assistant",
+      "first_tiles_pick": "Pick tiles for {name}",
+      "first_tiles_save": "Press Save & send",
       "updating": "Updating firmware {percent}",
       "update_restart": "Update complete, restarting",
       "update_failed": "Update failed",
@@ -200,6 +204,7 @@
       "page": "Page {n}",
       "refused": "Refused",
       "command_sent": "Command sent...",
+      "updating": "Updating...",
       "confirmed": "Confirmed by Home Assistant",
       "no_answer": "No answer"
     },
@@ -525,10 +530,35 @@
         "open": "Open",
         "open_door": "Open door",
         "open_door_confirm": "Really open?"
+      },
+      "humidifier_mode": {
+        "normal": "Normal",
+        "eco": "Eco",
+        "away": "Away",
+        "boost": "Boost",
+        "comfort": "Comfort",
+        "home": "Home",
+        "sleep": "Sleep",
+        "auto": "Auto",
+        "baby": "Baby"
+      },
+      "humidifier_action": {
+        "humidifying": "Humidifying",
+        "drying": "Drying",
+        "idle": "Idle",
+        "off": "Off"
       }
     },
     "navigation": {
       "back": "Back"
+    },
+    "energy": {
+      "solar": "Solar",
+      "grid": "Grid",
+      "battery": "Battery",
+      "home": "Home",
+      "other": "Other",
+      "no_power": "No power sensors in Home Assistant's energy settings"
     },
     "audio": {
       "idle": "Idle",
@@ -735,7 +765,8 @@
         "enter_ip": "Enter this screen's IP address.",
         "no_profile": "No ESPHome profile found for this screen. Check the name in the ESPHome folder.",
         "ip_unknown": "IP address unknown. Enter it once; new firmware reports it itself after that.",
-        "all_updated": "All reachable screens are already updated."
+        "all_updated": "All reachable screens are already updated.",
+        "reinstall_dev": "Reinstalling the same firmware is for the dev channel only."
       },
       "remove": {
         "not_allowed": "This app may not remove an integration from Home Assistant. Remove the screen in Home Assistant itself, under Settings → Devices & services.",
@@ -794,7 +825,15 @@
         "storage": "Feedback is off: its saved data was written by another version of Tessera."
       },
       "media": {
-        "browse": "{name} did not answer with its library."
+        "browse": "{name} did not answer with its library.",
+        "link_invalid": "This is not a Spotify link. Copy one in the Spotify app with Share > Copy link.",
+        "link_short": "A spotify.link address only points elsewhere. Open it in your browser and copy the long address it goes to.",
+        "link_player": "{name} does not play Spotify links."
+      },
+      "allow_actions": {
+        "not_allowed": "Home Assistant doesn't let this app change its integrations. Do it in Home Assistant itself, under Settings → Devices & services.",
+        "no_entry": "Home Assistant doesn't have this screen as an ESPHome device.",
+        "failed": "Home Assistant didn't take it. In Home Assistant open Settings → Devices & services → ESPHome, choose this screen, then Configure, and turn on “Allow the device to perform Home Assistant actions”."
       },
       "audio_test_unavailable": "Audio test is unavailable on this screen."
     },
@@ -821,6 +860,8 @@
       "offline": "Screen was offline; will retry next time.",
       "unknown_target": "Profile or IP address unknown; update this screen manually.",
       "build_failed": "Build or install failed; see the log under Firmware & USB.",
+      "build_memory": "Not enough memory to build the firmware: about {need} must be free and {free} is. Stop a few add-ons for a while or give the machine more memory; see Firmware & USB.",
+      "build_memory_limit": "Not enough memory to build the firmware, also with one compiler at a time. Stop a few add-ons for a while or give the machine more memory; see Firmware & USB.",
       "no_report": "Screen didn't report back with firmware {version}; check the screen.",
       "dropped_off": "Screen dropped off after the update; check the screen.",
       "updated": "Updated to firmware {version}."
@@ -913,6 +954,13 @@
         },
         "remote": {
           "toggle": "On/off switch"
+        },
+        "humidifier": {
+          "setpoint": "Humidity − / +",
+          "slider": "Humidity slider",
+          "mode": "Mode keys",
+          "setpoint_mode": "Humidity − / + and mode keys",
+          "toggle": "On/off switch"
         }
       },
       "top_bar": {
@@ -921,7 +969,8 @@
           "analog": "Analog clock",
           "date": "Date",
           "wifi": "Wi-Fi signal",
-          "link": "Connection warning"
+          "link": "Connection warning",
+          "battery": "Battery"
         },
         "contents": {
           "state": "Status",
@@ -950,6 +999,14 @@
         "wifi_shows": {
           "always": "Always",
           "weak": "Only when weak"
+        },
+        "battery_contents": {
+          "icon": "Icon only",
+          "percent": "Percentage"
+        },
+        "battery_shows": {
+          "always": "Always",
+          "low": "Only when low"
         }
       }
     },
@@ -1189,7 +1246,8 @@
         "heart": "Favorite",
         "alert_outline": "Warning",
         "cog": "Settings",
-        "broom": "Cleaning"
+        "broom": "Cleaning",
+        "diabetes": "Diabetes"
       }
     },
     "screen": {
@@ -1197,7 +1255,8 @@
         "clock": "Clock",
         "nightstand": "Bedside clock",
         "page": "Go to page {page}",
-        "map": "Map"
+        "map": "Map",
+        "energy": "Energy"
       },
       "identify": {
         "title": "This is {name}",
@@ -1348,7 +1407,11 @@
         "no_profile": "No ESPHome profile found with this device name.",
         "whats_new": "What's new",
         "full_log": "Full log",
-        "short": "Update"
+        "short": "Update",
+        "reinstall": "Reinstall from dev",
+        "reinstall_why": "Builds this screen again from the newest dev and installs it over Wi-Fi. On dev the version number stays the same, so a new dev is never offered as an update.",
+        "in_tessera": "Update in Tessera first",
+        "in_tessera_why": "Update this screen here in Tessera first. It still has the flash layout it was first installed with, and the current firmware no longer fits it, so ESPHome Device Builder cannot update it. Tessera moves it to the new layout on the way and keeps its settings. After that, either way works."
       },
       "host": {
         "hint": "The IP address, once; new firmware reports it itself.",
@@ -1357,9 +1420,11 @@
         "start": "Start"
       },
       "pending": {
-        "installed": "Installed, but not yet in Home Assistant. Add the discovered ESPHome device under Settings → Devices & services, paste the API key there, and turn on “Allow the device to perform Home Assistant actions” under Configure.",
-        "downloaded": "Firmware downloaded, not yet in Home Assistant. Put it on the screen with ESPHome Web, then add the discovered ESPHome device under Settings → Devices & services, paste the API key there, and allow the Home Assistant actions under Configure.",
-        "not_flashed": "Not yet in Home Assistant. Already flashed? Add the ESPHome device under Settings → Devices & services, then allow the Home Assistant actions under Configure. Not flashed yet? Firmware & USB → {file}."
+        "installed": "Installed. Waiting for it to join your Wi-Fi...",
+        "downloaded": "Firmware downloaded. Put it on the screen with ESPHome Web.",
+        "not_flashed": "Not installed yet: Firmware & USB → {file}.",
+        "adding": "On your Wi-Fi. Getting it ready...",
+        "failed": "Tessera can't add it to Home Assistant by itself. Add it under Settings → Devices & services, with the API key below."
       },
       "copy_api_key": "Copy API key",
       "files": "Download screen files",
@@ -1421,7 +1486,8 @@
       "title": "Your screens",
       "summary": "{online} of {count} online",
       "open": "Open {name}",
-      "no_layout": "No layout yet"
+      "no_layout": "No layout yet",
+      "in_tessera": "Update in Tessera first"
     },
     "screen_view": {
       "confirm": {
@@ -1536,7 +1602,8 @@
         "timer": "Timers",
         "screen": "Screen",
         "alarm_control_panel": "Alarm",
-        "lock": "Locks"
+        "lock": "Locks",
+        "humidifier": "Humidifiers"
       },
       "room": "Room",
       "hide_placed": "Hide placed",
@@ -1560,7 +1627,12 @@
       "last_known": "As the screen said when it was last online.",
       "full_library": "The screen's memory for tiles is nearly full. You can still add tiles.",
       "confirm_close": "With this tile the screen's memory for tiles is {n} % full. Add it anyway?",
-      "confirm_over": "With this tile the layout needs more memory than the screen measured for tiles ({n} %). If the screen runs short, some tiles show less, or it turns the layout down. Add it anyway?"
+      "confirm_over": "With this tile the layout needs more memory than the screen measured for tiles ({n} %). If the screen runs short, some tiles show less, or it turns the layout down. Add it anyway?",
+      "measuring": "Measuring",
+      "measuring_title": "The screen measures its memory for tiles once its tiles have settled, about a minute after it starts or gets a new layout.",
+      "none": "No room",
+      "none_title": "The screen has no memory to spare for tiles right now. It still saves: if the screen runs short, some tiles show less, or it turns the layout down.",
+      "confirm_none": "The screen has no memory to spare for tiles right now. If it runs short, some tiles show less, or it turns the layout down. Add this tile anyway?"
     },
     "domains": {
       "light": "Light",
@@ -1592,7 +1664,8 @@
       "image": "Image",
       "entity": "Entity",
       "alarm_control_panel": "Alarm panel",
-      "lock": "Lock"
+      "lock": "Lock",
+      "humidifier": "Humidifier"
     },
     "displays": {
       "standard": "standard",
@@ -1821,7 +1894,25 @@
         "open": "Open {name}",
         "speaker": "Speaker",
         "speaker_now": "Where it plays",
-        "speaker_hint": "Where it starts. \"Where it plays\" asks for a speaker on the screen when the player plays nowhere."
+        "speaker_hint": "Where it starts. \"Where it plays\" asks for a speaker on the screen when the player plays nowhere.",
+        "link": "Or paste a Spotify link",
+        "link_hint": "A link or URI from the Spotify app, through Share > Copy link: a playlist, album, artist, song or podcast.",
+        "link_add": "Add",
+        "shuffle": "Shuffle",
+        "shuffle_hint": "Set as it starts. With shuffle on it skips once, so the first song is a shuffled one. \"As it is\" keeps the player's own.",
+        "shuffle_keep": "As it is",
+        "shuffle_on": "On",
+        "shuffle_off": "Off",
+        "repeat": "Repeat",
+        "repeat_hint": "Set as it starts. \"As it is\" keeps the player's own.",
+        "repeat_off": "Off",
+        "repeat_all": "Repeat all",
+        "repeat_one": "Repeat one",
+        "repeat_keep": "As it is"
+      },
+      "energy": {
+        "hint": "The power of the house right now, drawn the way Home Assistant's own Energy view draws it: solar, grid, battery and your devices, from the Energy settings in Home Assistant. A tap on a circle opens that sensor's history.",
+        "needs_firmware": "The energy card needs firmware 0.47.0 or newer: press Update on the screen after saving."
       }
     },
     "tile_card": {
@@ -1895,7 +1986,8 @@
         "overflow": "Doesn't fit next to the name",
         "dial": "Dial",
         "hidden_signal": "Hidden while the signal is good",
-        "hidden_link": "Hidden while everything is connected"
+        "hidden_link": "Hidden while everything is connected",
+        "hidden_battery": "Hidden while the battery is above 20 %"
       },
       "live": {
         "hidden": "Hidden right now: not active",
@@ -1933,9 +2025,12 @@
       "left_hint": "Title and home button: in the page settings",
       "wifi_sample": "This screen's own signal",
       "link_sample": "Only when Home Assistant or Tessera is away",
+      "battery_sample": "This screen's own battery",
       "wifi_hint": "The screen reads its own signal, so this item stays in the bar when Home Assistant is away. Four bars down to one, struck through without a network.",
       "wifi_show_hint": "Only when weak keeps the bar clear until the signal drops to one bar or the network is gone.",
       "link_hint": "Appears only while Home Assistant or Tessera is away, so you can tell at a glance why values are missing.",
+      "battery_hint": "The screen reads its own battery, so this item stays in the bar when Home Assistant is away. The icon follows the level the way Home Assistant draws it, with a lightning bolt while it charges.",
+      "battery_show_hint": "Only when low keeps the bar clear until the battery is at 20 % or less.",
       "status_firmware": "This item shows from firmware {version}. Until that update, the screen leaves it out."
     },
     "screen_settings": {
@@ -2007,29 +2102,51 @@
         "show": "Show in standby",
         "standby_off": "Turn on Auto standby to use it.",
         "needs_firmware": "Update this screen to firmware {version} to use a screensaver.",
-        "order": "The screen shows the first one that is available. Drag to change the order.",
         "no_pictures": "This screen has no memory for pictures, so it shows the clock.",
-        "tap": "A tap wakes the screen. Only a player's keys work on the screensaver: play or pause and the volume.",
+        "lead": "Shows the first one that is available",
         "use": "Use {name}",
-        "choose_media": "Choose a player",
-        "add_media": "Another player",
-        "players": "Players, the first at the top",
-        "choose_camera": "Choose a camera",
-        "weather_auto": "Outside temperature from Home Assistant",
-        "weather_none": "No temperature",
         "kinds": {
           "media": "Music playing",
           "camera": "Camera",
           "clock": "Clock"
         },
-        "details": {
-          "media": "While it plays, with its cover",
-          "media_unset": "Choose a player to use it",
-          "media_more": "The first one that plays, with its cover",
-          "camera": "Its picture, every 15 seconds",
-          "camera_unset": "Choose a camera to use it",
-          "clock": "The time, the date and the outside temperature, white on black"
-        }
+        "summary": {
+          "media_none": "No player yet",
+          "camera_none": "No camera yet",
+          "temperature": "Outside temperature",
+          "time_date": "Time and date",
+          "off": "Off"
+        },
+        "on": "Show on the screensaver",
+        "place": "{n} of {count}",
+        "earlier": "Try earlier",
+        "later": "Try later",
+        "players_title": "Players",
+        "players": "Players, the first at the top",
+        "players_hint": "The first one that plays shows, with its cover.",
+        "player_add": "Add a player",
+        "remove_player": "Remove {name}",
+        "keys_hint": "Play, pause and the volume work on the screensaver. A tap anywhere else wakes the screen.",
+        "choose_camera": "Choose a camera",
+        "camera_hint": "Its picture, every 15 seconds",
+        "glass": "On the screen",
+        "temperature": "Temperature",
+        "weather_auto": "Automatic",
+        "weather_none": "No temperature",
+        "beside": "Beside it",
+        "items_add": "Add an entity",
+        "items_hint": "Shown next to the temperature, in one line: a sensor, a door, a lamp.",
+        "items_full": "The clock has room for {n} entities.",
+        "items_already": "This is already on the clock.",
+        "items_removed": "{name} removed from the clock",
+        "items_title": "Clock entities",
+        "items_slots": "{used} of {n}",
+        "item_text": "Text",
+        "item_icon": "Icon",
+        "item_both": "Both",
+        "item_look": "Shows",
+        "item_hint": "Black and white on the screensaver, whatever the colour of the entity.",
+        "items_add_title": "Add to the clock"
       },
       "audio_tests": {
         "test_microphone": "Test microphone",
@@ -2220,9 +2337,9 @@
         "uploading": "Don't disconnect the USB cable yet.",
         "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. You can leave this page: the installation keeps running and you'll find it again under New screen.",
         "building_download": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. You can leave this page: the build keeps running and you'll find it again under New screen.",
-        "downloaded": "Put it on the screen from your own computer, then pair the screen with Home Assistant.",
-        "booted": "The screen boots up and connects to your Wi-Fi. Pair it with Home Assistant now:",
-        "booted_calibrate": "The screen boots up and connects to your Wi-Fi. It first asks for a touch calibration: tap the crosshairs. Pair it with Home Assistant now:",
+        "downloaded": "Put it on the screen from your own computer. It shows up here once it is on your Wi-Fi.",
+        "booted": "The screen boots up, connects to your Wi-Fi and joins Home Assistant by itself.",
+        "booted_calibrate": "The screen boots up and connects to your Wi-Fi. It first asks for a touch calibration: tap the crosshairs. Then it joins Home Assistant by itself.",
         "see_log": "See the log below."
       },
       "download_steps": {
@@ -2237,9 +2354,9 @@
       "download_keep": "The file holds your Wi-Fi password and the screen's keys: keep it to yourself.",
       "api_key": "API key",
       "pairing": {
-        "ha": "{bold} This happens outside Tessera. Home Assistant discovers {name} as an ESPHome device; click Add. Not discovered? Add ESPHome manually with the screen's IP address.",
+        "ha": "{bold} Home Assistant lists {name} as a discovered ESPHome device; click Add. Not discovered? Add ESPHome manually with the screen's IP address.",
         "ha_bold": "Go to Home Assistant → Settings → Devices & services.",
-        "key": "{bold} (under “Show the API key” below) if Home Assistant asks for an encryption key. With the ESPHome Device Builder app installed, Home Assistant often fills it in by itself.",
+        "key": "{bold} below if Home Assistant asks for an encryption key.",
         "key_bold": "Paste the API key",
         "actions": "{bold} ESPHome integration → Configure → “Allow the device to perform Home Assistant actions”. Without this, the screen sees everything but controls nothing.",
         "actions_bold": "Allow HA actions:",
@@ -2299,12 +2416,13 @@
       "models": "{n} model | {n} models",
       "arrive": {
         "waiting": "Waiting for {name} to join your Wi-Fi...",
-        "seen": "{name} is on your Wi-Fi. Pair it in Home Assistant now.",
+        "seen": "{name} is on your Wi-Fi. Getting it ready...",
         "paired": "{name} is paired with Home Assistant.",
         "missing": "{name} is not on your Wi-Fi yet",
         "hotspot": "Look at the screen: it names a hotspot and its password. Join it with your phone and pick the right Wi-Fi there. Or set the right Wi-Fi here and install again.",
         "no_hotspot": "The Wi-Fi name or password is probably wrong. Set the right Wi-Fi here and install again, with the screen still on its cable.",
-        "change": "Change Wi-Fi and install again"
+        "change": "Change Wi-Fi and install again",
+        "failed": "Tessera can't add {name} to Home Assistant by itself. Add it yourself below."
       },
       "choice_option": {
         "GRID_ROWS": {
@@ -2314,7 +2432,20 @@
       },
       "choice_first": {
         "GRID_ROWS": "the usual size"
-      }
+      },
+      "memory": {
+        "low_title": "Little memory free on the Home Assistant machine",
+        "low": "{free} of memory is free, so the firmware builds with fewer compilers at a time ({jobs} instead of {cores}). That takes longer, but it fits.",
+        "tight_title": "The Home Assistant machine may be short of memory",
+        "tight": "Building the firmware needs about {need} of free memory and {free} is free. It tries with one compiler at a time. If the build stops, stop a few add-ons for a while or give the machine more memory and try again.",
+        "retry_title": "The build ran out of memory and goes on with one compiler",
+        "retry": "The system stopped the compiler because the memory ran out ({free} was free when the build began). The build goes on with one compiler at a time, from where it stopped. That takes longer, but it fits.",
+        "out_title": "Not enough memory to build the firmware",
+        "out": "Building the firmware needs about {need} of free memory and this Home Assistant machine has {free}. Stop a few add-ons for a while or give the machine more memory, then try again.",
+        "limit_title": "Not enough memory to build the firmware",
+        "limit": "The build ran out of memory, also with one compiler at a time. Stop a few add-ons for a while or give the machine more memory, then try again."
+      },
+      "pair_yourself": "Add it in Home Assistant yourself"
     },
     "alerts": {
       "eyebrow": "Alerts · cheatsheet",
@@ -2606,7 +2737,9 @@
       },
       "home_hint": "The home button and a swipe up lead here.",
       "bar_entities": "Also on the right",
-      "actions_blocked": "Home Assistant doesn't let this screen perform actions, so a tap on a tile does nothing. In Home Assistant open Settings → Devices & services → ESPHome, choose this screen, then Configure, and turn on “Allow the device to perform Home Assistant actions”."
+      "actions_blocked": "Home Assistant doesn't let this screen perform actions yet, so a tap on a tile does nothing.",
+      "allow_actions": "Allow actions",
+      "actions_allowed": "{name} may now control your devices."
     },
     "feedback": {
       "question": "Does your screen work as you expect?",
@@ -2626,8 +2759,9 @@
       },
       "comment_label": "Anything else? (optional)",
       "comment_hint": "Please leave out personal details, logs, passwords and API keys.",
-      "report_hint": "Something to fix? Report it on GitHub. With your board, the versions and a log it can be looked into.",
-      "report_link": "Report it on GitHub",
+      "report_title": "Want it fixed?",
+      "report_text": "Open an issue on GitHub. Your board, the versions and what you told us are already filled in. Add a log and we can look into it, and ask you about it.",
+      "report_open": "Open a GitHub issue",
       "add_details": "Add details",
       "done": "Done",
       "settings_title": "Feedback",
@@ -2761,8 +2895,8 @@
       "simple_editor": "Simple view"
     },
     "donate": {
-      "title": "Made by one person",
-      "body": "Tessera is free and stays free. I build it in my spare time. If you'd like me to keep adding new cards and boards, a small monthly contribution makes that possible. A one-time coffee is just as welcome.",
+      "title": "Support Tessera",
+      "body": "Tessera is free and stays free. I lead development and maintenance, with contributions from the community. Your support gives me more time to build, review and test improvements. A monthly contribution or a one-time coffee is welcome.",
       "monthly": "Support monthly",
       "once": "or buy me a coffee once",
       "later": "Maybe later",

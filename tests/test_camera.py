@@ -1,5 +1,5 @@
 """Camera images on a Guition (app 0.2.66, firmware 0.2.57): the app fetches, sizes and serves the image on its own
-port; the screen asks with esphome.screen_camera and loads the link with ESPHome's online_image."""
+port; the screen asks with esphome.screen_camera and downloads the link in a task beside its main loop (picture_fetch)."""
 from firmware_sources import firmware_domains, runtime_source
 from manager_fixtures import with_screen_grid, seed_layout
 import asyncio
@@ -94,6 +94,26 @@ class Rules(unittest.TestCase):
         self.assertLessEqual(w * h * 2, camera_feed.PICTURE_MAX_BYTES)
         self.assertAlmostEqual(w / h, 1248 / 684, places=2)
 
+    def test_a_screen_with_the_memory_takes_its_glass_at_its_own_pixels(self):
+        # GitHub #183: a screen whose picture store has the room (the 32 MB of the P4 boards) says how large one picture
+        # may be (`cap`, picture_store::cap_for), and its full view, map and screensaver come at its own pixels. A
+        # screen that says nothing, or less than the common cap, keeps that cap; nothing goes over PICTURE_LARGE_BYTES.
+        header = (ROOT / 'components/smart_display/picture_store.h').read_text()
+        self.assertIn(f'constexpr int LARGE_SIDE = {camera_feed.PICTURE_LARGE_SIDE};', header)
+        store = min(6 << 20, (32 << 20) // 5)  # runtime_tiles::pictures_kept on a P4 board
+        cap = camera_feed.picture_cap({'cap': str(store // 3)})
+        self.assertEqual(camera_feed.box({'board': 'jc8012p4a1'}, 'full', cap), (1280, 800))
+        self.assertEqual(camera_feed.box({'board': 'tab5'}, 'full', cap), (1280, 720))
+        for request in ({}, {'cap': ''}, {'cap': 'x'}, {'cap': '1000'}, None):
+            self.assertEqual(camera_feed.picture_cap(request), (camera_feed.PICTURE_MAX_SIDE, camera_feed.PICTURE_MAX_BYTES))
+            self.assertEqual(camera_feed.box({'board': 'jc8012p4a1'}, 'full', camera_feed.picture_cap(request)), (1024, 640))
+        self.assertEqual(camera_feed.picture_cap({'cap': str(64 << 20)}), (camera_feed.PICTURE_LARGE_SIDE, camera_feed.PICTURE_LARGE_BYTES))
+        # The app's rhythm of the full view is the firmware's (camera_view::REFRESH_MS): it fetches just before each load.
+        view = (ROOT / 'components/smart_display/camera_view.h').read_text()
+        self.assertIn(f'constexpr uint32_t REFRESH_MS = {camera_feed.FULL_VIEW_SECONDS * 1000};', view)
+        # The firmware asks it only for a picture of the whole glass (camera_request), never on a board of 8 MB.
+        self.assertIn('const bool larger = size <= 0 && cap.bytes > picture_store::MAX_BYTES;', TILES)
+
     @unittest.skipUnless(HAS_PIL, 'needs Pillow')
     def test_a_turned_snapshot_is_measured_the_way_it_is_shown(self):
         from PIL import Image
@@ -153,20 +173,24 @@ class Rules(unittest.TestCase):
         self.assertIn("event_type='esphome.screen_camera'", (ROOT / 'screen_manager/app/server.py').read_text())
         self.assertIn('if (op == "camera") {', TILES)
         self.assertLessEqual({'camera', 'image'}, firmware_domains())
-        # The profile loads both images and binds them; the CYD has none, so it never opens a camera.
-        for needle in ('online_image:\n  - id: camera_image', '  - id: alert_image', 'runtime_tiles::camera_loaded(false, cached);',
-                       'runtime_tiles::camera_loaded(true, cached);', 'runtime_tiles::camera_tick();', 'runtime_tiles::alert_prepare();',
+        # The profile binds the three pictures (firmware 0.49.0+: downloaded beside the main loop, picture_fetch) and hands
+        # finished ones to their cards on the main loop; the CYD has none, so it never opens a camera.
+        for needle in ('picture_fetch::bind(picture_fetch::full(),', 'picture_fetch::bind(picture_fetch::thumb(),',
+                       'picture_fetch::bind(picture_fetch::live(),', 'runtime_tiles::picture_done(picture_loader::Slot::FULL, ok, cached);',
+                       'runtime_tiles::picture_done(picture_loader::Slot::THUMB, ok, cached);',
+                       'runtime_tiles::picture_done(picture_loader::Slot::LIVE, ok, cached);',
+                       'runtime_tiles::camera_full.load = ', 'runtime_tiles::camera_thumb.load = ', 'runtime_tiles::camera_live.load = ',
+                       "- lambda: 'picture_fetch::tick();'", 'runtime_tiles::camera_tick();', 'runtime_tiles::alert_prepare();',
                        'runtime_tiles::alert_clear();', 'runtime_tiles::camera_close();', 'id: alert_image_frame'):
             self.assertIn(needle, PROFILE, needle)
-        # A link only replaces the URL when it is new: set_url() forgets the ETag that makes an unchanged picture a 304.
-        # Three images: the camera full screen (and the cover), the alert's picture, the live tiles' strip (app 0.2.91).
-        self.assertEqual(PROFILE.count('if (url != current) {'), 3)
-        for needle in ('  - id: tile_image', 'runtime_tiles::live_loaded(cached);', 'runtime_tiles::live_failed();', 'runtime_tiles::camera_live.load'):
-            self.assertIn(needle, PROFILE, needle)
+        # Nothing of ESPHome's online_image is left: it downloaded in the main loop, a chunk a turn, each waiting for the
+        # network, and a page of covers held the glass still for seconds (0.4.80).
+        for gone in ('online_image:', 'http_request:', 'id(camera_image)', 'id(tile_image)', 'id(alert_image)', 'if (url != current) {'):
+            self.assertNotIn(gone, PROFILE, gone)
         # A busy camera port leaves the rest of the app running.
         self.assertIn("except OSError as error:\n            # Everything else still works; only camera images stay away.", (ROOT / 'screen_manager/app/server.py').read_text())
         cyd = profiles.text('checkout/cyd.yaml')
-        self.assertNotIn('online_image', cyd)
+        self.assertNotIn('picture_fetch::', cyd)
         self.assertNotIn('camera_full.load', cyd)
         # The add-on's port is published, and the Docker route passes it on with the host network.
         config = (ROOT / 'screen_manager/config.yaml').read_text()
@@ -177,13 +201,18 @@ class Rules(unittest.TestCase):
         # the spinner turns until the first picture or a note is there.
         opened = TILES.split('inline void camera_open(const std::string &entity, const std::string &name, int map_index, const std::string &focus) {', 1)[1].split('\n}\n', 1)[0]
         self.assertIn('camera_spinner = spinner_create(camera_root,', opened)
+        # Opened, it says what it wants at once (one round of the picture route, firmware 0.52.0): the loader asks then.
+        self.assertTrue(opened.rstrip().endswith('pictures_round();'))
         # pictures_awake: awake, or the screensaver's picture in standby (firmware 0.29.0+).
-        self.assertIn('if (pictures_awake() && fresh() && camera.should_ask(now)) {', opened)
-        answer = TILES.split('inline void camera_answer(const std::string &view, const std::string &entity, const std::string &url) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('if (pictures_awake() && camera.should_load(now)) camera_load(now);', answer)
-        # Never under a finger, from the answer or from the tick.
-        load = TILES.split('inline void camera_load(uint32_t now) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('lv_indev_get_state(input) == LV_INDEV_STATE_PRESSED) return;', load)
+        want = TILES.split('inline void camera_want() {', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('if (!camera_root || !camera.open() || !pictures_awake()) return;', want)
+        # The answer starts the download in the same round, not on the next tick.
+        answer = TILES.split('inline void camera_answer(const std::string &view, const std::string &entity, const std::string &url, uint32_t number) {', 1)[1].split('\n}\n', 1)[0]
+        self.assertTrue(answer.rstrip().endswith('pictures_round();'))
+        # Never under a finger, and not while the pages turn: the round tells the loader whether it may load.
+        round_ = TILES.split('inline void pictures_round() {', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('const bool pressed = input && lv_indev_get_state(input) == LV_INDEV_STATE_PRESSED;', round_)
+        self.assertIn('loader.end(now, !pressed && camera_view::settled(now, last_turn_ms));', round_)
         note = TILES.split('inline void camera_note_text(const char *text) {', 1)[1].split('\n}\n', 1)[0]
         self.assertIn('lv_obj_delete(camera_spinner);', note)
         self.assertNotIn('Loading image', TILES)
@@ -192,20 +221,24 @@ class Rules(unittest.TestCase):
         # Firmware 0.13.0: a download that broke off halfway made online_image free the buffer the view still drew, and
         # every part of the glass drawn again after that (a tile below going unavailable) came out black. The view draws
         # the store's copy, which the store keeps while it is on the glass and lets go of once the view closes.
-        loaded = TILES.split('inline void camera_loaded(bool thumb, bool cached) {', 1)[1].split('\n}\n', 1)[0]
-        full = loaded.split('if (!camera.loading) return;', 1)[1]
-        self.assertIn('if (!cached && pictures_kept() && src && src->data) {', full)
-        self.assertIn('if (auto *kept = pictures.put(camera_key(camera.entity), *src, esphome::millis())) src = kept;', full)
+        # Every download goes into the store under its picture's key (picture_done, firmware 0.52.0); a 304 keeps the copy.
+        done = TILES.split('inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('if (cached && pictures.entry(key)) { pictures.touch(key, now); kept = true; }', done)
+        self.assertIn('pictures.put(key, *src, now)', done)
         # A picture the store has no room for is drawn from the download, and says so in the log.
-        self.assertIn('ESP_LOGW("camera", "no room to keep the picture of %s"', full)
-        self.assertIn('camera_show(camera_root, camera_picture, src, !cached);', full)
+        self.assertIn('ESP_LOGW("picture", "no room to keep %s", key.c_str());', done)
+        self.assertIn('if (!kept) { slot_key[s] = key; slot_at[s] = now; }', done)
+        view = TILES.split('inline void view_done(picture_loader::Outcome outcome) {', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('lv_image_dsc_t *src = picture_of(camera_key());', view)
+        self.assertIn('camera_show(camera_root, camera_picture, src, outcome == picture_loader::Outcome::LOADED);', view)
         self.assertNotIn('camera_show(camera_root, camera_picture, camera_full.source()', TILES)
         shown = TILES.split('inline bool picture_shown(const lv_image_dsc_t *image) {', 1)[1].split('\n}\n', 1)[0]
         self.assertIn('on(camera_picture);', shown)
+        self.assertIn('on(alert_picture);', shown)
         closed = TILES.split('inline void camera_close() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('pictures.retire(camera_key(camera.entity));', closed)
-        # Retired before the camera is forgotten, or the key would name no camera.
-        self.assertLess(closed.index('pictures.retire('), closed.index('camera = camera_view::Feed{};'))
+        self.assertIn('loader.release(owners::VIEW);', closed)
+        # Let go before the camera is forgotten, or the key would name no camera.
+        self.assertLess(closed.index('loader.release('), closed.index('camera = ViewPicture{};'))
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
@@ -353,7 +386,22 @@ class Feed(unittest.IsolatedAsyncioTestCase):
             if isinstance(answer, Exception):
                 raise answer
             return answer
-        return camera_feed.CameraFeed(fetch, clock=clock), clock
+
+        # The feed's waits (a fetch ahead's): recorded, and over when the test says so (wake), never in real seconds.
+        self.sleeps = []
+
+        async def sleep(delay):
+            gate = asyncio.Event()
+            self.sleeps.append((delay, gate))
+            await gate.wait()
+        return camera_feed.CameraFeed(fetch, clock=clock, sleep=sleep), clock
+
+    async def wake(self):
+        """The waits are over: the fetches ahead start."""
+        for _, gate in self.sleeps:
+            gate.set()
+        self.sleeps.clear()
+        await self.settle()
 
     async def settle(self):
         """Let the fetch a load started run before counting fetches: whether it already ran when serve() returns
@@ -375,28 +423,51 @@ class Feed(unittest.IsolatedAsyncioTestCase):
         clock.now += camera_feed.LINK_SECONDS + 1
         self.assertEqual((await feed.serve(token))[0], 404)
 
-    async def test_each_load_fetches_the_next_picture_and_nothing_is_fetched_between_loads(self):
+    async def test_each_load_gets_the_snapshot_fetched_just_before_it(self):
+        # GitHub #183: a load sets the next fetch for just before the next load (its pace, less the time the camera
+        # takes and a margin), so a picture is a fraction of a second old, not a whole pace. Before, a load got the
+        # snapshot fetched at the load before it.
         first, second, third = picture('JPEG', (640, 360)), picture('PNG', (640, 360)), picture('BMP', (640, 360))
         feed, clock = self.feed([first, second, third])
         token = feed.link('camera.max', (480, 480))
         _, one, tag_one = await feed.serve(token)
         await self.settle()
-        self.assertEqual(self.fetched, ['camera.max'] * 2, 'the first picture, and the next one started at once')
-        await asyncio.sleep(0.05)
-        self.assertEqual(len(self.fetched), 2, 'nobody loads, nothing is fetched')
-        clock.now += 4
+        self.assertEqual(self.fetched, ['camera.max'], 'the first picture, waited for')
+        self.assertEqual([round(delay, 2) for delay, _ in self.sleeps],
+                         [camera_feed.FULL_VIEW_SECONDS - 0 - camera_feed.AHEAD_MARGIN], 'the next fetch, set for later')
+        # Until just before the next load nothing is fetched; then the fetch ahead goes.
+        clock.now += 3.5
+        await self.wake()
+        self.assertEqual(len(self.fetched), 2)
+        clock.now += 0.5
         _, two, tag_two = await feed.serve(token, tag_one)
         await self.settle()
-        self.assertNotEqual(tag_two, tag_one, 'the picture fetched after the last load')
-        self.assertEqual(len(self.fetched), 3)
-        # Two screens loading while the next picture is on its way share that one fetch.
+        self.assertNotEqual(tag_two, tag_one, 'the snapshot of just now')
+        self.assertEqual(len(self.fetched), 2, 'no second fetch for the same moment')
+        # A slow camera: the load waits a moment for the fetch on its way, and two screens loading share that fetch.
         self.gate = asyncio.Event()
-        await feed.serve(token, tag_two)
-        await feed.serve(token, tag_two)
+        clock.now += 3.5
+        await self.wake()
+        self.assertEqual(len(self.fetched), 3)
+        loads = [asyncio.ensure_future(feed.serve(token, tag_two)) for _ in range(2)]
         await self.settle()
-        self.assertEqual(len(self.fetched), 4)
         self.gate.set()
+        three = [await load for load in loads]
+        self.assertEqual(len(self.fetched), 3)
+        self.assertTrue(all(answer[2] not in (tag_one, tag_two) for answer in three), 'both got the new snapshot')
+
+    async def test_a_tile_at_its_pace_is_fetched_just_before_its_load_and_the_quickest_tile_sets_it(self):
+        feed, clock = self.feed([picture('JPEG', (640, 360)), picture('PNG', (640, 360)), picture('BMP', (640, 360))])
+        await feed.live_one('camera.drive', 15, 1)
         await self.settle()
+        self.assertEqual([round(delay, 2) for delay, _ in self.sleeps], [15 - camera_feed.AHEAD_MARGIN])
+        # A quicker tile of the same camera sets it sooner; a slower one changes nothing.
+        await feed.live_one('camera.drive', 5, 1)
+        await feed.live_one('camera.drive', 30, 1)
+        await self.settle()
+        pending = [round(delay, 2) for delay, gate in self.sleeps if not gate.is_set()]
+        self.assertIn(5 - camera_feed.AHEAD_MARGIN, pending)
+        self.assertEqual(len(self.fetched), 1)
 
     async def test_a_camera_that_fails_is_asked_again_after_a_pause(self):
         feed, clock = self.feed([ConnectionError('500'), ConnectionError('500'), picture('JPEG', (640, 360))])
@@ -413,7 +484,8 @@ class Feed(unittest.IsolatedAsyncioTestCase):
             clock.now += 10
             self.assertEqual((await feed.serve(token))[0], 200)
             await self.settle()
-        self.assertEqual(len(self.fetched), 4, 'the good picture, then the next one')
+        self.assertEqual(len(self.fetched), 3, 'the good picture; the next one waits for its moment')
+        self.assertTrue(self.sleeps, 'a fetch ahead is set')
 
     async def test_an_alert_gets_a_snapshot_of_its_own_moment(self):
         first, second = picture('JPEG', (640, 360)), picture('PNG', (640, 360))
@@ -843,6 +915,27 @@ class LiveTiles(unittest.TestCase):
         self.assertEqual(ha_catalogue.capabilities('camera.front_door', [], {}, {})['displays'], ['standard', 'live'])
         self.assertNotIn('live', ha_catalogue.capabilities('light.hall', [], {}, {})['displays'])
 
+    def test_pictures_load_while_the_tiles_are_seen(self):
+        """GitHub #161 (firmware 0.40.0): a dimmed screen without a screensaver still shows its tiles, so their pictures
+        keep loading there. The rule itself is camera_view::tiles_seen (tests/test_camera_view.cpp); the firmware asks
+        it everywhere a picture on the tiles loads, and the backlight goes by the same standby level."""
+        waiting = TILES.split('inline bool tile_picture_waiting(const Widgets &w, const Tile &t) {', 1)[1].split('\n}', 1)[0]
+        self.assertIn('!tiles_seen()', waiting)
+        # A picture on the glass (a tile's own, a cover over a whole page) follows the tiles; one fetched ahead for a page
+        # that is not shown waits for a screen in use.
+        tiles = TILES.split('inline void card_picture_wants() {', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('const bool seen = tiles_seen() && !card_open() && !camera_root;', tiles)
+        self.assertIn('const bool ahead = awake() && pictures_kept() && !prepare_busy() && pictures.size() < pictures.budget / 4 * 3;', tiles)
+        page = tiles
+        card = TILES.split('inline void card_cover_want() {', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('!tiles_seen()', card)
+        self.assertNotIn('if (!awake()) return;', page + tiles + card)
+        # Any screensaver covers the tiles, the clock (saver_root) as much as a camera or a cover (saver_camera).
+        self.assertIn('camera_view::tiles_seen(awake(), saver_root || saver_camera, standby_level())', TILES)
+        core = (ROOT / 'packages/core.yaml').read_text()
+        self.assertIn('const int level = id(display_dimmed) ? runtime_tiles::standby_level() : settings.brightness;', core)
+        self.assertNotIn('dim_level(', core)
+
     def test_a_media_tile_may_show_its_cover_in_the_icons_place(self):
         from core import COVER_TILE_MIN_FIRMWARE, resolve_controls
         import ha_catalogue
@@ -1007,6 +1100,42 @@ class LiveApp(unittest.IsolatedAsyncioTestCase):
             # A media tile that shows its icon is not in the strip.
             await m.answer_camera({'inbox': 'text.d1_tiles', 'tiles': 'camera.max,media_player.tv', 'size': '54', 'bg': 'FFFFFF,FFFFFF'})
             self.assertEqual([entry for entry in ha.log if entry[0] == 'send'], [])
+
+    async def test_a_screen_asks_for_each_tiles_picture_alone(self):
+        """GitHub #183: a screen asks for every tile's picture on its own, as a page of one tile with one frame at the
+        top left (tile_picture.h), so a new album cover sends no camera again and no picture is made smaller for another
+        one on the page. The answer carries the question's number, which is how the screen finds the tile."""
+        from PIL import Image
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = fake_ha(picture('JPEG', (1920, 1080)))
+            ha.states['sensor.d1_fw']['state'] = '0.51.0'
+            m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
+            seed_layout(m, 'text.d1_tiles', validate_layout({'title': 'Hall', 'tiles': [
+                {'entity': 'camera.max', 'name': '', 'options': {'display': 'live', 'size': 'square', 'refresh': 5}},
+                {'entity': 'camera.max', 'name': '', 'options': {'display': 'live', 'size': 'square', 'fit': 'contain'}},
+                {'entity': 'media_player.sonos', 'name': '', 'options': {'display': 'cover', 'size': 'wide'}}]}))
+            sent = []
+            for index, (entity, frame) in enumerate([('camera.max', [0, 0, 236, 236, 18, 0]),
+                                                     ('camera.max', [0, 0, 236, 236, 18, 0]),
+                                                     ('media_player.sonos', [0, 0, 236, 112, 18, 170])]):
+                ha.log.clear()
+                await m.answer_camera({'inbox': 'text.d1_tiles', 'tiles': entity, 'idx': str(index), 'size': '54',
+                                       'bg': '101010', 'dark': '1', 'view': str(40 + index), 'atlas': json.dumps([frame])})
+                (_, _, message), = [entry for entry in ha.log if entry[0] == 'send']
+                self.assertEqual((message['t'], message['e']), ('live', entity))
+                token = message['u'].rsplit('/', 1)[1][:-4]
+                # A camera is fetched at the pace of its quickest tile; each tile loads at its own (the screen's rhythm).
+                self.assertEqual(m.camera.links[token].live[3], [0 if index == 2 else 5])
+                status, raw, _ = await m.camera.serve(token)
+                self.assertEqual(status, 200)
+                with Image.open(io.BytesIO(raw)) as image:
+                    sent.append(image.convert('RGB'))
+                    self.assertEqual(image.size, (frame[2], frame[3]), 'the frame exactly, whatever else the page holds')
+            # Each tile is prepared as its own settings say: the same camera filled on one tile, whole on the other.
+            self.assertNotEqual(sent[0].getpixel((118, 2)), sent[1].getpixel((118, 2)))
+            # Every tile's last picture is kept for the load after its answer, one per place.
+            self.assertEqual(len(m.camera.strips), 3)
 
     async def test_tall_artwork_is_bounded_and_reuses_the_live_image_endpoint(self):
         from PIL import Image

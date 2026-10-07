@@ -8,6 +8,7 @@ import AppSettingsView from "../src/components/AppSettingsView.vue";
 import CommandPalette from "../src/components/CommandPalette.vue";
 import Library from "../src/components/Library.vue";
 import ChoiceField from "../src/components/ChoiceField.vue";
+import FavoritePicker from "../src/components/FavoritePicker.vue";
 import DevicePage from "../src/components/DevicePage.vue";
 import InstallerView from "../src/components/InstallerView.vue";
 import Sidebar from "../src/components/Sidebar.vue";
@@ -166,6 +167,45 @@ describe("TileCard", () => {
     expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
   });
 
+  it("draws a humidifier as a thermostat in percent, with its action, its own modes in blue and its slider (firmware 0.42.0)", () => {
+    state.inventory.controls!.humidifier = { default: 'setpoint', choices: [] };
+    const a = { supported_features: 1, current_humidity: 68, humidity: 55, min_humidity: 30, max_humidity: 80, action: 'drying',
+      device_class: 'dehumidifier', available_modes: ['normal', 'eco', 'boost'], mode: 'eco' };
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
+    // Home Assistant's word for what it is doing and the humidity now; Off while it is off; On without an action.
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Drying · 68%');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: 'humidifying', current_humidity: 38 } };
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Humidifying · 38%');
+    state.liveStates['humidifier.h'] = { state: 'off', word: 'Off', a: { ...a, action: 'off', current_humidity: 52 } };
+    const off = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 });
+    expect(off.find('.st').text()).toBe('Off · 52%');
+    expect(off.attributes('style')).toContain('--tile-accent: #9e9e9e');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: undefined, current_humidity: undefined } };
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('On');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, current_humidity: 45.5 } };
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Drying · 45.5%');
+    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
+    // On it is Home Assistant's blue.
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).attributes('style')).toContain('--tile-accent: #2196f3');
+    // The humidity it is set to between - and +, on a wide card and a tall one with the humidity now under it.
+    expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'setpoint' } }).find('.stp b').text()).toBe('55%');
+    const tall = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
+    expect(tall.find('.target b').text()).toBe('55%');
+    expect(tall.find('.tall-setpoint .st').text()).toBe('Now 68%');
+    // Its modes as the mode bar with Home Assistant's icons, the one it is in filled blue.
+    const modes = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'mode' } });
+    const segs = modes.findAll('.ctl .mode-bar .seg');
+    expect(segs.map((s) => s.find('.mdi').text())).toEqual([String.fromCodePoint(0xF058E), String.fromCodePoint(0xF032A), String.fromCodePoint(0xF14DE)]);
+    expect(segs.map((s) => s.classes('on'))).toEqual([false, true, false]);
+    expect(segs[1].attributes('style')).toContain('#2196f3');
+    const both = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'square', controls: 'setpoint_mode' } });
+    expect(both.find('.tall-setpoint .target b').text()).toBe('55%');
+    expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
+    // The slider fills to the humidity it is set to over its own range: 55 of 30 to 80 is half.
+    const slider = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'slider' } });
+    expect(slider.find('.ctl .range').attributes('style')).toContain('50%');
+  });
+
   it("writes a thermostat set to a range as Home Assistant does, with the chip for its end between - and + (firmware 0.19.0)", () => {
     state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
     state.liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75, target_temp_step: 1 } };
@@ -237,7 +277,8 @@ describe("TileCard", () => {
     state.liveStates["sensor.t"] = { state: "1249", word: null, a: { unit_of_measurement: "W" } };
     const big = placed({ entity: "sensor.t", name: "Power", slot: 0, options: { display: "watch" } });
     // Numbers as the screens write them (app 0.2.90): "1,234.5" until the add-on names another format.
-    expect(big.find(".big").text()).toBe("1,249W");
+    expect(big.find(".watch .big").text()).toBe("1,249");
+    expect(big.find(".watch .unit").text()).toBe("W");
     state.liveStates["light.a"] = { state: "off", word: "Off", a: {} };
     const wide = placed({ entity: "light.a", name: "", slot: 2, options: { size: "wide" } });
     expect(wide.classes()).toContain("wide");
@@ -253,11 +294,16 @@ describe("TileCard", () => {
     expect(plain.find(".head > .ic").exists()).toBe(true);
     expect(plain.find(".head > .tx > .nm").text()).toBe("Power");
     expect(plain.find(".head > .tx > .st").text()).toBe("1,249 W");
-    // A watch card keeps the name next to the icon and puts the big value underneath.
+    // A watch card stands as the glass lays it out (ui-scale watchCard, app 0.4.74): the icon and the name above the
+    // big value where the cell has room for the three, each where the firmware puts it.
     const watch = placed({ entity: "sensor.t", name: "Power", slot: 1, options: { display: "watch" } });
-    expect(watch.find(".head").classes()).toContain("top");
-    expect(watch.find(".head .big").exists()).toBe(false);
-    expect(watch.find(".head + .big").text()).toBe("1,249W");
+    expect(watch.classes()).toContain("watch-card");
+    expect(watch.find(".watch").classes()).toContain("stacked");
+    expect(watch.find(".watch > .ic").exists()).toBe(true);
+    expect(watch.find(".watch > .nm").text()).toBe("Power");
+    expect(watch.find(".watch > .big").text()).toBe("1,249");
+    expect(Number.parseFloat(watch.find(".watch > .big").attributes("style")!.match(/top: ([\d.]+)px/)![1]))
+      .toBeGreaterThan(Number.parseFloat(watch.find(".watch > .nm").attributes("style")!.match(/top: ([\d.]+)px/)![1]));
     state.liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 255 } };
     const lamp = placed({ entity: "light.a", name: "", slot: 2, options: { inline: "slider" } });
     expect(lamp.find(".head + .mini-slider").exists()).toBe(true);
@@ -722,6 +768,37 @@ describe("Sidebar", () => {
     expect(item.find(".update-pill").exists()).toBe(false);
     expect(item.find(".sub").text()).toBe("Update");
   });
+  it("offers Reinstall from dev on the dev channel only, and asks for a reinstall", async () => {
+    Object.assign(state.inventory.screens[0], { online: true, update: { available: false, target: "0.51.0", profile: "living.yaml", host: "10.0.0.5" } });
+    state.inventory.updates = { target: "0.51.0", auto: false, channel: "main" };
+    const calls: [string, RequestInit][] = [];
+    vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit) => {
+      calls.push([path, options]);
+      return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
+    }));
+    const sidebar = mount(Sidebar);
+    const item = sidebar.find("#screens .screen-item");
+    await item.find(".nav-item").trigger("click");
+    if (!item.classes().includes("open")) await item.find(".details-toggle").trigger("click");
+    expect(item.find(".reinstall-dev").exists()).toBe(false);
+    // An app with no channel (a local copy) has no such button either.
+    state.inventory.updates = { target: "0.51.0", auto: false, channel: null };
+    await nextTick();
+    expect(item.find(".reinstall-dev").exists()).toBe(false);
+    state.inventory.updates = { target: "0.51.0", auto: false, channel: "dev" };
+    await nextTick();
+    expect(item.find(".reinstall-dev").text()).toContain("Reinstall from dev");
+    // Not while another update runs.
+    state.inventory.updates = { target: "0.51.0", auto: false, channel: "dev", busy: "other" };
+    await nextTick();
+    expect(item.find(".reinstall-dev").exists()).toBe(false);
+    state.inventory.updates = { target: "0.51.0", auto: false, channel: "dev" };
+    await nextTick();
+    await item.find(".reinstall-dev").trigger("click");
+    await flushPromises();
+    const sent = calls.find(([path]) => path.endsWith("/update"))!;
+    expect(JSON.parse(String(sent[1].body))).toEqual({ reinstall: true });
+  });
   it("goes home from the logo: the overview, nothing chosen (app 0.4.0)", async () => {
     const sidebar = mount(Sidebar);
     await sidebar.find(".brand").trigger("click");
@@ -1005,6 +1082,17 @@ describe("New screen and the Wi-Fi", () => {
       state.inventory.pending = [{ ...inventory.pending[0], seen: true }];
       await flush();
       expect(view.find("#arrive").classes()).toContain("seen");
+      // Tessera adds it itself (app 0.4.73): nothing about Home Assistant on the page, only the tiles that come next.
+      expect(view.find("#install-steps").text()).toContain(t("editor.installer.pairing.tiles_bold"));
+      expect(view.find("#install-steps").text()).not.toContain("Home Assistant →");
+      expect(view.find("#key-more").exists()).toBe(false);
+      // Home Assistant asked something only the person can answer: the page says so and opens those steps.
+      state.inventory.pending = [{ ...inventory.pending[0], seen: true, pairing: "failed" }];
+      await flush();
+      expect(view.find("#arrive").classes()).toContain("failed");
+      expect((view.find("#key-more").element as HTMLDetailsElement).open).toBe(true);
+      state.inventory.pending = [{ ...inventory.pending[0], seen: true }];
+      await flush();
       // Not found for three minutes: what fixes it, with the right network and the installation again.
       state.inventory.pending = [{ ...inventory.pending[0], seen: false }];
       await vi.advanceTimersByTimeAsync(181000);
@@ -1443,6 +1531,71 @@ describe("ChoiceField: the choice under the pointer is drawn on its tile first (
     const field = mount(ChoiceField, { props: { choices: long, value: "c" } });
     expect(field.find(".seg").exists()).toBe(false);
     expect(field.find(".choice-field .choice-text").text()).toBe("A value");
+  });
+});
+
+describe("a favourite's own shuffle and repeat (app 0.4.84)", () => {
+  const row = (wrapper: ReturnType<typeof mount>, label: string) =>
+    wrapper.findAll(".prop").find((f) => f.find(".prop-label").text().replace(/^[^\p{L}\d]+/u, "").trim() === label);
+  const favorite = { id: "spotify:album:0000000000000000000000", type: "spotify://album", title: "An album", class: "album" };
+  it("offers them where the player has the actions, and stores nothing for the player's own", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ title: "", folder: 0, items: [] })))));
+    state.inventory.entities.push({ id: "media_player.spotify", name: "Spotify", state: "idle", area: "" } as any);
+    const tile: Tile = { entity: "media_player.spotify", name: "", slot: 0, options: { display: "favorite", play: favorite } };
+    appendTiles(tile);
+    state.capabilities["media_player.spotify"] = { toggle: false, inline: false, controls: [], displays: ["standard", "favorite"], favorite: ["shuffle", "repeat"] };
+    const drawer = inspector(tile);
+    await flushPromises();
+    expect(row(drawer, "Shuffle")!.findAll(".seg button").map((b) => b.text())).toEqual(["As it is", "On", "Off"]);
+    await row(drawer, "Shuffle")!.findAll(".seg button")[1].trigger("click");
+    expect(current(tile).options).toMatchObject({ display: "favorite", shuffle: "on" });
+    await row(drawer, "Shuffle")!.findAll(".seg button")[0].trigger("click");
+    expect(current(tile).options).not.toHaveProperty("shuffle");
+    expect(row(drawer, "Repeat")).toBeTruthy();
+    // A player without repeat_set: no repeat row.
+    state.capabilities["media_player.spotify"] = { ...state.capabilities["media_player.spotify"]!, favorite: ["shuffle"] };
+    await drawer.vm.$nextTick();
+    expect(row(drawer, "Repeat")).toBeUndefined();
+  });
+});
+
+describe("a favourite from a pasted link (app 0.4.84)", () => {
+  const DW = "37i9dQZEVXcEU0pQ6tFj16";
+  const favorite = { id: `spotify:playlist:${DW}`, type: "spotify://playlist", title: "Discover Weekly", class: "playlist" };
+  function serve(linkable: boolean) {
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", vi.fn((path: string) => {
+      asked.push(path);
+      if (path.startsWith("api/media/browse")) return Promise.resolve(new Response(JSON.stringify({ title: "Media Library", folder: 0, items: [], ...(linkable ? { spotify_link: true } : {}) })));
+      if (path.includes("link=nonsense")) return Promise.resolve(new Response(JSON.stringify({ error: "This is not a Spotify link." }), { status: 400 }));
+      return Promise.resolve(new Response(JSON.stringify({ item: 7, title: "Discover Weekly", play: true, expand: false, icon: "F0CB8", picture: "api/media/picture?entity=media_player.spotify&item=7", favorite })));
+    }));
+    return asked;
+  }
+  it("offers the field only where the add-on says the player takes one", async () => {
+    serve(false);
+    const picker = mount(FavoritePicker, { props: { entity: "media_player.tv" } });
+    await flushPromises();
+    expect(picker.find(".picker-link").exists()).toBe(false);
+  });
+  it("reads the link through the add-on and chooses what it answers like an item of the library", async () => {
+    const asked = serve(true);
+    const picker = mount(FavoritePicker, { props: { entity: "media_player.spotify" } });
+    await flushPromises();
+    await picker.find(".picker-link input").setValue("nonsense");
+    await picker.find(".picker-link").trigger("submit");
+    await flushPromises();
+    expect(picker.find(".picker-link .help.warn").text()).toBe("This is not a Spotify link.");
+    const link = `https://open.spotify.com/playlist/${DW}?si=x`;
+    await picker.find(".picker-link input").setValue(link);
+    expect(picker.find(".picker-link .help.warn").exists()).toBe(false);
+    await picker.find(".picker-link").trigger("submit");
+    await flushPromises();
+    expect(asked.at(-1)).toBe(`api/media/link?entity=media_player.spotify&link=${encodeURIComponent(link)}`);
+    expect(picker.find(".linked .name").text()).toBe("Discover Weekly");
+    expect(picker.find(".linked img").attributes("src")).toBe("api/media/picture?entity=media_player.spotify&item=7");
+    await picker.find(".linked .pick").trigger("click");
+    expect(picker.emitted("pick")).toEqual([[favorite]]);
   });
 });
 

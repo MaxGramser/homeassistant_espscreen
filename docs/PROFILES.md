@@ -17,8 +17,8 @@ numbers.
 | `packages/core.yaml` | Everything every screen shares: the LVGL tree (tiles, cards, overlays, the touch test page), the scripts, the API actions, the entities, the fonts, the globals, the Rotation select. It names no board and no hardware, and gives a default for every value a board may change. | The entry files |
 | `packages/looks/` | How big everything is: `standard.yaml` (drawn on the 4-inch Guition at 170 dpi) and `compact.yaml` (drawn on the CYD at 143 dpi). Every size is written at the look's own density and scaled to the board's `DISPLAY_DPI`, so a tile, a letter and a key keep their size in millimetres. | Every board, exactly one |
 | `packages/features/` | What a board can do, once for every board that can: `capacitive-touch.yaml` or `resistive-touch.yaml` (how its touch panel is read), `backlight.yaml` (a backlight the firmware dims) and `backlight-always-on.yaml` (one that must never go dark), `camera.yaml` (camera images, needs PSRAM), `self-test.yaml` (the UI self test with its geometry check), `snapshot.yaml` (a picture of the screen over the log), `rgb-led.yaml` (the RGB LED on the back of a board that has one, on the outputs its board file names). | Board files |
-| `packages/hardware/` | Hardware that several boards share: `esp-idf.yaml` (how every firmware is built), `esp32s3-rgb.yaml` (an ESP32-S3 with octal PSRAM driving an RGB panel), `waveshare-ch422g.yaml` (the Waveshare boards whose panel, touch and backlight hang on a CH422G expander), `guition-esp32p4.yaml` (the Guition ESP32-P4 boards with an ESP32-C6 for Wi-Fi) and the Guition boards on it, `guition-jc1060p470.yaml` and `guition-jc8012p4a1.yaml`, and `cyd-2432s028.yaml` (the CYD apart from its display controller). | Board files, and each other |
-| `packages/boards/` | One board: its word (`BOARD_ID`), its glass (`PANEL_W`, `PANEL_H`, `DISPLAY_DPI`, `ROTATION_LANDSCAPE`), its grid, its draw buffer, the packages it includes, and its own hardware sections. | The entry files |
+| `packages/hardware/` | Hardware that several boards share: `esp-idf.yaml` (how every firmware is built), `esp32s3-rgb.yaml` (an ESP32-S3 with octal PSRAM driving an RGB panel), `waveshare-ch422g.yaml` (the Waveshare boards whose panel, touch and backlight hang on a CH422G expander), `guition-esp32p4.yaml` (the Guition ESP32-P4 boards with an ESP32-C6 for Wi-Fi) and the Guition boards on it, `guition-jc1060p470.yaml` and `guition-jc8012p4a1.yaml`, `m5stack-tab5.yaml` (the Tab5's different ESP32-C6 pins and I/O expander), and `cyd-2432s028.yaml` (the CYD apart from its display controller). | Board files, and each other |
+| `packages/boards/` | One board: its word (`BOARD_ID`), its glass (`PANEL_W`, `PANEL_H`, `DISPLAY_DPI`, `ROTATION_LANDSCAPE`), its grid, its draw buffer, the packages it includes, and its own hardware sections. `TOUCH_CONTROLLER` may name the physical chip when the ESPHome platform uses another chip's protocol driver. | The entry files |
 | `packages/cells/` | The cards of a grid, one per cell, written by `tools/generate_cells.py`. | Board files |
 | `packages/<board>.yaml` | The entry a screen installed from Tessera builds from over GitHub. Tessera Screen Manager writes every screen's YAML with `files: [packages/<board>.yaml]`, so these names never change. | A screen's own YAML |
 | `checkout/<board>.yaml` | The same entry for a build from a clone of this repository (checkout/README.md), with the secrets from `checkout/secrets.yaml` and the components of the checkout. | You |
@@ -130,9 +130,9 @@ needs a step of its own rather than a line inside a shared one brings its own sc
 ## Widgets made only in C++
 
 ESPHome compiles only the LVGL widget types the YAML names. A widget the firmware makes only in C++ therefore needs a
-hidden seed of its type in the YAML (`busy_spinner_seed`, `brand_mark_seed` and `roller_seed` in `packages/core.yaml`,
-`camera_image_seed` in `features/camera.yaml`) or an `-DLV_USE_<X>=1` build flag in the core. A seed looks unused;
-don't remove it.
+hidden seed of its type in the YAML (`busy_spinner_seed`, `brand_mark_seed` and `roller_seed` in `packages/core.yaml`)
+or an `-DLV_USE_<X>=1` build flag (the core's, and `LV_USE_IMAGE` in `features/camera.yaml` for the pictures). A seed
+looks unused; don't remove it.
 
 ## What an override may rely on
 
@@ -140,7 +140,7 @@ An owner's Override YAML hangs on names in these files, and it lives on the owne
 ours sees it. These stay, whichever file they move to:
 
 - on every board: `my_display` (the display), `ts_touch` (the touch panel), `gpio_backlight_pwm` (the output that drives
-  the backlight) and `back_light` (the light on it); on the Waveshare 4.3 and 7, `backlight_line` as well;
+  the backlight) and `back_light` (the light on it); on the Waveshare 4.3, 5 and 7, `backlight_line` as well;
 - the substitutions a board offers for its hardware: `DISPLAY_MODEL`, `DISPLAY_DATA_RATE` and `DISPLAY_INVERT_COLORS`
   on the CYD, `BACKLIGHT_FREQUENCY` on the boards with a PWM backlight, and `BACKLIGHT_DIMMABLE`, `LVGL_ROTATION` and the
   `TOUCH_*` values on every board.

@@ -17,6 +17,8 @@ for (const screen of screens) {
     out.push({ screen: screen.key, error: 'preview_init refused the glass or grid' });
     continue;
   }
+  // A board that draws no pictures (the CYD) lays its media cards out without a cover's place (firmware 0.46.0).
+  if (screen.pictures === false) m._preview_pictures(0);
   let ms = 0;
   const tick = (delta = 32) => { ms += delta; m._preview_time(ms, 1789401840, 7200); m._preview_render(); };
   let n = 0;

@@ -14,32 +14,31 @@ substitutions:
   CAMERA_PAINT_FILL: "theme::fill(id(paint_camera), Paint::camera);"
   # in runtime_tiles::dismiss, after the detail card closes
   CLOSE_CARDS_HOOK: "runtime_tiles::camera_close();"
-  # after the gesture: the three online_images and the alert's frame
+  # after the gesture: the three pictures and the alert's frame
   BOOT_CAMERA_HOOKS: |-
-    // Camera images (firmware 0.2.57+): the two online_images and the alert's frame.
-    // set_url() forgets the ETag, so it is only called for a new link: an unchanged picture then answers 304.
-    runtime_tiles::camera_full.load = [](const std::string &url) {
-      static std::string current;
-      if (url != current) { id(camera_image).set_url(url); current = url; }
-      id(camera_image).update();
-    };
-    runtime_tiles::camera_full.release = []() { id(camera_image).release(); };
-    runtime_tiles::camera_full.source = []() { return id(camera_image).get_lv_image_dsc(); };
-    runtime_tiles::camera_thumb.load = [](const std::string &url) {
-      static std::string current;
-      if (url != current) { id(alert_image).set_url(url); current = url; }
-      id(alert_image).update();
-    };
-    runtime_tiles::camera_thumb.release = []() { id(alert_image).release(); };
-    runtime_tiles::camera_thumb.source = []() { return id(alert_image).get_lv_image_dsc(); };
-    // The live pictures of a page's camera tiles (firmware 0.2.77+): one strip in the third online_image.
-    runtime_tiles::camera_live.load = [](const std::string &url) {
-      static std::string current;
-      if (url != current) { id(tile_image).set_url(url); current = url; }
-      id(tile_image).update();
-    };
-    runtime_tiles::camera_live.release = []() { id(tile_image).release(); };
-    runtime_tiles::camera_live.source = []() { return id(tile_image).get_lv_image_dsc(); };
+    // Camera images (firmware 0.2.57+): the three pictures a board with PSRAM downloads, each in a task of its own
+    // beside the main loop (picture_fetch, firmware 0.49.0+). A slot keeps the ETag of its link, so an unchanged picture
+    // answers 304; a new link forgets it. The slot's `done` runs on the main loop (picture_fetch::tick, every 50 ms) and
+    // hands the picture to the one route every picture goes (runtime_tiles::picture_done, picture_loader.h).
+    picture_fetch::bind(picture_fetch::full(), [](bool ok, bool cached) {
+      runtime_tiles::picture_done(picture_loader::Slot::FULL, ok, cached);
+    });
+    runtime_tiles::camera_full.load = [](const std::string &url) { picture_fetch::load(picture_fetch::full(), url); };
+    runtime_tiles::camera_full.release = []() { picture_fetch::release(picture_fetch::full()); };
+    runtime_tiles::camera_full.source = []() { return picture_fetch::source(picture_fetch::full()); };
+    picture_fetch::bind(picture_fetch::thumb(), [](bool ok, bool cached) {
+      runtime_tiles::picture_done(picture_loader::Slot::THUMB, ok, cached);
+    });
+    runtime_tiles::camera_thumb.load = [](const std::string &url) { picture_fetch::load(picture_fetch::thumb(), url); };
+    runtime_tiles::camera_thumb.release = []() { picture_fetch::release(picture_fetch::thumb()); };
+    runtime_tiles::camera_thumb.source = []() { return picture_fetch::source(picture_fetch::thumb()); };
+    // The tiles' own pictures (a live camera, a cover, a favourite, a map: tile_picture.h), one at a time in the third slot.
+    picture_fetch::bind(picture_fetch::live(), [](bool ok, bool cached) {
+      runtime_tiles::picture_done(picture_loader::Slot::LIVE, ok, cached);
+    });
+    runtime_tiles::camera_live.load = [](const std::string &url) { picture_fetch::load(picture_fetch::live(), url); };
+    runtime_tiles::camera_live.release = []() { picture_fetch::release(picture_fetch::live()); };
+    runtime_tiles::camera_live.source = []() { return picture_fetch::source(picture_fetch::live()); };
     // The alert's frame for the picture; runtime_tiles::alert_place makes room for it in the card.
     runtime_tiles::alert_frame = id(alert_image_frame);
     runtime_tiles::alert_frame_icon = id(alert_image_icon);
@@ -72,48 +71,29 @@ api:
             runtime_tiles::camera_open(entity, name);
 
 # ESP Screen Manager serves each image as an uncompressed BMP on its own port on the LAN (screen_manager/app/camera_feed.py).
-# ESPHome decodes a BMP piece by piece as it arrives, one `buffer_size` per loop, where a JPEG of the full screen held
-# the loop for 0.6 s; touch and drawing keep their turn. 16 KB a loop (firmware 0.2.73+): the full picture came in 1.8 s
-# instead of 2.8 s with 4 KB. A loop waited over 50 ms for it in one of eleven opens with Wi-Fi awake (0.1 s), in five of
-# twelve with power save; 32 KB saved 0.3 s more but held a loop 0.1 s more often (measured on firmware 0.2.73). One
-# image full screen and one in an alert's frame, and one strip with the live pictures of a page's camera tiles (firmware
-# 0.2.77+); runtime_tiles.h decides when they load and frees them when they close. Plain HTTP on the LAN, no certificates.
-http_request:
-  timeout: 4s
-  verify_ssl: false
+# The screen downloads it in a task beside the main loop (components/smart_display/picture_fetch.cpp, firmware 0.49.0+)
+# and decodes it as it comes, so touch and drawing never wait for the network. Before, ESPHome's online_image downloaded
+# in the main loop, 16 KB a turn, and every turn waited for its chunk: a page of album covers (a few hundred KB at the
+# 200 KB/s a 4-inch panel manages) held the glass still for two to three seconds, and so did every camera picture for
+# the better part of a second. One picture full screen (also the cover and the library's covers), one in an alert's
+# frame, and one for the tiles' own pictures (a live camera, a cover, a favourite, a map); runtime_tiles.h decides when
+# they load and frees them when they close. Plain HTTP on the LAN, no certificates.
+# LVGL's image widget, which every picture is drawn with: made only in C++ (runtime_tiles.h, media_library.cpp), so
+# the YAML names no image and this flag enables it, as the core's flags do for the widgets it makes itself
+# (docs/PROFILES.md, "Widgets made only in C++"). Before firmware 0.49.0 a hidden image widget of the alert's
+# online_image did this.
+esphome:
+  platformio_options:
+    build_flags:
+      - -DLV_USE_IMAGE=1
+      # And the download task itself (picture_fetch.cpp), built only where there are pictures to download.
+      - -DSCREEN_PICTURES=1
 
-# The top-level online_image form that ESPHome 2026.6.2 (min_version) knows; 2026.7+ still reads it and suggests
-# `image: - platform: online_image`, and 2027.1 drops it: move with the min_version raise (docs/RELEASING.md, "ESPHome versions").
-online_image:
-  - id: camera_image
-    url: "http://127.0.0.1/camera.bmp"  # set when a camera opens
-    format: BMP
-    type: RGB565
-    buffer_size: 16384
-    on_download_finished:
-      - lambda: 'runtime_tiles::camera_loaded(false, cached);'
-    on_error:
-      - lambda: 'runtime_tiles::camera_failed(false);'
-  - id: alert_image
-    url: "http://127.0.0.1/camera.bmp"  # set when an alert brings an image
-    format: BMP
-    type: RGB565
-    buffer_size: 16384
-    on_download_finished:
-      - lambda: 'runtime_tiles::camera_loaded(true, cached);'
-    on_error:
-      - lambda: 'runtime_tiles::camera_failed(true);'
-  # One decoded image for all pictured tiles. Compact tiles use a strip; taller media
-  # tiles use an add-on-prepared atlas bounded by the screen canvas (RGB565, 2 bytes/pixel).
-  - id: tile_image
-    url: "http://127.0.0.1/camera.bmp"  # set when a page with live camera tiles is on screen
-    format: BMP
-    type: RGB565
-    buffer_size: 16384
-    on_download_finished:
-      - lambda: 'runtime_tiles::live_loaded(cached);'
-    on_error:
-      - lambda: 'runtime_tiles::live_failed();'
+interval:
+  # A finished download is handed to its card here, on the main loop.
+  - interval: 50ms
+    then:
+      - lambda: 'picture_fetch::tick();'
 
 lvgl:
   style_definitions:
@@ -130,7 +110,7 @@ lvgl:
                   # The alert's camera image (firmware 0.2.57+) across the top of the card, shown when the app announced
                   # one; a tap opens the camera full screen over the alert. runtime_tiles.h puts the image in it, and
                   # places and sizes the frame on this screen's glass (runtime_tiles::alert_place, firmware 0.2.103+).
-                  # Rounded like the alert card itself (firmware 0.2.73+); the image takes this radius (camera_loaded).
+                  # Rounded like the alert card itself (firmware 0.2.73+); the image takes this radius (alert_done).
                   - obj:
                       id: alert_image_frame
                       hidden: true
@@ -158,11 +138,3 @@ lvgl:
                             text: "\U000F07AE"
                             text_font: materialdesign_icons
                             clickable: false
-  pages:
-    - id: !extend home_page
-      widgets:
-        # Never shown either: it makes ESPHome compile LVGL's image widget, which a camera image is drawn with.
-        - image:
-            id: camera_image_seed
-            hidden: true
-            src: alert_image

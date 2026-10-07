@@ -14,7 +14,9 @@ import VoicePreview from "./VoicePreview.vue";
 const props = withDefaults(defineProps<{
   width: number; height: number; dpi?: number; columns: number; rows: number;
   layout?: PageLayout | null; still?: boolean; controls?: boolean; voiceToolsTarget?: HTMLElement;
-}>(), { still: false, controls: true });
+  // Whether the board draws pictures (store.drawsPictures): a CYD has no album cover.
+  pictures?: boolean;
+}>(), { still: false, controls: true, pictures: true });
 const emit = defineEmits<{ ready: []; failed: [message: string] }>();
 const canvas = ref<HTMLCanvasElement | null>(null);
 const voice = ref<InstanceType<typeof VoicePreview> | null>(null);
@@ -252,6 +254,8 @@ onMounted(async () => {
     if (!module._preview_init(props.width, props.height, props.dpi ?? 170, props.columns, props.rows)) {
       throw new Error(t("editor.preview.invalid_shape"));
     }
+    // A board that draws no pictures (the CYD) has no square for an album cover, as on its glass (firmware 0.46.0).
+    module._preview_pictures?.(props.pictures === false ? 0 : 1);
     await receive();
     listen();
     draw();

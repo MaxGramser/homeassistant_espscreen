@@ -20,6 +20,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+import header_bar  # noqa: E402
 import screen_saver  # noqa: E402
 from core import SCREENSAVER_MIN_FIRMWARE, media_extras, short, validate_layout  # noqa: E402
 
@@ -31,7 +32,7 @@ PLAYER, CAMERA = 'media_player.living_room', 'camera.front_door'
 PLAYING = {'state': 'playing', 'attributes': {'friendly_name': 'Living room', 'media_title': 'Song', 'media_artist': 'Band',
                                               'media_duration': 200, 'entity_picture': '/api/media_player_proxy/x?cache=1'}}
 DOOR = {'state': 'idle', 'attributes': {'friendly_name': 'Front door'}}
-CHOICE = {'show': True, 'media': PLAYER, 'camera': CAMERA, 'order': ['media', 'camera', 'clock'], 'off': [], 'weather': 'auto', 'more': []}
+CHOICE = {'show': True, 'media': PLAYER, 'camera': CAMERA, 'order': ['media', 'camera', 'clock'], 'off': [], 'weather': 'auto', 'more': [], 'items': []}
 
 
 class Choice(unittest.TestCase):
@@ -178,6 +179,43 @@ class Choice(unittest.TestCase):
             path.write_text('{"version": 1, "screens": {"d1": {"show": true, "media": "", "camera": "", "order": ["media", "camera", "clock"], "off": []}}}')
             self.assertEqual(screen_saver.ScreenSavers(path).get('d1')['weather'], 'auto')
 
+    def test_the_clock_shows_entities_beside_the_temperature(self):
+        """App 0.4.81: the top bar's entity items on the clock, by their text, their icon or both, one row after the
+        temperature; a screen that did not say it takes the row gets the temperature alone."""
+        home = {'state': 'cloudy', 'attributes': {'temperature': 21.6, 'temperature_unit': '°C'}}
+        door = {'state': 'on', 'attributes': {'device_class': 'door', 'friendly_name': 'Door'}}
+        items = [{'type': 'entity', 'entity': 'binary_sensor.door', 'content': 'state', 'icon': 'none', 'show': 'always'},
+                 {'type': 'entity', 'entity': 'sensor.power', 'content': 'icon', 'icon': 'auto', 'show': 'always'}]
+        states = {'weather.home': home, 'binary_sensor.door': door, 'sensor.power': {'state': '5', 'attributes': {}}}
+        clock = {**CHOICE, 'off': ['media', 'camera'], 'items': screen_saver.valid_items(items)}
+        # The top bar's own wire items, without their colour: the clock has one ink.
+        bar = lambda item: header_bar.entity_item(item, states)[0]
+        row = screen_saver.message(clock, states, True, short, media_extras, bar=bar)
+        self.assertEqual(row['w'], '22°')
+        self.assertEqual(row['wi'], [{'k': 'text', 't': '22°'}, {'k': 'text', 't': 'Open'},
+                                     {'k': 'text', 'i': bar(items[1])['i'], 't': ''}])
+        self.assertNotIn('wi', screen_saver.message(clock, states, True, short, media_extras))
+        self.assertNotIn('wi', screen_saver.message({**clock, 'items': []}, states, True, short, media_extras, bar=bar))
+        self.assertNotIn('wi', screen_saver.message(CHOICE, {**states, PLAYER: PLAYING}, True, short, media_extras, bar=bar))
+        self.assertLessEqual({'binary_sensor.door', 'sensor.power'}, screen_saver.entities(clock, states))
+        self.assertFalse({'binary_sensor.door'} & screen_saver.entities({**clock, 'show': False}, states))
+        # Checked as the top bar checks its own items, and the clock takes only a few of them.
+        self.assertEqual(screen_saver.validate({'items': [{'entity': 'sensor.power'}]})['items'],
+                         [{'type': 'entity', 'entity': 'sensor.power', 'content': 'state', 'icon': 'auto', 'show': 'always'}])
+        for wrong in ('x', [{'entity': 'camera.front_door'}], [{'entity': 'sensor.power', 'content': 'last_changed'}],
+                      [{'entity': 'sensor.power', 'show': 'active'}], [{'type': 'clock'}],
+                      [{'entity': 'sensor.power', 'content': 'icon', 'icon': 'none'}],
+                      [{'entity': f'sensor.p{n}'} for n in range(screen_saver.ITEMS_MAX + 1)]):
+            with self.assertRaises(ValueError):
+                screen_saver.validate({'items': wrong})
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'screensavers.json'
+            savers = screen_saver.ScreenSavers(path)
+            savers.set('d1', {'items': items})
+            self.assertEqual(screen_saver.ScreenSavers(path).get('d1')['items'], screen_saver.valid_items(items))
+            savers.get('d1')['items'][0]['content'] = 'icon'
+            self.assertEqual(savers.get('d1')['items'][0]['content'], 'state', 'a copy, never the kept choice')
+
     def test_kept_per_device_beside_the_layouts(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'screensavers.json'
@@ -301,6 +339,18 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
             sender.features = {screen_saver.FEATURE, screen_saver.KEYS_FEATURE}
             await m.sync_saver('text.d1_tiles', screen)
             self.assertEqual((sent[-1][0]['k'], sent[-1][0]['s'], sent[-1][0]['f']), ('media', 'playing', 0))
+            # The clock's entities (firmware 0.50.0+) go to a screen that takes the row, as the top bar sends them, and
+            # follow their entity.
+            ha.states['light.hall'] = {'state': 'on', 'attributes': {'friendly_name': 'Hall'}}
+            m.savers.set('d1', {**CHOICE, 'off': ['media', 'camera'], 'weather': '',
+                                'items': [{'entity': 'light.hall', 'icon': 'none'}]})
+            self.assertIn('light.hall', m.watched_entities())
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertNotIn('wi', sent[-1][0], 'a screen without the row hears the clock alone')
+            sender.features = {screen_saver.FEATURE, screen_saver.ITEMS_FEATURE}
+            sender.session = 'S3'
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(sent[-1][0]['wi'], [{'k': 'text', 't': 'On'}])
             count = len(sent)
             # A screen whose hello does not list it hears nothing.
             sender.features = set()

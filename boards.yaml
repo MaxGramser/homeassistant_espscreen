@@ -18,6 +18,8 @@
 #             name, with the values someone may pick when the screen is built. The first is the board file's own
 #             default and writes nothing; another is written into the screen's own YAML. Only values that people with
 #             that board confirmed work belong here.
+#   optional_components  local components made available by the entry for optional packages;
+#                        compiled only when the selected package configures them.
 
 cyd:
   file: cyd-2432s028.yaml
@@ -129,8 +131,25 @@ jc8012p4a1v2:
   choices:
     GRID_ROWS: ["5", "6", "7", "8"]
 
+tab5:
+  file: tab5.yaml
+  name: M5Stack Tab5
+  model: Tab5 ST7121
+  status: new
+  choices:
+    # Three columns of three, or four with smaller tiles and more on a page.
+    GRID_ROWS: ["3", "4"]
+
+waveshare5:
+  file: waveshare-esp32s3-5.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-5
+  status: new
+
 wavesharep4:
   file: wavesharep4.yaml
   name: Waveshare
   model: ESP32-P4-86-Panel-ETH-2RO
   status: experimental
+  # Available to optional audio packages; not compiled with AUDIO_MODE: off.
+  optional_components: [es7210, esp_aec]

@@ -1,0 +1,35 @@
+# A CYD with two wall buttons on CN1 (GitHub #189), each between its pin and GND, toggling a light through Home
+# Assistant the way docs/EXTRA_HARDWARE.md shows it in a screen's Override YAML. GPIO22 and GPIO27 must stay free.
+binary_sensor:
+  - platform: gpio
+    id: hallway_button
+    name: "Hallway button"
+    pin:
+      number: GPIO22
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on_off: 30ms
+    on_press:
+      - homeassistant.action:
+          action: light.toggle
+          data:
+            entity_id: light.hallway
+  - platform: gpio
+    id: porch_button
+    name: "Porch button"
+    pin:
+      number: GPIO27
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on_off: 30ms
+    on_press:
+      - homeassistant.action:
+          action: light.toggle
+          data:
+            entity_id: light.porch

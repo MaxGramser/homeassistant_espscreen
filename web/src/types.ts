@@ -1,3 +1,6 @@
+/** The cards built into a screen, with no Home Assistant entity of their own (core.py BUILTIN, the page tiles aside). */
+export type BuiltinName = "clock" | "nightstand" | "settings" | "map" | "energy";
+export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "screen.settings", "screen.map", "screen.energy"];
 export type TileOptions = {
   display?: string;
   size?: string;
@@ -31,20 +34,21 @@ export type HeaderItem = { id?: string; type: string; entity?: string; content?:
 // board (whether it has PSRAM, the size of a tile and of its block of extras: model/memory.ts). `short`: a tile went
 // without its extras for want of memory lately; `live`: said by the screen as it is now, rather than the last thing it
 // said before it went offline.
-export type ScreenMemory = { room: number; used: number; psram: boolean; tile: number; extra: number; page?: number; short?: boolean; live?: boolean };
+// `room` is null while the screen is still measuring it (firmware 0.51.0).
+export type ScreenMemory = { room: number | null; used: number; psram: boolean; tile: number; extra: number; page?: number; short?: boolean; live?: boolean };
 // `barItems`: the items one page's top bar takes there (model/pages.ts barLimit).
 export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number; barItems?: number }>;
 export type PageTarget = { kind: "page"; pageId: string } | { kind: "home" };
 export type PageTile = {
   id: string;
-  content: { kind: "entity"; entityId: string } | { kind: "builtin"; name: "clock" | "nightstand" | "settings" | "map" } | { kind: "navigation"; target: PageTarget };
+  content: { kind: "entity"; entityId: string } | { kind: "builtin"; name: BuiltinName } | { kind: "navigation"; target: PageTarget };
   // A footprint is a rectangle. The renderer's capabilities decide which
   // rectangles it supports; the page's grid is never user-overridable.
   placement: { row: number; column: number; columns: number; rows: number };
   appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full" | `${number}x${number}`; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; fit?: string; overlay?: string;
     mapEntities?: string[]; mapFraming?: string; mapDistance?: string; mapFollow?: string; mapMarkers?: string; mapNames?: string;
     mapZones?: string; mapStreets?: string; mapLook?: string };
-  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string };
+  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string };
   children?: ChildTile[];
 };
 export type Page = {
@@ -92,7 +96,7 @@ export type UpdateInfo = {
 export type SaverKind = "media" | "camera" | "clock";
 // `weather` (app 0.4.52): the temperature under the clock, "auto" for Home Assistant's first weather entity, "" for none.
 // `more` (app 0.4.54): the players the music step tries after `media`, in their order.
-export type ScreensaverChoice = { show: boolean; media: string; camera: string; order: SaverKind[]; off: SaverKind[]; weather?: string; more?: string[] };
+export type ScreensaverChoice = { show: boolean; media: string; camera: string; order: SaverKind[]; off: SaverKind[]; weather?: string; more?: string[]; items?: HeaderItem[] };
 export type ScreensaverView = ScreensaverChoice & { ready: boolean; pictures: boolean; standby: boolean };
 export type SettingsView = { owner: string; keys: string[]; values: Record<string, any>; unavailable: string[]; rotations?: number[]; switches?: string[]; calibrate?: boolean; audio_tests?: string[]; audio_diagnostics?: Record<string, string> };
 // The two ways a screen can hang (app 0.2.107), chosen when it is built: lying down or standing up. A board's own
@@ -109,6 +113,8 @@ export type BoardCatalog = {
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
   width: number; height: number; dpi: number; look?: string; camera: boolean; dimmable: boolean; can_standby: boolean;
+  // Its fonts and its grid's sizes in glass pixels (boards.json, app 0.4.74), for a preview screen's mockup.
+  fonts?: NonNullable<Screen["shape"]>["fonts"]; spacing?: NonNullable<Screen["shape"]>["spacing"];
   // The chip its firmware is built for, as esptool names it ("ESP32-S3"): the browser flasher checks the board on the cable.
   chip?: string | null;
   // Whether it opens a Wi-Fi hotspot when its network is gone (app 0.4.32; 4 MB boards have no room for it).
@@ -158,18 +164,26 @@ export type Screen = {
   memory?: ScreenMemory | null;
   // The items one page's top bar takes: six, or more on a board with room for them (firmware 0.34.0+).
   bar_limit?: number;
+  // A board with 4 MB of flash that still has ESPHome's partition table (app 0.4.82): its next update has to come from
+  // Tessera, which moves the table; ESPHome Device Builder's firmware no longer fits its slot (core.update_in_tessera).
+  update_in_tessera?: boolean;
   firmware_known?: string | null; tile_limit?: number; page_limit?: number; full_page?: boolean; page_tiles_repeat?: boolean; entity_tiles_repeat?: boolean; no_title?: boolean; climate_range?: boolean;
   // The language its firmware was built in (app 0.2.90); null for older firmware, which is English.
   language?: string | null;
   // What the screen looks like (app 0.2.94): the glass it draws on, the cells of one page, its density and its look,
   // from the screen itself (firmware 0.2.80) or from the board it was built for (core.shape_of); the editor draws it.
   shape?: { width: number; height: number; columns: number; rows: number; dpi?: number; look?: string; catalog?: BoardCatalog;
-    fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; icon_home?: number }; spacing?: { margin: number; gap: number; tile_pad: number } } | null;
+    fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; icon_home?: number;
+      watch_icon?: number; setpoint?: number };
+    // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74.
+    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number } } | null;
   // Which way it was built to hang (app 0.2.107): a screen standing up has another canvas and another grid, and
   // while it is offline only the YAML of its own profile says so.
   orientation?: Orientation;
   // Whether its board draws pictures: camera tiles, an alert's snapshot, an album cover (app 0.2.94).
   pictures?: boolean;
+  // Whether it has a battery the top bar can show (app 0.4.68, firmware 0.41.0): its hello said so, or its board has one.
+  battery?: boolean;
 };
 export type ScreenShape = NonNullable<Screen["shape"]>;
 // Language & region of the screens (app 0.2.90): the language setting ("auto" follows Home Assistant), the language that
@@ -198,9 +212,11 @@ export type Inventory = {
   builtin?: Entity[];
   // Device trackers with a place, for a map card's "Also on the map" (app 0.4.35).
   trackers?: Entity[];
-  // `seen`: Home Assistant found it on the network, waiting to be paired (app 0.4.32).
-  pending?: { friendly: string; file: string; node?: string; installed?: boolean; downloaded?: boolean; api_key?: string; seen?: boolean }[];
-  updates?: { target: string; busy?: boolean; pending?: number; auto?: boolean };
+  // `seen`: Home Assistant found it on the network, waiting to be paired (app 0.4.32). `pairing`: the app adds it itself
+  // (app 0.4.73), `failed` when Home Assistant asked something only the person can answer.
+  pending?: { friendly: string; file: string; node?: string; installed?: boolean; downloaded?: boolean; api_key?: string; seen?: boolean; pairing?: "adding" | "failed" | null }[];
+  // `channel`: the branch the screens build from, when the app was added from this repository (docs/RELEASING.md).
+  updates?: { target: string; busy?: boolean | string | null; pending?: number; auto?: boolean; channel?: "main" | "dev" | null };
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
   claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };
@@ -220,6 +236,10 @@ export type Inventory = {
     wifi_contents?: { key: string; label: string }[];
     wifi_shows?: { key: string; label: string }[];
     status_types?: string[]; status_min_firmware?: string;
+    // The battery item's choices and the firmware that draws it (app 0.4.68); offered where Screen.battery is true.
+    battery_contents?: { key: string; label: string }[];
+    battery_shows?: { key: string; label: string }[];
+    battery_min_firmware?: string;
     suggestions?: Record<string, { item: HeaderItem; label: string; name?: string; area?: string; icon?: string }[]>;
   };
   alerts?: any;
@@ -227,7 +247,7 @@ export type Inventory = {
   language?: Languages;
   [key: string]: unknown;
 };
-export type Capability = { toggle: boolean; inline: boolean; controls: string[]; displays: string[] };
+export type Capability = { toggle: boolean; inline: boolean; controls: string[]; displays: string[]; favorite?: string[] };
 export type EntityAction = {
   action: string; name: string; description: string;
   fields: { key: string; name: string; required?: boolean; description?: string; example?: unknown; selector?: Record<string, any>; options?: string[]; suggestions?: string[] }[];

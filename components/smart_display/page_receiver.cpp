@@ -18,8 +18,10 @@ static bool parse_bar_item(JsonVariant value, header_bar::Item &item) {
     item.text = string(value["t"], header_bar::TEXT_BYTES);
     item.epoch = value["e"].is<unsigned>() ? value["e"].as<uint32_t>() : 0;
     item.has_color = header_bar::color(string(value["c"], 8), item.color);
-    // The Wi-Fi item that shows only while the signal is weak or gone (firmware 0.38.0).
-    item.only_weak = item.kind == header_bar::Kind::wifi && value["a"].is<unsigned>() && value["a"].as<unsigned>() == 1;
+    // The Wi-Fi item that shows only while the signal is weak or gone (firmware 0.38.0), and the battery that shows only
+    // while it runs low (firmware 0.41.0).
+    item.only_weak = (item.kind == header_bar::Kind::wifi || item.kind == header_bar::Kind::battery) &&
+                     value["a"].is<unsigned>() && value["a"].as<unsigned>() == 1;
     if (item.kind == header_bar::Kind::ago && item.epoch == 0) return false;
     return true;
 }
@@ -97,6 +99,8 @@ std::string receive(const std::string &payload) {
     if (op == "hello") {
       uint64_t request;
       if (!page_protocol::key(string(root["request"]), request)) return false;
+      // Tessera says whether it has tiles for this screen yet (app 0.4.74+): without, the starting screen asks for them.
+      awaiting_tiles = root["empty"].is<bool>() && root["empty"].as<bool>();
       const uint64_t random = (uint64_t{esphome::random_uint32()} << 32) | esphome::random_uint32();
       result = "Session:" + protocol_key(transfer.grant(request, random));
       return true;
@@ -297,6 +301,8 @@ std::string receive(const std::string &payload) {
       if (layout_changed) layout_changed();
       prepare_start();  // every other page built ahead (firmware 0.3.2+)
       last_received = esphome::millis();
+      // The room is sampled once this layout has settled (tile_memory::SETTLE_MS, firmware 0.51.0).
+      layout_landed_at = std::max<uint32_t>(1, last_received);
       refresh_all();
 #ifdef USE_ESP32
       // Building every tile inside the API's call is the deepest the loop task goes; this is the figure the
@@ -312,13 +318,18 @@ std::string receive(const std::string &payload) {
       // announced with an empty link before show_alert and sent again with the link), or the media card's cover
       // ("cover", app 0.2.77+). Only ESP Screens' own port.
       const std::string view = string(root["t"], 8), entity = string(root["e"], view == "live" ? 400 : 120), url = string(root["u"], 240);
-      // "live" (app 0.2.91+): the page's camera tiles as one strip; `e` lists them, "" for one without a picture.
+      // "live" (app 0.2.91+): a page's pictures, asked per tile (tile_picture.h); `e` names the tile's entity.
       // "lib" (app 0.4.42+, firmware 0.24.0+): the covers of a page of a player's library, one picture.
       // "saver" (app 0.4.48, firmware 0.29.0+): the screensaver's picture of the whole glass, as a full view's.
       if (view == "live" ? !valid_entity_list(entity) : !valid_entity(entity) || (view != "full" && view != "alert" && view != "cover" && view != "lib" && view != "saver")) return false;
       if (!url.empty() && url.rfind("http://", 0) != 0) return false;
-      const uint32_t expected_view = view == "live" ? live_view_id : view == "cover" ? cover_view_id : view == "lib" ? library_art_view_id : camera_view_id;
-      if (view != "alert" && (!root["view"].is<unsigned>() || root["view"].as<unsigned>() != expected_view)) {
+      // Every answer but an alert's carries the number of its question; one to an older question is dropped. A tile's
+      // picture is the answer to that tile's last question (tile_picture::Questions).
+      const uint32_t number = root["view"].is<unsigned>() ? root["view"].as<unsigned>() : 0;
+      const bool current = view == "live" ? tile_questions.answered(number) >= 0
+                           : number == (view == "cover" ? cover_view_id : view == "lib" ? library_art_view_id : camera_view_id);
+      if (view != "alert" && (!root["view"].is<unsigned>() || !current)) {
+        ESP_LOGD("picture", "answer %u (%s) to an older question: dropped", (unsigned) number, view.c_str());
         result = "Synced"; return true;
       }
       // A map's full view (app 0.4.36, firmware 0.21.0+): where its markers are on the picture, the one a finger
@@ -346,7 +357,7 @@ std::string receive(const std::string &payload) {
         }
         camera_map_sheet(next);
       }
-      camera_answer(view, entity, url);
+      camera_answer(view, entity, url, number);
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;
     }
@@ -375,6 +386,17 @@ std::string receive(const std::string &payload) {
       }
       // The outside temperature under the clock (app 0.4.52, firmware 0.31.0+), ready to draw: "21°".
       if (next.kind == "clock") next.weather = string(root["w"], 8);
+      // The row of entities (app 0.4.81, firmware 0.50.0+): the temperature first, as the top bar's text and moment
+      // items; one that is not readable leaves the temperature alone on the glass, as before.
+      if (next.kind == "clock" && root["wi"].is<JsonArray>() && root["wi"].as<JsonArray>().size() <= header_bar::MAX_ITEMS) {
+        std::vector<header_bar::Item> row;
+        for (JsonVariant value : root["wi"].as<JsonArray>()) {
+          header_bar::Item item;
+          if (!parse_bar_item(value, item) || (item.kind != header_bar::Kind::text && item.kind != header_bar::Kind::ago)) { row.clear(); break; }
+          row.push_back(std::move(item));
+        }
+        next.row = std::move(row);
+      }
       saver_receive(next);
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;
@@ -576,10 +598,7 @@ std::string receive(const std::string &payload) {
     serializeJson(a, state_hash);
     if (!root["x"].isNull()) serializeJson(root["x"], state_hash);
     bool was_confirmed=tile.confirmed;
-    // A message that still carries the word from before a tap keeps the tap's stand (Tile::stale); its attributes and
-    // extras (a group's lamps) still count.
-    const bool stale = tile.stale(word);
-    tile.observe(state_hash.value, stale);
+    tile.observe(state_hash.value);
     if(tile.pending && !tile.local_feedback && !was_confirmed && tile.confirmed)
       ESP_LOGI("runtime_action","HA state received entity=%s elapsed=%u ms",entity.c_str(),(unsigned)(esphome::millis()-tile.pending_since));
     if (initial) {
@@ -735,7 +754,7 @@ std::string receive(const std::string &payload) {
       if (next.media_repeat != "off" && next.media_repeat != "all" && next.media_repeat != "one") next.media_repeat.clear();
       next.media_features = extra["mf"].is<uint32_t>() ? extra["mf"].as<uint32_t>() : 0;
       const std::string ground = string(extra["g"], 13);
-      next.has_ground = media_card::ground(ground, next.ground_top, next.ground_bottom);
+      next.has_ground = media_card::ground(ground, next.ground);
       next.ground_known = !ground.empty();
       next.media_library = (extra["lb"] | 0) == 1;
       // A favourite (firmware 0.24.0+): what its tile says, and its picture's mark.
@@ -750,12 +769,11 @@ std::string receive(const std::string &payload) {
     if (!initial && tile.is_key() && name != tile.name) refresh_tile(tile.parent);
     tile.name = name;
     const std::string before = tile.state;
-    if (!stale) tile.state = word;
+    tile.state = word;
     if (!initial && tile.received && before != tile.state) tile.changed_at = std::max<uint32_t>(1, esphome::millis());
     tile.unit = string(a["unit_of_measurement"], 20);
     tile.brightness = number(a["brightness"]);
     tile.percentage = number(a["percentage"]);
-    tile.slider_reported(esphome::millis());
     tile.position = number(a["current_position"]);
     next.tilt = number(a["current_tilt_position"]);
     tile.current = number(a["current_temperature"]);
@@ -775,6 +793,15 @@ std::string receive(const std::string &payload) {
     next.fan_modes = list(a["fan_modes"]); next.swing_modes = list(a["swing_modes"]);
     next.fan_mode = string(a["fan_mode"], 48); next.swing_mode = string(a["swing_mode"], 48);
     next.target_low = number(a["target_temp_low"]); next.target_high = number(a["target_temp_high"]);
+    // A humidifier (firmware 0.42.0+) in a thermostat's fields: the humidity it measures and the one it is set to, its
+    // range (Home Assistant's defaults 0 and 100) and step, its modes and what it is doing.
+    if (tile.domain() == "humidifier") {
+      tile.current = number(a["current_humidity"]); tile.target = number(a["humidity"]); tile.humidity = NAN;
+      tile.minimum = number(a["min_humidity"], 0); tile.maximum = number(a["max_humidity"], 100);
+      tile.step = std::max(1.0f, number(a["target_humidity_step"], 1));
+      next.hvac_modes = list(a["available_modes"]); next.hvac_action = string(a["action"], 24);
+      next.humidifier_mode = string(a["mode"], 48);
+    }
     float hue = number(a["hs_color"][0]);
     float saturation = number(a["hs_color"][1]);
     tile.has_hs_color = std::isfinite(hue) && std::isfinite(saturation);
@@ -793,8 +820,6 @@ std::string receive(const std::string &payload) {
     // suction speeds to offer, each at most six; the battery sensor when the vacuum has no attribute.
     // A chip just tapped keeps its choice while Home Assistant is still busy with it, so another update
     // of the robot (its battery, say) does not flip the row back for a moment.
-    std::vector<std::pair<char, std::string>> tapped;
-    if (tile.waiting(esphome::millis())) for (auto &c : tile.extra().choices) if (!c.sent.empty()) tapped.emplace_back(c.kind, c.sent);
     auto choice = [&](const char *key, char kind) {
       auto c = extra[key];
       if (!c["o"].is<JsonArray>()) return;
@@ -808,7 +833,6 @@ std::string receive(const std::string &payload) {
       if (!row.values.empty()) next.choices.push_back(std::move(row));
     };
     if (tile.domain() == "vacuum") { choice("mode", 'm'); choice("water", 'w'); choice("fan", 's'); tile_controls::settle_suction(next); }
-    for (auto &[kind, value] : tapped) if (auto *c = next.choice(kind)) if (c->current != value) c->sent = value;
     // A light's effects page (app 0.2.83+): the effect it runs, and the selects and numbers of its device.
     next.effect = string(a["effect"], 48);
     if (extra["rows"].is<JsonArray>()) for (JsonVariant r : extra["rows"].as<JsonArray>()) {
@@ -856,6 +880,48 @@ std::string receive(const std::string &payload) {
     next.subtitle_at = extra["sm"].is<unsigned>() ? extra["sm"].as<unsigned>() : 0;
     // A map card's movement mark (app 0.4.33): a hash, never a place. A changed mark is a changed picture.
     next.map_mark = string(extra["mk"], 16);
+    // The energy card (app 0.4.77, firmware 0.47.0): the house now, split as Home Assistant's own live view splits it
+    // (screen_manager/app/energy_flow.py): which sources it has, their power, the flows between them, the batteries'
+    // charge, the sensor behind each source and the devices drawing power, biggest first.
+    if (tile.is_energy() && extra["p"].is<JsonArray>()) {
+      auto e = std::make_shared<energy_card::Data>();
+      const unsigned has = extra["h"].is<unsigned>() ? extra["h"].as<unsigned>() : 0;
+      e->solar = has & 1; e->grid = has & 2; e->battery = has & 4;
+      auto watts = [](JsonVariant list, unsigned i) { const float v = number(list[i], 0); return std::isfinite(v) ? std::max(0.f, v) : 0.f; };
+      JsonVariant p = extra["p"], f = extra["f"];
+      e->solar_w = watts(p, 0); e->from_grid = watts(p, 1); e->to_grid = watts(p, 2);
+      e->from_battery = watts(p, 3); e->to_battery = watts(p, 4); e->home = watts(p, 5);
+      if (f.is<JsonArray>()) {
+        e->s2h = watts(f, 0); e->s2g = watts(f, 1); e->s2b = watts(f, 2); e->g2h = watts(f, 3);
+        e->g2b = watts(f, 4); e->b2h = watts(f, 5); e->b2g = watts(f, 6);
+      }
+      e->soc = extra["c"].is<int>() ? std::clamp(extra["c"].as<int>(), 0, 100) : -1;
+      if (extra["e"].is<JsonArray>()) {
+        e->solar_entity = string(extra["e"][0], 64); e->grid_entity = string(extra["e"][1], 64); e->battery_entity = string(extra["e"][2], 64);
+        for (auto *id : {&e->solar_entity, &e->grid_entity, &e->battery_entity}) if (!valid_entity(*id)) id->clear();
+      }
+      if (extra["u"].is<JsonArray>()) {
+        const std::string *ids[3] = {&e->solar_entity, &e->grid_entity, &e->battery_entity};
+        for (unsigned i = 0; i < 3; ++i)
+          if (!ids[i]->empty()) e->readings.push_back({*ids[i], string(extra["u"][i][0], 32), string(extra["u"][i][1], 16)});
+      }
+      if (extra["d"].is<JsonArray>()) for (JsonVariant dev : extra["d"].as<JsonArray>()) {
+        if (e->devices.size() == 8) break;
+        energy_card::Device d;
+        d.name = string(dev["n"], 48);
+        d.entity = string(dev["e"], 64);
+        if (!valid_entity(d.entity)) d.entity.clear();
+        const uint32_t icon = tile_icon::codepoint(string(dev["i"], 8));
+        d.icon = icon && has_icon_glyph(icon) ? icon : 0;
+        d.w = std::max(0.f, number(dev["w"], 0));
+        if (d.name.empty() || d.w <= 0) continue;
+        if (!d.entity.empty()) e->readings.push_back({d.entity, string(dev["s"], 32), string(dev["u"], 16)});
+        e->devices.push_back(std::move(d));
+      }
+      e->rest = std::max(0.f, number(extra["o"], 0));
+      e->home_name = string(extra["n"], 32);
+      next.energy = std::move(e);
+    }
     // An alarm panel (app 0.3.8+, firmware 0.3.3+): how it takes codes, who changed it, and a delay's end.
     if (tile.domain() == "alarm_control_panel") {
       next.code_format = string(a["code_format"], 8);
@@ -876,6 +942,11 @@ std::string receive(const std::string &payload) {
     const bool wanted = !next.empty();
     tile.set_extra(std::move(next), !lean);
     if (wanted && !tile.extra_ptr()) memory_short_at = std::max<uint32_t>(1, esphome::millis());
+    // What a finger changed stays in front of a message from before it, and ends with Home Assistant's own word
+    // (docs/OPTIMISTIC.md).
+    wish_reported(tile);
+    // A held slider keeps its value in front of the fade (after the wish: an off light a slider turned on stays on).
+    tile.slider_reported(esphome::millis());
     // Home Assistant reports the edited value: the -/+ pill follows its state again.
     if(tile_controls::climate_range(tile)){
       // A range: each end follows Home Assistant again once it reports what was sent.

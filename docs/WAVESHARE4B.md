@@ -19,7 +19,7 @@ a screen to 0.6.1 or later.
 Update Tessera Screen Manager and choose **Waveshare · 4 inch** (ESP32-S3-Touch-LCD-4B, marked Experimental) in **New screen**.
 Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi references and unique API/OTA keys.
 Choose the correct USB port, or download the firmware to flash with ESPHome Web from your own computer.
-Keep an existing working profile if the board is already installed. Pair it through the ESPHome integration before adding tiles.
+Keep an existing working profile if the board is already installed. Tessera adds it to Home Assistant by itself once it is on your Wi-Fi; then add its tiles.
 
 The remote package is `packages/waveshare4b.yaml`; the checkout entry is `checkout/waveshare4b.yaml`.
 Both combine `packages/core.yaml` with `packages/boards/waveshare-esp32s3-4b.yaml`.
@@ -31,6 +31,10 @@ The board has two USB-C ports. Logs go out over the one with the USB-to-UART chi
   the same tiles in millimetres, the standard look at 170 dpi. The glass is square, so it turns a quarter as well as a half.
 - The backlight hangs on a PWM pin of the chip (GPIO4), not on an I2C expander as on the 4.3-inch and 7-inch Waveshares.
   Brightness is a percentage, and standby, night mode, Sleep, Wake and the alert's flashes are enabled, as on the Guition.
+  GPIO4 is the analog dim input of the LED driver (an AP3032), not a switch for the LEDs: it reaches the driver's feedback
+  pin through a 160 Hz filter, and the driver stops altogether once that level passes about 1.78 V. So the pin runs at
+  300 kHz, the dimmest step stays just inside the steady range, 0 stays dark, and the light skips ESPHome's gamma
+  (firmware 0.39.0; before, everything under 74 % brightness was dark).
   The 4.3-inch browned out when it switched its backlight on from dark; on this board only the PWM duty falls, but the
   wake from a dark standby has not been seen on this hardware yet.
 - Camera tiles, full-screen snapshots, live tile pictures, camera alerts and media artwork use the shared PSRAM implementation.
@@ -49,11 +53,11 @@ The board has two USB-C ports. Logs go out over the one with the USB-to-UART chi
 - The ST7701S takes its setup over three-wire SPI on the expander: CS on EXIO0, data on EXIO1, clock on EXIO2.
   EXIO3 enables the speaker amplifier and stays off.
 - RGB: DE GPIO17, PCLK GPIO9, HSYNC GPIO46, VSYNC GPIO3, 16 MHz pixel clock, 18-bit pixel mode, inverted colours.
-- Backlight: GPIO4, PWM at 5 kHz, inverted.
+- Backlight: GPIO4, PWM at 300 kHz, inverted, `min_power: 0.52` (duty 48 % at the dimmest), `zero_means_zero`, gamma 1.0.
 
 ## What to report while testing
 
-1. Board revision, successful boot, pairing and appearance in Tessera.
+1. Board revision, successful boot and appearance in Tessera.
 2. Correct colours and a stable picture across several page changes and cold starts. Shifted, mirrored or inverted
    colours point at the display block.
 3. Physical taps near each corner, slider drags and edge swipes, and the quarter-turn setting. Touch that lands mirrored

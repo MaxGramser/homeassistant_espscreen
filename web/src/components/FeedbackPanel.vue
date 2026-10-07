@@ -9,13 +9,17 @@ import type { FeedbackAnswer, FeedbackIssue, Screen } from "../types";
 
 const props = defineProps<{ screen: Screen; mode: "card" | "settings" }>();
 const ISSUES: FeedbackIssue[] = ["display", "touch", "connection", "installation", "other"];
-// A problem needs more than an answer here to be fixed (the board, the versions, a log): "Not quite" points to the
-// bug report on GitHub (app 0.4.13). Nothing is sent there; the owner opens it themselves.
-const REPORT = "https://github.com/MaxGramser/homeassistant_espscreen/issues/new?template=bug_report.yml";
+// A problem needs more than an answer here to be fixed (a log, and someone to ask): after "Not quite" the card offers
+// the bug report on GitHub (app 0.4.13), filled in with what this page knows (app 0.4.78). GitHub fills an issue form's
+// text fields from the link, not its dropdowns. Nothing is sent there; the owner opens and posts it themselves, under
+// their own name, so they can be asked about it. Issues are written in English, whatever the editor speaks.
+const REPORT = "https://github.com/MaxGramser/homeassistant_espscreen/issues/new";
+const ISSUE_WORDS: Record<FeedbackIssue, string> = { display: "Screen", touch: "Touch", connection: "Connection", installation: "Installation", other: "Other" };
 
 const fb = computed(() => props.screen.feedback!);
-// ask: the question; details: what goes wrong, after an answer went out; done: the card has said its thanks.
-const step = ref<"summary" | "ask" | "details" | "thanks" | "done">(props.mode === "card" ? "ask" : "summary");
+// ask: the question; details: what goes wrong, after an answer went out; report: the way to GitHub after a "Not quite";
+// done: the card has said its thanks.
+const step = ref<"summary" | "ask" | "details" | "report" | "thanks" | "done">(props.mode === "card" ? "ask" : "summary");
 const outcome = ref<FeedbackAnswer["outcome"] | null>(null);
 const issues = ref<FeedbackIssue[]>([]);
 const comment = ref("");
@@ -30,6 +34,20 @@ const visible = computed(() => props.mode === "settings" || (
   !state.updating.includes(props.screen.id) && (engaged.value ? step.value !== "done" : fb.value.ask && props.screen.online)));
 
 const current = computed(() => fb.value.pending || fb.value.shared);
+
+const reportUrl = computed(() => {
+  const f = fb.value;
+  const areas = issues.value.map((issue) => ISSUE_WORDS[issue]).join(", ");
+  const model = f.model ? `${f.model} (${f.board})` : f.board;
+  const versions = [f.versions.addon_version && `add-on ${f.versions.addon_version}`,
+    f.versions.firmware_version && `firmware ${f.versions.firmware_version}`].filter(Boolean).join(", ");
+  const facts = [`Board: ${model}`, areas && `Problem: ${areas}`].filter(Boolean).join("\n");
+  const query = new URLSearchParams({ template: "bug_report.yml" });
+  if (areas) query.set("title", `[Bug]: ${areas} on ${f.model || f.board}`);
+  if (versions) query.set("versions", versions);
+  query.set("what-happened", comment.value.trim() ? `${comment.value.trim()}\n\n${facts}` : facts);
+  return `${REPORT}?${query}`;
+});
 const answerText = (answer: FeedbackAnswer | null) => answer
   ? [t(`editor.feedback.shared.${answer.outcome}`), ...(answer.issues || []).map((issue) => t(`editor.feedback.issues.${issue}`))].join(" · ")
   : "";
@@ -77,7 +95,12 @@ async function addDetails() {
   if (!outcome.value) return;
   if (!(await run({ action: "answer", outcome: outcome.value, issues: outcome.value === "working" ? [] : issues.value, comment: comment.value }))) return;
   if (fb.value.state === "idle" && !fb.value.problem) note.value = t("editor.feedback.status.received");
-  finish();
+  leaveDetails();
+}
+// A screen that doesn't work goes on to the bug report, whether or not its owner added something here.
+function leaveDetails() {
+  if (outcome.value === "not_working") step.value = "report";
+  else finish();
 }
 function finish() {
   step.value = props.mode === "card" ? "done" : "summary";
@@ -130,8 +153,6 @@ const toggle = (issue: FeedbackIssue) => {
             <span>{{ t(`editor.feedback.issues.${issue}`) }}</span>
           </label>
         </div>
-        <p class="fb-report">{{ t("editor.feedback.report_hint") }}
-          <a :href="REPORT" target="_blank" rel="noopener noreferrer">{{ t("editor.feedback.report_link") }}</a></p>
       </template>
       <p v-else class="fb-question" :id="mode === 'card' ? `${uid}-title` : undefined">{{ t("editor.feedback.add_something") }}</p>
       <label class="fb-comment">
@@ -141,7 +162,17 @@ const toggle = (issue: FeedbackIssue) => {
       </label>
       <div class="fb-actions">
         <button type="button" class="btn primary" :disabled="busy" @click="addDetails">{{ t("editor.feedback.add_details") }}</button>
-        <button type="button" class="btn quiet" :disabled="busy" @click="finish">{{ t("editor.feedback.done") }}</button>
+        <button type="button" class="btn quiet" :disabled="busy" @click="leaveDetails">{{ t("editor.feedback.done") }}</button>
+      </div>
+    </template>
+
+    <!-- After "Not quite": the bug report on GitHub, filled in with the board, the versions and what was chosen here. -->
+    <template v-else-if="step === 'report'">
+      <p class="fb-question" :id="mode === 'card' ? `${uid}-title` : undefined">{{ t("editor.feedback.report_title") }}</p>
+      <p class="fb-report">{{ t("editor.feedback.report_text") }}</p>
+      <div class="fb-actions">
+        <a class="btn primary" :href="reportUrl" target="_blank" rel="noopener noreferrer" @click="finish">{{ t("editor.feedback.report_open") }}</a>
+        <button type="button" class="btn quiet" @click="finish">{{ t("editor.common.close") }}</button>
       </div>
     </template>
 
@@ -194,7 +225,7 @@ const toggle = (issue: FeedbackIssue) => {
 .fb-link:hover:not(:disabled) { color: var(--ink); }
 .fb-issues { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0 10px; }
 .fb-issue { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
-.fb-report { margin: 0 0 10px; font-size: 12.5px; color: var(--ink-2); max-width: 560px; }
+.fb-report { margin: 0; font-size: 12.5px; color: var(--ink-2); max-width: 560px; }
 .fb-comment { display: grid; gap: 4px; font-size: 12.5px; max-width: 560px; }
 .fb-comment textarea { width: 100%; resize: vertical; min-height: 60px; }
 .fb-shared { margin: 4px 0; color: var(--ink-2); }

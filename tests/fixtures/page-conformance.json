@@ -468,6 +468,206 @@
     ]
   },
   {
+    "name": "favourite with what it plays, its speaker, shuffle and repeat",
+    "valid": true,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "favorite",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.music"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "",
+                "display": "favorite"
+              },
+              "interaction": {
+                "play": {
+                  "id": "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M",
+                  "type": "spotify://playlist",
+                  "title": "Top hits",
+                  "thumb": "https://i.scdn.co/image/ab67616d00001e02",
+                  "class": "playlist"
+                },
+                "speaker": "Kitchen",
+                "shuffle": "on",
+                "repeat": "all"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "favourite with an unknown repeat",
+    "valid": false,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "favorite",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.music"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "",
+                "display": "favorite"
+              },
+              "interaction": {
+                "play": {
+                  "id": "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M",
+                  "type": "spotify://playlist",
+                  "title": "Top hits",
+                  "thumb": "https://i.scdn.co/image/ab67616d00001e02",
+                  "class": "playlist"
+                },
+                "speaker": "Kitchen",
+                "shuffle": "on",
+                "repeat": "forever"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "favourite play without the favourite",
+    "valid": false,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "favorite",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.music"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": ""
+              },
+              "interaction": {
+                "play": {
+                  "id": "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M",
+                  "type": "spotify://playlist",
+                  "title": "Top hits",
+                  "thumb": "https://i.scdn.co/image/ab67616d00001e02",
+                  "class": "playlist"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     "name": "unknown root field",
     "valid": false,
     "grid": {
@@ -3117,6 +3317,301 @@
               {
                 "id": "b",
                 "type": "wifi",
+                "content": "icon",
+                "show": "always"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "light",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk"
+              },
+              "interaction": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "battery items",
+    "valid": true,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "b",
+                "type": "battery"
+              },
+              {
+                "id": "b2",
+                "type": "battery",
+                "content": "percent",
+                "show": "low"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "light",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk"
+              },
+              "interaction": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "battery with the dbm of wifi",
+    "valid": false,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "b",
+                "type": "battery",
+                "content": "dbm"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "light",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk"
+              },
+              "interaction": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "battery shown only when weak",
+    "valid": false,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "b",
+                "type": "battery",
+                "show": "weak"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "light",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk"
+              },
+              "interaction": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "battery with an entity",
+    "valid": false,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "b",
+                "type": "battery",
+                "entity": "sensor.phone_battery"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "light",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk"
+              },
+              "interaction": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "duplicate normalized battery",
+    "valid": false,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "b",
+                "type": "battery"
+              },
+              {
+                "id": "b2",
+                "type": "battery",
                 "content": "icon",
                 "show": "always"
               }

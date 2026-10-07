@@ -73,11 +73,9 @@ int preview_image_ready(unsigned id, int success) {
   const size_t channel = download - preview_images::downloads.data();
   const bool decoded = success && download->decode();
   std::vector<uint8_t>().swap(download->bytes);
-  if (channel == 2) {
-    if (decoded) runtime_tiles::live_loaded(false); else runtime_tiles::live_failed();
-  } else {
-    if (decoded) runtime_tiles::camera_loaded(channel == 1, false); else runtime_tiles::camera_failed(channel == 1);
-  }
+  // The one route every picture goes (picture_loader.h): the download ends in its slot, the store keeps it.
+  const auto slot = channel == 2 ? picture_loader::Slot::LIVE : channel == 1 ? picture_loader::Slot::THUMB : picture_loader::Slot::FULL;
+  runtime_tiles::picture_done(slot, decoded, false);
   return decoded ? 1 : 0;
 }
 }

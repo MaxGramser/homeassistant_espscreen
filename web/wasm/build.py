@@ -66,12 +66,13 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
                           ('bmp_decoder', ROOT / 'web/wasm/generated/image/bmp_decoder.cpp'),
                           ('image_decoder', ROOT / 'web/wasm/generated/image/image_decoder.cpp'),
                           ('receiver', ROOT / 'components/smart_display/page_receiver.cpp'),
-                          ('library', ROOT / 'components/smart_display/media_library.cpp')]:
+                          ('library', ROOT / 'components/smart_display/media_library.cpp'),
+                          ('energy', ROOT / 'components/smart_display/energy_view.cpp')]:
     obj = objects / f'{name}.o'
     run(['em++', *flags, '-std=c++17', '-c', source_path, '-o', obj])
     compiled.append(obj)
 exports = ['init', 'receive', 'next_action', 'action_response', 'time', 'touch', 'cancel', 'render', 'frame', 'page', 'diagnostics', 'layout']
-exports += ['next_image', 'image_buffer', 'image_ready']
+exports += ['next_image', 'image_buffer', 'image_ready', 'pictures', 'card', 'card_builds']
 import json
 out = ROOT / 'web/src/wasm'
 out.mkdir(exist_ok=True)

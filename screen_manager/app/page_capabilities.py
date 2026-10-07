@@ -60,7 +60,9 @@ class CapabilityCache:
         if sender.max_tiles: record['tiles'] = sender.max_tiles
         if sender.max_pages: record['pages'] = sender.max_pages
         if sender.max_bar_items: record['bar_items'] = sender.max_bar_items
-        if sender.memory: record['memory'] = {key: value for key, value in sender.memory.items() if key != 'short'}
+        # The figures it last measured: not "still measuring" (firmware 0.51.0), which says nothing for an offline screen.
+        measured = sender.memory if sender.memory and sender.memory.get('room') is not None else sender.last_memory
+        if measured: record['memory'] = {key: value for key, value in measured.items() if key != 'short'}
         if self.records.get(inbox) == record: return
         self.records[inbox] = record
         self._save()

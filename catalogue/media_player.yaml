@@ -23,3 +23,10 @@ displays:
     needs: {features: [BROWSE_MEDIA]}
     screen: {firmware: 0.24.0}
     sizes: {full: false}
+# What a favourite sets as it starts (app 0.4.84), each where Home Assistant lists the action for the player: its own
+# shuffle and repeat. The add-on sets them; the screen knows nothing of them.
+favorite:
+  shuffle:
+    needs: {actions: [media_player.shuffle_set]}
+  repeat:
+    needs: {actions: [media_player.repeat_set]}

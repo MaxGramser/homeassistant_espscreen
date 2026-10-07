@@ -120,7 +120,7 @@ def run_ts(body, data, tmp):
     (Path(tmp) / 'data.json').write_text(json.dumps(data))
     script = Path(tmp) / 'parity.ts'
     script.write_text(f'''import {{ readFileSync }} from "node:fs";
-import {{ cardContent, cellContent, modeBar, pillMetrics, uiScale, widestSetpoint }} from "{model / 'ui-scale'}";
+import {{ cardContent, cardHeight, cellContent, modeBar, pillMetrics, uiScale, watchCard, watchPadding, widestSetpoint }} from "{model / 'ui-scale'}";
 import {{ barGaps, barLayout, barMetricsFor }} from "{model / 'topbar'}";
 import {{ sizeColumns, sizeFor, sizeRows, spanOf, spanOffered }} from "{model / 'sizes'}";
 import {{ accent, tileActive }} from "{model / 'tile-palette'}";
@@ -309,6 +309,119 @@ console.log(JSON.stringify(DATA.shapes.map((shape: any) => ({
                 self.assertNotEqual(ts['full'], ts['px'][1 if big else 0], f'{key} is fixed: take it out of Grid.KNOWN')
                 continue
             self.assertEqual(ts['full'], ts['px'][1 if big else 0], f'{key}: the full card keys are panel_metrics_full({big})')
+
+
+class WatchCard(unittest.TestCase):
+    """A Big number card (display "watch"), from the WebAssembly build: the height LVGL's grid gives a card (cardHeight,
+    with and without the page bar), and where the card's icon, name, number and unit stand (watchCard, runtime_tiles):
+    whether the head stands above the number, the face of each line and its place from the top of the card. GitHub
+    #167: the mockup's own sizes cut the number off at its middle on a 4-inch Guition with three rows and three pages.
+    The widths are the firmware's own measure of its glyphs, so where a unit or a number stands across is not compared;
+    the faces the firmware picks by a width are, with values that fit or miss by far. The WebAssembly build is one per
+    density and look (web/wasm/preview_profiles.py), with the frame and fonts of the first board that has them, so the
+    editor's numbers are compared on that board's frame; a board's own comes from the same board files its firmware
+    builds from (boards.json)."""
+
+    VALUES = (('217', 'mg/dl'), ('21.4', '°C'), ('rising slightly', ''))
+    # The preview builds a density as a whole number (generate_host_ui.py), and the page bar follows the density
+    # (PAGE_BAR_H, 7 mm): the Waveshare 5-inch's glass is 186.59 dpi and its bar 51 pixels, the preview's 187 dpi gives
+    # 52. On those pages a card of the preview is a pixel lower than the screen's, which the editor follows; its faces
+    # and whether its head stands above the number are still compared. Kept here so a fix shows up.
+    KNOWN = {'waveshare5-landscape', 'waveshare5-portrait'}
+
+    @classmethod
+    def setUpClass(cls):
+        need(shutil.which('node'), 'node')
+        need(WASM if WASM.exists() else None, 'web/src/wasm/firmware_preview.wasm')
+        sys.path.insert(0, str(WEB / 'wasm'))
+        import preview_profiles  # noqa: E402
+        drawn = {(dpi, look): core.SHAPES[entry] for dpi, look, entry in preview_profiles.variants()}
+        cls.cases, screens = [], []
+        for key, board, shape in SHAPES:
+            profile = drawn[(shape['dpi'], shape['look'])]
+            mine = {**shape, 'fonts': profile['fonts'], 'spacing': profile['spacing']}
+            choices = (shape.get('catalog') or {}).get('choices', {}).get('GRID_ROWS') or []
+            downs = sorted({shape['rows'], *(int(rows) for rows in choices if key.endswith('-landscape'))})
+            for down in downs:
+                layouts = []
+                for pages in (1, 3):
+                    for size, columns in (('single', 1), ('wide', 2)):
+                        if columns > shape['columns']:
+                            continue
+                        for row in sorted({0, down - 1}):
+                            for value, unit in cls.VALUES:
+                                case = {'key': f'{key} {down} rows, {pages} pages, {size} in row {row}: {value} {unit}'.strip(),
+                                        'known': key in cls.KNOWN and pages > 1,
+                                        'shape': mine, 'down': down, 'pages': pages, 'size': size, 'columns': columns,
+                                        'row': row, 'value': value, 'unit': unit}
+                                attrs = {'unit_of_measurement': unit} if unit else {}
+                                tiles = [{'entity': 'sensor.parity', 'name': 'Glucose', 'state': value, 'a': attrs,
+                                          'slot': row * shape['columns'],
+                                          'o': core.screen_options({'entity': 'sensor.parity', 'options': {'display': 'watch', 'size': size}},
+                                                                   attrs, value) or {}}]
+                                # A second page holds a card of its own, so the layout has the pages it says.
+                                if pages > 1:
+                                    tiles.append({'entity': 'switch.parity', 'name': 'Lamp', 'state': 'on', 'a': {}, 'o': {},
+                                                  'slot': shape['columns'] * down})
+                                layouts.append({'key': str(len(cls.cases)), 'pages': pages, 'tiles': tiles})
+                                cls.cases.append(case)
+                screens.append({'key': f'{key}-{down}', 'width': shape['width'], 'height': shape['height'],
+                                'columns': shape['columns'], 'rows': down, 'dpi': shape['dpi'], 'layouts': layouts})
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'screens.json'
+            path.write_text(json.dumps(screens))
+            out = subprocess.run(['node', str(WEB / 'wasm/layout_audit.mjs'), str(path)], check=True, capture_output=True, text=True).stdout
+        cls.firmware = {}
+        for report in json.loads(out):
+            if 'error' in report:
+                raise AssertionError(f"{report['screen']}: {report['error']}")
+            objects = [o for o in report['objects'] if o['card'] == 0]
+            box = next(o for o in objects if o['id'] == report['cards'][0]['object'])
+            case = cls.cases[int(report['layout'])]
+            labels = {o['text']: o for o in objects if o['type'] == 'label' and not o['icon']}
+            circle = next((o for o in objects if o['type'] == 'object' and o['radius'] >= 999 and o['id'] != box['id']), None)
+            name = labels.get('Glucose')
+            number = next((o for text, o in labels.items() if text not in ('Glucose', case['unit'])), None)
+            unit = labels.get(case['unit']) if case['unit'] else None
+            cls.firmware[int(report['layout'])] = {'box': box, 'circle': circle, 'name': name, 'number': number, 'unit': unit}
+        with tempfile.TemporaryDirectory() as tmp:
+            cls.ts = run_ts('''
+console.log(JSON.stringify(DATA.cases.map((c: any) => {
+  const s = c.shape, pad = watchPadding(s, c.down), height = cardHeight(s, c.down, 1, c.row, c.pages > 1);
+  const width = cardContent(s, s.columns, c.columns, 0);
+  return { height, pad, card: watchCard(s, width, height - 2 * (pad + 1), c.value, c.unit, pad) };
+})));''', {'cases': cls.cases}, tmp)
+
+    def test_a_card_is_as_high_as_its_cell(self):
+        known = 0
+        for i, case in enumerate(self.cases):
+            box = self.firmware[i]['box']
+            drawn = box['y2'] - box['y1'] + 1
+            if case['known']:
+                self.assertLessEqual(abs(self.ts[i]['height'] - drawn), 1, f"{case['key']}: cardHeight")
+                known += self.ts[i]['height'] != drawn
+                continue
+            self.assertEqual(self.ts[i]['height'], drawn, f"{case['key']}: cardHeight")
+        self.assertTrue(known, f'{sorted(self.KNOWN)}: the preview draws the page bar as the screen does now; take them out of KNOWN')
+
+    def test_the_head_the_number_and_the_unit_stand_where_the_firmware_puts_them(self):
+        for i, case in enumerate(self.cases):
+            fw, ts = self.firmware[i], self.ts[i]
+            card, top = ts['card'], fw['box']['y1'] + ts['pad'] + 1
+            where = case['key']
+            self.assertEqual(card['stacked'], fw['circle'] is not None, f'{where}: the icon and the name above the number')
+            if card['stacked'] and not case['known']:
+                circle = fw['circle']
+                self.assertEqual(card['circle']['size'], circle['x2'] - circle['x1'] + 1, f'{where}: the circle')
+                self.assertEqual(card['circle']['y'], circle['y1'] - top, f'{where}: the circle from the top')
+            for part, label in (('title', fw['name']), ('value', fw['number']), ('unit', fw['unit'])):
+                mine = card[part]
+                if label is None or mine is None:
+                    self.assertEqual(mine is None, label is None, f'{where}: whether the {part} is drawn')
+                    continue
+                self.assertEqual(mine['line'], label['line_height'], f'{where}: the face of the {part}')
+                if not case['known']:
+                    self.assertEqual(mine['y'], label['y1'] - top, f'{where}: the {part} from the top')
 
 
 class TopBar(unittest.TestCase):

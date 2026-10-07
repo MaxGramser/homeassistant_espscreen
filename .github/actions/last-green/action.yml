@@ -1,7 +1,8 @@
-# The commit a CI job compares with: on a push, the newest commit on main where this same job of the CI workflow
-# succeeded, so commits whose run was cancelled or failed are still covered (a newer push replaces a queued run of the
-# same concurrency group). A pull request compares with its base. A night or by-hand run, or no such commit that is an
-# ancestor of this one, leaves `base` empty, and the caller then checks everything.
+# The commit a CI job compares with: on a push, the newest commit on the pushed branch where this same job of the CI
+# workflow succeeded and that is an ancestor of this one, so commits whose run was cancelled or failed are still covered
+# (a newer push replaces a queued run of the same concurrency group); a branch without such a run takes main's. A pull
+# request compares with its base. A night or by-hand run, or no such commit, leaves `base` empty, and the caller then
+# checks everything.
 name: Last green commit
 description: The commit to compare with, for tools/check.sh (CHECK_BASE)
 inputs:
@@ -23,17 +24,21 @@ runs:
         EVENT: ${{ github.event_name }}
         PR_BASE: ${{ github.event.pull_request.base.sha }}
         REPO: ${{ github.repository }}
+        BRANCH: ${{ github.ref_name }}
       run: |
         base=""
         case "$EVENT" in
           pull_request) base="$PR_BASE" ;;
           push)
-            # The newest completed CI runs on main; the first whose job of this name succeeded.
-            for run in $(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=main&status=completed&per_page=30" \
-                           --jq '.workflow_runs[].id'); do
-              sha=$(gh api "repos/$REPO/actions/runs/$run/jobs?per_page=100" \
-                      --jq "[.jobs[] | select(.name == env.JOB and .conclusion == \"success\") | .head_sha][0] // empty")
-              if [ -n "$sha" ]; then base="$sha"; break; fi
+            # The newest completed CI runs on this branch, then on main; the first whose job of this name succeeded
+            # and that is an ancestor of this commit.
+            for branch in $(printf '%s\n' "$BRANCH" main | awk '!seen[$0]++'); do
+              for run in $(gh api "repos/$REPO/actions/workflows/ci.yml/runs?branch=$branch&status=completed&per_page=30" \
+                             --jq '.workflow_runs[].id'); do
+                sha=$(gh api "repos/$REPO/actions/runs/$run/jobs?per_page=100" \
+                        --jq "[.jobs[] | select(.name == env.JOB and .conclusion == \"success\") | .head_sha][0] // empty")
+                if [ -n "$sha" ] && git merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then base="$sha"; break 2; fi
+              done
             done
             ;;
         esac

@@ -45,7 +45,7 @@ substitutions:
   LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
-  BACKLIGHT_FREQUENCY: "5000Hz"                 # the backlight's PWM; 5 kHz is what the community configuration runs
+  BACKLIGHT_FREQUENCY: "300000Hz"               # the backlight's PWM: an analog dim input behind a 160 Hz filter (below)
 
 # ============================================================
 # No need to edit below this line.
@@ -89,12 +89,28 @@ spi:
     number: 1
     allow_other_uses: true
 
+# ESPHome's light corrects for the eye with gamma 2.8, made for a LED that a PWM switches. This driver's analog dim already
+# has the narrow range above, and that gamma pressed every step under about 30 % onto its dimmest end, so 10 and 30 looked
+# the same (GitHub #158). Its level goes straight onto the range instead.
+light:
+  - id: !extend back_light
+    gamma_correct: 1.0
+
 output:
-  # A PWM pin of the chip itself, low for full light (inverted). 5 kHz is what the community configuration runs.
+  # GPIO4 is no switch for the LEDs but the analog dim input of their boost driver (Waveshare's schematic: GPIO4 through
+  # 10 kOhm and 100 nF, then 68 kOhm into the feedback pin of the AP3032), low for full light (inverted). The driver
+  # stops altogether once that filtered level passes about 1.78 V, duty 54 % (GitHub #158, measured on a panel). At the
+  # 5 kHz this board ran before, the ripple behind the 160 Hz filter crossed that line while the average stayed below it,
+  # and everything under 74 % brightness was dark. 300 kHz leaves a sixtieth of that ripple, and the dimmest end stops at
+  # duty 48 %, two points inside the steady range (min_power acts before the inversion, so it sets the dim end here).
+  # zero_means_zero keeps a level of 0 dark: duty 100 %, the driver off.
   - platform: ledc
     pin: GPIO4
     id: gpio_backlight_pwm
     frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.52
+    max_power: 1.0
+    zero_means_zero: true
     inverted: true
   # The panel's setup lines, parked before the setup goes out: select high (idle), data and clock low (ESPHome issue
   # #11748). The SPI bus claims its lines before the expander starts, and the expander starts with every line an input,

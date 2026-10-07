@@ -35,7 +35,10 @@ def components(board):
     own = {path.name for path in (ROOT / 'components').iterdir() if path.is_dir() and path.name != 'smart_display'}
     named = re.findall(r'(?m)^\s*-?\s*platform: ([a-z0-9_]+)\s*$', text) + re.findall(r'(?m)^([a-z0-9_]+):', text)
     found = [name for name in dict.fromkeys(named) if name in own]
-    return found + ['smart_display']
+    optional = profiles.CATALOG[board].get('optional_components', [])
+    if any(name not in own for name in optional):
+        raise ValueError(f'{board}: unknown optional component')
+    return list(dict.fromkeys(found + optional + ['smart_display']))
 
 
 def describe(board):
@@ -53,7 +56,10 @@ def package_entry(board):
 # of that lives here. The screen is two packages: core.yaml, which every board shares, and boards/{file} with this
 # board's hardware and sizes (docs/PROFILES.md). checkout/{board}.yaml builds the same two from a checkout.
 substitutions:
-  FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/main/fonts"
+  # The branch the components and the fonts come from: main, or dev for a screen of the app's dev channel, which
+  # writes GITHUB_REF into the screen's own YAML next to the `ref:` of this package (docs/RELEASING.md, "Testing dev").
+  GITHUB_REF: "main"
+  FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/${{GITHUB_REF}}/fonts"
 
 packages:
   core: !include core.yaml
@@ -63,7 +69,7 @@ external_components:
   - source:
       type: git
       url: {REPO}.git
-      ref: main
+      ref: ${{GITHUB_REF}}
       path: components
     refresh: 0s
     components: [{", ".join(components(board))}]

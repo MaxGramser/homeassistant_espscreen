@@ -56,15 +56,6 @@ int main() {
     assert((l.pages - 1) * l.per_page < n && l.pages * l.per_page >= n);
   }
 
-  // A value just sent is shown until Home Assistant reports it, or four seconds at most.
-  Held held;
-  assert(held.show(40, 0) == 40);
-  held.send(80, 1000);
-  assert(held.show(40, 1500) == 80);
-  assert(held.show(80, 1600) == 80 && held.value < 0);
-  held.send(70, 2000);
-  assert(held.show(40, 2000 + SENT_HOLD_MS) == 40);
-
   // A card paints in the lamp's own colour (firmware 0.4.0+, GitHub #47), by the same rule as the lamp's tile: a green
   // lamp is green, a pale one lifted to 40 % saturation, a white one (or one Home Assistant names no colour for) amber.
   Lamp green; green.hue = 120; green.saturation = 100;
@@ -75,8 +66,9 @@ int main() {
   Lamp white = green; white.saturation = 5;
   assert(color_of(white) == theme::ha::AMBER);
   assert(color_of(Lamp{}) == theme::ha::AMBER);
-  // A hue just sent from the panel shows at full colour until Home Assistant reports it.
-  assert(color_of(white, 240) == tile_controls::hsv_rgb(240, 100, 100));
+  // A hue just sent from the panel is in the lamp as the wish wrote it (full saturation), so it shows at full colour.
+  Lamp sent = white; sent.hue = 240; sent.saturation = 100;
+  assert(color_of(sent) == tile_controls::hsv_rgb(240, 100, 100));
   // LVGL's own conversion, to the bit: pure red, green and blue, and white.
   assert(tile_controls::hsv_rgb(0, 100, 100) == 0xFF0000);
   assert(tile_controls::hsv_rgb(0, 0, 100) == 0xFFFFFF);

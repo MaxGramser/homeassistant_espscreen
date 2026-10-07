@@ -151,11 +151,15 @@ def memory_of(answer):
     """The memory figures of a hello or ping reply (firmware 0.34.0+, components/smart_display/tile_memory.h), in bytes:
     the room for tiles and what the tiles on the screen take, what the tile catalogue's prices need from the board to
     price a tile (whether it has PSRAM, the size of a tile and of its block of extras: core.tile_cost), and whether a tile
-    went without its extras for want of memory lately. None when the screen says nothing."""
+    went without its extras for want of memory lately. None when the screen says nothing. `room` is None while the screen
+    is still measuring (firmware 0.51.0): it samples its room only once a layout has settled, and says no room before."""
     memory = answer.get("memory") if isinstance(answer, dict) else None
     if not isinstance(memory, dict): return None
     room, used, tile, extra, page = (memory.get(key) for key in ("room", "used", "tile", "extra", "page"))
-    if not all(type(value) is int and 0 <= value < 1 << 24 for value in (room, used, tile, extra, page)) or not tile or not extra:
+    fits = lambda value: type(value) is int and 0 <= value < 1 << 24
+    if not all(fits(value) for value in (used, tile, extra, page)) or not tile or not extra:
+        return None
+    if "room" in memory and not fits(room):
         return None
     if type(memory.get("psram")) is not bool: return None
     return {"room": room, "used": used, "psram": memory["psram"], "tile": tile, "extra": extra, "page": page,
@@ -213,9 +217,14 @@ class Sender:
         self.phase = "waiting"
         self.failed_revision = self.failure = None
 
-    async def _hello(self):
+    async def _hello(self, empty=False):
         request = new_id()
-        answer = await self.send({"v": PROTOCOL, "op": "hello", "request": request})
+        hello = {"v": PROTOCOL, "op": "hello", "request": request}
+        # `empty`: this app has no tiles for the screen yet (app 0.4.74), so its starting screen asks for them instead of
+        # waiting for Tessera (firmware 0.45.0). Older firmware reads only the request.
+        if empty:
+            hello["empty"] = True
+        answer = await self.send(hello)
         if isinstance(answer, dict) and answer.get("protocol") == PROTOCOL:
             session = answer.get("session", "")
             if answer.get("request") != request or len(session) != 16 or any(c not in "0123456789abcdef" for c in session):
@@ -257,12 +266,15 @@ class Sender:
     def heard(self, answer):
         """The memory figures of a hello or a ping, kept as the last ones too. Both come from the running firmware, so an
         answer without them means a firmware that keeps no budget (a screen flashed back to an older release): the figures
-        of the firmware before it go, as its ceilings do in the hello."""
-        self.memory = self.last_memory = memory_of(answer)
+        of the firmware before it go, as its ceilings do in the hello. While the screen is still measuring (no room yet,
+        firmware 0.51.0) the last figures it measured stay the last ones."""
+        self.memory = memory_of(answer)
+        if self.memory is None or self.memory["room"] is not None:
+            self.last_memory = self.memory
 
-    async def probe(self):
+    async def probe(self, empty=False):
         async with self.lock:
-            return await self._hello()
+            return await self._hello(empty)
 
     async def _packet(self, message, revision):
         if not self.session:

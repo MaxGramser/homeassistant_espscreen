@@ -9,7 +9,7 @@ font:
     glyphs:
       - "\U000F036C" # microphone, only diagnostic builds need this settings glyph
 
-# Optional, local audio acceptance tests. The board supplies panel_microphone (stereo S16LE, 16 kHz),
+# Optional, local audio acceptance tests. The board supplies panel_microphone (S16LE, 16 kHz),
 # panel_speaker (mono S16LE, 16 kHz) and panel_audio_amp. No assistant, audio upload or HA actions.
 # Tests are explicitly started from the panel or HA buttons. Microphone: five seconds then local playback.
 # Wake word: at most 30 seconds. Only meters/results reach HA; recording stays in PSRAM.
@@ -51,10 +51,12 @@ microphone:
     on_data:
       - lambda: |-
           id(audio_test_capture).push(x.data(), x.size());
+          constexpr size_t channels = ${AUDIO_CAPTURE_CHANNELS};
+          constexpr size_t stride = channels * sizeof(int16_t);
           uint32_t left = 0, right = 0;
-          for (size_t i = 0; i + 3 < x.size(); i += 4) {
+          for (size_t i = 0; i + stride <= x.size(); i += stride) {
             const int l = static_cast<int16_t>(uint16_t(x[i]) | (uint16_t(x[i + 1]) << 8));
-            const int r = static_cast<int16_t>(uint16_t(x[i + 2]) | (uint16_t(x[i + 3]) << 8));
+            const int r = channels == 1 ? l : static_cast<int16_t>(uint16_t(x[i + 2]) | (uint16_t(x[i + 3]) << 8));
             left = std::max(left, static_cast<uint32_t>(l < 0 ? -l : l));
             right = std::max(right, static_cast<uint32_t>(r < 0 ? -r : r));
           }
@@ -63,7 +65,7 @@ microphone:
           do {
             next = std::max(previous & 0xffffU, left) | (std::max(previous >> 16, right) << 16);
           } while (!id(audio_test_peaks).compare_exchange_weak(previous, next));
-          id(audio_test_frames).fetch_add(x.size() / 4);
+          id(audio_test_frames).fetch_add(x.size() / stride);
 
 micro_wake_word:
   stop_after_detection: false
@@ -227,7 +229,7 @@ script:
                   - lambda: |-
                       esphome::RAMAllocator<int16_t> allocator(esphome::RAMAllocator<int16_t>::ALLOC_EXTERNAL);
                       auto *data = allocator.allocate(audio_test::Capture::MAX_SAMPLES);
-                      if (data) id(audio_test_capture).begin(data);
+                      if (data) id(audio_test_capture).begin(data, audio_test::Capture::MAX_SAMPLES, ${AUDIO_CAPTURE_CHANNELS});
                       else id(audio_test_result) = 1;
                   - if:
                       condition:
@@ -316,21 +318,44 @@ script:
                       then:
                         - switch.turn_on: panel_audio_amp
                         - delay: 50ms
-                        - speaker.play:
-                            id: panel_speaker
-                            data: !lambda |-
-                              // 600 ms, 440 Hz, S16LE, about -6 dBFS peak. Fade both ends. The speaker
-                              // applies the selected volume; never override it during a test.
-                              constexpr int samples = 9600;
-                              std::vector<uint8_t> pcm(samples * 2);
-                              for (int i = 0; i < samples; i++) {
-                                const float fade = std::min(1.0f, std::min(i, samples - 1 - i) / 160.0f);
-                                const int16_t sample = static_cast<int16_t>(16000.0f * fade * sinf(i * (2.0f * 3.14159265f * 440.0f / 16000.0f)));
-                                pcm[2 * i] = uint16_t(sample) & 0xff;
-                                pcm[2 * i + 1] = uint16_t(sample) >> 8;
-                              }
-                              return pcm;
-                        - delay: 2s
+                        - lambda: |-
+                            id(audio_test_play_offset) = 0;
+                            id(audio_test_play_started) = millis();
+                        # Feed bounded chunks, just like microphone playback. The 600 ms tone
+                        # exceeds an AEC speaker's 100 ms buffer; a one-shot write can accept zero.
+                        - while:
+                            condition:
+                              lambda: return id(audio_test_play_offset) < 9600 && millis() - id(audio_test_play_started) < 2000;
+                            then:
+                              - lambda: |-
+                                  // 600 ms, 440 Hz, S16LE, about -6 dBFS peak. Keep phase and fades
+                                  // across retries; the speaker applies the user's saved volume.
+                                  constexpr size_t samples = 9600;
+                                  const size_t offset = id(audio_test_play_offset);
+                                  const size_t count = std::min<size_t>(800, samples - offset);
+                                  std::array<uint8_t, 1600> pcm{};
+                                  for (size_t n = 0; n < count; ++n) {
+                                    const size_t i = offset + n;
+                                    const float fade = std::min(1.0f, std::min(i, samples - 1 - i) / 160.0f);
+                                    const int16_t sample = static_cast<int16_t>(16000.0f * fade * sinf(i * (2.0f * 3.14159265f * 440.0f / 16000.0f)));
+                                    pcm[2 * n] = uint16_t(sample) & 0xff;
+                                    pcm[2 * n + 1] = uint16_t(sample) >> 8;
+                                  }
+                                  const size_t sent = id(panel_speaker).play(pcm.data(), count * 2, 0);
+                                  id(audio_test_play_offset) += sent / 2;
+                              - delay: 10ms
+                        - lambda: |-
+                            if (id(audio_test_play_offset) != 9600) {
+                              id(audio_test_result) = 3;
+                              ESP_LOGW("audio_test", "Speaker accepted %u of 9600 test samples", unsigned(id(audio_test_play_offset)));
+                            }
+                        - speaker.finish: panel_speaker
+                        - wait_until:
+                            condition:
+                              speaker.is_stopped: panel_speaker
+                            timeout: 2s
+                        - lambda: |-
+                            if (!id(panel_speaker).is_stopped()) id(audio_test_result) = 3;
                       else:
                         - lambda: |-
                             id(audio_test_result) = 3;

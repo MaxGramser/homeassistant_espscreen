@@ -1,0 +1,39 @@
+# ESP Screens - a battery's level from its voltage (firmware 0.41.0), for a board that measures its battery's voltage but
+# not the percentage. docs/BATTERY.md is the recipe.
+#
+# The voltage comes from a sensor with `id: screen_battery_voltage`, in volts at the battery: features/battery-adc.yaml
+# for a pin, or any sensor of ESPHome's (an INA219 or INA226, a fuel gauge's battery_voltage). This file turns it into
+# "Battery Level" in Home Assistant's `battery` device class, which the firmware finds and shows in the top bar, with a
+# formula of `v`, the voltage, which a board or a screen's own YAML may replace:
+#
+#   substitutions:
+#     BATTERY_EMPTY_VOLTS: "3.4"
+#     BATTERY_FULL_VOLTS: "4.1"
+#     BATTERY_LEVEL_FORMULA: "(v - 3.4f) / 0.7f * 100.0f"   # any C++ expression of v, in percent
+#
+# The default is a straight line from empty to full. A lithium cell's voltage is not straight, so a curve measured on
+# the battery itself is better: docs/BATTERY.md shows one with ESPHome's calibrate_linear. The level is clamped to 0
+# to 100, and a voltage that is not known yet gives no level.
+substitutions:
+  BATTERY_EMPTY_VOLTS: "3.3"     # one lithium cell: shut down
+  BATTERY_FULL_VOLTS: "4.2"      # one lithium cell: charged
+  BATTERY_LEVEL_FORMULA: "(v - float(${BATTERY_EMPTY_VOLTS})) / (float(${BATTERY_FULL_VOLTS}) - float(${BATTERY_EMPTY_VOLTS})) * 100.0f"
+  BATTERY_UPDATE_INTERVAL: "30s"
+
+sensor:
+  - platform: template
+    id: screen_battery_level
+    name: "Battery Level"
+    device_class: battery
+    state_class: measurement
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: ${BATTERY_UPDATE_INTERVAL}
+    lambda: |-
+      const float v = id(screen_battery_voltage).state;
+      if (std::isnan(v)) return {};
+      return ${BATTERY_LEVEL_FORMULA};
+    filters:
+      - clamp:
+          min_value: 0
+          max_value: 100

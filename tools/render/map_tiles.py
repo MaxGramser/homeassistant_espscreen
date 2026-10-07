@@ -156,8 +156,7 @@ class Study(run.Run):
             start = len(self.lines)
             await self.call('render_live_reset')
             try:
-                await self.until(lambda line: 'asked for the live tiles' in line, 10, f'{what}: the ask', start)
-                await self.until(lambda line: 'live tiles loaded' in line, 15, f'{what}: the picture', start)
+                await self.tile_pictures(what, start)
                 await asyncio.sleep(0.8)
                 return
             except RuntimeError:

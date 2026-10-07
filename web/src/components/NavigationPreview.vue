@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import { entriesOf } from '../model/layout';
 import { navigationStep, titleOf, type NavigationIntent } from '../model/pages';
 import { previewShapeOf } from '../model/preview';
-import { currentScreen, navigationSettings, state } from '../store';
+import { currentScreen, drawsPictures, navigationSettings, state } from '../store';
 import DevicePage from './DevicePage.vue';
 import FirmwarePreview from './FirmwarePreview.vue';
 import Icon from './ui/Icon.vue';
@@ -53,7 +53,7 @@ onBeforeUnmount(() => previouslyFocused?.focus());
     <template v-if="live && !failed">
       <p>{{ t('editor.preview.hint') }}</p>
       <div class="preview-live" :style="{ width: liveWidth }">
-        <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows"
+        <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows" :pictures="drawsPictures(currentScreen)"
           :layout="state.document" :controls="controls" :voice-tools-target="voiceTools" @failed="failed = true" />
       </div>
       <div class="preview-footer">

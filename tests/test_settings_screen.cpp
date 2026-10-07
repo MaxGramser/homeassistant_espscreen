@@ -296,5 +296,10 @@ int main() {
   dimmable = true;  can_standby = false;  assert(features() == "dimmable");
   dimmable = false; can_standby = true;   assert(features() == "standby");
   dimmable = false; can_standby = false;  assert(features() == "none");
+  // A screen with a battery (firmware 0.41.0) says so too, so ESP Screens offers the top bar's battery item.
+  battery_status::level = []() { return 50.0f; };
+  dimmable = true;  can_standby = true;   assert(features() == "dimmable standby battery");
+  dimmable = false; can_standby = false;  assert(features() == "battery");
+  battery_status::level = nullptr;
   dimmable = dimmable_before; can_standby = standby_before;
 }

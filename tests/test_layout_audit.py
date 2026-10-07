@@ -102,6 +102,11 @@ KINDS = {
     'cover': {'entity': 'cover.audit', 'state': 'open',
               'attributes': {'current_position': 70, 'current_tilt_position': 40, 'supported_features': 255}},
     'fan': {'entity': 'fan.audit', 'state': 'on', 'attributes': {'percentage': 60, 'supported_features': 49}},
+    # A dehumidifier with every standard mode (firmware 0.42.0): the thermostat's parts in percent.
+    'humidifier': {'entity': 'humidifier.audit', 'state': 'on',
+                   'attributes': {'device_class': 'dehumidifier', 'action': 'drying', 'current_humidity': 68.5, 'humidity': 55,
+                                  'min_humidity': 30, 'max_humidity': 80, 'supported_features': 1, 'mode': 'comfort',
+                                  'available_modes': ['normal', 'eco', 'away', 'boost', 'comfort', 'home', 'sleep', 'auto']}},
     'image': {'entity': 'image.audit', 'state': iso(hours=-1), 'attributes': {}},
     'input_boolean': {'entity': 'input_boolean.audit', 'state': 'on', 'attributes': {}},
     'input_button': {'entity': 'input_button.audit', 'state': iso(minutes=-20), 'attributes': {}},
@@ -134,6 +139,11 @@ KINDS = {
     'screen-nightstand': {'entity': 'screen.nightstand', 'state': 'ok', 'attributes': {}, 'sizes': ('full',)},
     # The map tile is a map and nothing else (core.validate_layout), its frame here without the picture.
     'screen-map': {'entity': 'screen.map', 'state': 'ok', 'attributes': {}, 'options': {'display': 'map'}},
+    # The energy card (app 0.4.77) with a busy house: seven devices, a car charging, every source; `energy` is Home
+    # Assistant's Energy settings and the states of their sensors (tests/fixtures/energy). A size too low for the diagram
+    # shows the house's use alone, which is laid out too.
+    'screen-energy': {'entity': 'screen.energy', 'state': 'ok', 'attributes': {},
+                      'energy': json.loads((ROOT / 'tests/fixtures/energy/full-busy.json').read_text())},
     'script': {'entity': 'script.audit', 'state': 'off', 'attributes': {'last_triggered': iso(hours=-2, minutes=-8)}},
     'select': {'entity': 'select.audit', 'state': 'Comfort', 'attributes': {'options': ['Eco', 'Comfort', 'Boost']}},
     'sensor': {'entity': 'sensor.audit', 'state': '21.4', 'attributes': {'unit_of_measurement': '°C', 'device_class': 'temperature'},
@@ -194,12 +204,15 @@ def boards():
                 continue
             grids = [o['rows']] + ([rows for rows in choices if rows != o['rows']] if o['width'] >= o['height'] else [])
             for rows in grids:
-                shape_key = (o['width'], o['height'], o['columns'], rows, shape['dpi'])
+                # A board without pictures draws its cards without a cover's place (firmware 0.46.0), so it is a shape of
+                # its own even on the glass of a board with them.
+                pictures = bool(shape.get('camera'))
+                shape_key = (o['width'], o['height'], o['columns'], rows, shape['dpi'], pictures)
                 if shape_key in seen:
                     continue
                 name = f'{key}-{side}' if rows == o['rows'] else f'{key}-{side}-{rows}rows'
                 seen[shape_key] = {'key': name, 'width': o['width'], 'height': o['height'], 'columns': o['columns'],
-                                   'rows': rows, 'dpi': shape['dpi']}
+                                   'rows': rows, 'dpi': shape['dpi'], 'pictures': pictures}
                 found.append(seen[shape_key])
     return found
 
@@ -239,7 +252,11 @@ def message(kind, size, name, display=None, controls=None):
         options['controls'] = controls
     tile = {'entity': case['entity'], 'name': name, 'slot': 0, 'options': options}
     states = {case['entity']: {'state': case['state'], 'attributes': case['attributes']}}
-    extra = None if case['entity'] in BUILTIN else extras(tile, states, case.get('forecast'), None, case.get('hourly'), now=NOW)
+    if case.get('energy'):
+        states = case['energy']['states']
+        extra = extras(tile, states, energy=case['energy']['prefs'])
+    else:
+        extra = None if case['entity'] in BUILTIN else extras(tile, states, case.get('forecast'), None, case.get('hourly'), now=NOW)
     out = drawn_controls(state_message(0, tile, states, extra), None)
     if case.get('history') and case['entity'].startswith('sensor.'):
         out['history'] = case['history']
@@ -332,9 +349,10 @@ KNOWN = [
     {'layout': r'^jc8012p4a1-portrait: input_number ', 'problem': r"^text '[\d.]+ °C' is cut without dots",
      'cause': 'the stepper falls back to text_font when no face fits its room (runtime_tiles.h:5153 stepper_keys), and the '
               'number is clipped: "21.5 °C" in 45 px between the keys'},
-    {'layout': r'^jc3248w535-landscape: weather-watch full ', 'problem': r"^text '[\d.]+ °C' (leaves its card by \d+ px|is -\d+ px from its card's edge)$",
+    {'layout': r'^(jc3248w535|waveshare35)-landscape: weather-watch full ', 'problem': r"^text '[\d.]+ °C' (leaves its card by \d+ px|is -\d+ px from its card's edge)$",
      'cause': 'a full card stacks circle, name and value without giving any up when they are taller than the card '
-              '(runtime_tiles.h:5960 render_full): the watch face\'s value ends 5 px under the card'},
+              '(runtime_tiles.h:5960 render_full): the watch face\'s value ends 5 px under the card; the 3.5-inch glass with '
+              'pictures and the one without are audited apart since firmware 0.46.0'},
 ]
 
 
@@ -367,7 +385,10 @@ def problems(report):
             if parent and parent['id'] != box['id'] and parent['clips'] and o['type'] != 'image' and not inside(o, parent):
                 what = f"text '{o['text'][:30]}'" if o['type'] == 'label' else o['type']
                 found.append(f"{what} is cut by its {parent['type']}")
-        texts = [o for o in members if o['type'] == 'label' and o['text'].strip() and not o['icon']]
+        # In reading order (top, then left), not in the order the objects were made: a card drawn after another face of
+        # the same card keeps parts made before, so the same two texts came in either order and KNOWN missed one of them.
+        texts = sorted((o for o in members if o['type'] == 'label' and o['text'].strip() and not o['icon']),
+                       key=lambda o: (o['y1'], o['x1'], o['id']))
         for o in texts:
             edge = min(o['x1'] - box['x1'], box['x2'] - o['x2'], o['y1'] - box['y1'], box['y2'] - o['y2'])
             if edge < MARGIN:
@@ -428,6 +449,8 @@ TOUCH_FLOORS = {
     **{domain: {'floor': 5.3, 'cause': _STEPPER} for domain in ('input_number', 'number')},
     'cover': {'floor': 5.3, 'cause': 'the position slider, slider_h of the look (runtime_tiles.h:5047 panel_metrics), touch area '
                                      'grown by m.ext + 2 (runtime_tiles.h:5241); its keys are the panel\'s (panel_metrics)'},
+    'humidifier': {'floor': 4.6, 'cause': 'its on/off switch is the shared toggle (the automation, fan and light entry), its '
+                                          'mode bar and -/+ keys the thermostat\'s (the climate entry)'},
     'climate': {'floor': 4.9, 'cause': 'the mode bar\'s segments and the -/+ keys take the panel\'s key_h as their finger '
                                        '(runtime_tiles.h:5041 bar_metrics, cm.touch=m.key_h), not ui::touch_min()'},
     'media_player': {'floor': 2.0, 'cause': 'the full card\'s volume slider is drawn as a 12 px track (media_card.h) and grows '
@@ -623,14 +646,19 @@ def stale_reason(wasm=WASM, manifest=MANIFEST, sources=True):
     return None
 
 
+PIECES = 16  # the pieces a screen's layouts are cut into at most, on every machine (audit)
+
+
 def audit(screens):
     """Every screen's layouts through layout_audit.mjs, a few screens to a Node process, side by side."""
     jobs = max(1, int(os.environ.get('LAYOUT_AUDIT_JOBS') or os.cpu_count() or 2))
     # Each screen's layouts in pieces, the pieces dealt round the processes heaviest first (a ten-inch glass takes
-    # longer a layout than a CYD's), so they finish close together.
+    # longer a layout than a CYD's), so they finish close together. A piece is one firmware, laid out one layout after
+    # another as a screen is, so where the pieces start must not depend on the machine: a fixed count, never the
+    # number of processors, or one computer sees a layout follow another that a second computer never does.
     pieces = []
     for screen in screens:
-        step = max(50, -(-len(screen['layouts']) // (2 * jobs)))
+        step = max(50, -(-len(screen['layouts']) // PIECES))
         pieces += [{**screen, 'layouts': screen['layouts'][i:i + step]} for i in range(0, len(screen['layouts']), step)]
     pieces.sort(key=lambda s: -len(s['layouts']) * s['width'] * s['height'])
     groups = [[] for _ in range(jobs)]

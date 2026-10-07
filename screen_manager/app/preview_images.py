@@ -19,7 +19,8 @@ async def answer(manager, data):
         raise ValueError('Only firmware image events are accepted.')
     # `idx`: the tiles of a live strip by index (firmware 0.16.0+), which name a map's tile on the mockup; `dark`: the
     # look a map is drawn in (firmware 0.20.0+).
-    allowed = {'inbox', 'entity', 'tiles', 'idx', 'size', 'bg', 'session', 'rev', 'view', 'atlas', 'dark'}
+    # `cap`: the larger picture a screen's memory takes (firmware 0.52.0+); the preview sizes its own.
+    allowed = {'inbox', 'entity', 'tiles', 'idx', 'size', 'bg', 'session', 'rev', 'view', 'atlas', 'dark', 'cap'}
     if (not isinstance(fields, dict) or set(fields) - allowed or
             any(not isinstance(v, str) or len(v) > 8192 for v in fields.values()) or
             not re.fullmatch(r'[0-9a-f]{16}', fields.get('session', '')) or

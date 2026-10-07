@@ -14,6 +14,71 @@
 // Runtime selects the View and supplies a guarded action for the leading key.
 namespace page_header {
 enum class Leading { none, home, back };
+
+// One item drawn the bar's way, apart from its widgets, so the screensaver clock's row (firmware 0.50.0+) is the bar's
+// own: the same words, the same ink-to-ink gaps, the same middle line.
+// Ink edges of a text from its label's left edge, and its advance (what LVGL sizes a label by).
+struct TextInk { int left = 0, right = 0, advance = 0; };
+inline TextInk text_ink(const lv_font_t *font, const std::string &text) {
+  TextInk ink;
+  bool first = true;
+  size_t i = 0;
+  for (uint32_t cp = header_bar::next_codepoint(text, i); cp; cp = header_bar::next_codepoint(text, i)) {
+    lv_font_glyph_dsc_t g;
+    if (!lv_font_get_glyph_dsc(font, &g, cp, 0)) continue;
+    if (g.box_w > 0) {
+      if (first) { ink.left = ink.advance + g.ofs_x; first = false; }
+      ink.right = ink.advance + g.ofs_x + g.box_w;
+    }
+    ink.advance += g.adv_w;
+  }
+  return ink;
+}
+inline std::string hhmm(const esphome::ESPTime &time) {
+  char text[8]; snprintf(text, sizeof(text), "%02d:%02d", time.hour, time.minute); return text;
+}
+// The words of a clock, a date, a moment ("5 min ago", counted here) or an entity's text.
+inline std::string item_text(const header_bar::Item &item, const esphome::ESPTime &now, int64_t epoch, bool clock_24h) {
+  using header_bar::Kind;
+  if (item.kind == Kind::clock) return now.is_valid() ? screen_text::clock_text(hhmm(now), clock_24h) : std::string("--:--");
+  if (item.kind == Kind::date) return now.is_valid() ? header_bar::date_text(now.day_of_week, now.day_of_month, now.month) : std::string("—");
+  if (item.kind == Kind::ago) return header_bar::ago_text(item.epoch, epoch);
+  return item.text;
+}
+// An icon and its words, measured by their ink; `width` is 0 when neither draws.
+struct Piece {
+  uint32_t icon = 0;
+  const lv_font_t *font = nullptr;
+  int icon_left = 0, icon_w = 0, text_left = 0, text_w = 0, width = 0;
+  std::string text;
+};
+inline Piece piece(uint32_t icon, const lv_font_t *icon_font, std::string text, const lv_font_t *text_font, const header_bar::Gaps &gaps) {
+  Piece p;
+  lv_font_glyph_dsc_t g;
+  if (icon && icon_font && lv_font_get_glyph_dsc(icon_font, &g, icon, 0) && g.box_w) { p.icon = icon; p.font = icon_font; p.icon_left = g.ofs_x; p.icon_w = g.box_w; }
+  const auto ink = text_ink(text_font, text);
+  p.text_left = ink.left;
+  p.text_w = std::max(0, ink.right - ink.left);
+  p.width = p.icon_w + (p.icon && p.text_w ? gaps.icon : 0) + p.text_w;
+  p.text = std::move(text);
+  return p;
+}
+// A label's top that centres an icon's ink on a middle line given twice (exact halves); LVGL draws a glyph's ink from
+// (line_height - base_line) - box_h - ofs_y below the label's top.
+inline int icon_top(const lv_font_t *font, uint32_t icon, int middle2) {
+  lv_font_glyph_dsc_t g;
+  if (!lv_font_get_glyph_dsc(font, &g, icon, 0)) return middle2 / 2;
+  return (middle2 - g.box_h) / 2 - ((font->line_height - font->base_line) - g.box_h - g.ofs_y);
+}
+// A label's top that puts its text on `baseline`.
+inline int text_top(const lv_font_t *font, int baseline) { return baseline - (font->line_height - font->base_line); }
+// The baseline that centres a font's digits on a middle line given twice.
+inline int digits_baseline(const lv_font_t *font, int middle2) {
+  lv_font_glyph_dsc_t zero;
+  if (!lv_font_get_glyph_dsc(font, &zero, '0', 0)) return middle2 / 2;
+  return (middle2 + zero.box_h) / 2 + zero.ofs_y;
+}
+
 struct Surface {
   lv_obj_t *title, *clock_anchor, *grid, *hold_area;
   const lv_font_t *text_font, *icon_font;
@@ -47,9 +112,6 @@ class Renderer {
   static void set_line_width(lv_obj_t *obj, int width) {
     if (lv_obj_get_style_line_width(obj, LV_PART_MAIN) != width) lv_obj_set_style_line_width(obj, width, 0);
   }
-  static std::string hhmm(const esphome::ESPTime &time) {
-    char text[8]; snprintf(text, sizeof(text), "%02d:%02d", time.hour, time.minute); return text;
-  }
   struct HeaderSlot { lv_obj_t *icon{}, *text{}; uint32_t icon_color = 0; bool own = false; };
   lv_obj_t *header_root = nullptr, *header_ring = nullptr;
 #ifdef USE_SCREEN_DEVICE_VOICE
@@ -76,23 +138,6 @@ class Renderer {
   void set_visible(lv_obj_t *obj, bool visible) {
     if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN) != visible) return;
     if (visible) lv_obj_remove_flag(obj, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
-  }
-  // Ink edges of a text from its label's left edge, and its advance (what LVGL sizes a label by).
-  struct TextInk { int left = 0, right = 0, advance = 0; };
-  TextInk text_ink(const lv_font_t *font, const std::string &text) {
-    TextInk ink;
-    bool first = true;
-    size_t i = 0;
-    for (uint32_t cp = header_bar::next_codepoint(text, i); cp; cp = header_bar::next_codepoint(text, i)) {
-      lv_font_glyph_dsc_t g;
-      if (!lv_font_get_glyph_dsc(font, &g, cp, 0)) continue;
-      if (g.box_w > 0) {
-        if (first) { ink.left = ink.advance + g.ofs_x; first = false; }
-        ink.right = ink.advance + g.ofs_x + g.box_w;
-      }
-      ink.advance += g.adv_w;
-    }
-    return ink;
   }
   lv_obj_t *header_part(lv_obj_t *parent) {
     auto *part = lv_label_create(parent);
@@ -234,12 +279,12 @@ public:
     // name's line.
     int middle2 = slot_h ? 2 * header_name_left + slot_h : 2 * (baseline - zero.ofs_y) - zero.box_h;
     // The items' words put their digits on that line; their baseline follows from the digits.
-    const int item_baseline = (middle2 + zero.box_h) / 2 + zero.ofs_y;
+    const int item_baseline = digits_baseline(header_text_font, middle2);
     auto gaps = header_bar::gaps(zero.box_h);
     // The dial is as large as a round icon (clock-outline) of the icon font.
     int dial = lv_font_get_glyph_dsc(header_icon_font, &dial_glyph, 0xF0150, 0) && dial_glyph.box_h ? dial_glyph.box_h : zero.box_h * 3 / 2;
 
-    struct Part { size_t item = 0; uint32_t icon = 0; const lv_font_t *font = nullptr; int icon_left = 0, icon_w = 0, text_left = 0, text_w = 0, width = 0; bool dial = false; std::string text; };
+    struct Part : Piece { size_t item = 0; bool dial = false; };
     std::array<Part, header_bar::MAX_ITEMS> parts;
     std::array<int, header_bar::MAX_ITEMS> widths{};
     size_t count = 0;
@@ -250,26 +295,18 @@ public:
       Part p;
       p.item = i;
       if (item.kind == Kind::analog) { p.dial = true; p.width = dial; }
-      else {
-        uint32_t icon = item.icon;
+      else if (item.kind == Kind::wifi || item.kind == Kind::link || item.kind == Kind::battery) {
+        const auto own = header_bar::device_item(item, view.device);
+        if (!own.shown) continue;
         const lv_font_t *font = header_icon_font;
-        if (item.kind == Kind::wifi || item.kind == Kind::link) {
-          const auto own = header_bar::device_item(item, view.device);
-          if (!own.shown) continue;
-          p.text = own.text;
-          icon = own.icon;
-          if (item.kind == Kind::wifi && surface.status_font) font = surface.status_font;
-        } else {
-          p.text = item.kind == Kind::clock ? (now.is_valid() ? screen_text::clock_text(hhmm(now), view.clock_24h) : std::string("--:--"))
-                 : item.kind == Kind::date ? (now.is_valid() ? header_bar::date_text(now.day_of_week, now.day_of_month, now.month) : std::string("—"))
-                 : item.kind == Kind::ago ? header_bar::ago_text(item.epoch, view.epoch) : item.text;
-        }
-        lv_font_glyph_dsc_t g;
-        if (icon && lv_font_get_glyph_dsc(font, &g, icon, 0) && g.box_w) { p.icon = icon; p.font = font; p.icon_left = g.ofs_x; p.icon_w = g.box_w; }
-        auto ink = text_ink(header_text_font, p.text);
-        p.text_left = ink.left;
-        p.text_w = std::max(0, ink.right - ink.left);
-        p.width = p.icon_w + (p.icon && p.text_w ? gaps.icon : 0) + p.text_w;
+        if (item.kind == Kind::wifi && surface.status_font) font = surface.status_font;
+        // The battery's charging and alert icons are in the status font, its level icons among the tile icons.
+        lv_font_glyph_dsc_t probe;
+        if (item.kind == Kind::battery && surface.status_font && lv_font_get_glyph_dsc(surface.status_font, &probe, own.icon, 0))
+          font = surface.status_font;
+        static_cast<Piece &>(p) = piece(own.icon, font, own.text, header_text_font, gaps);
+      } else {
+        static_cast<Piece &>(p) = piece(item.icon, header_icon_font, item_text(item, now, view.epoch, view.clock_24h), header_text_font, gaps);
       }
       if (!p.width) continue;
       widths[count] = p.width;
@@ -377,7 +414,7 @@ public:
       auto &slot = header_slots[k];
       int x = left + placement.x[k];
       const auto kind = bar.items[p.item].kind;
-      if (kind == header_bar::Kind::wifi || kind == header_bar::Kind::link) {
+      if (kind == header_bar::Kind::wifi || kind == header_bar::Kind::link || kind == header_bar::Kind::battery) {
         if (status_left < 0) status_left = x;
         status_right = x + p.width;
       }
@@ -407,13 +444,9 @@ public:
         continue;
       }
       if (p.icon) {
-        lv_font_glyph_dsc_t g;
-        lv_font_get_glyph_dsc(p.font, &g, p.icon, 0);
         set_font(slot.icon, p.font);
         label(slot.icon, tile_icon::utf8(p.icon));
-        // LVGL draws a glyph's ink from (line_height - base_line) - box_h - ofs_y below the label top.
-        int ink_top = (middle2 - g.box_h) / 2;
-        lv_obj_set_pos(slot.icon, x - g.ofs_x, ink_top - ((p.font->line_height - p.font->base_line) - g.box_h - g.ofs_y));
+        lv_obj_set_pos(slot.icon, x - p.icon_left, icon_top(p.font, p.icon, middle2));
         const auto &item = bar.items[p.item];
         // The words, icons and dial of the top bar take the slate paint; an item's own colour sits on top of it.
         const uint32_t color = item.has_color ? theme::foreground(item.color) : 0;
@@ -428,7 +461,7 @@ public:
       }
       if (p.text_w) {
         label(slot.text, p.text);
-        lv_obj_set_pos(slot.text, x - p.text_left, item_baseline - (header_text_font->line_height - header_text_font->base_line));
+        lv_obj_set_pos(slot.text, x - p.text_left, text_top(header_text_font, item_baseline));
         text_on[k] = true;
       }
     }

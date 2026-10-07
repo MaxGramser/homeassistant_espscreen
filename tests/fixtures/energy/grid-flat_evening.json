@@ -1,0 +1,101 @@
+{
+ "prefs": {
+  "device_consumption": [
+   {
+    "stat_consumption": "sensor.fridge_energy",
+    "stat_rate": "sensor.fridge_power"
+   },
+   {
+    "stat_consumption": "sensor.tv_energy",
+    "stat_rate": "sensor.tv_power"
+   },
+   {
+    "stat_consumption": "sensor.office_energy",
+    "stat_rate": "sensor.office_power"
+   }
+  ],
+  "device_consumption_water": [],
+  "energy_sources": [
+   {
+    "cost_adjustment_day": 0.0,
+    "entity_energy_price": null,
+    "entity_energy_price_export": null,
+    "number_energy_price": null,
+    "number_energy_price_export": null,
+    "stat_compensation": null,
+    "stat_cost": null,
+    "stat_energy_from": "sensor.p1_meter_energy",
+    "stat_energy_to": "sensor.grid_export_energy",
+    "stat_rate": "sensor.p1_meter_power",
+    "type": "grid"
+   }
+  ]
+ },
+ "states": {
+  "sensor.fridge_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Fridge Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.fridge_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Fridge Power",
+    "icon": "mdi:fridge",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "85.0"
+  },
+  "sensor.office_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "Office Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.office_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "Office Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "0.0"
+  },
+  "sensor.p1_meter_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "P1 Meter Power",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "640.0"
+  },
+  "sensor.tv_energy": {
+   "attributes": {
+    "device_class": "energy",
+    "friendly_name": "TV Energy",
+    "state_class": "total_increasing",
+    "unit_of_measurement": "kWh"
+   },
+   "state": "1234.5"
+  },
+  "sensor.tv_power": {
+   "attributes": {
+    "device_class": "power",
+    "friendly_name": "TV Power",
+    "icon": "mdi:television",
+    "state_class": "measurement",
+    "unit_of_measurement": "W"
+   },
+   "state": "110.0"
+  }
+ }
+}

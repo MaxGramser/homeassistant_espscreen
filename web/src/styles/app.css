@@ -288,7 +288,7 @@ a:hover { text-decoration: underline; }
 .tiles { display: grid; grid-template-columns: repeat(var(--screen-columns, 2), minmax(0, 1fr)); grid-template-rows: repeat(var(--screen-rows, 3), minmax(0, 1fr)); gap: 8px; min-height: 0; }
 /* manipulation, not pan-y (app 0.2.78): on a phone the row of pages scrolls sideways, also when the swipe starts on a
    tile. The hold before a drag and the blocked touchmove during one still keep the page from scrolling. */
-.tile { position: relative; background: #fff; border: 1px solid #dcdcdc; border-radius: 12px; padding: 8px 9px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; min-height: 0; cursor: pointer; text-align: left; overflow: hidden; color: #1b1b1b; touch-action: manipulation; }
+.tile { position: relative; background: #fff; border: 1px solid #dcdcdc; border-radius: 12px; padding: 8px 9px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; min-height: 0; cursor: pointer; text-align: left; overflow: hidden; isolation: isolate; color: #1b1b1b; touch-action: manipulation; }
 .tile:hover { border-color: #b9c4d3; }
 .tile.chosen { outline: 2px solid var(--kind-tile); outline-offset: 1px; }
 .tile.wide { grid-column: span var(--screen-wide-span, 2); flex-direction: row; align-items: center; gap: 8px; }
@@ -357,6 +357,8 @@ a:hover { text-decoration: underline; }
 @media (hover: none) { .tile .remove, .round-tile .remove { opacity: 1; } }
 .tile .clockface { width: 46px; height: 46px; margin: auto; }
 .tile.wide .clockface { margin: 0; flex: none; }
+/* The energy card's diagram fills its card, as the screen draws it (app 0.4.77). */
+.tile .energy-diagram { width: 100%; height: 100%; min-height: 0; }
 .cell { min-height: 0; border: 1px dashed #cfd4da; border-radius: 12px; background: transparent; color: #a3abb5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-weight: 500; cursor: pointer; padding: 6px; }
 .cell span { font-size: 18px; line-height: 1; }
 .cell small { font-size: 10.5px; color: inherit; }
@@ -957,6 +959,9 @@ td code { white-space: nowrap; }
 .screen-details .whatsnew summary.act .ui-icon { font-size: 15px; color: var(--muted); }
 .screen-details .whatsnew summary.act:hover { background: var(--surface-2); color: var(--ink); }
 .screen-details .whatsnew ul { margin: 2px 0 4px; padding-left: 18px; }
+.screen-details .in-tessera summary.act { color: var(--accent); }
+.screen-details .in-tessera summary.act .ui-icon { color: var(--accent); }
+.screen-details .in-tessera p { margin: 2px 0 4px; font-size: 11.5px; line-height: 1.4; color: var(--ink-2); }
 
 /* ---- New screen (app 0.4.32): a setup assistant on the whole page, not a card in a page ----
    One quiet bar with the steps, one question per step with room around it, the screen itself drawn large, and one
@@ -1157,6 +1162,13 @@ section.advanced code { font-size: 11.5px; }
 .arrive.missing h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
 .arrive.missing h2 .ui-icon { color: var(--warn); font-size: 18px; }
 .arrive.missing p { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+/* The memory a build has (app 0.4.65): the same card as a Wi-Fi that does not come, red once the build stopped for it (out, limit). */
+.memory-note { display: grid; gap: 10px; padding: 18px 20px; border-radius: 14px; background: var(--warn-soft); text-align: left; }
+.memory-note h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
+.memory-note h2 .ui-icon { color: var(--warn); font-size: 18px; }
+.memory-note p { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.memory-note.stopped { background: var(--danger-soft); }
+.memory-note.stopped h2 .ui-icon { color: var(--danger); }
 .arrive-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
 .arrive-form input { background: var(--surface); height: 36px; }
 .arrive-form .btn { height: 36px; }

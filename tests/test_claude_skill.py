@@ -42,7 +42,7 @@ class SkillText(unittest.TestCase):
         for name, kind, *_ in ALERT_FIELDS:
             self.assertRegex(text, rf'\| `{name}` \| ', name)
         for field, limit in ALERT_LIMITS['standard'].items():
-            self.assertIn(f"CYD and Hosyond {ALERT_LIMITS['compact'][field]} · Guition, Waveshare and Sunton {limit} bytes", text)
+            self.assertIn(f"CYD and Hosyond {ALERT_LIMITS['compact'][field]} · Guition, Waveshare, Sunton and M5Stack Tab5 {limit} bytes", text)
         for name, item in TILE_BACKGROUNDS.items():
             if item['color']:
                 self.assertIn(f'`{name}`', text)

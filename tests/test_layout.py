@@ -94,7 +94,9 @@ class LayoutTests(unittest.TestCase):
             self.assertIn(f'runtime_tiles::bind({n - 1}, id(tile{n})', SOURCE)
         self.assertNotIn(f'runtime_tiles::bind({cells}, ', SOURCE)
         runtime = runtime_source()
-        self.assertIn('if (!allowed(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), model.tiles[w.index].entity)) return;', runtime)
+        # A tap that switches is a wish and takes every clean tap (docs/OPTIMISTIC.md); any other keeps the 600 ms guard.
+        self.assertIn('if (!(switches ? allowed_wish(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), tile.entity)', runtime)
+        self.assertIn(': allowed(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), tile.entity))) return;', runtime)
 
     def test_navigation_is_above_grid_but_below_modal_overlays(self):
         grid = SOURCE.index('            id: tile_scroll')

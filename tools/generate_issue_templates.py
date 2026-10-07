@@ -46,11 +46,22 @@ body:
 {board_options(extra_trailing=('Not board-specific (add-on, editor, documentation)',))}
     validations:
       required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How the screen was built
+      description: A screen built from your own YAML or board files runs firmware that was never tested on that combination, so this changes where to look.
+      options:
+        - Installed and updated from Tessera Screen Manager
+        - My own ESPHome YAML (ESPHome Device Builder, my own board files or a fork)
+        - Not about a screen (add-on, editor, documentation)
+    validations:
+      required: true
   - type: input
     id: versions
     attributes:
       label: Add-on and firmware version
-      description: The add-on version from Settings > Add-ons > ESP Screen Manager, and the firmware version shown on the screen's own Settings page (or in the ESPHome logs).
+      description: The version of Tessera Screen Manager in Home Assistant, and the firmware version shown on the screen's own Settings page (or in the ESPHome logs).
       placeholder: "e.g. add-on 0.3.19, firmware 0.3.9"
     validations:
       required: true

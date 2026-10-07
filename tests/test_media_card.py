@@ -117,8 +117,10 @@ class Firmware(unittest.TestCase):
         # The keys of the card and of the tile over the whole page share one action table.
         self.assertIn('inline void media_action(Tile &t,int cmd)', TILES)
         self.assertIn('media_player.volume_mute', TILES)
-        # The cover goes before the camera loads into the same buffer, and comes back after.
-        self.assertIn('cover_release();\n  if (camera_release_due) camera_release();', TILES)
+        # A picture drawn from a download lets it go before another picture loads into the same buffer (the camera after a
+        # cover), and comes back from the store, or is asked for again, after (picture_loader.h, firmware 0.52.0).
+        self.assertIn('if (slot_key[static_cast<int>(slot)] != key) slot_letgo(slot);', TILES)
+        self.assertIn('cover_forget_pictures();', TILES.split('inline void slot_letgo(picture_loader::Slot slot) {', 1)[1].split('\n}\n', 1)[0])
 
     def test_the_layout_has_no_colour_of_its_own(self):
         self.assertIsNone(re.search(r'0x[0-9A-Fa-f]{6}', CARD))

@@ -61,6 +61,7 @@ node web/wasm/test_profiles.mjs
 node web/wasm/test_images.mjs
 PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs
 PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs
+node web/wasm/test_weather_detail.mjs
 cd web
 npm test
 npm run build

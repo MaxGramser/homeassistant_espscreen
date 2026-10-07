@@ -228,6 +228,29 @@ class UpdaterTests(unittest.IsolatedAsyncioTestCase):
         with mock.patch.dict(core.SHAPES['cyd'], {'firmware': 'broken'}):
             self.assertEqual(core.firmware_target('cyd'), FIRMWARE_VERSION)
 
+    async def test_a_build_the_machine_had_no_memory_for_says_so(self):
+        """The result of an update whose build the machine had no memory for (build_memory, app 0.4.65) says what was
+        free and what is needed, instead of pointing at the log."""
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.setup_manager(tmp, outcome='failed')
+            original = m.firmware.run
+            async def out_of_memory(data):
+                await original(data)
+                m.firmware.job['memory'] = {'cores': 4, 'free_mb': 920, 'need_mb': 1500, 'jobs': 1, 'reason': 'out'}
+            m.firmware.run = out_of_memory
+            await m.updates.run_round(['text.screen1'])
+            result = m.updates.results['text.screen1']
+            self.assertEqual((result['state'], result['key']), ('failed', 'addon.updates.build_memory'))
+            self.assertEqual(result['params'], {'free': '0.9 GB', 'need': '1.5 GB'})
+            self.assertIn('about 1.5 GB must be free and 0.9 GB is', result['message'])
+            # Killed although the machine said enough was free: the plain sentence, no numbers.
+            async def limited(data):
+                await original(data)
+                m.firmware.job['memory'] = {'cores': 4, 'free_mb': 6000, 'need_mb': 1500, 'jobs': 1, 'reason': 'limit'}
+            m.firmware.run = limited
+            await m.updates.run_round(['text.screen1'])
+            self.assertEqual(m.updates.results['text.screen1']['key'], 'addon.updates.build_memory_limit')
+
     async def test_round_stops_after_failure_and_notifies(self):
         with tempfile.TemporaryDirectory() as tmp:
             m = self.setup_manager(tmp, outcome='failed')

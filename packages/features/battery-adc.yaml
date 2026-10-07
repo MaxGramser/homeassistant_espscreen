@@ -1,0 +1,29 @@
+# ESP Screens - a battery's voltage on a pin (firmware 0.41.0), for a board that includes features/battery-voltage.yaml
+# as well. docs/BATTERY.md is the recipe.
+#
+# Most boards with a battery and no gauge put the battery on an ADC pin through a voltage divider of two resistors,
+# because a pin takes at most about 3.1 V and a charged lithium cell has 4.2 V. The board names the pin and the
+# divider's ratio (the battery's voltage over the pin's, 2.0 for two equal resistors); this file reads the pin with
+# ESPHome's adc sensor and gives `screen_battery_voltage` in volts at the battery.
+#
+#   substitutions:
+#     BATTERY_PIN: GPIO35
+#     BATTERY_DIVIDER: "2.0"
+#
+# On the ESP32 and the ESP32-S3 only an ADC1 pin works next to Wi-Fi: ADC2 belongs to the radio (ESPHome's adc docs
+# list which pins are which). BATTERY_PIN has no default: there is no pin every board has free.
+substitutions:
+  BATTERY_DIVIDER: "2.0"
+
+sensor:
+  - platform: adc
+    id: screen_battery_voltage
+    name: "Battery Voltage"
+    pin: ${BATTERY_PIN}
+    attenuation: 12db
+    samples: 16
+    update_interval: ${BATTERY_UPDATE_INTERVAL}
+    entity_category: diagnostic
+    accuracy_decimals: 2
+    filters:
+      - multiply: ${BATTERY_DIVIDER}

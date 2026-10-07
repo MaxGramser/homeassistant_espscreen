@@ -20,13 +20,13 @@ static uint8_t tries = 0;
 static uint32_t starting = 0, starting_at = 0;  // the item just tapped, until the player plays (STARTING_MS at most)
 static uint32_t marked = 0;                     // what plays now as far as this screen knows: the last item it started
 static Grid grid;
-// The covers of the page on the glass: one picture from the app, every cover its own part of it.
+// The covers of the page on the glass: one picture from the app, every cover its own part of it. It goes the one way
+// every picture goes (picture_want, runtime_tiles::pictures_round): a page turned before its covers came breaks the
+// download off, and a page that comes back has them from the store at once.
 struct Art {
-  camera_view::Feed feed;   // its link and its download, in the board's full online_image
   std::string key, items, atlas;
   int x = 0, y = 0, scale = picture_store::SCALE_ONE;
   uint32_t ground = 0;
-  lv_image_dsc_t *shown = nullptr;
 };
 static Art art;
 // What a finger uses, for describe(): the cells of the page, the pager's keys, the menu's rows.
@@ -35,7 +35,6 @@ static std::vector<lv_obj_t *> cell_objs, pager_objs, row_objs, join_objs, slide
 struct Marked { lv_obj_t *frame = nullptr, *title = nullptr; size_t index = 0; };
 static std::vector<Marked> marks;
 static lv_obj_t *back_obj = nullptr, *speaker_obj = nullptr;
-static bool art_again = false;  // the page changed while its covers were on their way: ask again once they land
 struct Cover { lv_obj_t *image = nullptr; int index = 0; Rect at; };
 static std::vector<Cover> covers;
 // The speaker menu.
@@ -80,13 +79,11 @@ static Shape shape() {
 static void art_forget() {
   for (auto &c : covers) if (c.image) lv_image_set_src(c.image, nullptr);
   covers.clear();
-  if (art.feed.loading) return;  // the download on its way ends first (art_loaded)
   art = Art{};
 }
 // The picture onto every cover of the page, each its own frame of it.
 static void art_show(lv_image_dsc_t *src) {
 #if LV_USE_IMAGE
-  art.shown = src;
   if (!src || !src->data) return;
   for (auto &c : covers) {
     if (!c.image) continue;
@@ -121,7 +118,6 @@ bool draws(const void *image) {
 static void art_want() {
   // Without a store (no PSRAM, or the host) the covers draw from the download itself, as a page's camera tiles do.
   if (covers.empty() || !rt::camera_supported()) return;
-  if (art.feed.loading) { art_again = true; return; }
   art.x = art.y = INT32_MAX;
   int right = 0, bottom = 0;
   for (auto &c : covers) {
@@ -147,46 +143,36 @@ static void art_want() {
   char tail[16];
   snprintf(tail, sizeof(tail), "|%06X", (unsigned) art.ground);
   art.key = "lib|" + entity + "|" + std::to_string(folder.token) + "|" + art.items + "|" + art.atlas + tail;
-  if (auto *kept = rt::pictures_kept() ? rt::pictures.find(art.key) : nullptr) { art_show(kept); return; }
-  art.feed.open(art.key, true);
+  // What the store keeps of this page is on its covers at once; the rest comes with the next round (picture_want).
+  if (auto *kept = rt::picture_of(art.key)) art_show(kept);
 }
-void art_answer(const std::string &for_entity, const std::string &url) {
-  if (!LIBRARY || !root || for_entity != entity || !art.feed.open() || art.feed.loading) return;
-  art.feed.link(url);
-  if (url.empty()) ESP_LOGI("library", "no covers for this page");
-}
-bool art_loading() { return art.feed.loading; }
-void art_loaded(bool ok) {
-  if (!LIBRARY) return;
-  art.feed.finish(clock_ms(), ok);
-  lv_image_dsc_t *src = ok && rt::camera_full.source ? rt::camera_full.source() : nullptr;
-  lv_image_dsc_t *kept = src && src->data && !art.key.empty() && rt::pictures_kept() ? rt::pictures.put(art.key, *src, clock_ms()) : nullptr;
-  // A page that went meanwhile keeps its covers for when it comes back; the page on the glass asks for its own.
-  if (!root || covers.empty() || art_again) {
-    art_again = false;
-    art = Art{};
-    if (root && !covers.empty()) art_want();
-    return;
-  }
-  if (!ok) { ESP_LOGI("library", "covers failed"); return; }
-  if (!kept && rt::pictures_kept()) ESP_LOGW("library", "no room to keep the covers");
-  art_show(kept ? kept : src);
+static void art_done(picture_loader::Outcome outcome) {
+  if (!LIBRARY || !root || covers.empty()) return;
+  if (!rt::shows(outcome)) { ESP_LOGI("library", "covers failed"); return; }
+  art_show(rt::picture_of(art.key));
   ESP_LOGI("library", "covers shown");
 }
-static void art_tick(uint32_t now) {
-  if (!art.feed.open() || !rt::awake()) return;
-  // One picture at a time, never under a finger or over a camera.
-  if (rt::camera_root || rt::cover.loading || rt::camera.loading || rt::alert_image_due() || rt::alert_thumb_loading) return;
-  if (art.feed.should_ask(now)) {
-    if (!rt::fresh()) return;
-    art.feed.ask(now);
-    rt::library_art_request(entity, art.items, art.atlas, art.ground);
-  } else if (art.feed.should_load(now)) {
-    auto *input = lv_indev_get_next(nullptr);
-    if (input && lv_indev_get_state(input) == LV_INDEV_STATE_PRESSED) return;
-    art.feed.start(now);
-    rt::camera_full.load(art.feed.url);
-  }
+bool picture_want(picture_loader::Want &w) {
+  if (!LIBRARY || !root || covers.empty() || art.key.empty() || !rt::awake() || !rt::camera_supported()) return false;
+  w.key = art.key;
+  w.tag = "lib|" + entity;
+  w.slot = picture_loader::Slot::FULL;
+  w.rank = picture_loader::Rank::LIBRARY;
+  const std::string who = entity, items = art.items, atlas = art.atlas;
+  const uint32_t ground = art.ground;
+  w.ask = [who, items, atlas, ground] { rt::library_art_request(who, items, atlas, ground); };
+  w.done = art_done;
+  return true;
+}
+void art_answer(const std::string &for_entity, const std::string &url) {
+  if (!LIBRARY || !root || for_entity != entity) return;
+  if (url.empty()) ESP_LOGI("library", "no covers for this page");
+  rt::loader.answer("lib|" + entity, url, clock_ms());
+}
+void art_forget_download() {
+  auto *download = rt::camera_full.source ? rt::camera_full.source() : nullptr;
+  if (!download) return;
+  for (auto &c : covers) if (c.image && rt::draws(c.image, download)) lv_image_set_src(c.image, nullptr);
 }
 
 // ---- drawing ----
@@ -810,7 +796,6 @@ void tick(uint32_t now) {
     else ask();
   }
   if (root && starting && now - starting_at >= STARTING_MS) { starting = 0; remark(); }
-  if (root) art_tick(now);
 }
 std::string describe() {
   lv_obj_update_layout(lv_screen_active());

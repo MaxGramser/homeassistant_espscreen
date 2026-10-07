@@ -2,6 +2,10 @@
 # Home Assistant stands behind them. docs/CATALOGUE.md says what every key means.
 domain: screen
 memory: {bytes: 32, extras: false}
+# The energy card (firmware 0.47.0) keeps the house's moment (its devices and their sensors) and the diagram drawn from it,
+# with a small picture of each running dot: its own price, measured as docs/TILE_MEMORY.md says.
+cards:
+  energy: {bytes: 6144, extras: true}
 firmware: 0.2.14   # the first firmware that draws these cards
 displays:
   # The clock's faces; the dial and the flip clock came with firmware 0.3.6.

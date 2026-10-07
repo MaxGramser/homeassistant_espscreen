@@ -68,7 +68,7 @@ class ControlChoices(unittest.TestCase):
         msg = state_message(0, {'entity': 'media_player.sonos', 'name': '', 'options': {'size': 'wide'}}, states)
         self.assertEqual(msg['o'], {'size': 'wide', 'controls': 'volume'})
         self.assertIs(msg['a']['is_volume_muted'], False)
-        self.assertNotIn('assumed_state', msg['a'])
+        self.assertIs(msg['a']['assumed_state'], True, "a player's power keys follow it, as in Home Assistant's dialog")
         msg = state_message(1, {'entity': 'cover.curtain', 'name': '', 'options': {'size': 'wide', 'controls': 'none', 'background': 'blue'}}, states)
         self.assertEqual(msg['o'], {'size': 'wide', 'background': 'blue'}, 'an explicit none is not sent; the stored choice stays')
         self.assertEqual(msg['a']['device_class'], 'curtain')

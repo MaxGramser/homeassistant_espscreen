@@ -13,7 +13,27 @@ export const BUILTIN_ICONS: Record<string, string> = { clock: "clock-outline", a
 // network, and the link mark while Home Assistant or Tessera is away.
 export const WIFI_GLYPHS = ["F092E", "F091F", "F0922", "F0925", "F0928"];
 export const LINK_GLYPH = "F0319";
-export const STATUS_CODES: Record<string, string> = { wifi: WIFI_GLYPHS[4], link: LINK_GLYPH };
+// The battery (firmware 0.41.0, battery_status.h): Home Assistant's battery icons (frontend battery_icon.ts,
+// batteryLevelIcon), the level in tens, the charging set from 10 % up, the alert outline at 5 % or less.
+const BATTERY_GLYPHS = ["", "F007A", "F007B", "F007C", "F007D", "F007E", "F007F", "F0080", "F0081", "F0082", "F0079"];
+const BATTERY_CHARGING_GLYPHS = ["", "F089C", "F0086", "F0087", "F0088", "F089D", "F0089", "F089E", "F008A", "F008B", "F0084"];
+export function batteryIcon(level: number, charging = false) {
+  if (!Number.isFinite(level)) return "F0091";
+  const round = Math.min(10, Math.max(1, Math.round(level / 10)));
+  if (charging && level >= 10) return BATTERY_CHARGING_GLYPHS[round];
+  if (charging) return "F089F";
+  if (level <= 5) return "F10CD";
+  return BATTERY_GLYPHS[round];
+}
+// The battery the mockup draws: three quarters, not charging, as the firmware's preview has it (battery_status.h).
+export const SAMPLE_BATTERY = 76;
+export const BATTERY_LOW = 20;
+// header_bar::device_item for the battery: its icon and text at a level, and whether "Only when low" shows it.
+export function batteryView(item: HeaderItem, level: number, charging: boolean, percent: (n: number) => string): ItemView {
+  const text = (item.content ?? "icon") === "percent" && Number.isFinite(level) ? percent(Math.round(level)) : "";
+  return { icon: batteryIcon(level, charging), text, shown: (item.show ?? "always") !== "low" || (Number.isFinite(level) && level <= BATTERY_LOW) };
+}
+export const STATUS_CODES: Record<string, string> = { wifi: WIFI_GLYPHS[4], link: LINK_GLYPH, battery: batteryIcon(SAMPLE_BATTERY) };
 // The signal the mockup draws: a good one, as most screens have.
 export const SAMPLE_RSSI = -58;
 // wifi_status::bars and ::percent: a phone's bars, ESPHome's documented percentage.
@@ -32,8 +52,10 @@ export function wifiView(item: HeaderItem, rssi: number, percent: (n: number) =>
 // the flash of a new item all stopped working (fixed in app 0.4.1).
 export const itemKey = (item: HeaderItem) => item.type === "entity"
   ? JSON.stringify(["entity", item.entity, item.content ?? "state", item.icon ?? "auto", item.show ?? "always"])
-  : item.type === "wifi" ? JSON.stringify(["wifi", item.content ?? "icon", item.show ?? "always"])
+  : item.type === "wifi" || item.type === "battery" ? JSON.stringify([item.type, item.content ?? "icon", item.show ?? "always"])
   : JSON.stringify([item.type]);
+// A new entity item as the top bar adds one: its state with the automatic icon, always shown.
+export const entityItem = (entity: string): HeaderItem => ({ type: "entity", entity, content: "state", icon: "auto", show: "always" });
 export const glyph = (cp: string) => String.fromCodePoint(parseInt(cp, 16));
 
 // The time as the screens write it (screen_text::clock_text): "07:12" on 24 hours; on 12 "7:12 PM" in the top bar, with

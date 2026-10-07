@@ -1,0 +1,35 @@
+# ESP Screens - the Waveshare ESP32-S3-Touch-LCD-4.3 board apart from its glass, for a board file that includes this one.
+#
+# Waveshare sells this board with 4.3-inch glass (ESP32-S3-Touch-LCD-4.3) and with 5-inch glass of the same 800 x 480
+# (ESP32-S3-Touch-LCD-5, not the 1024 x 600 5B). Waveshare's own library (ESP32_Display_Panel,
+# BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_4_3.h and _5.h) gives both the same pins, the same timings, the same GT911 and
+# the same CH422G lines, and both carry an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM. This is that board: the
+# CH422G family (waveshare-ch422g.yaml), its flash and its panel. The board file states its glass (PANEL_W, PANEL_H,
+# DISPLAY_DPI) and its grid.
+#
+# Only the 5-inch board includes this file for now. The 4.3-inch carries the same sections in its own board file:
+# moving them here changes nothing it builds, but it would count as a firmware update for every 4.3-inch screen
+# (docs/BOARD_RELEASES.md). The next shared release moves them, and waveshare-esp32s3-43.yaml includes this file then.
+packages:
+  ch422g: !include waveshare-ch422g.yaml
+
+esp32:
+  flash_size: 16MB
+
+display:
+  # The timings are Waveshare's own (ESP32_Display_Panel), not the model's. The ST7262 in this panel wants 808 to
+  # 896 pixel clocks per line and 488 to 504 lines per frame (datasheet 7.3.4: front and back porch 4 to 48, pulse
+  # 2 to 8); ESPHome's model sends 1070 per line (front porch 210, pulse 30, back porch 30), which puts the line rate
+  # at 15 kHz, right where the panel lets go. On 2026-09-20 a 4.3-inch screen worked for a while, then stood half a
+  # centimetre to the right, then showed only white or a loop of flat colours (white, red, blue, green) while the
+  # firmware ran on, until any reset or power cycle happened to lock it again. With 820 clocks per line and 500
+  # lines per frame at 16 MHz (39 Hz, 19.5 kHz) it stays locked, through standby and back. A 5-inch screen ran a
+  # day on these timings, built from the 4.3-inch package.
+  - id: !extend my_display
+    model: ESP32-S3-TOUCH-LCD-4.3
+    hsync_pulse_width: 4
+    hsync_back_porch: 8
+    hsync_front_porch: 8
+    vsync_pulse_width: 4
+    vsync_back_porch: 8
+    vsync_front_porch: 8

@@ -51,7 +51,18 @@ MAX_TOKENS = 4000       # numbers a screen's items get before the oldest are for
 
 BROWSE_MEDIA = catalogue.bits('media_player', 'BROWSE_MEDIA')
 PLAY_MEDIA = catalogue.bits('media_player', 'PLAY_MEDIA')
+NEXT_TRACK = catalogue.bits('media_player', 'NEXT_TRACK')
 SELECT_SOURCE = catalogue.bits('media_player', 'SELECT_SOURCE')
+SHUFFLE_SET = catalogue.bits('media_player', 'SHUFFLE_SET')
+REPEAT_SET = catalogue.bits('media_player', 'REPEAT_SET')
+# A favourite's own shuffle and repeat (app 0.4.84), as Home Assistant's shuffle_set and repeat_set take them; without
+# one the player keeps its own.
+SHUFFLES = {'on': True, 'off': False}
+REPEATS = ('off', 'all', 'one')
+# What a shuffled start skips to: Spotify starts a context at its first track whatever its shuffle says, so the first
+# song heard is a shuffled one only after one skip. A single song has nothing to skip to.
+SKIPS = ('playlist', 'album', 'artist', 'podcast')
+SETTLE_SECONDS = 1.5    # for a player to take what it was given, before its shuffle and again before a skip
 
 # What an item says it can do, as the screen reads it.
 CAN_PLAY, CAN_EXPAND, PICTURED, PLAYING = 1, 2, 4, 8
@@ -281,6 +292,14 @@ class Shelf:
         return found[1] if found and found[0] == entity else None
 
 
+def holds_media(state):
+    """Whether a player has something to play or pause: playing, or paused with a song. A start Spotify took and then
+    dropped leaves it paused with nothing (a single song, September 2026), and nothing of it is marked as playing."""
+    state = state or {}
+    attrs = state.get('attributes') or {}
+    return state.get('state') == 'playing' or (state.get('state') == 'paused' and bool(attrs.get('media_content_id') or attrs.get('media_title')))
+
+
 def playing_now(item, attrs, started=None):
     """Whether this item is what the player plays now: the one this app started last, while that still plays, or an
     album or playlist whose name the player reports. Spotify names no playlist it does not own since February 2026, so
@@ -346,9 +365,11 @@ async def browse(call, entity, item=None):
     return folder_of(answer.get(entity) if entity in answer else answer)
 
 
-async def start(states, call, entity, item, source=None, wait=START_SECONDS, sleep=asyncio.sleep, clock=time.monotonic):
+async def start(states, call, entity, item, source=None, wait=START_SECONDS, sleep=asyncio.sleep, clock=time.monotonic,
+                shuffle=None, repeat=None):
     """Play an item on a player: first the speaker it should play on, when one is chosen or the player must be woken, and
-    then the item once the player takes it (see the module's notes). Returns what happened, for the log."""
+    then the item once the player takes it (see the module's notes), and then a favourite's own shuffle and repeat (app
+    0.4.84). Returns what happened, for the log."""
     attrs = (states.get(entity) or {}).get('attributes') or {}
     if source and source != attrs.get('source'):
         if not features_of(attrs) & SELECT_SOURCE:
@@ -363,7 +384,27 @@ async def start(states, call, entity, item, source=None, wait=START_SECONDS, sle
                 return 'not woken'
             await sleep(0.25)
     await call('media_player', 'play_media', {'entity_id': entity, 'media_content_type': item['type'], 'media_content_id': item['id']})
+    if shuffle in SHUFFLES or repeat in REPEATS:
+        await arrange(states, call, entity, item, shuffle, repeat, wait, sleep, clock)
     return 'playing'
+
+
+async def arrange(states, call, entity, item, shuffle, repeat, wait=START_SECONDS, sleep=asyncio.sleep, clock=time.monotonic):
+    """A favourite's shuffle and repeat, set once the player plays what it was given: a new queue may reset them (a
+    Sonos), and Spotify takes them on what plays. With shuffle on, one skip makes the first song a shuffled one (SKIPS).
+    A player without the action keeps its own."""
+    await sleep(SETTLE_SECONDS)
+    until = clock() + wait
+    while (states.get(entity) or {}).get('state') != 'playing' and clock() < until:
+        await sleep(0.25)
+    features = features_of((states.get(entity) or {}).get('attributes'))
+    if shuffle in SHUFFLES and features & SHUFFLE_SET:
+        await call('media_player', 'shuffle_set', {'entity_id': entity, 'shuffle': SHUFFLES[shuffle]})
+    if repeat in REPEATS and features & REPEAT_SET:
+        await call('media_player', 'repeat_set', {'entity_id': entity, 'repeat': repeat})
+    if shuffle == 'on' and features & SHUFFLE_SET and item.get('class') in SKIPS and features & NEXT_TRACK:
+        await sleep(SETTLE_SECONDS)
+        await call('media_player', 'media_next_track', {'entity_id': entity})
 
 
 # ---- a favourite: one item of the library on a tile of its own (app 0.4.42, firmware 0.24.0) ----
@@ -403,6 +444,74 @@ def favorite_of(item):
     if item.get('class'):
         play['class'] = item['class']
     return play
+
+
+# ---- a favourite from a Spotify link (app 0.4.84) ----
+#
+# Home Assistant's library of a Spotify account holds at most 48 items a folder and none of what Spotify makes itself
+# (Discover Weekly, Release Radar, Daily Mix): Spotify withholds those playlists from new developer apps since November
+# 2024, but plays them. A link from Spotify's own app (Share > Copy link) becomes the same favourite an item of the
+# library is, with the content id and type Home Assistant's media browser would send for that player: a bare URI for
+# the Spotify account itself (spotify/media_player.py strips `spotify://` from the type), and the account's address
+# around it for a player whose library lists the account (sonos/media_player.py: spotify_uri_from_media_browser_url).
+
+# Spotify's word for a kind of thing -> Home Assistant's media class (FAVORITE_KINDS).
+SPOTIFY_KINDS = {'playlist': 'playlist', 'album': 'album', 'artist': 'artist', 'track': 'track', 'show': 'podcast', 'episode': 'episode'}
+_KIND = '(' + '|'.join(SPOTIFY_KINDS) + ')'
+SPOTIFY_LINK = re.compile(r'(?:https?://)?open\.spotify\.com/(?:intl-[a-z]{2}(?:-[a-z]{2,4})?/|embed/)?' + _KIND +
+                          r'/([0-9A-Za-z]{22})(?:[/?#].*)?', re.IGNORECASE)
+SPOTIFY_URI = re.compile(r'spotify:' + _KIND + r':([0-9A-Za-z]{22})')
+# A short link only says where to go next; following it would mean a redirect to any host, so it is refused.
+SPOTIFY_SHORT = re.compile(r'(?:https?://)?(?:spotify\.link|spoti\.fi)/\S*', re.IGNORECASE)
+SPOTIFY_PREFIX = 'spotify://'
+OEMBED = 'https://open.spotify.com/oembed'
+OEMBED_SECONDS = 8
+OEMBED_BYTES = 64 * 1024
+
+
+def spotify_link(text):
+    """(kind, id) of a Spotify link or URI as Spotify's app copies it, or None."""
+    text = (text or '').strip()
+    found = SPOTIFY_LINK.fullmatch(text) or SPOTIFY_URI.fullmatch(text)
+    return (found.group(1).lower(), found.group(2)) if found else None
+
+
+def spotify_short(text):
+    """Whether this is a short spotify.link address, which names nothing until it is followed."""
+    return bool(SPOTIFY_SHORT.fullmatch((text or '').strip()))
+
+
+def spotify_entry(items):
+    """The account a player's library top lists (a Sonos lists `spotify://<config entry>`), or None. The first, in Home
+    Assistant's order, where it lists more than one."""
+    for item in items or ():
+        content_id = item.get('id') if isinstance(item, dict) else None
+        if isinstance(content_id, str) and content_id.startswith(SPOTIFY_PREFIX) and \
+                re.fullmatch(r'[^/:]+', content_id[len(SPOTIFY_PREFIX):]):
+            return content_id[len(SPOTIFY_PREFIX):]
+    return None
+
+
+def spotify_item(kind, spotify_id, entry=None, title='', thumb=None):
+    """The item a favourite of a Spotify link plays, as item_of keeps one: for the account itself (`entry` None) or for a
+    player that lists the account with that entry."""
+    uri = f'spotify:{kind}:{spotify_id}'
+    return {'title': short(title, TITLE_LIMIT), 'id': f'{SPOTIFY_PREFIX}{entry}/{uri}' if entry else uri,
+            'type': SPOTIFY_PREFIX + kind, 'play': True, 'expand': False, 'thumb': thumb,
+            'icon': CLASS_ICONS[SPOTIFY_KINDS[kind]], 'class': SPOTIFY_KINDS[kind]}
+
+
+def oembed_card(raw):
+    """(title, picture address) of Spotify's oEmbed answer; None for what it lacks."""
+    try:
+        answer = json.loads(raw)
+    except (TypeError, ValueError):
+        return None, None
+    if not isinstance(answer, dict):
+        return None, None
+    title, thumb = answer.get('title'), answer.get('thumbnail_url')
+    return (title.strip() if isinstance(title, str) and title.strip() else None,
+            thumb if isinstance(thumb, str) and thumb.startswith('https://') else None)
 
 
 def preview_jpeg(raw, side=256):

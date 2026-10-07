@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include "runtime_model.h"
+#include "optimistic.h"
 #include "screen_text.h"
 #include "tile_catalogue.h"
 
@@ -39,8 +40,6 @@ inline size_t names_room(size_t left) {
   if (left == 0) return MAX_NAMES;
   return left > NAME_RESERVE ? std::min(MAX_NAMES, (left - NAME_RESERVE) / NAME_COST) : 0;
 }
-// A chosen name stays on its row while Home Assistant still reports the old one, this long at most.
-constexpr uint32_t SENT_HOLD_MS = 4000;
 
 inline int clamp(int value, int low, int high) { return std::max(low, std::min(high, value)); }
 // Whether a light has an effects page: it offers effects (LightEntityFeature.EFFECT), or its device has rows to show.
@@ -188,6 +187,10 @@ namespace effects_page {
 inline const lv_font_t *title_font = nullptr, *row_font = nullptr, *roller_font = nullptr, *icon_font = nullptr;
 inline std::function<const Tile *(const std::string &)> tile_of;                                            // the open card's tile, else the first of that entity
 inline std::function<void(const std::string &, const std::string &, const std::string &, const std::string &)> send;  // service, entity, key, value
+// A row's change as a wish (docs/OPTIMISTIC.md): the light, the field, the row's entity (none for the light's effect),
+// the value it shows and the action (runtime_tiles::wish_part). The rows show what the light's tile holds, wish and all.
+inline std::function<void(const std::string &, optimistic::Field, const std::string &, const std::string &, const std::string &,
+                          const std::string &, const std::string &, bool)> wish;
 inline std::function<void(const std::string &, unsigned)> ask;                                               // options_request
 inline std::function<int()> drift;                                                                           // finger travel this touch
 inline int tap_limit = 0;
@@ -196,7 +199,7 @@ inline uint32_t (*now)() = nullptr;
 // ---- state while open ----
 inline lv_obj_t *root = nullptr, *picker = nullptr;
 inline std::string entity;   // the light
-struct RowDrawn { lv_obj_t *card = nullptr, *value = nullptr; std::string entity, sent; uint32_t sent_at = 0; bool light = false; std::string name; };
+struct RowDrawn { lv_obj_t *card = nullptr, *value = nullptr; std::string entity; bool light = false; std::string name; };
 struct NumberDrawn { lv_obj_t *slider = nullptr, *value = nullptr; std::string entity; float low = 0, high = 100, step = 1; bool dirty = false; };
 inline std::vector<RowDrawn> rows;
 inline std::vector<NumberDrawn> numbers;
@@ -310,10 +313,15 @@ inline void choose(const std::string &name) {
     if (row.light) current = t->extra().effect;
     else for (auto &r : t->extra().option_rows) if (r.entity == row.entity) current = r.current;
   }
-  if (name == row.sent || (row.sent.empty() && name == current)) return;
-  row.sent = name; row.sent_at = clock();
+  if (name == current) return;
   if (row.value) lv_label_set_text(row.value, name.c_str());
   ESP_LOGI("effects", "%s: %s", row.entity.c_str(), name.c_str());
+  // A wish shows it at once and squares it with Home Assistant; the bare action where the runtime takes none.
+  if (wish) {
+    if (row.light) wish(entity, optimistic::Field::EFFECT, "", name, "light.turn_on", "effect", name, false);
+    else wish(entity, optimistic::Field::ROW_OPTION, row.entity, name, "select.select_option", "option", name, false);
+    return;
+  }
   if (!send) return;
   if (row.light) send("light.turn_on", row.entity, "effect", name);
   else send("select.select_option", row.entity, "option", name);
@@ -352,7 +360,7 @@ inline void show_roller() {
   lv_obj_set_width(roller, m.width - 2 * m.pad - 2 * m.inset);
   lv_obj_center(roller);
   const auto &row = rows[picker_row];
-  std::string current = !row.sent.empty() ? row.sent : row.light ? (tile() ? tile()->extra().effect : std::string()) : [&]() {
+  std::string current = row.light ? (tile() ? tile()->extra().effect : std::string()) : [&]() {
     if (auto *t = tile()) for (auto &r : t->extra().option_rows) if (r.entity == row.entity) return r.current;
     return std::string();
   }();
@@ -417,7 +425,8 @@ inline void slider_event(lv_event_t *e) {
     n.dirty = false;
     const float value = value_at(lv_slider_get_value(n.slider), n.low, n.high, n.step);
     ESP_LOGI("effects", "%s: %s", n.entity.c_str(), number_text(value).c_str());
-    if (send) send("number.set_value", n.entity, "value", number_text(value));
+    if (wish) wish(entity, optimistic::Field::ROW_NUMBER, n.entity, number_text(value), "number.set_value", "value", number_text(value), false);
+    else if (send) send("number.set_value", n.entity, "value", number_text(value));
   }
 }
 inline void back_event(lv_event_t *) { if (steady()) { close_picker(); if (root) { lv_obj_delete(root); root = nullptr; } rows.clear(); numbers.clear(); } }
@@ -536,14 +545,12 @@ inline void draw() {
 // moment, a slider under a finger is left alone.
 inline void updated(const Tile &t) {
   if (!root || t.entity != entity) return;
-  const uint32_t moment = clock();
+  // The rows show what the tile holds, a wish just made included (docs/OPTIMISTIC.md).
   for (auto &row : rows) {
     std::string current;
     if (row.light) current = t.extra().effect;
     else for (auto &r : t.extra().option_rows) if (r.entity == row.entity) current = r.current;
-    if (!row.sent.empty() && current != row.sent && moment - row.sent_at < SENT_HOLD_MS) continue;
-    if (!row.sent.empty() && (current == row.sent || moment - row.sent_at >= SENT_HOLD_MS)) row.sent.clear();
-    if (row.value) lv_label_set_text(row.value, row_text(current).c_str());
+    if (row.value && row_text(current) != lv_label_get_text(row.value)) lv_label_set_text(row.value, row_text(current).c_str());
   }
   for (auto &n : numbers) {
     if (!n.slider || lv_obj_has_state(n.slider, LV_STATE_PRESSED) || n.dirty) continue;

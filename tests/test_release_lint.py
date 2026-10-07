@@ -1,6 +1,7 @@
 """Release lint (app 0.2.78): the version numbers of a release agree, and the packages fetch only fonts that exist.
 
-Every push to main is a release (docs/RELEASING.md), so these run with the rest of the suite in tools/check.sh and CI.
+Every commit on main is a release (docs/RELEASING.md), so these run with the rest of the suite in tools/check.sh and
+CI. On dev the CHANGELOG starts with "## Unreleased", which no heading rule here reads.
 Standard library only.
 """
 from pathlib import Path

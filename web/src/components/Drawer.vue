@@ -7,6 +7,9 @@ import { closeInspector, currentTile, phone, state } from "../store";
 import TileInspector from "./TileInspector.vue";
 import TopbarInspector from "./TopbarInspector.vue";
 import TopbarAdd from "./TopbarAdd.vue";
+import SaverItemInspector from "./SaverItemInspector.vue";
+import SaverAdd from "./SaverAdd.vue";
+import SaverInspector from "./SaverInspector.vue";
 import InspectPanel from "./InspectPanel.vue";
 import PageInspector from "./PageInspector.vue";
 
@@ -22,6 +25,9 @@ const open = computed(() => Boolean(state.inspector && (state.inspector.kind !==
       <TileInspector v-if="state.inspector.kind === 'tile' && currentTile" :tile="currentTile" />
       <TopbarInspector v-else-if="state.inspector.kind === 'bar'" :index="state.inspector.index" />
       <TopbarAdd v-else-if="state.inspector.kind === 'bar-add'" />
+      <SaverItemInspector v-else-if="state.inspector.kind === 'saver-item'" :index="state.inspector.index" />
+      <SaverAdd v-else-if="state.inspector.kind === 'saver-add'" />
+      <SaverInspector v-else-if="state.inspector.kind === 'saver'" :step="state.inspector.step" />
       <PageInspector v-else-if="state.inspector.kind === 'page'" :id="state.inspector.id" />
       <InspectPanel v-else-if="state.inspector.kind === 'inspect'" :entity="state.inspector.entity" :slot="state.inspector.slot" :tile-key="state.inspector.key" />
     </div>

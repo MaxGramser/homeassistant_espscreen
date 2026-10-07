@@ -42,12 +42,14 @@ Open **New screen** in the sidebar to install a screen: connect it via USB to th
 Home Assistant machine, choose the board, name and USB port, then click **Install**.
 The profile with unique keys goes into the ESPHome folder of the HA configuration,
 any missing Wi-Fi goes into `secrets.yaml` (existing secrets are left untouched), and the
-build and flash run in the same window; it then shows the API key
-for pairing. Is the Home Assistant machine out of reach of the screen, such as a server or a
+build and flash run in the same window. Once the screen is on your Wi-Fi, Tessera adds it to Home Assistant
+and lets it perform actions, with nothing to do in Home Assistant. A screen built elsewhere, whose YAML isn't in Home
+Assistant's ESPHome folder, is added by hand under **Settings → Devices & services** (docs/EASY_SETUP.md, "Adding a
+screen by hand"). Is the Home Assistant machine out of reach of the screen, such as a server or a
 virtual machine? Plug it into your own computer and choose **This computer** under **Install via**:
 Tessera builds the firmware and the page puts it on the screen, in Chrome or Edge with Home
 Assistant opened over https. Or choose **Download** and put it on the screen with
-[ESPHome Web](https://web.esphome.io). Pairing itself happens in Home Assistant under **Settings → Devices & services** (a button in the window and on the *not yet in Home Assistant* card under Screens in the sidebar). Each screen has its own profile. **Firmware & USB** in the sidebar is
+[ESPHome Web](https://web.esphome.io). Each screen has its own profile. **Firmware & USB** in the sidebar is
 for existing profiles: check, build or reinstall via USB, the IP address (OTA), this computer
 or Download. Existing ESPHome profiles in the HA config folder are
 found automatically.
@@ -65,7 +67,7 @@ temperature, a door, the alarm, or "last changed"). Drag to reorder, tap
 to configure; firmware 0.2.32 or newer renders them. Firmware 0.38.0 adds two items the screen reads itself: its
 Wi-Fi signal and a warning that appears while Home Assistant or Tessera is away.
 
-After pairing via the HA ESPHome integration, choose the tiles in Tessera.
+Once a screen shows up in the sidebar, choose its tiles in Tessera.
 Tap a tile and its settings open in a drawer on the right, with the mockup still in view: click behavior, larger values, mini-sliders, a wider tile or one over the whole page, backgrounds.
 The mockup shows what Home Assistant reports right now: values, On or Off, positions, the song that plays. **Identify** in the ··· menu blinks a screen so you know which one it is; the same menu copies the layout of another screen, or exports and imports one as JSON. ⌘K searches screens, entities and actions.
 **Screen settings**, the tab next to Layout, has brightness, Dark mode and standby, the night hours, and the

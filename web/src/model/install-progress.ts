@@ -10,28 +10,64 @@ export type StepState = "waiting" | "running" | "done" | "failed";
 export type Step = { key: StepKey; state: StepState; percent: number | null };
 export type Progress = { steps: Step[]; percent: number; failed: boolean; done: boolean };
 
-type Job = { state?: string; stage?: string; action?: string } | null | undefined;
+// What the add-on says about the memory a build has (build_memory.py, app 0.4.65): the machine's cores and free memory
+// in MB, the compilers it runs at once, and why that is fewer than the cores, or why the build stopped.
+export type MemoryReason = "low" | "tight" | "retry" | "out" | "limit";
+export type BuildMemory = { cores: number; free_mb: number | null; need_mb: number; jobs: number; reason: MemoryReason | null };
+type Job = { state?: string; stage?: string; action?: string; memory?: BuildMemory | null } | null | undefined;
 type Flash = { phase: string; percent: number } | null | undefined;
 
 /**
- * How far the build is, as a share of 1; null before ninja counts. The build itself has the most steps of every count in
- * the log ("[412/1702]"): the bootloader beside it counts its own few ("[1/123]"), and ESPHome's size report after it
- * starts at "[0/2]", so the count of the largest total is the one to follow (app 0.4.63). A line from an older app can
- * still hold ninja's whole run of updates, each after a carriage return, so every part of a line counts.
+ * The note a build's memory earns, for the card the installer shows: the reason and the words' numbers, the memory in GB
+ * to one decimal (as "1.2", for the page to write in its language). Nothing when the machine has room.
  */
-export function buildShare(logs: readonly string[]): number | null {
+export function memoryNote(job: Job): { reason: MemoryReason; free: string; need: string; jobs: number; cores: number } | null {
+  const memory = job?.memory;
+  if (!memory?.reason) return null;
+  const gb = (mb: number | null | undefined) => (mb === null || mb === undefined ? "?" : (mb / 1024).toFixed(1));
+  return { reason: memory.reason, free: gb(memory.free_mb), need: gb(memory.need_mb), jobs: memory.jobs, cores: memory.cores };
+}
+
+/** ninja's count in one run of ESPHome: (steps done, steps in all) of the largest total it counted; null without one. */
+function ninjaCount(lines: readonly string[]): [number, number] | null {
   let total = 0, done = 0;
-  for (const line of logs) {
+  for (const line of lines) {
     for (const part of line.split("\r")) {
       const found = /^\s*(?:\x1b\[[0-9;]*[A-Za-z])*\[(\d+)\/(\d+)\]/.exec(part);
       if (!found || Number(found[2]) <= 0) continue;
       if (Number(found[2]) >= total) { total = Number(found[2]); done = Number(found[1]); }
     }
   }
-  if (!total) return null;
+  return total ? [done, total] : null;
+}
+
+/**
+ * How far the build is, as a share of 1; null before ninja counts. The build itself has the most steps of every count in
+ * the log ("[412/1702]"): the bootloader beside it counts its own few ("[1/123]"), and ESPHome's size report after it
+ * starts at "[0/2]", so the count of the largest total is the one to follow (app 0.4.63). A line from an older app can
+ * still hold ninja's whole run of updates, each after a carriage return, so every part of a line counts.
+ *
+ * A build the add-on started again after the memory ran out (app 0.4.65) stands in the log as a second "ESPHome:
+ * compile", and ninja counts only the steps left from one: what that run does fills the rest of the bar, after what the
+ * first run got done, so the bar goes on instead of jumping back.
+ */
+export function buildShare(logs: readonly string[]): number | null {
+  const runs: string[][] = [[]];
+  for (const line of logs) {
+    if (line === "ESPHome: compile" && runs[runs.length - 1].length) runs.push([]);
+    else runs[runs.length - 1].push(line);
+  }
+  let share: number | null = null;
+  for (const run of runs) {
+    const count = ninjaCount(run);
+    if (!count) continue;
+    const part = Math.min(1, count[0] / count[1]);
+    share = share === null ? part : share + (1 - share) * part;
+  }
+  if (share === null) return null;
   // The image is made and the factory file written: the build is done, whatever ninja counted last.
   if (logs.some((line) => /Creating factory\.bin|Successfully compiled program/.test(line))) return 1;
-  return Math.min(1, done / total);
+  return share;
 }
 
 // What ESPHome says on its way to the build, before ninja counts anything (app 0.4.63): a first build on a Raspberry Pi

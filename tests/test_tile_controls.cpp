@@ -192,6 +192,42 @@ int main() {
   // The room's temperature as Home Assistant sends it, not always with one decimal.
   assert(temperature_text(73) == "73°" && temperature_text(21.5f) == "21.5°" && temperature_text(21.25f) == "21.25°");
 
+  // A humidifier (firmware 0.42.0) is a thermostat in percent: its humidity between - and +, its modes as the mode bar,
+  // its words and icons Home Assistant's, its action in the line; Home Assistant's blue whether it dries or humidifies.
+  Tile dry = make("humidifier.laundry", "on", 1); dry.device_class = "dehumidifier";
+  dry.edit_extra().hvac_modes = "[\"normal\",\"away\"]"; dry.edit_extra().humidifier_mode = "normal"; dry.edit_extra().hvac_action = "drying";
+  dry.current = 68; dry.target = 55; dry.minimum = 0; dry.maximum = 100; dry.step = 1;
+  assert(thermostat(dry) && humidifier(dry) && !climate_off(dry) && accent(dry) == theme::ha::BLUE);
+  assert(climate_card_status(dry, true) == "Drying · 68%" && climate_card_status(dry) == "Drying · Now 68%");
+  assert(status_text(dry) == "Drying · 68%" && humidity_text(45.5f) == "45.5%" && reading_text(dry, 68) == "68%");
+  assert(std::strcmp(setpoint_suffix(dry), "%") == 0 && edit_target(dry) == 55);
+  const auto humid = edit_action(dry, step_value(55, 1, 0, 100, 1));
+  assert(humid.service == "humidifier.set_humidity" && humid.key == "humidity" && humid.value == "56");
+  assert(edit_action(dry, 54.6f).value == "55");   // Home Assistant takes a whole percentage
+  assert(humidifier_named_modes(dry) && climate_modes(dry).size() == 2 && climate_rows(dry).empty());
+  assert(climate_bar_keys(dry, mode_row) == 2 && mode_row[0].arg == "normal" && mode_row[0].checked && !mode_row[1].checked);
+  assert(std::strcmp(mode_row[1].icon, humidifier_mode_icon("away")) == 0);
+  const auto away = key_action(dry, HVAC_MODE, "away");
+  assert(away.service == "humidifier.set_mode" && away.key == "mode" && away.value == "away");
+  dry.controls = "setpoint"; assert(panel_available(dry));
+  dry.controls = "slider"; assert(panel_available(dry));
+  dry.controls = "mode"; assert(panel_available(dry));
+  dry.controls = "toggle"; assert(panel_available(dry) && key_action(dry, TOGGLE).service == "humidifier.turn_off");
+  dry.controls = "setpoint_mode"; assert(climate_modes_selected(dry) && panel_kind(dry) == "setpoint");
+  assert(tap_route(dry, false).route == TapRoute::CARD);
+  // Off: Home Assistant reports the action off, the line says so with the humidity it measures.
+  Tile off = dry; off.state = "off"; off.edit_extra().hvac_action = "off";
+  assert(climate_off(off) && climate_card_status(off, true) == "Off · 68%" && key_action(off, TOGGLE).service == "humidifier.turn_on");
+  // Without an action or a sensor (a plain integration): On or Off alone.
+  Tile plain = make("humidifier.cellar", "on"); plain.target = 60;
+  assert(climate_card_status(plain, true) == "On" && climate_modes(plain).empty() && climate_bar_keys(plain, mode_row) == 0);
+  // A mode of the integration's own has no icon: the card lists the modes as a row of words instead of round keys.
+  Tile own = dry; own.edit_extra().hvac_modes = "[\"normal\",\"laundry\",\"auto\"]";
+  assert(!humidifier_named_modes(own) && climate_modes(own).empty());
+  const auto word_rows = climate_rows(own);
+  assert(word_rows.size() == 1 && word_rows[0].kind == 'm' && word_rows[0].labels[1] == "laundry" && word_rows[0].labels[2] == "Auto");
+  assert(climate_row_action('m', "laundry").service == "humidifier.set_mode");
+
   // Numbers edit their own state; selects step through their options with wrap-around.
   Tile number = make("number.target", "55"); number.minimum = 0; number.maximum = 100; number.step = 5;
   assert(edit_target(number) == 55 && edit_action(number, step_value(55, 5, 0, 100, -1)).value == "50");
@@ -215,17 +251,29 @@ int main() {
   assert(key_action(make("light.lamp", "off"), TOGGLE).service == "light.turn_on");
   assert(!key_action(make("sensor.x", "1"), TOGGLE).valid());
   assert(!key_action(make("sensor.x", "1"), RUN).valid());
-  // A toggle key sends what its tap asks for and then shows the new stand; firmware 0.2.59 to 0.2.71 showed it first
-  // and so sent an off light light.turn_off.
+  // What a key wishes for (docs/OPTIMISTIC.md) follows the stand the tile shows, as its action does, and changes
+  // nothing itself: firmware 0.2.59 to 0.2.71 showed the new stand first and so sent an off light light.turn_off.
   Tile off_lamp = make("light.lamp", "off");
-  assert(press_key(off_lamp, TOGGLE).service == "light.turn_on" && off_lamp.state == "on" && off_lamp.optimistic_tap);
-  off_lamp.undo_optimistic(); assert(off_lamp.state == "off");
-  Tile on_fan = make("fan.ceiling", "on");
-  assert(press_key(on_fan, TOGGLE).service == "fan.turn_off" && on_fan.state == "off");
-  Tile odd = make("sensor.x", "1");
-  assert(!press_key(odd, TOGGLE).valid() && odd.state == "1" && !odd.optimistic_tap);
+  auto lamp_wish = wanted(off_lamp, TOGGLE);
+  assert(lamp_wish.valid && lamp_wish.field == optimistic::Field::ON_OFF && lamp_wish.value == "on" && off_lamp.state == "off");
+  assert(key_action(off_lamp, TOGGLE).service == "light.turn_on");
+  assert(wanted(make("fan.ceiling", "on"), TOGGLE).value == "off");
+  assert(!wanted(make("sensor.x", "1"), TOGGLE).valid);
+  // A mode, an option, play or pause wish too; a cover's keys and a timer's are plain actions.
+  Tile hall = make("climate.hall", "heat");
+  assert(wanted(hall, HVAC_MODE, "cool").field == optimistic::Field::HVAC_MODE && wanted(hall, HVAC_MODE, "cool").value == "cool");
+  assert(wanted(make("humidifier.bath", "on"), HVAC_MODE, "eco").field == optimistic::Field::HUMIDIFIER_MODE);
+  assert(!wanted(hall, HVAC_MODE).valid);
+  Tile playing = make("media_player.kitchen", "playing", feature::MEDIA_PLAY | feature::MEDIA_PAUSE);
+  assert(wanted(playing, MEDIA_PLAY_PAUSE).field == optimistic::Field::PLAYING && wanted(playing, MEDIA_PLAY_PAUSE).value == "0");
+  assert(key_action(playing, MEDIA_PLAY_PAUSE).service == "media_player.media_pause");
+  playing.state = "buffering";
+  assert(wanted(playing, MEDIA_PLAY_PAUSE).value == "0");
+  playing.state = "paused";
+  assert(wanted(playing, MEDIA_PLAY_PAUSE).value == "1" && key_action(playing, MEDIA_PLAY_PAUSE).service == "media_player.media_play");
+  assert(!wanted(make("cover.blind", "open"), COVER_CLOSE).valid && !wanted(make("timer.tea", "idle"), TIMER_START).valid);
   Tile shut = make("cover.shutter", "closed", 3);
-  assert(press_key(shut, COVER_OPEN).service == "cover.open_cover" && shut.state == "closed" && !shut.optimistic_tap);
+  assert(key_action(shut, COVER_OPEN).service == "cover.open_cover" && !wanted(shut, COVER_OPEN).valid);
 
   // Panel kinds.
   Tile lamp = make("light.lamp", "on"); lamp.controls = "brightness";
@@ -255,11 +303,9 @@ int main() {
   pippa.choice('m')->current = "custom"; rows = vacuum_rows(pippa, 0);
   assert(!rows.suction && !rows.water && vacuum_role(pippa, 0) == 'a');
   pippa.choice('m')->current = "something_new"; assert(vacuum_role(pippa, 0) == 'b');
-  // A tapped chip shows while Home Assistant is busy, and the old value once it gave up.
-  pippa.choice('m')->current = "vac_and_mop"; pippa.choice('m')->sent = "mop";
-  pippa.begin(1000);
+  // A tapped chip is a wish (docs/OPTIMISTIC.md): it writes the row's current, and the rows follow it at once.
+  pippa.choice('m')->current = "mop";
   assert(shown_value(pippa, *pippa.choice('m'), 1500) == "mop" && vacuum_rows(pippa, 1500).water && !vacuum_rows(pippa, 1500).suction);
-  assert(shown_value(pippa, *pippa.choice('m'), 9000) == "vac_and_mop");
   assert(choice_action(pippa, 'm', "mop").service == "select.select_option" && choice_action(pippa, 'm', "mop").key == "option");
   assert(choice_action(pippa, 's', "turbo").service == "vacuum.set_fan_speed" && choice_action(pippa, 's', "turbo").value == "turbo");
   // An older manager sends no suction row: the vacuum's own four speeds, with the card's names.

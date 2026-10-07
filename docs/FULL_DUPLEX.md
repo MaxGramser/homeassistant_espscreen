@@ -53,8 +53,9 @@ Direct integration of ESP-IDF and ESP-SR remains possible. It would require
 maintaining the shared-bus lifecycle, DMA/buffer handling, playback reference
 and ESPHome endpoint adapters ourselves. Hane already implements that layer;
 its AEC algorithm is Espressif's, not an independently competing algorithm.
-Successful full-duplex acoustic behavior has not yet been established on this
-panel. Smooth standalone playback does not establish echo cancellation quality.
+Playback and spoken interruption have been exercised on one pre-v3 P4 panel.
+Cold-start echo suppression and broader acoustic testing remain open. Smooth
+standalone playback does not establish echo cancellation quality.
 
 ### Official guidance for the hardware-reference candidate
 
@@ -122,9 +123,10 @@ software supports arbitrary conversational interruption during playback.
 
 - [ESPHome Audio Stack](https://github.com/n-IA-hane/esphome-audio-stack), release
   2026.10.2, pinned at `0482d741a938378ef948e3b8f3dd31536f9f2cc9`.
-  Only `esp_audio_stack` and `esp_aec` are imported.
-- At this pin, standalone AEC requests `espressif/esp-sr ^2.5.3` and
-  `espressif/esp-dsp ^1.8.0`. These are version ranges. Record the resolved
+  Only `esp_audio_stack` is imported from that repository. The reviewed AEC
+  wrapper and ES7210 extension are supplied by the board package.
+- The local AEC wrapper pins `espressif/esp-sr 2.5.5`;
+  `espressif/esp-dsp ^1.8.0` remains a version range. Record the resolved
   `dependencies.lock` with local build results when comparing updates.
 - The stack selects `esp_audio_effects ~1.3` for pre-v3 P4 silicon. Do not
   override that with libraries built for revision 3 instructions. The board
@@ -144,14 +146,14 @@ software supports arbitrary conversational interruption during playback.
 The selected Hane components are MIT licensed. Use, modification and
 redistribution require retaining the copyright and permission notice. The
 exact notice from the pinned checkout is preserved in
-[hane-MIT.txt](licenses/full-duplex/hane-MIT.txt). The repository also contains
+[hane-MIT.txt](licenses/p4-audio/hane-MIT.txt). The repository also contains
 components with other licenses; importing these two components does not mean
 every file in that repository is MIT licensed.
 
 The resolved ESP-SR and esp_audio_effects licenses permit use with Espressif
 products and require their notices to be retained. They impose hardware-use
 restrictions beyond standard MIT. Their texts and ESP-DSP's Apache-2.0 text are
-in [licenses/full-duplex/](licenses/full-duplex/). The P4 experiment runs on
+in [licenses/p4-audio/](licenses/p4-audio/). The P4 experiment runs on
 Espressif hardware. These files cover the primary new audio dependencies,
 not an exhaustive license bundle for the entire firmware and toolchain.
 
@@ -171,52 +173,29 @@ The existing board schematic pin assignment remains: MCLK 13, BCLK 12, LRCLK 10,
 microphone DIN 11, speaker DOUT 9, amplifier enable 53. ES7210 and ES8311 remain
 on their existing I2C addresses. See [WAVESHAREP4.md](WAVESHAREP4.md).
 
-Capture uses the first microphone slot from 16-bit stereo I2S. The stack supplies
-mono 16-bit 16 kHz PCM to the existing wake detector and voice consumer. This
-experiment does not add dual-microphone beamforming. Playback uses mono 16 kHz.
-The ES8311 stays at unity gain with the existing software volume control.
+Voice reuses the board's [optional audio/AEC package](P4_AUDIO.md). Four
+16-bit Philips TDM slots carry both microphone input and the electrical playback
+reference. Slot 0 supplies the microphone; slot 1 supplies physical ADC3, the
+reference from ES8311. The reference keeps 24 dB analogue gain, unity digital
+gain and no ALC, independently of the microphone's settings.
 
-AEC uses the stack's software reference from post-volume speaker PCM. The
-80 ms reference ring is buffer capacity, not a measured acoustic delay. The
-100 ms speaker buffer bounds queued playback. DMA completion callbacks count
-played frames for conversation truncation; accepted bytes alone would include
-audio the user never heard.
+The stack supplies mono 16-bit 16 kHz PCM after AEC to the existing wake detector
+and voice consumer. Playback is mono at 16 kHz, with a 100 ms speaker buffer and
+six DMA descriptors. This setup does not use the earlier software-reference
+FIFO or add dual-microphone beamforming. The ES8311 remains at unity gain and
+the speaker endpoint applies the saved software volume.
 
-The experimental profile uses two DMA descriptors. FD_LOW_COST processes 32 ms
-frames; the stack aligns its DMA blocks to that frame size on this configuration.
-The default six descriptors can therefore queue 192 ms of output, independently
-of the software reference FIFO capacity. Two descriptors reduce that queue to
-64 ms. This timing choice still requires hardware validation for cancellation
-quality and scheduling headroom; it is not a measured acoustic-delay correction.
+Both the ES7210 TDM extension and the AEC wrapper are included with the board
+support. No private driver checkout or codec override is needed. The AEC wrapper
+skips completely zero initial input frames until the first nonzero frame, then
+passes all input through the original Espressif processor. See the component
+READMEs linked from [P4_AUDIO.md](P4_AUDIO.md) for source revisions and changes.
+The zero-start fix is not a noise gate or a replacement DSP algorithm.
 
-The board schematic also shows an analogue playback reference from ES8311
-OUTP/OUTN to ES7210 MIC3P/MIC3N. This profile does **not** capture that channel:
-ordinary stereo on SDOUT1 carries microphones 1 and 2. Using the hardware
-reference requires a verified ES7210 TDM configuration, physical-slot mapping,
-separate reference gain and compatible ES8311 output clocks. The current native
-ES7210 schema at the published driver pin does not expose TDM. Do not enable a
-second codec owner alongside it or treat the second ordinary microphone as the
-reference.
-
-A local hardware-reference candidate extends that existing ES7210 driver with
-optional TDM and a separately configured reference ADC. It preserves microphone
-gain and ALC controls, while keeping the reference at its own fixed analogue
-gain and unity digital gain, excluded from ALC. The current reference gain is
-24 dB; input levels, clipping and cancellation still require validation.
-Hane's existing TDM input
-path supplies the microphone and reference to the existing AEC implementation;
-no replacement DSP algorithm is added.
-
-This candidate uses four 16-bit Philips TDM slots and the stack's normal six DMA
-descriptors. Both input signals now come from the same ADC stream, rather than
-from a software playback FIFO. Existing upstream slot-level sensors expose the
-microphone, reference and second microphone for validation. Confirm that the
-ES8311 still plays correctly with these clocks as part of the hardware test.
-
-The candidate currently depends on an unpublished local driver checkout. It is
-not enabled by the configuration example above and is not a reproducible public
-installation recipe yet. Hardware acceptance and a reviewed, immutable driver
-dependency are required before incorporating it into the board's AEC package.
+DMA completion callbacks count played frames for conversation truncation;
+accepted bytes alone would include audio the user never heard. Physical tests
+must still verify clean reply onset, cold-start cancellation and repeated
+interruption with the actual speaker, room and background sound.
 
 Keep the existing microphone analogue gain and ALC settings initially. If echo
 suppression is poor, compare ALC on/off at fixed microphone and speaker levels

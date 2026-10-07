@@ -1,0 +1,74 @@
+# ESP Screens - M5Stack Tab5 ST7121: 5-inch 1280 x 720 panel, ESP32-P4 and ESP32-C6.
+# This profile targets only the confirmed ST7121 display and touch-controller variant (issue #79).
+# docs/TAB5.md records the evidence and what still needs checking on the glass.
+packages:
+  hardware: !include ../hardware/m5stack-tab5.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/${GRID_CELLS}.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "tab5"
+  DEVICE_NAME: "tab5-new"
+  DEVICE_FRIENDLY_NAME: "My M5Stack Tab5"
+
+  # The glass: the panel's own pixels and its density, 1469 diagonal pixels over 5.0 inches.
+  PANEL_W: "720"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "293.721"
+  # The LVGL angle that lays this panel out lying down (1280 x 720). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: three columns by three rows lying down, or four rows when selected, and one column by five rows standing up.
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "5"
+  GRID_CELLS: "${ (GRID_COLS | int) * (GRID_ROWS | int) }"
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+  TOUCH_CONTROLLER: "ST7121"                    # The ESPHome driver is named st7123; the glass reports ST7121.
+  TOUCH_TEST_READY_LOG: "ST7121 touch test ready; no tile actions"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # M5STACK-TAB5-ST7121 and the st7123 touch driver are available from ESPHome 2026.7.0.
+  min_version: 2026.7.0
+
+# The factory firmware identifies this variant as ST7121. ESPHome currently exposes the compatible touch protocol
+# through its st7123 platform; on this board the reset is driven by the I/O expander.
+touchscreen:
+  - platform: st7123
+    id: ts_touch
+    i2c_id: tab5_bus
+    display: my_display
+    update_interval: 100ms
+    reset_pin:
+      pi4ioe5v6408: tab5_ioe
+      number: 5
+    interrupt_pin: GPIO23
+    calibration:
+      x_min: 0
+      x_max: 720
+      y_min: 0
+      y_max: 1280
+
+# ESPHome's MIPI-DSI model selects the ST7121 panel sequence. The panel is 720x1280; LVGL turns it a quarter.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: M5STACK-TAB5-ST7121
+    dimensions: {width: 720, height: 1280}
+    lanes: 2
+    reset_pin:
+      pi4ioe5v6408: tab5_ioe
+      number: 4
+    update_interval: never
+    auto_clear_enabled: false

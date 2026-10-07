@@ -150,7 +150,7 @@ class Keypad(unittest.TestCase):
         server = (ROOT / 'screen_manager/app/server.py').read_text()
         self.assertIn("keys=catalogue.remote_keypad((entry or {}).get('platform'))", server)
         self.assertIn('if (extra["keys"].is<JsonArray>())', RECEIVER)
-        self.assertIn('request.service = esphome::StringRef("remote.send_command");', TILES)
+        self.assertIn('step_action("remote.send_command", entity, "command", command);', TILES)
         # Every clean tap counts, as on the -/+ keys, and a key does not wait for a state that never comes.
         self.assertIn('touch_guard.accept_repeat(esphome::millis(),300+cmd))return;\n    remote_key(t.entity,keys[i]);', TILES)
 
@@ -173,7 +173,7 @@ class HomeAssistantsWay(unittest.TestCase):
         # more-info-remote.ts: on and off, and the activities, each of which is remote.turn_on with `activity`.
         self.assertIn('d == "remote";', CONTROLS)
         self.assertIn('render_remote_detail(t,large,width,height,pad,top,bar,bar_x,bar_y);', TILES)
-        self.assertIn('action("remote.turn_on",t.entity,"activity",option);', TILES)
+        self.assertIn('wish(t,optimistic::Field::ACTIVITY,option,"remote.turn_on","activity",option);', TILES)
         self.assertIn('render_select_detail(t,large,width,height,pad,top,on?t.extra().activity:std::string());', TILES)
         # The power key: in the top bar beside the activities, alone and large in the middle without them.
         self.assertIn('lv_obj_move_to_index(key,2);', TILES)

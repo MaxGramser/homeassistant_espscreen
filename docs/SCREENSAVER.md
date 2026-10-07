@@ -9,15 +9,18 @@ tries them. It shows the first one that is there right now. It needs app 0.4.48 
 1. In Tessera, open the screen and go to **Settings**. The **Screensaver** card stands under Brightness.
 2. Turn on **Show in standby**. The screen also needs **Auto standby** on, since the screensaver takes the place of
    the dimmed tiles.
-3. Choose a media player under **Music playing** and a camera under **Camera**. An `image` entity counts as a camera
-   too, such as the last snapshot a doorbell keeps.
-4. Drag the rows into the order you want, and turn off a row you never want to see.
+3. The card lists the three steps in the order the screen tries them, each with one line of what it shows and a
+   switch. Click a step to open it in the drawer on the right (a sheet from the bottom on a phone): choose the media
+   players under **Music playing**, a camera under **Camera**, and the temperature and the entities under **Clock**.
+   An `image` entity counts as a camera too, such as the last snapshot a doorbell keeps.
+4. Drag the steps into the order you want, or move the open step with the arrows at the bottom of its drawer. Turn off
+   a step you never want to see.
 
-**More than one player** (app 0.4.54). Once a player is chosen, an empty row under it adds the next, up to four. The
-screen shows the first of them that plays with a cover, in the order of the rows. A speaker that also plays the
-television's sound is the usual case: put the speaker first and the television's player second. While the speaker
-plays music you see its cover. While it plays the television's sound it has no cover, so you see the poster of what
-the television plays. Set a row back to its first line to take that player out.
+**More than one player** (app 0.4.54). **Add a player** in the drawer of Music playing adds the next, up to four. The
+screen shows the first of them that plays with a cover, in the order of the list, so drag them into place. A speaker
+that also plays the television's sound is the usual case: put the speaker first and the television's player second.
+While the speaker plays music you see its cover. While it plays the television's sound it has no cover, so you see the
+poster of what the television plays. The cross beside a player takes it out.
 
 For example, with the order Music playing, Camera, Clock:
 
@@ -26,7 +29,7 @@ For example, with the order Music playing, Camera, Clock:
 - nothing plays, or the player shows no cover (a radio station, a paused player): the screen shows the camera;
 - the camera is unavailable: the screen shows the clock.
 
-With every row off or unavailable, standby shows the dimmed tiles as it did before.
+With every step off or unavailable, standby shows the dimmed tiles as it did before.
 
 A tap wakes the screen, as it always did in standby, and that first touch never switches a lamp or opens a card
 under the screensaver. The one exception is a player's keys.
@@ -40,9 +43,9 @@ Hold volume down for a second and a half to mute the player. The key then shows 
 volume key takes the mute off and changes nothing else, and after that the two keys are the volume again.
 
 With the keys a paused player still counts, so the key that paused it can start it again. A player that plays always
-goes first, whatever its row, with one exception: the player you paused on the screen keeps the screen for two minutes,
-so its play key is still there. Ten minutes after the pause the screensaver moves on to the next step, the camera or the
-clock, since a speaker stays paused in Home Assistant for days.
+goes first, whatever its place in the list, with one exception: the player you paused on the screen keeps the screen
+for two minutes, so its play key is still there. Ten minutes after the pause the screensaver moves on to the next step,
+the camera or the clock, since a speaker stays paused in Home Assistant for days.
 
 ## What you see
 
@@ -61,6 +64,14 @@ clock, since a speaker stays paused in Home Assistant for days.
   for its home (Met.no's, else its first weather entity) unless you choose one under the clock in the editor (or none), whole degrees in the unit Home
   Assistant is set to (app 0.4.52).
 
+**Entities on the clock** (app 0.4.81, firmware 0.50.0). In the drawer of Clock, under the temperature, **Add an
+entity** puts up to four entities in the same line as the temperature: a sensor, a door, a lamp, anything the top bar
+can show. They use the top bar's own list and drawer. For each one you choose its text, its icon or both, and the icon
+is the automatic one or one you pick. They stand centred in one line at the bottom, after the temperature and with a dot between two,
+white on black like the rest, whatever the colour of the entity. They look as they do in the top bar, with its words
+and icons, and a moment ("5 min ago") counts on as it does there. When the line is wider than the glass, the last
+entities leave until it fits, so the temperature always stays. A screen on older firmware shows the temperature alone.
+
 The cover and the camera are a little darker everywhere, so the words always read. A camera has nothing else on it,
 and a cover only its three keys: no bar, no spinner.
 
@@ -69,8 +80,13 @@ the night brightness. Raise Standby brightness for a cover that reads from acros
 screen goes dark and shows no screensaver. Sleep pressed in Home Assistant keeps the screen at its standby level
 without a screensaver.
 
+When the screensaver has nothing to show (no music playing and no camera or clock chosen), the dimmed tiles stay on the
+glass. Their camera pictures and album covers keep refreshing then, as they do with the screen in use, as long as the
+level is 5 % or more (firmware 0.40.0). Under a screensaver, the clock too, and on a darker glass they wait until the
+screen wakes.
+
 The CYD, the Waveshare 3.5-inch and the Hosyond 4-inch have no memory for pictures (see [CAMERA.md](CAMERA.md)). On
-them the card offers the clock alone. The Waveshare 4.3 and 7-inch never go into standby, so they have no
+them the card offers the clock alone. The Waveshare 4.3, 5 and 7-inch never go into standby, so they have no
 screensaver either.
 
 ## How it works
@@ -83,6 +99,18 @@ has.
   every layout. `PUT api/screens/<inbox>/screensaver` stores the whole choice, and the screen's entry in the editor's
   inventory carries it as `screensaver`, with `ready` (the firmware takes one), `pictures` (the board draws pictures)
   and `standby` (the board goes into standby at all).
+- **The clock's entities** are `items` in the choice: entity items checked by `core.validate_header`, with the content
+  `state` or `icon` and shown always, at most `ITEMS_MAX`. The app follows their entities like the weather's. A screen
+  whose hello lists `saver_items` gets `wi` in the clock's message: the whole line as the top bar's wire items
+  (`header_bar.entity_item`, `text` and `ago`), the temperature first and without their colour; `w` stays for older
+  firmware. The screen draws it with the top bar's own parts (`saver_row_draw`): `page_header::piece` and `item_text`
+  measure and word each item, and `header_bar::centre`, beside the bar's `place`, centres the line with the bar's gaps
+  (`tests/test_header_bar.cpp`). The editor uses the top bar's entity list (`EntityItemPicker.vue`) and its add, move
+  and remove (`itemList` in `store.ts`), and edits one entity in `SaverItemInspector.vue`.
+- **The editor** (app 0.4.83): `ScreensaverCard.vue` lists the steps and `SaverInspector.vue` opens one in the drawer;
+  both read and change the choice through `web/src/saver.ts`, which also holds the dragged list both use.
+  `SaverGlass.vue` draws the clock in the glass's proportions, and drops the last entities of its line until it fits, as
+  the screen does.
 - **The pick.** The app follows the chosen players and camera like a tile's entities (`watched_entities`). After every
   pass of a screen it works out the first step that is on and available (`screen_saver.pick`): the first player of the
   list (`media`, then `more`, `screen_saver.player`) whose state is `playing` with an `entity_picture`, a camera whose state is not `unavailable` or `unknown`, the clock always. A

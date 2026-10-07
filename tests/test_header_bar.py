@@ -224,7 +224,7 @@ class MessageTests(unittest.TestCase):
             validate_header({'items': [{'type': 'wifi'}, {'type': 'wifi', 'content': 'icon'}]})
         # The editor offers them with the screen's own items, and the firmware that draws them.
         catalogue = header_bar.catalogue()
-        self.assertEqual([b['type'] for b in catalogue['builtin']], ['clock', 'analog', 'date', 'wifi', 'link'])
+        self.assertEqual([b['type'] for b in catalogue['builtin']], ['clock', 'analog', 'date', 'wifi', 'link', 'battery'])
         self.assertEqual([c['key'] for c in catalogue['wifi_contents']], ['icon', 'percent', 'dbm'])
         self.assertEqual(catalogue['status_min_firmware'], '0.38.0')
         # The firmware reads the same words: the kinds, `a` and the three texts.
@@ -238,6 +238,52 @@ class MessageTests(unittest.TestCase):
         self.assertIn('constexpr int WEAK_DBM = -78;', wifi)
         self.assertIn('rssi >= -60 ? 4 : rssi >= -70 ? 3 : rssi >= -78 ? 2 : 1', EDITOR)
         self.assertIn('2 * (rssi + 100)', EDITOR)
+
+    def test_the_battery_goes_only_to_a_screen_that_has_one(self):
+        # Firmware 0.41.0 (docs/BATTERY.md): the screen finds its own battery sensor and says `battery` in its hello. A
+        # screen that did not say so (no battery, or older firmware) gets the rest of its bar, as an older screen refuses
+        # a page with an item it does not know.
+        header = validate_header({'items': [{'type': 'battery'}, {'type': 'battery', 'content': 'percent', 'show': 'low'},
+                                            {'type': 'wifi'}, {'type': 'clock'}]})
+        self.assertEqual(header['items'][:2], [{'type': 'battery', 'content': 'icon', 'show': 'always'},
+                                               {'type': 'battery', 'content': 'percent', 'show': 'low'}])
+        layout = {'title': 'Hall', 'tiles': [], 'header': header}
+        battery = [{'k': 'battery', 't': ''}, {'k': 'battery', 't': '%', 'a': 1}]
+        wifi_and_clock = [{'k': 'wifi', 't': ''}, {'k': 'clock'}]
+        self.assertEqual(header_bar.message(layout, {}, features={'bar_status', 'battery'})['items'], battery + wifi_and_clock)
+        self.assertEqual(header_bar.message(layout, {})['items'], battery + wifi_and_clock, 'the preview runs this firmware')
+        self.assertEqual(header_bar.message(layout, {}, features={'bar_status'})['items'], wifi_and_clock)
+        self.assertEqual(header_bar.message(layout, {}, features=frozenset())['items'], [{'k': 'clock'}])
+        for bad in ({'type': 'battery', 'content': 'dbm'}, {'type': 'battery', 'show': 'weak'},
+                    {'type': 'battery', 'entity': 'sensor.phone_battery'}, {'type': 'battery', 'show': 'active'}):
+            with self.assertRaises(ValueError, msg=bad):
+                validate_header({'items': [bad]})
+        with self.assertRaises(ValueError):
+            validate_header({'items': [{'type': 'battery'}, {'type': 'battery', 'content': 'icon', 'show': 'always'}]})
+        catalogue = header_bar.catalogue()
+        self.assertEqual([c['key'] for c in catalogue['battery_contents']], ['icon', 'percent'])
+        self.assertEqual([s['key'] for s in catalogue['battery_shows']], ['always', 'low'])
+        self.assertEqual(catalogue['battery_min_firmware'], '0.41.0')
+        # The firmware reads the same words, finds the sensor by Home Assistant's device classes and says so in its hello.
+        self.assertIn('if (name == "battery") return Kind::battery;', FIRMWARE)
+        runtime = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
+        for word in ('has_device_class(sensor, "battery")', 'has_device_class(binary, "battery_charging")'):
+            self.assertIn(word, runtime)
+        self.assertIn('if (battery_status::level) features.add("battery");', (ROOT / 'packages/core.yaml').read_text())
+        # The editor's mockup draws Home Assistant's icons by the same rules (model/topbar.ts, battery_status.h).
+        status = (ROOT / 'components/smart_display/battery_status.h').read_text()
+        self.assertIn('constexpr float LOW = 20;', status)
+        self.assertIn('export const BATTERY_LOW = 20;', EDITOR)
+        for glyph in ('F089C', 'F0086', 'F0087', 'F0088', 'F089D', 'F0089', 'F089E', 'F008A', 'F008B', 'F0084', 'F089F', 'F10CD'):
+            self.assertIn(f'0x{glyph}', status)
+            self.assertIn(f'"{glyph}"', EDITOR)
+
+    def test_a_board_with_a_battery_says_so(self):
+        # boards.json `battery` (profiles.battery): a board file with a sensor in the battery device class. Today the Tab5.
+        shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
+        with_battery = sorted(entry for entry, shape in shapes.items() if shape.get('battery'))
+        self.assertTrue(with_battery)
+        self.assertTrue(all('tab5' in entry for entry in with_battery), with_battery)
         glyphs = re.search(r'WIFI_GLYPHS\[5\] = \{WIFI_OFF_GLYPH, (0x\w+), (0x\w+), (0x\w+), (0x\w+)\}', FIRMWARE).groups()
         self.assertIn('export const WIFI_GLYPHS = ["F092E", ' + ', '.join(f'"{g[2:].upper()}"' for g in glyphs) + ']', EDITOR)
         self.assertIn('constexpr uint32_t WIFI_OFF_GLYPH = 0xF092E;', FIRMWARE)
@@ -324,12 +370,13 @@ class ParityTests(unittest.TestCase):
         render = TILES.split('inline void render(lv_obj_t *room) {', 1)[1].split('\n}', 1)[0]
         # Firmware 0.38.0: step by step, with what the screen knows of each step (boot_view).
         self.assertIn('const auto view = boot_view(esphome::millis());', render)
-        self.assertIn('boot_status(lv_obj_get_parent(room), view.title.c_str(), true, false, view.facts, view.hint);', render)
+        # Firmware 0.45.0: no spinner while it waits for a person to choose its first tiles, the steps instead.
+        self.assertIn('boot_status(lv_obj_get_parent(room), view.title.c_str(), view.steps.empty(), false, view.facts, view.hint, std::string(), view.steps);', render)
         self.assertIn('else if (boot_panel) boot_forget();', render)
         view = TILES.split('inline BootView boot_view(uint32_t now) {', 1)[1].split('\n}', 1)[0]
         for step in ('txt::status_wifi_connecting', 'txt::status_wifi_address', 'txt::status_connecting',
                      'txt::status_waiting', 'txt::status_loading_tiles_count', 'txt::status_hint_home_assistant',
-                     'txt::status_hint_tessera'):
+                     'txt::status_hint_tessera', 'txt::status_first_tiles', 'txt::status_first_tiles_open', 'txt::status_first_tiles_pick', 'txt::status_first_tiles_save'):
             self.assertIn(step, view)
         # tick() draws it again whenever what it says changes, so a step shows the moment it happens.
         self.assertIn('const auto view=boot_view(esphome::millis());', TILES.split('inline void tick() {', 1)[1])

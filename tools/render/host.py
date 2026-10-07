@@ -126,6 +126,9 @@ def host_common(text):
     text = text.replace('esp_get_free_heap_size()', '0u')
     # The resistive panel's raw readings and its affine correction: the SDL touchscreen reports pixels.
     text = re.sub(r'id\((\w+)\)\.filtered_raw_[xy]\(\)', '0', text)
+    # The partition table a 4 MB board reports (features of hardware/flash-4mb.yaml): flash_layout is ESP32 hardware,
+    # dropped with the rest, so the host says the table it would have.
+    text = text.replace('esphome::flash_layout::word()', 'std::string("wide")')
     return re.sub(r'id\(\w+\)\.set_raw_correction\([^;]*\);', '/* XPT2046 affine correction: not on the host */', text)
 
 
@@ -289,13 +292,12 @@ touchscreen:
 
 
 # The actions tools/render/run.py drives the program with: a PNG of what LVGL draws (the top layer blended in), whether
-# the page is placed and drawn, a page by number, a fixed clock so every render shows the same time, and a live picture
-# asked for again (tools/render/camera_tiles.py).
+# the page is placed and drawn, a page by number, a fixed clock so every render shows the same time, and the tiles'
+# pictures asked for again (tools/render/camera_tiles.py).
 ACTIONS = '''    - action: render_live_reset
       then:
         - lambda: |-
-            runtime_tiles::live_wish = runtime_tiles::LiveWish{};
-            runtime_tiles::live_release();
+            runtime_tiles::tile_pictures_reset();
             ESP_LOGI("render", "live reset");
     - action: render_png
       variables:
@@ -347,6 +349,7 @@ ACTIONS = '''    - action: render_live_reset
         hotspot: string
         password: string
         ota: int
+        empty: bool
       then:
         - lambda: |-
             // The starting screen in one state (firmware 0.38.0): the network, Home Assistant, how long the step took,
@@ -366,6 +369,8 @@ ACTIONS = '''    - action: render_live_reset
             l.reason_rssi = seen ? seen_rssi : rssi;
             l.failures = (uint16_t) failures;
             runtime_tiles::host_ha = ha;
+            // Tessera said it has no tiles for this screen yet (firmware 0.45.0): the starting screen asks for them.
+            runtime_tiles::awaiting_tiles = empty && ha >= 0;
             wifi_status::host_problem = wifi_status::Problem{};
             const std::string spot(hotspot.c_str(), hotspot.size());
             if (!spot.empty()) {

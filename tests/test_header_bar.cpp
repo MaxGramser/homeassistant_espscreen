@@ -76,5 +76,14 @@ int main() {
   int huge[] = {500};
   auto none = place(huge, 1, g, 448, 50);
   assert(none.first == 1 && none.name_room == 448);
+
+  // The screensaver clock's row: centred, with the bar's gaps.
+  auto mid = centre(widths, 3, g, 448);
+  const int row = 80 + 50 + 49 + 2 * 19;
+  assert(mid.count == 3 && mid.x[0] == (448 - row) / 2 && mid.x[1] == mid.x[0] + 80 + 19 && mid.x[2] == mid.x[1] + 50 + 19);
+  // Too full: items leave from the end, so the first (the temperature) stays.
+  auto cut = centre(many, 4, g, 300);
+  assert(cut.count == 2 && cut.x[0] == (300 - (86 + 19 + 163)) / 2);
+  assert(centre(huge, 1, g, 448).count == 0 && centre(many, 0, g, 448).count == 0);
   std::puts("test_header_bar: PASS");
 }

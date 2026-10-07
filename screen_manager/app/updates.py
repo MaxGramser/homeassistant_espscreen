@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 import time
 import changelog
-from core import FIRMWARE_VERSION, SHAPES, board_of, firmware_target, parse_firmware
+from core import FIRMWARE_VERSION, SHAPES, board_of, channel, firmware_target, parse_firmware
 from i18n import Text, english, screen_t, shown, t
 
 LOG = logging.getLogger('screen_manager')
@@ -179,9 +179,10 @@ class Updater:
 
     def summary(self, screens=None, profiles=None):
         # The changelog goes with the full inventory only (app 0.2.78): this summary is in every live update of the page.
-        # `target` is the shared version; what one screen is offered is its own `update.target` (app 0.3.21).
+        # `target` is the shared version; what one screen is offered is its own `update.target` (app 0.3.21). `channel`
+        # is the branch the screens build from, when the app was added from this repository (docs/RELEASING.md).
         return {'auto': self.auto, 'target': FIRMWARE_VERSION, 'busy': self.current,
-                'pending': len(self.pending(screens, profiles)), 'last_round': self.last_round}
+                'pending': len(self.pending(screens, profiles)), 'last_round': self.last_round, 'channel': channel()}
 
     def pending(self, screens=None, profiles=None):
         # Callers that already hold the inventory and profile list pass them in; the inventory
@@ -199,7 +200,12 @@ class Updater:
         self.auto = enabled
         self.save()
 
-    def start(self, inbox, host=None):
+    def start(self, inbox, host=None, reinstall=False):
+        """Update one screen. `reinstall` builds and installs it again although it runs this firmware already: on the
+        dev channel only, where the firmware number stays the same from one commit to the next (docs/RELEASING.md,
+        "Testing dev"), so the newest dev is never an update by its number."""
+        if reinstall and channel() != 'dev':
+            raise ValueError(t('addon.errors.updates.reinstall_dev'))
         if self.busy():
             raise ValueError(t('addon.errors.updates.busy'))
         screen = self.screen(inbox)
@@ -208,7 +214,7 @@ class Updater:
             raise ValueError(t('addon.errors.updates.unknown_screen'))
         if not screen['online']:
             raise ValueError(t('addon.errors.updates.offline'))
-        if not self.state_for(screen)['available']:
+        if not reinstall and not self.state_for(screen)['available']:
             raise ValueError(t('addon.errors.updates.latest'))
         if host is not None:
             if not isinstance(host, str) or not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9.-]{0,252}', host.strip()):
@@ -309,7 +315,16 @@ class Updater:
             self.record(inbox, 'failed', error.args[0] if len(error.args) == 1 else str(error))
             return 'failed'
         if not installed:
-            self.record(inbox, 'failed', english('addon.updates.build_failed'))
+            # A build the machine had no memory for says so (build_memory, app 0.4.65), the rest points at the log.
+            memory = (firmware.job or {}).get('memory') or {}
+            if memory.get('reason') == 'out':
+                free = f'{memory["free_mb"] / 1024:.1f} GB' if memory.get('free_mb') is not None else '?'
+                self.record(inbox, 'failed', english('addon.updates.build_memory', free=free,
+                                                     need=f'{memory.get("need_mb", 0) / 1024:.1f} GB'))
+            elif memory.get('reason') == 'limit':
+                self.record(inbox, 'failed', english('addon.updates.build_memory_limit'))
+            else:
+                self.record(inbox, 'failed', english('addon.updates.build_failed'))
             return 'failed'
         self.phase = 'verify'
         if not await self.wait_for_target(inbox, target):

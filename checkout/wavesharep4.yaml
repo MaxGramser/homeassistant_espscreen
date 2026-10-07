@@ -17,7 +17,7 @@ external_components:
   - source:
       type: local
       path: ../components
-    components: [smart_display]
+    components: [es7210, esp_aec, smart_display]
 
 api:
   encryption:

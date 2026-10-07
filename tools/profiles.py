@@ -107,6 +107,13 @@ def wide_slots(board):
     return any(path.name == 'flash-4mb.yaml' for path in chain(BOARDS[board]))
 
 
+def battery(board):
+    """Whether a screen of this board has a battery the top bar can show (firmware 0.41.0, docs/BATTERY.md): one of its
+    files has a sensor in Home Assistant's `battery` device class, which the firmware finds itself
+    (runtime_tiles::find_battery). A screen with a battery of its own, in its Override YAML, says so in its hello."""
+    return any(re.search(r'^\s+device_class: battery\s*$', path.read_text(), re.M) for path in chain(BOARDS[board]))
+
+
 def cells_of(board_file):
     """The cells package a board file brings: the cards of its grid (packages/cells/<number>.yaml)."""
     return [path for path in packages_of(board_file) if path.parent.name == 'cells']

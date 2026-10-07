@@ -138,8 +138,10 @@ class Firmware(unittest.TestCase):
         # The once-a-second tick of an open card must not replace "Open · 60% · Tilt 40%" with the raw state.
         tick = RUNTIME[RUNTIME.index('inline void tick() {'):]
         self.assertIn('card_status(t,detail_status_brief)', tick[:tick.index('if(!enabled)return;')])
-        # A key the cover cannot use stays disabled: it is left out of the keys the tick enables again.
-        self.assertIn('if(key.disabled){lv_obj_add_state(button,LV_STATE_DISABLED);if(detail_action_count && detail_actions[detail_action_count-1]==button)--detail_action_count;}', RUNTIME)
+        # A key the cover cannot use stays disabled: it paints itself faded at its end stop, also after the card waited
+        # (docs/CARD_PARTS.md: the tick touches the keys only when the wait changes, then the card paints again).
+        self.assertIn('paint_state(button,LV_STATE_DISABLED,card_blocked||key->disabled);', RUNTIME)
+        self.assertIn('card_bind(button,t,cover_key_paint,"",key.command);', RUNTIME)
         # Track and fill share one radius: no layer per redraw on the CYD.
         self.assertIn('lv_obj_set_style_radius(slider,radius,LV_PART_MAIN);lv_obj_set_style_radius(slider,radius,LV_PART_INDICATOR);', RUNTIME)
         self.assertIn('next.tilt = number(a["current_tilt_position"]);', RUNTIME)

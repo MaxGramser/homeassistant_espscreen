@@ -35,9 +35,12 @@ Three rules keep this safe:
   drawn again when it comes back only when its tile took a later number. A drawing that was asked for before a page was
   built, and ran after, is then no change that page lacks; the flags this replaced got that wrong.
 
-A layout change forgets every kept page (`forget_kept`); the sets stay and are reused for the next pages. How many
-pages a board keeps is `kept_capacity()`: every page but the one on the glass (at most seven), none without PSRAM, and
-no new set once the free PSRAM falls under `KEEP_RESERVE` (2 MB, for pictures, a full camera and an alert's picture).
+A layout change forgets every kept page (`forget_kept`); the sets stay and are reused for the next pages, and their
+pictures go with what they showed. How many pages a board keeps is `kept_capacity()`: every page but the one on the
+glass, up to the board's page ceiling (`kept_pages::MAX_KEPT`, GitHub #183: with only seven kept, paging through a long
+layout was quick on one page and slow on the next), none without PSRAM, and no new set once the free PSRAM falls under
+`KEEP_RESERVE` (2 MB, for pictures, a full camera and an alert's picture). The price is the first opening of a layout,
+which prepares every page (below).
 A set of six empty cards takes about 17 KB of PSRAM; eight pages of the stress layout below left 5.5 MB of 8 MB free.
 
 ## Prepared pages
@@ -61,17 +64,23 @@ from its size. Its cards ask for no pictures while it runs (`warming`).
 
 ## Kept pictures
 
-Every picture a card draws on a board with PSRAM is the store's own copy, never the `online_image` buffer that the next
-download overwrites: a strip of camera or cover squares under the tiles, colours, marks and frames it was asked for,
-and a media card's cover under its player, track, size and colour. A cover is fetched once per track; a camera page
-that comes back shows its last picture at once and loads the next one when that picture is as old as its pace
-(`camera_view::Feed::resume`). A picture that is still on some card, on the glass or kept, is never freed; the budget
-is a fifth of the PSRAM, at most 1.5 MB. Two more rules:
+Every picture a card draws on a board with PSRAM is the store's own copy, never the download's buffer
+(`picture_fetch`) that the next download overwrites: each tile's own picture under its tile, entity, frame, colours and
+mark (`tile_picture.h`), and a media card's cover under its player, track, size and colour. A cover is fetched once
+per track; a camera page that comes back shows its last pictures at once and loads the next one of each camera when
+its picture is as old as its tile's pace. A picture that is still on some card, on the glass or kept, is never freed;
+the budget for the rest is a fifth of the PSRAM, at most 6 MB (about 1.2 MB on a board with 8 MB). Two more rules:
 
 - **No download starts between two quick page turns** (`camera_view::SETTLE_MS`, 800 ms after the last turn), so a
   picture never lands in the middle of someone paging through.
-- **Covers are fetched ahead** while the screen is idle, one at a time, for the media cards on kept pages
-  (`cover_prefetch`), and put on those cards straight away.
+- **Pictures that do not refresh are fetched ahead** while the screen is in use and the store is under three quarters
+  of its budget, for the cards on kept pages (a cover, a favourite, a map), after everything on the glass and broken off
+  for it (`card_picture_wants`, docs/CAMERA.md "One route for every picture"). A camera on a kept page loads when its
+  page comes back, showing its last picture meanwhile.
+- **Over the budget, a page out of sight makes way.** What the glass shows is never freed. When every picture is on
+  some card and the store is over its budget, the picture used longest ago that only a kept page draws goes
+  (`picture_away`, `picture_let_go`): its card lets go of it and asks for it again when its page comes back. Every page
+  can be kept that way without its pictures filling the PSRAM.
 
 ## Never walk the PSRAM heap while the glass is lit
 

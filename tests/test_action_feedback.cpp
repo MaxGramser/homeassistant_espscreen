@@ -50,40 +50,8 @@ int main() {
   assert(sw.waiting(1000)); // Repeated identical data is not confirmation.
   assert(!sw.waiting(3300));
 
-  // On / off shows the new stand at once, as Home Assistant's own switch does.
-  runtime_tiles::Tile lamp;
-  lamp.entity="light.lamp"; lamp.state="off"; lamp.revision=rev("off");
-  lamp.optimistic(true); lamp.begin(100);
-  assert(lamp.state=="on"); assert(lamp.optimistic_tap); assert(lamp.optimistic_on);
-  // Home Assistant refuses, or never answers: the old stand comes back.
-  lamp.undo_optimistic();
-  assert(lamp.state=="off"); assert(!lamp.optimistic_tap);
-  lamp.undo_optimistic(); assert(lamp.state=="off");
-  // A new word wins: it clears the flag, so a later wait that runs out changes nothing.
-  lamp.optimistic(true); lamp.begin(200);
-  assert(!lamp.stale("unavailable"));
-  lamp.state="unavailable"; lamp.observe(rev("unavailable"));
-  assert(!lamp.optimistic_tap); assert(lamp.confirmed);
-  lamp.undo_optimistic(); assert(lamp.state=="unavailable");
-
-  // A Hue room (#159): tapped off, its lamps report at once and the manager sends the room again with its old "on" and
-  // the lamps off. As on Home Assistant's tile card the tap's stand stays, and the message is no answer.
-  runtime_tiles::Tile room;
-  room.entity="light.room"; room.state="on"; room.revision=rev("on");
-  room.optimistic(false); room.begin(1000);
-  assert(room.stale("on")); assert(!room.stale("off"));
-  room.observe(runtime_tiles::state_revision("on","{\"lamps\":\"off\"}"), true);
-  assert(room.optimistic_tap); assert(!room.confirmed); assert(room.state=="off");
-  // Home Assistant said "it worked" at 1060: the stand holds two seconds from there, past the wait itself.
-  room.answered_at=1060;
-  assert(!room.waiting(1900)); assert(room.tap_held(1900)); assert(room.tap_held(3059)); assert(!room.tap_held(3060));
-  // The room reports itself a second later: that is the answer.
-  assert(!room.stale("off"));
-  room.observe(rev("off"));
-  assert(room.confirmed); assert(!room.optimistic_tap);
-  // Without an answer the tap holds only as long as the wait; a tile no command waits for is never stale.
-  room.state="on"; room.optimistic(false); room.begin(5000);
-  assert(!room.tap_held(5500)); room.pending=false; assert(!room.stale("on"));
+  // On / off, a mode, play or pause: what a finger changed shows through a wish (optimistic.h, tests/test_optimistic.cpp),
+  // which keeps the Hue room of #159 too: a message that still says the word from before the tap is no answer.
 
   // A slider the finger let go stays put while the light fades towards it (firmware 0.2.60+).
   runtime_tiles::Tile group;
@@ -114,11 +82,15 @@ int main() {
   // "It worked" without a state (the value was already there) keeps it until the cap.
   lone.hold_slider(5000,200); lone.begin(5000); lone.answered_at=5400;
   assert(lone.slider_holding(9000)); assert(!lone.slider_holding(13000));
-  // A slider on an off light lights the tile up at once; Home Assistant reporting it off ends the hold.
+  // A slider on an off light: the light goes on through a wish (docs/OPTIMISTIC.md), which keeps "on" in front while
+  // the hold keeps the value; without a wait of the tile's own the hold lasts the wait.
   runtime_tiles::Tile dark;
   dark.entity="light.dark"; dark.received=true; dark.state="off"; dark.brightness=NAN; dark.revision=rev("off");
-  dark.hold_slider(1000,128); dark.begin(1000);
-  assert(dark.state=="on"); assert(dark.brightness==128);
+  dark.hold_slider(1000,128);
+  assert(dark.state=="off"); assert(dark.brightness==128);
+  assert(dark.slider_holding(1000+runtime_tiles::Tile::BUSY_CAP-1));
+  assert(!dark.slider_holding(1000+runtime_tiles::Tile::BUSY_CAP));
+  // Home Assistant reporting it off (the wish lost) ends the hold.
   dark.state="off"; dark.brightness=NAN; dark.observe(rev("off")); dark.slider_reported(1500);
   assert(!std::isfinite(dark.slider_sent)); assert(!std::isfinite(dark.brightness));
   // A refusal puts the reported value back.

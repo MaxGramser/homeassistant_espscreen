@@ -13,13 +13,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'screen_manager' / 'app'))
 import profiles  # noqa: E402
 import core  # noqa: E402
-import generate_cells  # noqa: E402
 import firmware as firmware_module  # noqa: E402
+import generate_cells  # noqa: E402
 
 SHAPES = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
 
@@ -42,6 +44,14 @@ class Catalog(unittest.TestCase):
         big = firmware_module.BOARD_CHOICES['jc8012p4a1']
         self.assertEqual((big['name'], big['inch'], big['touch'], big['status'], big['calibrate']),
                          ('Guition', 10.1, 'GSL3670', 'new', False))
+        tab5 = firmware_module.BOARD_CHOICES['tab5']
+        self.assertEqual((tab5['name'], tab5['model'], tab5['inch'], tab5['touch'], tab5['status'], tab5['calibrate'],
+                          tab5['camera']),
+                         ('M5Stack Tab5', 'Tab5 ST7121', 5.0, 'ST7121', 'new', False, True))
+        source = profiles.BOARDS['tab5'].read_text()
+        self.assertIn('model: M5STACK-TAB5-ST7121', source)
+        self.assertIn('platform: st7123', source)
+        self.assertIn('TOUCH_CONTROLLER: "ST7121"', source)
 
     def test_what_the_files_say_is_worked_out_not_written(self):
         for board in profiles.CATALOG:
@@ -56,6 +66,23 @@ class Catalog(unittest.TestCase):
             self.assertIn(catalog['status'], ('stable', 'new', 'experimental'), board)
             for key, options in catalog['choices'].items():
                 self.assertEqual(options[0], values[key].strip('"'), f'{board} {key}: the board file\'s own value first')
+
+    def test_tab5_exposes_its_battery_level_from_the_ina226(self):
+        class IncludeLoader(yaml.SafeLoader):
+            pass
+
+        IncludeLoader.add_constructor('!include', lambda loader, node: loader.construct_scalar(node))
+        hardware = yaml.load((ROOT / 'packages/hardware/m5stack-tab5.yaml').read_text(), Loader=IncludeLoader)
+        ina226 = next(sensor for sensor in hardware['sensor'] if sensor.get('platform') == 'ina226')
+        level = next(sensor for sensor in hardware['sensor'] if sensor.get('name') == 'Battery Level')
+
+        self.assertEqual((ina226['address'], ina226['i2c_id']), (0x41, 'tab5_bus'))
+        self.assertEqual(ina226['bus_voltage']['name'], 'Battery Voltage')
+        self.assertEqual(ina226['bus_voltage']['entity_category'], 'diagnostic')
+        self.assertEqual((level['device_class'], level['state_class'], level['unit_of_measurement']),
+                         ('battery', 'measurement', '%'))
+        self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][0], '6.00 -> 0')
+        self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][-1], '8.40 -> 100')
 
 
 class Choices(unittest.TestCase):
@@ -95,6 +122,31 @@ class Choices(unittest.TestCase):
         # What the screen reports itself still wins.
         reported = {'width': 480, 'height': 480, 'columns': 2, 'rows': 3, 'dpi': 170, 'look': 'standard'}
         self.assertEqual(core.grid_of({'board': 'guition', 'grid_rows': 4, 'shape': reported}), core.Grid(2, 3))
+
+    def test_tab5_defaults_to_three_rows_and_offers_four(self):
+        text = core.installation_yaml({'board': 'tab5', 'name': 'hall', 'friendly_name': 'Hall'})
+        self.assertNotIn('GRID_ROWS', re.search(r'(?ms)^substitutions:\n(.*?)\n\n', text)[1])
+        selected = core.installation_yaml({
+            'board': 'tab5', 'name': 'hall', 'friendly_name': 'Hall', 'choices': {'GRID_ROWS': '4'}
+        })
+        self.assertIn('  GRID_ROWS: "4"', re.search(r'(?ms)^substitutions:\n(.*?)\n\n', selected)[1].split('\n'))
+        board = profiles.BOARDS['tab5']
+        include = re.search(r'cells: !include (\S+)', board.read_text())[1]
+        for rows, cells in (('3', 9), ('4', 12)):
+            values = profiles.evaluate({**profiles.substitutions_of(board), 'GRID_ROWS': rows})
+            path = (board.parent / profiles._render(include, values, strict=True)).resolve()
+            self.assertEqual(path.name, f'{cells}.yaml')
+            self.assertTrue(path.exists(), path)
+            self.assertEqual(path.read_text().count('runtime_tiles::bind('), cells)
+            grid = core.grid_of({'board': 'tab5', 'grid_rows': int(rows)})
+            self.assertEqual((grid.pages, grid.max_tiles), (8, 64))
+            tiles = [{'entity': f'light.tab5_{n}', 'name': ''} for n in range(64)]
+            self.assertEqual(len(core.validate_layout({'title': 'Tab5', 'tiles': tiles}, grid=grid)['tiles']), 64)
+            with self.assertRaisesRegex(ValueError, 'at most 64'):
+                core.validate_layout({'title': 'Tab5', 'tiles': tiles + [{'entity': 'light.extra', 'name': ''}]},
+                                     grid=grid)
+        import generate_cells
+        self.assertIn(12, generate_cells.counts())
 
     def test_the_ten_inch_guitions_offer_more_rows_and_their_cells(self):
         rows_options = ['5', '6', '7', '8']

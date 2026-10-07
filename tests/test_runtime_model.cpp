@@ -138,8 +138,8 @@ static void test_extra() {
   Extra robot; Choice mode; mode.kind = 'm'; mode.values = {"vacuum", "mop"}; robot.choices.push_back(mode); robot.room = "Kitchen";
   Tile vacuum; vacuum.set_extra(std::move(robot));
   assert(vacuum.choice('m') && vacuum.choice('m')->values.size() == 2 && !vacuum.choice('w') && vacuum.extra().room == "Kitchen");
-  vacuum.choice('m')->sent = "mop";
-  assert(static_cast<const Tile &>(vacuum).choice('m')->sent == "mop");
+  vacuum.choice('m')->current = "mop";
+  assert(static_cast<const Tile &>(vacuum).choice('m')->current == "mop");
   // A new layout resets the slots, blocks included.
   Model m;
   seed(m, {"vacuum.robot"});

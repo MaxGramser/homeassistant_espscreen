@@ -5,6 +5,7 @@
 #include <iterator>
 #include <cstdio>
 #include <string>
+#include "battery_status.h"
 #include "screen_settings.h"
 #include "screen_text.h"
 #include "ui_scale.h"
@@ -52,6 +53,8 @@ inline std::string features() {
   const struct { bool able; const char *word; } list[] = {
     {dimmable, "dimmable"},     // the backlight takes levels, not only lit or dark
     {can_standby, "standby"},   // the screen can go dark and come back
+    // it has a battery the top bar can show (firmware 0.41.0, runtime_tiles::find_battery, docs/BATTERY.md)
+    {static_cast<bool>(battery_status::level), "battery"},
   };
   std::string words;
   for (const auto &item : list) {

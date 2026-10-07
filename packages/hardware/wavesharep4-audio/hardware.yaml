@@ -4,19 +4,11 @@ smart_display:
 # Optional audio hardware for the ESP32-P4-86-Panel-ETH-2RO / WIFI6-Touch-LCD-4B.
 # Waveshare schematic, page 1: MCLK=13, SCLK=12, LRCK=10, SDOUT1 through R87=11, DSDIN=9.
 # The website's quick-reference audio signal labels differ. See docs/WAVESHAREP4.md.
-# Transport ownership is selected at build time; the codec settings stay shared.
+# Transport ownership is selected at build time; codec settings stay shared.
 packages:
   transport: !include transport/${AUDIO_TRANSPORT}.yaml
 
-# Pinned ES7210 extension for digital gain/ALC; replace with standard ESPHome once available upstream.
-external_components:
-  - source:
-      type: git
-      url: https://github.com/woozer/esphome
-      ref: ff380e19d41d0671975a44dd433091b035d45888
-    components: [es7210]
-    refresh: never
-
+# The board entry supplies the ES7210 gain/ALC/TDM extension from this repository.
 audio_adc:
   - platform: es7210
     id: panel_audio_adc

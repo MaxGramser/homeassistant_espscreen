@@ -15,7 +15,8 @@ import time
 import yaml
 import zipfile
 import build_cache
-from core import BOARD_KEYS, ORIENTATIONS, REF, REPO, SHAPES, hotspot_name, installation_yaml, old_hotspot_name
+import build_memory
+from core import BOARD_KEYS, CHANNELS, ORIENTATIONS, REF, REPO, SHAPES, channel, hotspot_name, installation_yaml, old_hotspot_name, ref
 from i18n import t
 
 LOG = logging.getLogger('screen_manager')
@@ -80,7 +81,10 @@ def _board_choice(shape):
             # Whether it opens a Wi-Fi hotspot when it cannot reach its network (app 0.4.32): New screen says what to do.
             'hotspot': shape.get('hotspot', True),
             # How many tiles and pages a screen of it takes (firmware 0.34.0+, boards.json): New screen says so.
-            'max_tiles': shape.get('max_tiles', 64), 'max_pages': shape.get('max_pages', 8), **shape.get('catalog', {})}
+            'max_tiles': shape.get('max_tiles', 64), 'max_pages': shape.get('max_pages', 8),
+            # Its fonts and its grid's sizes (boards.json): a preview screen made of it draws its mockup with them, as
+            # the editor draws a real screen of the board (app 0.4.74).
+            'fonts': shape.get('fonts', {}), 'spacing': shape.get('spacing', {}), **shape.get('catalog', {})}
 
 BOARD_CHOICES = {board: _board_choice(SHAPES[board]) for board in BOARD_KEYS}
 
@@ -125,6 +129,10 @@ class Firmware:
     # The compiler cache's limit (app 0.2.89+); past it ccache drops the oldest entries. Some seventeen full builds of
     # both boards took 0.6 GB on a Mac.
     CCACHE_SIZE = '1G'
+    # Where Linux says how much memory is free, read before a build (build_memory, app 0.4.65); a test points elsewhere.
+    MEMINFO = '/proc/meminfo'
+    # And where a container's own memory limit is kept, which /proc/meminfo leaves out (build_memory.available_mb).
+    CGROUP = '/sys/fs/cgroup'
 
     def __init__(self, root, data):
         self.root, self.data = Path(root).resolve(), Path(data)
@@ -376,6 +384,46 @@ class Firmware:
         self._names.pop(profile.name, None)
         return True
 
+    def set_branch(self, name, branch):
+        """Let the screen's next build come from `branch`, main or dev: the app's channel (core.channel, docs/RELEASING.md
+        "Testing dev"). The `ref:` of the package from this repository, and GITHUB_REF of the substitutions, which the
+        package fetches its components and fonts with. Only a `ref:` that says main or dev is changed, on its own line;
+        a tag, a commit, another branch or a fork is the owner's own choice and stays, and so does the rest of the
+        file. The result is read back and written only when that line is the one thing that changed. True when the
+        profile changed."""
+        if branch not in CHANNELS.values():
+            return False
+        profile = self.profile(name)
+        raw = profile.read_bytes().decode('utf-8')
+        newline = '\r\n' if '\r\n' in raw else '\n'
+        text = raw.replace('\r\n', '\n')
+        before = yaml.load(text, Loader=LenientLoader)
+        packages = before.get('packages') if isinstance(before, dict) else None
+        ours = [key for key, entry in packages.items() if isinstance(entry, dict) and REPO in str(entry.get('url', ''))] \
+            if isinstance(packages, dict) else []
+        if not ours or any(packages[key].get('ref') not in CHANNELS.values() for key in ours):
+            return False
+        changed = False
+        line = re.compile(r'(?m)^([ \t]+ref:[ \t]*)(["\']?)(main|dev)\2([ \t]*(?:#.*)?)$')
+        for key in ours:
+            if packages[key]['ref'] == branch:
+                continue
+            expected = deepcopy(before)
+            expected['packages'][key]['ref'] = branch
+            for match in line.finditer(text):
+                candidate = text[:match.start(3)] + branch + text[match.end(3):]
+                if yaml.load(candidate, Loader=LenientLoader) == expected:
+                    text, before, changed = candidate, expected, True
+                    break
+            else:
+                LOG.warning('%s: its ref could not be changed without changing more, so it builds from %s',
+                            profile.name, packages[key]['ref'])
+                return False
+        if changed:
+            self._atomic_write(profile, text.replace('\n', newline))
+            self._names.pop(profile.name, None)
+        return self._set_substitution(profile.name, 'GITHUB_REF', branch, default=REF, what='branch') or changed
+
     def rename_hotspot(self, name):
         """Give the Wi-Fi fallback hotspot of a profile this app wrote before 0.4.63 its name with the screen in it
         (core.hotspot_name): "Tessera Living room" instead of "living-room Setup", so a house full of screens that lost a
@@ -561,7 +609,7 @@ class Firmware:
 packages:
   bridge:
     url: {REPO}
-    ref: {REF}
+    ref: {ref()}
     files: [packages/bridge.yaml]
     refresh: 0s
 
@@ -818,6 +866,13 @@ packages:
                 self.set_language(profile.name, self.language())
             except (OSError, ValueError, yaml.YAMLError) as error:
                 LOG.warning('Could not write the language into %s (%s)', profile.name, error)
+        # The branch of the app's channel (docs/RELEASING.md, "Testing dev"): dev for an app added from the `#dev` URL,
+        # main again once the screen is with the app from the plain URL. An app with no channel leaves it as it is.
+        if managed and channel():
+            try:
+                self.set_branch(profile.name, channel())
+            except (OSError, ValueError, yaml.YAMLError) as error:
+                LOG.warning('Could not write the branch into %s (%s)', profile.name, error)
         # A board without room for the Wi-Fi fallback hotspot builds without it, also a screen made before (app 0.4.5).
         dropped = False
         if managed:
@@ -876,7 +931,7 @@ packages:
         self.task=asyncio.create_task(self.run(profile,action,target))
         return dict(self.job)
 
-    def build_env(self, profile):
+    def build_env(self, profile, jobs=None):
         """The ESPHome CLI's environment: everything it downloads or builds goes in the app's own /data, which an app
         update or restart keeps and a backup leaves out (config.yaml backup_exclude), none of it in the ESPHome folder.
 
@@ -888,17 +943,44 @@ packages:
           PlatformIO (app 0.2.89+); by default they would go in the container's own cache, gone at every restart.
         - platformio: PlatformIO, for anything ESPHome still builds with it.
 
-        As many compilers at once as the machine has cores, as PlatformIO ran them: ESP-IDF's ninja would start two
-        more, and each takes a few hundred MB next to Home Assistant on a small Raspberry Pi (ESPHome's own limit, which
-        the official ESPHome app sets too). The ccache options let a compile cache GitHub made answer here
-        (build_cache, app 0.4.49)."""
+        `jobs` is how many compilers run at once (build_memory, app 0.4.65): as many as the machine has cores when
+        nothing says otherwise, as PlatformIO ran them (ESP-IDF's ninja would start two more, and each takes a few
+        hundred MB next to Home Assistant on a small Raspberry Pi; ESPHome's own limit, which the official ESPHome app
+        sets too), fewer when the memory that is free says so. A limit the owner set in the add-on's environment stands.
+        The ccache options let a compile cache GitHub made answer here (build_cache, app 0.4.49)."""
         return {**os.environ, 'ESPHOME_BUILD_PATH': str(self.data / 'build' / profile.stem),
                 'ESPHOME_DATA_DIR': str(self.data / 'esphome'), 'ESPHOME_ESP_IDF_PREFIX': str(self.data / 'idf'),
                 'CCACHE_MAXSIZE': os.environ.get('CCACHE_MAXSIZE', self.CCACHE_SIZE),
                 **{key: os.environ.get(key, value) for key, value in build_cache.CCACHE_ENV.items()},
-                'ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT': os.environ.get('ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT',
-                                                                        str(os.cpu_count() or 1)),
+                'ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT': str(jobs or os.environ.get('ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT')
+                                                             or os.cpu_count() or 1),
                 'PLATFORMIO_CORE_DIR': str(self.data / 'platformio'), 'NO_COLOR': '1'}
+
+    def memory_plan(self):
+        """How many compilers this build starts with and why (build_memory.plan), from the machine's cores and the memory
+        free now; the owner's own limit in the environment caps it as before."""
+        limit = os.environ.get('ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT')
+        return build_memory.plan(os.cpu_count() or 1, build_memory.available_mb(self.MEMINFO, self.CGROUP),
+                                 int(limit) if limit and limit.isdigit() else None)
+
+    def memory_note(self, memory):
+        """The log's line about the memory a build has, for the plan's reason (the editor says the same in its card)."""
+        free = f'{memory["free_mb"] / 1024:.1f} GB' if memory['free_mb'] is not None else 'an unknown amount'
+        if memory['reason'] == 'tight':
+            return (f'Building needs about {memory["need_mb"] / 1024:.1f} GB of free memory and this machine has {free}: '
+                    'trying with one compiler at a time.')
+        if memory['reason'] == 'low':
+            return (f'This machine has {free} of memory free, so the build runs {memory["jobs"]} compiler(s) at a time '
+                    f'instead of {memory["cores"]}. That takes longer, but it fits.')
+        if memory['reason'] == 'retry':
+            return ('The compiler ran out of memory and was stopped. Building again with one compiler at a time, from '
+                    'where it stopped. That takes longer, but it fits.')
+        if memory['reason'] == 'limit':
+            return ('The compiler ran out of memory, also with one compiler at a time. Stop a few add-ons for a while or '
+                    'give the machine more memory, then try again.')
+        return (f'The compiler ran out of memory: building the firmware needs about {memory["need_mb"] / 1024:.1f} GB of '
+                f'free memory and this machine has {free}. Stop a few add-ons for a while or give the machine more '
+                'memory, then try again.')
 
     async def retire_platformio(self):
         """PlatformIO's ESP32 toolchains and ESP-IDF, with which ESPHome built the screens before 2026.7 (app 0.2.88 and
@@ -925,6 +1007,20 @@ packages:
             self.logs.append(f'Prebuilt compile cache: {outcome}')
             LOG.info('Prebuilt compile cache for %s (%s): %s', profile.name, board, outcome)
 
+    async def esphome(self, stage, cmd, env):
+        """One ESPHome command, its output into the log line by line. (exit code, whether a line of a compile said a
+        compiler was stopped for lack of memory: build_memory.killed)."""
+        self.logs.append('ESPHome: '+stage)
+        killed = False
+        self.process=await asyncio.create_subprocess_exec(*cmd,cwd=self.root,env=env,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT,limit=1024*1024,start_new_session=True)
+        async with asyncio.timeout(7200):
+            async for line in self.process.stdout:
+                text = self.redact(terminal_line(line.decode(errors='replace')))
+                killed = killed or (stage == 'compile' and build_memory.killed(text))
+                self.logs.append(text)
+            code = await self.process.wait()
+            return code, killed or (stage == 'compile' and build_memory.killed_exit(code))
+
     async def run(self, profile, action, target):
         env = self.build_env(profile)
         try:
@@ -932,16 +1028,32 @@ packages:
                 await self.retire_platformio()
                 await self.seed_cache(profile, env)
             stages = ['config'] if action=='validate' else ['upload'] if action=='widen' else ['compile'] + (['upload'] if action=='install' else [])
+            memory = None
             for stage in stages:
                 cmd=['esphome']+(['--quiet'] if stage=='config' else [])+[stage]+(['--partition-table'] if action=='widen' else [])+[str(profile)]
                 if stage=='upload': cmd += ['--device',target]
                 self.job['stage']=stage
-                self.logs.append('ESPHome: '+stage)
-                self.process=await asyncio.create_subprocess_exec(*cmd,cwd=self.root,env=env,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT,limit=1024*1024,start_new_session=True)
-                async with asyncio.timeout(7200):
-                    async for line in self.process.stdout:
-                        self.logs.append(self.redact(terminal_line(line.decode(errors='replace'))))
-                    code=await self.process.wait()
+                if stage == 'compile':
+                    # As many compilers at once as the memory that is free takes (build_memory, app 0.4.65). The job
+                    # carries the plan, so the editor can say why this build is slower than the machine's cores allow.
+                    memory = self.job['memory'] = self.memory_plan()
+                    env = self.build_env(profile, memory['jobs'])
+                    if memory['reason']:
+                        self.logs.append(self.memory_note(memory))
+                code, killed = await self.esphome(stage, cmd, env)
+                if code and killed and memory['jobs'] > 1:
+                    # Linux stopped a compiler for lack of memory: once more with one at a time, from where it stopped
+                    # (ninja keeps every file that was done). The job says so, and the editor's bar goes on from there.
+                    memory = self.job['memory'] = {**memory, 'jobs': 1, 'reason': 'retry'}
+                    self.logs.append(self.memory_note(memory))
+                    code, killed = await self.esphome(stage, cmd, self.build_env(profile, 1))
+                if code and killed:
+                    # One compiler alone is more than this machine has: say so in plain words, not the compiler's. With
+                    # the numbers when they explain it ('out'); without them when the machine said enough was free and
+                    # something else ran short, such as a limit on this app's own memory ('limit').
+                    short = memory['free_mb'] is not None and memory['free_mb'] < memory['need_mb']
+                    memory = self.job['memory'] = {**memory, 'reason': 'out' if short else 'limit'}
+                    raise RuntimeError(self.memory_note(memory))
                 if code: raise RuntimeError('ESPHome '+stage+' failed; see the log.')
             image = self.factory_image(profile) if action not in ('validate', 'widen') else None
             if action == 'download' and not image:

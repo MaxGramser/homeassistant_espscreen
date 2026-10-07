@@ -8,6 +8,7 @@
     "climate",
     "cover",
     "fan",
+    "humidifier",
     "image",
     "input_boolean",
     "input_button",
@@ -90,6 +91,15 @@
     "always",
     "weak"
   ],
+  "headerBattery": "battery",
+  "batteryContents": [
+    "icon",
+    "percent"
+  ],
+  "batteryShows": [
+    "always",
+    "low"
+  ],
   "displays": {
     "camera": [
       "standard",
@@ -159,6 +169,13 @@
     "fan": [
       "toggle",
       "speed"
+    ],
+    "humidifier": [
+      "setpoint",
+      "slider",
+      "mode",
+      "setpoint_mode",
+      "toggle"
     ],
     "input_boolean": [
       "toggle"
@@ -275,6 +292,7 @@
     "curtains-closed",
     "desk",
     "desk-lamp",
+    "diabetes",
     "dishwasher",
     "dog",
     "door-closed",
@@ -390,6 +408,7 @@
   ],
   "builtins": [
     "clock",
+    "energy",
     "map",
     "nightstand",
     "settings"
@@ -405,6 +424,7 @@
     "climate",
     "cover",
     "fan",
+    "humidifier",
     "input_boolean",
     "input_button",
     "input_number",
@@ -424,5 +444,14 @@
     "timer",
     "vacuum",
     "weather"
+  ],
+  "favoriteShuffles": [
+    "on",
+    "off"
+  ],
+  "favoriteRepeats": [
+    "off",
+    "all",
+    "one"
   ]
 }

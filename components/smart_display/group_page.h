@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include "runtime_model.h"
+#include "optimistic.h"
 #include "tile_controls.h"
 #include "ui_scale.h"
 
@@ -23,8 +24,6 @@ namespace group_page {
 using runtime_tiles::Lamp;
 using runtime_tiles::Tile;
 
-// A choice just sent stays on the glass while Home Assistant still reports the old one, this long at most.
-constexpr uint32_t SENT_HOLD_MS = 4000;
 // The fallback range of a white-shade slider when the lamp names none.
 constexpr int KELVIN_LOW = 2000, KELVIN_HIGH = 6500;
 
@@ -38,12 +37,9 @@ inline int kelvin_high(const Lamp &l) { return l.high > l.low ? l.high : KELVIN_
 inline int kelvin_of(const Lamp &l, int value) { return std::max(kelvin_low(l), std::min(kelvin_high(l), value)); }
 
 // The colour a lamp's card paints in while the lamp is on (firmware 0.4.0+): the lamp's own, the way its tile shows it
-// (tile_controls::lamp_color), and the amber of a lamp that is on when Home Assistant names no colour. `held_hue` is
-// a hue just sent from the panel, shown at full colour until Home Assistant reports it.
-inline uint32_t color_of(const Lamp &l, int held_hue = -1) {
-  if (held_hue >= 0) return tile_controls::lamp_color(held_hue, 100);
-  return tile_controls::lamp_color(l.hue, l.saturation);
-}
+// (tile_controls::lamp_color), and the amber of a lamp that is on when Home Assistant names no colour. A hue just sent
+// is in the lamp already: the wish wrote it there (docs/OPTIMISTIC.md).
+inline uint32_t color_of(const Lamp &l) { return tile_controls::lamp_color(l.hue, l.saturation); }
 // Where the cards stand, in the page's own room (the card's width, overlay_card::content_width, and the glass's
 // height). As many columns as keep a card wide enough for a name and a slider a thumb can drag, as many rows as fit
 // between the top bar and the pager; the pager only takes its band when the lamps need more than one page.
@@ -71,19 +67,6 @@ inline Layout layout(int count, const Room &r) {
   l.pages = std::max(1, (std::max(0, count) + l.per_page - 1) / l.per_page);
   return l;
 }
-// What a card shows while a choice it sent is on its way: the sent value, until Home Assistant reports it or the hold
-// runs out.
-struct Held {
-  int value = -1;
-  uint32_t at = 0;
-  void send(int v, uint32_t now) { value = v; at = now; }
-  // The value to show given what Home Assistant reports now; clears itself once they agree or the hold is over.
-  int show(int reported, uint32_t now) {
-    if (value < 0) return reported;
-    if (reported == value || now - at >= SENT_HOLD_MS) { value = -1; return reported; }
-    return value;
-  }
-};
 }  // namespace group_page
 
 #ifndef GROUP_PAGE_TEST
@@ -100,6 +83,10 @@ namespace group_page {
 // ---- what the board profile wires up at boot (fonts and the tile come from the effects page's) ----
 // An action to Home Assistant: service, lamp, key, value; `rendered` for a value Home Assistant renders (a list).
 inline std::function<void(const std::string &, const std::string &, const std::string &, const std::string &, bool)> send;
+// A lamp's change as a wish (docs/OPTIMISTIC.md): the group, the field, the lamp, the value it shows, and the action
+// that makes it so (runtime_tiles::wish_part). The card shows the lamp as the group's tile holds it, wish and all.
+inline std::function<void(const std::string &, optimistic::Field, const std::string &, const std::string &, const std::string &,
+                          const std::string &, const std::string &, bool)> wish;
 
 // ---- state while open ----
 inline lv_obj_t *root = nullptr;
@@ -109,11 +96,10 @@ struct Card {
   lv_obj_t *box = nullptr, *icon = nullptr, *slider = nullptr, *knob = nullptr, *key = nullptr;
   std::string entity;
   bool dirty = false;
-  Held level, on, hue;
 };
 inline std::vector<Card> cards;
 // The panel of one lamp: the sheet under it that closes it, the panel, and its sliders.
-struct PanelSlider { lv_obj_t *slider = nullptr, *value = nullptr; bool hue = true, dirty = false; Held held; };
+struct PanelSlider { lv_obj_t *slider = nullptr, *value = nullptr; bool hue = true, dirty = false; };
 inline lv_obj_t *panel = nullptr, *catcher = nullptr;
 inline int panel_card = -1;
 inline std::vector<PanelSlider> panel_sliders;
@@ -141,6 +127,12 @@ inline Room room() {
 inline void emit(const char *service, const std::string &lamp, const char *key, const std::string &value, bool rendered = false) {
   ESP_LOGI("group", "%s %s %s=%s", service, lamp.c_str(), key, value.c_str());
   if (send) send(service, lamp, key, value, rendered);
+}
+// A lamp's change: a wish where the runtime takes one, the bare action otherwise.
+inline void want(optimistic::Field field, const std::string &lamp, const std::string &shown, const char *service, const char *key,
+                 const std::string &value, bool rendered = false) {
+  if (wish) wish(entity, field, lamp, shown, service, key, value, rendered);
+  else emit(service, lamp, key, value, rendered);
 }
 
 // ---- the panel ----
@@ -177,11 +169,10 @@ inline void panel_event(lv_event_t *e) {
   if (code == LV_EVENT_RELEASED && p.dirty) {
     p.dirty = false;
     const int v = lv_slider_get_value(p.slider);
-    p.held.send(v, clock());
-    // The card of the lamp takes the new colour at once, as its slider does.
-    if (p.hue) { cards[panel_card].hue.send(v, clock()); paint(cards[panel_card], *l, false); }
-    if (p.hue) emit("light.turn_on", l->entity, "hs_color", "[" + std::to_string(v) + ", 100]", true);
-    else emit("light.turn_on", l->entity, "color_temp_kelvin", std::to_string(kelvin_of(*l, v)));
+    // The card of the lamp takes the new colour at once: the wish writes it into the lamp, and the page paints it.
+    const std::string lamp = l->entity;
+    if (p.hue) want(optimistic::Field::LAMP_HUE, lamp, std::to_string(v), "light.turn_on", "hs_color", "[" + std::to_string(v) + ", 100]", true);
+    else want(optimistic::Field::LAMP_KELVIN, lamp, std::to_string(kelvin_of(*l, v)), "light.turn_on", "color_temp_kelvin", std::to_string(kelvin_of(*l, v)));
   }
 }
 inline lv_obj_t *round_end(lv_obj_t *parent, int x, int y, int size, uint32_t color) {
@@ -329,10 +320,8 @@ inline lv_obj_t *brightness_slider(lv_obj_t *parent, int x, int y, int w, int h)
 // A card as the lamp is now: its icon, the fill of its slider (an off lamp shows only the track, as on the colour card,
 // until a finger moves it), or the word of a lamp that cannot be dimmed. A slider under a finger is left alone.
 inline void paint(Card &c, const Lamp &l, bool fresh_card) {
-  const uint32_t now = clock();
-  const bool on = c.on.show(l.on ? 1 : 0, now) == 1;
-  const int shown_hue = c.hue.show(l.hue, now);
-  const uint32_t color = color_of(l, c.hue.value >= 0 ? shown_hue : -1);
+  const bool on = l.on;
+  const uint32_t color = color_of(l);
   // The pale track under the fill: amber's own for an amber lamp, else the tile's tint of the lamp's colour.
   const lv_color_t track = color == theme::ha::AMBER ? theme::color(theme::AMBER_TRACK) : lv_color_hex(theme::tint(color, 51));
   if (c.icon) {
@@ -347,7 +336,7 @@ inline void paint(Card &c, const Lamp &l, bool fresh_card) {
     lv_obj_set_x(c.knob, settings_screen::knob_x(w, h, on));
   }
   if (c.slider && (fresh_card || (!c.dirty && !lv_obj_has_state(c.slider, LV_STATE_PRESSED)))) {
-    const int level = c.level.show(l.level, now);
+    const int level = l.level;
     const bool lit = on && level > 0;
     lv_obj_set_style_bg_color(c.slider, lit ? track : theme::color(theme::TRACK), LV_PART_MAIN);
     lv_obj_set_style_bg_color(c.slider, lv_color_hex(color), LV_PART_INDICATOR);
@@ -364,9 +353,9 @@ inline void card_event(lv_event_t *e) {
   if (!effects_page::steady() || i < 0 || i >= static_cast<int>(cards.size())) return;
   const Lamp *l = lamp_of(cards[i].entity);
   if (!l || l->unavailable) return;
-  cards[i].on.send(l->on ? 0 : 1, clock());
-  paint(cards[i], *l, false);
-  emit("light.toggle", l->entity, "", "");
+  // On or off by what the card shows, as Home Assistant's toggle sends it (turn_on or turn_off, never toggle).
+  const bool on = !l->on;
+  want(optimistic::Field::LAMP_ON, l->entity, on ? "1" : "0", on ? "light.turn_on" : "light.turn_off", "", "");
 }
 inline void slider_event(lv_event_t *e) {
   const int i = card_index(e);
@@ -388,10 +377,7 @@ inline void slider_event(lv_event_t *e) {
   if (code == LV_EVENT_RELEASED && c.dirty) {
     c.dirty = false;
     const int v = std::max(1, static_cast<int>(lv_slider_get_value(c.slider)));
-    c.level.send(v, clock());
-    c.on.send(1, clock());
-    if (const Lamp *l = lamp_of(c.entity)) paint(c, *l, false);
-    emit("light.turn_on", c.entity, "brightness_pct", std::to_string(v));
+    want(optimistic::Field::LAMP_LEVEL, c.entity, std::to_string(v), "light.turn_on", "brightness_pct", std::to_string(v));
   }
 }
 inline void member_card(lv_obj_t *parent, int x, int y, int w, int h, const Lamp &l, int index) {
@@ -520,11 +506,10 @@ inline void updated(const Tile &t) {
   for (size_t i = 0; i < cards.size(); ++i) paint(cards[i], lamps[first + i], false);
   if (panel_card >= 0 && panel_card < static_cast<int>(cards.size())) {
     const Lamp &lamp = lamps[first + panel_card];
-    const uint32_t now = clock();
     for (auto &p : panel_sliders) {
       if (p.dirty || lv_obj_has_state(p.slider, LV_STATE_PRESSED)) continue;
       const int reported = p.hue ? lamp.hue : kelvin_of(lamp, lamp.kelvin ? lamp.kelvin : lv_slider_get_value(p.slider));
-      lv_slider_set_value(p.slider, p.held.show(reported, now), LV_ANIM_OFF);
+      if (lv_slider_get_value(p.slider) != reported) lv_slider_set_value(p.slider, reported, LV_ANIM_OFF);
       panel_value_text(p);
       knob_color(p, lamp);
     }

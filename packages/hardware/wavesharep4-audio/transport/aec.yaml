@@ -1,13 +1,25 @@
-# Experimental opt-in transport. ESPHome endpoints backed by Espressif FD AEC.
+# Opt-in transport. ESPHome endpoints backed by Espressif FD AEC.
 # Keep codec I2C control in hardware.yaml; do not also declare stack codec owners.
+substitutions:
+  AUDIO_CAPTURE_CHANNELS: "1"
+
 external_components:
   - source:
       type: git
       url: https://github.com/n-IA-hane/esphome-audio-stack
       ref: 0482d741a938378ef948e3b8f3dd31536f9f2cc9
       path: esphome/components
-    components: [esp_audio_stack, esp_aec]
+    components: [esp_audio_stack]
     refresh: never
+
+# The board entry supplies the reviewed esp_aec wrapper and ES7210 extension.
+# Physical ADC3 is the playback reference. Its gain stays independent of mic ALC.
+audio_adc:
+  - id: !extend panel_audio_adc
+    tdm: true
+    reference:
+      channel: 3
+      gain: 24dB
 
 esp_aec:
   id: panel_aec
@@ -30,12 +42,14 @@ esp_audio_stack:
   i2s_din_pin: GPIO11
   i2s_dout_pin: GPIO9
   processor_id: panel_aec
-  aec_reference: ring_buffer
-  aec_reference_buffer_ms: 80
-  # FD AEC uses 32 ms frames. Six DMA descriptors queue 192 ms of TX,
-  # separating the software reference from actual playback. Keep two frames
-  # of DMA headroom for this experimental software-reference path.
-  dma_desc_num: 2
+  # ES7210 SDOUT1: MIC1, MIC3 (reference), MIC2, MIC4.
+  use_tdm_reference: true
+  tdm_total_slots: 4
+  tdm_mic_slot: 0
+  tdm_ref_slot: 1
+  tdm_tx_slot: 0
+  i2s_comm_fmt: philips
+  dma_desc_num: 6
 
 microphone:
   - platform: esp_audio_stack

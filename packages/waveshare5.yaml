@@ -1,0 +1,26 @@
+# ESP Screens - the package a Waveshare ESP32-S3-Touch-LCD-5 builds from over GitHub. Written by tools/generate_entries.py
+# from boards.yaml; do not edit.
+#
+# ESP Screen Manager writes every screen's own YAML with `packages: display: {url: <this repository>, files:
+# [packages/waveshare5.yaml]}` and adds the name, the Wi-Fi reference and the unique keys (docs/EASY_SETUP.md); nothing
+# of that lives here. The screen is two packages: core.yaml, which every board shares, and boards/waveshare-esp32s3-5.yaml with this
+# board's hardware and sizes (docs/PROFILES.md). checkout/waveshare5.yaml builds the same two from a checkout.
+substitutions:
+  # The branch the components and the fonts come from: main, or dev for a screen of the app's dev channel, which
+  # writes GITHUB_REF into the screen's own YAML next to the `ref:` of this package (docs/RELEASING.md, "Testing dev").
+  GITHUB_REF: "main"
+  FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/${GITHUB_REF}/fonts"
+
+packages:
+  core: !include core.yaml
+  board: !include boards/waveshare-esp32s3-5.yaml
+  hotspot: !include features/hotspot.yaml
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/MaxGramser/homeassistant_espscreen.git
+      ref: ${GITHUB_REF}
+      path: components
+    refresh: 0s
+    components: [smart_display]

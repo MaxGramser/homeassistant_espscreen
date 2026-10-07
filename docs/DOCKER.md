@@ -17,7 +17,7 @@ This route is new. If something doesn't work on your setup, please
 - Docker with Compose on the same host. Compose pulls a ready image from the GitHub Container Registry
   (`ghcr.io/maxgramser/homeassistant_espscreen`, for amd64 and arm64), so no `git` is needed, which also makes
   it work in Synology Container Manager.
-- The ESPHome integration in Home Assistant, to pair the screens. ESPHome Device Builder
+- The ESPHome integration in Home Assistant, which Tessera adds every screen to by itself. ESPHome Device Builder
   is optional: the ESPHome CLI is already in this image.
 
 ## Install
@@ -69,8 +69,8 @@ Home Assistant then handles the login, like the app panel on Home Assistant OS.
 ssh -L 8099:127.0.0.1:8099 you@docker-host
 ```
 
-Then open `http://localhost:8099`. The **Open Devices & services** button only works in
-the sidebar panel; here, open Home Assistant yourself.
+Then open `http://localhost:8099`. The **Open Devices & services** button, offered only when Tessera can't
+add a screen to Home Assistant by itself, works in the sidebar panel; here, open Home Assistant yourself.
 
 ### Home Assistant on a bridge network
 
@@ -129,9 +129,10 @@ Camera images and updates over Wi-Fi haven't been tested on it yet.
 
 ## Using it
 
-From here it works like the app: **New screen** installs a screen, you pair it
-under **Settings → Devices & services** in Home Assistant, and then choose the tiles. See the
-[installation guide](EASY_SETUP.md).
+From here it works like the app: **New screen** installs a screen, Tessera adds it to Home Assistant once
+it is on your Wi-Fi, and then you choose the tiles. See the [installation guide](EASY_SETUP.md). A screen whose YAML is
+not in the ESPHome folder you mounted is added by hand, as in
+[Adding a screen by hand](EASY_SETUP.md#adding-a-screen-by-hand).
 
 - **USB (Linux only):** connect the screen, uncomment `devices:` in `compose.yaml` with its
   port (`/dev/ttyUSB0` or `/dev/ttyACM0`), and run `docker compose up -d` again. Installs

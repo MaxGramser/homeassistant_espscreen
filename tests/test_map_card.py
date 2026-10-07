@@ -188,6 +188,24 @@ class Card(unittest.TestCase):
         self.assertLessEqual(len(tiles), 4)
         self.assertEqual(map_card.View(52.3587, 4.8682, 12.3, (448, 400)).tile_zoom, 12)
 
+    def test_the_screens_keys_zoom_round_the_middle_and_move_it(self):
+        self.assertEqual(map_card.move_of('1,12.50,-3.00'), (1, 12.5, -3.0))
+        self.assertEqual(map_card.move_of('40,0,0'), (map_card.MOVE_ZOOM_STEPS[1], 0.0, 0.0))
+        for word in (None, '', 'x', '1,2', '1,nan,0', '1,inf,0'):
+            self.assertIsNone(map_card.move_of(word))
+        view = map_card.View(52.37, 4.89, 14.0, (480, 320))
+        middle = lambda v: (v.left + v.width / 2, v.top + v.height / 2)
+        closer = map_card.moved(view, (1, 0.0, 0.0))
+        self.assertEqual(closer.zoom, 15.0)
+        self.assertAlmostEqual(middle(closer)[0], middle(view)[0] * 2, places=6)
+        # A move is in pixels of the framed zoom: the same place at every zoom.
+        aside = map_card.moved(view, (0, 59.0, -20.0))
+        self.assertAlmostEqual(aside.left - view.left, 59.0, places=6)
+        self.assertAlmostEqual(aside.top - view.top, -20.0, places=6)
+        both = map_card.moved(view, (2, 59.0, -20.0))
+        self.assertAlmostEqual(middle(both)[0], middle(aside)[0] * 4, places=6)
+        self.assertIs(map_card.moved(view, None), view)
+
     def test_the_mark_follows_moves_not_drift(self):
         tile = {'entity': 'person.alex', 'name': '', 'options': {'display': 'map', 'map': ['person.sam']}}
         mark = map_card.fingerprint(tile, STATES)

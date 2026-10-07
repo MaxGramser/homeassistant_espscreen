@@ -282,6 +282,23 @@
     "TURN_ON": 32
    }
   },
+  "humidifier": {
+   "actions": {
+    "set_humidity": [],
+    "set_mode": [
+     [
+      "MODES"
+     ]
+    ],
+    "toggle": [],
+    "turn_off": [],
+    "turn_on": []
+   },
+   "enum": "HumidifierEntityFeature",
+   "features": {
+    "MODES": 1
+   }
+  },
   "image": {
    "actions": {
     "snapshot": []

@@ -30,7 +30,7 @@
 
 Thank you! I work on this project with a lot of love, and every bit of support helps. I truly love the Home Assistant community.
 
-If you'd like me to keep building new cards and boards, consider a small monthly contribution. A one-time coffee is just as welcome.
+I lead Tessera's development and maintenance, with contributions from the community. Your support gives me more time to build, review and test improvements. A small monthly contribution or a one-time coffee is welcome.
 
 <a href="https://buymeacoffee.com/f5j9jnkmhpv/membership"><img src="https://img.buymeacoffee.com/button-api/?text=Support%20monthly&emoji=&slug=f5j9jnkmhpv&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Support monthly" height="42"></a>
 &nbsp; or <a href="https://buymeacoffee.com/f5j9jnkmhpv">buy me a coffee once</a>
@@ -47,8 +47,8 @@ panel costs a fraction of that, sits on a table or in a wall box, and is always 
 lights, the heating or the vacuum.
 
 **What.** Firmware for affordable panels, five of them today, from the 2.8-inch CYD to the 10.1-inch Guition, with
-tiles over up to eight pages, or more on the boards with the memory for them, as many per page as the glass holds: lights, climate, blinds and curtains, the vacuum, media, the weather,
-history graphs, clocks and timers, your alarm with its keypad, and your cameras and a map of where everyone is on every screen with room for pictures. A tile can take the whole page, one big switch you push without
+tiles over up to eight pages, or more on the boards with the memory for them, as many per page as the glass holds: lights, climate, humidifiers, blinds and curtains, the vacuum, media, the weather,
+history graphs, the energy of your house live, clocks and timers, your alarm with its keypad, and your cameras and a map of where everyone is on every screen with room for pictures. A tile can take the whole page, one big switch you push without
 looking, and a tile can go to another page. An automation can put an alert on every screen when someone rings
 the bell, and a screen with room for pictures shows who is there with the doorbell camera's picture. A tap can run any
 action Home Assistant has for a tile, and Dark mode suits a screen beside the bed.
@@ -109,6 +109,22 @@ home fits on one page. The 10.1-inch Guition holds up to forty on a page: New sc
   <img src="docs/images/jc8012p4a1-8rows-dark.png" width="49%" alt="The page with eight rows in Dark mode">
 </p>
 <p align="center"><sub>Six, seven and eight rows on the 10.1-inch Guition, from thirty to forty tiles on a page, and eight rows in Dark mode. Rendered from the firmware's own code. The rows are chosen when the screen is built; one with five gets more by adding <code>GRID_ROWS: "6"</code> (or 7, or 8) to its own YAML and installing it again, and its saved layout moves along by itself. Thanks to <a href="https://github.com/Heronimonimo">Jeroen Peters</a> for <a href="https://github.com/MaxGramser/homeassistant_espscreen/pull/151">the rows</a>.</sub></p>
+
+## Your house's energy, live
+
+<p align="center">
+  <img src="docs/images/energy-jc8012p4a1-dark.png" width="98%" alt="The 10.1-inch Guition in Dark mode with the energy card on three by three cells: the sun gives 5.2 kW, the house uses 2.5 kW, the battery at 64 % charges with 1.5 kW and 1.2 kW goes back to the grid, with lines and moving dots between their circles and the heat pump, the fridge, the washing machine and the office around the house; beside it the weather, the solar energy of today, the EV charger, the battery and graphs of the solar power and the living room temperature">
+</p>
+<p align="center">
+  <img src="docs/images/energy-guition.png" width="32%" alt="The energy card on two by two cells of the 4-inch Guition: solar, grid, battery and the house with their power, above the solar energy of today and the EV charger">
+  <img src="docs/images/energy-waveshare43.png" width="41%" alt="The 4.3-inch Waveshare with the energy card two cells wide and three high, beside the solar energy of today, the EV charger and the battery">
+  <img src="docs/images/energy-cyd-standing.png" width="20%" alt="The 2.8-inch CYD standing up with the energy card over its whole page, the diagram turned upright: the grid at the top, solar and the battery at the sides and the house at the bottom">
+</p>
+<p align="center">
+  <img src="docs/images/energy-guition-history.png" width="32%" alt="A tap on the solar circle opens the history of the solar sensor: a day with its highest and lowest moment">
+  <img src="docs/images/energy-waveshare7-dark.png" width="49%" alt="The 7-inch Waveshare in Dark mode with the energy card on three by three cells and four devices, and the weather, the solar energy of today, the EV charger, the battery, the kitchen light, the heat pump and the car's battery beside and under it">
+</p>
+<p align="center"><sub>The energy card shows the power of your house right now, the way Home Assistant's own live Energy view and power-flow-card-plus show it: solar, the grid and the battery around the house, dots that run faster as more power flows, and the devices that draw the most. It reads the Energy settings you already have in Home Assistant, so there is nothing to set up, and a tap on a circle opens that sensor's history. It fits every screen, upright on one standing up (<a href="docs/ENERGY.md">how</a>). Rendered from the firmware's own LVGL code with a made-up house.</sub></p>
 
 ## Taller tiles, richer cards
 
@@ -342,6 +358,7 @@ while it keeps your country's clock and numbers.
 | CYD ESP32-2432S028 with ILI9342 (experimental) | 320 × 240, 2 × 3 tiles | ILI9342 / resistive XPT2046; hardware acceptance pending |
 | [Guition ESP32-S3-4848S040](https://tessera-maxgramser.on-forge.com/screens/guition), 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911 |
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
+| Waveshare ESP32-S3-Touch-LCD-5 (new) | 800 × 480, 3 × 3 tiles | RGB / capacitive GT911, the 4.3-inch's board with 5-inch glass (backlight always on: no standby, no night; [details](docs/WAVESHARE5.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-7](https://tessera-maxgramser.on-forge.com/screens/waveshare7) (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; backlight always on, hardware acceptance pending ([details](docs/WAVESHARE7.md)) |
 | Waveshare ESP32-S3-Touch-LCD-7B (experimental) | 1024 × 600, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE7B.md)) |
 | Sunton ESP32-8048S070, 7 inch (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/SUNTON8048S070.md)) |
@@ -353,6 +370,7 @@ while it keeps your country's clock and numbers.
 | Guition JC8012P4A1 V2, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, early ESP32-P4 with the newer LCD; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; hardware acceptance pending ([details](docs/JC1060P470.md)) |
+| M5Stack Tab5 (ST7121 variant, new) | 1280 × 720, 3 × 3 tiles | MIPI-DSI ST7121 / capacitive ST7121, ESP32-P4; hardware tested ([details](docs/TAB5.md)) |
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.
 
@@ -392,18 +410,15 @@ install it via USB, put it on a screen plugged into your own computer from the b
 you the file,
 and later update it wirelessly over OTA.
 
-**You do need to pair the flashed screen via the ESPHome integration in HA.**
-That pairing lives under **Settings → Devices & services**, not in the
-App store. Add the discovered device there. If it doesn't appear automatically,
-choose **Add integration → ESPHome** and enter the screen's IP address.
-If asked for a key, use the `api.encryption.key` from your own device YAML,
-and grant the device permission to perform Home Assistant actions.
+**Nothing to set up in Home Assistant.** As soon as a flashed screen is on your Wi-Fi, Tessera adds it
+to Home Assistant's ESPHome integration with the screen's own key and allows it to perform Home Assistant
+actions, which a tile needs to control anything.
 
 | Component | Needed? | What for? |
 | --- | --- | --- |
 | Tessera Screen Manager app | Yes, for this installation route | Installing firmware, managing tiles, and sending current data to the screen |
 | ESPHome Device Builder app | No, optional | Alternative editor and firmware installer; the same CLI is already in Tessera |
-| ESPHome integration in HA | Yes, pair every screen | The connection between Home Assistant and the physical screen |
+| ESPHome integration in HA | Yes, Tessera adds every screen to it by itself | The connection between Home Assistant and the physical screen |
 
 So a fresh installation without ESPHome Device Builder also works. If there's
 no ESPHome `secrets.yaml` yet, our wizard asks for Wi-Fi once and
@@ -438,10 +453,7 @@ For Home Assistant OS with Apps/Add-ons on **aarch64 or amd64**:
    Home Assistant opened over https. Or choose **Download the file** and put it on the screen with
    [ESPHome Web](https://web.esphome.io). After that, updates go over Wi-Fi as usual.
 4. **CYD:** go through the calibration on the screen. **Guition:** uses GT911
-   without resistive calibration. Then pair the discovered ESPHome device in
-   **Settings → Devices & services** using the API key the window
-   shows after installation (copy button). Grant the device permission to
-   perform Home Assistant actions.
+   without resistive calibration. The screen joins your Wi-Fi and shows up in Tessera by itself.
 5. Select the screen in Tessera, choose your tiles, and click
    **Save & send**. Then test the physical controls.
 
@@ -471,10 +483,11 @@ The [manual](https://tessera-maxgramser.on-forge.com/docs/install) on the websit
 
 ## Credits and license
 
-The very first version started from Adrian Kuehlewind's
-[ESPHome-touch-display-mount](https://github.com/akuehlewind/ESPHome-touch-display-mount).
-Little of that code is left, but his repository has 3D-printable desk, under-desk, wall and flush
-mounts for the CYD.
+ESP Screens was inspired by Adrian Kuehlewind's
+[ESPHome-touch-display-mount](https://github.com/akuehlewind/ESPHome-touch-display-mount), and its
+very first version started from his code. The project has gone its own way since, but his repository
+is still the place to go to give a CYD a proper home. It has beautiful 3D-printable desk, under-desk,
+wall and flush mounts.
 
 Not to be confused with [Tesserae (tesserae.ink)](https://tesserae.ink), a separate open-source project that
 makes calm dashboards for e-ink panels in Home Assistant. Same word, different screens: Tessera is for colour LCD

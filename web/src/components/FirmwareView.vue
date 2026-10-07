@@ -2,7 +2,8 @@
 // Shared firmware workspace; always a concrete profile and upload target.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { getJson, send } from "../api";
-import { t } from "../i18n";
+import { editorLanguage, languageMarks, numberText, t } from "../i18n";
+import { memoryNote } from "../model/install-progress";
 import { go, toast } from "../store";
 import BrowserFlash from "./BrowserFlash.vue";
 import { flashSupport } from "../flasher/logic";
@@ -53,6 +54,13 @@ const statusText = computed(() => !data.value ? t("editor.common.loading") : !da
   : data.value.job
     ? `${data.value.job.file} · ${data.value.job.action} · ${data.value.job.state}`
     : t("editor.firmware.choose"));
+// What the add-on says about the memory the build has (build_memory.py, app 0.4.65), under the status line.
+const memoryText = computed(() => {
+  const note = memoryNote(data.value?.job);
+  if (!note) return "";
+  const marks = languageMarks(editorLanguage());
+  return t(`editor.installer.memory.${note.reason}`, { free: `${numberText(note.free, marks)} GB`, need: `${numberText(note.need, marks)} GB`, jobs: note.jobs, cores: note.cores });
+});
 const downloadReady = computed(() => target.value === "download" && !!file.value && !!data.value?.downloads?.includes(file.value));
 const image = computed(() => ({ href: `api/firmware/profiles/${encodeURIComponent(file.value)}/download`, name: file.value.replace(/\.yaml$/, "") + ".factory.bin" }));
 async function run(action: "validate" | "build" | "install") {
@@ -137,6 +145,7 @@ onBeforeUnmount(() => { clearInterval(timer); flash.cancel(); });
         <span v-if="running" class="spin"></span>
       </div>
       <p id="firmware-status" class="status-line" role="status">{{ statusText }}</p>
+      <p v-if="memoryText" id="firmware-memory" class="notice warn">{{ memoryText }}</p>
       <template v-if="target === 'browser'">
         <small id="firmware-browser-hint">{{ browserHint }}</small>
         <BrowserFlash :state="flash.state" />

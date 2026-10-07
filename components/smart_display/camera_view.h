@@ -24,6 +24,14 @@ constexpr uint32_t PENDING_MS = 20000;     // an alert's camera announced this l
 // and costs the screen nothing; only the download waits.
 constexpr uint32_t SETTLE_MS = 800;
 inline bool settled(uint32_t now, uint32_t last_turn) { return now - last_turn >= SETTLE_MS; }
+// Whether the tiles are there to be seen (firmware 0.40.0+, GitHub #161), and so whether their pictures (a page's live
+// pictures, a media card's cover) keep loading: a screen in use, or one in standby that still shows its dimmed tiles. A
+// screensaver over them (the clock too) hides them, and below SEEN_LEVEL % of brightness nobody reads a picture. Before,
+// standby stopped every picture, and a camera that stood still on a dimmed screen looked like a camera that stopped.
+constexpr int SEEN_LEVEL = 5;
+inline bool tiles_seen(bool awake, bool screensaver, int standby_level) {
+  return awake || (!screensaver && standby_level >= SEEN_LEVEL);
+}
 
 struct Feed {
   std::string entity, url;

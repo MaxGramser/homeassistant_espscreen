@@ -1,0 +1,141 @@
+# ESP Screens - M5Stack Tab5 hardware: early ESP32-P4 with ESP32-C6 Wi-Fi, I/O expander, DSI power and touch bus.
+packages:
+  build: !include esp-idf.yaml
+
+esp32:
+  board: esp32-p4-evboard
+  variant: esp32p4
+  flash_size: 16MB
+  cpu_frequency: 360MHz
+  engineering_sample: true
+  framework:
+    advanced:
+      execute_from_psram: true
+    sdkconfig_options:
+      CONFIG_ESP_HOSTED_USE_MEMPOOL: "n"
+      CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM: "y"
+      CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS: "1"
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+esp_ldo:
+  - channel: 3
+    voltage: 2.5V
+    adjustable: true
+
+esp32_hosted:
+  variant: esp32c6
+  active_high: true
+  clk_pin: GPIO12
+  cmd_pin: GPIO13
+  d0_pin: GPIO11
+  d1_pin: GPIO10
+  d2_pin: GPIO9
+  d3_pin: GPIO8
+  reset_pin: GPIO15
+  slot: 1
+  sdio_frequency: 20MHz
+  use_psram: true
+
+logger:
+  tx_buffer_size: 2048
+  hardware_uart: USB_SERIAL_JTAG
+
+i2c:
+  id: tab5_bus
+  sda: GPIO31
+  scl: GPIO32
+  frequency: 400kHz
+
+pi4ioe5v6408:
+  - id: tab5_ioe
+    address: 0x43
+  # The second expander powers the ESP32-C6 and the battery charger. It comes up with every output off, so without
+  # these switches the C6 has no power after a cold start and Wi-Fi fails with "esp_wifi_init failed" (issue #150).
+  # The same three outputs M5Stack's own firmware and ESPHome's Tab5 configuration switch on at boot.
+  - id: tab5_ioe2
+    address: 0x44
+
+switch:
+  - platform: gpio
+    id: tab5_wifi_power
+    pin: {pi4ioe5v6408: tab5_ioe2, number: 0}
+    restore_mode: ALWAYS_ON
+  - platform: gpio
+    id: tab5_quick_charge
+    pin: {pi4ioe5v6408: tab5_ioe2, number: 5, inverted: true}
+    restore_mode: ALWAYS_ON
+  - platform: gpio
+    id: tab5_charge
+    pin: {pi4ioe5v6408: tab5_ioe2, number: 7}
+    restore_mode: ALWAYS_ON
+
+# The battery (docs/BATTERY.md): the INA226 at 0x41 sits in the battery's path, so its bus voltage is the pack's and its
+# current flows into the pack while it charges, positive the way M5Stack's own firmware reads it (its power monitor
+# draws the charging arrows while the current is not negative). The level follows the 2S pack's voltage. The firmware
+# finds both by their device classes (`battery`, `battery_charging`) and shows them in the top bar.
+sensor:
+  - platform: ina226
+    address: 0x41
+    i2c_id: tab5_bus
+    adc_averaging: 16
+    max_current: 8.192A
+    shunt_resistance: 0.005ohm
+    update_interval: 10s
+    bus_voltage:
+      id: tab5_battery_voltage
+      name: "Battery Voltage"
+      entity_category: diagnostic
+    current:
+      id: tab5_battery_current
+      name: "Battery Current"
+      entity_category: diagnostic
+
+  - platform: template
+    id: tab5_battery_level
+    name: "Battery Level"
+    device_class: battery
+    state_class: measurement
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: return id(tab5_battery_voltage).state;
+    filters:
+      - sliding_window_moving_average:
+          window_size: 6
+          send_every: 3
+      - calibrate_linear:
+          method: exact
+          datapoints:
+            - 6.00 -> 0
+            - 6.60 -> 5
+            - 7.00 -> 15
+            - 7.20 -> 30
+            - 7.40 -> 45
+            - 7.60 -> 60
+            - 7.80 -> 72
+            - 8.00 -> 85
+            - 8.20 -> 97
+            - 8.40 -> 100
+      - clamp:
+          min_value: 0
+          max_value: 100
+
+binary_sensor:
+  # Charging while more than 50 mA flows into the pack, until it falls under 20 mA: the IP2326 stops at a full pack
+  # and the current goes to about nothing, and the band keeps a reading near the line from flickering.
+  - platform: analog_threshold
+    id: tab5_battery_charging
+    name: "Battery Charging"
+    device_class: battery_charging
+    sensor_id: tab5_battery_current
+    threshold:
+      upper: 0.05
+      lower: 0.02
+
+output:
+  - platform: ledc
+    pin: GPIO22
+    id: gpio_backlight_pwm

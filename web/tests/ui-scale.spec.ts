@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { pillMetrics, textEms, uiScale, widestSetpoint, cardContent, cellContent, modeBar, wideChip } from "../src/model/ui-scale";
+import boardShapes from "../../screen_manager/app/boards.json";
+import { energyFits, pillMetrics, textEms, uiScale, widestSetpoint, cardContent, cardHeight, cellContent, modeBar, watchCard, watchPadding, wideChip } from "../src/model/ui-scale";
 
 describe("the firmware's sizes in the mockup (app 0.4.32)", () => {
   it("scales as ui::px does, from the board's density and look", () => {
@@ -43,5 +44,49 @@ describe("a card's room as the glass works it out (app 0.4.32)", () => {
     expect(cardContent(big, 5, 5)).toBe(1280 - 28 - 24);
     expect(cellContent(big, 5)).toBe(217);
     expect(cellContent(guition, 2)).toBe(cardContent(guition, 2, 1));
+  });
+});
+
+describe("a Big number card as the glass lays it out (app 0.4.74)", () => {
+  const guition = { width: 480, height: 480, dpi: 170, look: "standard",
+    fonts: { watch_value: 38, sublabel_big: 21, sublabel: 16, label: 18, headline: 27, watch_icon: 18, setpoint: 64 },
+    spacing: { margin: 16, gap: 12, gap_y: 12, tile_pad: 12, top: 56, page_bar: 47, circle: 54 } };
+  it("gives a card the height LVGL's grid gives its row, with and without the page bar", () => {
+    expect([0, 1, 2].map((row) => cardHeight(guition, 3, 1, row, true))).toEqual([118, 118, 117]);
+    expect(cardHeight(guition, 3, 1, 0, false)).toBe(128);
+    expect(watchPadding(guition, 3)).toBe(12);
+  });
+  it("keeps the number inside a card of three rows and three pages on a 4-inch Guition (GitHub #167)", () => {
+    const content = cardHeight(guition, 3, 1, 2, true) - 2 * (12 + 1);
+    const card = watchCard(guition, cardContent(guition, 2, 1), content, "217", "mg/dl");
+    expect(card).toMatchObject({ stacked: true, circle: { y: 7, size: 26 }, value: { y: 39, size: 38, line: 45 } });
+    expect(card.value.y + card.value.line).toBeLessThanOrEqual(content);
+  });
+  it("puts the name small in the corner and the number under it where four rows leave no room for the head", () => {
+    const content = cardHeight(guition, 4, 1, 3, true) - 2 * (watchPadding(guition, 4) + 1);
+    const card = watchCard(guition, cardContent(guition, 2, 1), content, "217", "mg/dl");
+    expect(card).toMatchObject({ stacked: false, title: { y: 0, size: 16 }, value: { size: 38 } });
+  });
+});
+
+describe("the sizes the energy card is offered (app 0.4.77)", () => {
+  // The boards' own shapes, as the editor gets them: energy_card::offered on the glass with a page bar.
+  const boards = boardShapes as Record<string, any>;
+  const shape = (board: string, side = "landscape") => {
+    const entry = Object.values(boards).find((b) => b.board === board)!, o = entry.orientations[side];
+    return { shape: { ...entry, width: o.width, height: o.height }, across: o.columns, down: o.rows };
+  };
+  const fits = (board: string, columns: number, rows: number, side = "landscape") => {
+    const { shape: s, across, down } = shape(board, side);
+    return energyFits(s, across, down, columns, rows);
+  };
+  it("takes 2 x 2 where the diagram fits it, and a page of its own on a small glass", () => {
+    expect(fits("guition", 2, 2)).toBe(true);
+    expect(fits("waveshare7", 2, 2)).toBe(true);
+    expect(fits("cyd", 2, 2)).toBe(false);
+    expect(fits("cyd", 2, 3)).toBe(true);
+    expect(fits("waveshare43", 2, 2)).toBe(false);
+    expect(fits("cyd", 1, 3, "portrait")).toBe(true);
+    expect(fits("cyd", 1, 2, "portrait")).toBe(false);
   });
 });

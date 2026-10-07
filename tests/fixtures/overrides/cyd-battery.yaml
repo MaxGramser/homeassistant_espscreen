@@ -1,0 +1,30 @@
+# A CYD with a lithium cell on GPIO35 (P3, an ADC1 pin) through two equal resistors, in the top bar the way
+# docs/BATTERY.md shows it in a screen's Override YAML: the voltage on the pin, and the level in Home Assistant's
+# battery device class, which the firmware finds itself (firmware 0.41.0).
+sensor:
+  - platform: adc
+    id: my_battery_voltage
+    name: "Battery Voltage"
+    pin: GPIO35
+    attenuation: 12db
+    samples: 16
+    update_interval: 30s
+    entity_category: diagnostic
+    accuracy_decimals: 2
+    filters:
+      - multiply: 2.0
+  - platform: template
+    name: "Battery Level"
+    device_class: battery
+    state_class: measurement
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 30s
+    lambda: |-
+      const float v = id(my_battery_voltage).state;
+      if (std::isnan(v)) return {};
+      return (v - 3.3f) / (4.2f - 3.3f) * 100.0f;
+    filters:
+      - clamp:
+          min_value: 0
+          max_value: 100

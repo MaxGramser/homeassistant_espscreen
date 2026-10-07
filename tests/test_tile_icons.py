@@ -18,7 +18,7 @@ HEADER = runtime_source()
 
 class IconSetTests(unittest.TestCase):
     def test_set_is_complete_and_carried_by_every_icon_font(self):
-        self.assertEqual(len(tile_icons.ICONS), 150)
+        self.assertEqual(len(tile_icons.ICONS), 151)
         self.assertTrue(any(group == 'Media and music' and len(icons) >= 20 for group, icons in tile_icons.GROUPS))
         self.assertEqual(len(set(tile_icons.GLYPHS.values())), len(tile_icons.GLYPHS))
         for code in tile_icons.GLYPHS.values():
@@ -33,9 +33,16 @@ class IconSetTests(unittest.TestCase):
                                                            'materialdesign_icons_back', 'materialdesign_icons_status',
                                                            'materialdesign_icons_big', 'watch_icon'], name)
             self.assertEqual(dict(fonts)['materialdesign_icons_back'].strip(), '["\\U000F0141"]', name)
-            # The top bar's Wi-Fi bars (firmware 0.38.0): struck through, then one to four bars, the order header_bar.h counts.
-            self.assertEqual(dict(fonts)['materialdesign_icons_status'].strip(),
-                             '["\\U000F092E", "\\U000F091F", "\\U000F0922", "\\U000F0925", "\\U000F0928"]', name)
+            # The top bar's Wi-Fi bars (firmware 0.38.0): struck through, then one to four bars, the order header_bar.h counts;
+            # then the battery's icons the tile icons lack (firmware 0.41.0, battery_status.h): charging per ten up to 90,
+            # the charging outline and the alert outline.
+            status = re.search(r'id: materialdesign_icons_status\n    size: \d+\n    bpp: 4\n    glyphs: (\[.*?\])', text, re.S)[1]
+            self.assertEqual(re.findall(r'\\U000(F[0-9A-F]{4})', status),
+                             ['F092E', 'F091F', 'F0922', 'F0925', 'F0928', 'F089C', 'F0086', 'F0087', 'F0088', 'F089D', 'F0089',
+                              'F089E', 'F008A', 'F008B', 'F089F', 'F10CD'], name)
+            # The battery's level icons, battery-unknown and the full charging one are tile icons already.
+            for code in ('F0079', 'F007A', 'F007B', 'F007C', 'F007D', 'F007E', 'F007F', 'F0080', 'F0081', 'F0082', 'F0091', 'F0084'):
+                self.assertIn(code, tile_icons.GLYPHS.values(), code)
             self.assertTrue(fonts[0][1].startswith('&tile_icons ')
                             and all(g == '*tile_icons' for font, g in fonts[1:]
                                     if font not in ('materialdesign_icons_big', 'materialdesign_icons_back', 'materialdesign_icons_status')), name)
@@ -66,12 +73,14 @@ class IconSetTests(unittest.TestCase):
         for domains, code in re.findall(r'if \((d == "\w+"(?: \|\| d == "\w+")*)\) return "\\U000(F[0-9A-F]{4})";', body):
             for domain in re.findall(r'"(\w+)"', domains):
                 native[domain] = code
-        # The built-in cards pick per entity, not per domain: a clock, the settings page, a page to go to or the map.
-        settings, page, map_tile, clock = re.search(
-            r'if \(d == "screen"\) return tile\.is_settings\(\) \? "\\U000(F[0-9A-F]{4})" : tile\.is_page\(\) \? "\\U000(F[0-9A-F]{4})" : tile\.entity == "screen\.map" \? "\\U000(F[0-9A-F]{4})" : "\\U000(F[0-9A-F]{4})";', body).groups()
+        # The built-in cards pick per entity, not per domain: a clock, the settings page, a page to go to, the map or the
+        # energy card (whose icon is the editor's alone: the card draws its diagram, so it is not in the big icon font).
+        settings, page, map_tile, energy, clock = re.search(
+            r'if \(d == "screen"\) return tile\.is_settings\(\) \? "\\U000(F[0-9A-F]{4})" : tile\.is_page\(\) \? "\\U000(F[0-9A-F]{4})" : tile\.entity == "screen\.map" \? "\\U000(F[0-9A-F]{4})" : tile\.is_energy\(\) \? "\\U000(F[0-9A-F]{4})" : "\\U000(F[0-9A-F]{4})";', body).groups()
         builtin = {entity: tile_icons.GLYPHS[name] for entity, name in tile_icons.BUILTIN_TILES.items()}
         self.assertEqual({'screen.settings': settings, 'screen.clock': clock, 'screen.map': map_tile, **{f'screen.page_{n}': page for n in range(1, 9)}}, builtin)
-        self.assertEqual(tile_icons.editor()['builtin'], builtin)
+        self.assertEqual({'screen.energy': energy}, {entity: tile_icons.GLYPHS[name] for entity, name in tile_icons.DIAGRAM_TILES.items()})
+        self.assertEqual(tile_icons.editor()['builtin'], {**builtin, 'screen.energy': energy})
         self.assertEqual(tile_icons.GLYPHS[tile_icons.DEFAULTS['screen']], clock)
         expected = {domain: tile_icons.GLYPHS[name] for domain, name in tile_icons.DEFAULTS.items() if domain != 'screen'}
         self.assertEqual(native, expected)
@@ -80,7 +89,7 @@ class IconSetTests(unittest.TestCase):
         for state, name in tile_icons.WEATHER.items():
             self.assertRegex(weather, rf'condition == "{re.escape(state)}"[^\n]*return "\\U000{tile_icons.GLYPHS[name]}";')
         editor = tile_icons.editor()
-        self.assertEqual(sum(len(group['icons']) for group in editor['groups']), 150)
+        self.assertEqual(sum(len(group['icons']) for group in editor['groups']), 151)
         self.assertIn(f'"\\U000{editor["sun"]["above_horizon"]}" : "\\U000{editor["sun"]["below_horizon"]}"', HEADER)
 
 class IconOptionTests(unittest.IsolatedAsyncioTestCase):

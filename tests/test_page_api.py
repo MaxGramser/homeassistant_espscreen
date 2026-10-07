@@ -41,6 +41,25 @@ class PageApiTests(unittest.IsolatedAsyncioTestCase):
             screen = next(s for s in (await response.json())['screens'] if s['id'] == 'text.screen')
             self.assertIn(fragment, screen['delivery'])
 
+    async def test_a_screen_without_tiles_hears_so_in_its_hello(self):
+        # Firmware 0.45.0 shows "Choose your tiles" instead of "Waiting for Tessera" while the app has none for it.
+        from server import Manager
+        screen = {**self.manager.screen('text.screen'), 'device_id': 'test-device'}
+        sent = []
+        async def answer(message):
+            sent.append(message)
+            return {'protocol': 2, 'request': message['request'], 'session': 'a' * 16,
+                    'status': 'Session:' + 'a' * 16, 'tile_sizes': ['single', 'wide', 'full']}
+        for layouts, empty in (({}, True), (self.manager.layouts, False)):
+            self.manager.page_senders.pop('text.screen', None)
+            sender = self.manager.page_sender('text.screen', screen)
+            sender.send = AsyncMock(side_effect=answer)
+            with patch.object(self.manager, 'answers', return_value=True), \
+                 patch.object(Manager, 'layouts', new=property(lambda _, known=layouts: known)):
+                await self.manager.probe_pages('text.screen', screen)
+            self.assertEqual(sent[-1]['op'], 'hello')
+            self.assertEqual(sent[-1].get('empty', False), empty)
+
     async def test_offline_edit_after_manager_restart_uses_only_saved_handshake_hints(self):
         screen = {**self.manager.screen('text.screen'), 'device_id': 'test-device'}
         async def answer(message):

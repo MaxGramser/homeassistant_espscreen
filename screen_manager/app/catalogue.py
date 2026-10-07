@@ -23,6 +23,8 @@ DOMAINS = frozenset(TYPES)
 # type's entry, the dearest for a type the catalogue does not know, and what a tile's own choices add.
 MEMORY = {domain: data['memory'] for domain, data in TYPES.items()}
 DEAREST = max(MEMORY.values(), key=lambda entry: entry['bytes'])
+# The screen's own cards that keep more than their type (the energy card), by entity.
+CARD_MEMORY = {entity: price for data in TYPES.values() for entity, price in data.get('cards', {}).items()}
 CHOICE_MEMORY = TILE['memory']
 # The commands a remote of each integration takes, read from Home Assistant's source and the libraries it pins
 # (tools/read_remote_commands.py, GitHub #117): {integration: {'from': [...], 'commands': [...]}}.
@@ -159,12 +161,16 @@ def offers(entity_id, state, actions, services=None, fields=None, history=None):
         if met[item['key']]:
             controls.append(item['key'])
     toggle = entry.get('toggle') or {'actions': [{'action': f'{domain}.toggle'}]}
-    return {
+    found = {
         'toggle': holds(domain, toggle, entity_id, state, actions, services, fields, history),
         'inline': bool(entry.get('inline')) and meets(entry['inline']),
         'controls': controls,
         'displays': [item['key'] for item in entry.get('displays', []) if meets(item)],
     }
+    # What a favourite of it may set as it starts (app 0.4.84): its shuffle and repeat.
+    if 'favorite' in entry:
+        found['favorite'] = [item['key'] for item in entry['favorite'] if meets(item)]
+    return found
 
 
 # ---- The card's side: what a card of a size draws ----

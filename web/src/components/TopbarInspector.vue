@@ -41,7 +41,8 @@ const hint = computed(() => supported.value
   : t("editor.topbar.hint.needs_firmware", { version: needed.value }));
 // Why an item is hidden on the mockup: an entity that is off, a Wi-Fi item while the signal is good, the link mark while
 // everything is connected (the screen's own items, firmware 0.38.0).
-const hiddenText = (it: HeaderItem) => t(it.type === "wifi" ? "editor.topbar.detail.hidden_signal" : it.type === "link" ? "editor.topbar.detail.hidden_link" : "editor.topbar.detail.hidden");
+const hiddenText = (it: HeaderItem) => t(it.type === "wifi" ? "editor.topbar.detail.hidden_signal" : it.type === "link" ? "editor.topbar.detail.hidden_link"
+  : it.type === "battery" ? "editor.topbar.detail.hidden_battery" : "editor.topbar.detail.hidden");
 const detail = (it: HeaderItem, i: number) => {
   const view = topbarView(it);
   return !view.shown ? hiddenText(it) : overflow.value.has(i) ? t("editor.topbar.detail.overflow") : view.analog ? t("editor.topbar.detail.dial") : view.text || topbarLabel(it);
@@ -54,6 +55,9 @@ const iconOf = (it: HeaderItem) => {
 // The screen's own items need firmware 0.38.0; an older screen leaves them out of its bar.
 const statusNeeded = computed(() => state.inventory.header?.status_min_firmware || "0.38.0");
 const statusSupported = computed(() => { const [a, b, c] = statusNeeded.value.split(".").map(Number); return supports(a, b, c); });
+// The battery item needs firmware 0.41.0 (docs/BATTERY.md); an older screen leaves it out of its bar.
+const batteryNeeded = computed(() => state.inventory.header?.battery_min_firmware || "0.41.0");
+const batterySupported = computed(() => { const [a, b, c] = batteryNeeded.value.split(".").map(Number); return supports(a, b, c); });
 const justAdded = (it: HeaderItem) => state.topbarAdded?.key === itemKey(it) && Date.now() - state.topbarAdded.time < 1200;
 // The page whose bar you clicked (app 0.2.105). Its left side, the title and the Home key, belongs to the page and is
 // set in the page's own settings (app 0.3.19); this inspector is about what stands on the right.
@@ -213,6 +217,19 @@ function onKey(e: KeyboardEvent, i: number) {
         </div>
         <small class="help">{{ t("editor.topbar.wifi_hint") }}</small>
         <small v-if="!statusSupported" class="help warn">{{ t("editor.topbar.status_firmware", { version: statusNeeded }) }}</small>
+      </template>
+      <!-- The screen's own battery (firmware 0.41.0): the percentage beside Home Assistant's icon or not, and when it shows. -->
+      <template v-else-if="item.type === 'battery'">
+        <div class="f">
+          <span class="f-label">{{ t("editor.topbar.content.label") }}</span>
+          <Segmented :choices="(state.inventory.header?.battery_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'icon'" @pick="(v) => update({ content: v })" />
+        </div>
+        <div class="f">
+          <span class="f-label">{{ t("editor.topbar.show.label") }}<HelpTip :text="t('editor.topbar.battery_show_hint')" /></span>
+          <Segmented :choices="(state.inventory.header?.battery_shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show || 'always'" @pick="(v) => update({ show: v })" />
+        </div>
+        <small class="help">{{ t("editor.topbar.battery_hint") }}</small>
+        <small v-if="!batterySupported" class="help warn">{{ t("editor.topbar.status_firmware", { version: batteryNeeded }) }}</small>
       </template>
       <template v-else-if="item.type === 'link'">
         <small class="help">{{ t("editor.topbar.link_hint") }}</small>

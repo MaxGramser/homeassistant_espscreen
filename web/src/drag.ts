@@ -6,8 +6,8 @@ const { grid, arrange, pageOf, reorderPages } = editorLayout;
 // mockup already shows where everything ends up; the drop confirms exactly that, and a
 // drop off the grid changes nothing. A finished drag never doubles as a click.
 import type { Directive } from "vue";
-import { entriesOf, newTile, pageOrder } from "./model/layout";
-import { commitArrangement, confirmMemory, coversByDefault, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, state, toast } from "./store";
+import { entriesOf, pageOrder } from "./model/layout";
+import { commitArrangement, confirmMemory, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, startTile, state, toast } from "./store";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
@@ -60,7 +60,7 @@ function beginDrag(e: PointerEvent) {
   // The row as it stands, read before the drag begins: from here on a tile drag adds a page to it.
   const pages = pagesShown();
   state.drag.active = true;
-  state.drag.moving = source.kind === "page" ? null : source.kind === "tile" ? source.tile : newTile(source.id, coversByDefault());
+  state.drag.moving = source.kind === "page" ? null : source.kind === "tile" ? source.tile : startTile(source.id);
   // A page keeps its own place until the pointer names another one; the ghost is the label you grabbed it by.
   state.drag.page = source.kind === "page" ? { from: source.page, to: source.page, order: pageOrder(pages, source.page, source.page) } : null;
   state.drag.preview = null;

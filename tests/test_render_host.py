@@ -46,7 +46,8 @@ class HostBuild(unittest.TestCase):
                     self.assertIn(f'- action: {action}', text)
                 # The SDL panel is read as often as the board reads its own: a finger that moves between reads is what
                 # LVGL counts as a swipe.
-                self.assertIn('    update_interval: 20ms\n', hardware, item.key)
+                interval = '100ms' if item.key.startswith('tab5') else '20ms'
+                self.assertIn(f'    update_interval: {interval}\n', hardware, item.key)
                 self.assertIn('platform: host', (mirror / 'packages' / 'core.yaml').read_text())
 
 

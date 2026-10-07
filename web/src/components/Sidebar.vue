@@ -46,7 +46,9 @@ const status = (screen: Screen) => {
 const isSelected = (screen: Screen) => screen.id === state.selected && route.value === "";
 // Only a screen with something to explain opens by itself (app 0.4.32): an update that failed or waits for a build.
 // An update ready to go has its button on the row; a screen that is away says so there.
-const explains = (screen: Screen) => ["failed", "blocked"].includes(updateState(screen)?.kind || "");
+// So does one that has to be updated here rather than in ESPHome Device Builder (app 0.4.82), while an update waits.
+const explains = (screen: Screen) => ["failed", "blocked"].includes(updateState(screen)?.kind || "")
+  || Boolean(screen.update_in_tessera && updateState(screen)?.kind === "available");
 const isOpen = (screen: Screen) => folded.value?.id === screen.id ? folded.value.open : isSelected(screen) && explains(screen);
 const chevronShown = (screen: Screen) => isSelected(screen) || isOpen(screen);
 function choose(screen: Screen) {
@@ -75,6 +77,10 @@ function update(screen: Screen) {
   if (u.host && u.profile) startUpdate(screen);
   else if (u.profile) { hostFor.value = screen.id; host.value = ""; }
 }
+// The dev channel's own button (docs/RELEASING.md, "Testing dev"): the newest dev keeps the firmware number, so it is
+// never an update by itself; this builds and installs it anyway, the way an update does.
+const reinstallable = (screen: Screen) => state.inventory.updates?.channel === "dev" && screen.online
+  && Boolean(screen.update?.profile && screen.update?.host) && !state.inventory.updates?.busy;
 function startWithHost(screen: Screen) {
   const address = host.value.trim();
   if (!address) return;
@@ -85,11 +91,17 @@ const lastLog = () => {
   const lines = state.firmwareJob?.logs || [];
   return lines.length ? lines[lines.length - 1] : "";
 };
-const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: string }) => p.installed
-  ? t("editor.sidebar.pending.installed")
-  : p.downloaded
-    ? t("editor.sidebar.pending.downloaded")
-    : t("editor.sidebar.pending.not_flashed", { file: p.file });
+// Tessera adds a screen Home Assistant found by itself (app 0.4.73): it says so while it does, and that it is up to the
+// person when Home Assistant asks something only they can answer.
+const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: string; seen?: boolean; pairing?: string | null }) => p.pairing === "failed"
+  ? t("editor.sidebar.pending.failed")
+  : p.seen
+    ? t("editor.sidebar.pending.adding")
+    : p.installed
+      ? t("editor.sidebar.pending.installed")
+      : p.downloaded
+        ? t("editor.sidebar.pending.downloaded")
+        : t("editor.sidebar.pending.not_flashed", { file: p.file });
 </script>
 
 <template>
@@ -150,6 +162,11 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
             <dd>{{ screen.firmware || t("editor.common.unknown") }}<template v-if="updateState(screen)?.kind === 'available' && !languageOnly(screen)"> → {{ screen.update?.target }}</template></dd>
             <template v-if="boardName(screen)"><dt>{{ t("editor.sidebar.details.board") }}</dt><dd>{{ boardName(screen) }}</dd></template>
           </dl>
+          <!-- A screen with 4 MB of flash on ESPHome's partition table (app 0.4.82): update it here, which moves the table. -->
+          <details v-if="screen.update_in_tessera" class="whatsnew in-tessera">
+            <summary class="act"><Icon name="information-outline" />{{ t("editor.sidebar.update.in_tessera") }}</summary>
+            <p>{{ t("editor.sidebar.update.in_tessera_why") }}</p>
+          </details>
           <div v-if="updateState(screen)" class="screen-update" :class="updateState(screen)!.kind">
             <template v-if="updateState(screen)!.kind === 'available'">
               <template v-if="hostFor === screen.id">
@@ -183,6 +200,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
           </form>
           <!-- What can be done with the screen, as the rows of a menu: quiet until pointed at, the one that removes in red. -->
           <div class="screen-actions-list">
+            <button v-if="reinstallable(screen)" type="button" class="act reinstall-dev" :title="t('editor.sidebar.update.reinstall_why')" @click="startUpdate(screen, undefined, true)"><Icon name="update" />{{ t("editor.sidebar.update.reinstall") }}</button>
             <button v-if="renameFor !== screen.id" type="button" class="act rename-screen" @click="startRename(screen)"><Icon name="pencil-outline" />{{ t("editor.sidebar.rename.button") }}</button>
             <!-- The screen's YAML, Override YAML and the secrets they use, to build it with ESPHome on your own computer. -->
             <a v-if="screen.update?.profile" class="act screen-files" :href="`api/firmware/profiles/${encodeURIComponent(screen.update.profile)}/files`" download
@@ -196,7 +214,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     <div id="pending">
       <div v-for="p in state.inventory.pending || []" :key="p.file" class="pending">
         <strong>{{ p.friendly }}</strong>
-        <small>{{ pendingText(p) }}</small>
+        <small><span v-if="p.seen && p.pairing !== 'failed'" class="spin small"></span>{{ pendingText(p) }}</small>
         <div v-if="removeFor === `pending:${p.file}`" class="screen-remove">
           <strong>{{ t("editor.sidebar.remove.title", { name: p.friendly }) }}</strong>
           <ul><li>{{ t("editor.sidebar.remove.profile", { file: p.file }) }}</li></ul>
@@ -208,10 +226,11 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
           </div>
         </div>
         <div v-else class="pending-actions">
-          <button type="button" class="btn mini quiet" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button>
+          <!-- Tessera adds it to Home Assistant by itself (app 0.4.73); the way by hand only when that did not work out. -->
+          <button v-if="p.pairing === 'failed'" type="button" class="btn mini quiet" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button>
           <button type="button" class="btn link mini danger remove-pending" @click="removeFor = `pending:${p.file}`">{{ t("editor.sidebar.remove.button") }}</button>
         </div>
-        <details v-if="p.api_key" class="key-more">
+        <details v-if="p.api_key && p.pairing === 'failed'" class="key-more">
           <summary>{{ t("editor.installer.key_more") }}</summary>
           <button type="button" class="btn link mini copy-key" @click="copyText(p.api_key!)">{{ t("editor.sidebar.copy_api_key") }}</button>
         </details>
