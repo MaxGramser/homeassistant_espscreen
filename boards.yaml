@@ -143,3 +143,9 @@ waveshare5:
   name: Waveshare
   model: ESP32-S3-Touch-LCD-5
   status: new
+
+jc4880p443:
+  file: guition-jc4880p443.yaml
+  name: Guition
+  model: JC4880P443
+  status: experimental

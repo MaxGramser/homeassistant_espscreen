@@ -370,6 +370,7 @@ while it keeps your country's clock and numbers.
 | Guition JC8012P4A1 V2, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, early ESP32-P4 with the newer LCD; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; hardware acceptance pending ([details](docs/JC1060P470.md)) |
+| Guition JC4880P443, 4.3 inch (experimental) | 800 × 480, 3 × 3 tiles | MIPI-DSI ST7701 / capacitive GT911, pre-v3 ESP32-P4; dimmable backlight, hardware acceptance pending ([details](docs/JC4880P443.md)) |
 | M5Stack Tab5 (ST7121 variant, new) | 1280 × 720, 3 × 3 tiles | MIPI-DSI ST7121 / capacitive ST7121, ESP32-P4; hardware tested ([details](docs/TAB5.md)) |
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.

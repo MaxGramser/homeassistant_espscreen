@@ -29,7 +29,12 @@ SHARED = {'kind': 'shared', 'firmware': '0.99.0', 'boards': sorted(profiles.BOAR
 
 
 def without_unreleased(text):
-    return text if release.unreleased(text) is None else release.UNRELEASED.sub('', text, count=1).lstrip('\n')
+    """The CHANGELOG without its "## Unreleased" section, heading and notes, as dev's has one between releases."""
+    match = release.UNRELEASED.search(text)
+    if not match:
+        return text
+    end = release.SECTION.search(text, match.end())
+    return (text[:match.start()] + (text[end.start():] if end else '')).lstrip('\n')
 
 
 class TheChangelog(unittest.TestCase):

@@ -612,6 +612,105 @@
   "wide_slots": false,
   "width": 480
  },
+ "checkout/jc4880p443.yaml": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443",
+   "name": "Guition",
+   "order": 18,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "firmware": "0.51.0",
+  "fonts": {
+   "headline": 34,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 13,
+   "margin": 16,
+   "page_bar": 60,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "checkout/jc8012p4a1.yaml": {
   "alert": {
    "line": 21,
@@ -2310,6 +2409,105 @@
   "wide_slots": false,
   "width": 480
  },
+ "jc4880p443": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443",
+   "name": "Guition",
+   "order": 18,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "firmware": "0.51.0",
+  "fonts": {
+   "headline": 34,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 13,
+   "margin": 16,
+   "page_bar": 60,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "jc8012p4a1": {
   "alert": {
    "line": 21,
@@ -3240,6 +3438,105 @@
   },
   "wide_slots": false,
   "width": 480
+ },
+ "packages/jc4880p443.yaml": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443",
+   "name": "Guition",
+   "order": 18,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "firmware": "0.51.0",
+  "fonts": {
+   "headline": 34,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 13,
+   "margin": 16,
+   "page_bar": 60,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "wide_slots": false,
+  "width": 800
  },
  "packages/jc8012p4a1.yaml": {
   "alert": {

@@ -1,0 +1,79 @@
+# ESP Screens - Guition JC4880P443 board, EXPERIMENTAL: a 4.3-inch 480x800 MIPI-DSI panel (ST7701) with GT911
+# capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# 800x480 at 217 dpi lying down, the glass of the Waveshare 4.3, so it takes that board's grid: 3 x 3 lying down and
+# 1 x 4 standing up. The panel itself is 480x800 (portrait); LVGL turns the picture and the touch a quarter, as on the
+# 10.1-inch Guition. Built from ESPHome's own panel model and the pins community configurations for this board run;
+# nobody on the project has tried it on the glass yet (docs/JC4880P443.md has what to check). Only the first build,
+# with a pre-v3 ESP32-P4: a board sold as "V3" (10150002-V3) carries rev3 silicon and does not boot this firmware.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/jc4880p443.yaml (a build on this computer) and
+# packages/jc4880p443.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi, the touch bus and the backlight's pin, shared with the 10.1-inch
+  # and the 7-inch Guition.
+  hardware: !include ../hardware/guition-esp32p4.yaml
+  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
+  cells: !include ../cells/9.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc4880p443"
+  DEVICE_NAME: "jc4880p443-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 4.3"
+
+  # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
+  # touch together, so nothing else on this board knows which way the glass hangs. 933 diagonal pixels over
+  # 4.3 inches: the look scales its sizes by the exact density, the firmware by the nearest whole number.
+  PANEL_W: "480"
+  PANEL_H: "800"
+  DISPLAY_DPI: "216.966"
+  # The LVGL angle that lays this panel out lying down (800 x 480). Standing up is a quarter further, 180, which is
+  # the way up community configurations for this board run it.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells, as on the Waveshare 4.3 with the same glass.
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  # The cells of a page when this screen stands up: one column of four keeps the standard tile size.
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, as on the other P4 boards
+  # Set by hand for the three rows of this glass, as on the Waveshare 4.3; the look has 12.
+  GRID_GAP_Y: "13"
+  # The Wi-Fi link at 20 MHz instead of 40: what community configurations for this board run.
+  HOSTED_SDIO_FREQUENCY: "20MHz"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+# ESPHome's own mipi_dsi platform knows this panel by name (2026.6.2+): `model: JC4880P443` brings the ST7701's init
+# sequence, its timings and its reset pin. The panel is 480x800; LVGL turns it a quarter (LVGL_ROTATION).
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: JC4880P443
+    update_interval: never
+    auto_clear_enabled: false
+
+# ESPHome's own gt911 platform; the GT911 reports the panel's own pixels, so the transform stays the core's. The
+# community configurations for this board name no reset or interrupt pin for it.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms

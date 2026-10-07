@@ -1,3 +1,9 @@
+## Unreleased
+
+- **Guition JC4880P443, experimental.** The 4.3-inch Guition on an ESP32-P4 (480 x 800, GT911 touch) is in New
+  screen: three by three tiles lying down, one by four standing up. It is built and rendered but not yet tried on the
+  glass, and only for the first build of the board; a "V3" with rev3 silicon does not boot it ([details](../docs/JC4880P443.md)).
+
 ## 0.4.83 (firmware 0.51.0)
 
 - **A calmer Screensaver card.** In a screen's settings the Screensaver card is now a short list of its three steps,
