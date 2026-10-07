@@ -1702,6 +1702,7 @@
    "line": 36,
    "title_line": 47
   },
+  "battery": false,
   "board": "wavesharep4",
   "camera": {
    "full": [
@@ -1720,7 +1721,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 16,
+   "order": 18,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1728,19 +1729,24 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.34.0",
+  "firmware": "0.51.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
    "icon_mini": 39,
    "label": 27,
+   "setpoint": 96,
    "sublabel": 24,
    "sublabel_big": 31,
+   "watch_icon": 27,
    "watch_value": 57
   },
   "height": 720,
   "hotspot": true,
   "look": "standard",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
   "orientations": {
    "landscape": {
     "camera": {
@@ -1779,10 +1785,15 @@
   },
   "rows": 3,
   "spacing": {
+   "circle": 81,
    "gap": 12,
+   "gap_y": 12,
    "margin": 16,
-   "tile_pad": 18
+   "page_bar": 70,
+   "tile_pad": 18,
+   "top": 72
   },
+  "wide_slots": false,
   "width": 720
  },
  "cyd": {
@@ -4419,6 +4430,7 @@
    "line": 36,
    "title_line": 47
   },
+  "battery": false,
   "board": "wavesharep4",
   "camera": {
    "full": [
@@ -4437,7 +4449,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 16,
+   "order": 18,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -4445,19 +4457,24 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.34.0",
+  "firmware": "0.51.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
    "icon_mini": 39,
    "label": 27,
+   "setpoint": 96,
    "sublabel": 24,
    "sublabel_big": 31,
+   "watch_icon": 27,
    "watch_value": 57
   },
   "height": 720,
   "hotspot": true,
   "look": "standard",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
   "orientations": {
    "landscape": {
     "camera": {
@@ -4496,10 +4513,15 @@
   },
   "rows": 3,
   "spacing": {
+   "circle": 81,
    "gap": 12,
+   "gap_y": 12,
    "margin": 16,
-   "tile_pad": 18
+   "page_bar": 70,
+   "tile_pad": 18,
+   "top": 72
   },
+  "wide_slots": false,
   "width": 720
  },
  "sunton8048s070": {
@@ -5274,6 +5296,7 @@
    "line": 36,
    "title_line": 47
   },
+  "battery": false,
   "board": "wavesharep4",
   "camera": {
    "full": [
@@ -5292,7 +5315,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 16,
+   "order": 18,
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5300,19 +5323,24 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.34.0",
+  "firmware": "0.51.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
    "icon_mini": 39,
    "label": 27,
+   "setpoint": 96,
    "sublabel": 24,
    "sublabel_big": 31,
+   "watch_icon": 27,
    "watch_value": 57
   },
   "height": 720,
   "hotspot": true,
   "look": "standard",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
   "orientations": {
    "landscape": {
     "camera": {
@@ -5351,10 +5379,15 @@
   },
   "rows": 3,
   "spacing": {
+   "circle": 81,
    "gap": 12,
+   "gap_y": 12,
    "margin": 16,
-   "tile_pad": 18
+   "page_bar": 70,
+   "tile_pad": 18,
+   "top": 72
   },
+  "wide_slots": false,
   "width": 720
  }
 }

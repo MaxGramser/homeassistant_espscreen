@@ -4,22 +4,11 @@ smart_display:
 # Optional audio hardware for the ESP32-P4-86-Panel-ETH-2RO / WIFI6-Touch-LCD-4B.
 # Waveshare schematic, page 1: MCLK=13, SCLK=12, LRCK=10, SDOUT1 through R87=11, DSDIN=9.
 # The website's quick-reference audio signal labels differ. See docs/WAVESHAREP4.md.
-# Capture and playback share one I2S bus and must take turns.
-# Pinned ES7210 extension for digital gain/ALC; replace with standard ESPHome once available upstream.
-external_components:
-  - source:
-      type: git
-      url: https://github.com/woozer/esphome
-      ref: ff380e19d41d0671975a44dd433091b035d45888
-    components: [es7210]
-    refresh: never
+# Transport ownership is selected at build time; codec settings stay shared.
+packages:
+  transport: !include transport/${AUDIO_TRANSPORT}.yaml
 
-i2s_audio:
-  - id: panel_audio_bus
-    i2s_mclk_pin: GPIO13
-    i2s_bclk_pin: GPIO12
-    i2s_lrclk_pin: GPIO10
-
+# The board entry supplies the ES7210 gain/ALC/TDM extension from this repository.
 audio_adc:
   - platform: es7210
     id: panel_audio_adc
@@ -45,28 +34,6 @@ audio_dac:
     bits_per_sample: 16bit
     use_mclk: true
     use_microphone: false
-
-microphone:
-  - platform: i2s_audio
-    id: panel_microphone
-    i2s_audio_id: panel_audio_bus
-    adc_type: external
-    i2s_din_pin: GPIO11
-    sample_rate: 16000
-    bits_per_sample: 16bit
-    channel: stereo
-
-speaker:
-  - platform: i2s_audio
-    id: panel_speaker
-    i2s_audio_id: panel_audio_bus
-    dac_type: external
-    i2s_dout_pin: GPIO9
-    sample_rate: 16000
-    bits_per_sample: 16bit
-    channel: mono
-    buffer_duration: 500ms
-    timeout: 500ms
 
 switch:
   - platform: gpio
@@ -166,8 +133,11 @@ substitutions:
     settings_screen::tile_sound = [] {
       // Feedback is disposable: never interrupt recording, a reply, or a diagnostic test.
       if (settings_screen::tap_sound && settings_screen::speaker_volume > 0 &&
-          id(panel_microphone).is_stopped() && id(panel_speaker).is_stopped() &&
+          id(panel_speaker).is_stopped() &&
           !id(panel_tap_sound).is_running()
+          #ifndef USE_ESP_AUDIO_STACK
+          && id(panel_microphone).is_stopped()
+          #endif
           #ifdef USE_SCREEN_AUDIO_TEST
           && (!settings_screen::audio_busy || !settings_screen::audio_busy())
           #endif

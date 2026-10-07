@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Optional P4 hardware-reference AEC uses the ES7210 playback reference, Hane’s shared I²S transport and Espressif’s FD low-cost processor. Audio remains off by default. The driver keeps reference gain separate from microphone ALC, and a narrow startup workaround skips completely zero initial DSP frames. Local recording supports mono AEC output, and the speaker test retries bounded writes instead of silently losing a tone to a full buffer.
+
 - Optional P4 audio adds ES7210 microphone input, ES8311 speaker output, saved volume, microphone mute, automatic gain and tap sounds. Audio is off by default. Hardware and local diagnostic tests are separate build choices; other boards include no audio drivers or wake-word models.
 - The panel and editor share audio settings through ESPHome entities. Tests offer a speaker tone, five-second recording with local playback and a bounded wake-word check, with feedback in the test row. Voice-assistant transport is not included.
 

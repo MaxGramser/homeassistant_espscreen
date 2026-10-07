@@ -11,12 +11,13 @@ substitutions:
 packages:
   core: !include ../packages/core.yaml
   board: !include ../packages/boards/wavesharep4.yaml
+  hotspot: !include ../packages/features/hotspot.yaml
 
 external_components:
   - source:
       type: local
       path: ../components
-    components: [smart_display]
+    components: [es7210, esp_aec, smart_display]
 
 api:
   encryption:
@@ -32,7 +33,7 @@ wifi:
   # Mains-powered panel: no modem sleep, so HA updates and OTA arrive without beacon latency.
   power_save_mode: none
   ap:
-    ssid: "Smartdisplay Fallback Hotspot"
+    ssid: "Tessera ${DEVICE_FRIENDLY_NAME}"
     password: !secret ap_password
 
 captive_portal:

@@ -105,8 +105,10 @@ Other board profiles do not include these packages.
 The codecs share the touch I²C bus: ES7210 at `0x40`, ES8311 at `0x18`.
 Audio uses MCLK GPIO13, BCLK GPIO12, LRCLK GPIO10, microphone input GPIO11, speaker output
 GPIO9 and amplifier enable GPIO53. Connect a speaker suitable for the board to its speaker socket.
-Capture and playback take turns on the same I²S bus; this does not provide full-duplex audio or
-acoustic echo cancellation.
+With the default `AUDIO_TRANSPORT: "i2s"`, capture and playback take turns.
+The optional `AUDIO_TRANSPORT: "aec"` uses simultaneous capture and playback with
+the board's electrical echo reference. See [P4 audio and echo cancellation](P4_AUDIO.md)
+for configuration, dependencies and hardware-test limits. Neither transport includes an AI assistant.
 
 **Settings → Audio** on the panel, its configuration entities in Home Assistant, and
 **Screen settings → Audio** in Tessera all change the same saved values. The editor shows audio
@@ -114,7 +116,7 @@ only when the device actually exposes those entities. Controls include microphon
 automatic gain, speaker volume and tap sound; test mode also offers a wake-word choice.
 The speaker's software volume controls the user percentage, with the ES8311 DAC fixed at unity gain.
 
-- **Test speaker** plays a two-second tone at the selected volume.
+- **Test speaker** plays a 600 ms tone at the selected volume.
 - **Test microphone** records five seconds, shows a countdown in its row, then plays the recording
   through the connected speaker. The recording stays in PSRAM and is cleared after playback.
 - **Test wake word** listens for at most 30 seconds. Choose Okay Nabu, Hey Jarvis, Alexa or
@@ -137,7 +139,7 @@ substitutions:
 ```
 
 ALC controls digital gain, independently of analogue microphone gain. Disabling it restores
-`AUDIO_FIXED_DIGITAL_GAIN`. The ES7210 extension is kept outside the panel renderer, as a
-[pinned external component](https://github.com/woozer/esphome/commit/ff380e19d41d0671975a44dd433091b035d45888);
-the ES8311 and I²S components remain standard ESPHome drivers. ESPHome downloads this component
-when an audio mode is selected; no local driver files or separate add-on are required.
+`AUDIO_FIXED_DIGITAL_GAIN`. The [ES7210 extension](../components/es7210/README.md)
+is kept outside the panel renderer and supplied by the P4 entry. The ES8311 and
+default I²S components remain standard ESPHome drivers. No private driver files or
+separate add-on are required.
