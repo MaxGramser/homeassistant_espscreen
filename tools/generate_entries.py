@@ -35,7 +35,10 @@ def components(board):
     own = {path.name for path in (ROOT / 'components').iterdir() if path.is_dir() and path.name != 'smart_display'}
     named = re.findall(r'(?m)^\s*-?\s*platform: ([a-z0-9_]+)\s*$', text) + re.findall(r'(?m)^([a-z0-9_]+):', text)
     found = [name for name in dict.fromkeys(named) if name in own]
-    return found + ['smart_display']
+    optional = profiles.CATALOG[board].get('optional_components', [])
+    if any(name not in own for name in optional):
+        raise ValueError(f'{board}: unknown optional component')
+    return list(dict.fromkeys(found + optional + ['smart_display']))
 
 
 def describe(board):

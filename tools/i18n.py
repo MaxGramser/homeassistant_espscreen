@@ -185,6 +185,8 @@ EITHER_PLACEHOLDER = {'screen.date.top_bar': {'weekday', 'weekday_min', 'day', '
 # English that stays in the firmware on purpose, with why. Everything else a screen shows comes from the translations,
 # and `lint` fails on a new English text in the code, so it never slips back in.
 LINT_KEEP = {
+    # Names of trained wake-word models and their HA select options, not translatable commands.
+    'Okay Nabu', 'Hey Jarvis', 'Alexa', 'Hey Mycroft',
     # Statuses the app reads and acts on (screen_manager/app/server.py RESEND_STATES, the "Error" prefix): protocol.
     'Synced', 'Loading tiles', 'Layout received', 'Resend needed', 'Ready for tile configuration',
     'Use the Easy Setup profile', 'Swipe test started', 'Heap walked', 'Kept pages set', 'no answer', 'Error: message too large',
@@ -195,6 +197,8 @@ LINT_KEEP = {
     'Configuration problem. Update add-on.', 'Session:', 'Error: obsolete message',
     'Error: layout', 'Error: invalid layout', 'Error: incomplete layout', 'Error: insufficient layout memory',
     'Error: outdated tile or configuration in state',
+    # Picture-loader diagnostic reasons, never labels on the screen.
+    'not wanted now', 'asks again', 'breaks off for the glass', 'load failed',
     # Only a log line or the rate limiter's reason shows these.
     'history range', 'card button ', 'header navigation', 'media key ', 'screensaver play', 'screensaver mute', 'let go', 'too short (', 'already handled in this contact',
     'same button within the debounce window', 'no runtime tiles', 'setting off', 'screen dimmed', 'card open',

@@ -186,7 +186,17 @@
       "hours": "{n} Std.",
       "hours_minutes": "{h} Std. {m}",
       "wifi": "WLAN",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Mikrofon stumm",
+      "microphone_alc": "Automatische Verstärkung",
+      "speaker_volume": "Lautsprecherlautstärke",
+      "tap_sound": "Tippton",
+      "wake_word": "Aktivierungswort",
+      "test_microphone": "Mikrofon testen",
+      "test_speaker": "Lautsprecher testen",
+      "test_wake_word": "Aktivierungswort testen",
+      "stop_audio_test": "Audiotest stoppen"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -548,6 +558,21 @@
       "home": "Zuhause",
       "other": "Andere",
       "no_power": "Keine Leistungssensoren in den Energie-Einstellungen von Home Assistant"
+    },
+    "audio": {
+      "idle": "Inaktiv",
+      "stop_failed": "Stopp fehlgeschlagen: Neustart nötig",
+      "no_memory": "Kein Aufnahmespeicher",
+      "no_audio": "Kein Mikrofonton",
+      "speaker_failed": "Lautsprechertest fehlgeschlagen",
+      "no_wake": "Kein Aktivierungswort erkannt",
+      "heard": "Erkannt: {word}",
+      "finished": "Fertig: {word}",
+      "recording": "Aufnahme ({seconds}s)",
+      "playing_recording": "Aufnahme abspielen",
+      "speaker_test": "Lautsprechertest",
+      "say": "Sage {word} (30s)",
+      "muted": "Mikrofon ist stumm"
     }
   },
   "addon": {
@@ -796,7 +821,8 @@
         "not_allowed": "Home Assistant lässt diese App seine Integrationen nicht ändern. Erledige es in Home Assistant selbst, unter Einstellungen → Geräte & Dienste.",
         "no_entry": "Home Assistant hat diesen Bildschirm nicht als ESPHome-Gerät.",
         "failed": "Home Assistant hat es nicht übernommen. Öffne in Home Assistant Einstellungen → Geräte & Dienste → ESPHome, wähle diesen Bildschirm, dann Konfigurieren, und schalte „Dem Gerät erlauben, Home Assistant-Aktionen auszuführen“ ein."
-      }
+      },
+      "audio_test_unavailable": "Der Audiotest ist auf diesem Bildschirm nicht verfügbar."
     },
     "status": {
       "first_tiles": "Wähle deine ersten Kacheln",
@@ -1999,7 +2025,8 @@
         "brightness": "Helligkeit",
         "night": "Nacht",
         "screen": "Bildschirm",
-        "this_screen": "Dieser Bildschirm"
+        "this_screen": "Dieser Bildschirm",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Helligkeit",
@@ -2019,7 +2046,12 @@
         "swipe_pages": "Zwischen Seiten wischen",
         "page_buttons": "Seitentasten",
         "home_button": "Home-Taste zeigen",
-        "rotation": "Drehung"
+        "rotation": "Drehung",
+        "microphone_mute": "Mikrofon stumm",
+        "microphone_alc": "Automatische Verstärkung",
+        "speaker_volume": "Lautsprecherlautstärke",
+        "tap_sound": "Tippton",
+        "wake_word": "Aktivierungswort"
       },
       "actions": {
         "calibrate": {
@@ -2101,6 +2133,14 @@
         "item_look": "Zeigt",
         "item_hint": "Schwarzweiß auf dem Bildschirmschoner, egal welche Farbe die Entität hat.",
         "items_add_title": "Zur Uhr hinzufügen"
+      },
+      "audio_tests": {
+        "test_microphone": "Mikrofon testen",
+        "test_speaker": "Lautsprecher testen",
+        "test_wake_word": "Aktivierungswort testen",
+        "stop_audio_test": "Audiotest stoppen",
+        "audio_status": "Audiostatus",
+        "hint": "Der Mikrofontest nimmt fünf Sekunden auf und spielt sie am Panel ab. Stopp beendet jeden Audiotest."
       }
     },
     "update": {

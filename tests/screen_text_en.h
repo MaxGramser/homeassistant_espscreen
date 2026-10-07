@@ -3,7 +3,7 @@
 #pragma once
 #include "components/smart_display/screen_text.h"
 
-static_assert(screen_text::KEYS_HASH == 0x8F7B8A40u && screen_text::KEY_COUNT == 439,
+static_assert(screen_text::KEYS_HASH == 0x42D896FBu && screen_text::KEY_COUNT == 462,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 const char *const screen_text::TABLE[] = {
     ".",
@@ -162,6 +162,16 @@ const char *const screen_text::TABLE[] = {
     "{h} h {m}",
     "Wi-Fi",
     "Tessera",
+    "Audio",
+    "Microphone mute",
+    "Automatic gain",
+    "Speaker volume",
+    "Tap sound",
+    "Wake word",
+    "Test microphone",
+    "Test speaker",
+    "Test wake word",
+    "Stop audio test",
     "Tap to open",
     "Page {n}",
     "Refused",
@@ -444,7 +454,20 @@ const char *const screen_text::TABLE[] = {
     "Battery",
     "Home",
     "Other",
-    "No power sensors in Home Assistant's energy settings"
+    "No power sensors in Home Assistant's energy settings",
+    "Idle",
+    "Stop failed: restart panel",
+    "No recording memory",
+    "No microphone audio",
+    "Speaker test failed",
+    "No wake word detected",
+    "Heard: {word}",
+    "Finished: {word}",
+    "Recording ({seconds}s)",
+    "Playing recording",
+    "Speaker test",
+    "Say {word} (30s)",
+    "Microphone is muted"
 };
 const char *const screen_text::LANGUAGE = "en";
 int screen_text::plural_index(int n) { return n == 1 ? 0 : 1; }

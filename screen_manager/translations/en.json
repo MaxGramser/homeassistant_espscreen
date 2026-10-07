@@ -186,7 +186,17 @@
       "hours": "{n} h",
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Microphone mute",
+      "microphone_alc": "Automatic gain",
+      "speaker_volume": "Speaker volume",
+      "tap_sound": "Tap sound",
+      "wake_word": "Wake word",
+      "test_microphone": "Test microphone",
+      "test_speaker": "Test speaker",
+      "test_wake_word": "Test wake word",
+      "stop_audio_test": "Stop audio test"
     },
     "tile": {
       "tap_to_open": "Tap to open",
@@ -548,6 +558,21 @@
       "home": "Home",
       "other": "Other",
       "no_power": "No power sensors in Home Assistant's energy settings"
+    },
+    "audio": {
+      "idle": "Idle",
+      "stop_failed": "Stop failed: restart panel",
+      "no_memory": "No recording memory",
+      "no_audio": "No microphone audio",
+      "speaker_failed": "Speaker test failed",
+      "no_wake": "No wake word detected",
+      "heard": "Heard: {word}",
+      "finished": "Finished: {word}",
+      "recording": "Recording ({seconds}s)",
+      "playing_recording": "Playing recording",
+      "speaker_test": "Speaker test",
+      "say": "Say {word} (30s)",
+      "muted": "Microphone is muted"
     }
   },
   "addon": {
@@ -796,7 +821,8 @@
         "not_allowed": "Home Assistant doesn't let this app change its integrations. Do it in Home Assistant itself, under Settings → Devices & services.",
         "no_entry": "Home Assistant doesn't have this screen as an ESPHome device.",
         "failed": "Home Assistant didn't take it. In Home Assistant open Settings → Devices & services → ESPHome, choose this screen, then Configure, and turn on “Allow the device to perform Home Assistant actions”."
-      }
+      },
+      "audio_test_unavailable": "Audio test is unavailable on this screen."
     },
     "status": {
       "first_tiles": "Choose your first tiles",
@@ -1999,7 +2025,8 @@
         "brightness": "Brightness",
         "night": "Night",
         "screen": "Screen",
-        "this_screen": "This screen"
+        "this_screen": "This screen",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Brightness",
@@ -2019,7 +2046,12 @@
         "swipe_pages": "Swipe between pages",
         "page_buttons": "Page buttons",
         "home_button": "Show home button",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "microphone_mute": "Microphone mute",
+        "microphone_alc": "Automatic gain",
+        "speaker_volume": "Speaker volume",
+        "tap_sound": "Tap sound",
+        "wake_word": "Wake word"
       },
       "actions": {
         "calibrate": {
@@ -2101,6 +2133,14 @@
         "item_look": "Shows",
         "item_hint": "Black and white on the screensaver, whatever the colour of the entity.",
         "items_add_title": "Add to the clock"
+      },
+      "audio_tests": {
+        "test_microphone": "Test microphone",
+        "test_speaker": "Test speaker",
+        "test_wake_word": "Test wake word",
+        "stop_audio_test": "Stop audio test",
+        "audio_status": "Audio status",
+        "hint": "The microphone test records five seconds, then plays it back on the panel. Stop cancels any audio test."
       }
     },
     "update": {

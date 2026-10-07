@@ -1,0 +1,4 @@
+# Hardware acceptance only, selected with AUDIO_MODE: "test". Nothing records or plays at boot.
+packages:
+  hardware: !include hardware.yaml
+  test: !include ../../features/audio-hardware-test.yaml

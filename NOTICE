@@ -42,6 +42,18 @@ Pictures
   The front door in the camera pictures under docs/images is a photo by Virginia Marinova on Unsplash, used under the
   Unsplash License, which is not this project's licence.
 
+Optional P4 audio
+  ESPHome Audio Stack (https://github.com/n-IA-hane/esphome-audio-stack),
+  copyright (c) 2025 n-IA-hane, MIT License. The bus is fetched at the commit
+  recorded in docs/P4_AUDIO.md. The AEC wrapper in components/esp_aec retains
+  its original LICENSE and documents the local startup fix in README.md.
+  The ES7210 extension in components/es7210 retains ESPHome's MIT/Python and
+  GPLv3/runtime licenses, copyright (c) 2019 ESPHome, with changes documented
+  in its README.md. These components keep their original license terms.
+  Primary Espressif dependency notices are in docs/licenses/p4-audio/.
+  Hardware-restricted libraries are not relicensed under Tessera's AGPL.
+  See docs/P4_AUDIO.md for the outstanding combined-binary license review.
+
 The firmware preview (web/wasm) lists its third-party code in web/public/firmware-preview-licenses.txt.
 
 The editor's browser installer (New screen and Firmware & USB, "This computer") contains third-party code.

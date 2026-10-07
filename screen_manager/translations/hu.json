@@ -186,7 +186,17 @@
       "hours": "{n} óra",
       "hours_minutes": "{h} ó {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Hang",
+      "microphone_mute": "Mikrofon némítása",
+      "microphone_alc": "Automatikus erősítés",
+      "speaker_volume": "Hangszóró hangereje",
+      "tap_sound": "Érintési hang",
+      "wake_word": "Ébresztőszó",
+      "test_microphone": "Mikrofonteszt",
+      "test_speaker": "Hangszóróteszt",
+      "test_wake_word": "Ébresztőszó tesztje",
+      "stop_audio_test": "Hangteszt leállítása"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -548,6 +558,21 @@
       "home": "Otthon",
       "other": "Egyéb",
       "no_power": "Nincs teljesítményérzékelő a Home Assistant energiabeállításaiban"
+    },
+    "audio": {
+      "idle": "Inaktív",
+      "stop_failed": "Leállítási hiba: indítsd újra",
+      "no_memory": "Nincs felvételi memória",
+      "no_audio": "Nincs mikrofonhang",
+      "speaker_failed": "Hangszóróteszt sikertelen",
+      "no_wake": "Nincs észlelt ébresztőszó",
+      "heard": "Észlelve: {word}",
+      "finished": "Kész: {word}",
+      "recording": "Felvétel ({seconds}s)",
+      "playing_recording": "Felvétel lejátszása",
+      "speaker_test": "Hangszóróteszt",
+      "say": "Mondd: {word} (30s)",
+      "muted": "Mikrofon némítva"
     }
   },
   "addon": {
@@ -796,7 +821,8 @@
         "not_allowed": "A Home Assistant nem engedi, hogy ez az alkalmazás módosítsa az integrációit. Tedd meg magában a Home Assistantban: Beállítások → Eszközök és szolgáltatások.",
         "no_entry": "A Home Assistantban ez a kijelző nem ESPHome-eszközként szerepel.",
         "failed": "A Home Assistant nem fogadta el. A Home Assistantban nyisd meg: Beállítások → Eszközök és szolgáltatások → ESPHome, válaszd ki ezt a kijelzőt, majd Konfigurálás, és kapcsold be „Az eszköz Home Assistant-műveleteket hajthat végre” opciót."
-      }
+      },
+      "audio_test_unavailable": "A hangteszt ezen a képernyőn nem érhető el."
     },
     "status": {
       "first_tiles": "Válaszd ki az első csempéidet",
@@ -1999,7 +2025,8 @@
         "brightness": "Fényerő",
         "night": "Éjszaka",
         "screen": "Kijelző",
-        "this_screen": "Ez a kijelző"
+        "this_screen": "Ez a kijelző",
+        "audio": "Hang"
       },
       "rows": {
         "brightness": "Fényerő",
@@ -2019,7 +2046,12 @@
         "swipe_pages": "Lapozás húzással",
         "page_buttons": "Lapozógombok",
         "home_button": "Kezdőlap gomb",
-        "rotation": "Elforgatás"
+        "rotation": "Elforgatás",
+        "microphone_mute": "Mikrofon némítása",
+        "microphone_alc": "Automatikus erősítés",
+        "speaker_volume": "Hangszóró hangereje",
+        "tap_sound": "Érintési hang",
+        "wake_word": "Ébresztőszó"
       },
       "actions": {
         "calibrate": {
@@ -2101,6 +2133,14 @@
         "item_look": "Mutatja",
         "item_hint": "Fekete-fehéren a képernyőkímélőn, az entitás színétől függetlenül.",
         "items_add_title": "Hozzáadás az órához"
+      },
+      "audio_tests": {
+        "test_microphone": "Mikrofonteszt",
+        "test_speaker": "Hangszóróteszt",
+        "test_wake_word": "Ébresztőszó tesztje",
+        "stop_audio_test": "Hangteszt leállítása",
+        "audio_status": "Hangállapot",
+        "hint": "A mikrofonteszt öt másodpercet rögzít, majd lejátssza a panelen. A leállítás minden hangtesztet megszakít."
       }
     },
     "update": {

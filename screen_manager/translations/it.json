@@ -186,7 +186,17 @@
       "hours": "{n} h",
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Audio",
+      "microphone_mute": "Disattiva microfono",
+      "microphone_alc": "Guadagno automatico",
+      "speaker_volume": "Volume altoparlante",
+      "tap_sound": "Suono al tocco",
+      "wake_word": "Parola chiave",
+      "test_microphone": "Prova microfono",
+      "test_speaker": "Prova altoparlante",
+      "test_wake_word": "Prova parola chiave",
+      "stop_audio_test": "Ferma prova audio"
     },
     "tile": {
       "tap_to_open": "Tocca per aprire",
@@ -548,6 +558,21 @@
       "home": "Casa",
       "other": "Altro",
       "no_power": "Nessun sensore di potenza nelle impostazioni energia di Home Assistant"
+    },
+    "audio": {
+      "idle": "Inattivo",
+      "stop_failed": "Arresto fallito: riavvia il pannello",
+      "no_memory": "Memoria di registrazione esaurita",
+      "no_audio": "Nessun audio dal microfono",
+      "speaker_failed": "Test altoparlante fallito",
+      "no_wake": "Nessuna parola rilevata",
+      "heard": "Rilevato: {word}",
+      "finished": "Terminato: {word}",
+      "recording": "Registrazione ({seconds}s)",
+      "playing_recording": "Riproduzione registrazione",
+      "speaker_test": "Test altoparlante",
+      "say": "Di’ {word} (30s)",
+      "muted": "Microfono disattivato"
     }
   },
   "addon": {
@@ -796,7 +821,8 @@
         "not_allowed": "Home Assistant non permette a questa app di modificare le sue integrazioni. Fallo in Home Assistant, in Impostazioni → Dispositivi e servizi.",
         "no_entry": "Home Assistant non ha questo schermo come dispositivo ESPHome.",
         "failed": "Home Assistant non l'ha accettato. In Home Assistant apri Impostazioni → Dispositivi e servizi → ESPHome, scegli questo schermo, poi Configura, e attiva «Consenti al dispositivo di eseguire azioni di Home Assistant»."
-      }
+      },
+      "audio_test_unavailable": "La prova audio non è disponibile su questo schermo."
     },
     "status": {
       "first_tiles": "Scegli i tuoi primi riquadri",
@@ -1999,7 +2025,8 @@
         "brightness": "Luminosità",
         "night": "Notte",
         "screen": "Schermo",
-        "this_screen": "Questo schermo"
+        "this_screen": "Questo schermo",
+        "audio": "Audio"
       },
       "rows": {
         "brightness": "Luminosità",
@@ -2019,7 +2046,12 @@
         "swipe_pages": "Scorri tra le pagine",
         "page_buttons": "Pulsanti pagina",
         "home_button": "Mostra il pulsante home",
-        "rotation": "Rotazione"
+        "rotation": "Rotazione",
+        "microphone_mute": "Disattiva microfono",
+        "microphone_alc": "Guadagno automatico",
+        "speaker_volume": "Volume altoparlante",
+        "tap_sound": "Suono al tocco",
+        "wake_word": "Parola chiave"
       },
       "actions": {
         "calibrate": {
@@ -2101,6 +2133,14 @@
         "item_look": "Mostra",
         "item_hint": "In bianco e nero sul salvaschermo, qualunque sia il colore dell'entità.",
         "items_add_title": "Aggiungi all'orologio"
+      },
+      "audio_tests": {
+        "test_microphone": "Prova microfono",
+        "test_speaker": "Prova altoparlante",
+        "test_wake_word": "Prova parola chiave",
+        "stop_audio_test": "Ferma prova audio",
+        "audio_status": "Stato audio",
+        "hint": "La prova microfono registra cinque secondi e li riproduce sul pannello. Ferma annulla qualsiasi prova audio."
       }
     },
     "update": {

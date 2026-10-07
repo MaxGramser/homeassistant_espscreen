@@ -186,7 +186,17 @@
       "hours": "{n} h",
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
-      "tessera": "Tessera"
+      "tessera": "Tessera",
+      "audio": "Áudio",
+      "microphone_mute": "Silenciar microfone",
+      "microphone_alc": "Ganho automático",
+      "speaker_volume": "Volume do altifalante",
+      "tap_sound": "Som ao tocar",
+      "wake_word": "Palavra-chave",
+      "test_microphone": "Testar microfone",
+      "test_speaker": "Testar altifalante",
+      "test_wake_word": "Testar palavra-chave",
+      "stop_audio_test": "Parar teste de áudio"
     },
     "tile": {
       "tap_to_open": "Toque para abrir",
@@ -548,6 +558,21 @@
       "home": "Casa",
       "other": "Outros",
       "no_power": "Sem sensores de potência nas definições de energia do Home Assistant"
+    },
+    "audio": {
+      "idle": "Inativo",
+      "stop_failed": "Falha ao parar: reinicie o painel",
+      "no_memory": "Sem memória para gravação",
+      "no_audio": "Sem áudio do microfone",
+      "speaker_failed": "Falha no teste do altifalante",
+      "no_wake": "Nenhuma palavra detetada",
+      "heard": "Detetado: {word}",
+      "finished": "Concluído: {word}",
+      "recording": "A gravar ({seconds}s)",
+      "playing_recording": "A reproduzir gravação",
+      "speaker_test": "Teste do altifalante",
+      "say": "Diga {word} (30s)",
+      "muted": "Microfone silenciado"
     }
   },
   "addon": {
@@ -796,7 +821,8 @@
         "not_allowed": "O Home Assistant não deixa esta aplicação alterar as suas integrações. Faça-o no próprio Home Assistant, em Configuração → Dispositivos & serviços.",
         "no_entry": "O Home Assistant não tem este ecrã como dispositivo ESPHome.",
         "failed": "O Home Assistant não aceitou. No Home Assistant abra Definições → Dispositivos e serviços → ESPHome, escolha este ecrã, depois Configurar, e ative “Permitir que o dispositivo execute ações do Home Assistant”."
-      }
+      },
+      "audio_test_unavailable": "O teste de áudio não está disponível neste ecrã."
     },
     "status": {
       "first_tiles": "Escolha os primeiros mosaicos",
@@ -1999,7 +2025,8 @@
         "brightness": "Brilho",
         "night": "Noite",
         "screen": "Ecrã",
-        "this_screen": "Este ecrã"
+        "this_screen": "Este ecrã",
+        "audio": "Áudio"
       },
       "rows": {
         "brightness": "Brilho",
@@ -2019,7 +2046,12 @@
         "swipe_pages": "Deslizar entre páginas",
         "page_buttons": "Botões de página",
         "home_button": "Mostrar o botão de início",
-        "rotation": "Rotação"
+        "rotation": "Rotação",
+        "microphone_mute": "Silenciar microfone",
+        "microphone_alc": "Ganho automático",
+        "speaker_volume": "Volume do altifalante",
+        "tap_sound": "Som ao tocar",
+        "wake_word": "Palavra-chave"
       },
       "actions": {
         "calibrate": {
@@ -2101,6 +2133,14 @@
         "item_look": "Mostra",
         "item_hint": "A preto e branco no protetor de ecrã, seja qual for a cor da entidade.",
         "items_add_title": "Adicionar ao relógio"
+      },
+      "audio_tests": {
+        "test_microphone": "Testar microfone",
+        "test_speaker": "Testar altifalante",
+        "test_wake_word": "Testar palavra-chave",
+        "stop_audio_test": "Parar teste de áudio",
+        "audio_status": "Estado do áudio",
+        "hint": "O teste do microfone grava cinco segundos e reproduz no painel. Parar cancela qualquer teste de áudio."
       }
     },
     "update": {

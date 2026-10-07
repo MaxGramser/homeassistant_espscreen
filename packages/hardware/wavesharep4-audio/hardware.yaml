@@ -1,0 +1,204 @@
+smart_display:
+  audio: true
+
+# Optional audio hardware for the ESP32-P4-86-Panel-ETH-2RO / WIFI6-Touch-LCD-4B.
+# Waveshare schematic, page 1: MCLK=13, SCLK=12, LRCK=10, SDOUT1 through R87=11, DSDIN=9.
+# The website's quick-reference audio signal labels differ. See docs/WAVESHAREP4.md.
+# Transport ownership is selected at build time; codec settings stay shared.
+packages:
+  transport: !include transport/${AUDIO_TRANSPORT}.yaml
+
+# The board entry supplies the ES7210 gain/ALC/TDM extension from this repository.
+audio_adc:
+  - platform: es7210
+    id: panel_audio_adc
+    i2c_id: touch_bus
+    address: 0x40
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    mic_gain: ${AUDIO_MICROPHONE_GAIN}
+    digital_gain: ${AUDIO_FIXED_DIGITAL_GAIN}
+    alc:
+      enabled: true
+      max_gain: ${AUDIO_ALC_MAX_GAIN}
+
+# The ES8311 stays at unity gain. Its raw volume range is -95.5 to +32 dB,
+# so a user percentage must not be mapped directly across that register.
+# Let the I2S speaker use ESPHome's built-in software volume curve instead.
+audio_dac:
+  - platform: es8311
+    id: panel_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+
+switch:
+  - platform: gpio
+    id: panel_audio_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF
+  - platform: template
+    id: setting_microphone_mute
+    name: "Microphone mute"
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::microphone_mute != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set("microphone_mute", 1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set("microphone_mute", 0);'
+  - platform: template
+    id: setting_microphone_alc
+    name: "Microphone automatic level control"
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::microphone_alc != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set("microphone_alc", 1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set("microphone_alc", 0);'
+  - platform: template
+    id: setting_tap_sound
+    name: "Tap sound"
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::tap_sound != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set("tap_sound", 1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set("tap_sound", 0);'
+
+# Keep the existing preference shapes. The old manual-gain slots are reserved and no longer read.
+# The frozen legacy screen-settings block stays intact.
+# Every writer (panel, HA, editor) goes through settings_screen::set().
+globals:
+  - id: panel_audio_preferences
+    type: std::array<int32_t, 4>
+    restore_value: true
+    initial_value: '{0, 0, 25, 0}'
+  - id: panel_digital_gain_preferences
+    type: std::array<int32_t, 2>
+    restore_value: true
+    initial_value: '{0, 1}'
+
+
+substitutions:
+  APPLY_AUDIO_HOOK: "if (settings_screen::apply_audio) settings_screen::apply_audio();"
+  BOOT_AUDIO_HOOKS: |-
+    settings_screen::audio_available = true;
+    // ES8311 0xBF is 0 dB; software volume below controls the full 0-100% range.
+    id(panel_audio_dac).set_volume(0.75f);
+    id(panel_audio_dac).set_mute_off();
+    const auto &audio = id(panel_audio_preferences);
+    settings_screen::microphone_mute = audio[0] != 0;
+    settings_screen::speaker_volume = std::clamp<int32_t>(audio[2], 0, 100);
+    settings_screen::tap_sound = audio[3] != 0;
+    const auto &digital = id(panel_digital_gain_preferences);
+    settings_screen::microphone_alc = digital[1] != 0;
+    // Reapply the configured analogue gain through the driver after codec setup.
+    if (!id(panel_audio_adc).set_mic_gain(id(panel_audio_adc).mic_gain()))
+      ESP_LOGW("panel_audio", "Could not apply the configured microphone gain");
+    settings_screen::apply_audio = [] {
+      using namespace settings_screen;
+      auto &saved = id(panel_audio_preferences);
+      saved[0] = microphone_mute;
+      saved[2] = speaker_volume;
+      saved[3] = tap_sound;
+      if (id(panel_microphone).get_mute_state() != (microphone_mute != 0)) {
+        id(panel_microphone).set_mute_state(microphone_mute != 0);
+        #ifdef USE_SCREEN_AUDIO_TEST
+        if (microphone_mute && test_audio) test_audio(0);
+        #endif
+      }
+      if (id(panel_speaker).get_volume() != speaker_volume / 100.0f)
+        id(panel_speaker).set_volume(speaker_volume / 100.0f);
+      if (!id(setting_speaker_volume).has_state() || id(setting_speaker_volume).state != speaker_volume) {
+        id(setting_speaker_volume).publish_state(speaker_volume);
+      }
+      auto *adc = id(panel_audio_adc);
+      bool gain_ok = true;
+      if (adc->alc_enabled() != (microphone_alc != 0))
+        gain_ok = adc->set_alc_enabled(microphone_alc != 0);
+      if (!gain_ok) ESP_LOGW("panel_audio", "Digital gain/ALC change failed; keeping the last accepted settings");
+      microphone_alc = adc->alc_enabled();
+      id(panel_digital_gain_preferences)[1] = microphone_alc;
+      id(setting_microphone_alc).publish_state(microphone_alc != 0);
+      id(setting_microphone_mute).publish_state(microphone_mute != 0);
+      id(setting_tap_sound).publish_state(tap_sound != 0);
+    };
+    settings_screen::tile_sound = [] {
+      // Feedback is disposable: never interrupt recording, a reply, or a diagnostic test.
+      if (settings_screen::tap_sound && settings_screen::speaker_volume > 0 &&
+          id(panel_speaker).is_stopped() &&
+          !id(panel_tap_sound).is_running()
+          #ifndef USE_ESP_AUDIO_STACK
+          && id(panel_microphone).is_stopped()
+          #endif
+          #ifdef USE_SCREEN_AUDIO_TEST
+          && (!settings_screen::audio_busy || !settings_screen::audio_busy())
+          #endif
+          )
+        id(panel_tap_sound).execute();
+    };
+
+number:
+  - platform: template
+    id: setting_speaker_volume
+    name: "Speaker volume"
+    entity_category: config
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    update_interval: never
+    lambda: return settings_screen::speaker_volume;
+    set_action:
+      - lambda: 'settings_screen::set("speaker_volume", int32_t(x));'
+
+script:
+  - id: panel_tap_sound
+    mode: single
+    then:
+      # A queued stop can cancel start while the driver still reports stopped.
+      # Re-request start on subsequent loop checks, bounded by this timeout.
+      - wait_until:
+          condition:
+            lambda: |-
+              id(panel_speaker).start();
+              return id(panel_speaker).is_running();
+          timeout: 1s
+      - if:
+          condition:
+            speaker.is_playing: panel_speaker
+          then:
+            - switch.turn_on: panel_audio_amp
+            - delay: 50ms
+            - lambda: |-
+                // A short 60 ms tone, faded at both ends and scaled by the saved speaker volume.
+                // Use the same amplifier settling time as the speaker test.
+                std::vector<uint8_t> pcm(960 * 2);
+                for (int i = 0; i < 960; ++i) {
+                  const float fade = std::min(1.0f, std::min(i, 959 - i) / 64.0f);
+                  const int16_t sample = int16_t(12000.0f * fade * sinf(i * (2.0f * 3.14159265f * 1000.0f / 16000.0f)));
+                  pcm[2 * i] = uint16_t(sample) & 0xff;
+                  pcm[2 * i + 1] = uint16_t(sample) >> 8;
+                }
+                const size_t sent = id(panel_speaker).play(pcm.data(), pcm.size(), 0);
+                if (sent != pcm.size()) ESP_LOGW("tap_sound", "Speaker accepted %u of %u bytes", unsigned(sent), unsigned(pcm.size()));
+            - delay: 100ms
+            - speaker.finish: panel_speaker
+            - wait_until:
+                condition:
+                  speaker.is_stopped: panel_speaker
+                timeout: 2s
+          else:
+            - logger.log:
+                level: WARN
+                tag: tap_sound
+                format: "Speaker did not start before the tap-sound timeout"
+      - speaker.stop: panel_speaker
+      - switch.turn_off: panel_audio_amp
