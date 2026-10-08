@@ -1,0 +1,127 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-4 board, experimental: a 4-inch 480 x 480 IPS panel with GT911
+# capacitive touch, an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM, and a CH32V003 I/O expander.
+# This is the older board without the "B". The 4B has different pins and a TCA9554 expander.
+#
+# The standalone hardware configuration has drawn test graphics and reported correct touch coordinates on this
+# board. Tessera itself has not yet been accepted on the glass, so this file remains outside boards.yaml.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it, and the features it has.
+# docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  cells: !include ../cells/6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  BOARD_ID: "wavesharelcd4"
+  DEVICE_NAME: "wavesharelcd4-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare LCD 4"
+
+  PANEL_W: "480"
+  PANEL_H: "480"
+  DISPLAY_DPI: "170"
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  LVGL_BUFFER_SIZE: "25%"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  min_version: 2026.7.0
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  hardware_uart: UART0
+
+# The GT911 and CH32V003 share the board's I2C bus.
+i2c:
+  id: touch_bus
+  sda: GPIO15
+  scl: GPIO7
+  frequency: 400kHz
+  scan: true
+
+# The panel controller receives its setup over this serial bus.
+spi:
+  id: lcd
+  clk_pin: GPIO2
+  mosi_pin: GPIO1
+
+waveshare_io_ch32v003:
+  - id: expander
+    address: 0x24
+    i2c_id: touch_bus
+
+# EXIO5 supplies the LCD. The display starts after the light has enabled this supply.
+power_supply:
+  - id: lcd_system_power
+    pin:
+      waveshare_io_ch32v003: expander
+      number: 5
+      mode:
+        output: true
+    enable_time: 0ms
+    keep_on_time: 0ms
+
+output:
+  # The CH32V003 hardware PWM drives the LCD backlight.
+  - platform: waveshare_io_ch32v003
+    id: gpio_backlight_pwm
+    waveshare_io_ch32v003_id: expander
+    power_supply: lcd_system_power
+    inverted: true
+    zero_means_zero: true
+    safe_pwm_levels:
+      min_value: 0
+      max_value: 255
+  # EXIO6 drives the buzzer. An unused GPIO output initializes low and keeps the verified silent state.
+  - platform: gpio
+    id: buzzer
+    pin:
+      waveshare_io_ch32v003: expander
+      number: 6
+      mode:
+        output: true
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: 479
+      y_min: 0
+      y_max: 479
+    reset_pin:
+      waveshare_io_ch32v003: expander
+      number: 1
+    interrupt_pin:
+      waveshare_io_ch32v003: expander
+      number: 2
+
+display:
+  - platform: mipi_rgb
+    id: my_display
+    setup_priority: -100
+    model: WAVESHARE-4-480X480
+    spi_id: lcd
+    reset_pin:
+      waveshare_io_ch32v003: expander
+      number: 3
+    update_interval: never
+    auto_clear_enabled: false
