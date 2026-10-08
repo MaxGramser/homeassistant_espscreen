@@ -118,6 +118,20 @@ class RelayTests(unittest.IsolatedAsyncioTestCase):
         await browser.receive()
         self.ha.call.assert_not_awaited()
 
+    async def test_usage_is_counted_once_per_response_including_cancelled_responses(self):
+        _, browser = await self.start()
+        usage = {'input_tokens': 120, 'output_tokens': 12,
+            'input_token_details': {'cached_tokens': 90, 'audio_tokens': 20, 'text_tokens': 100}}
+        with self.assertLogs('voice_openai_relay', level='INFO') as logs:
+            for identity, status in [('private-a', 'completed'), ('private-a', 'cancelled'),
+                                     ('private-b', 'cancelled')]:
+                await self.emit('response.done', response={'id': identity, 'status': status, 'usage': usage, 'output': []})
+                self.assertEqual((await browser.receive_json())['type'], 'response.done')
+        self.assertEqual(len(logs.output), 2)
+        self.assertTrue(all('input=120 output=12' in line for line in logs.output))
+        self.assertNotIn('private-', '\n'.join(logs.output))
+        self.ha.call.assert_not_awaited()
+
     async def test_unavailable_speaker_fails_before_opening_paid_audio_connection(self):
         self.ha.states[SPEAKER]['state'] = 'unavailable'
         response = await self.client.post('/api/voice-preview/openai/sessions', json={'context': base.panel()})

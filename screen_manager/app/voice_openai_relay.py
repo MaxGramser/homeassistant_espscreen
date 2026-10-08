@@ -27,14 +27,15 @@ def log_usage(response):
     """Provider-reported counts only; never log audio, transcripts or identifiers."""
     usage = response.get('usage')
     if not isinstance(usage, dict):
-        return
+        return False
     details = usage.get('input_token_details')
     details = details if isinstance(details, dict) else {}
     values = [usage.get('input_tokens'), usage.get('output_tokens'),
               details.get('cached_tokens'), details.get('audio_tokens'), details.get('text_tokens')]
     if any(type(value) is not int or value < 0 for value in values):
-        return  # Missing usage is unknown, never a measured zero.
+        return False  # Missing usage is unknown, never a measured zero.
     LOG.info('Voice Realtime usage input=%d output=%d cached_input=%d audio_input=%d text_input=%d', *values)
+    return True
 
 
 class OpenAIRelay:
@@ -44,6 +45,7 @@ class OpenAIRelay:
         self.attached = False
         self.audio = bytearray()
         self.response_id = ''
+        self.usage_responses = set()
         self.audio_item = None
         self.duplex = session.get('duplex') is True
         self.input_enabled = True
@@ -92,7 +94,10 @@ class OpenAIRelay:
                     raise ValueError('The spoken reply is too long.')
             elif kind == 'response.done':
                 response = event.get('response', {})
-                log_usage(response)
+                identity = response.get('id')
+                if isinstance(identity, str) and identity and identity not in self.usage_responses:
+                    if log_usage(response):
+                        self.usage_responses.add(identity)
                 calls = any(item.get('type') == 'function_call' for item in response.get('output', []))
                 if response.get('status') == 'completed' and not calls and self.audio:
                     # Music confirmations stay local; general replies use the

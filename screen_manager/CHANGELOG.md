@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Voice commands accept exact exposed entity ids as well as visible labels and HA names, with room, exposure and ambiguity checks preserved. Shorter shared instructions reduce prompt overhead; unresolved-target logs omit names, and Realtime usage logs count each response once.
+
 - Voice settings can opt into Home Assistant Assist for light/switch on/off and light brightness commands through its official MCP Server integration. The experiment preserves tile labels, direct OpenAI audio and Claude's existing speech route. Other controls keep their existing path. Add-on logs report command latency and provider-reported Realtime token counts for comparison.
 
 - Optional physical voice adds local wake-word activation and an authenticated add-on connection. OpenAI supports direct audio and experimental full-duplex replies on the P4 panel; Claude uses Home Assistant speech services. Voice is a separate build mode and API keys remain in the add-on.

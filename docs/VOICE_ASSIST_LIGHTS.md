@@ -111,7 +111,41 @@ usage is unknown, never zero. Browser WebRTC usage is not measured by this relay
 Compare the same utterance and context, and distinguish cold sessions from cached
 input. One sample is not a performance guarantee.
 
-The experiment deliberately keeps the model's prompt and tool schema unchanged:
-only tool execution changes. It therefore offers no inherent reduction of input
-tokens. Reusing Assist first tests behavior and maintenance cost; reducing the
-model context is a separate measurement and design decision.
+Selecting Assist changes only tool execution: both command routes share the same
+model prompt and tool schema. Switching routes therefore offers no inherent
+reduction of input tokens. Reusing Assist tests behavior and maintenance cost;
+reducing the model context is a separate optimization.
+
+## Target resolution and voice overhead
+
+Voice tools also accept an exact Assist-exposed entity id in their `name` field.
+The model can copy a known target's id from the context and execute an absolute
+command without first requesting its state. Normal names retain visible-label
+priority. Unknown ids do not fall back to another device's alias, and a visible
+label that collides with another exposed id is ambiguous. Exposure, room and
+capability checks still run before every action. No fuzzy name matching is used.
+
+Unresolved targets produce diagnostics containing only the result, whether the
+input looks like an id, whether a room was specified, and candidate counts.
+They do not record the name, room, entity id or spoken words. These distinguish
+some targeting failures without retaining a transcript; they cannot reconstruct
+an earlier recognition failure whose arguments were not recorded.
+
+A separate optimization shortens repeated voice instructions while retaining all
+tools, spoken-language rules, current-information lookup and action boundaries.
+Entity identities have a stable ordering in the prompt. Current states and media
+details remain available through tools instead of being sent with every prompt.
+This applies to both providers; audio transport and firmware are unchanged.
+
+The Realtime relay counts reported usage once per response id, including
+cancelled responses with reported usage. Duplicate final events do not inflate
+the logs. This corrects measurements, not provider billing. Compare identical
+audio and context before/after; cache hits and call latency are separate results.
+See the official [Realtime cost guidance](https://developers.openai.com/api/docs/guides/voice-latency-cost).
+
+A wake phrase alone can still produce a `wait_for_user` model call. Removing that
+tool or discarding short utterances would also affect valid short commands.
+Turn timing remains unchanged in this optimization. OpenAI's
+[semantic VAD settings](https://developers.openai.com/api/docs/guides/realtime-vad)
+allow a longer wait for continued speech, but any such change needs a separate
+latency and interruption test.

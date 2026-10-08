@@ -566,6 +566,52 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(result['matches'][0]['available_actions'], assistant_tools.media_actions(self.media_actions))
         self.ha.call.assert_not_awaited()
 
+    async def test_listed_entity_id_executes_directly_without_losing_label_priority(self):
+        session = await self.session()
+        result = await (await self.command(session, name='light.a', complete_request=True)).json()
+        self.assertEqual(result, {'status': 'accepted', 'entity_id': 'light.a',
+            'action': 'turn_on', 'complete_request': True})
+        self.ha.call.assert_awaited_once_with('light.turn_on', {'entity_id': 'light.a'})
+        context = await assistant_tools.panel_context(self.manager, panel())
+        self.assertEqual(assistant_tools.resolve(context, 'light.a')['source'], 'entity_id')
+        self.assertEqual(assistant_tools.resolve(context, 'Reading light')['matches'][0]['entity_id'], 'light.a')
+        context['entities'][0]['aliases'].append('Mr.Jones')
+        self.assertEqual(assistant_tools.resolve(context, 'Mr.Jones')['matches'][0]['entity_id'], 'light.a')
+
+    async def test_ids_never_bypass_exposure_rooms_or_conflicting_visible_labels(self):
+        session = await self.session()
+        self.ha.registry[1]['aliases'] = ['light.a', 'light.missing']
+        result = await (await self.command(session, name='light.a', area='Study')).json()
+        self.assertEqual(result['status'], 'not_found')
+        result = await (await self.command(session, call='unknown', name='light.missing')).json()
+        self.assertEqual(result['status'], 'not_found')
+        data = panel()
+        data['layout']['pages'][0]['tiles'][0]['appearance']['label'] = 'light.b'
+        result = await (await self.command(session, call='collision', context=data, name='light.b')).json()
+        self.assertEqual(result['status'], 'ambiguous')
+        self.exposure['light.a']['conversation'] = False
+        result = await (await self.command(session, call='revoked', name='light.a')).json()
+        self.assertEqual(result['status'], 'not_exposed')
+        self.ha.call.assert_not_awaited()
+
+    async def test_resolution_diagnostics_do_not_log_names_or_ids_and_do_not_guess(self):
+        context = await assistant_tools.panel_context(self.manager, panel())
+        with self.assertLogs('assistant_tools', level='INFO') as logs:
+            unknown = assistant_tools.resolve(context, 'Reading ligth', 'Living room')
+            wrong_room = assistant_tools.resolve(context, 'light.a', 'Study')
+        self.assertEqual(unknown['status'], 'not_found')
+        self.assertEqual(wrong_room['status'], 'not_found')
+        self.assertIn('name_candidates=0', logs.output[0])
+        self.assertIn('name_candidates=1', logs.output[1])
+        for private in ('Reading ligth', 'Living room', 'light.a', 'Study'):
+            self.assertNotIn(private, '\n'.join(logs.output))
+
+    async def test_identity_prompt_stays_identical_when_registry_order_changes(self):
+        context = await assistant_tools.panel_context(self.manager, panel(), private=True)
+        reordered = deepcopy(context)
+        reordered['entities'] = [dict(reversed(list(e.items()))) for e in reversed(context['entities'])]
+        self.assertEqual(assistant_tools.prompt(context), assistant_tools.prompt(reordered))
+
     async def test_media_playback_volume_and_source_use_existing_ha_services(self):
         data = self.media_panel()
         session = await self.session(data)
