@@ -79,6 +79,8 @@ output:
     frequency: ${BACKLIGHT_FREQUENCY}
     inverted: true
     max_power: 0.8
+    min_power: 0.15
+    zero_means_zero: true
 
 # ESPHome's own mipi_dsi platform knows the panel by name: the ST7703's init sequence and timings come with it.
 display:
