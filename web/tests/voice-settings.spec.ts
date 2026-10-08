@@ -11,6 +11,31 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+it("switches the light experiment without changing provider, voice or credentials", async () => {
+  const status = { enabled: true, provider: 'claude', configured: true, light_backend: 'direct' };
+  vi.mocked(getJson).mockResolvedValue(status);
+  const wrapper = mount(VoiceSettings); await flushPromises();
+  try {
+    vi.mocked(send).mockResolvedValue({ ...status, light_backend: 'assist' });
+    await wrapper.get('#voice-light-backend').setValue('assist'); await flushPromises();
+    expect(send).toHaveBeenCalledExactlyOnceWith('voice-preview/config', 'PUT', { light_backend: 'assist' });
+    expect(wrapper.get('#voice-light-control summary').text()).toContain('Home Assistant Assist');
+    expect(wrapper.get<HTMLSelectElement>('#voice-provider').element.value).toBe('claude');
+    expect(wrapper.get<HTMLInputElement>('#voice-api-key').element.value).toBe('');
+  } finally { wrapper.unmount(); }
+});
+
+it("restores the saved route when Assist setup fails", async () => {
+  vi.mocked(getJson).mockResolvedValue({ enabled: true, configured: true, light_backend: 'direct' });
+  const wrapper = mount(VoiceSettings); await flushPromises();
+  try {
+    vi.mocked(send).mockRejectedValue(new Error('Set up Home Assistant MCP Server.'));
+    await wrapper.get('#voice-light-backend').setValue('assist'); await flushPromises();
+    expect(wrapper.get<HTMLSelectElement>('#voice-light-backend').element.value).toBe('direct');
+    expect(wrapper.get('[role="alert"]').text()).toContain('MCP Server');
+  } finally { wrapper.unmount(); }
+});
+
 it("saves the reply speaker and volume independently of Spotify and provider credentials", async () => {
   const status = { enabled: true, configured: true, provider: 'openai', reply_speaker: '', reply_volume: 30,
     reply_speakers: [{ id: 'media_player.reply', name: 'Reply speaker', available: true }] };

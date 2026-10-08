@@ -14,6 +14,7 @@
 - [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md): the CYD and the Hosyond get more room for firmware, and what to do
   if you flash them yourself.
 - [DEVICE_VOICE.md](DEVICE_VOICE.md): experimental physical P4 voice, pairing and the first hardware check.
+- [VOICE_ASSIST_LIGHTS.md](VOICE_ASSIST_LIGHTS.md): compare the existing voice light commands with Home Assistant's official Assist tools.
 - [FULL_DUPLEX.md](FULL_DUPLEX.md): optional P4 echo cancellation, research, dependencies and hardware acceptance.
 
 ## Per board

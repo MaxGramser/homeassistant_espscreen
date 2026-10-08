@@ -19,6 +19,11 @@ upstream research and hardware acceptance checks.
 
 ## Set up
 
+The optional [Assist light-control experiment](VOICE_ASSIST_LIGHTS.md) reuses
+Home Assistant's own on/off tools while keeping this audio transport. It is an
+add-on setting shared by the physical panel and browser preview; no firmware
+change is needed to switch the command route.
+
 1. Install this add-on build and enable **Enable voice assistant** in its
    Configuration tab. Configure OpenAI or Claude in **Settings → Voice assistant**.
    [Provider setup](VOICE_PREVIEW_POC.md) applies to physical panels too. OpenAI

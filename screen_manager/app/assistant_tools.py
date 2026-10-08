@@ -314,7 +314,7 @@ def resolve(context, name, area=''):
             'matches': [entities[eid] for eid in sorted(matches)]}
 
 
-async def execute(manager, name, args, context, *, music=None, music_results=None, refresh_context=None):
+async def execute(manager, name, args, context, *, music=None, music_results=None, refresh_context=None, assist=None):
     # This hint describes the user's intent, not whether HA accepted the action.
     # Only a validated action receipt may allow transports to skip the reply.
     complete = False
@@ -324,7 +324,7 @@ async def execute(manager, name, args, context, *, music=None, music_results=Non
         if type(complete) is not bool:
             raise ValueError('complete_request must be a boolean.')
     result = await _execute(manager, name, args, context, music=music,
-                            music_results=music_results, refresh_context=refresh_context)
+                            music_results=music_results, refresh_context=refresh_context, assist=assist)
     if complete and result.get('status') == 'accepted':
         return {**result, 'complete_request': True}
     return result
@@ -336,7 +336,7 @@ def completed_command(results):
             and results[0].get('complete_request') is True)
 
 
-async def _execute(manager, name, args, context, *, music=None, music_results=None, refresh_context=None):
+async def _execute(manager, name, args, context, *, music=None, music_results=None, refresh_context=None, assist=None):
     if name == 'play_named_track':
         if refresh_context is None:
             raise ValueError('Playback needs a fresh permission check.')
@@ -432,6 +432,14 @@ async def _execute(manager, name, args, context, *, music=None, music_results=No
         service = f'{domain}.{action}'
     if entity['state'] in {'unavailable', 'unknown'}:
         raise ValueError('That device is currently unavailable.')
+    if assist is not None and name == 'control_switch' and domain == 'light':
+        # The server-resolved id preserves active-page labels. Refuse even an
+        # unusual alias collision with this id before HA's name matcher runs.
+        if any(other['entity_id'] != eid and other['entity_id'].startswith('light.')
+               and normalized(eid) in [normalized(n) for n in [other['name'], *other['aliases']]]
+               for other in context['entities']):
+            return {'status': 'ambiguous', 'message': 'A Home Assistant light alias conflicts with the selected entity id.'}
+        return await assist.set_light(eid, action)
     ha = manager.ha
     actions = await ha.entity_actions(eid)
     if actions is None:

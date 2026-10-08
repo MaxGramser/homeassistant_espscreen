@@ -7,10 +7,12 @@ import VoiceDeviceSettings from "./VoiceDeviceSettings.vue";
 type Status = { enabled: boolean; configured: boolean; key_configured?: boolean; saved_key: boolean; source: string;
   provider?: string; pipeline?: string; pipelines?: { id: string; name: string; language: string; ready: boolean; stt_ready: boolean; tts_ready: boolean }[];
   speech_ready?: boolean; model?: string; voice?: string; voices?: string[]; idle_seconds?: number;
+  light_backend?: "direct" | "assist";
   reply_speaker?: string; reply_volume?: number; reply_speakers?: { id: string; name: string; available: boolean }[];
   spotify?: { configured: boolean; market: string } };
 const status = ref<Status | null>(null), key = ref(""), selectedVoice = ref(""), busy = ref(false), error = ref(""), saved = ref("");
 const selectedProvider = ref("openai"), selectedPipeline = ref("");
+const lightBackend = ref("direct");
 const idleSeconds = ref(5);
 const replySpeaker = ref(""), replyVolume = ref(30);
 const replySummary = computed(() => status.value?.reply_speaker
@@ -30,6 +32,7 @@ function apply(result: Status) {
   status.value = result; selectedVoice.value = result.voice ?? "";
   selectedProvider.value = result.provider ?? "openai"; selectedPipeline.value = result.pipeline ?? "";
   idleSeconds.value = result.idle_seconds ?? 5;
+  lightBackend.value = result.light_backend ?? "direct";
   replySpeaker.value = result.reply_speaker ?? ""; replyVolume.value = result.reply_volume ?? 30;
   spotifyMarket.value = result.spotify?.market ?? "";
 }
@@ -64,11 +67,11 @@ async function update(remove = false) {
     key.value = ""; busy.value = false;
   }
 }
-async function saveRoute(field: "provider" | "pipeline") {
+async function saveRoute(field: "provider" | "pipeline" | "light_backend") {
   busy.value = true; error.value = ""; saved.value = ""; key.value = "";
   try {
     const result = await send<Status>("voice-preview/config", "PUT", {
-      [field]: field === "provider" ? selectedProvider.value : selectedPipeline.value,
+      [field]: field === "provider" ? selectedProvider.value : field === "pipeline" ? selectedPipeline.value : lightBackend.value,
     });
     if (!disposed) { apply(result); if (field === 'provider') openSetup(); }
   } catch (e) {
@@ -231,6 +234,20 @@ async function saveOutput() {
           <button v-if="status.spotify?.configured" class="btn quiet" type="button" :disabled="busy" @click="saveSpotify(true)">{{ t('editor.voice.spotify_remove') }}</button>
         </div>
       </form>
+    </details>
+    <details id="voice-light-control" class="voice-section">
+      <summary><span>{{ t('editor.voice.light_control') }}<small>{{ t(status.light_backend === 'assist' ? 'editor.voice.light_assist' : 'editor.voice.light_direct') }}</small></span></summary>
+      <div class="voice-section-body">
+        <div class="field">
+          <label class="f-label" for="voice-light-backend">{{ t('editor.voice.light_route') }}</label>
+          <select id="voice-light-backend" v-model="lightBackend" :disabled="busy" @change="saveRoute('light_backend')">
+            <option value="direct">{{ t('editor.voice.light_direct') }}</option>
+            <option value="assist">{{ t('editor.voice.light_assist') }}</option>
+          </select>
+          <small>{{ t('editor.voice.light_hint') }}</small>
+        </div>
+        <a href="https://www.home-assistant.io/integrations/mcp_server/" target="_blank" rel="noopener noreferrer">{{ t('editor.voice.light_setup') }}</a>
+      </div>
     </details>
     <VoiceDeviceSettings />
     <p v-if="saved" role="status">{{ t(saved) }}</p>

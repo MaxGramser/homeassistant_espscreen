@@ -2975,7 +2975,13 @@
       "output_save": "Save reply speaker",
       "output_saved": "Reply speaker saved. Reopen the preview to use it.",
       "output_unavailable": "Unavailable",
-      "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting."
+      "output_hint": "Choose where the assistant answers general questions. External replies pause microphone input. Music-start confirmations stay on the screen. Stop voice before changing this setting.",
+      "light_control": "Light control experiment",
+      "light_route": "Voice light commands",
+      "light_direct": "Tessera → Home Assistant",
+      "light_assist": "Home Assistant Assist",
+      "light_hint": "Try Assist for light on/off commands with either voice provider. Requires the Home Assistant MCP Server integration. Brightness and other commands keep their existing route. Stop voice before switching. Audio and tile names stay the same.",
+      "light_setup": "Set up Home Assistant MCP Server"
     },
     "voice_device": {
       "title": "Panel de voz físico",

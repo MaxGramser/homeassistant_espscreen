@@ -20,6 +20,7 @@ from aiohttp import web
 from assistant_tools import prompt, TOOLS, execute, panel_context
 from voice_providers import AUDIO_PROVIDERS, LOOKUP_PROVIDERS, TEXT_PROVIDERS
 from voice_ha_speech import pipelines
+from voice_ha_assist import AssistLights
 from voice_claude import ClaudeSessions
 import voice_lookup
 import voice_music
@@ -84,6 +85,8 @@ class VoicePreview:
         self.voice = self.audio.voices[0]
         self.provider, self.pipeline = 'openai', ''
         self.idle_seconds = 5
+        self.light_backend = 'direct'
+        self.assist = AssistLights(manager.ha)
         self.reply_speaker, self.reply_volume = '', 30
         self.output = ReplyOutput(manager.ha)
         manager.voice_output = self.output
@@ -98,6 +101,8 @@ class VoicePreview:
                         self.provider = settings['provider']
                     if isinstance(settings.get('pipeline'), str):
                         self.pipeline = settings['pipeline']
+                    if settings.get('light_backend') in {'direct', 'assist'}:
+                        self.light_backend = settings['light_backend']
                     idle = settings.get('idle_seconds')
                     # Older previews allowed 0 to disable this timer. Treat it
                     # as the default, so every new session has a silence limit.
@@ -144,6 +149,7 @@ class VoicePreview:
 
     def save_settings(self, **changes):
         settings = {'voice': self.voice, 'provider': self.provider, 'pipeline': self.pipeline,
+                    'light_backend': self.light_backend,
                     'idle_seconds': self.idle_seconds, 'reply_speaker': self.reply_speaker,
                     'reply_volume': self.reply_volume, **changes}
         try:
@@ -160,6 +166,7 @@ class VoicePreview:
                 'audio_provider': self.audio.id, 'lookup_provider': self.lookup.id,
                 'model': self.model, 'voice': self.voice, 'voices': self.audio.voices, 'max_seconds': MAX_SECONDS,
                 'idle_seconds': self.idle_seconds, 'spotify': self.music.status(),
+                'light_backend': self.light_backend,
                 'reply_speaker': self.reply_speaker, 'reply_volume': self.reply_volume,
                 'reply_speakers': self.output.speakers()}
         result.update(provider=self.provider, pipeline=self.pipeline, pipelines=self.speech_pipelines,
@@ -193,6 +200,15 @@ class VoicePreview:
     async def configure(self, request):
         self.require_enabled()
         data = await request.json() if request.method == 'PUT' else {}
+        if request.method == 'PUT' and isinstance(data, dict) and set(data) == {'light_backend'}:
+            if self.sessions:
+                raise ValueError('Stop active voice sessions before changing light control.')
+            if data['light_backend'] not in ('direct', 'assist'):
+                raise ValueError('Choose direct or Assist light control.')
+            if data['light_backend'] == 'assist':
+                await self.assist.check(force=True)
+            self.save_settings(light_backend=data['light_backend'])
+            return web.json_response(self.configuration())
         if request.method == 'PUT' and isinstance(data, dict) and set(data) == {'reply_speaker', 'reply_volume'}:
             if self.sessions:
                 raise ValueError('Stop active voice sessions before changing the reply speaker.')
@@ -318,6 +334,7 @@ class VoicePreview:
             raise ValueError('Voice session ended.')
         if len(session['receipts']) >= 256:
             raise ValueError('Start a new voice conversation.')
+        started = time.monotonic()
         try:
             if name == 'wait_for_user':
                 if args:
@@ -353,7 +370,8 @@ class VoicePreview:
                 if session_id not in self.sessions:
                     raise asyncio.CancelledError()
                 task = asyncio.create_task(execute(self.manager, name, args, context, music=self.music,
-                    music_results=session.setdefault('music_results', {}), refresh_context=refresh_context))
+                    music_results=session.setdefault('music_results', {}), refresh_context=refresh_context,
+                    assist=self.assist if self.light_backend == 'assist' else None))
                 session['action_task'] = task
                 try:
                     result = await task
@@ -363,6 +381,13 @@ class VoicePreview:
             result = dict(voice_lookup.UNAVAILABLE) if name == 'lookup_current_information' else {
                 'status': 'error', 'message': 'Action not confirmed. Check the target and HA connection before trying again.'}
         session['receipts'][call_id] = (signature, result)
+        if name == 'control_switch':
+            # Includes context refresh and action receipt, not speech recognition
+            # or the physical state change. No names, ids or utterances in logs.
+            is_light = str(result.get('entity_id', '')).startswith('light.')
+            route = self.light_backend if is_light else 'direct' if result.get('status') == 'accepted' else 'unconfirmed'
+            LOG.info('Voice on/off command route=%s accepted=%s elapsed_ms=%d',
+                     route, result.get('status') == 'accepted', (time.monotonic() - started) * 1000)
         if result.get('end_voice'):
             session['end_voice'] = True
         if result.get('end_voice_immediately'):

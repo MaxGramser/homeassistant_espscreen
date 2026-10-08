@@ -2975,7 +2975,13 @@
       "output_save": "Luidspreker opslaan",
       "output_saved": "Luidspreker opgeslagen. Open het voorbeeld opnieuw om deze te gebruiken.",
       "output_unavailable": "Niet beschikbaar",
-      "output_hint": "Kies waar de assistent algemene vragen beantwoordt. Externe antwoorden pauzeren de microfooninvoer. Bevestigingen voor het starten van muziek blijven op het scherm. Stop spraak voordat je deze instelling wijzigt."
+      "output_hint": "Kies waar de assistent algemene vragen beantwoordt. Externe antwoorden pauzeren de microfooninvoer. Bevestigingen voor het starten van muziek blijven op het scherm. Stop spraak voordat je deze instelling wijzigt.",
+      "light_control": "Proef met lampbediening",
+      "light_route": "Gesproken lampopdrachten",
+      "light_direct": "Tessera → Home Assistant",
+      "light_assist": "Home Assistant Assist",
+      "light_hint": "Probeer Assist voor lamp aan/uit met beide spraakproviders. Vereist de Home Assistant MCP Server-integratie. Dimmen en overige opdrachten behouden hun huidige route. Stop voice voordat je wisselt. Audio en tegellabels blijven gelijk.",
+      "light_setup": "Home Assistant MCP Server instellen"
     },
     "voice_device": {
       "title": "Fysiek spraakpaneel",

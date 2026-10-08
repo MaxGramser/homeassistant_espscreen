@@ -6,6 +6,7 @@ Tool calls still use the existing authenticated dispatch endpoint and receipts.
 import asyncio
 import base64
 import json
+import logging
 import secrets
 import time
 from urllib.parse import urlencode
@@ -19,6 +20,21 @@ REALTIME_URL = 'wss://api.openai.com/v1/realtime'
 FORWARD = {'session.update', 'input_audio_buffer.clear', 'response.create', 'response.cancel', 'conversation.item.create'}
 EVENTS = {'response.created', 'response.done', 'input_audio_buffer.speech_started',
           'input_audio_buffer.speech_stopped', 'response.output_audio_transcript.delta', 'error'}
+LOG = logging.getLogger(__name__)
+
+
+def log_usage(response):
+    """Provider-reported counts only; never log audio, transcripts or identifiers."""
+    usage = response.get('usage')
+    if not isinstance(usage, dict):
+        return
+    details = usage.get('input_token_details')
+    details = details if isinstance(details, dict) else {}
+    values = [usage.get('input_tokens'), usage.get('output_tokens'),
+              details.get('cached_tokens'), details.get('audio_tokens'), details.get('text_tokens')]
+    if any(type(value) is not int or value < 0 for value in values):
+        return  # Missing usage is unknown, never a measured zero.
+    LOG.info('Voice Realtime usage input=%d output=%d cached_input=%d audio_input=%d text_input=%d', *values)
 
 
 class OpenAIRelay:
@@ -76,6 +92,7 @@ class OpenAIRelay:
                     raise ValueError('The spoken reply is too long.')
             elif kind == 'response.done':
                 response = event.get('response', {})
+                log_usage(response)
                 calls = any(item.get('type') == 'function_call' for item in response.get('output', []))
                 if response.get('status') == 'completed' and not calls and self.audio:
                     # Music confirmations stay local; general replies use the

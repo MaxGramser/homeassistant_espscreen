@@ -433,7 +433,7 @@ class VoiceTests(unittest.IsolatedAsyncioTestCase):
         restored.save_settings(voice='marin')
         self.assertEqual(json.loads(settings.read_text()), {
             'idle_seconds': 5, 'voice': 'marin', 'provider': 'claude', 'pipeline': 'speech',
-            'reply_speaker': '', 'reply_volume': 30})
+            'reply_speaker': '', 'reply_volume': 30, 'light_backend': 'direct'})
 
     async def test_voice_selection_persists_and_only_changes_new_sessions(self):
         old_session = await self.session()
