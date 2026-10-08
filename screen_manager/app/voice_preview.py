@@ -20,7 +20,7 @@ from aiohttp import web
 from assistant_tools import prompt, TOOLS, execute, panel_context
 from voice_providers import AUDIO_PROVIDERS, LOOKUP_PROVIDERS, TEXT_PROVIDERS
 from voice_ha_speech import pipelines
-from voice_ha_assist import AssistLights
+from voice_ha_assist import AssistControls
 from voice_claude import ClaudeSessions
 import voice_lookup
 import voice_music
@@ -85,8 +85,9 @@ class VoicePreview:
         self.voice = self.audio.voices[0]
         self.provider, self.pipeline = 'openai', ''
         self.idle_seconds = 5
+        # Keep the persisted pilot key while expanding it to switches/brightness.
         self.light_backend = 'direct'
-        self.assist = AssistLights(manager.ha)
+        self.assist = AssistControls(manager.ha)
         self.reply_speaker, self.reply_volume = '', 30
         self.output = ReplyOutput(manager.ha)
         manager.voice_output = self.output
@@ -202,9 +203,9 @@ class VoicePreview:
         data = await request.json() if request.method == 'PUT' else {}
         if request.method == 'PUT' and isinstance(data, dict) and set(data) == {'light_backend'}:
             if self.sessions:
-                raise ValueError('Stop active voice sessions before changing light control.')
+                raise ValueError('Stop active voice sessions before changing light and switch control.')
             if data['light_backend'] not in ('direct', 'assist'):
-                raise ValueError('Choose direct or Assist light control.')
+                raise ValueError('Choose direct or Assist light and switch control.')
             if data['light_backend'] == 'assist':
                 await self.assist.check(force=True)
             self.save_settings(light_backend=data['light_backend'])
@@ -381,12 +382,12 @@ class VoicePreview:
             result = dict(voice_lookup.UNAVAILABLE) if name == 'lookup_current_information' else {
                 'status': 'error', 'message': 'Action not confirmed. Check the target and HA connection before trying again.'}
         session['receipts'][call_id] = (signature, result)
-        if name == 'control_switch':
+        if name in {'control_switch', 'set_light_brightness'}:
             # Includes context refresh and action receipt, not speech recognition
             # or the physical state change. No names, ids or utterances in logs.
-            is_light = str(result.get('entity_id', '')).startswith('light.')
-            route = self.light_backend if is_light else 'direct' if result.get('status') == 'accepted' else 'unconfirmed'
-            LOG.info('Voice on/off command route=%s accepted=%s elapsed_ms=%d',
+            route = self.light_backend if result.get('status') == 'accepted' else 'unconfirmed'
+            LOG.info('Voice %s command route=%s accepted=%s elapsed_ms=%d',
+                     'brightness' if name == 'set_light_brightness' else 'on/off',
                      route, result.get('status') == 'accepted', (time.monotonic() - started) * 1000)
         if result.get('end_voice'):
             session['end_voice'] = True

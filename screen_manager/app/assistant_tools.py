@@ -432,14 +432,6 @@ async def _execute(manager, name, args, context, *, music=None, music_results=No
         service = f'{domain}.{action}'
     if entity['state'] in {'unavailable', 'unknown'}:
         raise ValueError('That device is currently unavailable.')
-    if assist is not None and name == 'control_switch' and domain == 'light':
-        # The server-resolved id preserves active-page labels. Refuse even an
-        # unusual alias collision with this id before HA's name matcher runs.
-        if any(other['entity_id'] != eid and other['entity_id'].startswith('light.')
-               and normalized(eid) in [normalized(n) for n in [other['name'], *other['aliases']]]
-               for other in context['entities']):
-            return {'status': 'ambiguous', 'message': 'A Home Assistant light alias conflicts with the selected entity id.'}
-        return await assist.set_light(eid, action)
     ha = manager.ha
     actions = await ha.entity_actions(eid)
     if actions is None:
@@ -452,6 +444,15 @@ async def _execute(manager, name, args, context, *, music=None, music_results=No
                     'media': media_state(ha.states.get(eid, {})),
                     'message': 'This player does not currently offer that action. If an output is needed, ask which one to use.'}
         raise ValueError('Home Assistant does not offer this action for that device.')
+    if assist is not None and name in {'control_switch', 'set_light_brightness'}:
+        # Keep capability checks above, including dimmability. The resolved id
+        # preserves active-page labels; refuse alias collisions within the
+        # requested domain before HA's name matcher runs.
+        if any(other['entity_id'] != eid and other['entity_id'].startswith(domain + '.')
+               and normalized(eid) in [normalized(n) for n in [other['name'], *other['aliases']]]
+               for other in context['entities']):
+            return {'status': 'ambiguous', 'message': 'A Home Assistant device alias conflicts with the selected entity id.'}
+        return await assist.control(eid, action, data.get('brightness_pct'))
     if name == 'search_music':
         try:
             result = await music.search(ha.session, args['title'].strip(), args['artist'].strip())

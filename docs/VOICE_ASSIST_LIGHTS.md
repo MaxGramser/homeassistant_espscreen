@@ -1,6 +1,6 @@
-# Assist light-control experiment
+# Assist light and switch control experiment
 
-The voice settings offer two routes for explicit light on/off commands:
+The voice settings offer two routes for explicit light/switch on/off and light brightness commands:
 **Tessera → Home Assistant** (the existing default) and **Home Assistant Assist**.
 The second route calls Home Assistant's built-in Assist tools through its official
 MCP Server integration. OpenAI keeps direct audio; Claude keeps HA speech-to-text
@@ -25,7 +25,7 @@ exclusive to the direct audio route. Speed and cost depend on the complete setup
 and need separate measurements.
 
 The experiment here is a hybrid: **direct OpenAI audio with HA Assist tools for
-light commands**. OpenAI still interprets the request. The add-on resolves the
+light and switch commands**. OpenAI still interprets the request. The add-on resolves the
 tile label and calls HA's tool to execute it; it does not invoke a second HA
 conversation agent. The existing direct-service route also operates devices
 through HA. Switching the light-control setting changes only this execution
@@ -49,26 +49,39 @@ playback from the first generated audio chunk.
    `/api/mcp/assist` endpoint, available in the tested HA 2026.9.3 installation.
    An older server without this endpoint is refused; the app does not silently
    switch to another API. Follow the [official setup instructions](https://www.home-assistant.io/integrations/mcp_server/).
-2. Expose a test light to Assist. Put it on the panel and give its tile a label.
+2. Expose a test light or switch to Assist. Put it on the panel and give its tile
+   a label. Use a dimmable light to test brightness.
 3. Stop active voice sessions, including a physical panel's warm voice session
    if wake-word listening is enabled. In Tessera **Settings → Voice assistant →
-   Light control experiment**, choose **Home Assistant Assist**. Saving checks
+   Assist control experiment**, choose **Home Assistant Assist**. Saving checks
    the installed tools before enabling this route. No extra provider key or
    publicly reachable HA server is needed; the add-on uses its existing HA connection.
-4. Start voice and ask to turn that light on or off using its tile label.
+4. Start voice and ask to turn that light or switch on or off using its tile label.
+   For a dimmable light, try a percentage such as forty percent, then zero to turn
+   it off. Relative changes first read the current brightness through the existing
+   target tool; they do not infer the current level.
    Check the actual state in HA. Repeat with the existing route to compare.
    The same choice applies to OpenAI and Claude, in the browser and on the panel.
 
-Only light on/off is part of this experiment. Brightness, switches, music, current
-information and other commands retain their existing routes. Audio drivers,
+Light/switch on/off and dimmable light brightness are part of this experiment.
+Music, current information and other commands retain their existing routes. Audio drivers,
 firmware size, wake words and screen layouts are unchanged.
+
+The `HassLightSet` tool is optional when enabling Assist, so on/off still works
+on HA setups without that tool. A brightness command requires its compatible
+schema and a light that HA reports as dimmable. HA's intent accepts whole
+percentages: fractional requests are rounded to the nearest percent, with any
+positive request kept at least one percent. Only an explicit zero turns it off.
+A missing or incompatible brightness tool returns an error, without switching
+to the direct-service route.
 
 ## Boundaries
 
 The shared dispatcher refreshes exposure and active-page context before resolving
 the spoken name. Visible tile labels retain priority over HA names and aliases.
 The adapter passes the resolved entity id as the Assist tool's name, restricted
-to the light domain. It refuses a conflicting exposed alias before invoking HA.
+to that entity's light or switch domain. It refuses a conflicting exposed alias
+in the same domain before invoking HA and checks the device's available actions.
 HA rechecks exposure and handles the intent itself. Tile labels are never saved
 as global HA aliases.
 
@@ -76,7 +89,7 @@ Tool names and their targeting schema are discovered from the server, with a
 short cache for the schema only. Permissions are not cached. Failed requests,
 timeouts and invalid receipts do not fall back or retry a potentially executed
 command. Duplicate provider call ids retain the existing receipt deduplication.
-Only a receipt for the exact light allows silent completion of a simple command.
+Only a receipt for the exact requested entity allows silent completion of a simple command.
 Acceptance is not proof that the physical lamp changed state.
 
 The local adapter is limited to HA's stateless JSON MCP HTTP endpoint. It is not
@@ -87,7 +100,7 @@ HA source, particularly `helpers/intent.py`, `helpers/llm.py` and
 
 ## What the measurements mean
 
-`Voice on/off command` logs report the selected route and milliseconds from the
+`Voice on/off command` and `Voice brightness command` logs report the selected route and milliseconds from the
 shared dispatcher through context refresh and the action receipt. They exclude
 recognition, reply playback and the eventual physical state change. Unconfirmed
 commands are marked separately. Names, entity ids and utterances are not logged.

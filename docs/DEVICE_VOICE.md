@@ -19,8 +19,8 @@ upstream research and hardware acceptance checks.
 
 ## Set up
 
-The optional [Assist light-control experiment](VOICE_ASSIST_LIGHTS.md) reuses
-Home Assistant's own on/off tools while keeping this audio transport. It is an
+The optional [Assist light and switch control experiment](VOICE_ASSIST_LIGHTS.md)
+reuses Home Assistant's own on/off and brightness tools while keeping this audio transport. It is an
 add-on setting shared by the physical panel and browser preview; no firmware
 change is needed to switch the command route.
 

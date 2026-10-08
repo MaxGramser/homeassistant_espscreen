@@ -1,20 +1,55 @@
 """Small, local bridge to HA's official Assist tools over stateless MCP HTTP.
 
-Only explicit on/off of one resolved light is enabled in this experiment. The
+Explicit on/off of one resolved light or switch, plus light brightness. The
 provider retains its existing audio path and never receives HA credentials.
 """
 import asyncio
 import json
+import math
 import re
 import time
 
 from aiohttp import ClientError, ClientTimeout
 
 MAX_RESPONSE = 256 * 1024
-INTENTS = {'turn_on': 'HassTurnOn', 'turn_off': 'HassTurnOff'}
+INTENTS = {'turn_on': ('intent__HassTurnOn', 'HassTurnOn'),
+           'turn_off': ('intent__HassTurnOff', 'HassTurnOff'),
+           'brightness': ('light__HassLightSet', 'HassLightSet')}
 
 
-class AssistLights:
+def supported_schema(schema, action):
+    if not isinstance(schema, dict) or schema.get('type') != 'object':
+        return False
+    properties = schema.get('properties')
+    if not isinstance(properties, dict):
+        return False
+    name, domain = properties.get('name'), properties.get('domain')
+    if (not isinstance(name, dict) or name.get('type') != 'string'
+            or not isinstance(domain, dict) or domain.get('type') != 'array'):
+        return False
+    items = domain.get('items')
+    domains = {'light'} if action == 'brightness' else {'light', 'switch'}
+    if not isinstance(items, dict) or items.get('type') != 'string':
+        return False
+    if 'enum' in items and (not isinstance(items['enum'], list)
+                           or not all(value in items['enum'] for value in domains)):
+        return False
+    required = schema.get('required', [])
+    arguments = {'name', 'domain'} | ({'brightness'} if action == 'brightness' else set())
+    if not isinstance(required, list) or any(not isinstance(value, str) or value not in arguments for value in required):
+        return False
+    if action == 'brightness':
+        brightness = properties.get('brightness')
+        if not isinstance(brightness, dict) or brightness.get('type') != 'integer':
+            return False
+        lower, upper = brightness.get('minimum', 0), brightness.get('maximum', 100)
+        if (type(lower) not in (int, float) or type(upper) not in (int, float)
+                or not math.isfinite(lower) or not math.isfinite(upper) or lower > 0 or upper < 100):
+            return False
+    return True
+
+
+class AssistControls:
     def __init__(self, ha):
         self.ha = ha
         self.tools = {}
@@ -62,36 +97,42 @@ class AssistLights:
             if not isinstance(tools, list):
                 raise ValueError('Home Assistant Assist did not list its tools.')
             selected = {}
-            for action, intent in INTENTS.items():
+            for action, names in INTENTS.items():
                 matches = [tool for tool in tools if isinstance(tool, dict)
-                           and tool.get('name') in (intent, 'intent__' + intent)]
-                if len(matches) != 1:
-                    raise ValueError('Home Assistant Assist must offer both light on and off tools.')
-                schema = matches[0].get('inputSchema') or {}
-                if not isinstance(schema, dict):
-                    raise ValueError('Home Assistant Assist has an unsupported light tool schema.')
-                properties = schema.get('properties') or {}
-                if (not isinstance(properties, dict)
-                        or not isinstance(properties.get('name'), dict)
-                        or not isinstance(properties.get('domain'), dict)
-                        or properties.get('name', {}).get('type') != 'string'
-                        or properties.get('domain', {}).get('type') != 'array'):
-                    raise ValueError('Home Assistant Assist has an unsupported light tool schema.')
+                           and tool.get('name') in names]
+                if len(matches) != 1 or not supported_schema(matches[0].get('inputSchema'), action):
+                    if action == 'brightness':
+                        continue  # Older HA setups can still use light/switch on/off.
+                    raise ValueError('Home Assistant Assist must offer on/off tools for lights and switches.')
                 selected[action] = matches[0]['name']
             self.tools, self.checked_at = selected, time.monotonic()
 
-    async def set_light(self, entity_id, action):
-        if not isinstance(entity_id, str) or not re.fullmatch(r'light\.[a-z0-9_]+', entity_id) or action not in INTENTS:
-            raise ValueError('Assist light control needs one light and an explicit on/off action.')
+    async def control(self, entity_id, action, brightness=None):
+        if (not isinstance(entity_id, str) or not re.fullmatch(r'(light|switch)\.[a-z0-9_]+', entity_id)
+                or not isinstance(action, str) or action not in INTENTS):
+            raise ValueError('Assist control needs one light or switch and a supported action.')
+        domain = entity_id.split('.')[0]
+        arguments = {'name': entity_id, 'domain': [domain]}
+        if action == 'brightness':
+            if (domain != 'light' or type(brightness) not in (int, float)
+                    or not math.isfinite(brightness) or not 0 <= brightness <= 100):
+                raise ValueError('Assist brightness needs one dimmable light and a percentage from 0 to 100.')
+            # HA's intent uses whole percentages. Only an explicit zero may
+            # turn the light off; a small positive fraction stays at least 1%.
+            arguments['brightness'] = 0 if brightness == 0 else max(1, math.floor(brightness + .5))
+        elif brightness is not None:
+            raise ValueError('Brightness is only valid for a brightness command.')
         await self.check()
+        if action not in self.tools:
+            raise ValueError('Home Assistant Assist does not offer a compatible brightness tool.')
         result = await self.request('tools/call', {'name': self.tools[action],
             # HA's intent matcher accepts entity ids in the name slot. This
             # keeps Tessera label priority without renaming anything in HA.
-            'arguments': {'name': entity_id, 'domain': ['light']}})
+            'arguments': arguments})
         contents = result.get('content')
         if (result.get('isError') or not isinstance(contents, list) or len(contents) != 1
                 or not isinstance(contents[0], dict)):
-            raise ValueError('Home Assistant Assist did not confirm the light command.')
+            raise ValueError('Home Assistant Assist did not confirm the device command.')
         try:
             receipt = json.loads(contents[0]['text']) if contents[0].get('type') == 'text' else None
         except (KeyError, TypeError, json.JSONDecodeError):
@@ -106,7 +147,7 @@ class AssistLights:
                 or not isinstance(success, list) or not success
                 or any(not isinstance(target, dict) or target.get('type') != 'entity'
                                      or target.get('id') != entity_id for target in success)):
-            raise ValueError('Home Assistant Assist did not confirm the requested light command.')
+            raise ValueError('Home Assistant Assist did not confirm the requested device command.')
         # Acceptance is not proof of the eventual device state. Keep the same
         # small receipt as the direct path, including silent simple completion.
         return {'status': 'accepted', 'entity_id': entity_id, 'action': action}

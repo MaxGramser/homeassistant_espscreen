@@ -1,6 +1,6 @@
 ## Unreleased
 
-- Voice settings can opt into Home Assistant Assist for light on/off commands through its official MCP Server integration. The experiment preserves tile labels, direct OpenAI audio and Claude's existing speech route. Other controls keep their existing path. Add-on logs report command latency and provider-reported Realtime token counts for comparison.
+- Voice settings can opt into Home Assistant Assist for light/switch on/off and light brightness commands through its official MCP Server integration. The experiment preserves tile labels, direct OpenAI audio and Claude's existing speech route. Other controls keep their existing path. Add-on logs report command latency and provider-reported Realtime token counts for comparison.
 
 - Optional physical voice adds local wake-word activation and an authenticated add-on connection. OpenAI supports direct audio and experimental full-duplex replies on the P4 panel; Claude uses Home Assistant speech services. Voice is a separate build mode and API keys remain in the add-on.
 - Optional browser voice shares provider settings, tile-name context and validated Home Assistant actions. Tap and voice controls use matching buttons beneath the firmware preview.

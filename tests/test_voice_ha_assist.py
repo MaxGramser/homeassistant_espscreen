@@ -16,13 +16,16 @@ from voice_openai_relay import log_usage
 class AssistTests(unittest.IsolatedAsyncioTestCase):
     session = fixtures.VoiceTests.session
     command = fixtures.VoiceTests.command
+    dimmable_light = fixtures.VoiceTests.dimmable_light
+    brightness_command = fixtures.VoiceTests.brightness_command
 
     async def asyncSetUp(self):
         await fixtures.VoiceTests.asyncSetUp(self)
         self.mcp_calls = []
         self.http_status = 200
         self.receipt_override = None
-        self.tool_names = ['intent__HassTurnOn', 'intent__HassTurnOff']
+        self.tool_names = ['intent__HassTurnOn', 'intent__HassTurnOff', 'light__HassLightSet']
+        self.schemas = {}
 
         async def mcp(request):
             self.assertEqual(request.headers['Authorization'], 'Bearer test-ha-secret')
@@ -32,9 +35,14 @@ class AssistTests(unittest.IsolatedAsyncioTestCase):
             if self.http_status != 200:
                 return web.Response(status=self.http_status)
             if message['method'] == 'tools/list':
-                result = {'tools': [{'name': name, 'inputSchema': {'type': 'object', 'properties': {
-                    'name': {'type': 'string'}, 'domain': {'type': 'array', 'items': {'type': 'string'}}}}}
-                    for name in self.tool_names]}
+                tools = []
+                for name in self.tool_names:
+                    props = {'name': {'type': 'string'}, 'domain': {'type': 'array', 'items': {'type': 'string'}}}
+                    if name.endswith('HassLightSet'):
+                        props['domain']['items']['enum'] = ['light']
+                        props['brightness'] = {'type': 'integer', 'minimum': 0, 'maximum': 100}
+                    tools.append({'name': name, 'inputSchema': self.schemas.get(name, {'type': 'object', 'properties': props})})
+                result = {'tools': tools}
             else:
                 self.assertEqual(message['method'], 'tools/call')
                 receipt = self.receipt_override if self.receipt_override is not None else {
@@ -98,7 +106,7 @@ class AssistTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['action'], 'turn_off')
         self.assertEqual(self.mcp_calls[-1]['params']['name'], 'HassTurnOff')
 
-    async def test_direct_route_and_switches_keep_existing_service_calls(self):
+    async def test_direct_route_is_preserved_and_assist_switches_use_exact_domain(self):
         session = await self.session()
         await self.command(session)
         self.ha.call.assert_awaited_once_with('light.turn_on', {'entity_id': 'light.a'})
@@ -111,8 +119,91 @@ class AssistTests(unittest.IsolatedAsyncioTestCase):
         session = await self.session()
         result = await (await self.command(session, name='Private switch')).json()
         self.assertEqual(result['status'], 'accepted')
-        self.ha.call.assert_awaited_once_with('switch.turn_on', {'entity_id': 'switch.private'})
+        self.assertEqual(self.mcp_calls[-1]['params'], {'name': 'intent__HassTurnOn',
+            'arguments': {'name': 'switch.private', 'domain': ['switch']}})
+        self.ha.entity_actions.return_value = {'switch.turn_off'}
+        result = await (await self.command(session, call='off', name='Private switch', action='turn_off')).json()
+        self.assertEqual(result['action'], 'turn_off')
+        self.assertEqual(self.mcp_calls[-1]['params']['name'], 'intent__HassTurnOff')
+        self.ha.call.assert_not_awaited()
+
+    async def test_brightness_uses_whole_percentage_and_preserves_silent_receipt(self):
+        self.dimmable_light()
+        await self.select('assist')
+        session = await self.session()
+        for index, (value, expected) in enumerate([(0, 0), (40, 40), (37.5, 38), (.2, 1), (100, 100)]):
+            with self.assertLogs('voice_preview', level='INFO') as logged:
+                results = await asyncio.gather(*[self.brightness_command(session, value,
+                    call=f'brightness_{index}', complete_request=True) for _ in range(2)])
+            for response in results:
+                self.assertEqual(await response.json(), {'status': 'accepted', 'entity_id': 'light.a',
+                    'action': 'brightness', 'complete_request': True})
+            self.assertEqual(len(logged.output), 1)
+            self.assertIn('Voice brightness command route=assist accepted=True', logged.output[0])
+            self.assertEqual(self.mcp_calls[-1]['params'], {'name': 'light__HassLightSet',
+                'arguments': {'name': 'light.a', 'domain': ['light'], 'brightness': expected}})
+        self.assertEqual(len([c for c in self.mcp_calls if c['method'] == 'tools/call']), 5)
+        self.assertEqual(self.ha.states['light.a']['attributes']['brightness'], 102)
+        self.ha.call.assert_not_awaited()
+
+    async def test_brightness_rejects_invalid_values_and_non_dimmable_targets(self):
+        self.dimmable_light()
+        await self.select('assist')
+        session = await self.session()
+        for index, value in enumerate([-1, 101, True, '40', None, float('nan')]):
+            result = await (await self.brightness_command(session, value, call=f'bad_{index}')).json()
+            self.assertEqual(result['status'], 'error')
+        self.ha.states['light.a']['attributes']['supported_color_modes'] = ['onoff']
+        result = await (await self.brightness_command(session, 40)).json()
+        self.assertEqual(result['status'], 'unsupported')
+        self.exposure['switch.private'] = {'conversation': True}
+        result = await (await self.brightness_command(session, 40, call='switch', name='Private switch')).json()
+        self.assertEqual(result['status'], 'error')
         self.assertFalse(any(c['method'] == 'tools/call' for c in self.mcp_calls))
+        self.ha.call.assert_not_awaited()
+
+    async def test_brightness_tool_is_optional_and_never_falls_back(self):
+        self.dimmable_light()
+        self.tool_names.remove('light__HassLightSet')
+        self.assertEqual((await self.select('assist')).status, 200)
+        session = await self.session()
+        self.assertEqual((await (await self.command(session)).json())['status'], 'accepted')
+        before = len(self.mcp_calls)
+        result = await (await self.brightness_command(session, 40, complete_request=True)).json()
+        self.assertEqual(result['status'], 'error')
+        self.assertNotIn('complete_request', result)
+        self.assertEqual(len(self.mcp_calls), before)
+        self.ha.call.assert_not_awaited()
+
+    async def test_changed_tool_schema_is_refused_before_an_action(self):
+        self.dimmable_light()
+        self.schemas['light__HassLightSet'] = {'type': 'object', 'properties': {
+            'name': {'type': 'string'}, 'domain': {'type': 'array', 'items': {'type': 'string'}},
+            'brightness': {'type': 'number', 'minimum': 0, 'maximum': 255}}}
+        self.assertEqual((await self.select('assist')).status, 200)
+        session = await self.session()
+        result = await (await self.brightness_command(session, 40)).json()
+        self.assertEqual(result['status'], 'error')
+        self.assertFalse(any(c['method'] == 'tools/call' for c in self.mcp_calls))
+        await self.owner.close(session)
+        self.schemas['intent__HassTurnOn'] = {'type': 'object', 'properties': {
+            'name': {'type': 'string'}, 'domain': {'type': 'array', 'items': {'type': 'string', 'enum': ['light']}}}}
+        self.assertEqual((await self.select('assist')).status, 400)
+        self.ha.call.assert_not_awaited()
+
+    async def test_switch_capabilities_and_revoked_exposure_are_checked(self):
+        await self.select('assist')
+        self.exposure['switch.private'] = {'conversation': True}
+        session = await self.session()
+        self.ha.entity_actions.return_value = {'switch.turn_off'}
+        result = await (await self.command(session, name='Private switch')).json()
+        self.assertEqual(result['status'], 'error')
+        self.ha.entity_actions.return_value = {'switch.turn_on'}
+        self.exposure['switch.private']['conversation'] = False
+        result = await (await self.command(session, call='revoked', name='Private switch')).json()
+        self.assertNotEqual(result['status'], 'accepted')
+        self.assertFalse(any(c['method'] == 'tools/call' for c in self.mcp_calls))
+        self.ha.call.assert_not_awaited()
 
     async def test_revoked_exposure_does_not_match_another_same_named_light(self):
         await self.select('assist')
