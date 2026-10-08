@@ -1725,6 +1725,7 @@
         "screen": "Screen",
         "alarm_control_panel": "Alarm",
         "lock": "Locks",
+        "camera": "Cameras",
         "humidifier": "Humidifiers"
       },
       "room": "Room",

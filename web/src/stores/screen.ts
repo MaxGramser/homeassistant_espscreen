@@ -40,6 +40,9 @@ export const useScreenStore = defineStore("screen", () => {
   // Whether the screen's board draws pictures (camera tiles, an album cover): the add-on says so per screen from the
   // board's own camera sizes (app 0.2.94), and this page always comes with that add-on.
   const pictures = computed(() => Boolean(currentScreen.value?.pictures));
+  // Whether a camera or image tile belongs on the screen: its board draws pictures, or it opens a camera full screen
+  // without them (a CYD, which writes that one picture straight to its glass).
+  const cameraTiles = computed(() => pictures.value || Boolean(currentScreen.value?.camera_view));
   // A new media tile starts with its album cover where the screen draws one (app 0.4.42): a board with pictures, firmware 0.2.78+.
   const coversByDefault = computed(() => pictures.value && supports(0, 2, 78));
   // The memory this screen has for its tiles (firmware 0.34.0+, its hello): the meter beside the tile count, and the
@@ -201,7 +204,7 @@ export const useScreenStore = defineStore("screen", () => {
   const needsAttention = (screen: Screen) => status.needsAttention(screen, facts(screen));
 
   return {
-    selected, currentScreen, firmwareOf, pictures, coversByDefault, screenMemory, memoryMeasuring, fullPage, pageTilesRepeat,
+    selected, currentScreen, firmwareOf, pictures, cameraTiles, coversByDefault, screenMemory, memoryMeasuring, fullPage, pageTilesRepeat,
     entityTilesRepeat, noTitle, pageReady, topbarMax, newLanguageText, removing, allowing,
     // What the editor's parts read as they draw (stores/lookup.ts).
     ...lookups({ supports, supportsVersion, repeatable, canAlert, updateState, screenLight, screenSubline, needsAttention }),

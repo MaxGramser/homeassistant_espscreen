@@ -1726,6 +1726,7 @@
         "screen": "Schermo",
         "alarm_control_panel": "Allarme",
         "lock": "Serrature",
+        "camera": "Telecamere",
         "humidifier": "Umidificatori"
       },
       "room": "Area",

@@ -70,10 +70,10 @@ const pluginOf = (id: string) => pluginEntries.value.find((e) => e.id === id)?.p
 const pagesOffered = computed(() => Math.min(doc.editorLayout.grid.pages, Math.max(8, (doc.document?.pages.length || 0) + 1)));
 const query = computed(() => ui.search.trim().toLocaleLowerCase());
 // What the search and the hide switch leave over (model/library.ts). The picker offers what a tile can show; camera and
-// image tiles need a board that draws pictures (app 0.2.66). The screen's own cards and plugin tiles first: the list
+// image tiles need a board that draws pictures (app 0.2.66) or opens a camera full screen without them (a CYD). The screen's own cards and plugin tiles first: the list
 // shows the first 80, and these are few.
 const base = computed(() => libraryBase([...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities],
-  { query: query.value, pages: pagesOffered.value, pictures: scr.pictures, hidePlaced: ui.hidePlaced, counts: chosen.value }));
+  { query: query.value, pages: pagesOffered.value, pictures: scr.pictures, cameraTiles: scr.cameraTiles, hidePlaced: ui.hidePlaced, counts: chosen.value }));
 const pool = computed(() => base.value.filter((e) => !ui.room || e.area === ui.room));
 const matches = computed(() => libraryMatches(pool.value, ui.filter, query.value));
 const shownList = computed(() => matches.value.slice(0, SHOWN));

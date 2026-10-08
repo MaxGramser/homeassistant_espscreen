@@ -139,6 +139,18 @@ def main():
             fail(f'{path.relative_to(ROOT)} has an esphome: on_boot: of its own, which would replace the core\'s: '
                  f'use a hook substitution of the core\'s lambda, or a component')
 
+    # A camera written to the glass in bands (features/camera-view.yaml): a band goes out through the display's flush,
+    # which turns it in a buffer the size of LVGL's draw buffer, so it must never be larger than that one.
+    for board in boards:
+        values = profiles.board_values(board)
+        share = re.fullmatch(r'(\d+)%', str(values.get('LVGL_BUFFER_SIZE', '')))
+        if 'CAMERA_BAND_BYTES' not in values or not share:
+            continue
+        # As ESPHome's LVGL component works it out: the whole glass over a whole divisor, two bytes a pixel.
+        buffer = int(values['PANEL_W']) * int(values['PANEL_H']) // max(1, 100 // int(share[1])) * 2
+        if int(values['CAMERA_BAND_BYTES']) > buffer:
+            fail(f'{board}: CAMERA_BAND_BYTES {values["CAMERA_BAND_BYTES"]} is more than its LVGL draw buffer of {buffer} B '
+                 f'(LVGL_BUFFER_SIZE {values["LVGL_BUFFER_SIZE"]}): a band would be turned in a buffer too small for it')
     # Every name a screen's files read is defined somewhere in its chain.
     for board, path in boards.items():
         entry = profiles.PROFILES[list(boards).index(board)]

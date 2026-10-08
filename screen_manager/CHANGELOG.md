@@ -1,3 +1,13 @@
+## Unreleased
+
+- **A camera full screen on the CYD.** A CYD has no memory to hold a camera picture, so until now it had no camera
+  at all. It now takes a camera or image tile: a tap opens the camera over the whole glass, new every four seconds,
+  and a tap anywhere closes it. The screen draws the picture while it downloads, a few rows at a time, and never
+  keeps it. Pictures on tiles, in alerts and on the media card stay with the boards that have the memory for them.
+  The action `esphome.<screen>_preview_camera` opens the view from an automation, for a doorbell.
+- **Cameras are a kind in the library.** The list of kinds beside the entities now has Cameras, for camera and image
+  entities, on every screen that takes them. Before, a camera was found by searching for its name only.
+
 ## 0.4.87 (firmware 0.55.0)
 
 - **Two new boards, experimental.** The Guition JC8048W550C_I, a 5-inch ESP32-S3 with 800 x 480 RGB glass and GT911

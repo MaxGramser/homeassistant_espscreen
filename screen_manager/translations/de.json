@@ -1726,6 +1726,7 @@
         "screen": "Bildschirm",
         "alarm_control_panel": "Alarm",
         "lock": "Schlösser",
+        "camera": "Kameras",
         "humidifier": "Luftbefeuchter"
       },
       "room": "Bereich",

@@ -6,6 +6,7 @@
   },
   "battery": false,
   "board": "cyd",
+  "camera_view": true,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -98,6 +99,7 @@
   },
   "battery": false,
   "board": "cyd9342",
+  "camera_view": true,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -195,6 +197,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -302,6 +305,7 @@
   },
   "battery": false,
   "board": "hosyond40",
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -399,6 +403,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -516,6 +521,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -633,6 +639,7 @@
     105
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -750,6 +757,7 @@
     196
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -867,6 +875,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -984,6 +993,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1101,6 +1111,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1218,6 +1229,7 @@
     236
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1335,6 +1347,7 @@
     244
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1461,6 +1474,7 @@
     171
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1578,6 +1592,7 @@
     370
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1693,6 +1708,7 @@
   },
   "battery": false,
   "board": "waveshare35",
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -1790,6 +1806,7 @@
     196
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -1907,6 +1924,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -2024,6 +2042,7 @@
     236
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -2141,6 +2160,7 @@
     171
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -2258,6 +2278,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -2375,6 +2396,7 @@
     330
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -2489,6 +2511,7 @@
   },
   "battery": false,
   "board": "cyd",
+  "camera_view": true,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -2581,6 +2604,7 @@
   },
   "battery": false,
   "board": "cyd9342",
+  "camera_view": true,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -2678,6 +2702,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -2785,6 +2810,7 @@
   },
   "battery": false,
   "board": "hosyond40",
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -2882,6 +2908,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -2999,6 +3026,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -3116,6 +3144,7 @@
     105
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -3233,6 +3262,7 @@
     196
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -3350,6 +3380,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -3467,6 +3498,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -3584,6 +3616,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -3701,6 +3734,7 @@
     236
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -3808,6 +3842,7 @@
   },
   "battery": false,
   "board": "cyd",
+  "camera_view": true,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -3900,6 +3935,7 @@
   },
   "battery": false,
   "board": "cyd9342",
+  "camera_view": true,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -3997,6 +4033,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4104,6 +4141,7 @@
   },
   "battery": false,
   "board": "hosyond40",
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": true,
@@ -4201,6 +4239,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4318,6 +4357,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4435,6 +4475,7 @@
     105
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4552,6 +4593,7 @@
     196
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4669,6 +4711,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4786,6 +4829,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4903,6 +4947,7 @@
     193
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -5020,6 +5065,7 @@
     236
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -5137,6 +5183,7 @@
     244
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -5263,6 +5310,7 @@
     171
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -5380,6 +5428,7 @@
     370
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -5495,6 +5544,7 @@
   },
   "battery": false,
   "board": "waveshare35",
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -5592,6 +5642,7 @@
     196
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -5709,6 +5760,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -5826,6 +5878,7 @@
     236
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -5943,6 +5996,7 @@
     171
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -6060,6 +6114,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -6177,6 +6232,7 @@
     330
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -6301,6 +6357,7 @@
     244
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -6427,6 +6484,7 @@
     171
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -6544,6 +6602,7 @@
     370
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -6659,6 +6718,7 @@
   },
   "battery": false,
   "board": "waveshare35",
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -6756,6 +6816,7 @@
     196
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -6873,6 +6934,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -6990,6 +7052,7 @@
     236
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -7107,6 +7170,7 @@
     171
    ]
   },
+  "camera_view": false,
   "can_standby": false,
   "catalog": {
    "calibrate": false,
@@ -7224,6 +7288,7 @@
     220
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -7341,6 +7406,7 @@
     330
    ]
   },
+  "camera_view": false,
   "can_standby": true,
   "catalog": {
    "calibrate": false,

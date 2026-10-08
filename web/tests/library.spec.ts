@@ -12,13 +12,15 @@ const ENTRIES: Entry[] = [
   { id: "input_boolean.guest", name: "Guest mode", state: "off" }, { id: "sun.sun", name: "Sun" }, { id: "sensor.hidden", name: "Hidden", tile: false },
   { id: "switch.bedroom_screen_night", name: "Bedroom screen Night mode", device: "Bedroom screen", area: "Bedroom" },
 ];
-const filter = (more: Partial<LibraryFilter> = {}): LibraryFilter => ({ query: "", pages: 8, pictures: true, hidePlaced: false, counts: new Map(), ...more });
+const filter = (more: Partial<LibraryFilter> = {}): LibraryFilter => ({ query: "", pages: 8, pictures: true, cameraTiles: true, hidePlaced: false, counts: new Map(), ...more });
 
 describe("the library", () => {
   it("leaves what a tile can show on this screen, without what is placed when asked", () => {
     expect(libraryBase(ENTRIES, filter()).map((e) => e.id)).toEqual(["plugin:bus.departures", "screen.clock", "camera.door", "light.kitchen", "light.hall",
       "input_boolean.guest", "sun.sun", "switch.bedroom_screen_night"]);
-    expect(libraryBase(ENTRIES, filter({ pictures: false })).map((e) => e.id)).not.toContain("camera.door");
+    expect(libraryBase(ENTRIES, filter({ pictures: false, cameraTiles: false })).map((e) => e.id)).not.toContain("camera.door");
+    // A screen that opens a camera full screen without drawing pictures (a CYD) takes the camera and not the map.
+    expect(libraryBase(ENTRIES, filter({ pictures: false })).map((e) => e.id)).toContain("camera.door");
     expect(libraryBase(ENTRIES, filter({ pages: 9 })).map((e) => e.id)).toContain("screen.page_9");
     const counts = tileCounts([{ entity: "light.kitchen", name: "", slot: 0 }, { entity: "light.kitchen", name: "", slot: 1 }, { entity: "sun.sun", name: "", slot: 2 }]);
     expect(libraryBase(ENTRIES, filter({ hidePlaced: true, counts })).map((e) => e.id)).not.toContain("light.kitchen");
@@ -43,7 +45,9 @@ describe("the library", () => {
     const base = libraryBase(ENTRIES, filter());
     const kinds = kindCounts(base, "lock");
     expect(kinds[0]).toEqual(["", base.length]);
-    expect(Object.fromEntries(kinds)).toMatchObject({ light: 2, switch: 2, weather: 1, screen: 1, lock: 0 });
+    expect(Object.fromEntries(kinds)).toMatchObject({ light: 2, switch: 2, weather: 1, screen: 1, lock: 0, camera: 1 });
+    // Cameras are a kind, with the image entities.
+    expect(inDomain("image.bell", "camera")).toBe(true);
     expect(roomCounts(base, "Garden")).toEqual([["Bedroom", 1], ["Garden", 0], ["Hall", 2], ["Kitchen", 1]]);
   });
 

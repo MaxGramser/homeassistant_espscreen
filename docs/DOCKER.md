@@ -147,7 +147,7 @@ not in the ESPHome folder you mounted is added by hand, as in
   ESPHome folder. `data/build`, `data/esphome`, `data/idf` and `data/platformio` are caches.
 - **Claude:** **Install for Claude Code** is meant for the Claude Code app on Home Assistant
   OS. Use **Download for claude.ai** instead.
-- **Camera images (every board except the CYD, the Waveshare 3.5-inch and the Hosyond 4-inch):** the screens load camera pictures, and from app 0.2.77 the
+- **Camera images (every board except the Waveshare 3.5-inch and the Hosyond 4-inch):** the screens load camera pictures, and from app 0.2.77 the
   album covers of the media card, from port **8098** of this host, on all its addresses, so keep that port open to the screens. The app uses Home
   Assistant's own LAN address; when the screens reach this host under another one, set
   `SCREEN_CAMERA_URL` (see below). The links are random and short-lived. [docs/CAMERA.md](CAMERA.md)

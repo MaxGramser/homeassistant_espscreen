@@ -7,9 +7,14 @@
 // task was made. The picture's buffer is written in place when the size is the one on the glass (a camera's next
 // frame, as online_image did it), and into a new one otherwise, which tick() swaps in: a widget that drew the old one
 // is told about the new size by the slot's `done`, as it always was.
+//
+// A slot that keeps no picture (direct, a board without PSRAM) hands its rows over in bands instead: the task fills a
+// band, says it is ready and waits; tick() draws it on the main loop, where the glass is written, and gives it back.
+// One band is all the picture this side ever holds.
 #include "picture_fetch.h"
-// Only a board with pictures builds this (SCREEN_PICTURES, packages/features/camera.yaml): the CYD keeps its flash.
-#ifdef SCREEN_PICTURES
+// Only a board with pictures builds this (SCREEN_PICTURES, packages/features/camera.yaml; SCREEN_PICTURES_DIRECT,
+// camera-view.yaml): the other boards keep their flash.
+#if defined(SCREEN_PICTURES) || defined(SCREEN_PICTURES_DIRECT)
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include <atomic>
@@ -28,6 +33,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #else
+#include <chrono>
 #include <thread>
 #endif
 
@@ -37,10 +43,15 @@ constexpr uint32_t CONNECT_MS = 4000;   // as ESPHome's http_request timeout was
 constexpr uint32_t RECV_MS = 4000;      // a chunk that does not come in this long ends the download
 constexpr uint32_t WHOLE_MS = 30000;    // and a picture that takes longer than this altogether
 constexpr size_t CHUNK = 8192;          // what one recv takes at most
+constexpr size_t DIRECT_CHUNK = 2048;   // and on a board that draws in bands, where every KB inside the chip counts
+constexpr uint32_t BAND_MS = 4000;      // a band the main loop does not take in this long ends the download
 constexpr size_t HEAD_MAX = 4096;       // an answer's head larger than this is no picture
 constexpr uint32_t STACK_BYTES = 6144;  // the task's stack: a socket, the head, a row of the picture (on the heap)
 
 enum State : int { IDLE = 0, LOADING = 1, DONE = 2 };
+// A band on its way to the glass: the task makes it READY, tick() takes it (DRAWING) and gives it back (NONE). The task
+// frees the band only from NONE, so the main loop never draws from memory that went.
+enum BandState : int { NONE = 0, READY = 1, DRAWING = 2 };
 
 struct Slot {
   explicit Slot(const char *n) : name(n) {}
@@ -67,6 +78,14 @@ struct Slot {
   size_t fresh_bytes = 0;
   int fresh_w = 0, fresh_h = 0;
   std::string fresh_etag;
+  // Rows straight to the glass (direct): no picture is kept.
+  Draw draw;
+  size_t band_bytes = 0;
+  int rounding = 1;
+  std::atomic<int> band_state{NONE};
+  std::atomic<bool> refused{false};  // `draw` said this picture is not one for this glass
+  int band_w = 0, band_h = 0, band_top = 0, band_rows = 0;
+  uint16_t *band_pixels = nullptr;
 };
 static Slot slots[3] = {Slot("camera"), Slot("alert"), Slot("live")};
 Slot &full() { return slots[0]; }
@@ -96,6 +115,35 @@ static void release_memory(void *p) {
 #else
   std::free(p);
 #endif
+}
+static void pause_briefly() {
+#ifdef USE_ESP32
+  vTaskDelay(1);
+#else
+  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+#endif
+}
+// The task's side of a band: ready for the main loop, and back when it is on the glass. False when the download is to
+// end: cancelled, refused by `draw`, or a main loop that does not come for it.
+static bool hand_over(Slot &slot, const Band &band) {
+  slot.band_w = band.width;
+  slot.band_h = band.height;
+  slot.band_top = band.top;
+  slot.band_rows = band.rows;
+  slot.band_pixels = band.pixels;
+  slot.band_state.store(READY, std::memory_order_release);
+  const uint32_t since = esphome::millis();
+  while (slot.band_state.load(std::memory_order_acquire) != NONE) {
+    const bool give_up = slot.cancel.load(std::memory_order_relaxed) || esphome::millis() - since > BAND_MS;
+    int ready = READY;
+    // Taken back only while the main loop has not started on it; a band being drawn is waited for.
+    if (give_up && slot.band_state.compare_exchange_strong(ready, NONE)) {
+      if (!slot.cancel.load(std::memory_order_relaxed)) ESP_LOGW(TAG, "%s: the glass did not take the picture", slot.name);
+      return false;
+    }
+    pause_briefly();
+  }
+  return !slot.refused.load(std::memory_order_acquire);
 }
 
 // ---- the task ----
@@ -151,12 +199,34 @@ static void download(Slot &slot) {
   request += "\r\n";
   if (!send_all(fd, request)) { ESP_LOGW(TAG, "%s: the request did not go out", slot.name); close(fd); return; }
 
-  auto *chunk = static_cast<uint8_t *>(allocate_chunk(CHUNK));
+  const bool in_bands = static_cast<bool>(slot.draw);
+  const size_t chunk_bytes = in_bands ? DIRECT_CHUNK : CHUNK;
+  auto *chunk = static_cast<uint8_t *>(allocate_chunk(chunk_bytes));
   if (!chunk) { ESP_LOGW(TAG, "%s: no memory for the download", slot.name); close(fd); return; }
   std::string head;
   Head answer;
   size_t body = 0;
+  Band band;
+  const Bmp *shape = nullptr;  // the decoder's own, once it is made
+  Decoder::Rows rows;
+  if (in_bands) {
+    rows.place = [&](int y) { return band.place(y); };
+    rows.placed = [&](int y) { return !band.full(y) || hand_over(slot, band); };
+  }
   Decoder decoder([&](int width, int height) -> uint16_t * {
+    if (in_bands) {
+      // A band of as many rows as fit; the picture itself is never held.
+      const int fit = Band::rows_in(slot.band_bytes, width, slot.rounding);
+      if (fit <= 0 || width % slot.rounding || height % slot.rounding) {
+        ESP_LOGW(TAG, "%s: %dx%d is no picture for this glass", slot.name, width, height);
+        return nullptr;
+      }
+      const int band_rows = std::min(fit, height);
+      auto *pixels = allocate(static_cast<size_t>(width) * band_rows * 2);
+      if (!pixels) { ESP_LOGW(TAG, "%s: no memory for a band of %dx%d", slot.name, width, band_rows); return nullptr; }
+      band.start(pixels, width, height, band_rows, shape && shape->top_down);
+      return pixels;
+    }
     const size_t needed = static_cast<size_t>(width) * height * 2;
     if (slot.pixels && slot.bytes == needed) return slot.pixels;  // in place, the size on the glass
     slot.fresh = allocate(needed);
@@ -165,11 +235,12 @@ static void download(Slot &slot) {
     slot.fresh_w = width;
     slot.fresh_h = height;
     return slot.fresh;
-  });
+  }, rows);
+  shape = &decoder.bmp();
   bool closed = false, failed = false;
   while (!closed && !failed && !slot.cancel.load(std::memory_order_relaxed)) {
     if (esphome::millis() - slot.started > WHOLE_MS) { ESP_LOGW(TAG, "%s: took too long", slot.name); failed = true; break; }
-    const auto n = recv(fd, chunk, CHUNK, 0);
+    const auto n = recv(fd, chunk, chunk_bytes, 0);
     if (n < 0) {
       if (errno == EINTR) continue;
       ESP_LOGW(TAG, "%s: the download stopped (%d)", slot.name, errno);
@@ -200,6 +271,7 @@ static void download(Slot &slot) {
   }
   close(fd);
   release_memory(chunk);
+  if (band.pixels) release_memory(band.pixels);  // no band is out: hand_over came back
   if (!slot.cached && !failed && decoder.done()) slot.ok = true;
   else if (!slot.cached && !failed && !slot.cancel.load(std::memory_order_relaxed))
     ESP_LOGW(TAG, "%s: the picture ended early (%d of %d rows)", slot.name, decoder.rows(), decoder.bmp().height);
@@ -227,6 +299,8 @@ static void start(Slot &slot) {
   slot.fresh_bytes = 0;
   slot.fresh_w = slot.fresh_h = 0;
   slot.fresh_etag.clear();
+  slot.band_state.store(NONE);
+  slot.refused.store(false);
   slot.task_url = slot.url;
   slot.task_etag = slot.etag;
   slot.started = esphome::millis();
@@ -319,9 +393,27 @@ static void take_over(Slot &slot) {
   }
 }
 
+void direct(Slot &slot, Draw draw, size_t band_bytes, int rounding) {
+  slot.draw = std::move(draw);
+  slot.band_bytes = band_bytes;
+  slot.rounding = rounding > 0 ? rounding : 1;
+}
+
+// A band the task has ready goes to the glass here, on the main loop; a download no longer wanted draws nothing more.
+static void draw_band(Slot &slot) {
+  int ready = READY;
+  if (!slot.band_state.compare_exchange_strong(ready, DRAWING)) return;
+  if (!slot.cancel.load() && slot.draw &&
+      !slot.draw(slot.band_w, slot.band_h, slot.band_top, slot.band_rows, slot.band_pixels))
+    slot.refused.store(true, std::memory_order_release);
+  slot.band_state.store(NONE, std::memory_order_release);
+}
+
 void tick() {
-  for (auto &slot : slots)
+  for (auto &slot : slots) {
+    if (slot.draw) draw_band(slot);
     if (slot.state.load(std::memory_order_acquire) == DONE) take_over(slot);
+  }
 }
 }  // namespace picture_fetch
 #endif

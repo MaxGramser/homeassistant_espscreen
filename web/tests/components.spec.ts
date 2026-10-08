@@ -616,6 +616,7 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
   const choices = (wrapper: ReturnType<typeof mount>, label: string) => row(wrapper, label).findAll(".seg button").map((b) => b.text());
   it("offers the live picture for a camera, with its pace once chosen, and says which firmware it needs", async () => {
     useInventoryStore().inventory.entities.push({ id: "camera.front", name: "Front", state: "idle", area: "Hall" } as any);
+    Object.assign(useInventoryStore().inventory.screens[0], { pictures: true });
     const tile: Tile = { entity: "camera.front", name: "", slot: 0 };
     appendTiles(tile);
     const drawer = inspector(tile);
@@ -716,6 +717,13 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     Object.assign(useInventoryStore().inventory.screens[0], { board: "guition", pictures: true });
     loadTiles([{ ...current(tile), options: { size: "full" } }]);
     expect(choices(inspector(tile), "Display")).toEqual(["Name and status", "Large value"]);
+  });
+
+  it("keeps the live picture from a screen that only opens a camera full screen (a CYD)", () => {
+    Object.assign(useInventoryStore().inventory.screens[0], { board: "cyd", pictures: false, camera_view: true });
+    useInventoryStore().inventory.entities.push({ id: "camera.front", name: "Front", state: "idle", area: "Hall" } as any);
+    const tile: Tile = { entity: "camera.front", name: "", slot: 0 };
+    expect(choices(inspector(tile), "Display")).toEqual(["Name and status"]);
   });
 });
 

@@ -305,6 +305,12 @@ int main() {
   dimmable = true;  can_standby = true;   assert(features() == "dimmable standby battery");
   dimmable = false; can_standby = false;  assert(features() == "battery");
   battery_status::level = nullptr;
+  // A screen that opens a camera full screen without the memory for pictures (the CYD) says so too, so ESP Screens
+  // takes a camera tile on it.
+  camera_view = true;
+  dimmable = true;  can_standby = true;   assert(features() == "dimmable standby camera_view");
+  dimmable = false; can_standby = false;  assert(features() == "camera_view");
+  camera_view = false;
   dimmable = dimmable_before; can_standby = standby_before;
 
   // ---- a plugin's rows (docs/PLUGINS.md): their own words, read and written through their context ----

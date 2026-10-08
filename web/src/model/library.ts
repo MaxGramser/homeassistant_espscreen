@@ -13,10 +13,10 @@ export type Entry = { id: string; name: string; area?: string; device?: string; 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "" for no filter.
 export const FILTERS = [
   "", "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
-  "media_player", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock",
+  "media_player", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "camera",
 ];
 // A kind that takes a second domain along: an input helper with its entity, the sun with the weather.
-const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
+const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button", camera: "image" };
 /** The first so many of what is found are listed. */
 export const SHOWN = 80;
 
@@ -36,8 +36,10 @@ export type LibraryFilter = {
   query: string;
   /** The Go to page tiles offered: those of the pages there are and the next one. */
   pages: number;
-  /** The board draws pictures: camera and image tiles, and the map tile. */
+  /** The board draws pictures: the map tile. */
   pictures: boolean;
+  /** A camera or image tile belongs on the screen: its board draws pictures, or opens a camera full screen without them (a CYD). */
+  cameraTiles: boolean;
   /** Leave out what is on the screen already. */
   hidePlaced: boolean;
   /** How many tiles each entity has on the screen. */
@@ -46,7 +48,7 @@ export type LibraryFilter = {
 /** What the search and the hide switch leave over: the rooms are counted off this, the kinds off it narrowed to the room. */
 export function libraryBase(entries: readonly Entry[], filter: LibraryFilter) {
   return entries.filter((e) => e.tile !== false && pageTarget(e.id) <= filter.pages &&
-    (filter.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
+    (filter.cameraTiles || !["camera", "image"].includes(e.id.split(".")[0])) && (filter.pictures || e.id !== "screen.map") &&
     (!filter.hidePlaced || !filter.counts.has(e.id)) && matchesQuery(filter.query, e.name, e.id, e.device, e.area));
 }
 /** What a kind leaves of the room's entries: ranked by the search as Spotlight ranks (a name that starts with it first,

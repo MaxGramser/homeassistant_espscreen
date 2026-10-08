@@ -45,6 +45,9 @@ inline bool dimmable = true;
 // these rows, the entities behind them and the add-on's Settings leave them out, and dim_display in
 // packages/core.yaml does nothing there.
 inline bool can_standby = true;
+// Set at boot by a board that opens a camera full screen without the memory to draw pictures
+// (packages/features/camera-view.yaml).
+inline bool camera_view = false;
 // What this screen is able to do, in the words ESP Screens reads from its "Screen features" sensor (firmware
 // 0.2.99+): one word per ability, space separated, and "none" for a screen that can do none of them. The add-on
 // used to read these facts from a table it keeps per board, which is right until a board is changed: a Waveshare
@@ -57,6 +60,9 @@ inline std::string features() {
     {can_standby, "standby"},   // the screen can go dark and come back
     // it has a battery the top bar can show (firmware 0.41.0, runtime_tiles::find_battery, docs/BATTERY.md)
     {static_cast<bool>(battery_status::level), "battery"},
+    // it opens a camera full screen without the memory to draw pictures (packages/features/camera-view.yaml): the app
+    // takes a camera tile on it
+    {camera_view, "camera_view"},
   };
   std::string words;
   for (const auto &item : list) {
