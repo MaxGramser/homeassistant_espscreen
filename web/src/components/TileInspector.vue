@@ -89,6 +89,9 @@ const displays = computed(() => {
     if (key === "graph") return !c || c.displays.includes("graph") || display.value === "graph";
     // The album cover on a media tile (app 0.2.92), on a board that draws pictures; the tile over the whole page has the card's big cover.
     if (key === "cover") return (pictures.value || display.value === "cover") && size.value !== "full";
+    // A live picture fills the tile: only on a board that draws pictures (a CYD opens its camera full screen and draws
+    // no other picture).
+    if (key === "live") return pictures.value || display.value === "live";
     // A map (app 0.4.33) is a picture the add-on draws: only on a board that draws pictures.
     if (key === "map") return pictures.value || display.value === "map";
     // A favourite (app 0.4.42): a player whose library Home Assistant browses; never the whole page, where the card is the player.

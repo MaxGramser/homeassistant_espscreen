@@ -332,6 +332,32 @@ ACTIONS = '''    - action: render_live_reset
             lv_draw_buf_destroy(base);
             if (top) lv_draw_buf_destroy(top);
             ESP_LOGI("render", "saved %s", path.c_str());
+    - action: render_panel
+      variables:
+        path: string
+      then:
+        - lambda: |-
+            // What is on the panel itself, in the panel's own pixels (turned as the glass is): everything LVGL flushed and
+            // what went to the display past it, a camera on a board that keeps no picture (features/camera-view.yaml),
+            // which no snapshot of LVGL's objects shows.
+            struct Panel : esphome::sdl::Sdl { using Sdl::renderer_; using Sdl::texture_; };
+            auto *sdl = id(my_display);
+            SDL_Renderer *renderer = sdl->*(&Panel::renderer_);
+            SDL_Texture *texture = sdl->*(&Panel::texture_);
+            const int w = sdl->get_width(), h = sdl->get_height();
+            std::vector<uint8_t> pixels(static_cast<size_t>(w) * h * 3);
+            SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+            if (SDL_RenderReadPixels(renderer, nullptr, SDL_PIXELFORMAT_RGB24, pixels.data(), w * 3) != 0) {
+              ESP_LOGE("render", "panel not read: %s", SDL_GetError());
+              return;
+            }
+            std::string part = path + ".part";
+            FILE *f = fopen(part.c_str(), "wb");
+            fprintf(f, "P6\\n%d %d\\n255\\n", w, h);
+            fwrite(pixels.data(), 1, pixels.size(), f);
+            fclose(f);
+            rename(part.c_str(), path.c_str());
+            ESP_LOGI("render", "saved %s", path.c_str());
     - action: render_boot
       variables:
         connected: bool

@@ -103,7 +103,10 @@ def save_pages(manager, inbox, data):
     # More pages than 64 tiles fill needs firmware 0.18.0, and a screen that said so in its hello has it.
     if len(document['pages']) > features['page_limit'] and not (sender and sender.free_pages):
         raise LayoutError(t('addon.errors.layout.firmware_first', version=version_text(FREE_PAGES_MIN_FIRMWARE)))
-    if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:
+    if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS for tile in flat['tiles']) and not camera_feed.takes_camera(screen):
+        raise LayoutError(t('addon.errors.layout.camera_unsupported'))
+    # A live picture fills its tile: not on a screen that only opens a camera full screen (a CYD).
+    if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS and (tile.get('options') or {}).get('display') == 'live' for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:
         raise LayoutError(t('addon.errors.layout.camera_unsupported'))
     # A map is a picture too (app 0.4.33): a board without room for pictures hears about the map.
     if any((tile.get('options') or {}).get('display') == 'map' for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:

@@ -1,0 +1,75 @@
+# ESP Screens - a camera full screen, for a board without the memory to hold a picture (no PSRAM: the CYD).
+#
+# A tap on a camera or image tile opens its picture over the whole glass, and a tap anywhere closes it. That is all of
+# features/camera.yaml this board has: no picture on a tile, in an alert or on the media card, no map and no
+# screensaver picture, because each of those is a picture LVGL draws and has to hold (docs/CAMERA.md, "A camera full
+# screen without the memory for one").
+#
+# A 320x240 picture is 150 KB as the glass takes it; the largest free block of a CYD is about 45 KB. So the picture is
+# never held: ESP Screen Manager serves it as a BMP of exactly the glass, the download task (picture_fetch.cpp) decodes
+# a band of a few rows, the main loop writes that band to the glass and the next rows take its place.
+substitutions:
+  # The bytes of one band: twelve rows of a 320 px picture. A larger band draws the picture in fewer steps and takes
+  # that much more of the memory inside the chip while a picture loads.
+  # Never more than LVGL's draw buffer (LVGL_BUFFER_SIZE of the glass): a band goes out through the display's flush,
+  # which turns it in a buffer of that size (tools/check_packages.py holds every board to it).
+  CAMERA_BAND_BYTES: "8192"
+
+  # Code the shared boot lambda of packages/core.yaml takes from this file (docs/PROFILES.md, "hooks")
+  # after the gesture: the one picture, the way its bands reach the glass, and the camera's part in the screen's moments
+  BOOT_CAMERA_HOOKS: |-
+    // The camera full screen: one download in a task beside the main loop (picture_fetch), whose rows come back in
+    // bands on the main loop (picture_fetch::tick, every 10 ms) and go to the glass at once (runtime_tiles::direct_band).
+    picture_fetch::bind(picture_fetch::full(), [](bool ok, bool cached) {
+      runtime_tiles::picture_done(picture_loader::Slot::FULL, ok, cached);
+    });
+    picture_fetch::direct(picture_fetch::full(), runtime_tiles::direct_band, ${CAMERA_BAND_BYTES}, id(screen_lvgl).draw_rounding);
+    runtime_tiles::glass_rounding = id(screen_lvgl).draw_rounding;
+    // A band goes the way LVGL's own pixels go: the display's flush, which turns it as the screen hangs.
+    runtime_tiles::glass_write = [](const lv_area_t &area, uint16_t *pixels) {
+      esphome::lvgl::LvglComponent::static_flush_cb(lv_display_get_default(), &area, reinterpret_cast<uint8_t *>(pixels));
+    };
+    runtime_tiles::camera_full.direct = true;
+    settings_screen::camera_view = true;  // the word ESP Screens takes a camera tile on this screen by
+    runtime_tiles::camera_full.load = [](const std::string &url) { picture_fetch::load(picture_fetch::full(), url); };
+    runtime_tiles::camera_full.release = []() { picture_fetch::release(picture_fetch::full()); };
+    runtime_tiles::camera_full.source = []() { return picture_fetch::source(picture_fetch::full()); };
+    // The camera in the screen's moments (screen_hooks.h): it closes with the cards, keeps the settings page closed and
+    // counts as away from page 1 while it is open, follows the clock every 250 ms, and an alert closes it. The alert's
+    // card has no picture on this board.
+    screen_hooks::cards_closed().push_back([]() { runtime_tiles::camera_close(); });
+    screen_hooks::keeps_settings_closed().push_back([]() { return runtime_tiles::camera_visible(); });
+    screen_hooks::away().push_back([]() { return runtime_tiles::camera_visible(); });
+    screen_hooks::tick().push_back([](uint32_t) { runtime_tiles::camera_tick(); });
+    screen_hooks::alert_show().push_back([]() { runtime_tiles::camera_close(); });
+
+api:
+  actions:
+    # A camera full screen from Home Assistant, as a tap on its tile opens it; an empty entity closes it. Only a camera
+    # on the screen's tiles or in a recent alert gets an image from ESP Screens. The same action as a board with
+    # pictures has (features/camera.yaml).
+    - action: preview_camera
+      variables:
+        entity: string
+      then:
+        - lambda: |-
+            if (entity.empty()) { runtime_tiles::camera_close(); return; }
+            id(last_use_ms) = millis();
+            id(wake_display).execute();
+            std::string name = entity;
+            for (size_t i = 0; i < runtime_tiles::model.count; ++i)
+              if (runtime_tiles::model.tiles[i].entity == entity) { name = runtime_tiles::model.tiles[i].name; break; }
+            runtime_tiles::camera_open(entity, name);
+
+esphome:
+  platformio_options:
+    build_flags:
+      # The download task (picture_fetch.cpp), in the form that keeps no picture.
+      - -DSCREEN_PICTURES_DIRECT=1
+
+interval:
+  # A band the download has ready goes to the glass here, on the main loop, and a finished download to the view. Quicker
+  # than a board that only takes finished pictures (50 ms): the download waits for every band to be drawn.
+  - interval: 10ms
+    then:
+      - lambda: 'picture_fetch::tick();'

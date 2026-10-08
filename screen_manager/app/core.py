@@ -699,6 +699,10 @@ FEATURES = {
     # converter behind its LEDs, and switching that on from a dark screen pulls the 3.3 V rail under the brownout
     # level: measured on 2026-09-21, every wake from a dark standby reset the board or left its I2C bus dead.
     'standby': 'can_standby',
+    # It opens a camera full screen without the memory to draw pictures (dev, packages/features/camera-view.yaml: the
+    # CYD): the app takes a camera tile on it (camera_feed.can_view, which goes by the board's row for a screen that
+    # has not reported, and takes a board it does not know to have none).
+    'camera_view': 'camera_view',
 }
 # How a screen writes them: lower case words, space separated, or "none" for a screen that can do none of them.
 # Wide enough for words this app does not know yet, and bounded so a sensor full of something else is no answer.

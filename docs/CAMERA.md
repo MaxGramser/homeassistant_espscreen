@@ -5,6 +5,8 @@ the 4-inch, 7-inch (JC1060P470 and V2) and 10.1-inch Guition, and the 4B, 4.3-in
 The CYD, the Waveshare 3.5-inch and the Hosyond 4-inch cannot (see below). Which boards can is
 `camera` in `screen_manager/app/boards.json`, worked out from whether the board file includes
 `packages/features/camera.yaml`. The numbers further down were measured on the 4-inch Guition.
+A CYD opens a camera full screen all the same, and only that: see
+[A camera full screen without the memory for one](#a-camera-full-screen-without-the-memory-for-one).
 
 - **A camera tile.** Add a `camera.*` or `image.*` entity as a tile. A tap opens the image full
   screen, with the round back key at the top left like every card, and a spinner until the first
@@ -35,8 +37,51 @@ The CYD, the Waveshare 3.5-inch and the Hosyond 4-inch cannot (see below). Which
 
 The CYD has no memory for images (a 320×180 image needs 115 KB in one piece, the CYD's largest
 free block is about 45 KB), and neither have the Waveshare 3.5-inch and the Hosyond 4-inch (no
-PSRAM). They show the alert without the picture, and the app refuses a camera tile on them ("This
-screen cannot show camera pictures", `server.py` and `page_service.py`).
+PSRAM). They show the alert without the picture, and the app refuses a camera tile on the Waveshare
+3.5-inch and the Hosyond ("This screen cannot show camera pictures", `server.py` and `page_service.py`).
+A CYD takes a camera tile and opens it full screen, in the way the next chapter describes.
+
+## A camera full screen without the memory for one
+
+A CYD cannot hold a picture, but it can pass one on. A camera or image tile on a CYD looks like any other tile,
+with its icon, name and state. A tap opens the camera over the whole glass, with a spinner until the first picture
+is there, and the picture is new every four seconds. A tap anywhere on the picture closes it. Standby, **Back to
+page 1**, a new layout, an alert and a firmware update close it too.
+
+- **No key and no name.** The view has no back key and no title, because nothing can lie over the picture (see
+  below). The whole glass is the key.
+- **The picture fills the glass from the top.** It is drawn while it downloads, a few rows at a time, so the first
+  picture builds up from the top and the next one rolls over the last.
+- **Only the full view.** A CYD still shows no live picture on a tile, no picture in an alert, no album cover, no map
+  and no screensaver picture. The editor offers a camera tile on a CYD without **Live picture**.
+- **From Home Assistant.** The action `esphome.<screen>_preview_camera` opens the view with an entity and closes it
+  with an empty one, as on every board with camera pictures. An automation can open the door camera when the bell
+  rings. The camera must be a tile of that screen.
+
+**How it works.** The screen asks for the camera as every board does (`esphome.screen_camera`), and adds its glass as
+it hangs now (`direct`, for example `320x240`). The app answers with a link to a BMP made for exactly that glass:
+the snapshot's proportions kept, both sides even, 8 bits a pixel on the picture's own palette, and the top row first
+(`camera_feed.encode_direct`). That is about 77 KB for 320×240, a third of a 24-bit picture. The download task
+decodes the rows as they arrive into a band of 8 KB, twelve rows of 320 pixels (`picture_fetch::Band`,
+`CAMERA_BAND_BYTES` in `packages/features/camera-view.yaml`, never more than LVGL's draw buffer, which
+`tools/check_packages.py` checks). The main loop writes each band to the display through
+the same flush LVGL's own pixels take, so the way the screen hangs and the display's byte order need no code of their
+own, and the next rows take the band's place. One band is all of the picture the screen ever holds. A picture
+smaller than the glass, a 16:9 camera on a 4:3 glass, sits in the middle of the black page.
+
+LVGL never learns of these pixels and could not draw them again. From the first band until the view closes, LVGL
+therefore draws nothing (`lv_display_enable_invalidation`, `runtime_tiles::direct_hold`): a tile that changes under
+the view would otherwise appear as a black patch over the picture. Touch and timers go on, which is how the closing
+tap arrives, and closing draws the whole glass again. For the same reason nothing that LVGL draws can lie over the
+picture, which is why the view has no key and the other pictures stay out.
+
+A screen that can do this says so with the word `camera_view` in its **Screen features**, and the app takes a camera
+tile on a screen by that word. A CYD that reported its features without it runs older firmware and is refused the
+tile; a CYD that has not reported yet is taken by its board (`camera_view` in `boards.json`, from the board file
+including `packages/features/camera-view.yaml`). An older app has no camera for a CYD and sends no link.
+
+The Waveshare 3.5-inch and the Hosyond 4-inch have no PSRAM either and could take the same road. They do not
+include the feature yet.
 
 ## The album cover on the media card
 
@@ -293,6 +338,11 @@ through, how much it matters, and how the app is asked for it. One loader decide
   cards (the camera full screen and the cover, the alert's picture, the tiles' own pictures), the 50 ms hand-off of a
   finished download, the `LV_USE_IMAGE` flag, the alert frame, and the diagnostic action `preview_camera` (an entity
   opens it, an empty entity closes it).
+- `packages/features/camera-view.yaml` (included by the CYDs): the full view alone, on a board that keeps no
+  picture. It binds the one download in its band form (`picture_fetch::direct`), the flush a band goes out through,
+  the 10 ms hand-off of a band, and the same `preview_camera` action. `runtime_tiles::direct_band` puts a band on
+  the glass, `camera_feed.encode_direct` makes the picture, and `tools/render/camera_view.py` runs the real firmware
+  on a PC and checks the panel's own pixels.
 - `tests/test_camera.py`: the app side and the words both sides share.
 - Every step of every picture is in the screen's log at DEBUG (`logger: level: DEBUG` in a screen's Override YAML),
   under the tag `picture`: who wants which picture, the question and its answer, the download, the store keeping,

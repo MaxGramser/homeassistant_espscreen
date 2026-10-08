@@ -203,6 +203,9 @@ export type Screen = {
   pictures?: boolean;
   // Plugins (design): the size of its last firmware image and its update slot, from the add-on's last build of it.
   firmware_image?: { size: number; slot: number } | null;
+  // Whether it opens a camera full screen without drawing pictures (a CYD): a camera tile belongs on it, and no
+  // other picture.
+  camera_view?: boolean;
   // Whether it has a battery the top bar can show (app 0.4.68, firmware 0.41.0): its hello said so, or its board has one.
   battery?: boolean;
 };

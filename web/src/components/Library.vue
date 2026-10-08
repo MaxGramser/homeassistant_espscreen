@@ -14,16 +14,16 @@ import { tilePalette } from "../model/tile-palette";
 import { isPluginTile } from "../model/plugins";
 import { pluginsEnabled, tilesOn } from "../plugin-state";
 import { currentScreen } from "../store";
-import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, phone, pictures, repeatable, state, tileLimit } from "../store";
+import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, phone, pictures, cameraTiles, repeatable, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
 const FILTERS = [
   "", "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
-  "media_player", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock",
+  "media_player", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "camera",
 ];
-const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
+const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button", camera: "image" };
 const SHOWN = 80;
 // Open: on a wider page the drawer along the bottom, remembered; on a phone (app 0.4.40) a sheet that opens for a tile
 // and goes once it is added, closed or swiped away. Closing it there forgets the cell it was opened for.
@@ -65,11 +65,12 @@ const query = computed(() => state.search.trim().toLocaleLowerCase());
 // room, and neither off the finished list: picking one would take every other one away with it.
 const base = computed<Entry[]>(() => {
   const q = query.value;
-  // The picker offers what a tile can show; camera and image tiles need a board that draws pictures (app 0.2.66).
+  // The picker offers what a tile can show; camera and image tiles need a board that draws pictures (app 0.2.66) or
+  // opens a camera full screen without them (a CYD), and the map a board that draws pictures.
   // The screen's own cards and plugin tiles first: the list shows the first 80, and these are few.
   return [...pluginEntries.value, ...(state.inventory.builtin || []), ...state.inventory.entities].filter((e) =>
     e.tile !== false && pageTarget(e.id) <= pagesOffered.value &&
-    (pictures.value || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
+    (cameraTiles.value || !["camera", "image"].includes(e.id.split(".")[0])) && (pictures.value || e.id !== "screen.map") &&
     (!state.hidePlaced || !onScreen(e.id)) &&
     `${e.name} ${e.id} ${e.device || ""} ${e.area || ""}`.toLocaleLowerCase().includes(q));
 });

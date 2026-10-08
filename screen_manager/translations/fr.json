@@ -1658,6 +1658,7 @@
         "screen": "Écran",
         "alarm_control_panel": "Alarme",
         "lock": "Serrures",
+        "camera": "Caméras",
         "humidifier": "Humidificateurs"
       },
       "room": "Pièce",

@@ -2332,8 +2332,12 @@ class Manager:
         given = self.given_grid(inbox, self.store.get(inbox))
         grid = (given or self.grid_of(screen)).for_firmware(self.firmware_version(inbox, screen))
         layout = validate_layout(data, grid=grid)
-        # A CYD has no memory for camera images, whatever its firmware; say so before asking for an update.
-        if any(t['entity'].split('.')[0] in CAMERA_DOMAINS for t in layout['tiles']) and board_of(screen) not in camera_feed.BOXES:
+        # A board without memory for camera images, whatever its firmware; say so before asking for an update. A CYD
+        # opens a camera full screen all the same (camera_feed.can_view).
+        if any(t['entity'].split('.')[0] in CAMERA_DOMAINS for t in layout['tiles']) and not camera_feed.takes_camera(screen):
+            raise ValueError(t('addon.errors.layout.camera_unsupported'))
+        # A live picture fills its tile: not on a screen that only opens a camera full screen.
+        if any(t['entity'].split('.')[0] in CAMERA_DOMAINS and (t.get('options') or {}).get('display') == 'live' for t in layout['tiles']) and board_of(screen) not in camera_feed.BOXES:
             raise ValueError(t('addon.errors.layout.camera_unsupported'))
         # A map is a picture too (app 0.4.33).
         if any((t.get('options') or {}).get('display') == 'map' for t in layout['tiles']) and board_of(screen) not in camera_feed.BOXES:
@@ -3090,10 +3094,11 @@ class Manager:
             self.saver_shown[inbox] = message.get('e', '') if message['k'] == 'media' else ''
             LOG.info('Screensaver on %s: %s', screen.get('name', inbox), message['k'] or 'dark')
 
-    async def camera_message(self, entity, view, screen, still=None, box=None):
+    async def camera_message(self, entity, view, screen, still=None, box=None, direct=False):
         """The screen message for one camera view: a link to its image, or an empty link when there is none. The size
         is the one this screen's glass asks for, which on a board that is not square differs between a screen built
-        lying down and one built standing up (camera_feed.box)."""
+        lying down and one built standing up (camera_feed.box). `direct`: for a screen that writes the picture
+        straight to its glass, `box` (camera_feed.encode_direct)."""
         url = ''
         base = await camera_feed.base_url(self.ha.request)
         box = box or camera_feed.box(screen, view)
@@ -3103,7 +3108,8 @@ class Manager:
             if view == 'thumb':
                 token = self.camera.link(entity, box, still) if still else None
             else:
-                token = self.camera.link(entity, box) if await self.camera.frame(entity, box) else None
+                token = (self.camera.link(entity, box, direct=direct)
+                         if await self.camera.frame(entity, box, direct=direct) else None)
             url = f'{base}/camera/{token}.bmp' if token else ''
         return {'v': 1, 'op': 'camera', 't': 'alert' if view == 'thumb' else 'full', 'e': entity, 'u': url}
 
@@ -3132,16 +3138,23 @@ class Manager:
             return
         # A media player's cover (app 0.2.77, firmware 0.2.64+) comes the same way, at the size the card asks for.
         cover = camera_feed.cover_request(request) if camera_feed.cover_supported(entity) else None
+        # A screen that writes the picture straight to its glass says so, and which glass (`direct`, a CYD).
+        direct = camera_feed.direct_request(request) if not cover and camera_feed.can_view(screen) else None
         if cover:
             if not camera_feed.can_show_cover(screen) or not screen.get('online'):
                 return
-        elif not camera_feed.supported(entity) or not camera_feed.can_show(screen) or not screen.get('online'):
+        elif not camera_feed.supported(entity) or not (direct or camera_feed.can_show(screen)) or not screen.get('online'):
             return
         action = self.transport(inbox, screen)
         if not action or not self.camera_allowed(inbox, entity):
             return
-        message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
-            entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
+        if cover:
+            message = await self.cover_message(entity, *cover)
+        elif direct:
+            message = await self.camera_message(entity, 'full', screen, box=direct, direct=True)
+        else:
+            message = await self.camera_message(
+                entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
         await self.send_auxiliary(inbox, message, action, request)
         LOG.info('%s %s on %s%s', 'Cover of' if cover else 'Camera', entity, screen['name'], '' if message['u'] else ': no image')
 
@@ -3802,6 +3815,8 @@ def create_app(manager, development=False):
             # memory for them say so with their camera sizes (boards.json); the firmware that draws them is a
             # separate question the editor asks by version, so an older screen still learns what an update brings.
             screen['pictures'] = board_of(screen) in camera_feed.BOXES
+            # Or opens a camera full screen without them (dev, a CYD): a camera tile belongs on it all the same.
+            screen['camera_view'] = camera_feed.can_view(screen)
             screen['alert_action'] = alert_service(screen.get('node'))
             screen['dismiss_action'] = alert_service(screen.get('node'), 'dismiss_alert')
             # What the editor may offer this screen, by the firmware the app's own checks go by (app 0.2.78) and the

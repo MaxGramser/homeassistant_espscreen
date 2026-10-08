@@ -27,6 +27,7 @@
 // The link, the answer's head and the BMP are parsed here, free of sockets, LVGL and ESPHome, so
 // tests/test_picture_fetch.cpp checks them on a PC; picture_fetch.cpp has the task and the sockets (BSD sockets on the
 // ESP32's lwIP and on the host renders alike).
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -257,7 +258,14 @@ inline void convert_row(const Bmp &b, const uint8_t *palette, const uint8_t *row
 class Decoder {
  public:
   using Ready = std::function<uint16_t *(int width, int height)>;
-  explicit Decoder(Ready ready) : ready_(std::move(ready)) {}
+  // Rows handed out one by one instead of into one buffer (a picture in bands, below): `place` says where row y is
+  // written (null stops), `placed` takes it once it is there (false stops). `ready` still says whether the picture is
+  // one to show; what it returns is not written to.
+  struct Rows {
+    std::function<uint16_t *(int y)> place;
+    std::function<bool(int y)> placed;
+  };
+  explicit Decoder(Ready ready, Rows rows = {}) : ready_(std::move(ready)), rows_(std::move(rows)) {}
   // False on a picture this cannot show (a wrong head, no buffer); then nothing more is taken.
   bool feed(const uint8_t *data, size_t size) {
     if (failed_) return false;
@@ -294,10 +302,12 @@ class Decoder {
       pos += take;
       if (row_fill_ == bmp_.row_bytes) {
         const int y = bmp_.top_down ? rows_done_ : bmp_.height - 1 - rows_done_;
-        convert_row(bmp_, reinterpret_cast<const uint8_t *>(head_.data()) + bmp_.palette_offset(), row_.data(),
-                    pixels_ + static_cast<size_t>(y) * bmp_.width);
+        uint16_t *out = rows_.place ? rows_.place(y) : pixels_ + static_cast<size_t>(y) * bmp_.width;
+        if (!out) return fail();
+        convert_row(bmp_, reinterpret_cast<const uint8_t *>(head_.data()) + bmp_.palette_offset(), row_.data(), out);
         ++rows_done_;
         row_fill_ = 0;
+        if (rows_.placed && !rows_.placed(y)) return fail();
       }
     }
     return true;
@@ -310,6 +320,7 @@ class Decoder {
  private:
   bool fail() { failed_ = true; return false; }
   Ready ready_;
+  Rows rows_;
   std::string head_;
   std::vector<uint8_t> row_;
   size_t row_fill_ = 0;
@@ -317,6 +328,40 @@ class Decoder {
   bool headed_ = false, failed_ = false, masks_ = false;
   uint16_t *pixels_ = nullptr;
   int rows_done_ = 0;
+};
+
+// ---- a picture in bands: for a board without the memory to hold one (the CYD) ----
+// A 320x240 picture is 150 KB as the glass takes it, and a board without PSRAM has no such block. It takes the picture
+// a band at a time instead: a few rows are decoded, written to the glass, and the next few take their place, so the
+// whole picture never exists on the screen's side. A Band gathers the rows of one such band, its top row first whichever
+// way the file runs (a BMP is bottom-up unless its height says otherwise), and says when it is ready to go out.
+struct Band {
+  uint16_t *pixels = nullptr;
+  int width = 0, height = 0, capacity = 0;  // the picture, and the rows a band holds
+  bool top_down = false;
+  int top = 0, rows = 0;                    // the band being gathered: the picture's rows top .. top + rows - 1
+  // The rows `bytes` hold of a picture this wide, a multiple of `rounding` (the glass takes areas of whole steps).
+  static int rows_in(size_t bytes, int width, int rounding) {
+    if (width <= 0 || rounding <= 0) return 0;
+    const int fit = static_cast<int>(bytes / (static_cast<size_t>(width) * 2));
+    return fit / rounding * rounding;
+  }
+  void start(uint16_t *buffer, int picture_w, int picture_h, int band_rows, bool file_top_down) {
+    pixels = buffer; width = picture_w; height = picture_h; capacity = band_rows; top_down = file_top_down;
+    top = rows = 0;
+  }
+  // Where row y goes. The rows come one after the other, down the picture or up it; the first of a band says which
+  // rows that band holds.
+  uint16_t *place(int y) {
+    if (!pixels || capacity <= 0 || y < 0 || y >= height) return nullptr;
+    if (y < top || y >= top + rows) {
+      if (top_down) { top = y; rows = std::min(capacity, height - y); }
+      else { top = std::max(0, y - capacity + 1); rows = y - top + 1; }
+    }
+    return pixels + static_cast<size_t>(y - top) * width;
+  }
+  // Whether row y was the last of its band: the band goes out now.
+  bool full(int y) const { return top_down ? y == top + rows - 1 : y == top; }
 };
 
 // ---- what the rest of the firmware sees (picture_fetch.cpp) ----
@@ -338,9 +383,15 @@ void release(Slot &slot);
 bool loading(const Slot &slot);
 // Hands finished downloads to their `done`, on the main loop (every 50 ms, packages/features/camera.yaml).
 void tick();
+// A slot that keeps no picture: its rows go to `draw` in bands of at most `band_bytes`, on the main loop (tick), as
+// they come (packages/features/camera-view.yaml). `draw` gets the picture's size, the band's top row and its rows, and
+// may change the pixels; false says the picture is not one this glass shows, and the download ends as a failure. A
+// picture whose width or height is no multiple of `rounding` is refused. source() of such a slot has no data.
+using Draw = std::function<bool(int width, int height, int top, int rows, uint16_t *pixels)>;
+void direct(Slot &slot, Draw draw, size_t band_bytes, int rounding);
 }  // namespace picture_fetch
 
-#ifdef SCREEN_PICTURES
+#if defined(SCREEN_PICTURES) || defined(SCREEN_PICTURES_DIRECT)
 #include "lvgl.h"
 namespace picture_fetch {
 // The picture LVGL draws: RGB565, `data` null while the slot holds none. The same descriptor for every load, as
