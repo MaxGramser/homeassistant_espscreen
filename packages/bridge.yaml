@@ -15,8 +15,8 @@ packages:
 external_components:
   - source:
       type: git
-      url: https://github.com/pmarki/homeassistant_espscreen.git
-      ref: board-jc4880p443
+      url: https://github.com/MaxGramser/homeassistant_espscreen.git
+      ref: main
       path: components
     refresh: 0s
     components: [flash_layout]

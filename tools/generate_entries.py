@@ -24,8 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profiles  # noqa: E402
 
 ROOT = profiles.ROOT
-REPO = 'https://github.com/pmarki/homeassistant_espscreen'
-REF = 'board-jc4880p443'
+REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
 
 
 def components(board):
@@ -54,7 +53,7 @@ def package_entry(board):
 # of that lives here. The screen is two packages: core.yaml, which every board shares, and boards/{file} with this
 # board's hardware and sizes (docs/PROFILES.md). checkout/{board}.yaml builds the same two from a checkout.
 substitutions:
-  FONT_DIR: "https://raw.githubusercontent.com/pmarki/homeassistant_espscreen/{REF}/fonts"
+  FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/main/fonts"
 
 packages:
   core: !include core.yaml
@@ -64,7 +63,7 @@ external_components:
   - source:
       type: git
       url: {REPO}.git
-      ref: {REF}
+      ref: main
       path: components
     refresh: 0s
     components: [{", ".join(components(board))}]
