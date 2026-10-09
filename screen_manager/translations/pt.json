@@ -1720,7 +1720,7 @@
         "commercial": "Comercial",
         "ai-developed": "Feito com IA"
       },
-      "test_note": "Um teste: cada compilação usa a versão mais recente, e o Tessera não oferece atualizações para ele.",
+      "test_note": "Um teste: o ecrã fica no commit com que foi compilado, e um commit mais recente aparece aqui como atualização. Uma pasta é compilada como está agora.",
       "remove": "Remover de {screen}",
       "building": "A compilar o firmware para {screen}…",
       "installed_on": "Em {screen}, versão {version}",
@@ -1776,8 +1776,8 @@
         "branch": "Branch",
         "folder": "Pasta nesta máquina",
         "hints": {
-          "link": "O Tessera usa a versão publicada mais recente e mantém o ecrã nela. Uma nova versão aparece como atualização.",
-          "branch": "Cada compilação usa o commit mais recente deste branch. Para experimentar, não para o dia a dia.",
+          "link": "O Tessera usa a versão mais recente (sem versão, o commit mais recente) e mantém o ecrã nela. Algo mais recente aparece como atualização.",
+          "branch": "O Tessera usa o commit mais recente deste ramo e mantém o ecrã nele; um commit mais recente aparece como atualização. Para experimentar.",
           "folder": "Para um plugin que está a criar: guarde, e a compilação seguinte inclui-o. A pasta fica na configuração do Home Assistant."
         },
         "fetch": "Ler o plugin",
@@ -1918,7 +1918,6 @@
         "voice": "Voz e som",
         "tech": "Técnica"
       },
-      "topics_all": "Todos",
       "topic_filter": "Temas",
       "sort": {
         "label": "Ordenar por",
@@ -1976,7 +1975,11 @@
         "all": "Qualquer pessoa",
         "tessera": "Tessera",
         "community": "Comunidade"
-      }
+      },
+      "filter_button": "Filtrar",
+      "filter_remove": "Remover {what}",
+      "filter_clear": "Limpar filtros",
+      "fitting_all": "Também o que não serve"
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",

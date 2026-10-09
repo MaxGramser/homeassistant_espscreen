@@ -202,7 +202,7 @@ A plugin another one needs only goes together with it, and what only came along 
 
 The Plugins page has a tab per type, read from the manifest (`plugin_type`: tiles, functions, hardware) and one for
 what is in use; the maker's `topics` are the chips under it. What fits none of the screens folds away under the list.
-`featured.yaml` in the plugins repository puts plugins first. A like is a heart a person gives a plugin of the index
+One bar holds the search (what narrows the list shows in it as pills), the tabs, a Filter menu (topics, maker, only what fits) and the order: most liked by default, `featured.yaml` in the plugins repository breaking a tie, or newest, or by name. A like is a heart a person gives a plugin of the index
 that runs on one of their screens (`plugin_likes.py`): it goes to the Tessera website with a random key of this app
 installation, only on a tap and after one yes that it counts in a public number; the plugins repository copies the
 counts into `likes.json` every hour, which the app reads from GitHub.

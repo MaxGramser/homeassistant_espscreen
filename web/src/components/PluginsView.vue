@@ -17,6 +17,11 @@ import PluginLink from "./PluginLink.vue";
 import PluginMaker from "./PluginMaker.vue";
 import PluginTray from "./PluginTray.vue";
 import Icon from "./ui/Icon.vue";
+import UiMenu from "./ui/UiMenu.vue";
+import UiMenuItem from "./ui/UiMenuItem.vue";
+import UiMenuLabel from "./ui/UiMenuLabel.vue";
+import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
+import { DropdownMenuCheckboxItem, DropdownMenuItemIndicator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "reka-ui";
 
 loadPlugins();
 // Three tabs by what a plugin adds (read from its manifest), so a countdown is never found among a board's audio parts,
@@ -24,7 +29,7 @@ loadPlugins();
 const TABS = [...PLUGIN_TYPES, "in_use"] as const;
 type Tab = (typeof TABS)[number];
 const tab = ref<Tab>("tiles");
-const topic = ref<string | null>(null);
+const chosenTopics = ref<string[]>([]);
 // Most liked first by default; or the newest, or by name. Tessera's recommendation (featured.yaml) breaks a tie.
 const SORTS = ["popular", "new", "name"] as const;
 const sort = ref<(typeof SORTS)[number]>("popular");
@@ -51,8 +56,18 @@ const topics = computed(() => {
   for (const plugin of found.value.filter((p) => inTab(p, tab.value))) for (const name of plugin.topics || []) counts.set(name, (counts.get(name) || 0) + 1);
   return PLUGIN_TOPICS.filter((name) => counts.has(name)).map((name) => ({ name, n: counts.get(name)! }));
 });
-watch(tab, () => { topic.value = null; });
-watch(topics, (list) => { if (topic.value && !list.some((item) => item.name === topic.value)) topic.value = null; });
+watch(tab, () => { chosenTopics.value = []; });
+watch(topics, (list) => { chosenTopics.value = chosenTopics.value.filter((name) => list.some((item) => item.name === name)); });
+const toggleTopic = (name: string, on: boolean) => {
+  chosenTopics.value = on ? [...new Set([...chosenTopics.value, name])] : chosenTopics.value.filter((n) => n !== name);
+};
+// What narrows the list now, as pills in the bar, each with its own way out; the Filter key counts them.
+const pills = computed(() => [
+  ...chosenTopics.value.map((name) => ({ key: `topic-${name}`, label: t(`editor.plugins.topics.${name}`), clear: () => toggleTopic(name, false) })),
+  ...(maker.value !== "all" ? [{ key: "maker", label: t(`editor.plugins.made_by.${maker.value}`), clear: () => { maker.value = "all"; } }] : []),
+  ...(!fittingOnly.value ? [{ key: "fitting", label: t("editor.plugins.fitting_all"), clear: () => { fittingOnly.value = true; } }] : []),
+]);
+const clearAll = () => { chosenTopics.value = []; maker.value = "all"; fittingOnly.value = true; };
 // Recommended first (Tessera's featured.yaml), then the most liked, then by name; or the most liked, or the newest.
 const byName = (a: Plugin, b: Plugin) => text(a.name).localeCompare(text(b.name));
 const order = (a: Plugin, b: Plugin) => sort.value === "name" ? byName(a, b)
@@ -60,7 +75,7 @@ const order = (a: Plugin, b: Plugin) => sort.value === "name" ? byName(a, b)
   : (b.likes || 0) - (a.likes || 0) || Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || byName(a, b);
 const byMaker = (plugin: Plugin) => maker.value === "all" || (maker.value === "tessera" ? plugin.tessera : !plugin.tessera);
 const listed = computed(() => found.value.filter((plugin) => inTab(plugin, tab.value) && byMaker(plugin)
-  && (!topic.value || (plugin.topics || []).includes(topic.value))).sort(order));
+  && (!chosenTopics.value.length || (plugin.topics || []).some((name) => chosenTopics.value.includes(name)))).sort(order));
 // What fits none of this app's screens folds away under the list, with its reason on the card: it is still there to look
 // at, never hidden the way a store hides what a phone cannot run.
 const fitsSome = (plugin: Plugin) => !realScreens().length || inUse(plugin) || realScreens().some((screen) => fit(plugin, screen).ok);
@@ -101,27 +116,64 @@ const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf
         <div v-if="pluginBuilds.length" class="plugin-builds" id="plugin-builds">
           <BuildLog v-for="screen in pluginBuilds" :key="screen.id" :screen="screen" name />
         </div>
-        <div class="pick-tools">
-          <label class="pick-search"><Icon name="magnify" /><input id="plugin-search" v-model="query" type="search" :placeholder="t('editor.plugins.search')" autocomplete="off" spellcheck="false" /></label>
-          <div class="seg" role="tablist" id="plugin-tabs" :aria-label="t('editor.plugins.filter')">
+        <!-- One bar for finding a plugin: the search (what narrows the list shows in it as pills), the tabs by what a
+             plugin adds, a Filter menu (topics, maker, only what fits) and the order. -->
+        <div class="plugin-bar" id="plugin-bar" role="search">
+          <label class="pb-search">
+            <Icon name="magnify" />
+            <span v-for="pill in pills" :key="pill.key" class="pb-pill" :data-pill="pill.key">{{ pill.label }}
+              <button type="button" :aria-label="t('editor.plugins.filter_remove', { what: pill.label })" @click.prevent="pill.clear()"><Icon name="close" /></button>
+            </span>
+            <input id="plugin-search" v-model="query" type="search" :placeholder="pills.length ? '' : t('editor.plugins.search')" autocomplete="off" spellcheck="false"
+              @keydown.backspace="!query && pills.length && pills[pills.length - 1].clear()" />
+          </label>
+          <div class="seg pb-tabs" role="tablist" id="plugin-tabs" :aria-label="t('editor.plugins.filter')">
             <button v-for="key in TABS" :key="key" type="button" role="tab" :aria-selected="tab === key" :aria-pressed="tab === key" :data-tab="key" @click="tab = key">{{ t(`editor.plugins.tabs.${key}`) }} <small>{{ count(key) }}</small></button>
           </div>
-        </div>
-        <div v-if="topics.length" class="plugin-topics" id="plugin-topics">
-          <div class="plugin-topic-chips" role="group" :aria-label="t('editor.plugins.topic_filter')">
-            <button v-if="topics.length" type="button" class="topic-chip" :aria-pressed="!topic" @click="topic = null">{{ t("editor.plugins.topics_all") }}</button>
-            <button v-for="item in topics" :key="item.name" type="button" class="topic-chip" :aria-pressed="topic === item.name" :data-topic="item.name"
-              @click="topic = topic === item.name ? null : item.name">{{ t(`editor.plugins.topics.${item.name}`) }} <small>{{ item.n }}</small></button>
-          </div>
-        </div>
-        <div class="plugin-order" id="plugin-order">
-          <label class="plugin-pick"><span>{{ t("editor.plugins.sort.label") }}</span>
-            <select id="plugin-sort" v-model="sort"><option v-for="key in SORTS" :key="key" :value="key">{{ t(`editor.plugins.sort.${key}`) }}</option></select>
-          </label>
-          <label class="plugin-pick"><span>{{ t("editor.plugins.made_by.label") }}</span>
-            <select id="plugin-maker" v-model="maker"><option v-for="key in MAKERS" :key="key" :value="key">{{ t(`editor.plugins.made_by.${key}`) }}</option></select>
-          </label>
-          <label v-if="realScreens().length" class="plugin-fitting"><input id="plugin-fitting" v-model="fittingOnly" type="checkbox" />{{ t("editor.plugins.fitting_only") }}</label>
+          <UiMenu align="end" width="260px">
+            <template #trigger>
+              <button type="button" class="pb-btn" id="plugin-filter" :class="{ on: pills.length }"><Icon name="filter-variant" />{{ t("editor.plugins.filter_button") }}<b v-if="pills.length" class="pb-count">{{ pills.length }}</b></button>
+            </template>
+            <template v-if="topics.length">
+              <UiMenuLabel>{{ t("editor.plugins.topic_filter") }}</UiMenuLabel>
+              <DropdownMenuCheckboxItem v-for="item in topics" :key="item.name" class="ui-menu-item pb-check" :data-topic="item.name"
+                :model-value="chosenTopics.includes(item.name)" @update:model-value="(on: boolean) => toggleTopic(item.name, on)" @select="(e: Event) => e.preventDefault()">
+                <span class="pb-tick"><DropdownMenuItemIndicator><Icon name="check" /></DropdownMenuItemIndicator></span>
+                <span class="ui-menu-text">{{ t(`editor.plugins.topics.${item.name}`) }}</span><small class="ui-menu-end">{{ item.n }}</small>
+              </DropdownMenuCheckboxItem>
+              <UiMenuSeparator />
+            </template>
+            <UiMenuLabel>{{ t("editor.plugins.made_by.label") }}</UiMenuLabel>
+            <DropdownMenuRadioGroup v-model="maker">
+              <DropdownMenuRadioItem v-for="key in MAKERS" :key="key" :value="key" class="ui-menu-item pb-check" :data-maker="key" @select="(e: Event) => e.preventDefault()">
+                <span class="pb-tick"><DropdownMenuItemIndicator><Icon name="check" /></DropdownMenuItemIndicator></span>
+                <span class="ui-menu-text">{{ t(`editor.plugins.made_by.${key}`) }}</span>
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <template v-if="realScreens().length">
+              <UiMenuSeparator />
+              <DropdownMenuCheckboxItem v-model="fittingOnly" class="ui-menu-item pb-check" id="plugin-fitting" @select="(e: Event) => e.preventDefault()">
+                <span class="pb-tick"><DropdownMenuItemIndicator><Icon name="check" /></DropdownMenuItemIndicator></span>
+                <span class="ui-menu-text">{{ t("editor.plugins.fitting_only") }}</span>
+              </DropdownMenuCheckboxItem>
+            </template>
+            <template v-if="pills.length">
+              <UiMenuSeparator />
+              <UiMenuItem icon="close" @select="clearAll">{{ t("editor.plugins.filter_clear") }}</UiMenuItem>
+            </template>
+          </UiMenu>
+          <UiMenu align="end" width="200px">
+            <template #trigger>
+              <button type="button" class="pb-btn" id="plugin-sort"><Icon name="sort-variant" />{{ t(`editor.plugins.sort.${sort}`) }}</button>
+            </template>
+            <UiMenuLabel>{{ t("editor.plugins.sort.label") }}</UiMenuLabel>
+            <DropdownMenuRadioGroup v-model="sort">
+              <DropdownMenuRadioItem v-for="key in SORTS" :key="key" :value="key" class="ui-menu-item pb-check" :data-sort="key">
+                <span class="pb-tick"><DropdownMenuItemIndicator><Icon name="check" /></DropdownMenuItemIndicator></span>
+                <span class="ui-menu-text">{{ t(`editor.plugins.sort.${key}`) }}</span>
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </UiMenu>
         </div>
         <div class="plugin-grid" role="list">
           <PluginCard v-for="plugin in shown" :key="plugin.id" :plugin="plugin" :status="statusOverall(plugin)" :chosen="openId === plugin.id"

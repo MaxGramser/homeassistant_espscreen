@@ -1685,14 +1685,6 @@ section.advanced code { font-size: 11.5px; }
    The tabs reuse the segmented control; topics are quiet pills that read like the chips on a card, one chosen at a
    time. What fits none of the screens folds away under the list. A heart is a count first and a control only where
    the plugin runs. What comes along sits in the action box as rows like the tray's, never as a second dialog. */
-.plugin-topics { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: -2px 0 2px; }
-.plugin-topic-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
-.topic-chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 500;
-  color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-strong); transition: background 0.12s, color 0.12s, box-shadow 0.12s; }
-.topic-chip small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.topic-chip:hover:not([aria-pressed="true"]) { color: var(--ink); background: var(--surface-2); }
-.topic-chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); box-shadow: none; }
-.topic-chip[aria-pressed="true"] small { color: inherit; opacity: 0.7; }
 .plugin-misfits { display: grid; gap: 10px; margin-top: 6px; }
 .plugin-misfits-head { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); padding: 4px 6px 4px 0; }
 .plugin-misfits-head:hover { color: var(--ink-2); }
@@ -1723,8 +1715,29 @@ section.advanced code { font-size: 11.5px; }
 .pt-along .pt-row.along { opacity: 0.85; }
 .pt-along .pt-words small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .pt-choose { margin: 4px 0 2px; }
-.plugin-order { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); }
-.plugin-pick { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.plugin-pick select { height: 28px; padding: 0 26px 0 10px; border-radius: 8px; font-size: 12.5px; font-weight: 550; color: var(--ink); background-color: var(--surface-2); border: 0; box-shadow: none; cursor: pointer; }
-.plugin-pick select:hover { background-color: var(--seg); }
-.plugin-fitting { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: var(--ink-2); margin-left: auto; }
+
+/* The plugin bar: one surface for finding a plugin. The search takes the room, what narrows the list sits in it as
+   pills (Backspace takes the last one away), then the tabs, Filter with a count of what is on, and the order. Menus
+   keep open while a filter is ticked, so several go in one visit. Wraps under itself when the details are open. */
+.plugin-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 5px; border-radius: 12px; background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line); }
+.pb-search { flex: 1 1 240px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; min-height: 34px; padding: 0 8px; border-radius: 8px;
+  background: var(--surface); box-shadow: 0 1px 2px rgba(20, 24, 40, 0.06); cursor: text; }
+.pb-search > .ui-icon { font-size: 18px; color: var(--muted); }
+.pb-search input { flex: 1; min-width: 80px; height: 32px; border: 0; padding: 0; background: transparent; box-shadow: none; font-size: 13.5px; outline: none; }
+.pb-pill { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 9px; border-radius: 999px; font-size: 12px; font-weight: 550;
+  background: var(--accent-soft); color: var(--accent); white-space: nowrap; animation: pb-pill 0.16s ease-out; }
+.pb-pill button { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: inherit; opacity: 0.7; }
+.pb-pill button:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+.pb-pill .ui-icon { font-size: 13px; }
+@keyframes pb-pill { from { transform: scale(0.85); opacity: 0; } }
+.pb-tabs { background: transparent; }
+.pb-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px; border-radius: 8px; font-size: 12.5px; font-weight: 550; color: var(--ink-2);
+  white-space: nowrap; transition: background 0.12s, color 0.12s; }
+.pb-btn .ui-icon { font-size: 17px; }
+.pb-btn:hover, .pb-btn[data-state="open"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(20, 24, 40, 0.06); }
+.pb-btn.on { color: var(--accent); }
+.pb-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 11px; background: var(--accent); color: var(--surface); }
+.pb-check { padding-left: 6px; }
+.pb-tick { display: inline-grid; place-items: center; width: 18px; color: var(--accent); }
+.pb-tick .ui-icon { font-size: 16px; }

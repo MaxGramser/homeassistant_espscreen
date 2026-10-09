@@ -1720,7 +1720,7 @@
         "commercial": "Commercial",
         "ai-developed": "Créé avec l'IA"
       },
-      "test_note": "Un test : chaque compilation prend la version la plus récente, et Tessera ne propose pas de mises à jour pour celui-ci.",
+      "test_note": "Un test : l'écran reste sur le commit avec lequel il a été compilé, et un commit plus récent apparaît ici comme mise à jour. Un dossier est compilé tel qu'il est.",
       "remove": "Retirer de {screen}",
       "building": "Compilation du firmware pour {screen}…",
       "installed_on": "Sur {screen}, version {version}",
@@ -1776,8 +1776,8 @@
         "branch": "Branche",
         "folder": "Dossier sur cette machine",
         "hints": {
-          "link": "Tessera prend la dernière version publiée et y maintient l'écran. Une nouvelle version apparaît comme mise à jour.",
-          "branch": "Chaque compilation prend le dernier commit de cette branche. Pour essayer, pas pour tous les jours.",
+          "link": "Tessera prend la release la plus récente (sans release, le commit le plus récent) et y garde l'écran. Quelque chose de plus récent apparaît comme mise à jour.",
+          "branch": "Tessera prend le commit le plus récent de cette branche et y garde l'écran ; un commit plus récent apparaît comme mise à jour. Pour essayer.",
           "folder": "Pour un plugin que vous créez : enregistrez, et la compilation suivante le prend. Le dossier se trouve dans la configuration de Home Assistant."
         },
         "fetch": "Lire le plugin",
@@ -1918,7 +1918,6 @@
         "voice": "Voix & son",
         "tech": "Technique"
       },
-      "topics_all": "Tous",
       "topic_filter": "Thèmes",
       "sort": {
         "label": "Trier par",
@@ -1976,7 +1975,11 @@
         "all": "Tout le monde",
         "tessera": "Tessera",
         "community": "Communauté"
-      }
+      },
+      "filter_button": "Filtrer",
+      "filter_remove": "Retirer {what}",
+      "filter_clear": "Effacer les filtres",
+      "fitting_all": "Aussi ce qui ne convient pas"
     },
     "plugin_tile": {
       "from": "Une tuile du plugin {plugin}",

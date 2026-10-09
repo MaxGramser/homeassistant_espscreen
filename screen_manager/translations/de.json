@@ -1720,7 +1720,7 @@
         "commercial": "Kommerziell",
         "ai-developed": "Mit KI gemacht"
       },
-      "test_note": "Ein Test: Jede Erstellung nimmt die neueste Version, und Tessera bietet dafür keine Updates an.",
+      "test_note": "Ein Test: Der Bildschirm bleibt auf dem Commit, mit dem er gebaut wurde, und ein neuerer Commit erscheint hier als Update. Ein Ordner wird so gebaut, wie er jetzt ist.",
       "remove": "Von {screen} entfernen",
       "building": "Die Firmware für {screen} wird erstellt…",
       "installed_on": "Auf {screen}, Version {version}",
@@ -1776,8 +1776,8 @@
         "branch": "Branch",
         "folder": "Ordner auf diesem Rechner",
         "hints": {
-          "link": "Tessera nimmt das neueste Release und hält den Bildschirm darauf. Ein neues Release erscheint als Update.",
-          "branch": "Jede Erstellung nimmt den neuesten Commit dieses Branches. Zum Ausprobieren, nicht für jeden Tag.",
+          "link": "Tessera nimmt das neueste Release (ohne eines den neuesten Commit) und hält den Bildschirm darauf. Etwas Neueres erscheint als Update.",
+          "branch": "Tessera nimmt den neuesten Commit dieses Branches und hält den Bildschirm darauf; ein neuerer Commit erscheint als Update. Zum Ausprobieren.",
           "folder": "Für ein Plugin, das du selbst machst: Speichern, und die nächste Erstellung nimmt es mit. Der Ordner liegt in der Konfiguration von Home Assistant."
         },
         "fetch": "Plugin lesen",
@@ -1918,7 +1918,6 @@
         "voice": "Sprache & Klang",
         "tech": "Technik"
       },
-      "topics_all": "Alle",
       "topic_filter": "Themen",
       "sort": {
         "label": "Sortieren nach",
@@ -1976,7 +1975,11 @@
         "all": "Alle",
         "tessera": "Tessera",
         "community": "Community"
-      }
+      },
+      "filter_button": "Filter",
+      "filter_remove": "{what} entfernen",
+      "filter_clear": "Filter löschen",
+      "fitting_all": "Auch was nicht passt"
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",

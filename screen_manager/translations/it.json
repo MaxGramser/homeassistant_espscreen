@@ -1720,7 +1720,7 @@
         "commercial": "Commerciale",
         "ai-developed": "Creato con l'IA"
       },
-      "test_note": "Un test: ogni compilazione prende la versione più recente, e Tessera non offre aggiornamenti per questo plugin.",
+      "test_note": "Un test: lo schermo resta sul commit con cui è stato compilato, e un commit più recente appare qui come aggiornamento. Una cartella viene compilata com'è ora.",
       "remove": "Rimuovi da {screen}",
       "building": "Compilazione del firmware per {screen}…",
       "installed_on": "Su {screen}, versione {version}",
@@ -1776,8 +1776,8 @@
         "branch": "Branch",
         "folder": "Cartella su questa macchina",
         "hints": {
-          "link": "Tessera prende la release più recente e mantiene lo schermo su quella. Una nuova release appare come aggiornamento.",
-          "branch": "Ogni compilazione prende il commit più recente di questo branch. Per provare, non per tutti i giorni.",
+          "link": "Tessera prende la release più recente (senza release, il commit più recente) e vi tiene lo schermo. Qualcosa di più recente appare come aggiornamento.",
+          "branch": "Tessera prende il commit più recente di questo branch e vi tiene lo schermo; un commit più recente appare come aggiornamento. Per provare.",
           "folder": "Per un plugin che stai creando: salva, e la compilazione successiva lo include. La cartella si trova nella configurazione di Home Assistant."
         },
         "fetch": "Leggi il plugin",
@@ -1918,7 +1918,6 @@
         "voice": "Voce e suono",
         "tech": "Tecnica"
       },
-      "topics_all": "Tutti",
       "topic_filter": "Argomenti",
       "sort": {
         "label": "Ordina per",
@@ -1976,7 +1975,11 @@
         "all": "Chiunque",
         "tessera": "Tessera",
         "community": "Community"
-      }
+      },
+      "filter_button": "Filtra",
+      "filter_remove": "Rimuovi {what}",
+      "filter_clear": "Cancella filtri",
+      "fitting_all": "Anche ciò che non va bene"
     },
     "plugin_tile": {
       "from": "Un riquadro del plugin {plugin}",

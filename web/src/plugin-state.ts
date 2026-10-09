@@ -266,8 +266,8 @@ export function statusOn(plugin: Plugin, screen: Screen): Status {
     return { kind: "building", label: t(buildOf(screen)?.state === "queued" ? "editor.plugins.state.queued" : "editor.plugins.state.building") };
   const have = installedOn(screen, plugin.id);
   if (have?.state === "failed") return { kind: "failed", label: t("editor.plugins.state.failed") };
-  if (isTest(have)) return { kind: "test", label: t(`editor.plugins.source.${have!.source}`) };
   if (hasUpdate(screen, plugin)) return { kind: "update", label: t("editor.plugins.state.update", { version: plugin.version }) };
+  if (isTest(have)) return { kind: "test", label: t(`editor.plugins.source.${have!.source}`) };
   if (have) return { kind: "installed", label: t("editor.plugins.state.installed") };
   const result = fit(plugin, screen);
   return result.ok ? { kind: "", label: "" } : { kind: "misfit", label: t(`editor.plugins.misfit_short.${result.reason}`) };

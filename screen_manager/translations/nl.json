@@ -2991,7 +2991,7 @@
         "commercial": "Commercieel",
         "ai-developed": "Gemaakt met AI"
       },
-      "test_note": "Een test: elke build neemt de nieuwste versie, en Tessera biedt er geen updates voor aan.",
+      "test_note": "Een test: het scherm blijft op de commit waarmee het gebouwd is, en een nieuwere commit verschijnt hier als update. Een map wordt gebouwd zoals hij nu is.",
       "remove": "Verwijderen van {screen}",
       "building": "De firmware voor {screen} wordt gebouwd…",
       "installed_on": "Op {screen}, versie {version}",
@@ -3047,8 +3047,8 @@
         "branch": "Branch",
         "folder": "Map op deze machine",
         "hints": {
-          "link": "Tessera neemt de nieuwste release en houdt het scherm daarop. Een nieuwe release verschijnt als update.",
-          "branch": "Elke build neemt de nieuwste commit van deze branch. Om te proberen, niet voor elke dag.",
+          "link": "Tessera neemt de nieuwste release (zonder release de nieuwste commit) en houdt het scherm daarop. Iets nieuwers verschijnt als update.",
+          "branch": "Tessera neemt de nieuwste commit van deze branch en houdt het scherm daarop; een nieuwere commit verschijnt als update. Om uit te proberen.",
           "folder": "Voor een plugin die je zelf maakt: opslaan, en de volgende build neemt hem mee. De map staat in de config van Home Assistant."
         },
         "fetch": "Plugin lezen",
@@ -3189,7 +3189,6 @@
         "voice": "Spraak & geluid",
         "tech": "Techniek"
       },
-      "topics_all": "Alle",
       "topic_filter": "Onderwerpen",
       "sort": {
         "label": "Sorteren op",
@@ -3247,7 +3246,11 @@
         "all": "Iedereen",
         "tessera": "Tessera",
         "community": "Community"
-      }
+      },
+      "filter_button": "Filter",
+      "filter_remove": "{what} weghalen",
+      "filter_clear": "Filters wissen",
+      "fitting_all": "Ook wat niet past"
     },
     "plugin_tile": {
       "from": "Een tegel van de plugin {plugin}",

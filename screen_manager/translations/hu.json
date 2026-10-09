@@ -1720,7 +1720,7 @@
         "commercial": "Kereskedelmi",
         "ai-developed": "MI-vel készült"
       },
-      "test_note": "Teszt: minden fordítás a legújabb verziót veszi, és a Tessera nem kínál hozzá frissítést.",
+      "test_note": "Teszt: a kijelző azon a commiton marad, amelyből készült, és egy újabb commit itt frissítésként jelenik meg. Egy mappa úgy készül, ahogy most van.",
       "remove": "Eltávolítás innen: {screen}",
       "building": "A(z) {screen} firmware-ének fordítása…",
       "installed_on": "Ezen: {screen}, {version} verzió",
@@ -1776,8 +1776,8 @@
         "branch": "Branch",
         "folder": "Mappa ezen a gépen",
         "hints": {
-          "link": "A Tessera a legújabb kiadást veszi, és azon tartja a kijelzőt. Az új kiadás frissítésként jelenik meg.",
-          "branch": "Minden fordítás ennek a branchnek a legújabb commitját veszi. Kipróbálásra, nem mindennapi használatra.",
+          "link": "A Tessera a legújabb kiadást veszi (kiadás nélkül a legújabb commitot), és azon tartja a kijelzőt. Ami újabb, frissítésként jelenik meg.",
+          "branch": "A Tessera ennek az ágnak a legújabb commitját veszi, és azon tartja a kijelzőt; egy újabb commit frissítésként jelenik meg. Kipróbáláshoz.",
           "folder": "Saját készítésű bővítményhez: mentsd, és a következő fordítás már tartalmazza. A mappa a Home Assistant konfigurációjában van."
         },
         "fetch": "Bővítmény beolvasása",
@@ -1918,7 +1918,6 @@
         "voice": "Hang és beszéd",
         "tech": "Technika"
       },
-      "topics_all": "Mind",
       "topic_filter": "Témák",
       "sort": {
         "label": "Rendezés",
@@ -1976,7 +1975,11 @@
         "all": "Bárki",
         "tessera": "Tessera",
         "community": "Közösség"
-      }
+      },
+      "filter_button": "Szűrés",
+      "filter_remove": "{what} eltávolítása",
+      "filter_clear": "Szűrők törlése",
+      "fitting_all": "Ami nem jó, az is"
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",

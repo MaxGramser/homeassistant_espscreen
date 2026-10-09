@@ -1720,7 +1720,7 @@
         "commercial": "Komercyjna",
         "ai-developed": "Stworzona z pomocą AI"
       },
-      "test_note": "Test: każda kompilacja bierze najnowszą wersję, a Tessera nie oferuje dla niej aktualizacji.",
+      "test_note": "Test: ekran zostaje na commicie, z którego go zbudowano, a nowszy commit pojawia się tu jako aktualizacja. Folder jest budowany taki, jaki jest teraz.",
       "remove": "Usuń z {screen}",
       "building": "Kompilowanie firmware dla {screen}…",
       "installed_on": "Na {screen}, wersja {version}",
@@ -1776,8 +1776,8 @@
         "branch": "Gałąź",
         "folder": "Folder na tym komputerze",
         "hints": {
-          "link": "Tessera bierze najnowsze wydanie i utrzymuje na nim ekran. Nowe wydanie pojawia się jako aktualizacja.",
-          "branch": "Każda kompilacja bierze najnowszy commit tej gałęzi. Do testowania, nie na co dzień.",
+          "link": "Tessera bierze najnowsze wydanie (bez wydania najnowszy commit) i trzyma na nim ekran. Coś nowszego pojawia się jako aktualizacja.",
+          "branch": "Tessera bierze najnowszy commit tej gałęzi i trzyma na nim ekran; nowszy commit pojawia się jako aktualizacja. Do wypróbowania.",
           "folder": "Dla wtyczki, którą tworzysz: zapisz, a następna kompilacja ją uwzględni. Folder znajduje się w konfiguracji Home Assistant."
         },
         "fetch": "Odczytaj wtyczkę",
@@ -1918,7 +1918,6 @@
         "voice": "Głos i dźwięk",
         "tech": "Technika"
       },
-      "topics_all": "Wszystkie",
       "topic_filter": "Tematy",
       "sort": {
         "label": "Sortuj według",
@@ -1976,7 +1975,11 @@
         "all": "Wszyscy",
         "tessera": "Tessera",
         "community": "Społeczność"
-      }
+      },
+      "filter_button": "Filtruj",
+      "filter_remove": "Usuń {what}",
+      "filter_clear": "Wyczyść filtry",
+      "fitting_all": "Też to, co nie pasuje"
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",

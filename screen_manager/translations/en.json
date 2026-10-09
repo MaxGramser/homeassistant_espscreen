@@ -2991,7 +2991,7 @@
         "commercial": "Commercial",
         "ai-developed": "Made with AI"
       },
-      "test_note": "A test: every build takes the newest version, and Tessera offers no updates for it.",
+      "test_note": "A test: the screen stays on the commit it was built from, and a newer commit shows up here as an update. A folder is built as it is now.",
       "remove": "Remove from {screen}",
       "building": "Building the firmware for {screen}…",
       "installed_on": "On {screen}, version {version}",
@@ -3047,8 +3047,8 @@
         "branch": "Branch",
         "folder": "Folder on this machine",
         "hints": {
-          "link": "Tessera takes the newest release and keeps the screen on it. A new release shows up as an update.",
-          "branch": "Every build takes the newest commit of this branch. For trying out, not for every day.",
+          "link": "Tessera takes the newest release (without one, the newest commit) and keeps the screen on it. Something newer shows up as an update.",
+          "branch": "Tessera takes the newest commit of this branch and keeps the screen on it; a newer commit shows up as an update. For trying out.",
           "folder": "For a plugin you are making: save, and the next build takes it. The folder lives in Home Assistant's config."
         },
         "fetch": "Read the plugin",
@@ -3189,7 +3189,6 @@
         "voice": "Voice & sound",
         "tech": "Tech"
       },
-      "topics_all": "All",
       "topic_filter": "Topics",
       "sort": {
         "label": "Sort by",
@@ -3247,7 +3246,11 @@
         "all": "Anyone",
         "tessera": "Tessera",
         "community": "Community"
-      }
+      },
+      "filter_button": "Filter",
+      "filter_remove": "Remove {what}",
+      "filter_clear": "Clear filters",
+      "fitting_all": "Also what does not fit"
     },
     "plugin_tile": {
       "from": "A tile of the plugin {plugin}",

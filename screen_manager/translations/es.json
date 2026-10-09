@@ -1720,7 +1720,7 @@
         "commercial": "Comercial",
         "ai-developed": "Hecho con IA"
       },
-      "test_note": "Una prueba: cada compilación toma la versión más reciente, y Tessera no ofrece actualizaciones para ella.",
+      "test_note": "Una prueba: la pantalla se queda en el commit con el que se compiló, y un commit más nuevo aparece aquí como actualización. Una carpeta se compila tal como está.",
       "remove": "Eliminar de {screen}",
       "building": "Compilando el firmware para {screen}…",
       "installed_on": "En {screen}, versión {version}",
@@ -1776,8 +1776,8 @@
         "branch": "Rama",
         "folder": "Carpeta en este equipo",
         "hints": {
-          "link": "Tessera toma la versión publicada más reciente y mantiene la pantalla en ella. Una nueva versión aparece como actualización.",
-          "branch": "Cada compilación toma el commit más reciente de esta rama. Para probar, no para el día a día.",
+          "link": "Tessera toma la versión más nueva (sin versión, el commit más nuevo) y mantiene la pantalla en ella. Algo más nuevo aparece como actualización.",
+          "branch": "Tessera toma el commit más nuevo de esta rama y mantiene la pantalla en él; un commit más nuevo aparece como actualización. Para probar.",
           "folder": "Para un plugin que estás haciendo: guarda, y la siguiente compilación lo incluye. La carpeta está en la configuración de Home Assistant."
         },
         "fetch": "Leer el plugin",
@@ -1918,7 +1918,6 @@
         "voice": "Voz y sonido",
         "tech": "Tecnología"
       },
-      "topics_all": "Todos",
       "topic_filter": "Temas",
       "sort": {
         "label": "Ordenar por",
@@ -1976,7 +1975,11 @@
         "all": "Cualquiera",
         "tessera": "Tessera",
         "community": "Comunidad"
-      }
+      },
+      "filter_button": "Filtrar",
+      "filter_remove": "Quitar {what}",
+      "filter_clear": "Borrar filtros",
+      "fitting_all": "También lo que no cabe"
     },
     "plugin_tile": {
       "from": "Un mosaico del plugin {plugin}",
