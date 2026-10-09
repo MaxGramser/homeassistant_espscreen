@@ -51,7 +51,7 @@ i2c:
   sda: GPIO15
   scl: GPIO7
   frequency: 400kHz
-  scan: true
+  scan: false
 
 # The panel controller receives its setup over this serial bus.
 spi:
