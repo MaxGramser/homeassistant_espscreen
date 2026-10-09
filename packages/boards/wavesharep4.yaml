@@ -42,7 +42,7 @@ substitutions:
   LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, in PSRAM
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
-  BACKLIGHT_FREQUENCY: "100Hz"                  # the backlight's PWM; see the output block
+  BACKLIGHT_FREQUENCY: "200Hz"                  # the backlight's PWM; see the output block
 
 # ============================================================
 # No need to edit below this line.
@@ -79,6 +79,8 @@ output:
     frequency: ${BACKLIGHT_FREQUENCY}
     inverted: true
     max_power: 0.8
+    min_power: 0.15
+    zero_means_zero: true
 
 # ESPHome's own mipi_dsi platform knows the panel by name: the ST7703's init sequence and timings come with it.
 display:
