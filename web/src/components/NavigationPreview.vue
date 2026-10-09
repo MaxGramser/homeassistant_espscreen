@@ -54,7 +54,7 @@ onBeforeUnmount(() => previouslyFocused?.focus());
       <p>{{ t('editor.preview.hint') }}</p>
       <div class="preview-live" :style="{ width: liveWidth }">
         <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows" :pictures="drawsPictures(currentScreen)"
-          :layout="state.document" :controls="controls" @failed="failed = true" />
+          :dark="currentScreen?.settings?.values?.dark_mode === true" :layout="state.document" :controls="controls" @failed="failed = true" />
       </div>
       <SwitchRow v-model="controls" class="preview-controls" :label="t('editor.preview.control')" :description="t('editor.preview.control_hint')" />
     </template>

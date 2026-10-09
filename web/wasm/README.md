@@ -37,6 +37,8 @@ with its own firmware, without touch, a few frames a second while it is in view.
 in the layout editor opens the draft being edited in the firmware, to tap, hold and swipe.
 A tap reaches Home Assistant only after **Taps control devices** is switched on. A board whose
 density or look the compiled preview does not know keeps the editor's drawn mockup.
+In both places the firmware draws the screen in the language ESP Screens builds the screens in (Settings -> Language & region)
+and in its Dark mode: the preview carries every language's texts and picks one while it runs.
 
 In **New screen → Virtual preview**, choose a name and profile, optionally override
 the resolution/grid, then add entities in the regular tile editor and open **Preview**.
@@ -57,6 +59,7 @@ PyYAML and Jinja2, plus Emscripten on PATH:
 ```sh
 PYTHON=/path/to/venv/bin/python sh web/wasm/build.sh
 node web/wasm/test_runtime.mjs
+node web/wasm/test_look.mjs
 node web/wasm/test_profiles.mjs
 node web/wasm/test_images.mjs
 PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs

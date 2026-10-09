@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **The preview speaks your screens' language and follows Dark mode.** The live preview in the editor, on the home page
+  and under Preview, now shows the firmware's own texts in the language chosen under Settings -> Language & region, and
+  draws a screen that has Dark mode on in its dark look, as its glass does. Before, it was always English and light.
 - **Pick several plugins, build once.** Adding a plugin no longer builds the screen at once: the round + on a plugin card
   (or Add in its details) sets it aside in Ready to install, a card in the corner. Add more, on this screen or another,
   then press Install: each screen builds once with all of them. The card says what a plugin still needs, asks once to

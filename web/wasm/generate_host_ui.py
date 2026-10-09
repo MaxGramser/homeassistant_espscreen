@@ -163,8 +163,8 @@ def generate(dpi, look, profile):
                'lv_obj_remove_flag(tile_scroll, LV_OBJ_FLAG_CLICKABLE);',
                f'runtime_tiles::grid_bind(tile_scroll, {values["GRID_MARGIN"]}, {values["PAGE_BAR_H"]});', '}']
     (OUT / 'ui.h').write_text('\n'.join(line.rstrip() for line in '\n'.join(output).splitlines()) + '\n')
-    _, translations = screen_text_gen.definitions('en')
-    (OUT.parent / 'text.h').write_text(translations)
+    # Every language, one chosen while the preview runs (preview_language): the editor shows the screens' own.
+    (OUT.parent / 'text.h').write_text('#include <string>\n' + screen_text_gen.host_definitions())
     print('Generated firmware UI, translations and all', len(fonts), 'ESPHome fonts')
 
 

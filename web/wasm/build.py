@@ -40,7 +40,7 @@ arduino = Path(os.environ['ARDUINO_JSON']) if 'ARDUINO_JSON' in os.environ else 
 run([sys.executable, ROOT / 'web/wasm/generate_host_ui.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_image_decoder.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_renderer_manifest.py', ROOT])
-flags = ['-O2', '-DESP_SCREEN_HOST', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES', '-DGRID_COLS=8', '-DGRID_ROWS=8',
+flags = ['-O2', '-DESP_SCREEN_HOST', '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES', '-DGRID_COLS=8', '-DGRID_ROWS=8',
          '-DLV_CONF_INCLUDE_SIMPLE', '-DLV_FONT_FMT_TXT_LARGE=1']
 for folder in (ROOT / 'web/wasm/host_include', ROOT / 'components/smart_display', ROOT / 'web/wasm',
                lvgl, lvgl / 'src', arduino / 'src', ROOT / 'components'):
@@ -74,7 +74,7 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
     run(['em++', *flags, '-std=c++17', '-c', source_path, '-o', obj])
     compiled.append(obj)
 exports = ['init', 'receive', 'next_action', 'action_response', 'time', 'touch', 'cancel', 'render', 'frame', 'page', 'diagnostics', 'layout']
-exports += ['next_image', 'image_buffer', 'image_ready', 'pictures', 'card', 'card_builds']
+exports += ['next_image', 'image_buffer', 'image_ready', 'pictures', 'card', 'card_builds', 'dark', 'language']
 import json
 out = ROOT / 'web/src/wasm'
 out.mkdir(exist_ok=True)
