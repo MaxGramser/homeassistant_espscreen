@@ -216,6 +216,12 @@ describe("Firmware preview transport", () => {
     state.inventory = { ...state.inventory, language: { setting: "de", effective: "de", ha: "nl", languages: [] } } as any;
     await flushPromises();
     expect(firmware.ccall).toHaveBeenLastCalledWith("preview_language", "number", ["string"], ["de"]);
+    // A new inventory in the same language (every few seconds) draws nothing again.
+    const spoken = () => firmware.ccall.mock.calls.filter(([name]) => name === "preview_language").length;
+    const before = spoken();
+    state.inventory = { ...state.inventory, screens: [] } as any;
+    await flushPromises();
+    expect(spoken()).toBe(before);
   });
 
   it("shows a screen without a chosen language in English and in its light look", async () => {

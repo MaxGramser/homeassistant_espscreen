@@ -328,6 +328,26 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         response = await self.client.post('/api/firmware-preview', json=data, headers=self.headers)
         self.assertEqual(response.status, 400)
 
+    async def test_firmware_preview_takes_what_the_largest_board_takes(self):
+        """A screen with more than the eight pages every screen once had gets its preview (core.PREVIEW_CEILINGS, the
+        ceilings the WASM is built with): nine pages come through, one past the largest board does not."""
+        from core import PREVIEW_CEILINGS
+        imported = await self.client.post('/api/firmware-preview/import', json={
+            'document': {'title': 'Many', 'pages': 1, 'tiles': [{'entity': 'light.a', 'name': 'Desk', 'slot': 0}]},
+            'sourceGrid': {'columns': 2, 'rows': 3}}, headers=self.headers)
+        layout = (await imported.json())['layout']
+        first = layout['pages'][0]
+        def pages(n):
+            bar = {**first['topbar'], 'leading': [], 'trailing': []}
+            return [first] + [{**first, 'id': f'{i:016x}', 'topbar': bar, 'tiles': []} for i in range(1, n)]
+        self.assertGreater(PREVIEW_CEILINGS[0], 9)
+        for count, status in ((9, 200), (PREVIEW_CEILINGS[0], 200), (PREVIEW_CEILINGS[0] + 1, 400)):
+            data = {'shape': {'width': 480, 'height': 480, 'columns': 2, 'rows': 3}, 'layout': {**layout, 'pages': pages(count)}}
+            response = await self.client.post('/api/firmware-preview', json=data, headers=self.headers)
+            self.assertEqual(response.status, status, f'{count} pages: {await response.text()}')
+            if status == 200:
+                self.assertEqual((await response.json())['configuration'][0]['pages'], count)
+
     async def test_preview_policy_allows_wasm_without_javascript_eval(self):
         response = await self.client.get('/')
         policy = response.headers['Content-Security-Policy']

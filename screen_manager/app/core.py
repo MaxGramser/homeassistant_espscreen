@@ -571,6 +571,12 @@ SHAPES = _board_shapes()
 BOARD_KEYS = tuple(sorted((board for board, shape in SHAPES.items() if shape.get('board') == board),
                           key=lambda board: SHAPES[board].get('catalog', {}).get('order', len(SHAPES))))
 DEFAULT_SHAPE = SHAPES.get('cyd', {'width': 320, 'height': 240, 'columns': 2, 'rows': 3})
+# The most pages, tiles and top bar items any board takes (its SCREEN_MAX_* through boards.json): the editor's firmware
+# preview is built with these (web/wasm/build.py) and its endpoint takes a draft up to them, so a screen with more than
+# the eight pages every screen once had is previewed too.
+PREVIEW_CEILINGS = tuple(max([shape.get(key, low) for shape in SHAPES.values()] + [low])
+                         for key, low in (('max_pages', FIRMWARE_MAX_PAGES), ('max_tiles', FIRMWARE_MAX_TILES),
+                                          ('max_bar_items', FIRMWARE_MAX_BAR_ITEMS)))
 
 def firmware_target(board):
     """The firmware a screen of this board is offered (app 0.3.21): what a build of the board makes today, boards.json's

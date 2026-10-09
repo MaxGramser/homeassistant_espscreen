@@ -4234,7 +4234,7 @@ def create_app(manager, development=False):
         return web.json_response({'states': result})
     async def firmware_preview(request):
         """The device's normal packets, for an unsaved layout. No device registration or HA actions."""
-        from core import Grid
+        from core import Grid, PREVIEW_CEILINGS
         data = await request.json()
         if not isinstance(data, dict) or not isinstance(data.get('shape'), dict):
             raise ValueError('A preview shape is required.')
@@ -4243,7 +4243,7 @@ def create_app(manager, development=False):
         if any(type(n) is not int or n < 1 or n > 8 for n in (columns, rows)) or columns * rows > 64:
             raise ValueError('Invalid preview grid.')
         record = {'format': PAGE_FORMAT, 'sourceGrid': {'columns': columns, 'rows': rows},
-                  'layout': validate_document(data.get('layout'), Grid(columns, rows))}
+                  'layout': validate_document(data.get('layout'), Grid(columns, rows, *PREVIEW_CEILINGS))}
         tiles = compile_tiles(record['layout'], grid_of_record(record))
         # The map tiles of the page on the mockup are drawn from these (preview_images), as a screen's from its saved ones.
         manager.preview_tiles = tiles
