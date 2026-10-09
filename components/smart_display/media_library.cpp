@@ -395,17 +395,15 @@ static void draw() {
   art_forget();
   lv_obj_clean(root);
   cell_objs.clear(); pager_objs.clear(); marks.clear();
-  // The effects page's bar, across the whole glass: the page of covers is not capped to a hand's width.
-  auto m = effects_page::screen_metrics();
-  m.width = overlay_card::screen_width();
   const Shape s = shape();
   // The top bar: back (up a folder, or out), the folder's name, the speakers at the right.
   const Tile *t = tile();
   const std::string title = !folder.title.empty() ? folder.title : trail.empty() ? std::string() : trail.back().second;
   const bool with_speakers = t && !t->extra().media_sources.empty();
-  back_obj = effects_page::top_bar(root, m, title.empty() ? std::string(screen_text::tr(screen_text::txt::media_library)) : title, back_event,
-                                   with_speakers ? "\U000F04C3" : nullptr, speaker_event);
-  speaker_obj = with_speakers ? lv_obj_get_child(root, 1) : nullptr;
+  const auto bar = detail_bar::make(root, title.empty() ? std::string(screen_text::tr(screen_text::txt::media_library)) : title,
+                                    {detail_bar::BACK, back_event}, {with_speakers ? "\U000F04C3" : nullptr, speaker_event});
+  back_obj = bar.back;
+  speaker_obj = bar.right[0];
   auto note = [&](uint16_t key) {
     words(root, screen_text::tr(key), name_font(), theme::MUTED, LV_TEXT_ALIGN_CENTER, s.pad, (s.top + s.height) / 2 - lv_font_get_line_height(name_font()), s.width - 2 * s.pad);
   };

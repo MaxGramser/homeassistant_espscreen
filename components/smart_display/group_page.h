@@ -472,7 +472,7 @@ inline void draw() {
   cards.clear();
   const Tile *t = tile();
   const auto em = effects_page::screen_metrics();
-  effects_page::top_bar(root, em, t ? (t->name.empty() ? t->entity : t->name) : entity, back_event);
+  detail_bar::make(root, t ? (t->name.empty() ? t->entity : t->name) : entity, {detail_bar::BACK, back_event});
   if (!t) return;
   const auto &lamps = t->extra().lamps;
   const Layout l = layout(static_cast<int>(lamps.size()), room());

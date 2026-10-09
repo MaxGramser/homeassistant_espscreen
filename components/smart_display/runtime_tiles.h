@@ -27,6 +27,7 @@
 #include "page_header.h"
 #include "tile_palette.h"
 #include "overlay_card.h"
+#include "detail_bar.h"
 #include "tall_tile.h"
 #include "cover_tile.h"
 #include "alert_overlay.h"
@@ -1086,12 +1087,14 @@ inline void setting_event(const std::string &key, int value) {
 namespace runtime_tiles {
 inline lv_obj_t *detail_root=nullptr,*detail_backdrop=nullptr;
 // A place in the open card, in the screen's coordinates: what a finger's point may be compared with.
-// Everything a card draws is placed inside detail_root, which overlay_card::frame puts in the middle
+// Everything a card draws is placed in detail_root's room, which overlay_card::frame puts in the middle
 // of the glass, so the two only agree on a board whose cards fill their screen.
 inline int detail_screen_x(int in_card){
   if(!detail_root)return in_card;
-  lv_area_t a;lv_obj_get_coords(detail_root,&a);return int(a.x1)+in_card;
+  lv_area_t a;lv_obj_get_content_coords(detail_root,&a);return int(a.x1)+in_card;
 }
+// The place of the `i`-th key from the right in an open card's top bar (detail_bar), in the card's own coordinates.
+inline climate_card::Rect bar_key(int i=0){const auto r=detail_bar::right_slot(detail_root,i);return {r.x,r.y,r.w,r.h};}
 // A card that works out its own room says so, and the frame then leaves it where it put itself.
 inline bool detail_placed=false;
 // What the climate card's keys answer with: a mode, a fan or swing choice, the power key and the setpoint's
@@ -2388,9 +2391,11 @@ inline void cover_key_row(const Tile &t,const std::array<tile_controls::Key,3> &
 inline void cover_battery(const Tile &t,bool large,int width){
   if(!std::isfinite(t.battery))return;
   const lv_font_t *font=large?detail_font:(control_font?control_font:detail_font);
-  int bar=ui::px(large?60:40),bar_x=ui::px(large?16:10),bar_y=ui::px(large?16:8),meter_w=ui::px(large?30:22),meter_h=ui::px(large?15:11),gap=ui::px(large?4:2);
+  // In the top bar's place for a key at the right (detail_bar), on the glass's edge.
+  const auto slot=bar_key();
+  int bar=slot.w,bar_y=slot.y,meter_w=ui::px(large?30:22),meter_h=ui::px(large?15:11),gap=ui::px(large?4:2);
   int level=(int)std::lround(std::clamp(t.battery,0.0f,100.0f));
-  int line=lv_font_get_line_height(font),block=meter_h+gap+line,cx=width-bar_x-bar/2,y=bar_y+(bar-block)/2;
+  int line=lv_font_get_line_height(font),block=meter_h+gap+line,cx=slot.x+bar/2,y=bar_y+(bar-block)/2;
   vacuum_battery(detail_root,cx-meter_w/2-1,y,meter_w,meter_h,t.battery);
   detail_text(detail_root,screen_text::percent(level),cx-bar/2-8,y+meter_h+gap,bar+16,font,LV_TEXT_ALIGN_CENTER,theme::MUTED);
 }
@@ -2647,7 +2652,7 @@ inline void render_remote_detail(const Tile &t,bool large,int width,int height,i
   if(!t.extra().keypad.empty()){
     // A remote whose keys Home Assistant's integration names: its keypad, the power key in the top bar.
     if(detail_status){lv_obj_add_flag(detail_status,LV_OBJ_FLAG_HIDDEN);detail_status=nullptr;}
-    auto *power=card_bind(climate_round_key({width-bar_x-bar,bar_y,bar,bar},tile_controls::glyph::POWER,
+    auto *power=card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,
                                             mini_icon_font?mini_icon_font:detail_font,fill,ink,LIGHT_POWER),t,power_key_paint);
     lv_obj_move_to_index(power,2);
     render_remote_keypad(t,large,width,height,top);
@@ -2668,7 +2673,7 @@ inline void render_remote_detail(const Tile &t,bool large,int width,int height,i
   // The activities say what runs and the lit key that it is on, so the card draws no state line of its own. The key
   // stays in the top bar while the rows below it are centred.
   if(detail_status){lv_obj_add_flag(detail_status,LV_OBJ_FLAG_HIDDEN);detail_status=nullptr;}
-  auto *key=card_bind(climate_round_key({width-bar_x-bar,bar_y,bar,bar},tile_controls::glyph::POWER,
+  auto *key=card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,
                                         mini_icon_font?mini_icon_font:detail_font,fill,ink,LIGHT_POWER),t,power_key_paint);
   lv_obj_move_to_index(key,2);
   render_select_detail(t,large,width,height,pad,top,on?t.extra().activity:std::string());
@@ -2700,9 +2705,8 @@ inline light_card::Metrics light_metrics(bool large) {
   m.icon_h=icons?lv_font_get_line_height(icons):ui::px(large?42:28);
   m.touch=ui::touch_min();
   m.pad=overlay_card::pad();
-  m.bar=ui::px(large?60:40);
-  m.bar_x=ui::px(large?16:10);
-  m.bar_y=ui::px(large?16:8);
+  const auto bar=detail_bar::metrics();
+  m.bar=bar.key;m.bar_x=bar.x;m.bar_y=bar.y;
   return m;
 }
 // One column or two: the stack's own height decides, as it does for the thermostat and the blind.
@@ -2805,7 +2809,7 @@ inline void render_light_detail(Tile &t,bool large,int width,int height,int colu
   const bool on=t.state=="on";
   const uint32_t accent=tile_controls::accent(t);
   // The power key, across from the back key: lit while the light or the fan is on.
-  card_bind(climate_round_key({l.power.x,l.power.y,l.power.w,l.power.h},tile_controls::glyph::POWER,mini,
+  card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,
                               on?theme::ACCENT_TINT:theme::KEY,on?theme::ACCENT_ICON:theme::ICON_OFF,LIGHT_POWER),t,power_key_paint);
 
   detail_card(l.card.x,l.card.y,l.card.w,l.card.h);
@@ -2867,7 +2871,8 @@ inline climate_card::Metrics climate_metrics(bool large){
   m.caption_h=lv_font_get_line_height(small);
   m.text_h=lv_font_get_line_height(text);
   m.icon_h=icons?lv_font_get_line_height(icons):m.text_h;
-  m.bar=ui::px(large?60:40);m.bar_x=ui::px(large?16:10);m.bar_y=ui::px(large?16:8);
+  const auto bar=detail_bar::metrics();
+  m.bar=bar.key;m.bar_x=bar.x;m.bar_y=bar.y;
   m.touch=ui::touch_min();
   return m;
 }
@@ -3100,7 +3105,7 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
 
   // The power key, across from the back key: lit while the device runs in any mode.
   climate_card_mode_keys=0;
-  card_bind(climate_round_key(l.power,tile_controls::glyph::POWER,mini,off?theme::KEY:theme::ACCENT_TINT,
+  card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,off?theme::KEY:theme::ACCENT_TINT,
                               off?theme::ICON_OFF:theme::ACCENT_ICON,CLIMATE_POWER),t,climate_power_paint);
   if(!l.status.empty()){
     detail_status=card_bind(detail_text(detail_root,"",l.status.x,l.status.y,l.status.w,text,LV_TEXT_ALIGN_CENTER,theme::MUTED),t,card_status_paint);
@@ -4788,7 +4793,7 @@ inline void media_seek_event(lv_event_t *e){
 // The power key follows Home Assistant's dialog (computeMediaControls): turn off for a player that is on and can be
 // turned off, and for a player whose state is only assumed both keys, whatever it reports. An off player's turn on is
 // the big key in the middle of the card.
-inline void media_top_bar(const Tile &t,lv_obj_t *back,lv_obj_t *heading,int width,int bar,int bar_x,int bar_y){
+inline void media_top_bar(const Tile &t,lv_obj_t *back,lv_obj_t *heading){
   using namespace tile_controls;
   const auto &x=t.extra();
   // The top bar's keys are faint white circles, the same on any colour of the card.
@@ -4800,32 +4805,30 @@ inline void media_top_bar(const Tile &t,lv_obj_t *back,lv_obj_t *heading,int wid
   const bool usable=fresh()&&t.available(),off=media_off(t);
   const bool power_off=usable&&(t.supported&feature::MEDIA_TURN_OFF)&&(!off||x.assumed);
   const bool power_on=usable&&(t.supported&feature::MEDIA_TURN_ON)&&!off&&x.assumed;
-  const int key_gap=ui::px(ui::large()?8:6);
-  int right=0;  // the room the keys at the right take, from the glass's edge
+  int right=0;  // the keys at the right, in the top bar's places for them (detail_bar)
   for(int cmd:{30,24}){
     if(cmd==30?!power_off:!power_on)continue;
-    const media_card::Rect r{width-bar_x-bar-(right?right-bar_x+key_gap:0),bar_y,bar,bar};
-    auto *key=media_key(detail_root,nullptr,r,glyph::STANDBY,icons,false,false,true,cb,(void*)(intptr_t)cmd);
+    const auto slot=detail_bar::right_slot(detail_root,right++);
+    auto *key=media_key(detail_root,nullptr,{slot.x,slot.y,slot.w,slot.h},glyph::STANDBY,icons,false,false,true,cb,(void*)(intptr_t)cmd);
     media_dark_key(key,false,false,g);
-    right=width-r.x;
   }
   media_pill_obj=nullptr;
-  if(right>bar_x+bar){
-    // Two keys at the right: the name keeps clear of both, centred between the back key and them.
-    const int left=bar_x+bar+8,w=std::max(1,width-left-right-8);
-    lv_obj_set_x(heading,left);lv_obj_set_width(heading,w);
-  }
+  // Two keys at the right: the name keeps clear of both.
+  detail_bar::place_title(heading,detail_root,right);
   if(x.media_sources.empty())return;
   lv_obj_add_flag(heading,LV_OBJ_FLAG_HIDDEN);
   // The pill: the speaker icon, the speaker's name (or "Choose a speaker"), the arrow of a menu.
   const lv_font_t *font=control_font?control_font:detail_font;
   const std::string name=x.media_source.empty()?std::string(tr(txt::media_choose_speaker)):x.media_source;
+  const auto home=detail_bar::back_slot(detail_root),edge=detail_bar::right_slot(detail_root,std::max(0,right-1));
+  const int bar=home.h,bar_y=home.y;
   const int h=bar*3/4,inset=ui::px(ui::large()?14:8),icon_w=lv_font_get_line_height(icons),gap=ui::px(ui::large()?6:4);
   // The room between the back key and the keys at the right; the pill stands in the middle of the glass where it fits
   // there, and in the middle of that room when two keys at the right leave too little (a speaker's name stays whole).
-  const int lo=bar_x+bar+gap,hi=width-bar_x-std::max(bar,right-bar_x)-gap,room=std::max(h,hi-lo);
+  const int lo=home.x+home.w+gap,hi=edge.x-gap,room=std::max(h,hi-lo);
   const int w=std::max(h,std::min(room,inset+icon_w+gap+text_width(name,font)+gap+icon_w+inset));
-  const int centred=(width-w)/2,px_left=centred>=lo&&centred+w<=hi?centred:lo+(room-w)/2;
+  const int mid=detail_bar::glass_left(detail_root)+overlay_card::screen_width()/2;
+  const int centred=mid-w/2,px_left=centred>=lo&&centred+w<=hi?centred:lo+(room-w)/2;
   auto *pill=lv_obj_create(detail_root);lv_obj_remove_style_all(pill);
   lv_obj_set_pos(pill,px_left,bar_y+(bar-h)/2);lv_obj_set_size(pill,w,h);
   lv_obj_set_style_radius(pill,LV_RADIUS_CIRCLE,0);lv_obj_add_flag(pill,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(pill,LV_OBJ_FLAG_SCROLLABLE);
@@ -5204,13 +5207,11 @@ inline void show_detail(unsigned index){
   overlay_card::frame(detail_root,kind,columns);
   // The room the frame just gave the card; LVGL reports the new width only after its next layout pass.
   int width=overlay_card::content_width(kind,columns), height=overlay_card::screen_height();int pad=overlay_card::pad(), top=ui::px(large?100:62), gap=ui::px(large?12:6),bh=ui::px(large?58:34),cw=(width-pad*2-gap)/2;
-  // The same top bar as the board's own cards: a round back arrow at the left, the name centred.
-  int bar=ui::px(large?60:40),bar_x=ui::px(large?16:10),bar_y=ui::px(large?16:8);
-  auto *back=detail_button("",bar_x,bar_y,bar,bar,-1);lv_obj_set_style_radius(back,LV_RADIUS_CIRCLE,0);lv_obj_set_style_bg_color(back,theme::color(theme::KEY),0);
-  auto *arrow=lv_obj_get_child(back,0);if(mini_icon_font)lv_obj_set_style_text_font(arrow,mini_icon_font,0);lv_label_set_text(arrow,"\U000F004D");lv_obj_set_size(arrow,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(arrow);
-  const lv_font_t *title_font=watch_font?watch_font:detail_font;
-  auto *heading=detail_label(detail_root,t.name,bar_x+bar+8,bar_y+(bar-lv_font_get_line_height(title_font))/2,width-2*(bar_x+bar+8));
-  lv_obj_set_style_text_font(heading,title_font,0);lv_obj_set_height(heading,lv_font_get_line_height(title_font));lv_obj_set_style_text_align(heading,LV_TEXT_ALIGN_CENTER,0);
+  // The top bar of every page a tap opens (detail_bar): the back key and the name, on the glass's edges.
+  const auto top_bar=detail_bar::make(detail_root,t.name,{detail_bar::BACK,[](lv_event_t *){detail_command(-1);}});
+  auto *back=top_bar.back,*heading=top_bar.title;
+  const auto bm=detail_bar::metrics();
+  int bar=bm.key,bar_x=bm.x,bar_y=bm.y;
   std::string state=card_status(t);
   // The vacuum and history cards draw their own state.
   if(d!="vacuum"&&d!="media_player"&&d!="climate"&&d!="humidifier"&&d!="light"&&d!="fan"&&d!="select"&&d!="input_select"&&!with_history){detail_status=detail_label(detail_root,screen_text::with_unit(state,t.unit),pad,ui::px(large?80:50),width-2*pad);lv_obj_set_style_text_align(detail_status,LV_TEXT_ALIGN_CENTER,0);lv_obj_set_style_text_color(detail_status,theme::color(theme::MUTED),0);card_bind(detail_status,t,detail_status_paint);}
@@ -5232,7 +5233,7 @@ inline void show_detail(unsigned index){
     // "Now playing" (firmware 0.2.64+): the cover, the track, a running progress bar, round keys and the volume row, on
     // its cover's colour (worked out first: the top bar's keys stand on it too).
     render_media_detail(t,index,large,width,height,bar_y+bar+(ui::px(large?8:4)));
-    media_top_bar(t,back,heading,width,bar,bar_x,bar_y);
+    media_top_bar(t,back,heading);
   }else if(d=="light"||d=="fan"){
     render_light_detail(t,large,width,height,columns);
   }else if(d=="weather"){
@@ -10718,12 +10719,9 @@ inline lv_obj_t *view_key(lv_obj_t *parent, int size, const char *glyph, bool ov
   lv_obj_center(label);
   return key;
 }
-// The sizes of the full view's top bar, which the map's keys share.
-struct ViewBar { int key, x, y, gap; };
-inline ViewBar view_bar() {
-  const bool large = ui::large();
-  return {ui::px(large ? 60 : 40), ui::px(large ? 16 : 10), ui::px(large ? 16 : 8), ui::px(large ? 10 : 6)};
-}
+// The sizes of the full view's top bar, every page's (detail_bar), which the map's keys share.
+using ViewBar = detail_bar::Metrics;
+inline ViewBar view_bar() { return detail_bar::metrics(); }
 // A map's own keys on its full view (dev): + and - at the bottom right, as the volume keys stand, and four arrows at
 // the bottom left that move the map a centimetre of glass each. Each tap asks for the picture of the new view at once.
 enum MapKey : int { MK_IN, MK_OUT, MK_UP, MK_DOWN, MK_LEFT, MK_RIGHT };
@@ -10832,11 +10830,11 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
     lv_obj_set_style_arc_color(camera_spinner, theme::color(on_page ? theme::TRACK : theme::CAMERA_TRACK), LV_PART_MAIN);
     lv_obj_center(camera_spinner);
   }
-  // The same top bar as a tile's card: a round back arrow at the left, the name centred.
-  const auto vb = view_bar();
-  const int bar = vb.key, bar_x = vb.x, bar_y = vb.y;
-  camera_back = view_key(camera_root, bar, "\U000F004D", map_index >= 0);
-  lv_obj_set_pos(camera_back, bar_x, bar_y);
+  // The top bar of every page a tap opens (detail_bar), its back key dark over a map.
+  const auto home = detail_bar::back_slot(camera_root);
+  const int bar = home.h, bar_y = home.y;
+  camera_back = view_key(camera_root, bar, detail_bar::BACK, map_index >= 0);
+  lv_obj_set_pos(camera_back, home.x, home.y);
   lv_obj_add_event_cb(camera_back, [](lv_event_t *) {
     // A map focused on someone goes back to everyone first (firmware 0.21.0+); then the key closes the view.
     if (!map_focus.empty() && !map_pinned) { map_focus_on(""); return; }
@@ -10869,8 +10867,7 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
   lv_obj_set_style_text_color(camera_title, theme::color(theme::CAMERA_INK), 0);
   lv_obj_set_style_text_align(camera_title, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(camera_title, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(camera_title, bar_x + bar + 8, bar_y + (bar - (title_font ? lv_font_get_line_height(title_font) : 20)) / 2);
-  lv_obj_set_size(camera_title, width - 2 * (bar_x + bar + 8), title_font ? lv_font_get_line_height(title_font) : 20);
+  detail_bar::place_title(camera_title, camera_root);
   lv_label_set_text(camera_title, name.c_str());
   camera_name = name;
   // A map (firmware 0.21.0+) is light in the light look, where the camera's white name would vanish: its name is the
@@ -10883,7 +10880,7 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
     lv_obj_set_style_radius(camera_title, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_pad_hor(camera_title, ui::px(large ? 22 : 16), 0);
     lv_obj_set_style_pad_ver(camera_title, std::max(0, (bar - line) / 2), 0);
-    lv_obj_set_style_max_width(camera_title, width - 2 * (bar_x + bar + 8), 0);
+    lv_obj_set_style_max_width(camera_title, detail_bar::middle(camera_root).w, 0);
     lv_obj_set_size(camera_title, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_align(camera_title, LV_ALIGN_TOP_MID, 0, bar_y);
     map_keys_create();

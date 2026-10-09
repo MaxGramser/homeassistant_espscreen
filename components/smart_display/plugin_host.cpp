@@ -482,40 +482,16 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   const auto kind = type->wide ? overlay_card::picture : overlay_card::controls;
   overlay_card::frame(open->root, kind, 1);
   const int width = overlay_card::content_width(kind, 1), height = overlay_card::screen_height();
-  // The same top bar as Tessera's cards: a round back key at the left, the title in the middle.
-  const int bar = ::ui::px(large ? 60 : 40), bar_x = ::ui::px(large ? 16 : 10), bar_y = ::ui::px(large ? 16 : 8);
-  auto *back = lv_obj_create(open->root);
-  lv_obj_remove_style_all(back);
-  lv_obj_set_pos(back, bar_x, bar_y);
-  lv_obj_set_size(back, bar, bar);
-  lv_obj_set_style_radius(back, LV_RADIUS_CIRCLE, 0);
-  lv_obj_set_style_bg_opa(back, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(back, theme::color(theme::KEY), 0);
-  lv_obj_set_style_bg_color(back, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
-  lv_obj_add_flag(back, LV_OBJ_FLAG_CLICKABLE);
-  auto *arrow = lv_label_create(back);
-  if (rt::mini_icon_font) lv_obj_set_style_text_font(arrow, rt::mini_icon_font, 0);
-  lv_obj_set_style_text_color(arrow, theme::color(theme::INK), 0);
-  lv_label_set_text(arrow, "\U000F004D");
-  lv_obj_center(arrow);
-  lv_obj_add_event_cb(back, [](lv_event_t *) {
-    if (!shown || !rt::allowed(esphome::millis(), 14, "plugin card back")) return;
-    if (!shown->card->on_back()) close_card();
-  }, LV_EVENT_SHORT_CLICKED, nullptr);
-  const lv_font_t *title_font = rt::watch_font ? rt::watch_font : tessera::ui::font(tessera::Font::TITLE);
+  // The top bar of every page a tap opens (detail_bar): the back key, which a card may take for a step back of its own
+  // (on_back), and the title in the middle.
   std::string words = title;
   if (words.empty() && tile >= 0 && static_cast<size_t>(tile) < rt::model.count) words = rt::model.tiles[tile].name;
-  auto *heading = lv_label_create(open->root);
-  lv_label_set_long_mode(heading, LV_LABEL_LONG_DOT);
-  lv_label_set_text(heading, words.c_str());
-  if (title_font) lv_obj_set_style_text_font(heading, title_font, 0);
-  lv_obj_set_style_text_color(heading, theme::color(theme::INK), 0);
-  lv_obj_set_style_text_align(heading, LV_TEXT_ALIGN_CENTER, 0);
-  const int line = title_font ? lv_font_get_line_height(title_font) : bar;
-  lv_obj_set_pos(heading, bar_x + bar + 8, bar_y + (bar - line) / 2);
-  lv_obj_set_size(heading, std::max(1, width - 2 * (bar_x + bar + 8)), line);
+  detail_bar::make(open->root, words, {detail_bar::BACK, [](lv_event_t *) {
+    if (!shown || !rt::allowed(esphome::millis(), 14, "plugin card back")) return;
+    if (!shown->card->on_back()) close_card();
+  }});
   // The card's own room, under the bar, with the card's padding at the sides and the foot.
-  const int pad = overlay_card::pad(), top = bar_y + bar + ::ui::px(large ? 12 : 6);
+  const int pad = overlay_card::pad(), top = detail_bar::bottom() + ::ui::px(large ? 12 : 6);
   auto *area = lv_obj_create(open->root);
   lv_obj_remove_style_all(area);
   lv_obj_remove_flag(area, LV_OBJ_FLAG_SCROLLABLE);

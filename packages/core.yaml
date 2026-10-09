@@ -152,6 +152,9 @@ esphome:
           // The screensaver (firmware 0.29.0+): a new word from ESP Screens in standby sets the level and the glass again.
           runtime_tiles::saver_changed = []() { id(apply_screen_settings).execute(); };
           runtime_tiles::mini_icon_font = id(materialdesign_icons_mini)->get_lv_font();
+          // The top bar of every page a tap opens (detail_bar.h): its keys' glyphs and the page's name.
+          detail_bar::icon_font = id(materialdesign_icons_mini)->get_lv_font();
+          detail_bar::title_font = id(headline)->get_lv_font();
           runtime_tiles::big_icon_font = id(materialdesign_icons_big)->get_lv_font();
           runtime_tiles::control_font = id(sublabel_big)->get_lv_font();
           runtime_tiles::small_font = id(sublabel)->get_lv_font();

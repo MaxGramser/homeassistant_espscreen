@@ -57,13 +57,16 @@ inline int columns(int need_height, int min_column) {
   return screen_width() >= 2 * min_column + ui::column_gap() ? 2 : 1;
 }
 
-// Give a card's root its room and put it in the middle of the glass, left to right.
+// Give a card's root its room and put it in the middle of the glass, left to right. The root covers the glass and its
+// padding makes the room: what the card draws stands in the room, while the top bar (detail_bar) reaches past the
+// padding to the glass's own edges, so its keys stay put whatever width the card under it has.
 inline void frame(lv_obj_t *root, Kind kind = controls, int columns = 1) {
   if (!root) return;
-  const int width = content_width(kind, columns);
-  lv_obj_set_width(root, width);
-  lv_obj_set_x(root, (screen_width() - width) / 2);
-  lv_obj_set_y(root, 0);
+  const int side = (screen_width() - content_width(kind, columns)) / 2;
+  lv_obj_set_pos(root, 0, 0);
+  lv_obj_set_width(root, screen_width());
+  lv_obj_set_style_pad_left(root, side, 0);
+  lv_obj_set_style_pad_right(root, side, 0);
 }
 
 // Once a card is drawn, put its content in the middle of the glass from top to bottom as well. The first

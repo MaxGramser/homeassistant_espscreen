@@ -8,6 +8,10 @@
 #include <vector>
 #include "runtime_model.h"
 #include "optimistic.h"
+#ifdef EFFECTS_PAGE_TEST
+#define DETAIL_BAR_TEST
+#endif
+#include "detail_bar.h"
 #include "screen_text.h"
 #include "tile_catalogue.h"
 
@@ -95,6 +99,9 @@ inline Metrics metrics(int width, int height) {
     m.pad = ui::px(12); m.bar_y = ui::px(8); m.bar = ui::px(40); m.title_y = ui::px(21); m.rows_y = ui::px(52); m.row_h = ui::px(34); m.inset = ui::px(10); m.icon = ui::px(18); m.gap = ui::px(6);
     m.number_h = ui::px(44); m.track_h = ui::px(14); m.number_inset = ui::px(9); m.roller_row_h = ui::px(30); m.roller_pad = ui::px(5); m.radius = ui::px(10); m.knob = ui::px(3);
   }
+  // The top bar is every page's (detail_bar): what stands under it starts from its size.
+  const auto bar = detail_bar::metrics();
+  m.bar = bar.key; m.bar_y = bar.y;
   return m;
 }
 
@@ -268,18 +275,6 @@ inline lv_obj_t *round_key(lv_obj_t *parent, int x, int y, int size, const char 
   lv_obj_add_event_cb(key, handler, LV_EVENT_SHORT_CLICKED, nullptr);
   return key;
 }
-// The same top bar as every card: a round back key and the name in the middle, and on the picker the check key at
-// the top right, where the colour card has its sparkles key.
-inline lv_obj_t *top_bar(lv_obj_t *parent, const Metrics &m, const std::string &title, lv_event_cb_t back,
-                         const char *right_glyph = nullptr, lv_event_cb_t right = nullptr) {
-  auto *key = round_key(parent, m.pad, m.bar_y, m.bar, "\U000F004D", back);
-  if (right_glyph && right) round_key(parent, m.width - m.pad - m.bar, m.bar_y, m.bar, right_glyph, right);
-  const lv_font_t *heading = title_font ? title_font : row_font;
-  auto *label = text(parent, title, heading, theme::INK, LV_TEXT_ALIGN_CENTER);
-  lv_obj_set_width(label, m.width - 2 * (m.pad + m.bar + 8));
-  lv_obj_set_pos(label, m.pad + m.bar + 8, m.bar_y + (m.bar - lv_font_get_line_height(heading)) / 2);
-  return key;
-}
 inline lv_obj_t *page_root() {
   auto *obj = lv_obj_create(lv_screen_active());
   lv_obj_remove_style_all(obj);
@@ -390,7 +385,9 @@ inline void open_picker(int index) {
   const auto &row = rows[index];
   const Metrics m = screen_metrics();
   picker = page_root();
-  top_bar(picker, m, row.name, picker_back, "\U000F012C", confirm_event);
+  // The same top bar as every page (detail_bar), with the check key at the top right, where the colour card has its
+  // sparkles key.
+  detail_bar::make(picker, row.name, {detail_bar::BACK, picker_back}, {"\U000F012C", confirm_event});
   const int w = m.width - 2 * m.pad, h = m.roller_rows * m.roller_row_h + 2 * m.roller_pad;
   // The picker stands where the page's own block stands: what is left over goes half above and half below,
   // and only when more than a finger is left (place(), overlay_card::centre).
@@ -436,7 +433,7 @@ inline void draw() {
   rows.clear(); numbers.clear();
   const Tile *t = tile();
   const Metrics m = screen_metrics();
-  top_bar(root, m, t ? (t->name.empty() ? t->entity : t->name) : entity, back_event);
+  detail_bar::make(root, t ? (t->name.empty() ? t->entity : t->name) : entity, {detail_bar::BACK, back_event});
   const int w = m.width - 2 * m.pad;
   // The rows: the light's effect first, then the selects of its device.
   struct Spec { std::string entity, name, current, fallback; uint32_t icon; bool light; };
