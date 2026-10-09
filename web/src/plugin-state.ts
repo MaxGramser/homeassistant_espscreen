@@ -18,6 +18,8 @@ export const plugins = reactive({
   // What a person filled in when adding a plugin (inputs) and which optional parts are on, per screen node and plugin.
   // A secret is kept by the add-on and never comes back to the page; here it only says that one is set.
   values: {} as Record<string, Record<string, Record<string, string>>>,
+  // A plugin whose details the screen's Plugins tab opens next (Screen settings sends a person there).
+  focus: null as string | null,
   parts: {} as Record<string, Record<string, string[]>>,
   attached: {} as Record<string, boolean>,
   // From the add-on: which secrets are set (never their values), the plugins file of a screen with its own YAML, and the
@@ -181,6 +183,20 @@ export const copyAttach = (screen: Screen) => copyText(attachLine(screen), undef
 // the commit of its release, so the page never writes one of its own.
 export const pluginsFile = (screen: Screen) => plugins.files[screen.id]?.content || "";
 // Whether everything a plugin asks for is filled in on these screens: the button waits until it is.
+// Whether what is filled in for a plugin this screen runs differs from what its build has: then "Save and build" applies
+// it. A secret counts once something new is typed; the add-on never sends one back.
+export function setupChanged(screen: Screen, plugin: Plugin) {
+  const have = installedOn(screen, plugin.id);
+  if (!have) return false;
+  const node = screen.node || screen.id;
+  const drafted = plugins.values[node]?.[plugin.id] || {};
+  const values = (plugin.inputs || []).some((input) => input.id in drafted && (input.kind === "secret"
+    ? drafted[input.id].trim() !== "" : drafted[input.id].trim() !== (have.values?.[input.id] ?? "")));
+  const parts = plugins.parts[node]?.[plugin.id];
+  return values || (parts !== undefined && [...parts].sort().join() !== [...(have.parts || [])].sort().join());
+}
+// Open a plugin's details on the screen's Plugins tab: from Screen settings, where its settings used to be.
+export function openPluginOn(id: string) { plugins.focus = id; state.tab = "plugins"; }
 export const setupReady = (plugin: Plugin, screens: Screen[]) =>
   screens.every((screen) => (plugin.inputs || []).every((input) => valueOf(screen, plugin, input.id).trim() !== ""
     || (input.kind === "secret" && plugins.secrets[plugin.id]?.[input.id])));
@@ -255,6 +271,13 @@ async function change(screen: Screen, body: object) {
     `screens/${encodeURIComponent(screen.id)}/plugins`, "POST", body);
   if (result?.own_yaml) plugins.files[screen.id] = { file: result.file || "", content: result.content || "", line: result.line || "" };
 }
+// What was filled in for a plugin on a screen, once the add-on has it: the build's own values show from then on, and a
+// secret, which never comes back, no longer counts as a change.
+export function forgetDrafts(screen: Screen, plugin: Plugin) {
+  const node = screen.node || screen.id;
+  delete plugins.values[node]?.[plugin.id];
+  delete plugins.parts[node]?.[plugin.id];
+}
 export async function addPlugin(screens: Screen[], plugin: Plugin) {
   if (!screens.length) return;
   // One build at a time: the add-on builds the screens one after the other as each build ends.
@@ -262,6 +285,7 @@ export async function addPlugin(screens: Screen[], plugin: Plugin) {
     try {
       sending[screen.id] = [plugin.id];
       await change(screen, { add: [addition(screen, plugin)] });
+      forgetDrafts(screen, plugin);
     } catch (error: any) {
       toast(error.message);
       break;

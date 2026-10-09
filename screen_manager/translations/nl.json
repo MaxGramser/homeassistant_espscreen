@@ -2175,6 +2175,10 @@
         "item_look": "Toont",
         "item_hint": "Zwart-wit op de screensaver, welke kleur de entiteit ook heeft.",
         "items_add_title": "Aan de klok toevoegen"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "De instellingen van elke plugin staan in de details op het tabblad Plugins."
       }
     },
     "update": {
@@ -2997,7 +3001,7 @@
         "card": "“{name}”, een eigen scherm op het glas",
         "bar": "Bovenbalk-item “{name}”",
         "settings": "Instellingen",
-        "settings_where": "Op de instellingenpagina van het scherm en onder Scherminstellingen"
+        "settings_where": "Op de instellingenpagina van het scherm en hier, in de details op het tabblad Plugins"
       },
       "may": {
         "title": "Wat hij mag",
@@ -3136,6 +3140,18 @@
           "text": "Werkt hij goed? Meld hem aan voor de community, dan staat hij hier bij iedereen, rechtstreeks uit jouw repository. Jij blijft de maker.",
           "action": "Aanmelden"
         }
+      },
+      "settings": {
+        "title": "Instellingen",
+        "live": "Op dit scherm",
+        "live_note": "Een wijziging werkt meteen.",
+        "shared": "Voor alle schermen",
+        "shared_note": "Eén keer ingevuld, voor elk scherm met deze plugin.",
+        "build": "Bij het bouwen",
+        "build_note": "Een wijziging bouwt {screen} opnieuw.",
+        "save_build": "Opslaan en bouwen",
+        "run": "Uitvoeren",
+        "too_short": "Minstens {n} tekens."
       }
     },
     "plugin_tile": {

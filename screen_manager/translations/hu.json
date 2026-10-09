@@ -1730,7 +1730,7 @@
         "card": "„{name}”, saját nézet a kijelzőn",
         "bar": "„{name}” elem a felső sávban",
         "settings": "Beállítások",
-        "settings_where": "A kijelző beállításoldalán és a Kijelzőbeállítások alatt"
+        "settings_where": "A kijelző beállításoldalán és itt, a Bővítmények lap részleteiben"
       },
       "may": {
         "title": "Mit tehet",
@@ -1869,6 +1869,18 @@
           "text": "Jól működik? Jelentkeztesd a közösségi listára, és itt mindenkinél megjelenik, közvetlenül a tárolódból. Te maradsz a készítője.",
           "action": "Jelentkezés"
         }
+      },
+      "settings": {
+        "title": "Beállítások",
+        "live": "Ezen a kijelzőn",
+        "live_note": "A módosítás azonnal érvényes.",
+        "shared": "Minden kijelzőre",
+        "shared_note": "Egyszer kell kitölteni, minden kijelzőhöz, amelyen ez a bővítmény fut.",
+        "build": "Fordításkor",
+        "build_note": "A módosítás újrafordítja: {screen}.",
+        "save_build": "Mentés és fordítás",
+        "run": "Futtatás",
+        "too_short": "Legalább {n} karakter."
       }
     },
     "plugin_tile": {
@@ -2417,6 +2429,10 @@
         "item_look": "Mutatja",
         "item_hint": "Fekete-fehéren a képernyőkímélőn, az entitás színétől függetlenül.",
         "items_add_title": "Hozzáadás az órához"
+      },
+      "plugins": {
+        "title": "Bővítmények",
+        "note": "Minden bővítmény beállításai a Bővítmények lapon, a részleteiben vannak."
       }
     },
     "update": {

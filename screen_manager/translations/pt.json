@@ -1730,7 +1730,7 @@
         "card": "«{name}», uma vista própria no ecrã",
         "bar": "Elemento da barra superior «{name}»",
         "settings": "Definições",
-        "settings_where": "Na página de definições do ecrã e em Definições do ecrã"
+        "settings_where": "Na página de definições do ecrã e aqui, nos detalhes do separador Plugins"
       },
       "may": {
         "title": "O que pode fazer",
@@ -1869,6 +1869,18 @@
           "text": "Funciona bem? Inscreva-o na comunidade e aparece aqui para todos, diretamente do seu repositório. Continua a ser o autor.",
           "action": "Inscrever"
         }
+      },
+      "settings": {
+        "title": "Definições",
+        "live": "Neste ecrã",
+        "live_note": "Uma alteração aplica-se logo.",
+        "shared": "Para todos os ecrãs",
+        "shared_note": "Preenchido uma vez, para cada ecrã com este plugin.",
+        "build": "Ao compilar",
+        "build_note": "Uma alteração volta a compilar {screen}.",
+        "save_build": "Guardar e compilar",
+        "run": "Executar",
+        "too_short": "Pelo menos {n} caracteres."
       }
     },
     "plugin_tile": {
@@ -2417,6 +2429,10 @@
         "item_look": "Mostra",
         "item_hint": "A preto e branco no protetor de ecrã, seja qual for a cor da entidade.",
         "items_add_title": "Adicionar ao relógio"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "As definições de cada plugin estão nos detalhes, no separador Plugins."
       }
     },
     "update": {

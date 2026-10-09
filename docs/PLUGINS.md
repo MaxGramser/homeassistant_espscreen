@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on dev while the plugin API is 0.x (the plugin API is 0.5 now): in an app added from the `#dev` URL, a
+Plugins are on dev while the plugin API is 0.x (the plugin API is 0.6 now): in an app added from the `#dev` URL, a
 local copy of the app, and the editor's development server (`core.plugins_enabled()`). The stable app has no Plugins
 page, no routes and no loop.
 
@@ -123,6 +123,29 @@ repository's `docs/FETCH.md`.
   `read_entities` are declarations the screen does not check: code built into the firmware can do what the firmware
   can. The editor says so (`editor.plugins.warning`); never write as if the screen enforced them.
 
+## A plugin's settings on a screen
+
+Everything a person sets for a plugin on a screen is in one place: the plugin's details on the screen's Plugins tab
+(`PluginDetail.vue`, section "Settings"), in three groups by what a change does. Screen settings only links there.
+
+| Group | What | What a change does | Code |
+|---|---|---|---|
+| On this screen | The manifest's `settings`: ESPHome entities of the plugin's `plugin.yaml` on the screen's device | Takes effect at once, through Home Assistant (`set_setting`) | `PluginSettings.vue`, `Plugins.settings_for` |
+| For every screen | `inputs` with `scope: all` | A secret stays in the app (`plugin_secrets.json`); a value goes into each screen's next build | `PluginSetup.vue only="shared"` |
+| When building | `inputs` with `scope: screen` and `parts` | Builds the screen again: "Save and build" is the same `apply` as adding, and only lights up when something differs from the build (`setupChanged`) | `PluginSetup.vue only="screen"` |
+
+**How a setting finds its entity.** A setting's `key` is the entity's name in `plugin.yaml` as ESPHome writes it in an
+id: "Tap sound" is `tap_sound` (`Plugins.object_id`, ESPHome's `snake_case` then `sanitize`). The app looks in Home
+Assistant's entity registry for an `esphome` entity of the screen's device whose `original_name` gives that key, so a
+rename in Home Assistant keeps the link. It never uses `unique_id`: its shape changed with the ESPHome integration's
+versions (now `mac/0/switch/Tap sound`). An entity without a registry entry is found by the end of its entity id, as
+before plugin API 0.6, so older plugins keep working.
+
+**The kinds.** The entity's domain decides the row: a switch, a number with its range and unit, a select (buttons up to
+five options, a dropdown from six on, at most 48), a text (`text.set_value`, within the entity's min and max length,
+hidden when its mode is password) and a button (`button.press`). A button's `status` names a text sensor the row shows
+beside it, read again a few times after a press, so a test can say how it went. A status is only shown, never set.
+
 ## What a plugin can add
 
 | Part | Firmware | Add-on | Editor |
@@ -132,7 +155,7 @@ repository's `docs/FETCH.md`.
 | A card | `Card`, `add_card`, `open_card`; closed by `hide_detail` | nothing | nothing |
 | A tap action | `add_tap_action`; `event()` runs a tile's `plugin:` tap | `validate_layout` takes a `plugin:` tap | the tile inspector's tap choices |
 | A top bar item | `add_bar_item`; `header_bar::Kind::plugin` | `validate_header` type `plugin`, sent to a screen whose hello says `plugins` | "From plugins" in Top bar, Add |
-| Settings rows | `settings(SettingsPage&)`; `settings_screen::plugin_pages` | `Plugins.settings_for`, `set_setting`: the manifest's `settings`, entities of the screen's own device | under Screen settings (`PluginSettings.vue`) |
+| Settings rows | `settings(SettingsPage&)`; `settings_screen::plugin_pages` | `Plugins.settings_for`, `set_setting`: the manifest's `settings` (switch, number, select, text, button with its `status`), entities of the screen's own device found in the entity registry (`_setting_entities`) | in the plugin's details on the screen's Plugins tab (`PluginSettings.vue`), with its inputs and parts; Screen settings links there |
 | A question to Home Assistant | `tessera::send`, `on_message` (op `plugin`) | `Plugins.answer`: only `permissions.ha_commands`, logged; an answer the manifest's `answers` maps goes as its fields, the rest as it came; both bounded (`bounded`, 3.2 KB, by bytes) | the commands under "What it may do" |
 | The moments | `on_ready`, `on_interval` (every 250 ms; `on_tick` before 0.4), `on_standby`, `before_update`, `on_cards_closed`, `on_alert`, `on_touch` (0.3: every tap `screen_input::TouchGuard` takes, through `screen_hooks::touched()`) | | |
 | A board's own hardware | the plugin's `plugin.yaml` (audio codecs, a relay), its `boards` in the manifest | offered only to the screens of those boards | the Plugins page says which boards |

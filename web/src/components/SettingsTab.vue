@@ -6,13 +6,23 @@ import { t } from "../i18n";
 import { glyph } from "../model/topbar";
 import FeedbackPanel from "./FeedbackPanel.vue";
 import ScreensaverCard from "./ScreensaverCard.vue";
-import PluginSettings from "./PluginSettings.vue";
+import Icon from "./ui/Icon.vue";
+import { installedOn, openPluginOn, plugins, testsOn } from "../plugin-state";
+import { text } from "../model/plugins";
 import {
   calibrateTouch, choiceText, currentScreen, pageReachWarning, SETTING_GROUPS, setSetting, settingLabel, settingText, settingValues, settingsView, state, steppedSetting,
   type SettingRow,
 } from "../store";
 
 const view = computed(() => settingsView());
+// The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).
+const pluginsWithSettings = computed(() => {
+  const screen = currentScreen.value;
+  if (!screen || screen.virtual) return [];
+  return [...plugins.index.filter((plugin) => installedOn(screen, plugin.id)), ...testsOn(screen)]
+    .filter((plugin, i, all) => all.findIndex((other) => other.id === plugin.id) === i)
+    .filter((plugin) => plugin.settings?.length || (plugin.inputs || []).length || (plugin.parts || []).length);
+});
 // The choices of a row: the rotation offers the angles this screen's glass allows (the manager says which, app
 // 0.2.94); an add-on from before said nothing, and then the four of the Guition stand.
 const optionsOf = (row: SettingRow) => (row.key === "rotation" && view.value?.rotations?.length ? view.value.rotations : row.options!);
@@ -108,8 +118,16 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
       </template>
       <!-- This screen: the group the screen's own page keeps its actions in. Only what this screen can do shows up,
            so a capacitive panel has no card here at all. -->
-      <!-- The plugins' own settings (docs/PLUGINS.md), after the screen's. -->
-      <PluginSettings />
+      <!-- The plugins' own settings (docs/PLUGINS.md) are in each plugin's details on the Plugins tab; this says where. -->
+      <section v-if="pluginsWithSettings.length" class="set-card" id="settings-plugins">
+        <h4><span class="mdi">{{ glyph("F0A66") }}</span>{{ t("editor.screen_settings.plugins.title") }}</h4>
+        <p class="hint">{{ t("editor.screen_settings.plugins.note") }}</p>
+        <div class="s-action plugin-links">
+          <button v-for="plugin in pluginsWithSettings" :key="plugin.id" type="button" class="btn quiet" :data-plugin="plugin.id" @click="openPluginOn(plugin.id)">
+            {{ text(plugin.name) }}<Icon name="arrow-right" />
+          </button>
+        </div>
+      </section>
       <section v-if="view.calibrate" class="set-card" id="settings-this-screen">
         <h4><span class="mdi">{{ glyph("F02FD") }}</span>{{ t("editor.screen_settings.groups.this_screen") }}</h4>
         <div class="s-action">

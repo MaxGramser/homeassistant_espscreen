@@ -1730,7 +1730,7 @@
         "card": "„{name}”, własny widok na ekranie",
         "bar": "Element górnego paska „{name}”",
         "settings": "Ustawienia",
-        "settings_where": "Na stronie ustawień ekranu i w Ustawieniach ekranu"
+        "settings_where": "Na stronie ustawień ekranu i tutaj, w szczegółach na karcie Wtyczki"
       },
       "may": {
         "title": "Co może robić",
@@ -1869,6 +1869,18 @@
           "text": "Działa dobrze? Zgłoś ją do społeczności, a pojawi się tu u wszystkich, prosto z Twojego repozytorium. Pozostajesz jej autorem.",
           "action": "Zgłoś"
         }
+      },
+      "settings": {
+        "title": "Ustawienia",
+        "live": "Na tym ekranie",
+        "live_note": "Zmiana działa od razu.",
+        "shared": "Dla wszystkich ekranów",
+        "shared_note": "Wypełniane raz, dla każdego ekranu z tą wtyczką.",
+        "build": "Przy kompilacji",
+        "build_note": "Zmiana kompiluje {screen} ponownie.",
+        "save_build": "Zapisz i skompiluj",
+        "run": "Uruchom",
+        "too_short": "Co najmniej {n} znaków."
       }
     },
     "plugin_tile": {
@@ -2417,6 +2429,10 @@
         "item_look": "Pokazuje",
         "item_hint": "Czarno-biało na wygaszaczu, niezależnie od koloru encji.",
         "items_add_title": "Dodaj do zegara"
+      },
+      "plugins": {
+        "title": "Wtyczki",
+        "note": "Ustawienia każdej wtyczki są w jej szczegółach na karcie Wtyczki."
       }
     },
     "update": {

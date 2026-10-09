@@ -1730,7 +1730,7 @@
         "card": "« {name} », sa propre vue sur l'écran",
         "bar": "Élément de la barre supérieure « {name} »",
         "settings": "Paramètres",
-        "settings_where": "Sur la page des paramètres de l'écran et sous Paramètres de l'écran"
+        "settings_where": "Sur la page de réglages de l’écran et ici, dans ses détails de l’onglet Plugins"
       },
       "may": {
         "title": "Ce qu'il peut faire",
@@ -1869,6 +1869,18 @@
           "text": "Il fonctionne bien ? Inscrivez-le dans la communauté et il apparaît ici pour tout le monde, directement depuis votre dépôt. Vous en restez l’auteur.",
           "action": "Inscrire"
         }
+      },
+      "settings": {
+        "title": "Réglages",
+        "live": "Sur cet écran",
+        "live_note": "Une modification s’applique tout de suite.",
+        "shared": "Pour tous les écrans",
+        "shared_note": "Rempli une fois, pour chaque écran avec ce plugin.",
+        "build": "À la compilation",
+        "build_note": "Une modification recompile {screen}.",
+        "save_build": "Enregistrer et compiler",
+        "run": "Lancer",
+        "too_short": "Au moins {n} caractères."
       }
     },
     "plugin_tile": {
@@ -2417,6 +2429,10 @@
         "item_look": "Affiche",
         "item_hint": "Noir et blanc sur l'économiseur d'écran, quelle que soit la couleur de l'entité.",
         "items_add_title": "Ajouter à l'horloge"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "Les réglages de chaque plugin sont dans ses détails, dans l’onglet Plugins."
       }
     },
     "update": {

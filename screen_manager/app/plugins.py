@@ -903,26 +903,77 @@ class Plugins:
             out.append(item)
         return {'items': out, **({'stale': True} if data.get('stale') else {})}
 
-    # ---- A plugin's settings under Screen settings ----
+    # ---- A plugin's settings, in its details on the screen's Plugins tab ----
 
-    SETTING_DOMAINS = ('switch', 'number', 'select')
+    SETTING_DOMAINS = ('switch', 'number', 'select', 'text', 'button')
+    STATUS_DOMAINS = ('sensor',)       # an ESPHome text sensor is a sensor in Home Assistant
+
+    @staticmethod
+    def object_id(name):
+        """An entity's name as ESPHome writes it in an id ("Tap sound" is tap_sound): its snake_case and sanitize."""
+        return re.sub(r'[^a-zA-Z0-9_-]', '_', str(name).replace(' ', '_').lower())
 
     def _setting_entities(self, screen, entry):
-        """{key: entity_id} of a plugin's settings on this screen: entities of its device whose id ends in _<key>."""
+        """{key: entity_id} of a plugin's settings and their status sensors on this screen. Found in Home Assistant's
+        entity registry by the name the entity has in plugin.yaml (`original_name`, which a rename in Home Assistant
+        leaves alone) on the screen's own device; an entity without one is found by the end of its entity id, as before
+        plugin API 0.6. Never by `unique_id`, whose shape changes with the ESPHome integration's versions."""
         device = (screen or {}).get('device_id')
-        registry = getattr(self.manager.ha, 'registry', None) or []
-        found = {}
+        registry = [item for item in getattr(self.manager.ha, 'registry', None) or []
+                    if isinstance(item, dict) and isinstance(item.get('entity_id'), str) and device
+                    and item.get('device_id') == device]
+        wanted = {}
         for setting in entry.manifest['settings']:
-            for item in registry:
-                eid = item.get('entity_id') if isinstance(item, dict) else None
-                if (isinstance(eid, str) and item.get('device_id') == device and eid.split('.')[0] in self.SETTING_DOMAINS
-                        and eid.endswith('_' + setting['key'])):
-                    found[setting['key']] = eid
+            wanted[setting['key']] = self.SETTING_DOMAINS
+            if setting.get('status'):
+                wanted[setting['status']] = self.STATUS_DOMAINS
+        found = {}
+        for key, domains in wanted.items():
+            ours = [item for item in registry if item['entity_id'].split('.')[0] in domains]
+            by_name = [item['entity_id'] for item in ours
+                       if item.get('platform') == 'esphome' and item.get('original_name')
+                       and self.object_id(item['original_name']) == key]
+            by_end = [item['entity_id'] for item in ours if item['entity_id'].endswith('_' + key)]
+            if by_name or by_end:
+                found[key] = (by_name or by_end)[0]
         return found
 
+    def setting_row(self, setting, entities, states, entry, online):
+        """One row as the editor draws it: {key, entity, kind, label, hint, value, available} and what its kind needs."""
+        eid = entities.get(setting['key'])
+        state = states.get(eid) or {} if eid else {}
+        attrs = state.get('attributes') or {}
+        kind = eid.split('.')[0] if eid else None
+        value = state.get('state')
+        # A button's state is when it was last pressed: it is there when it is not unavailable.
+        available = bool(eid) and value not in (None, 'unavailable') and (kind == 'button' or value != 'unknown') and online
+        row = {'key': setting['key'], 'entity': eid, 'kind': kind,
+               'label': entry.texts.get(setting['label']) or {'en': setting['label']},
+               'hint': entry.texts.get(setting['hint']) if setting['hint'] else None, 'available': bool(available)}
+        if kind == 'switch':
+            row['value'] = value == 'on'
+        elif kind == 'number':
+            try:
+                row['value'] = float(value)
+            except (TypeError, ValueError):
+                row['value'] = None
+            row.update(min=attrs.get('min'), max=attrs.get('max'), step=attrs.get('step') or 1,
+                       unit=attrs.get('unit_of_measurement') or '')
+        elif kind == 'select':
+            row.update(value=value, options=[o for o in attrs.get('options') or [] if isinstance(o, str)][:48])
+        elif kind == 'text':
+            row.update(value=value if value not in (None, 'unknown', 'unavailable') else '',
+                       min=attrs.get('min') or 0, max=min(int(attrs.get('max') or 255), 255),
+                       password=attrs.get('mode') == 'password')
+        elif kind == 'button' and setting.get('status'):
+            status = states.get(entities.get(setting['status'])) or {}
+            words = status.get('state')
+            row['status'] = core.short(words, 64) if words not in (None, '', 'unknown', 'unavailable') else None
+        return row
+
     def settings_for(self, inbox, language='en'):
-        """The plugins' settings of one screen, as the editor draws them: [{plugin, name, rows: [{entity, kind, label,
-        hint, value, min, max, step, options, available}]}]."""
+        """The plugins' settings of one screen, as the editor draws them: [{plugin, name, rows: [{key, entity, kind,
+        label, hint, value, available, ...}]}]; a button's row has its `status`, a text's `max` and `password`."""
         screen = self.manager.screen(inbox)
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
@@ -933,51 +984,38 @@ class Plugins:
             if not entry or not entry.manifest['settings']:
                 continue
             entities = self._setting_entities(screen, entry)
-            rows = []
-            for setting in entry.manifest['settings']:
-                eid = entities.get(setting['key'])
-                state = states.get(eid) or {} if eid else {}
-                attrs = state.get('attributes') or {}
-                kind = eid.split('.')[0] if eid else None
-                value = state.get('state')
-                available = bool(eid) and value not in (None, 'unavailable', 'unknown') and screen.get('online')
-                row = {'entity': eid, 'kind': kind, 'label': entry.texts.get(setting['label']) or {'en': setting['label']},
-                       'hint': entry.texts.get(setting['hint']) if setting['hint'] else None, 'available': bool(available)}
-                if kind == 'switch':
-                    row['value'] = value == 'on'
-                elif kind == 'number':
-                    try:
-                        row['value'] = float(value)
-                    except (TypeError, ValueError):
-                        row['value'] = None
-                    row.update(min=attrs.get('min'), max=attrs.get('max'), step=attrs.get('step') or 1,
-                               unit=attrs.get('unit_of_measurement') or '')
-                elif kind == 'select':
-                    row.update(value=value, options=[o for o in attrs.get('options') or [] if isinstance(o, str)][:16])
-                rows.append(row)
+            rows = [self.setting_row(setting, entities, states, entry, screen.get('online'))
+                    for setting in entry.manifest['settings']]
             out.append({'plugin': entry.id, 'name': entry.texts.get('name') or {'en': entry.id}, 'rows': rows})
         return out
 
     async def set_setting(self, inbox, entity, value):
         """Change one plugin setting of this screen through Home Assistant: only an entity a plugin on the screen names
-        in its manifest's `settings`, of that screen's own device."""
+        in its manifest's `settings`, of that screen's own device. A button is pressed (value true)."""
         screen = self.manager.screen(inbox)
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
-        allowed = {}
+        allowed = set()
         for record in self.store.of(screen['id']):
             entry = self.entry_for(record)
             if entry:
-                allowed.update({eid: key for key, eid in self._setting_entities(screen, entry).items()})
+                keys = {setting['key'] for setting in entry.manifest['settings']}
+                allowed |= {eid for key, eid in self._setting_entities(screen, entry).items() if key in keys}
         if entity not in allowed:
             raise ValueError(t('addon.errors.plugins.request'))
         domain = entity.split('.')[0]
+        attrs = ((getattr(self.manager.ha, 'states', {}) or {}).get(entity) or {}).get('attributes') or {}
         if domain == 'switch' and isinstance(value, bool):
             await self.manager.ha.call_service('switch', 'turn_on' if value else 'turn_off', {'entity_id': entity})
         elif domain == 'number' and isinstance(value, (int, float)) and not isinstance(value, bool):
             await self.manager.ha.call_service('number', 'set_value', {'entity_id': entity, 'value': value})
         elif domain == 'select' and isinstance(value, str) and len(value) <= 64:
             await self.manager.ha.call_service('select', 'select_option', {'entity_id': entity, 'option': value})
+        elif domain == 'text' and isinstance(value, str) and \
+                int(attrs.get('min') or 0) <= len(value) <= min(int(attrs.get('max') or 255), 255):
+            await self.manager.ha.call_service('text', 'set_value', {'entity_id': entity, 'value': value})
+        elif domain == 'button' and value is True:
+            await self.manager.ha.call_service('button', 'press', {'entity_id': entity})
         else:
             raise ValueError(t('addon.errors.plugins.request'))
         return {'ok': True}

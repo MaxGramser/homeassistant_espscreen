@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // A screen's Plugins tab, beside Layout and Screen settings: what this screen runs, what it can add, and, folded away,
 // what does not fit its board. The same cards and details as the Plugins page, with one button for this screen.
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { fit, text, type Plugin } from "../model/plugins";
 import { buildingOn, installedOn, isSetAside, loadPlugins, needsConsent, plugins, statusOn, testsOn, toggleSetAside, tray, updateAll, updatesOn } from "../plugin-state";
@@ -32,6 +32,12 @@ const open = computed(() => [...plugins.index, ...testsOn(screen.value)].find((p
 // The tray folds to its head while details are open, and opens again when they close.
 function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; tray.open = false; }
 function close() { panel.value = null; openId.value = null; tray.open = true; }
+// Screen settings sends a person to a plugin's settings: open its details once the tab shows.
+watch(() => plugins.focus, (id) => {
+  const plugin = id ? [...plugins.index, ...testsOn(screen.value)].find((p) => p.id === id) : null;
+  if (plugin) show(plugin);
+  if (id) plugins.focus = null;
+}, { immediate: true });
 </script>
 
 <template>

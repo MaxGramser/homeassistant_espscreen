@@ -6,7 +6,11 @@ import { freePins, text, type Plugin } from "../model/plugins";
 import { entitiesIn, partsOn, plugins, setParts, setValue, valueOf } from "../plugin-state";
 import type { Screen } from "../types";
 
-const props = defineProps<{ plugin: Plugin; screens: Screen[] }>();
+// `only` shows one half, for a plugin a screen already runs: "shared" its inputs for every screen, "screen" this
+// screen's own inputs and its parts.
+const props = defineProps<{ plugin: Plugin; screens: Screen[]; only?: "shared" | "screen" }>();
+const showShared = () => props.only !== "screen";
+const showScreen = () => props.only !== "shared";
 const kb = (value: number) => numberText(value, languageMarks(editorLanguage()));
 const shared = () => (props.plugin.inputs || []).filter((input) => input.scope === "all");
 const perScreen = () => (props.plugin.inputs || []).filter((input) => input.scope === "screen");
@@ -24,14 +28,14 @@ const partOn = (id: string) => props.screens.length > 0 && props.screens.every((
 
 <template>
   <div v-if="screens.length && ((plugin.inputs || []).length || (plugin.parts || []).length)" class="pd-setup">
-    <div v-for="input in shared()" :key="input.id" class="field">
+    <div v-for="input in showShared() ? shared() : []" :key="input.id" class="field">
       <label class="f-label" :for="`plugin-input-${input.id}`">{{ text(input.label) }}</label>
       <input :id="`plugin-input-${input.id}`" :type="input.kind === 'secret' ? 'password' : 'text'" autocomplete="off" spellcheck="false"
         :value="valueOf(screens[0], plugin, input.id)" @input="setAll(input.id, ($event.target as HTMLInputElement).value)" />
       <small v-if="input.kind === 'secret' && plugins.secrets[plugin.id]?.[input.id]">{{ t("editor.plugins.setup.secret_set") }}</small>
       <small v-else-if="input.hint">{{ text(input.hint) }}</small>
     </div>
-    <template v-for="screen in screens" :key="screen.id">
+    <template v-for="screen in showScreen() ? screens : []" :key="screen.id">
       <div v-for="input in perScreen()" :key="`${screen.id}-${input.id}`" class="field">
         <label class="f-label" :for="`plugin-input-${screen.id}-${input.id}`">{{ screens.length > 1 ? t("editor.plugins.setup.on_screen", { label: text(input.label), screen: screen.name }) : text(input.label) }}</label>
         <select v-if="input.kind === 'gpio'" :id="`plugin-input-${screen.id}-${input.id}`" :value="valueOf(screen, plugin, input.id)" @change="setValue(screen, plugin, input.id, ($event.target as HTMLSelectElement).value)">
@@ -47,7 +51,7 @@ const partOn = (id: string) => props.screens.length > 0 && props.screens.every((
         <small v-if="input.hint">{{ text(input.hint) }}</small>
       </div>
     </template>
-    <label v-for="part in plugin.parts || []" :key="part.id" class="pd-part">
+    <label v-for="part in showScreen() ? plugin.parts || [] : []" :key="part.id" class="pd-part">
       <input type="checkbox" :checked="partOn(part.id)" :data-part="part.id" @change="togglePart(part.id, ($event.target as HTMLInputElement).checked)" />
       <span><b>{{ text(part.label) }}</b><small>{{ text(part.hint) }} · {{ t("editor.plugins.setup.part_kb", { kb: kb(part.flash_kb) }) }}</small></span>
     </label>

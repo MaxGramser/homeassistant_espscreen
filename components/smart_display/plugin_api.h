@@ -35,7 +35,9 @@ namespace tessera {
 // with millis()) became on_interval, so that on_tick everywhere means once a second with the clock. 0.5: the app's side
 // only: lists of an entity bounded by bytes instead of 16 items, `fields` of a tile's entity and of an answer, the
 // field kind `numbers`, `has_attributes` for the entity list (a plugin that uses them needs an app that knows them).
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 5;
+// 0.6: the app's side only: settings of kind text and button, a button's `status`, settings found by their name in the
+// entity registry, and each plugin's settings in its details on the screen's Plugins tab.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 6;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,

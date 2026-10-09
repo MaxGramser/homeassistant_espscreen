@@ -70,3 +70,42 @@ describe("the entities a plugin tile offers", () => {
       .toEqual(["sensor.price", "sensor.price_unavailable"]);
   });
 });
+
+describe("saving a plugin's settings on a screen", () => {
+  it("asks for a build only when what is filled in differs from what the screen was built with", async () => {
+    const { plugins, setupChanged, setValue, setParts } = await import("../src/plugin-state");
+    const voice = plugin({ id: "voice", inputs: [
+      { id: "key", kind: "secret", label: { en: "Key" }, scope: "all" },
+      { id: "words", kind: "text", label: { en: "Words" }, scope: "screen" }],
+      parts: [{ id: "aec", label: { en: "AEC" }, hint: { en: "" }, flash_kb: 38, default: false }] });
+    const kitchen = screen("wavesharep4", { id: "kitchen", node: "kitchen" } as Partial<Screen>);
+    plugins.installed.kitchen = [{ id: "voice", version: "1.0.0", source: "index", values: { words: "okay_nabu" }, parts: [] }];
+    expect(setupChanged(kitchen, voice)).toBe(false);
+    setValue(kitchen, voice, "words", "okay_nabu");
+    expect(setupChanged(kitchen, voice)).toBe(false);          // the same value typed again
+    setValue(kitchen, voice, "words", "okay_nabu, alexa");
+    expect(setupChanged(kitchen, voice)).toBe(true);
+    setValue(kitchen, voice, "words", "okay_nabu");
+    setValue(kitchen, voice, "key", "");
+    expect(setupChanged(kitchen, voice)).toBe(false);          // a secret left empty keeps the one the app has
+    setValue(kitchen, voice, "key", "sk-new");
+    expect(setupChanged(kitchen, voice)).toBe(true);
+    setValue(kitchen, voice, "key", "");
+    setParts(kitchen, voice, ["aec"]);
+    expect(setupChanged(kitchen, voice)).toBe(true);
+    setParts(kitchen, voice, []);
+    expect(setupChanged(kitchen, voice)).toBe(false);
+  });
+
+  it("forgets what was filled in once the add-on has it, so a saved secret no longer counts as a change", async () => {
+    const { plugins, setupChanged, setValue, forgetDrafts, valueOf } = await import("../src/plugin-state");
+    const voice = plugin({ id: "voice2", inputs: [{ id: "key", kind: "secret", label: { en: "Key" }, scope: "all" }] });
+    const hall = screen("guition", { id: "hall", node: "hall" } as Partial<Screen>);
+    plugins.installed.hall = [{ id: "voice2", version: "1.0.0", source: "index", values: {}, parts: [] }];
+    setValue(hall, voice, "key", "sk-new");
+    expect(setupChanged(hall, voice)).toBe(true);
+    forgetDrafts(hall, voice);
+    expect(setupChanged(hall, voice)).toBe(false);
+    expect(valueOf(hall, voice, "key")).toBe("");
+  });
+});

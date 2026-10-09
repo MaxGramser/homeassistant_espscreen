@@ -1,5 +1,11 @@
 ## Unreleased
 
+- **All of a plugin's settings in one place.** Open a plugin in a screen's Plugins tab and its settings are there, in
+  three groups: what takes effect on this screen at once, what is filled in once for every screen, and what builds the
+  screen again, with a "Save and build" key that lights up only when something changed. Plugins can now add a text
+  field and a button that runs a test and shows how it went ("Heard: Okay Nabu"), and a setting keeps working when you
+  rename its entity in Home Assistant. Screen settings links to each plugin's settings. Plugin API 0.6.
+
 - **One top bar and one pager on every page.** Every page a tap opens (a card, a light's effects, a light group, the
   media library and its folders, the settings page, a plugin's card, a camera) now has the same top bar: the back key
   stands in the same place on all of them, at the corner of the glass, so it no longer moves a little each time you go a

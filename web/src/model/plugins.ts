@@ -76,7 +76,7 @@ export type Plugin = {
   cards?: { id: string; name: Texts }[];
   tap_actions?: { id: string; label: Texts; domains: string[] }[];
   bar_items?: { id: string; label: Texts; icon: string; example?: Texts | null }[];
-  settings?: { key: string; label: Texts }[];
+  settings?: { key: string; label: Texts; status?: string | null }[];
 };
 // A plugin on a screen, as the add-on keeps it (plugins.json): its source and commit, its parts and what was filled in
 // (never a secret), and its state: building, active, or failed with the reason.

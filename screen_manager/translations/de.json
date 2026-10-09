@@ -1730,7 +1730,7 @@
         "card": "„{name}“, eine eigene Ansicht auf dem Bildschirm",
         "bar": "Element der Kopfleiste „{name}“",
         "settings": "Einstellungen",
-        "settings_where": "Auf der Einstellungsseite des Bildschirms und unter Bildschirmeinstellungen"
+        "settings_where": "Auf der Einstellungsseite des Bildschirms und hier, in den Details im Tab Plugins"
       },
       "may": {
         "title": "Was es darf",
@@ -1869,6 +1869,18 @@
           "text": "Funktioniert es gut? Melde es für die Community an, dann steht es hier bei allen, direkt aus deinem Repository. Du bleibst der Ersteller.",
           "action": "Anmelden"
         }
+      },
+      "settings": {
+        "title": "Einstellungen",
+        "live": "Auf diesem Bildschirm",
+        "live_note": "Eine Änderung wirkt sofort.",
+        "shared": "Für alle Bildschirme",
+        "shared_note": "Einmal ausgefüllt, für jeden Bildschirm mit diesem Plugin.",
+        "build": "Beim Erstellen",
+        "build_note": "Eine Änderung erstellt {screen} neu.",
+        "save_build": "Speichern und erstellen",
+        "run": "Ausführen",
+        "too_short": "Mindestens {n} Zeichen."
       }
     },
     "plugin_tile": {
@@ -2417,6 +2429,10 @@
         "item_look": "Zeigt",
         "item_hint": "Schwarzweiß auf dem Bildschirmschoner, egal welche Farbe die Entität hat.",
         "items_add_title": "Zur Uhr hinzufügen"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "Die Einstellungen jedes Plugins stehen in seinen Details im Tab Plugins."
       }
     },
     "update": {

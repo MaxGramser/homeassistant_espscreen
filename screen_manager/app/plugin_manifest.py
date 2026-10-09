@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 5)
+PLUGIN_API = (0, 6)
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
 VERSION = re.compile(r'^\d+\.\d+\.\d+$')
@@ -684,14 +684,20 @@ def check(manifest, english=None):
     out['bar_items'] = bar
     # The plugin's settings as the editor shows them under Screen settings: ESPHome entities of its plugin.yaml (a
     # template switch, number or select), by the end of their entity id on the screen's device ("waste_in_top_bar").
+    # A key is the entity's name in plugin.yaml as ESPHome writes it in an id ("Tap sound" is tap_sound), which is also
+    # the end of its entity id until someone renames it. A switch, number, select, text or button (0.6); `status` (0.6)
+    # names a text sensor the row shows beside a button, live ("Heard: Okay Nabu").
     settings = []
     for i, item in enumerate(_list(manifest.get('settings'), 'settings', 8)):
         where = f'settings[{i}]'
-        item = _object(item, where, {'key', 'label', 'hint'}, ('key', 'label'))
-        if not isinstance(item['key'], str) or not re.match(r'^[a-z0-9_]{1,64}$', item['key']):
-            raise ManifestError(f'{where}.key', 'the end of the entity id of the setting, such as waste_in_top_bar')
+        item = _object(item, where, {'key', 'label', 'hint', 'status'}, ('key', 'label'))
+        for field in ('key', 'status'):
+            if field in item and (not isinstance(item[field], str) or not re.match(r'^[a-z0-9_]{1,64}$', item[field])):
+                raise ManifestError(f'{where}.{field}', 'the name of the entity in plugin.yaml as an id: "Tap sound" is '
+                                                        'tap_sound')
         settings.append({'key': item['key'], 'label': _text_key(item['label'], f'{where}.label', keys),
-                         'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None})
+                         'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None,
+                         'status': item.get('status')})
     out['settings'] = settings
 
     out['text_keys'] = sorted(keys)

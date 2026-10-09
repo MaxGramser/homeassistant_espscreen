@@ -10,10 +10,11 @@ import { fit, flashShare, headroomKb, inEditorLanguage, text, type Plugin } from
 import { glyph } from "../model/topbar";
 import {
   addPlugin, attachLine, buildingOn, isSetAside, setAside, toggleSetAside, copyAttach, fileOf, hasUpdate, installedOn, isTest, labelOf, stageOf, markAttached, needsAttach, partsKb,
-  pluginsFile, realScreens, needsConsent, plugins, removePlugin, setupReady, statusOn,
+  pluginsFile, realScreens, needsConsent, plugins, removePlugin, setupChanged, setupReady, statusOn,
 } from "../plugin-state";
 import type { Screen } from "../types";
 import PluginReadme from "./PluginReadme.vue";
+import PluginSettings from "./PluginSettings.vue";
 import PluginSetup from "./PluginSetup.vue";
 import Icon from "./ui/Icon.vue";
 
@@ -41,6 +42,13 @@ const hereInstalled = computed(() => (here.value ? installedOn(here.value, props
 const hereFit = computed(() => (here.value ? fit(props.plugin, here.value) : { ok: true as const }));
 const hereFlash = computed(() => (here.value ? flashShare(props.plugin, here.value, partsKb(here.value, props.plugin)) : null));
 const hereAttach = computed(() => Boolean(here.value && needsAttach(here.value)));
+// The settings of a plugin this screen runs, grouped by what a change does: at once (its ESPHome entities), for every
+// screen (what was filled in once), or a new build of this screen (its own inputs and parts).
+const sharedInputs = computed(() => (props.plugin.inputs || []).filter((input) => input.scope === "all"));
+const buildInputs = computed(() => (props.plugin.inputs || []).filter((input) => input.scope === "screen").length + (props.plugin.parts || []).length);
+const hereSettings = computed(() => Boolean(here.value && hereInstalled.value
+  && (props.plugin.settings?.length || sharedInputs.value.length || buildInputs.value)));
+const hereChanged = computed(() => Boolean(here.value && setupChanged(here.value, props.plugin)));
 // What an update changes: GitHub's compare of the commit this screen runs with the one offered. The only thing a person
 // can really judge an update by, since the manifest's rights are the maker's own word (docs/PLUGINS.md).
 const changes = computed(() => {
@@ -195,6 +203,25 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       <button v-if="updatable.length" type="button" class="btn quiet" id="plugin-update-all" :disabled="!agreed" @click="addPlugin(updatable, plugin)">{{ t("editor.plugins.update_all", { n: updatable.length, version: plugin.version }, updatable.length) }}</button>
     </div>
   </div>
+
+  <!-- A plugin this screen runs: all of its settings in one place, in three groups by what a change does. -->
+  <section v-if="here && hereSettings" class="pd-section pd-settings" id="plugin-settings">
+    <h3>{{ t("editor.plugins.settings.title") }}</h3>
+    <div v-if="plugin.settings?.length" class="pd-group" id="plugin-settings-live">
+      <p class="pd-group-head"><b>{{ t("editor.plugins.settings.live") }}</b><small>{{ t("editor.plugins.settings.live_note") }}</small></p>
+      <PluginSettings :plugin="plugin.id" />
+    </div>
+    <div v-if="sharedInputs.length" class="pd-group" id="plugin-settings-shared">
+      <p class="pd-group-head"><b>{{ t("editor.plugins.settings.shared") }}</b><small>{{ t("editor.plugins.settings.shared_note") }}</small></p>
+      <PluginSetup :plugin="plugin" :screens="[here]" only="shared" />
+    </div>
+    <div v-if="buildInputs" class="pd-group" id="plugin-settings-build">
+      <p class="pd-group-head"><b>{{ t("editor.plugins.settings.build") }}</b><small>{{ t("editor.plugins.settings.build_note", { screen: here.name }) }}</small></p>
+      <PluginSetup :plugin="plugin" :screens="[here]" only="screen" />
+    </div>
+    <button v-if="sharedInputs.length || buildInputs" type="button" class="btn primary pd-save" id="plugin-settings-save"
+      :disabled="!hereChanged || hereStatus?.kind === 'building'" @click="addPlugin([here], plugin)">{{ t("editor.plugins.settings.save_build") }}</button>
+  </section>
 
   <!-- The plugin's README: what to do in Home Assistant, where a key comes from. Its own words, safely shown. -->
   <section v-if="text(plugin.readme)" class="pd-section" id="plugin-readme">

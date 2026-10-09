@@ -2175,6 +2175,10 @@
         "item_look": "Shows",
         "item_hint": "Black and white on the screensaver, whatever the colour of the entity.",
         "items_add_title": "Add to the clock"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "Each plugin's settings are in its details on the Plugins tab."
       }
     },
     "update": {
@@ -2997,7 +3001,7 @@
         "card": "“{name}”, a screen of its own on the glass",
         "bar": "Top bar item “{name}”",
         "settings": "Settings",
-        "settings_where": "On the screen's settings page and under Screen settings"
+        "settings_where": "On the screen's settings page and here, in its details on the Plugins tab"
       },
       "may": {
         "title": "What it may do",
@@ -3136,6 +3140,18 @@
           "text": "Works well? List it in the community and it shows up here for everyone, straight from your repository. You stay its maker.",
           "action": "List it"
         }
+      },
+      "settings": {
+        "title": "Settings",
+        "live": "On this screen",
+        "live_note": "A change takes effect at once.",
+        "shared": "For every screen",
+        "shared_note": "Filled in once, for every screen with this plugin.",
+        "build": "When building",
+        "build_note": "A change builds {screen} again.",
+        "save_build": "Save and build",
+        "run": "Run",
+        "too_short": "At least {n} characters."
       }
     },
     "plugin_tile": {

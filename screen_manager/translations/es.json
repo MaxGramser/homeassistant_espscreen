@@ -1730,7 +1730,7 @@
         "card": "«{name}», una vista propia en la pantalla",
         "bar": "Elemento de la barra superior «{name}»",
         "settings": "Configuración",
-        "settings_where": "En la página de configuración de la pantalla y en Configuración de pantalla"
+        "settings_where": "En la página de ajustes de la pantalla y aquí, en sus detalles de la pestaña Plugins"
       },
       "may": {
         "title": "Qué puede hacer",
@@ -1869,6 +1869,18 @@
           "text": "¿Funciona bien? Inscríbelo en la comunidad y aparecerá aquí para todos, directamente desde tu repositorio. Sigues siendo su autor.",
           "action": "Inscribir"
         }
+      },
+      "settings": {
+        "title": "Ajustes",
+        "live": "En esta pantalla",
+        "live_note": "Un cambio se aplica al momento.",
+        "shared": "Para todas las pantallas",
+        "shared_note": "Se rellena una vez, para cada pantalla con este plugin.",
+        "build": "Al compilar",
+        "build_note": "Un cambio vuelve a compilar {screen}.",
+        "save_build": "Guardar y compilar",
+        "run": "Ejecutar",
+        "too_short": "Al menos {n} caracteres."
       }
     },
     "plugin_tile": {
@@ -2417,6 +2429,10 @@
         "item_look": "Muestra",
         "item_hint": "En blanco y negro en el salvapantallas, sea cual sea el color de la entidad.",
         "items_add_title": "Añadir al reloj"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "Los ajustes de cada plugin están en sus detalles, en la pestaña Plugins."
       }
     },
     "update": {

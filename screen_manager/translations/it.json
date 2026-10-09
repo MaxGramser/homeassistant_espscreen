@@ -1730,7 +1730,7 @@
         "card": "«{name}», una vista tutta sua sullo schermo",
         "bar": "Elemento della barra superiore «{name}»",
         "settings": "Impostazioni",
-        "settings_where": "Nella pagina delle impostazioni dello schermo e in Impostazioni schermo"
+        "settings_where": "Nella pagina impostazioni dello schermo e qui, nei suoi dettagli della scheda Plugin"
       },
       "may": {
         "title": "Cosa può fare",
@@ -1869,6 +1869,18 @@
           "text": "Funziona bene? Iscrivilo alla community e comparirà qui per tutti, direttamente dal tuo repository. Resti tu l’autore.",
           "action": "Iscrivi"
         }
+      },
+      "settings": {
+        "title": "Impostazioni",
+        "live": "Su questo schermo",
+        "live_note": "Una modifica vale subito.",
+        "shared": "Per tutti gli schermi",
+        "shared_note": "Compilato una volta, per ogni schermo con questo plugin.",
+        "build": "Durante la compilazione",
+        "build_note": "Una modifica ricompila {screen}.",
+        "save_build": "Salva e compila",
+        "run": "Avvia",
+        "too_short": "Almeno {n} caratteri."
       }
     },
     "plugin_tile": {
@@ -2417,6 +2429,10 @@
         "item_look": "Mostra",
         "item_hint": "In bianco e nero sul salvaschermo, qualunque sia il colore dell'entità.",
         "items_add_title": "Aggiungi all'orologio"
+      },
+      "plugins": {
+        "title": "Plugin",
+        "note": "Le impostazioni di ogni plugin sono nei suoi dettagli, nella scheda Plugin."
       }
     },
     "update": {
