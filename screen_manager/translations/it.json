@@ -840,7 +840,6 @@
         "misfit_board": "{name} è fatto per altre schede.",
         "misfit_psram": "{name} ha bisogno di una scheda con PSRAM.",
         "misfit_blocked": "{name} è bloccato: questa versione è dannosa o guasta.",
-        "requires": "{name} ha prima bisogno del plugin {other} su questo schermo.",
         "firmware": "Il firmware di questo schermo non conosce ancora i plugin. Aggiornalo e i riquadri del plugin compariranno.",
         "file": "Il file dei plugin non è valido.",
         "other_include": "Lo YAML di questo schermo ha già un altro include tessera_plugins.",
@@ -849,7 +848,19 @@
         "link_rate": "GitHub non risponde ora (troppe richieste in un'ora). Riprova più tardi.",
         "folder": "La cartella {folder} in tessera-plugins non è ancora un plugin: {why}",
         "manifest": "La descrizione del plugin non è valida: {why}",
-        "consent": "{name} chiede permessi diversi da prima. Guarda cosa può fare ora e accetta, poi aggiorna."
+        "consent": "{name} chiede permessi diversi da prima. Guarda cosa può fare ora e accetta, poi aggiorna.",
+        "requires_unknown": "{name} richiede il plugin {other}, che non è nell'elenco dei plugin.",
+        "requires_misfit": "{name} richiede {other}, che non va bene per questo schermo.",
+        "feature_missing": "{name} richiede un {feature}, e niente che lo fornisca va bene per questo schermo.",
+        "feature_conflict": "Uno schermo ha un solo {feature}, e {names} ne fornirebbero uno ciascuno.",
+        "needed_by": "{others} ha bisogno di {name}: rimuovili insieme.",
+        "choose": "Scegli quale plugin fornisce il {feature} per {name}.",
+        "other_origin": "Questo schermo usa un altro plugin chiamato {name}, da {origin}. Passa a questo nei suoi dettagli.",
+        "misfit_esphome": "{name} richiede ESPHome {version} o più recente per compilare.",
+        "like_not_installed": "Metti prima il plugin su uno dei tuoi schermi, poi potrai mettere mi piace.",
+        "like_consent": "Accetta prima che il tuo mi piace conti in un numero pubblico.",
+        "like_off": "I mi piace sono disattivati: li gestisce una versione più recente dell'app.",
+        "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo."
       }
     },
     "status": {
@@ -1647,15 +1658,9 @@
     },
     "plugins": {
       "title": "Plugin",
-      "intro": "Extra per i tuoi schermi: hardware sulla scheda, o qualcosa in più che uno schermo sa fare. Un plugin viene integrato nel firmware di uno schermo, quindi scegli per ogni schermo quali riceve.",
+      "intro": "Extra per i tuoi schermi: riquadri per una pagina, qualcosa in più che può fare tutto lo schermo, o hardware sulla scheda. Un plugin viene integrato nel firmware di uno schermo, quindi scegli per ogni schermo quali riceve.",
       "search": "Cerca per nome, autore o funzione",
       "filter": "Mostra",
-      "filters": {
-        "all": "Tutti",
-        "tessera": "Da Tessera",
-        "community": "Community",
-        "in_use": "In uso"
-      },
       "from_tessera": "Da Tessera",
       "by": "Di {maker}",
       "label": {
@@ -1684,22 +1689,24 @@
         "psram": "Richiede PSRAM",
         "firmware": "Richiede un firmware più recente",
         "flash": "Troppo grande per questo schermo",
-        "blocked": "Bloccato"
+        "blocked": "Bloccato",
+        "esphome": "Serve ESPHome più recente",
+        "feature": "Manca hardware qui",
+        "needs": "Serve un plugin non adatto"
       },
       "misfit": {
         "board": "Questo plugin è fatto per schede diverse da quella di {screen}.",
         "psram": "Questo plugin richiede una scheda con PSRAM, e {screen} non ce l'ha.",
         "firmware": "{screen} ha bisogno di un aggiornamento del firmware prima di poter ricevere questo plugin.",
         "flash": "{screen} ha spazio per circa {kb} KB in più, e questo plugin è più grande.",
-        "blocked": "Questa versione del plugin è bloccata: è nota per essere dannosa o non funzionante."
+        "blocked": "Questa versione del plugin è bloccata: è nota per essere dannosa o non funzionante.",
+        "esphome": "Questo plugin richiede un ESPHome più recente di quello con cui compila questa app.",
+        "feature": "{screen} non ha nulla che fornisca ciò che serve a questo plugin, e nessun plugin che lo fornisce va bene.",
+        "needs": "Questo plugin richiede un altro plugin che non va bene per {screen}."
       },
       "none_installed": "Ancora nessun plugin su questo schermo.",
       "none_found": "Nessun plugin corrisponde a «{query}».",
       "version": "versione {version}",
-      "kind": {
-        "hardware": "Hardware",
-        "behaviour": "Funzione"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Esempio"
@@ -1808,7 +1815,8 @@
         "on_screen": "{label} su {screen}",
         "choose_pin": "Scegli un pin",
         "part_kb": "{kb} KB in più",
-        "secret_set": "Impostato. Inseriscine uno nuovo per sostituirlo."
+        "secret_set": "Impostato. Inseriscine uno nuovo per sostituirlo.",
+        "part_needs": "Richiede un {what} sullo schermo"
       },
       "readme": {
         "title": "Leggimi"
@@ -1848,7 +1856,8 @@
         "builds": "{n} schermi vengono compilati uno dopo l’altro.",
         "stage": "Aggiungi a {screen}",
         "in_tray": "Pronto da installare",
-        "in_tray_note": "Installalo dalla scheda nell’angolo, da solo o insieme ad altri."
+        "in_tray_note": "Installalo dalla scheda nell’angolo, da solo o insieme ad altri.",
+        "along": "arriva con {names}"
       },
       "maker": {
         "title": "Crea un plugin tuo",
@@ -1881,6 +1890,85 @@
         "save_build": "Salva e compila",
         "run": "Avvia",
         "too_short": "Almeno {n} caratteri."
+      },
+      "tabs": {
+        "tiles": "Riquadri",
+        "functions": "Funzioni",
+        "hardware": "Hardware",
+        "in_use": "In uso"
+      },
+      "types": {
+        "tiles": "Riquadri",
+        "functions": "Funzione",
+        "hardware": "Hardware"
+      },
+      "topics": {
+        "time": "Ora e conti alla rovescia",
+        "weather": "Meteo e cielo",
+        "calendar": "Agenda e attività",
+        "home": "Casa",
+        "energy": "Energia",
+        "travel": "In viaggio",
+        "money": "Denaro",
+        "sports": "Sport",
+        "news": "Notizie e curiosità",
+        "media": "Musica e media",
+        "photos": "Foto e arte",
+        "fun": "Giochi e svago",
+        "voice": "Voce e suono",
+        "tech": "Tecnica"
+      },
+      "topics_all": "Tutti",
+      "topic_filter": "Argomenti",
+      "sort": {
+        "label": "Ordine",
+        "featured": "Consigliati",
+        "popular": "Più apprezzati",
+        "new": "Più recenti"
+      },
+      "none_in_tab": {
+        "tiles": "Ancora nessun plugin con riquadri.",
+        "functions": "Ancora nessun plugin per tutto lo schermo.",
+        "hardware": "Ancora nessun plugin hardware."
+      },
+      "fits_none_group": "{n} plugin non va bene per nessuno dei tuoi schermi | {n} plugin non vanno bene per nessuno dei tuoi schermi",
+      "likes": {
+        "count": "Piace a {n} persona | Piace a {n} persone",
+        "like": "Mi piace",
+        "unlike": "Ritira il tuo mi piace",
+        "install_first": "Mettilo prima su uno schermo, poi potrai mettere mi piace",
+        "ask": "Il tuo mi piace conta in un numero pubblico per plugin. Solo il numero è pubblico: niente su di te, Home Assistant o i tuoi schermi viene inviato."
+      },
+      "along": {
+        "title": "Arriva insieme",
+        "brings": "fornisce il {what}",
+        "needed_by": "serve a {name}",
+        "came_with": "Arrivato con {names}.",
+        "needed_now": "{names} ha bisogno di questo plugin.",
+        "choose": "Quale plugin fornisce il {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} ha bisogno di {name}, quindi viene rimosso anche quello.",
+        "orphans": "Rimuovi anche {names}",
+        "orphans_note": "È arrivato solo con {name}; nient'altro sullo schermo ne ha bisogno.",
+        "both": "Rimuovi insieme",
+        "go": "Rimuovi"
+      },
+      "blocked_now": "Questa versione è bloccata ({why}) e esce alla prossima compilazione. Aggiorna a una più recente.",
+      "other_origin": "Questo schermo usa un altro plugin con questo nome, da {origin}. Non viene aggiornato da qui.",
+      "switch": "Passa a quello di {origin}",
+      "needs": {
+        "title": "Richiede e fornisce",
+        "plugin": "Un altro plugin; arriva insieme quando aggiungi questo.",
+        "feature": "Un {what}",
+        "feature_note": "Dalla scheda dello schermo, o da un plugin che lo fornisce: arriva insieme quando ce n'è uno solo.",
+        "brings": "Fornisce un {what}",
+        "brings_note": "Per altri plugin che ne hanno bisogno, sullo stesso schermo."
+      },
+      "features": {
+        "speaker": "altoparlante",
+        "microphone": "microfono",
+        "media_player": "lettore multimediale"
       }
     },
     "plugin_tile": {

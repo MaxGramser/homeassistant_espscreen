@@ -3,6 +3,7 @@ id: clock_words
 version: 1.0.0
 api: "0.1"
 icon: clock-outline
+topics: [time]
 maintainer: someone
 license: MIT
 tiles:

@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 6)
+PLUGIN_API = (0, 7)
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
 VERSION = re.compile(r'^\d+\.\d+\.\d+$')
@@ -27,13 +27,26 @@ MDI = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 PLACEHOLDER = re.compile(r'\{([a-z][a-z0-9_]*)\}')
 TEXT_KEY = re.compile(r'^[a-z][a-z0-9_]{0,47}$')
 
-TOP = {'id', 'version', 'api', 'icon', 'maintainer', 'license', 'stage', 'requires', 'boards', 'flash_kb',
-       'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'answers', 'cards', 'tap_actions',
-       'bar_items', 'settings'}
+TOP = {'id', 'version', 'api', 'icon', 'maintainer', 'license', 'stage', 'topics', 'requires', 'provides', 'boards',
+       'flash_kb', 'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'answers', 'cards',
+       'tap_actions', 'bar_items', 'settings'}
 ATTRIBUTES = ('cloud', 'commercial', 'ai-developed')
 # How far along a plugin is, in the maker's word: ready for every day, still finding its feet, or there to show what a
 # plugin can do and to learn from. The editor shows a badge for the last two; a manifest without it is beta.
 STAGES = ('stable', 'beta', 'example')
+# What a plugin is about, in the maker's word (0.7): one or two of these, so a person finds a countdown among weather,
+# departures and games. The topics small always-on displays have in common (TRMNL, Tidbyt, LaMetric, AWTRIX,
+# MagicMirror²), without a catch-all: a plugin that fits none asks for a new topic in the plugins repository. What a
+# plugin adds (tiles, something for the whole screen, a board's hardware) is no topic: the app reads it from the
+# manifest (plugin_type).
+TOPICS = ('time', 'weather', 'calendar', 'home', 'energy', 'travel', 'money', 'sports', 'news', 'media', 'photos',
+          'fun', 'voice', 'tech')
+MAX_TOPICS = 2
+# What a screen can have that a plugin may need (0.7), each a promise about one ESPHome component and its id, the way
+# ESPHome's voice_assistant takes whatever speaker there is: a plugin that needs a speaker finds `ts_speaker`, whether a
+# board brings it (boards.yaml) or a plugin (`provides`). One screen has one of each.
+FEATURES = {'speaker': ('speaker', 'ts_speaker'), 'microphone': ('microphone', 'ts_microphone'),
+            'media_player': ('media_player', 'ts_media_player')}
 INPUT_KINDS = ('secret', 'text', 'gpio', 'entity')
 OPTION_KINDS = ('text', 'choice', 'number', 'toggle')
 # `numbers` (0.5): every value the path reaches, as one list of numbers (a price per quarter of an hour, a forecast).
@@ -168,6 +181,27 @@ def _id(value, where):
     if not isinstance(value, str) or not ID.match(value):
         raise ManifestError(where, 'an id is 1 to 32 of a-z, 0-9 and _, starting with a letter')
     return value
+
+
+def _features(value, where, strict, keep_unknown=False):
+    """A list of features of FEATURES. One this app does not know: refused when `strict`; else kept when a plugin needs
+    it (`keep_unknown`, so it fits no screen) and left out when a plugin brings it."""
+    names = list(dict.fromkeys(_strings(value, where, len(FEATURES) + 4)))
+    for i, name in enumerate(names):
+        if not ID.match(name) or (strict and name not in FEATURES):
+            raise ManifestError(f'{where}[{i}]', f'one of {", ".join(FEATURES)}')
+    return [name for name in names if keep_unknown or name in FEATURES]
+
+
+def plugin_type(manifest):
+    """What a plugin adds, read from its manifest so a maker cannot say it wrong (the editor's tabs): `tiles` for one
+    with tiles to put on a page, `hardware` for one that makes a part of a board work (it brings a feature, asks for a
+    pin, or is made for certain boards), `functions` for the rest (the top bar, tap actions, a voice, a sound)."""
+    if manifest['tiles']:
+        return 'tiles'
+    if manifest['provides'] or manifest['boards'] != 'any' or any(i['kind'] == 'gpio' for i in manifest['inputs']):
+        return 'hardware'
+    return 'functions'
 
 
 def _list(value, where, most):
@@ -397,9 +431,11 @@ def check_fetch(fetch, where, network, inputs, option_ids, choice_lists):
     return out
 
 
-def check(manifest, english=None):
+def check(manifest, english=None, strict=True):
     """The manifest as the add-on uses it, or ManifestError. `english` is the plugin's translations/en.json; when it is
-    given, every text the manifest names must be in its part "app"."""
+    given, every text the manifest names must be in its part "app". `strict` (a maker's check, a folder being made)
+    refuses a topic or feature this file does not know; the app reading the index (strict=False) leaves an unknown topic
+    out and keeps an unknown feature a plugin needs, which then fits no screen, so a newer index never hides a plugin."""
     if not isinstance(manifest, dict):
         raise ManifestError('', 'the manifest must be a mapping')
     manifest = _object(manifest, '', TOP, ('id', 'version', 'api', 'icon', 'maintainer', 'license'))
@@ -425,10 +461,25 @@ def check(manifest, english=None):
         raise ManifestError('stage', f'one of {", ".join(STAGES)}')
     out['stage'] = stage
 
-    requires = _object(manifest.get('requires') or {}, 'requires', {'esphome', 'psram', 'plugins'})
+    topics = _strings(manifest.get('topics'), 'topics', MAX_TOPICS)
+    if strict and any(topic not in TOPICS for topic in topics) or not all(ID.match(topic) for topic in topics):
+        raise ManifestError('topics', f'one or two of {", ".join(TOPICS)}')
+    if not topics:
+        raise ManifestError('topics', f'what the plugin is about: one or two of {", ".join(TOPICS)}')
+    # A topic this app does not know yet (a newer plugins repository) is left out, not the plugin.
+    out['topics'] = list(dict.fromkeys(topic for topic in topics if topic in TOPICS))
+
+    requires = _object(manifest.get('requires') or {}, 'requires', {'esphome', 'psram', 'plugins', 'features'})
     out['requires'] = {'psram': bool(requires.get('psram', False)),
                        'plugins': [_id(p, f'requires.plugins[{i}]')
-                                   for i, p in enumerate(_list(requires.get('plugins'), 'requires.plugins', 8))]}
+                                   for i, p in enumerate(_list(requires.get('plugins'), 'requires.plugins', 8))],
+                       'features': _features(requires.get('features'), 'requires.features', strict, keep_unknown=True)}
+    if out['id'] in out['requires']['plugins']:
+        raise ManifestError('requires.plugins', 'a plugin cannot need itself')
+    # What it brings for others (0.7): a feature of FEATURES, as the ESPHome component and id the feature promises.
+    out['provides'] = _features(manifest.get('provides'), 'provides', strict)
+    if set(out['provides']) & set(out['requires']['features']):
+        raise ManifestError('provides', 'a plugin cannot need a feature it brings itself')
     if 'esphome' in requires:
         if not isinstance(requires['esphome'], str) or not re.match(r'^\d{4}\.\d+\.\d+$', requires['esphome']):
             raise ManifestError('requires.esphome', 'an ESPHome version such as 2026.6.2')
@@ -498,7 +549,8 @@ def check(manifest, english=None):
     parts = []
     for i, item in enumerate(_list(manifest.get('parts'), 'parts', 4)):
         where = f'parts[{i}]'
-        item = _object(item, where, {'id', 'file', 'label', 'hint', 'flash_kb', 'default'}, ('id', 'file', 'label'))
+        item = _object(item, where, {'id', 'file', 'label', 'hint', 'flash_kb', 'default', 'features'},
+                       ('id', 'file', 'label'))
         if not isinstance(item['file'], str) or not re.match(r'^[a-z0-9_/-]+\.yaml$', item['file']) \
                 or '..' in item['file']:
             raise ManifestError(f'{where}.file', 'a .yaml file inside the plugin, such as parts/tests.yaml')
@@ -506,7 +558,10 @@ def check(manifest, english=None):
                       'label': _text_key(item['label'], f'{where}.label', keys),
                       'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None,
                       'flash_kb': _number(item.get('flash_kb', 0), f'{where}.flash_kb', 0, 8192),
-                      'default': bool(item.get('default', False))})
+                      'default': bool(item.get('default', False)),
+                      # A part that uses a feature when the screen has one (0.7): offered, and built, only then. A
+                      # voice plugin answers out loud with a part that needs a speaker, and listens without one.
+                      'features': _features(item.get('features'), f'{where}.features', strict, keep_unknown=True)})
     _unique(parts, 'parts')
     out['parts'] = parts
 

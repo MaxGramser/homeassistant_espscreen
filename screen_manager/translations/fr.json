@@ -840,7 +840,6 @@
         "misfit_board": "{name} est fait pour d'autres cartes.",
         "misfit_psram": "{name} a besoin d'une carte avec PSRAM.",
         "misfit_blocked": "{name} est bloqué : cette version est nuisible ou cassée.",
-        "requires": "{name} a d'abord besoin du plugin {other} sur cet écran.",
         "firmware": "Le firmware de cet écran ne connaît pas encore les plugins. Mettez-le à jour, puis les tuiles du plugin apparaissent.",
         "file": "Le fichier des plugins n'est pas valide.",
         "other_include": "Le YAML de cet écran a déjà un autre include tessera_plugins.",
@@ -849,7 +848,19 @@
         "link_rate": "GitHub ne répond pas pour le moment (trop de demandes en une heure). Réessayez plus tard.",
         "folder": "Le dossier {folder} de tessera-plugins n'est pas encore un plugin : {why}",
         "manifest": "La description du plugin n'est pas valide : {why}",
-        "consent": "{name} demande d'autres droits qu'avant. Regardez ce qu'il peut faire maintenant et acceptez, puis mettez à jour."
+        "consent": "{name} demande d'autres droits qu'avant. Regardez ce qu'il peut faire maintenant et acceptez, puis mettez à jour.",
+        "requires_unknown": "{name} a besoin du plugin {other}, absent de la liste des plugins.",
+        "requires_misfit": "{name} a besoin de {other}, qui ne convient pas à cet écran.",
+        "feature_missing": "{name} a besoin d’un {feature}, et rien qui en apporte un ne convient à cet écran.",
+        "feature_conflict": "Un écran a un seul {feature}, et {names} en apporteraient chacun un.",
+        "needed_by": "{others} a besoin de {name} : retirez-les ensemble.",
+        "choose": "Choisissez quel plugin apporte le {feature} pour {name}.",
+        "other_origin": "Cet écran utilise un autre plugin nommé {name}, venant de {origin}. Passez à celui-ci dans ses détails.",
+        "misfit_esphome": "{name} nécessite ESPHome {version} ou plus récent pour compiler.",
+        "like_not_installed": "Installez d'abord le plugin sur un de vos écrans, ensuite vous pourrez l'aimer.",
+        "like_consent": "Acceptez d'abord que votre j'aime compte dans un nombre public.",
+        "like_off": "Les j'aime sont désactivés : une version plus récente de l'app les gère.",
+        "like_failed": "Le j'aime n'est pas parti. Réessayez dans un instant."
       }
     },
     "status": {
@@ -1647,15 +1658,9 @@
     },
     "plugins": {
       "title": "Plugins",
-      "intro": "Des extras pour vos écrans : du matériel sur la carte, ou quelque chose de plus qu'un écran sait faire. Un plugin est intégré au firmware d'un écran, vous choisissez donc pour chaque écran ceux qu'il reçoit.",
+      "intro": "Des extras pour vos écrans : des tuiles pour une page, quelque chose de plus pour tout l'écran, ou du matériel sur la carte. Un plugin est intégré au firmware d'un écran, vous choisissez donc écran par écran ceux qu'il reçoit.",
       "search": "Rechercher par nom, auteur ou fonction",
       "filter": "Afficher",
-      "filters": {
-        "all": "Tous",
-        "tessera": "De Tessera",
-        "community": "Communauté",
-        "in_use": "Utilisés"
-      },
       "from_tessera": "De Tessera",
       "by": "Par {maker}",
       "label": {
@@ -1684,22 +1689,24 @@
         "psram": "Nécessite de la PSRAM",
         "firmware": "Nécessite un firmware plus récent",
         "flash": "Trop volumineux pour cet écran",
-        "blocked": "Bloqué"
+        "blocked": "Bloqué",
+        "esphome": "ESPHome plus récent requis",
+        "feature": "Matériel absent ici",
+        "needs": "Requiert un plugin incompatible"
       },
       "misfit": {
         "board": "Ce plugin est fait pour d'autres cartes que celle de {screen}.",
         "psram": "Ce plugin nécessite une carte avec PSRAM, et {screen} n'en a pas.",
         "firmware": "{screen} a besoin d'une mise à jour du firmware avant de pouvoir recevoir ce plugin.",
         "flash": "{screen} a encore de la place pour environ {kb} Ko, et ce plugin est plus gros.",
-        "blocked": "Cette version du plugin est bloquée : elle est connue pour être nuisible ou défectueuse."
+        "blocked": "Cette version du plugin est bloquée : elle est connue pour être nuisible ou défectueuse.",
+        "esphome": "Ce plugin nécessite un ESPHome plus récent que celui avec lequel cette app compile.",
+        "feature": "{screen} n'a rien qui apporte ce dont ce plugin a besoin, et aucun plugin qui l'apporte ne convient.",
+        "needs": "Ce plugin a besoin d'un autre plugin qui ne convient pas à {screen}."
       },
       "none_installed": "Aucun plugin sur cet écran pour l'instant.",
       "none_found": "Aucun plugin ne correspond à « {query} ».",
       "version": "version {version}",
-      "kind": {
-        "hardware": "Matériel",
-        "behaviour": "Fonction"
-      },
       "stage": {
         "beta": "Bêta",
         "example": "Exemple"
@@ -1808,7 +1815,8 @@
         "on_screen": "{label} sur {screen}",
         "choose_pin": "Choisir une broche",
         "part_kb": "{kb} Ko de plus",
-        "secret_set": "Défini. Saisissez-en un nouveau pour le remplacer."
+        "secret_set": "Défini. Saisissez-en un nouveau pour le remplacer.",
+        "part_needs": "Nécessite un {what} sur l'écran"
       },
       "readme": {
         "title": "Lisez-moi"
@@ -1848,7 +1856,8 @@
         "builds": "{n} écrans sont compilés l’un après l’autre.",
         "stage": "Ajouter à {screen}",
         "in_tray": "Prêt à installer",
-        "in_tray_note": "Installez-le depuis la carte dans le coin, seul ou avec d’autres."
+        "in_tray_note": "Installez-le depuis la carte dans le coin, seul ou avec d’autres.",
+        "along": "vient avec {names}"
       },
       "maker": {
         "title": "Créer votre propre plugin",
@@ -1881,6 +1890,85 @@
         "save_build": "Enregistrer et compiler",
         "run": "Lancer",
         "too_short": "Au moins {n} caractères."
+      },
+      "tabs": {
+        "tiles": "Tuiles",
+        "functions": "Fonctions",
+        "hardware": "Matériel",
+        "in_use": "Utilisés"
+      },
+      "types": {
+        "tiles": "Tuiles",
+        "functions": "Fonction",
+        "hardware": "Matériel"
+      },
+      "topics": {
+        "time": "Heure & comptes à rebours",
+        "weather": "Météo & ciel",
+        "calendar": "Agenda & tâches",
+        "home": "Maison",
+        "energy": "Énergie",
+        "travel": "En route",
+        "money": "Argent",
+        "sports": "Sport",
+        "news": "Actualités & savoirs",
+        "media": "Musique & médias",
+        "photos": "Photos & art",
+        "fun": "Jeux & détente",
+        "voice": "Voix & son",
+        "tech": "Technique"
+      },
+      "topics_all": "Tous",
+      "topic_filter": "Thèmes",
+      "sort": {
+        "label": "Ordre",
+        "featured": "Recommandés",
+        "popular": "Les plus aimés",
+        "new": "Les plus récents"
+      },
+      "none_in_tab": {
+        "tiles": "Pas encore de plugins avec des tuiles.",
+        "functions": "Pas encore de plugins pour tout l'écran.",
+        "hardware": "Pas encore de plugins matériels."
+      },
+      "fits_none_group": "{n} plugin ne convient à aucun de vos écrans | {n} plugins ne conviennent à aucun de vos écrans",
+      "likes": {
+        "count": "{n} personne aime | {n} personnes aiment",
+        "like": "J'aime",
+        "unlike": "Retirer votre j'aime",
+        "install_first": "Installez-le d'abord sur un écran, ensuite vous pourrez l'aimer",
+        "ask": "Votre j'aime compte dans un nombre public par plugin. Seul le nombre est public : rien sur vous, Home Assistant ou vos écrans n'est envoyé."
+      },
+      "along": {
+        "title": "Vient avec",
+        "brings": "apporte le {what}",
+        "needed_by": "nécessaire pour {name}",
+        "came_with": "Venu avec {names}.",
+        "needed_now": "{names} a besoin de ce plugin.",
+        "choose": "Quel plugin apporte le {what} ?"
+      },
+      "remove_ask": {
+        "needed": "{names} a besoin de {name}, il part donc aussi.",
+        "orphans": "Retirer aussi {names}",
+        "orphans_note": "Venu seulement avec {name} ; rien d'autre sur l'écran n'en a besoin.",
+        "both": "Retirer ensemble",
+        "go": "Retirer"
+      },
+      "blocked_now": "Cette version est bloquée ({why}) et sera retirée à la prochaine compilation. Mettez à jour vers une plus récente.",
+      "other_origin": "Cet écran utilise un autre plugin portant ce nom, venant de {origin}. Il n'est pas mis à jour d'ici.",
+      "switch": "Passer à celui de {origin}",
+      "needs": {
+        "title": "Besoins et apports",
+        "plugin": "Un autre plugin ; il vient avec quand vous ajoutez celui-ci.",
+        "feature": "Un {what}",
+        "feature_note": "De la carte de l'écran, ou d'un plugin qui en apporte un : il vient avec s'il n'y en a qu'un.",
+        "brings": "Apporte un {what}",
+        "brings_note": "Pour d'autres plugins qui en ont besoin, sur le même écran."
+      },
+      "features": {
+        "speaker": "haut-parleur",
+        "microphone": "microphone",
+        "media_player": "lecteur multimédia"
       }
     },
     "plugin_tile": {

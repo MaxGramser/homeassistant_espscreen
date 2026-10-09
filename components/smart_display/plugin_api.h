@@ -36,8 +36,11 @@ namespace tessera {
 // only: lists of an entity bounded by bytes instead of 16 items, `fields` of a tile's entity and of an answer, the
 // field kind `numbers`, `has_attributes` for the entity list (a plugin that uses them needs an app that knows them).
 // 0.6: the app's side only: settings of kind text and button, a button's `status`, settings found by their name in the
-// entity registry, and each plugin's settings in its details on the screen's Plugins tab.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 6;
+// entity registry, and each plugin's settings in its details on the screen's Plugins tab. 0.7: the manifest's side only:
+// `topics`, `provides` and `requires.features` (a feature is a promise about one ESPHome id, such as a speaker with id
+// ts_speaker, whichever plugin or board brings it), parts that need a feature, and plugins that come along with the one
+// that needs them.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 7;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,

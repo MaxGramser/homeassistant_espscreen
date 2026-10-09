@@ -840,7 +840,6 @@
         "misfit_board": "A(z) {name} más lapokhoz készült.",
         "misfit_psram": "A(z) {name} PSRAM-mal rendelkező lapot igényel.",
         "misfit_blocked": "A(z) {name} le van tiltva: ez a verzió ártalmas vagy hibás.",
-        "requires": "A(z) {name} először a(z) {other} bővítményt igényli ezen a kijelzőn.",
         "firmware": "Ennek a kijelzőnek a firmware-e még nem ismeri a bővítményeket. Frissítsd, és megjelennek a bővítmény csempéi.",
         "file": "A bővítményfájl érvénytelen.",
         "other_include": "Ennek a kijelzőnek a YAML-jében már van egy másik tessera_plugins include.",
@@ -849,7 +848,19 @@
         "link_rate": "A GitHub most nem válaszol (túl sok kérés egy órán belül). Próbáld újra később.",
         "folder": "A tessera-plugins {folder} mappája még nem bővítmény: {why}",
         "manifest": "A bővítmény leírása érvénytelen: {why}",
-        "consent": "{name} más jogokat kér, mint korábban. Nézd meg, mit tehet most, fogadd el, majd frissíts."
+        "consent": "{name} más jogokat kér, mint korábban. Nézd meg, mit tehet most, fogadd el, majd frissíts.",
+        "requires_unknown": "A(z) {name} igényli a(z) {other} bővítményt, amely nincs a bővítménylistában.",
+        "requires_misfit": "A(z) {name} igényli ezt: {other}, amely nem jó erre a kijelzőre.",
+        "feature_missing": "A(z) {name} igényli ezt: {feature}, és semmi, ami biztosítaná, nem jó erre a kijelzőre.",
+        "feature_conflict": "Egy kijelzőn egy {feature} van, és ezek mind hoznának egyet: {names}.",
+        "needed_by": "{others} igényli ezt: {name}. Távolítsd el őket együtt.",
+        "choose": "Válaszd ki, melyik bővítmény biztosítja ezt: {feature} ({name}).",
+        "other_origin": "Ez a kijelző egy másik {name} nevű bővítményt futtat innen: {origin}. A részleteiben válts erre.",
+        "misfit_esphome": "A(z) {name} fordításához ESPHome {version} vagy újabb kell.",
+        "like_not_installed": "Előbb tedd fel a bővítményt egy kijelződre, utána kedvelheted.",
+        "like_consent": "Előbb fogadd el, hogy a kedvelésed nyilvános számba számít.",
+        "like_off": "A kedvelés ki van kapcsolva: az alkalmazás újabb verziója kezeli.",
+        "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később."
       }
     },
     "status": {
@@ -1647,15 +1658,9 @@
     },
     "plugins": {
       "title": "Bővítmények",
-      "intro": "Extrák a kijelzőidhez: hardver a lapkán, vagy valami, amivel egy kijelző többet tud. A bővítmény a kijelző firmware-ébe kerül, ezért kijelzőnként választod ki, melyiket kapja meg.",
+      "intro": "Extrák a kijelzőidhez: csempék egy oldalra, valami plusz, amit az egész kijelző tud, vagy hardver a lapkán. A bővítmény a kijelző firmware-ébe épül, ezért kijelzőnként választod ki, melyiket kapja.",
       "search": "Keresés név, készítő vagy funkció szerint",
       "filter": "Mutat",
-      "filters": {
-        "all": "Összes",
-        "tessera": "A Tesserától",
-        "community": "Közösség",
-        "in_use": "Használatban"
-      },
       "from_tessera": "A Tesserától",
       "by": "Készítő: {maker}",
       "label": {
@@ -1684,22 +1689,24 @@
         "psram": "PSRAM kell hozzá",
         "firmware": "Újabb firmware kell hozzá",
         "flash": "Túl nagy ehhez a kijelzőhöz",
-        "blocked": "Letiltva"
+        "blocked": "Letiltva",
+        "esphome": "Újabb ESPHome kell",
+        "feature": "Hiányzó hardver",
+        "needs": "Nem illő bővítmény kell"
       },
       "misfit": {
         "board": "Ez a bővítmény más lapkákhoz készült, mint ami a(z) {screen} kijelzőben van.",
         "psram": "Ehhez a bővítményhez PSRAM-os lapka kell, a(z) {screen} kijelzőben pedig nincs.",
         "firmware": "A(z) {screen} kijelzőnek előbb firmware-frissítés kell, csak utána kaphatja meg ezt a bővítményt.",
         "flash": "A(z) {screen} kijelzőn még kb. {kb} KB hely van, ez a bővítmény pedig nagyobb.",
-        "blocked": "A bővítmény ezen verziója le van tiltva: ismerten ártalmas vagy hibás."
+        "blocked": "A bővítmény ezen verziója le van tiltva: ismerten ártalmas vagy hibás.",
+        "esphome": "Ennek a bővítménynek újabb ESPHome kell, mint amivel ez az alkalmazás fordít.",
+        "feature": "A(z) {screen} kijelzőn nincs meg, ami ennek a bővítménynek kell, és nincs hozzá illő bővítmény, amely biztosítaná.",
+        "needs": "Ennek a bővítménynek egy másik bővítmény kell, amely nem jó ehhez: {screen}."
       },
       "none_installed": "Ezen a kijelzőn még nincs bővítmény.",
       "none_found": "Egy bővítmény sem felel meg ennek: „{query}”.",
       "version": "{version} verzió",
-      "kind": {
-        "hardware": "Hardver",
-        "behaviour": "Funkció"
-      },
       "stage": {
         "beta": "Béta",
         "example": "Példa"
@@ -1808,7 +1815,8 @@
         "on_screen": "{label} ezen: {screen}",
         "choose_pin": "Válassz lábat",
         "part_kb": "{kb} KB-tal több",
-        "secret_set": "Beállítva. Írj be újat a cseréjéhez."
+        "secret_set": "Beállítva. Írj be újat a cseréjéhez.",
+        "part_needs": "A kijelzőn kell: {what}"
       },
       "readme": {
         "title": "Olvass el"
@@ -1848,7 +1856,8 @@
         "builds": "{n} képernyő épül egymás után.",
         "stage": "Hozzáadás ehhez: {screen}",
         "in_tray": "Telepítésre kész",
-        "in_tray_note": "Telepítsd a sarokban lévő kártyáról, egyedül vagy másokkal együtt."
+        "in_tray_note": "Telepítsd a sarokban lévő kártyáról, egyedül vagy másokkal együtt.",
+        "along": "ezzel jön: {names}"
       },
       "maker": {
         "title": "Saját bővítmény készítése",
@@ -1881,6 +1890,85 @@
         "save_build": "Mentés és fordítás",
         "run": "Futtatás",
         "too_short": "Legalább {n} karakter."
+      },
+      "tabs": {
+        "tiles": "Csempék",
+        "functions": "Funkciók",
+        "hardware": "Hardver",
+        "in_use": "Használatban"
+      },
+      "types": {
+        "tiles": "Csempék",
+        "functions": "Funkció",
+        "hardware": "Hardver"
+      },
+      "topics": {
+        "time": "Idő és visszaszámlálás",
+        "weather": "Időjárás és égbolt",
+        "calendar": "Naptár és teendők",
+        "home": "Otthon",
+        "energy": "Energia",
+        "travel": "Úton",
+        "money": "Pénz",
+        "sports": "Sport",
+        "news": "Hírek és érdekességek",
+        "media": "Zene és média",
+        "photos": "Fotók és művészet",
+        "fun": "Játék és szórakozás",
+        "voice": "Hang és beszéd",
+        "tech": "Technika"
+      },
+      "topics_all": "Mind",
+      "topic_filter": "Témák",
+      "sort": {
+        "label": "Sorrend",
+        "featured": "Ajánlott",
+        "popular": "Legkedveltebb",
+        "new": "Legújabb"
+      },
+      "none_in_tab": {
+        "tiles": "Még nincs csempés bővítmény.",
+        "functions": "Még nincs bővítmény az egész kijelzőhöz.",
+        "hardware": "Még nincs hardverbővítmény."
+      },
+      "fits_none_group": "{n} bővítmény egyik kijelződre sem jó | {n} bővítmény egyik kijelződre sem jó",
+      "likes": {
+        "count": "{n} embernek tetszik | {n} embernek tetszik",
+        "like": "Tetszik",
+        "unlike": "Tetszik visszavonása",
+        "install_first": "Előbb tedd fel egy kijelzőre, utána kedvelheted",
+        "ask": "A kedvelésed egy bővítményenkénti nyilvános számba számít bele. Csak a szám nyilvános: rólad, a Home Assistantról vagy a kijelzőidről semmi sem kerül át."
+      },
+      "along": {
+        "title": "Vele jön",
+        "brings": "biztosítja: {what}",
+        "needed_by": "{name} igényli",
+        "came_with": "Ezzel jött: {names}.",
+        "needed_now": "{names} igényli ezt a bővítményt.",
+        "choose": "Melyik bővítmény biztosítja: {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} igényli ezt: {name}, ezért az is megy.",
+        "orphans": "Ezt is eltávolítja: {names}",
+        "orphans_note": "Csak ezzel jött: {name}; a kijelzőn semmi más nem igényli.",
+        "both": "Eltávolítás együtt",
+        "go": "Eltávolítás"
+      },
+      "blocked_now": "Ez a verzió le van tiltva ({why}), és a következő fordításból kimarad. Frissíts újabbra.",
+      "other_origin": "Ez a kijelző egy másik, ilyen nevű bővítményt futtat innen: {origin}. Innen nem frissül.",
+      "switch": "Váltás erre: {origin}",
+      "needs": {
+        "title": "Igényel és biztosít",
+        "plugin": "Egy másik bővítmény; vele jön, amikor ezt hozzáadod.",
+        "feature": "{what}",
+        "feature_note": "A kijelző lapkájáról vagy egy bővítménytől, amely biztosítja: vele jön, ha csak egy van.",
+        "brings": "Biztosítja: {what}",
+        "brings_note": "Más bővítményeknek, amelyek igénylik, ugyanazon a kijelzőn."
+      },
+      "features": {
+        "speaker": "hangszóró",
+        "microphone": "mikrofon",
+        "media_player": "médialejátszó"
       }
     },
     "plugin_tile": {

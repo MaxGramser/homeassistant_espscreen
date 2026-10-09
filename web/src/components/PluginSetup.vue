@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // What a plugin asks for before it goes on a screen: its inputs (a key, a pin, a name) and its optional parts. A key
 // is asked once for all chosen screens; a pin or a name per screen, because each board has its own free pins.
-import { editorLanguage, languageMarks, numberText, t } from "../i18n";
+import { editorLanguage, languageMarks, numberText, t, te } from "../i18n";
 import { freePins, text, type Plugin } from "../model/plugins";
 import { entitiesIn, partsOn, plugins, setParts, setValue, valueOf } from "../plugin-state";
 import type { Screen } from "../types";
@@ -23,6 +23,9 @@ function togglePart(id: string, on: boolean) {
     setParts(screen, props.plugin, on ? [...now, id] : now);
   }
 }
+// A part that uses a feature (a speaker) is built only on a screen that has it: there it is a choice, elsewhere it says why not.
+const lacking = (features: string[] = []) => features.filter((f) => props.screens.some((screen) => !(plugins.features[screen.id] || []).includes(f)));
+const featureWord = (name: string) => (te(`editor.plugins.features.${name}`) ? t(`editor.plugins.features.${name}`) : name);
 const partOn = (id: string) => props.screens.length > 0 && props.screens.every((screen) => partsOn(screen, props.plugin).includes(id));
 </script>
 
@@ -51,9 +54,10 @@ const partOn = (id: string) => props.screens.length > 0 && props.screens.every((
         <small v-if="input.hint">{{ text(input.hint) }}</small>
       </div>
     </template>
-    <label v-for="part in showScreen() ? plugin.parts || [] : []" :key="part.id" class="pd-part">
-      <input type="checkbox" :checked="partOn(part.id)" :data-part="part.id" @change="togglePart(part.id, ($event.target as HTMLInputElement).checked)" />
-      <span><b>{{ text(part.label) }}</b><small>{{ text(part.hint) }} · {{ t("editor.plugins.setup.part_kb", { kb: kb(part.flash_kb) }) }}</small></span>
+    <label v-for="part in showScreen() ? plugin.parts || [] : []" :key="part.id" class="pd-part" :class="{ off: lacking(part.features).length }">
+      <input type="checkbox" :checked="partOn(part.id) && !lacking(part.features).length" :disabled="lacking(part.features).length > 0" :data-part="part.id" @change="togglePart(part.id, ($event.target as HTMLInputElement).checked)" />
+      <span><b>{{ text(part.label) }}</b><small>{{ lacking(part.features).length ? t("editor.plugins.setup.part_needs", { what: lacking(part.features).map(featureWord).join(", ") })
+        : `${text(part.hint)} · ${t("editor.plugins.setup.part_kb", { kb: kb(part.flash_kb) })}` }}</small></span>
     </label>
   </div>
 </template>

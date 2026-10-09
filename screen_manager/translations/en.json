@@ -840,7 +840,6 @@
         "misfit_board": "{name} is made for other boards.",
         "misfit_psram": "{name} needs a board with PSRAM.",
         "misfit_blocked": "{name} is blocked: this version is known to be harmful or broken.",
-        "requires": "{name} needs the plugin {other} on this screen first.",
         "firmware": "This screen's firmware has no plugins yet. Update it, then the plugin tiles appear.",
         "file": "The plugins file is not valid.",
         "other_include": "This screen's YAML already has a different tessera_plugins include.",
@@ -849,7 +848,19 @@
         "link_rate": "GitHub is not answering right now (too many questions in an hour). Try again later.",
         "folder": "The folder {folder} in tessera-plugins is not a plugin yet: {why}",
         "manifest": "The plugin's description is not valid: {why}",
-        "consent": "{name} asks for other rights than before. Look at what it may do now and agree, then update."
+        "consent": "{name} asks for other rights than before. Look at what it may do now and agree, then update.",
+        "requires_unknown": "{name} needs the plugin {other}, which the plugin list does not have.",
+        "requires_misfit": "{name} needs {other}, which does not fit this screen.",
+        "feature_missing": "{name} needs a {feature}, and nothing that brings one fits this screen.",
+        "feature_conflict": "A screen has one {feature}, and {names} would each bring one.",
+        "needed_by": "{others} needs {name}: remove them together.",
+        "choose": "Choose which plugin brings the {feature} for {name}.",
+        "other_origin": "This screen runs another plugin called {name}, from {origin}. Switch to this one in its details.",
+        "misfit_esphome": "{name} needs ESPHome {version} or newer to build.",
+        "like_not_installed": "Put the plugin on one of your screens first, then you can like it.",
+        "like_consent": "Agree first that your like counts in a public number.",
+        "like_off": "Likes are off: a newer version of the app keeps them.",
+        "like_failed": "The like did not go out. Try again in a moment."
       }
     },
     "status": {
@@ -2918,15 +2929,9 @@
     },
     "plugins": {
       "title": "Plugins",
-      "intro": "Extras for your screens: hardware on the board, or something more a screen can do. A plugin is built into a screen's firmware, so you choose per screen which ones it gets.",
+      "intro": "Extras for your screens: tiles to put on a page, something more the whole screen can do, or hardware on the board. A plugin is built into a screen's firmware, so you choose per screen which ones it gets.",
       "search": "Search by name, maker or what it does",
       "filter": "Show",
-      "filters": {
-        "all": "All",
-        "tessera": "From Tessera",
-        "community": "Community",
-        "in_use": "In use"
-      },
       "from_tessera": "From Tessera",
       "by": "By {maker}",
       "label": {
@@ -2955,22 +2960,24 @@
         "psram": "Needs PSRAM",
         "firmware": "Needs newer firmware",
         "flash": "Too large for this screen",
-        "blocked": "Blocked"
+        "blocked": "Blocked",
+        "esphome": "Needs newer ESPHome",
+        "feature": "Needs hardware this screen lacks",
+        "needs": "Needs a plugin that does not fit"
       },
       "misfit": {
         "board": "This plugin is made for other boards than {screen}'s.",
         "psram": "This plugin needs a board with PSRAM, and {screen} has none.",
         "firmware": "{screen} needs a firmware update before it can take this plugin.",
         "flash": "{screen} has room for about {kb} KB more, and this plugin is larger.",
-        "blocked": "This version of the plugin is blocked: it is known to be harmful or broken."
+        "blocked": "This version of the plugin is blocked: it is known to be harmful or broken.",
+        "esphome": "This plugin needs a newer ESPHome than this app builds with.",
+        "feature": "{screen} has nothing that brings what this plugin needs, and no plugin that brings it fits.",
+        "needs": "This plugin needs another plugin that does not fit {screen}."
       },
       "none_installed": "No plugins on this screen yet.",
       "none_found": "No plugin matches “{query}”.",
       "version": "version {version}",
-      "kind": {
-        "hardware": "Hardware",
-        "behaviour": "Feature"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Example"
@@ -3079,7 +3086,8 @@
         "on_screen": "{label} on {screen}",
         "choose_pin": "Choose a pin",
         "part_kb": "{kb} KB more",
-        "secret_set": "Set. Fill in a new one to replace it."
+        "secret_set": "Set. Fill in a new one to replace it.",
+        "part_needs": "Needs a {what} on the screen"
       },
       "readme": {
         "title": "Read me"
@@ -3119,7 +3127,8 @@
         "builds": "{n} screens build, one after the other.",
         "stage": "Add to {screen}",
         "in_tray": "Ready to install",
-        "in_tray_note": "Install it from the card in the corner, alone or with others."
+        "in_tray_note": "Install it from the card in the corner, alone or with others.",
+        "along": "comes along with {names}"
       },
       "maker": {
         "title": "Make a plugin of your own",
@@ -3152,6 +3161,85 @@
         "save_build": "Save and build",
         "run": "Run",
         "too_short": "At least {n} characters."
+      },
+      "tabs": {
+        "tiles": "Tiles",
+        "functions": "Functions",
+        "hardware": "Hardware",
+        "in_use": "In use"
+      },
+      "types": {
+        "tiles": "Tiles",
+        "functions": "Function",
+        "hardware": "Hardware"
+      },
+      "topics": {
+        "time": "Time & countdowns",
+        "weather": "Weather & sky",
+        "calendar": "Calendar & tasks",
+        "home": "Home",
+        "energy": "Energy",
+        "travel": "On the move",
+        "money": "Money",
+        "sports": "Sports",
+        "news": "News & facts",
+        "media": "Music & media",
+        "photos": "Photos & art",
+        "fun": "Games & fun",
+        "voice": "Voice & sound",
+        "tech": "Tech"
+      },
+      "topics_all": "All",
+      "topic_filter": "Topics",
+      "sort": {
+        "label": "Order",
+        "featured": "Recommended",
+        "popular": "Most liked",
+        "new": "Newest"
+      },
+      "none_in_tab": {
+        "tiles": "No plugins with tiles yet.",
+        "functions": "No plugins for the whole screen yet.",
+        "hardware": "No hardware plugins yet."
+      },
+      "fits_none_group": "{n} plugin fits none of your screens | {n} plugins fit none of your screens",
+      "likes": {
+        "count": "{n} person likes this | {n} people like this",
+        "like": "Like",
+        "unlike": "Take back your like",
+        "install_first": "Put it on a screen first, then you can like it",
+        "ask": "Your like counts in a public number per plugin. Only the number is public: nothing about you, Home Assistant or your screens goes along."
+      },
+      "along": {
+        "title": "Comes along",
+        "brings": "brings the {what}",
+        "needed_by": "needed by {name}",
+        "came_with": "Came along with {names}.",
+        "needed_now": "{names} needs this plugin.",
+        "choose": "Which plugin brings the {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} needs {name}, so it goes as well.",
+        "orphans": "Also remove {names}",
+        "orphans_note": "It only came along with {name}; nothing else on the screen needs it.",
+        "both": "Remove them together",
+        "go": "Remove"
+      },
+      "blocked_now": "This version is blocked ({why}) and leaves the next build. Update to a newer one.",
+      "other_origin": "This screen runs another plugin with this name, from {origin}. It is not updated from here.",
+      "switch": "Switch to the one from {origin}",
+      "needs": {
+        "title": "Needs and brings",
+        "plugin": "Another plugin; it comes along when you add this one.",
+        "feature": "A {what}",
+        "feature_note": "From the screen's board, or a plugin that brings one: it comes along when there is just one.",
+        "brings": "Brings a {what}",
+        "brings_note": "For other plugins that need one, on the same screen."
+      },
+      "features": {
+        "speaker": "speaker",
+        "microphone": "microphone",
+        "media_player": "media player"
       }
     },
     "plugin_tile": {

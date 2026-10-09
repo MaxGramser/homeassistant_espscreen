@@ -6,7 +6,7 @@ import { computed, ref } from "vue";
 import { editorLanguage, languageMarks, numberText, t } from "../i18n";
 import { headroomKb, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import { installTray, labelOf, setupReady, setAsideKb, tray, trayGroups, takeOut } from "../plugin-state";
+import { chooseProvider, installTray, labelOf, plugins, setupReady, setAsideKb, tray, trayAlong, trayGroups, trayPlan, trayReady, takeOut } from "../plugin-state";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 
@@ -20,9 +20,13 @@ const kb = (value: number) => numberText(value, languageMarks(editorLanguage()))
 const small = (screen: Screen) => Boolean(screen.firmware_image ? screen.firmware_image.slot <= 2_100_000 : ["cyd", "cyd9342", "hosyond40"].includes(screen.board || ""));
 const over = (screen: Screen, list: Plugin[]) => small(screen) && setAsideKb(screen, list) > headroomKb(screen);
 const unready = (screen: Screen, plugin: Plugin) => !setupReady(plugin, [screen]);
-const community = computed(() => [...new Set(groups.value.flatMap((g) => g.plugins).filter((p) => labelOf(p) === "community"))]);
+// What comes along counts for trust as well: one yes for everything that goes on.
+const community = computed(() => [...new Set(groups.value.flatMap((g) => [...g.plugins, ...trayAlong(g).map((row) => row.plugin)])
+  .filter((p) => labelOf(p) === "community"))]);
+const nameOf = (id: string) => { const p = plugins.index.find((x) => x.id === id); return p ? text(p.name) : id; };
 const trust = ref(false);
-const blocked = computed(() => tray.sending || groups.value.some((g) => over(g.screen, g.plugins) || g.plugins.some((p) => unready(g.screen, p)))
+const blocked = computed(() => tray.sending || groups.value.some((g) => !trayReady(g) || over(g.screen, g.plugins) || g.plugins.some((p) => unready(g.screen, p))
+  || trayAlong(g).some((row) => unready(g.screen, row.plugin)))
   || (community.value.length > 0 && !trust.value));
 const builds = computed(() => groups.value.length === 1
   ? t("editor.plugins.tray.one_build", { screen: groups.value[0].screen.name })
@@ -63,6 +67,24 @@ async function install() { await installTray(); trust.value = false; }
                 <button type="button" class="pt-remove" :aria-label="t('editor.plugins.tray.remove', { name: text(plugin.name) })" @click="takeOut(group.screen, plugin.id)"><Icon name="close" /></button>
               </li>
             </TransitionGroup>
+            <!-- What comes along with them on this screen (the add-on's plan), under what was chosen; it goes with them. -->
+            <ul v-if="trayAlong(group).length" class="pt-rows pt-along">
+              <li v-for="row in trayAlong(group)" :key="row.plugin.id" class="pt-row along" :class="{ unready: unready(group.screen, row.plugin) }" :data-plugin="row.plugin.id">
+                <button type="button" class="pt-row-main" @click="$emit('open', row.plugin, group.screen)">
+                  <span class="plugin-icon" :class="{ tessera: row.plugin.tessera }" aria-hidden="true"><span class="mdi">{{ glyph(row.plugin.icon) }}</span></span>
+                  <span class="pt-words"><b>{{ text(row.plugin.name) }}</b><small>{{ t("editor.plugins.tray.along", { names: row.step.for.map(nameOf).join(", ") }) }}</small></span>
+                  <small v-if="unready(group.screen, row.plugin)" class="pt-todo">{{ t("editor.plugins.tray.setup") }}<Icon name="chevron-right" /></small>
+                </button>
+              </li>
+            </ul>
+            <label v-for="choice in trayPlan(group)?.choose || []" :key="choice.feature" class="field pt-choose">
+              <span class="f-label">{{ t("editor.plugins.along.choose", { what: t(`editor.plugins.features.${choice.feature}`) }) }}</span>
+              <select :data-feature="choice.feature" @change="chooseProvider(group.screen, choice.feature, ($event.target as HTMLSelectElement).value)">
+                <option value="" selected disabled>{{ t("editor.plugin_tile.choose") }}</option>
+                <option v-for="id in choice.options" :key="id" :value="id">{{ nameOf(id) }}</option>
+              </select>
+            </label>
+            <p v-if="trayPlan(group)?.error" class="pt-room over">{{ trayPlan(group)!.error }}</p>
             <template v-if="small(group.screen)">
               <div class="pd-meter pt-meter" :class="{ tight: over(group.screen, group.plugins) }" role="meter" aria-valuemin="0" :aria-valuemax="headroomKb(group.screen)" :aria-valuenow="setAsideKb(group.screen, group.plugins)">
                 <i class="added" :style="{ left: 0, width: Math.min(100, (setAsideKb(group.screen, group.plugins) / Math.max(1, headroomKb(group.screen))) * 100) + '%' }"></i>

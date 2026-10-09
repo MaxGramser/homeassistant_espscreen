@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on dev while the plugin API is 0.x (the plugin API is 0.6 now): in an app added from the `#dev` URL, a
+Plugins are on dev while the plugin API is 0.x (the plugin API is 0.7 now): in an app added from the `#dev` URL, a
 local copy of the app, and the editor's development server (`core.plugins_enabled()`). The stable app has no Plugins
 page, no routes and no loop.
 
@@ -163,19 +163,49 @@ beside it, read again a few times after a press, so a test can say how it went. 
 ## Where a plugin comes from
 
 - **The index** (`tessera-plugins/index.json`): Tessera's own plugins (label Tessera) and entries of `community/`
-  (label Community), each pinned to a commit, read when the editor opens and at most every ten minutes (ETag).
-- **A link** (`POST api/plugins/link`): the newest release of any GitHub repository, pinned to its commit (Community,
-  or Tessera for a repository of MaxGramser); a branch to test, which every build takes anew (`refresh: 0s`, Test); or
-  a folder in `tessera-plugins/` beside the ESPHome folder (Test). A release added this way follows its repository:
-  `Plugins.refresh_links` asks for its newest release at most every hour and offers it as an update, so a maker
-  publishes a release and nothing goes through Tessera.
-- **An update** is a newer version in the index or of a linked repository: the screen's Plugins tab and the Plugins
-  page offer it, and the build queue takes the screens one by one. A screen with more than one update offers "Update all
-  on this screen": every update in one request, so the screen builds once (`updateAll` in the editor; `apply` takes up
-  to eight plugins at a time). An update keeps what was filled in when the plugin was added: the editor sends the
-  screen's stored values and parts again, and `apply` keeps a stored value the request leaves out. A test (a branch or
-  a folder) never waits for an update: every build takes what it holds. An update whose rights differ from what the person agreed to
-  (`permission_hash`) waits for their yes in the editor; the add-on refuses it without (`consent`).
+  (label Community), each pinned to a commit, read when the editor opens and at most every ten minutes (ETag). An id
+  belongs to the repository that first published it (`claims` in the index; a move goes through `transfers.yaml`).
+- **A link** (`POST api/plugins/link`): the newest release of any GitHub repository (Community, or Tessera for a
+  repository of MaxGramser); a branch to test (Test); a repository without a release, which becomes a test of its default
+  branch, so pushing is enough to try a plugin; or a folder in `tessera-plugins/` beside the ESPHome folder (Test).
+  Every one but a folder is pinned to the commit it was read at, so what is built is what the editor showed.
+  `Plugins.refresh_links` asks for the newest release, or the newest commit of a test's branch, at most every hour and
+  offers it as an update. It finds the repository again by GitHub's number of it, so a rename is followed and a new
+  repository that takes the old name is never built.
+- **An update** is a newer version in the index or of a linked repository (for a test: a newer commit), from the same
+  origin: the screen's Plugins tab and the Plugins page offer it, and the build queue takes the screens one by one. A
+  screen with more than one update offers "Update all on this screen" (`updateAll`), one request and one build. An
+  update keeps what was filled in when the plugin was added. An update whose rights differ from what the person agreed
+  to (`permission_hash`) waits for their yes in the editor; the add-on refuses it without (`consent`). A release the
+  index blocks leaves the next build of every screen that runs it (`drop_blocked`).
+
+## Which plugin
+
+A plugin is known by its id: it lives in the firmware, in the layouts (`plugin:<id>.<tile>`) and in the secrets, so it
+never changes. Its origin (`github.com/<owner>/<repo>[/<folder>]`, lowercase, or `folder`) says which plugin of that id
+it is. Two screens may run two plugins of one id (a fork, a folder being made): a tile asks with its screen
+(`known(plugin, inbox)`), a secret is kept for the origin it was filled in for and never handed to another, and nothing
+moves a screen to another origin unless the person switches in the plugin's details (`switch`).
+
+## What comes along
+
+`requires.plugins` names plugins a plugin needs: they come along from the index, the newest that fits the screen.
+`requires.features` names features (`plugin_manifest.FEATURES`: speaker, microphone, media player), each a promise
+about one ESPHome id (`ts_speaker`, ...), which a board brings (boards.json `features`) or a plugin (`provides`). A
+feature the screen lacks comes along with the one plugin that brings it and fits; with several the person chooses
+(`providers`), with none the plugin does not fit. One screen has one of each feature. A part with `features` is
+offered and built only where the screen has them. `Plugins.plan` says what a change comes to before anything is built
+(the editor's "Comes along", the tray's rows); `apply` carries it out in one build and marks what came along (`auto`).
+A plugin another one needs only goes together with it, and what only came along is offered to go as well.
+
+## Finding a plugin, and likes
+
+The Plugins page has a tab per type, read from the manifest (`plugin_type`: tiles, functions, hardware) and one for
+what is in use; the maker's `topics` are the chips under it. What fits none of the screens folds away under the list.
+`featured.yaml` in the plugins repository puts plugins first. A like is a heart a person gives a plugin of the index
+that runs on one of their screens (`plugin_likes.py`): it goes to the Tessera website with a random key of this app
+installation, only on a tap and after one yes that it counts in a public number; the plugins repository copies the
+counts into `likes.json` every hour, which the app reads from GitHub.
 
 ## What is not built yet
 

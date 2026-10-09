@@ -1,19 +1,37 @@
 // Plugins (docs/PLUGINS.md): whether a plugin fits a screen, the one rule the Plugins page and its details share.
 import { describe, expect, it } from "vitest";
-import { fit, flashShare, headroomKb, offeredEntities, type Plugin } from "../src/model/plugins";
-import { stageOf } from "../src/plugin-state";
+import { fit, flashShare, headroomKb, knowAppFit, offeredEntities, type Plugin } from "../src/model/plugins";
+import { hasUpdate, plugins, stageOf } from "../src/plugin-state";
 import type { Screen } from "../src/types";
 
 // A plugin as the add-on describes it (plugins.editor_plugin), with only what fit() reads changed per test.
 const plugin = (more: Partial<Plugin> = {}): Plugin => ({
   id: "bus", name: { en: "Bus" }, summary: { en: "The next bus." }, icon: "F00E7", maintainer: "someone", tessera: false,
-  version: "1.0.0", repo: "", license: "MIT", kind: "behaviour", boards: "any", requires: {}, flash_kb: 12,
+  version: "1.0.0", repo: "", license: "MIT", type: "functions", boards: "any", requires: {}, flash_kb: 12,
   permissions: { home_assistant: [], network: [] }, readme: { en: "" }, languages: ["en"], attributes: [], ...more,
 });
 const screen = (board: string, more: Partial<Screen> = {}) =>
   ({ id: `text.${board}`, name: board, online: true, board, firmware: "0.52.0", pictures: board !== "cyd", layout: {}, ...more }) as Screen;
 
 describe("plugins", () => {
+  it("takes what only the add-on knows: a feature nothing brings, a plugin it needs that does not fit", () => {
+    knowAppFit({ "text.guition": { voice: "feature" } });
+    expect(fit(plugin({ id: "voice" }), screen("guition"))).toEqual({ ok: false, reason: "feature" });
+    expect(fit(plugin({ id: "voice" }), screen("cyd", { pictures: true }))).toEqual({ ok: true });
+    knowAppFit({});
+  });
+
+  it("offers an update only from the plugin's own origin, and a newer commit for a branch", () => {
+    const s = screen("guition");
+    plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "index", origin: "github.com/someone/fork" }] };
+    expect(hasUpdate(s, plugin({ version: "1.1.0", origin: "github.com/maxgramser/tessera-plugins/plugins/bus" }))).toBe(false);
+    plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "index", origin: "github.com/a/b" }] };
+    expect(hasUpdate(s, plugin({ version: "1.1.0", origin: "github.com/a/b" }))).toBe(true);
+    plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "branch", ref: "a".repeat(40), origin: "github.com/a/b" }] };
+    expect(hasUpdate(s, plugin({ version: "1.0.0", ref: "b".repeat(40), origin: "github.com/a/b", source: "branch" }))).toBe(true);
+    plugins.installed = {};
+  });
+
   it("shows a badge for a beta plugin and an example, none for a stable one or a test", () => {
     expect(stageOf(plugin({ stage: "example", label: "tessera" }))).toBe("example");
     expect(stageOf(plugin({ stage: "beta", label: "community" }))).toBe("beta");
@@ -22,7 +40,7 @@ describe("plugins", () => {
   });
 
   it("offers a plugin for one board only on that board", () => {
-    const audio = plugin({ boards: ["wavesharep4"], kind: "hardware" });
+    const audio = plugin({ boards: ["wavesharep4"], type: "hardware" });
     expect(fit(audio, screen("wavesharep4"))).toEqual({ ok: true });
     expect(fit(audio, screen("guition"))).toEqual({ ok: false, reason: "board" });
   });

@@ -9,7 +9,8 @@ import type { Screen } from "../types";
 export type Texts = Record<string, string>;
 // An input of kind entity is an entity the plugin's ESPHome part reads itself, of one of `domains`.
 export type PluginInput = { id: string; kind: "secret" | "text" | "gpio" | "entity"; label: Texts; hint?: Texts; scope: "all" | "screen"; domains?: string[] };
-export type PluginPart = { id: string; label: Texts; hint: Texts; flash_kb: number; default: boolean };
+// `features`: a part that uses a feature the screen may have (a voice answering out loud: a speaker), offered only then.
+export type PluginPart = { id: string; label: Texts; hint: Texts; flash_kb: number; default: boolean; features?: string[] };
 // A tile type of a plugin (docs: the plugins proposal, "Een plugin-tegel"): its sizes as the catalogue names them, its
 // price in the screen's memory, the entity it belongs to if any, and the options the inspector draws. An option's
 // `options_from` names a fetch of the plugin, whose answer the add-on hands the inspector as a list of choices.
@@ -37,7 +38,15 @@ export function offeredEntities<T extends { id: string }>(all: T[], tile: Pick<P
 }
 export type PluginSource = "index" | "link" | "branch" | "folder";
 export type PluginLabel = "tessera" | "community" | "test";
-export type PluginKind = "hardware" | "behaviour";
+// What a plugin adds, read by the add-on from its manifest (plugin_manifest.plugin_type): tiles to put on a page, something
+// for the whole screen, or a board's hardware. The Plugins page's tabs.
+export type PluginType = "tiles" | "functions" | "hardware";
+export const PLUGIN_TYPES: PluginType[] = ["tiles", "functions", "hardware"];
+// What a plugin is about, in its maker's word (plugin_manifest.TOPICS): the chips under the tabs.
+export const PLUGIN_TOPICS = ["time", "weather", "calendar", "home", "energy", "travel", "money", "sports", "news", "media",
+  "photos", "fun", "voice", "tech"] as const;
+// What a screen can have that a plugin needs (plugin_manifest.FEATURES): each a promise about one ESPHome id.
+export const PLUGIN_FEATURES = ["speaker", "microphone", "media_player"] as const;
 export type PluginStage = "stable" | "beta" | "example";
 export type Plugin = {
   id: string;
@@ -51,10 +60,20 @@ export type Plugin = {
   ref?: string | null;                // the commit it is pinned to (a branch's name for one to test), from the add-on
   license: string;
   stage?: PluginStage;                // how far along, in the maker's word (the manifest's `stage`, beta when it says none)
-  kind: PluginKind;
+  type?: PluginType;
+  topics?: string[];
+  // Which plugin of this id (github.com/<owner>/<repo>[/<folder>], or "folder"), the branch a test follows, its day.
+  origin?: string;
+  branch?: string | null;
+  date?: string | null;
+  featured?: boolean;                 // one Tessera recommends to start with (the index's featured.yaml)
+  likes?: number;                     // how many like it (the website's count, copied hourly into likes.json)
+  liked?: boolean;                    // this app likes it
   boards: string[] | "any";
   board_names?: string[];             // how a person knows those boards; the add-on fills it from boards.json
-  requires: { psram?: boolean };
+  // What it needs: PSRAM, other plugins (they come along), features of the screen (a speaker), an ESPHome to build with.
+  requires: { psram?: boolean; plugins?: string[]; features?: string[]; esphome?: string };
+  provides?: string[];                // the features it brings for other plugins
   flash_kb: number;
   permissions: { home_assistant: string[]; network: string[]; read_entities?: string[] };
   readme: Texts;                      // markdown; the app shows it in the editor's language, else in English
@@ -80,8 +99,11 @@ export type Plugin = {
 };
 // A plugin on a screen, as the add-on keeps it (plugins.json): its source and commit, its parts and what was filled in
 // (never a secret), and its state: building, active, or failed with the reason.
+// `origin` says which plugin of this id it is; `auto` that it came along with another plugin that needs it; `blocked` why
+// the index blocks this release (the next build leaves it out).
 export type Installed = {
   id: string; version: string; source: PluginSource; ref?: string | null; parts?: string[]; values?: Record<string, string>;
+  origin?: string; branch?: string | null; auto?: boolean; blocked?: string | null;
   state?: "building" | "active" | "failed"; reason?: string | null;
   // The fingerprint of the rights the person agreed to when it went on (Plugin.permission_hash then).
   consent?: string | null;
@@ -122,8 +144,16 @@ export const inEditorLanguage = (texts: Texts) => own(texts) !== undefined;
 
 // ---- Does it fit this screen ----
 // The reasons a plugin is not offered for a screen, in the order a person can do something about them.
-export type Misfit = "board" | "psram" | "firmware" | "flash" | "blocked";
+export type Misfit = "board" | "psram" | "firmware" | "flash" | "blocked" | "esphome" | "feature" | "needs";
 export type Fit = { ok: true } | { ok: false; reason: Misfit };
+// What only the add-on knows about a screen and a plugin (its payload's `fit`, by screen and plugin): a feature nothing
+// brings there, a plugin it needs that does not fit, an ESPHome too old to build it. The page keeps it here, as the tile
+// types, so fit() stays one pure rule.
+const appFit = new Map<string, Record<string, Misfit>>();
+export function knowAppFit(byScreen: Record<string, Record<string, Misfit>> = {}) {
+  appFit.clear();
+  for (const [screen, reasons] of Object.entries(byScreen)) appFit.set(screen, reasons);
+}
 
 // The 4 MB boards (the classic ESP32: the CYD, its ILI9342 sibling, the Hosyond) run close to the top of their slot.
 // What a plugin may add there keeps the image under the 93 % line of docs/RELEASING.md: the CYD's 0.51.0 image is
@@ -151,6 +181,8 @@ export function fit(plugin: Plugin, screen: Screen | null): Fit {
   if (plugin.fits_api === false) return { ok: false, reason: "firmware" };
   if (plugin.boards !== "any" && !(screen.board && plugin.boards.includes(screen.board))) return { ok: false, reason: "board" };
   if (plugin.requires.psram && !screen.pictures) return { ok: false, reason: "psram" };
+  const known = appFit.get(screen.id)?.[plugin.id];
+  if (known) return { ok: false, reason: known };
   if (smallFlash(screen) && plugin.flash_kb > headroomKb(screen)) return { ok: false, reason: "flash" };
   return { ok: true };
 }
@@ -166,7 +198,7 @@ export function flashShare(plugin: Plugin, screen: Screen | null, extra_kb = 0) 
 // record, so it can still be removed.
 export const testPlugin = (installed: Installed): Plugin => ({
   id: installed.id, icon: "F0A66", maintainer: "", tessera: false, version: installed.version, repo: "", license: "",
-  kind: "behaviour", boards: "any", requires: {}, flash_kb: 0, permissions: { home_assistant: [], network: [] }, attributes: [],
+  type: "functions", boards: "any", requires: {}, flash_kb: 0, permissions: { home_assistant: [], network: [] }, attributes: [],
   name: { en: installed.id.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) }, summary: { en: "" },
   readme: { en: "" }, languages: [], source: installed.source,
 });

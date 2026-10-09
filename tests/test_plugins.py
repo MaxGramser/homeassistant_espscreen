@@ -24,7 +24,7 @@ ENGLISH = {'app': {'name': 'Bus', 'summary': 'Next bus.', 'tile': 'Next', 'stop'
 
 def manifest(**changes):
     data = {
-        'id': 'bus', 'version': '1.0.0', 'api': '0.1', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT',
+        'id': 'bus', 'version': '1.0.0', 'api': '0.1', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT', 'topics': ['travel'],
         'permissions': {'network': ['api.example.org']}, 'attributes': ['cloud'], 'privacy': 'https://example.org/p',
         'tiles': [{'id': 'next', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 900,
                    'data': 'departures', 'options': [
@@ -989,7 +989,7 @@ class PanelSettings(unittest.IsolatedAsyncioTestCase):
         folder = Path(tmp.name) / 'tessera-plugins' / 'voice_probe'
         (folder / 'translations').mkdir(parents=True)
         (folder / 'tessera-plugin.yaml').write_text(
-            'id: voice_probe\nversion: 1.0.0\napi: "0.6"\nicon: microphone\nmaintainer: someone\nlicense: MIT\n'
+            'id: voice_probe\nversion: 1.0.0\napi: "0.6"\nicon: microphone\nmaintainer: someone\nlicense: MIT\ntopics: [voice]\n'
             'settings:\n  - { key: wake_word, label: word }\n  - { key: spotify_market, label: market }\n'
             '  - { key: test_wake, label: test, status: test_wake_result }\n')
         (folder / 'translations' / 'en.json').write_text(json.dumps(

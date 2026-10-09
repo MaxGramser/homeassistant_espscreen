@@ -1680,3 +1680,48 @@ section.advanced code { font-size: 11.5px; }
 @media (max-width: 760px) { .pm-head { grid-template-columns: auto minmax(0, 1fr); } .pm-guide { grid-column: 2; justify-self: start; } }
 /* Room under the last row, so nothing stays hidden behind the tray. */
 .sp-list:has(.plugin-tray), .plugins-list:has(.plugin-tray) { padding-bottom: 140px; }
+
+/* ---- Plugins: tabs by what a plugin adds, its topics as chips, likes, and what comes along (plugin API 0.7) ----
+   The tabs reuse the segmented control; topics are quiet pills that read like the chips on a card, one chosen at a
+   time. What fits none of the screens folds away under the list. A heart is a count first and a control only where
+   the plugin runs. What comes along sits in the action box as rows like the tray's, never as a second dialog. */
+.plugin-topics { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: -2px 0 2px; }
+.plugin-topic-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.topic-chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-strong); transition: background 0.12s, color 0.12s, box-shadow 0.12s; }
+.topic-chip small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.topic-chip:hover:not([aria-pressed="true"]) { color: var(--ink); background: var(--surface-2); }
+.topic-chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); box-shadow: none; }
+.topic-chip[aria-pressed="true"] small { color: inherit; opacity: 0.7; }
+.plugin-sort select { height: 28px; padding: 0 26px 0 10px; border-radius: 8px; font-size: 12.5px; color: var(--ink-2); background-color: transparent; border: 0; box-shadow: none; cursor: pointer; }
+.plugin-sort select:hover { color: var(--ink); background-color: var(--surface-2); }
+.plugin-misfits { display: grid; gap: 10px; margin-top: 6px; }
+.plugin-misfits-head { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); padding: 4px 6px 4px 0; }
+.plugin-misfits-head:hover { color: var(--ink-2); }
+.plugin-misfits .plugin-card { opacity: 0.72; }
+.plugin-likes { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plugin-likes .ui-icon { font-size: 14px; }
+.plugin-likes.mine .ui-icon { color: var(--danger); }
+.plugin-chip.topic { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.pd-top-end { display: inline-flex; align-items: center; gap: 4px; }
+.pd-like { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px; border-radius: 999px; font-size: 13px; font-weight: 550;
+  color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-strong); font-variant-numeric: tabular-nums; transition: background 0.12s, color 0.12s; }
+.pd-like .ui-icon { font-size: 17px; transition: transform 0.18s cubic-bezier(.3, 1.6, .5, 1); }
+.pd-like:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+.pd-like.on .ui-icon { color: var(--danger); transform: scale(1.08); }
+.pd-like:disabled { opacity: 0.6; cursor: default; }
+.pd-confirm { display: grid; gap: 10px; padding: 12px 14px; margin: 10px 0 2px; border-radius: 12px; background: var(--surface-2); font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+.pd-confirm a { color: var(--accent); }
+.pd-confirm .btn { height: 32px; font-size: 12.5px; }
+.pd-along { display: grid; gap: 8px; }
+.pd-along-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.pd-along-row .plugin-icon { width: 30px; height: 30px; font-size: 17px; border-radius: 8px; }
+.pd-along-words { display: grid; min-width: 0; font-size: 13px; }
+.pd-along-words b { font-weight: 550; }
+.pd-along-words small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-along-note .ui-icon { color: var(--muted); }
+.pd-choose select, .pt-choose select { width: 100%; }
+.pd-part.off { cursor: default; opacity: 0.7; }
+.pt-along .pt-row.along { opacity: 0.85; }
+.pt-along .pt-words small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.pt-choose { margin: 4px 0 2px; }

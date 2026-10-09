@@ -2558,13 +2558,14 @@ class Manager:
         hourly = self.forecasts.get((entity, 'hourly'))
         return not entry or not hourly or time.monotonic() - min(entry[0], hourly[0]) > FORECAST_SECONDS
 
-    async def tile_message(self, index, tile, lamps=False, features=None):
+    async def tile_message(self, index, tile, lamps=False, features=None, inbox=None):
         """The state message of one tile: state, options, extras, and the history the background task holds. `lamps`:
         the screen takes a light group's lamps (its hello said `group_lamps`, firmware 0.3.9+). `features`: the other
-        flags its hello said (page_delivery), None where the screen's hello is not known."""
-        # A plugin's tile (docs/PLUGINS.md): no entity behind it; its options and the data of its fetch.
+        flags its hello said (page_delivery), None where the screen's hello is not known. `inbox`: the screen it goes to."""
+        # A plugin's tile (docs/PLUGINS.md): no entity behind it; its options and the data of its fetch, from the plugin of
+        # that id this screen runs.
         if plugin_tile(tile['entity']):
-            return await self.plugins.tile_message(index, tile)
+            return await self.plugins.tile_message(index, tile, inbox=inbox)
         forecast=hourly=None
         if tile['entity'].startswith('weather.') and hasattr(self.ha,'forecast'):
             entity = tile['entity']
@@ -2803,7 +2804,7 @@ class Manager:
             if reuse and tile['entity'].startswith('weather.') and self.forecast_due(tile['entity']):
                 reuse = False
             # A screen on this route has no hello, and none of the flags a newer option needs.
-            states.append(previous['states'][i] if reuse else await self.tile_message(i, tile, features=frozenset()))
+            states.append(previous['states'][i] if reuse else await self.tile_message(i, tile, features=frozenset(), inbox=inbox))
         outgoing = []
         if force or not previous or layout_msg != previous['layout']:
             outgoing.append(layout_msg)
@@ -4476,6 +4477,7 @@ def create_app(manager, development=False):
         async def plugins_list(request):
             await manager.plugins.refresh_index(force=request.query.get('refresh') == '1')
             await manager.plugins.refresh_links(force=request.query.get('refresh') == '1')
+            await manager.plugins.refresh_likes()
             return web.json_response(manager.plugins.payload(REQUEST_LANGUAGE.get()))
 
         async def plugins_apply(request):
@@ -4493,19 +4495,35 @@ def create_app(manager, development=False):
             return web.json_response(manager.plugins.set_secret(request.match_info['plugin'], request.match_info['input'],
                                                                 data.get('value')))
 
+        # `_screen`: the screen the inspector shows (no option id starts with _), whose own plugin of that id answers.
         async def plugins_choices(request):
-            values = {key: value for key, value in request.query.items() if key != 'language'}
-            return web.json_response(await manager.plugins.choices(request.match_info['plugin'], request.match_info['fetch'], values))
+            values = {key: value for key, value in request.query.items() if key not in ('language', '_screen')}
+            return web.json_response(await manager.plugins.choices(request.match_info['plugin'], request.match_info['fetch'], values,
+                                                                   request.query.get('_screen')))
+
+        async def plugins_plan(request):
+            return web.json_response(manager.plugins.plan(request.match_info['inbox'], await request.json(),
+                                                          REQUEST_LANGUAGE.get()))
+
+        async def plugins_like(request):
+            data = await request.json()
+            if not isinstance(data, dict):
+                raise ValueError(t('addon.errors.plugins.request'))
+            return web.json_response(await manager.plugins.like(request.match_info['plugin'], data.get('like') is True,
+                                                                data.get('consent') is True))
 
         app.router.add_get('/api/plugins', plugins_list)
         app.router.add_post('/api/screens/{inbox}/plugins', plugins_apply)
         app.router.add_get('/api/screens/{inbox}/plugins/file', plugins_file)
         app.router.add_put('/api/plugins/{plugin}/secrets/{input}', plugins_secret)
         app.router.add_get('/api/plugins/{plugin}/choices/{fetch}', plugins_choices)
+        app.router.add_post('/api/screens/{inbox}/plugins/plan', plugins_plan)
+        app.router.add_put('/api/plugins/{plugin}/like', plugins_like)
 
         async def plugins_preview(request):
-            options = {key: value for key, value in request.query.items() if key != 'language'}
-            return web.json_response(await manager.plugins.preview(request.match_info['plugin'], request.match_info['tile'], options))
+            options = {key: value for key, value in request.query.items() if key not in ('language', '_screen')}
+            return web.json_response(await manager.plugins.preview(request.match_info['plugin'], request.match_info['tile'], options,
+                                                                   request.query.get('_screen')))
         app.router.add_get('/api/plugins/{plugin}/preview/{tile}', plugins_preview)
 
         async def plugins_link(request):

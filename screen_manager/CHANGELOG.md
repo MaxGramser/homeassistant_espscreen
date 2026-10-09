@@ -1,5 +1,12 @@
 ## Unreleased
 
+- **Find plugins by what they are.** The Plugins page has tabs for tiles, functions for the whole screen, and hardware,
+  with topics such as Time, Weather or On the move under them, and what fits none of your screens folded away. Give a
+  plugin you use a heart, and see which plugins others like. A plugin that needs another one, or needs a speaker or a
+  microphone, brings what it needs along in the same build, shown before you add it; removing a plugin another one needs
+  asks first. Plugins are pinned to the exact commit they were added at, and a plugin from a fork never gets the key you
+  filled in for the original. Plugin API 0.7.
+
 - **All of a plugin's settings in one place.** Open a plugin in a screen's Plugins tab and its settings are there, in
   three groups: what takes effect on this screen at once, what is filled in once for every screen, and what builds the
   screen again, with a "Save and build" key that lights up only when something changed. Plugins can now add a text

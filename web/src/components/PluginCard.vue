@@ -29,6 +29,8 @@ defineEmits<{ open: []; add: [] }>();
     <span class="plugin-foot">
       <em class="plugin-chip" :class="labelOf(plugin)">{{ t(`editor.plugins.label.${labelOf(plugin)}`) }}</em>
       <em v-if="stageOf(plugin)" class="plugin-chip" :class="stageOf(plugin)" :title="t(`editor.plugins.stage_hint.${stageOf(plugin)}`)">{{ t(`editor.plugins.stage.${stageOf(plugin)}`) }}</em>
+      <span v-if="plugin.likes" class="plugin-likes" :class="{ mine: plugin.liked }" :title="t('editor.plugins.likes.count', { n: plugin.likes }, plugin.likes)">
+        <Icon :name="plugin.liked ? 'heart' : 'heart-outline'" />{{ plugin.likes }}</span>
       <span v-if="status.label" class="plugin-state" :class="status.kind">
         <Icon v-if="status.kind === 'installed'" name="check" />
         <Icon v-else-if="status.kind === 'update'" name="update" />

@@ -11,7 +11,9 @@ import { glyph } from "../model/topbar";
 import {
   addPlugin, attachLine, buildingOn, isSetAside, setAside, toggleSetAside, copyAttach, fileOf, hasUpdate, installedOn, isTest, labelOf, stageOf, markAttached, needsAttach, partsKb,
   pluginsFile, realScreens, needsConsent, plugins, removePlugin, setupChanged, setupReady, statusOn,
+  canLike, chooseProvider, comesAlong, like, neededBy, otherOrigin, planOn, switchPlugin,
 } from "../plugin-state";
+import { toast } from "../store";
 import type { Screen } from "../types";
 import PluginReadme from "./PluginReadme.vue";
 import PluginSettings from "./PluginSettings.vue";
@@ -58,6 +60,47 @@ const changes = computed(() => {
   return `${props.plugin.repo.replace(/\/tree\/.*$/, "")}/compare/${have}...${next}`;
 });
 
+// ---- What it needs, what comes along, and the plugins that need it ----
+const byId = (id: string) => plugins.index.find((p) => p.id === id);
+const nameOf = (id: string) => (byId(id) ? text(byId(id)!.name) : id);
+const feature = (name: string) => (te(`editor.plugins.features.${name}`) ? t(`editor.plugins.features.${name}`) : name);
+// On this screen: what adding it brings along (the add-on's plan), a feature to choose a plugin for, or why it cannot.
+const herePlan = computed(() => (here.value && !hereInstalled.value && hereFit.value.ok ? planOn(here.value, [props.plugin.id]) : null));
+const hereAlong = computed(() => comesAlong(herePlan.value, [props.plugin.id]));
+const hereNeeded = computed(() => (here.value && hereInstalled.value ? neededBy(here.value, props.plugin.id) : []));
+const cameWith = computed(() => (here.value && hereInstalled.value?.auto ? hereNeeded.value : []));
+const hereOther = computed(() => Boolean(here.value && otherOrigin(here.value, props.plugin)));
+const whyAlong = (row: { step: { for: string[] }; plugin: Plugin }) => {
+  const brings = (row.plugin.provides || []).filter((f) => row.step.for.some((id) => (byId(id) || props.plugin).requires.features?.includes(f)));
+  return brings.length ? t("editor.plugins.along.brings", { what: brings.map(feature).join(", ") })
+    : t("editor.plugins.along.needed_by", { name: row.step.for.map(nameOf).join(", ") });
+};
+// Taking it off: a plugin that needs it goes with it, and one that only came along with it may go too; the person says.
+const confirming = ref<null | { screens: Screen[]; with: string[]; orphans: string[] }>(null);
+const alsoOrphans = ref(true);
+function askRemove(screens: Screen[]) {
+  const needing = [...new Set(screens.flatMap((screen) => neededBy(screen, props.plugin.id).map((p) => p.id)))];
+  const orphans = [...new Set(screens.flatMap((screen) => (plugins.installed[screen.id] || []).filter((item) => item.auto
+    && item.id !== props.plugin.id && neededBy(screen, item.id).every((p) => p.id === props.plugin.id || needing.includes(p.id)))
+    .map((item) => item.id)))];
+  if (!needing.length && !orphans.length) return removePlugin(screens, props.plugin);
+  alsoOrphans.value = true;
+  confirming.value = { screens, with: needing, orphans };
+}
+function confirmRemove() {
+  const ask = confirming.value!;
+  confirming.value = null;
+  removePlugin(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
+}
+watch(() => props.plugin.id, () => { confirming.value = null; });
+// A like: the first one asks once whether it may count in a public number (plugin_likes.py).
+const askingLike = ref(false);
+async function toggleLike(consent = false) {
+  if (!props.plugin.liked && !plugins.likeConsent && !consent) { askingLike.value = true; return; }
+  askingLike.value = false;
+  try { await like(props.plugin, !props.plugin.liked, consent); } catch (error: any) { toast(error.message); }
+}
+
 // ---- Every screen (the Plugins page): a box per screen, applied together ----
 const screens = computed(() => realScreens());
 const wanted = reactive<Record<string, boolean>>({});
@@ -97,7 +140,7 @@ const applyText = computed(() => {
 function apply() {
   // Adding sets the plugin aside on each ticked screen (the tray builds them); taking it off a screen goes at once.
   for (const screen of adding.value) setAside(screen, props.plugin);
-  removePlugin(removing.value, props.plugin);
+  if (removing.value.length) askRemove(removing.value);
   trust.value = false;
 }
 watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?.version || ""}`).join(), reset);
@@ -106,7 +149,20 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
 <template>
   <div class="pd-top">
     <span class="plugin-icon large" :class="{ tessera: plugin.tessera }" aria-hidden="true"><span class="mdi">{{ glyph(plugin.icon) }}</span></span>
-    <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="$emit('close')"><Icon name="close" /></button>
+    <span class="pd-top-end">
+      <!-- A heart for a plugin that runs on one of the screens; before that it only shows how many like it. -->
+      <button v-if="plugin.source === 'index'" type="button" class="pd-like" id="plugin-like" :class="{ on: plugin.liked }" :aria-pressed="Boolean(plugin.liked)"
+        :disabled="!canLike(plugin) && !plugin.liked" :title="canLike(plugin) || plugin.liked ? t(plugin.liked ? 'editor.plugins.likes.unlike' : 'editor.plugins.likes.like') : t('editor.plugins.likes.install_first')"
+        @click="toggleLike()"><Icon :name="plugin.liked ? 'heart' : 'heart-outline'" /><span>{{ plugin.likes || 0 }}</span></button>
+      <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="$emit('close')"><Icon name="close" /></button>
+    </span>
+  </div>
+  <div v-if="askingLike" class="pd-confirm" id="plugin-like-ask">
+    <p>{{ t("editor.plugins.likes.ask") }} <a href="https://tessera-maxgramser.on-forge.com/privacy" target="_blank" rel="noopener">{{ t("editor.plugins.privacy") }}</a></p>
+    <div class="pd-buttons">
+      <button type="button" class="btn primary" id="plugin-like-yes" @click="toggleLike(true)"><Icon name="heart" />{{ t("editor.plugins.likes.like") }}</button>
+      <button type="button" class="btn quiet" @click="askingLike = false">{{ t("editor.common.cancel") }}</button>
+    </div>
   </div>
   <div class="pd-title">
     <h2 id="plugin-name">{{ text(plugin.name) }}</h2>
@@ -118,13 +174,27 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
     <p class="pd-chips">
       <em class="plugin-chip" :class="label">{{ t(`editor.plugins.label.${label}`) }}</em>
       <em v-if="stage" class="plugin-chip" :class="stage" id="plugin-stage">{{ t(`editor.plugins.stage.${stage}`) }}</em>
-      <em v-if="label !== 'test'" class="plugin-chip">{{ t(`editor.plugins.kind.${plugin.kind}`) }}</em>
+      <em v-if="plugin.type" class="plugin-chip" id="plugin-type">{{ t(`editor.plugins.types.${plugin.type}`) }}</em>
+      <em v-for="name in plugin.topics || []" :key="name" class="plugin-chip topic">{{ t(`editor.plugins.topics.${name}`) }}</em>
       <em v-for="mark in plugin.attributes" :key="mark" class="plugin-chip attribute">{{ t(`editor.plugins.attribute.${mark}`) }}</em>
       <em v-if="englishOnly" class="plugin-chip attribute" id="plugin-english-only">{{ t("editor.plugins.english_only") }}</em>
     </p>
   </div>
   <p v-if="text(plugin.summary)" class="pd-description">{{ text(plugin.summary) }}</p>
   <p v-if="stage" class="pd-stage" id="plugin-stage-hint">{{ t(`editor.plugins.stage_hint.${stage}`) }}</p>
+
+  <!-- Taking it off when another plugin needs it, or one only came along with it: said once, decided here. -->
+  <div v-if="confirming" class="pd-confirm" id="plugin-remove-ask">
+    <p v-if="confirming.with.length">{{ t("editor.plugins.remove_ask.needed", { names: confirming.with.map(nameOf).join(", "), name: text(plugin.name) }) }}</p>
+    <label v-if="confirming.orphans.length" class="pd-part">
+      <input type="checkbox" v-model="alsoOrphans" id="plugin-remove-orphans" />
+      <span><b>{{ t("editor.plugins.remove_ask.orphans", { names: confirming.orphans.map(nameOf).join(", ") }) }}</b><small>{{ t("editor.plugins.remove_ask.orphans_note", { name: text(plugin.name) }) }}</small></span>
+    </label>
+    <div class="pd-buttons">
+      <button type="button" class="btn primary" id="plugin-remove-yes" @click="confirmRemove">{{ confirming.with.length ? t("editor.plugins.remove_ask.both") : t("editor.plugins.remove_ask.go") }}</button>
+      <button type="button" class="btn quiet" @click="confirming = null">{{ t("editor.common.cancel") }}</button>
+    </div>
+  </div>
 
   <!-- In a screen's tab, for a screen with its own YAML that is not attached yet: one line, once. After that the add-on
        keeps its plugins file and the screen is like any other; ESPHome Device Builder builds it as always. -->
@@ -148,19 +218,26 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       <p class="pd-note">{{ t("editor.plugins.test_note") }}</p>
       <div class="pd-buttons">
         <button type="button" class="btn primary" id="plugin-rebuild" @click="addPlugin([here], plugin)">{{ t("editor.plugins.rebuild") }}</button>
-        <button type="button" class="btn quiet" @click="removePlugin([here], plugin)">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
+        <button type="button" class="btn quiet" @click="askRemove([here])">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
       </div>
     </template>
     <template v-else-if="hereStatus.kind === 'failed'">
       <p class="pd-misfit" id="plugin-failed"><Icon name="information-outline" />{{ t("editor.plugins.failed", { screen: here.name }) }}</p>
       <div class="pd-buttons">
         <button type="button" class="btn primary" @click="addPlugin([here], plugin)">{{ t("editor.plugins.retry") }}</button>
-        <button type="button" class="btn quiet" @click="removePlugin([here], plugin)">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
+        <button type="button" class="btn quiet" @click="askRemove([here])">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
       </div>
     </template>
     <p v-else-if="hereStatus.kind === 'building'" class="pd-note"><span class="spin" aria-hidden="true"></span>{{ t("editor.plugins.building", { screen: here.name }) }}</p>
     <template v-else-if="hereInstalled">
       <p class="pd-note"><Icon name="check-circle" />{{ t("editor.plugins.installed_on", { screen: here.name, version: hereInstalled.version }) }}</p>
+      <p v-if="cameWith.length" class="pd-note pd-along-note" id="plugin-came-with"><Icon name="link-variant" />{{ t("editor.plugins.along.came_with", { names: cameWith.map((p) => text(p.name)).join(", ") }) }}</p>
+      <p v-else-if="hereNeeded.length" class="pd-note pd-along-note" id="plugin-needed-by"><Icon name="link-variant" />{{ t("editor.plugins.along.needed_now", { names: hereNeeded.map((p) => text(p.name)).join(", ") }) }}</p>
+      <p v-if="hereInstalled.blocked" class="pd-misfit" id="plugin-blocked"><Icon name="alert-circle-outline" />{{ t("editor.plugins.blocked_now", { why: hereInstalled.blocked }) }}</p>
+      <template v-if="hereOther">
+        <p class="pd-misfit" id="plugin-other-origin"><Icon name="information-outline" />{{ t("editor.plugins.other_origin", { origin: hereInstalled.origin }) }}</p>
+        <div class="pd-buttons"><button type="button" class="btn quiet" id="plugin-switch" @click="switchPlugin(here, plugin)">{{ t("editor.plugins.switch", { origin: plugin.origin }) }}</button></div>
+      </template>
       <label v-if="hereStatus.kind === 'update' && askConsent" class="pd-trust" id="plugin-consent">
         <input type="checkbox" :checked="plugins.consented[plugin.id]" @change="plugins.consented[plugin.id] = ($event.target as HTMLInputElement).checked" />
         <span><b>{{ t("editor.plugins.consent.title") }}</b>{{ t("editor.plugins.consent.agree") }}</span>
@@ -168,11 +245,27 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       <div class="pd-buttons">
         <button v-if="hereStatus.kind === 'update'" type="button" class="btn primary" id="plugin-update" :disabled="!agreed" @click="addPlugin([here], plugin)">{{ t("editor.plugins.update", { version: plugin.version }) }}</button>
         <a v-if="hereStatus.kind === 'update' && changes" class="btn quiet" id="plugin-changes" :href="changes" target="_blank" rel="noopener">{{ t("editor.plugins.changes") }}</a>
-        <button type="button" class="btn quiet" id="plugin-remove" @click="removePlugin([here], plugin)">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
+        <button type="button" class="btn quiet" id="plugin-remove" @click="askRemove([here])">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
       </div>
     </template>
     <template v-else>
       <PluginSetup :plugin="plugin" :screens="[here]" />
+      <!-- What comes along: a plugin it needs, or the one plugin that brings a feature it needs; set aside with it. -->
+      <div v-if="hereAlong.length || herePlan?.choose?.length || herePlan?.error" class="pd-along" id="plugin-along">
+        <p class="pd-label">{{ t("editor.plugins.along.title") }}</p>
+        <p v-if="herePlan?.error" class="pd-misfit"><Icon name="information-outline" />{{ herePlan.error }}</p>
+        <div v-for="row in hereAlong" :key="row.plugin.id" class="pd-along-row" :data-plugin="row.plugin.id">
+          <span class="plugin-icon" :class="{ tessera: row.plugin.tessera }" aria-hidden="true"><span class="mdi">{{ glyph(row.plugin.icon) }}</span></span>
+          <span class="pd-along-words"><b>{{ text(row.plugin.name) }}</b><small>{{ whyAlong(row) }} · {{ row.plugin.tessera ? t("editor.plugins.from_tessera") : t("editor.plugins.by", { maker: row.plugin.maintainer }) }} · {{ kb(row.step.flash_kb) }} KB</small></span>
+        </div>
+        <label v-for="choice in herePlan?.choose || []" :key="choice.feature" class="field pd-choose">
+          <span class="f-label">{{ t("editor.plugins.along.choose", { what: feature(choice.feature) }) }}</span>
+          <select :data-feature="choice.feature" @change="chooseProvider(here!, choice.feature, ($event.target as HTMLSelectElement).value)">
+            <option value="" selected disabled>{{ t("editor.plugin_tile.choose") }}</option>
+            <option v-for="id in choice.options" :key="id" :value="id">{{ nameOf(id) }}</option>
+          </select>
+        </label>
+      </div>
       <!-- Set aside, not built: the tray takes it with whatever else is chosen, and builds the screen once. -->
       <button type="button" class="btn pd-install" :class="isSetAside(here, plugin.id) ? 'quiet' : 'primary'" id="plugin-install" @click="toggleSetAside(here, plugin)">
         <Icon :name="isSetAside(here, plugin.id) ? 'check' : 'plus'" />{{ isSetAside(here, plugin.id) ? t("editor.plugins.tray.in_tray") : t("editor.plugins.tray.stage", { screen: here.name }) }}
@@ -237,6 +330,15 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       <li v-for="action in plugin.tap_actions || []" :key="`tap-${action.id}`"><Icon name="gesture-tap" /><span><b>{{ t("editor.plugins.adds.tap", { name: text(action.label) }) }}</b><small>{{ t("editor.plugins.adds.tap_on", { domains: action.domains.map(domainName).join(", ") }) }}</small></span></li>
       <li v-for="bar in plugin.bar_items || []" :key="`bar-${bar.id}`"><Icon name="page-layout-header" /><span><b>{{ t("editor.plugins.adds.bar", { name: text(bar.label) }) }}</b></span></li>
       <li v-if="plugin.settings?.length"><Icon name="cog-outline" /><span><b>{{ t("editor.plugins.adds.settings") }}</b><small>{{ t("editor.plugins.adds.settings_where") }}</small></span></li>
+    </ul>
+  </section>
+
+  <section v-if="plugin.requires.plugins?.length || plugin.requires.features?.length || plugin.provides?.length" class="pd-section" id="plugin-needs">
+    <h3>{{ t("editor.plugins.needs.title") }}</h3>
+    <ul class="pd-list">
+      <li v-for="id in plugin.requires.plugins || []" :key="`p-${id}`"><Icon name="puzzle-outline" /><span><b>{{ nameOf(id) }}</b><small>{{ t("editor.plugins.needs.plugin") }}</small></span></li>
+      <li v-for="name in plugin.requires.features || []" :key="`f-${name}`"><Icon name="speaker" /><span><b>{{ t("editor.plugins.needs.feature", { what: feature(name) }) }}</b><small>{{ t("editor.plugins.needs.feature_note") }}</small></span></li>
+      <li v-for="name in plugin.provides || []" :key="`b-${name}`"><Icon name="puzzle-outline" /><span><b>{{ t("editor.plugins.needs.brings", { what: feature(name) }) }}</b><small>{{ t("editor.plugins.needs.brings_note") }}</small></span></li>
     </ul>
   </section>
 
