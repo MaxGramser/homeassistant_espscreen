@@ -537,6 +537,35 @@
         "drying": "Desumidificação",
         "idle": "Inativo",
         "off": "Desligado"
+      },
+      "today": "Hoje",
+      "weather_view": {
+        "daily": "Diariamente",
+        "hourly": "De hora em hora"
+      },
+      "weather_attribute": {
+        "humidity": "Humidade",
+        "wind_speed": "Vel. do Vento",
+        "air_pressure": "Press. Atmosférica",
+        "visibility": "Visibilidade"
+      },
+      "wind_direction": {
+        "n": "N",
+        "nne": "NNE",
+        "ne": "NE",
+        "ene": "ENE",
+        "e": "E",
+        "ese": "ESE",
+        "se": "SE",
+        "sse": "SSE",
+        "s": "S",
+        "ssw": "SSO",
+        "sw": "SO",
+        "wsw": "OSO",
+        "w": "O",
+        "wnw": "ONO",
+        "nw": "NO",
+        "nnw": "NNO"
       }
     },
     "navigation": {

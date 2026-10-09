@@ -537,6 +537,35 @@
         "drying": "Párátlanítás",
         "idle": "Tétlen",
         "off": "Ki"
+      },
+      "today": "Ma",
+      "weather_view": {
+        "daily": "Napi",
+        "hourly": "Óránkénti"
+      },
+      "weather_attribute": {
+        "humidity": "Páratartalom",
+        "wind_speed": "Szélsebesség",
+        "air_pressure": "Légnyomás",
+        "visibility": "Látótávolság"
+      },
+      "wind_direction": {
+        "n": "É",
+        "nne": "É-ÉK",
+        "ne": "ÉK",
+        "ene": "K-ÉK",
+        "e": "K",
+        "ese": "K-DK",
+        "se": "DK",
+        "sse": "D-DK",
+        "s": "D",
+        "ssw": "D-DNy",
+        "sw": "DNy",
+        "wsw": "Ny-DNy",
+        "w": "Ny",
+        "wnw": "Ny-ÉNy",
+        "nw": "ÉNy",
+        "nnw": "É-ÉNy"
       }
     },
     "navigation": {

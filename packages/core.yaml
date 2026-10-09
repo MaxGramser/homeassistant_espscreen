@@ -715,6 +715,10 @@ api:
                     // types (plugin_host::hello).
                     features.add("plugins");
                     plugin_host::hello(root);
+                    // weather_week: the weather card draws the week (weather_chart.h), so ESP Screens sends seven days
+                    // with their weekday, the next 48 hours with their hour, and the wind's bearing, the air pressure,
+                    // the visibility and the rain's unit.
+                    features.add("weather_week");
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
                       if (size.fits(runtime_tiles::grid.columns, runtime_tiles::grid.rows)) sizes.add(size.name);

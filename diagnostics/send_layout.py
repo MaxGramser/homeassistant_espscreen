@@ -4,6 +4,7 @@ Uses the same message builder as ESP Screen Manager, but with synthetic states,
 so rendering can be checked without touching Home Assistant. The running
 manager restores the real layout on its next keepalive (about two minutes).
 """
+import math
 import argparse
 import asyncio
 import json
@@ -74,7 +75,8 @@ def controls_states(now):
         'fan.demo_fan': {'state': 'off', 'attributes': {'percentage': 0}},
         'cover.demo_shutter': {'state': 'open', 'attributes': {'current_position': 35, 'supported_features': 15}},
         'light.demo_ceiling': {'state': 'off', 'attributes': {}},
-        'weather.demo_outside': {'state': 'rainy', 'attributes': {'temperature': 18.4, 'temperature_unit': '°C', 'humidity': 92, 'wind_speed': 12.2, 'wind_speed_unit': 'km/h', 'apparent_temperature': 17.1}},
+        'weather.demo_outside': {'state': 'rainy', 'attributes': {'temperature': 18.4, 'temperature_unit': '°C', 'humidity': 92, 'wind_speed': 12.2, 'wind_speed_unit': 'km/h', 'apparent_temperature': 17.1,
+                                                     'wind_bearing': 225, 'pressure': 1012, 'pressure_unit': 'hPa', 'visibility': 9.7, 'visibility_unit': 'km', 'precipitation_unit': 'mm'}},
         'script.demo_tv': {'state': 'off', 'attributes': {'last_triggered': (now - timedelta(hours=2, minutes=8)).isoformat()}},
         'scene.demo_morning': {'state': (now - timedelta(days=1, hours=5)).isoformat(), 'attributes': {}},
     }
@@ -93,17 +95,24 @@ def demo_states(now):
     }
 
 def demo_forecast(now):
-    conditions = ['sunny', 'partlycloudy', 'rainy', 'cloudy', 'lightning-rainy', 'snowy']
-    return [{'datetime': (now + timedelta(days=i)).isoformat(), 'condition': conditions[i], 'temperature': 21 - i, 'templow': 11 + i,
-             'precipitation': [0, 0, 4.2, 0.3, 11.5, 2][i], 'precipitation_probability': [5, 20, 80, 30, 95, 60][i]}
-            for i in range(6)]
+    conditions = ['sunny', 'partlycloudy', 'rainy', 'cloudy', 'lightning-rainy', 'snowy', 'partlycloudy']
+    return [{'datetime': (now + timedelta(days=i)).isoformat(), 'condition': conditions[i], 'temperature': 21 - i, 'templow': 11 + i // 2,
+             'precipitation': [0, 0, 4.2, 0.3, 11.5, 2, 0][i], 'precipitation_probability': [5, 20, 80, 30, 95, 60, 10][i]}
+            for i in range(7)]
 
 def demo_hourly(now):
+    # Two days of hours: the first ten as they always were, then a day that warms and cools and rains in the evening.
     conditions = ['rainy', 'rainy', 'partlycloudy', 'partlycloudy', 'sunny', 'sunny', 'cloudy', 'lightning-rainy', 'rainy', 'cloudy']
     start = now.replace(minute=0, second=0, microsecond=0)
-    return [{'datetime': (start + timedelta(hours=i)).isoformat(), 'condition': conditions[i], 'temperature': 18.4 + i * 0.6,
-             'precipitation': [0.4, 0.2, 0, 0, 0, 0, 0, 2.1, 1.0, 0][i], 'precipitation_probability': [70, 55, 10, 5, 0, 0, 15, 85, 60, 20][i]}
-            for i in range(10)]
+    hours = [{'datetime': (start + timedelta(hours=i)).isoformat(), 'condition': conditions[i], 'temperature': 18.4 + i * 0.6,
+              'precipitation': [0.4, 0.2, 0, 0, 0, 0, 0, 2.1, 1.0, 0][i], 'precipitation_probability': [70, 55, 10, 5, 0, 0, 15, 85, 60, 20][i]}
+             for i in range(10)]
+    for i in range(10, 48):
+        at = start + timedelta(hours=i)
+        warm = 4 * math.sin((at.hour - 9) / 24 * 2 * math.pi)
+        hours.append({'datetime': at.isoformat(), 'condition': 'rainy' if 18 <= at.hour <= 21 else 'partlycloudy' if 8 <= at.hour <= 17 else 'cloudy',
+                      'temperature': round(16 + warm, 1), 'precipitation': 1.2 if 18 <= at.hour <= 21 else 0, 'precipitation_probability': 70 if 18 <= at.hour <= 21 else 10})
+    return hours
 
 def configuration(grid, rotate=0, digital=False, wide=False, controls=False, now=None, titles=None):
     """A canonical synthetic fixture, using the real board grid and formatter.
@@ -127,7 +136,8 @@ def configuration(grid, rotate=0, digital=False, wide=False, controls=False, now
     for i, tile in enumerate(tiles):
         forecast = demo_forecast(now) if tile['entity'].startswith('weather.') else None
         hourly = demo_hourly(now) if tile['entity'].startswith('weather.') else None
-        message = state_message(i, tile, states, extras(tile, states, forecast, None, hourly, now))
+        # The firmware this fixture renders draws the weather card's week (hello weather_week).
+        message = state_message(i, tile, states, extras(tile, states, forecast, None, hourly, now, week=True), week=True)
         if tile['entity'].startswith('sensor.'):
             message['history'] = {'hours': 24, 'values': [round(18 + 4 * ((k * 7) % 11) / 10, 2) if k % 5 else None for k in range(24)]}
         values.append(message)

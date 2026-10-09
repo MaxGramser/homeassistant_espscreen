@@ -537,6 +537,35 @@
         "drying": "Drogen",
         "idle": "Inactief",
         "off": "Uit"
+      },
+      "today": "Vandaag",
+      "weather_view": {
+        "daily": "Dagelijks",
+        "hourly": "Per uur"
+      },
+      "weather_attribute": {
+        "humidity": "Vochtigheid",
+        "wind_speed": "Windsnelheid",
+        "air_pressure": "Luchtdruk",
+        "visibility": "Zicht"
+      },
+      "wind_direction": {
+        "n": "N",
+        "nne": "NNO",
+        "ne": "NO",
+        "ene": "ONO",
+        "e": "O",
+        "ese": "OZO",
+        "se": "ZO",
+        "sse": "ZZO",
+        "s": "Z",
+        "ssw": "ZZW",
+        "sw": "ZW",
+        "wsw": "WZW",
+        "w": "W",
+        "wnw": "WNW",
+        "nw": "NW",
+        "nnw": "NNW"
       }
     },
     "navigation": {

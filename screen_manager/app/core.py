@@ -200,6 +200,13 @@ ATTRS = frozenset('brightness percentage current_position current_tilt_position 
 # and what it is doing. Other domains use the same names for other things (an automation's `mode`), so only a humidifier
 # sends them.
 HUMIDIFIER_ATTRS = frozenset('min_humidity max_humidity target_humidity_step available_modes mode action'.split())
+# What the weather card of a screen that draws the week shows beside the temperature, as Home Assistant's more-info
+# dialog does (its hello says weather_week): the wind's bearing, the air pressure, the visibility, and the unit of the
+# rain. Only to such a screen; an older one keeps its message as it was.
+WEATHER_WEEK_ATTRS = frozenset(('wind_bearing', 'pressure', 'pressure_unit', 'visibility', 'visibility_unit', 'precipitation_unit'))
+# The hello flag of a screen that draws the weather card's week (weather_week.h): seven days with their weekday, the
+# next 48 hours with their hour, and WEATHER_WEEK_ATTRS.
+WEATHER_WEEK = 'weather_week'
 # Attributes whose boolean value the screen needs; every other bool stays behind.
 BOOL_ATTRS = frozenset(['is_volume_muted', 'code_arm_required', 'assumed_state'])
 
@@ -2300,7 +2307,7 @@ def media_extras(attrs):
 
 
 def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=None, entries=None, words=None, icon_of=None, device_name=None,
-           energy=None, home_name=''):
+           energy=None, home_name='', week=False):
     """Small, pre-computed values the firmware cannot derive itself (time zones, forecasts, a vacuum's device, the rows of
     a light's effects page, the house's power split for the energy card from `energy`, Home Assistant's Energy settings)."""
     if tile['entity'] == ENERGY_TILE:
@@ -2328,14 +2335,19 @@ def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=N
     if domain == 'weather' and (forecast or hourly):
         result = {}
         days = []
+        # A screen that draws the week (week) takes seven days, each with its weekday (w, Sunday 0), and the next 48
+        # hours, each with its hour since today's midnight (o) in place of its time and chance; an older one five days
+        # and eight hours, as before.
         for entry in forecast or []:
-            if not isinstance(entry, dict) or len(days) == 5:
+            if not isinstance(entry, dict) or len(days) == (7 if week else 5):
                 continue
             day = forecast_time(entry, tz)
             if day is None:
                 continue
             # The day's short name in the screens' language (app 0.2.90); the list starts on Sunday, Python's week on Monday.
             item = {'d': screen_t(f'screen.date.weekdays_min.{(day.weekday() + 1) % 7}'), 'c': short(entry.get('condition') or '', 20)}
+            if week:
+                item['w'] = (day.weekday() + 1) % 7
             # h/l: high and low; p: chance of rain in %; r: rain in the entity's unit (mm).
             for key, name in (('h', 'temperature'), ('l', 'templow'), ('p', 'precipitation_probability'), ('r', 'precipitation')):
                 value = forecast_number(entry, name)
@@ -2348,11 +2360,22 @@ def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=N
         hours = []
         # The running hour still counts: an entry stays until its hour has passed.
         start = (now or datetime.now(timezone.utc)) - timedelta(minutes=59)
+        midnight = None
         for entry in hourly or []:
-            if not isinstance(entry, dict) or len(hours) == 8:
+            if not isinstance(entry, dict) or len(hours) == (48 if week else 8):
                 continue
             moment = forecast_time(entry, tz)
             if moment is None or moment < start:
+                continue
+            if week:
+                if midnight is None:
+                    midnight = (now or datetime.now(timezone.utc)).astimezone(moment.tzinfo).replace(hour=0, minute=0, second=0, microsecond=0)
+                item = {'o': int((moment - midnight).total_seconds() // 3600), 'c': short(entry.get('condition') or '', 20)}
+                for key, name in (('h', 'temperature'), ('r', 'precipitation')):
+                    value = forecast_number(entry, name)
+                    if value is not None:
+                        item[key] = value
+                hours.append(item)
                 continue
             item = {'t': moment.strftime('%H:%M'), 'c': short(entry.get('condition') or '', 20)}
             for key, name in (('h', 'temperature'), ('p', 'precipitation_probability'), ('r', 'precipitation')):
@@ -2463,7 +2486,7 @@ def attribute_word(entity_id, attribute, value, attributes, entry, words):
         return None
     return ha_word(entity_id, f'state_attributes.{attribute}.state.{value}', attributes, entry, words)
 
-def state_message(index, tile, states, extra=None, precision=None, entry=None, units=None):
+def state_message(index, tile, states, extra=None, precision=None, entry=None, units=None, week=False):
     if tile['entity'] in BUILTIN:
         message = {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'],
                    'name': short(tile['name'] or builtin_name(tile['entity']), 80), 'state': 'ok', 'a': {}}
@@ -2478,7 +2501,10 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None, u
     state = states.get(tile['entity'], {})
     attrs = state.get('attributes', {})
     bounded = {}
-    for key in ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS:
+    keys = ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS
+    if week and tile['entity'].startswith('weather.'):
+        keys = keys | WEATHER_WEEK_ATTRS
+    for key in keys:
         value = attrs.get(key)
         if isinstance(value, bool):
             # assumed_state only matters to a lock's keys (firmware 0.5.0+) and a player's power keys (firmware
