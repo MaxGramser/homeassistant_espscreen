@@ -7,6 +7,12 @@
 - **Make a plugin of your own.** The Plugins page explains it in three steps: start from the template, try it on your
   screen with a link to your repository, and list it in the community so it shows up for everyone, straight from your
   repository.
+- **Plugins get a whole day of prices or a forecast.** A plugin tile of an entity now gets every value of a list, not
+  the first 16: two days of electricity prices per quarter of an hour arrive whole. A plugin can take one list of
+  numbers out of a list of objects (ENTSO-e, Frank Energie, Zonneplan, Octopus, Solcast, Amber) and out of the answer of
+  an action (Nord Pool, EnergyZero, easyEnergy, Tibber, a weather forecast), and can ask that the entity list in the
+  editor shows only the entities that have the attributes it needs, the price sensor instead of every sensor in the
+  house. Plugin API 0.5.
 
 ## 0.4.85 (firmware 0.53.0)
 

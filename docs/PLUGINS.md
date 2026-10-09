@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on dev while the plugin API is 0.x (the plugin API is 0.4 now): in an app added from the `#dev` URL, a
+Plugins are on dev while the plugin API is 0.x (the plugin API is 0.5 now): in an app added from the `#dev` URL, a
 local copy of the app, and the editor's development server (`core.plugins_enabled()`). The stable app has no Plugins
 page, no routes and no loop.
 
@@ -47,7 +47,12 @@ plugins move with it in the same release. A test keeps the number equal in `plug
    plugin tile, and a top bar with a plugin's item, go only to a screen whose features say `plugins`; one without gets
    the refusal "update the firmware". No firmware number gates it, so dev screens work before a release numbers them.
 5. **The state message** of a plugin tile (`Plugins.tile_message`) has `state: "ok"`, no attributes, `o.plugin` (its
-   options with the manifest's defaults) and `x`, the mapped answer of its fetch, kept under 2.6 KB.
+   options with the manifest's defaults) and `x`: the mapped answer of its fetch and, for a tile of an entity
+   (`Plugins.entity_part`), the entity's state, name, the attributes the manifest names and the `fields` it takes out
+   of them. `x` stays under 2.6 KB (`X_BUDGET`). Bytes decide, not a count: a text is cut at 48 bytes, and lists are
+   shortened, all to the same length from the end, only when together they do not fit. Two days of 96 prices fit
+   whole. A list of objects never goes as it is: `fields` with `as: numbers` turns `raw_today[*].value` into one list
+   of numbers.
 6. **On the screen** `page_receiver` keeps `o.plugin` and `x` as JSON in the tile's `Extra` (`plugin_options`,
    `plugin_state`). `render_slot` hands a plugin tile the card's extra layer (`plugin_host::render`): a new
    `tessera::Tile` when the card shows another tile, size or options, `on_state` when the data changed, `on_theme` when
@@ -98,7 +103,12 @@ repository's `docs/FETCH.md`.
 - **Secrets stay in `plugin_secrets.json`**: never in a payload to the editor, a message to a screen, a YAML file or a
   log.
 - **Test against real data**: the plugins repository's `tools/check.py` uses this `plugin_manifest.py`; change both in
-  step.
+  step. A series (prices, a forecast) is tested in `tests/test_plugins.py` (`Series`) with two real days of Nord Pool
+  prices (`tests/fixtures/plugins/prices/`) in the shape of every integration that gives one: an attribute list of
+  numbers or of objects, or an action's answer, with each way Home Assistant writes a moment.
+- **One path language.** A fetch's `map`, a tile's `fields` and an answer's `fields` share `parse_path` and
+  `plugin_fetch.field_value`, and the kinds `text`, `number`, `epoch` and `numbers`. A new kind or step goes there,
+  for all three.
 - **The host proves the host.** A change to `plugin_host.cpp`, `plugin_api.h` or the receiver's plugin fields runs
   `tools/render/run.py --plugin tests/fixtures/plugins/host_probe`, plain (the CYD's path: a card made anew when its
   page comes back) and with `KEPT_PAGES_HOST=1` (the kept path of a board with PSRAM), docs/TESTING.md, "The plugin
@@ -118,12 +128,12 @@ repository's `docs/FETCH.md`.
 | Part | Firmware | Add-on | Editor |
 |---|---|---|---|
 | A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector, `preview` drawn from the data |
-| A tile of an entity | `TileContext.entity`, `tessera::action` | the manifest's `domains` and `attributes`; `Plugins.entity_part` (state, name, named attributes), `related_entities` | entity picker of those domains, also ones Tessera draws no tile for |
+| A tile of an entity | `TileContext.entity`, `tessera::action` | the manifest's `domains`, `attributes` and `fields`; `Plugins.entity_part` (state, name, named attributes, fields), `related_entities`; `has_attributes` through `Plugins.entities_with` | entity picker of those domains, also ones Tessera draws no tile for; with `has_attributes` only the entities that have them, and always the one chosen (`offeredEntities`) |
 | A card | `Card`, `add_card`, `open_card`; closed by `hide_detail` | nothing | nothing |
 | A tap action | `add_tap_action`; `event()` runs a tile's `plugin:` tap | `validate_layout` takes a `plugin:` tap | the tile inspector's tap choices |
 | A top bar item | `add_bar_item`; `header_bar::Kind::plugin` | `validate_header` type `plugin`, sent to a screen whose hello says `plugins` | "From plugins" in Top bar, Add |
 | Settings rows | `settings(SettingsPage&)`; `settings_screen::plugin_pages` | `Plugins.settings_for`, `set_setting`: the manifest's `settings`, entities of the screen's own device | under Screen settings (`PluginSettings.vue`) |
-| A question to Home Assistant | `tessera::send`, `on_message` (op `plugin`) | `Plugins.answer`: only `permissions.ha_commands`, logged, answer bounded | the commands under "What it may do" |
+| A question to Home Assistant | `tessera::send`, `on_message` (op `plugin`) | `Plugins.answer`: only `permissions.ha_commands`, logged; an answer the manifest's `answers` maps goes as its fields, the rest as it came; both bounded (`bounded`, 3.2 KB, by bytes) | the commands under "What it may do" |
 | The moments | `on_ready`, `on_interval` (every 250 ms; `on_tick` before 0.4), `on_standby`, `before_update`, `on_cards_closed`, `on_alert`, `on_touch` (0.3: every tap `screen_input::TouchGuard` takes, through `screen_hooks::touched()`) | | |
 | A board's own hardware | the plugin's `plugin.yaml` (audio codecs, a relay), its `boards` in the manifest | offered only to the screens of those boards | the Plugins page says which boards |
 

@@ -1,0 +1,26 @@
+# A plugin for the app's tests: a day of electricity prices, from a sensor's attributes or from an action that answers.
+id: price_peek
+version: 1.0.0
+api: "0.5"
+icon: flash
+maintainer: someone
+license: MIT
+permissions:
+  ha_commands: ["call_service:nordpool.get_prices_for_date", "call_service:energyzero.get_energy_prices"]
+answers:
+  - command: call_service:nordpool.get_prices_for_date
+    fields:
+      prices: { path: "[*][*].price", as: numbers }
+      start: { path: "[*][0].start", as: epoch }
+tiles:
+  - id: day
+    name: tile
+    domains: [sensor]
+    has_attributes: [raw_today]
+    attributes: [unit_of_measurement, today, tomorrow]
+    fields:
+      today_raw: { path: "raw_today[*].value", as: numbers }
+      starts_at: { path: "raw_today[0].start", as: epoch }
+    preview: { title: "{name}", value: "{state} {unit_of_measurement}" }
+    sizes: { min: 2x1, max: 4x2 }
+    memory: 2400

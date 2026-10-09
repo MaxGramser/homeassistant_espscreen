@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 4)
+PLUGIN_API = (0, 5)
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
 VERSION = re.compile(r'^\d+\.\d+\.\d+$')
@@ -28,14 +28,16 @@ PLACEHOLDER = re.compile(r'\{([a-z][a-z0-9_]*)\}')
 TEXT_KEY = re.compile(r'^[a-z][a-z0-9_]{0,47}$')
 
 TOP = {'id', 'version', 'api', 'icon', 'maintainer', 'license', 'stage', 'requires', 'boards', 'flash_kb',
-       'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'cards', 'tap_actions', 'bar_items', 'settings'}
+       'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'answers', 'cards', 'tap_actions',
+       'bar_items', 'settings'}
 ATTRIBUTES = ('cloud', 'commercial', 'ai-developed')
 # How far along a plugin is, in the maker's word: ready for every day, still finding its feet, or there to show what a
 # plugin can do and to learn from. The editor shows a badge for the last two; a manifest without it is beta.
 STAGES = ('stable', 'beta', 'example')
 INPUT_KINDS = ('secret', 'text', 'gpio', 'entity')
 OPTION_KINDS = ('text', 'choice', 'number', 'toggle')
-FIELD_KINDS = ('text', 'number', 'epoch')
+# `numbers` (0.5): every value the path reaches, as one list of numbers (a price per quarter of an hour, a forecast).
+FIELD_KINDS = ('text', 'number', 'epoch', 'numbers')
 UNITS = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
 # Licences that go with AGPL-3.0, the licence the firmware a plugin is built into carries.
 LICENSES = ('MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'MPL-2.0', 'LGPL-2.1-or-later',
@@ -52,6 +54,8 @@ FORBIDDEN_COMMANDS = ('auth', 'config', 'subscribe_events', 'subscribe_trigger',
                       'fire_event', 'render_template', 'supervisor', 'hassio', 'get_config', 'lovelace', 'person', 'backup',
                       'cloud', 'application_credentials', 'repairs', 'blueprint', 'trace', 'validate_config')
 MAX_ATTRIBUTES = 16
+MAX_HAS_ATTRIBUTES = 8      # attributes an entity must have to be offered for a tile
+MAX_ANSWERS = 8             # answers of Home Assistant commands a plugin maps
 MAX_TILES = 8
 MAX_OPTIONS = 12
 MAX_FETCHES = 8
@@ -112,16 +116,18 @@ STEP = re.compile(r'\.([A-Za-z_][A-Za-z0-9_-]*)|\.\{([a-z][a-z0-9_]*)\}|\[\*\]|\
 
 def parse_path(path, root=True):
     """The steps of a path as tuples: ('key', name), ('var', placeholder), ('all',), ('at', n), ('first', n). A field
-    path (root=False) starts without `$` and with a name: `a.b[0]`."""
+    path (root=False) starts without `$`, with a name or a list step: `a.b[0]`, `[*].price` (0.5, for an answer that
+    files its list under a name the plugin cannot know, such as Nord Pool's area)."""
     text = str(path or '')
     if root:
         if not text.startswith('$'):
             raise ValueError('a path starts with $')
         text = text[1:]
     else:
-        if not text or text.startswith(('.', '[', '$')):
-            raise ValueError('a field path starts with the name of a field')
-        text = '.' + text
+        if not text or text.startswith(('.', '$')):
+            raise ValueError('a field path starts with the name of a field or a list step such as [*]')
+        if not text.startswith('['):
+            text = '.' + text
     steps, at = [], 0
     while at < len(text):
         match = STEP.match(text, at)
@@ -271,6 +277,31 @@ def option_value(option, value, where='value'):
     return value
 
 
+def check_fields(fields, where):
+    """The fields of a map, of a tile of an entity or of an answer: {name: {path, as, tz}}."""
+    fields = _object(fields, where, set(fields) if isinstance(fields, dict) else ())
+    if not fields or len(fields) > MAX_FIELDS:
+        raise ManifestError(where, f'1 to {MAX_FIELDS} fields')
+    out = {}
+    for name, field in fields.items():
+        at = f'{where}.{name}'
+        _id(name, at)
+        if isinstance(field, str):
+            field = {'path': field}
+        field = _object(field, at, {'path', 'as', 'tz'}, ('path',))
+        kind = field.get('as', 'text')
+        if kind not in FIELD_KINDS:
+            raise ManifestError(f'{at}.as', f'one of {", ".join(FIELD_KINDS)}')
+        if 'tz' in field and (kind != 'epoch' or not isinstance(field['tz'], str)):
+            raise ManifestError(f'{at}.tz', 'a time zone such as Europe/Amsterdam, only for "as: epoch"')
+        try:
+            path = parse_path(field['path'], root=False)
+        except ValueError as error:
+            raise ManifestError(f'{at}.path', str(error))
+        out[name] = {'path': path, 'as': kind, 'tz': field.get('tz')}
+    return out
+
+
 def check_map(spec, where, has_items):
     spec = _object(spec, where, {'items', 'fields', 'where', 'skip', 'sort', 'limit', 'value', 'label'})
     out = {}
@@ -295,26 +326,7 @@ def check_map(spec, where, has_items):
         return out
     if 'fields' not in spec:
         raise ManifestError(where, '"fields" names what the screen gets')
-    fields = _object(spec['fields'], f'{where}.fields', set(spec['fields']) if isinstance(spec['fields'], dict) else ())
-    if not fields or len(fields) > MAX_FIELDS:
-        raise ManifestError(f'{where}.fields', f'1 to {MAX_FIELDS} fields')
-    out['fields'] = {}
-    for name, field in fields.items():
-        at = f'{where}.fields.{name}'
-        _id(name, at)
-        if isinstance(field, str):
-            field = {'path': field}
-        field = _object(field, at, {'path', 'as', 'tz'}, ('path',))
-        kind = field.get('as', 'text')
-        if kind not in FIELD_KINDS:
-            raise ManifestError(f'{at}.as', f'one of {", ".join(FIELD_KINDS)}')
-        if 'tz' in field and (kind != 'epoch' or not isinstance(field['tz'], str)):
-            raise ManifestError(f'{at}.tz', 'a time zone such as Europe/Amsterdam, only for "as: epoch"')
-        try:
-            path = parse_path(field['path'], root=False)
-        except ValueError as error:
-            raise ManifestError(f'{at}.path', str(error))
-        out['fields'][name] = {'path': path, 'as': kind, 'tz': field.get('tz')}
+    out['fields'] = check_fields(spec['fields'], f'{where}.fields')
     for key in ('where', 'skip'):
         if key in spec:
             rules = _object(spec[key], f'{where}.{key}', set(out['fields']))
@@ -508,7 +520,8 @@ def check(manifest, english=None):
     for i, item in enumerate(_list(manifest.get('tiles'), 'tiles', MAX_TILES)):
         where = f'tiles[{i}]'
         item = _object(item, where, {'id', 'name', 'icon', 'sizes', 'memory', 'domains', 'data', 'options',
-                                     'example', 'preview', 'attributes'}, ('id', 'name', 'sizes', 'memory'))
+                                     'example', 'preview', 'attributes', 'has_attributes', 'fields'},
+                       ('id', 'name', 'sizes', 'memory'))
         tile = {'id': _id(item['id'], f'{where}.id'), 'name': _text_key(item['name'], f'{where}.name', keys)}
         icon = item.get('icon', out['icon'])
         if not isinstance(icon, str) or not MDI.match(icon):
@@ -538,6 +551,26 @@ def check(manifest, english=None):
         if not all(re.match(r'^[a-z_][a-z0-9_]{0,47}$', a) for a in attributes):
             raise ManifestError(f'{where}.attributes', 'attribute names such as next_date')
         tile['attributes'] = attributes
+        # The attributes an entity must have to be offered for the tile (0.5): `[raw_today]` keeps the inspector's list
+        # to the price sensors among a home's hundreds of sensors. Only the list: a tile keeps its entity when an
+        # attribute is gone for a while (an entity that is unavailable has none).
+        has = _strings(item.get('has_attributes'), f'{where}.has_attributes', MAX_HAS_ATTRIBUTES)
+        if has and not domains:
+            raise ManifestError(f'{where}.has_attributes', 'only a tile with "domains" belongs to an entity')
+        if not all(re.match(r'^[a-z_][a-z0-9_]{0,47}$', a) for a in has):
+            raise ManifestError(f'{where}.has_attributes', 'attribute names such as raw_today')
+        tile['has_attributes'] = has
+        # Fields taken out of the entity's attributes (0.5), with the map's paths and kinds: `raw_today[*].value` as
+        # numbers is one list of prices instead of a list of objects the screen has no room for.
+        if 'fields' in item:
+            if not domains:
+                raise ManifestError(f'{where}.fields', 'only a tile with "domains" belongs to an entity and gets fields')
+            tile['fields'] = check_fields(item['fields'], f'{where}.fields')
+            for name in tile['fields']:
+                if name in attributes or name in ('state', 'name'):
+                    raise ManifestError(f'{where}.fields.{name}', 'a field is named apart from the attributes, state and name')
+        else:
+            tile['fields'] = {}
         if 'data' in item:
             if item['data'] not in fetch_ids:
                 raise ManifestError(f'{where}.data', 'must name a fetch of this plugin')
@@ -590,6 +623,7 @@ def check(manifest, english=None):
             # A tile of an entity: its state, its name, and the attributes it names (a moment as seconds, see below).
             fields = {name: {'as': 'text'} for name in ('state', 'name', *tile['attributes'])}
             fields.update({name: {'as': 'epoch'} for name in tile['attributes'] if name.endswith(('_at', '_time', 'date'))})
+            fields.update(tile['fields'])
         for key, value in tile['preview'].items():
             names = [value] if key == 'countdown' else PLACEHOLDER.findall(value)
             for name in names:
@@ -599,6 +633,20 @@ def check(manifest, english=None):
                 raise ManifestError(f'tiles[{i}].preview.countdown', f'"{value}" must be a field with "as: epoch"')
     for name in sorted(fetch_ids - {f['id'] for f in fetches}):
         raise ManifestError('fetch', f'"{name}" is used but not described')
+
+    # What the screen gets of an answer to a command of `permissions.ha_commands` (0.5): its fields, as a fetch's, so
+    # 96 prices of a quarter of an hour arrive as one list of numbers instead of 8 KB of objects cut to a quarter.
+    # A command without an entry here sends its answer as it is, bounded.
+    answers = []
+    for i, item in enumerate(_list(manifest.get('answers'), 'answers', MAX_ANSWERS)):
+        where = f'answers[{i}]'
+        item = _object(item, where, {'command', 'fields'}, ('command', 'fields'))
+        if item['command'] not in out['permissions']['ha_commands']:
+            raise ManifestError(f'{where}.command', 'must be a command of permissions.ha_commands')
+        if item['command'] in [a['command'] for a in answers]:
+            raise ManifestError(f'{where}.command', f'"{item["command"]}" is mapped twice')
+        answers.append({'command': item['command'], 'fields': check_fields(item['fields'], f'{where}.fields')})
+    out['answers'] = answers
 
     cards = []
     for i, item in enumerate(_list(manifest.get('cards'), 'cards', 8)):

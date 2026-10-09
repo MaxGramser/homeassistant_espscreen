@@ -3,7 +3,7 @@
 # on the real firmware built for this computer. It is never on a screen, and never in the index.
 id: host_probe
 version: 1.0.0
-api: "0.4"
+api: "0.5"
 icon: puzzle-outline
 maintainer: tessera
 license: MIT

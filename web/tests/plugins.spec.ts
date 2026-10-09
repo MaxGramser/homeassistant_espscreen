@@ -1,6 +1,6 @@
 // Plugins (docs/PLUGINS.md): whether a plugin fits a screen, the one rule the Plugins page and its details share.
 import { describe, expect, it } from "vitest";
-import { fit, flashShare, headroomKb, type Plugin } from "../src/model/plugins";
+import { fit, flashShare, headroomKb, offeredEntities, type Plugin } from "../src/model/plugins";
 import { stageOf } from "../src/plugin-state";
 import type { Screen } from "../src/types";
 
@@ -56,5 +56,17 @@ describe("plugins", () => {
     expect(share.before).toBeCloseTo(0.912, 3);
     expect(share.after).toBeCloseTo((1_853_664 + 12 * 1024) / 2_031_616, 3);
     expect(flashShare(plugin(), screen("guition"))).toBeNull();
+  });
+});
+
+describe("the entities a plugin tile offers", () => {
+  const all = [{ id: "sensor.price" }, { id: "sensor.temperature" }, { id: "sensor.price_unavailable" }];
+  it("are every entity of its domains when the tile names no attributes", () => {
+    expect(offeredEntities(all, {})).toEqual(all);
+  });
+  it("are those with the attributes it needs, and always the one it has", () => {
+    expect(offeredEntities(all, { entities: ["sensor.price"] }).map((e) => e.id)).toEqual(["sensor.price"]);
+    expect(offeredEntities(all, { entities: ["sensor.price"] }, "sensor.price_unavailable").map((e) => e.id))
+      .toEqual(["sensor.price", "sensor.price_unavailable"]);
   });
 });

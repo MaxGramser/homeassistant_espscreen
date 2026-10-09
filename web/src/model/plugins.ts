@@ -23,7 +23,18 @@ export type PluginTile = {
   domains?: string[]; options?: PluginTileOption[]; example?: Texts;
   // The add-on draws a preview of it from its data (api/plugins/<id>/preview/<tile>): the manifest names one.
   preview?: boolean;
+  // The entities that have every attribute the tile needs (the manifest's `has_attributes`), from the add-on; absent
+  // when the tile takes any entity of its domains.
+  entities?: string[];
 };
+
+// The entities the inspector offers a tile of an entity: those the add-on found with the attributes it needs, and
+// always the one it has, which may lack them for a while (an entity that is unavailable has no attributes).
+export function offeredEntities<T extends { id: string }>(all: T[], tile: Pick<PluginTile, "entities">, chosen = ""): T[] {
+  if (!tile.entities) return all;
+  const keep = new Set([...tile.entities, chosen]);
+  return all.filter((entity) => keep.has(entity.id));
+}
 export type PluginSource = "index" | "link" | "branch" | "folder";
 export type PluginLabel = "tessera" | "community" | "test";
 export type PluginKind = "hardware" | "behaviour";

@@ -4,7 +4,7 @@
 // a stop): the add-on asks the plugin's service with the tile's other options and hands back only the choices.
 import { computed } from "vue";
 import { editorLanguage, languageMarks, numberText, t } from "../i18n";
-import { pluginDefaults, pluginTileOf, text, type PluginTileOption } from "../model/plugins";
+import { offeredEntities, pluginDefaults, pluginTileOf, text, type PluginTileOption } from "../model/plugins";
 import { choicesFor, entitiesIn } from "../plugin-state";
 import { glyph } from "../model/topbar";
 import { closeInspector, removeTile, setTileName, setTileOption, state } from "../store";
@@ -22,8 +22,10 @@ const values = computed(() => ({ ...pluginDefaults(kind.value.tile), ...(props.t
 function set(option: PluginTileOption, value: string | number | boolean) {
   setTileOption(props.tile, "plugin", { ...(props.tile.options?.plugin || {}), [option.id]: value });
 }
-// A tile that belongs to an entity (its manifest's `entity`): any entity of those domains.
-const entityChoices = computed(() => entitiesIn(kind.value.tile.domains).map((e) => [e.id, e.name !== e.id ? `${e.name} (${e.id})` : e.id] as [string, string]));
+// A tile that belongs to an entity (its manifest's `domains`): the entities of those domains, only those with the
+// attributes it needs when its manifest names them (`has_attributes`).
+const entityChoices = computed(() => offeredEntities(entitiesIn(kind.value.tile.domains), kind.value.tile, props.tile.options?.plugin_entity)
+  .map((e) => [e.id, e.name !== e.id ? `${e.name} (${e.id})` : e.id] as [string, string]));
 const choices = (option: PluginTileOption) => choicesFor(kind.value.plugin, option, values.value).map((choice) => [choice.value, text(choice.label)] as [string, string]);
 const fromFetch = (option: PluginTileOption) => Boolean(option.options_from);
 const size = (value: string) => value.replace("x", "×");

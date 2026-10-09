@@ -32,8 +32,10 @@ namespace tessera {
 // own plugins move with it in the same release (the plugins repository, docs/FIRMWARE_API.md "Versions").
 // 0.1: tiles and the moments. 0.2: tiles of an entity, cards, tap actions, top bar items, settings rows, questions to
 // the app, date words. 0.3: on_touch, a settings action that says how it is going. 0.4: Plugin::on_tick (every 250 ms,
-// with millis()) became on_interval, so that on_tick everywhere means once a second with the clock.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 4;
+// with millis()) became on_interval, so that on_tick everywhere means once a second with the clock. 0.5: the app's side
+// only: lists of an entity bounded by bytes instead of 16 items, `fields` of a tile's entity and of an answer, the
+// field kind `numbers`, `has_attributes` for the entity list (a plugin that uses them needs an app that knows them).
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 5;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,

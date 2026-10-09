@@ -47,6 +47,9 @@ GITHUB_RAW = 'https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}'
 FOLDER = 'tessera-plugins'
 PLUGIN_ICON = 'F0A66'         # puzzle-outline, for a plugin whose icon is not in Tessera's set
 X_BUDGET = 2600               # bytes of a tile's data on the wire: the message carries more and stays under 4 KB
+# How far lists are shortened, each to the same length from the end, until an answer or a tile's entity fits its bytes:
+# first not at all, then a day of quarters twice, once, half a day.
+LIST_STEPS = (None, 192, 96, 48, 24, 16, 12, 8, 4, 2, 1, 0)
 LOOP_SECONDS = 15
 
 
@@ -75,21 +78,25 @@ def glyph(name):
     return tile_icons.GLYPHS.get(name) or PLUGIN_ICON
 
 
+def json_size(value):
+    return len(json.dumps(value, separators=(',', ':'), ensure_ascii=False).encode())
+
+
 def bounded(value, limit=3200):
     """An answer for a screen within `limit` bytes of JSON: long texts cut to 48 bytes, then lists shortened from the
-    end until it fits. A screen's message is at most 4 KB with everything around it."""
+    end until it fits, each to the same length. A screen's message is at most 4 KB with everything around it. Bytes
+    decide, not a count: 96 prices of a quarter of an hour fit whole."""
     def cut(node, items):
         if isinstance(node, str):
             return core.short(node, 48)
         if isinstance(node, list):
-            return [cut(child, items) for child in node[:items]]
+            return [cut(child, items) for child in (node if items is None else node[:items])]
         if isinstance(node, dict):
             return {str(key)[:32]: cut(child, items) for key, child in list(node.items())[:24]}
         return node if isinstance(node, (int, float, bool)) or node is None else str(node)[:48]
-    size = lambda node: len(json.dumps(node, separators=(',', ':'), ensure_ascii=False).encode())
-    for items in (48, 24, 12, 8, 4, 2, 1, 0):
+    for items in LIST_STEPS:
         shaped = cut(value, items)
-        if size(shaped) <= limit:
+        if json_size(shaped) <= limit:
             return shaped
     return None
 
@@ -438,6 +445,13 @@ class Plugins:
 
     # ---- What the editor shows ----
 
+    def entities_with(self, domains, attributes):
+        """The ids of the entities of `domains` whose attributes include every one of `attributes`, at most 500."""
+        states = getattr(self.manager.ha, 'states', {}) or {}
+        return sorted(eid for eid, state in states.items()
+                      if isinstance(eid, str) and eid.split('.')[0] in domains
+                      and all(name in ((state or {}).get('attributes') or {}) for name in attributes))[:500]
+
     def editor_plugin(self, entry, language='en'):
         manifest = entry.manifest
         words = lambda key: dict(entry.texts.get(key) or {'en': key}) if key else None
@@ -466,6 +480,9 @@ class Plugins:
             'tiles': [{'id': tile['id'], 'name': words(tile['name']), 'icon': glyph(tile['icon']),
                        'min': tile['min'], 'max': tile['max'], 'memory': tile['memory'],
                        'domains': tile['domains'], 'data': tile.get('data'),
+                       # The entities the inspector offers when the tile needs certain attributes (`has_attributes`).
+                       **({'entities': self.entities_with(tile['domains'], tile['has_attributes'])}
+                          if tile.get('has_attributes') else {}),
                        'options': [option(o) for o in tile['options']],
                        'example': words(tile.get('example')), 'preview': bool(tile.get('preview'))}
                       for tile in manifest['tiles']],
@@ -775,9 +792,11 @@ class Plugins:
         return trimmed(data)
 
     def entity_part(self, kind, tile):
-        """(entity, what the screen gets of it) for a tile that belongs to an entity: its state, its name and the
-        attributes its manifest names, bounded as every tile's (48 bytes a text, 16 items a list). An attribute named
-        ..._at, ..._time or ...date that holds a moment goes as seconds since 1970, so the screen says it in its words."""
+        """(entity, what the screen gets of it) for a tile that belongs to an entity: its state, its name, the
+        attributes its manifest names and the `fields` it takes out of them, bounded as every tile's: a text at 48
+        bytes, and the lists together within X_BUDGET, each shortened from the end to the same length only when they
+        do not fit (96 prices of a quarter of an hour fit, twice). An attribute named ..._at, ..._time or ...date that
+        holds a moment goes as seconds since 1970, so the screen says it in its words."""
         entity = (tile.get('options') or {}).get('plugin_entity')
         if not kind or not kind['domains'] or not entity:
             return None, None
@@ -798,10 +817,21 @@ class Plugins:
             elif isinstance(value, str):
                 bounded[name] = core.short(value, 48)
             elif isinstance(value, list):
-                bounded[name] = [core.short(v, 48) if isinstance(v, str) else v for v in value[:16]
-                                 if isinstance(v, str) or (isinstance(v, (int, float)) and not isinstance(v, bool))]
-        return entity, {'state': core.short(str(state.get('state', 'unavailable')), 160),
-                        'name': core.short(attrs.get('friendly_name') or entity, 48), 'attributes': bounded}
+                # Texts and numbers; a list of objects reaches the screen through `fields` (raw_today[*].value).
+                bounded[name] = [core.short(v, 48) if isinstance(v, str) else v for v in value[:1000]
+                                 if isinstance(v, str) or (isinstance(v, (int, float)) and not isinstance(v, bool)
+                                                           and math.isfinite(v))]
+        zone = getattr(self.manager.ha, 'time_zone', None)
+        for name, field in (kind.get('fields') or {}).items():
+            bounded[name] = plugin_fetch.field_value(attrs, {**field, 'tz': field.get('tz') or zone})
+        part = {'state': core.short(str(state.get('state', 'unavailable')), 160),
+                'name': core.short(attrs.get('friendly_name') or entity, 48), 'attributes': bounded}
+        for items in LIST_STEPS:
+            shaped = {**part, 'attributes': {name: value if not isinstance(value, list) or items is None else value[:items]
+                                             for name, value in bounded.items()}}
+            if json_size(shaped) <= X_BUDGET:
+                return entity, shaped
+        return entity, {'wait': 'too_large'}
 
     async def tile_message(self, index, tile, ask=True):
         """The state message of a plugin tile (core.state_message's shape): no entity behind it, its options, its data."""
@@ -863,7 +893,9 @@ class Plugins:
             return {'items': [], 'wait': (data or {}).get('wait', 'asking')}
         rows = data.get('items') if isinstance(data.get('items'), list) else [data]
         spec, out = kind['preview'], []
-        fill = lambda text, row: pm.PLACEHOLDER.sub(lambda m: '' if row.get(m.group(1)) is None else str(row.get(m.group(1))), text).strip()
+        # A list (a day of prices) is the plugin's to draw: a template leaves it out.
+        word = lambda value: '' if value is None or isinstance(value, (list, dict)) else str(value)
+        fill = lambda text, row: pm.PLACEHOLDER.sub(lambda m: word(row.get(m.group(1))), text).strip()
         for row in rows[:6]:
             item = {key: fill(spec[key], row) for key in ('badge', 'title', 'value') if key in spec}
             if 'countdown' in spec:
@@ -987,6 +1019,12 @@ class Plugins:
                     result = (result or {}).get('response', result) if isinstance(result, dict) else result
                 else:
                     result = await self.manager.ha.request(ask, **data)
+                # An answer the manifest maps (`answers`) goes as its fields, the rest as it came; both bounded.
+                spec = next((a for a in entry.manifest.get('answers') or [] if a['command'] == ask), None)
+                if spec:
+                    zone = getattr(self.manager.ha, 'time_zone', None)
+                    result = {name: plugin_fetch.field_value(result, {**field, 'tz': field.get('tz') or zone})
+                              for name, field in spec['fields'].items()}
                 reply.update(ok=True, result=bounded(result))
             except Exception as error:   # Home Assistant said no, or did not answer
                 reply.update(ok=False, error=str(error)[:120] or type(error).__name__)

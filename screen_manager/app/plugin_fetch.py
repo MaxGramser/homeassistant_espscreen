@@ -17,6 +17,7 @@ import hashlib
 import ipaddress
 import json
 import logging
+import math
 import socket
 import time
 from datetime import datetime, timezone
@@ -105,19 +106,30 @@ def epoch_of(value, zone=None):
     return int(moment.timestamp())
 
 
+def number_of(value):
+    """A number from a number or a text such as "0,231"; None for anything else (a price not known yet stays a gap, and
+    NaN, which JSON cannot carry, is none)."""
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return value if math.isfinite(value) else None
+    if not isinstance(value, str):
+        return None
+    try:
+        return number_of(float(value.replace(',', '.')))
+    except ValueError:
+        return None
+
+
 def field_value(item, field):
+    if field['as'] == 'numbers':
+        # Every value the path reaches, in order, as one list: `[*].value` of 96 objects is 96 numbers.
+        return [number_of(value) for value in walk(item, field['path'])[:1000]]
     value = first(item, field['path'])
     if field['as'] == 'epoch':
         return epoch_of(value, field.get('tz'))
     if field['as'] == 'number':
-        if isinstance(value, bool):
-            return int(value)
-        if isinstance(value, (int, float)):
-            return value
-        try:
-            return float(str(value).replace(',', '.'))
-        except ValueError:
-            return None
+        return number_of(value)
     if value is None or isinstance(value, (dict, list)):
         return None
     return short(value)

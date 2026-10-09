@@ -611,10 +611,10 @@ class Run:
         states = {'sensor.hall': {'state': '21', 'attributes': {'unit_of_measurement': '°C', 'friendly_name': 'Hall'}}}
         second = next(i for i, tile in enumerate(compiled) if tile['name'] == 'Second')
         sensor = next(i for i, tile in enumerate(compiled) if tile['entity'] == 'sensor.hall')
-        def values(n):
+        def values(n, x=None):
             # The state message of a plugin tile as plugins.Plugins.tile_message shapes it: its options and its data.
             return [{'v': 1, 'op': 'state', 'i': i, 'entity': tile['entity'], 'name': tile['name'], 'state': 'ok', 'a': {},
-                     'o': {'plugin': (tile.get('options') or {}).get('plugin') or {}}, 'x': {'n': n}}
+                     'o': {'plugin': (tile.get('options') or {}).get('plugin') or {}}, 'x': {'n': n, **(x or {})}}
                     if plugin_tile(tile['entity']) else send_layout.state_message(i, tile, states)
                     for i, tile in enumerate(compiled)]
         bars = [[{'k': 'plugin', 't': 'plugin:host_probe.mark'}, {'k': 'clock'}] for _ in record['layout']['pages']]
@@ -649,6 +649,16 @@ class Run:
         await self.sender.synchronize(self.inbox.object_id, record, region, values(2), bars)
         await self.until(lambda l: probe(l, 'tile=0 state n=2'), 10, 'tile 0 fed again', start)
         assert said(start, 'tile=0 create') == 0, 'new data made a new tile object'
+        # Two days of prices of a quarter of an hour, as the app gives a tile of an entity (Plugins.entity_part): the
+        # whole 2.6 KB reaches the plugin, 96 a day, and its answer of a mapped command (`answers`) with 96 numbers.
+        start = len(self.lines)
+        days = json.loads((REPO / 'tests/fixtures/plugins/prices/nordpool_nl.json').read_text())['days']
+        prices = lambda day: [round(p / 1000, 3) for p in day['prices']]
+        attributes = {'unit_of_measurement': 'EUR/kWh', 'today': prices(days[1]), 'tomorrow': prices(days[0])}
+        x = {'state': str(attributes['today'][0]), 'name': 'Electricity price', 'attributes': attributes}
+        assert len(json.dumps({'n': 3, **x}, separators=(',', ':'))) <= 2600, 'the prices are larger than a tile may get'
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(3, x), bars)
+        await self.until(lambda l: probe(l, 'tile=0 state n=3') and 'today=96 tomorrow=96' in l, 10, 'two days of prices', start)
         # Light and dark: on_theme, once each way.
         start = len(self.lines)
         self.client.switch_command(self.dark_switch.key, True)
@@ -663,6 +673,10 @@ class Run:
         start = len(self.lines)
         await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'re': body['re'], 'ok': True, 'result': {'events': 2}}})
         await self.until(lambda l: probe(l, f'message re={body["re"]} ok=1') and '"events":2' in l, 10, 'the answer reached on_message', start)
+        start = len(self.lines)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'re': body['re'], 'ok': True, 'result': {
+            'prices': days[1]['prices'], 'start': 1791410400}}})
+        await self.until(lambda l: probe(l, f'message re={body["re"]} ok=1 prices=96'), 10, 'a mapped answer of 96 prices', start)
         # A tap on the plugin tile: through the touch guard to on_tap and on_touch; the plugin opens its card.
         start = len(self.lines)
         tile = (await self.navigation_state())['tile']

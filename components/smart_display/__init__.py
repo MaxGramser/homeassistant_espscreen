@@ -54,7 +54,7 @@ async def to_code(config):
 # ---- Plugins (docs/PLUGINS.md) ----
 # The plugin API this core offers: plugin_api.h's PLUGIN_API_MAJOR/MINOR and the add-on's plugin_manifest.PLUGIN_API
 # (a test keeps the three equal). A plugin builds on the same major from its own minor up.
-PLUGIN_API = (0, 4)
+PLUGIN_API = (0, 5)
 PLUGIN_MANIFEST = "tessera-plugin.yaml"
 
 
