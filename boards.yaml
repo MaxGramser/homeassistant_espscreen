@@ -138,3 +138,10 @@ wavesharep4:
   name: Waveshare
   model: ESP32-P4-86-Panel-ETH-2RO
   status: experimental
+
+wavesharelcd4:
+  file: waveshare-esp32s3-lcd-4.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-4
+  status: experimental
+  # The board without the "B": a CH32V003 I/O expander and different pins, so the 4B's file does not fit it.

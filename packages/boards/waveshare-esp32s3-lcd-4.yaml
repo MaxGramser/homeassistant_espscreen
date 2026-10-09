@@ -2,14 +2,10 @@
 # capacitive touch, an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM, and a CH32V003 I/O expander.
 # This is the older board without the "B". The 4B has different pins and a TCA9554 expander.
 #
-# The standalone hardware configuration has drawn test graphics and reported correct touch coordinates on this
-# board. Tessera itself has not yet been accepted on the glass, so this file remains outside boards.yaml.
-#
 # A board file is the board's hardware, the facts the shared tree takes from it, and the features it has.
 # docs/PROFILES.md says how the files of a screen fit together.
 packages:
   hardware: !include ../hardware/esp32s3-rgb.yaml
-  cells: !include ../cells/6.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
@@ -20,7 +16,7 @@ packages:
 substitutions:
   BOARD_ID: "wavesharelcd4"
   DEVICE_NAME: "wavesharelcd4-new"
-  DEVICE_FRIENDLY_NAME: "My Waveshare LCD 4"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 4"
 
   PANEL_W: "480"
   PANEL_H: "480"

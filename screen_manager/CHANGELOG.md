@@ -103,6 +103,12 @@
   installing the new firmware). Every layout came through unchanged, edits saved in between reached the screens, the
   four-row Guition kept its four rows, and pages, taps, cards and standby were checked on the glass. A build from a
   screen YAML pinned to a release tag made exactly that release's firmware.
+- **The Waveshare ESP32-S3-Touch-LCD-4 as a board of its own** ([docs/WAVESHARELCD4.md](../docs/WAVESHARELCD4.md)).
+  This is the 4-inch board without the "B": a CH32V003 I/O expander and other pins, so the 4B's profile never fitted
+  it. New screen offers it as Waveshare 4 inch, marked experimental. The glass is the 4B's, so the screen looks the
+  same: two columns of three tiles at 170 dpi, with a dimmable backlight, standby, night mode and camera pictures.
+  A screen built from it has started, drawn the interface and joined a network; the rest of the hardware acceptance
+  is still open. It needs ESPHome 2026.7.0 or later.
 
 ## 0.4.84 (firmware 0.52.0)
 

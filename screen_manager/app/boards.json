@@ -1954,6 +1954,121 @@
   "wide_slots": false,
   "width": 1024
  },
+ "checkout/wavesharelcd4.yaml": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "wavesharelcd4",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    392,
+    220
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ESP32-S3-Touch-LCD-4",
+   "name": "Waveshare",
+   "order": 19,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 170,
+  "firmware": "0.53.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 64,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      392,
+      220
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      392,
+      220
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 54,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "wide_slots": false,
+  "width": 480
+ },
  "checkout/wavesharep4.yaml": {
   "alert": {
    "line": 36,
@@ -5089,6 +5204,121 @@
   "wide_slots": false,
   "width": 1024
  },
+ "packages/wavesharelcd4.yaml": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "wavesharelcd4",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    392,
+    220
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ESP32-S3-Touch-LCD-4",
+   "name": "Waveshare",
+   "order": 19,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 170,
+  "firmware": "0.53.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 64,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      392,
+      220
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      392,
+      220
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 54,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "wide_slots": false,
+  "width": 480
+ },
  "packages/wavesharep4.yaml": {
   "alert": {
    "line": 36,
@@ -6093,6 +6323,121 @@
   },
   "wide_slots": false,
   "width": 1024
+ },
+ "wavesharelcd4": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "wavesharelcd4",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    392,
+    220
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ESP32-S3-Touch-LCD-4",
+   "name": "Waveshare",
+   "order": 19,
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 170,
+  "firmware": "0.53.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 64,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      392,
+      220
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      392,
+      220
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 54,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "wide_slots": false,
+  "width": 480
  },
  "wavesharep4": {
   "alert": {
