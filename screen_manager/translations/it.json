@@ -1666,8 +1666,6 @@
       },
       "none_installed": "Ancora nessun plugin su questo schermo.",
       "none_found": "Nessun plugin corrisponde a «{query}».",
-      "make": "Stai creando un plugin tutto tuo?",
-      "template": "Parti dal modello",
       "version": "versione {version}",
       "kind": {
         "hardware": "Hardware",
@@ -1692,10 +1690,8 @@
       "installed_on": "Su {screen}, versione {version}",
       "update": "Aggiorna a {version}",
       "trust": {
-        "title": "Mi fido di questo autore",
-        "text": "Tessera non ha controllato questo plugin. Gira sul tuo schermo e può fare ciò che lo schermo può fare in Home Assistant."
+        "title": "Mi fido di questo autore"
       },
-      "install": "Aggiungi a {screen}",
       "adds": {
         "title": "Cosa aggiunge",
         "tile": "Riquadro «{name}»",
@@ -1797,7 +1793,6 @@
         "done": "L'ho aggiunta",
         "file": "Cosa scrive Tessera in {file}"
       },
-      "folder_note": "Stai creando un plugin? Metti la sua cartella in {path} e apparirà qui come test.",
       "folder_error": "La cartella {folder} non è ancora un plugin: {why}",
       "rebuild": "Compila di nuovo",
       "failed": "Il firmware per {screen} non si è compilato con questo plugin. Il registro è in Firmware e USB.",
@@ -1808,7 +1803,44 @@
         "agree": "Accetto ciò che può fare ora"
       },
       "settings_missing": "Non ancora su questo schermo: arriva con la prossima build del plugin.",
-      "changes": "Cosa è cambiato"
+      "changes": "Cosa è cambiato",
+      "tray": {
+        "title": "Pronto da installare",
+        "count": "{n} plugin | {n} plugin",
+        "add": "Aggiungi",
+        "added": "Aggiunto",
+        "setup": "Configura",
+        "remove": "Togli {name}",
+        "room": "{kb} KB dei {room} KB liberi su questo schermo",
+        "too_much": "{kb} KB in tutto, liberi {room} KB: togline uno",
+        "trust": "{names} viene dalla community e non è stato verificato da Tessera. | {names} vengono dalla community e non sono stati verificati da Tessera.",
+        "install": "Installa {n} plugin | Installa {n} plugin",
+        "one_build": "{screen} viene compilato una volta, con tutto dentro.",
+        "builds": "{n} schermi vengono compilati uno dopo l’altro.",
+        "stage": "Aggiungi a {screen}",
+        "in_tray": "Pronto da installare",
+        "in_tray_note": "Installalo dalla scheda nell’angolo, da solo o insieme ad altri."
+      },
+      "maker": {
+        "title": "Crea un plugin tuo",
+        "lead": "Un plugin è una cartella con una descrizione e un po’ di codice ESPHome, in un tuo repository GitHub. Lo crei tu, e pubblichi tu i suoi aggiornamenti.",
+        "guide": "Come creare un plugin",
+        "start": {
+          "title": "Parti dal modello",
+          "text": "Trasformalo in un repository sul tuo GitHub, con un nome e un’icona.",
+          "action": "Apri il modello"
+        },
+        "test": {
+          "title": "Provalo sul tuo schermo",
+          "text": "Aggiungi il tuo repository con un link. Ogni versione che pubblichi compare qui come aggiornamento.",
+          "folder": "Oppure metti la sua cartella in {path} per provarlo senza una versione."
+        },
+        "share": {
+          "title": "Condividilo con tutti",
+          "text": "Funziona bene? Iscrivilo alla community e comparirà qui per tutti, direttamente dal tuo repository. Resti tu l’autore.",
+          "action": "Iscrivi"
+        }
+      }
     },
     "plugin_tile": {
       "from": "Un riquadro del plugin {plugin}",

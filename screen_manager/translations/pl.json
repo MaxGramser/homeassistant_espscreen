@@ -1666,8 +1666,6 @@
       },
       "none_installed": "Na tym ekranie nie ma jeszcze wtyczek.",
       "none_found": "Żadna wtyczka nie pasuje do „{query}”.",
-      "make": "Tworzysz własną wtyczkę?",
-      "template": "Zacznij od szablonu",
       "version": "wersja {version}",
       "kind": {
         "hardware": "Sprzęt",
@@ -1692,10 +1690,8 @@
       "installed_on": "Na {screen}, wersja {version}",
       "update": "Zaktualizuj do {version}",
       "trust": {
-        "title": "Ufam temu autorowi",
-        "text": "Tessera nie sprawdziła tej wtyczki. Działa ona na Twoim ekranie i może robić to, co ekran może robić w Home Assistant."
+        "title": "Ufam temu autorowi"
       },
-      "install": "Dodaj do {screen}",
       "adds": {
         "title": "Co dodaje",
         "tile": "Kafelek „{name}”",
@@ -1797,7 +1793,6 @@
         "done": "Gotowe, dodano",
         "file": "Co Tessera zapisuje w {file}"
       },
-      "folder_note": "Tworzysz wtyczkę? Umieść jej folder w {path}, a pojawi się tutaj jako test.",
       "folder_error": "Folder {folder} nie jest jeszcze wtyczką: {why}",
       "rebuild": "Skompiluj ponownie",
       "failed": "Firmware dla {screen} nie skompilował się z tą wtyczką. Log znajdziesz w sekcji „Firmware i USB”.",
@@ -1808,7 +1803,44 @@
         "agree": "Zgadzam się na to, co może teraz robić"
       },
       "settings_missing": "Jeszcze nie na tym ekranie: pojawi się z następną kompilacją wtyczki.",
-      "changes": "Co się zmieniło"
+      "changes": "Co się zmieniło",
+      "tray": {
+        "title": "Gotowe do instalacji",
+        "count": "{n} wtyczka | {n} wtyczki | {n} wtyczek",
+        "add": "Dodaj",
+        "added": "Dodano",
+        "setup": "Skonfiguruj",
+        "remove": "Usuń {name} z listy",
+        "room": "{kb} KB z {room} KB wolnych na tym ekranie",
+        "too_much": "Razem {kb} KB, wolne {room} KB: usuń jedną",
+        "trust": "{names} pochodzi od społeczności i nie została sprawdzona przez Tessera. | {names} pochodzą od społeczności i nie zostały sprawdzone przez Tessera. | {names} pochodzą od społeczności i nie zostały sprawdzone przez Tessera.",
+        "install": "Zainstaluj {n} wtyczkę | Zainstaluj {n} wtyczki | Zainstaluj {n} wtyczek",
+        "one_build": "{screen} zostanie zbudowany raz, ze wszystkim.",
+        "builds": "{n} ekrany zostaną zbudowane jeden po drugim.",
+        "stage": "Dodaj do {screen}",
+        "in_tray": "Gotowe do instalacji",
+        "in_tray_note": "Zainstaluj ją z karty w rogu, samą lub razem z innymi."
+      },
+      "maker": {
+        "title": "Stwórz własną wtyczkę",
+        "lead": "Wtyczka to folder z opisem i odrobiną kodu ESPHome, we własnym repozytorium GitHub. Ty ją tworzysz i Ty publikujesz jej aktualizacje.",
+        "guide": "Jak stworzyć wtyczkę",
+        "start": {
+          "title": "Zacznij od szablonu",
+          "text": "Zrób z niego repozytorium na swoim GitHubie, z nazwą i ikoną.",
+          "action": "Otwórz szablon"
+        },
+        "test": {
+          "title": "Wypróbuj na swoim ekranie",
+          "text": "Dodaj swoje repozytorium linkiem. Każde wydanie, które opublikujesz, pojawi się tu jako aktualizacja.",
+          "folder": "Albo umieść jej folder w {path}, aby testować bez wydania."
+        },
+        "share": {
+          "title": "Udostępnij wszystkim",
+          "text": "Działa dobrze? Zgłoś ją do społeczności, a pojawi się tu u wszystkich, prosto z Twojego repozytorium. Pozostajesz jej autorem.",
+          "action": "Zgłoś"
+        }
+      }
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",

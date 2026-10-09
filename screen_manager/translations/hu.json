@@ -1666,8 +1666,6 @@
       },
       "none_installed": "Ezen a kijelzőn még nincs bővítmény.",
       "none_found": "Egy bővítmény sem felel meg ennek: „{query}”.",
-      "make": "Saját bővítményt készítesz?",
-      "template": "Kezdd a sablonnal",
       "version": "{version} verzió",
       "kind": {
         "hardware": "Hardver",
@@ -1692,10 +1690,8 @@
       "installed_on": "Ezen: {screen}, {version} verzió",
       "update": "Frissítés erre: {version}",
       "trust": {
-        "title": "Megbízom ebben a készítőben",
-        "text": "A Tessera nem ellenőrizte ezt a bővítményt. A kijelződön fut, és bármit megtehet, amit a kijelző a Home Assistantban megtehet."
+        "title": "Megbízom ebben a készítőben"
       },
-      "install": "Hozzáadás ehhez: {screen}",
       "adds": {
         "title": "Mit ad hozzá",
         "tile": "„{name}” csempe",
@@ -1797,7 +1793,6 @@
         "done": "Hozzáadtam",
         "file": "Amit a Tessera ide ír: {file}"
       },
-      "folder_note": "Bővítményt készítesz? Tedd a mappáját ide: {path}, és itt tesztként jelenik meg.",
       "folder_error": "A(z) {folder} mappa még nem bővítmény: {why}",
       "rebuild": "Újrafordítás",
       "failed": "A(z) {screen} firmware-e nem fordult le ezzel a bővítménnyel. A naplót a Firmware és USB alatt találod.",
@@ -1808,7 +1803,44 @@
         "agree": "Elfogadom, amit most tehet"
       },
       "settings_missing": "Még nincs ezen a képernyőn: a bővítmény következő fordításával érkezik.",
-      "changes": "Mi változott"
+      "changes": "Mi változott",
+      "tray": {
+        "title": "Telepítésre kész",
+        "count": "{n} bővítmény | {n} bővítmény",
+        "add": "Hozzáadás",
+        "added": "Hozzáadva",
+        "setup": "Beállítás",
+        "remove": "{name} kivétele",
+        "room": "{kb} KB a képernyőn maradt {room} KB-ból",
+        "too_much": "Együtt {kb} KB, {room} KB maradt: vegyél ki egyet",
+        "trust": "{names} a közösségtől származik, a Tessera nem ellenőrizte. | {names} a közösségtől származnak, a Tessera nem ellenőrizte őket.",
+        "install": "{n} bővítmény telepítése | {n} bővítmény telepítése",
+        "one_build": "{screen} egyszer épül újra, mindennel együtt.",
+        "builds": "{n} képernyő épül egymás után.",
+        "stage": "Hozzáadás ehhez: {screen}",
+        "in_tray": "Telepítésre kész",
+        "in_tray_note": "Telepítsd a sarokban lévő kártyáról, egyedül vagy másokkal együtt."
+      },
+      "maker": {
+        "title": "Saját bővítmény készítése",
+        "lead": "A bővítmény egy mappa leírással és egy kis ESPHome-kóddal, a saját GitHub-tárolódban. Te készíted, és te adod ki a frissítéseit.",
+        "guide": "Így készíts bővítményt",
+        "start": {
+          "title": "Kezdd a sablonnal",
+          "text": "Készíts belőle tárolót a saját GitHubodon, névvel és ikonnal.",
+          "action": "Sablon megnyitása"
+        },
+        "test": {
+          "title": "Próbáld ki a képernyődön",
+          "text": "Add hozzá a tárolódat egy linkkel. Minden kiadásod frissítésként jelenik meg itt.",
+          "folder": "Vagy tedd a mappáját ide: {path}, hogy kiadás nélkül tesztelhesd."
+        },
+        "share": {
+          "title": "Oszd meg mindenkivel",
+          "text": "Jól működik? Jelentkeztesd a közösségi listára, és itt mindenkinél megjelenik, közvetlenül a tárolódból. Te maradsz a készítője.",
+          "action": "Jelentkezés"
+        }
+      }
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",

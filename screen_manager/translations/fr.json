@@ -1666,8 +1666,6 @@
       },
       "none_installed": "Aucun plugin sur cet écran pour l'instant.",
       "none_found": "Aucun plugin ne correspond à « {query} ».",
-      "make": "Vous créez votre propre plugin ?",
-      "template": "Partir du modèle",
       "version": "version {version}",
       "kind": {
         "hardware": "Matériel",
@@ -1692,10 +1690,8 @@
       "installed_on": "Sur {screen}, version {version}",
       "update": "Mettre à jour vers {version}",
       "trust": {
-        "title": "Je fais confiance à cet auteur",
-        "text": "Tessera n'a pas vérifié ce plugin. Il s'exécute sur votre écran et peut faire tout ce que l'écran peut faire dans Home Assistant."
+        "title": "Je fais confiance à cet auteur"
       },
-      "install": "Ajouter à {screen}",
       "adds": {
         "title": "Ce qu'il ajoute",
         "tile": "Tuile « {name} »",
@@ -1797,7 +1793,6 @@
         "done": "Je l'ai ajoutée",
         "file": "Ce que Tessera écrit dans {file}"
       },
-      "folder_note": "Vous créez un plugin ? Placez son dossier dans {path} et il apparaîtra ici comme test.",
       "folder_error": "Le dossier {folder} n'est pas encore un plugin : {why}",
       "rebuild": "Compiler de nouveau",
       "failed": "Le firmware de {screen} n'a pas pu être compilé avec ce plugin. Son journal se trouve dans Firmware et USB.",
@@ -1808,7 +1803,44 @@
         "agree": "J'accepte ce qu'il peut faire maintenant"
       },
       "settings_missing": "Pas encore sur cet écran : il arrive avec la prochaine compilation du plugin.",
-      "changes": "Ce qui a changé"
+      "changes": "Ce qui a changé",
+      "tray": {
+        "title": "Prêt à installer",
+        "count": "{n} plugin | {n} plugins",
+        "add": "Ajouter",
+        "added": "Ajouté",
+        "setup": "Configurer",
+        "remove": "Retirer {name}",
+        "room": "{kb} Ko sur les {room} Ko libres sur cet écran",
+        "too_much": "{kb} Ko au total pour {room} Ko libres : retirez-en un",
+        "trust": "{names} vient de la communauté et n’a pas été vérifié par Tessera. | {names} viennent de la communauté et n’ont pas été vérifiés par Tessera.",
+        "install": "Installer {n} plugin | Installer {n} plugins",
+        "one_build": "{screen} est compilé une seule fois, avec tout.",
+        "builds": "{n} écrans sont compilés l’un après l’autre.",
+        "stage": "Ajouter à {screen}",
+        "in_tray": "Prêt à installer",
+        "in_tray_note": "Installez-le depuis la carte dans le coin, seul ou avec d’autres."
+      },
+      "maker": {
+        "title": "Créer votre propre plugin",
+        "lead": "Un plugin est un dossier avec une description et un peu de code ESPHome, dans un dépôt GitHub à vous. Vous le créez, et vous publiez ses mises à jour.",
+        "guide": "Comment créer un plugin",
+        "start": {
+          "title": "Partir du modèle",
+          "text": "Faites-en un dépôt sur votre propre GitHub, avec un nom et une icône.",
+          "action": "Ouvrir le modèle"
+        },
+        "test": {
+          "title": "Essayez-le sur votre écran",
+          "text": "Ajoutez votre dépôt avec un lien. Chaque version que vous publiez apparaît ici comme mise à jour.",
+          "folder": "Ou placez son dossier dans {path} pour tester sans version."
+        },
+        "share": {
+          "title": "Partagez-le avec tous",
+          "text": "Il fonctionne bien ? Inscrivez-le dans la communauté et il apparaît ici pour tout le monde, directement depuis votre dépôt. Vous en restez l’auteur.",
+          "action": "Inscrire"
+        }
+      }
     },
     "plugin_tile": {
       "from": "Une tuile du plugin {plugin}",

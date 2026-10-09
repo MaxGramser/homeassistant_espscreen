@@ -2933,8 +2933,6 @@
       },
       "none_installed": "No plugins on this screen yet.",
       "none_found": "No plugin matches “{query}”.",
-      "make": "Making a plugin of your own?",
-      "template": "Start from the template",
       "version": "version {version}",
       "kind": {
         "hardware": "Hardware",
@@ -2959,10 +2957,8 @@
       "installed_on": "On {screen}, version {version}",
       "update": "Update to {version}",
       "trust": {
-        "title": "I trust this maker",
-        "text": "Tessera did not review this plugin. It runs on your screen and can do what the screen can do in Home Assistant."
+        "title": "I trust this maker"
       },
-      "install": "Add to {screen}",
       "adds": {
         "title": "What it adds",
         "tile": "Tile “{name}”",
@@ -3064,7 +3060,6 @@
         "done": "I added it",
         "file": "What Tessera writes in {file}"
       },
-      "folder_note": "Making a plugin? Put its folder in {path} and it shows up here as a test.",
       "folder_error": "The folder {folder} is no plugin yet: {why}",
       "rebuild": "Build again",
       "failed": "The firmware for {screen} did not build with this plugin. Its log is under Firmware & USB.",

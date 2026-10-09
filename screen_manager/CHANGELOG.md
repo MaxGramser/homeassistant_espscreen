@@ -1,3 +1,13 @@
+## Unreleased
+
+- **Pick several plugins, build once.** Adding a plugin no longer builds the screen at once: the round + on a plugin card
+  (or Add in its details) sets it aside in Ready to install, a card in the corner. Add more, on this screen or another,
+  then press Install: each screen builds once with all of them. The card says what a plugin still needs, asks once to
+  trust the makers of community plugins, and on a 4 MB screen shows the room they take together.
+- **Make a plugin of your own.** The Plugins page explains it in three steps: start from the template, try it on your
+  screen with a link to your repository, and list it in the community so it shows up for everyone, straight from your
+  repository.
+
 ## 0.4.85 (firmware 0.53.0)
 
 - **Your screens build the firmware of the Tessera you have.** A screen now always gets the firmware that belongs to

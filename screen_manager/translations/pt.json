@@ -1666,8 +1666,6 @@
       },
       "none_installed": "Ainda não há plugins neste ecrã.",
       "none_found": "Nenhum plugin corresponde a «{query}».",
-      "make": "Está a criar um plugin seu?",
-      "template": "Começar a partir do modelo",
       "version": "versão {version}",
       "kind": {
         "hardware": "Hardware",
@@ -1692,10 +1690,8 @@
       "installed_on": "Em {screen}, versão {version}",
       "update": "Atualizar para {version}",
       "trust": {
-        "title": "Confio neste autor",
-        "text": "O Tessera não reviu este plugin. Corre no seu ecrã e pode fazer o que o ecrã pode fazer no Home Assistant."
+        "title": "Confio neste autor"
       },
-      "install": "Adicionar a {screen}",
       "adds": {
         "title": "O que adiciona",
         "tile": "Mosaico «{name}»",
@@ -1797,7 +1793,6 @@
         "done": "Já a adicionei",
         "file": "O que o Tessera escreve em {file}"
       },
-      "folder_note": "Está a criar um plugin? Coloque a pasta dele em {path} e ele aparece aqui como teste.",
       "folder_error": "A pasta {folder} ainda não é um plugin: {why}",
       "rebuild": "Compilar novamente",
       "failed": "O firmware para {screen} não compilou com este plugin. O registo está em Firmware e USB.",
@@ -1808,7 +1803,44 @@
         "agree": "Aceito o que pode fazer agora"
       },
       "settings_missing": "Ainda não está neste ecrã: chega com a próxima compilação do plugin.",
-      "changes": "O que mudou"
+      "changes": "O que mudou",
+      "tray": {
+        "title": "Pronto para instalar",
+        "count": "{n} plugin | {n} plugins",
+        "add": "Adicionar",
+        "added": "Adicionado",
+        "setup": "Configurar",
+        "remove": "Retirar {name}",
+        "room": "{kb} KB dos {room} KB livres neste ecrã",
+        "too_much": "{kb} KB no total e restam {room} KB: retire um",
+        "trust": "{names} vem da comunidade e não foi verificado pela Tessera. | {names} vêm da comunidade e não foram verificados pela Tessera.",
+        "install": "Instalar {n} plugin | Instalar {n} plugins",
+        "one_build": "{screen} é compilado uma vez, com tudo.",
+        "builds": "{n} ecrãs são compilados um após o outro.",
+        "stage": "Adicionar a {screen}",
+        "in_tray": "Pronto para instalar",
+        "in_tray_note": "Instale-o a partir do cartão no canto, sozinho ou com outros."
+      },
+      "maker": {
+        "title": "Crie o seu próprio plugin",
+        "lead": "Um plugin é uma pasta com uma descrição e algum código ESPHome, num repositório GitHub seu. Você cria-o e publica as suas atualizações.",
+        "guide": "Como criar um plugin",
+        "start": {
+          "title": "Comece pelo modelo",
+          "text": "Transforme-o num repositório no seu GitHub, com um nome e um ícone.",
+          "action": "Abrir o modelo"
+        },
+        "test": {
+          "title": "Experimente no seu ecrã",
+          "text": "Adicione o seu repositório com um link. Cada versão que publicar aparece aqui como atualização.",
+          "folder": "Ou coloque a pasta em {path} para testar sem uma versão."
+        },
+        "share": {
+          "title": "Partilhe com todos",
+          "text": "Funciona bem? Inscreva-o na comunidade e aparece aqui para todos, diretamente do seu repositório. Continua a ser o autor.",
+          "action": "Inscrever"
+        }
+      }
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",

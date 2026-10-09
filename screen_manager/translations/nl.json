@@ -2933,8 +2933,6 @@
       },
       "none_installed": "Nog geen plugins op dit scherm.",
       "none_found": "Geen plugin gevonden voor “{query}”.",
-      "make": "Zelf een plugin maken?",
-      "template": "Begin met het template",
       "version": "versie {version}",
       "kind": {
         "hardware": "Hardware",
@@ -2959,10 +2957,8 @@
       "installed_on": "Op {screen}, versie {version}",
       "update": "Bijwerken naar {version}",
       "trust": {
-        "title": "Ik vertrouw deze maker",
-        "text": "Tessera heeft deze plugin niet nagekeken. Hij draait op je scherm en kan doen wat het scherm in Home Assistant mag."
+        "title": "Ik vertrouw deze maker"
       },
-      "install": "Toevoegen aan {screen}",
       "adds": {
         "title": "Wat hij toevoegt",
         "tile": "Tegel “{name}”",
@@ -3064,7 +3060,6 @@
         "done": "Ik heb hem toegevoegd",
         "file": "Wat Tessera in {file} zet"
       },
-      "folder_note": "Maak je een plugin? Zet zijn map in {path}, dan verschijnt hij hier als test.",
       "folder_error": "De map {folder} is nog geen plugin: {why}",
       "rebuild": "Opnieuw bouwen",
       "failed": "De firmware voor {screen} bouwde niet met deze plugin. Het log staat onder Firmware & USB.",
