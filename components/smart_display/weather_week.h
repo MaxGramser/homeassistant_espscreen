@@ -114,22 +114,65 @@ inline std::string rain_words(const Day &d, const std::string &unit) {
 }
 // The width a column needs at a level: its widest text, an icon and a quarter, the pill's padding on both sides.
 inline int pair_gap(int level) { return ui::px(level > 1 ? 4 : 2); }
-inline int column_need(const Metrics &m, const std::vector<Day> &days, int cols, int tier, int level, const std::string &unit) {
+// Every text a column may show, measured once per level: a plan tries many tiers, levels and counts of days, and on a
+// small board each measurement of a text costs (a CYD spent some 300 ms per weather card measuring the same strings).
+// A level is measured the first time a plan asks for it, after its heights fit: a small board never measures its
+// large faces.
+struct Widths {
+  enum Kind { NAME_W, HIGH_W, LOW_W, AMOUNT_W, WORDS_W, KINDS };
+  std::array<std::array<std::array<int, KINDS>, DAYS>, LEVELS> w{};
+  std::array<bool, LEVELS> done{};
+  const Metrics *m = nullptr;
+  const std::vector<Day> *days = nullptr;
+  std::string unit;
+  const std::array<std::array<int, KINDS>, DAYS> &at(int level);
+};
+inline Widths measure(const Metrics &m, const std::vector<Day> &days, const std::string &unit) {
+  Widths t;
+  t.m = &m; t.days = &days; t.unit = unit;
+  return t;
+}
+inline const std::array<std::array<int, Widths::KINDS>, DAYS> &Widths::at(int level) {
+  if (done[level]) return w[level];
+  done[level] = true;
+  const int n = std::min<int>(DAYS, days->size());
+  {
+    const Metrics &m = *this->m;
+    for (int k = 0; k < n; ++k) {
+      const auto &d = (*days)[k];
+      auto &x = w[level][k];
+      x[Widths::NAME_W] = m.width(level, NAME, d.name);
+      x[Widths::HIGH_W] = m.width(level, HIGH, degrees(d.high));
+      x[Widths::LOW_W] = m.width(level, LOW, degrees(d.low));
+      x[Widths::AMOUNT_W] = wet(d.mm, unit) ? m.width(level, RAIN, amount(d.mm, unit)) : 0;
+      const std::string words = rain_words(d, unit);
+      x[Widths::WORDS_W] = words.empty() ? 0 : m.width(level, RAIN, words);
+    }
+  }
+  return w[level];
+}
+inline int column_need(const Metrics &m, Widths &t, int cols, int tier, int level) {
   int w = m.h[level][ICON] * 5 / 4;
+  const auto &row = t.at(level);
   for (int k = 0; k < cols; ++k) {
-    const auto &d = days[k];
-    w = std::max({w, m.width(level, NAME, d.name), m.width(level, HIGH, degrees(d.high)), m.width(level, LOW, degrees(d.low))});
-    if (tier == 0) w = std::max(w, m.width(level, HIGH, degrees(d.high)) + pair_gap(level) + m.width(level, LOW, degrees(d.low)));
-    if (tier >= 3 && wet(d.mm, unit)) w = std::max(w, m.width(level, RAIN, amount(d.mm, unit)));
-    if (tier < 3) w = std::max(w, m.width(level, RAIN, rain_words(d, unit)));
+    const auto &x = row[k];
+    w = std::max({w, x[Widths::NAME_W], x[Widths::HIGH_W], x[Widths::LOW_W]});
+    if (tier == 0) w = std::max(w, x[Widths::HIGH_W] + pair_gap(level) + x[Widths::LOW_W]);
+    if (tier >= 3) w = std::max(w, x[Widths::AMOUNT_W]);
+    if (tier < 3) w = std::max(w, x[Widths::WORDS_W]);
   }
   return w + 2 * ui::px(tier == 0 ? 3 : level > 1 ? 8 : 5);
+}
+inline int column_need(const Metrics &m, const std::vector<Day> &days, int cols, int tier, int level, const std::string &unit) {
+  Widths t = measure(m, days, unit);
+  return column_need(m, t, cols, tier, level);
 }
 inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::string &unit, int width, int height) {
   int cols = std::min<int>(DAYS, days.size());
   if (cols < 2) return {};
   const int all = cols;  // a card of one row may hold more narrow columns than the tiers above
-  while (cols > 4 && column_need(m, days, cols, 3, 1, unit) * cols > width) --cols;
+  Widths t = measure(m, days, unit);
+  while (cols > 4 && column_need(m, t, cols, 3, 1) * cols > width) --cols;
   bool rain = false, chance = false;
   for (int k = 0; k < cols; ++k) {
     rain |= wet(days[k].mm, unit);
@@ -147,8 +190,8 @@ inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::stri
         for (int k = 0; k < c; ++k) any |= !rain_words(days[k], unit).empty();
         if (with && !any) continue;
         Plan p{level, c, 0, false, with};
-        if (column_need(m, days, c, 0, level, unit) * c > width || fixed_height(m, p) > height) continue;
-        if (level > 1 && fixed_height(m, p) > height * 3 / 4) continue;
+        if (fixed_height(m, p) > height || (level > 1 && fixed_height(m, p) > height * 3 / 4)) continue;
+        if (column_need(m, t, c, 0, level) * c > width) continue;
         return p;
       }
     return {};
@@ -167,10 +210,10 @@ inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::stri
     }
     for (int level = LEVELS - 1; level >= (st.tier == 1 ? 0 : 1); --level) {
       Plan p{level, cols, st.tier, st.tier >= 4, st.words};
-      if (column_need(m, days, cols, st.tier, level, unit) * cols > width) continue;
       const int fixed = fixed_height(m, p);
       if (fixed > height) continue;
       if (level > 1 && fixed > height * 3 / 4) continue;  // a larger face only where the card keeps air around it
+      if (column_need(m, t, cols, st.tier, level) * cols > width) continue;
       return p;
     }
   }

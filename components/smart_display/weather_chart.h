@@ -2,14 +2,14 @@
 // The weather card's chart (weather_week.h plans it): the week as day columns in a light grid, or the next hours, drawn
 // by one LVGL object in its draw event. The object owns a Chart; set() replaces it and asks for a redraw.
 //
-// The curve is a function of x, so it is drawn a pixel column at a time: the line's exact top and bottom in that
-// column (its thickness measured across the slope), the edge pixels at the share of them it covers. That is sub-pixel
-// exact and anti-aliased with LVGL's integer coordinates, has no joints, and lets the colour run on per column (Home
-// Assistant's temperature hues). The soft area under it is one column too: a fade from the line's colour to nothing.
+// The chart is light to draw: the curve is some fifty short straight strokes, opaque, round only at its two ends,
+// each in Home Assistant's temperature hue of its stretch; no fill under it. A redraw is a few dozen texts and strokes, and set() asks for none while the forecast it shows has not changed (Home Assistant sends a weather
+// entity's state far more often than its forecast). The plan is worked out once per forecast and size, not per draw.
 #include <lvgl.h>
 
 #include "theme.h"
 #include "ui_scale.h"
+#include "layout_memory.h"
 #include "weather_week.h"
 
 namespace weather_chart {
@@ -21,6 +21,31 @@ struct Fonts {
   std::array<const lv_font_t *, 3> marks{};  // the icon faces a cloud's drops may take, smallest first
   const lv_font_t *axis = nullptr;           // the hours' times
 };
+struct Item {
+  enum Kind : uint8_t { TEXT, RECT, LINE, DOT } kind = TEXT;
+  bool round_start = false, round_end = false;
+  lv_opa_t opa = LV_OPA_COVER;
+  int16_t x1 = 0, y1 = 0, x2 = 0, y2 = 0;  // its area, relative to the chart
+  int16_t lx1 = 0, ly1 = 0, lx2 = 0, ly2 = 0;  // a line's ends
+  uint8_t radius = 0, width = 0;
+  lv_text_align_t align = LV_TEXT_ALIGN_CENTER;
+  uint32_t color = 0;
+  const lv_font_t *font = nullptr;
+  char text[16] = {};  // the chart's texts are short: a day's name, "-12°", "14.5 mm", a glyph
+};
+// The parts, PSRAM first and never by an allocation that can throw (layout_memory.h): the Guition's internal RAM is
+// tight beside its panel, and an ESP32 build aborts where std::vector would throw.
+using Sink = layout_memory::Vector<Item>;
+// Adds a part, doubling the room when it is full; false when the board has no memory for it (the chart then draws
+// what it has).
+inline bool add(Sink &out, const Item &item) {
+  if (out.size() == out.capacity()) {
+    const size_t n = out.size();
+    if (!out.resize(std::max<size_t>(32, n * 2))) return false;
+    while (out.size() > n) out.pop_back();
+  }
+  return out.push_back(item);
+}
 struct Chart {
   bool hourly = false;
   bool icon_only = false;             // the first day's icon alone, in the largest face (the card's weather now)
@@ -33,7 +58,37 @@ struct Chart {
   int today = 0;                      // today's weekday, Sunday 0
   Fonts fonts;
   bool large = true;
+  mutable int plan_w = -1, plan_h = -1;  // the size the plan below is for
+  mutable Plan plan_;
 };
+// What a chart object owns: its chart, and the parts built from it for a size and a look.
+struct Holder {
+  Chart chart;
+  Sink items;
+  int w = -1, h = -1;
+  bool dark = false;
+};
+// The plan for this size, measured once per forecast and size.
+inline const Plan &plan_of(const Chart &c, const Metrics &m, int width, int height) {
+  if (c.plan_w != width || c.plan_h != height) { c.plan_ = plan(m, c.days, c.unit, width, height); c.plan_w = width; c.plan_h = height; }
+  return c.plan_;
+}
+// Does `b` draw the same as `a`? Then set() keeps the picture on the glass as it is.
+inline bool same(const Chart &a, const Chart &b) {
+  auto eq = [](float x, float y) { return (std::isnan(x) && std::isnan(y)) || x == y; };
+  if (a.hourly != b.hourly || a.icon_only != b.icon_only || a.unit != b.unit || a.fahrenheit != b.fahrenheit || a.now != b.now ||
+      a.today != b.today || a.days.size() != b.days.size() || a.hours.size() != b.hours.size() || a.large != b.large) return false;
+  for (size_t i = 0; i < a.days.size(); ++i) {
+    const auto &x = a.days[i], &y = b.days[i];
+    if (x.name != y.name || x.condition != y.condition || !eq(x.high, y.high) || !eq(x.low, y.low) || !eq(x.mm, y.mm) || !eq(x.chance, y.chance)) return false;
+  }
+  if (a.hourly)
+    for (size_t i = 0; i < a.hours.size(); ++i) {
+      const auto &x = a.hours[i], &y = b.hours[i];
+      if (x.at != y.at || x.condition != y.condition || !eq(x.temp, y.temp) || !eq(x.mm, y.mm)) return false;
+    }
+  return true;
+}
 
 inline int line_h(const lv_font_t *f) { return f ? lv_font_get_line_height(f) : 0; }
 inline int text_w(const std::string &s, const lv_font_t *f) {
@@ -56,77 +111,88 @@ inline Metrics metrics(const Fonts &f, bool large) {
 }
 inline float celsius(const Chart &c, float v) { return c.fahrenheit ? (v - 32) * 5 / 9 : v; }
 
-// ---- drawing helpers
-inline void text(lv_layer_t *layer, const std::string &s, int x, int y, int w, const lv_font_t *f, uint32_t color,
+// ---- drawing: the chart's parts are worked out once per forecast, size and look (build), as a list of what to
+// draw where; a draw only paints the parts that touch the stripe LVGL is rendering. A board with little memory renders
+// the glass in a dozen stripes, and the chart's draw event runs for each of them: working it all out every time cost
+// the CYD a frame twice as long as any other page.
+inline void text(Sink &out, const std::string &s, int x, int y, int w, const lv_font_t *f, uint32_t color,
                  lv_text_align_t align = LV_TEXT_ALIGN_CENTER) {
   if (!f || s.empty()) return;
-  lv_draw_label_dsc_t d;
-  lv_draw_label_dsc_init(&d);
-  d.font = f;
-  d.color = lv_color_hex(color);
-  d.text = s.c_str();
-  d.text_local = 1;
-  d.align = align;
-  lv_area_t a{x, y, x + std::max(1, w) - 1, y + line_h(f) - 1};
-  lv_draw_label(layer, &d, &a);
+  Item i;
+  i.kind = Item::TEXT; i.font = f; i.color = color; i.align = align;
+  snprintf(i.text, sizeof(i.text), "%s", s.c_str());
+  i.x1 = x; i.y1 = y; i.x2 = x + std::max(1, w) - 1; i.y2 = y + line_h(f) - 1;
+  add(out, i);
 }
-inline void rect(lv_layer_t *layer, int x1, int y1, int x2, int y2, uint32_t color, lv_opa_t opa = LV_OPA_COVER, int radius = 0) {
+inline void rect(Sink &out, int x1, int y1, int x2, int y2, uint32_t color, lv_opa_t opa = LV_OPA_COVER, int radius = 0) {
   if (x2 < x1 || y2 < y1 || opa < 2) return;
-  lv_draw_rect_dsc_t d;
-  lv_draw_rect_dsc_init(&d);
-  d.bg_color = lv_color_hex(color);
-  d.bg_opa = opa;
-  d.radius = radius;
-  lv_area_t a{x1, y1, x2, y2};
-  lv_draw_rect(layer, &d, &a);
+  Item i;
+  i.kind = Item::RECT; i.color = color; i.opa = opa; i.radius = radius; i.x1 = x1; i.y1 = y1; i.x2 = x2; i.y2 = y2;
+  add(out, i);
 }
-inline void fade(lv_layer_t *layer, int x, int y1, int y2, uint32_t color, lv_opa_t top) {
-  if (y2 < y1) return;
-  lv_draw_rect_dsc_t d;
-  lv_draw_rect_dsc_init(&d);
-  d.bg_opa = LV_OPA_COVER;
-  d.bg_grad.dir = LV_GRAD_DIR_VER;
-  d.bg_grad.stops_count = 2;
-  d.bg_grad.stops[0].color = d.bg_grad.stops[1].color = lv_color_hex(color);
-  d.bg_grad.stops[0].opa = top;
-  d.bg_grad.stops[1].opa = 0;
-  d.bg_grad.stops[0].frac = 0;
-  d.bg_grad.stops[1].frac = 255;
-  lv_area_t a{x, y1, x, y2};
-  lv_draw_rect(layer, &d, &a);
-}
-// One column of the curve: the line from `top` to `bottom` (fractions of a pixel), its two edge pixels at their cover.
-inline void column(lv_layer_t *layer, int x, float top, float bottom, uint32_t color) {
-  const int r1 = (int) std::floor(top), r2 = (int) std::ceil(bottom) - 1;
-  if (r2 < r1) return;
-  if (r1 == r2) { rect(layer, x, r1, x, r1, color, (lv_opa_t) std::clamp((bottom - top) * 255.f, 0.f, 255.f)); return; }
-  rect(layer, x, r1, x, r1, color, (lv_opa_t) std::clamp((r1 + 1 - top) * 255.f, 0.f, 255.f));
-  rect(layer, x, r1 + 1, x, r2 - 1, color);
-  rect(layer, x, r2, x, r2, color, (lv_opa_t) std::clamp((bottom - r2) * 255.f, 0.f, 255.f));
-}
-// A curve through `ys` (one value per pixel column from x0), coloured per column, with its fade down to `base`.
-inline void curve(lv_layer_t *layer, int x0, const std::vector<float> &ys, const std::vector<uint32_t> &colors, int y0, int base, float lw) {
-  const int n = ys.size();
-  const lv_opa_t opa = theme::dark ? 48 : 90;
-  for (int i = 0; i < n; ++i) {
-    const float y = ys[i], slope = (ys[std::min(n - 1, i + 1)] - ys[std::max(0, i - 1)]) / 2;
-    const float half = lw / 2 * std::sqrt(1 + slope * slope);
-    const float top = std::min(y, y - std::fabs(slope) / 2) - half, bottom = std::max(y, y + std::fabs(slope) / 2) + half;
-    fade(layer, x0 + i, y0 + (int) std::ceil(bottom) - 1, y0 + base, colors[i], opa);
-    column(layer, x0 + i, y0 + top, y0 + bottom, colors[i]);
+// The curve through `ys` (one value per pixel column from x0): straight strokes every few pixels, each in the colour of
+// its middle, opaque, round only at the line's two ends.
+inline void curve(Sink &out, int x0, const std::vector<float> &ys, const std::vector<uint32_t> &colors, int y0, float lw) {
+  const int n = ys.size(), step = std::max(5, (int) ui::px(8)), w = std::max(2, (int) std::lround(lw));
+  for (int i = 0; i + 1 < n; i += step) {
+    const int j = std::min(n - 1, i + step);
+    Item it;
+    it.kind = Item::LINE; it.width = w; it.color = colors[(i + j) / 2];
+    // Round ends only where the line starts and stops: at two or three pixels the joins do not show.
+    it.round_start = i == 0; it.round_end = j == n - 1;
+    it.lx1 = x0 + i; it.ly1 = y0 + (int) std::lround(ys[i]);
+    it.lx2 = x0 + j; it.ly2 = y0 + (int) std::lround(ys[j]);
+    it.x1 = std::min(it.lx1, it.lx2) - w; it.y1 = std::min(it.ly1, it.ly2) - w;
+    it.x2 = std::max(it.lx1, it.lx2) + w; it.y2 = std::max(it.ly1, it.ly2) + w;
+    if (!add(out, it)) return;
   }
 }
-inline void dot(lv_layer_t *layer, float x, float y, int r, uint32_t color) {
-  lv_draw_rect_dsc_t d;
-  lv_draw_rect_dsc_init(&d);
-  d.bg_color = lv_color_hex(color);
-  d.bg_opa = LV_OPA_COVER;
-  d.radius = LV_RADIUS_CIRCLE;
-  d.border_color = lv_color_hex(theme::hex(theme::CARD));
-  d.border_width = std::max(2, r / 2);
+inline void dot(Sink &out, float x, float y, int r, uint32_t color) {
+  Item i;
   const int cx = (int) std::lround(x), cy = (int) std::lround(y);
-  lv_area_t a{cx - r, cy - r, cx + r, cy + r};
-  lv_draw_rect(layer, &d, &a);
+  i.kind = Item::DOT; i.color = color; i.radius = r; i.x1 = cx - r; i.y1 = cy - r; i.x2 = cx + r; i.y2 = cy + r;
+  add(out, i);
+}
+// Paints the items that touch the layer's clip area, `x`/`y` the chart's place on the glass.
+inline void paint(lv_layer_t *layer, const Sink &items, int x, int y) {
+  const lv_area_t clip = layer->_clip_area;
+  for (const auto &i : items) {
+    lv_area_t a{i.x1 + x, i.y1 + y, i.x2 + x, i.y2 + y};
+    if (a.x2 < clip.x1 || a.x1 > clip.x2 || a.y2 < clip.y1 || a.y1 > clip.y2) continue;
+    switch (i.kind) {
+      case Item::TEXT: {
+        lv_draw_label_dsc_t d;
+        lv_draw_label_dsc_init(&d);
+        d.font = i.font; d.color = lv_color_hex(i.color); d.text = i.text; d.align = i.align;
+        lv_draw_label(layer, &d, &a);
+        break;
+      }
+      case Item::RECT: {
+        lv_draw_rect_dsc_t d;
+        lv_draw_rect_dsc_init(&d);
+        d.bg_color = lv_color_hex(i.color); d.bg_opa = i.opa; d.radius = i.radius;
+        lv_draw_rect(layer, &d, &a);
+        break;
+      }
+      case Item::LINE: {
+        lv_draw_line_dsc_t d;
+        lv_draw_line_dsc_init(&d);
+        d.width = i.width; d.color = lv_color_hex(i.color); d.round_start = i.round_start; d.round_end = i.round_end;
+        d.p1 = {(lv_value_precise_t) (i.lx1 + x), (lv_value_precise_t) (i.ly1 + y)};
+        d.p2 = {(lv_value_precise_t) (i.lx2 + x), (lv_value_precise_t) (i.ly2 + y)};
+        lv_draw_line(layer, &d);
+        break;
+      }
+      case Item::DOT: {
+        lv_draw_rect_dsc_t d;
+        lv_draw_rect_dsc_init(&d);
+        d.bg_color = lv_color_hex(i.color); d.bg_opa = LV_OPA_COVER; d.radius = LV_RADIUS_CIRCLE;
+        d.border_color = lv_color_hex(theme::hex(theme::CARD)); d.border_width = std::max(2, i.radius / 2);
+        lv_draw_rect(layer, &d, &a);
+        break;
+      }
+    }
+  }
 }
 
 // ---- icons: a condition as Home Assistant's weather pictures draw it, from a few MDI glyphs: a cloud in front, a sun
@@ -172,7 +238,7 @@ inline bool two_tone(const Fonts &f, const lv_font_t *big, const std::vector<std
   for (auto &c : conditions) if (falls(c)) return false;
   return true;
 }
-inline void icon(lv_layer_t *layer, const Fonts &f, const std::string &c, int cx, int y, const lv_font_t *big, const lv_font_t *small, bool tone) {
+inline void icon(Sink &layer, const Fonts &f, const std::string &c, int cx, int y, const lv_font_t *big, const lv_font_t *small, bool tone) {
   const int b = line_h(big), x = cx - b / 2;
   namespace h = theme::ha;
   auto gl = [&](const char *g, int gx, int gy, const lv_font_t *font, uint32_t color) {
@@ -209,10 +275,10 @@ inline void icon(lv_layer_t *layer, const Fonts &f, const std::string &c, int cx
 }
 
 // ---- the week
-inline void draw_week(lv_layer_t *layer, const lv_area_t &area, const Chart &c) {
+inline void draw_week(Sink &layer, const lv_area_t &area, const Chart &c) {
   const int width = lv_area_get_width(&area), height = lv_area_get_height(&area);
   const Metrics m = metrics(c.fonts, c.large);
-  const Plan p = plan(m, c.days, c.unit, width, height);
+  const Plan p = plan_of(c, m, width, height);
   if (!p.ok()) return;
   const Place r = place(m, p, height);
   const Level &l = c.fonts.levels[p.level];
@@ -282,7 +348,7 @@ inline void draw_week(lv_layer_t *layer, const lv_area_t &area, const Chart &c) 
     colors.push_back(theme::foreground(theme::temperature(celsius(c, v))));
   }
   if (ys.empty()) return;
-  curve(layer, fx, ys, colors, y0, r.curve + r.curve_h, lw);
+  curve(layer, fx, ys, colors, y0, lw);
   dot(layer, fx, y0 + ys.front(), ui::px(p.level > 1 ? 5 : 4), colors.front());
 }
 
@@ -291,7 +357,7 @@ inline int hours_need(const Fonts &f) {
   const Level &l = f.levels[1];
   return line_h(l.icon) + line_h(l.high) + line_h(f.axis) + ui::px(8) + 4 * ui::px(4) + ui::px(40);
 }
-inline void draw_hours(lv_layer_t *layer, const lv_area_t &area, const Chart &c) {
+inline void draw_hours(Sink &layer, const lv_area_t &area, const Chart &c) {
   const int n = std::min<int>(HOURS, c.hours.size());
   if (n < 4) return;
   const int width = lv_area_get_width(&area), height = lv_area_get_height(&area), y0 = area.y1, gap = ui::px(4);
@@ -369,27 +435,36 @@ inline void draw_hours(lv_layer_t *layer, const lv_area_t &area, const Chart &c)
     const bool midnight = hour == 0 && !c.weekdays.empty();
     text(layer, midnight ? c.weekdays[(c.today + h.at / 24) % 7] : std::string(b), lx, axis_y, span_w, c.fonts.axis, midnight ? ink : muted);
   }
-  curve(layer, fx, ys, colors, y0, curve_y - y0 + curve_h, lw);
+  curve(layer, fx, ys, colors, y0, lw);
   dot(layer, fx, y0 + ys.front(), ui::px(level > 1 ? 5 : 4), colors.front());
 }
 
 // ---- the object
 inline void draw_event(lv_event_t *e) {
   auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
-  auto *c = static_cast<Chart *>(lv_obj_get_user_data(obj));
-  if (!c) return;
+  auto *k = static_cast<Holder *>(lv_obj_get_user_data(obj));
+  if (!k) return;
   lv_area_t a;
   lv_obj_get_coords(obj, &a);
-  if (c->icon_only) {
-    if (c->days.empty()) return;
-    const Level &l = c->fonts.levels[LEVELS - 1];
-    icon(lv_event_get_layer(e), c->fonts, c->days[0].condition, (a.x1 + a.x2 + 1) / 2, a.y1, l.icon, l.small, two_tone(c->fonts, l.icon, {c->days[0].condition}));
-  } else if (c->hourly) draw_hours(lv_event_get_layer(e), a, *c);
-  else draw_week(lv_event_get_layer(e), a, *c);
+  const int w = lv_area_get_width(&a), h = lv_area_get_height(&a);
+  if (k->w != w || k->h != h || k->dark != theme::dark) {
+    const Chart &c = k->chart;
+    k->items.clear();
+    const lv_area_t local{0, 0, w - 1, h - 1};
+    if (c.icon_only) {
+      if (!c.days.empty()) {
+        const Level &l = c.fonts.levels[LEVELS - 1];
+        icon(k->items, c.fonts, c.days[0].condition, w / 2, 0, l.icon, l.small, two_tone(c.fonts, l.icon, {c.days[0].condition}));
+      }
+    } else if (c.hourly) draw_hours(k->items, local, c);
+    else draw_week(k->items, local, c);
+    k->w = w; k->h = h; k->dark = theme::dark;
+  }
+  paint(lv_event_get_layer(e), k->items, a.x1, a.y1);
 }
 inline void delete_event(lv_event_t *e) {
   auto *obj = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
-  delete static_cast<Chart *>(lv_obj_get_user_data(obj));
+  delete static_cast<Holder *>(lv_obj_get_user_data(obj));
   lv_obj_set_user_data(obj, nullptr);
 }
 inline lv_obj_t *create(lv_obj_t *parent) {
@@ -397,19 +472,23 @@ inline lv_obj_t *create(lv_obj_t *parent) {
   lv_obj_remove_style_all(o);
   lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(o, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_user_data(o, new Chart());
+  lv_obj_set_user_data(o, new (std::nothrow) Holder());
   lv_obj_add_event_cb(o, draw_event, LV_EVENT_DRAW_MAIN, nullptr);
   lv_obj_add_event_cb(o, delete_event, LV_EVENT_DELETE, nullptr);
   return o;
 }
 inline void set(lv_obj_t *o, Chart &&chart) {
-  if (auto *c = static_cast<Chart *>(lv_obj_get_user_data(o))) *c = std::move(chart);
+  auto *k = static_cast<Holder *>(lv_obj_get_user_data(o));
+  if (!k) return;
+  if (same(k->chart, chart)) return;  // nothing new to draw: the forecast and the hour are as they were
+  k->chart = std::move(chart);
+  k->w = -1;                          // build the parts again at the next draw
   lv_obj_invalidate(o);
 }
 // The tier the week reaches in this room, -1 where it shows nothing: the card around it decides with it.
 inline int week_tier(const Chart &c, int width, int height) {
   const Metrics m = metrics(c.fonts, c.large);
-  const Plan p = plan(m, c.days, c.unit, width, height);
+  const Plan &p = plan_of(c, m, width, height);
   return p.ok() ? p.tier : -1;
 }
 
