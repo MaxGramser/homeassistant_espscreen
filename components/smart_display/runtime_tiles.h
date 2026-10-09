@@ -1828,7 +1828,7 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   const Extra &x=t.extra();
   if(detail_status){lv_obj_add_flag(detail_status,LV_OBJ_FLAG_HIDDEN);detail_status=nullptr;}
   const int pad=overlay_card::pad(),gap=ui::px(large?12:6),gi=ui::px(large?12:6),card_pad=ui::px(large?16:8);
-  const int top=ui::px(large?16:8)+ui::px(large?60:40)+gap;
+  const int top=detail_bar::bottom()+gap;
   const int area_w=width-2*pad,area_h=height-top-pad,inner=area_w-2*card_pad;
   const lv_font_t *hero_font=setpoint_font?setpoint_font:(watch_value_font?watch_value_font:detail_font);
   const lv_font_t *big_icon=big_icon_font?big_icon_font:widgets[0].icon_font;
@@ -1856,10 +1856,12 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   struct Option{int extra;bool title,key_in_hero,beside;};
   // The key stands at the right of the card's top bar where the name centred there leaves it room, as Home
   // Assistant's dialog puts its keys in its header; else over the forecast, or in the top card on the smallest glass.
-  const int bar=ui::px(large?60:40),bar_y=ui::px(large?16:8);
+  // Its right edge is the top bar's (detail_bar): where the outer key at the right ends on every page.
+  const auto edge=detail_bar::right_slot(detail_root);
+  const int key_x=edge.x+edge.w-weather_key_w(),middle=detail_bar::glass_left(detail_root)+overlay_card::screen_width()/2;
   const lv_font_t *heading=watch_font?watch_font:detail_font;
-  const bool key_top=width/2+text_width(t.name,heading)/2+gap<=width-pad-weather_key_w();
-  if(key_top)weather_key(detail_root,width-pad-weather_key_w(),bar_y+(bar-weather_key_h())/2,weather_view==1);
+  const bool key_top=middle+text_width(t.name,heading)/2+gap<=key_x;
+  if(key_top)weather_key(detail_root,key_x,edge.y+(edge.h-weather_key_h())/2,weather_view==1);
   const bool title=!key_top;
   const Option options[]={{beside?std::max(0,weather_chip_h()-hero):-1,title,false,true},{n?gi+tiles_h:-1,title,false,false},
                           {line.empty()?-1:line_of(small)+ui::px(4),title,false,false},{0,title,false,false},{0,false,!key_top,false}};
