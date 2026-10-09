@@ -92,7 +92,18 @@ inline lv_obj_t *gl(lv_obj_t *p,const char *s,int x,int y,const lv_font_t *f,uin
   lv_obj_set_style_text_color(o,lv_color_hex(c),0);lv_obj_set_pos(o,x,y);return o;
 }
 // The icon fills a box of `big`'s line height, centred on cx. `small` draws the sun behind a cloud, drops, flakes.
+inline const Fonts *icon_fonts=nullptr;
+// What falls out of a cloud (drops, flakes, a bolt) in the largest icon face at most ~42 % of the cloud's;
+// nullptr when the board has none that small.
+inline const lv_font_t *mark_font(const lv_font_t *big){
+  const lv_font_t *best=nullptr;if(!icon_fonts)return best;
+  for(auto *f:{icon_fonts->icon_watch,icon_fonts->icon_mini,icon_fonts->icon})if(H(f)*100<=H(big)*42&&(!best||H(f)>H(best)))best=f;
+  return best;
+}
 inline void icon(lv_obj_t *p,const std::string &c,int cx,int y,const lv_font_t *big,const lv_font_t *small,bool two_tone){
+  const bool falls=c!="partlycloudy"&&c!="cloudy"&&c!="sunny"&&c!="clear-night"&&c!="fog"&&c!="windy"&&c!="exceptional";
+  const lv_font_t *mf=mark_font(big);
+  if(falls&&!mf)two_tone=false;
   const int b=H(big),s=H(small),x=cx-b/2;
   if(!two_tone){gl(p,glyph(c),x,y,big,theme::foreground(hue(c)));return;}
   namespace h=theme::ha;
@@ -101,16 +112,15 @@ inline void icon(lv_obj_t *p,const std::string &c,int cx,int y,const lv_font_t *
   if(c=="clear-night"){gl(p,MOON,x,y,big,theme::foreground(h::NIGHT_SKY));return;}
   if(c=="fog"||c=="windy"||c=="exceptional"){gl(p,glyph(c),x,y,big,cloud_back());return;}
   // A cloud of the big face, lifted when something falls out of it.
-  const bool falls=c!="partlycloudy"&&c!="cloudy";
-  const int lift=falls?b/6:0;
+  const int m=falls?H(mf):0,lift=falls?m*2/3:0;
   if(c=="partlycloudy")gl(p,SUN,x+b/2-s/8,y-s/10,small,theme::foreground(h::SUNNY));
   if(c=="cloudy")gl(p,CLOUD,x+b/2-s/6,y-s/12,small,cloud_back());
   gl(p,CLOUD,x,y+(c=="partlycloudy"||c=="cloudy"?b/12:0)-lift,big,cloud_front());
   if(!falls)return;
   // What falls: two marks (three when pouring) under the cloud's belly, half a small face each.
-  const int below=y+b-lift-s*3/4+b/12;
-  auto mark=[&](const char *g,uint32_t col,int dx){gl(p,g,cx-s/2+dx,below,small,col);};
-  const int step=s*5/8;
+  const int below=y+b-lift-m/2;
+  auto mark=[&](const char *g,uint32_t col,int dx){gl(p,g,cx-m/2+dx,below,mf,col);};
+  const int step=m*3/4;
   if(c=="lightning"||c=="lightning-rainy"){mark(BOLT,theme::foreground(h::LIGHTNING),c=="lightning"?0:-step/2);if(c!="lightning")mark(DROP,rain(),step/2+step/4);return;}
   const uint32_t r=rain(),sn=theme::foreground(h::SNOW);
   if(c=="pouring"){mark(DROP,r,-step);mark(DROP,r,0);mark(DROP,r,step);return;}
@@ -223,7 +233,7 @@ inline Level level(const Fonts &f,int n){
 struct WeekPlan {int level=-9,cols=0,tier=0; bool pct=false;};
 struct WeekRows {int pp,g,rs,bar,curve_min;};
 inline WeekRows rows_of(int n){
-  return {ui::px(n>0?8:5),ui::px(n>=2?8:n>0?5:3),ui::px(n>0?8:5),ui::px(n>=2?40:n>0?30:20),0};
+  return {ui::px(n>0?8:5),ui::px(n>=2?8:n>0?5:3),ui::px(n>0?8:5),ui::px(n>=2?24:n>0?18:12),0};
 }
 inline int curve_min(const Level &l){return std::max(ui::px(30),H(l.high)*3/2);}
 // The height of everything but the curve's and the bars' growth.
@@ -231,7 +241,7 @@ inline int week_fixed(const Level &l,const WeekPlan &p,const WeekRows &w){
   int h=2*w.pp+H(l.name)+w.g+H(l.icon)+H(l.high)+H(l.low);
   h+=p.tier>=3?2*w.rs+1:w.g;                       // under the icons: a line with room, or a plain gap
   if(p.tier>=2)h+=curve_min(l);
-  if(p.tier>=3)h+=2*w.rs+1+w.bar+w.g+H(l.rain);    // a line, the bars, the amount
+  if(p.tier>=3)h+=w.rs+1+w.bar+w.g+H(l.rain);      // a line, the bars hanging from it, the amount
   if(p.tier>=4&&p.pct)h+=H(l.rain);
   return h;
 }
@@ -263,8 +273,15 @@ inline WeekPlan plan_week(const Scene &s,const Fonts &f,int w,int h){
   return {};
 }
 // A two-tone icon only where its small marks stay small beside the cloud; else the single glyph in its colour.
+inline bool falls(const std::string &c){return c!="partlycloudy"&&c!="cloudy"&&c!="sunny"&&c!="clear-night"&&c!="fog"&&c!="windy"&&c!="exceptional";}
+// One style per row: two-tone only when every condition shown can be drawn two-tone at this size.
+inline bool row_two_tone(const Scene &s,int cols,const lv_font_t *big){
+  for(int k=0;k<cols;++k)if(falls(s.days[k].cond)&&!mark_font(big))return false;
+  return true;
+}
+inline bool two_tone_row=true;
 inline void day_icon(lv_obj_t *p,const std::string &c,int cx,int y,const Level &l){
-  icon(p,c,cx,y,l.icon,l.small,H(l.small)*10<=H(l.icon)*7);
+  icon(p,c,cx,y,l.icon,l.small,two_tone_row);
 }
 inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant){
   const WeekPlan p=plan_week(s,f,r.w,r.h);
@@ -276,7 +293,6 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
   // least height); what is still left is air above and under the whole.
   int curve=p.tier>=2?curve_min(l):0;
   if(p.tier>=2){const int more=std::max(0,std::min(left,r.h*3/10-curve));curve+=more;left-=more;}
-  if(p.tier>=3){const int more=std::max(0,std::min(left,w.bar));w.bar+=more;left-=more;}
   const int cw=r.w/p.cols,x0=r.x+(r.w-cw*p.cols)/2,x1=x0+cw*p.cols;
   const int top=r.y+left/2;
   int y=top+w.pp;
@@ -287,9 +303,10 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
   const int curve_y=y;y+=curve;
   const int low_y=y;y+=H(l.low);
   int rule2=-1,bar_y=0,mm_y=0;
-  if(p.tier>=3){rule2=y+w.rs;y+=2*w.rs+1;bar_y=y;y+=w.bar+w.g;mm_y=y;y+=H(l.rain);}
+  if(p.tier>=3){rule2=y+w.rs;y+=w.rs+1;bar_y=y;y+=w.bar+w.g;mm_y=y;y+=H(l.rain);}
   const int pct_y=y;if(p.pct)y+=H(l.rain);
   const int bottom=y+w.pp;
+  two_tone_row=row_two_tone(s,p.cols,l.icon);
   auto *c=chart(card,{r.x,r.y,r.w,r.h});
   const uint32_t rule=theme::hex(theme::dark?theme::RAISED_LINE:theme::LINE);
   const int inset=ui::px(p.level>0?8:5);
@@ -298,7 +315,7 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
   if(rule1>=0)c->bars.push_back({{x0+inset-r.x,rule1-r.y,x1-inset-1-r.x,rule1-r.y},rule,0});
   if(rule2>=0)c->bars.push_back({{x0+inset-r.x,rule2-r.y,x1-inset-1-r.x,rule2-r.y},rule,0});
   if(grid&&rule1>=0)for(int k=1;k<p.cols;++k)c->hairs.push_back({x0+k*cw-r.x,rule1-r.y,bar_y+w.bar-r.y,rule});
-  float most=8;for(int j=0;j<p.cols;++j)most=std::max(most,s.days[j].mm);
+  float most=10;for(int j=0;j<p.cols;++j)most=std::max(most,s.days[j].mm);
   for(int k=0;k<p.cols;++k){
     const auto &d=s.days[k];const int x=x0+k*cw;
     text(card,k==0?"Today":d.name,x,name_y,cw,l.name,k?muted():ink(),LV_TEXT_ALIGN_CENTER);
@@ -308,14 +325,12 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
     if(p.tier<3)continue;
     const float mm=std::isfinite(d.mm)?d.mm:0;
     if(mm>=0.1f){
-      // A bar on the row's foot, on a square-root scale (1 mm still shows, a downpour does not flatten the week),
-      // round on top only, the rain's blue fading downwards.
-      const int bw=std::max(ui::px(8),std::min(cw*2/5,ui::px(22))),bx=x+(cw-bw)/2-r.x,foot=bar_y+w.bar-r.y,rad=std::min(ui::px(5),bw/2);
-      const int bh=std::max(rad+ui::px(3),(int)std::lround(w.bar*std::sqrt(mm/most)));
-      const uint32_t pale=theme::tint(theme::ha::RAIN,140);
-      c->caps.push_back({{bx,foot-bh,bx+bw-1,foot-1},rain(),pale,rad});
-      c->caps.push_back({{bx,foot-rad,bx+bw-1,foot-1},theme::mix(pale,rain(),(uint8_t)std::clamp(255-255*rad/bh,0,255)),pale,0});
-      text(card,mm_text(mm),x,mm_y,cw,l.rain,rain(),LV_TEXT_ALIGN_CENTER);
+      // The reference's bar: flat, hung from the line, nearly the column's width, as long as the day is wet on one
+      // scale for the week (10 mm at least), never thinner than a stroke. The amount under it in ink.
+      const int bx=x+ui::px(p.level>0?6:4)-r.x,bw=cw-2*ui::px(p.level>0?6:4);
+      const int bh=std::max(ui::px(3),(int)std::lround(w.bar*mm/most));
+      c->bars.push_back({{bx,bar_y-r.y,bx+bw-1,bar_y-r.y+bh-1},rain(),0});
+      text(card,mm_text(mm),x,mm_y,cw,l.rain,ink(),LV_TEXT_ALIGN_CENTER);
     }
     if(p.pct&&std::isfinite(d.pct))text(card,pct_text(d.pct),x,pct_y,cw,l.rain,muted(),LV_TEXT_ALIGN_CENTER);
   }
@@ -369,6 +384,7 @@ inline void hours(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f){
   }
   c->fill=true;c->lw=lw;c->base=curve_y-r.y+curve;c->fill_opa=theme::dark?48:90;
   c->dot_x=c->fx;c->dot_y=c->ys.front();c->dot_r=ui::px(lv?6:4);c->dot_color=c->cols.front();
+  bool hours_two_tone=true;for(int i=0;i<n;++i)if(falls(s.hours[i].cond)&&!mark_font(l.icon))hours_two_tone=false;
   static const char *WD[]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
   int today=0;for(int i=0;i<7;++i)if(!s.days.empty()&&std::string(s.days[0].name)==WD[i])today=i;
   for(int i=0;i<n;++i){
@@ -380,7 +396,7 @@ inline void hours(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f){
     if(hour%step||i==0)continue;
     const int cw=int(slot*step),cx=x+int(slot/2),lx=std::clamp(cx-cw/2,r.x,r.right()-cw);
     if(cx-H(l.icon)/2<r.x||cx+H(l.icon)/2>r.right())continue;
-    icon(card,h.cond,cx,icon_y,l.icon,l.small,true);
+    icon(card,h.cond,cx,icon_y,l.icon,l.small,hours_two_tone);
     text(card,deg(t[i]),lx,high_y,cw,l.high,ink(),LV_TEXT_ALIGN_CENTER);
     char b[8];snprintf(b,sizeof(b),"%02d:00",hour);
     text(card,hour==0?WD[(today+h.hour/24)%7]:b,lx,axis_y,cw,f.note,hour==0?ink():muted(),LV_TEXT_ALIGN_CENTER);
@@ -553,7 +569,7 @@ inline void save(lv_obj_t *root,const std::string &path){
 }
 // size: "CxR" in cells, "full" for the whole grid, "detail" for the card opened from a tile (header row, no page bar).
 inline void render(const Board &b,const std::string &out,const Scene &s,const std::string &size,int variant,bool dark){
-  ui::configure(b.dpi,b.look);theme::set_dark(dark);
+  ui::configure(b.dpi,b.look);theme::set_dark(dark);icon_fonts=&b.f;
   where=std::string(b.name)+"-"+s.key+"-"+size+"-"+"ABCD"[variant]+(dark?"-dark":"");
   auto *root=box(lv_screen_active(),{0,0,b.width,b.height},theme::hex(theme::PAGE));
   const int head_h=H(b.f.headline);
