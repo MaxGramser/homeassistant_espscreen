@@ -464,7 +464,8 @@ def check(manifest, english=None, strict=True):
     topics = _strings(manifest.get('topics'), 'topics', MAX_TOPICS)
     if strict and any(topic not in TOPICS for topic in topics) or not all(ID.match(topic) for topic in topics):
         raise ManifestError('topics', f'one or two of {", ".join(TOPICS)}')
-    if not topics:
+    # A maker names one or two; the app never leaves a plugin out for a missing word (it shows under no topic).
+    if not topics and strict:
         raise ManifestError('topics', f'what the plugin is about: one or two of {", ".join(TOPICS)}')
     # A topic this app does not know yet (a newer plugins repository) is left out, not the plugin.
     out['topics'] = list(dict.fromkeys(topic for topic in topics if topic in TOPICS))
