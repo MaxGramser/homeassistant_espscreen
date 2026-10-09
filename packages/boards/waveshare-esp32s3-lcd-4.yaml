@@ -33,6 +33,9 @@ substitutions:
 # ============================================================
 
 esphome:
+  # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its expander,
+  # `waveshare_io_ch32v003` below, and its display model, `WAVESHARE-4-480X480`, both arrived in 2026.7.0. A board
+  # file's min_version wins over the core's, so the other boards keep building on 2026.6.2.
   min_version: 2026.7.0
 
 esp32:
