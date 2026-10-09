@@ -128,7 +128,7 @@ inline void icon(lv_obj_t *p,const std::string &c,int cx,int y,const lv_font_t *
 struct Chart {
   int fx=0; std::vector<float> ys; std::vector<uint32_t> cols; float lw=2; bool fill=false; int base=0; uint8_t fill_opa=60;
   struct Bar {lv_area_t a; uint32_t color; int radius;}; std::vector<Bar> bars;
-  struct Cap {lv_area_t a; uint32_t top,bottom;}; std::vector<Cap> caps;   // a day's range, coloured high to low
+  struct Cap {lv_area_t a; uint32_t top,bottom; int radius=LV_RADIUS_CIRCLE;}; std::vector<Cap> caps;   // a day's range, coloured high to low
   struct Hair {int x,y1,y2; uint32_t color;}; std::vector<Hair> hairs;
   float dot_x=-1,dot_y=0; uint32_t dot_color=0; int dot_r=0;
 };
@@ -144,7 +144,7 @@ inline void chart_draw(lv_event_t *e){
   for(auto &h:c->hairs)px_rect(layer,ox+h.x,oy+h.y1,oy+h.y2,h.color,LV_OPA_COVER);
   for(auto &b:c->bars){lv_draw_rect_dsc_t d;lv_draw_rect_dsc_init(&d);d.bg_color=lv_color_hex(b.color);d.bg_opa=LV_OPA_COVER;d.radius=b.radius;
     lv_area_t r=b.a;r.x1+=ox;r.x2+=ox;r.y1+=oy;r.y2+=oy;lv_draw_rect(layer,&d,&r);}
-  for(auto &k:c->caps){lv_draw_rect_dsc_t d;lv_draw_rect_dsc_init(&d);d.radius=LV_RADIUS_CIRCLE;d.bg_opa=LV_OPA_COVER;
+  for(auto &k:c->caps){lv_draw_rect_dsc_t d;lv_draw_rect_dsc_init(&d);d.radius=k.radius;d.bg_opa=LV_OPA_COVER;
     lv_color_t cs[2]={lv_color_hex(k.top),lv_color_hex(k.bottom)};lv_grad_init_stops(&d.bg_grad,cs,nullptr,nullptr,2);lv_grad_vertical_init(&d.bg_grad);
     lv_area_t r=k.a;r.x1+=ox;r.x2+=ox;r.y1+=oy;r.y2+=oy;lv_draw_rect(layer,&d,&r);}
   const int n=c->ys.size();
@@ -213,11 +213,13 @@ inline Level level(const Fonts &f,int n){
   return {f.note,f.icon_watch,f.icon_watch,f.label,f.note,f.note};  // tight: the icon in the small face
 }
 // What a short card gives up, in this order: the chance, the rain bars, the amount (the icon still says rain).
+// Variants: 0 A (the reference), 1 B1 (B with the reference's grid), 3 B2 (B with lines between the rows).
 struct WeekPlan {int level=-9,cols=0; bool rain=false,pct=false,bars=false;};
 inline int gap_of(int n){return ui::px(n>=2?8:n>0?6:n==0?3:2);}
-inline int bar_of(int n){return ui::px(n>=2?12:n>0?10:6);}
-inline int week_fixed(const Level &l,const WeekPlan &p,int gap,int bar){
-  return H(l.name)+gap+H(l.icon)+gap+H(l.high)+H(l.low)+(p.rain?gap+(p.bars?bar:0)+H(l.rain)+(p.pct?H(l.rain):0):0);
+// The rain row: a short band of bars in A, a real second chart in B.
+inline int bar_of(int n,bool B){return B?ui::px(n>=2?48:n>0?36:n==0?24:16):ui::px(n>=2?12:n>0?10:6);}
+inline int week_fixed(const Level &l,const WeekPlan &p,int gap,int bar,bool B){
+  return H(l.name)+gap+H(l.icon)+gap+(B?gap:0)+H(l.high)+H(l.low)+(p.rain?gap+(B?gap:0)+(p.bars?bar+gap/2:0)+H(l.rain)+(p.pct?H(l.rain):0):0);
 }
 inline int curve_min(const Level &l){return std::max(ui::px(26),H(l.high));}
 inline WeekPlan plan_week(const Scene &s,const Fonts &f,int w,int h,int variant){
@@ -229,11 +231,11 @@ inline WeekPlan plan_week(const Scene &s,const Fonts &f,int w,int h,int variant)
     const Level l=level(f,n);
     bool wet=false,pct=false;
     for(int k=0;k<cols;++k){wet|=s.days[k].mm>=0.1f;pct|=std::isfinite(s.days[k].pct);}
-    WeekPlan p{n,cols,B?wet:true,pct,!B};
+    WeekPlan p{n,cols,B?wet||pct:true,pct,true};
     if(drop>=1)p.pct=false;
     if(drop>=2)p.bars=false;
     if(drop>=3)p.rain=false;
-        int cw=0;
+    int cw=0;
     for(int k=0;k<cols;++k){const auto &d=s.days[k];
       cw=std::max({cw,width_of(k?d.name:"Today",l.name),width_of(deg(d.high,!B),l.high),width_of(deg(d.low,!B),l.low),H(l.icon)*5/4});
       if(p.rain&&(d.mm>=0.1f||!B))cw=std::max(cw,width_of(mm_text(d.mm),l.rain));
@@ -241,7 +243,7 @@ inline WeekPlan plan_week(const Scene &s,const Fonts &f,int w,int h,int variant)
     cw+=ui::px(n>0?10:6);
     if(cw*cols>w)continue;
     // A big face only where the chart keeps the larger share of the card.
-    const int fixed=week_fixed(l,p,gap_of(n),bar_of(n));
+    const int fixed=week_fixed(l,p,gap_of(n),bar_of(n,B),B);
     if(fixed+curve_min(l)>h)continue;
     if(n>0&&fixed>h*75/100)continue;
     return p;
@@ -251,23 +253,36 @@ inline WeekPlan plan_week(const Scene &s,const Fonts &f,int w,int h,int variant)
 inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant){
   const WeekPlan p=plan_week(s,f,r.w,r.h,variant);
   if(p.level<-1){text(card,"Too small for the week",r.x,r.y,r.w,f.note,muted());return;}
-  const Level l=level(f,p.level);const int gap=gap_of(p.level),bar=bar_of(p.level);
-  const int fixed=week_fixed(l,p,gap,bar);
+  const bool B=variant!=0,grid=variant!=3;   // B2 draws lines between the rows only
+  const Level l=level(f,p.level);const int gap=gap_of(p.level);int bar=bar_of(p.level,B);
+  int fixed=week_fixed(l,p,gap,bar,B);
   // The curve takes the room left, up to two fifths of the card; what is left beyond it is air above and under.
   const int curve=std::min(r.h-fixed,std::max(curve_min(l),(p.level>=2?r.h*2/5:std::min(r.h*2/5,3*H(l.high)))));
+  // B's rain row grows into the air that is left, up to twice its least height.
+  if(B&&p.rain&&p.bars){const int more=std::min(bar,(r.h-fixed-curve)*2/3);bar+=more;fixed+=more;}
   const int top=r.y+(r.h-fixed-curve)/2,cw=r.w/p.cols,x0=r.x+(r.w-cw*p.cols)/2;
-  const bool B=variant!=0;
   auto *c=chart(card,{r.x,r.y,r.w,r.h});
-  // Today on a pale pill (B), as the forecast tile has it: its padding comes out of the air, never past the card.
-  if(B){const int y1=std::max(r.y,top-gap),y2=std::min(r.bottom(),top+fixed+curve+gap);
-    auto *pill=box(card,{x0+ui::px(2),y1,cw-ui::px(4),y2-y1},theme::hex(theme::TRACK),ui::px(p.level>0?14:10));lv_obj_move_to_index(pill,0);}
   int y=top;
-  const int name_y=y;y+=H(l.name)+gap;const int icon_y=y;y+=H(l.icon)+gap;const int high_y=y;y+=H(l.high);
+  const int name_y=y;y+=H(l.name)+gap;const int icon_y=y;y+=H(l.icon)+gap;
+  const int rule1=y;y+=B?gap:0;
+  const int high_y=y;y+=H(l.high);
   const int curve_y=y;y+=curve;const int low_y=y;y+=H(l.low);
-  const int bar_y=y+gap;const int rain_y=bar_y+(p.bars?bar:0);
-  // Column hairlines (A): from under the icons to the rain bars, the reference's frame.
-  if(!B)for(int k=1;k<p.cols;++k)c->hairs.push_back({x0+k*cw-r.x,high_y-r.y-gap/2,(p.rain?bar_y+(p.bars?bar:0):low_y+H(l.low))-r.y,theme::hex(theme::LINE)});
-  float most=10;for(int j=0;j<p.cols;++j)most=std::max(most,s.days[j].mm);
+  const int rule2=y+gap/2;y+=gap+(B?gap:0);
+  const int bar_y=y;const int rain_y=bar_y+(p.bars?bar+gap/2:0);
+  const int bottom=p.rain?(p.bars?bar_y+bar:rain_y):low_y+H(l.low);
+  const uint32_t rule=theme::hex(theme::dark?theme::RAISED_LINE:theme::LINE);
+  // Today on a pale pill in B2, as the forecast tile has it; B1 marks today by its column of the grid alone.
+  if(B&&!grid){const int y1=std::max(r.y,top-gap),y2=std::min(r.bottom(),top+fixed+curve+gap);
+    auto *pill=box(card,{x0+ui::px(2),y1,cw-ui::px(4),y2-y1},theme::hex(theme::TRACK),ui::px(p.level>0?14:10));lv_obj_move_to_index(pill,0);}
+  if(B){
+    // The lines: under the icons and between the temperature and the rain, the width of the days; in B1 also
+    // between the days, from the first line to the foot of the rain bars.
+    c->bars.push_back({{x0-r.x,rule1-r.y,x0-r.x+cw*p.cols-1,rule1-r.y},rule,0});
+    if(p.rain)c->bars.push_back({{x0-r.x,rule2-r.y,x0-r.x+cw*p.cols-1,rule2-r.y},rule,0});
+    if(grid)for(int k=1;k<p.cols;++k)c->hairs.push_back({x0+k*cw-r.x,rule1-r.y,bottom-r.y,rule});
+    if(p.rain&&p.bars)c->bars.push_back({{x0-r.x,bar_y+bar-r.y,x0-r.x+cw*p.cols-1,bar_y+bar-r.y},rule,0});
+  } else for(int k=1;k<p.cols;++k)c->hairs.push_back({x0+k*cw-r.x,high_y-r.y-gap/2,(p.rain?bar_y+(p.bars?bar:0):low_y+H(l.low))-r.y,theme::hex(theme::LINE)});
+  float most=B?8:10;for(int j=0;j<p.cols;++j)most=std::max(most,s.days[j].mm);
   for(int k=0;k<p.cols;++k){
     const auto &d=s.days[k];const int x=x0+k*cw;
     text(card,k==0?"Today":d.name,x,name_y,cw,l.name,B&&k!=0?muted():ink(),LV_TEXT_ALIGN_CENTER);
@@ -276,47 +291,42 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
     text(card,deg(d.low,!B),x,low_y,cw,l.low,B?muted():ink(),LV_TEXT_ALIGN_CENTER);
     if(!p.rain)continue;
     const float mm=std::isfinite(d.mm)?d.mm:0;
-    if(B&&mm>=0.1f){
-      // A drop and the amount, in the rain's blue, only on a day it rains.
-      const std::string t=mm_text(mm);const int tw=width_of(t,l.rain),dw=tw+width_of("\U000F058C",f.icon_watch)<=cw-ui::px(4)?width_of("\U000F058C",f.icon_watch):0,x1=x+(cw-dw-tw)/2;
-      if(dw)gl(card,"\U000F058C",x1,rain_y+(H(l.rain)-H(f.icon_watch))/2,f.icon_watch,rain());
-      text(card,t,x1+dw,rain_y,tw,l.rain,rain());
+    if(B){
+      // The rain row: a bar per day standing on the row's foot, as tall as the day is wet on one scale for the week
+      // (10 mm at least, so a drizzle stays small), in the rain's blue fading downwards; a dry day keeps a short
+      // grey stub so the row keeps its rhythm. The amount under it, the chance under that.
+      if(p.bars){
+        // On a square-root scale: 1 mm still shows, a downpour does not dwarf the week. Round on top only: the
+        // foot is squared off by a plain rect in the gradient's bottom colour.
+        const int bw=std::max(ui::px(8),std::min(cw*2/5,ui::px(24))),bx=x+(cw-bw)/2-r.x,foot=bar_y+bar-r.y,rad=std::min(ui::px(5),bw/2);
+        if(mm>=0.1f){const int bh=std::max(rad+ui::px(2),(int)std::lround(bar*std::sqrt(mm/most)));
+          const uint32_t pale=theme::tint(theme::ha::RAIN,140);
+          c->caps.push_back({{bx,foot-bh,bx+bw-1,foot-1},rain(),pale,rad});
+          c->caps.push_back({{bx,foot-rad,bx+bw-1,foot-1},theme::mix(pale,rain(),(uint8_t)std::clamp(255-255*rad/bh,0,255)),pale,0});}
+      }
+      if(mm>=0.1f)text(card,mm_text(mm),x,rain_y,cw,l.rain,rain(),LV_TEXT_ALIGN_CENTER);
+      if(p.pct&&std::isfinite(d.pct))text(card,pct_text(d.pct),x,rain_y+H(l.rain),cw,l.rain,muted(),LV_TEXT_ALIGN_CENTER);
+      continue;
     }
-    if(!B)text(card,mm_text(mm),x,rain_y,cw,l.rain,ink(),LV_TEXT_ALIGN_CENTER);
-    if(p.pct&&std::isfinite(d.pct)&&(!B||d.pct>=30))text(card,pct_text(d.pct),x,rain_y+H(l.rain),cw,l.rain,B?muted():ink(),LV_TEXT_ALIGN_CENTER);
+    text(card,mm_text(mm),x,rain_y,cw,l.rain,ink(),LV_TEXT_ALIGN_CENTER);
+    if(p.pct&&std::isfinite(d.pct))text(card,pct_text(d.pct),x,rain_y+H(l.rain),cw,l.rain,ink(),LV_TEXT_ALIGN_CENTER);
     if(p.bars&&mm>=0.1f){
       // The reference's bar: hung from the frame's line, as long as the day is wet on one scale (10 mm at least).
       const int bw=cw-ui::px(8),bh=std::max(ui::px(3),(int)std::lround(bar*mm/most)),bx=x+(cw-bw)/2-r.x;
       c->bars.push_back({{bx,bar_y-r.y,bx+bw-1,bar_y-r.y+std::max(ui::px(3),bh*2/3)-1},ink(),ui::px(2)});
     }
   }
-  // The range of the week on one scale.
+  // The temperature through the week on one scale, from now to the end of the last column.
   float lo=1e9,hi=-1e9;const int first_h=s.hour,last_h=24*p.cols;
   for(int hh=first_h;hh<=last_h;++hh){const float v=through(s,hh);lo=std::min(lo,v);hi=std::max(hi,v);}
   const float lw=std::max(1.5f,ui::px(p.level>0?5:4)/2.f),inset=lw+ui::px(3);
   const float span=std::max(1.f,hi-lo);
   auto yof=[&](float v){return curve_y-r.y+inset+(curve-2*inset)*(hi-v)/span;};
-  const uint32_t line=theme::dark?ink():theme::hex(theme::INK);
-  if(variant==3){
-    // D: each day's range as a capsule on the week's scale, coloured from its high down to its low, over a faint
-    // track for the whole scale; today carries the temperature now as a dot.
-    const int capw=std::max(ui::px(6),std::min(ui::px(12),cw/6));
-    for(int k=0;k<p.cols;++k){
-      const auto &d=s.days[k];const int cx=x0+k*cw+cw/2-r.x;
-      c->bars.push_back({{cx-capw/2,(int)(curve_y-r.y+inset-capw/2),cx-capw/2+capw-1,(int)(curve_y-r.y+curve-inset+capw/2)},theme::hex(theme::TRACK),LV_RADIUS_CIRCLE});
-      c->caps.push_back({{cx-capw/2,(int)std::lround(yof(d.high)-capw/2),cx-capw/2+capw-1,(int)std::lround(yof(d.low)+capw/2)},
-                         theme::foreground(theme::temperature(d.high)),theme::foreground(theme::temperature(d.low))});
-      if(k==0){c->dot_x=cx-0.5f+capw%2*0.5f;c->dot_y=yof(s.now);c->dot_r=capw*3/4;c->dot_color=theme::hex(theme::CARD);}
-    }
-    if(c->dot_r){c->dot_color=line;}
-    return;
-  }
-  // A and B: the temperature through the week, from now to the end of the last column.
   c->fx=(int)std::lround(x0-r.x+first_h*cw/24.f);
   const int end=x0-r.x+p.cols*cw;
   for(int x=c->fx;x<end;++x){
     const float v=through(s,(x-(x0-r.x))*24.f/cw);c->ys.push_back(yof(v));
-    c->cols.push_back(B?theme::foreground(theme::temperature(v)):line);
+    c->cols.push_back(B?theme::foreground(theme::temperature(v)):ink());
   }
   c->lw=lw;c->fill=B;c->base=curve_y-r.y+curve;c->fill_opa=theme::dark?48:90;
   c->dot_x=c->fx;c->dot_y=c->ys.front();c->dot_r=ui::px(p.level>0?6:4);c->dot_color=c->cols.front();
@@ -399,7 +409,7 @@ inline void card(lv_obj_t *root,Rect r,const Board &b,const Scene &s,int variant
   // The key: only on a card that gets the whole page and has the room beside the name.
   const int key_h=std::min(head,std::max(ui::touch_min(),H(f.label)+ui::px(12)));
   const int key_w=2*(std::max(width_of("Week",f.label),width_of("48 h",f.label))+ui::px(28));
-  const bool key=big&&(variant==1||variant==2)&&w-key_w-head-gap>=ui::px(120);
+  const bool key=big&&variant>0&&w-key_w-head-gap>=ui::px(120);
   if(key){right=w-key_w;segmented(p,{right,(head-key_h)/2,key_w,key_h},f,variant==2);right-=gap;}
   // The temperature now in a large light face at the end of the head row (B, C), where it fits.
   std::string now=deg(s.now,variant==0);

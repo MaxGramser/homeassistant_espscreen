@@ -19,7 +19,7 @@ BOARDS = (('cyd', 'landscape', ['full', 'detail']), ('guition', 'landscape', ['2
           ('waveshare43', 'landscape', ['2x2', '3x2', 'full', 'detail']), ('waveshare7', 'landscape', ['2x2', '4x2', 'full', 'detail']),
           ('jc8012p4a1', 'landscape', ['2x2', '3x2', '5x3', 'full', 'detail']), ('waveshare43', 'portrait', ['1x2', 'full', 'detail']))
 DARK = ('guition', 'cyd', 'jc8012p4a1')
-VARIANTS = {'A': 'A · the reference 1:1', 'B': 'B · ESP Screens look', 'C': 'C · the next 48 hours', 'D': 'D · range per day'}
+VARIANTS = {'A': 'A · the reference 1:1', 'B': 'B1 · B with the grid', 'C': 'C · the next 48 hours', 'D': 'B2 · B with row lines'}
 SCENES = {'munich': 'The reference card\'s own week (7 days, rain and chance)',
           'thuis': 'Bench Home Assistant, met.no: 6 days, rain without chance, 48 hours hourly',
           'winter': 'A winter week below zero (widest numbers, snow and storm icons)'}
@@ -89,7 +89,7 @@ def project():
     (WORK / 'study.h').write_text((ROOT / 'tools/render/weather_study.h').read_text().replace('"../../components/', f'"{ROOT}/components/'))
     lam = 'using namespace weather_study;\n' + scenes()
     lam += 'std::vector<Board> boards = {' + ', '.join(boards) + '};\n'
-    lam += 'for (auto &b : boards) for (auto &s : scenes) for (int v = 0; v < 4; ++v) {\n'
+    lam += 'for (auto &b : boards) for (auto &s : scenes) for (int v = 1; v < 4; ++v) {\n'
     for b, o, sizes in BOARDS:
         for z in sizes:
             cond = f'std::string(b.name)=="{name(b, o)}"'
