@@ -61,6 +61,7 @@ PyYAML and Jinja2, plus Emscripten on PATH:
 PYTHON=/path/to/venv/bin/python sh web/wasm/build.sh
 node web/wasm/test_runtime.mjs
 node web/wasm/test_look.mjs
+node web/wasm/test_colour_card.mjs
 node web/wasm/test_profiles.mjs
 node web/wasm/test_images.mjs
 PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs

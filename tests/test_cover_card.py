@@ -121,11 +121,14 @@ class Firmware(unittest.TestCase):
         self.assertIn('show_detail(w.index);', event)
         self.assertIn('}else if(d=="cover"){', RUNTIME)
         self.assertIn('render_cover_detail(t,large,width,height,pad,columns);', RUNTIME)
+        # Firmware 0.2.80: the preview asks the firmware's own routing instead of listing domains, so it opens whatever
+        # a hold opens - the runtime's card for a cover, a light that dims and a fan, the colour card for a light with a
+        # colour. One function since app 0.4.86, shared by the screen's action and the browser preview.
+        hold = RUNTIME[RUNTIME.index('inline void hold_card(size_t index) {'):]
+        self.assertIn('if (tile_controls::tap_route(tile, true).route == tile_controls::TapRoute::OVERLAY) {', hold[:600])
+        self.assertIn('show_detail(index);', hold[:700])
         for name, text in PROFILES.items():
-            # Firmware 0.2.80: the preview asks the firmware's own routing instead of listing domains, so it
-            # opens whatever a hold opens - the runtime's card for a cover, a light that dims and a fan.
-            self.assertIn('if (tile_controls::tap_route(tile, true).route == tile_controls::TapRoute::OVERLAY && runtime_tiles::detail) {',
-                          text, f'{name}: the preview opens the card a hold opens')
+            self.assertIn('runtime_tiles::hold_card(index);', text, f'{name}: the preview opens the card a hold opens')
 
     def test_the_card_commits_on_release_and_keeps_its_status_line(self):
         # Both views dispatch through the capability-checked percentage helper.

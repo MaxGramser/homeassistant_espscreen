@@ -89,10 +89,12 @@ int preview_init(int w, int h, int display_dpi, int columns, int rows) {
   // The virtual device enables the firmware's normal swipe setting. Since
   // protocol 2, this preference is no longer part of a layout packet.
   settings_screen::set("swipe_pages", 1);
+  // The colour card's pages (a light's effects, a group's lamps) are bound in C++, as on the screen.
+  runtime_tiles::bind_pages();
   // What a change of look draws again, as the shared core binds it (packages/core.yaml, theme::redraw).
   theme::redraw = [] {
     runtime_tiles::restyle();
-    light_controls::restyle();
+    runtime_tiles::colour_restyle();
     effects_page::restyle();
     group_page::restyle();
     settings_screen::restyle();
@@ -139,11 +141,13 @@ int preview_language(const char *code) {
   if (runtime_tiles::enabled) theme::redraw();
   return own ? 1 : 0;
 }
-// The card of tile `index` built anew, as a hold on the tile opens it; 1 when it paints itself (docs/CARD_PARTS.md).
+// What a hold on tile `index` opens (runtime_tiles::hold_card): 2 for a light's colour card, else the runtime card
+// built anew and 1 when it paints itself (docs/CARD_PARTS.md).
 int preview_card(int index) {
   if (index < 0 || index >= (int) runtime_tiles::model.count) return -1;
-  runtime_tiles::show_detail(index);
+  runtime_tiles::hold_card(index);
   dirty = true;
+  if (runtime_tiles::colour_shown()) return 2;
   return runtime_tiles::card_shape_of ? 1 : 0;
 }
 // How many times a card was built: a state that a card paints in place leaves it as it was.

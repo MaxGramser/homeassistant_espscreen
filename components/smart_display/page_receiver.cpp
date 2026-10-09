@@ -241,7 +241,7 @@ std::string receive(const std::string &payload) {
         tile.background = tile_palette::color(background);
         tile.transparent = tile_palette::transparent(background);
         refresh_tile(index);
-        if (active_index == static_cast<int>(index) && detail_update) detail_update(tile);
+        if (active_index == static_cast<int>(index)) detail_update(tile);
         refresh_detail(index);
       }
       last_received = esphome::millis();
@@ -1029,7 +1029,7 @@ std::string receive(const std::string &payload) {
       return true;
     }
     refresh_tile(index);
-    if (active_index == static_cast<int>(index) && detail_update) detail_update(tile);
+    if (active_index == static_cast<int>(index)) detail_update(tile);
     if (tile.domain() == "alarm_control_panel") alarm_state_arrived(index, before);
     if (tile.domain() == "lock") lock_state_arrived(index, before);
     refresh_detail(index);

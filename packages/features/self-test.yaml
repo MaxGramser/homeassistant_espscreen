@@ -61,10 +61,10 @@ script:
                 id(tile_page) = 0;
             - script.execute: show_tile_page
             - delay: 150ms
-            - lvgl.widget.show: color_detail_overlay
+            - lambda: 'runtime_tiles::colour_demo(true);'
             - delay: 150ms
-            - lambda: screen_diagnostics::check_geometry(id(color_detail_overlay));
-            - lvgl.widget.hide: color_detail_overlay
+            - lambda: screen_diagnostics::check_geometry(runtime_tiles::colour_root);
+            - lambda: 'runtime_tiles::colour_demo(false);'
             - lvgl.widget.show: alert_overlay
             - delay: 150ms
             - lvgl.widget.hide: alert_overlay

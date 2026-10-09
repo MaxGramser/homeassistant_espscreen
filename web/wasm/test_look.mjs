@@ -30,14 +30,14 @@ async function screen({ language, dark, before = true }) {
 const texts = (m) => JSON.parse(m.ccall('preview_layout', 'string', [], [])).objects.filter((o) => o.type === 'label').map((o) => o.text);
 const pixel = (m, x, y) => { const p = m._preview_frame() + (y * shape.width + x) * 4; return m.HEAPU8[p] + m.HEAPU8[p + 1] + m.HEAPU8[p + 2]; };
 
-// The language: the light's card says its rows in Dutch, in English by default, and in the base language of a code
+// The language: the light's colour card says its rows in Dutch, in English by default, and in the base language of a code
 // without a file of its own; an unknown code is English.
 for (const [language, word, own] of [[undefined, 'Brightness'], ['nl', 'Helderheid', 1], ['nl-BE', 'Helderheid', 1],
                                       ['xx', 'Brightness', 0]]) {
   for (const before of [true, false]) {
     const { m, tick } = await screen({ language, before });
     if (language) assert.equal(m.ccall('preview_language', 'number', ['string'], [language]), own, `${language} has a table`);
-    assert.equal(m._preview_card(0), 1);
+    assert.equal(m._preview_card(0), 2);  // a light with a colour: its colour card
     tick();
     assert.ok(texts(m).includes(word), `${language ?? 'default'} (${before ? 'before' : 'after'} the layout): ${word} in ${texts(m).join(' | ')}`);
   }

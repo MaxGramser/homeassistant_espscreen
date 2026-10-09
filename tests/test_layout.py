@@ -117,7 +117,7 @@ class LayoutTests(unittest.TestCase):
     def test_navigation_is_above_grid_but_below_modal_overlays(self):
         grid = SOURCE.index('            id: tile_scroll')
         nav = SOURCE.index('            id: page_prev')
-        modal = SOURCE.index('            id: color_detail_overlay')
+        modal = SOURCE.index('            id: dim_wake_overlay')
         self.assertLess(grid, nav)
         self.assertLess(nav, modal)
 

@@ -123,8 +123,8 @@ class PackageTests(unittest.TestCase):
         for board in BOARDS:
             package = profiles.text(f'packages/{board}.yaml')
             # The cards of the grid, made at boot (firmware 0.53.0+), and the parts every screen has.
-            for key in ['runtime_tiles::make_cells(id(materialdesign_icons)->get_lv_font(), ${TILE_ICON_SIZE});', 'runtime_tiles::enabled = true;', 'id: open_value_overlay',
-                        'id: ui_refresh', 'runtime_tiles::render(id(lbl_room));', 'id: color_detail_overlay']:
+            for key in ['runtime_tiles::make_cells(id(materialdesign_icons)->get_lv_font(), ${TILE_ICON_SIZE});', 'runtime_tiles::enabled = true;', 'runtime_tiles::bind_pages();',
+                        'id: ui_refresh', 'runtime_tiles::render(id(lbl_room));']:
                 self.assertIn(key, package, board)
         # The CYD keeps its resistive calibration on the screen itself; the Guition's GT911 needs none.
         self.assertIn('screen_calibration::setup(', profiles.resolved('packages/cyd.yaml'))

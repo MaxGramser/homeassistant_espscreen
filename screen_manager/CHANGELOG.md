@@ -15,6 +15,11 @@
 - **The preview speaks your screens' language and follows Dark mode.** The live preview in the editor, on the home page
   and under Preview, now shows the firmware's own texts in the language chosen under Settings -> Language & region, and
   draws a screen that has Dark mode on in its dark look, as its glass does. Before, it was always English and light.
+- **Holding a light with a colour opens its colour card in the preview too** (#201). The colour card was the last card
+  built in the screen's YAML instead of the firmware's shared code, so the editor's preview could not show it: a hold
+  on such a light did nothing there. It is now part of the shared code, with every card's top bar, and the preview opens
+  it, its effects and a group's lamps as the screen does. On the screen it looks and works as before, and the CYD's
+  firmware is 6.7 KB smaller.
 - **The preview shows screens with more than eight pages.** A screen with more pages or tiles than the eight pages and
   64 tiles every screen once had, which a board with PSRAM takes, showed a drawing instead of its live preview. The
   preview now takes as many as the largest board.

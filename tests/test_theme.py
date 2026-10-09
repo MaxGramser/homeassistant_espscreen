@@ -76,6 +76,9 @@ class Paints(unittest.TestCase):
             text = profiles.merged(path)
             defined = re.findall(r'^    - id: (paint_\w+)$', text, re.M)
             used = set(re.findall(r'styles: (paint_\w+)$', text, re.M))
+            # A paint the core gives a widget through a substitution (TOUCH_TEST_PAGE_PAINT) is the core's, even on a
+            # board whose feature gives that widget another (the CYD's calibration paint).
+            used |= set(re.findall(r'^  \w+_PAINT: "(paint_\w+)"', profiles.CORE.read_text(), re.M))
             filling = text.split('theme::paints = []() {', 1)[1].split('\n          };', 1)[0]
             explicit = re.findall(r'theme::fill\(id\((\w+)\), Paint::(\w+)\);', filling)
             listed = re.search(r'for \(auto \*style : \{([^}]*)\}\) theme::fill\(style, Paint::(\w+)\);', filling)
@@ -105,7 +108,7 @@ class Paints(unittest.TestCase):
             self.assertIn('theme::set_dark(settings_screen::dark_mode != 0);', apply, f'{path}: a change of the setting')
             redraw = text.split('theme::redraw = []() {', 1)[1].split('};', 1)[0]
             # The computed cards (the thermostat, the blind, the robot) are drawn again by runtime_tiles::restyle.
-            for needle in ('runtime_tiles::restyle();', 'light_controls::restyle();', 'settings_screen::restyle();',
+            for needle in ('runtime_tiles::restyle();', 'runtime_tiles::colour_restyle();', 'settings_screen::restyle();',
                            'theme::surface(id(alert_card_color))'):
                 self.assertIn(needle, redraw, f'{path}: {needle}')
             self.assertIn('id(alert_card_color) = alert.color;', text)

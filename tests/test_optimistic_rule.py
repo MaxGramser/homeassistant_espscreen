@@ -70,7 +70,10 @@ class CardParts(unittest.TestCase):
             source = (ROOT / 'components/smart_display' / page).read_text()
             self.assertIn('wish(', source)
             self.assertNotIn('SENT_HOLD_MS', source)
-        self.assertIn('group_page::wish = runtime_tiles::wish_part;', (ROOT / 'packages/core.yaml').read_text())
+        # Bound in C++ since app 0.4.86 (runtime_tiles::bind_pages), which the core and the browser preview both call.
+        self.assertIn('group_page::wish = wish_part;', TILES)
+        self.assertIn('effects_page::wish = wish_part;', TILES)
+        self.assertIn('runtime_tiles::bind_pages();', (ROOT / 'packages/core.yaml').read_text())
 
     def test_a_change_paints_before_it_builds(self):
         refresh = TILES[TILES.index('inline void refresh_detail(unsigned index){'):]

@@ -217,8 +217,6 @@ esphome:
             group_page::close();
             runtime_tiles::hide_detail();
             screen_hooks::run_cards_closed();
-            id(active_entity).clear();
-            lv_obj_add_flag(id(color_detail_overlay), LV_OBJ_FLAG_HIDDEN);
           };
           runtime_tiles::layout_changed = []() { id(show_tile_page).execute(); };
           ${BOOT_PAGE_GESTURE}
@@ -243,7 +241,7 @@ esphome:
             if (id(alert_active)) return "alert showing";
             return nullptr;
           };
-          runtime_tiles::touch_input::card_open = []() { return !id(active_entity).empty(); };
+          runtime_tiles::touch_input::card_open = runtime_tiles::colour_shown;
           // The way home for the house in the top bar and for a swipe up from the bottom edge (firmware 0.2.100+, from
           // over any card or the settings page 0.28.0+): the same script the Back to page 1 timeout and Home Assistant
           // use, so there is one way home, and it closes everything on the way.
@@ -273,70 +271,16 @@ esphome:
           runtime_tiles::make_cells(id(materialdesign_icons)->get_lv_font(), ${TILE_ICON_SIZE});
           // Another grid from ESP Screens (firmware 0.53.0+) shows in the Screen layout sensor at once, not a minute later.
           runtime_tiles::grid_changed = []() { id(screen_layout).update(); };
-          runtime_tiles::detail = [](runtime_tiles::Tile &t) {
-            light_controls::fallback = light_controls::State{};
-            light_controls::fallback.hue = t.hue;
-            light_controls::fallback.kelvin = t.kelvin;
-            light_controls::fallback.minimum = t.min_kelvin;
-            light_controls::fallback.maximum = t.max_kelvin;
-            id(open_value_overlay).execute(t.name, t.entity, t.domain(), "auto", t.active(), 0,
-              t.brightness, t.percentage, t.position, runtime_tiles::icon_for(t),
-              screen_text::tr(screen_text::txt::ha_off), screen_text::tr(screen_text::txt::ha_on), t.modes);
-          };
-          runtime_tiles::detail_update = [](runtime_tiles::Tile &t) {
-            effects_page::updated(t);
-            group_page::updated(t);
-            if (id(active_entity) != t.entity || id(touch_down)) return;
-          };
       - lambda: |-
-          // The colour card (firmware 0.2.82): the overlay covers the glass and takes every press, and the card
-          // inside it keeps a hand's width and stands in the middle, like every other card (overlay_card).
-          // The overlay's own three widgets move into that card, so the close key, the sparkles key and the
-          // title stand at the card's corners and not at the far corners of a ten-inch panel.
-          light_controls::card = lv_obj_create(id(color_detail_overlay));
-          lv_obj_remove_style_all(light_controls::card);
-          lv_obj_set_height(light_controls::card, lv_pct(100));
-          overlay_card::frame(light_controls::card, overlay_card::controls);
-          for (auto *widget : {id(color_close_button), id(color_effects_button), id(color_group_button), id(color_detail_title)})
-            lv_obj_set_parent(widget, light_controls::card);
-          detail_bar::place(light_controls::card, {id(color_close_button), id(color_detail_title),
-                                                   {id(color_effects_button), id(color_group_button)}});
-          light_controls::setup(light_controls::card, id(sublabel)->get_lv_font(), overlay_card::content_width(), overlay_card::screen_height(), id(materialdesign_icons_mini)->get_lv_font());
-          light_controls::commits[0] = [](int value) { id(set_light_hue).execute(value); };
-          light_controls::commits[1] = [](int value) { id(set_light_color_temperature).execute(value); };
-          light_controls::commits[2] = [](int value) { id(color_brightness_commit).execute(value); };
-          // The effects page behind the colour card's sparkles key (firmware 0.2.70+): fonts, the tile it shows, and
-          // the ways out: actions to Home Assistant and the question for a picker's names.
+          // The colour card (runtime_tiles::colour_open) and the pages behind its keys, a light's effects (firmware
+          // 0.2.70+) and a group's lamps (0.3.9+): their fonts and the board's touch limit here, the rest in C++
+          // (runtime_tiles::bind_pages), which the browser preview runs too.
           effects_page::title_font = id(headline)->get_lv_font();
           effects_page::row_font = id(${EFFECTS_ROW_FONT})->get_lv_font();
           effects_page::roller_font = id(sublabel_big)->get_lv_font();
           effects_page::icon_font = id(materialdesign_icons_mini)->get_lv_font();
-          effects_page::tile_of = [](const std::string &entity) -> const runtime_tiles::Tile * {
-            // The tile whose card is open (active_index, set by every tap or hold that opens one): an entity may
-            // stand on several tiles (firmware 0.16.0+), and the pages behind its card belong to that one.
-            const int active = runtime_tiles::active_index;
-            if (active >= 0 && static_cast<size_t>(active) < runtime_tiles::model.count && runtime_tiles::model.tiles[active].entity == entity)
-              return &runtime_tiles::model.tiles[active];
-            for (size_t i = 0; i < runtime_tiles::model.count; ++i) if (runtime_tiles::model.tiles[i].entity == entity) return &runtime_tiles::model.tiles[i];
-            return nullptr;
-          };
-          effects_page::send = [](const std::string &service, const std::string &entity, const std::string &key, const std::string &value) {
-            runtime_tiles::action(service, entity, key, value);
-          };
-          // A light group's lamp page (firmware 0.3.9+): the lamps' own actions, a list such as hs_color rendered by
-          // Home Assistant.
-          group_page::send = [](const std::string &service, const std::string &entity, const std::string &key, const std::string &value, bool rendered) {
-            if (rendered) runtime_tiles::action_template(service, entity, key, value);
-            else runtime_tiles::action(service, entity, key, value);
-          };
-          // Both pages change a lamp or a row as a wish, shown at once and squared with Home Assistant (docs/OPTIMISTIC.md).
-          group_page::wish = runtime_tiles::wish_part;
-          effects_page::wish = runtime_tiles::wish_part;
-          effects_page::ask = [](const std::string &entity, unsigned page) { runtime_tiles::options_request(entity, page); };
-          effects_page::drift = []() { return screen_input::touch_guard.distance(); };
           effects_page::tap_limit = ${TOUCH_MOVE_LIMIT_PX};
-          effects_page::now = []() { return (uint32_t) millis(); };
-          runtime_tiles::options_received = effects_page::received;
+          runtime_tiles::bind_pages();
           ${BOOT_CARDS_TAIL}
           plugin_host::ready();
       # The settings page the screen opens on its own (0.2.44+): the same values ESP Screen Manager
@@ -398,7 +342,7 @@ esphome:
           // the colour card, the settings page and an alert.
           theme::redraw = []() {
             runtime_tiles::restyle();
-            light_controls::restyle();
+            runtime_tiles::colour_restyle();
             effects_page::restyle();
             group_page::restyle();
             settings_screen::restyle();
@@ -407,7 +351,7 @@ esphome:
           // Under the cards: the colour card is the first of them on the page, so the back button and
           // the action at the top right of a card keep their taps.
           settings_screen::attach_hold(id(home_page)->obj, ${SETTINGS_HOLD_X}, 0,
-            overlay_card::screen_width() - ${SETTINGS_HOLD_X} * 2, ${SCROLL_Y}, id(color_detail_overlay));
+            overlay_card::screen_width() - ${SETTINGS_HOLD_X} * 2, ${SCROLL_Y});
       - light.turn_on:
           id: back_light
           brightness: !lambda "return screen_settings::current.brightness / 100.0f;"
@@ -495,19 +439,9 @@ api:
       then:
         - lambda: |-
             if (index < 0) { runtime_tiles::hide_detail(); if (runtime_tiles::dismiss) runtime_tiles::dismiss(); return; }
-            if (runtime_tiles::enabled && index < (int)runtime_tiles::model.count) {
-              runtime_tiles::active_index = index;
-              auto &tile = runtime_tiles::model.tiles[index];
-              // Whatever a hold on the tile itself opens: the runtime's own card for almost everything, and the
-              // board's colour card for a light with a colour (firmware 0.2.80). Asking tap_route keeps this on
-              // the firmware's own answer instead of a list of domains that goes stale, as this one had.
-              if (tile_controls::tap_route(tile, true).route == tile_controls::TapRoute::OVERLAY && runtime_tiles::detail) {
-                tile.begin(millis(), true);
-                runtime_tiles::detail(tile);
-                return;
-              }
-              runtime_tiles::show_detail(index);
-            }
+            // Whatever a hold on the tile itself opens (runtime_tiles::hold_card): the runtime card for almost everything,
+            // the colour card for a light with a colour.
+            if (index >= 0) runtime_tiles::hold_card(index);
     # The settings page from Home Assistant: `page` 0 is its menu, 1-4 open a group straight away
     # (Brightness, Night, Screen, This screen) and a negative page closes it and goes back to page 1.
     # Handy for support ("look at Screen -> Rotation") and for the render tests.
@@ -811,9 +745,6 @@ globals:
   - id: touch_down
     type: bool
     initial_value: 'false'
-  - id: active_entity
-    type: std::string
-    restore_value: no
 
 
 
@@ -856,30 +787,11 @@ globals:
 
 
 
-  - id: active_title
-    type: std::string
-    restore_value: no
 
 
-  - id: active_brightness_pct
-    type: int
-    restore_value: no
-    initial_value: '100'
 
-  - id: active_supports_color
-    type: bool
-    restore_value: no
-    initial_value: 'false'
 
-  - id: active_supports_temperature
-    type: bool
-    restore_value: no
-    initial_value: 'false'
 
-  - id: active_color_detail_tab
-    type: int
-    restore_value: no
-    initial_value: '0'
 
 # The Tessera mark on the starting screen (firmware 0.3.8+), fonts/tessera-mark.png rendered from the website's
 # tessera-mark.svg; ESPHome scales it to the look's size when it builds. The top-level form that ESPHome 2026.6.2
@@ -2208,99 +2120,6 @@ lvgl:
                   styles: paint_ink
                   clickable: false
 
-        # ---------- LIGHT COLOR DETAIL OVERLAY ----------
-        - obj:
-            id: color_detail_overlay
-            x: 0
-            y: 0
-            # The glass it is on, whichever way that hangs (firmware 0.2.92+).
-            width: 100%
-            height: 100%
-            styles: paint_page_soft
-            bg_opa: COVER
-            hidden: true
-            # Nothing leaks through to the tiles and the page keys under it (firmware 0.2.82): LVGL looks on
-            # under an overlay that takes no press, and the card inside this one does not fill wide glass.
-            clickable: true
-            pressed:
-              styles: paint_page_soft
-              bg_opa: COVER
-            scrollable: false
-            scrollbar_mode: 'OFF'
-            pad_left: 0
-            pad_right: 0
-            pad_top: 0
-            pad_bottom: 0
-            border_width: 0
-            widgets:
-              - obj:
-                  id: color_close_button
-                  # Placed by detail_bar::place, the top bar of every page a tap opens.
-                  radius: 999
-                  styles: paint_key
-                  bg_opa: COVER
-                  border_width: 0
-                  clickable: true
-                  scrollable: false
-                  on_click:
-                    - script.execute: close_cards
-                  widgets:
-                    - label:
-                        align: CENTER
-                        text: "\U000F004D"
-                        text_font: materialdesign_icons_mini
-                        clickable: false
-
-              # The sparkles key (firmware 0.2.70+): a light with effects, or with modes on its device (a WLED's palette,
-              # preset, speed), opens its effects page. Hidden for every other light.
-              - obj:
-                  id: color_effects_button
-                  radius: 999
-                  styles: paint_key
-                  bg_opa: COVER
-                  border_width: 0
-                  hidden: true
-                  clickable: true
-                  scrollable: false
-                  on_click:
-                    - lambda: 'effects_page::open(id(active_entity));'
-                  widgets:
-                    - label:
-                        align: CENTER
-                        text: "\U000F0674"
-                        text_font: materialdesign_icons_mini
-                        clickable: false
-
-              # The lamps key (firmware 0.3.9+): a light group opens the page of its lamps (group_page.h). Hidden for
-              # every other light; detail_bar::place puts it beside the sparkles key.
-              - obj:
-                  id: color_group_button
-                  radius: 999
-                  styles: paint_key
-                  bg_opa: COVER
-                  border_width: 0
-                  hidden: true
-                  clickable: true
-                  scrollable: false
-                  on_click:
-                    - lambda: 'group_page::open(id(active_entity));'
-                  widgets:
-                    - label:
-                        align: CENTER
-                        text: "\U000F1253"
-                        text_font: materialdesign_icons_mini
-                        clickable: false
-
-              - label:
-                  id: color_detail_title
-                  long_mode: DOT
-                  text_align: CENTER
-                  text: "Light Color"
-                  styles: style_room
-
-
-
-
         # ---------- VACUUM CONTROL ----------
         # A vacuum is not a switch: start, pause, stop and return to
         # the dock are separate commands, and suction power is a separate axis.
@@ -2494,7 +2313,7 @@ script:
           if (!id(ui_refresh).is_running()) id(ui_refresh).execute();
 
   # Every card closes through runtime_tiles::dismiss (set in on_boot): the runtime detail card, the light,
-  # colour overlay, and active_entity, which the swipe guard reads.
+  # colour card (runtime_tiles::colour_close, through hide_detail), which the swipe guard reads.
   - id: close_cards
     then:
       - lambda: 'if (runtime_tiles::dismiss) runtime_tiles::dismiss();'
@@ -2520,7 +2339,7 @@ script:
             lambda: |-
               if (!runtime_tiles::auto_home || id(touch_down) || id(calibration_active) || id(alert_active)) return false;
               if (id(display_dimmed)) return false;
-              bool away = settings_screen::visible() || screen_hooks::is_away() || !id(active_entity).empty() || id(tile_page) != runtime_tiles::home_page() ||
+              bool away = settings_screen::visible() || screen_hooks::is_away() || runtime_tiles::colour_shown() || id(tile_page) != runtime_tiles::home_page() ||
                           (runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root, LV_OBJ_FLAG_HIDDEN));
               return away && (millis() - id(last_use_ms)) > (uint32_t) runtime_tiles::auto_home_seconds * 1000UL;
           then:
@@ -2641,82 +2460,9 @@ script:
     mode: single
     then:
       - script.execute: wake_display
-      - lambda: |-
-          light_controls::demo = true;
-          light_controls::fallback.minimum = 2000;
-          light_controls::fallback.maximum = 6500;
-          light_controls::fallback.kelvin = 3000;
-          light_controls::fallback.hue = 200;
-          light_controls::open("diagnostic", true, true, 75);
-          lv_label_set_text(id(color_detail_title), "Example lamp");
-      - lvgl.widget.hide: color_close_button
-      - lvgl.widget.show: color_detail_overlay
+      - lambda: 'runtime_tiles::colour_demo(true);'
       - delay: 40s
-      - lvgl.widget.hide: color_detail_overlay
-      - lvgl.widget.show: color_close_button
-      - lambda: 'light_controls::demo = false; light_controls::fallback = light_controls::State{};'
-
-  - id: open_color_detail
-    mode: restart
-    then:
-      - lambda: |-
-          lv_label_set_text(id(color_detail_title), id(active_title).c_str());
-          light_controls::open(id(active_entity), id(active_supports_color), id(active_supports_temperature), id(active_brightness_pct));
-          if (effects_page::offered(id(active_entity))) lv_obj_remove_flag(id(color_effects_button), LV_OBJ_FLAG_HIDDEN);
-          else lv_obj_add_flag(id(color_effects_button), LV_OBJ_FLAG_HIDDEN);
-          // A light group gets the lamps key beside the sparkles key. The card's bar is every page's (detail_bar):
-          // the keys that show take its places, the title the room they leave.
-          if (group_page::offered(id(active_entity))) lv_obj_remove_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
-          else lv_obj_add_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
-          detail_bar::place(light_controls::card, {id(color_close_button), id(color_detail_title),
-                                                   {id(color_effects_button), id(color_group_button)}});
-      - lvgl.widget.show: color_detail_overlay
-
-  - id: color_brightness_commit
-    parameters:
-      value: int
-    then:
-      - lambda: 'id(active_brightness_pct) = value;'
-      - if:
-          condition:
-            lambda: 'return runtime_tiles::fresh() && id(active_entity).rfind("light.", 0) == 0;'
-          then:
-            - homeassistant.action:
-                action: light.turn_on
-                data:
-                  entity_id: !lambda "return id(active_entity);"
-                  brightness_pct: !lambda "return value;"
-
-  - id: set_light_hue
-    parameters:
-      value: int
-    then:
-      - if:
-          condition:
-            lambda: 'return runtime_tiles::fresh() && id(active_supports_color) && id(active_entity).rfind("light.", 0) == 0;'
-          then:
-            - homeassistant.action:
-                action: light.turn_on
-                data:
-                  entity_id: !lambda "return id(active_entity);"
-                data_template:
-                  hs_color: "{{ [hue | int, 100] }}"
-                variables:
-                  hue: !lambda "return light_controls::clamp(value, 0, 360);"
-
-  - id: set_light_color_temperature
-    parameters:
-      kelvin: int
-    then:
-      - if:
-          condition:
-            lambda: 'return runtime_tiles::fresh() && id(active_supports_temperature) && id(active_entity).rfind("light.", 0) == 0 && light_controls::active->temperature_ready();'
-          then:
-            - homeassistant.action:
-                action: light.turn_on
-                data:
-                  entity_id: !lambda "return id(active_entity);"
-                  color_temp_kelvin: !lambda "return light_controls::clamp(kelvin, light_controls::active->minimum, light_controls::active->maximum);"
+      - lambda: 'runtime_tiles::colour_demo(false);'
 
   # ----------------------------------------------------------
   # do_tile_action
@@ -2759,40 +2505,6 @@ script:
   #   param_key / param_val may be used for parameters
   #   like preset_mode, brightness_pct, percentage, etc.
   # ----------------------------------------------------------
-
-  # A light with a colour or a colour temperature (firmware 0.2.80): the only card the screens still open from
-  # here. A light that only dims and a fan open the runtime's own card, with the standing slider and the power
-  # key in its top bar (components/smart_display/light_card.h), and the whole overlay this script used to fill
-  # went with them - its widgets, its two scripts and the eight sizes every board file carried for it.
-  #
-  # The colour card itself is unchanged: it wants to know which entity it shows, what it is called, which of the
-  # two it offers and how bright the light stands.
-  - id: open_value_overlay
-    parameters:
-      title: string
-      entity: string
-      tile_type: string
-      longpress_mode: string
-      was_on: bool
-      off_value: int
-      brightness_value: float
-      percentage_value: float
-      position_value: float
-      icon_text: string
-      label_off: string
-      label_on: string
-      supported_color_modes: string
-    then:
-      - lambda: |-
-          auto has = [&](const char *needle) { return supported_color_modes.find(needle) != std::string::npos; };
-          id(active_entity) = entity;
-          id(active_title) = title;
-          id(active_supports_color) = has("hs") || has("rgb") || has("xy");
-          id(active_supports_temperature) = has("color_temp");
-          int pct = off_value;
-          if (was_on) pct = isnan(brightness_value) ? 100 : (int) lround((brightness_value / 255.0f) * 100.0f);
-          id(active_brightness_pct) = std::clamp(pct, 0, 100);
-      - script.execute: open_color_detail
 
   # UI refresh (values + time + styles) + render
   - id: ui_refresh
