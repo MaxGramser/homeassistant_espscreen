@@ -36,11 +36,11 @@ def scenes():
     munich = dict(key='munich', place='Munich', cond='cloudy', now=9.9, hour=10, days=[
         ('Sun', 'partlycloudy', 18.9, 9.9, 0, 9), ('Mon', 'partlycloudy', 18.5, 8.2, 0, 11), ('Tue', 'sunny', 20, 5.6, 0, 5),
         ('Wed', 'partlycloudy', 18.6, 7.2, 0, 5), ('Thu', 'rainy', 14.8, 8.7, 5.5, 55), ('Fri', 'rainy', 11.4, 6.7, 4, 52),
-        ('Sat', 'cloudy', 11.5, 5.9, 0, 40)], hours=[])
+        ('Sat', 'cloudy', 11.5, 5.9, 0, 40)], hours=[], extra=(82, 11, 225, 1016, 10, 8.4))
     winter = dict(key='winter', place='Garmisch', cond='snowy', now=-3.4, hour=8, days=[
         ('Mon', 'snowy', -2, -7, 3.2, 80), ('Tue', 'cloudy', 0, -9, 0, 20), ('Wed', 'sunny', -4, -12, 0, 0),
         ('Thu', 'partlycloudy', 1, -6, 0, 10), ('Fri', 'snowy-rainy', 3, -1, 6.5, 90), ('Sat', 'lightning-rainy', 6, 2, 14, 95),
-        ('Sun', 'fog', 4, 0, 0.2, 30)], hours=[])
+        ('Sun', 'fog', 4, 0, 0.2, 30)], hours=[], extra=(88, 19, 10, 1024, 2.5, -8))
     data = WORK / 'data'
     daily = json.loads((data / 'daily.json').read_text())['service_response']
     hourly = json.loads((data / 'hourly.json').read_text())['service_response']
@@ -56,24 +56,25 @@ def scenes():
     for e in hourly[entity]['forecast']:
         d = datetime.fromisoformat(e['datetime']).astimezone(TZ)
         hours.append((int((d - midnight).total_seconds() // 3600), e['condition'], c(e['temperature']), round(e.get('precipitation', 0) * 25.4, 1)))
-    thuis = dict(key='thuis', place='Home', cond=now['state'], now=c(now['attributes']['temperature']), hour=first.hour, days=days, hours=hours)
+    thuis = dict(key='thuis', place='Home', cond=now['state'], now=c(now['attributes']['temperature']), hour=first.hour, days=days, hours=hours,
+                 extra=(now['attributes']['humidity'], round(now['attributes']['wind_speed'] * 1.609, 1), now['attributes']['wind_bearing'], round(now['attributes']['pressure'] * 33.8639), None, None))
     def f(v): return 'NAN' if v is None else f'{float(v)}f'
     out = []
     for s in (munich, thuis, winter):
         ds = ', '.join(f'{{"{d[0]}", "{d[1]}", {f(d[2])}, {f(d[3])}, {f(d[4])}, {f(d[5])}}}' for d in s['days'])
         hs = ', '.join(f'{{{h[0]}, "{h[1]}", {f(h[2])}, {f(h[3])}, NAN}}' for h in s['hours'])
-        out.append(f'{{"{s["key"]}", "{s["place"]}", "{s["cond"]}", "", {f(s["now"])}, {s["hour"]}, {{{ds}}}, {{{hs}}}}}')
+        out.append(f'{{"{s["key"]}", "{s["place"]}", "{s["cond"]}", "", {f(s["now"])}, {s["hour"]}, {{{ds}}}, {{{hs}}}, ' + ', '.join(f(v) for v in s['extra']) + '}')
     return 'std::vector<Scene> scenes = {' + ', '.join(out) + '};\n'
 
 def project():
     shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
     chars = ''.join(dict.fromkeys(''.join(chr(i) for i in range(32, 127)) + '°·'))
     icons = ''.join(chr(i) for i in (0xF0599, 0xF0594, 0xF0590, 0xF0595, 0xF0597, 0xF0596, 0xF0598, 0xF067F, 0xF0591, 0xF0592, 0xF0593,
-                                     0xF059D, 0xF05D6, 0xF058C, 0xF0717, 0xF0241, 0xF0141))
+                                     0xF059D, 0xF05D6, 0xF058C, 0xF0717, 0xF0241, 0xF0141, 0xF058E, 0xF029A, 0xF06D0))
     entries = (('label', 'LABEL', 'Roboto-700.ttf'), ('note', 'SUBLABEL', 'Roboto-400.ttf'), ('note_big', 'SUBLABEL_BIG', 'Roboto-400.ttf'),
                ('headline', 'HEADLINE', 'Roboto-500.ttf'), ('value', 'WATCH_VALUE', 'Roboto-400.ttf'),
                ('icon_watch', 'WATCH_ICON', 'materialdesignicons-webfont.ttf'), ('icon_mini', 'ICON_MINI', 'materialdesignicons-webfont.ttf'),
-               ('icon', 'ICON', 'materialdesignicons-webfont.ttf'), ('icon_big', 'ICON_BIG', 'materialdesignicons-webfont.ttf'))
+               ('icon', 'ICON', 'materialdesignicons-webfont.ttf'), ('icon_big', 'ICON_BIG', 'materialdesignicons-webfont.ttf'), ('hero', 'SETPOINT', 'Roboto-400.ttf'))
     fonts, boards, done = [], [], set()
     for b, o, sizes in BOARDS:
         s = profiles.substitutions(f'checkout/{b}.yaml'); side = shapes[f'checkout/{b}.yaml']['orientations'][o]
@@ -93,9 +94,9 @@ def project():
     for b, o, sizes in BOARDS:
         for z in sizes:
             cond = f'std::string(b.name)=="{name(b, o)}"'
-            lam += f'  if ({cond} && (v!=2 || std::string("{z}")=="full" || std::string("{z}")=="detail")) render(b,"{OUT}",s,"{z}",v,false);\n'
+            lam += f'  if ({cond} && (v!=2 || ((std::string("{z}")=="full" || std::string("{z}")=="detail") && !s.hours.empty()))) render(b,"{OUT}",s,"{z}",v,false);\n'
             if b in DARK and o == 'landscape':
-                lam += f'  if ({cond} && (v!=2 || std::string("{z}")=="full" || std::string("{z}")=="detail")) render(b,"{OUT}",s,"{z}",v,true);\n'
+                lam += f'  if ({cond} && (v!=2 || ((std::string("{z}")=="full" || std::string("{z}")=="detail") && !s.hours.empty()))) render(b,"{OUT}",s,"{z}",v,true);\n'
     lam += '}\nprintf("CUTS %d\\n", cuts);\nexit(0);'
     return f'''esphome:
   name: weather-study
