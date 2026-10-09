@@ -3192,10 +3192,10 @@
       "topics_all": "All",
       "topic_filter": "Topics",
       "sort": {
-        "label": "Order",
-        "featured": "Recommended",
+        "label": "Sort by",
         "popular": "Most liked",
-        "new": "Newest"
+        "new": "Newest",
+        "name": "Name"
       },
       "none_in_tab": {
         "tiles": "No plugins with tiles yet.",
@@ -3240,6 +3240,13 @@
         "speaker": "speaker",
         "microphone": "microphone",
         "media_player": "media player"
+      },
+      "fitting_only": "Only what fits my screens",
+      "made_by": {
+        "label": "Made by",
+        "all": "Anyone",
+        "tessera": "Tessera",
+        "community": "Community"
       }
     },
     "plugin_tile": {

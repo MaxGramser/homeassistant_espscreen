@@ -25,8 +25,14 @@ const TABS = [...PLUGIN_TYPES, "in_use"] as const;
 type Tab = (typeof TABS)[number];
 const tab = ref<Tab>("tiles");
 const topic = ref<string | null>(null);
-const SORTS = ["featured", "popular", "new"] as const;
-const sort = ref<(typeof SORTS)[number]>("featured");
+// Most liked first by default; or the newest, or by name. Tessera's recommendation (featured.yaml) breaks a tie.
+const SORTS = ["popular", "new", "name"] as const;
+const sort = ref<(typeof SORTS)[number]>("popular");
+// Who made it: anyone, Tessera, or the community.
+const MAKERS = ["all", "tessera", "community"] as const;
+const maker = ref<(typeof MAKERS)[number]>("all");
+// Only what fits one of the screens: on by default, the rest folds away under the list.
+const fittingOnly = ref(true);
 const query = ref("");
 const everything = computed(() => [...plugins.index, ...allTests()]);
 const inUse = (plugin: Plugin) => realScreens().some((screen) => installedOn(screen, plugin.id));
@@ -49,16 +55,17 @@ watch(tab, () => { topic.value = null; });
 watch(topics, (list) => { if (topic.value && !list.some((item) => item.name === topic.value)) topic.value = null; });
 // Recommended first (Tessera's featured.yaml), then the most liked, then by name; or the most liked, or the newest.
 const byName = (a: Plugin, b: Plugin) => text(a.name).localeCompare(text(b.name));
-const order = (a: Plugin, b: Plugin) => sort.value === "new" ? String(b.date || "").localeCompare(String(a.date || "")) || byName(a, b)
-  : sort.value === "popular" ? (b.likes || 0) - (a.likes || 0) || byName(a, b)
-  : Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || (b.likes || 0) - (a.likes || 0) || byName(a, b);
-const listed = computed(() => found.value.filter((plugin) => inTab(plugin, tab.value)
+const order = (a: Plugin, b: Plugin) => sort.value === "name" ? byName(a, b)
+  : sort.value === "new" ? String(b.date || "").localeCompare(String(a.date || "")) || byName(a, b)
+  : (b.likes || 0) - (a.likes || 0) || Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || byName(a, b);
+const byMaker = (plugin: Plugin) => maker.value === "all" || (maker.value === "tessera" ? plugin.tessera : !plugin.tessera);
+const listed = computed(() => found.value.filter((plugin) => inTab(plugin, tab.value) && byMaker(plugin)
   && (!topic.value || (plugin.topics || []).includes(topic.value))).sort(order));
 // What fits none of this app's screens folds away under the list, with its reason on the card: it is still there to look
 // at, never hidden the way a store hides what a phone cannot run.
 const fitsSome = (plugin: Plugin) => !realScreens().length || inUse(plugin) || realScreens().some((screen) => fit(plugin, screen).ok);
-const shown = computed(() => listed.value.filter(fitsSome));
-const misfits = computed(() => listed.value.filter((plugin) => !fitsSome(plugin)));
+const shown = computed(() => listed.value.filter((plugin) => !fittingOnly.value || fitsSome(plugin)));
+const misfits = computed(() => (fittingOnly.value ? listed.value.filter((plugin) => !fitsSome(plugin)) : []));
 const misfitsOpen = ref(false);
 
 const panel = ref<"plugin" | "link" | null>(null);
@@ -100,15 +107,21 @@ const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf
             <button v-for="key in TABS" :key="key" type="button" role="tab" :aria-selected="tab === key" :aria-pressed="tab === key" :data-tab="key" @click="tab = key">{{ t(`editor.plugins.tabs.${key}`) }} <small>{{ count(key) }}</small></button>
           </div>
         </div>
-        <div v-if="topics.length || shown.length > 1" class="plugin-topics" id="plugin-topics">
+        <div v-if="topics.length" class="plugin-topics" id="plugin-topics">
           <div class="plugin-topic-chips" role="group" :aria-label="t('editor.plugins.topic_filter')">
             <button v-if="topics.length" type="button" class="topic-chip" :aria-pressed="!topic" @click="topic = null">{{ t("editor.plugins.topics_all") }}</button>
             <button v-for="item in topics" :key="item.name" type="button" class="topic-chip" :aria-pressed="topic === item.name" :data-topic="item.name"
               @click="topic = topic === item.name ? null : item.name">{{ t(`editor.plugins.topics.${item.name}`) }} <small>{{ item.n }}</small></button>
           </div>
-          <label v-if="shown.length > 1" class="plugin-sort"><span class="sr-only">{{ t("editor.plugins.sort.label") }}</span>
+        </div>
+        <div class="plugin-order" id="plugin-order">
+          <label class="plugin-pick"><span>{{ t("editor.plugins.sort.label") }}</span>
             <select id="plugin-sort" v-model="sort"><option v-for="key in SORTS" :key="key" :value="key">{{ t(`editor.plugins.sort.${key}`) }}</option></select>
           </label>
+          <label class="plugin-pick"><span>{{ t("editor.plugins.made_by.label") }}</span>
+            <select id="plugin-maker" v-model="maker"><option v-for="key in MAKERS" :key="key" :value="key">{{ t(`editor.plugins.made_by.${key}`) }}</option></select>
+          </label>
+          <label v-if="realScreens().length" class="plugin-fitting"><input id="plugin-fitting" v-model="fittingOnly" type="checkbox" />{{ t("editor.plugins.fitting_only") }}</label>
         </div>
         <div class="plugin-grid" role="list">
           <PluginCard v-for="plugin in shown" :key="plugin.id" :plugin="plugin" :status="statusOverall(plugin)" :chosen="openId === plugin.id"

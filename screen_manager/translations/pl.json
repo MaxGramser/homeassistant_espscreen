@@ -1921,10 +1921,10 @@
       "topics_all": "Wszystkie",
       "topic_filter": "Tematy",
       "sort": {
-        "label": "Kolejność",
-        "featured": "Polecane",
+        "label": "Sortuj według",
         "popular": "Najbardziej lubiane",
-        "new": "Najnowsze"
+        "new": "Najnowsze",
+        "name": "Nazwa"
       },
       "none_in_tab": {
         "tiles": "Nie ma jeszcze wtyczek z kafelkami.",
@@ -1969,6 +1969,13 @@
         "speaker": "głośnik",
         "microphone": "mikrofon",
         "media_player": "odtwarzacz multimediów"
+      },
+      "fitting_only": "Tylko to, co pasuje do moich ekranów",
+      "made_by": {
+        "label": "Autor",
+        "all": "Wszyscy",
+        "tessera": "Tessera",
+        "community": "Społeczność"
       }
     },
     "plugin_tile": {

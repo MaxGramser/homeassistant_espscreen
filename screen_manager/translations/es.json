@@ -1921,10 +1921,10 @@
       "topics_all": "Todos",
       "topic_filter": "Temas",
       "sort": {
-        "label": "Orden",
-        "featured": "Recomendados",
+        "label": "Ordenar por",
         "popular": "Más gustados",
-        "new": "Más nuevos"
+        "new": "Más nuevos",
+        "name": "Nombre"
       },
       "none_in_tab": {
         "tiles": "Aún no hay plugins con mosaicos.",
@@ -1969,6 +1969,13 @@
         "speaker": "altavoz",
         "microphone": "micrófono",
         "media_player": "reproductor multimedia"
+      },
+      "fitting_only": "Solo lo que cabe en mis pantallas",
+      "made_by": {
+        "label": "Hecho por",
+        "all": "Cualquiera",
+        "tessera": "Tessera",
+        "community": "Comunidad"
       }
     },
     "plugin_tile": {

@@ -3192,10 +3192,10 @@
       "topics_all": "Alle",
       "topic_filter": "Onderwerpen",
       "sort": {
-        "label": "Volgorde",
-        "featured": "Aanbevolen",
+        "label": "Sorteren op",
         "popular": "Meest geliket",
-        "new": "Nieuwste"
+        "new": "Nieuwste",
+        "name": "Naam"
       },
       "none_in_tab": {
         "tiles": "Nog geen plugins met tegels.",
@@ -3240,6 +3240,13 @@
         "speaker": "luidspreker",
         "microphone": "microfoon",
         "media_player": "mediaspeler"
+      },
+      "fitting_only": "Alleen wat op mijn schermen past",
+      "made_by": {
+        "label": "Gemaakt door",
+        "all": "Iedereen",
+        "tessera": "Tessera",
+        "community": "Community"
       }
     },
     "plugin_tile": {

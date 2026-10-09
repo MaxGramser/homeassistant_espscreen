@@ -1921,10 +1921,10 @@
       "topics_all": "Mind",
       "topic_filter": "Témák",
       "sort": {
-        "label": "Sorrend",
-        "featured": "Ajánlott",
+        "label": "Rendezés",
         "popular": "Legkedveltebb",
-        "new": "Legújabb"
+        "new": "Legújabb",
+        "name": "Név"
       },
       "none_in_tab": {
         "tiles": "Még nincs csempés bővítmény.",
@@ -1969,6 +1969,13 @@
         "speaker": "hangszóró",
         "microphone": "mikrofon",
         "media_player": "médialejátszó"
+      },
+      "fitting_only": "Csak ami a kijelzőimre jó",
+      "made_by": {
+        "label": "Készítette",
+        "all": "Bárki",
+        "tessera": "Tessera",
+        "community": "Közösség"
       }
     },
     "plugin_tile": {

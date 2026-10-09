@@ -1921,10 +1921,10 @@
       "topics_all": "Tous",
       "topic_filter": "Thèmes",
       "sort": {
-        "label": "Ordre",
-        "featured": "Recommandés",
+        "label": "Trier par",
         "popular": "Les plus aimés",
-        "new": "Les plus récents"
+        "new": "Les plus récents",
+        "name": "Nom"
       },
       "none_in_tab": {
         "tiles": "Pas encore de plugins avec des tuiles.",
@@ -1969,6 +1969,13 @@
         "speaker": "haut-parleur",
         "microphone": "microphone",
         "media_player": "lecteur multimédia"
+      },
+      "fitting_only": "Seulement ce qui convient à mes écrans",
+      "made_by": {
+        "label": "Créé par",
+        "all": "Tout le monde",
+        "tessera": "Tessera",
+        "community": "Communauté"
       }
     },
     "plugin_tile": {

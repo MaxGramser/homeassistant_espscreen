@@ -1921,10 +1921,10 @@
       "topics_all": "Alle",
       "topic_filter": "Themen",
       "sort": {
-        "label": "Reihenfolge",
-        "featured": "Empfohlen",
+        "label": "Sortieren nach",
         "popular": "Beliebteste",
-        "new": "Neueste"
+        "new": "Neueste",
+        "name": "Name"
       },
       "none_in_tab": {
         "tiles": "Noch keine Plugins mit Kacheln.",
@@ -1969,6 +1969,13 @@
         "speaker": "Lautsprecher",
         "microphone": "Mikrofon",
         "media_player": "Mediaplayer"
+      },
+      "fitting_only": "Nur was auf meine Bildschirme passt",
+      "made_by": {
+        "label": "Gemacht von",
+        "all": "Alle",
+        "tessera": "Tessera",
+        "community": "Community"
       }
     },
     "plugin_tile": {

@@ -1921,10 +1921,10 @@
       "topics_all": "Tutti",
       "topic_filter": "Argomenti",
       "sort": {
-        "label": "Ordine",
-        "featured": "Consigliati",
+        "label": "Ordina per",
         "popular": "Più apprezzati",
-        "new": "Più recenti"
+        "new": "Più recenti",
+        "name": "Nome"
       },
       "none_in_tab": {
         "tiles": "Ancora nessun plugin con riquadri.",
@@ -1969,6 +1969,13 @@
         "speaker": "altoparlante",
         "microphone": "microfono",
         "media_player": "lettore multimediale"
+      },
+      "fitting_only": "Solo ciò che va bene per i miei schermi",
+      "made_by": {
+        "label": "Creato da",
+        "all": "Chiunque",
+        "tessera": "Tessera",
+        "community": "Community"
       }
     },
     "plugin_tile": {
