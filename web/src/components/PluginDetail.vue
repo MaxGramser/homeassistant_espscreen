@@ -6,7 +6,7 @@
 import { computed, reactive, ref, watch } from "vue";
 import { editorLanguage, languageMarks, numberText, t, te } from "../i18n";
 import { boardTitle } from "../model/boards";
-import { fit, flashShare, headroomKb, inEditorLanguage, text, type Plugin } from "../model/plugins";
+import { changesBetween, fit, flashShare, headroomKb, inEditorLanguage, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import {
   addPlugin, attachLine, buildingOn, isSetAside, setAside, toggleSetAside, copyAttach, fileOf, hasUpdate, installedOn, isTest, labelOf, stageOf, markAttached, needsAttach, partsKb,
@@ -51,14 +51,6 @@ const buildInputs = computed(() => (props.plugin.inputs || []).filter((input) =>
 const hereSettings = computed(() => Boolean(here.value && hereInstalled.value
   && (props.plugin.settings?.length || sharedInputs.value.length || buildInputs.value)));
 const hereChanged = computed(() => Boolean(here.value && setupChanged(here.value, props.plugin)));
-// What an update changes: GitHub's compare of the commit this screen runs with the one offered. The only thing a person
-// can really judge an update by, since the manifest's rights are the maker's own word (docs/PLUGINS.md).
-const changes = computed(() => {
-  const have = hereInstalled.value?.ref, next = props.plugin.ref;
-  const sha = /^[0-9a-f]{40}$/;
-  if (!props.plugin.repo || !have || !next || have === next || !sha.test(have) || !sha.test(next)) return null;
-  return `${props.plugin.repo.replace(/\/tree\/.*$/, "")}/compare/${have}...${next}`;
-});
 
 // ---- What it needs, what comes along, and the plugins that need it ----
 const byId = (id: string) => plugins.index.find((p) => p.id === id);
@@ -100,6 +92,21 @@ async function toggleLike(consent = false) {
   askingLike.value = false;
   try { await like(props.plugin, !props.plugin.liked, consent); } catch (error: any) { toast(error.message); }
 }
+
+// What an update brings: the plugin's changelog from the version the screen runs (on the Plugins page: the oldest of
+// the screens with the update) up to the one on offer, and GitHub's compare as the full story.
+const newsFrom = computed(() => (here.value ? (hereStatus.value?.kind === "update" ? hereInstalled.value?.version : null)
+  : updatable.value.map((s) => installedOn(s, props.plugin.id)?.version || "").sort()[0] || null));
+const news = computed(() => (newsFrom.value ? changesBetween(text(props.plugin.changelog || {}), newsFrom.value, props.plugin.version) : ""));
+const newsCompare = computed(() => {
+  const screen = here.value || updatable.value[0];
+  const have = screen ? installedOn(screen, props.plugin.id)?.ref : null, next = props.plugin.ref;
+  const sha = /^[0-9a-f]{40}$/;
+  return props.plugin.repo && have && next && have !== next && sha.test(have) && sha.test(next)
+    ? `${props.plugin.repo.replace(/\/tree\/.*$/, "")}/compare/${have}...${next}` : null;
+});
+// Every release, folded, for a plugin with a changelog and no update waiting.
+const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plugin.changelog || {})) : ""));
 
 // ---- Every screen (the Plugins page): a box per screen, applied together ----
 const screens = computed(() => realScreens());
@@ -244,7 +251,6 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       </label>
       <div class="pd-buttons">
         <button v-if="hereStatus.kind === 'update'" type="button" class="btn primary" id="plugin-update" :disabled="!agreed" @click="addPlugin([here], plugin)">{{ t("editor.plugins.update", { version: plugin.version }) }}</button>
-        <a v-if="hereStatus.kind === 'update' && changes" class="btn quiet" id="plugin-changes" :href="changes" target="_blank" rel="noopener">{{ t("editor.plugins.changes") }}</a>
         <button type="button" class="btn quiet" id="plugin-remove" @click="askRemove([here])">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
       </div>
     </template>
@@ -296,6 +302,14 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       <button v-if="updatable.length" type="button" class="btn quiet" id="plugin-update-all" :disabled="!agreed" @click="addPlugin(updatable, plugin)">{{ t("editor.plugins.update_all", { n: updatable.length, version: plugin.version }, updatable.length) }}</button>
     </div>
   </div>
+
+  <!-- What an update brings, before the person presses it: the changelog's lines from the version they run. -->
+  <section v-if="newsFrom" class="pd-section pd-news" id="plugin-news">
+    <h3>{{ t("editor.plugins.news.title", { version: plugin.version }) }}</h3>
+    <PluginReadme v-if="news" :source="news" :repo="plugin.repo" />
+    <p v-else class="pd-room">{{ t("editor.plugins.news.none") }}</p>
+    <a v-if="newsCompare" class="pd-news-link" :href="newsCompare" target="_blank" rel="noopener">{{ t("editor.plugins.changes") }}</a>
+  </section>
 
   <!-- A plugin this screen runs: all of its settings in one place, in three groups by what a change does. -->
   <section v-if="here && hereSettings" class="pd-section pd-settings" id="plugin-settings">
@@ -368,6 +382,11 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
     <p v-else class="pd-room">{{ t("editor.plugins.room.per_screen", { kb: kb(plugin.flash_kb) }) }}</p>
     <p class="pd-room"><span class="pd-works">{{ t("editor.plugins.works.title") }}</span> {{ works }}</p>
   </section>
+
+  <details v-if="history" class="pd-section pd-history" id="plugin-history">
+    <summary><h3>{{ t("editor.plugins.news.history") }}</h3><Icon name="chevron-down" /></summary>
+    <PluginReadme :source="history" :repo="plugin.repo" />
+  </details>
 
   <p class="pd-links">
     <a v-if="plugin.repo" :href="plugin.repo" target="_blank" rel="noopener">{{ t("editor.plugins.source_code") }}</a>

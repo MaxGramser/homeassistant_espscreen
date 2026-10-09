@@ -1,6 +1,6 @@
 // Plugins (docs/PLUGINS.md): whether a plugin fits a screen, the one rule the Plugins page and its details share.
 import { describe, expect, it } from "vitest";
-import { fit, flashShare, headroomKb, knowAppFit, offeredEntities, type Plugin } from "../src/model/plugins";
+import { changesBetween, fit, flashShare, headroomKb, knowAppFit, offeredEntities, type Plugin } from "../src/model/plugins";
 import { hasUpdate, plugins, stageOf } from "../src/plugin-state";
 import type { Screen } from "../src/types";
 
@@ -14,6 +14,14 @@ const screen = (board: string, more: Partial<Screen> = {}) =>
   ({ id: `text.${board}`, name: board, online: true, board, firmware: "0.52.0", pictures: board !== "cyd", layout: {}, ...more }) as Screen;
 
 describe("plugins", () => {
+  it("takes the releases of a changelog after the screen's version, up to the one on offer", () => {
+    const log = "# Changelog\n\n## 1.2.3 - 2026-10-09\n- Topics.\n\n## 1.2.2\n- Example.\n\n## 1.2.0\n- Countdown.\n";
+    expect(changesBetween(log, "1.2.0", "1.2.3")).toBe("## 1.2.3 - 2026-10-09\n- Topics.\n\n## 1.2.2\n- Example.");
+    expect(changesBetween(log, "1.2.2", "1.2.3")).toBe("## 1.2.3 - 2026-10-09\n- Topics.");
+    expect(changesBetween(log).startsWith("## 1.2.3")).toBe(true);
+    expect(changesBetween("", "1.0.0", "1.1.0")).toBe("");
+  });
+
   it("takes what only the add-on knows: a feature nothing brings, a plugin it needs that does not fit", () => {
     knowAppFit({ "text.guition": { voice: "feature" } });
     expect(fit(plugin({ id: "voice" }), screen("guition"))).toEqual({ ok: false, reason: "feature" });

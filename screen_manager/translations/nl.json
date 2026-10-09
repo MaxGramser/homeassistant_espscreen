@@ -3250,7 +3250,12 @@
       "filter_button": "Filter",
       "filter_remove": "{what} weghalen",
       "filter_clear": "Filters wissen",
-      "fitting_all": "Ook wat niet past"
+      "fitting_all": "Ook wat niet past",
+      "news": {
+        "title": "Nieuw in {version}",
+        "none": "De maker schreef geen notities bij deze update.",
+        "history": "Alle versies"
+      }
     },
     "plugin_tile": {
       "from": "Een tegel van de plugin {plugin}",

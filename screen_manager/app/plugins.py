@@ -145,13 +145,16 @@ class Entry:
     """One plugin the app knows, from the index, a snapshot of an installed release, or a folder."""
 
     def __init__(self, raw, translations, readme, source, label, repo=None, path='.', ref=None, folder=None, status='ok',
-                 repo_id=None, branch=None, date=None):
+                 repo_id=None, branch=None, date=None, changelog=None):
         self.raw, self.translations, self.readme = raw, translations, readme
         self.source, self.label, self.repo, self.path, self.ref = source, label, repo, path or '.', ref
         self.folder, self.status = folder, status
         # GitHub's number of the repository (it follows a rename, and a new repository under an old name has another),
         # the branch a test follows (ref is then the commit it was pinned to), and the day of the release.
         self.repo_id, self.branch, self.date = repo_id, branch, date
+        # Its CHANGELOG.md per language: a `## <version>` heading per release, newest first. The editor shows the lines
+        # between the version a screen runs and the one on offer.
+        self.changelog = changelog or {}
         # A folder someone is making is checked strictly (they hear about a topic this app does not know); the index and
         # a link are read leniently, so a newer plugins repository never hides a plugin.
         self.manifest = pm.check(raw, translations.get('en'), strict=source == 'folder')
@@ -179,7 +182,7 @@ class Entry:
     def snapshot(self):
         return {'raw': self.raw, 'translations': self.translations, 'readme': self.readme, 'source': self.source,
                 'label': self.label, 'repo': self.repo, 'path': self.path, 'ref': self.ref, 'repo_id': self.repo_id,
-                'branch': self.branch, 'date': self.date}
+                'branch': self.branch, 'date': self.date, 'changelog': self.changelog}
 
 
 def read_folder(folder):
@@ -192,11 +195,12 @@ def read_folder(folder):
             translations[path.stem] = json.loads(path.read_text(encoding='utf-8'))
         except ValueError:
             continue
-    readme = {}
-    for path in sorted(folder.glob('README*.md')):
-        language = path.stem.split('.', 1)[1] if '.' in path.stem else 'en'
-        readme[language] = path.read_text(encoding='utf-8')[:64 * 1024]
-    return Entry(raw, translations, readme, 'folder', 'test', folder=folder)
+    readme, changelog = {}, {}
+    for name, into in (('README', readme), ('CHANGELOG', changelog)):
+        for path in sorted(folder.glob(f'{name}*.md')):
+            language = path.stem.split('.', 1)[1] if '.' in path.stem else 'en'
+            into[language] = path.read_text(encoding='utf-8')[:64 * 1024]
+    return Entry(raw, translations, readme, 'folder', 'test', folder=folder, changelog=changelog)
 
 
 class Plugins:
@@ -210,7 +214,9 @@ class Plugins:
         self.fetcher = plugin_fetch.Fetcher(f'Tessera/{core.FIRMWARE_VERSION} (+plugins)', session_factory)
         self.index = {}             # id -> Entry, from index.json
         self.index_state = {'at': None, 'error': None, 'etag': None, 'checked': 0.0, 'blocked': [], 'featured': []}
-        self.likes = {'counts': {}, 'etag': None, 'checked': 0.0}   # likes.json: how many like each plugin
+        # likes.json: how many like each plugin; `fresh`: the website's own answer to a like from this app, which counts
+        # until likes.json has caught up (it is copied once an hour).
+        self.likes = {'counts': {}, 'etag': None, 'checked': 0.0, 'fresh': {}}
         self.folders = {}           # id -> Entry, from tessera-plugins/<id>/
         self.folder_errors = {}     # folder name -> what is wrong with it
         self.snapshots = {}         # (id, ref) -> Entry of an installed release
@@ -249,7 +255,8 @@ class Plugins:
                 release = item.get('release') or {}
                 entry = Entry(item['manifest'], item.get('translations') or {}, item.get('readme') or {}, 'index', label,
                               repo=repo, path=item.get('path') or '.', ref=release.get('sha'), status=item.get('status', 'ok'),
-                              repo_id=item.get('repo_id'), date=release.get('date'))
+                              repo_id=item.get('repo_id'), date=release.get('date'),
+                              changelog=item.get('changelog') if isinstance(item.get('changelog'), dict) else None)
             except (pm.ManifestError, KeyError, TypeError, ValueError) as error:
                 LOG.warning('Index plugin %s skipped: %s', (item or {}).get('id') if isinstance(item, dict) else '?', error)
                 continue
@@ -327,7 +334,8 @@ class Plugins:
                 data = json.loads(self._snapshot_file(plugin, ref).read_text())
                 self.snapshots[key] = Entry(data['raw'], data['translations'], data.get('readme') or {}, data['source'],
                                             data['label'], repo=data.get('repo'), path=data.get('path'), ref=data.get('ref'),
-                                            repo_id=data.get('repo_id'), branch=data.get('branch'), date=data.get('date'))
+                                            repo_id=data.get('repo_id'), branch=data.get('branch'), date=data.get('date'),
+                                            changelog=data.get('changelog'))
             except (OSError, ValueError, KeyError, pm.ManifestError):
                 return None
         return self.snapshots[key]
@@ -418,7 +426,11 @@ class Plugins:
     # ---- Likes ----
 
     def like_count(self, plugin):
-        return int(self.likes['counts'].get(plugin) or 0)
+        count = int(self.likes['counts'].get(plugin) or 0)
+        fresh = self.likes['fresh'].get(plugin)
+        if fresh and time.monotonic() - fresh[1] < 2 * 3600 and fresh[0] != count:
+            return fresh[0]
+        return count
 
     async def refresh_likes(self):
         """likes.json from the plugins repository, with the index, at most every INDEX_TTL."""
@@ -460,7 +472,7 @@ class Plugins:
                      'request': lambda: t('addon.errors.plugins.request')}
             raise ValueError(texts.get(str(error), lambda: t('addon.errors.plugins.like_failed'))()) from None
         if result['likes'] is not None:
-            self.likes['counts'][plugin] = result['likes']
+            self.likes['fresh'][plugin] = (result['likes'], time.monotonic())
         return {'liked': result['liked'], 'likes': self.like_count(plugin)}
 
     # ---- Adding with a link ----
@@ -543,18 +555,19 @@ class Plugins:
                     translations[name[:-5]] = json.loads(await self._github(raw('translations/' + name), text=True))
                 except ValueError:
                     continue
-        readme = {}
+        readme, changelog = {}, {}
         files = await self._github(f'{api}/contents/{path if path != "." else ""}?ref={sha}')
         for item in files if isinstance(files, list) else []:
             name = item.get('name', '')
-            if re.fullmatch(r'README(\.[a-z]{2}(-[A-Za-z]{2})?)?\.md', name):
-                language = name[7:-3] or 'en'
-                readme[language] = (await self._github(raw(name), text=True))[:64 * 1024]
+            found = re.fullmatch(r'(README|CHANGELOG)(?:\.([a-z]{2}(?:-[A-Za-z]{2})?))?\.md', name)
+            if found:
+                into = readme if found.group(1) == 'README' else changelog
+                into[found.group(2) or 'en'] = (await self._github(raw(name), text=True))[:64 * 1024]
         repo_url = f'https://github.com/{owner}/{repo}'
         label = 'test' if wanted else ('tessera' if repo_url.lower().startswith(TESSERA_OWNER.lower()) else 'community')
         try:
             entry = Entry(manifest, translations, readme, 'branch' if wanted else 'link', label, repo=repo_url, path=path,
-                          ref=sha, repo_id=repo_id, branch=wanted)
+                          ref=sha, repo_id=repo_id, branch=wanted, changelog=changelog)
         except pm.ManifestError as error:
             raise ValueError(t('addon.errors.plugins.manifest', why=str(error)[:200]))
         self.links[entry.id] = entry
@@ -643,7 +656,7 @@ class Plugins:
             'permissions': {'home_assistant': manifest['permissions']['home_assistant_actions'] + manifest['permissions']['ha_commands'],
                             'network': manifest['permissions']['network'],
                             'read_entities': manifest['permissions']['read_entities']},
-            'privacy': manifest.get('privacy'), 'readme': entry.readme,
+            'privacy': manifest.get('privacy'), 'readme': entry.readme, 'changelog': entry.changelog,
             'languages': pm.complete_languages(manifest, entry.translations),
             'inputs': [{'id': i['id'], 'kind': i['kind'], 'scope': i['scope'], 'label': words(i['label']),
                         'hint': words(i['hint']), 'domains': i['domains']} for i in manifest['inputs']],

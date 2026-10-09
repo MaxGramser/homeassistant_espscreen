@@ -1979,7 +1979,12 @@
       "filter_button": "Szűrés",
       "filter_remove": "{what} eltávolítása",
       "filter_clear": "Szűrők törlése",
-      "fitting_all": "Ami nem jó, az is"
+      "fitting_all": "Ami nem jó, az is",
+      "news": {
+        "title": "Újdonságok: {version}",
+        "none": "A készítő nem írt megjegyzést ehhez a frissítéshez.",
+        "history": "Minden verzió"
+      }
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",

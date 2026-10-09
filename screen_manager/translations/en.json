@@ -3250,7 +3250,12 @@
       "filter_button": "Filter",
       "filter_remove": "Remove {what}",
       "filter_clear": "Clear filters",
-      "fitting_all": "Also what does not fit"
+      "fitting_all": "Also what does not fit",
+      "news": {
+        "title": "What's new in {version}",
+        "none": "The maker wrote no notes for this update.",
+        "history": "All versions"
+      }
     },
     "plugin_tile": {
       "from": "A tile of the plugin {plugin}",

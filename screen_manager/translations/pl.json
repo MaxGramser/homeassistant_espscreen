@@ -1979,7 +1979,12 @@
       "filter_button": "Filtruj",
       "filter_remove": "Usuń {what}",
       "filter_clear": "Wyczyść filtry",
-      "fitting_all": "Też to, co nie pasuje"
+      "fitting_all": "Też to, co nie pasuje",
+      "news": {
+        "title": "Nowości w {version}",
+        "none": "Autor nie napisał notatek do tej aktualizacji.",
+        "history": "Wszystkie wersje"
+      }
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",

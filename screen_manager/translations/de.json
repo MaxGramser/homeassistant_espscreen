@@ -1979,7 +1979,12 @@
       "filter_button": "Filter",
       "filter_remove": "{what} entfernen",
       "filter_clear": "Filter löschen",
-      "fitting_all": "Auch was nicht passt"
+      "fitting_all": "Auch was nicht passt",
+      "news": {
+        "title": "Neu in {version}",
+        "none": "Der Macher hat zu diesem Update nichts notiert.",
+        "history": "Alle Versionen"
+      }
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",

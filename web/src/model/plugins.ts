@@ -77,6 +77,7 @@ export type Plugin = {
   flash_kb: number;
   permissions: { home_assistant: string[]; network: string[]; read_entities?: string[] };
   readme: Texts;                      // markdown; the app shows it in the editor's language, else in English
+  changelog?: Texts;                  // its CHANGELOG.md: a `## <version>` heading per release, newest first
   languages: string[];                // the languages its own texts are complete in
   inputs?: PluginInput[];             // what a person fills in when adding it: a key, a pin, a name
   parts?: PluginPart[];               // optional parts, on or off per screen, each with its own room
@@ -141,6 +142,26 @@ const own = (texts: Texts) => texts[editorLanguage()] ?? texts[editorLanguage().
 export const text = (texts: Texts) => own(texts) ?? texts.en ?? "";
 // Whether these words exist in the editor's language, or the page falls back to English and says so.
 export const inEditorLanguage = (texts: Texts) => own(texts) !== undefined;
+
+// ---- What changed: the releases of a changelog between the version a screen runs and the one on offer ----
+const versionOf = (text: string) => text.split(".").map((n) => Number.parseInt(n, 10) || 0);
+const newer = (a: string, b: string) => {
+  const x = versionOf(a), y = versionOf(b);
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+};
+// The markdown of every release after `from` up to `to` (all of them without `from`), each with its own heading.
+export function changesBetween(markdown: string, from?: string | null, to?: string | null) {
+  const out: string[] = [];
+  let keep = false;
+  for (const line of (markdown || "").split("\n")) {
+    const heading = /^##\s+v?(\d+\.\d+\.\d+)/.exec(line);
+    if (heading) keep = (!from || newer(heading[1], from)) && (!to || !newer(heading[1], to));
+    else if (/^#\s/.test(line)) { keep = false; continue; }
+    if (keep) out.push(line);
+  }
+  return out.join("\n").trim();
+}
 
 // ---- Does it fit this screen ----
 // The reasons a plugin is not offered for a screen, in the order a person can do something about them.

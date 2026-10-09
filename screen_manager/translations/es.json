@@ -1979,7 +1979,12 @@
       "filter_button": "Filtrar",
       "filter_remove": "Quitar {what}",
       "filter_clear": "Borrar filtros",
-      "fitting_all": "También lo que no cabe"
+      "fitting_all": "También lo que no cabe",
+      "news": {
+        "title": "Novedades de {version}",
+        "none": "El autor no escribió notas para esta actualización.",
+        "history": "Todas las versiones"
+      }
     },
     "plugin_tile": {
       "from": "Un mosaico del plugin {plugin}",
