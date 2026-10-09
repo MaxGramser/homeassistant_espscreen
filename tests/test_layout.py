@@ -131,13 +131,12 @@ class LayoutTests(unittest.TestCase):
 
     def test_every_pager_is_the_tile_pages_pager(self):
         """One pager (page_bar.h), always where the tile pages have theirs, across the foot of the glass: the settings
-        page, a light group, the media library and its speaker menu, a select's options and the weather card's days build
+        page, a light group, the media library and its speaker menu and a select's options build
         the tile pages' bar instead of a pager of their own, and nothing builds one anywhere else (make_in)."""
         smart = ROOT / 'components' / 'smart_display'
         for name, made in (('settings_screen.h', 'page_bar::make(root, pager_step)'), ('group_page.h', 'page_bar::make(root, pager_step)'),
                            ('media_library.cpp', 'page_bar::make(root, pager_step)'), ('media_library.cpp', 'page_bar::make(menu_root, menu_pager_step)'),
-                           ('runtime_tiles.h', 'page_bar::make(detail_root,select_pager_step)'),
-                           ('runtime_tiles.h', 'weather_pager=page_bar::make(detail_root,weather_pager_step)')):
+                           ('runtime_tiles.h', 'page_bar::make(detail_root,select_pager_step)')):
             self.assertIn(made, (smart / name).read_text(), name)
         for path in smart.glob('*.[hc]*'):
             if path.name == 'page_bar.h':

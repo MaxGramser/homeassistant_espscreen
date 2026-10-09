@@ -537,6 +537,35 @@
         "drying": "Drying",
         "idle": "brak aktywności",
         "off": "wyłączono"
+      },
+      "today": "Dzisiaj",
+      "weather_view": {
+        "daily": "Dzienna",
+        "hourly": "Godzinowa"
+      },
+      "weather_attribute": {
+        "humidity": "Wilgotność powietrza",
+        "wind_speed": "Prędkość wiatru",
+        "air_pressure": "Ciśnienie atmosferyczne",
+        "visibility": "Widzialność"
+      },
+      "wind_direction": {
+        "n": "płn.",
+        "nne": "płn. płn.-wsch.",
+        "ne": "płn.-wsch.",
+        "ene": "wsch. płn.-wsch.",
+        "e": "wsch.",
+        "ese": "wsch. płd.-wsch.",
+        "se": "płd.-wsch.",
+        "sse": "płd. płd.-wsch.",
+        "s": "płd.",
+        "ssw": "płd. płd.-zach.",
+        "sw": "płd.-zach.",
+        "wsw": "zach. płd.-zach.",
+        "w": "zach.",
+        "wnw": "zach. płn.-zach.",
+        "nw": "płn.-zach.",
+        "nnw": "płn. płn.-zach."
       }
     },
     "navigation": {

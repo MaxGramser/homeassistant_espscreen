@@ -34,7 +34,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -1174,6 +1174,66 @@ class Run:
                 found[entity] = {'value': value, 'icon': icon, 'ink': ink, 'circle': circle,
                                  'box': tuple(int(n) for n in box.split(','))}
         return found
+
+    async def weather_panel(self, grid):
+        """The weather card's week (design study 10-09) on this board: weather tiles of every size the grid holds, the
+        days as the bench's met.no entity and the demo give them, each tile's card opened with a finger, light and dark."""
+        from core import extras, state_message
+        now = MOMENT.astimezone(timezone.utc)
+        attrs = dict(temperature=10.6, temperature_unit='°C', humidity=92, wind_speed=28, wind_speed_unit='km/h', wind_bearing=208,
+                     pressure=1011, pressure_unit='hPa', visibility=10, visibility_unit='km', precipitation_unit='mm', apparent_temperature=8.4)
+        states = {'weather.home': {'state': 'rainy', 'attributes': {**attrs, 'friendly_name': 'Home', 'supported_features': 3}},
+                  'sensor.hall': {'state': '21.5', 'attributes': {'unit_of_measurement': '°C', 'friendly_name': 'Hall'}}}
+        forecast, hourly = send_layout.demo_forecast(now), send_layout.demo_hourly(now)
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        async def show(name, sizes):
+            tiles_in = [dict(entity='weather.home', name='Home', options={'display': 'forecast', **({'size': z} if z else {})}) for z in sizes]
+            tiles_in.append(dict(entity='sensor.hall', name='Hall', options={}))
+            spans = {'wide': (2, 1), 'tall': (1, 2), 'square': (2, 2), 'full': (grid.columns, grid.rows)}
+            taken = set()
+            for tile in tiles_in:
+                w, h = spans.get(tile['options'].get('size'), (1, 1))
+                w, h = min(w, grid.columns), min(h, grid.rows)
+                slot = 0
+                while True:
+                    page, cell = divmod(slot, grid.slots)
+                    row, col = divmod(cell, grid.columns)
+                    cells = {(page, row + r, col + c) for r in range(h) for c in range(w)}
+                    if col + w <= grid.columns and row + h <= grid.rows and not cells & taken:
+                        break
+                    slot += 1
+                taken |= cells
+                tile['slot'] = slot
+            record = send_layout.migrate_legacy(dict(title='Weather', tiles=tiles_in), grid)
+            tiles = send_layout.compile_tiles(record['layout'], grid)
+            bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+            values = [state_message(i, t, states, extras(t, states, forecast if t['entity'].startswith('weather.') else None, None,
+                                                         hourly if t['entity'].startswith('weather.') else None, now, week=True), week=True)
+                      for i, t in enumerate(tiles)]
+            await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            await asyncio.sleep(1.0)
+            await self.render(name)
+            self.client.switch_command(self.dark_switch.key, True)
+            await asyncio.sleep(1.5)
+            await self.render(name + '-dark')
+            self.client.switch_command(self.dark_switch.key, False)
+            await asyncio.sleep(1.5)
+        await show('weather-wide', ['wide'])
+        await show('weather-square', ['square'])
+        await show('weather-full', ['full'])
+        spots = await self.slots()
+        if 'weather.home' in spots:
+            await self.hold(*spots['weather.home'])
+            await asyncio.sleep(1.2)
+            await self.render('weather-card')
+            self.client.switch_command(self.dark_switch.key, True)
+            await asyncio.sleep(1.5)
+            await self.render('weather-card-dark')
+            self.client.switch_command(self.dark_switch.key, False)
+            await asyncio.sleep(1.0)
+        return 1
 
     async def humidifier_panel(self, grid):
         """Humidifiers and dehumidifiers (firmware 0.42.0+) as tiles of every size and as their card, in the states Home
@@ -2537,6 +2597,8 @@ class Run:
             return 1, await self.humidifier_panel(grid)
         if self.only == 'bars':
             return 1, await self.bars_round(grid)
+        if self.only == 'weather':
+            return 1, await self.weather_panel(grid)
         if self.only == 'plugin':
             return 1, await self.plugin_round(grid)
         checks = await self.self_test()
@@ -2626,7 +2688,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'saver', 'humidifier', 'bars'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'saver', 'humidifier', 'weather', 'bars'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')

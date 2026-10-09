@@ -734,15 +734,17 @@ std::string receive(const std::string &payload) {
     }
 #endif
     if (extra["days"].is<JsonArray>()) for (JsonVariant day : extra["days"].as<JsonArray>()) {
-      if (next.forecast.size() == 5) break;
+      if (next.forecast.size() == weather_week::DAYS) break;
       next.forecast.emplace_back(); auto &f = next.forecast.back();
       f.day = string(day["d"], 8); f.condition = string(day["c"], 20); f.high = number(day["h"]); f.low = number(day["l"]);
       f.rain = number(day["p"]); f.mm = number(day["r"]);
+      if (day["w"].is<int>()) f.weekday = (int8_t) std::clamp(day["w"].as<int>(), 0, 6);
     }
     if (extra["hours"].is<JsonArray>()) for (JsonVariant hour : extra["hours"].as<JsonArray>()) {
-      if (next.hours.size() == 8) break;
+      if (next.hours.size() == weather_week::HOURS) break;
       next.hours.emplace_back(); auto &h = next.hours.back();
       h.time = string(hour["t"], 5); h.condition = string(hour["c"], 20); h.temp = number(hour["h"]); h.rain = number(hour["p"]); h.mm = number(hour["r"]);
+      if (hour["o"].is<int>()) h.at = (int16_t) std::clamp(hour["o"].as<int>(), 0, 24 * 8);
     }
     tile.last_run = extra["last"].is<unsigned>() ? extra["last"].as<uint32_t>() : 0;
     // An automation whose actions run right now (firmware 0.7.0+).
@@ -848,6 +850,10 @@ std::string receive(const std::string &payload) {
     if(tile.domain()=="weather") {
       tile.current=number(a["temperature"]);tile.unit=string(a["temperature_unit"],12);
       tile.humidity=number(a["humidity"]);next.wind=number(a["wind_speed"]);next.wind_unit=string(a["wind_speed_unit"],8);next.feels=number(a["apparent_temperature"]);
+      // What Home Assistant's more-info dialog shows beside them (the weather card's week): the wind's bearing, the air
+      // pressure, the visibility, and the unit the rain comes in.
+      next.bearing=number(a["wind_bearing"]);next.pressure=number(a["pressure"]);next.visibility=number(a["visibility"]);
+      next.pressure_unit=string(a["pressure_unit"],8);next.visibility_unit=string(a["visibility_unit"],8);next.rain_unit=string(a["precipitation_unit"],8);
     }
     tile.modes = list(a["supported_color_modes"]);
     next.hvac_modes = list(a["hvac_modes"]);

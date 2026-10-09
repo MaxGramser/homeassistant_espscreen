@@ -4,11 +4,20 @@
   media library and its folders, the settings page, a plugin's card, a camera) now has the same top bar: the back key
   stands in the same place on all of them, at the corner of the glass, so it no longer moves a little each time you go a
   page deeper or back. Every list that takes more than one page (settings, a light group, the media library and its
-  speaker menu, a select's options, the coming days of the weather) now has the pager of the tile pages: a chevron in
-  each half, the dots between them.
+  speaker menu, a select's options) now has the pager of the tile pages: a chevron in
+  each half, the dots between them, always across the foot of the glass.
+- **A new weather card.** A weather tile shows the coming week as day columns in a light grid: each day's name, its
+  icon, the high and the low, and on a bigger tile the temperature as a line through the week and the rain as bars with
+  the amount and the chance under them. The bigger the tile, the more it shows; a tile of one row keeps the weather now
+  beside the days. A tap opens the card as Home Assistant's own dialog has it: the weather now with today's high and
+  low and feels like, humidity, wind with its direction, air pressure and visibility, and the forecast with a Daily |
+  Hourly key for the next 48 hours. Up to seven days instead of five; the words are Home Assistant's in every language.
 - **The preview speaks your screens' language and follows Dark mode.** The live preview in the editor, on the home page
   and under Preview, now shows the firmware's own texts in the language chosen under Settings -> Language & region, and
   draws a screen that has Dark mode on in its dark look, as its glass does. Before, it was always English and light.
+- **The preview shows screens with more than eight pages.** A screen with more pages or tiles than the eight pages and
+  64 tiles every screen once had, which a board with PSRAM takes, showed a drawing instead of its live preview. The
+  preview now takes as many as the largest board.
 - **Pick several plugins, build once.** Adding a plugin no longer builds the screen at once: the round + on a plugin card
   (or Add in its details) sets it aside in Ready to install, a card in the corner. Add more, on this screen or another,
   then press Install: each screen builds once with all of them. The card says what a plugin still needs, asks once to

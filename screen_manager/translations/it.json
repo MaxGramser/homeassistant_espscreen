@@ -537,6 +537,35 @@
         "drying": "Deumidificando",
         "idle": "Inattivo",
         "off": "Spento"
+      },
+      "today": "Oggi",
+      "weather_view": {
+        "daily": "Giornaliero",
+        "hourly": "Ogni ora"
+      },
+      "weather_attribute": {
+        "humidity": "Umidità",
+        "wind_speed": "Velocità del vento",
+        "air_pressure": "Pressione atmosferica",
+        "visibility": "Visibilità"
+      },
+      "wind_direction": {
+        "n": "N",
+        "nne": "NNE",
+        "ne": "NE",
+        "ene": "ENE",
+        "e": "E",
+        "ese": "ESE",
+        "se": "SE",
+        "sse": "SSE",
+        "s": "S",
+        "ssw": "SSO",
+        "sw": "SO",
+        "wsw": "OSO",
+        "w": "O",
+        "wnw": "ONO",
+        "nw": "NO",
+        "nnw": "NNO"
       }
     },
     "navigation": {

@@ -60,8 +60,8 @@
 #include "plugin_host.h"
 #include "screen_hooks.h"
 #include "light_card.h"
-#include "weather_card.h"
 #include "forecast_tile.h"
+#include "weather_chart.h"
 #include "climate_tile.h"
 #include "swipe_profile.h"
 #include "lvgl.h"
@@ -1701,122 +1701,231 @@ inline lv_obj_t *detail_card(int x,int y,int w,int h){
   lv_obj_set_style_border_width(card,1,0);lv_obj_set_style_border_color(card,theme::color(theme::LINE),0);
   return card;
 }
-// Two cards: "now" with the next hours, and the coming days. Bold highs, muted lows, rain in blue with a drop,
-// so the eye finds temperature first and rain second. Where the blocks go is weather_card.h's arithmetic:
-// beside each other on wide glass, under each other elsewhere, and the days that do not fit on a next page.
-inline weather_card::Layout weather_layout;
-inline lv_obj_t *weather_days_card=nullptr;
-inline page_bar::Bar weather_pager;
-inline int weather_page=0;
-inline uint32_t weather_page_shown(){return (uint32_t)weather_page;}
-// The metrics the board's fonts give this card. Every number is a line height the look decides; the one string
-// that is measured is an hour's time, which says how many hours a strip of this width holds. The muted lines are
-// the sublabel (small_font), never the font a tile's value label happens to wear: a big value in the first cell
-// wears the watch or setpoint digits, and the card took those for its hours, rain and lows (GitHub #52, firmware
-// 0.43.0).
-inline weather_card::Metrics weather_metrics(bool large){
-  const lv_font_t *icon=widgets[0].icon_font?widgets[0].icon_font:detail_font;
-  const lv_font_t *small=small_font?small_font:detail_font;
-  weather_card::Metrics m;
-  m.large=large;
-  m.text_h=lv_font_get_line_height(detail_font);
-  m.small_h=lv_font_get_line_height(small);
-  m.mini_h=lv_font_get_line_height(mini_icon_font?mini_icon_font:icon);
-  m.tiny_h=lv_font_get_line_height(watch_icon_font?watch_icon_font:(mini_icon_font?mini_icon_font:icon));
-  m.icon_h=lv_font_get_line_height(icon);
-  m.big_h=lv_font_get_line_height(watch_value_font?watch_value_font:detail_font);
-  m.hour_w=text_width(screen_settings::current.clock_24h!=0?"00:00":"12 PM",small)+ui::px(large?10:4);
-  m.top=ui::px(large?84:38);
-  m.pad=overlay_card::pad();
-  m.band=page_bar::height();  // the pager every page shares, across the foot of the glass
-  return m;
+// A font's line height as an int: LVGL gives an int32_t, which is a long on the ESP32 and std::max wants one type.
+inline int line_of(const lv_font_t *f){return f?(int)lv_font_get_line_height(f):0;}
+// ---- The weather card (design study 10-09, weather_chart.h): what a tap on a weather tile opens ----
+// Home Assistant's more-info dialog in its order: the weather now (its icon, the temperature, the condition, today's
+// high and low, feels like), the attributes the entity has (humidity, wind with its direction, air pressure,
+// visibility), and the forecast under a Daily | Hourly key, the days as columns in a light grid over one chart. The
+// arrangement follows the forecast: the richest one that leaves the chart its highest tier (weather_week.h) wins, so a
+// small glass drops the attributes to one line, then that line, then moves the key into the top card.
+inline bool face_covers(const lv_font_t *face,const std::string &text);
+inline int weather_view=0;   // 0 daily, 1 hourly
+inline uint32_t weather_page_shown(){return (uint32_t)weather_view;}
+// The chart's faces, from the smallest step up: the look's fonts, never a size of the chart's own.
+inline weather_chart::Fonts weather_fonts(){
+  const lv_font_t *icon=widgets[0].icon_font?widgets[0].icon_font:mini_icon_font;
+  const lv_font_t *small=small_font?small_font:detail_font,*mini=mini_icon_font?mini_icon_font:icon,*tiny=watch_icon_font?watch_icon_font:mini;
+  const lv_font_t *bold=label_font?label_font:detail_font,*big_text=control_font?control_font:small;
+  const lv_font_t *head=watch_font?watch_font:bold,*value=watch_value_font?watch_value_font:head;
+  weather_chart::Fonts f;
+  f.levels[0]={small,tiny,tiny,bold,small,small};
+  f.levels[1]={small,mini,tiny,bold,small,small};
+  f.levels[2]={big_text,icon,mini,head,big_text,small};
+  f.levels[3]={head,big_icon_font?big_icon_font:icon,icon,value,head,big_text};
+  f.marks={tiny,mini,icon};f.axis=small;
+  return f;
 }
-// One column or two: the stack's own height decides, the same way the thermostat and the blind decide.
-inline int weather_columns(const Tile &t,bool large){
-  const auto m=weather_metrics(large);const Extra &w=t.extra();
-  return overlay_card::columns(weather_card::stacked_height(m,overlay_card::screen_width(),(int)w.hours.size(),(int)w.forecast.size()),
-                               m.min_column());
+// Today's weekday, Sunday 0, from the screen's clock; -1 while it is not set.
+inline int weather_today(){
+  const auto now=now_time?now_time():esphome::ESPTime{};
+  return now.is_valid()&&now.day_of_week>=1&&now.day_of_week<=7?now.day_of_week-1:-1;
 }
-// The rows of the days card, for the page shown. A page turn makes only these objects again: the two white
-// cards, the hour strip and the pager itself stay as they are.
-inline void weather_draw_days(const Tile &t){
-  if(!weather_days_card)return;
-  lv_obj_clean(weather_days_card);
-  const auto &l=weather_layout;const auto &days=t.extra().forecast;
-  const lv_font_t *icon=widgets[0].icon_font?widgets[0].icon_font:detail_font;
-  const lv_font_t *mini=mini_icon_font?mini_icon_font:icon,*tiny=watch_icon_font?watch_icon_font:mini;
-  const lv_font_t *small=small_font?small_font:detail_font;
-  const uint32_t ink=theme::hex(theme::INK),muted=theme::hex(theme::SUBTLE),rain=theme::foreground(theme::ha::RAIN);
-  const int text_h=lv_font_get_line_height(detail_font),small_h=lv_font_get_line_height(small),mini_h=lv_font_get_line_height(mini),tiny_h=lv_font_get_line_height(tiny);
-  const int first=l.first_day(weather_page);
-  for(int i=0;i<l.rows && first+i<(int)days.size();++i){
-    const auto &f=days[first+i];const int ry=l.rows_y+i*l.row_h,tcy=ry+(l.row_h-text_h)/2,scy=ry+(l.row_h-small_h)/2;
-    detail_text(weather_days_card,f.day,l.day_x,tcy,l.day_w,detail_font,LV_TEXT_ALIGN_LEFT,ink);
-    detail_text(weather_days_card,weather_icon(f.condition),l.icon_x,ry+(l.row_h-mini_h)/2,mini_h+6,mini,LV_TEXT_ALIGN_LEFT,weather_accent(f.condition));
-    detail_text(weather_days_card,weather_text(f.condition),l.cond_x,scy,l.cond_w,small,LV_TEXT_ALIGN_LEFT,muted);
-    const std::string wet=l.rain_w?rain_text(f.rain,f.mm,l.rain_mm):std::string();
-    if(!wet.empty()){
-      detail_text(weather_days_card,"\U000F058E",l.rain_x,ry+(l.row_h-tiny_h)/2,l.drop_w,tiny,LV_TEXT_ALIGN_LEFT,rain);
-      detail_text(weather_days_card,wet,l.rain_x+l.drop_w,scy,l.rain_w-l.drop_w,small,LV_TEXT_ALIGN_LEFT,rain);
-    }
-    detail_text(weather_days_card,std::isfinite(f.high)?degrees(f.high):"",l.high_x,tcy,l.high_w,detail_font,LV_TEXT_ALIGN_RIGHT,ink);
-    detail_text(weather_days_card,std::isfinite(f.low)?degrees(f.low):"",l.low_x,scy,l.low_w,small,LV_TEXT_ALIGN_RIGHT,muted);
+inline weather_chart::Chart weather_chart_of(const Tile &t,bool hourly){
+  namespace ww=weather_week;
+  const Extra &x=t.extra();
+  weather_chart::Chart c;
+  c.hourly=hourly;c.large=ui::large();c.fonts=weather_fonts();c.unit=x.rain_unit.empty()?"mm":x.rain_unit;
+  c.fahrenheit=t.unit.find('F')!=std::string::npos;
+  const int today=weather_today();
+  c.today=today>=0?today:(x.forecast.size()&&x.forecast[0].weekday>=0?x.forecast[0].weekday:0);
+  for(int k=0;k<7;++k)c.weekdays.push_back(tr(txt::date_weekdays_short+k));
+  for(size_t k=0;k<x.forecast.size()&&k<(size_t)ww::DAYS;++k){
+    const auto &f=x.forecast[k];ww::Day d;
+    // The first day says Today when it is today (Home Assistant's word); the others their short name in the screen's
+    // language; an older app sent only the two letters of the tile.
+    if(f.weekday>=0)d.name=k==0&&f.weekday==c.today?tr(txt::ha_today):tr(txt::date_weekdays_short+f.weekday);else d.name=f.day;
+    d.condition=f.condition;d.high=f.high;d.low=f.low;d.mm=f.mm;d.chance=f.rain;
+    c.days.push_back(d);
   }
-  if(weather_pager.prev)page_bar::show(weather_pager,weather_page,l.pages);
+  // The hours count from today's midnight; an older app sends only their times, which run on past midnight.
+  int day=0,last=-1;
+  for(size_t i=0;i<x.hours.size()&&i<(size_t)ww::HOURS;++i){
+    const auto &h=x.hours[i];ww::Hour o;
+    if(h.at>=0)o.at=h.at;
+    else{const int hour=atoi(h.time.c_str());if(last>=0&&hour<last)++day;last=hour;o.at=24*day+hour;}
+    o.condition=h.condition;o.temp=h.temp;o.mm=h.mm;c.hours.push_back(o);
+  }
+  const auto now=now_time?now_time():esphome::ESPTime{};
+  c.now=now.is_valid()?now.hour:(c.hours.empty()?0:c.hours.front().at);
+  return c;
 }
-inline void weather_pager_step(int step){
-  const int next=std::clamp(weather_page+step,0,weather_layout.pages-1);
-  if(next==weather_page||detail_index>=model.count)return;
-  weather_page=next;
-  weather_draw_days(model.tiles[detail_index]);
+inline lv_obj_t *weather_chart_object(lv_obj_t *parent,int x,int y,int w,int h,weather_chart::Chart &&chart){
+  auto *o=weather_chart::create(parent);lv_obj_set_pos(o,x,y);lv_obj_set_size(o,std::max(1,w),std::max(1,h));
+  weather_chart::set(o,std::move(chart));return o;
 }
-inline void render_weather_detail(const Tile &t,bool large,int width,int height,int columns){
-  const Extra &weather=t.extra();
+// "SW": the wind's bearing in Home Assistant's sixteen directions.
+inline std::string wind_direction(float bearing){
+  if(!std::isfinite(bearing))return "";
+  const int k=((int)std::lround(bearing/22.5f)%16+16)%16;
+  return tr(txt::ha_wind_direction_n+k);
+}
+struct WeatherAttribute{const char *icon;uint16_t caption;std::string value;};
+inline std::vector<WeatherAttribute> weather_attributes(const Tile &t){
+  const Extra &x=t.extra();std::vector<WeatherAttribute> a;char b[40];
+  auto num=[&](float v){return screen_text::decimal(v,std::fabs(v)<10&&std::fabs(v-std::round(v))>=0.05f?1:0);};
+  if(std::isfinite(t.humidity))a.push_back({"\U000F058E",txt::ha_weather_attribute_humidity,screen_text::percent((int)std::lround(t.humidity))});
+  if(std::isfinite(x.wind)){
+    std::string v=screen_text::with_unit(num(x.wind),x.wind_unit.empty()?"km/h":x.wind_unit);const std::string dir=wind_direction(x.bearing);
+    a.push_back({"\U000F059D",txt::ha_weather_attribute_wind_speed,dir.empty()?v:v+" "+dir});
+  }
+  if(std::isfinite(x.pressure)){snprintf(b,sizeof(b),"%.0f",x.pressure);a.push_back({"\U000F029A",txt::ha_weather_attribute_air_pressure,screen_text::with_unit(x.pressure<100?num(x.pressure):std::string(b),x.pressure_unit)});}
+  if(std::isfinite(x.visibility))a.push_back({"\U000F0208",txt::ha_weather_attribute_visibility,screen_text::with_unit(num(x.visibility),x.visibility_unit)});
+  return a;
+}
+// The Daily | Hourly key: two halves of one grey pill, the chosen one white.
+inline void weather_key_event(lv_event_t *e){
+  const int view=(int)(intptr_t)lv_event_get_user_data(e);
+  if(view==weather_view||detail_index>=model.count)return;
+  weather_view=view;redraw_detail();
+}
+inline int weather_key_w(){
+  const lv_font_t *f=label_font?label_font:detail_font;
+  return 2*(std::max(text_width(tr(txt::ha_weather_view_daily),f),text_width(tr(txt::ha_weather_view_hourly),f))+ui::px(ui::large()?28:16));
+}
+inline int weather_key_h(){const lv_font_t *f=label_font?label_font:detail_font;return std::max(ui::touch_min(),line_of(f)+ui::px(12));}
+inline void weather_key(lv_obj_t *parent,int x,int y,bool hours){
+  const lv_font_t *f=label_font?label_font:detail_font;
+  const int w=weather_key_w(),h=weather_key_h(),half=w/2,in=ui::px(3);
+  auto *track=lv_obj_create(parent);lv_obj_remove_style_all(track);lv_obj_remove_flag(track,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(track,LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_pos(track,x,y);lv_obj_set_size(track,w,h);lv_obj_set_style_radius(track,LV_RADIUS_CIRCLE,0);
+  lv_obj_set_style_bg_color(track,theme::color(theme::TRACK),0);lv_obj_set_style_bg_opa(track,LV_OPA_COVER,0);
+  for(int side=0;side<2;++side){
+    const bool chosen=side==(hours?1:0);
+    auto *k=lv_obj_create(track);lv_obj_remove_style_all(k);lv_obj_remove_flag(k,LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_pos(k,side?half:in,in);lv_obj_set_size(k,half-in,h-2*in);lv_obj_set_style_radius(k,LV_RADIUS_CIRCLE,0);
+    lv_obj_set_style_bg_color(k,theme::color(chosen?theme::CARD:theme::TRACK),0);lv_obj_set_style_bg_opa(k,LV_OPA_COVER,0);
+    lv_obj_set_style_bg_color(k,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
+    auto *word=lv_label_create(k);lv_obj_set_style_text_font(word,f,0);lv_label_set_text(word,tr(side?txt::ha_weather_view_hourly:txt::ha_weather_view_daily));
+    lv_obj_set_style_text_color(word,theme::color(chosen?theme::INK:theme::MUTED),0);lv_obj_center(word);lv_obj_remove_flag(word,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(k,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(k,weather_key_event,LV_EVENT_CLICKED,(void*)(intptr_t)side);
+  }
+}
+// A grey tile of one attribute: its icon and value on a line, Home Assistant's name for it under them.
+inline int weather_chip_h(){const lv_font_t *f=label_font?label_font:detail_font,*s=small_font?small_font:detail_font;return 2*ui::px(ui::large()?8:5)+line_of(f)+line_of(s);}
+inline void weather_chip(lv_obj_t *p,int x,int y,int w,const WeatherAttribute &a){
+  const lv_font_t *f=label_font?label_font:detail_font,*s=small_font?small_font:detail_font,*ic=watch_icon_font?watch_icon_font:s;
+  const int h=weather_chip_h(),in=ui::px(ui::large()?10:6),v=ui::px(ui::large()?8:5),iw=line_of(ic);
+  auto *t=lv_obj_create(p);lv_obj_remove_style_all(t);lv_obj_remove_flag(t,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(t,LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_pos(t,x,y);lv_obj_set_size(t,w,h);lv_obj_set_style_radius(t,ui::px(ui::large()?12:8),0);
+  lv_obj_set_style_bg_color(t,theme::color(theme::TRACK),0);lv_obj_set_style_bg_opa(t,LV_OPA_COVER,0);
+  detail_text(t,a.icon,in,v+(line_of(f)-iw)/2,iw+2,ic,LV_TEXT_ALIGN_LEFT,theme::MUTED);
+  detail_text(t,a.value,in+iw+ui::px(5),v,w-2*in-iw-ui::px(5),f,LV_TEXT_ALIGN_LEFT,theme::INK);
+  detail_text(t,tr(a.caption),in,v+line_of(f),w-2*in,s,LV_TEXT_ALIGN_LEFT,theme::MUTED);
+}
+inline void render_weather_detail(const Tile &t,bool large,int width,int height,int){
+  const Extra &x=t.extra();
   if(detail_status){lv_obj_add_flag(detail_status,LV_OBJ_FLAG_HIDDEN);detail_status=nullptr;}
-  const lv_font_t *big=watch_value_font?watch_value_font:detail_font;
-  const lv_font_t *icon_font=widgets[0].icon_font?widgets[0].icon_font:detail_font;
-  const lv_font_t *mini=mini_icon_font?mini_icon_font:icon_font;
-  const lv_font_t *small=small_font?small_font:detail_font;
-  const uint32_t ink=theme::hex(theme::INK),muted=theme::hex(theme::SUBTLE);
-  const auto m=weather_metrics(large);
-  weather_layout=weather_card::layout(m,width,height,(int)weather.hours.size(),(int)weather.forecast.size(),columns);
-  const auto &l=weather_layout;
-  const int text_h=m.text_h,small_h=m.small_h,mini_h=m.mini_h,icon_h=m.icon_h,big_h=m.big_h,hero=m.hero();
-  const int card_pad=m.card_pad();
-  weather_days_card=nullptr;weather_pager={};
-  // Now: icon, temperature, condition, then feels-like / humidity / wind in one muted line.
-  auto *now=detail_card(l.now.x,l.now.y,l.now.w,l.now.h);
-  int cy=card_pad;char b[48];
-  detail_text(now,t.available()?weather_icon(t.state):"\U000F0595",card_pad,cy+(hero-icon_h)/2,icon_h+8,icon_font,LV_TEXT_ALIGN_LEFT,weather_accent(t.state));
-  const int temp_x=card_pad+icon_h+(ui::px(large?14:6)),temp_w=ui::px(large?92:50);
-  detail_text(now,degrees(t.current),temp_x,cy+(hero-big_h)/2,temp_w,big,LV_TEXT_ALIGN_LEFT,ink);
-  const int text_x=temp_x+temp_w+(ui::px(large?4:2)),text_w=l.now.w-card_pad-text_x;
-  const int lines_h=text_h+small_h+(ui::px(large?2:0));
-  detail_text(now,t.available()?weather_text(t.state):tr(txt::ha_unavailable),text_x,cy+(hero-lines_h)/2,text_w,detail_font,LV_TEXT_ALIGN_LEFT,ink);
-  std::string details;
-  if(std::isfinite(weather.feels))details=fill(txt::weather_feels_like,"n",(int)std::lround(weather.feels));
-  if(std::isfinite(t.humidity))details+=(details.empty()?"":" · ")+screen_text::percent((int)std::lround(t.humidity));
-  if(std::isfinite(weather.wind)){snprintf(b,sizeof(b),"%.0f %s",weather.wind,weather.wind_unit.empty()?"km/h":weather.wind_unit.c_str());details+=(details.empty()?"":" · ")+std::string(b);}
-  detail_text(now,details,text_x,cy+(hero-lines_h)/2+text_h+(ui::px(large?2:0)),text_w,small,LV_TEXT_ALIGN_LEFT,muted);
-  // The next hours inside the same card: time, icon, temperature and, while there is room for it, rain.
-  if(l.hour_columns){
-    const int col=l.hours.w/l.hour_columns;
-    for(int i=0;i<l.hour_columns && i<(int)weather.hours.size();++i){
-      const auto &h=weather.hours[i];const int x=l.hours.x+i*col,hy=l.hours.y;
-      detail_text(now,screen_text::clock_text(h.time,screen_settings::current.clock_24h!=0,true),x,hy,col,small,LV_TEXT_ALIGN_CENTER,muted);
-      detail_text(now,weather_icon(h.condition),x,hy+small_h+(ui::px(large?4:1)),col,mini,LV_TEXT_ALIGN_CENTER,weather_accent(h.condition));
-      detail_text(now,std::isfinite(h.temp)?degrees(h.temp):"",x,hy+small_h+mini_h+(ui::px(large?8:2)),col,detail_font,LV_TEXT_ALIGN_CENTER,ink);
-      if(l.hour_rain)detail_text(now,rain_text(h.rain,h.mm,false),x,hy+small_h+mini_h+text_h+(ui::px(large?8:3)),col,small,LV_TEXT_ALIGN_CENTER,theme::foreground(theme::ha::RAIN));
-    }
+  const int pad=overlay_card::pad(),gap=ui::px(large?12:6),gi=ui::px(large?12:6),card_pad=ui::px(large?16:8);
+  const int top=ui::px(large?16:8)+ui::px(large?60:40)+gap;
+  const int area_w=width-2*pad,area_h=height-top-pad,inner=area_w-2*card_pad;
+  const lv_font_t *hero_font=setpoint_font?setpoint_font:(watch_value_font?watch_value_font:detail_font);
+  const lv_font_t *big_icon=big_icon_font?big_icon_font:widgets[0].icon_font;
+  const lv_font_t *words_font=watch_font?watch_font:detail_font,*bold=label_font?label_font:detail_font;
+  const lv_font_t *line_font=control_font?control_font:detail_font,*small=small_font?small_font:detail_font;
+  const auto attrs=weather_attributes(t);const int n=attrs.size();
+  char now[16];if(std::isfinite(t.current))snprintf(now,sizeof(now),"%.1f°",t.current);else snprintf(now,sizeof(now),"--");
+  if(!face_covers(hero_font,now))hero_font=watch_value_font?watch_value_font:detail_font;
+  const std::string cond=t.available()?weather_text(t.state):tr(txt::ha_unavailable);
+  std::string hl;
+  if(x.forecast.size())hl=degrees(x.forecast[0].high)+" / "+degrees(x.forecast[0].low);
+  const std::string feels=std::isfinite(x.feels)?fill(txt::weather_feels_like,"n",(int)std::lround(x.feels)):"";
+  const int hero=std::max(line_of(hero_font),line_of(big_icon));
+  int widest=0;for(auto &a:attrs)widest=std::max(widest,text_width(a.value,bold));
+  // The attributes: a row of tiles (two by two where one row is too narrow), one muted line, or none.
+  int per_row=n,rows=n?1:0;
+  while(per_row>1&&(inner-(per_row-1)*ui::px(6))/per_row<widest+line_of(watch_icon_font?watch_icon_font:small)+ui::px(30)){per_row=(per_row+1)/2;rows=(n+per_row-1)/per_row;}
+  const int tiles_h=rows*weather_chip_h()+std::max(0,rows-1)*ui::px(6);
+  // The line of attributes starts with feels like, which the card's top says only where it has a third line.
+  std::string line=std::isfinite(x.feels)?fill(txt::weather_feels_like,"n",(int)std::lround(x.feels)):"";
+  for(auto &a:attrs){std::string next=line+(line.empty()?"":" · ")+a.value;if(text_width(next,small)<=inner)line=next;}
+  const int hero_w=line_of(big_icon)+gi+text_width(now,hero_font)+gi+std::max({text_width(cond,words_font),text_width(hl,line_font),text_width(feels,line_font)})+gi;
+  const int beside_w=std::max(widest+line_of(watch_icon_font?watch_icon_font:small)+ui::px(30),text_width(tr(txt::ha_weather_attribute_air_pressure),small)+ui::px(24));
+  const bool beside=n&&inner-hero_w>=n*beside_w+(n-1)*ui::px(6);
+  struct Option{int extra;bool title,key_in_hero,beside;};
+  // The key stands at the right of the card's top bar where the name centred there leaves it room, as Home
+  // Assistant's dialog puts its keys in its header; else over the forecast, or in the top card on the smallest glass.
+  const int bar=ui::px(large?60:40),bar_y=ui::px(large?16:8);
+  const lv_font_t *heading=watch_font?watch_font:detail_font;
+  const bool key_top=width/2+text_width(t.name,heading)/2+gap<=width-pad-weather_key_w();
+  if(key_top)weather_key(detail_root,width-pad-weather_key_w(),bar_y+(bar-weather_key_h())/2,weather_view==1);
+  const bool title=!key_top;
+  const Option options[]={{beside?std::max(0,weather_chip_h()-hero):-1,title,false,true},{n?gi+tiles_h:-1,title,false,false},
+                          {line.empty()?-1:line_of(small)+ui::px(4),title,false,false},{0,title,false,false},{0,false,!key_top,false}};
+  const auto chart_proto=weather_chart_of(t,false);
+  // The richest arrangement whose forecast still reaches the rain row (or the most the forecast can reach at all);
+  // where none shows anything, the one that leaves the forecast the most room.
+  int tiers[5],rooms[5],most=-1;
+  for(int i=0;i<5;++i){
+    const auto &o=options[i];tiers[i]=-2;rooms[i]=-1;
+    if(o.extra<0)continue;
+    const int now_h=2*card_pad+hero+o.extra;rooms[i]=area_h-now_h-gap-2*card_pad-(o.title?weather_key_h()+gi:0);
+    tiers[i]=weather_view?(rooms[i]>=weather_chart::hours_need(chart_proto.fonts)?3:-1):weather_chart::week_tier(chart_proto,inner,rooms[i]);
+    most=std::max(most,tiers[i]);
   }
-  // Coming days: a heading and a card with one row per day; what does not fit is a page further.
-  if(!weather.forecast.size()){detail_text(detail_root,tr(txt::weather_no_forecast),l.days.x,l.days.y,l.days.w,small,LV_TEXT_ALIGN_LEFT,muted);return;}
-  if(!l.heading.empty())detail_text(detail_root,tr(txt::weather_coming_days),l.heading.x,l.heading.y,l.heading.w,detail_font,LV_TEXT_ALIGN_LEFT,muted);
-  weather_days_card=detail_card(l.days.x,l.days.y,l.days.w,l.days.h);
-  // The pager every page shares (page_bar.h), across the foot of the glass; the layout ends the days above it.
-  if(!l.pager.empty())weather_pager=page_bar::make(detail_root,weather_pager_step);
-  if(weather_page>=l.pages)weather_page=0;
-  weather_draw_days(t);
+  Option best=options[4];
+  if(most<0){int room=-1;for(int i=0;i<5;++i)if(rooms[i]>room){room=rooms[i];best=options[i];}}
+  else for(int i=0;i<5;++i)if(tiers[i]>=std::min(3,most)){best=options[i];break;}
+  // The weather now.
+  const int now_h=2*card_pad+hero+best.extra;
+  auto *card=detail_card(pad,top,area_w,now_h);
+  int right=area_w-card_pad;
+  if(best.key_in_hero){right-=weather_key_w();weather_key(card,right,card_pad+(hero-weather_key_h())/2,weather_view==1);right-=gi;}
+  const int words_min=std::max(text_width(cond,bold),text_width(hl,line_font));
+  bool with_icon=true;const lv_font_t *tf=hero_font;
+  for(int step=0;step<3;++step){
+    with_icon=step==0;tf=step<2?hero_font:(watch_value_font?watch_value_font:hero_font);
+    if(right-card_pad-(with_icon?line_of(big_icon)+gi:0)-text_width(now,tf)-gi>=words_min)break;
+  }
+  const int hero_y=best.beside?(now_h-hero)/2-card_pad:0;
+  int xx=card_pad;
+  if(with_icon){
+    const int ih=line_of(big_icon);
+    auto *art=weather_chart::create(card);lv_obj_set_pos(art,xx,card_pad+hero_y+(hero-ih)/2);lv_obj_set_size(art,ih*5/4,ih);
+    // The condition's two-tone picture, the one the chart draws for a day, in the largest face.
+    weather_chart::Chart c;c.icon_only=true;c.fonts=weather_fonts();c.days.push_back({"",t.available()?t.state:"exceptional"});
+    weather_chart::set(art,std::move(c));
+    xx+=ih+gi;
+  }
+  const int tw=text_width(now,tf);
+  detail_text(card,now,xx,card_pad+hero_y+(hero-line_of(tf))/2,tw+2,tf,LV_TEXT_ALIGN_LEFT,theme::INK);xx+=tw+gi;
+  const int rw=best.beside?std::max(0,card_pad+hero_w-xx):right-xx;
+  const lv_font_t *wf=text_width(cond,words_font)<=rw?words_font:bold;
+  // Feels like once: in the line of attributes where the card has it, else as the top card's third line where it fits.
+  const bool in_line=!best.beside&&best.extra>0&&best.extra!=gi+tiles_h;
+  const bool show_feels=!in_line&&!feels.empty()&&text_width(feels,line_font)<=rw&&line_of(wf)+2*line_of(line_font)<=hero;
+  const std::string hl_line=hl;
+  const bool show_hl=!hl_line.empty()&&text_width(hl_line,line_font)<=rw;
+  const int lines=line_of(wf)+(show_hl?line_of(line_font):0)+(show_feels?line_of(line_font):0);
+  int ty=card_pad+hero_y+(hero-lines)/2;
+  detail_text(card,cond,xx,ty,std::max(1,rw),wf,LV_TEXT_ALIGN_LEFT,theme::INK);ty+=line_of(wf);
+  if(show_hl){detail_text(card,hl_line,xx,ty,rw,line_font,LV_TEXT_ALIGN_LEFT,theme::MUTED);ty+=line_of(line_font);}
+  if(show_feels)detail_text(card,feels,xx,ty,rw,line_font,LV_TEXT_ALIGN_LEFT,theme::MUTED);
+  if(best.beside){
+    const int cw=std::min(ui::px(150),(inner-hero_w-(n-1)*ui::px(6))/n),x2=card_pad+inner-(n*cw+(n-1)*ui::px(6));
+    for(int i=0;i<n;++i)weather_chip(card,x2+i*(cw+ui::px(6)),(now_h-weather_chip_h())/2,cw,attrs[i]);
+  }else if(best.extra==gi+tiles_h&&n){
+    const int cw=(inner-(per_row-1)*ui::px(6))/per_row;
+    for(int i=0;i<n;++i)weather_chip(card,card_pad+(i%per_row)*(cw+ui::px(6)),card_pad+hero+gi+(i/per_row)*(weather_chip_h()+ui::px(6)),cw,attrs[i]);
+  }else if(best.extra>0)detail_text(card,line,card_pad,card_pad+hero+ui::px(4),inner,small,LV_TEXT_ALIGN_LEFT,theme::MUTED);
+  // The forecast.
+  const int fy=top+now_h+gap,fh=area_h-now_h-gap;
+  auto *days=detail_card(pad,fy,area_w,fh);
+  int cy=card_pad;
+  if(best.title){weather_key(days,card_pad,card_pad,weather_view==1);cy+=weather_key_h()+gi;}
+  if(!x.forecast.size()&&!weather_view){detail_text(days,tr(txt::weather_no_forecast),card_pad,cy,inner,small,LV_TEXT_ALIGN_LEFT,theme::MUTED);}
+  else weather_chart_object(days,card_pad,cy,inner,fh-cy-card_pad,weather_chart_of(t,weather_view==1));
   card_shaped(t,picture_card_shape);
 }
 // ---- Select card (firmware 0.3.3) ----
@@ -5128,7 +5237,7 @@ inline void show_detail(unsigned index){
   if(alarm_pad.open&&t.entity!=alarm_pad.entity)alarm_close_pad();
   // A card that opens starts on a day (an hour for a tile whose graph shows one); switching ranges keeps it open.
   if(!detail_root||lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)||detail_index!=index){
-    history_hours=t.history_hours==1?1:24;history_asked_entity.clear();weather_page=0;select_page=0;
+    history_hours=t.history_hours==1?1:24;history_asked_entity.clear();weather_view=0;select_page=0;
     // A player's card that opens shows its cover and colour as they are; one built again while open keeps its face.
     media_face=MediaFace{};
   }
@@ -5150,7 +5259,7 @@ inline void show_detail(unsigned index){
   lv_obj_remove_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_backdrop);
   ++card_builds;
   detail_action_count=0;card_parts.clear();card_shape_of=nullptr;card_blocked=false;detail_status=nullptr;detail_badge_status=nullptr;detail_switch=nullptr;climate_number=nullptr;climate_ends[0]=climate_ends[1]=nullptr;climate_now_mark=nullptr;climate_keys[0]=climate_keys[1]=nullptr;detail_placed=false;detail_status_brief=false;history_forget();
-  alarm_forget_widgets();media_progress_fill=nullptr;media_elapsed_label=nullptr;media_total_label=nullptr;media_detail_picture=nullptr;weather_days_card=nullptr;weather_pager={};light_value=nullptr;lv_obj_clean(detail_root);lv_obj_remove_flag(detail_root,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_root);
+  alarm_forget_widgets();media_progress_fill=nullptr;media_elapsed_label=nullptr;media_total_label=nullptr;media_detail_picture=nullptr;light_value=nullptr;lv_obj_clean(detail_root);lv_obj_remove_flag(detail_root,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_root);
   lv_obj_set_style_bg_color(detail_root,theme::color(theme::PAGE),0);lv_obj_set_style_bg_opa(detail_root,LV_OPA_COVER,0);
   lv_obj_set_style_bg_grad_dir(detail_root,LV_GRAD_DIR_NONE,0);
   media_knob=media_pill_obj=media_library_key=media_input_key=nullptr;
@@ -5161,10 +5270,10 @@ inline void show_detail(unsigned index){
   // range keys under it keeps a hand's width (overlay_card::reach). Asked here because every size below
   // follows from `width`.
   const bool with_history=history_card(t);
-  const auto kind=d=="media_player"?overlay_card::picture:with_history?overlay_card::graph:overlay_card::controls;
+  const auto kind=d=="media_player"?overlay_card::picture:with_history||d=="weather"?overlay_card::graph:overlay_card::controls;
   bool large=ui::large();
   // A card whose stack asks for more height than the glass has stands in two columns instead.
-  const int columns=d=="climate"||d=="humidifier"?climate_columns(t,large):d=="cover"?cover_columns(t,large):d=="weather"?weather_columns(t,large)
+  const int columns=d=="climate"||d=="humidifier"?climate_columns(t,large):d=="cover"?cover_columns(t,large):d=="weather"?1
                      :d=="light"||d=="fan"?light_columns(large):1;
   overlay_card::frame(detail_root,kind,columns);
   // The room the frame just gave the card; LVGL reports the new width only after its next layout pass.
@@ -6507,12 +6616,111 @@ inline lv_obj_t *part_bar(Widgets &w,unsigned i,int x,int y,int width,int height
   }
   lv_obj_set_pos(p,x,y);lv_obj_set_size(p,std::max(1,width),std::max(1,height));return p;
 }
+// ---- The weather tile's week (design study 10-09): a card of two rows or more, or a whole page ----
+// The card's head row as every card has it (its circle and icon, its name, the condition, the temperature large at the
+// end), the week under it in the same light grid as the card a tap opens. A wide, low card (a 4x2) puts the weather
+// now in a column at the left, a light line, and the week over the full height at the right, where it reaches a higher
+// tier. Every colour is set on every render, as render_forecast does. False when the week fits in no tier here: the
+// card then keeps the forecast's own forms.
+inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height){
+  const Extra &x=t.extra();
+  const lv_font_t *bold=w.title_font?w.title_font:lv_obj_get_style_text_font(w.title,LV_PART_MAIN),*text=w.value_font;
+  const lv_font_t *temp_font=watch_value_font?watch_value_font:bold,*hero_font=setpoint_font?setpoint_font:temp_font;
+  const lv_font_t *line_font=control_font?control_font:text;
+  const int circle=w.base_circle>0?w.base_circle:ui::px(large?54:36),gap=ui::px(large?10:6);
+  const uint32_t ink=theme::hex(theme::INK),muted=theme::hex(theme::MUTED);
+  const uint32_t sky=t.available()?weather_color_raw(t.state):theme::STATE_OFF;
+  char now[16];if(std::isfinite(t.current))snprintf(now,sizeof(now),"%.0f°",t.current);else snprintf(now,sizeof(now),"--");
+  const std::string cond=t.available()?weather_text(t.state):tr(txt::ha_unavailable);
+  const std::string feels=std::isfinite(x.feels)?fill(txt::weather_feels_like,"n",(int)std::lround(x.feels)):"";
+  auto chart=weather_chart_of(t,false);
+  const bool wide=width>=height*12/5;
+  // Where the week goes, and whether it fits there at all.
+  int cx=0,cy=0,cw=width,ch=height,col=0;
+  std::string hl;if(x.forecast.size())hl=degrees(x.forecast[0].high)+" / "+degrees(x.forecast[0].low);
+  const lv_font_t *tf=hero_font;
+  // A card of one row: the circle with the temperature and the condition beside it, as the forecast has always had it.
+  const bool low=wide&&height<circle+gap+line_of(temp_font)+line_of(line_font);
+  if(low){
+    // The largest face that leaves the condition its line under it, as the forecast has always had it; else the largest
+    // that fits alone.
+    tf=nullptr;
+    for(const lv_font_t *f:{hero_font,temp_font,watch_font})if(f&&face_covers(f,now)&&line_of(f)+line_of(text)<=height){tf=f;break;}
+    if(!tf)for(const lv_font_t *f:{hero_font,temp_font,watch_font})if(f&&face_covers(f,now)&&line_of(f)<=height){tf=f;break;}
+    if(!tf)tf=bold;
+    const bool line=line_of(tf)+line_of(text)<=height;
+    col=std::min(circle,height)+gap+std::max(text_width(now,tf),line?text_width(cond,text):0)+gap;
+    cx=col+gap+1+gap;cw=width-cx;
+  }else if(wide){
+    if(!face_covers(tf,now)||circle+gap+line_of(tf)+line_of(line_font)>height)tf=temp_font;
+    col=std::max({circle+gap+std::max(text_width(t.name,bold),text_width(cond,text)),text_width(now,tf),text_width(hl,line_font)})+gap;
+    cx=col+gap+1+gap;cw=width-cx;
+  }else{cy=circle+gap;ch=height-cy;}
+  const int tier=weather_chart::week_tier(chart,cw,ch);
+  // A card of two rows or more shows the line at least; one of a single row the days.
+  if(tier<0||(!low&&tier<1))return false;
+  begin_extra(w,"week",width,height);
+  for(auto *p:w.parts)if(p)lv_obj_add_flag(p,LV_OBJ_FLAG_HIDDEN);
+  auto show=[](lv_obj_t *p){lv_obj_remove_flag(p,LV_OBJ_FLAG_HIDDEN);return p;};
+  auto words=[&](unsigned i,const lv_font_t *font,int px,int py,int pw,lv_text_align_t align,const std::string &s,uint32_t color){
+    auto *p=show(part_label(w,i,font,px,py,pw,align,s));
+    if(lv_label_get_long_mode(p)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(p,LV_LABEL_LONG_DOT);
+    set_color(p,LV_STYLE_TEXT_COLOR,lv_color_hex(color));return p;
+  };
+  // The head: the circle in the condition's colour with its icon, as on every other card.
+  const int disc_y=low?(height-std::min(circle,height))/2:0;
+  auto *disc=show(part_dot(w,0,0,disc_y,std::min(circle,height)));
+  set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
+  const int gh=line_of(w.icon_font);
+  words(1,w.icon_font,0,disc_y+(std::min(circle,height)-gh)/2,std::min(circle,height),LV_TEXT_ALIGN_CENTER,t.available()?weather_icon(t.state):"\U000F0595",t.available()?theme::icon(sky):theme::hex(theme::OFF));
+  const int th=line_of(bold),nh=line_of(text),hy=(circle-th-nh)/2;
+  if(low){
+    const int c0=std::min(circle,height)+gap,tfh=line_of(tf);
+    const bool line=tfh+nh<=height;
+    const int ty=(height-tfh-(line?nh:0))/2;
+    words(4,tf,c0,ty,col-c0,LV_TEXT_ALIGN_LEFT,now,ink);
+    if(line)words(3,text,c0,ty+tfh,col-c0,LV_TEXT_ALIGN_LEFT,cond,muted);
+    auto *rule=show(part_dot(w,6,col+gap,ui::px(4),1));
+    lv_obj_set_size(rule,1,height-ui::px(8));lv_obj_set_style_radius(rule,0,0);
+    set_color(rule,LV_STYLE_BG_COLOR,theme::color(theme::dark?theme::RAISED_LINE:theme::LINE));
+  }else if(wide){
+    words(2,bold,circle+gap,hy,col-circle-gap,LV_TEXT_ALIGN_LEFT,t.name,ink);
+    words(3,text,circle+gap,hy+th,col-circle-gap,LV_TEXT_ALIGN_LEFT,cond,muted);
+    const int ty=circle+(height-circle-line_of(tf)-line_of(line_font))/2;
+    words(4,tf,0,ty,col,LV_TEXT_ALIGN_LEFT,now,ink);
+    if(!hl.empty())words(7,line_font,0,ty+line_of(tf),col,LV_TEXT_ALIGN_LEFT,hl,muted);
+    auto *rule=show(part_dot(w,6,col+gap,ui::px(4),1));
+    lv_obj_set_size(rule,1,height-ui::px(8));lv_obj_set_style_radius(rule,0,0);
+    set_color(rule,LV_STYLE_BG_COLOR,theme::color(theme::dark?theme::RAISED_LINE:theme::LINE));
+  }else{
+    // The temperature large at the end of the row where it fits beside the name; the line under the name says the
+    // condition, and feels like where there is room for it.
+    int right=width;
+    const int nw=text_width(now,temp_font);
+    if(line_of(temp_font)<=circle+ui::px(6)&&width-nw-circle-gap>=ui::px(large?110:70)){
+      words(4,temp_font,width-nw-2,(circle-line_of(temp_font))/2,nw+2,LV_TEXT_ALIGN_RIGHT,now,ink);right=width-nw-gap;
+    }
+    const int room=right-circle-gap;
+    std::string line=cond;
+    if(!feels.empty()&&text_width(cond+" · "+feels,text)<=room)line=cond+" · "+feels;
+    words(2,bold,circle+gap,hy,room,LV_TEXT_ALIGN_LEFT,t.name,ink);
+    words(3,text,circle+gap,hy+th,room,LV_TEXT_ALIGN_LEFT,line,muted);
+  }
+  // The week: one object that owns what it draws (weather_chart.h).
+  auto *&p=w.parts[5];
+  if(!p)p=weather_chart::create(w.extra);
+  show(p);lv_obj_set_pos(p,cx,cy);lv_obj_set_size(p,cw,ch);
+  weather_chart::set(p,std::move(chart));
+  return true;
+}
 // The weather now (the condition in its circle, the temperature, the word) and the coming days, in the form the
 // card's cell holds: days as columns beside it on a card of one row, as rows under it with the week's range as bars
 // on a taller one. Every colour is set here on every render, because each day has its own: the palette pass that
 // colours the other custom cards leaves these parts alone.
 inline void render_forecast(Widgets &w,const Tile &t,bool large,int width,int height) {
   namespace ft=forecast_tile;
+  // The week (render_week) on every card it fits; the forms below where it fits nowhere.
+  if(render_week(w,t,large,width,height))return;
   const auto &x=t.extra();const auto &days=x.forecast;
   const lv_font_t *bold=w.title_font?w.title_font:lv_obj_get_style_text_font(w.title,LV_PART_MAIN),*text=w.value_font;
   const lv_font_t *mini=mini_icon_font?mini_icon_font:w.icon_font;
@@ -8243,7 +8451,7 @@ inline void render_slot(size_t slot) {
   // in the media colours, not the card's.
   if(w.extra_mode=="bedside"){}  // render_bedside paints its own parts
   else if(w.extra_mode=="calm"||w.extra_mode=="flip")paint_face(w,title_color,value_color,icon_color);
-  else for(unsigned i=0;i<w.parts.size() && w.extra_mode!="media" && w.extra_mode!="tall" && w.extra_mode!="cover_tilt" && w.extra_mode!="forecast" && w.extra_mode!="forecast_rows" && w.extra_mode!="favorite" && w.extra_mode!="energy";++i){
+  else for(unsigned i=0;i<w.parts.size() && w.extra_mode!="media" && w.extra_mode!="tall" && w.extra_mode!="cover_tilt" && w.extra_mode!="forecast" && w.extra_mode!="forecast_rows" && w.extra_mode!="week" && w.extra_mode!="favorite" && w.extra_mode!="energy";++i){
     auto *p=w.parts[i];if(!p)continue;
     bool muted=w.extra_mode=="sunpath" ? i>=1 : w.extra_mode=="calendar" ? i==15||i==17 : w.extra_mode=="digital" ? i==16||i==17 : i==16;
     if(lv_obj_check_type(p,&lv_label_class))set_color(p,LV_STYLE_TEXT_COLOR,muted?value_color:title_color);

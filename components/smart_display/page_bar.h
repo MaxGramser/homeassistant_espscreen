@@ -1,6 +1,6 @@
 #pragma once
 // The pager of every page that holds more than fits: the tile pages, the settings page, a light group, the media
-// library and its speaker menu, a select's options and the weather card's days. One pager, the tile pages' own, so the
+// library and its speaker menu and a select's options. One pager, the tile pages' own, so the
 // one that is already learned is the one everywhere:
 //
 //  * each half of the bar is one key, a chevron in its outer corner with its ink on the tiles' margin (align);

@@ -338,7 +338,7 @@
         "cool": "Frío",
         "heat_cool": "Calor/Frío",
         "auto": "Auto",
-        "dry": "Seco",
+        "dry": "Deshumidificar",
         "fan_only": "Solo ventilador"
       },
       "hvac_action": {
@@ -418,7 +418,7 @@
         "lock_on": "Desbloqueado",
         "lock_off": "Bloqueado",
         "moisture_on": "Húmedo",
-        "moisture_off": "Seco",
+        "moisture_off": "Deshumidificar",
         "motion_on": "Detectado",
         "motion_off": "No detectado",
         "moving_on": "En movimiento",
@@ -537,6 +537,35 @@
         "drying": "Secando",
         "idle": "Inactivo",
         "off": "Apagado"
+      },
+      "today": "Hoy",
+      "weather_view": {
+        "daily": "Diariamente",
+        "hourly": "Cada hora"
+      },
+      "weather_attribute": {
+        "humidity": "Humedad",
+        "wind_speed": "Velocidad del viento",
+        "air_pressure": "Presión del aire",
+        "visibility": "Visibilidad"
+      },
+      "wind_direction": {
+        "n": "N",
+        "nne": "NNE",
+        "ne": "NE",
+        "ene": "ENE",
+        "e": "E",
+        "ese": "ESE",
+        "se": "SE",
+        "sse": "SSE",
+        "s": "S",
+        "ssw": "SSO",
+        "sw": "SO",
+        "wsw": "OSO",
+        "w": "O",
+        "wnw": "ONO",
+        "nw": "NO",
+        "nnw": "NNO"
       }
     },
     "navigation": {

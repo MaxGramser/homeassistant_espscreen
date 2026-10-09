@@ -295,7 +295,14 @@ FRONTEND_SOURCES = {'unavailable': 'state.default.unavailable', 'button.activate
                        for key in ('disarm', 'arm_home', 'arm_away', 'arm_night', 'arm_vacation', 'arm_custom_bypass')},
                     'alarm_action.enter_code': 'ui.dialogs.enter_code.title',
                     # The lock's keys, as its dialog names them (firmware 0.5.0+).
-                    **{f'lock_action.{key}': f'ui.card.lock.{key}' for key in ('lock', 'unlock', 'open', 'open_door', 'open_door_confirm')}}
+                    **{f'lock_action.{key}': f'ui.card.lock.{key}' for key in ('lock', 'unlock', 'open', 'open_door', 'open_door_confirm')},
+                    # The weather card (its week): the day it is, the key between days and hours, the attributes and the wind's
+                    # sixteen directions, as Home Assistant's weather more-info dialog names them.
+                    'today': 'ui.components.calendar.today',
+                    **{f'weather_view.{key}': f'ui.card.weather.{key}' for key in ('daily', 'hourly')},
+                    **{f'weather_attribute.{key}': f'ui.card.weather.attributes.{key}' for key in ('humidity', 'wind_speed', 'air_pressure', 'visibility')},
+                    **{f'wind_direction.{key}': f'ui.card.weather.cardinal_direction.{key}'
+                       for key in ('n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse', 's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw')}}
 
 
 def frontend_words(url, codes):

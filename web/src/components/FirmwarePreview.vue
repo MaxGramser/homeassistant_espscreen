@@ -41,11 +41,13 @@ const layout = () => props.layout === undefined ? state.document : props.layout;
 // The screens' language, in which ESP Screens builds them and writes the words it sends (Settings -> Language & region).
 const language = () => state.inventory.language?.effective || "en";
 
-// The look and the language of the screen, as its own firmware draws them (a build from before has neither export).
-function look() {
-  if (!module || disposed) return;
-  if ("_preview_language" in module) module.ccall("preview_language", "number", ["string"], [language()]);
-  module._preview_dark?.(props.dark ? 1 : 0);
+// The language and the look of the screen, as its own firmware draws them (a build from before has neither export).
+// Each only when it changes: a new language draws every card again.
+function speak() {
+  if (module && !disposed && "_preview_language" in module) module.ccall("preview_language", "number", ["string"], [language()]);
+}
+function shade() {
+  if (module && !disposed) module._preview_dark?.(props.dark ? 1 : 0);
 }
 
 function time() {
@@ -254,14 +256,15 @@ onMounted(async () => {
     }
     // A board that draws no pictures (the CYD) has no square for an album cover, as on its glass (firmware 0.46.0).
     module._preview_pictures?.(props.pictures === false ? 0 : 1);
-    look();
+    speak(); shade();
     await receive();
     listen();
     draw();
   } catch (e) { if (!disposed) fail(e instanceof Error ? e.message : String(e)); }
 });
 watch(layout, receive, { deep: true });
-watch(() => [props.dark, language()], look);
+watch(language, speak);
+watch(() => props.dark, shade);
 watch(entityQuery, listen);
 onBeforeUnmount(() => {
   disposed = true; generation++;
