@@ -40,15 +40,8 @@ constexpr const char *BACK = "\U000F004D";  // mdi:arrow-left
 
 struct Rect { int x, y, w, h; };
 
-// Where the glass's left edge lies in `parent`'s coordinates, those lv_obj_set_pos takes (its content area). Read from
-// the styles, not from the coordinates: those follow only at LVGL's next layout pass, and a page is built before that.
-inline int glass_left(const lv_obj_t *parent) {
-  int x = 0;
-  for (const lv_obj_t *o = parent; o && lv_obj_get_parent(o); o = lv_obj_get_parent(o))
-    x += lv_obj_get_style_x(o, LV_PART_MAIN) + lv_obj_get_style_pad_left(o, LV_PART_MAIN) +
-         lv_obj_get_style_border_width(o, LV_PART_MAIN);
-  return -x;
-}
+using overlay_card::glass_left;
+
 // The back key's place, and the `i`-th key's from the right (0 at the edge), in `parent`'s coordinates.
 inline Rect back_slot(const lv_obj_t *parent) {
   const auto m = metrics();
@@ -95,12 +88,29 @@ inline void place_title(lv_obj_t *title, const lv_obj_t *parent, int right = 1) 
   const auto room = middle(parent, right);
   const lv_font_t *font = lv_obj_get_style_text_font(title, LV_PART_MAIN);
   const int line = font ? lv_font_get_line_height(font) : room.h;
+  lv_obj_set_align(title, LV_ALIGN_TOP_LEFT);
   lv_obj_set_pos(title, room.x, room.y + (room.h - line) / 2);
   lv_obj_set_size(title, room.w, line);
 }
 
 struct Key { const char *glyph = nullptr; lv_event_cb_t handler = nullptr; void *user = nullptr; };
 struct Bar { lv_obj_t *back = nullptr, *title = nullptr, *right[2] = {nullptr, nullptr}; };
+
+inline void put(lv_obj_t *obj, const Rect &at) {
+  lv_obj_set_align(obj, LV_ALIGN_TOP_LEFT);
+  lv_obj_set_pos(obj, at.x, at.y);
+  lv_obj_set_size(obj, at.w, at.h);
+}
+// Put a bar's parts in their places: the back key, the keys at the right that show (the first at the edge), and the
+// name in the room they leave. make() builds a bar and places it; a bar whose parts are declared elsewhere (the colour
+// card's, in packages/core.yaml) is placed the same way, again whenever a key at the right comes or goes.
+inline void place(lv_obj_t *parent, const Bar &bar) {
+  if (bar.back) put(bar.back, back_slot(parent));
+  int count = 0;
+  for (auto *k : bar.right)
+    if (k && !lv_obj_has_flag(k, LV_OBJ_FLAG_HIDDEN)) put(k, right_slot(parent, count++));
+  place_title(bar.title, parent, count);
+}
 
 // The whole bar: the back key and the name first (a card centred under its bar keeps its first two children where
 // they are, overlay_card::centre), then the keys at the right, the first at the edge.
@@ -115,12 +125,9 @@ inline Bar make(lv_obj_t *parent, const std::string &title, Key back, Key right 
   lv_label_set_long_mode(bar.title, LV_LABEL_LONG_DOT);
   lv_label_set_text(bar.title, title.c_str());
   int count = 0;
-  for (const Key &k : {right, right2}) {
-    if (!k.glyph) continue;
-    bar.right[count] = key(parent, right_slot(parent, count), k.glyph, k.handler, k.user);
-    ++count;
-  }
-  place_title(bar.title, parent, count);
+  for (const Key &k : {right, right2})
+    if (k.glyph) { bar.right[count] = key(parent, right_slot(parent, count), k.glyph, k.handler, k.user); ++count; }
+  place(parent, bar);
   return bar;
 }
 

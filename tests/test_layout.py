@@ -63,7 +63,8 @@ class LayoutTests(unittest.TestCase):
             text = (ROOT / 'packages' / 'looks' / f'{look}.yaml').read_text()
             self.assertIn('HEADER_INSET: ${GRID_MARGIN}', text, look)
             self.assertNotIn('PAGE_CHEVRON_INSET', text, look)
-        self.assertIn('nav_align(previous,true);nav_align(next,false);', runtime_source())
+        self.assertIn('page_bar::align(previous,true,grid_margin);page_bar::align(next,false,grid_margin);', runtime_source())
+        self.assertIn('page_bar::margin = margin;', runtime_source())
 
     def test_the_cards_are_made_at_boot_one_per_cell(self):
         """The cards are made in C++ at boot, one per cell of the grid the screen runs on (firmware 0.53.0+), so no
@@ -123,9 +124,26 @@ class LayoutTests(unittest.TestCase):
     def test_page_key_press_shows_around_the_chevron(self):
         from firmware_sources import runtime_source
         RUNTIME_TILES = runtime_source()
-        self.assertIn('if(!nav_prev){nav_key_patch(previous);nav_key_patch(next);}', RUNTIME_TILES)
-        self.assertIn('theme::style(theme::Paint::page_pressed)', RUNTIME_TILES)
-        self.assertIn('inline lv_area_t ink_area(lv_obj_t *o)', RUNTIME_TILES)
+        PAGE_BAR = (ROOT / 'components' / 'smart_display' / 'page_bar.h').read_text()
+        self.assertIn('if(!nav_prev){page_bar::patch(previous);page_bar::patch(next);}', RUNTIME_TILES)
+        self.assertIn('theme::style(theme::Paint::page_pressed)', PAGE_BAR)
+        self.assertIn('inline lv_area_t ink_area(lv_obj_t *o)', PAGE_BAR)
+
+    def test_every_pager_is_the_tile_pages_pager(self):
+        """One pager (page_bar.h), always where the tile pages have theirs, across the foot of the glass: the settings
+        page, a light group, the media library and its speaker menu, a select's options and the weather card's days build
+        the tile pages' bar instead of a pager of their own, and nothing builds one anywhere else (make_in)."""
+        smart = ROOT / 'components' / 'smart_display'
+        for name, made in (('settings_screen.h', 'page_bar::make(root, pager_step)'), ('group_page.h', 'page_bar::make(root, pager_step)'),
+                           ('media_library.cpp', 'page_bar::make(root, pager_step)'), ('media_library.cpp', 'page_bar::make(menu_root, menu_pager_step)'),
+                           ('runtime_tiles.h', 'page_bar::make(detail_root,select_pager_step)'),
+                           ('runtime_tiles.h', 'weather_pager=page_bar::make(detail_root,weather_pager_step)')):
+            self.assertIn(made, (smart / name).read_text(), name)
+        for path in smart.glob('*.[hc]*'):
+            if path.name == 'page_bar.h':
+                continue
+            self.assertNotIn('page_dots(', path.read_text(), path.name)
+            self.assertNotIn('page_bar::make_in(', path.read_text(), path.name)
 
     def test_page_keys_are_the_halves_of_the_band_under_the_tiles(self):
         """Firmware 0.2.69+: a chevron in each half of the band, the dots between them take no touches. The half is
@@ -148,7 +166,7 @@ class LayoutTests(unittest.TestCase):
             self.assertIn('clickable: false', number, name)
             self.assertIn(f'height: {band}\n', number, name)
         runtime = runtime_source()
-        self.assertIn('settings_screen::page_dots(nav_number,model.page_data.ordinal(page),sequential_count,', runtime)
+        self.assertIn('page_bar::dots(nav_number,model.page_data.ordinal(page),sequential_count)', runtime)
         self.assertIn('set_hidden(control,!sequential)', runtime)
 
     def test_nothing_is_placed_before_a_layout_arrives(self):

@@ -68,7 +68,7 @@ static Shape shape() {
   s.gap = m.gap;
   s.top = m.bar_y + m.bar + m.gap;
   s.line_h = lv_font_get_line_height(cover_font());
-  s.pager_h = std::max(ui::touch_min(), m.bar * 3 / 4);
+  s.pager_h = page_bar::height();  // the pager every page shares, on the glass's foot
   s.card_h = std::max(ui::touch_min() * 3 / 2, m.row_h * 5 / 4);
   s.min_art = ui::mm(12);
   s.ring = ui::px(5);  // the ring's width and its gap to the cover (mark)
@@ -237,7 +237,7 @@ static void turn(int step) {
   page = static_cast<unsigned>(next);
   draw();
 }
-static void pager_event(lv_event_t *e) { if (steady()) turn(static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(e)))); }
+static void pager_step(int step) { if (steady()) turn(step); }
 static void gesture_event(lv_event_t *) {
   const auto direction = lv_indev_get_gesture_dir(lv_indev_active());
   if (direction == LV_DIR_LEFT) turn(1);
@@ -368,27 +368,12 @@ static void cell(size_t index, const Rect &at, const Rect &cover_at) {
   marks.push_back({holder, name, index});
   mark(marks.back());
 }
+// The pager every page shares (page_bar.h): the tile pages' own, on the foot of the glass.
 static void pager(unsigned pages) {
-  const auto m = effects_page::screen_metrics();
-  const Shape s = shape();
-  const int key = s.pager_h, y = grid.pager_y;
-  auto chevron = [&](int x, const char *mark, int step, bool enabled) { pager_objs.push_back(round_key(root, x, y, key, mark, pager_event, step, enabled)); };
-  const int span = std::min(s.width - 2 * s.pad, ui::control_max_width()), left = (s.width - span) / 2;
-  chevron(left, "\U000F0141", -1, page > 0);
-  chevron(left + span - key, "\U000F0142", 1, page + 1 < pages);
-  if (dots(pages)) {
-    const int d = ui::px(ui::large() ? 8 : 6), gap = ui::px(ui::large() ? 10 : 7);
-    const int row = static_cast<int>(pages) * d + (static_cast<int>(pages) - 1) * gap;
-    for (unsigned i = 0; i < pages; ++i) {
-      auto *dot = plain(root, (s.width - row) / 2 + static_cast<int>(i) * (d + gap), y + (key - d) / 2, d, d);
-      lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
-      lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
-      lv_obj_set_style_bg_color(dot, theme::color(i == page ? theme::INK : theme::TRACK), 0);
-    }
-  } else {
-    words(root, page_text(page, pages), name_font(), theme::MUTED, LV_TEXT_ALIGN_CENTER, left + key, y + (key - lv_font_get_line_height(name_font())) / 2, span - 2 * key);
-  }
-  (void) m;
+  const auto bar = page_bar::make(root, pager_step);
+  page_bar::show(bar, static_cast<int>(page), static_cast<int>(pages));
+  pager_objs.push_back(bar.prev);
+  pager_objs.push_back(bar.next);
 }
 static void draw() {
   if (!root) return;
@@ -523,9 +508,9 @@ static void menu_scrim_event(lv_event_t *e) {
   if (lv_event_get_target(e) != lv_event_get_current_target(e) || !steady()) return;
   menu_close();
 }
-static void menu_pager_event(lv_event_t *e) {
+static void menu_pager_step(int step) {
   if (!steady()) return;
-  menu_page = static_cast<unsigned>(std::max(0, static_cast<int>(menu_page) + static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(e)))));
+  menu_page = static_cast<unsigned>(std::max(0, static_cast<int>(menu_page) + step));
   draw_menu();
 }
 // The flags of a speaker on every tile of the player, at once: Home Assistant's next state confirms them.
@@ -660,17 +645,18 @@ static void draw_menu() {
   // tap beside it lands on a row that does nothing.
   const int row_h = std::max(ui::touch_min(), m.row_h), volume_h = ui::touch_min() * 3 / 4;
   const int panel_w = std::min(width - 2 * m.pad, ui::px(ui::large() ? 380 : 260));
-  // Pages by height: a speaker in the group is a row taller for its volume. The pager takes a row of its own.
+  // Pages by height: a speaker in the group is a row taller for its volume. Paged, the rows end above the pager every
+  // page shares, across the foot of the glass (page_bar.h).
   std::vector<int> heights;
   for (size_t i = 0; i < names.size(); ++i) heights.push_back(row_h + (with_volume(t, i) ? volume_h : 0));
-  menu_starts = page_starts(heights, room, row_h);
+  menu_starts = page_starts(heights, room, std::max(0, page_bar::height() + m.gap - m.pad));
   const unsigned pages = static_cast<unsigned>(menu_starts.size());
   menu_page = std::min(menu_page, pages - 1);
   const size_t first = menu_starts[menu_page], last = menu_page + 1 < pages ? menu_starts[menu_page + 1] : names.size();
   int used = 0;
   for (size_t i = first; i < last; ++i) used += heights[i];
   const bool pager = pages > 1;
-  auto *panel = plain(menu_root, (width - panel_w) / 2, y, panel_w, used + (pager ? row_h : 0));
+  auto *panel = plain(menu_root, (width - panel_w) / 2, y, panel_w, used);
   lv_obj_add_flag(panel, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(panel, theme::color(theme::RAISED), 0);
@@ -726,11 +712,11 @@ static void draw_menu() {
     ry += heights[index];
   }
   if (pager) {
-    const int k = std::min(row_h - ui::px(8), m.bar);
-    auto chevron = [&](int x, const char *mark, int step, bool enabled) { menu_pager_objs.push_back(round_key(panel, x, ry + (row_h - k) / 2, k, mark, menu_pager_event, step, enabled)); };
-    chevron(m.inset, "\U000F0141", -1, menu_page > 0);
-    chevron(panel_w - m.inset - k, "\U000F0142", 1, menu_page + 1 < pages);
-    words(panel, page_text(menu_page, pages), font, theme::MUTED, LV_TEXT_ALIGN_CENTER, m.inset + k, ry + (row_h - text_h) / 2, panel_w - 2 * (m.inset + k));
+    // The pager every page shares (page_bar.h), across the foot of the glass under the menu.
+    const auto bar = page_bar::make(menu_root, menu_pager_step);
+    page_bar::show(bar, static_cast<int>(menu_page), static_cast<int>(pages));
+    menu_pager_objs.push_back(bar.prev);
+    menu_pager_objs.push_back(bar.next);
   }
 }
 static void open_menu(const std::string &id, bool inputs, uint32_t then, int tile) {

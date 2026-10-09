@@ -469,6 +469,8 @@ inline const char *page_title(const Page &page) { return page.words ? page.words
 
 #ifndef SETTINGS_SCREEN_TEST
 #include "lvgl.h"
+#include "detail_bar.h"
+#include "page_bar.h"
 #include "theme.h"
 #include <functional>
 
@@ -519,63 +521,6 @@ inline Metrics metrics() {
                  ui::px(large ? 40 : 26), ui::px(large ? 16 : 10),
                  ui::px(large ? 44 : 30), ui::px(large ? 40 : 26),
                  ui::px(large ? 62 : 40), ui::px(large ? 34 : 22)};
-}
-
-// The page dots of a pager (firmware 0.2.69+), under the tiles and on this page: one per page, centred in `row`, the
-// page on screen in ink and the others a quiet grey. The dots are made once and reused; `row` takes no touches.
-// More pages than eight dots hold (firmware 0.34.0+, a board with more pages): "3 / 12" in their place, as the media
-// library's pager says it (media_library::page_text).
-inline constexpr int MOST_DOTS = 8;
-inline void page_dots(lv_obj_t *row, int current, int total, bool large) {
-  const int dot = ui::px(large ? 8 : 6), gap = ui::px(large ? 10 : 7);
-  total = std::max(total, 0);
-  const bool words = total > MOST_DOTS;
-  lv_obj_t *label = nullptr;
-  int dots = 0;
-  for (int i = 0; i < (int) lv_obj_get_child_count(row); ++i) {
-    auto *child = lv_obj_get_child(row, i);
-    if (lv_obj_check_type(child, &lv_label_class)) label = child;
-    else ++dots;
-  }
-  const int wanted = words ? 0 : total;
-  while (dots < wanted) {
-    auto *d = lv_obj_create(row);
-    lv_obj_remove_style_all(d);
-    lv_obj_remove_flag(d, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
-    lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
-    ++dots;
-  }
-  if (words && !label && row_font) {
-    label = lv_label_create(row);
-    lv_obj_remove_flag(label, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
-    lv_obj_set_style_text_font(label, row_font, 0);
-    lv_obj_set_style_text_color(label, theme::color(theme::MUTED), 0);
-  }
-  if (label) {
-    if (words) {
-      char b[16];
-      snprintf(b, sizeof(b), "%d / %d", current + 1, total);
-      lv_label_set_text(label, b);
-      lv_obj_set_style_text_color(label, theme::color(theme::MUTED), 0);
-      lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-      lv_obj_remove_flag(label, LV_OBJ_FLAG_HIDDEN);
-    } else {
-      lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
-    }
-  }
-  const int width = wanted * dot + std::max(0, wanted - 1) * gap;
-  int n = 0;
-  for (int i = 0; i < (int) lv_obj_get_child_count(row); ++i) {
-    auto *d = lv_obj_get_child(row, i);
-    if (d == label) continue;
-    const int at = n++;
-    if (at >= wanted) { lv_obj_add_flag(d, LV_OBJ_FLAG_HIDDEN); continue; }
-    lv_obj_remove_flag(d, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_size(d, dot, dot);
-    lv_obj_align(d, LV_ALIGN_CENTER, at * (dot + gap) + dot / 2 - width / 2, 0);
-    lv_obj_set_style_bg_color(d, theme::color(at == current ? theme::INK : theme::SUBTLE), 0);
-    lv_obj_set_style_bg_opa(d, at == current ? LV_OPA_COVER : LV_OPA_40, 0);
-  }
 }
 
 inline lv_obj_t *plain(lv_obj_t *parent, int x, int y, int w, int h) {
@@ -752,9 +697,9 @@ inline void back_event(lv_event_t *) {
   first_row = 0;
   draw();
 }
-inline void pager_event(lv_event_t *event) {
-  int direction = (int) (intptr_t) lv_event_get_user_data(event);
-  int next = (int) first_row + direction;
+inline uint8_t rows_per_page = 1;
+inline void pager_step(int step) {
+  int next = (int) first_row + step * (int) rows_per_page;
   if (next < 0) return;
   screen_hooks::run_touched();
   first_row = (uint8_t) next;
@@ -776,25 +721,15 @@ inline void draw() {
   for (uint8_t i = 0; i < page.count && count < shown.size(); ++i)
     if (visible_row(page.rows[i])) shown[count++] = i;
 
-  // Top bar: the same round back arrow and centred name as the cards of a tile.
-  auto *back = plain(root, m.pad, m.bar_y, m.bar, m.bar);
-  lv_obj_add_flag(back, LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_style_bg_opa(back, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(back, theme::color(theme::KEY), 0);
-  lv_obj_set_style_bg_color(back, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
-  lv_obj_set_style_radius(back, LV_RADIUS_CIRCLE, 0);
-  auto *arrow = text(back, "\U000F004D", icon_font ? icon_font : row_font, theme::INK);
-  lv_obj_set_width(arrow, LV_SIZE_CONTENT);
-  lv_obj_center(arrow);
-  lv_obj_add_event_cb(back, back_event, LV_EVENT_SHORT_CLICKED, nullptr);
-  const lv_font_t *heading = title_font ? title_font : row_font;
-  auto *title = text(root, page_title(page), heading, theme::INK, LV_TEXT_ALIGN_CENTER);
-  lv_obj_set_width(title, m.width - 2 * (m.pad + m.bar + 8));
-  lv_obj_set_pos(title, m.pad + m.bar + 8, m.bar_y + (m.bar - lv_font_get_line_height(heading)) / 2);
+  // The top bar of every page a tap opens (detail_bar): the back key and the page's name.
+  detail_bar::make(root, page_title(page), {detail_bar::BACK, back_event});
 
   int span = m.height - m.rows_y - m.bottom;
   bool paged = false;
-  uint8_t per_page = std::min<uint8_t>(fitting_rows(span, m.row_h, m.gap, m.pager, count, paged), drawn.size());
+  // The pager every page shares (page_bar) stands on the foot of the glass, over the bottom margin.
+  const int pager = page_bar::height() - m.bottom + m.gap;
+  uint8_t per_page = std::min<uint8_t>(fitting_rows(span, m.row_h, m.gap, pager, count, paged), drawn.size());
+  rows_per_page = per_page;
   // Always start a page on a page boundary, and never scroll a group that fits.
   first_row = paged && first_row < count ? (uint8_t) ((first_row / per_page) * per_page) : 0;
 
@@ -880,34 +815,8 @@ inline void draw() {
   refresh();
 
   if (!paged) return;
-  // The same pager as the tile pages, in the same place, so it is the one that is already learned: a chevron in each
-  // half, the page dots between them (firmware 0.2.69+). A half lights up under a finger; one that leads nowhere is
-  // dimmed and takes no touches, so nothing moves from page to page.
-  uint8_t page_number = (uint8_t) (first_row / per_page + 1);
-  uint8_t page_total = (uint8_t) ((count + per_page - 1) / per_page);
-  int y = m.height - m.pager - m.bottom / 2, half = (m.width - 2 * m.pad) / 2 - 20;
-  const lv_font_t *chevrons = icon_font ? icon_font : row_font;
-  int chevron_h = lv_font_get_line_height(chevrons);
-  auto *dots = plain(root, 0, y, m.width, m.pager);
-  page_dots(dots, page_number - 1, page_total, m.large);
-  for (int side = 0; side < 2; ++side) {
-    bool enabled = side ? page_number < page_total : page_number > 1;
-    auto *bar = plain(root, side ? m.width - m.pad - half : m.pad, y, half, m.pager);
-    auto *glyph = text(bar, side ? "\U000F0142" : "\U000F0141", chevrons, theme::INK,
-                       side ? LV_TEXT_ALIGN_RIGHT : LV_TEXT_ALIGN_LEFT);
-    lv_obj_set_width(glyph, half - 12);
-    lv_obj_set_pos(glyph, 6, (m.pager - chevron_h) / 2);
-    if (!enabled) { lv_obj_set_style_opa(glyph, LV_OPA_30, 0); continue; }
-    lv_obj_add_flag(bar, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_bg_opa(bar, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_STATE_PRESSED);
-    lv_obj_set_style_bg_color(bar, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
-    lv_obj_set_style_radius(bar, m.radius, 0);
-    // CLICKED, not SHORT_CLICKED: LVGL sends no short click after a press of long_press_time (400 ms), so a firm or
-    // slow press did nothing (firmware 0.2.65+). The bar has no hold of its own.
-    lv_obj_add_event_cb(bar, pager_event, LV_EVENT_CLICKED,
-                        (void *) (intptr_t) (side ? per_page : -per_page));
-  }
+  // The pager every page shares (page_bar.h), the tile pages' own in the same place, so it is the one already learned.
+  page_bar::show(page_bar::make(root, pager_step), first_row / per_page, (count + per_page - 1) / per_page);
 }
 
 inline void hide_hold_bar() {

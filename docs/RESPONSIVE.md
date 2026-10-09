@@ -273,12 +273,20 @@ strip; on 800 x 480 the strip buys so much room that the heading comes back with
 a row (`weather_card::layout`). Write the order down in a comment with the reason. Nothing may ever be drawn past the glass: if the
 cascade runs out, the last resort is scrolling or leaving content out, never overflow.
 
+**Every page a tap opens has one top bar.** A tile's card, the effects page, a light group, the media library, the
+settings page, a plugin's card and a camera build their back key, their name and their keys at the right with
+`detail_bar.h` (`detail_bar::make`, or `detail_bar::place` for parts declared in the core). The bar stands on the glass,
+not on the card: a card of controls is only a hand wide on wide glass, but its back key keeps the glass's top left
+corner, so a finger going a page deeper and back finds it where it was. A key of a card's own in the bar (a power key,
+a battery) takes `detail_bar::right_slot`, never a position of its own.
+
 **Does a list not fit? Then it gets a pager, the way the settings page has one.** A stack of items that
 is one too long is not a reason to squeeze the items: a row that falls under the height of its own
 letters is unreadable on every board, and one drawn over the next is worse than one a tap away. So a
 list of items that repeat (settings rows, the coming days, the effects of a light) shows as many as
 fit at their honest minimum and puts the rest on a next page, with the same chevrons-and-dots pager as
-the tile pages (`settings_screen::page_dots`, `settings_screen::fitting_rows`, `weather_card::layout`).
+the tile pages: one component, `page_bar.h`, across the foot of the glass or in the area a card gives it
+(`page_bar::make`, `settings_screen::fitting_rows`, `weather_card::layout`).
 Reserve the pager's room only when there is really a second page, so a list that just fits keeps its
 one page. And when a page turns, make only the rows again, not the card around them.
 

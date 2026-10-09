@@ -19,7 +19,7 @@
 //     says what it is), and only then the hour strip as a whole. The two blocks themselves never go: a weather
 //     card without its days is not a weather card. These are states and not one concession after another: the
 //     strip buys so much room that the heading comes back with it, and on the Waveshare that is what happens.
-//  3. **The days that do not fit move to a next page**, with the same chevrons-and-dots pager as the tile pages
+//  3. **The days that do not fit move to a next page**, with the tile pages' own pager across the foot of the glass
 //     and the settings page, so nothing is ever drawn on top of something else. A row is never thinner than
 //     three quarters of its own line: that is what the two first boards draw today (a CYD five rows of 11 px
 //     with a 14 px line, a Guition five of 25), and keeping that number keeps their pixels.
@@ -52,6 +52,7 @@ struct Metrics {
   int hour_w = 46;   // what one column of the hour strip needs, measured by the caller
   int top = 84;      // where the content starts, under the card's top bar
   int pad = 20;      // overlay_card::pad(): the room the card keeps from the edge of the glass
+  int band = 0;      // the pager every page shares across the foot of the glass (page_bar::height); 0 in the tests
 
   int card_pad() const { return ui::px(large ? 14 : 7); }    // inside a white card
   int gap() const { return ui::px(large ? 12 : 6); }         // between the two blocks
@@ -60,7 +61,7 @@ struct Metrics {
   int row_pad() const { return ui::px(large ? 8 : 4); }      // above the first and under the last day row
   int row_lead() const { return ui::px(large ? 16 : 6); }    // the offsets between the hour strip's four lines
   int heading_h() const { return large ? text_h + ui::px(8) : 0; }  // "Coming days"; the compact look has none
-  int pager_h() const { return ui::px(large ? 34 : 20); }
+  int pager_h() const { return band > 0 ? band : ui::px(large ? 34 : 20); }
   // The narrowest a column of two may be: what the weather now asks for, the icon and the temperature beside
   // each other with the condition and the line under it next to them. Glass narrower than two of these keeps
   // its stack; a column that cuts "Partly cloudy" in half is not a column.
@@ -174,7 +175,8 @@ inline Layout layout(const Metrics &m, int width, int height, int hours, int day
   const int days_x = l.columns == 2 ? pad + card_w + ui::column_gap() : pad;
   if (heading_h) l.heading = {days_x + ui::px(4), days_top(best) - heading_h, card_w - 2 * ui::px(4), m.text_h};
   l.days = {days_x, days_top(best), card_w, space};
-  if (l.pages > 1) l.pager = {days_x, l.days.bottom(), card_w, m.pager_h()};
+  // The pager every page shares stands across the foot of the glass (page_bar.h); the days end above it.
+  if (l.pages > 1) l.pager = {days_x, height - m.pager_h(), card_w, m.pager_h()};
   l.rows_y = m.row_pad();
   l.row_h = std::max(m.min_row(), (l.days.h - 2 * m.row_pad()) / std::max(1, l.rows));
 

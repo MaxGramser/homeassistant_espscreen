@@ -37,7 +37,7 @@ int main() {
     Grid g = place(s, true, 48);
     sound(s, g);
     assert(g.columns == 3 && g.rows == 2 && g.per_page == 6 && g.pager);
-    assert(page_count(48, g.per_page) == 8 && dots(8));
+    assert(page_count(48, g.per_page) == 8);
     assert(g.art >= 90);
     Grid top = place(s, false, 8);
     sound(s, top);
@@ -82,7 +82,7 @@ int main() {
   }
   // The pager counts at most 48 items.
   assert(page_count(0, 6) == 1 && page_count(6, 6) == 1 && page_count(7, 6) == 2 && page_count(48, 6) == 8 && page_count(200, 6) == 8);
-  assert(page_count(48, 4) == 12 && !dots(12) && page_text(11, 12) == "12 / 12");
+  assert(page_count(48, 4) == 12);
   assert(first_of(2, 6) == 12 && end_of(2, 6, 48) == 18 && end_of(7, 6, 46) == 46 && end_of(9, 6, 200) == 48);
   // What a tap does.
   assert(tap_of(CAN_PLAY | CAN_EXPAND) == Tap::play && tap_of(CAN_PLAY | CAN_EXPAND, true) == Tap::open);

@@ -604,6 +604,36 @@ PROBES = '''    - action: render_finger
                      (int) title.x2, (int) title.y2, (int) subtitle.x1, (int) subtitle.y1, (int) subtitle.x2, (int) subtitle.y2,
                      (int) button.x1, (int) button.y1, (int) button.x2, (int) button.y2,
                      (int) button2.x1, (int) button2.y1, (int) button2.x2, (int) button2.y2, (int) (runtime_tiles::alert_picture != nullptr));
+    - action: render_bars
+      then:
+        - lambda: |-
+            // Every key of a top bar or a pager that shows (detail_bar.h, page_bar.h), in drawing order, so the last back
+            // key is the page on top: the glyph it shows, the key's box and the glyph's box on the glass, and whether it is
+            // dimmed. One line each (the logger's line is short), then the count.
+            lv_obj_update_layout(lv_screen_active());
+            int count = 0;
+            std::function<void(lv_obj_t *)> walk = [&](lv_obj_t *o) {
+              if (!o || lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) return;
+              if (lv_obj_check_type(o, &lv_label_class)) {
+                const std::string text(lv_label_get_text(o));
+                size_t at = 0;
+                const uint32_t cp = header_bar::next_codepoint(text, at);
+                if (at == text.size() && (cp == 0xF004D || cp == 0xF0141 || cp == 0xF0142 || cp == 0xF0674 || cp == 0xF1253 ||
+                                          cp == 0xF012C || cp == 0xF04C3 || cp == 0xF0425 || cp == 0xF0906)) {
+                  auto *key = lv_obj_get_parent(o);
+                  lv_area_t k, g = page_bar::ink_area(o);
+                  lv_obj_get_coords(key, &k);
+                  ESP_LOGI("render", "bars item %d %X key=%d,%d,%d,%d ink=%d,%d,%d,%d dim=%d", count++, (unsigned) cp,
+                           (int) k.x1, (int) k.y1, (int) k.x2, (int) k.y2, (int) g.x1, (int) g.y1, (int) g.x2, (int) g.y2,
+                           (int) (lv_obj_has_state(key, LV_STATE_DISABLED) || lv_obj_get_style_text_opa(o, LV_PART_MAIN) < LV_OPA_50 ||
+                                  lv_obj_get_style_opa(o, LV_PART_MAIN) < LV_OPA_50));
+                }
+              }
+              for (uint32_t i = 0; i < lv_obj_get_child_count(o); ++i) walk(lv_obj_get_child(o, i));
+            };
+            walk(lv_screen_active());
+            walk(lv_layer_top());
+            ESP_LOGI("render", "bars end %d", count);
 '''
 # The alarm panel's card as it stands (firmware 0.3.3+): whether it is open, the keypad, what its lines say, the centre
 # of every key a finger uses (the back key, the mode or Disarm keys in their order, the keypad's twelve), and every part

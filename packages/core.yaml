@@ -155,6 +155,9 @@ esphome:
           // The top bar of every page a tap opens (detail_bar.h): its keys' glyphs and the page's name.
           detail_bar::icon_font = id(materialdesign_icons_mini)->get_lv_font();
           detail_bar::title_font = id(headline)->get_lv_font();
+          // The pager every page shares (page_bar.h): the tile pages' chevrons, and the row font for "3 / 12".
+          page_bar::icon_font = id(materialdesign_icons_mini)->get_lv_font();
+          page_bar::words_font = id(sublabel_big)->get_lv_font();
           runtime_tiles::big_icon_font = id(materialdesign_icons_big)->get_lv_font();
           runtime_tiles::control_font = id(sublabel_big)->get_lv_font();
           runtime_tiles::small_font = id(sublabel)->get_lv_font();
@@ -296,6 +299,8 @@ esphome:
           overlay_card::frame(light_controls::card, overlay_card::controls);
           for (auto *widget : {id(color_close_button), id(color_effects_button), id(color_group_button), id(color_detail_title)})
             lv_obj_set_parent(widget, light_controls::card);
+          detail_bar::place(light_controls::card, {id(color_close_button), id(color_detail_title),
+                                                   {id(color_effects_button), id(color_group_button)}});
           light_controls::setup(light_controls::card, id(sublabel)->get_lv_font(), overlay_card::content_width(), overlay_card::screen_height(), id(materialdesign_icons_mini)->get_lv_font());
           light_controls::commits[0] = [](int value) { id(set_light_hue).execute(value); };
           light_controls::commits[1] = [](int value) { id(set_light_color_temperature).execute(value); };
@@ -2226,11 +2231,7 @@ lvgl:
             widgets:
               - obj:
                   id: color_close_button
-                  align: TOP_LEFT
-                  x: ${CARD_KEY_X}
-                  y: ${CARD_KEY_Y}
-                  width: ${CARD_KEY_SIZE}
-                  height: ${CARD_KEY_SIZE}
+                  # Placed by detail_bar::place, the top bar of every page a tap opens.
                   radius: 999
                   styles: paint_key
                   bg_opa: COVER
@@ -2250,11 +2251,6 @@ lvgl:
               # preset, speed), opens its effects page. Hidden for every other light.
               - obj:
                   id: color_effects_button
-                  align: TOP_RIGHT
-                  x: -${CARD_KEY_X}
-                  y: ${CARD_KEY_Y}
-                  width: ${CARD_KEY_SIZE}
-                  height: ${CARD_KEY_SIZE}
                   radius: 999
                   styles: paint_key
                   bg_opa: COVER
@@ -2272,14 +2268,9 @@ lvgl:
                         clickable: false
 
               # The lamps key (firmware 0.3.9+): a light group opens the page of its lamps (group_page.h). Hidden for
-              # every other light; group_page::place_card_keys puts it beside the sparkles key.
+              # every other light; detail_bar::place puts it beside the sparkles key.
               - obj:
                   id: color_group_button
-                  align: TOP_RIGHT
-                  x: -${CARD_KEY_X}
-                  y: ${CARD_KEY_Y}
-                  width: ${CARD_KEY_SIZE}
-                  height: ${CARD_KEY_SIZE}
                   radius: 999
                   styles: paint_key
                   bg_opa: COVER
@@ -2298,11 +2289,8 @@ lvgl:
 
               - label:
                   id: color_detail_title
-                  width: ${COLOR_TITLE_W}
                   long_mode: DOT
                   text_align: CENTER
-                  align: TOP_MID
-                  y: ${COLOR_TITLE_Y}
                   text: "Light Color"
                   styles: style_room
 
@@ -2672,17 +2660,12 @@ script:
           light_controls::open(id(active_entity), id(active_supports_color), id(active_supports_temperature), id(active_brightness_pct));
           if (effects_page::offered(id(active_entity))) lv_obj_remove_flag(id(color_effects_button), LV_OBJ_FLAG_HIDDEN);
           else lv_obj_add_flag(id(color_effects_button), LV_OBJ_FLAG_HIDDEN);
-          // A light group gets the lamps key beside the sparkles key, and the title the room that leaves; any other
-          // light has the bar as it always had.
-          if (group_page::offered(id(active_entity))) {
-            lv_obj_remove_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
-            group_page::place_card_keys(light_controls::card, id(color_close_button), id(color_effects_button),
-                                        id(color_group_button), id(color_detail_title), id(active_title));
-          } else {
-            lv_obj_add_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
-            lv_obj_set_width(id(color_detail_title), ${COLOR_TITLE_W});
-            lv_obj_align(id(color_detail_title), LV_ALIGN_TOP_MID, 0, ${COLOR_TITLE_Y});
-          }
+          // A light group gets the lamps key beside the sparkles key. The card's bar is every page's (detail_bar):
+          // the keys that show take its places, the title the room they leave.
+          if (group_page::offered(id(active_entity))) lv_obj_remove_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
+          else lv_obj_add_flag(id(color_group_button), LV_OBJ_FLAG_HIDDEN);
+          detail_bar::place(light_controls::card, {id(color_close_button), id(color_detail_title),
+                                                   {id(color_effects_button), id(color_group_button)}});
       - lvgl.widget.show: color_detail_overlay
 
   - id: color_brightness_commit

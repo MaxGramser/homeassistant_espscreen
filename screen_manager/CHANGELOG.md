@@ -1,5 +1,11 @@
 ## Unreleased
 
+- **One top bar and one pager on every page.** Every page a tap opens (a card, a light's effects, a light group, the
+  media library and its folders, the settings page, a plugin's card, a camera) now has the same top bar: the back key
+  stands in the same place on all of them, at the corner of the glass, so it no longer moves a little each time you go a
+  page deeper or back. Every list that takes more than one page (settings, a light group, the media library and its
+  speaker menu, a select's options, the coming days of the weather) now has the pager of the tile pages: a chevron in
+  each half, the dots between them.
 - **The preview speaks your screens' language and follows Dark mode.** The live preview in the editor, on the home page
   and under Preview, now shows the firmware's own texts in the language chosen under Settings -> Language & region, and
   draws a screen that has Dark mode on in its dark look, as its glass does. Before, it was always English and light.

@@ -69,30 +69,52 @@ inline void frame(lv_obj_t *root, Kind kind = controls, int columns = 1) {
   lv_obj_set_style_pad_right(root, side, 0);
 }
 
+// Where the glass's left and top edges lie in `parent`'s coordinates, those lv_obj_set_pos takes (its content area):
+// what stands on the glass rather than in a card (the top bar, the page bar) is placed with these on any page's root,
+// capped by its padding or by its place. Read from the styles, not from the coordinates: those follow only at LVGL's
+// next layout pass, and a page is built before that.
+inline int glass_left(const lv_obj_t *parent) {
+  int x = 0;
+  for (const lv_obj_t *o = parent; o && lv_obj_get_parent(o); o = lv_obj_get_parent(o))
+    x += lv_obj_get_style_x(o, LV_PART_MAIN) + lv_obj_get_style_pad_left(o, LV_PART_MAIN) +
+         lv_obj_get_style_border_width(o, LV_PART_MAIN);
+  return -x;
+}
+inline int glass_top(const lv_obj_t *parent) {
+  int y = 0;
+  for (const lv_obj_t *o = parent; o && lv_obj_get_parent(o); o = lv_obj_get_parent(o))
+    y += lv_obj_get_style_y(o, LV_PART_MAIN) + lv_obj_get_style_pad_top(o, LV_PART_MAIN) +
+         lv_obj_get_style_border_width(o, LV_PART_MAIN);
+  return -y;
+}
+
 // Once a card is drawn, put its content in the middle of the glass from top to bottom as well. The first
 // `pinned` children are the card's own top bar (the back key and the name): those stay where they are, at the
-// top, whatever the content below them does. Only the block below the bar moves, and only when it leaves more
-// than a finger's worth of room.
+// top, whatever the content below them does. What stands on the glass rather than in the card (the pager across its
+// foot, page_bar.h, marked FLOATING) stays where it is too, and the block is centred in the room above it. Only the
+// block between them moves, and only when it leaves more than a finger's worth of room.
 inline void centre(lv_obj_t *root, uint32_t pinned = 0) {
   if (!root) return;
   lv_obj_update_layout(root);
-  int bar = 0, top = INT32_MAX, bottom = 0;
+  int bar = 0, foot = screen_height(), top = INT32_MAX, bottom = 0;
   for (uint32_t i = 0; i < lv_obj_get_child_count(root); ++i) {
     lv_obj_t *child = lv_obj_get_child(root, i);
     if (!child || lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) continue;
     const int y = lv_obj_get_y(child), end = y + lv_obj_get_height(child);
+    if (lv_obj_has_flag(child, LV_OBJ_FLAG_FLOATING)) { foot = std::min(foot, y); continue; }
     if (i < pinned) { bar = std::max(bar, end); continue; }
     top = std::min(top, y);
     bottom = std::max(bottom, end);
   }
   if (bottom <= 0 || top == INT32_MAX) return;
-  const int room = screen_height() - bar - (bottom - top);
+  const int room = foot - bar - (bottom - top);
   if (room <= ui::touch_min()) return;
   const int shift = bar + room / 2 - top;
   if (shift == 0) return;
   for (uint32_t i = pinned; i < lv_obj_get_child_count(root); ++i) {
     lv_obj_t *child = lv_obj_get_child(root, i);
-    if (child && !lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) lv_obj_set_y(child, lv_obj_get_y(child) + shift);
+    if (child && !lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN) && !lv_obj_has_flag(child, LV_OBJ_FLAG_FLOATING))
+      lv_obj_set_y(child, lv_obj_get_y(child) + shift);
   }
 }
 

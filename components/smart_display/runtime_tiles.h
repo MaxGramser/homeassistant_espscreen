@@ -28,6 +28,7 @@
 #include "tile_palette.h"
 #include "overlay_card.h"
 #include "detail_bar.h"
+#include "page_bar.h"
 #include "tall_tile.h"
 #include "cover_tile.h"
 #include "alert_overlay.h"
@@ -637,6 +638,10 @@ inline void grid_cells();
 inline void grid_bind(lv_obj_t *container, int margin, int page_bar_height) {
   tile_grid = container;
   grid_margin = margin;
+  // Every page's pager is the band under the tiles, its chevrons on their margin (page_bar.h).
+  page_bar::band = page_bar_height;
+  page_bar::margin = margin;
+  page_bar::allowed = [](int key) { return screen_input::touch_guard.accept_repeat(esphome::millis(), key); };
   auto *display = lv_display_get_default();
   const int canvas_w = lv_display_get_horizontal_resolution(display);
   const int canvas_h = lv_display_get_vertical_resolution(display);
@@ -1700,7 +1705,8 @@ inline lv_obj_t *detail_card(int x,int y,int w,int h){
 // so the eye finds temperature first and rain second. Where the blocks go is weather_card.h's arithmetic:
 // beside each other on wide glass, under each other elsewhere, and the days that do not fit on a next page.
 inline weather_card::Layout weather_layout;
-inline lv_obj_t *weather_days_card=nullptr,*weather_dots=nullptr,*weather_chevron[2]={};
+inline lv_obj_t *weather_days_card=nullptr;
+inline page_bar::Bar weather_pager;
 inline int weather_page=0;
 inline uint32_t weather_page_shown(){return (uint32_t)weather_page;}
 // The metrics the board's fonts give this card. Every number is a line height the look decides; the one string
@@ -1722,6 +1728,7 @@ inline weather_card::Metrics weather_metrics(bool large){
   m.hour_w=text_width(screen_settings::current.clock_24h!=0?"00:00":"12 PM",small)+ui::px(large?10:4);
   m.top=ui::px(large?84:38);
   m.pad=overlay_card::pad();
+  m.band=page_bar::height();  // the pager every page shares, across the foot of the glass
   return m;
 }
 // One column or two: the stack's own height decides, the same way the thermostat and the blind decide.
@@ -1755,18 +1762,9 @@ inline void weather_draw_days(const Tile &t){
     detail_text(weather_days_card,std::isfinite(f.high)?degrees(f.high):"",l.high_x,tcy,l.high_w,detail_font,LV_TEXT_ALIGN_RIGHT,ink);
     detail_text(weather_days_card,std::isfinite(f.low)?degrees(f.low):"",l.low_x,scy,l.low_w,small,LV_TEXT_ALIGN_RIGHT,muted);
   }
-  if(weather_dots)settings_screen::page_dots(weather_dots,weather_page,l.pages,ui::large());
-  for(int side=0;side<2;++side){
-    auto *bar=weather_chevron[side];if(!bar||!lv_obj_get_child_count(bar))continue;
-    const bool on=side?weather_page<l.pages-1:weather_page>0;
-    lv_obj_set_style_opa(lv_obj_get_child(bar,0),on?LV_OPA_COVER:LV_OPA_30,0);
-    if(on)lv_obj_add_flag(bar,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(bar,LV_OBJ_FLAG_CLICKABLE);
-  }
+  if(weather_pager.prev)page_bar::show(weather_pager,weather_page,l.pages);
 }
-// CLICKED, not SHORT_CLICKED: LVGL sends no short click after a press of long_press_time, so a firm press did
-// nothing (the tile pager and the settings page learned the same).
-inline void weather_pager_event(lv_event_t *e){
-  const int step=(int)(intptr_t)lv_event_get_user_data(e);
+inline void weather_pager_step(int step){
   const int next=std::clamp(weather_page+step,0,weather_layout.pages-1);
   if(next==weather_page||detail_index>=model.count)return;
   weather_page=next;
@@ -1785,7 +1783,7 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   const auto &l=weather_layout;
   const int text_h=m.text_h,small_h=m.small_h,mini_h=m.mini_h,icon_h=m.icon_h,big_h=m.big_h,hero=m.hero();
   const int card_pad=m.card_pad();
-  weather_days_card=weather_dots=weather_chevron[0]=weather_chevron[1]=nullptr;
+  weather_days_card=nullptr;weather_pager={};
   // Now: icon, temperature, condition, then feels-like / humidity / wind in one muted line.
   auto *now=detail_card(l.now.x,l.now.y,l.now.w,l.now.h);
   int cy=card_pad;char b[48];
@@ -1815,27 +1813,8 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   if(!weather.forecast.size()){detail_text(detail_root,tr(txt::weather_no_forecast),l.days.x,l.days.y,l.days.w,small,LV_TEXT_ALIGN_LEFT,muted);return;}
   if(!l.heading.empty())detail_text(detail_root,tr(txt::weather_coming_days),l.heading.x,l.heading.y,l.heading.w,detail_font,LV_TEXT_ALIGN_LEFT,muted);
   weather_days_card=detail_card(l.days.x,l.days.y,l.days.w,l.days.h);
-  if(!l.pager.empty()){
-    // The same pager as the tile pages and the settings page: a chevron in each half, the dots between them.
-    const lv_font_t *chevrons=mini_icon_font?mini_icon_font:icon_font;
-    const int chevron_h=lv_font_get_line_height(chevrons),half=l.pager.w/2-ui::px(10);
-    weather_dots=lv_obj_create(detail_root);lv_obj_remove_style_all(weather_dots);
-    lv_obj_set_pos(weather_dots,l.pager.x,l.pager.y);lv_obj_set_size(weather_dots,l.pager.w,l.pager.h);
-    lv_obj_remove_flag(weather_dots,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(weather_dots,LV_OBJ_FLAG_CLICKABLE);
-    for(int side=0;side<2;++side){
-      auto *bar=lv_obj_create(detail_root);lv_obj_remove_style_all(bar);
-      lv_obj_set_pos(bar,side?l.pager.right()-half:l.pager.x,l.pager.y);lv_obj_set_size(bar,half,l.pager.h);
-      lv_obj_remove_flag(bar,LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_set_style_bg_opa(bar,LV_OPA_COVER,LV_STATE_PRESSED);lv_obj_set_style_bg_color(bar,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
-      lv_obj_set_style_radius(bar,ui::px(large?12:8),0);
-      auto *glyph=detail_text(bar,side?"\U000F0142":"\U000F0141",ui::px(6),(l.pager.h-chevron_h)/2,half-ui::px(12),chevrons,
-                              side?LV_TEXT_ALIGN_RIGHT:LV_TEXT_ALIGN_LEFT,theme::hex(theme::INK));
-      lv_obj_remove_flag(glyph,LV_OBJ_FLAG_CLICKABLE);
-      overlay_card::touchable(bar,l.pager.h);
-      lv_obj_add_event_cb(bar,weather_pager_event,LV_EVENT_CLICKED,(void*)(intptr_t)(side?1:-1));
-      weather_chevron[side]=bar;
-    }
-  }
+  // The pager every page shares (page_bar.h), across the foot of the glass; the layout ends the days above it.
+  if(!l.pager.empty())weather_pager=page_bar::make(detail_root,weather_pager_step);
   if(weather_page>=l.pages)weather_page=0;
   weather_draw_days(t);
   card_shaped(t,picture_card_shape);
@@ -1846,8 +1825,8 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
 // Wide glass that has more options than one column holds gets a second column (read top to bottom, then the next);
 // options that still do not fit go to a next page with the same chevrons and dots as the tile pages.
 inline int select_page=0;
-inline void select_pager_event(lv_event_t *e){
-  select_page+=(int)(intptr_t)lv_event_get_user_data(e);
+inline void select_pager_step(int step){
+  select_page+=step;
   redraw_detail();
 }
 // What is chosen: a select's state, or the activity a remote runs (firmware 0.22.0+).
@@ -1888,7 +1867,8 @@ inline void render_select_detail(const Tile &t,bool large,int width,int height,i
   if(!n)return;
   const lv_font_t *text=control_font?control_font:detail_font,*glyphs=mini_icon_font?mini_icon_font:detail_font;
   const int row_h=std::max(ui::touch_min(),ui::px(large?52:36)),inset=ui::px(large?6:4),gap=ui::px(large?4:2);
-  const int pager_h=std::max(ui::touch_min(),ui::px(large?44:30)),card_w=std::min(width-2*pad,ui::control_max_width());
+  // Paged, the options end above the pager every page shares across the foot of the glass (page_bar.h).
+  const int pager_h=page_bar::height(),card_w=std::min(width-2*pad,ui::control_max_width());
   const int room=height-top-pad;
   auto rows_in=[&](int span){return std::max(1,(span-2*inset+gap)/(row_h+gap));};
   // Two columns once one does not hold every option and each column keeps room for a word of some length.
@@ -1929,26 +1909,8 @@ inline void render_select_detail(const Tile &t,bool large,int width,int height,i
   }
   card_shaped(t,select_card_shape);
   if(!paged)return;
-  // The same pager as the tile pages and the settings page: a chevron in each half, the dots between them.
-  const int py=top+card_h+gap,half=card_w/2-ui::px(10);
-  const int chevron_h=lv_font_get_line_height(glyphs);
-  auto *dots=lv_obj_create(detail_root);lv_obj_remove_style_all(dots);
-  lv_obj_set_pos(dots,x,py);lv_obj_set_size(dots,card_w,pager_h);
-  lv_obj_remove_flag(dots,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(dots,LV_OBJ_FLAG_CLICKABLE);
-  settings_screen::page_dots(dots,select_page,pages,large);
-  for(int side=0;side<2;++side){
-    const bool can=side?select_page<pages-1:select_page>0;
-    auto *bar=lv_obj_create(detail_root);lv_obj_remove_style_all(bar);
-    lv_obj_set_pos(bar,side?x+card_w-half:x,py);lv_obj_set_size(bar,half,pager_h);
-    lv_obj_remove_flag(bar,LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_bg_opa(bar,LV_OPA_COVER,LV_STATE_PRESSED);lv_obj_set_style_bg_color(bar,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
-    lv_obj_set_style_radius(bar,ui::px(large?12:8),0);
-    auto *glyph=detail_text(bar,side?"\U000F0142":"\U000F0141",ui::px(6),(pager_h-chevron_h)/2,half-ui::px(12),glyphs,
-                            side?LV_TEXT_ALIGN_RIGHT:LV_TEXT_ALIGN_LEFT,can?theme::INK:theme::CHEVRON);
-    lv_obj_remove_flag(glyph,LV_OBJ_FLAG_CLICKABLE);
-    if(can){overlay_card::touchable(bar,pager_h);lv_obj_add_event_cb(bar,select_pager_event,LV_EVENT_CLICKED,(void*)(intptr_t)(side?1:-1));}
-    else lv_obj_remove_flag(bar,LV_OBJ_FLAG_CLICKABLE);
-  }
+  // The pager every page shares (page_bar.h), across the foot of the glass.
+  page_bar::show(page_bar::make(detail_root,select_pager_step),select_page,pages);
 }
 // ---- Vacuum card ----
 // A robot with its state and battery, the two commands used most, and one block that says how it cleans:
@@ -5188,7 +5150,7 @@ inline void show_detail(unsigned index){
   lv_obj_remove_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_backdrop);
   ++card_builds;
   detail_action_count=0;card_parts.clear();card_shape_of=nullptr;card_blocked=false;detail_status=nullptr;detail_badge_status=nullptr;detail_switch=nullptr;climate_number=nullptr;climate_ends[0]=climate_ends[1]=nullptr;climate_now_mark=nullptr;climate_keys[0]=climate_keys[1]=nullptr;detail_placed=false;detail_status_brief=false;history_forget();
-  alarm_forget_widgets();media_progress_fill=nullptr;media_elapsed_label=nullptr;media_total_label=nullptr;media_detail_picture=nullptr;weather_days_card=nullptr;weather_dots=nullptr;weather_chevron[0]=weather_chevron[1]=nullptr;light_value=nullptr;lv_obj_clean(detail_root);lv_obj_remove_flag(detail_root,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_root);
+  alarm_forget_widgets();media_progress_fill=nullptr;media_elapsed_label=nullptr;media_total_label=nullptr;media_detail_picture=nullptr;weather_days_card=nullptr;weather_pager={};light_value=nullptr;lv_obj_clean(detail_root);lv_obj_remove_flag(detail_root,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_root);
   lv_obj_set_style_bg_color(detail_root,theme::color(theme::PAGE),0);lv_obj_set_style_bg_opa(detail_root,LV_OPA_COVER,0);
   lv_obj_set_style_bg_grad_dir(detail_root,LV_GRAD_DIR_NONE,0);
   media_knob=media_pill_obj=media_library_key=media_input_key=nullptr;
@@ -9156,15 +9118,8 @@ inline void set_cell(lv_obj_t *obj, int32_t column, int32_t span_x, int32_t row,
       lv_obj_get_style_grid_cell_y_align(obj, LV_PART_MAIN) == LV_GRID_ALIGN_STRETCH) return;
   lv_obj_set_grid_cell(obj, LV_GRID_ALIGN_STRETCH, column, span_x, LV_GRID_ALIGN_STRETCH, row, span_y);
 }
-// What a page key shows: its chevron. Not its first child: since firmware 0.3.1 that is the press patch behind the
-// chevron (nav_key_patch), which made the chevron keep full ink on the first and last page (fixed in firmware 0.3.2).
-inline lv_obj_t *nav_glyph(lv_obj_t *key) {
-  for (uint32_t i = 0; key && i < lv_obj_get_child_count(key); ++i) {
-    auto *child = lv_obj_get_child(key, i);
-    if (child != nav_back_label && lv_obj_check_type(child, &lv_label_class)) return child;
-  }
-  return nullptr;
-}
+// What a page key shows: its chevron (page_bar::glyph), not its first child, which is the press patch behind it.
+inline lv_obj_t *nav_glyph(lv_obj_t *key){return page_bar::glyph(key);}
 // A card turns into a bedside clock's key and back (firmware 0.8.0+): out of the grid, round and without padding, so
 // the card is the key; back in the grid with the card's own shape from its styles.
 inline void key_shape(Widgets &w,bool key){
@@ -9273,12 +9228,10 @@ inline int place_page(int page, bool kept = false) {
   // Settings can re-place this page under that overlay; using the action guard
   // here would leave the arrows disabled when the same document recovers.
   const int previous=detail?navigation_history.target(model.page_data,page):model.page_data.step(page,-1);
-  if(previous==page)lv_obj_add_state(nav_prev,LV_STATE_DISABLED);else lv_obj_remove_state(nav_prev,LV_STATE_DISABLED);
-  if(model.page_data.step(page,1)==page)lv_obj_add_state(nav_next,LV_STATE_DISABLED);else lv_obj_remove_state(nav_next,LV_STATE_DISABLED);
-  for(auto *control:{nav_prev,nav_next})if(auto *chevron=nav_glyph(control))
-    set_number(chevron,LV_STYLE_TEXT_OPA,lv_obj_has_state(control,LV_STATE_DISABLED)?LV_OPA_30:LV_OPA_COVER);
+  page_bar::enable(nav_prev,previous!=page);
+  page_bar::enable(nav_next,model.page_data.step(page,1)!=page);
   // The dots between the two chevrons (firmware 0.2.69+): the page on screen in ink.
-  if(sequential && nav_number)settings_screen::page_dots(nav_number,model.page_data.ordinal(page),sequential_count,ui::large());
+  if(sequential && nav_number)page_bar::dots(nav_number,model.page_data.ordinal(page),sequential_count);
   // The cards are drawn from the sizes the grid gives them, so it lays out before anything reads one.
   if(tile_grid)lv_obj_update_layout(tile_grid);
   if(widgets[0].tile && widgets[0].index<model.count && model.tiles[widgets[0].index].is_bedside()){
@@ -9291,52 +9244,6 @@ inline int place_page(int page, bool kept = false) {
 inline void apply_page(int page) {
   applied_page=place_page(page);
   if(room_label){mark_all();render(room_label);}else refresh_all();
-}
-// A page key takes touches across its half of the bar, which runs under the page dots; its press shows as a rounded
-// patch around what the key shows (the chevron, or "Back") instead of across that whole half (firmware 0.3.1).
-// The inked box of what a label shows: for a lone icon the glyph's own box from the font, since the label's box
-// carries the font's side bearings and line gap and a patch centred on it would sit off the chevron.
-inline lv_area_t ink_area(lv_obj_t *o){
-  lv_area_t a;lv_obj_get_coords(o,&a);
-  if(!lv_obj_check_type(o,&lv_label_class))return a;
-  const char *text=lv_label_get_text(o);if(!text||!*text)return a;
-  const std::string shown(text);size_t i=0;const uint32_t cp=header_bar::next_codepoint(shown,i);
-  if(i!=shown.size()||cp<0xF0000)return a;  // words ("Back") keep their label box
-  const lv_font_t *font=lv_obj_get_style_text_font(o,LV_PART_MAIN);lv_font_glyph_dsc_t g;
-  if(!font||!lv_font_get_glyph_dsc(font,&g,cp,0)||!g.box_w||!g.box_h)return a;
-  const int32_t top=a.y1+(font->line_height-font->base_line)-(int32_t)g.box_h-g.ofs_y,left=a.x1+g.ofs_x;
-  return lv_area_t{left,top,left+(int32_t)g.box_w-1,top+(int32_t)g.box_h-1};
-}
-inline void nav_key_event(lv_event_t *e){
-  auto *key=(lv_obj_t*)lv_event_get_current_target(e);auto *patch=(lv_obj_t*)lv_event_get_user_data(e);
-  const auto code=lv_event_get_code(e);
-  if(code==LV_EVENT_RELEASED||code==LV_EVENT_PRESS_LOST){lv_obj_add_flag(patch,LV_OBJ_FLAG_HIDDEN);return;}
-  if(code!=LV_EVENT_PRESSED)return;
-  // Around everything the key shows: the chevron, and "Back" beside it on a detail page.
-  lv_area_t k,c{};bool any=false;lv_obj_get_coords(key,&k);
-  for(uint32_t i=0;i<lv_obj_get_child_count(key);++i){
-    auto *child=lv_obj_get_child(key,i);
-    if(child==patch||lv_obj_has_flag(child,LV_OBJ_FLAG_HIDDEN))continue;
-    const lv_area_t a=ink_area(child);
-    if(!any){c=a;any=true;}else{c.x1=std::min(c.x1,a.x1);c.y1=std::min(c.y1,a.y1);c.x2=std::max(c.x2,a.x2);c.y2=std::max(c.y2,a.y2);}
-  }
-  if(!any)return;
-  // A circle around a lone chevron, a pill around chevron and word; never taller than the bar.
-  const int pad=ui::px(ui::large()?14:10),bar=(int)lv_area_get_height(&k),iw=(int)lv_area_get_width(&c),ih=(int)lv_area_get_height(&c);
-  const int h=std::min(bar-ui::px(4),std::max(iw,ih)+2*pad),w=std::max(h,iw+2*pad);
-  const int cx=(int)(c.x1+c.x2+1)/2-(int)k.x1,cy=(int)(c.y1+c.y2+1)/2-(int)k.y1;
-  lv_obj_set_size(patch,w,h);lv_obj_set_pos(patch,cx-w/2,cy-h/2);
-  lv_obj_remove_flag(patch,LV_OBJ_FLAG_HIDDEN);
-}
-inline void nav_key_patch(lv_obj_t *key){
-  if(!key)return;
-  auto *patch=lv_obj_create(key);lv_obj_remove_style_all(patch);
-  lv_obj_remove_flag(patch,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(patch,LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_add_flag(patch,LV_OBJ_FLAG_IGNORE_LAYOUT);lv_obj_add_flag(patch,LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_style(patch,theme::style(theme::Paint::page_pressed),0);lv_obj_set_style_bg_opa(patch,LV_OPA_COVER,0);
-  lv_obj_set_style_radius(patch,LV_RADIUS_CIRCLE,0);
-  lv_obj_move_to_index(patch,0);  // behind the chevron
-  for(auto code:{LV_EVENT_PRESSED,LV_EVENT_RELEASED,LV_EVENT_PRESS_LOST})lv_obj_add_event_cb(key,nav_key_event,code,patch);
 }
 // ---- Pages kept whole: memory and the exchange of card sets (kept_pages.h) ----
 inline void *kept_allocate(size_t bytes) {
@@ -9560,17 +9467,11 @@ inline void forget_kept() {
 #endif
   }
 }
-// A page key's chevron with its ink on the tiles' margin (firmware 0.14.0+), the line the top bar and the cards keep
-// from the side of the glass, measured from the glyph itself so the font's side bearing does not push it inward.
-inline void nav_align(lv_obj_t *key,bool left){
-  auto *chevron=nav_glyph(key);if(!chevron)return;
-  const lv_font_t *font=lv_obj_get_style_text_font(chevron,LV_PART_MAIN);lv_font_glyph_dsc_t g;
-  if(!font||!lv_font_get_glyph_dsc(font,&g,left?0xF0141:0xF0142,0)||!g.box_w)return;
-  lv_obj_set_x(chevron,left?grid_margin-g.ofs_x:-(grid_margin-(int(g.adv_w)-g.ofs_x-int(g.box_w))));
-}
 inline void show_page(int &page, lv_obj_t *previous, lv_obj_t *next, lv_obj_t *number) {
-  if(!nav_prev){nav_key_patch(previous);nav_key_patch(next);}
-  if(!nav_prev){nav_align(previous,true);nav_align(next,false);}
+  // The tile pages' bar is declared in the core and dressed by the pager every page shares (page_bar.h): the press
+  // patch, and the chevrons' ink on the tiles' margin.
+  if(!nav_prev){page_bar::patch(previous);page_bar::patch(next);}
+  if(!nav_prev){page_bar::align(previous,true,grid_margin);page_bar::align(next,false,grid_margin);}
   nav_prev=previous;nav_next=next;nav_number=number;shown_page=&page;
   if(!nav_back_label && previous){
     nav_back_label=lv_label_create(previous);
@@ -9954,7 +9855,7 @@ inline void tick() {
 inline void restyle() {
   each_card([](Widgets &w) { w.cached_active = -1; w.panel_dirty = true; });
   if (nav_number && applied_bar && applied_page >= 0)
-    settings_screen::page_dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count(), ui::large());
+    page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());
   header_renderer.restyle();
   if (room_label) { mark_all(); render(room_label); }
   if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_tile()) show_detail(detail_index);

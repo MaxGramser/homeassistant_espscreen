@@ -1718,6 +1718,8 @@ class Run:
         await asyncio.sleep(2.5)
         await answer_pictures(since)
         await self.render('media-card')
+        # Every page of the player has the one top bar (detail_bar.h): the back key where the card has it.
+        media_bars = {'media-card': await self.bars_probe()}
         # The speaker menu: a tap on the pill, a row per speaker, the one it plays on ticked; a row chooses it.
         await self.tap(*card['pill'][:2])
         card = await self.media_until(lambda c: c['menu'] and len(c['rows']) == 3, 'the speaker menu never opened with three rows')
@@ -1739,6 +1741,7 @@ class Run:
         await answer_browse(since)
         card = await self.media_until(lambda c: c['library'] and c['items'] == 8, 'the library never showed its eight folders')
         await self.render('media-library')
+        media_bars['media-library'] = await self.bars_probe()
         # Albums: a page of covers, then their picture.
         since = len(calls)
         await self.tap(*card['cells'][2][:2])
@@ -1749,6 +1752,7 @@ class Run:
             await answer_pictures(since)
             card = await self.media_until(lambda c: c['shown'] == c['covers'], 'the covers never showed', timeout=20)
         await self.render('media-albums')
+        media_bars['media-albums'] = await self.bars_probe()
         if card['pager']:
             since2 = len(calls)
             await self.tap(*card['pager'][1][:2])
@@ -1758,6 +1762,18 @@ class Run:
                 await answer_pictures(since2)
                 card = await self.media_until(lambda c: c['shown'] == c['covers'], 'the covers of page 2 never showed', timeout=20)
             await self.render('media-albums-2')
+            media_bars['media-albums-2'] = await self.bars_probe()
+        # The back key of every page where the card has it, and the albums' pager the tile pages' bar across the foot.
+        card_back = self.top_back(media_bars['media-card'])
+        width, height = self.canvas
+        for name, items in media_bars.items():
+            back = self.top_back(items)
+            if not back or not card_back or back['key'] != card_back['key']:
+                faults.append(f'{name}: the back key stands at {back and back["key"]}, the card has it at {card_back and card_back["key"]}')
+        for name in ('media-albums', 'media-albums-2'):
+            bar = self.pager_of(media_bars.get(name, []))
+            if name in media_bars and (not bar or bar[0]['key'][0] != 0 or bar[1]['key'][2] != width - 1 or bar[0]['key'][3] != height - 1):
+                faults.append(f'{name}: the pager is not the band across the foot of the glass: {bar and (bar[0]["key"], bar[1]["key"])}')
         # A tap on a cover plays it where the player plays now.
         since = len(calls)
         await self.tap(*card['cells'][0][:2])
@@ -2223,6 +2239,237 @@ class Run:
         self.warnings.append(f'automation: tap/hold on a switching tile and a run button, running, off, unavailable; {len(calls)} calls')
         return 1
 
+    # ---- One top bar and one pager on every page (detail_bar.h, page_bar.h) ----
+    async def bars_probe(self):
+        """Every top bar and pager key that shows, in drawing order: the glyph, the key's box and the glyph's ink on the
+        glass, dimmed or not (render_bars)."""
+        start = len(self.lines)
+        await self.call('render_bars')
+        await self.until(lambda l: 'bars end ' in l, 10, 'render_bars', start)
+        items = []
+        for line in self.lines[start:]:
+            m = re.search(r'bars item \d+ ([0-9A-F]+) key=(-?\d+),(-?\d+),(-?\d+),(-?\d+) ink=(-?\d+),(-?\d+),(-?\d+),(-?\d+) dim=(\d)', line)
+            if m:
+                n = [int(v) for v in m.groups()[1:9]]
+                items.append({'glyph': m[1], 'key': tuple(n[:4]), 'ink': tuple(n[4:]), 'dim': m[10] == '1',
+                              'centre': ((n[0] + n[2]) // 2, (n[1] + n[3]) // 2)})
+        return items
+
+    async def bars_until(self, test, what, timeout=8):
+        end = time.monotonic() + timeout
+        while True:
+            items = await self.bars_probe()
+            if test(items):
+                return items
+            if time.monotonic() > end:
+                raise RuntimeError(f'bars: {what}: {[(i["glyph"], i["key"]) for i in items]}')
+            await asyncio.sleep(0.15)
+
+    def top_back(self, items):
+        """The back key of the page on top: the last one drawn."""
+        backs = [i for i in items if i['glyph'] == 'F004D']
+        return backs[-1] if backs else None
+
+    def pager_of(self, items):
+        """The pager on top: the last pair of a chevron-left and a chevron-right key side by side on one line, as wide as
+        each other and each at least three times as wide as it is high (the halves of a bar; a row's chevron, a d-pad
+        key or a key of the tile pages' bar left under a page that covers it does not pair)."""
+        half = lambda i: i['glyph'] in ('F0141', 'F0142') and i['key'][2] - i['key'][0] >= 3 * (i['key'][3] - i['key'][1])
+        found = None
+        for n, prev in enumerate(items):
+            if prev['glyph'] != 'F0141' or not half(prev):
+                continue
+            for nxt in items[n + 1:n + 4]:
+                if (nxt['glyph'] == 'F0142' and half(nxt) and nxt['key'][1] == prev['key'][1] and nxt['key'][3] == prev['key'][3]
+                        and abs((nxt['key'][2] - nxt['key'][0]) - (prev['key'][2] - prev['key'][0])) <= 1 and nxt['key'][0] > prev['key'][2]):
+                    found = (prev, nxt)
+                    break
+        return found
+
+    async def bars_round(self, grid):
+        """The routes a finger takes a page deeper and back, through the touchscreen: a light group's card, its lamps,
+        its effects and their picker, a select with many options, the weather, the settings page, and the tile pages'
+        own pager. On every page the back key must stand where it stands on every other, the keys at the right mirror
+        it, and every pager across the foot of the glass must be the tile pages' bar, key for key."""
+        from core import extras, state_message
+        import light_groups
+        from datetime import timedelta
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        GROUP, SELECT, WEATHER = 'light.living_room', 'select.radio_station', 'weather.home'
+        lamps = [f'light.lamp_{n}' for n in range(1, 13)]
+        states = {GROUP: {'state': 'on', 'attributes': {'friendly_name': 'Living room', 'entity_id': lamps, 'brightness': 180,
+                                                        'supported_color_modes': ['hs'], 'color_mode': 'hs', 'hs_color': [30, 60],
+                                                        'supported_features': 4, 'effect_list': ['None', 'Rainbow', 'Candle'], 'effect': 'None'}}}
+        for n, lamp in enumerate(lamps):
+            states[lamp] = {'state': 'on' if n % 3 else 'off', 'attributes': {'friendly_name': f'Lamp {n + 1}', 'brightness': 40 + 15 * n,
+                                                                             'supported_color_modes': ['hs'], 'color_mode': 'hs', 'hs_color': [20 * n, 70]}}
+        states[SELECT] = {'state': 'Station 3', 'attributes': {'friendly_name': 'Radio', 'options': [f'Station {n}' for n in range(1, 31)]}}
+        states[WEATHER] = {'state': 'rainy', 'attributes': {'friendly_name': 'Home', 'temperature': 14.0, 'temperature_unit': '°C'}}
+        conditions = ['sunny', 'partlycloudy', 'rainy', 'cloudy', 'lightning-rainy', 'snowy', 'fog']
+        forecast = [{'datetime': (MOMENT + timedelta(days=i)).isoformat(), 'condition': conditions[i % 7], 'temperature': 21 - i % 7,
+                     'templow': 11 + i % 5, 'precipitation': i % 3, 'precipitation_probability': 10 * (i % 9)} for i in range(14)]
+        tiles_in = [{'entity': GROUP, 'name': 'Living room', 'slot': 0}, {'entity': SELECT, 'name': 'Radio', 'slot': 1},
+                    {'entity': WEATHER, 'name': 'Home', 'slot': 2 if grid.slots > 2 else grid.slots},
+                    {'entity': 'light.lamp_1', 'name': 'Lamp 1', 'slot': grid.slots + (1 if grid.slots > 2 else 1)}]
+        record = send_layout.migrate_legacy(dict(title='Bars', pages=2, page_titles=['Bars', 'More'], tiles=tiles_in), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        values = []
+        for index, tile in enumerate(tiles):
+            weather = tile['entity'] == WEATHER
+            value = state_message(index, tile, states, extras(tile, states, forecast if weather else None, None, None, MOMENT))
+            group = light_groups.lamps(tile['entity'], states)
+            if group:
+                value.setdefault('x', {})['lamps'] = group
+            values.append(value)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        await asyncio.sleep(1.0)
+        spots = await self.slots()
+        width, height = self.canvas
+        seen, faults = {}, []
+
+        async def look(name, items=None):
+            items = items or await self.bars_probe()
+            seen[name] = items
+            await self.render(f'bars-{name}')
+            return items
+
+        async def back_to_tiles():
+            for _ in range(6):
+                items = await self.bars_probe()
+                back = self.top_back(items)
+                if not back:
+                    return
+                await self.tap(*back['centre'])
+                await asyncio.sleep(0.4)
+            raise RuntimeError('bars: back never reached the tile pages')
+
+        # The tile pages' own pager: the reference every other bar across the foot of the glass is held to.
+        tiles_bar = self.pager_of(await self.bars_until(lambda i: self.pager_of(i), 'the tile pages show no pager'))
+        await look('tiles')
+        # A light group: held, its colour card; the lamps key, its lamps page; the sparkles key, its effects page.
+        await self.hold(*spots[GROUP])
+        items = await self.bars_until(lambda i: self.top_back(i) and any(x['glyph'] == 'F1253' for x in i), 'the colour card never opened with its lamps key')
+        await look('colour-card', items)
+        lamps_key = [x for x in items if x['glyph'] == 'F1253'][-1]
+        await self.tap(*lamps_key['centre'])
+        await asyncio.sleep(0.6)
+        items = await self.bars_until(lambda i: self.pager_of(i) is not None, 'the lamps page never showed its pager')
+        await look('group', items)
+        group_bar = self.pager_of(items)
+        await self.tap(*group_bar[1]['centre'])
+        await asyncio.sleep(0.6)
+        items = await self.bars_until(lambda i: self.pager_of(i) and not self.pager_of(i)[0]['dim'], 'the lamps page never turned')
+        await look('group-2', items)
+        await self.tap(*self.top_back(items)['centre'])
+        await asyncio.sleep(0.6)
+        items = await self.bars_until(lambda i: any(x['glyph'] == 'F0674' for x in i), 'back never went to the colour card')
+        sparkles = [x for x in items if x['glyph'] == 'F0674'][-1]
+        await self.tap(*sparkles['centre'])
+        await asyncio.sleep(0.6)
+        # The effects page covers the colour card: two back keys in the tree, the page's on top.
+        items = await self.bars_until(lambda i: len([x for x in i if x['glyph'] == 'F004D']) >= 2, 'the effects page never opened')
+        await look('effects', items)
+        # Its first row (the light's effect) opens the picker, with the check key at the top right.
+        rows = [x for x in items if x['glyph'] == 'F0674' and x['key'][2] - x['key'][0] >= 3 * (x['key'][3] - x['key'][1])]
+        if not rows:
+            faults.append('effects: no row for the effect')
+        else:
+            await self.tap(*rows[0]['centre'])
+            await asyncio.sleep(0.6)
+            items = await self.bars_until(lambda i: any(x['glyph'] == 'F012C' for x in i), 'the picker never opened')
+            await look('picker', items)
+        await back_to_tiles()
+        # A select with thirty options: its card, a page of options and the pager under it.
+        await self.tap(*spots[SELECT])
+        await asyncio.sleep(0.6)
+        items = await self.bars_until(lambda i: self.top_back(i), 'the select card never opened')
+        await look('select', items)
+        if self.pager_of(items):
+            await self.tap(*self.pager_of(items)[1]['centre'])
+            await asyncio.sleep(0.8)
+            items = await self.bars_until(lambda i: self.pager_of(i) and not self.pager_of(i)[0]['dim'], 'the options never turned a page')
+            await look('select-2', items)
+        await back_to_tiles()
+        # The weather: fourteen days, a page of them and the pager under the card.
+        await self.tap(*spots[WEATHER])
+        await asyncio.sleep(0.8)
+        items = await self.bars_until(lambda i: self.top_back(i), 'the weather card never opened')
+        await look('weather', items)
+        await back_to_tiles()
+        # The settings page: held on the top bar, as a person opens it.
+        await self.call('render_finger', x=width // 2, y=max(4, height // 30), down=True)
+        await asyncio.sleep(2.2)
+        await self.call('render_finger', x=width // 2, y=max(4, height // 30), down=False)
+        await asyncio.sleep(0.6)
+        items = await self.bars_probe()
+        if not self.top_back(items):
+            self.warnings.append('bars: holding the top bar did not open the settings page; opened it with open_settings')
+            await self.call('open_settings', page=0)
+            await asyncio.sleep(0.6)
+        items = await self.bars_until(lambda i: self.top_back(i), 'the settings page never opened')
+        await look('settings', items)
+        # Its groups, one after the other, until one holds more rows than fit: its pager must be the tile pages' bar.
+        back_at = next(n for n, x in enumerate(items) if x is self.top_back(items))
+        groups = [x for x in items[back_at:] if x['glyph'] == 'F0142' and x['key'][2] - x['key'][0] >= 3 * (x['key'][3] - x['key'][1])]
+        for row in groups:
+            await self.tap(*row['centre'])
+            await asyncio.sleep(0.6)
+            inside = await self.bars_probe()
+            bar = self.pager_of(inside)
+            at = lambda item: next(n for n, x in enumerate(inside) if x is item)
+            if bar and at(bar[0]) > at(self.top_back(inside)):
+                await look('settings-paged', inside)
+                await self.tap(*bar[1]['centre'])
+                await asyncio.sleep(0.6)
+                await look('settings-paged-2')
+                break
+            await self.tap(*self.top_back(inside)['centre'])
+            await asyncio.sleep(0.5)
+        await back_to_tiles()
+
+        # The checks: one back key, keys at the right that mirror it, and one pager.
+        backs = {name: self.top_back(items)['key'] for name, items in seen.items() if self.top_back(items)}
+        reference = backs.get('colour-card')
+        for name, key in backs.items():
+            if key != reference:
+                faults.append(f'{name}: the back key stands at {key}, the colour card has it at {reference}')
+        if reference:
+            for name, items in seen.items():
+                outer = [x for x in items if x['glyph'] != 'F004D' and x['key'][1] == reference[1] and x['key'][3] == reference[3]]
+                if outer:
+                    edge = max(x['key'][2] for x in outer)
+                    if width - 1 - edge != reference[0]:
+                        faults.append(f'{name}: the outer key at the right ends at {edge}, {width - 1 - edge} from the edge; the back key keeps {reference[0]}')
+        for name in ('group', 'group-2', 'settings', 'settings-paged', 'settings-paged-2'):
+            if name not in seen:
+                continue
+            items = seen[name]
+            bar = self.pager_of(items)
+            # The settings page has a pager only when its rows do not fit; the tile pages' own under it does not count.
+            at = lambda item: next(n for n, x in enumerate(items) if x is item)
+            if bar and at(bar[0]) < at(self.top_back(items)):
+                bar = None
+            if not bar:
+                if name in ('group', 'group-2', 'settings-paged', 'settings-paged-2'):
+                    faults.append(f'{name}: no pager')
+                continue
+            for mine, theirs, side in ((bar[0], tiles_bar[0], 'back'), (bar[1], tiles_bar[1], 'forward')):
+                if mine['key'] != theirs['key'] or mine['ink'] != theirs['ink']:
+                    faults.append(f'{name}: its {side} key is {mine["key"]} with ink {mine["ink"]}, the tile pages have {theirs["key"]} with ink {theirs["ink"]}')
+        report = ['bars ' + ' '.join(f'{n}={k}' for n, k in backs.items())]
+        for name, items in seen.items():
+            bar = self.pager_of(items)
+            report.append(f'{name}: back={self.top_back(items)["key"] if self.top_back(items) else None} pager={(bar[0]["key"], bar[1]["key"]) if bar else None} '
+                          f'right={[(x["glyph"], x["key"]) for x in items if x["glyph"] in ("F0674", "F1253", "F012C", "F0425")]}')
+        (self.out / 'bars.txt').write_text('\n'.join(report + faults) + '\n')
+        self.failures += [f'bars: {f}' for f in faults]
+        return len(seen)
+
     async def drive(self):
         self.client = APIClient('127.0.0.1', self.item.port, None)
         for _ in range(240):
@@ -2288,6 +2535,8 @@ class Run:
             return 1, await self.saver_panel()
         if self.only == 'humidifier':
             return 1, await self.humidifier_panel(grid)
+        if self.only == 'bars':
+            return 1, await self.bars_round(grid)
         if self.only == 'plugin':
             return 1, await self.plugin_round(grid)
         checks = await self.self_test()
@@ -2377,7 +2626,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'saver', 'humidifier'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'saver', 'humidifier', 'bars'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
