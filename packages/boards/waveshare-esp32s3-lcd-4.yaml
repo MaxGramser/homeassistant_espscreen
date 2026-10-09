@@ -116,7 +116,7 @@ touchscreen:
 display:
   - platform: mipi_rgb
     id: my_display
-    setup_priority: -100
+    setup_priority: -50
     model: WAVESHARE-4-480X480
     spi_id: lcd
     reset_pin:
