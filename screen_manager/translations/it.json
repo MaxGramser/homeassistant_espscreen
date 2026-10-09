@@ -1870,7 +1870,7 @@
         },
         "test": {
           "title": "Provalo sul tuo schermo",
-          "text": "Aggiungi il tuo repository con un link. Ogni versione che pubblichi compare qui come aggiornamento.",
+          "text": "Aggiungi il tuo repository con un link. Fai push, e ogni nuovo commit o release appare qui come aggiornamento.",
           "folder": "Oppure metti la sua cartella in {path} per provarlo senza una versione."
         },
         "share": {

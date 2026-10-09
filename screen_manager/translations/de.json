@@ -1870,7 +1870,7 @@
         },
         "test": {
           "title": "Auf deinem Bildschirm ausprobieren",
-          "text": "Füge dein Repository mit einem Link hinzu. Jede Version, die du veröffentlichst, erscheint hier als Update.",
+          "text": "Füge dein Repository mit einem Link hinzu. Push, und jeder neue Commit oder jedes Release erscheint hier als Update.",
           "folder": "Oder lege seinen Ordner in {path}, um ohne Version zu testen."
         },
         "share": {

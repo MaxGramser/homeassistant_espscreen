@@ -1870,7 +1870,7 @@
         },
         "test": {
           "title": "Wypróbuj na swoim ekranie",
-          "text": "Dodaj swoje repozytorium linkiem. Każde wydanie, które opublikujesz, pojawi się tu jako aktualizacja.",
+          "text": "Dodaj swoje repozytorium linkiem. Wypchnij zmiany, a każdy nowy commit lub wydanie pojawi się tu jako aktualizacja.",
           "folder": "Albo umieść jej folder w {path}, aby testować bez wydania."
         },
         "share": {

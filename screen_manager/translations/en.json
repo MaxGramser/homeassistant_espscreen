@@ -3141,7 +3141,7 @@
         },
         "test": {
           "title": "Try it on your screen",
-          "text": "Add your repository with a link. Every release you publish shows up here as an update.",
+          "text": "Add your repository with a link. Push, and each new commit or release shows up here as an update.",
           "folder": "Or put its folder in {path} to test without a release."
         },
         "share": {

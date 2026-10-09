@@ -1870,7 +1870,7 @@
         },
         "test": {
           "title": "Essayez-le sur votre écran",
-          "text": "Ajoutez votre dépôt avec un lien. Chaque version que vous publiez apparaît ici comme mise à jour.",
+          "text": "Ajoutez votre dépôt avec un lien. Poussez, et chaque nouveau commit ou release apparaît ici comme mise à jour.",
           "folder": "Ou placez son dossier dans {path} pour tester sans version."
         },
         "share": {

@@ -3141,7 +3141,7 @@
         },
         "test": {
           "title": "Probeer hem op je scherm",
-          "text": "Voeg je repository toe met een link. Elke release die je publiceert verschijnt hier als update.",
+          "text": "Voeg je repository toe met een link. Push, en elke nieuwe commit of release verschijnt hier als update.",
           "folder": "Of zet zijn map in {path} om te testen zonder release."
         },
         "share": {

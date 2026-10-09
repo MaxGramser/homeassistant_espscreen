@@ -1870,7 +1870,7 @@
         },
         "test": {
           "title": "Próbáld ki a képernyődön",
-          "text": "Add hozzá a tárolódat egy linkkel. Minden kiadásod frissítésként jelenik meg itt.",
+          "text": "Add hozzá a repódat egy hivatkozással. Pusholj, és minden új commit vagy kiadás itt frissítésként jelenik meg.",
           "folder": "Vagy tedd a mappáját ide: {path}, hogy kiadás nélkül tesztelhesd."
         },
         "share": {
