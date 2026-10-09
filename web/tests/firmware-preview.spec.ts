@@ -9,7 +9,7 @@ vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
 vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn() }));
 vi.mock("../src/store", async () => {
   const { reactive } = await import("vue");
-  return { state: reactive({ document: { title: "Test panel", pages: [] }, liveStates: {} }) };
+  return { state: reactive({ document: { title: "Test panel", pages: [] }, liveStates: {}, inventory: { screens: [], entities: [] } as any }) };
 });
 const bundle = () => ({ revision: "1111111111111111", configuration: [{ op: "begin" }, { op: "commit" }], values: [{ op: "state", i: 0, state: "on" }] });
 function response(name: string, _result?: unknown, _types?: unknown, args?: unknown[]) {
@@ -23,7 +23,7 @@ const firmware = {
   _preview_init: vi.fn(() => 1), _preview_time: vi.fn(),
   _preview_render: vi.fn(), _preview_frame: vi.fn(() => 0),
   _preview_image_buffer: vi.fn(() => 128), _preview_image_ready: vi.fn(() => 1),
-  _preview_touch: vi.fn(), _preview_cancel: vi.fn(), ccall: vi.fn(response),
+  _preview_touch: vi.fn(), _preview_cancel: vi.fn(), _preview_dark: vi.fn(), _preview_language: vi.fn(), ccall: vi.fn(response),
 };
 let wrapper: VueWrapper | undefined;
 let putImageData: ReturnType<typeof vi.fn>;
@@ -33,6 +33,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   firmware.ccall.mockImplementation(response);
   state.document = { title: "Test panel", pages: [] } as any;
+  state.inventory = { screens: [], entities: [] } as any;
   vi.mocked(createModule).mockResolvedValue(firmware as any);
   vi.mocked(send).mockResolvedValue(bundle());
   vi.spyOn(window, "requestAnimationFrame").mockReturnValue(100);
@@ -201,5 +202,25 @@ describe("Firmware preview transport", () => {
     Object.defineProperty(event, "pointerId", { value: 1 });
     canvas.dispatchEvent(event);
     expect(firmware._preview_touch).not.toHaveBeenCalled();
+  });
+
+  it("draws the screen in the screens' language and its Dark mode, before the first layout and when they change", async () => {
+    state.inventory = { screens: [], entities: [], language: { setting: "auto", effective: "nl", ha: "nl", languages: [] } } as any;
+    const editor = await preview(480, 480, { dark: true });
+    const calls = firmware.ccall.mock.calls.map(([name, , , args]) => name === "preview_language" ? `language ${args?.[0]}` : name);
+    expect(calls.indexOf("language nl")).toBeGreaterThanOrEqual(0);
+    expect(calls.indexOf("language nl")).toBeLessThan(calls.indexOf("preview_receive"));
+    expect(firmware._preview_dark).toHaveBeenLastCalledWith(1);
+    await editor.setProps({ dark: false });
+    expect(firmware._preview_dark).toHaveBeenLastCalledWith(0);
+    state.inventory = { ...state.inventory, language: { setting: "de", effective: "de", ha: "nl", languages: [] } } as any;
+    await flushPromises();
+    expect(firmware.ccall).toHaveBeenLastCalledWith("preview_language", "number", ["string"], ["de"]);
+  });
+
+  it("shows a screen without a chosen language in English and in its light look", async () => {
+    await preview();
+    expect(firmware.ccall).toHaveBeenCalledWith("preview_language", "number", ["string"], ["en"]);
+    expect(firmware._preview_dark).toHaveBeenLastCalledWith(0);
   });
 });

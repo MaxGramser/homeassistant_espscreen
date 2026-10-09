@@ -6,6 +6,9 @@
   beside the days. A tap opens the card as Home Assistant's own dialog has it: the weather now with today's high and
   low and feels like, humidity, wind with its direction, air pressure and visibility, and the forecast with a Daily |
   Hourly key for the next 48 hours. Up to seven days instead of five; the words are Home Assistant's in every language.
+- **The preview speaks your screens' language and follows Dark mode.** The live preview in the editor, on the home page
+  and under Preview, now shows the firmware's own texts in the language chosen under Settings -> Language & region, and
+  draws a screen that has Dark mode on in its dark look, as its glass does. Before, it was always English and light.
 - **Pick several plugins, build once.** Adding a plugin no longer builds the screen at once: the round + on a plugin card
   (or Add in its details) sets it aside in Ready to install, a card in the corner. Add more, on this screen or another,
   then press Install: each screen builds once with all of them. The card says what a plugin still needs, asks once to

@@ -174,6 +174,50 @@ def definitions(code, folder=TRANSLATIONS):
     )
 
 
+def languages(folder=TRANSLATIONS):
+    """Every language there is a file for, by its code."""
+    return sorted(path.stem for path in Path(folder).glob('*.json') if LANGUAGE_CODE.fullmatch(path.stem))
+
+
+def host_definitions(folder=TRANSLATIONS):
+    """The browser preview's C++ (web/wasm, app 0.4.86): every language's table and plural rule, built with
+    SCREEN_TEXT_LANGUAGES, and screen_text::choose() to pick one while it runs. The editor shows a screen in the language
+    ESP Screens builds the screens in; a screen itself still carries one language (definitions)."""
+    codes = languages(folder)
+    if 'en' not in codes:
+        raise ValueError('en.json is missing')
+    out, keys = [], None
+    for index, code in enumerate(codes):
+        language, keys, texts, rule = table(code, folder)
+        rows = ',\n'.join(f'    {cpp_string(text)}' for text in texts)
+        out.append(f'const char *const table_{index}[] = {{\n{rows}\n}};\n'
+                   f'int plural_{index}(int n) {{ {PLURAL_RULES[rule]} }}\n')
+    english = codes.index('en')
+    entries = ', '.join(f'{{{cpp_string(code)}, table_{i}, plural_{i}}}' for i, code in enumerate(codes))
+    return (
+        f'static_assert(screen_text::KEYS_HASH == 0x{keys_hash(keys):08X}u && screen_text::KEY_COUNT == {len(keys)},\n'
+        '              "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");\n'
+        'namespace screen_text {\nnamespace languages {\n' + ''.join(out) +
+        'struct Language { const char *code; const char *const *table; int (*plural)(int); };\n'
+        f'const Language ALL[] = {{{entries}}};\n'
+        '}  // namespace languages\n'
+        f'const char *const *TABLE = languages::table_{english};\n'
+        'const char *LANGUAGE = "en";\n'
+        f'int (*plural_index)(int) = languages::plural_{english};\n'
+        '// The file itself, else its base language (pt-BR -> pt), else English: what a build of that code would carry.\n'
+        'bool choose(const char *code) {\n'
+        '  const std::string wanted = code ? code : "", base = wanted.substr(0, wanted.find(\'-\'));\n'
+        '  const languages::Language *found = nullptr;\n'
+        '  for (const auto &language : languages::ALL) if (wanted == language.code) found = &language;\n'
+        '  if (!found) for (const auto &language : languages::ALL) if (base == language.code) found = &language;\n'
+        '  if (!found) for (const auto &language : languages::ALL) if (std::string("en") == language.code) found = &language;\n'
+        '  TABLE = found->table; LANGUAGE = found->code; plural_index = found->plural;\n'
+        '  return wanted == found->code || base == found->code;\n'
+        '}\n'
+        '}  // namespace screen_text\n'
+    )
+
+
 def english_header(folder=TRANSLATIONS):
     """tests/screen_text_en.h: the English table for the C++ tests, which build without ESPHome."""
     _, text = definitions('en', folder)
