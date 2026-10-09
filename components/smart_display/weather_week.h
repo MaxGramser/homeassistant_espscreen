@@ -57,11 +57,12 @@ struct Metrics {
   std::function<int(int level, Role role, const std::string &text)> width;
   bool large = true;
 };
-struct Rows { int pp, g, rs, bar; };  // the pill's padding, a gap, the room around a line, the rain bars' height
+struct Rows { int pp, g, rs, bar; };  // the air above and under the days, a gap, the room around a line, the rain bars' height
 inline Rows rows_of(int level, bool large) {
   const int n = level - 1;  // -1 tight, 0 small, 1, 2
   (void) large;
-  return {ui::px(n > 0 ? 8 : 4), ui::px(n >= 2 ? 8 : n > 0 ? 5 : 3), ui::px(n > 0 ? 8 : 3), ui::px(n >= 2 ? 24 : n > 0 ? 18 : 12)};
+  // The grid frames the days, so they need no air of their own above and under them (a pill around today did).
+  return {0, ui::px(n >= 2 ? 8 : n > 0 ? 5 : 3), ui::px(n > 0 ? 8 : 3), ui::px(n >= 2 ? 24 : n > 0 ? 18 : 12)};
 }
 inline int curve_min(const Metrics &m, int level) {
   return std::max(ui::px(m.large ? 30 : 22), m.h[level][HIGH] * 3 / 2);
@@ -69,18 +70,20 @@ inline int curve_min(const Metrics &m, int level) {
 struct Plan {
   int level = -1, cols = 0, tier = 0;
   bool chance = false;
+  bool words = false;  // below the rain row's tier: one line of the chance (or the amount) on a wet day
   bool ok() const { return level >= 0; }
 };
 // Everything but the curve's growth, for a plan.
 inline int fixed_height(const Metrics &m, const Plan &p) {
   const auto &h = m.h[p.level];
   const Rows w = rows_of(p.level, m.large);
-  if (p.tier == 0) return 2 * w.pp + h[NAME] + w.g + h[ICON] + w.g + h[HIGH];
+  if (p.tier == 0) return 2 * w.pp + h[NAME] + w.g + h[ICON] + w.g + h[HIGH] + (p.words ? h[RAIN] : 0);
   int y = 2 * w.pp + h[NAME] + w.g + h[ICON] + h[HIGH] + h[LOW];
   y += 2 * w.rs + 1;                                  // the grid's line under the icons
   if (p.tier >= 2) y += curve_min(m, p.level);
   if (p.tier >= 3) y += w.rs + 1 + w.bar + w.g + h[RAIN];
   if (p.chance) y += h[RAIN];
+  if (p.words) y += h[RAIN];
   return y;
 }
 inline std::string degrees(float v) {
@@ -98,6 +101,17 @@ inline std::string amount(float v, const std::string &unit) {
   return std::string(b) + " " + (unit.empty() ? "mm" : unit);
 }
 inline bool wet(float mm, const std::string &unit) { return std::isfinite(mm) && mm >= (unit == "in" ? 0.005f : 0.1f); }
+// The rain's line below the rain row's tier: the chance where the provider gives one and it is worth saying (30 % or
+// more, as the forecast tile has always said it), else the amount on a wet day; "" on a dry day.
+inline std::string rain_words(const Day &d, const std::string &unit) {
+  if (std::isfinite(d.chance)) {
+    if (d.chance < 30) return "";
+    char b[8];
+    snprintf(b, sizeof(b), "%.0f%%", d.chance);
+    return b;
+  }
+  return wet(d.mm, unit) ? amount(d.mm, unit) : "";
+}
 // The width a column needs at a level: its widest text, an icon and a quarter, the pill's padding on both sides.
 inline int pair_gap(int level) { return ui::px(level > 1 ? 4 : 2); }
 inline int column_need(const Metrics &m, const std::vector<Day> &days, int cols, int tier, int level, const std::string &unit) {
@@ -107,8 +121,9 @@ inline int column_need(const Metrics &m, const std::vector<Day> &days, int cols,
     w = std::max({w, m.width(level, NAME, d.name), m.width(level, HIGH, degrees(d.high)), m.width(level, LOW, degrees(d.low))});
     if (tier == 0) w = std::max(w, m.width(level, HIGH, degrees(d.high)) + pair_gap(level) + m.width(level, LOW, degrees(d.low)));
     if (tier >= 3 && wet(d.mm, unit)) w = std::max(w, m.width(level, RAIN, amount(d.mm, unit)));
+    if (tier < 3) w = std::max(w, m.width(level, RAIN, rain_words(d, unit)));
   }
-  return w + 2 * ui::px(level > 1 ? 8 : 5);
+  return w + 2 * ui::px(tier == 0 ? 3 : level > 1 ? 8 : 5);
 }
 inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::string &unit, int width, int height) {
   int cols = std::min<int>(DAYS, days.size());
@@ -120,30 +135,49 @@ inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::stri
     rain |= wet(days[k].mm, unit);
     chance |= std::isfinite(days[k].chance);
   }
-  for (int tier = 4; tier >= 1; --tier) {
-    if (tier >= 3 && !rain && !chance) continue;  // a dry week has no rain row to show
-    if (tier == 4 && !chance) continue;
-    for (int level = LEVELS - 1; level >= (tier == 1 ? 0 : 1); --level) {
-      Plan p{level, cols, tier, tier >= 4};
-      if (column_need(m, days, cols, tier, level, unit) * cols > width) continue;
+  // The order a card gives things up: the chance, then the rain's row, then the line through the week; the rain's
+  // words come before the line (a small card says it will rain before it draws the shape of the week).
+  bool says = false;
+  for (int k = 0; k < cols; ++k) says |= !rain_words(days[k], unit).empty();
+  // A card of one row: the days with the high and the low on one line, as many as fit (two at least).
+  auto one_row = [&](bool with) -> Plan {
+    for (int c = all; c >= 2; --c)
+      for (int level = 2; level >= 0; --level) {
+        bool any = false;
+        for (int k = 0; k < c; ++k) any |= !rain_words(days[k], unit).empty();
+        if (with && !any) continue;
+        Plan p{level, c, 0, false, with};
+        if (column_need(m, days, c, 0, level, unit) * c > width || fixed_height(m, p) > height) continue;
+        if (level > 1 && fixed_height(m, p) > height * 3 / 4) continue;
+        return p;
+      }
+    return {};
+  };
+  struct Step { int tier; bool words; };
+  // tier 0 is the one-row form; its words step comes before the curve or the rows without rain
+  const Step steps[] = {{4, false}, {3, false}, {2, true}, {1, true}, {0, true}, {2, false}, {1, false}, {0, false}};
+  for (const Step &st : steps) {
+    if (st.tier >= 3 && !rain && !chance) continue;  // a dry week has no rain row to show
+    if (st.tier == 4 && !chance) continue;
+    if (st.words && !says) continue;
+    if (st.tier == 0) {
+      const Plan p = one_row(st.words);
+      if (p.ok()) return p;
+      continue;
+    }
+    for (int level = LEVELS - 1; level >= (st.tier == 1 ? 0 : 1); --level) {
+      Plan p{level, cols, st.tier, st.tier >= 4, st.words};
+      if (column_need(m, days, cols, st.tier, level, unit) * cols > width) continue;
       const int fixed = fixed_height(m, p);
       if (fixed > height) continue;
       if (level > 1 && fixed > height * 3 / 4) continue;  // a larger face only where the card keeps air around it
       return p;
     }
   }
-  // A card of one row: the days with the high and the low on one line, as many as fit (two at least).
-  for (int c = all; c >= 2; --c)
-    for (int level = 2; level >= 0; --level) {
-      Plan p{level, c, 0, false};
-      if (column_need(m, days, c, 0, level, unit) * c > width || fixed_height(m, p) > height) continue;
-      if (level > 1 && fixed_height(m, p) > height * 3 / 4) continue;
-      return p;
-    }
   return {};
 }
 // Where the rows of a plan go in a chart of `height` (y from the chart's top).
-struct Place { int top, bottom, name, icon, rule1, high, curve, curve_h, low, rule2, bar, bar_h, rain, chance; };
+struct Place { int top, bottom, name, icon, rule1, high, curve, curve_h, low, rule2, bar, bar_h, rain, chance, words; };
 inline Place place(const Metrics &m, const Plan &p, int height) {
   const auto &h = m.h[p.level];
   const Rows w = rows_of(p.level, m.large);
@@ -165,6 +199,8 @@ inline Place place(const Metrics &m, const Plan &p, int height) {
     r.rule1 = r.rule2 = r.bar = r.rain = r.chance = -1;
     y += w.g; r.high = r.low = y; y += h[HIGH];
     r.curve = y; r.curve_h = r.bar_h = 0;
+    r.words = p.words ? y : -1;
+    if (p.words) y += h[RAIN];
     r.bottom = y + w.pp;
     return r;
   }
@@ -176,6 +212,8 @@ inline Place place(const Metrics &m, const Plan &p, int height) {
   if (p.tier >= 3) { r.rule2 = y + w.rs; y += w.rs + 1; r.bar = y; r.bar_h = w.bar; y += w.bar + w.g; r.rain = y; y += h[RAIN]; }
   r.chance = p.chance ? y : -1;
   if (p.chance) y += h[RAIN];
+  r.words = p.words ? y : -1;
+  if (p.words) y += h[RAIN];
   r.bottom = y + w.pp;
   return r;
 }

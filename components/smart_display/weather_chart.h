@@ -225,7 +225,7 @@ inline void draw_week(lv_layer_t *layer, const lv_area_t &area, const Chart &c) 
   if (r.rule1 >= 0) rect(layer, x0 + inset, y0 + r.rule1, x1 - inset - 1, y0 + r.rule1, rule);
   if (r.rule2 >= 0) rect(layer, x0 + inset, y0 + r.rule2, x1 - inset - 1, y0 + r.rule2, rule);
   // A card of one row has no line across: its lines between the days run the height of the days.
-  const int head = r.rule1 >= 0 ? r.rule1 : r.name, foot = r.bar >= 0 ? r.bar + r.bar_h : r.low + m.h[p.level][r.rule1 >= 0 ? LOW : HIGH];
+  const int head = r.rule1 >= 0 ? r.rule1 : r.name, foot = r.bar >= 0 ? r.bar + r.bar_h : r.words >= 0 ? r.words + m.h[p.level][RAIN] : r.low + m.h[p.level][r.rule1 >= 0 ? LOW : HIGH];
   for (int k = 1; k < p.cols; ++k) rect(layer, x0 + k * cw, y0 + head, x0 + k * cw, y0 + foot, rule);
   std::vector<std::string> conds;
   for (int k = 0; k < p.cols; ++k) conds.push_back(c.days[k].condition);
@@ -244,6 +244,7 @@ inline void draw_week(lv_layer_t *layer, const lv_area_t &area, const Chart &c) 
       const int drop = (l.high->line_height - l.high->base_line) - (l.low->line_height - l.low->base_line);
       text(layer, hi, sx, y0 + r.high, hw + 2, l.high, ink, LV_TEXT_ALIGN_LEFT);
       text(layer, lo, sx + hw + gap, y0 + r.high + drop, lw + 2, l.low, muted, LV_TEXT_ALIGN_LEFT);
+      if (r.words >= 0) text(layer, rain_words(d, c.unit), x, y0 + r.words, cw, l.rain, theme::foreground(theme::ha::RAIN));
       continue;
     }
     text(layer, degrees(d.high), x, y0 + r.high, cw, l.high, ink);
@@ -255,6 +256,7 @@ inline void draw_week(lv_layer_t *layer, const lv_area_t &area, const Chart &c) 
       rect(layer, x + pad, y0 + r.bar, x + cw - pad - 1, y0 + r.bar + bh - 1, theme::foreground(theme::ha::RAIN));
       text(layer, amount(d.mm, c.unit), x, y0 + r.rain, cw, l.rain, ink);
     }
+    if (r.words >= 0) text(layer, rain_words(d, c.unit), x, y0 + r.words, cw, l.rain, theme::foreground(theme::ha::RAIN));
     if (r.chance >= 0 && std::isfinite(d.chance)) {
       char b[8];
       snprintf(b, sizeof(b), "%.0f%%", d.chance);

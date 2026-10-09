@@ -1693,6 +1693,8 @@ inline lv_obj_t *detail_card(int x,int y,int w,int h){
   lv_obj_set_style_border_width(card,1,0);lv_obj_set_style_border_color(card,theme::color(theme::LINE),0);
   return card;
 }
+// A font's line height as an int: LVGL gives an int32_t, which is a long on the ESP32 and std::max wants one type.
+inline int line_of(const lv_font_t *f){return f?(int)lv_font_get_line_height(f):0;}
 // ---- The weather card (design study 10-09, weather_chart.h): what a tap on a weather tile opens ----
 // Home Assistant's more-info dialog in its order: the weather now (its icon, the temperature, the condition, today's
 // high and low, feels like), the attributes the entity has (humidity, wind with its direction, air pressure,
@@ -1783,7 +1785,7 @@ inline int weather_key_w(){
   const lv_font_t *f=label_font?label_font:detail_font;
   return 2*(std::max(text_width(tr(txt::ha_weather_view_daily),f),text_width(tr(txt::ha_weather_view_hourly),f))+ui::px(ui::large()?28:16));
 }
-inline int weather_key_h(){const lv_font_t *f=label_font?label_font:detail_font;return std::max(ui::touch_min(),lv_font_get_line_height(f)+ui::px(12));}
+inline int weather_key_h(){const lv_font_t *f=label_font?label_font:detail_font;return std::max(ui::touch_min(),line_of(f)+ui::px(12));}
 inline void weather_key(lv_obj_t *parent,int x,int y,bool hours){
   const lv_font_t *f=label_font?label_font:detail_font;
   const int w=weather_key_w(),h=weather_key_h(),half=w/2,in=ui::px(3);
@@ -1803,16 +1805,16 @@ inline void weather_key(lv_obj_t *parent,int x,int y,bool hours){
   }
 }
 // A grey tile of one attribute: its icon and value on a line, Home Assistant's name for it under them.
-inline int weather_chip_h(){const lv_font_t *f=label_font?label_font:detail_font,*s=small_font?small_font:detail_font;return 2*ui::px(ui::large()?8:5)+lv_font_get_line_height(f)+lv_font_get_line_height(s);}
+inline int weather_chip_h(){const lv_font_t *f=label_font?label_font:detail_font,*s=small_font?small_font:detail_font;return 2*ui::px(ui::large()?8:5)+line_of(f)+line_of(s);}
 inline void weather_chip(lv_obj_t *p,int x,int y,int w,const WeatherAttribute &a){
   const lv_font_t *f=label_font?label_font:detail_font,*s=small_font?small_font:detail_font,*ic=watch_icon_font?watch_icon_font:s;
-  const int h=weather_chip_h(),in=ui::px(ui::large()?10:6),v=ui::px(ui::large()?8:5),iw=lv_font_get_line_height(ic);
+  const int h=weather_chip_h(),in=ui::px(ui::large()?10:6),v=ui::px(ui::large()?8:5),iw=line_of(ic);
   auto *t=lv_obj_create(p);lv_obj_remove_style_all(t);lv_obj_remove_flag(t,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(t,LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_pos(t,x,y);lv_obj_set_size(t,w,h);lv_obj_set_style_radius(t,ui::px(ui::large()?12:8),0);
   lv_obj_set_style_bg_color(t,theme::color(theme::TRACK),0);lv_obj_set_style_bg_opa(t,LV_OPA_COVER,0);
-  detail_text(t,a.icon,in,v+(lv_font_get_line_height(f)-iw)/2,iw+2,ic,LV_TEXT_ALIGN_LEFT,theme::MUTED);
+  detail_text(t,a.icon,in,v+(line_of(f)-iw)/2,iw+2,ic,LV_TEXT_ALIGN_LEFT,theme::MUTED);
   detail_text(t,a.value,in+iw+ui::px(5),v,w-2*in-iw-ui::px(5),f,LV_TEXT_ALIGN_LEFT,theme::INK);
-  detail_text(t,tr(a.caption),in,v+lv_font_get_line_height(f),w-2*in,s,LV_TEXT_ALIGN_LEFT,theme::MUTED);
+  detail_text(t,tr(a.caption),in,v+line_of(f),w-2*in,s,LV_TEXT_ALIGN_LEFT,theme::MUTED);
 }
 inline void render_weather_detail(const Tile &t,bool large,int width,int height,int){
   const Extra &x=t.extra();
@@ -1831,15 +1833,17 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   std::string hl;
   if(x.forecast.size())hl=degrees(x.forecast[0].high)+" / "+degrees(x.forecast[0].low);
   const std::string feels=std::isfinite(x.feels)?fill(txt::weather_feels_like,"n",(int)std::lround(x.feels)):"";
-  const int hero=std::max(lv_font_get_line_height(hero_font),lv_font_get_line_height(big_icon));
+  const int hero=std::max(line_of(hero_font),line_of(big_icon));
   int widest=0;for(auto &a:attrs)widest=std::max(widest,text_width(a.value,bold));
   // The attributes: a row of tiles (two by two where one row is too narrow), one muted line, or none.
   int per_row=n,rows=n?1:0;
-  while(per_row>1&&(inner-(per_row-1)*ui::px(6))/per_row<widest+lv_font_get_line_height(watch_icon_font?watch_icon_font:small)+ui::px(30)){per_row=(per_row+1)/2;rows=(n+per_row-1)/per_row;}
+  while(per_row>1&&(inner-(per_row-1)*ui::px(6))/per_row<widest+line_of(watch_icon_font?watch_icon_font:small)+ui::px(30)){per_row=(per_row+1)/2;rows=(n+per_row-1)/per_row;}
   const int tiles_h=rows*weather_chip_h()+std::max(0,rows-1)*ui::px(6);
-  std::string line;for(auto &a:attrs){std::string next=line+(line.empty()?"":" · ")+a.value;if(text_width(next,small)<=inner)line=next;}
-  const int hero_w=lv_font_get_line_height(big_icon)+gi+text_width(now,hero_font)+gi+std::max({text_width(cond,words_font),text_width(hl,line_font),text_width(feels,line_font)})+gi;
-  const int beside_w=std::max(widest+lv_font_get_line_height(watch_icon_font?watch_icon_font:small)+ui::px(30),text_width(tr(txt::ha_weather_attribute_air_pressure),small)+ui::px(24));
+  // The line of attributes starts with feels like, which the card's top says only where it has a third line.
+  std::string line=std::isfinite(x.feels)?fill(txt::weather_feels_like,"n",(int)std::lround(x.feels)):"";
+  for(auto &a:attrs){std::string next=line+(line.empty()?"":" · ")+a.value;if(text_width(next,small)<=inner)line=next;}
+  const int hero_w=line_of(big_icon)+gi+text_width(now,hero_font)+gi+std::max({text_width(cond,words_font),text_width(hl,line_font),text_width(feels,line_font)})+gi;
+  const int beside_w=std::max(widest+line_of(watch_icon_font?watch_icon_font:small)+ui::px(30),text_width(tr(txt::ha_weather_attribute_air_pressure),small)+ui::px(24));
   const bool beside=n&&inner-hero_w>=n*beside_w+(n-1)*ui::px(6);
   struct Option{int extra;bool title,key_in_hero,beside;};
   // The key stands at the right of the card's top bar where the name centred there leaves it room, as Home
@@ -1850,7 +1854,7 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   if(key_top)weather_key(detail_root,width-pad-weather_key_w(),bar_y+(bar-weather_key_h())/2,weather_view==1);
   const bool title=!key_top;
   const Option options[]={{beside?std::max(0,weather_chip_h()-hero):-1,title,false,true},{n?gi+tiles_h:-1,title,false,false},
-                          {line.empty()?-1:lv_font_get_line_height(small)+ui::px(4),title,false,false},{0,title,false,false},{0,false,!key_top,false}};
+                          {line.empty()?-1:line_of(small)+ui::px(4),title,false,false},{0,title,false,false},{0,false,!key_top,false}};
   const auto chart_proto=weather_chart_of(t,false);
   // The richest arrangement whose forecast still reaches the rain row (or the most the forecast can reach at all);
   // where none shows anything, the one that leaves the forecast the most room.
@@ -1874,12 +1878,12 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   bool with_icon=true;const lv_font_t *tf=hero_font;
   for(int step=0;step<3;++step){
     with_icon=step==0;tf=step<2?hero_font:(watch_value_font?watch_value_font:hero_font);
-    if(right-card_pad-(with_icon?lv_font_get_line_height(big_icon)+gi:0)-text_width(now,tf)-gi>=words_min)break;
+    if(right-card_pad-(with_icon?line_of(big_icon)+gi:0)-text_width(now,tf)-gi>=words_min)break;
   }
   const int hero_y=best.beside?(now_h-hero)/2-card_pad:0;
   int xx=card_pad;
   if(with_icon){
-    const int ih=lv_font_get_line_height(big_icon);
+    const int ih=line_of(big_icon);
     auto *art=weather_chart::create(card);lv_obj_set_pos(art,xx,card_pad+hero_y+(hero-ih)/2);lv_obj_set_size(art,ih*5/4,ih);
     // The condition's two-tone picture, the one the chart draws for a day, in the largest face.
     weather_chart::Chart c;c.icon_only=true;c.fonts=weather_fonts();c.days.push_back({"",t.available()?t.state:"exceptional"});
@@ -1887,18 +1891,18 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
     xx+=ih+gi;
   }
   const int tw=text_width(now,tf);
-  detail_text(card,now,xx,card_pad+hero_y+(hero-lv_font_get_line_height(tf))/2,tw+2,tf,LV_TEXT_ALIGN_LEFT,theme::INK);xx+=tw+gi;
+  detail_text(card,now,xx,card_pad+hero_y+(hero-line_of(tf))/2,tw+2,tf,LV_TEXT_ALIGN_LEFT,theme::INK);xx+=tw+gi;
   const int rw=best.beside?std::max(0,card_pad+hero_w-xx):right-xx;
   const lv_font_t *wf=text_width(cond,words_font)<=rw?words_font:bold;
-  const bool show_feels=!feels.empty()&&text_width(feels,line_font)<=rw&&lv_font_get_line_height(wf)+2*lv_font_get_line_height(line_font)<=hero;
-  // Feels like on a line of its own where the hero has three; else after today's high and low where they fit together.
-  std::string hl_line=hl;
-  if(!show_feels&&!feels.empty()&&text_width(hl+" · "+feels,line_font)<=rw)hl_line=hl.empty()?feels:hl+" · "+feels;
+  // Feels like once: in the line of attributes where the card has it, else as the top card's third line where it fits.
+  const bool in_line=!best.beside&&best.extra>0&&best.extra!=gi+tiles_h;
+  const bool show_feels=!in_line&&!feels.empty()&&text_width(feels,line_font)<=rw&&line_of(wf)+2*line_of(line_font)<=hero;
+  const std::string hl_line=hl;
   const bool show_hl=!hl_line.empty()&&text_width(hl_line,line_font)<=rw;
-  const int lines=lv_font_get_line_height(wf)+(show_hl?lv_font_get_line_height(line_font):0)+(show_feels?lv_font_get_line_height(line_font):0);
+  const int lines=line_of(wf)+(show_hl?line_of(line_font):0)+(show_feels?line_of(line_font):0);
   int ty=card_pad+hero_y+(hero-lines)/2;
-  detail_text(card,cond,xx,ty,std::max(1,rw),wf,LV_TEXT_ALIGN_LEFT,theme::INK);ty+=lv_font_get_line_height(wf);
-  if(show_hl){detail_text(card,hl_line,xx,ty,rw,line_font,LV_TEXT_ALIGN_LEFT,theme::MUTED);ty+=lv_font_get_line_height(line_font);}
+  detail_text(card,cond,xx,ty,std::max(1,rw),wf,LV_TEXT_ALIGN_LEFT,theme::INK);ty+=line_of(wf);
+  if(show_hl){detail_text(card,hl_line,xx,ty,rw,line_font,LV_TEXT_ALIGN_LEFT,theme::MUTED);ty+=line_of(line_font);}
   if(show_feels)detail_text(card,feels,xx,ty,rw,line_font,LV_TEXT_ALIGN_LEFT,theme::MUTED);
   if(best.beside){
     const int cw=std::min(ui::px(150),(inner-hero_w-(n-1)*ui::px(6))/n),x2=card_pad+inner-(n*cw+(n-1)*ui::px(6));
@@ -6647,16 +6651,19 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
   std::string hl;if(x.forecast.size())hl=degrees(x.forecast[0].high)+" / "+degrees(x.forecast[0].low);
   const lv_font_t *tf=hero_font;
   // A card of one row: the circle with the temperature and the condition beside it, as the forecast has always had it.
-  const bool low=wide&&height<circle+gap+lv_font_get_line_height(temp_font)+lv_font_get_line_height(line_font);
+  const bool low=wide&&height<circle+gap+line_of(temp_font)+line_of(line_font);
   if(low){
+    // The largest face that leaves the condition its line under it, as the forecast has always had it; else the largest
+    // that fits alone.
     tf=nullptr;
-    for(const lv_font_t *f:{hero_font,temp_font,watch_font})if(f&&face_covers(f,now)&&lv_font_get_line_height(f)<=height){tf=f;break;}
+    for(const lv_font_t *f:{hero_font,temp_font,watch_font})if(f&&face_covers(f,now)&&line_of(f)+line_of(text)<=height){tf=f;break;}
+    if(!tf)for(const lv_font_t *f:{hero_font,temp_font,watch_font})if(f&&face_covers(f,now)&&line_of(f)<=height){tf=f;break;}
     if(!tf)tf=bold;
-    const bool line=lv_font_get_line_height(tf)+lv_font_get_line_height(text)<=height;
+    const bool line=line_of(tf)+line_of(text)<=height;
     col=std::min(circle,height)+gap+std::max(text_width(now,tf),line?text_width(cond,text):0)+gap;
     cx=col+gap+1+gap;cw=width-cx;
   }else if(wide){
-    if(!face_covers(tf,now)||circle+gap+lv_font_get_line_height(tf)+lv_font_get_line_height(line_font)>height)tf=temp_font;
+    if(!face_covers(tf,now)||circle+gap+line_of(tf)+line_of(line_font)>height)tf=temp_font;
     col=std::max({circle+gap+std::max(text_width(t.name,bold),text_width(cond,text)),text_width(now,tf),text_width(hl,line_font)})+gap;
     cx=col+gap+1+gap;cw=width-cx;
   }else{cy=circle+gap;ch=height-cy;}
@@ -6675,11 +6682,11 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
   const int disc_y=low?(height-std::min(circle,height))/2:0;
   auto *disc=show(part_dot(w,0,0,disc_y,std::min(circle,height)));
   set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
-  const int gh=lv_font_get_line_height(w.icon_font);
+  const int gh=line_of(w.icon_font);
   words(1,w.icon_font,0,disc_y+(std::min(circle,height)-gh)/2,std::min(circle,height),LV_TEXT_ALIGN_CENTER,t.available()?weather_icon(t.state):"\U000F0595",t.available()?theme::icon(sky):theme::hex(theme::OFF));
-  const int th=lv_font_get_line_height(bold),nh=lv_font_get_line_height(text),hy=(circle-th-nh)/2;
+  const int th=line_of(bold),nh=line_of(text),hy=(circle-th-nh)/2;
   if(low){
-    const int c0=std::min(circle,height)+gap,tfh=lv_font_get_line_height(tf);
+    const int c0=std::min(circle,height)+gap,tfh=line_of(tf);
     const bool line=tfh+nh<=height;
     const int ty=(height-tfh-(line?nh:0))/2;
     words(4,tf,c0,ty,col-c0,LV_TEXT_ALIGN_LEFT,now,ink);
@@ -6690,9 +6697,9 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
   }else if(wide){
     words(2,bold,circle+gap,hy,col-circle-gap,LV_TEXT_ALIGN_LEFT,t.name,ink);
     words(3,text,circle+gap,hy+th,col-circle-gap,LV_TEXT_ALIGN_LEFT,cond,muted);
-    const int ty=circle+(height-circle-lv_font_get_line_height(tf)-lv_font_get_line_height(line_font))/2;
+    const int ty=circle+(height-circle-line_of(tf)-line_of(line_font))/2;
     words(4,tf,0,ty,col,LV_TEXT_ALIGN_LEFT,now,ink);
-    if(!hl.empty())words(7,line_font,0,ty+lv_font_get_line_height(tf),col,LV_TEXT_ALIGN_LEFT,hl,muted);
+    if(!hl.empty())words(7,line_font,0,ty+line_of(tf),col,LV_TEXT_ALIGN_LEFT,hl,muted);
     auto *rule=show(part_dot(w,6,col+gap,ui::px(4),1));
     lv_obj_set_size(rule,1,height-ui::px(8));lv_obj_set_style_radius(rule,0,0);
     set_color(rule,LV_STYLE_BG_COLOR,theme::color(theme::dark?theme::RAISED_LINE:theme::LINE));
@@ -6701,8 +6708,8 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
     // condition, and feels like where there is room for it.
     int right=width;
     const int nw=text_width(now,temp_font);
-    if(lv_font_get_line_height(temp_font)<=circle+ui::px(6)&&width-nw-circle-gap>=ui::px(large?110:70)){
-      words(4,temp_font,width-nw-2,(circle-lv_font_get_line_height(temp_font))/2,nw+2,LV_TEXT_ALIGN_RIGHT,now,ink);right=width-nw-gap;
+    if(line_of(temp_font)<=circle+ui::px(6)&&width-nw-circle-gap>=ui::px(large?110:70)){
+      words(4,temp_font,width-nw-2,(circle-line_of(temp_font))/2,nw+2,LV_TEXT_ALIGN_RIGHT,now,ink);right=width-nw-gap;
     }
     const int room=right-circle-gap;
     std::string line=cond;
