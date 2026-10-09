@@ -233,13 +233,14 @@ inline Level level(const Fonts &f,int n){
 struct WeekPlan {int level=-9,cols=0,tier=0; bool pct=false;};
 struct WeekRows {int pp,g,rs,bar,curve_min;};
 inline WeekRows rows_of(int n){
-  return {ui::px(n>0?8:5),ui::px(n>=2?8:n>0?5:3),ui::px(n>0?8:5),ui::px(n>=2?24:n>0?18:12),0};
+  return {ui::px(n>0?8:4),ui::px(n>=2?8:n>0?5:3),ui::px(n>0?8:3),ui::px(n>=2?24:n>0?18:12),0};
 }
-inline int curve_min(const Level &l){return std::max(ui::px(30),H(l.high)*3/2);}
+inline int curve_min(const Level &l){return std::max(ui::px(ui::large()?30:22),H(l.high)*3/2);}
 // The height of everything but the curve's and the bars' growth.
+inline bool grid_lines=true;   // B1: the light grid on every tier
 inline int week_fixed(const Level &l,const WeekPlan &p,const WeekRows &w){
   int h=2*w.pp+H(l.name)+w.g+H(l.icon)+H(l.high)+H(l.low);
-  h+=p.tier>=3?2*w.rs+1:w.g;                       // under the icons: a line with room, or a plain gap
+  h+=p.tier>=3||grid_lines?2*w.rs+1:w.g;           // under the icons: a line with room, or a plain gap
   if(p.tier>=2)h+=curve_min(l);
   if(p.tier>=3)h+=w.rs+1+w.bar+w.g+H(l.rain);      // a line, the bars hanging from it, the amount
   if(p.tier>=4&&p.pct)h+=H(l.rain);
@@ -284,6 +285,7 @@ inline void day_icon(lv_obj_t *p,const std::string &c,int cx,int y,const Level &
   icon(p,c,cx,y,l.icon,l.small,two_tone_row);
 }
 inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant){
+  grid_lines=variant!=3;
   const WeekPlan p=plan_week(s,f,r.w,r.h);
   if(p.level<-1){text(card,"Too small for the week",r.x,r.y,r.w,f.note,muted());return;}
   const bool grid=variant!=3;
@@ -292,13 +294,13 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
   // The room left goes to the curve first (up to two fifths of the card), then to the rain bars (up to twice their
   // least height); what is still left is air above and under the whole.
   int curve=p.tier>=2?curve_min(l):0;
-  if(p.tier>=2){const int more=std::max(0,std::min(left,r.h*3/10-curve));curve+=more;left-=more;}
+  if(p.tier>=2){const int more=std::max(0,std::min({left,r.h*3/10-curve,3*H(l.high)-curve}));curve+=more;left-=more;}
   const int cw=r.w/p.cols,x0=r.x+(r.w-cw*p.cols)/2,x1=x0+cw*p.cols;
   const int top=r.y+left/2;
   int y=top+w.pp;
   const int name_y=y;y+=H(l.name)+w.g;
   const int icon_y=y;y+=H(l.icon);
-  int rule1=-1;if(p.tier>=3){rule1=y+w.rs;y+=2*w.rs+1;}else y+=w.g;
+  int rule1=-1;if(p.tier>=3||grid){rule1=y+w.rs;y+=2*w.rs+1;}else y+=w.g;
   const int high_y=y;y+=H(l.high);
   const int curve_y=y;y+=curve;
   const int low_y=y;y+=H(l.low);
@@ -310,11 +312,11 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
   auto *c=chart(card,{r.x,r.y,r.w,r.h});
   const uint32_t rule=theme::hex(theme::dark?theme::RAISED_LINE:theme::LINE);
   const int inset=ui::px(p.level>0?8:5);
-  if(!grid){auto *pill=box(card,{x0+ui::px(2),top,cw-ui::px(4),bottom-top},theme::hex(theme::TRACK),ui::px(p.level>0?14:10));lv_obj_move_to_index(pill,0);}
+  if(!grid){const int pw=std::min(cw-ui::px(4),col_need(s,l,p.cols,p.tier,p.level));auto *pill=box(card,{x0+(cw-pw)/2,top,pw,bottom-top},theme::hex(theme::TRACK),ui::px(p.level>0?14:10));lv_obj_move_to_index(pill,0);}
   // The lines stop short of the card's sides; B1's lines between the days run from the first line to the bars' foot.
   if(rule1>=0)c->bars.push_back({{x0+inset-r.x,rule1-r.y,x1-inset-1-r.x,rule1-r.y},rule,0});
   if(rule2>=0)c->bars.push_back({{x0+inset-r.x,rule2-r.y,x1-inset-1-r.x,rule2-r.y},rule,0});
-  if(grid&&rule1>=0)for(int k=1;k<p.cols;++k)c->hairs.push_back({x0+k*cw-r.x,rule1-r.y,bar_y+w.bar-r.y,rule});
+  if(grid&&rule1>=0)for(int k=1;k<p.cols;++k)c->hairs.push_back({x0+k*cw-r.x,rule1-r.y,(p.tier>=3?bar_y+w.bar:low_y+H(l.low))-r.y,rule});
   float most=10;for(int j=0;j<p.cols;++j)most=std::max(most,s.days[j].mm);
   for(int k=0;k<p.cols;++k){
     const auto &d=s.days[k];const int x=x0+k*cw;
@@ -327,7 +329,7 @@ inline void week(lv_obj_t *card,Rect r,const Scene &s,const Fonts &f,int variant
     if(mm>=0.1f){
       // The reference's bar: flat, hung from the line, nearly the column's width, as long as the day is wet on one
       // scale for the week (10 mm at least), never thinner than a stroke. The amount under it in ink.
-      const int bx=x+ui::px(p.level>0?6:4)-r.x,bw=cw-2*ui::px(p.level>0?6:4);
+      const int bw=(grid?cw:std::min(cw-ui::px(4),col_need(s,l,p.cols,p.tier,p.level)))-2*ui::px(p.level>0?6:4),bx=x+(cw-bw)/2-r.x;
       const int bh=std::max(ui::px(3),(int)std::lround(w.bar*mm/most));
       c->bars.push_back({{bx,bar_y-r.y,bx+bw-1,bar_y-r.y+bh-1},rain(),0});
       text(card,mm_text(mm),x,mm_y,cw,l.rain,ink(),LV_TEXT_ALIGN_CENTER);
@@ -424,6 +426,26 @@ inline void card(lv_obj_t *root,Rect r,const Board &b,const Scene &s,int variant
   const int ih=H(f.icon);
   auto *g=gl(badge,glyph(s.cond),(head-ih)/2,(head-ih)/2,f.icon,theme::icon(hue(s.cond)));(void)g;
   const int gap=ui::px(ui::large()?10:6);
+  const int inner_h=r.h-2*pad;
+  if(!big&&w>=inner_h*12/5){
+    // A wide, low tile: the weather now in a column at the left (the tile's own head, the temperature large, today's
+    // high and low), a line, and the week over the full height at the right, where it reaches a higher tier.
+    char hl[40];snprintf(hl,sizeof(hl),"%s / %s",deg(s.days[0].high).c_str(),deg(s.days[0].low).c_str());
+    const std::string now=deg(s.now,true);
+    const lv_font_t *tf=f.hero;
+    if(head+gap+H(tf)+H(f.note_big)>inner_h)tf=f.value;
+    const int th=H(f.label),nh=H(f.note);
+    const int col=std::max({head+gap+std::max(width_of(s.place,f.label),width_of(words(s.cond),f.note)),width_of(now,tf),width_of(hl,f.note_big)})+gap;
+    text(p,s.place,head+gap,(head-th-nh)/2,col-head-gap,f.label,ink());
+    text(p,words(s.cond),head+gap,(head-th-nh)/2+th,col-head-gap,f.note,muted());
+    const int ty=head+(inner_h-head-H(tf)-H(f.note_big))/2;
+    text(p,now,0,ty,col,tf,ink());
+    text(p,hl,0,ty+H(tf),col,f.note_big,muted());
+    const int sep=col+gap;
+    box(p,{sep,ui::px(4),1,inner_h-ui::px(8)},theme::hex(theme::dark?theme::RAISED_LINE:theme::LINE));
+    week(p,{sep+1+gap,0,w-sep-1-gap,inner_h},s,f,variant);
+    return;
+  }
   int right=w;
   // The key: only on a card that gets the whole page and has the room beside the name.
   const int key_h=std::min(head,std::max(ui::touch_min(),H(f.label)+ui::px(12)));
@@ -487,6 +509,7 @@ inline void chip(lv_obj_t *p,Rect r,const Fonts &f,const Attr &a){
 }
 inline int forecast_tier(const Scene &s,const Fonts &f,int w,int h){return plan_week(s,f,w,h).tier;}
 inline void detail(lv_obj_t *root,Rect area,const Board &b,const Scene &s,int variant){
+  grid_lines=variant!=3;
   const Fonts &f=b.f;const int gap=b.gx,pad=b.pad;
   const auto list=attrs(s);const int n=list.size();
   char hl[40];snprintf(hl,sizeof(hl),"%s / %s",deg(s.days[0].high).c_str(),deg(s.days[0].low).c_str());
