@@ -4,11 +4,12 @@
 import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { fit, text, type Plugin } from "../model/plugins";
-import { buildingOn, installedOn, loadPlugins, needsConsent, plugins, statusOn, testsOn, updateAll, updatesOn } from "../plugin-state";
+import { buildingOn, installedOn, isSetAside, loadPlugins, needsConsent, plugins, statusOn, testsOn, toggleSetAside, tray, updateAll, updatesOn } from "../plugin-state";
 import { currentScreen, go } from "../store";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 import PluginLink from "./PluginLink.vue";
+import PluginTray from "./PluginTray.vue";
 import BuildLog from "./BuildLog.vue";
 import Icon from "./ui/Icon.vue";
 
@@ -28,8 +29,9 @@ function agree(on: boolean) { for (const p of asking.value) plugins.consented[p.
 const panel = ref<"plugin" | "link" | null>(null);
 const openId = ref<string | null>(null);
 const open = computed(() => [...plugins.index, ...testsOn(screen.value)].find((p) => p.id === openId.value) || null);
-function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; }
-function close() { panel.value = null; openId.value = null; }
+// The tray folds to its head while details are open, and opens again when they close.
+function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; tray.open = false; }
+function close() { panel.value = null; openId.value = null; tray.open = true; }
 </script>
 
 <template>
@@ -66,7 +68,8 @@ function close() { panel.value = null; openId.value = null; }
       <section v-if="addable.length" class="sp-group">
         <h3>{{ t("editor.plugins.tab.add") }}</h3>
         <div class="plugin-grid" role="list">
-          <PluginCard v-for="plugin in addable" :key="plugin.id" :plugin="plugin" :status="statusOn(plugin, screen)" :chosen="openId === plugin.id" @open="show(plugin)" />
+          <PluginCard v-for="plugin in addable" :key="plugin.id" :plugin="plugin" :status="statusOn(plugin, screen)" :chosen="openId === plugin.id"
+            :staged="isSetAside(screen, plugin.id)" @open="show(plugin)" @add="toggleSetAside(screen, plugin)" />
         </div>
       </section>
 
@@ -76,6 +79,8 @@ function close() { panel.value = null; openId.value = null; }
           <PluginCard v-for="plugin in misfits" :key="plugin.id" :plugin="plugin" :status="statusOn(plugin, screen)" :chosen="openId === plugin.id" @open="show(plugin)" />
         </div>
       </details>
+
+      <PluginTray @open="show" />
     </div>
 
     <Transition name="drawer">

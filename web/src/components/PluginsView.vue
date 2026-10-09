@@ -6,7 +6,8 @@
 import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { text, type Plugin } from "../model/plugins";
-import { allTests, installedOn, labelOf, loadPlugins, plugins, realScreens, statusOverall } from "../plugin-state";
+import { allTests, installedOn, isSetAside, labelOf, loadPlugins, plugins, realScreens, statusOverall, toggleSetAside, tray } from "../plugin-state";
+import { fit } from "../model/plugins";
 // The folder as Home Assistant shows it (config/...), not as the app's container mounts it (/homeassistant/...).
 const folderShown = (path: string) => path.replace(/^\/(homeassistant|config)\//, "config/");
 import { buildingScreens, buildOf, go } from "../store";
@@ -14,6 +15,8 @@ import BuildLog from "./BuildLog.vue";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 import PluginLink from "./PluginLink.vue";
+import PluginMaker from "./PluginMaker.vue";
+import PluginTray from "./PluginTray.vue";
 import Icon from "./ui/Icon.vue";
 
 loadPlugins();
@@ -34,8 +37,14 @@ const count = (key: (typeof FILTERS)[number]) => everything.value.filter((plugin
 const panel = ref<"plugin" | "link" | null>(null);
 const openId = ref<string | null>(null);
 const open = computed(() => everything.value.find((plugin) => plugin.id === openId.value) || null);
-function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; }
-function close() { panel.value = null; openId.value = null; }
+// The tray folds to its head while details are open, and opens again when they close.
+function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; tray.open = false; }
+function close() { panel.value = null; openId.value = null; tray.open = true; }
+// Add on a card goes straight to the tray when there is one screen it can go on; with more, its details ask which.
+const onlyScreen = (plugin: Plugin) => {
+  const fits = realScreens().filter((screen) => !installedOn(screen, plugin.id) && fit(plugin, screen).ok);
+  return fits.length === 1 && realScreens().length === 1 ? fits[0] : null;
+};
 const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf(screen)?.by === "plugins"));
 </script>
 
@@ -65,15 +74,13 @@ const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf
           </div>
         </div>
         <div class="plugin-grid" role="list">
-          <PluginCard v-for="plugin in shown" :key="plugin.id" :plugin="plugin" :status="statusOverall(plugin)" :chosen="openId === plugin.id" @open="show(plugin)" />
+          <PluginCard v-for="plugin in shown" :key="plugin.id" :plugin="plugin" :status="statusOverall(plugin)" :chosen="openId === plugin.id"
+            :staged="onlyScreen(plugin) ? isSetAside(onlyScreen(plugin)!, plugin.id) : null" @open="show(plugin)" @add="toggleSetAside(onlyScreen(plugin)!, plugin)" />
           <p v-if="!shown.length" class="pick-none">{{ filter === "in_use" ? t("editor.plugins.none_in_use") : t("editor.plugins.none_found", { query: query.trim() }) }}</p>
         </div>
-        <p class="plugins-make">
-          {{ t("editor.plugins.make") }}
-          <a href="https://github.com/MaxGramser/tessera-plugins/tree/main/template" target="_blank" rel="noopener">{{ t("editor.plugins.template") }}</a>
-        </p>
-        <p v-if="plugins.folders.path" class="plugins-make" id="plugins-folder">{{ t("editor.plugins.folder_note", { path: folderShown(plugins.folders.path) }) }}</p>
+        <PluginMaker :folder="plugins.folders.path ? folderShown(plugins.folders.path) : ''" @link="panel = 'link'; openId = null" />
         <p v-for="(why, folder) in plugins.folders.errors" :key="folder" class="pd-misfit plugins-folder-error"><Icon name="information-outline" />{{ t("editor.plugins.folder_error", { folder, why }) }}</p>
+        <PluginTray @open="show" />
       </section>
 
       <Transition name="drawer">

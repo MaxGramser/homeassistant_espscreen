@@ -3032,7 +3032,7 @@
       },
       "update_all": "Update {n} screen to {version} | Update {n} screens to {version}",
       "tab": {
-        "intro": "The plugins {screen} runs, and what it can add. Each change builds new firmware for this screen.",
+        "intro": "The plugins {screen} runs, and what it can add. What you add is installed together, in one build of this screen.",
         "all": "All plugins",
         "here": "On this screen",
         "add": "Add",
@@ -3075,7 +3075,44 @@
         "agree": "I agree to what it may do now"
       },
       "settings_missing": "Not on this screen yet: it comes with the plugin's next build.",
-      "changes": "What changed"
+      "changes": "What changed",
+      "tray": {
+        "title": "Ready to install",
+        "count": "{n} plugin | {n} plugins",
+        "add": "Add",
+        "added": "Added",
+        "setup": "Set up",
+        "remove": "Take {name} out",
+        "room": "{kb} KB of the {room} KB this screen has left",
+        "too_much": "{kb} KB together, {room} KB left: take one out",
+        "trust": "{names} comes from the community and is not reviewed by Tessera. | {names} come from the community and are not reviewed by Tessera.",
+        "install": "Install {n} plugin | Install {n} plugins",
+        "one_build": "{screen} builds once, with all of them.",
+        "builds": "{n} screens build, one after the other.",
+        "stage": "Add to {screen}",
+        "in_tray": "Ready to install",
+        "in_tray_note": "Install it from the card in the corner, alone or with others."
+      },
+      "maker": {
+        "title": "Make a plugin of your own",
+        "lead": "A plugin is a folder with a description and some ESPHome code, in a GitHub repository of your own. You make it, and you publish its updates.",
+        "guide": "How to make a plugin",
+        "start": {
+          "title": "Start from the template",
+          "text": "Make it a repository on your own GitHub, with a name and an icon.",
+          "action": "Open the template"
+        },
+        "test": {
+          "title": "Try it on your screen",
+          "text": "Add your repository with a link. Every release you publish shows up here as an update.",
+          "folder": "Or put its folder in {path} to test without a release."
+        },
+        "share": {
+          "title": "Share it with everyone",
+          "text": "Works well? List it in the community and it shows up here for everyone, straight from your repository. You stay its maker.",
+          "action": "List it"
+        }
+      }
     },
     "plugin_tile": {
       "from": "A tile of the plugin {plugin}",

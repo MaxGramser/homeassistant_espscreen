@@ -9,7 +9,7 @@ import { boardTitle } from "../model/boards";
 import { fit, flashShare, headroomKb, inEditorLanguage, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import {
-  addPlugin, attachLine, buildingOn, copyAttach, fileOf, hasUpdate, installedOn, isTest, labelOf, stageOf, markAttached, needsAttach, partsKb,
+  addPlugin, attachLine, buildingOn, isSetAside, setAside, toggleSetAside, copyAttach, fileOf, hasUpdate, installedOn, isTest, labelOf, stageOf, markAttached, needsAttach, partsKb,
   pluginsFile, realScreens, needsConsent, plugins, removePlugin, setupReady, statusOn,
 } from "../plugin-state";
 import type { Screen } from "../types";
@@ -79,7 +79,6 @@ const removing = computed(() => screens.value.filter((s) => !wanted[s.id] && has
 const askConsent = computed(() => screens.value.some((s) => installedOn(s, props.plugin.id) && needsConsent(s, props.plugin)));
 const agreed = computed(() => !askConsent.value || Boolean(plugins.consented[props.plugin.id]));
 const updatable = computed(() => screens.value.filter((s) => hasUpdate(s, props.plugin)));
-const needsTrust = computed(() => label.value === "community" && adding.value.length > 0);
 const applyText = computed(() => {
   const add = adding.value.length, drop = removing.value.length;
   if (add && drop) return t("editor.plugins.apply.both", { n: add + drop }, add + drop);
@@ -88,7 +87,8 @@ const applyText = computed(() => {
   return t("editor.plugins.apply.add", { n: add }, add);
 });
 function apply() {
-  addPlugin(adding.value, props.plugin);
+  // Adding sets the plugin aside on each ticked screen (the tray builds them); taking it off a screen goes at once.
+  for (const screen of adding.value) setAside(screen, props.plugin);
   removePlugin(removing.value, props.plugin);
   trust.value = false;
 }
@@ -165,12 +165,11 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
     </template>
     <template v-else>
       <PluginSetup :plugin="plugin" :screens="[here]" />
-      <label v-if="label === 'community'" class="pd-trust" id="plugin-trust">
-        <input type="checkbox" v-model="trust" />
-        <span><b>{{ t("editor.plugins.trust.title") }}</b>{{ t("editor.plugins.trust.text") }}</span>
-      </label>
-      <button type="button" class="btn primary pd-install" id="plugin-install" :disabled="(label === 'community' && !trust) || !setupReady(plugin, [here])" @click="addPlugin([here], plugin); trust = false">{{ t("editor.plugins.install", { screen: here.name }) }}</button>
-      <p class="pd-build-note">{{ t("editor.plugins.build_note") }}</p>
+      <!-- Set aside, not built: the tray takes it with whatever else is chosen, and builds the screen once. -->
+      <button type="button" class="btn pd-install" :class="isSetAside(here, plugin.id) ? 'quiet' : 'primary'" id="plugin-install" @click="toggleSetAside(here, plugin)">
+        <Icon :name="isSetAside(here, plugin.id) ? 'check' : 'plus'" />{{ isSetAside(here, plugin.id) ? t("editor.plugins.tray.in_tray") : t("editor.plugins.tray.stage", { screen: here.name }) }}
+      </button>
+      <p class="pd-build-note">{{ isSetAside(here, plugin.id) ? t("editor.plugins.tray.in_tray_note") : t("editor.plugins.build_note") }}</p>
     </template>
   </div>
 
@@ -187,12 +186,8 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       </li>
     </ul>
     <PluginSetup :plugin="plugin" :screens="adding" />
-    <label v-if="needsTrust" class="pd-trust" id="plugin-trust">
-      <input type="checkbox" v-model="trust" />
-      <span><b>{{ t("editor.plugins.trust.title") }}</b>{{ t("editor.plugins.trust.text") }}</span>
-    </label>
     <div class="pd-buttons">
-      <button type="button" class="btn primary" id="plugin-apply" :disabled="!(adding.length || removing.length) || (needsTrust && !trust) || !setupReady(plugin, adding)" @click="apply">{{ applyText }}</button>
+      <button type="button" class="btn primary" id="plugin-apply" :disabled="!(adding.length || removing.length) || !setupReady(plugin, adding)" @click="apply">{{ applyText }}</button>
       <label v-if="updatable.length && askConsent" class="pd-trust" id="plugin-consent-all">
         <input type="checkbox" :checked="plugins.consented[plugin.id]" @change="plugins.consented[plugin.id] = ($event.target as HTMLInputElement).checked" />
         <span><b>{{ t("editor.plugins.consent.title") }}</b>{{ t("editor.plugins.consent.agree") }}</span>

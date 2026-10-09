@@ -3032,7 +3032,7 @@
       },
       "update_all": "{n} scherm bijwerken naar {version} | {n} schermen bijwerken naar {version}",
       "tab": {
-        "intro": "De plugins die {screen} draait, en wat er nog bij kan. Elke wijziging bouwt nieuwe firmware voor dit scherm.",
+        "intro": "De plugins die {screen} draait, en wat er nog bij kan. Wat je toevoegt wordt samen geïnstalleerd, in één build van dit scherm.",
         "all": "Alle plugins",
         "here": "Op dit scherm",
         "add": "Toevoegen",
@@ -3075,7 +3075,44 @@
         "agree": "Ik ga akkoord met wat hij nu mag"
       },
       "settings_missing": "Nog niet op dit scherm: het komt met de volgende build van de plugin.",
-      "changes": "Wat er veranderde"
+      "changes": "Wat er veranderde",
+      "tray": {
+        "title": "Klaar om te installeren",
+        "count": "{n} plugin | {n} plugins",
+        "add": "Toevoegen",
+        "added": "Toegevoegd",
+        "setup": "Instellen",
+        "remove": "{name} eruit halen",
+        "room": "{kb} KB van de {room} KB die dit scherm over heeft",
+        "too_much": "Samen {kb} KB, er is {room} KB over: haal er een uit",
+        "trust": "{names} komt uit de community en is niet door Tessera nagekeken. | {names} komen uit de community en zijn niet door Tessera nagekeken.",
+        "install": "{n} plugin installeren | {n} plugins installeren",
+        "one_build": "{screen} wordt één keer gebouwd, met alles erin.",
+        "builds": "{n} schermen worden na elkaar gebouwd.",
+        "stage": "Toevoegen aan {screen}",
+        "in_tray": "Klaar om te installeren",
+        "in_tray_note": "Installeer hem met de kaart in de hoek, alleen of samen met andere."
+      },
+      "maker": {
+        "title": "Zelf een plugin maken",
+        "lead": "Een plugin is een map met een beschrijving en wat ESPHome-code, in een GitHub-repository van jezelf. Jij maakt hem, en jij brengt de updates uit.",
+        "guide": "Zo maak je een plugin",
+        "start": {
+          "title": "Begin met het template",
+          "text": "Maak er een repository van op je eigen GitHub, met een naam en een icoon.",
+          "action": "Template openen"
+        },
+        "test": {
+          "title": "Probeer hem op je scherm",
+          "text": "Voeg je repository toe met een link. Elke release die je publiceert verschijnt hier als update.",
+          "folder": "Of zet zijn map in {path} om te testen zonder release."
+        },
+        "share": {
+          "title": "Deel hem met iedereen",
+          "text": "Werkt hij goed? Meld hem aan voor de community, dan staat hij hier bij iedereen, rechtstreeks uit jouw repository. Jij blijft de maker.",
+          "action": "Aanmelden"
+        }
+      }
     },
     "plugin_tile": {
       "from": "Een tegel van de plugin {plugin}",

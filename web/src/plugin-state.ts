@@ -285,6 +285,54 @@ export async function updateAll(screen: Screen, list: Plugin[]) {
   }
   await reloadPlugins();
 }
+// ---- Ready to install: plugins set aside per screen, installed together in one build per screen ----
+// Adding a plugin no longer builds at once: it goes into the tray (PluginTray), where a person can set aside more, on
+// this screen or another, and press Install once. Each screen then builds once with all of its plugins, the request
+// updateAll already makes. What a plugin asks for (its inputs, trust in a community maker) is filled in its details.
+export const tray = reactive({ items: [] as { screen: string; plugin: string }[], open: true, sending: false });
+export const isSetAside = (screen: Screen, id: string) => tray.items.some((item) => item.screen === screen.id && item.plugin === id);
+export function setAside(screen: Screen, plugin: Plugin) {
+  if (!isSetAside(screen, plugin.id)) tray.items.push({ screen: screen.id, plugin: plugin.id });
+  tray.open = true;
+}
+export function takeOut(screen: Screen, id: string) {
+  const at = tray.items.findIndex((item) => item.screen === screen.id && item.plugin === id);
+  if (at >= 0) tray.items.splice(at, 1);
+}
+export const toggleSetAside = (screen: Screen, plugin: Plugin) => (isSetAside(screen, plugin.id) ? takeOut(screen, plugin.id) : setAside(screen, plugin));
+const pluginById = (id: string) => [...plugins.index, ...realScreens().flatMap(testsOn)].find((p) => p.id === id);
+// The tray by screen, in the order the screens were first chosen: one group, one build.
+export const trayGroups = computed(() => {
+  const groups: { screen: Screen; plugins: Plugin[] }[] = [];
+  for (const item of tray.items) {
+    const screen = realScreens().find((s) => s.id === item.screen), plugin = pluginById(item.plugin);
+    if (!screen || !plugin) continue;
+    const group = groups.find((g) => g.screen.id === screen.id) || (groups.push({ screen, plugins: [] }), groups[groups.length - 1]);
+    group.plugins.push(plugin);
+  }
+  return groups;
+});
+// The room what is set aside on a 4 MB screen takes together: two plugins that each fit can be too much together.
+export const setAsideKb = (screen: Screen, list: Plugin[]) => list.reduce((sum, p) => sum + p.flash_kb + partsKb(screen, p), 0);
+export async function installTray() {
+  tray.sending = true;
+  try {
+    for (const group of trayGroups.value) {
+      sending[group.screen.id] = group.plugins.map((p) => p.id);
+      try {
+        await change(group.screen, { add: group.plugins.map((plugin) => addition(group.screen, plugin)) });
+        tray.items = tray.items.filter((item) => item.screen !== group.screen.id);
+      } finally {
+        delete sending[group.screen.id];
+      }
+    }
+  } catch (error: any) {
+    toast(error.message);
+  } finally {
+    tray.sending = false;
+  }
+  await reloadPlugins();
+}
 export async function removePlugin(screens: Screen[], plugin: Plugin) {
   if (!screens.length) return;
   for (const screen of screens) {

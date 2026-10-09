@@ -89,10 +89,10 @@ a:hover { text-decoration: underline; }
   .side-folded .screen-item .spin, .side-folded .screen-item .sub-icon { position: absolute; top: 3px; right: 6px; }
   .side-folded .screen-item .sub-icon { font-size: 12px; }
   .side-folded .screen-item .spin.small { width: 9px; height: 9px; }
-  .side-folded .fold-badge { position: absolute; top: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); }
+  .side-folded .fold-badge { position: absolute; top: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px var(--surface); }
   .side-folded .fold-badge.waiting { background: var(--warn); }
   /* The unsaved dot of the open screen, on its icon. */
-  .side-folded .screen-item.selected .nav-item:has(.unsaved)::after { content: ""; position: absolute; bottom: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px var(--surface); }
+  .side-folded .screen-item.selected .nav-item:has(.unsaved)::after { content: ""; position: absolute; bottom: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2.5px var(--surface); }
   .side-folded .pending-folded { color: var(--muted); }
 }
 /* Only while something is wrong: unreachable, or reconnecting. Connected says nothing. */
@@ -151,7 +151,7 @@ a:hover { text-decoration: underline; }
 .screen-details .facts dt { color: var(--muted); }
 .screen-details .facts dd { margin: 0; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The light on the overview's cards: a dot with a ring that sails out every few seconds, like a sonar. Red keeps still. */
-.led { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); }
+.led { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 2.5px var(--surface); }
 .led::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid currentColor; opacity: 0; animation: sonar 3s ease-out infinite; }
 .led.ok { background: var(--good); color: var(--good); }
 .led.virtual { background: var(--accent); color: var(--accent); }
@@ -1086,7 +1086,7 @@ td code { white-space: nowrap; }
 .way:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .way-icon { position: relative; flex: none; width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; font-size: 20px; background: var(--surface-2); color: var(--ink-2); }
 .way.chosen .way-icon { background: var(--accent-soft); color: var(--accent); }
-.way-live { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2px var(--surface); }
+.way-live { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 2.5px var(--surface); }
 .way-live::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid var(--good); animation: sonar 2.4s ease-out infinite; }
 .way-words { display: grid; gap: 2px; min-width: 0; }
 .way-words b { font-size: 14px; font-weight: 600; }
@@ -1574,3 +1574,94 @@ section.advanced code { font-size: 11.5px; }
 .plugin-tile-from .mdi { color: var(--accent); font-size: 14px; }
 .plugin-stepper { display: inline-flex; align-items: center; gap: 10px; }
 .plugin-stepper b { min-width: 52px; text-align: center; font-weight: 600; }
+
+/* ---- Ready to install: Add on a plugin card, and the tray in the corner that builds each screen once ----
+   Add is the store's Get: a soft pill that turns into the accent once the plugin is set aside. The tray floats over
+   the list in the bottom corner, left of the details when they are open, and folds to its head. */
+.plugin-card { cursor: pointer; }
+.plugin-card:focus-visible { outline: none; box-shadow: var(--focus); }
+.plugin-card.staged { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.plugin-card.addable { grid-template-columns: auto minmax(0, 1fr) auto; }
+.plugin-get { align-self: center; width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center; background: var(--seg); color: var(--accent); font-size: 19px; transition: background 0.15s, color 0.15s, transform 0.12s; }
+.plugin-get:hover { background: var(--accent-soft); }
+.plugin-get:active { transform: scale(0.9); }
+.plugin-get.on { background: var(--accent); color: var(--accent-ink); }
+.plugin-get .ui-icon { margin: 0; }
+.get-enter-active, .get-leave-active { transition: opacity 0.12s, transform 0.12s; }
+.get-enter-from, .get-leave-to { opacity: 0; transform: scale(0.85); }
+
+.plugin-tray { position: fixed; right: 24px; bottom: 24px; z-index: 25; width: 340px; max-width: calc(100vw - 32px); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--pop-shadow); overflow: hidden; transition: right 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.with-detail .plugin-tray { right: 424px; }
+.pt-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; text-align: left; }
+.pt-head > .ui-icon { font-size: 20px; color: var(--muted); }
+.pt-stack { display: flex; padding-left: 2px; }
+.pt-stack .plugin-icon { width: 30px; height: 30px; border-radius: 9px; font-size: 17px; box-shadow: 0 0 0 2.5px var(--surface); }
+.pt-stack .plugin-icon + .plugin-icon { margin-left: -7px; }
+.pt-title { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.pt-title b { font-size: 13.5px; font-weight: 600; }
+.pt-title small { font-size: 12px; color: var(--muted); }
+.pt-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.plugin-tray.folded .pt-body { grid-template-rows: 0fr; }
+.pt-body-inner { min-height: 0; overflow: hidden; padding: 0 12px 12px; border-top: 1px solid var(--line); }
+.plugin-tray.folded .pt-body-inner { border-top-color: transparent; }
+.pt-scroll { max-height: min(44vh, 340px); overflow-y: auto; margin: 0 -12px; padding: 0 12px; }
+.pt-group { display: grid; gap: 4px; padding-top: 12px; }
+.pt-screen { display: flex; align-items: center; gap: 6px; padding: 0 6px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.pt-screen .ui-icon { font-size: 14px; }
+.pt-rows { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.pt-row { display: flex; align-items: center; border-radius: 10px; transition: background 0.12s; }
+.pt-row:hover { background: var(--surface-2); }
+.pt-row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 5px 6px; text-align: left; }
+.pt-row .plugin-icon { width: 28px; height: 28px; border-radius: 8px; font-size: 16px; }
+.pt-words { flex: 1; display: grid; min-width: 0; }
+.pt-words b { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-words small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-todo { flex: none; display: inline-flex; align-items: center; gap: 1px; padding: 2px 4px 2px 8px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-size: 11px; font-weight: 600; }
+.pt-todo .ui-icon { font-size: 14px; }
+.pt-remove { width: 28px; height: 28px; margin-right: 4px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); font-size: 16px; opacity: 0; transition: opacity 0.12s, background 0.12s; }
+.pt-row:hover .pt-remove, .pt-remove:focus-visible { opacity: 1; }
+.pt-remove:hover { background: var(--seg); color: var(--ink); }
+@media (hover: none) { .pt-remove { opacity: 1; } }
+.pt-meter { height: 6px; margin: 4px 6px 0; }
+.pt-room { padding: 0 6px; font-size: 11.5px; color: var(--muted); }
+.pt-room.over { color: var(--warn); }
+.pt-trust { margin: 12px 6px 0; font-size: 12px; }
+.pt-foot { display: grid; gap: 7px; margin-top: 14px; }
+.pt-install { width: 100%; height: 38px; border-radius: 10px; font-size: 13.5px; font-weight: 600; }
+.pt-install:disabled { opacity: 0.45; }
+.pt-note { text-align: center; font-size: 11.5px; color: var(--muted); }
+.tray-enter-active { transition: transform 0.34s cubic-bezier(0.2, 0.9, 0.25, 1.12), opacity 0.2s ease-out; }
+.tray-leave-active { transition: transform 0.2s ease-in, opacity 0.18s ease-in; }
+.tray-enter-from, .tray-leave-to { opacity: 0; transform: translateY(18px) scale(0.96); }
+.pt-row-enter-active { transition: opacity 0.22s ease-out, transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pt-row-enter-from { opacity: 0; transform: translateY(-6px); }
+.pt-row-leave-active { transition: opacity 0.14s ease-in; }
+.pt-row-leave-to { opacity: 0; }
+.pt-chip-enter-active { transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.25, 1.3), opacity 0.18s; }
+.pt-chip-enter-from { transform: scale(0.4); opacity: 0; }
+@media (max-width: 760px) {
+  .plugin-tray, .with-detail .plugin-tray { right: 16px; left: 16px; bottom: 16px; width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tray-enter-active, .tray-leave-active, .pt-row-enter-active, .pt-chip-enter-active, .pt-body, .plugin-tray, .get-enter-active, .get-leave-active { transition: none; }
+}
+
+/* Make a plugin of your own: three steps under the list, from the template to everyone's Plugins page. */
+.plugin-maker { margin-top: 22px; padding: 24px; border-radius: 16px; border: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 60%, var(--surface)), var(--surface) 75%); display: grid; gap: 20px; }
+.pm-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; }
+.pm-mark { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-size: 22px; }
+.pm-words h2 { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.pm-words p { margin-top: 4px; max-width: 560px; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.pm-guide { align-self: center; }
+.pm-guide .ui-icon { margin: 0 0 0 2px; }
+.pm-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; counter-reset: step; }
+.pm-steps li { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.pm-steps li::before { counter-increment: step; content: counter(step); position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pm-step { width: 30px; height: 30px; margin-bottom: 4px; border-radius: 9px; display: grid; place-items: center; background: var(--seg); color: var(--ink-2); font-size: 17px; }
+.pm-steps b { font-size: 13.5px; font-weight: 600; }
+.pm-steps p { flex: 1; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; }
+.pm-steps .btn { margin-top: 6px; height: 32px; }
+.pm-steps small { color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+@media (max-width: 760px) { .pm-head { grid-template-columns: auto minmax(0, 1fr); } .pm-guide { grid-column: 2; justify-self: start; } }
+/* Room under the last row, so nothing stays hidden behind the tray. */
+.sp-list:has(.plugin-tray), .plugins-list:has(.plugin-tray) { padding-bottom: 140px; }
