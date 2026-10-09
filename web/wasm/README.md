@@ -26,7 +26,8 @@ the image. Browser code only transports bytes, including in the expanded media
 player. Track changes and discarded downloads follow the firmware's image lifetime.
 
 Resolution and grid are runtime inputs (160–2560 pixels per axis, 1–8 columns and
-rows, at most 64 cells). Font/style densities come from the shared board catalog,
+rows, at most 64 cells). The preview holds as many pages, tiles and top bar items as the
+largest board in `boards.json` (`core.PREVIEW_CEILINGS`, the `SCREEN_MAX_*` flags in `build.py`). Font/style densities come from the shared board catalog,
 plus a 254 dpi profile for the 720 × 720 Waveshare ESP32-P4-WIFI6-Touch-LCD-4B design
 target. That target is preview-only, not new physical board support. Regenerating
 the preview includes newly added catalog densities without new card rendering code.

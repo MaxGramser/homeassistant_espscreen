@@ -1,6 +1,6 @@
 // The editor shows a screen in its own language and look (app 0.4.86): the real firmware takes the language ESP Screens
 // builds the screens in (preview_language) and the screen's Dark mode (preview_dark), before a layout and while one is
-// on the glass, and draws its own texts and paints in them.
+// on the glass, and draws its own texts and paints in them. It holds as many pages and tiles as the largest board.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import createModule from '../src/wasm/firmware_preview.js';
@@ -53,4 +53,20 @@ for (const before of [true, false]) {
   m._preview_dark(0); tick();
   assert.equal(ground(m), ground(lightScreen), 'light again');
 }
-console.log('Preview language and look: ok');
+
+// What the largest board holds (boards.json, build.py): 24 pages and 256 tiles, and the page past it refused, so a
+// screen with more than the eight pages every screen once had is previewed whole.
+{
+  const m = await createModule({ wasmBinary });
+  assert.equal(m._preview_init(shape.width, shape.height, shape.dpi, shape.columns, shape.rows), 1);
+  const count = Math.min(256, 9 * 24);  // as many as fit the cells of 24 pages of 3 x 3
+  const tiles = Array.from({ length: count }, (_, i) => ({ entity: `sensor.t${i}`, name: `T${i}`, state: '1', a: {}, slot: i, o: {} }));
+  configure(connection(m), 'Many', 24, tiles);
+  m.ccall('preview_render', null, [], []);
+  assert.equal(JSON.parse(m.ccall('preview_diagnostics', 'string', [], [])).count, count);
+  const raw = (packet) => m.ccall('preview_receive', 'string', ['string'], [JSON.stringify(packet)]);
+  const granted = raw({ v: 2, op: 'hello', request: '3333333333333333' });
+  const refused = raw({ v: 2, session: granted.slice(8), seq: 1, rev: '4444444444444444', op: 'begin', title: 'Too many', pages: 25, tiles: 1, home: 0, keepalive: 60 });
+  assert.match(refused, /^Error/, `25 pages: ${refused}`);
+}
+console.log('Preview language, look and the largest board: ok');

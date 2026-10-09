@@ -61,6 +61,9 @@ for dpi, look, profile in variants():
 for path in sorted((root / 'screen_manager/translations').glob('*.json')):
     language = json.loads(path.read_text())
     digest.update(path.name.encode() + json.dumps({key: language.get(key) for key in ('screen', '_meta')}).encode())
+# The ceilings the preview is built with (build.py): a board that takes more pages or tiles makes it stale.
+shapes = json.loads((root / 'screen_manager/app/boards.json').read_text()).values()
+digest.update(json.dumps([max(shape.get(key, 0) for shape in shapes) for key in ('max_pages', 'max_tiles', 'max_bar_items')]).encode())
 digest.update(re.search(r'FROM ghcr.io/esphome/esphome:([^\s]+)', (root / 'screen_manager/Dockerfile').read_text())[1].encode())
 out = root / "web/wasm/generated/firmware_renderer_manifest.h"
 content = "// Generated. Do not edit; regenerate with web/wasm/build.sh.\n" + f'#define ESP_SCREEN_FIRMWARE_RENDERER_SOURCE_SHA256 "{digest.hexdigest()}"\n'

@@ -40,7 +40,13 @@ arduino = Path(os.environ['ARDUINO_JSON']) if 'ARDUINO_JSON' in os.environ else 
 run([sys.executable, ROOT / 'web/wasm/generate_host_ui.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_image_decoder.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_renderer_manifest.py', ROOT])
-flags = ['-O2', '-DESP_SCREEN_HOST', '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES', '-DGRID_COLS=8', '-DGRID_ROWS=8',
+# The most pages, tiles and top bar items any board takes (boards.json, as the add-on's core.PREVIEW_CEILINGS): the
+# preview shows a screen of any board, so it holds what the largest one holds.
+import json
+shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text()).values()
+ceilings = {name: max([shape.get(key, low) for shape in shapes] + [low]) for name, key, low in
+            (('PAGES', 'max_pages', 8), ('TILES', 'max_tiles', 64), ('BAR_ITEMS', 'max_bar_items', 6))}
+flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES', '-DGRID_COLS=8', '-DGRID_ROWS=8',
          '-DLV_CONF_INCLUDE_SIMPLE', '-DLV_FONT_FMT_TXT_LARGE=1']
 for folder in (ROOT / 'web/wasm/host_include', ROOT / 'components/smart_display', ROOT / 'web/wasm',
                lvgl, lvgl / 'src', arduino / 'src', ROOT / 'components'):
@@ -75,7 +81,6 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
     compiled.append(obj)
 exports = ['init', 'receive', 'next_action', 'action_response', 'time', 'touch', 'cancel', 'render', 'frame', 'page', 'diagnostics', 'layout']
 exports += ['next_image', 'image_buffer', 'image_ready', 'pictures', 'card', 'card_builds', 'dark', 'language']
-import json
 out = ROOT / 'web/src/wasm'
 out.mkdir(exist_ok=True)
 run(['em++', '-O2', *compiled, '-sWASM=1', '-sASSERTIONS=1', '-sSTACK_SIZE=1048576', '-sALLOW_MEMORY_GROWTH=1',
