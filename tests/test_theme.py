@@ -161,7 +161,7 @@ class Setting(unittest.TestCase):
         page = (COMPONENT / 'settings_screen.h').read_text()
         self.assertIn('toggle(screen_text::txt::settings_dark_mode, []() -> int32_t { return dark_mode; },', page)
         self.assertIn('else if (key == "dark_mode") reported = dark_mode = flag(value);', page)
-        editor = (ROOT / 'web/src/store.ts').read_text()
+        editor = (ROOT / 'web/src/model/settings.ts').read_text()
         self.assertIn('{ key: "dark_mode", kind: "toggle" },', editor)
         texts = json.loads((ROOT / 'screen_manager/translations/en.json').read_text(encoding='utf-8'))['editor']
         self.assertEqual(texts['screen_settings']['rows']['dark_mode'], 'Dark mode')

@@ -458,7 +458,7 @@ class Editor(unittest.TestCase):
 
     def test_the_mockup_polls_live_values_and_draws_them(self):
         self.assertIn('getJson(`states?${query}`)', self.store)
-        self.assertIn('if (!document.hidden && state.layout && state.tab === "layout" && route.value === "") loadStates();', self.store)
+        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && route.value === "" });', self.store)
         for marker in ('liveOf(props.tile.entity)', 'lit: isOn', ':style="sliderStyle"', "class=\"tog\" :class=\"{ off: !on }\""):
             self.assertIn(marker, self.page, marker)
 
@@ -482,9 +482,13 @@ class Editor(unittest.TestCase):
             self.assertIn(marker, self.page, marker)
 
     def test_updates_show_their_notes_and_progress(self):
-        self.assertIn('export function whatsNew', self.store)
+        import editor_sources
+        status = editor_sources.source('model/screen-status.ts')
+        self.assertIn('export function whatsNew', status)
+        self.assertIn('export const whatsNew', self.store)
         # Every build's progress, an update's as a plugin build's, from the store's one source (buildOf, Manager.builds).
-        self.assertIn('export function buildProgress', self.store)
+        self.assertIn('export function buildProgress', status)
+        self.assertIn('export const buildProgress', self.store)
         self.assertIn('export const buildOf', self.store)
         for marker in ('class="whatsnew"', 'role="progressbar"', "go('#firmware')"):
             self.assertIn(marker, self.page, marker)

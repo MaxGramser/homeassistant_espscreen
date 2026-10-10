@@ -41,7 +41,7 @@ class SettingsView(unittest.TestCase):
     def test_the_view_switches_by_hash_and_renders_what_it_shows(self):
         store = editor_sources.source('store.ts')
         for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#alerts", "#override", "#plugins"] as const;',
-                       'window.addEventListener("hashchange"', 'export async function installClaudeSkill', 'send("claude-skill", "POST")'):
+                       'useEventListener(window, "hashchange", followHash)', 'export async function installClaudeSkill', 'send("claude-skill", "POST")'):
             self.assertIn(marker, store, marker)
         app = editor_sources.source('App.vue')
         for marker in ('route.value === "#settings") return AppSettingsView', 'route.value === "#new-screen") return InstallerView',

@@ -186,7 +186,7 @@ by a board fact rather than written into one board file: `shown` on the row, and
 - `screen_manager/app/server.py`: `settings_view` already leaves a key out for a screen whose device has no
   entity for it. Leave it out for a screen that does not own its settings too (`owner` `'layout'`), as
   `dark_mode` and `page_buttons` are: such firmware cannot have it.
-- `web/src/store.ts`: one row in `SETTING_GROUPS`; its label is `editor.screen_settings.rows.<key>` in
+- `web/src/model/settings.ts`: one row in `SETTING_GROUPS`; its label is `editor.screen_settings.rows.<key>` in
   `screen_manager/translations/en.json`, in the words the screen uses; then build the editor
   (`cd web && npm test && npm run build`, AGENTS.md).
 - `screen_manager/app/claude_skill.py`: a row in the table of screen entities.

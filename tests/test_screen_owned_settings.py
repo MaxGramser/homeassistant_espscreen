@@ -703,7 +703,7 @@ class Editor(unittest.TestCase):
             self.assertRegex(self.script, rf'key: "{key}", [^}}]*step: {step}')
         ladder = re.search(r'if \(seconds < 300\) return 30;\s+if \(seconds < 900\) return 60;\s+if \(seconds < 3600\) return 300;\s+'
                            r'if \(seconds < 7200\) return 900;\s+return 1800;', SCREEN_PAGE)
-        self.assertTrue(ladder, 'the ladder in settings_screen.h changed: change ladderStep in web/src/store.ts with it')
+        self.assertTrue(ladder, 'the ladder in settings_screen.h changed: change ladderStep in web/src/model/settings.ts with it')
         self.assertIn('seconds < 300 ? 30 : seconds < 900 ? 60 : seconds < 3600 ? 300 : seconds < 7200 ? 900 : 1800', self.script)
 
     def test_settings_have_their_own_call_and_save_leaves_them_out(self):
