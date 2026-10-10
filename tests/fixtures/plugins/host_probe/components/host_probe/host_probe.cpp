@@ -71,6 +71,10 @@ class ProbeCard : public tessera::Card {
     words_ = ui::label(c.parent, Font::BODY_LARGE, theme::INK);
     lv_obj_set_width(words_, c.width);
     ui::set_text(words_, "Probe card");
+    // A word at the foot of the card's room: the render shows the whole room reaches the glass (GitHub #226).
+    foot_ = ui::label(c.parent, Font::BODY_LARGE, theme::INK);
+    ui::set_text(foot_, "Foot");
+    lv_obj_align(foot_, LV_ALIGN_BOTTOM_MID, 0, 0);
   }
   void on_state(JsonObjectConst data) override { ESP_LOGI(TAG, "card state n=%d", data["n"] | -1); }
   void on_tick(uint32_t epoch) override { ESP_LOGI(TAG, "card tick epoch=%u", (unsigned) epoch); }
@@ -78,7 +82,7 @@ class ProbeCard : public tessera::Card {
   bool on_back() override { ESP_LOGI(TAG, "card back"); return false; }
 
  private:
-  lv_obj_t *words_{};
+  lv_obj_t *words_{}, *foot_{};
 };
 
 void HostProbe::setup() {
