@@ -83,7 +83,7 @@ class Catalog(unittest.TestCase):
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][0], '6.00 -> 0')
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][-1], '8.40 -> 100')
 
-    def test_waveshare_lcd4_selects_the_gt911_primary_address_before_setup(self):
+    def test_waveshare_lcd4_uses_the_upstream_gt911_address_fix(self):
         class IncludeLoader(yaml.SafeLoader):
             pass
 
@@ -91,23 +91,17 @@ class Catalog(unittest.TestCase):
         board = yaml.load((ROOT / 'packages/boards/waveshare-esp32s3-lcd-4.yaml').read_text(),
                           Loader=IncludeLoader)
         touch = board['touchscreen'][0]
-        boot = board['substitutions']['BOOT_TOUCH_HARDWARE']
+        external = board['external_components'][0]
 
-        self.assertEqual(touch['setup_priority'], -200)
-        self.assertNotIn('reset_pin', touch)
+        self.assertEqual(external['source'],
+                         'github://t2bottom/esphome@7b3dcd301d4548f6164c883511280703f16abaf1')
+        self.assertEqual(external['components'], ['gt911'])
+        self.assertTrue(touch['use_primary_i2c_addr'])
+        self.assertNotIn('setup_priority', touch)
+        self.assertEqual((touch['reset_pin']['waveshare_io_ch32v003'], touch['reset_pin']['number']),
+                         ('expander', 1))
         self.assertEqual((touch['interrupt_pin']['waveshare_io_ch32v003'], touch['interrupt_pin']['number']),
                          ('expander', 2))
-        for line in (
-            'id(expander)->digital_write(1, false);',
-            'id(expander)->digital_write(2, false);',
-            'delay(100);',
-            'id(expander)->digital_write(1, true);',
-            'delay(5);',
-            'id(expander)->pin_mode(2, esphome::gpio::FLAG_INPUT);',
-            'delay(51);',
-        ):
-            self.assertIn(line, boot)
-            self.assertIn(line, profiles.board_values('wavesharelcd4')['BOOT_TOUCH'])
 
 
 class Choices(unittest.TestCase):

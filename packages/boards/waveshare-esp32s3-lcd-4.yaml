@@ -13,6 +13,13 @@ packages:
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
 
+external_components:
+  # ESPHome's bundled GT911 driver can select 0x14 nondeterministically through this board's I2C expander
+  # (esphome/esphome#15019). Test the pinned head of esphome/esphome#15021 until it is part of a release.
+  - source: github://t2bottom/esphome@7b3dcd301d4548f6164c883511280703f16abaf1
+    refresh: 0s
+    components: [gt911]
+
 substitutions:
   BOARD_ID: "wavesharelcd4"
   DEVICE_NAME: "wavesharelcd4-new"
@@ -27,19 +34,6 @@ substitutions:
   SCREEN_MAX_PAGES: "24"
   SCREEN_MAX_BAR_ITEMS: "12"
   LVGL_BUFFER_SIZE: "25%"
-
-  # ESPHome's current GT911 reset sequence is unreliable through this board's I2C expander
-  # (esphome/esphome#15019). Select 0x5D here, then start the driver after this boot hook.
-  BOOT_TOUCH_HARDWARE: |-
-    id(expander)->pin_mode(1, esphome::gpio::FLAG_OUTPUT);
-    id(expander)->pin_mode(2, esphome::gpio::FLAG_OUTPUT);
-    id(expander)->digital_write(1, false);
-    id(expander)->digital_write(2, false);
-    delay(100);
-    id(expander)->digital_write(1, true);
-    delay(5);
-    id(expander)->pin_mode(2, esphome::gpio::FLAG_INPUT);
-    delay(51);
 
 # ============================================================
 # No need to edit below this line.
@@ -109,12 +103,12 @@ output:
         output: true
 
 # The GT911's reset line is EXIO1 and its interrupt line EXIO2, both on the expander, so ESPHome polls the panel
-# instead of taking a real interrupt. The boot hook above resets it and selects its address before this component
-# starts; omitting reset_pin prevents ESPHome from repeating its shorter, unreliable sequence.
+# instead of taking a real interrupt. The upstream fix selected above drives EXIO2 low through the complete reset
+# sequence, selecting the primary 0x5D address.
 touchscreen:
   - platform: gt911
     id: ts_touch
-    setup_priority: -200
+    use_primary_i2c_addr: true
     i2c_id: touch_bus
     display: my_display
     update_interval: 20ms
@@ -123,6 +117,9 @@ touchscreen:
       x_max: 479
       y_min: 0
       y_max: 479
+    reset_pin:
+      waveshare_io_ch32v003: expander
+      number: 1
     interrupt_pin:
       waveshare_io_ch32v003: expander
       number: 2
