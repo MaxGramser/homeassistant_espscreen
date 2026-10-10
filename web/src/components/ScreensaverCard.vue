@@ -7,15 +7,16 @@ import { computed, onMounted } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
 import { loadTopbarPreview, openSaverStep, state } from "../store";
-import { changeSaver, isOn, SAVER_ICONS, SAVER_MIN_FIRMWARE, savedOrder, saver, saverLabel, saverReady, sorter, standbyOn, stepsShown, summary, toggleStep } from "../saver";
+import { useSortableRows } from "../composables/useSortableRows";
+import { changeSaver, isOn, SAVER_ICONS, SAVER_MIN_FIRMWARE, savedOrder, saver, saverLabel, saverReady, standbyOn, stepsShown, summary, toggleStep } from "../saver";
 import type { SaverKind } from "../types";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
 
 onMounted(() => loadTopbarPreview(0));
 const pictures = computed(() => Boolean(saver.value?.pictures));
-const steps = sorter<SaverKind>("#screensaver-steps > .saver-row", () => savedOrder.value, (list) => changeSaver({ order: list }), ".ui-switch",
-  () => saverReady.value && pictures.value);
+const steps = useSortableRows<SaverKind>({ rows: "#screensaver-steps > .saver-row", items: () => savedOrder.value,
+  commit: (list) => changeSaver({ order: list }), skip: ".ui-switch", grip: ".grip", enabled: () => saverReady.value && pictures.value });
 const order = computed(() => stepsShown(steps.live.value));
 const opened = (kind: SaverKind) => state.inspector?.kind === "saver" && state.inspector.step === kind;
 const line = (kind: SaverKind) => (isOn(kind) ? summary(kind) : { text: t("editor.screen_settings.screensaver.summary.off"), missing: false });

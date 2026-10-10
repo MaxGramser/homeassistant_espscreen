@@ -1,8 +1,8 @@
 // The screensaver of the open screen as the editor shows it (app 0.4.48): what it shows in standby, in the order the
 // screen tries it. The card in the settings and the drawer of one step both read and change it through here.
-import { computed, getCurrentScope, onScopeDispose, ref, type Ref } from "vue";
+import { computed } from "vue";
 import { t } from "./i18n";
-import { dropIndex, moved } from "./model/reorder";
+import { moved } from "./model/reorder";
 import { clockSample } from "./model/clock";
 import { clock24, currentScreen, entityName, liveOf, openSaverStep, saverItems, screenLanguage, setScreensaver, settingValues, state, topbarLabel } from "./store";
 import type { SaverKind, ScreensaverChoice } from "./types";
@@ -104,94 +104,6 @@ export const clockPreview = computed(() => {
   };
 });
 
-
-// One dragged list: its rows follow the pointer and the new order is kept on release. Mouse and touch: a finger on the
-// grip drags at once (the grip takes no scroll), a finger elsewhere on the row after a short hold, so the panel still
-// scrolls. A finger on a control in the row is no drag. The arrow keys move the focused row.
-export function sorter<T>(rows: string, items: () => readonly T[], commit: (list: T[]) => void, skip: string, enabled: () => boolean) {
-  const drag = ref({ index: -1, active: false });
-  const live = ref<T[] | null>(null) as Ref<T[] | null>;
-  let start: { x: number; y: number } | null = null, timer = 0, pointerId: number | null = null, dragged = false;
-  const all = () => [...document.querySelectorAll<HTMLElement>(rows)];
-  function begin() {
-    drag.value.active = true;
-    live.value = [...items()];
-    document.addEventListener("touchmove", block, { passive: false });
-  }
-  function block(e: TouchEvent) { if (drag.value.active) e.preventDefault(); }
-  function track(e: PointerEvent) {
-    if (e.pointerId !== pointerId || !start) return;
-    if (!drag.value.active) {
-      const distance = Math.hypot(e.clientX - start.x, e.clientY - start.y);
-      if (e.pointerType === "touch") { if (distance > 10) { clearTimeout(timer); start = null; } return; }
-      if (distance < 6) return;
-      begin();
-    }
-    const to = dropIndex(all().map((row) => row.getBoundingClientRect()), drag.value.index, e.clientY);
-    if (to !== drag.value.index && live.value) {
-      live.value = moved(live.value, drag.value.index, to);
-      drag.value.index = to;
-    }
-  }
-  function release() {
-    clearTimeout(timer);
-    document.removeEventListener("pointermove", track);
-    document.removeEventListener("pointerup", end);
-    document.removeEventListener("pointercancel", end);
-    document.removeEventListener("touchmove", block);
-  }
-  function end(e: PointerEvent) {
-    if (e.pointerId !== pointerId) return;
-    release();
-    dragged = drag.value.active;
-    if (drag.value.active && e.type !== "pointercancel" && live.value && live.value.join() !== items().join()) commit(live.value);
-    live.value = null;
-    drag.value = { index: -1, active: false };
-    start = null; pointerId = null;
-  }
-  function down(e: PointerEvent, i: number) {
-    const el = e.target as HTMLElement;
-    dragged = false;
-    if (e.button !== 0 || !enabled() || pointerId !== null || el.closest(skip)) return;
-    const grip = Boolean(el.closest(".grip"));
-    if (grip) e.stopPropagation();
-    if (e.pointerType !== "touch" && grip) e.preventDefault();
-    drag.value = { index: i, active: false };
-    start = { x: e.clientX, y: e.clientY };
-    pointerId = e.pointerId;
-    clearTimeout(timer);
-    if (e.pointerType === "touch") { if (grip) begin(); else timer = window.setTimeout(begin, 260); }
-    document.addEventListener("pointermove", track);
-    document.addEventListener("pointerup", end);
-    document.addEventListener("pointercancel", end);
-  }
-  // A drag that ends on the row it started on is no click: the row doesn't open after it.
-  function click(e: MouseEvent) {
-    if (!dragged) return false;
-    dragged = false;
-    e.preventDefault();
-    e.stopPropagation();
-    return true;
-  }
-  function key(e: KeyboardEvent, i: number) {
-    if (e.target !== e.currentTarget) return;
-    const step = ({ ArrowUp: -1, ArrowDown: 1 } as Record<string, number>)[e.key];
-    const list = items();
-    if (!step || i + step < 0 || i + step >= list.length) return;
-    e.preventDefault();
-    e.stopPropagation();
-    commit(moved(list, i, i + step));
-    requestAnimationFrame(() => all()[i + step]?.focus());
-  }
-  // A list that goes while a row is held (its drawer closes) lets go of the page, and keeps the order it had.
-  if (getCurrentScope()) onScopeDispose(() => {
-    release();
-    live.value = null;
-    drag.value = { index: -1, active: false };
-    start = null; pointerId = null;
-  });
-  return { drag, live, down, key, click };
-}
 
 // The way back from an entity of the clock: the clock's own drawer.
 export const clockCrumb = () => ({ text: saverLabel("clock"), open: () => openSaverStep("clock") });

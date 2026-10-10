@@ -4,7 +4,8 @@ const { pageCount } = editorLayout;
 
 // The top bar: the name on the left; on the right up to six items: the time, an analog clock, the date, or an
 // entity's state or last change. Edits belong to the selected page.
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed } from "vue";
+import { useSortableRows } from "../composables/useSortableRows";
 import { t } from "../i18n";
 import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
@@ -27,8 +28,7 @@ import Section from './ui/Section.vue';
 import HelpTip from './HelpTip.vue';
 
 const props = defineProps<{ index: number }>();
-const draggedItems = ref<HeaderItem[] | null>(null);
-const items = computed(() => draggedItems.value || topbarItems());
+const items = computed(() => sort.live.value || topbarItems());
 const item = computed<HeaderItem | undefined>(() => items.value[props.index]);
 const lay = computed(() => {
   void state.fontsVersion; void state.now; void state.topbarPreviews;
@@ -86,74 +86,13 @@ const samples = computed(() => {
 });
 
 // Pointer drag between the rows, mouse and touch (touch after a short hold, so the list still scrolls). The order
-// updates while dragging, the mockup follows, and a finished drag is not a click.
-const drag = ref({ index: -1, active: false, moved: false });
-let start: { x: number; y: number } | null = null, timer = 0, pointerId: number | null = null, suppressUntil = 0;
-function down(e: PointerEvent, i: number) {
-  if (e.button !== 0 || (e.target as HTMLElement).closest(".x")) return;
-  if (e.pointerType !== "touch") e.preventDefault();
-  drag.value = { index: i, active: false, moved: false };
-  start = { x: e.clientX, y: e.clientY };
-  pointerId = e.pointerId;
-  clearTimeout(timer);
-  if (e.pointerType === "touch") timer = window.setTimeout(begin, 260);
-  document.addEventListener("pointermove", move);
-  document.addEventListener("pointerup", end);
-  document.addEventListener("pointercancel", end);
-}
-function begin() {
-  drag.value.active = true;
-  document.addEventListener("touchmove", block, { passive: false });
-}
-function block(e: TouchEvent) { if (drag.value.active) e.preventDefault(); }
-function move(e: PointerEvent) {
-  if (e.pointerId !== pointerId || !start) return;
-  if (!drag.value.active) {
-    const distance = Math.hypot(e.clientX - start.x, e.clientY - start.y);
-    if (e.pointerType === "touch") { if (distance > 10) { clearTimeout(timer); start = null; } return; }
-    if (distance < 6) return;
-    begin();
-  }
-  // The target is the row whose middle the pointer passed.
-  const rows = [...document.querySelectorAll<HTMLElement>(".items .item[data-index]")];
-  let target = drag.value.index;
-  rows.forEach((row, i) => {
-    const r = row.getBoundingClientRect();
-    if (i < drag.value.index && e.clientY < r.top + r.height / 2) target = Math.min(target, i);
-    if (i > drag.value.index && e.clientY > r.top + r.height / 2) target = Math.max(target, i);
-  });
-  if (target !== drag.value.index && state.layout) {
-    const list = [...items.value];
-    list.splice(target, 0, ...list.splice(drag.value.index, 1));
-    draggedItems.value = list;
-    const selectedMoved = props.index === drag.value.index;
-    drag.value.index = target;
-    drag.value.moved = true;
-    if (selectedMoved) openBar(target);
-  }
-}
-function release() {
-  clearTimeout(timer);
-  document.removeEventListener("pointermove", move);
-  document.removeEventListener("pointerup", end);
-  document.removeEventListener("pointercancel", end);
-  document.removeEventListener("touchmove", block);
-}
-function end(e: PointerEvent) {
-  if (e.pointerId !== pointerId) return;
-  release();
-  if (drag.value.active) {
-    suppressUntil = Date.now() + 400;
-    if (drag.value.moved && e.type !== "pointercancel" && draggedItems.value) setTopbarItems(draggedItems.value);
-  }
-  draggedItems.value = null;
-  drag.value = { index: -1, active: false, moved: false };
-  start = null; pointerId = null;
-}
-// The drawer that closes while an item is held (another tile chosen, Escape) lets go of the page, without a change.
-onBeforeUnmount(release);
-function pick(i: number) {
-  if (Date.now() < suppressUntil) return;
+// updates while dragging, the mockup follows, and a finished drag is not a click (composables/useSortableRows.ts). The
+// drawer that closes while an item is held (another tile chosen, Escape) lets go of the page, without a change.
+const sort = useSortableRows<HeaderItem>({ rows: ".items .item[data-index]", items: () => topbarItems(), commit: (list) => setTopbarItems(list), skip: ".x",
+  onMove: (from, to) => { if (props.index === from) openBar(to); } });
+const drag = sort.drag;
+function pick(e: MouseEvent, i: number) {
+  if (sort.click(e)) return;
   openBar(i);
 }
 function onKey(e: KeyboardEvent, i: number) {
@@ -182,7 +121,7 @@ function onKey(e: KeyboardEvent, i: number) {
         <div v-for="(it, i) in items" :key="itemKey(it) + i" class="item" role="listitem" tabindex="0" :data-index="i"
           :class="{ selected: i === index, 'is-hidden': !topbarView(it).shown, 'is-overflow': overflow.has(i), 'just-added': justAdded(it), 'dragging-chip': drag.active && drag.index === i }"
           :aria-label="t('editor.topbar.item_label', { name: topbarLabel(it), slot: i + 1 })"
-          @pointerdown="down($event, i)" @click="pick(i)" @keydown="onKey($event, i)">
+          @pointerdown="sort.down($event, i)" @click="pick($event, i)" @keydown="onKey($event, i)">
           <Icon name="drag-vertical" class="grip" />
           <span class="av mdi" :style="topbarView(it).color ? { color: topbarView(it).color! } : undefined">{{ iconOf(it) ? glyph(iconOf(it)!) : "" }}</span>
           <span class="tx"><b>{{ topbarLabel(it) }}</b><small>{{ detail(it, i) }}</small></span>

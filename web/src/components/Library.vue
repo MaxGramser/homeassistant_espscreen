@@ -16,6 +16,7 @@ import { isPluginTile } from "../model/plugins";
 import { pluginsEnabled, tilesOn } from "../plugin-state";
 import { currentScreen } from "../store";
 import { usePreference } from "../composables/usePreference";
+import { useResizeHandle } from "../composables/useResizeHandle";
 import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, phone, pictures, repeatable, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
@@ -206,32 +207,22 @@ watch(() => [state.insertAt, state.insertKey], () => {
   if (state.insertAt < 0 && !state.insertKey) return;
   openSearch();
 });
-// While the top edge is held the drawer follows the pointer at once; otherwise it glides.
-const resizing = ref(false);
-let drag: { y: number; h: number } | null = null;
-function grab(e: PointerEvent) {
-  // Dragging the edge selects nothing on the page it passes over.
-  e.preventDefault();
-  document.body.style.userSelect = "none";
-  drag = { y: e.clientY, h: open.value ? height.value : HEAD };
-  resizing.value = true;
-  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-}
-function move(e: PointerEvent) {
-  if (!drag) return;
-  const next = drag.h + drag.y - e.clientY;
-  // Dragged below its least height it folds; dragged up from folded it opens.
-  if (next < MIN * 0.6) { open.value = false; return; }
-  open.value = true;
-  height.value = Math.min(maxHeight(), Math.max(MIN, next));
-}
-function release() {
-  if (!drag) return;
-  drag = null;
-  resizing.value = false;
-  document.body.style.userSelect = "";
-  keptHeight.value = height.value;
-}
+// While the top edge is held the drawer follows the pointer at once; otherwise it glides. Dragging the edge selects
+// nothing on the page it passes over, and the height is kept when it is let go (also when the drawer goes first).
+let from = { y: 0, h: 0 };
+const edge = useResizeHandle({
+  selectNothing: true,
+  onStart: (e) => { from = { y: e.clientY, h: open.value ? height.value : HEAD }; },
+  onMove: (e) => {
+    const next = from.h + from.y - e.clientY;
+    // Dragged below its least height it folds; dragged up from folded it opens.
+    if (next < MIN * 0.6) { open.value = false; return; }
+    open.value = true;
+    height.value = Math.min(maxHeight(), Math.max(MIN, next));
+  },
+  onEnd: () => { keptHeight.value = height.value; },
+});
+const resizing = edge.resizing;
 function onResizeKey(e: KeyboardEvent) {
   if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
   e.preventDefault();
@@ -239,7 +230,6 @@ function onResizeKey(e: KeyboardEvent) {
   height.value = Math.min(maxHeight(), Math.max(MIN, height.value + (e.key === "ArrowUp" ? 40 : -40)));
   keptHeight.value = height.value;
 }
-onBeforeUnmount(release);
 </script>
 
 <template>
@@ -250,7 +240,7 @@ onBeforeUnmount(release);
       <button type="button" class="icon-btn sheet-close" :aria-label="t('editor.common.close')" @click="open = false"><Icon name="close" /></button>
     </div>
     <div v-else class="lib-grip" role="separator" aria-orientation="horizontal" tabindex="0" :aria-label="t('editor.library.resize')"
-      @pointerdown="grab" @pointermove="move" @pointerup="release" @pointercancel="release" @keydown="onResizeKey"><i></i></div>
+      @pointerdown="edge.start" @keydown="onResizeKey"><i></i></div>
     <div class="lib-head">
       <button v-if="!phone" type="button" class="lib-title" id="library-toggle" :aria-expanded="open ? 'true' : 'false'" aria-controls="library-body" :title="t('editor.library.hint')" @click="toggle">
         <Icon name="chevron-down" class="lib-chevron" />

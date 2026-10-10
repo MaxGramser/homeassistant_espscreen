@@ -10,6 +10,7 @@ import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
 import { onReset } from "./resets";
+import { CLICK_AFTER_DRAG_MS, HOLD_MS, SLOP_PX, THRESHOLD_PX } from "./composables/usePointerDrag";
 
 export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string } | { kind: "page"; page: number };
 type Drag = {
@@ -36,13 +37,13 @@ export const vDrag: Directive<HTMLElement, DragSource | null> = {
       // A fast flick may leave the card before its first move event: keep the pointer until the drag begins.
       try { element.setPointerCapture(e.pointerId); } catch {}
       clearTimeout(drag.timer);
-      if (e.pointerType === "touch") drag.timer = window.setTimeout(() => beginDrag(e), 260);
+      if (e.pointerType === "touch") drag.timer = window.setTimeout(() => beginDrag(e), HOLD_MS);
     });
     element.addEventListener("pointermove", (e: PointerEvent) => {
       if (state.drag.active || !drag.start || drag.element !== element) return;
       const distance = Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y);
-      if (e.pointerType === "touch") { if (distance > 10) { clearTimeout(drag.timer); drag.start = null; } return; }
-      if (distance >= 6) beginDrag(e);
+      if (e.pointerType === "touch") { if (distance > SLOP_PX) { clearTimeout(drag.timer); drag.start = null; } return; }
+      if (distance >= THRESHOLD_PX) beginDrag(e);
     });
     const cancel = () => { if (drag.element === element && !state.drag.active) { clearTimeout(drag.timer); drag.start = null; } };
     element.addEventListener("pointerup", cancel);
@@ -217,7 +218,7 @@ function endDrag(drop: boolean) {
   try { document.documentElement.releasePointerCapture(drag.pointerId!); } catch {}
   drag.ghost?.remove();
   drag.lastSlot = drag.target;
-  Object.assign(drag, { ghost: null, suppressUntil: Date.now() + 400, last: null, start: null, target: null, element: null, source: null });
+  Object.assign(drag, { ghost: null, suppressUntil: Date.now() + CLICK_AFTER_DRAG_MS, last: null, start: null, target: null, element: null, source: null });
   clearInterval(drag.scroller);
   state.drag.active = false;
   state.drag.preview = null;

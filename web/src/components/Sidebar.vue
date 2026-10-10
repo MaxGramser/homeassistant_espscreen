@@ -15,6 +15,7 @@ import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
 import { pluginsEnabled } from "../plugin-state";
 import { SIDE_MAX, SIDE_MIN, dragSidebar, resetSidebar, sideWidth, sidebar, toggleSidebar } from "../sidebar-state";
+import { useResizeHandle } from "../composables/useResizeHandle";
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
@@ -113,17 +114,12 @@ const tip = (key: string, text: string | undefined, always = false) =>
   text && (sidebar.folded || always || cut.value[key]) ? { content: text, placement: "right", distance: 10, delay: { show: 200, hide: 0 } } : null;
 const screenTip = (screen: Screen) => [screen.name, subline(screen)?.text].filter(Boolean).join(" · ");
 // The edge: dragged, by the arrow keys (Shift for bigger steps) or reset with a double click (sidebar-state.ts).
-function startResize(event: PointerEvent) {
-  const handle = event.currentTarget as HTMLElement, left = aside.value?.getBoundingClientRect().left || 0;
-  event.preventDefault();
-  handle.setPointerCapture(event.pointerId);
-  sidebar.resizing = true;
-  const move = (e: PointerEvent) => dragSidebar(e.clientX - left);
-  const stop = () => { sidebar.resizing = false; handle.removeEventListener("pointermove", move); handle.removeEventListener("pointerup", stop); handle.removeEventListener("pointercancel", stop); };
-  handle.addEventListener("pointermove", move);
-  handle.addEventListener("pointerup", stop);
-  handle.addEventListener("pointercancel", stop);
-}
+let left = 0;
+const edge = useResizeHandle({
+  onStart: () => { left = aside.value?.getBoundingClientRect().left || 0; sidebar.resizing = true; },
+  onMove: (e) => dragSidebar(e.clientX - left),
+  onEnd: () => { sidebar.resizing = false; },
+});
 function resizeKey(event: KeyboardEvent) {
   const by = event.shiftKey ? 48 : 16;
   if (event.key === "ArrowLeft") dragSidebar(sideWidth() - by);
@@ -313,6 +309,6 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     <!-- The edge (app 0.4.85): drag it wider or narrower, past the narrowest it folds to the icons; a double click resets it. -->
     <div class="side-resize" role="separator" aria-orientation="vertical" tabindex="0" :aria-label="t('editor.sidebar.resize')"
       :aria-valuenow="sideWidth()" :aria-valuemin="SIDE_MIN" :aria-valuemax="SIDE_MAX" :title="t('editor.sidebar.resize')"
-      @pointerdown="startResize" @dblclick="resetSidebar" @keydown="resizeKey"></div>
+      @pointerdown="edge.start" @dblclick="resetSidebar" @keydown="resizeKey"></div>
   </aside>
 </template>

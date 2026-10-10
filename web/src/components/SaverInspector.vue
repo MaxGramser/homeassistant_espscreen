@@ -8,8 +8,9 @@ import { glyph } from "../model/topbar";
 import { closeInspector, entityName, loadLibraryStates, openSaverAdd, openSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, topbarLabel, topbarView } from "../store";
 import {
   addPlayer, cameraChoices, changeSaver, entitiesOf, entityPlace, isOn, MAX_PLAYERS, moveStep, players, removePlayer, SAVER_ICONS, savedOrder, saver,
-  saverLabel, saverReady, setPlayers, sorter, toggleStep, weatherChoices, weatherSource,
+  saverLabel, saverReady, setPlayers, toggleStep, weatherChoices, weatherSource,
 } from "../saver";
+import { useSortableRows } from "../composables/useSortableRows";
 import type { SaverKind } from "../types";
 import SaverGlass from "./SaverGlass.vue";
 import Icon from "./ui/Icon.vue";
@@ -29,7 +30,8 @@ const crumbs = computed(() => [
 ]);
 const shown = computed(() => playerSort.live.value || players.value);
 const free = computed(() => entitiesOf("media", players.value));
-const playerSort = sorter<string>("#saver-players > .item", () => players.value, setPlayers, "button", () => saverReady.value && players.value.length > 1);
+const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", items: () => players.value, commit: setPlayers, skip: "button", grip: ".grip",
+  enabled: () => saverReady.value && players.value.length > 1 });
 watch(weatherSource, (id) => id && loadLibraryStates([id]), { immediate: true });
 </script>
 
