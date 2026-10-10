@@ -23,6 +23,8 @@ packages:
   battery_adc: !include ../features/battery-adc.yaml
   # The RGB LED beside the camera, as a light in Home Assistant (outputs below).
   rgb_led: !include ../features/rgb-led.yaml
+  # The two microphones and the loudspeaker as the screen's audio (features/audio.yaml): its hardware below.
+  audio: !include ../features/audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -73,6 +75,10 @@ substitutions:
     if (x < t[0]) return 0.0f; for (int i = 1; i < 21; i++) if (x < t[i]) return (i - 1) * 5.0f + 5.0f * (x - t[i - 1]) / (t[i] - t[i - 1]);
     return 100.0f; })(v)
 
+  # The audio's data lines (features/audio.yaml); the buses and the two chips are below.
+  AUDIO_DOUT_PIN: GPIO30
+  AUDIO_DIN_PIN: GPIO26
+
 # ============================================================
 # No need to edit below this line.
 # ============================================================
@@ -120,6 +126,12 @@ switch:
     internal: true
     restore_mode: ALWAYS_ON
     pin: {xl9535: board_expander, number: 6}
+  # Pin 13 (BSP line 11) powers the loudspeaker's amplifier.
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 13}
   # Pin 12 (BSP line 10) stops the charger when high: low, so the battery charges on USB.
   - platform: gpio
     id: board_charge_off
@@ -171,6 +183,36 @@ output:
     pin: GPIO23
     id: output_blue
     inverted: true
+
+# The audio: two I2S buses, one for the ES7210 that reads the two microphones and one for the ES8311 that drives the
+# NS4150B amplifier, so the screen can listen and speak at the same time. Both chips sit on board_bus.
+i2s_audio:
+  - id: ts_mic_bus
+    i2s_mclk_pin: GPIO29
+    i2s_bclk_pin: GPIO28
+    i2s_lrclk_pin: GPIO27
+  - id: ts_speaker_bus
+    i2s_mclk_pin: GPIO33
+    i2s_bclk_pin: GPIO32
+    i2s_lrclk_pin: GPIO31
+
+audio_adc:
+  - platform: es7210
+    id: ts_audio_adc
+    i2c_id: board_bus
+    address: 0x40
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    mic_gain: 30db
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: board_bus
+    address: 0x18
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    use_mclk: true
 
 # The LSM6DS3TR-C motion sensor, read once a minute for the temperature it measures on its own chip (warmer than the
 # room the board stands in: it shows how warm the board runs).
