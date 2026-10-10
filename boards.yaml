@@ -127,6 +127,8 @@ tab5:
   name: M5Stack Tab5
   model: Tab5 ST7121
   status: new
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 waveshare5:
   file: waveshare-esp32s3-5.yaml
@@ -139,6 +141,8 @@ wavesharep4:
   name: Waveshare
   model: ESP32-P4-86-Panel-ETH-2RO
   status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 reterminald1001:
   file: reterminald1001.yaml

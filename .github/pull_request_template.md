@@ -1,3 +1,7 @@
+> **GitHub Issues are reviewed for bugs only.** Feature requests, improvements and new board requests posted on GitHub will not be reviewed. Use the [wishlist](https://tessera-maxgramser.on-forge.com/wishlist) or its [New boards category](https://tessera-maxgramser.on-forge.com/wishlist?category=board). Search first and upvote an existing wish. Questions go in [Community](https://tessera-maxgramser.on-forge.com/community).
+>
+> Pull requests are for proposed code or documentation changes, not for submitting a request. A feature implementation can link to its website wish.
+
 ## What changes
 
 Describe the problem and what someone will see or be able to do after this change.

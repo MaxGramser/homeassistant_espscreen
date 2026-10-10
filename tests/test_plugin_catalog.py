@@ -130,6 +130,25 @@ class Catalogue(unittest.TestCase):
         other.keep_snapshot(other.index['audio'])
         self.assertIn('plugin_audio', other.sidecar('kitchen'))
 
+    def test_a_build_the_app_lost_is_squared_with_what_the_screen_runs(self):
+        # The app restarted while it built (the job lives in memory, the record's state on disk): a screen that reports the
+        # plugin at that version has it, one that does not is offered a new build instead of a spinner for ever.
+        service = self.service(item('voice'), item('audio'))
+        for plugin in ('voice', 'audio'):
+            service.store.put('kitchen', {'id': plugin, 'source': 'index', 'repo': TESSERA, 'path': f'plugins/{plugin}',
+                                          'ref': 'a' * 40, 'version': '1.0.0', 'state': 'building'})
+        sender = type('Sender', (), {'plugin_api': '0.8', 'plugins': [{'id': 'voice', 'version': '1.0.0', 'tiles': []}]})()
+        service.manager.page_senders = {'kitchen': sender}
+        service.settle()
+        self.assertEqual(service.store.get('kitchen', 'voice')['state'], 'active')
+        self.assertEqual((service.store.get('kitchen', 'audio')['state'], service.store.get('kitchen', 'audio')['reason']),
+                         ('failed', 'interrupted'))
+        # A build on its way is left alone.
+        service.store.set_state('kitchen', 'audio', 'building')
+        service.jobs['kitchen'] = {'state': 'building', 'add': ['audio'], 'remove': []}
+        service.settle()
+        self.assertEqual(service.store.get('kitchen', 'audio')['state'], 'building')
+
     def test_a_camera_plugin_fits_a_board_with_a_camera_sensor(self):
         # The reTerminal D1001 names its camera's bus (CAMERA_I2C): a plugin that drives the sensor fits it, alone; a board
         # without one has no plugin that could bring it.

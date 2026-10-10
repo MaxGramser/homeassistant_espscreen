@@ -701,7 +701,26 @@ class Plugins:
             listed[entry.id] = entry
         return listed
 
+    def settle(self):
+        """What a plugin's record says squared with what its screen runs, for a screen without a build on its way: a
+        plugin the screen reports at that version is active (built elsewhere: ESPHome Device Builder, a computer), and one
+        still building without a build is failed (the app restarted during it), so the editor offers to build again
+        instead of waiting for ever."""
+        running = self.running()
+        for inbox, records in self.store.everywhere().items():
+            job = (self.jobs.get(inbox) or {}).get('state')
+            if job in ('queued', 'building'):
+                continue
+            reported = {item['id']: item.get('version') for item in running.get(inbox) or []}
+            for record in records:
+                state = record.get('state', 'active')
+                if state in ('building', 'failed') and reported.get(record['id']) == record.get('version'):
+                    self.store.set_state(inbox, record['id'], 'active')
+                elif state == 'building':
+                    self.store.set_state(inbox, record['id'], 'failed', 'interrupted')
+
     def payload(self, language='en'):
+        self.settle()
         self.scan_folders()
         listed = self.listed()
         installed = {}

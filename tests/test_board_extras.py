@@ -41,7 +41,10 @@ class TheBoards(unittest.TestCase):
         # Plugin API 0.7: a plugin that needs a speaker fits a screen whose board brings ts_speaker, without another plugin.
         self.assertEqual(SHAPES['reterminald1001']['features'], ['speaker', 'microphone', 'media_player', 'camera_sensor'])
         self.assertEqual(SHAPES['cyd']['features'], [])
-        self.assertEqual(SHAPES['wavesharep4']['features'], [], 'its audio comes with the p4_audio plugin')
+        # The Waveshare P4 86 has its microphone and speaker on one bus (AUDIO_HALF_DUPLEX), and the same three features.
+        self.assertEqual(SHAPES['wavesharep4']['features'], ['speaker', 'microphone', 'media_player'])
+        # The M5Stack Tab5 too, on one bus, and its camera clocked from a pin (CAMERA_XCLK_PIN).
+        self.assertEqual(SHAPES['tab5']['features'], ['speaker', 'microphone', 'media_player', 'camera_sensor'])
 
     def test_a_board_without_extras_has_no_page_and_no_row(self):
         # The core's hooks are empty: a screen whose files add nothing has no Extras page (settings_screen.h).

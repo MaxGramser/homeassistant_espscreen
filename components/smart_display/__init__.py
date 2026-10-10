@@ -84,6 +84,31 @@ def plugin_texts(folder, language):
     return texts
 
 
+def read_sound(path):
+    """(rate, channels, samples) of a plugin's sound: a WAV file of 16-bit samples, mono or stereo, best at the screen's
+    own speaker rate. Anything else is refused with the reason, when the configuration is read (plugin API 0.8)."""
+    import wave
+
+    try:
+        with wave.open(str(path), "rb") as file:
+            if file.getcomptype() != "NONE" or file.getsampwidth() != 2 or file.getnchannels() not in (1, 2):
+                raise cv.Invalid(f"{path}: a plugin's sound is a WAV file of 16-bit samples, mono or stereo")
+            return file.getframerate(), file.getnchannels(), file.readframes(file.getnframes())
+    except (OSError, EOFError, wave.Error) as error:
+        raise cv.Invalid(f"{path}: {error}") from error
+
+
+def sound(owner, name, path):
+    """A plugin's sound in flash, as a tessera::Sound for its component (plugin_sound.h): `owner` is the component's id,
+    `name` names this sound among its own, `path` is the WAV file in the plugin's folder."""
+    from esphome.core import ID, HexInt
+
+    rate, channels, samples = read_sound(path)
+    data = cg.progmem_array(ID(f"{owner}_{name}_sound", is_declaration=True, type=cg.uint8), [HexInt(b) for b in samples])
+    return cg.StructInitializer(cg.global_ns.namespace("tessera").struct("Sound"), ("data", data),
+                                ("length", len(samples)), ("rate", rate), ("channels", channels))
+
+
 async def register_plugin(var, component_file):
     """What a plugin's component does in to_code after making its object: its id, version, tile memory and texts from its
     manifest and translations, and a check that it was written for this core's plugin API."""

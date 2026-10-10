@@ -40,7 +40,7 @@
 - [BOARD_RELEASES.md](BOARD_RELEASES.md): which boards a change reaches, and the firmware number it gets.
 - [PROFILES.md](PROFILES.md): how a screen's YAML is put together from the core, looks, features and board files.
 - [THEME.md](THEME.md): colours and Dark mode, from one table.
-- [SETTINGS.md](SETTINGS.md): the screen settings, and adding one.
+- [SETTINGS.md](SETTINGS.md): the screen settings, and adding one; a board's own settings (Extras), and adding one.
 - [PAGES.md](PAGES.md): the page model, tile sizes, navigation, storage and the message rules.
 - [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one

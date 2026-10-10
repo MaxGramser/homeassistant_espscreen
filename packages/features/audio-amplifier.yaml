@@ -1,0 +1,20 @@
+# ESP Screens - a speaker amplifier that follows the sound, for a board file whose microphone and speaker share one I2S
+# bus (features/audio.yaml with AUDIO_HALF_DUPLEX): the Waveshare P4 86 panel, the M5Stack Tab5.
+#
+# On a shared bus the speaker lets go of the bus half a second after a sound, and its DAC pops when its clock starts
+# and stops. The amplifier is on while sound comes and off 300 ms after the last of it, before the bus stops: neither
+# pop is heard, and the speaker does not hiss between sounds. The board file brings the amplifier's enable as a switch
+# (restore_mode: ALWAYS_OFF) and names it in AUDIO_AMPLIFIER. A board whose speaker bus runs all the time keeps its
+# amplifier on instead (the reTerminal D1001).
+interval:
+  - interval: 20ms
+    then:
+      - lambda: |-
+          static uint32_t heard = 0;
+          const uint32_t now = millis();
+          if (id(ts_speaker_out).is_running() && id(ts_speaker_out).has_buffered_data()) heard = now ? now : 1;
+          const bool on = heard != 0 && now - heard < 300;
+          if (on != id(${AUDIO_AMPLIFIER}).state) {
+            if (on) id(${AUDIO_AMPLIFIER}).turn_on();
+            else id(${AUDIO_AMPLIFIER}).turn_off();
+          }

@@ -233,6 +233,17 @@ it in three places at once:
 
 All three show and change the same entity, so there is no second copy of the value to keep in step.
 
+What the boards have today:
+
+| Board | Extras | Where it comes from |
+|---|---|---|
+| reTerminal D1001 | Volume, Microphone, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
+| Waveshare ESP32-P4 86 panel | Volume, Microphone | `features/audio.yaml` |
+| M5Stack Tab5 | Volume, Microphone | `features/audio.yaml` |
+
+A plugin's settings work the same way, from its own ESPHome entities, on its own settings page and in its details on
+the screen's Plugins tab (docs/PLUGINS.md); the code that finds and changes them is one module for both.
+
 ### Adding one
 
 1. **The entity.** In the board file, or in a feature file when every board with that hardware has it (the microphone
@@ -251,7 +262,7 @@ All three show and change the same entity, so there is no second copy of the val
 
 2. **The row on the screen.** A row in `settings_screen::board_rows`, through the file's own hook in `packages/core.yaml`
    (`BOOT_BOARD_SETTINGS` for the board file, `BOOT_AUDIO` for the audio feature; empty for every other
-   board), built with the same builders as the core's rows and bound to the entity:
+   board), built with the same builders as the core's rows and bound to the entity. A switch is a `toggle`:
 
    ```yaml
    substitutions:
@@ -261,11 +272,20 @@ All three show and change the same entity, so there is no second copy of the val
            [](int32_t on) { if (on) id(board_wake_when_moved).turn_on(); else id(board_wake_when_moved).turn_off(); }));
    ```
 
+   A number (and a volume) is a `number` row with its lowest and highest value, its step and its unit, as the volume
+   in `features/audio.yaml`:
+
+   ```yaml
+       settings_screen::board_rows.push_back(settings_screen::number(screen_text::txt::settings_media_player,
+           []() -> int32_t { return static_cast<int32_t>(lroundf(id(ts_media_player).volume * 100.0f)); },
+           [](int32_t value) { id(ts_media_player).make_call().set_volume(value / 100.0f).perform(); }, 0, 100, 5, "%"));
+   ```
+
 3. **The words.** The row's label in the `screen` section of every translation (`screen.settings.<key>`, then
    `tools/i18n.py header`), and the editor's label and a one-line hint under `addon.labels.extras.<key>`.
 
-4. **The list.** The setting's key in the board's entry in `boards.yaml`, `settings: [microphone, wake_when_moved]`, in
-   the order the editor shows them. The key is the entity's name as ESPHome writes it in an id ("Wake when moved" is
+4. **The list.** The setting's key in the board's entry in `boards.yaml`, `settings: [media_player, microphone,
+   wake_when_moved]`, in the order the editor shows them. The key is the entity's name as ESPHome writes it in an id ("Wake when moved" is
    `wake_when_moved`); `tools/generate_board_shapes.py` stops when no entity of the board's files has that name, and
    writes the list into `boards.json`.
 

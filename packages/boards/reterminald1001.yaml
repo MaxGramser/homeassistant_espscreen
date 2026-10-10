@@ -83,8 +83,10 @@ substitutions:
   AUDIO_DAC_DB_AT_1: "32"
 
   # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the SC2356 on the MIPI-CSI port answers on the
-  # touch bus. The board powers it (switches below); a camera plugin drives it (screen_camera).
+  # touch bus, and its clock (CAMERA_XCLK_PIN) is its own. The board powers it (switches below); a camera plugin drives
+  # it (screen_camera).
   CAMERA_I2C: touch_bus
+  CAMERA_XCLK_PIN: "-1"                        # the sensor has its own clock
 
   # This board's own row on the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings").
   BOOT_BOARD_SETTINGS: |-

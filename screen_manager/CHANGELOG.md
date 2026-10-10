@@ -9,8 +9,11 @@
   the RGB LED, a clock that keeps the time while Home Assistant is away, its speaker and microphones, and its camera
   for the Screen camera plugin, which makes it a camera in Home Assistant. Its SD card and LTE are not configured yet.
 - **A screen with a speaker is a media player in Home Assistant.** On a board whose speaker Tessera configures (the
-  reTerminal D1001 first), Home Assistant's text to speech and announcements play on the screen, without a voice
-  assistant. Its volume is under Extras, on the screen and in Screen settings, and no sound starts with a pop.
+  reTerminal D1001, the Waveshare ESP32-P4 86 panel and the M5Stack Tab5), Home Assistant's text to speech and
+  announcements play on the screen, without a voice assistant. Its volume is under Extras, on the screen and in Screen
+  settings, and no sound starts with a pop. On the Waveshare panel and the Tab5, whose microphone and speaker share one
+  bus, the microphone pauses while something plays; the P4 audio plugin is no longer needed. The Tab5's camera works
+  with the Screen camera plugin as well. Both are built but still to be tried on those boards.
 - **Extras: settings a board has of its own.** A screen whose board has something the others do not shows it under
   Screen settings in an Extras card, on the screen's own settings page under Extras, and in Home Assistant, all the same
   switch. On the reTerminal D1001: Microphone, and Wake when moved, which wakes the screen from standby when someone picks
@@ -23,7 +26,8 @@
   filled in for the original. Plugin API 0.7.
 - **Plugin items in the top bar in colour.** A plugin's item lights up when it matters: a microphone in blue while a
   voice assistant listens, amber while it thinks, a camera in red while it streams. Choose Show, Icon only, to keep the
-  top bar to icons. A microphone joins the icons for tiles. Plugin API 0.8, which also knows a screen's camera.
+  top bar to icons. A microphone joins the icons for tiles. Plugin API 0.8, which also knows a screen's camera, and
+  lets a plugin play sounds of its own (Tap sound: a soft tick on every tap).
 
 - **All of a plugin's settings in one place.** Open a plugin in a screen's Plugins tab and its settings are there, in
   three groups: what takes effect on this screen at once, what is filled in once for every screen, and what builds the
