@@ -146,4 +146,4 @@ reterminald1001:
   model: reTerminal D1001
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [microphone, wake_when_moved]
+  settings: [media_player, microphone, wake_when_moved]

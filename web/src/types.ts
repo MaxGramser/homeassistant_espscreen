@@ -268,6 +268,8 @@ export type Inventory = {
     battery_contents?: { key: string; label: string }[];
     battery_shows?: { key: string; label: string }[];
     battery_min_firmware?: string;
+    // A plugin's item: its icon and words, or its icon alone (plugin API 0.8).
+    plugin_contents?: { key: string; label: string }[];
     suggestions?: Record<string, { item: HeaderItem; label: string; name?: string; area?: string; icon?: string }[]>;
   };
   alerts?: any;

@@ -157,6 +157,7 @@
       "this_screen": "Ten ekran",
       "extras": "Dodatki",
       "microphone": "Mikrofon",
+      "media_player": "Głośność",
       "wake_when_moved": "Wybudź przy ruchu",
       "dark_mode": "Tryb ciemny",
       "auto_standby": "Auto czuwanie",
@@ -1037,6 +1038,10 @@
           "icon": "Tylko ikona",
           "percent": "Procent"
         },
+        "plugin_contents": {
+          "all": "Ikona i tekst",
+          "icon": "Tylko ikona"
+        },
         "battery_shows": {
           "always": "Zawsze",
           "low": "Tylko gdy słaba"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Mikrofon",
           "hint": "Wyłączony wycisza mikrofon dla wszystkiego, co słucha. Ekran pamięta to po ponownym uruchomieniu."
+        },
+        "media_player": {
+          "label": "Głośność",
+          "hint": "Jak głośno ekran mówi i gra: odpowiedzi, komunikaty i muzyka. Ta sama głośność co odtwarzacz multimediów ekranu w Home Assistant."
         },
         "wake_when_moved": {
           "label": "Wybudź przy ruchu",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Głośniki",
         "soundbar": "Soundbar",
         "headphones": "Słuchawki",
+        "microphone": "Mikrofon",
         "piano": "Pianino",
         "guitar_acoustic": "Gitara",
         "television": "Telewizor",
@@ -1986,7 +1996,9 @@
       "features": {
         "speaker": "głośnik",
         "microphone": "mikrofon",
-        "media_player": "odtwarzacz multimediów"
+        "media_player": "odtwarzacz multimediów",
+        "camera": "obraz kamery w Home Assistant",
+        "camera_sensor": "czujnik kamery"
       },
       "fitting_only": "Tylko to, co pasuje do moich ekranów",
       "made_by": {

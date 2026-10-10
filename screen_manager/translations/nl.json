@@ -157,6 +157,7 @@
       "this_screen": "Dit scherm",
       "extras": "Extra's",
       "microphone": "Microfoon",
+      "media_player": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
       "dark_mode": "Donkere modus",
       "auto_standby": "Automatisch stand-by",
@@ -1037,6 +1038,10 @@
           "icon": "Alleen icoon",
           "percent": "Percentage"
         },
+        "plugin_contents": {
+          "all": "Icoon en tekst",
+          "icon": "Alleen icoon"
+        },
         "battery_shows": {
           "always": "Altijd",
           "low": "Alleen als laag"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Microfoon",
           "hint": "Uit dempt de microfoon voor alles wat luistert. Het scherm onthoudt het na een herstart."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "Hoe hard het scherm spreekt en speelt: antwoorden, aankondigingen en muziek. Hetzelfde volume als de mediaspeler van het scherm in Home Assistant."
         },
         "wake_when_moved": {
           "label": "Wakker bij bewegen",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Speakers",
         "soundbar": "Soundbar",
         "headphones": "Koptelefoon",
+        "microphone": "Microfoon",
         "piano": "Piano",
         "guitar_acoustic": "Gitaar",
         "television": "Televisie",
@@ -3261,7 +3271,9 @@
       "features": {
         "speaker": "luidspreker",
         "microphone": "microfoon",
-        "media_player": "mediaspeler"
+        "media_player": "mediaspeler",
+        "camera": "camerabeeld in Home Assistant",
+        "camera_sensor": "camerasensor"
       },
       "fitting_only": "Alleen wat op mijn schermen past",
       "made_by": {

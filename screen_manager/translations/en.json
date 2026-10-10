@@ -157,6 +157,7 @@
       "this_screen": "This screen",
       "extras": "Extras",
       "microphone": "Microphone",
+      "media_player": "Volume",
       "wake_when_moved": "Wake when moved",
       "dark_mode": "Dark mode",
       "auto_standby": "Auto standby",
@@ -1037,6 +1038,10 @@
           "icon": "Icon only",
           "percent": "Percentage"
         },
+        "plugin_contents": {
+          "all": "Icon and words",
+          "icon": "Icon only"
+        },
         "battery_shows": {
           "always": "Always",
           "low": "Only when low"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Microphone",
           "hint": "Off mutes the microphone for everything that listens. The screen keeps it after a restart."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "How loud the screen speaks and plays: answers, announcements and music. The same volume as the screen's media player in Home Assistant."
         },
         "wake_when_moved": {
           "label": "Wake when moved",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Speakers",
         "soundbar": "Soundbar",
         "headphones": "Headphones",
+        "microphone": "Microphone",
         "piano": "Piano",
         "guitar_acoustic": "Guitar",
         "television": "TV",
@@ -3261,7 +3271,9 @@
       "features": {
         "speaker": "speaker",
         "microphone": "microphone",
-        "media_player": "media player"
+        "media_player": "media player",
+        "camera": "camera stream for Home Assistant",
+        "camera_sensor": "camera sensor"
       },
       "fitting_only": "Only what fits my screens",
       "made_by": {

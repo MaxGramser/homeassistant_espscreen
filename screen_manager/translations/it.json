@@ -157,6 +157,7 @@
       "this_screen": "Questo schermo",
       "extras": "Extra",
       "microphone": "Microfono",
+      "media_player": "Volume",
       "wake_when_moved": "Riattiva se mosso",
       "dark_mode": "Modalità scura",
       "auto_standby": "Standby automatico",
@@ -1037,6 +1038,10 @@
           "icon": "Solo icona",
           "percent": "Percentuale"
         },
+        "plugin_contents": {
+          "all": "Icona e testo",
+          "icon": "Solo icona"
+        },
         "battery_shows": {
           "always": "Sempre",
           "low": "Solo se scarica"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Microfono",
           "hint": "Spento silenzia il microfono per tutto ciò che ascolta. Lo schermo lo ricorda dopo un riavvio."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "Quanto forte lo schermo parla e suona: risposte, annunci e musica. Lo stesso volume del lettore multimediale dello schermo in Home Assistant."
         },
         "wake_when_moved": {
           "label": "Riattiva se mosso",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Altoparlanti",
         "soundbar": "Soundbar",
         "headphones": "Cuffie",
+        "microphone": "Microfono",
         "piano": "Pianoforte",
         "guitar_acoustic": "Chitarra",
         "television": "TV",
@@ -1986,7 +1996,9 @@
       "features": {
         "speaker": "altoparlante",
         "microphone": "microfono",
-        "media_player": "lettore multimediale"
+        "media_player": "lettore multimediale",
+        "camera": "flusso della fotocamera per Home Assistant",
+        "camera_sensor": "sensore della fotocamera"
       },
       "fitting_only": "Solo ciò che va bene per i miei schermi",
       "made_by": {

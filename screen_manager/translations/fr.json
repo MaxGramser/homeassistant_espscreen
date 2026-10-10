@@ -157,6 +157,7 @@
       "this_screen": "Cet écran",
       "extras": "Extras",
       "microphone": "Microphone",
+      "media_player": "Volume",
       "wake_when_moved": "Réveil au mouvement",
       "dark_mode": "Mode sombre",
       "auto_standby": "Veille auto",
@@ -1037,6 +1038,10 @@
           "icon": "Icône seule",
           "percent": "Pourcentage"
         },
+        "plugin_contents": {
+          "all": "Icône et texte",
+          "icon": "Icône seule"
+        },
         "battery_shows": {
           "always": "Toujours",
           "low": "Seulement si faible"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Microphone",
           "hint": "Désactivé, le micro est coupé pour tout ce qui écoute. L’écran le garde après un redémarrage."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "Le volume auquel l'écran parle et joue : réponses, annonces et musique. Le même volume que le lecteur multimédia de l'écran dans Home Assistant."
         },
         "wake_when_moved": {
           "label": "Réveil au mouvement",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Enceintes",
         "soundbar": "Barre de son",
         "headphones": "Casque",
+        "microphone": "Microphone",
         "piano": "Piano",
         "guitar_acoustic": "Guitare",
         "television": "TV",
@@ -1986,7 +1996,9 @@
       "features": {
         "speaker": "haut-parleur",
         "microphone": "microphone",
-        "media_player": "lecteur multimédia"
+        "media_player": "lecteur multimédia",
+        "camera": "flux caméra pour Home Assistant",
+        "camera_sensor": "capteur de caméra"
       },
       "fitting_only": "Seulement ce qui convient à mes écrans",
       "made_by": {

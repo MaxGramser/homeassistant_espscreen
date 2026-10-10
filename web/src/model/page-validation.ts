@@ -42,9 +42,10 @@ export function validatePageShape(layout: PageLayout) {
       fields(item, ['id', 'type', 'entity', 'content', 'icon', 'show', 'item'], ['id', 'type']);
       let key: string;
       if (item.type === 'plugin' && pluginTiles.enabled) {
-        // A plugin's item (docs/PLUGINS.md): it says itself what it shows.
-        fields(item, ['id', 'type', 'item'], ['id', 'type', 'item']);
+        // A plugin's item (docs/PLUGINS.md): it says itself what it shows, with its words or as its icon alone (0.8).
+        fields(item, ['id', 'type', 'item', 'content'], ['id', 'type', 'item']);
         if (!/^plugin:[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/.test(String(item.item))) fail();
+        if (item.content !== undefined && !rules.pluginContents.includes(String(item.content))) fail();
         key = JSON.stringify(['plugin', item.item]);
       } else if (rules.headerBuiltin.includes(item.type) || item.type === rules.headerLink) {
         fields(item, ['id', 'type']); key = item.type;

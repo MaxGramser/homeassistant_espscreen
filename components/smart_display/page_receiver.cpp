@@ -22,6 +22,7 @@ static bool parse_bar_item(JsonVariant value, header_bar::Item &item) {
     // while it runs low (firmware 0.41.0).
     item.only_weak = (item.kind == header_bar::Kind::wifi || item.kind == header_bar::Kind::battery) &&
                      value["a"].is<unsigned>() && value["a"].as<unsigned>() == 1;
+    item.icon_only = item.kind == header_bar::Kind::plugin && value["o"].is<unsigned>() && value["o"].as<unsigned>() == 1;
     if (item.kind == header_bar::Kind::ago && item.epoch == 0) return false;
     // A plugin's item names itself: plugin:<plugin>.<item> (docs/PLUGINS.md).
     if (item.kind == header_bar::Kind::plugin && !plugin_key(item.text)) return false;

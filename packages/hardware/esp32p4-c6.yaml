@@ -45,12 +45,13 @@ psram:
   mode: hex
   speed: 200MHz
 
-# The MIPI-DSI PHY has its own supply, switched by one of the chip's internal regulators.
+# The MIPI-DSI PHY has its own supply, switched by one of the chip's internal regulators. Not adjustable (ESPHome's
+# default), so a camera on the MIPI-CSI port shares it: Espressif's esp_video asks the same channel at the same 2.5 V,
+# which ESP-IDF grants a second user only when nobody may change the voltage.
 esp_ldo:
   - channel: 3
     id: dsi_phy_enable
     voltage: 2.5V
-    adjustable: true
 
 # The P4 has no radio: an ESP32-C6 beside it does the Wi-Fi over a four-bit SDIO bus.
 esp32_hosted:
