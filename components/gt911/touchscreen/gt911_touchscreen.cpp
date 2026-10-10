@@ -17,6 +17,7 @@ static const uint8_t GET_SWITCHES[2] = {0x80, 0x4D};
 static const uint8_t GET_MAX_VALUES[2] = {0x80, 0x48};
 static const size_t MAX_TOUCHES = 5;  // max number of possible touches reported
 static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
+static constexpr uint8_t GT911_INIT_ATTEMPTS = 3;
 
 static constexpr uint8_t REG_CONFIG[2] = {0x80, 0x47};   // config version register
 static constexpr uint8_t REG_PRODUCT[2] = {0x81, 0x40};  // product name register
@@ -31,8 +32,37 @@ static constexpr uint8_t REG_TP_RES[2] = {0x80, 0x48};   // touch resolution reg
 
 void GT911Touchscreen::setup() {
   if (this->interrupt_pin_ != nullptr) {
-    if (!this->init_sequence_(this->use_primary_i2c_addr_)) {
-      ESP_LOGE(TAG, "Error: GT911 init sequence failed.");
+    const uint8_t desired_address = this->use_primary_i2c_addr_ ? PRIMARY_ADDRESS : SECONDARY_ADDRESS;
+    const uint8_t alternate_address = this->use_primary_i2c_addr_ ? SECONDARY_ADDRESS : PRIMARY_ADDRESS;
+    bool desired_address_ready = false;
+
+    for (uint8_t attempt = 1; attempt <= GT911_INIT_ATTEMPTS; attempt++) {
+      ESP_LOGI(TAG, "GT911 reset attempt %u/%u for address 0x%02X", attempt, GT911_INIT_ATTEMPTS, desired_address);
+      if (!this->init_sequence_(this->use_primary_i2c_addr_)) {
+        this->mark_failed(LOG_STR("Reset sequence failed"));
+        return;
+      }
+
+      uint8_t switches;
+      if (this->probe_address_(desired_address, &switches) == i2c::ERROR_OK) {
+        desired_address_ready = true;
+        break;
+      }
+
+      if (this->probe_address_(alternate_address, &switches) == i2c::ERROR_OK) {
+        ESP_LOGW(TAG, "GT911 responded at alternate address 0x%02X after selecting 0x%02X", alternate_address,
+                 desired_address);
+      } else {
+        ESP_LOGW(TAG, "GT911 did not respond at either address after reset attempt %u", attempt);
+      }
+      this->address_ = desired_address;
+
+      if (attempt < GT911_INIT_ATTEMPTS)
+        delay(100);  // NOLINT
+    }
+
+    if (!desired_address_ready) {
+      this->mark_failed(LOG_STR("Communication failed after reset retries"));
       return;
     }
   } else {
@@ -43,6 +73,24 @@ void GT911Touchscreen::setup() {
     // However, it seems that GT911 might work by skipping the init sequence.
   }
   this->setup_internal_();
+}
+
+i2c::ErrorCode GT911Touchscreen::probe_address_(uint8_t address, uint8_t *switches) {
+  this->address_ = address;
+  i2c::ErrorCode err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
+  if (err != i2c::ERROR_OK) {
+    ESP_LOGW(TAG, "Probe 0x%02X register write failed: I2C error %u", address, static_cast<unsigned>(err));
+    return err;
+  }
+
+  err = this->read(switches, 1);
+  if (err != i2c::ERROR_OK) {
+    ESP_LOGW(TAG, "Probe 0x%02X register read failed: I2C error %u", address, static_cast<unsigned>(err));
+    return err;
+  }
+
+  ESP_LOGI(TAG, "GT911 responded at 0x%02X, switches 0x%02X", address, *switches);
+  return i2c::ERROR_OK;
 }
 
 /// @brief Perform GT911 reset/init sequence and configure INT pin for I2C address.
@@ -98,34 +146,23 @@ bool GT911Touchscreen::init_sequence_(bool use_primary_i2c_address) {
 void GT911Touchscreen::setup_internal_() {
   uint8_t data[4];
 
-  if (this->use_primary_i2c_addr_) {
-    this->address_ = PRIMARY_ADDRESS;
-  } else {
-    this->address_ = SECONDARY_ADDRESS;
-  }
-
-  i2c::ErrorCode err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
-
+  const uint8_t desired_address = this->use_primary_i2c_addr_ ? PRIMARY_ADDRESS : SECONDARY_ADDRESS;
+  i2c::ErrorCode err = this->probe_address_(desired_address, data);
   if (err == i2c::ERROR_OK) {
-    err = this->read(data, 1);
-    if (err == i2c::ERROR_OK) {
-      ESP_LOGD(TAG, "Switches ADDR: 0x%02X DATA: 0x%02X", this->address_, data[0]);
+    // data[0] & 1 == 1  =>  controller uses falling edge  =>  active-low
+    // data[0] & 1 == 0  =>  controller uses rising  edge  =>  active-high
+    bool active_high = !(data[0] & 1);
 
-      // data[0] & 1 == 1  =>  controller uses falling edge  =>  active-low
-      // data[0] & 1 == 0  =>  controller uses rising  edge  =>  active-high
-      bool active_high = !(data[0] & 1);
-
-      if (this->interrupt_pin_ != nullptr) {
-        ESP_LOGD(TAG, "Interrupt pin is not null!");
-        if (this->interrupt_pin_->is_internal()) {
-          // Direct MCU pin: attach a hardware interrupt, no polling needed.
-          this->attach_interrupt_(static_cast<InternalGPIOPin *>(this->interrupt_pin_),
-                                  active_high ? gpio::INTERRUPT_RISING_EDGE : gpio::INTERRUPT_FALLING_EDGE);
-          ESP_LOGD(TAG, "Interrupt pin: hardware interrupt, active %s", active_high ? "HIGH" : "LOW");
-        } else {
-          // IO expander pin: leave as output for configuration only.
-          ESP_LOGD(TAG, "Interrupt pin: IO expander polling mode, active %s", active_high ? "HIGH" : "LOW");
-        }
+    if (this->interrupt_pin_ != nullptr) {
+      ESP_LOGD(TAG, "Interrupt pin is not null!");
+      if (this->interrupt_pin_->is_internal()) {
+        // Direct MCU pin: attach a hardware interrupt, no polling needed.
+        this->attach_interrupt_(static_cast<InternalGPIOPin *>(this->interrupt_pin_),
+                                active_high ? gpio::INTERRUPT_RISING_EDGE : gpio::INTERRUPT_FALLING_EDGE);
+        ESP_LOGD(TAG, "Interrupt pin: hardware interrupt, active %s", active_high ? "HIGH" : "LOW");
+      } else {
+        // IO expander pin: leave as output for configuration only.
+        ESP_LOGD(TAG, "Interrupt pin: IO expander polling mode, active %s", active_high ? "HIGH" : "LOW");
       }
     }
   }

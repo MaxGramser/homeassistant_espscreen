@@ -114,6 +114,12 @@ class Catalog(unittest.TestCase):
         self.assertLess(released, settled)
         self.assertLess(settled, returned)
         self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
+        self.assertIn('GT911_INIT_ATTEMPTS = 3', driver)
+        primary_probe = setup.index('probe_address_(desired_address')
+        alternate_probe = setup.index('probe_address_(alternate_address')
+        self.assertLess(primary_probe, alternate_probe)
+        self.assertIn('attempt < GT911_INIT_ATTEMPTS', setup)
+        self.assertIn('this->address_ = desired_address;', setup[alternate_probe:])
 
 
 class Choices(unittest.TestCase):

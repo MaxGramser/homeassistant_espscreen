@@ -54,6 +54,7 @@ class GT911Touchscreen final : public touchscreen::Touchscreen, public i2c::I2CD
   /// On success, sets @ref setup_done_ to true.
   /// On failure, calls @ref mark_failed() with an appropriate error message.
   void setup_internal_();
+  i2c::ErrorCode probe_address_(uint8_t address, uint8_t *switches);
   /// @brief True if the touchscreen setup has completed successfully.
   bool setup_done_{false};
   /// @brief read device information registers from gt911 (product-id, firmware-version, config-version and resolution)
