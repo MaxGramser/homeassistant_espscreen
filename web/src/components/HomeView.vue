@@ -6,7 +6,7 @@ import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
 import { homeView } from "../model/overview";
-import { drawsPictures, go, loadOverview, phone, screenLight, screenSubline, select, setFullEditor, state } from "../store";
+import { drawsPictures, loadOverview, screenLight, screenSubline, select, state } from "../store";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
@@ -17,6 +17,9 @@ import DonateCard from "./DonateCard.vue";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
@@ -42,14 +45,14 @@ onMounted(loadOverview);
   <section id="home" class="home">
     <header class="home-head">
       <!-- On a phone the sidebar's row is gone (app 0.4.40): search, alerts, settings and a new screen are in this menu. -->
-      <UiMenu v-if="phone" width="240px">
+      <UiMenu v-if="ui.phone" width="240px">
         <template #trigger><button type="button" class="icon-btn home-more" :aria-label="t('editor.screen_view.more')"><Icon name="dots-horizontal" /></button></template>
-        <UiMenuItem icon="magnify" @select="state.palette = true">{{ t("editor.sidebar.search") }}</UiMenuItem>
-        <UiMenuItem icon="alert-circle-outline" @select="go('#alerts')">{{ t("editor.nav.alerts") }}</UiMenuItem>
-        <UiMenuItem icon="cog-outline" @select="go('#settings')">{{ t("editor.nav.settings") }}</UiMenuItem>
-        <UiMenuItem icon="plus" @select="go('#new-screen')">{{ t("editor.nav.new_screen") }}</UiMenuItem>
+        <UiMenuItem icon="magnify" @select="ui.palette = true">{{ t("editor.sidebar.search") }}</UiMenuItem>
+        <UiMenuItem icon="alert-circle-outline" @select="ui.go('#alerts')">{{ t("editor.nav.alerts") }}</UiMenuItem>
+        <UiMenuItem icon="cog-outline" @select="ui.go('#settings')">{{ t("editor.nav.settings") }}</UiMenuItem>
+        <UiMenuItem icon="plus" @select="ui.go('#new-screen')">{{ t("editor.nav.new_screen") }}</UiMenuItem>
         <UiMenuSeparator />
-        <UiMenuItem icon="monitor-dashboard" @select="setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
+        <UiMenuItem icon="monitor-dashboard" @select="ui.setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
       </UiMenu>
       <h1>{{ t("editor.home.title") }}</h1>
       <p>{{ t("editor.home.summary", { online, count: state.inventory.screens.length }) }}</p>
@@ -91,7 +94,7 @@ onMounted(loadOverview);
           <Icon name="chevron-right" class="home-go" />
         </span>
       </div>
-      <button type="button" class="home-new" @click="go('#new-screen')"><Icon name="plus" class="home-plus" />{{ t("editor.nav.new_screen") }}</button>
+      <button type="button" class="home-new" @click="ui.go('#new-screen')"><Icon name="plus" class="home-plus" />{{ t("editor.nav.new_screen") }}</button>
     </div>
     <DonateCard />
   </section>

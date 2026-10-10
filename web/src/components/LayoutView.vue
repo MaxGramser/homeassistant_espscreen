@@ -10,7 +10,7 @@ import { useAtMost } from "../composables/useWidths";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { closeInspector, currentScreen, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, pageTitleShown, phone, redo, reviewScreenGrid, setEditorMode, startUpdate, state, supports, tileLimit, undo } from "../store";
+import { closeInspector, currentScreen, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, startUpdate, state, supports, tileLimit, undo } from "../store";
 import PhonePages from "./PhonePages.vue";
 import PageWizard from "./PageWizard.vue";
 import DevicePage from "./DevicePage.vue";
@@ -24,6 +24,9 @@ import Icon from './ui/Icon.vue';
 import type { IconName } from '../model/ui-icons';
 import { allowActions, dismissMigrationNote, resolveLayoutConflict, startFreshLayout } from '../store';
 import { titleOf } from '../model/pages';
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 const droppedTiles = computed(() => currentScreen.value?.page_document?.format === 'pages-v2'
   ? currentScreen.value.page_document.migration?.droppedTiles || [] : []);
 const adjustedFields = computed(() => currentScreen.value?.page_document?.format === 'pages-v2'
@@ -38,7 +41,7 @@ const simplePages = computed(() => narrow.value
 
 // On a phone (app 0.4.40) the pages stand one at a time, as on the glass: a swipe goes to the next, the page's name
 // under it opens the list of pages, and the map is the full editor's.
-const mode = computed(() => phone.value ? "simple" : state.editorMode);
+const mode = computed(() => ui.phone ? "simple" : state.editorMode);
 const selectedIndex = computed(() => Math.max(0, state.document?.pages.findIndex((page) => page.id === state.selectedPageId) ?? 0));
 function stepPage(step: number) {
   const list = state.document?.pages || [];
@@ -53,7 +56,7 @@ const swipe = useSwipe(pagesView, {
   onSwipeStart: () => { swipeAt = Date.now(); },
   onSwipeEnd: () => {
     const dx = -swipe.lengthX.value, dy = -swipe.lengthY.value;
-    if (!phone.value || state.drag.active) return;
+    if (!ui.phone || state.drag.active) return;
     if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - swipeAt < 700) stepPage(dx < 0 ? 1 : -1);
   },
 });
@@ -86,7 +89,7 @@ function onCanvasClick(e: MouseEvent) {
       <button v-if="currentScreen?.page_document?.format === 'legacy-v1' && currentScreen.source_grid" type="button" class="btn quiet mini" @click="startFreshLayout">{{ t('editor.pages.start_fresh') }}</button>
     </div>
     <template v-else>
-    <div v-if="!phone" class="editor-toolbar">
+    <div v-if="!ui.phone" class="editor-toolbar">
       <div class="seg views" role="group" :aria-label="t('editor.pages.mode')">
         <button type="button" :aria-pressed="state.editorMode === 'simple'" @click="setEditorMode('simple')"><Icon name="view-column-outline" />{{ t('editor.pages.view_row') }}</button>
         <button type="button" :aria-pressed="state.editorMode === 'advanced'" @click="setEditorMode('advanced')"><Icon name="sitemap-outline" />{{ t('editor.pages.view_map') }}</button>
@@ -95,8 +98,8 @@ function onCanvasClick(e: MouseEvent) {
         <button type="button" class="icon-btn" :disabled="!state.undoCount" :aria-label="t('editor.common.undo')" :title="`${t('editor.common.undo')} · ⌘Z`" @click="undo"><Icon name="undo" /></button>
         <button type="button" class="icon-btn" :disabled="!state.redoCount" :aria-label="t('editor.pages.redo')" :title="`${t('editor.pages.redo')} · ⇧⌘Z`" @click="redo"><Icon name="redo" /></button>
       </div>
-      <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="state.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
-      <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="state.pageWizardOpen = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
+      <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
+      <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="ui.pageWizardOpen = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
       <GridPicker />
       <span class="spacer"></span>
       <span id="count" class="toolbar-count">{{ t("editor.layout.count", { tiles: layout.tiles.length, limit: tileLimit }, pages) }}</span>
@@ -150,13 +153,13 @@ function onCanvasClick(e: MouseEvent) {
     </template>
     <PageMap v-else-if="mode === 'advanced'" :key="String(narrow)" :compact="narrow" />
     <div v-else ref="pagesView" class="pages" id="layout-preview" :aria-label="t('editor.layout.aria')">
-      <div v-if="narrow && !phone" class="page-pills" role="group" :aria-label="t('editor.pages.choose_page')">
+      <div v-if="narrow && !ui.phone" class="page-pills" role="group" :aria-label="t('editor.pages.choose_page')">
         <button v-for="(page, index) in state.document!.pages" :key="page.id" type="button" :aria-pressed="state.selectedPageId === page.id ? 'true' : 'false'"
           @click="state.selectedPageId = page.id"><b>{{ index + 1 }}</b> {{ titleOf(state.document!, page) }}</button>
       </div>
       <DevicePage v-for="page in simplePages" :key="state.document?.pages[page - 1]?.id || page" :page="page - 1" :entries="entries" :pages="pages" :moving="state.drag.moving" />
-      <div v-if="phone && state.document" class="phone-pager">
-        <button type="button" class="phone-page-name" id="phone-pages" @click="state.pagesSheet = true">
+      <div v-if="ui.phone && state.document" class="phone-pager">
+        <button type="button" class="phone-page-name" id="phone-pages" @click="ui.pagesSheet = true">
           {{ pageTitleShown(selectedIndex) || t("editor.page.label", { page: selectedIndex + 1 }) }}
           <small>{{ t("editor.phone.page_of", { n: selectedIndex + 1, total: state.document.pages.length }) }}</small><Icon name="chevron-down" />
         </button>
@@ -167,7 +170,7 @@ function onCanvasClick(e: MouseEvent) {
       </div>
       <div v-if="!narrow" class="page ghost" :style="deviceStyle" :class="{ disabled: !canAdd }">
         <div class="page-head"><span class="page-name muted">{{ t("editor.page.label", { page: shown + 1 }) }}</span></div>
-        <div class="device" :class="{ compact: isCompact }" :style="deviceStyle" id="add-page" role="button" :tabindex="canAdd ? 0 : -1" @click="canAdd && (state.pageWizardOpen = true)" @keydown.enter.prevent="canAdd && (state.pageWizardOpen = true)">
+        <div class="device" :class="{ compact: isCompact }" :style="deviceStyle" id="add-page" role="button" :tabindex="canAdd ? 0 : -1" @click="canAdd && (ui.pageWizardOpen = true)" @keydown.enter.prevent="canAdd && (ui.pageWizardOpen = true)">
           <span class="ghost-plus"><Icon name="plus" /></span>
           <span>{{ canAdd ? t("editor.layout.add_page") : t("editor.layout.max_pages", grid.pages) }}</span>
         </div>
@@ -176,9 +179,9 @@ function onCanvasClick(e: MouseEvent) {
     </template>
   </div>
   <Library v-if="state.layout" />
-  <NavigationPreview v-if="state.previewOpen && state.document" :key="state.selected || ''" @close="state.previewOpen = false" />
-  <PageWizard v-if="state.pageWizardOpen" :key="state.selected || ''" @close="state.pageWizardOpen = false" />
-  <PhonePages v-if="phone && state.pagesSheet && state.document" @add="state.pagesSheet = false; state.pageWizardOpen = true" />
+  <NavigationPreview v-if="ui.previewOpen && state.document" :key="state.selected || ''" @close="ui.previewOpen = false" />
+  <PageWizard v-if="ui.pageWizardOpen" :key="state.selected || ''" @close="ui.pageWizardOpen = false" />
+  <PhonePages v-if="ui.phone && ui.pagesSheet && state.document" @add="ui.pagesSheet = false; ui.pageWizardOpen = true" />
   <GridReview v-if="state.gridReview" />
 </template>
 

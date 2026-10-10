@@ -458,7 +458,7 @@ class Editor(unittest.TestCase):
 
     def test_the_mockup_polls_live_values_and_draws_them(self):
         self.assertIn('getJson(`states?${query}`)', self.store)
-        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && route.value === "" });', self.store)
+        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && ui.route === "" });', self.store)
         for marker in ('liveOf(props.tile.entity)', 'lit: isOn', ':style="sliderStyle"', "class=\"tog\" :class=\"{ off: !on }\""):
             self.assertIn(marker, self.page, marker)
 

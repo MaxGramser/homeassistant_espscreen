@@ -1,12 +1,12 @@
 // One reactive state for the whole editor. The Python API (server.py) is unchanged: this file is the
 // former app.js state and its calls, with the DOM work moved into the components.
-import { syncRef, useEventListener, useTimeoutFn } from "@vueuse/core";
-import { computed, effectScope, onScopeDispose, reactive, ref, shallowRef, toRaw, toRef, watch } from "vue";
+import { useEventListener, useTimeoutFn } from "@vueuse/core";
+import { computed, effectScope, onScopeDispose, reactive, shallowRef, toRaw, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware } from "./model/layout";
-import { agoText, barMetricsFor, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, whenBarFontsLoad, wifiView } from "./model/topbar";
+import { agoText, barMetricsFor, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, wifiView } from "./model/topbar";
 import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
 import { measuring, memoryCrossing, memoryUse } from "./model/memory";
@@ -31,11 +31,11 @@ import { slug } from "./model/slug";
 import { clockSample } from "./model/clock";
 import { onReset } from "./resets";
 import { readStored, writeStored } from "./storage";
-import { flagSerializer, renewable, usePreference } from "./composables/usePreference";
+import { renewable, usePreference } from "./composables/usePreference";
 import { useClock } from "./composables/useClock";
-import { askConfirm, showText } from "./composables/useConfirm";
+import { askConfirm } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
-import { atMost, useAtMost } from "./composables/useWidths";
+import { useUiStore, type Route, type Toast } from "./stores/ui";
 
 export type Inspector =
   | { kind: "tile" }
@@ -55,12 +55,6 @@ export type DragState = { active: boolean; moving: Tile | null; preview: { tile:
 // What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
 export type Live = { state: string; word?: string | null; a: Record<string, any> };
 
-// What this browser remembers of the editor (composables/usePreference.ts): the library drawer open or folded, the whole
-// editor on a phone. Each is a field of the state below, written as it changes.
-const preferences = renewable(() => ({
-  libraryOpen: usePreference("esp-screens.library-open", true, { serializer: { read: (raw) => raw !== "0", write: (open) => (open ? "1" : "0") } }),
-  fullEditor: usePreference("esp-screens.full-editor", false, { serializer: flagSerializer }),
-}));
 // The editor's state as it starts, before the add-on has said anything: the page begins with it, and every test again
 // (resetStore).
 const fresh = () => ({
@@ -97,16 +91,7 @@ const fresh = () => ({
   insertAt: -1,
   // The key place a click marked under a bedside clock (app 0.4.12): the next tile added from the library goes there.
   insertKey: null as null | { holder: string; key: number },
-  filter: "",
-  search: "",
-  // The library drawer along the bottom (app 0.4.32): open or folded, remembered in this browser; and on a phone (app
-  // 0.4.40) the editor of everyday changes, unless this browser asked for the whole editor (fullEditor). There the
-  // library is a sheet that opens for one tile, the pages a sheet, and the tile just added is marked for a moment.
-  ...preferences(),
-  addSheet: false,
-  pagesSheet: false,
-  previewOpen: false,
-  pageWizardOpen: false,
+  // On a phone (app 0.4.40) the tile just added is marked for a moment.
   justAdded: null as string | null,
   // A choice the pointer rests on in the inspector, drawn on its tile before it is picked (app 0.4.32).
   optionPreview: null as null | { tileId: string; key: string; value: unknown },
@@ -123,18 +108,8 @@ const fresh = () => ({
   removing: null as string | null,
   // The screen whose actions are being allowed (app 0.4.73).
   allowing: null as string | null,
-  toast: null as null | { message: string; action?: { label: string; run: () => void } },
-  now: Date.now(),
-  fontsVersion: 0,
-  route: location.hash,
-  overrideProfile: null as string | null,
-  overrideFriendly: "",
   drag: { active: false, moving: null, preview: null, page: null } as DragState,
-  menuOpen: false,
   liveStates: {} as Record<string, Live>,
-  room: "",
-  hidePlaced: false,
-  palette: false,
   firmwareJob: null as null | { job: any; logs: string[] },
 });
 export const state = reactive({
@@ -144,17 +119,9 @@ export const state = reactive({
   get barPage(): number { return Math.max(0, state.document?.pages.findIndex(page => page.id === state.selectedPageId) ?? 0); },
 });
 
-// ---- The phone (app 0.4.40) ----
-// A page as narrow as a phone gets the editor of everyday changes: the screen itself, one button to add a tile, a tile's
-// name, icon and colour, and everything else under the screen's menu. Wider pages, and a phone that chose the whole
-// editor, keep the editor as it was. The width is the browser's, so a desktop never sees any of it.
-// The width is read when the page loads; startStore follows it from then on (composables/useWidths.ts).
-export const narrowPhone = ref(atMost("phone"));
-export const phone = computed(() => narrowPhone.value && !state.fullEditor);
-export function setFullEditor(on: boolean) {
-  state.fullEditor = on;
-  state.addSheet = false; state.pagesSheet = false; state.menuOpen = false;
-}
+// The page around the screens (stores/ui.ts): its toast and where it goes, for the functions below.
+const toast = (message: string, action?: Toast["action"]) => useUiStore().toast(message, action);
+const go = (target: Route) => useUiStore().go(target);
 
 // This is a cached render projection of the one canonical draft. Mutations go
 // through document operations below, never through this flattened view.
@@ -371,87 +338,6 @@ export const pageReady = computed(() => currentScreen.value?.page_capability ===
   (currentScreen.value?.page_capability === "offline" && currentScreen.value?.page_last_capability === "ready"));
 export const pageAt = (index: number) => state.document?.pages[state.drag.page?.order[index] ?? index];
 
-// ---- Toasts ----
-// A toast goes by itself after five seconds, eight when it offers something to do (Undo); a new one starts the count again.
-let toastMs = 5000;
-const toastExpiry = useTimeoutFn(() => { state.toast = null; }, () => toastMs, { immediate: false });
-export function toast(message: string, action?: { label: string; run: () => void }) {
-  state.toast = { message, action };
-  toastMs = action ? 8000 : 5000;
-  toastExpiry.start();
-}
-export function dismissToast() {
-  state.toast = null;
-}
-// What was copied, each with its own sentences so every language can say it its own way.
-export type Copied = "api_key" | "log" | "layout_json" | "action_name" | "yaml" | "icon_name" | "empty_color" | "color_name" | "screen_name";
-export async function copyText(text: string, element?: Element | null, what: Copied = "api_key") {
-  try {
-    if (!navigator.clipboard || !window.isSecureContext) throw new Error();
-    await navigator.clipboard.writeText(text);
-    toast(t(`editor.copy.${what}.copied`));
-  } catch {
-    // Home Assistant over plain http is no secure context, so the Clipboard API is missing there. The old way copies
-    // what is selected: the text on the page when there is one, else a hidden textarea holding it. Without anything
-    // selected, execCommand still says it copied, and the clipboard stays empty (GitHub #33).
-    let spare: HTMLTextAreaElement | null = null;
-    const focused = document.activeElement as HTMLElement | null;
-    const selection = window.getSelection();
-    if (element) {
-      const range = document.createRange();
-      range.selectNodeContents(element);
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    } else {
-      spare = document.createElement("textarea");
-      spare.value = text;
-      spare.setAttribute("readonly", "");
-      spare.style.cssText = "position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0";
-      document.body.appendChild(spare);
-      spare.focus();
-      spare.select();
-    }
-    let copied = false;
-    try {
-      copied = document.execCommand("copy");
-    } catch {
-      copied = false;
-    }
-    if (spare) {
-      spare.remove();
-      selection?.removeAllRanges();
-      focused?.focus?.();
-      // Nothing on the page to leave selected: the editor shows the text selected, which is what "selected" promises.
-      if (!copied) {
-        void showText(t(`editor.copy.${what}.selected`), text);
-        return;
-      }
-    }
-    toast(t(copied ? `editor.copy.${what}.copied` : `editor.copy.${what}.selected`));
-  }
-}
-export function openIntegrations() {
-  // Pairing happens in Home Assistant itself. This page lives in HA's ingress iframe,
-  // so send the top window to Devices & services (same origin); elsewhere open a tab.
-  const path = "/config/integrations/dashboard";
-  try {
-    window.top!.location.assign(path);
-  } catch {
-    window.open(path, "_blank");
-  }
-}
-
-// ---- Routes: the hash keeps a view open across a reload (#settings did before) ----
-export const routes = ["", "#settings", "#new-screen", "#firmware", "#alerts", "#override", "#plugins"] as const;
-export type Route = (typeof routes)[number];
-export const route = computed<Route>(() => (routes.includes(state.route as Route) ? (state.route as Route) : ""));
-export function go(target: Route) {
-  if (location.hash === target) { state.route = target; return; }
-  location.hash = target;
-}
-// The address bar's back and forward, and go() above: startStore follows the hash.
-function followHash() { state.route = location.hash; window.scrollTo(0, 0); }
-
 // ---- Names and icons ----
 export function entityName(id: string) {
   const plugin = pluginTileOf(id);
@@ -613,7 +499,8 @@ const snapshot = (): DraftSnapshot => ({ layout: pages.clone(state.document!), g
 function historyCounts() {
   // A removal toast only belongs to the latest history entry. Once another
   // edit, map move, undo or screen selection changes history, retire it.
-  if (state.toast?.action?.run === undo) dismissToast();
+  const ui = useUiStore();
+  if (ui.notice?.action?.run === undo) ui.dismissToast();
   const counts = draftHistory.counts(state.editorMode === 'advanced');
   state.undoCount = counts.undo; state.redoCount = counts.redo;
 }
@@ -731,7 +618,7 @@ export function loadDocument(screen: Screen) {
 // (the promise returned then); otherwise it happens at once.
 export function select(id: string | null): void | Promise<void> {
   if (id === state.selected && state.document && state.dirty) {
-    state.tab = "layout"; state.menuOpen = false; closeInspector(); go(""); return;
+    state.tab = "layout"; useUiStore().menuOpen = false; closeInspector(); go(""); return;
   }
   if (id !== state.selected && state.dirty) return askConfirm(t("editor.screen_view.confirm.switch")).then((yes) => { if (yes) openScreen(id); });
   openScreen(id);
@@ -739,7 +626,8 @@ export function select(id: string | null): void | Promise<void> {
 function openScreen(id: string | null) {
   if (id !== state.selected) { flushSettings(); state.settingEdits = {}; }
   state.selected = id; state.selectedTileId = null; state.inspector = null;
-  state.tab = "layout"; state.menuOpen = false; state.addSheet = false; state.pagesSheet = false; state.previewOpen = false; state.pageWizardOpen = false;
+  state.tab = "layout";
+  useUiStore().$patch({ menuOpen: false, addSheet: false, pagesSheet: false, previewOpen: false, pageWizardOpen: false });
   const screen = state.inventory.screens.find((item) => item.id === id);
   // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
   if (!screen) { state.document = null; state.documentGrid = null; state.dirty = false; return; }
@@ -822,7 +710,7 @@ export async function addTile(id: string) {
   if (slot < 0) return toast(t('editor.pages.selected_full'));
   if (slot >= 0 && placeTile(tile, slot)) {
     const added = state.layout!.tiles.find((item) => item.entity === id && item.slot === slot);
-    if (added && phone.value) markAdded(added);
+    if (added && useUiStore().phone) markAdded(added);
     else if (added) openTile(added);
   }
 }
@@ -830,7 +718,7 @@ export async function addTile(id: string) {
 // usual errand there, and its settings are one tap away.
 const addedExpiry = useTimeoutFn(() => { state.justAdded = null; }, 2400, { immediate: false });
 function markAdded(tile: Tile) {
-  state.addSheet = false;
+  useUiStore().addSheet = false;
   state.justAdded = tile.id || null;
   addedExpiry.start();
   toast(t("editor.phone.added", { name: tile.name || entityName(tile.entity) }), { label: t("editor.common.undo"), run: undo });
@@ -1479,7 +1367,7 @@ function forgetOpenScreen() {
   state.gridReview = null;
   state.selectedTileId = null;
   state.inspector = null;
-  state.menuOpen = false;
+  useUiStore().menuOpen = false;
 }
 
 export async function sendTestAlert(target: string, data: Record<string, unknown>) {
@@ -1599,7 +1487,7 @@ export function exportLayout() {
   const a = document.createElement("a");
   a.href = url; a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
-  copyText(text, undefined, "layout_json");
+  void useUiStore().copyText(text, undefined, "layout_json");
 }
 export async function importLayout(text: string) {
   let data: any;
@@ -1705,7 +1593,7 @@ export function topbarLabel(item: HeaderItem) {
 // What the item shows right now: { icon, text, color, shown }. Entities wait for the add-on's preview.
 export function topbarView(item: HeaderItem): ItemView {
   if (item.type === "clock" || item.type === "date") {
-    const clock = clockSample(state.now, clock24.value, screenLanguage.value);
+    const clock = clockSample(useUiStore().now, clock24.value, screenLanguage.value);
     return { text: item.type === "clock" ? clock.time : clock.date, shown: true };
   }
   if (item.type === "analog") return { analog: true, shown: true };
@@ -1718,7 +1606,7 @@ export function topbarView(item: HeaderItem): ItemView {
   if (item.type === "plugin") { const known = barItemOf(item.item); return { icon: known?.icon || "F0A66", text: known?.example || "", shown: true }; }
   const p = state.topbarPreviews[itemKey(item)];
   if (!p) return { icon: item.icon === "none" ? null : iconNamed(item.icon)?.cp || automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
-  return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(state.now / 1000), screenLanguage.value) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
+  return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(useUiStore().now / 1000), screenLanguage.value) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
 }
 // One ordered list of bar items with the editor's add, update, move and remove (undo included): a page's top bar and the
 // screensaver clock's row are both one.
@@ -2078,21 +1966,17 @@ export function startStore() {
     watch(screenLanguage, (code) => loadLanguage(code), { immediate: true });
     // The screensaver's drawers belong to the settings: they close when the layout comes back.
     watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); });
-    // The width of a phone, read when the page loads and followed from here on.
-    syncRef(useAtMost("phone"), narrowPhone, { direction: "ltr" });
-    state.route = location.hash;
-    useEventListener(window, "hashchange", followHash);
+    // The page around the screens: the width of a phone, the address, the top bar's fonts (stores/ui.ts).
+    const ui = useUiStore();
+    onScopeDispose(ui.start());
     startLive();
-    let fonts = true;
-    whenBarFontsLoad(() => { if (fonts) state.fontsVersion++; });
-    onScopeDispose(() => { fonts = false; });
     // The mockup's clocks tick while a screen is open and the page in sight, and hold still while a tile is dragged; the
     // entity values in its top bar follow Home Assistant as they tick.
     const editing = () => Boolean(state.layout) && !state.drag.active;
-    useClock(30000, { now: toRef(state, "now"), when: editing });
+    useClock(30000, { now: toRef(ui, "now"), when: editing });
     useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: editing });
     // The mockup follows Home Assistant while it is on screen.
-    useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && route.value === "" });
+    useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && ui.route === "" });
     // A change still waiting for its short pause goes out when the page closes.
     useEventListener(window, "pagehide", () => flushSettings(true));
     useEventListener(window, "beforeunload", (e: BeforeUnloadEvent) => {
@@ -2130,9 +2014,8 @@ function resetStore() {
   started?.();
   Object.assign(state, fresh());
   screenKept = screenPreferences();
-  toastExpiry.stop(); addedExpiry.stop(); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
+  addedExpiry.stop(); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
   mapSaver.cancel();
-  narrowPhone.value = atMost("phone");
   previewsSkipped = "";
   askedCapabilities.clear(); askedSubtitles.clear(); askedActions.clear();
   statesFlight = false; overviewFlight = false; firmwareFlight = null; answer.value = null; firmwareAt = 0;

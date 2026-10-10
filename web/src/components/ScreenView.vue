@@ -5,8 +5,8 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
 import {
-  buildOf, canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, go, goHome, identify, importLayout, narrowPhone, openBar,
-  phone, redo, renameScreen, save, setFullEditor, startUpdate, state, tileLimit, undo,
+  buildOf, canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, goHome,
+  identify, importLayout, openBar, redo, renameScreen, save, startUpdate, state, tileLimit, undo,
 } from "../store";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
@@ -22,6 +22,9 @@ import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuLabel from "./ui/UiMenuLabel.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import UiMenuSub from "./ui/UiMenuSub.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const screen = computed(() => currentScreen.value!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
@@ -32,12 +35,12 @@ const statusKind = computed(() => !screen.value.online ? "off" : screen.value.in
 const statusWord = computed(() => !screen.value.online ? t("editor.common.offline") : screen.value.in_sync ? t("editor.common.online") : t("editor.screen_view.sending"));
 const updateReady = computed(() => needsUpdate(screen.value) && screen.value.online && screen.value.update?.profile && screen.value.update?.host);
 const others = computed(() => state.inventory.screens.filter((s) => s.id !== screen.value.id && s.layout?.tiles?.length));
-function closeMenu() { state.menuOpen = false; }
+function closeMenu() { ui.menuOpen = false; }
 function openOverride() {
   closeMenu();
-  state.overrideProfile = screen.value.update?.profile || null;
-  state.overrideFriendly = screen.value.name;
-  go("#override");
+  ui.overrideProfile = screen.value.update?.profile || null;
+  ui.overrideFriendly = screen.value.name;
+  ui.go("#override");
 }
 function inspectAll() {
   closeMenu();
@@ -73,7 +76,7 @@ async function phoneRename() {
   if (name && name.trim() && name.trim() !== screen.value.name) renameScreen(screen.value, name.trim());
 }
 const full = computed(() => (state.layout?.tiles.length || 0) >= tileLimit.value);
-function phoneAdd() { state.insertAt = -1; closeInspector(); state.addSheet = true; }
+function phoneAdd() { state.insertAt = -1; closeInspector(); ui.addSheet = true; }
 // Escape belongs to the innermost thing open (app 0.4.32): a list of choices or a menu closes and the inspector under it
 // stays. Whether one was open is read before it closes, in the capture phase, since it is gone by the time the key
 // reaches this handler.
@@ -86,8 +89,8 @@ function onKey(e: KeyboardEvent) {
   if (question.value) return;
   if (e.key === "Escape") {
     if (popoverEscape) return;
-    if (state.menuOpen) closeMenu();
-    else if (state.palette) return;
+    if (ui.menuOpen) closeMenu();
+    else if (ui.palette) return;
     else if (state.inspector && !(e.target as HTMLElement)?.closest?.(".picker")) closeInspector();
   } else if ((e.key === "Delete" || e.key === "Backspace") && !e.defaultPrevented && state.inspector?.kind === "tile" && currentTile.value
     && !isEditableTarget(e.target) && !(e.target as HTMLElement)?.closest?.("select, [role='menu'], dialog")) {
@@ -108,15 +111,15 @@ useEventListener(document, "keydown", onKey);
 
 <template>
   <header class="main-head">
-    <button v-if="phone" type="button" class="phone-back" @click="phoneBack">
+    <button v-if="ui.phone" type="button" class="phone-back" @click="phoneBack">
       <Icon name="chevron-left" />{{ state.tab !== "layout" ? t("editor.screen_view.tabs.layout") : t("editor.phone.screens") }}
     </button>
     <div class="head-title">
       <h1 id="screen-name">{{ screen.name }}</h1>
-      <span v-if="!phone" id="delivery" class="chip status" :class="statusKind" :title="statusText"><span class="dot"></span>{{ statusWord }}</span>
+      <span v-if="!ui.phone" id="delivery" class="chip status" :class="statusKind" :title="statusText"><span class="dot"></span>{{ statusWord }}</span>
       <p v-else class="phone-status" :class="{ dirty: state.dirty }" :title="statusText"><span class="dot" :class="statusKind"></span>{{ phoneStatus }}</p>
     </div>
-    <div v-if="!phone" class="seg tabs" role="tablist" :aria-label="screen.name">
+    <div v-if="!ui.phone" class="seg tabs" role="tablist" :aria-label="screen.name">
       <button type="button" id="tab-layout" role="tab" :aria-pressed="state.tab === 'layout' ? 'true' : 'false'" :aria-selected="state.tab === 'layout'" @click="state.tab = 'layout'">
         <Icon name="view-dashboard-outline" />{{ t("editor.screen_view.tabs.layout") }}
       </button>
@@ -129,25 +132,25 @@ useEventListener(document, "keydown", onKey);
       </button>
     </div>
     <div class="head-right">
-      <template v-if="!phone">
+      <template v-if="!ui.phone">
       <span v-if="!state.dirty" id="dirty" class="saved-note" :class="{ sent: state.saved }"><Icon name="check" />{{ state.saved ? t(screen.virtual ? "editor.preview.saved" : "editor.screen_view.sent") : t("editor.screen_view.all_saved") }}</span>
       <span v-else id="dirty" class="chip dirty">{{ t("editor.common.unsaved") }}</span>
       </template>
-      <button v-if="state.dirty && !phone" id="save" type="button" class="btn primary" :disabled="state.busy" title="⌘S" @click="save()">
+      <button v-if="state.dirty && !ui.phone" id="save" type="button" class="btn primary" :disabled="state.busy" title="⌘S" @click="save()">
         <span v-if="state.busy" class="spin small"></span>{{ state.busy ? t("editor.common.saving") : t(screen.virtual ? "editor.preview.save" : "editor.common.save_send") }}
       </button>
-      <UiMenu v-model:open="state.menuOpen" width="264px">
+      <UiMenu v-model:open="ui.menuOpen" width="264px">
         <template #trigger>
           <button id="more" type="button" class="icon-btn" :aria-label="t('editor.screen_view.more')"><Icon name="dots-horizontal" /></button>
         </template>
-        <template v-if="phone && state.layout">
+        <template v-if="ui.phone && state.layout">
           <div class="phone-menu-row" role="group">
-            <button type="button" role="menuitem" @click="closeMenu(); state.tab = 'layout'; state.previewOpen = true"><Icon name="play" />{{ t("editor.pages.preview") }}</button>
+            <button type="button" role="menuitem" @click="closeMenu(); state.tab = 'layout'; ui.previewOpen = true"><Icon name="play" />{{ t("editor.pages.preview") }}</button>
             <button type="button" role="menuitem" :disabled="!state.undoCount" @click="undo"><Icon name="undo" />{{ t("editor.common.undo") }}</button>
             <button type="button" role="menuitem" :disabled="!state.redoCount" @click="redo"><Icon name="redo" />{{ t("editor.pages.redo") }}</button>
           </div>
-          <UiMenuItem icon="file-plus-outline" @select="state.tab = 'layout'; state.pageWizardOpen = true">{{ t("editor.layout.add_page") }}</UiMenuItem>
-          <UiMenuItem icon="view-column-outline" @select="state.tab = 'layout'; state.pagesSheet = true">{{ t("editor.phone.pages_order") }}</UiMenuItem>
+          <UiMenuItem icon="file-plus-outline" @select="state.tab = 'layout'; ui.pageWizardOpen = true">{{ t("editor.layout.add_page") }}</UiMenuItem>
+          <UiMenuItem icon="view-column-outline" @select="state.tab = 'layout'; ui.pagesSheet = true">{{ t("editor.phone.pages_order") }}</UiMenuItem>
           <UiMenuItem icon="page-layout-header" @select="state.tab = 'layout'; openBar(0, state.barPage)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
           <UiMenuSeparator />
           <UiMenuItem v-if="!screen.virtual" icon="cog-outline" @select="phoneSettings">{{ t("editor.screen_view.tabs.settings") }}</UiMenuItem>
@@ -171,11 +174,11 @@ useEventListener(document, "keydown", onKey);
         <UiMenuSeparator />
         <UiMenuLabel>{{ t("editor.screen_view.menu.group_advanced") }}</UiMenuLabel>
         <UiMenuItem id="open-override" icon="code-braces" :disabled="!screen.update?.profile" :title="screen.update?.profile ? '' : t('editor.screen_view.menu.override_none')" @select="openOverride">{{ t("editor.screen_view.menu.override") }}</UiMenuItem>
-        <UiMenuItem icon="flash" @select="go('#firmware')">{{ t("editor.nav.firmware") }}</UiMenuItem>
-        <template v-if="narrowPhone">
+        <UiMenuItem icon="flash" @select="ui.go('#firmware')">{{ t("editor.nav.firmware") }}</UiMenuItem>
+        <template v-if="ui.narrowPhone">
           <UiMenuSeparator />
-          <UiMenuItem v-if="phone" icon="monitor-dashboard" @select="setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
-          <UiMenuItem v-else icon="cellphone" @select="setFullEditor(false)">{{ t("editor.phone.simple_editor") }}</UiMenuItem>
+          <UiMenuItem v-if="ui.phone" icon="monitor-dashboard" @select="ui.setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
+          <UiMenuItem v-else icon="cellphone" @select="ui.setFullEditor(false)">{{ t("editor.phone.simple_editor") }}</UiMenuItem>
         </template>
       </UiMenu>
     </div>
@@ -190,7 +193,7 @@ useEventListener(document, "keydown", onKey);
     <Drawer />
   </div>
   <!-- The phone's one button (app 0.4.40): add a tile, and once something changed, send it to the screen. -->
-  <div v-if="phone && state.tab === 'layout' && state.layout" class="phone-dock">
+  <div v-if="ui.phone && state.tab === 'layout' && state.layout" class="phone-dock">
     <button type="button" id="phone-add" class="btn" :class="state.dirty ? 'soft square' : 'primary'" :disabled="full"
       :aria-label="t('editor.phone.add_tile')" :title="full ? t('editor.library.full', tileLimit) : ''" @click="phoneAdd">
       <Icon name="plus" /><span v-if="!state.dirty">{{ t("editor.phone.add_tile") }}</span>

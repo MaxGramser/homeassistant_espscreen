@@ -12,7 +12,7 @@ import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
 import { t } from "../i18n";
 import { afterBrowserBuild, errorLine, ESPHOME_WEB, firmwareImage, memoryText, usbTarget } from "../model/firmware-job";
-import { copyText, createVirtualScreen, go, openIntegrations, refresh, state, toast } from "../store";
+import { createVirtualScreen, refresh, state } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import { matchesWords, queryWords } from "../model/search";
@@ -24,6 +24,9 @@ import Icon from "./ui/Icon.vue";
 import { installProgress } from "../model/install-progress";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 // Download: ESP Screens builds, the owner flashes the file from their own computer with ESPHome Web (ESPHOME_WEB).
 const form = reactive({ board: "", orientation: "landscape" as Orientation, grid: { columns: 2, rows: 3 }, choices: {} as Record<string, string>, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
@@ -228,8 +231,8 @@ async function submit(event: Event) {
       const { width, height, columns, rows } = previewForm;
       createVirtualScreen(form.friendly_name, { ...previewProfile.value,
         shape: { ...previewProfile.value.shape, width, height, columns, rows } });
-      toast(t("editor.preview.created", { name: form.friendly_name.trim() }));
-      go("");
+      ui.toast(t("editor.preview.created", { name: form.friendly_name.trim() }));
+      ui.go("");
     } catch (err: any) { status.value = err.message; }
     return;
   }
@@ -280,7 +283,7 @@ async function retry() {
       : { file: installer.file, action: "install", target: installer.target });
     showProgress(next, []);
   } catch (err: any) {
-    toast(err.message);
+    ui.toast(err.message);
   }
 }
 function reset() {
@@ -295,7 +298,7 @@ function reset() {
 }
 function close() {
   if (installer.view === "progress" && installer.jobState !== "running") installer.view = "done";
-  go("");
+  ui.go("");
 }
 // ---- The steps of the setup ----
 const step = ref<1 | 2 | 3>(1);
@@ -402,7 +405,7 @@ async function fixWifi(event: Event) {
       await saveWifi();
       doneAt.value = 0;
       await retry();
-    } catch (err: any) { toast(err.message); }
+    } catch (err: any) { ui.toast(err.message); }
   });
 }
 
@@ -696,18 +699,18 @@ onBeforeUnmount(() => flash.cancel());
         <details v-if="arrival === 'failed'" class="key-more" id="key-more" open>
           <summary>{{ t("editor.installer.pair_yourself") }}</summary>
           <ol class="steps" id="pair-steps">
-            <li><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ installer.friendly }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button></li>
+            <li><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ installer.friendly }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="ui.openIntegrations">{{ t("editor.common.open_integrations") }}</button></li>
             <li><i18n-t keypath="editor.installer.pairing.key" scope="global"><template #bold><b>{{ t("editor.installer.pairing.key_bold") }}</b></template></i18n-t></li>
             <li><i18n-t keypath="editor.installer.pairing.actions" scope="global"><template #bold><b>{{ t("editor.installer.pairing.actions_bold") }}</b></template></i18n-t></li>
           </ol>
           <div class="key-box">
             <span>{{ t("editor.installer.api_key") }}</span><code id="api-key" ref="keyBox">{{ installer.apiKey || "" }}</code>
-            <button type="button" class="btn quiet mini" id="copy-key" @click="copyText(installer.apiKey || '', keyBox)">{{ t("editor.common.copy") }}</button>
+            <button type="button" class="btn quiet mini" id="copy-key" @click="ui.copyText(installer.apiKey || '', keyBox)">{{ t("editor.common.copy") }}</button>
           </div>
         </details>
       </div>
       <details v-if="installer.view !== 'done'" id="install-log-wrap" class="follow-log" :open="logOpen" @toggle="logOpen = ($event.target as HTMLDetailsElement).open">
-        <summary><Icon name="code-braces" />{{ t(logOpen ? "editor.installer.hide_log" : "editor.installer.show_log") }}<button v-if="logOpen" type="button" class="btn quiet mini" @click.prevent="copyText(logs.join('\n'), null, 'log')">{{ t("editor.common.copy") }}</button></summary>
+        <summary><Icon name="code-braces" />{{ t(logOpen ? "editor.installer.hide_log" : "editor.installer.show_log") }}<button v-if="logOpen" type="button" class="btn quiet mini" @click.prevent="ui.copyText(logs.join('\n'), null, 'log')">{{ t("editor.common.copy") }}</button></summary>
         <pre id="install-log" ref="logBox" class="log">{{ logs.join("\n") }}</pre>
       </details>
       <footer class="setup-foot">

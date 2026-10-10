@@ -9,6 +9,7 @@ import TopbarInspector from "../src/components/TopbarInspector.vue";
 import { loadLanguage } from "../src/i18n";
 import { state } from "../src/store";
 import type { Languages } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
 
 const GUIDE = "https://github.com/MaxGramser/homeassistant_espscreen/blob/main/docs/TRANSLATING.md";
 function language(extra: Partial<Languages> = {}): Languages {
@@ -41,7 +42,7 @@ beforeAll(() => loadLanguage("nl"));
 beforeEach(() => {
   vi.unstubAllGlobals();
   state.inventory = { screens: [], entities: [], updates: { target: "0.2.80", pending: 0 }, language: language() } as any;
-  state.toast = null;
+  useUiStore().notice = null;
 });
 
 describe("the Language & region card", () => {
@@ -84,20 +85,20 @@ describe("the Language & region card", () => {
     expect(put[1]!.method).toBe("PUT");
     expect(JSON.parse(String(put[1]!.body))).toEqual({ setting: "de" });
     expect(state.inventory.language!.setting).toBe("de");
-    expect(state.toast?.message).toBe("Saved. Every screen takes the new language with its next update.");
+    expect(useUiStore().notice?.message).toBe("Saved. Every screen takes the new language with its next update.");
     // The screens' update state comes with the inventory again.
     expect(fetch.mock.calls.some(([url]) => url === "api/inventory")).toBe(true);
     await view.find("#time-format").setValue("12");
     await flushPromises();
     expect(JSON.parse(String(fetch.mock.calls.filter(([url]) => url === "api/language").pop()![1]!.body))).toEqual({ clock: "12" });
-    expect(state.toast?.message).toBe("Saved.");
+    expect(useUiStore().notice?.message).toBe("Saved.");
   });
   it("shows the add-on's refusal and keeps the stored choice", async () => {
     addOn(() => new Response(JSON.stringify({ error: "That language isn't there." }), { status: 400 }));
     const view = mount(AppSettingsView);
     await view.find("#number-format").setValue("space");
     await flushPromises();
-    expect(state.toast?.message).toBe("That language isn't there.");
+    expect(useUiStore().notice?.message).toBe("That language isn't there.");
     expect((view.find("#number-format").element as HTMLSelectElement).value).toBe("auto");
     expect(state.inventory.language!.numbers).toBe("auto");
   });

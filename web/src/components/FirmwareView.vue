@@ -5,10 +5,12 @@ import { send } from "../api";
 import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { t } from "../i18n";
 import { afterBrowserBuild, ESPHOME_WEB, firmwareImage, memoryText as memoryOf, usbTarget } from "../model/firmware-job";
-import { go, toast } from "../store";
 import BrowserFlash from "./BrowserFlash.vue";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const data = ref<any>(null);
 const file = ref("");
@@ -31,9 +33,9 @@ function take(next: any) {
   // USB stays chosen while the board is replugged; a port that went away falls back to the first one.
   target.value = usbTarget(target.value, next.ports || []);
 }
-const firmware = useFirmwareJob({ onAnswer: take, onError: (e) => toast(e.message) });
+const firmware = useFirmwareJob({ onAnswer: take, onError: (e) => ui.toast(e.message) });
 async function refreshFirmware() {
-  try { await firmware.refresh(); } catch (e: any) { toast(e.message); }
+  try { await firmware.refresh(); } catch (e: any) { ui.toast(e.message); }
 }
 const running = computed(() => data.value?.job?.state === "running");
 const disabled = computed(() => !data.value || running.value || !data.value.available || !data.value.profiles?.length);
@@ -68,7 +70,7 @@ async function run(action: "validate" | "build" | "install") {
     });
     await refreshFirmware();
   } catch (e: any) {
-    toast(e.message);
+    ui.toast(e.message);
   }
 }
 // The port picker first, from this click; then the build, whose image the watch above writes.
@@ -81,7 +83,7 @@ async function runBrowser() {
     await refreshFirmware();
   } catch (e: any) {
     flash.cancel();
-    toast(e.message);
+    ui.toast(e.message);
   }
 }
 onMounted(refreshFirmware);
@@ -102,7 +104,7 @@ onBeforeUnmount(() => flash.cancel());
           <template #install><b>{{ t("editor.firmware.install") }}</b></template>
         </i18n-t>
       </div>
-      <button type="button" class="btn quiet" id="close-firmware" :disabled="flash.busy()" @click="go('')">{{ t("editor.common.back") }}</button>
+      <button type="button" class="btn quiet" id="close-firmware" :disabled="flash.busy()" @click="ui.go('')">{{ t("editor.common.back") }}</button>
     </div>
     <div class="card">
       <div class="card-grid">

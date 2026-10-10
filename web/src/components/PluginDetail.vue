@@ -13,12 +13,14 @@ import {
   pluginsFile, realScreens, needsConsent, plugins, removePlugin, setupChanged, setupReady, statusOn,
   canLike, chooseProvider, comesAlong, like, neededBy, otherOrigin, planOn, switchPlugin,
 } from "../plugin-state";
-import { toast } from "../store";
 import type { Screen } from "../types";
 import PluginReadme from "./PluginReadme.vue";
 import PluginSettings from "./PluginSettings.vue";
 import PluginSetup from "./PluginSetup.vue";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const props = defineProps<{ plugin: Plugin; screen?: Screen | null }>();
 defineEmits<{ close: [] }>();
@@ -88,7 +90,7 @@ const askingLike = ref(false);
 async function toggleLike(consent = false) {
   if (!props.plugin.liked && !plugins.likeConsent && !consent) { askingLike.value = true; return; }
   askingLike.value = false;
-  try { await like(props.plugin, !props.plugin.liked, consent); } catch (error: any) { toast(error.message); }
+  try { await like(props.plugin, !props.plugin.liked, consent); } catch (error: any) { ui.toast(error.message); }
 }
 
 // What an update brings: the plugin's changelog from the version the screen runs (on the Plugins page: the oldest of

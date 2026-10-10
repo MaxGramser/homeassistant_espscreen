@@ -3,8 +3,11 @@
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
-import { anyBuilding, autoMarks, buildingScreens, go, installClaudeSkill, runUpdateAll, saveLanguage, setAutoUpdate, state } from "../store";
+import { anyBuilding, autoMarks, buildingScreens, installClaudeSkill, runUpdateAll, saveLanguage, setAutoUpdate, state } from "../store";
 import BuildLog from "./BuildLog.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const u = computed(() => state.inventory.updates);
 const outdated = computed(() => state.inventory.screens.filter((s) => s.update?.available).length);
@@ -83,15 +86,15 @@ const useProfile = () => whileSaving(() => saveLanguage(different.value));
         <span class="eyebrow">{{ t("editor.nav.settings") }}</span>
         <h1 id="settings-title">{{ t("editor.settings.title") }}</h1>
       </div>
-      <button type="button" class="btn quiet" id="close-settings" @click="go('')">{{ t("editor.settings.back") }}</button>
+      <button type="button" class="btn quiet" id="close-settings" @click="ui.go('')">{{ t("editor.settings.back") }}</button>
     </div>
     <div class="card-grid">
       <section class="card">
         <h2>{{ t("editor.settings.screens.title") }}</h2>
         <p>{{ t("editor.settings.screens.text") }}</p>
         <div class="tools">
-          <button type="button" class="tool" @click="go('#new-screen')"><span class="tool-icon">＋</span><span class="tx"><b>{{ t("editor.nav.new_screen") }}</b><small>{{ t("editor.nav.new_screen_detail") }}</small></span></button>
-          <button type="button" class="tool" @click="go('#firmware')"><span class="tool-icon">⇪</span><span class="tx"><b>{{ t("editor.nav.firmware") }}</b><small>{{ t("editor.settings.screens.firmware_detail") }}</small></span></button>
+          <button type="button" class="tool" @click="ui.go('#new-screen')"><span class="tool-icon">＋</span><span class="tx"><b>{{ t("editor.nav.new_screen") }}</b><small>{{ t("editor.nav.new_screen_detail") }}</small></span></button>
+          <button type="button" class="tool" @click="ui.go('#firmware')"><span class="tool-icon">⇪</span><span class="tx"><b>{{ t("editor.nav.firmware") }}</b><small>{{ t("editor.settings.screens.firmware_detail") }}</small></span></button>
         </div>
       </section>
       <section v-if="u" class="card updates" id="updates">
@@ -149,7 +152,7 @@ const useProfile = () => whileSaving(() => saveLanguage(different.value));
         <h2>{{ t("editor.nav.alerts") }}</h2>
         <p>{{ t("editor.settings.alerts.text") }}</p>
         <div class="tools">
-          <button type="button" class="tool" @click="go('#alerts')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.alerts") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
+          <button type="button" class="tool" @click="ui.go('#alerts')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.alerts") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
         </div>
       </section>
       <section class="card" id="claude">

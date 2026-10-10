@@ -26,12 +26,15 @@ import Icon from './ui/Icon.vue';
 import InspectorHead from './ui/InspectorHead.vue';
 import Section from './ui/Section.vue';
 import HelpTip from './HelpTip.vue';
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => sort.live.value || topbarItems());
 const item = computed<HeaderItem | undefined>(() => items.value[props.index]);
 const lay = computed(() => {
-  void state.fontsVersion; void state.now; void state.topbarPreviews;
+  void ui.fontsVersion; void ui.now; void state.topbarPreviews;
   return barLayout(items.value, barMetrics.value, pageTitleShown(page.value), topbarView);
 });
 const overflow = computed(() => lay.value.dropped);
@@ -81,7 +84,7 @@ const liveNote = computed(() => {
   return !view.shown ? (item.value.type === "entity" ? t("editor.topbar.live.hidden") : hiddenText(item.value)) : overflow.value.has(props.index) ? t("editor.topbar.live.overflow") : t("editor.topbar.live.looks");
 });
 const samples = computed(() => {
-  const clock = clockSample(state.now, clock24.value, screenLanguage.value);
+  const clock = clockSample(ui.now, clock24.value, screenLanguage.value);
   return { clock: clock.time, analog: t("editor.topbar.analog_sample"), date: clock.date } as Record<string, string>;
 });
 

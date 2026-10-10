@@ -4,13 +4,16 @@ import { computed, shallowRef } from 'vue';
 import { t } from '../i18n';
 import { historyGeometry, loadHistory, type HistoryPreview } from '../model/history-preview';
 import { state } from '../store';
+import { useUiStore } from '../stores/ui';
+
+const ui = useUiStore();
 const props = defineProps<{ entity: string; hours: number }>();
 // The entity's history, asked again when the entity, the hours or the minute change; only the newest answer counts.
 // While it is asked the card says so, as it did, instead of the graph of the last answer.
 const loading = shallowRef(true);
 const history = computedAsync<HistoryPreview | null>(async () => {
   const entity = props.entity, hours = props.hours;
-  void Math.floor(state.now / 60000);
+  void Math.floor(ui.now / 60000);
   try { return await loadHistory(entity, hours); }
   catch { return null; /* No recorder or unavailable history stays explicitly empty. */ }
 }, null, { evaluating: loading });

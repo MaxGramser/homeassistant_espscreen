@@ -23,6 +23,7 @@ import { t } from "../src/i18n";
 import { answerDialogs } from "./helpers/dialogs";
 import { currentTile, openBar, previewed, removePage, repeatable, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
 // screen's shape carries, and what New screen gets for each board (firmware.BOARD_CHOICES), made the same way here.
@@ -61,8 +62,8 @@ beforeEach(() => {
   state.selected = "living";
   seedLayout({ title: "Living room", tiles: [] });
   state.liveStates = {};
-  state.search = ""; state.filter = ""; state.room = ""; state.hidePlaced = false;
-  state.palette = false;
+  useUiStore().search = ""; useUiStore().filter = ""; useUiStore().room = ""; useUiStore().hidePlaced = false;
+  useUiStore().palette = false;
   state.selectedTileId = null; state.inspector = null;
   state.dirty = false; state.tab = "layout";
 });
@@ -336,7 +337,7 @@ describe("TileCard", () => {
 });
 
 describe("Library", () => {
-  beforeEach(() => { state.libraryOpen = true; });
+  beforeEach(() => { useUiStore().libraryOpen = true; });
   const room = (library: ReturnType<typeof mount>, name: string) => library.findAll("#room button").find((b) => b.find(".dn").text() === name)!;
   it("groups by room, filters by room and hides what is placed, and tints the avatars by state", async () => {
     appendTiles({ entity: "light.a", name: "", slot: 0 });
@@ -354,10 +355,10 @@ describe("Library", () => {
     expect(library.find(".lib-group-title").exists()).toBe(false);
     // The chosen room again is all rooms.
     await room(library, "Kitchen").trigger("click");
-    expect(state.room).toBe("");
+    expect(useUiStore().room).toBe("");
     await library.find("#hide-placed").trigger("click");
     expect(names()).toEqual(["Lamp B", "Temperature", "Curtains", "Clock", "Go to page 1"]);
-    state.filter = "light";
+    useUiStore().filter = "light";
     await library.vm.$nextTick();
     expect(names()).toEqual(["Lamp B"]);
   });
@@ -379,7 +380,7 @@ describe("Library: the drawer along the bottom, with every domain in one column 
     { id: "fan.f", name: "Fan", state: "off" }, { id: "scene.n", name: "Night", state: "on" },
     { id: "media_player.m", name: "Sonos", state: "idle" }, { id: "person.p", name: "Sam", state: "home" },
   ) as unknown as void;
-  beforeEach(() => { state.libraryOpen = true; });
+  beforeEach(() => { useUiStore().libraryOpen = true; });
 
   it("offers the domains the results hold, each with its count, and narrows them as the search narrows the list", async () => {
     const library = mount(Library);
@@ -387,10 +388,10 @@ describe("Library: the drawer along the bottom, with every domain in one column 
     expect(domains(library)).toEqual(["All", "Lights", "Covers", "Sensors", "Screen"]);
     expect(counts(library).slice(0, 2)).toEqual([`All ${library.findAll(".ent").length}`, "Lights 2"]);
 
-    state.search = "lamp";
+    useUiStore().search = "lamp";
     await library.vm.$nextTick();
     expect(domains(library)).toEqual(["All", "Lights"]);
-    state.search = "temp";
+    useUiStore().search = "temp";
     await library.vm.$nextTick();
     expect(domains(library)).toEqual(["All", "Sensors"]);
   });
@@ -398,7 +399,7 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   it("keeps every other domain once one is chosen, so a domain is never a dead end", async () => {
     const library = mount(Library);
     await chip(library, "Lights").trigger("click");
-    expect(state.filter).toBe("light");
+    expect(useUiStore().filter).toBe("light");
     expect(library.findAll(".ent .tx b").map((b) => b.text())).toEqual(["Lamp B", "Lamp A"]);
     // Read off the domain filter itself and picking Lights would have taken Sensors and Covers away with it.
     expect(domains(library)).toEqual(["All", "Lights", "Covers", "Sensors", "Screen"]);
@@ -408,7 +409,7 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   it("keeps the chosen domain in sight when the search leaves nothing of it", async () => {
     const library = mount(Library);
     await chip(library, "Lights").trigger("click");
-    state.search = "temp";
+    useUiStore().search = "temp";
     await library.vm.$nextTick();
     expect(library.findAll(".ent").length).toBe(0);
     // An empty list needs the domain that empties it on show, or there is nothing to explain it and nothing to undo.
@@ -429,29 +430,29 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   it("folds to its head, keeps the search there, and opens again on typing", async () => {
     const library = mount(Library);
     await library.find("#library-toggle").trigger("click");
-    expect(state.libraryOpen).toBe(false);
+    expect(useUiStore().libraryOpen).toBe(false);
     expect(library.find("#library-body").attributes("inert")).toBeDefined();
     expect(library.find("#search").exists()).toBe(true);
     await library.find("#search").setValue("lamp");
-    expect(state.libraryOpen).toBe(true);
+    expect(useUiStore().libraryOpen).toBe(true);
     expect(library.findAll(".ent .tx b").map((b) => b.text())).toEqual(["Lamp A", "Lamp B"]);
   });
 
   it("starts a search from a key typed anywhere, and leaves a field's keys to the field", async () => {
     const library = mount(Library, { attachTo: document.body });
-    state.libraryOpen = false;
+    useUiStore().libraryOpen = false;
     state.tab = "layout";
     document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "l", bubbles: true, cancelable: true }));
     await nextTick();
-    expect(state.search).toBe("l");
-    expect(state.libraryOpen).toBe(true);
+    expect(useUiStore().search).toBe("l");
+    expect(useUiStore().libraryOpen).toBe(true);
     const field = document.createElement("input");
     document.body.append(field);
     field.dispatchEvent(new KeyboardEvent("keydown", { key: "x", bubbles: true, cancelable: true }));
-    expect(state.search).toBe("l");
+    expect(useUiStore().search).toBe("l");
     // A shortcut is not a letter to search for.
     document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true, bubbles: true, cancelable: true }));
-    expect(state.search).toBe("l");
+    expect(useUiStore().search).toBe("l");
     field.remove();
     library.unmount();
   });
@@ -504,10 +505,10 @@ describe("Library: the drawer along the bottom, with every domain in one column 
     await search.trigger("keydown", { key: "Enter" });
     expect(state.layout!.tiles.map((tile) => tile.entity)).toContain("light.b");
     await search.trigger("keydown", { key: "Escape" });
-    expect(state.search).toBe("");
-    expect(state.libraryOpen).toBe(true);
+    expect(useUiStore().search).toBe("");
+    expect(useUiStore().libraryOpen).toBe(true);
     await search.trigger("keydown", { key: "Escape" });
-    expect(state.libraryOpen).toBe(false);
+    expect(useUiStore().libraryOpen).toBe(false);
   });
 
   it("names an entity without its device's name in front, and puts the device under it", async () => {
@@ -520,17 +521,17 @@ describe("Library: the drawer along the bottom, with every domain in one column 
 
   it("opens when an empty cell is marked for the next entity", async () => {
     const library = mount(Library);
-    state.libraryOpen = false;
+    useUiStore().libraryOpen = false;
     await library.vm.$nextTick();
     state.insertAt = 3;
     await library.vm.$nextTick();
-    expect(state.libraryOpen).toBe(true);
+    expect(useUiStore().libraryOpen).toBe(true);
   });
 });
 
 describe("CommandPalette", () => {
   it("lists screens and actions, finds an entity to add, and runs the chosen row", async () => {
-    state.palette = true;
+    useUiStore().palette = true;
     const palette = mount(CommandPalette);
     await palette.vm.$nextTick();
     const labels = () => palette.findAll(".palette-item .tx > span").map((s) => s.text());
@@ -541,7 +542,7 @@ describe("CommandPalette", () => {
     expect(labels()).toEqual(["Curtains"]);
     await palette.find("#palette-input").trigger("keydown", { key: "Enter" });
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["cover.c"]);
-    expect(state.palette).toBe(false);
+    expect(useUiStore().palette).toBe(false);
   });
 });
 
@@ -883,7 +884,7 @@ describe("Sidebar", () => {
       ["api/screens/living", "DELETE"], ["api/inventory?light=1", undefined]]);
     expect(state.selected).toBeNull();
     expect(state.layout).toBeNull();
-    expect(state.toast?.message).toBe("Living room is removed.");
+    expect(useUiStore().notice?.message).toBe("Living room is removed.");
   });
   it("warns that a screen that is still connected comes back (app 0.2.112)", async () => {
     const sidebar = mount(Sidebar);
@@ -978,7 +979,7 @@ describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
     await panel.find("#setting-calibrate").trigger("click");
     await flushPromises();
     expect(calls.map(([path, options]) => [path, options.method])).toEqual([["api/screens/living/calibrate", "POST"]]);
-    expect(state.toast?.message).toBe("Living room is showing the crosses.");
+    expect(useUiStore().notice?.message).toBe("Living room is showing the crosses.");
   });
   it("waits for a screen that is off: the crosses need glass that is on", () => {
     state.inventory.screens[0].online = false;
@@ -1464,7 +1465,7 @@ describe("a page that moves as a whole", () => {
     expect(mount(DevicePage, { props: props(3, 3) }).find(".page-menu").exists()).toBe(false);
     removePage(1);
     expect(state.layout!.tiles).toEqual([]);
-    expect(state.toast?.message).toBe("Page 2 and one tile are gone.");
+    expect(useUiStore().notice?.message).toBe("Page 2 and one tile are gone.");
   });
   it("draws the page on the move where it would land, with the title that belongs there", () => {
     seedTitles(["", "Music", "Hall"]);

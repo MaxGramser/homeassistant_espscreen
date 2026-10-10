@@ -10,7 +10,7 @@ import { matchesWords, queryWords } from "../model/search";
 import { allTests, installedOn, isSetAside, loadPlugins, plugins, realScreens, statusOverall, toggleSetAside, tray } from "../plugin-state";
 // The folder as Home Assistant shows it (config/...), not as the app's container mounts it (/homeassistant/...).
 const folderShown = (path: string) => path.replace(/^\/(homeassistant|config)\//, "config/");
-import { buildingScreens, buildOf, go } from "../store";
+import { buildingScreens, buildOf } from "../store";
 import BuildLog from "./BuildLog.vue";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
@@ -23,6 +23,9 @@ import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuLabel from "./ui/UiMenuLabel.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import { DropdownMenuCheckboxItem, DropdownMenuItemIndicator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "reka-ui";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 loadPlugins();
 // Three tabs by what a plugin adds (read from its manifest), so a countdown is never found among a board's audio parts,
@@ -104,7 +107,7 @@ const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf
       <span class="setup-steps-spacer"></span>
       <div class="plugins-head-actions">
         <button type="button" class="btn quiet" id="plugin-add-link" :aria-pressed="panel === 'link'" @click="panel = 'link'; openId = null"><Icon name="link-variant" />{{ t("editor.plugins.add_link") }}</button>
-        <button type="button" class="icon-btn" id="close-plugins" :aria-label="t('editor.common.close')" :title="t('editor.common.close')" @click="go('')"><Icon name="close" /></button>
+        <button type="button" class="icon-btn" id="close-plugins" :aria-label="t('editor.common.close')" :title="t('editor.common.close')" @click="ui.go('')"><Icon name="close" /></button>
       </div>
     </header>
 

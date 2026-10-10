@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, state, updateSaverItem } from "../src/store";
 import type { Inventory } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
 
 const item = (entity: string) => ({ type: "entity", entity, content: "state", icon: "auto", show: "always" });
 
@@ -11,7 +12,7 @@ beforeEach(() => {
     entities: [], builtin: [], header: { max_items: 6, builtin: [] } } as unknown as Inventory;
   state.selected = "living";
   state.inspector = null;
-  state.toast = null;
+  useUiStore().notice = null;
 });
 
 describe("the clock's entities", () => {
@@ -24,10 +25,10 @@ describe("the clock's entities", () => {
   it("take no entity twice and no more than the clock has room for", () => {
     addSaverItem(item("sensor.a"));
     addSaverItem(item("sensor.a"));
-    expect(state.toast?.message).toBe("This is already on the clock.");
+    expect(useUiStore().notice?.message).toBe("This is already on the clock.");
     for (let n = 0; n < SAVER_ITEMS_MAX; n++) addSaverItem(item(`sensor.n${n}`));
     expect(saverItems()).toHaveLength(SAVER_ITEMS_MAX);
-    expect(state.toast?.message).toBe(`The clock has room for ${SAVER_ITEMS_MAX} entities.`);
+    expect(useUiStore().notice?.message).toBe(`The clock has room for ${SAVER_ITEMS_MAX} entities.`);
   });
 
   it("change what they show, and leave when removed, back to the clock's drawer", () => {

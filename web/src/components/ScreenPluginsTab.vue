@@ -5,13 +5,16 @@ import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { fit, text, type Plugin } from "../model/plugins";
 import { buildingOn, installedOn, isSetAside, loadPlugins, needsConsent, plugins, statusOn, testsOn, toggleSetAside, tray, updateAll, updatesOn } from "../plugin-state";
-import { currentScreen, go } from "../store";
+import { currentScreen } from "../store";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 import PluginLink from "./PluginLink.vue";
 import PluginTray from "./PluginTray.vue";
 import BuildLog from "./BuildLog.vue";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 loadPlugins();
 const screen = computed(() => currentScreen.value!);
@@ -47,7 +50,7 @@ watch(() => plugins.focus, (id) => {
         <p class="sp-intro">{{ t("editor.plugins.tab.intro", { screen: screen.name }) }}</p>
         <div class="sp-actions">
           <button type="button" class="btn quiet" id="screen-plugin-link" :aria-pressed="panel === 'link'" @click="panel = 'link'; openId = null"><Icon name="link-variant" />{{ t("editor.plugins.add_link") }}</button>
-          <button type="button" class="btn link" id="screen-plugin-all" @click="go('#plugins')">{{ t("editor.plugins.tab.all") }}<Icon name="arrow-right" /></button>
+          <button type="button" class="btn link" id="screen-plugin-all" @click="ui.go('#plugins')">{{ t("editor.plugins.tab.all") }}<Icon name="arrow-right" /></button>
         </div>
       </div>
 

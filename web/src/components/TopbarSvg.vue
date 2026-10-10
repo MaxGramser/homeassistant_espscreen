@@ -5,13 +5,16 @@ import { t } from "../i18n";
 import { barLayout, dotted, inkOf, type BarMetrics, type BarPart } from "../model/topbar";
 import { barMetrics, state, topbarView } from "../store";
 import TesseraMark from "./TesseraMark.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 // `metrics`: another screen's bar, for that screen's home page on the overview (app 0.4.0).
 const props = defineProps<{ items: any[]; nameText?: string; single?: boolean; home?: boolean; back?: boolean; metrics?: BarMetrics }>();
 
 const lay = computed(() => {
-  void state.fontsVersion;
-  void state.now;
+  void ui.fontsVersion;
+  void ui.now;
   void state.topbarPreviews;
   return barLayout(props.items, props.metrics ?? barMetrics.value, props.nameText ?? '', topbarView,
                    Boolean(props.home) && !props.single, Boolean(props.back) && !props.single);
@@ -36,7 +39,7 @@ const markY = computed(() => baseline.value + nameCap.value.bottom - lay.value.k
 const backY = computed(() => baseline.value + nameCap.value.bottom - lay.value.key!.ink.bottom);
 const backX = computed(() => (lay.value.key!.size - (lay.value.key!.ink.right - lay.value.key!.ink.left)) / 2 - lay.value.key!.ink.left);
 const name = computed(() => dotted(lay.value.nameText, lay.value.fonts.name, Math.min(lay.value.natural, lay.value.nameRoom)));
-const now = computed(() => new Date(state.now));
+const now = computed(() => new Date(ui.now));
 function hands(d: number) {
   const n = now.value;
   return [[(n.getHours() % 12 + n.getMinutes() / 60) * 30, d * 0.24], [n.getMinutes() * 6, d * 0.34]].map(([angle, length]) => {

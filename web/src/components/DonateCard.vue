@@ -5,7 +5,9 @@
 import { ref } from "vue";
 import { t } from "../i18n";
 import { usePreference } from "../composables/usePreference";
-import { toast } from "../store";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const DAY = 86_400_000;
 const MONTHLY = "https://buymeacoffee.com/f5j9jnkmhpv/membership";
@@ -27,7 +29,7 @@ function hide(days: number | "donated") {
 }
 function donated() {
   hide("donated");
-  toast(t("editor.donate.thanks"));
+  ui.toast(t("editor.donate.thanks"));
 }
 </script>
 

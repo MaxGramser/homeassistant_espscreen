@@ -8,7 +8,10 @@ import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { t } from "../i18n";
 import { errorLine } from "../model/firmware-job";
 import { glyph } from "../model/topbar";
-import { go, state, toast } from "../store";
+import { state } from "../store";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const OVERRIDE_EXAMPLE = `# Hardware-specific changes for this screen.
 # This file is kept when the shared firmware package updates.
@@ -21,7 +24,7 @@ display:
   - id: !extend my_display
     model: ST7789V
 `;
-const profile = computed(() => state.overrideProfile);
+const profile = computed(() => ui.overrideProfile);
 const content = ref("");
 const file = ref("");
 const attached = ref(false);
@@ -56,7 +59,7 @@ const saveOverride = (runCheck = false) => runOnce(async () => {
     attached.value = true;
     if (!runCheck) {
       setStatus(t("editor.override.saved"), "ok");
-      toast(t("editor.override.saved_toast"));
+      ui.toast(t("editor.override.saved_toast"));
       return;
     }
     setStatus(t("editor.override.checking"));
@@ -132,10 +135,10 @@ onMounted(load);
     <div class="panel-head">
       <div class="tx">
         <span class="eyebrow">{{ t("editor.override.eyebrow") }}</span>
-        <h1 id="override-title">{{ state.overrideFriendly ? t("editor.override.title_named", { name: state.overrideFriendly }) : t("editor.override.title") }}</h1>
+        <h1 id="override-title">{{ ui.overrideFriendly ? t("editor.override.title_named", { name: ui.overrideFriendly }) : t("editor.override.title") }}</h1>
         <p>{{ t("editor.override.intro") }}</p>
       </div>
-      <button type="button" class="btn quiet" id="close-override" @click="go('')">{{ t("editor.common.back") }}</button>
+      <button type="button" class="btn quiet" id="close-override" @click="ui.go('')">{{ t("editor.common.back") }}</button>
     </div>
     <div class="notice">
       <span class="mdi">{{ glyph("F0493") }}</span>

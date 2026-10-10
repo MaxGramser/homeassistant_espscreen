@@ -9,9 +9,12 @@ import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
 import { barItemsFor, pluginsEnabled } from "../plugin-state";
 import InspectorHead from "./ui/InspectorHead.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const taken = computed(() => new Set(topbarItems().map(itemKey)));
-const clock = computed(() => clockSample(state.now, clock24.value, screenLanguage.value));
+const clock = computed(() => clockSample(ui.now, clock24.value, screenLanguage.value));
 const samples = computed(() => ({
   clock: clock.value.time,
   analog: t("editor.topbar.analog_sample"),

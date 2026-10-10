@@ -6,6 +6,7 @@ import { moved } from "./model/reorder";
 import { clockSample } from "./model/clock";
 import { clock24, currentScreen, entityName, liveOf, openSaverStep, saverItems, screenLanguage, setScreensaver, settingValues, state, topbarLabel } from "./store";
 import type { SaverKind, ScreensaverChoice } from "./types";
+import { useUiStore } from "./stores/ui";
 
 export const SAVER_MIN_FIRMWARE = "0.29.0";
 export const SAVER_ICONS: Record<SaverKind, string> = { media: "F075A", camera: "F07AE", clock: "F0150" };
@@ -95,7 +96,7 @@ export const glassRatio = computed(() => {
   return shape?.width && shape?.height ? `${shape.width} / ${shape.height}` : "16 / 10";
 });
 export const clockPreview = computed(() => {
-  const clock = clockSample(state.now, clock24.value, screenLanguage.value);
+  const clock = clockSample(useUiStore().now, clock24.value, screenLanguage.value);
   const degrees = weatherSource.value ? liveOf(weatherSource.value)?.a?.temperature : undefined;
   return {
     time: clock.time,

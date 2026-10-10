@@ -8,9 +8,10 @@ import { choiceKey, fit, knowAppFit, knowTileTypes, pluginTileId, testPlugin, te
   type PluginTileOption, type Texts, pluginTileOf, pluginDefaults} from "./model/plugins";
 import { pluginTiles } from "./model/page-validation";
 import { computed, watch } from "vue";
-import { buildOf, copyText, state, toast } from "./store";
+import { buildOf, state } from "./store";
 import type { Screen } from "./types";
 import { onReset } from "./resets";
+import { useUiStore } from "./stores/ui";
 
 // What the page knows of the plugins before the add-on has said anything (and again for every test, resetPlugins).
 const fresh = () => ({
@@ -205,7 +206,7 @@ export const attachLine = (screen: Screen) => `packages:\n  tessera_plugins: !in
 // cannot check).
 export const needsAttach = (screen: Screen) => ownYaml(screen) && !plugins.attached[screen.node || screen.id];
 export function markAttached(screen: Screen) { plugins.attached[screen.node || screen.id] = true; }
-export const copyAttach = (screen: Screen) => copyText(attachLine(screen), undefined, "yaml");
+export const copyAttach = (screen: Screen) => useUiStore().copyText(attachLine(screen), undefined, "yaml");
 // The plugins file of a screen with its own YAML, as the add-on wrote it ("" until it has): the add-on pins each plugin to
 // the commit of its release, so the page never writes one of its own.
 export const pluginsFile = (screen: Screen) => plugins.files[screen.id]?.content || "";
@@ -355,7 +356,7 @@ export async function addPlugin(screens: Screen[], plugin: Plugin) {
       await change(screen, { add: [addition(screen, plugin)] });
       forgetDrafts(screen, plugin);
     } catch (error: any) {
-      toast(error.message);
+      useUiStore().toast(error.message);
       break;
     } finally {
       delete sending[screen.id];
@@ -371,7 +372,7 @@ export async function updateAll(screen: Screen, list: Plugin[]) {
   try {
     await change(screen, { add: list.map((plugin) => addition(screen, plugin)) });
   } catch (error: any) {
-    toast(error.message);
+    useUiStore().toast(error.message);
   } finally {
     delete sending[screen.id];
   }
@@ -432,7 +433,7 @@ export async function installTray() {
       }
     }
   } catch (error: any) {
-    toast(error.message);
+    useUiStore().toast(error.message);
   } finally {
     tray.sending = false;
   }
@@ -445,10 +446,10 @@ export async function removePlugin(screens: Screen[], plugin: Plugin, also: stri
   for (const screen of screens) {
     const here = [plugin.id, ...also.filter((id) => installedOn(screen, id))];
     try { await change(screen, { remove: here }); }
-    catch (error: any) { toast(error.message); return; }
+    catch (error: any) { useUiStore().toast(error.message); return; }
   }
   await reloadPlugins();
-  toast(t("editor.plugins.removed", { name: [plugin, ...also.map(pluginById).filter(Boolean) as Plugin[]].map((p) => text(p.name)).join(", "),
+  useUiStore().toast(t("editor.plugins.removed", { name: [plugin, ...also.map(pluginById).filter(Boolean) as Plugin[]].map((p) => text(p.name)).join(", "),
     screens: screens.map((s) => s.name).join(", ") }));
 }
 // Switch a screen to this plugin from another plugin of the same id it runs (a fork, a folder being made): the person
@@ -456,7 +457,7 @@ export async function removePlugin(screens: Screen[], plugin: Plugin, also: stri
 export async function switchPlugin(screen: Screen, plugin: Plugin) {
   sending[screen.id] = [plugin.id];
   try { await change(screen, { add: [{ ...addition(screen, plugin), switch: true }] }); }
-  catch (error: any) { toast(error.message); }
+  catch (error: any) { useUiStore().toast(error.message); }
   finally { delete sending[screen.id]; }
   await reloadPlugins();
 }

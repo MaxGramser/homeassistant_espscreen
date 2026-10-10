@@ -7,7 +7,10 @@ import { versionAtLeast } from "../model/layout";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
 import { firmwareVersion } from "../model/screen-status";
-import { canAlert, copyText, go, sendTestAlert, state } from "../store";
+import { canAlert, sendTestAlert, state } from "../store";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const alerts = computed(() => state.inventory.alerts);
 // The bytes a field holds on each look, with the boards that have it ("CYD 48 · Guition and Waveshare 64 bytes"): the
@@ -146,7 +149,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <template #action><code>show_alert</code></template>
         </i18n-t>
       </div>
-      <button type="button" class="btn quiet" id="close-alerts" @click="go('')">{{ t("editor.common.back") }}</button>
+      <button type="button" class="btn quiet" id="close-alerts" @click="ui.go('')">{{ t("editor.common.back") }}</button>
     </div>
     <p v-if="!alerts" class="hint">{{ t("editor.alerts.loading") }}</p>
     <template v-else>
@@ -205,11 +208,11 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
             </div>
             <div v-for="[label, action] in [[t('editor.alerts.screens.show'), screen.alert_action], [t('editor.alerts.screens.dismiss'), screen.dismiss_action]]" :key="label" class="copy-line">
               <span class="copy-label">{{ label }}</span><code>{{ action || "esphome.<device_name>_show_alert" }}</code>
-              <button v-if="action" type="button" class="btn quiet mini" @click="copyText(action!, undefined, 'action_name')">{{ t("editor.common.copy") }}</button>
+              <button v-if="action" type="button" class="btn quiet mini" @click="ui.copyText(action!, undefined, 'action_name')">{{ t("editor.common.copy") }}</button>
             </div>
             <div class="copy-line alert-screen-value">
               <span class="copy-label">{{ t("editor.alerts.one.value") }}</span><code>{{ screenValue(screen) }}</code>
-              <button type="button" class="btn quiet mini" @click="copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button>
+              <button type="button" class="btn quiet mini" @click="ui.copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button>
             </div>
           </div>
         </div>
@@ -240,7 +243,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </div>
         <div class="copy-line">
           <pre id="alerts-example">{{ exampleYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-example-copy" @click="copyText(exampleYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-example-copy" @click="ui.copyText(exampleYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section id="alerts-all" class="card">
@@ -253,7 +256,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </i18n-t>
         <div class="copy-line">
           <pre id="alerts-all-example">{{ allYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-all-copy" @click="copyText(allYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-all-copy" @click="ui.copyText(allYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section id="alerts-one" class="card">
@@ -268,7 +271,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
             <tr><th>{{ t("editor.alerts.one.value") }}</th><th>{{ t("editor.alerts.one.name") }}</th><th>{{ t("editor.alerts.one.room") }}</th><th>{{ t("editor.alerts.one.picture") }}</th></tr>
             <tr v-for="screen in physicalScreens" :key="screen.id">
               <td><span class="copy-line"><code>{{ screenValue(screen) }}</code>
-                <button type="button" class="btn quiet mini" @click="copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button></span></td>
+                <button type="button" class="btn quiet mini" @click="ui.copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button></span></td>
               <td>{{ screen.name }}</td>
               <td>{{ screen.area || "—" }}</td>
               <td>{{ screen.pictures ? t("editor.alerts.one.picture_yes") : t("editor.alerts.one.picture_no") }}</td>
@@ -287,7 +290,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </div>
         <div class="copy-line">
           <pre id="alerts-one-example">{{ oneYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-one-copy" @click="copyText(oneYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-one-copy" @click="ui.copyText(oneYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section v-if="alerts.choice" id="alerts-choice" class="card">
@@ -305,7 +308,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </i18n-t>
         <div class="copy-line">
           <pre id="alerts-choice-example">{{ choiceYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-choice-copy" @click="copyText(choiceYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-choice-copy" @click="ui.copyText(choiceYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
         <i18n-t keypath="editor.alerts.choice.direct" tag="p" scope="global">
           <template #choice><code>esphome.&lt;device_name&gt;_{{ alerts.choice.action }}</code></template>
@@ -366,7 +369,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </i18n-t>
         <p class="subhead">{{ t("editor.alerts.icons.handy") }}</p>
         <div class="chips" id="alerts-suggested">
-          <button v-for="icon in alerts.suggested_icons" :key="icon.name" type="button" class="chip" @click="copyText(icon.name, undefined, 'icon_name')"><span class="mdi">{{ glyph(icon.cp) }}</span><code>{{ icon.name }}</code></button>
+          <button v-for="icon in alerts.suggested_icons" :key="icon.name" type="button" class="chip" @click="ui.copyText(icon.name, undefined, 'icon_name')"><span class="mdi">{{ glyph(icon.cp) }}</span><code>{{ icon.name }}</code></button>
         </div>
         <div class="field">
           <label class="f-label" for="alerts-icon-search">{{ t("editor.alerts.icons.search_label") }}</label>
@@ -376,7 +379,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <div v-for="group in iconGroups" :key="group.label" class="field">
             <p class="subhead">{{ group.label }} · {{ group.icons.length }}</p>
             <div class="alert-icon-grid">
-              <button v-for="icon in group.icons" :key="icon.name" type="button" class="alert-icon" :title="t('editor.alerts.icons.copy', { name: icon.name })" @click="copyText(icon.name, undefined, 'icon_name')">
+              <button v-for="icon in group.icons" :key="icon.name" type="button" class="alert-icon" :title="t('editor.alerts.icons.copy', { name: icon.name })" @click="ui.copyText(icon.name, undefined, 'icon_name')">
                 <span class="mdi">{{ glyph(icon.cp) }}</span><code>{{ icon.name }}</code><small v-if="icon.label">{{ icon.label }}</small>
               </button>
             </div>
@@ -390,8 +393,8 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <template #field><code>color</code></template>
         </i18n-t>
         <div class="swatches" id="alerts-swatches">
-          <button type="button" class="swatch" @click="copyText('', undefined, 'empty_color')"><i style="background: #ffffff"></i><span><code>empty</code><small>{{ t("editor.alerts.white") }}</small></span></button>
-          <button v-for="colour in alerts.colors" :key="colour.name" type="button" class="swatch" @click="copyText(colour.name, undefined, 'color_name')"><i :style="{ background: colour.color }"></i><span><code>{{ colour.name }}</code><small>{{ colour.label }} · {{ colour.color }}</small></span></button>
+          <button type="button" class="swatch" @click="ui.copyText('', undefined, 'empty_color')"><i style="background: #ffffff"></i><span><code>empty</code><small>{{ t("editor.alerts.white") }}</small></span></button>
+          <button v-for="colour in alerts.colors" :key="colour.name" type="button" class="swatch" @click="ui.copyText(colour.name, undefined, 'color_name')"><i :style="{ background: colour.color }"></i><span><code>{{ colour.name }}</code><small>{{ colour.label }} · {{ colour.color }}</small></span></button>
         </div>
       </section>
       <section id="alerts-behaviour" class="card">
@@ -443,7 +446,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         <p class="subhead">{{ t("editor.alerts.events.wait") }}</p>
         <div class="copy-line">
           <pre id="alerts-wait-example">{{ waitYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-wait-copy" @click="copyText(waitYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-wait-copy" @click="ui.copyText(waitYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section id="alerts-tips" class="card">

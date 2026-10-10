@@ -39,13 +39,16 @@ class SettingsView(unittest.TestCase):
         self.assertIn('href="api/claude-skill.zip"', self.settings)
 
     def test_the_view_switches_by_hash_and_renders_what_it_shows(self):
-        store = editor_sources.source('store.ts')
+        ui = editor_sources.source('stores/ui.ts')
         for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#alerts", "#override", "#plugins"] as const;',
-                       'useEventListener(window, "hashchange", followHash)', 'export async function installClaudeSkill', 'send("claude-skill", "POST")'):
+                       'useEventListener(window, "hashchange", followHash)'):
+            self.assertIn(marker, ui, marker)
+        store = editor_sources.source('store.ts')
+        for marker in ('export async function installClaudeSkill', 'send("claude-skill", "POST")'):
             self.assertIn(marker, store, marker)
         app = editor_sources.source('App.vue')
-        for marker in ('route.value === "#settings") return AppSettingsView', 'route.value === "#new-screen") return InstallerView',
-                       'route.value === "#firmware") return FirmwareView', 'route.value === "#alerts") return AlertsView'):
+        for marker in ('ui.route === "#settings") return AppSettingsView', 'ui.route === "#new-screen") return InstallerView',
+                       'ui.route === "#firmware") return FirmwareView', 'ui.route === "#alerts") return AlertsView'):
             self.assertIn(marker, app, marker)
         for marker in ('.side', '.nav-item[aria-current="true"]', '.panel', '.card'):
             self.assertIn(marker, self.css, marker)

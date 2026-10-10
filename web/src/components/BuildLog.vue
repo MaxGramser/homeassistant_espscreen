@@ -6,9 +6,12 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useStickToBottom } from "../composables/useStickToBottom";
 import { t } from "../i18n";
-import { buildOf, buildProgress, copyText, loadFirmwareJob, state } from "../store";
+import { buildOf, buildProgress, loadFirmwareJob, state } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const props = defineProps<{ screen: Screen; name?: boolean }>();
 const build = computed(() => buildOf(props.screen));
@@ -39,7 +42,7 @@ useStickToBottom(box, () => lines.value.length);
     <p v-else-if="build" class="build-note"><span class="spin small" aria-hidden="true"></span>{{ name ? `${screen.name} · ` : "" }}{{ t("editor.sidebar.update.queued") }}</p>
     <p v-else class="build-note failed"><Icon name="alert-circle-outline" />{{ t("editor.build.failed", { screen: screen.name }) }}</p>
     <details v-if="lines.length" class="follow-log" :open="open" @toggle="open = ($event.target as HTMLDetailsElement).open">
-      <summary><Icon name="code-braces" />{{ t(open ? "editor.installer.hide_log" : "editor.installer.show_log") }}<button v-if="open" type="button" class="btn quiet mini" @click.prevent="copyText(lines.join('\n'), null, 'log')">{{ t("editor.common.copy") }}</button></summary>
+      <summary><Icon name="code-braces" />{{ t(open ? "editor.installer.hide_log" : "editor.installer.show_log") }}<button v-if="open" type="button" class="btn quiet mini" @click.prevent="ui.copyText(lines.join('\n'), null, 'log')">{{ t("editor.common.copy") }}</button></summary>
       <pre ref="box" class="log">{{ lines.join("\n") }}</pre>
     </details>
   </div>

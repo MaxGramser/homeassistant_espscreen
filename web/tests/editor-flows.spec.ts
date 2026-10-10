@@ -11,6 +11,7 @@ import { validatePages } from "../src/model/pages";
 import { tileCost } from "../src/model/memory";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
+import { useUiStore } from "../src/stores/ui";
 
 let yes = true, asked: Question[] = [];
 beforeEach(() => {
@@ -18,7 +19,7 @@ beforeEach(() => {
   // Every question of the editor's is answered yes, unless a test answers otherwise.
   yes = true;
   asked = answerDialogs(() => yes);
-  state.dirty = false; state.selected = null; state.toast = null;
+  state.dirty = false; state.selected = null; useUiStore().notice = null;
   state.inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
     layout: { title: "Home", tiles: [{ entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 }] } } as any)],
     entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} } } as any;

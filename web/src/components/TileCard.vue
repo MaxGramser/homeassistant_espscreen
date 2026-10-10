@@ -13,7 +13,7 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clockSample } from "../model/clock";
-import { clock24, currentScreen, deviceStyle, screenLanguage, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
+import { clock24, currentScreen, deviceStyle, screenLanguage, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, unitSuffix } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -26,6 +26,9 @@ import ModeBar from "./ModeBar.vue";
 import MarqueeText from "./MarqueeText.vue";
 import SensorHistory from './SensorHistory.vue';
 import rules from "../model/page-rules.json";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -70,11 +73,11 @@ const pluginTile = computed(() => pluginTileOf(props.tile.entity));
 const pluginRows = computed(() => (pluginTile.value && !props.placeholder ? previewFor(props.tile.entity, props.tile.options?.plugin, props.tile.options?.plugin_entity) : null));
 const pluginRow = computed(() => {
   const rows = pluginRows.value || [];
-  const seconds = state.now / 1000;
+  const seconds = ui.now / 1000;
   return rows.find((row) => row.at === undefined || row.at + 30 >= seconds) || null;
 });
 function countdown(at: number) {
-  const left = at - state.now / 1000;
+  const left = at - ui.now / 1000;
   if (left < 60) return t("editor.plugin_tile.now");
   if (left >= 3600) return clockText(clock24.value, new Date(at * 1000));
   return t("editor.plugin_tile.minutes", { n: Math.floor(left / 60) });
@@ -199,7 +202,7 @@ const live = computed(() => !props.placeholder && state.layout?.tiles.some((tile
 const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.value.slots) + 1, page: Math.floor(props.slot / grid.value.slots) + 1 }));
 // The clock faces at the editor's one clock, as the screen draws them (model/clock.ts): the digital time, the analog
 // hands, the flip clock's two blocks ("07" "12" on 24 hours, "7" "12" with AM or PM on 12) and the dates.
-const face = computed(() => clockSample(state.now, clock24.value, screenLanguage.value));
+const face = computed(() => clockSample(ui.now, clock24.value, screenLanguage.value));
 
 // ---- Live values ----
 const current = computed(() => (domain.value === "screen" ? null : liveOf(props.tile.entity)));
@@ -392,7 +395,7 @@ async function onKey(e: KeyboardEvent) {
   const to = props.tile.slot + (full.value ? Math.sign(step) * grid.value.slots : step);
   if (!placeTile(props.tile, to)) {
     // Nowhere to go without pushing a tile off its page (app 0.4.2): say so instead of doing nothing.
-    if (to >= 0 && to < grid.value.slots * 8) toast(t("editor.layout.no_room", { page: Math.floor(to / grid.value.slots) + 1 }));
+    if (to >= 0 && to < grid.value.slots * 8) ui.toast(t("editor.layout.no_room", { page: Math.floor(to / grid.value.slots) + 1 }));
     return;
   }
   // The card that moved, found by its id: the cards are keyed by their place, so the one under the old place is

@@ -8,12 +8,15 @@ import { editorLayout, movePage, state, tileLimit } from "../store";
 import PageMenu from "./PageMenu.vue";
 import MemoryMeter from "./MemoryMeter.vue";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const emit = defineEmits<{ add: [] }>();
 const list = computed(() => state.document?.pages || []);
 const canAdd = computed(() => list.value.length < editorLayout.grid.pages);
 const tiles = computed(() => list.value.reduce((n, page) => n + page.tiles.length, 0));
-function close() { state.pagesSheet = false; }
+function close() { ui.pagesSheet = false; }
 function choose(id: string) { state.selectedPageId = id; state.insertAt = -1; close(); }
 watch(() => state.inspector, (open) => { if (open) close(); });
 

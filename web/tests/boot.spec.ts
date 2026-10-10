@@ -61,6 +61,7 @@ describe("boot", () => {
     const ours = listeners();
     const { boot } = await import("../src/boot");
     const store = await import("../src/store");
+    const ui = (await import("../src/stores/ui")).useUiStore();
     const stop = boot();
     expect(boot()).toBe(stop);
     await vi.advanceTimersByTimeAsync(0);
@@ -73,9 +74,9 @@ describe("boot", () => {
     // The address and the width of the window are followed.
     history.replaceState(null, "", "#settings");
     window.dispatchEvent(new HashChangeEvent("hashchange"));
-    expect(store.route.value).toBe("#settings");
+    expect(ui.route).toBe("#settings");
     setMedia(PHONE, true);
-    expect(store.narrowPhone.value).toBe(true);
+    expect(ui.narrowPhone).toBe(true);
     // The screensaver's drawers close when the layout comes back.
     store.state.tab = "settings";
     await nextTick();

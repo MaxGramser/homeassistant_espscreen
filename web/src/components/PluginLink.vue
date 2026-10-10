@@ -7,9 +7,11 @@ import { t } from "../i18n";
 import type { Plugin, PluginSource } from "../model/plugins";
 import { addPlugin, plugins, realScreens, reloadPlugins } from "../plugin-state";
 import { send } from "../api";
-import { toast } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const props = defineProps<{ screen?: Screen | null }>();
 const emit = defineEmits<{ close: []; found: [plugin: Plugin] }>();
@@ -30,7 +32,7 @@ async function read() {
     if (link.source !== "link" && target.value) await addPlugin([target.value], plugins.index.find((p) => p.id === plugin.id) || plugin);
     emit("found", plugins.index.find((p) => p.id === plugin.id) || plugin);
   } catch (error: any) {
-    toast(error.message || t("editor.plugins.link.not_found"));
+    ui.toast(error.message || t("editor.plugins.link.not_found"));
   } finally {
     reading.busy = false;
   }

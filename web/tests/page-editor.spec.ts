@@ -8,13 +8,13 @@ import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
 import TopbarInspector from '../src/components/TopbarInspector.vue';
 import { placeTile, dismissMigrationNote, pageReady, removeTile, resolveLayoutConflict, addPage, movePage } from '../src/store';
-import { narrowPhone } from "../src/store";
 import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo,
   acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, select, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
 import { answerDialogs } from "./helpers/dialogs";
 import { setMedia } from "./helpers/browser";
 import type { PageDocument, Screen } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
 
 const record = () => state.inventory.screens[0].page_document as PageDocument;
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
@@ -106,7 +106,7 @@ describe("one draft in both editor modes", () => {
     await vi.waitFor(() => expect(view.find('#actions-blocked').exists()).toBe(false));
     const calls = fetch.mock.calls.map(([url, init]: any) => [String(url), init?.method]);
     expect(calls).toContainEqual(['api/screens/test/allow-actions', 'POST']);
-    expect(state.toast?.message).toBe('Test may now control your devices.');
+    expect(useUiStore().notice?.message).toBe('Test may now control your devices.');
   });
   it('keeps the notice when Home Assistant does not take it, and says why', async () => {
     Object.assign(state.inventory.screens[0], { actions_blocked: true });
@@ -115,14 +115,14 @@ describe("one draft in both editor modes", () => {
     await view.find('#allow-actions').trigger('click');
     await vi.waitFor(() => expect(state.allowing).toBeNull());
     expect(view.find('#actions-blocked').exists()).toBe(true);
-    expect(state.toast?.message).toContain("Home Assistant didn't take it.");
+    expect(useUiStore().notice?.message).toContain("Home Assistant didn't take it.");
   });
   it('retires a removal undo toast when a later edit becomes the history head', () => {
     const tile = state.layout!.tiles[0];
     removeTile(tile);
-    expect(state.toast?.action).toBeDefined();
+    expect(useUiStore().notice?.action).toBeDefined();
     setPageTitle(0, 'Later edit');
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     undo();
     expect(state.layout!.tiles).toHaveLength(0);
     undo();
@@ -162,7 +162,7 @@ describe("one draft in both editor modes", () => {
     } finally { view.unmount(); }
   });
   it('goes to the next page with a finger swiped sideways on a phone, and not with a slow one or a scroll', async () => {
-    narrowPhone.value = true;
+    useUiStore().narrowPhone = true;
     const view = mount(LayoutView);
     await nextTick();
     const pagesView = view.find('#layout-preview').element;
@@ -533,7 +533,7 @@ describe('creating a page', () => {
     const order = state.document!.pages.map((page) => page.id);
     expect(movePage(0, 1)).toBe(false);
     expect(movePage(2, 0)).toBe(false);
-    expect(state.toast?.message).toBe('Update screen to use the new titlebar and layout');
+    expect(useUiStore().notice?.message).toBe('Update screen to use the new titlebar and layout');
     expect(movePage(2, 1)).toBe(true);
     expect(state.document!.pages[0].id).toBe(order[0]);
   });

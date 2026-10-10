@@ -4,6 +4,7 @@ import { screenFixture } from './page-fixtures';
 import { resizeChoices, resizeTile, select, setTileOption, state, tileSizeChoices, undo } from '../src/store';
 import TileResize from '../src/components/TileResize.vue';
 import TileInspector from '../src/components/TileInspector.vue';
+import { useUiStore } from "../src/stores/ui";
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ states: {}, previews: [], capabilities: {} }))));
@@ -116,9 +117,9 @@ it('resizes a Go to page tile by its edge without giving it controls (app 0.4.1)
   state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: 'Home', pages: 2, tiles: [{ entity: 'screen.page_2', name: 'More', slot: 0 }] } });
   select(null); select('test');
   expect(resizeChoices(tile(), 'rows')).toContain('tall');
-  expect(state.toast).toBeNull();
+  expect(useUiStore().notice).toBeNull();
   expect(resizeTile(tile(), 'tall', 'rows')).toBe(true);
-  expect(state.toast).toBeNull();
+  expect(useUiStore().notice).toBeNull();
   expect(tile().options?.size).toBe('tall');
   expect(tile().options?.controls).toBeUndefined();
 });

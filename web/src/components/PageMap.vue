@@ -7,6 +7,9 @@ import { connections, titleOf } from "../model/pages";
 import { arrangeFromHome, connectTile, deviceStyle, liveEntries, moveWorkspacePage, openPage, openTile, screenShape, state, workspacePositions } from "../store";
 import DevicePage from "./DevicePage.vue";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 defineProps<{ compact?: boolean }>();
 const allConnections = ref(false);
 
@@ -40,7 +43,7 @@ async function measure() {
   });
   if (JSON.stringify(next) !== JSON.stringify(edges.value)) edges.value = next;
 }
-watch([() => state.document, positions, zoom, pitch, () => state.fontsVersion], measure, { immediate: true });
+watch([() => state.document, positions, zoom, pitch, () => ui.fontsVersion], measure, { immediate: true });
 // The links follow the cards wherever the map's size changes them.
 useResizeObserver(world, measure);
 function selectRoute(tileId: string) { const tile = state.layout?.tiles.find((tile) => tile.id === tileId); if (tile) openTile(tile); }

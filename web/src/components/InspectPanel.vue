@@ -4,9 +4,12 @@ import { onMounted, ref, watch } from "vue";
 import { getJson } from "../api";
 import { t } from "../i18n";
 import { controlsLabel, displayName, sizeName } from "../model/layout";
-import { state, toast } from "../store";
+import { state } from "../store";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 // One tile (an entity may be on several, firmware 0.16.0+): its entity, its slot and, for a key, its place.
 const props = defineProps<{ entity?: string; slot?: number; tileKey?: number }>();
@@ -27,7 +30,7 @@ async function load() {
   } catch (e: any) {
     error.value = e.message;
     raw.value = "";
-    toast(e.message);
+    ui.toast(e.message);
   }
 }
 const optionsText = (entity: string, own?: Record<string, any>) => {

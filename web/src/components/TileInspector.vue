@@ -10,7 +10,7 @@ import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pag
 import { glyph } from "../model/topbar";
 import { controlOption, drawable, fits, ofType } from "../model/catalogue";
 import { pluginsEnabled, tapActionsFor } from "../plugin-state";
-import { currentScreen, automaticIcon, entityName, liveOf, moveTileToPage, openPage, openTile, phone, screenBuiltinName, fullPage, loadSubtitleValues, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
+import { currentScreen, automaticIcon, entityName, liveOf, moveTileToPage, openPage, openTile, screenBuiltinName, fullPage, loadSubtitleValues, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
 import { titleOf } from "../model/pages";
 import { pluginTileOf } from "../model/plugins";
 import PluginTileInspector from "./PluginTileInspector.vue";
@@ -34,6 +34,9 @@ import { useTextDraft } from '../composables/useTextDraft';
 import rules from "../model/page-rules.json";
 import { choiceOffered, offeredChoices } from "../model/tile-options";
 import { isTallSize } from "../model/sizes";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
@@ -344,7 +347,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     </Section>
 
     <!-- What the card shows first, then where it stands, what a finger does to it, and last its icon and colour. -->
-    <template v-if="!phone || more">
+    <template v-if="!ui.phone || more">
     <Section v-if="lookShown || (!bedside && !key)" :title="t('editor.tile.sections.look')">
       <p v-if="energyTile" class="hint">{{ t(supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
       <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
@@ -493,7 +496,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
         </div>
       </PropRow>
     </Section>
-    <template v-if="phone">
+    <template v-if="ui.phone">
       <button v-if="!more" type="button" class="phone-more" @click="more = true">
         <span><b>{{ t("editor.phone.more_settings") }}</b><small>{{ t("editor.phone.more_settings_hint") }}</small></span><Icon name="chevron-right" />
       </button>

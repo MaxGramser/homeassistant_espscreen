@@ -11,8 +11,11 @@ import { editorNumber, t } from "../i18n";
 import { text, type Texts } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import { nodeOf, plugins, pluginsEnabled } from "../plugin-state";
-import { currentScreen, toast } from "../store";
+import { currentScreen } from "../store";
 import UiSelect from "./ui/UiSelect.vue";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const props = defineProps<{ plugin?: string; extras?: boolean }>();
 const route = (screenId: string) => `screens/${encodeURIComponent(screenId)}/${props.extras ? "extras" : "plugins/settings"}`;
@@ -49,11 +52,11 @@ async function set(row: Row, value: boolean | number | string) {
   try {
     await send(route(screen.id), "POST", { entity: row.entity, value });
     if (row.kind === "button") follow();
-  } catch (error: any) { toast(error.message); load(); }
+  } catch (error: any) { ui.toast(error.message); load(); }
 }
 function setText(row: Row, input: HTMLInputElement) {
   if (input.value === (row.value ?? "")) return;
-  if (input.value.length < (row.min ?? 0)) { input.value = String(row.value ?? ""); toast(t("editor.plugins.settings.too_short", { n: row.min ?? 0 })); return; }
+  if (input.value.length < (row.min ?? 0)) { input.value = String(row.value ?? ""); ui.toast(t("editor.plugins.settings.too_short", { n: row.min ?? 0 })); return; }
   set(row, input.value);
 }
 const number = (value: unknown, unit = "") => `${editorNumber(Number(value))}${unit ? ` ${unit}` : ""}`;

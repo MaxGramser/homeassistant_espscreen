@@ -9,6 +9,7 @@ import { setHidden } from "./helpers/browser";
 import { useFakeClock } from "./helpers/clock";
 import { answerDialogs } from "./helpers/dialogs";
 import { fakeApi } from "./helpers/fake-api";
+import { useUiStore } from "../src/stores/ui";
 
 function addOn(states: { state: string; stage?: string; logs?: string[] }[]) {
   let turn = 0;
@@ -26,7 +27,7 @@ function addOn(states: { state: string; stage?: string; logs?: string[] }[]) {
 describe("checking an override", () => {
   it("follows ESPHome's check until it ends, and then asks no more", async () => {
     const clock = useFakeClock();
-    state.overrideProfile = "hall.yaml";
+    useUiStore().overrideProfile = "hall.yaml";
     const api = addOn([{ state: "running" }, { state: "running", stage: "validating" }, { state: "success" }]);
     const view = mount(OverrideView);
     await flushPromises();
@@ -45,7 +46,7 @@ describe("checking an override", () => {
 
   it("asks nothing while the tab is hidden, and says the line of the log that names the error", async () => {
     const clock = useFakeClock();
-    state.overrideProfile = "hall.yaml";
+    useUiStore().overrideProfile = "hall.yaml";
     const api = addOn([{ state: "running" }, { state: "failed", logs: ["INFO Reading", "ERROR display: unknown model", "Failed config"] }]);
     const view = mount(OverrideView);
     await flushPromises();
@@ -65,7 +66,7 @@ describe("checking an override", () => {
 
 describe("the override's example and Clear", () => {
   it("ask before they replace what is typed, in the editor's own dialog, and keep it when told no", async () => {
-    state.overrideProfile = "hall.yaml";
+    useUiStore().overrideProfile = "hall.yaml";
     addOn([{ state: "running" }]);
     const view = mount(OverrideView);
     await flushPromises();

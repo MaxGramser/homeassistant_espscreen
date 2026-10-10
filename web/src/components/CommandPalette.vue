@@ -6,7 +6,10 @@ import { domainInfo } from "../model/layout";
 import { useListNavigation } from "../composables/useListNavigation";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
-import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, go, identify, repeatable, save, select, state, tileLimit } from "../store";
+import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, identify, repeatable, save, select, state, tileLimit } from "../store";
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
@@ -19,16 +22,16 @@ const items = computed<Item[]>(() => {
     list.push({ group: screens, label: screen.name, detail: `${screen.online ? t("editor.common.online") : t("editor.common.offline")} · ${screen.firmware || t("editor.common.unknown")}`, glyphText: "▦", run: () => select(screen.id) });
   const screen = currentScreen.value;
   const actions: Item[] = [
-    { group: actionsGroup, label: t("editor.nav.new_screen"), detail: t("editor.nav.new_screen_detail"), glyphText: "+", run: () => go("#new-screen") },
-    { group: actionsGroup, label: t("editor.nav.firmware"), icon: "F0241", run: () => go("#firmware") },
-    { group: actionsGroup, label: t("editor.nav.alerts"), detail: t("editor.palette.alerts_detail"), icon: "F0594", run: () => go("#alerts") },
-    { group: actionsGroup, label: t("editor.nav.settings"), detail: t("editor.palette.settings_detail"), icon: "F0493", run: () => go("#settings") },
+    { group: actionsGroup, label: t("editor.nav.new_screen"), detail: t("editor.nav.new_screen_detail"), glyphText: "+", run: () => ui.go("#new-screen") },
+    { group: actionsGroup, label: t("editor.nav.firmware"), icon: "F0241", run: () => ui.go("#firmware") },
+    { group: actionsGroup, label: t("editor.nav.alerts"), detail: t("editor.palette.alerts_detail"), icon: "F0594", run: () => ui.go("#alerts") },
+    { group: actionsGroup, label: t("editor.nav.settings"), detail: t("editor.palette.settings_detail"), icon: "F0493", run: () => ui.go("#settings") },
   ];
   if (screen && state.layout) {
     actions.unshift(
       { group: actionsGroup, label: t("editor.common.save_send"), detail: state.dirty ? t("editor.common.unsaved") : t("editor.palette.nothing_to_save"), key: "⌘S", run: () => save() },
-      { group: actionsGroup, label: t("editor.screen_view.tabs.layout"), detail: screen.name, run: () => { go(""); state.tab = "layout"; } },
-      { group: actionsGroup, label: t("editor.screen_view.tabs.settings"), detail: screen.name, run: () => { go(""); state.tab = "settings"; } },
+      { group: actionsGroup, label: t("editor.screen_view.tabs.layout"), detail: screen.name, run: () => { ui.go(""); state.tab = "layout"; } },
+      { group: actionsGroup, label: t("editor.screen_view.tabs.settings"), detail: screen.name, run: () => { ui.go(""); state.tab = "settings"; } },
       { group: actionsGroup, label: t("editor.palette.identify"), detail: canAlert(screen) ? t("editor.palette.identify_detail") : t("editor.palette.identify_needs"), run: () => { if (canAlert(screen)) identify(screen); } },
       { group: actionsGroup, label: t("editor.palette.export"), detail: t("editor.palette.export_detail"), run: exportLayout },
     );
@@ -56,7 +59,7 @@ const grouped = computed(() => {
   });
   return out;
 });
-function close() { state.palette = false; }
+function close() { ui.palette = false; }
 function run(item: Item) { close(); item.run(); }
 // The arrows walk the results and stop at the ends, Enter runs the one in focus, a new search starts at the first.
 const { active, onKey: walk } = useListNavigation(items, { onPick: run, resetOn: query });
@@ -64,11 +67,11 @@ function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") { e.preventDefault(); close(); }
   else walk(e);
 }
-watch(() => state.palette, async (open) => { if (open) { query.value = ""; active.value = 0; await nextTick(); input.value?.focus(); } });
+watch(() => ui.palette, async (open) => { if (open) { query.value = ""; active.value = 0; await nextTick(); input.value?.focus(); } });
 </script>
 
 <template>
-  <div v-if="state.palette" class="palette-backdrop" @click="close">
+  <div v-if="ui.palette" class="palette-backdrop" @click="close">
     <div class="palette" role="dialog" :aria-label="t('editor.sidebar.search')" @click.stop @keydown="onKey">
       <input ref="input" v-model="query" id="palette-input" :placeholder="t('editor.palette.placeholder')" :aria-label="t('editor.sidebar.search')" autocomplete="off" />
       <div class="palette-list">

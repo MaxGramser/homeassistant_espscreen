@@ -9,7 +9,7 @@ import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { closeInspector, deviceStyle, homeKeyShown, isCompact, movePage, navigationSettings, openBar, openPage, pageAt, pageReady, pageTitleShown, phone, previewed, roomyNames, screenText, setHomePage, state, topbarItems } from "../store";
+import { closeInspector, deviceStyle, homeKeyShown, isCompact, movePage, navigationSettings, openBar, openPage, pageAt, pageReady, pageTitleShown, previewed, roomyNames, screenText, setHomePage, state, topbarItems } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -17,6 +17,9 @@ import PageNavigation from './PageNavigation.vue';
 import PageMenu from './PageMenu.vue';
 import Icon from './ui/Icon.vue';
 import type { NavigationIntent } from '../model/pages';
+import { useUiStore } from "../stores/ui";
+
+const ui = useUiStore();
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [intent: NavigationIntent] }>();
@@ -39,10 +42,10 @@ const filled = computed(() => props.entries.filter((e) => pageOf(e.slot) === pro
 const cellStyle = (slot: number) => ({ gridColumn: slot % grid.columns + 1, gridRow: Math.floor(slot % grid.slots / grid.columns) + 1 });
 function pickCell(slot: number) {
   state.selectedPageId = owned.value?.id || state.selectedPageId;
-  const marked = state.insertAt === slot && !phone.value;
+  const marked = state.insertAt === slot && !ui.phone;
   state.insertAt = marked ? -1 : slot;
   // On a phone the empty cell opens the sheet to add a tile there (app 0.4.40), without a keyboard over the list.
-  if (state.insertAt >= 0 && phone.value) { closeInspector(); state.addSheet = true; }
+  if (state.insertAt >= 0 && ui.phone) { closeInspector(); ui.addSheet = true; }
   else if (state.insertAt >= 0) document.querySelector<HTMLInputElement>("#search")?.focus();
 }
 // A whole page moves by its label (app 0.2.121) and leaves by the button beside its cell count (app 0.2.123). One

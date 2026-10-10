@@ -13,6 +13,7 @@ import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
 import { validatePages } from "../src/model/pages";
 import { isSelected, openTile, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
 
 function inventory(): Inventory {
   return {
@@ -45,7 +46,7 @@ beforeEach(() => {
   seedLayout({ title: "Living room", tiles: [] });
   state.subtitleValues = {};
   state.entityActions = {};
-  state.toast = null;
+  useUiStore().notice = null;
   state.selectedTileId = null; state.inspector = null; state.actionPickerOpen = false;
 });
 
@@ -88,7 +89,7 @@ describe("the tile panel", () => {
     const panel = mount(TileInspector, { props: { tile: current(tile)! } });
     const automatic = panel.findAll("button").find((b) => b.text() === "Automatic")!;
     await automatic.trigger("click");
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.sub).toBeUndefined();
     expect(state.dirty).toBe(true);
   });
@@ -103,13 +104,13 @@ describe("the tile panel", () => {
     const perform = panel.findAll("button").find((b) => b.text() === "Perform action")!;
     await perform.trigger("click");
     // The choice waits for its action: nothing is stored yet, and nothing fails.
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBeUndefined();
     expect(perform.attributes("aria-pressed")).toBe("true");
     const picker = panel.findComponent(ActionPicker);
     expect(picker.exists()).toBe(true);
     await picker.find(".action-choice").trigger("click");
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBe("action");
     expect(current(tile)!.options?.action).toEqual({ action: "light.turn_on" });
     // A field of the action goes into the document too.
@@ -149,7 +150,7 @@ describe("the tile panel", () => {
     expect(tap().findAll(".seg button").map((b) => b.text())).toEqual(["On / off", "Run automation actions", "View only", "Perform action"]);
     expect(tap().find(".seg button[aria-pressed='true']").text()).toBe("On / off");
     await tap().findAll(".seg button").find((b) => b.text() === "Run automation actions")!.trigger("click");
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBe("run");
     expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
     panel.unmount();
@@ -175,9 +176,9 @@ describe("the tile panel", () => {
       expect(panel.find("#tile-name").exists()).toBe(true);
       for (const button of panel.findAll(".seg button")) {
         if (button.attributes("disabled") !== undefined) continue;
-        state.toast = null;
+        useUiStore().notice = null;
         await button.trigger("click");
-        expect(state.toast, `${tile.entity}: "${button.text()}"`).toBeNull();
+        expect(useUiStore().notice, `${tile.entity}: "${button.text()}"`).toBeNull();
         expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
       }
       panel.unmount();
@@ -232,10 +233,10 @@ describe("the tile panel", () => {
         const panel = mount(TileInspector, { props: { tile: current(tile)! } });
         const button = panel.findAll(".prop")[f]?.findAll(".seg button").find((b) => b.text() === label);
         if (!button || button.attributes("disabled") !== undefined) continue;
-        state.toast = null;
+        useUiStore().notice = null;
         await button.trigger("click");
         await nextTick();
-        expect(state.toast, `${tile.entity}: "${label}"`).toBeNull();
+        expect(useUiStore().notice, `${tile.entity}: "${label}"`).toBeNull();
         expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
         panel.unmount();
       }

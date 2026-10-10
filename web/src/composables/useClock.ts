@@ -1,7 +1,7 @@
 // The editor's clock: the time the mockup's clocks, a build's elapsed time and the "last changed" lines read. It ticks
 // every `interval` ms while the page is in sight, not in a hidden tab, and reads the time at once when the tab is shown
 // again, so nothing waits a whole tick to be right. `when` holds it still meanwhile (a tile being dragged keeps its
-// mockup still); `now` is the ref it keeps, when the time lives elsewhere (the store's state.now).
+// mockup still); `now` is the ref it keeps, when the time lives elsewhere (the UI store's now, stores/ui.ts).
 import { useDocumentVisibility } from "@vueuse/core";
 import { shallowRef, watch, type MaybeRefOrGetter, type Ref } from "vue";
 import { useVisibleInterval } from "./useVisibleInterval";

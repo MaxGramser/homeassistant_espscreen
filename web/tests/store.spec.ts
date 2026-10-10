@@ -2,10 +2,10 @@ import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixtur
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  addTile, canAlert, copyLayoutFrom, copyText, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage, moveTileToPage,
-  pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports, supportsVersion,
-  tileLimit, topbarItems, topbarView, buildProgress, whatsNew, refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices,
-  setEditorMode, setFullEditor,
+  addTile, canAlert, copyLayoutFrom, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage,
+  moveTileToPage, pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select,
+  setTileOption, state, supports, supportsVersion, tileLimit, topbarItems, topbarView, buildProgress, whatsNew,
+  refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices, setEditorMode,
 } from "../src/store";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
@@ -14,6 +14,7 @@ import { customPreview } from "../src/model/preview";
 import { phaseText } from "../src/model/screen-status";
 import renderer from "../src/wasm/renderer.json";
 import type { Inventory, Screen } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -60,7 +61,7 @@ beforeEach(() => {
   seedLayout(null);
   state.dirty = false;
   state.liveStates = {};
-  state.toast = null;
+  useUiStore().notice = null;
   state.updating = [];
   state.firmwareJob = null;
 });
@@ -114,14 +115,14 @@ describe("selecting and editing", () => {
     select("living");
     removeTile(state.layout!.tiles[0]);
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["sensor.t"]);
-    expect(state.toast?.action?.label).toBe("Undo");
-    state.toast!.action!.run();
+    expect(useUiStore().notice?.action?.label).toBe("Undo");
+    useUiStore().notice!.action!.run();
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t"]);
   });
   it("shows the clock of the stored setting when there is no top bar yet", () => {
     select("living");
     expect(topbarItems()).toEqual([expect.objectContaining({ type: "clock" })]);
-    state.now = new Date(2026, 8, 15, 10, 8).getTime();
+    useUiStore().now = new Date(2026, 8, 15, 10, 8).getTime();
     expect(topbarView({ type: "clock" }).text).toBe("10:08");
     expect(topbarView({ type: "date" }).text).toBe("Tu 15 Sep");
     expect(topbarView({ type: "analog" }).analog).toBe(true);
@@ -137,10 +138,10 @@ describe("what this browser remembers of the editor", () => {
     select("living");
     expect(state.editorMode).toBe("advanced");
     expect([localStorage.getItem("esp-screens-mode:living"), localStorage.getItem("esp-screens-mode:kitchen")]).toEqual(["advanced", null]);
-    state.libraryOpen = false;
-    setFullEditor(true);
+    useUiStore().libraryOpen = false;
+    useUiStore().setFullEditor(true);
     expect([localStorage.getItem("esp-screens.library-open"), localStorage.getItem("esp-screens.full-editor")]).toEqual(["0", "1"]);
-    state.libraryOpen = true;
+    useUiStore().libraryOpen = true;
     expect(localStorage.getItem("esp-screens.library-open")).toBe("1");
   });
 });
@@ -192,7 +193,7 @@ describe("live values", () => {
     await save();
     expect(state.dirty).toBe(true);
     expect(virtual.layout.tiles).toHaveLength(0);
-    expect(state.toast?.message).toBe(t("editor.preview.not_kept"));
+    expect(useUiStore().notice?.message).toBe(t("editor.preview.not_kept"));
   });
   it("says in its own words when this browser keeps no preview screen, and keeps nothing it did not store", async () => {
     // A private window or a blocked storage throws the browser's own words ("The operation is insecure."); the page says
@@ -207,7 +208,7 @@ describe("live values", () => {
     vi.spyOn(localStorage, "setItem").mockImplementation(blocked);
     await save();
     expect(state.dirty).toBe(true);
-    expect(state.toast?.message).toBe(t("editor.preview.not_kept"));
+    expect(useUiStore().notice?.message).toBe(t("editor.preview.not_kept"));
     expect(await removeScreen(virtual)).toBe(false);
     expect(state.inventory.screens.map((screen) => screen.id)).toContain(virtual.id);
   });
@@ -247,7 +248,7 @@ describe("live values", () => {
     await new Promise((done) => setTimeout(done, 0));
     expect(state.inventory.screens.map((screen) => screen.id)).toContain(good.id);
     expect(state.inventory.screens.map((screen) => screen.id)).not.toContain("virtual.broken");
-    expect(state.toast?.message).toContain("Broken preview");
+    expect(useUiStore().notice?.message).toContain("Broken preview");
   });
   it("keeps the virtual screen and catalogue through a light inventory poll", async () => {
     const virtual = createVirtualScreen("Panel preview", customPreview);
@@ -284,11 +285,11 @@ describe("copy, export and import", () => {
   it("refuses garbage or a rejected import without changing or trimming the draft", async () => {
     select("kitchen"); // firmware 0.2.6: ten tiles
     await importLayout("not json");
-    expect(state.toast?.message).toMatch(/isn't JSON/);
+    expect(useUiStore().notice?.message).toMatch(/isn't JSON/);
     const before = JSON.stringify(state.document);
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "Invalid layout" }), { status: 400 })));
     await importLayout(JSON.stringify({ hello: 1 }));
-    expect(state.toast?.message).toBe("Invalid layout");
+    expect(useUiStore().notice?.message).toBe("Invalid layout");
     const many = Array.from({ length: 14 }, (_, i) => ({ entity: `light.l${i}`, name: "", slot: i }));
     await importLayout(JSON.stringify({ tiles: [...many, { entity: "light.l0" }, { bogus: true }, { entity: "no-dot" }] }));
     expect(JSON.stringify(state.document)).toBe(before);
@@ -303,16 +304,16 @@ describe("copy, export and import", () => {
       copied = box.value.slice(box.selectionStart, box.selectionEnd);
       return true;
     });
-    await copyText("the-key");
+    await useUiStore().copyText("the-key");
     expect(copied).toBe("the-key");
-    expect(state.toast?.message).toBe("API key copied.");
+    expect(useUiStore().notice?.message).toBe("API key copied.");
     expect(document.querySelector("textarea")).toBeNull();
     vi.unstubAllGlobals();
   });
   it("shows the text selected in the editor's own dialog when even the old way cannot copy", async () => {
     vi.stubGlobal("isSecureContext", false);
     document.execCommand = vi.fn(() => false);
-    await copyText("the-key");
+    await useUiStore().copyText("the-key");
     expect(asked).toEqual([{ kind: "copy", message: expect.stringMatching(/selected/), value: "the-key" }]);
     vi.unstubAllGlobals();
   });
@@ -373,7 +374,7 @@ describe("full-page and navigation tiles", () => {
     expect(current(lamp).slot).toBe(0);
     expect(current(sensor).slot).toBe(6);
     expect(state.layout!.pages).toBe(2);
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
   });
   it("takes the first empty page when the others cannot move, and gives up with a toast when none is free", () => {
     select("living");
@@ -381,7 +382,7 @@ describe("full-page and navigation tiles", () => {
     const first = state.layout!.tiles[0];
     setTileOption(first, "size", "full");
     expect(current(first).options?.size ?? "single").toBe("single");
-    expect(state.toast?.message).toMatch(/No page is free/);
+    expect(useUiStore().notice?.message).toMatch(/No page is free/);
   });
   it("lets a navigation tile point at another page, once per page", () => {
     select("living");
@@ -392,7 +393,7 @@ describe("full-page and navigation tiles", () => {
     expect(current(nav).entity).toBe("screen.page_3");
     addTile("screen.page_4");
     expect(retargetPageTile(nav, 4)).toBe(false);
-    expect(state.toast?.message).toMatch(/already has a tile that goes to page 4/);
+    expect(useUiStore().notice?.message).toMatch(/already has a tile that goes to page 4/);
     expect(retargetPageTile(nav, 9)).toBe(false);
   });
 });
@@ -402,13 +403,13 @@ describe("the open screen chosen again (app 0.2.78)", () => {
     select("living");
     addTile("light.b");
     state.tab = "settings";
-    state.route = "#firmware";
+    useUiStore().hash = "#firmware";
     select("living");
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t", "light.b"]);
     expect(state.dirty).toBe(true);
     expect(state.tab).toBe("layout");
     expect(state.inspector).toBeNull();
-    expect(state.route).toBe("");
+    expect(useUiStore().hash).toBe("");
     expect(asked).toEqual([]);
   });
   it("reads the stored layout again when nothing is unsaved, so a change from Claude or another tab shows up", () => {
@@ -444,7 +445,7 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     await saving;
     expect(state.dirty).toBe(false);
     expect(state.saved).toBeGreaterThan(0);
-    expect(state.toast?.message).toBe("Saved. Your screen is being updated.");
+    expect(useUiStore().notice?.message).toBe("Saved. Your screen is being updated.");
   });
   it("keeps a change made during the save unsaved and says so", async () => {
     select("living");
@@ -456,7 +457,7 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     await saving;
     expect(state.dirty).toBe(true);
     expect(state.saved).toBe(0);
-    expect(state.toast?.message).toBe("Saved. Your newest change isn't sent yet: press Save & send again.");
+    expect(useUiStore().notice?.message).toBe("Saved. Your newest change isn't sent yet: press Save & send again.");
     // What went out is the layout from before that change.
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.layout.pages[0].tiles.map((t: any) => t.content.entityId)).toEqual(["light.a", "sensor.t", "light.b"]);
@@ -474,7 +475,7 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     await saving;
     expect(state.selected).toBe("kitchen");
     expect(state.dirty).toBe(true);
-    expect(state.toast?.message).toBe("Saved. Living room is being updated.");
+    expect(useUiStore().notice?.message).toBe("Saved. Living room is being updated.");
   });
 });
 
@@ -517,7 +518,7 @@ describe("moving a tile to another page without dragging (app 0.2.78)", () => {
     // Page 1 holds the full-page tile and every other page is taken: the wide tile would have to push it off.
     expect(moveTileToPage(wide, 0)).toBe(false);
     expect(current(wide).slot).toBe(6);
-    expect(state.toast?.message).toBe("There is no room for this tile on page 1.");
+    expect(useUiStore().notice?.message).toBe("There is no room for this tile on page 1.");
     // The full-page tile and the tiles of page 2 change places.
     expect(moveTileToPage(big, 1)).toBe(true);
     expect(current(big).slot).toBe(6);
@@ -539,7 +540,7 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(imported), { status: 200 })));
     await importLayout(JSON.stringify({ tiles: many }));
     expect(state.layout!.tiles).toHaveLength(30);
-    expect(state.toast?.message).toBe("Layout imported. Save & send when it looks right.");
+    expect(useUiStore().notice?.message).toBe("Layout imported. Save & send when it looks right.");
   });
   it("goes by firmware_known for the version and the notes", () => {
     const living = state.inventory.screens[0];
@@ -613,7 +614,7 @@ describe("several tiles that go to the same page (firmware 0.2.65)", () => {
     expect(state.layout!.tiles.filter((t) => t.entity === "screen.page_1")).toHaveLength(1);
     addTile("screen.page_2");
     expect(retargetPageTile(state.layout!.tiles.find((t) => t.entity === "screen.page_2")!, 1)).toBe(false);
-    expect(state.toast?.message).toMatch(/already has a tile that goes to page 1/);
+    expect(useUiStore().notice?.message).toMatch(/already has a tile that goes to page 1/);
   });
   it("starts the empty page after the last one when a tile goes there", () => {
     select("living");
@@ -758,7 +759,7 @@ describe("moving a whole page", () => {
     expect(state.layout!.page_titles).toEqual(["Kitchen"]);
     expect(state.layout!.title).toBe(title);
     expect(state.layout!.tiles.find((t) => t.entity === "light.a")!.slot).toBe(0);
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
   });
   it("leaves a move outside the row alone, and says nothing when no title is at stake", () => {
     threePages();
@@ -767,7 +768,7 @@ describe("moving a whole page", () => {
     expect(movePage(-1, 0)).toBe(false);
     expect(state.dirty).toBe(false);
     expect(movePage(2, 0)).toBe(true);
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(state.layout!.page_titles).toEqual(["", "", "Kitchen"]);
   });
   it("takes the pages after a removed one up with their titles and the tiles that lead to them", () => {
@@ -791,8 +792,8 @@ describe("moving a whole page", () => {
     expect(state.layout!.tiles.map((t) => [t.entity, t.slot])).toEqual([["screen.page_2", 1], ["screen.page_1", 6]]);
     expect(state.layout!.page_titles).toBeUndefined();
     expect(state.layout!.pages).toBe(2);
-    expect(state.toast?.message).toBe("Page 2 and 3 tiles are gone.");
-    state.toast!.action!.run();
+    expect(useUiStore().notice?.message).toBe("Page 2 and 3 tiles are gone.");
+    useUiStore().notice!.action!.run();
     // Back exactly as it stood: the same tiles, in their cells, opening the pages they opened.
     expect(state.layout!.tiles.map((t) => [t.entity, t.slot])).toEqual([
       ["screen.page_2", 0], ["screen.page_3", 1], ["light.a", 6], ["light.w", 8], ["screen.page_1", 12]]);
@@ -804,11 +805,11 @@ describe("moving a whole page", () => {
     seedTiles([{ entity: "light.a", name: "", slot: 0 }]);
     seedPages(2);
     removePage(1);
-    expect(state.toast?.message).toBe("Page 2 is gone.");
+    expect(useUiStore().notice?.message).toBe("Page 2 is gone.");
     expect(state.layout!.pages).toBe(1);
-    state.toast = null;
+    useUiStore().notice = null;
     removePage(0);
     expect(state.layout!.pages).toBe(1);
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
   });
 });

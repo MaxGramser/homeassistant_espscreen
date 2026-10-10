@@ -5,13 +5,14 @@
 // drop off the grid changes nothing. A finished drag never doubles as a click.
 import type { Directive } from "vue";
 import { entriesOf, pageOrder } from "./model/layout";
-import { commitArrangement, confirmMemory, editorLayout, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, startTile, state, toast } from "./store";
+import { commitArrangement, confirmMemory, editorLayout, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, startTile, state } from "./store";
 import type { DragState } from "./store";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
 import { onReset } from "./resets";
 import { CLICK_AFTER_DRAG_MS, HOLD_MS, SLOP_PX, THRESHOLD_PX } from "./composables/usePointerDrag";
+import { useUiStore } from "./stores/ui";
 
 export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string } | { kind: "page"; page: number };
 type Drag = {
@@ -250,7 +251,7 @@ function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; pr
   }
   if (drop && preview && moving && state.layout) {
     if (commitArrangement(preview)) loadCapabilities([moving.entity]);
-  } else if (drop && moving && refused !== null && refused !== undefined) toast(t("editor.layout.no_room", { page: refused + 1 }));
+  } else if (drop && moving && refused !== null && refused !== undefined) useUiStore().toast(t("editor.layout.no_room", { page: refused + 1 }));
 }
 // A finished drag is no click (startDrag, from boot.ts): the click the browser sends after it stops before anything sees it.
 function swallowClick(e: MouseEvent) { if (Date.now() < drag.suppressUntil) { e.stopPropagation(); e.preventDefault(); } }

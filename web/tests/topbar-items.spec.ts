@@ -8,6 +8,7 @@ import TopbarAdd from "../src/components/TopbarAdd.vue";
 import { itemKey } from "../src/model/topbar";
 import { addTopbarItem, loadTopbarPreview, state, topbarView } from "../src/store";
 import type { Inventory } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -18,7 +19,7 @@ beforeEach(() => {
   state.selected = "living";
   seedLayout({ title: "Home", pages: 2, tiles: [], header: { items: [{ type: "entity", entity: "sensor.out", content: "last_changed" }, { type: "clock" }] } });
   state.topbarPreviews = {};
-  state.toast = null;
+  useUiStore().notice = null;
 });
 
 describe("the items of the top bar", () => {
@@ -30,7 +31,7 @@ describe("the items of the top bar", () => {
 
   it("refuses an item the bar already has, and Add marks it as added", () => {
     addTopbarItem({ type: "clock" });
-    expect(state.toast?.message).toBe("This is already in the top bar.");
+    expect(useUiStore().notice?.message).toBe("This is already in the top bar.");
     expect(state.document!.pages[0].topbar.trailing).toHaveLength(2);
     const add = mount(TopbarAdd);
     const clock = add.findAll("button.option").find((b) => b.text().includes("Clock"))!;

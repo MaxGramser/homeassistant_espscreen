@@ -8,8 +8,8 @@ import { boardTitle } from "../model/boards";
 import { languageOnly } from "../model/screen-status";
 import { glyph } from "../model/topbar";
 import {
-  copyText, forgetPending, go, goHome, newLanguageText, openIntegrations, refresh, removeScreen, renameScreen, route, screenSubline,
-  buildOf, buildingScreens, buildProgress, select, startUpdate, state, updateState, whatsNew,
+  forgetPending, goHome, newLanguageText, refresh, removeScreen, renameScreen, screenSubline, buildOf, buildingScreens,
+  buildProgress, select, startUpdate, state, updateState, whatsNew,
 } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
@@ -17,8 +17,11 @@ import TesseraMark from "./TesseraMark.vue";
 import { pluginsEnabled } from "../plugin-state";
 import { SIDE_MAX, SIDE_MIN, useSidebarStore } from "../stores/sidebar";
 import { useResizeHandle } from "../composables/useResizeHandle";
+import { useUiStore } from "../stores/ui";
 
+const ui = useUiStore();
 const sidebar = useSidebarStore();
+
 const hostFor = ref<string | null>(null);
 const host = ref("");
 // The screen that asked to be removed: its details make room for what goes, until it is confirmed or dropped.
@@ -51,7 +54,7 @@ const status = (screen: Screen) => {
   if (kind === "failed") return "failed";
   return kind === "blocked" || kind === "available" ? "waiting" : "";
 };
-const isSelected = (screen: Screen) => screen.id === state.selected && route.value === "";
+const isSelected = (screen: Screen) => screen.id === state.selected && ui.route === "";
 // Only a screen with something to explain opens by itself (app 0.4.32): an update that failed or waits for a build.
 // An update ready to go has its button on the row; a screen that is away says so there.
 // So does one that has to be updated here rather than in ESPHome Device Builder (app 0.4.82), while an update waits.
@@ -154,7 +157,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
   <aside ref="aside" class="side">
     <div class="side-top">
       <button type="button" class="brand" :aria-label="t('editor.sidebar.home')" :title="sidebar.folded ? undefined : t('editor.sidebar.home')"
-        v-tooltip="tip('brand', t('editor.sidebar.home'))" :aria-current="!state.selected && route === '' ? 'page' : undefined" @click="goHome">
+        v-tooltip="tip('brand', t('editor.sidebar.home'))" :aria-current="!state.selected && ui.route === '' ? 'page' : undefined" @click="goHome">
         <TesseraMark class="mark" />
         <span class="txt">Tessera</span>
       </button>
@@ -167,12 +170,12 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
       <Icon name="wifi-off" class="conn-icon" /><span class="conn-text">{{ !state.reachable ? t("editor.sidebar.connection.unreachable") : t("editor.sidebar.connection.reconnecting") }}</span>
     </span>
     <button type="button" class="search-btn" id="open-palette" data-tip="search" v-tooltip="tip('search', `${t('editor.sidebar.search')} ⌘K`)" :aria-label="t('editor.sidebar.search')"
-      @click="state.palette = true"><Icon name="magnify" /><span class="txt">{{ t("editor.sidebar.search") }}</span><kbd>⌘K</kbd></button>
+      @click="ui.palette = true"><Icon name="magnify" /><span class="txt">{{ t("editor.sidebar.search") }}</span><kbd>⌘K</kbd></button>
     <div class="label label-row">
       <span>{{ t("editor.sidebar.screens") }}</span>
       <button id="refresh" type="button" class="icon-btn" :aria-label="t('editor.sidebar.refresh')" :title="t('editor.sidebar.refresh')" @click="refresh()"><Icon name="refresh" /></button>
-      <button id="new-screen" type="button" class="icon-btn" :aria-current="route === '#new-screen' ? 'true' : 'false'" :aria-label="t('editor.nav.new_screen')"
-        :title="sidebar.folded ? undefined : t('editor.nav.new_screen')" v-tooltip="tip('new', t('editor.nav.new_screen'))" @click="go('#new-screen')"><Icon name="plus" /></button>
+      <button id="new-screen" type="button" class="icon-btn" :aria-current="ui.route === '#new-screen' ? 'true' : 'false'" :aria-label="t('editor.nav.new_screen')"
+        :title="sidebar.folded ? undefined : t('editor.nav.new_screen')" v-tooltip="tip('new', t('editor.nav.new_screen'))" @click="ui.go('#new-screen')"><Icon name="plus" /></button>
     </div>
     <div id="screens">
       <div v-for="screen in state.inventory.screens" :key="screen.id" class="screen-item" :class="[{ selected: isSelected(screen), open: isOpen(screen) }, status(screen)]">
@@ -246,7 +249,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
               <div class="progress" role="progressbar" :aria-valuenow="buildProgress(screen)!.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: buildProgress(screen)!.percent + '%' }"></i></div>
               <div class="progress-text"><span>{{ buildProgress(screen)!.percent }} %</span><span :title="lastLog()">{{ buildProgress(screen)!.text }}</span></div>
               <small v-if="lastLog()" :title="lastLog()" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ lastLog() }}</small>
-              <button type="button" class="btn link mini" style="justify-self: start" @click="go('#firmware')">{{ t("editor.sidebar.update.full_log") }}</button>
+              <button type="button" class="btn link mini" style="justify-self: start" @click="ui.go('#firmware')">{{ t("editor.sidebar.update.full_log") }}</button>
             </template>
             <small v-else-if="updateState(screen)!.kind !== 'running'" :class="{ failed: updateState(screen)!.kind === 'failed' }">{{ updateState(screen)!.text }}</small>
           </div>
@@ -264,7 +267,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
             <!-- The screen's YAML, Override YAML and the secrets they use, to build it with ESPHome on your own computer. -->
             <a v-if="screen.update?.profile" class="act screen-files" :href="`api/firmware/profiles/${encodeURIComponent(screen.update.profile)}/files`" download
               :title="t('editor.sidebar.files_hint')"><Icon name="tray-arrow-down" />{{ t("editor.sidebar.files") }}</a>
-            <button v-if="screen.api_key" type="button" class="act copy-key" @click="copyText(screen.api_key!)"><Icon name="content-copy" />{{ t("editor.sidebar.copy_api_key") }}</button>
+            <button v-if="screen.api_key" type="button" class="act copy-key" @click="ui.copyText(screen.api_key!)"><Icon name="content-copy" />{{ t("editor.sidebar.copy_api_key") }}</button>
             <button type="button" class="act danger remove-screen" @click="removeFor = screen.id"><Icon name="delete-outline" />{{ t("editor.sidebar.remove.button") }}</button>
           </div>
         </div>
@@ -291,12 +294,12 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
         </div>
         <div v-else class="pending-actions">
           <!-- Tessera adds it to Home Assistant by itself (app 0.4.73); the way by hand only when that did not work out. -->
-          <button v-if="p.pairing === 'failed'" type="button" class="btn mini quiet" @click="openIntegrations">{{ t("editor.common.open_integrations") }}</button>
+          <button v-if="p.pairing === 'failed'" type="button" class="btn mini quiet" @click="ui.openIntegrations">{{ t("editor.common.open_integrations") }}</button>
           <button type="button" class="btn link mini danger remove-pending" @click="removeFor = `pending:${p.file}`">{{ t("editor.sidebar.remove.button") }}</button>
         </div>
         <details v-if="p.api_key && p.pairing === 'failed'" class="key-more">
           <summary>{{ t("editor.installer.key_more") }}</summary>
-          <button type="button" class="btn link mini copy-key" @click="copyText(p.api_key!)">{{ t("editor.sidebar.copy_api_key") }}</button>
+          <button type="button" class="btn link mini copy-key" @click="ui.copyText(p.api_key!)">{{ t("editor.sidebar.copy_api_key") }}</button>
         </details>
         <a class="btn link mini screen-files" :href="`api/firmware/profiles/${encodeURIComponent(p.file)}/files`" download :title="t('editor.sidebar.files_hint')">{{ t("editor.sidebar.files") }}</a>
       </div>
@@ -305,9 +308,9 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     <div class="more">
       <!-- The firmware tool (build, USB, OTA, download) is for repairs, not for adding a screen, so it lives in Settings,
            the command palette and a screen's menu rather than here, where it read as the way in (app 0.3.27). -->
-      <button v-if="pluginsEnabled" id="open-plugins" type="button" class="nav-item" data-tip="plugins" v-tooltip="tip('plugins', t('editor.nav.plugins'))" :aria-current="route === '#plugins' ? 'true' : 'false'" @click="go('#plugins')"><Icon name="puzzle-outline"/><span class="txt">{{ t("editor.nav.plugins") }}</span><span v-if="pluginBuilds()" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span></button>
-      <button id="open-alerts" type="button" class="nav-item" data-tip="alerts" v-tooltip="tip('alerts', t('editor.nav.alerts'))" :aria-current="route === '#alerts' ? 'true' : 'false'" @click="go('#alerts')"><span class="mdi">{{ glyph("F0594") }}</span><span class="txt">{{ t("editor.nav.alerts") }}</span></button>
-      <button id="open-settings" type="button" class="nav-item" data-tip="settings" v-tooltip="tip('settings', t('editor.nav.settings'))" :aria-current="route === '#settings' ? 'true' : 'false'" @click="go('#settings')"><span class="mdi">{{ glyph("F0493") }}</span><span class="txt">{{ t("editor.nav.settings") }}</span></button>
+      <button v-if="pluginsEnabled" id="open-plugins" type="button" class="nav-item" data-tip="plugins" v-tooltip="tip('plugins', t('editor.nav.plugins'))" :aria-current="ui.route === '#plugins' ? 'true' : 'false'" @click="ui.go('#plugins')"><Icon name="puzzle-outline"/><span class="txt">{{ t("editor.nav.plugins") }}</span><span v-if="pluginBuilds()" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span></button>
+      <button id="open-alerts" type="button" class="nav-item" data-tip="alerts" v-tooltip="tip('alerts', t('editor.nav.alerts'))" :aria-current="ui.route === '#alerts' ? 'true' : 'false'" @click="ui.go('#alerts')"><span class="mdi">{{ glyph("F0594") }}</span><span class="txt">{{ t("editor.nav.alerts") }}</span></button>
+      <button id="open-settings" type="button" class="nav-item" data-tip="settings" v-tooltip="tip('settings', t('editor.nav.settings'))" :aria-current="ui.route === '#settings' ? 'true' : 'false'" @click="ui.go('#settings')"><span class="mdi">{{ glyph("F0493") }}</span><span class="txt">{{ t("editor.nav.settings") }}</span></button>
     </div>
     <!-- The edge (app 0.4.85): drag it wider or narrower, past the narrowest it folds to the icons; a double click resets it. -->
     <div class="side-resize" role="separator" aria-orientation="vertical" tabindex="0" :aria-label="t('editor.sidebar.resize')"
