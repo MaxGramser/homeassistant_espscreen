@@ -171,8 +171,8 @@ room the editor is told.
   state), `packages/core.yaml` (build flags, the hello reply, the health line), the board files (`SCREEN_MAX_*`).
 - The add-on: `page_delivery.py` (`memory_of`, the Sender's ceilings), `core.py` (`Grid`, `STORE_MAX_*`), `server.py`
   (`ceilings`, `memory`), `page_capabilities.py` (kept for offline editing).
-- The editor: `web/src/components/MemoryMeter.vue`, `web/src/store.ts` (`memory`, `confirmMemory`), `web/src/drag.ts`,
-  `web/src/model/memory.ts` (`memoryCrossing`), `Library.vue`.
+- The editor: `web/src/components/MemoryMeter.vue`, `web/src/stores/document.ts` (`memory`), `web/src/editor/tiles.ts`
+  (`confirmMemory`), `web/src/drag.ts`, `web/src/model/memory.ts` (`memoryCrossing`), `Library.vue`.
 - `tools/generate_board_shapes.py` (`max_tiles`, `max_pages` in `boards.json`), and the tests:
   `tests/test_tile_memory.cpp`, `tests/test_tile_memory.py`, `tests/test_screen_ceilings.cpp`,
   `tests/test_screen_ceilings.py`, `web/tests/memory.spec.ts`.

@@ -43,9 +43,9 @@ class SettingsView(unittest.TestCase):
         for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#alerts", "#override", "#plugins"] as const;',
                        'useEventListener(window, "hashchange", followHash)'):
             self.assertIn(marker, ui, marker)
-        store = editor_sources.source('store.ts')
-        for marker in ('export async function installClaudeSkill', 'send("claude-skill", "POST")'):
-            self.assertIn(marker, store, marker)
+        inventory = editor_sources.source('stores/inventory.ts')
+        for marker in ('async function installClaudeSkill()', 'send("claude-skill", "POST")'):
+            self.assertIn(marker, inventory, marker)
         app = editor_sources.source('App.vue')
         for marker in ('ui.route === "#settings") return AppSettingsView', 'ui.route === "#new-screen") return InstallerView',
                        'ui.route === "#firmware") return FirmwareView', 'ui.route === "#alerts") return AlertsView'):

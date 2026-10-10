@@ -62,8 +62,8 @@ export const useDocumentStore = defineStore("document", () => {
   // When the last save of every edit went through (the "Sent" note), 0 once there is another edit.
   const saved = ref(0);
   const editorMode = ref<EditorMode>("simple");
-  // What is chosen, by id: the page, the page lit on the map, the tile (several tiles can go to the same page, firmware
-  // 0.2.65), and the Go to page tile whose link is being drawn on the map.
+  // What is chosen, by id: the page, the page of the map opened to be edited on its own, the tile (several tiles can go to
+  // the same page, firmware 0.2.65), and the Go to page tile whose link is being drawn on the map.
   const selectedPageId = ref<string | null>(null);
   const focusedPageId = ref<string | null>(null);
   const selectedTileId = ref<string | null>(null);

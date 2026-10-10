@@ -453,13 +453,13 @@ class Editor(unittest.TestCase):
     """The page side of the same features, read from the Vue sources."""
     def setUp(self):
         import editor_sources
-        self.store = editor_sources.source('store.ts')
+        self.store = editor_sources.source('stores/document.ts')
         self.page = editor_sources.PAGE
 
     def test_the_mockup_polls_live_values_and_draws_them(self):
         import editor_sources
         self.assertIn('getJson(`states?${query(entities.slice(i, i + 60))}`)', editor_sources.source('stores/entities.ts'))
-        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && ui.route === "" });', self.store)
+        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(layout.value) && ui.tab === "layout" && ui.route === "" });', self.store)
         for marker in ('liveOf(props.tile.entity)', 'lit: isOn', ':style="sliderStyle"', "class=\"tog\" :class=\"{ off: !on }\""):
             self.assertIn(marker, self.page, marker)
 
@@ -473,11 +473,11 @@ class Editor(unittest.TestCase):
         self.assertIn('id="try-send"', self.page)
 
     def test_layouts_can_be_copied_exported_and_imported(self):
-        for name in ('export function copyLayoutFrom', 'export function exportLayout', 'export async function importLayout'):
+        for name in ('function copyLayoutFrom(', 'function exportLayout(', 'async function importLayout('):
             self.assertIn(name, self.store)
         for marker in ('id="copy-layout"', 'id="export-layout"', 'id="import-layout"', 'accept: "application/json,.json"'):
             self.assertIn(marker, self.page, marker)
-        self.assertIn('pages.remapLayout(record.layout, heldTo(state.documentGrid))', self.store)
+        self.assertIn('pages.remapLayout(record.layout, heldTo(documentGrid.value))', self.store)
         self.assertNotIn('.slice(0, tileLimit.value)', self.store, 'an incompatible import must be reviewed, never silently truncated')
 
     def test_the_library_filters_by_room_and_placement_and_the_palette_exists(self):
@@ -507,7 +507,7 @@ class Editor(unittest.TestCase):
         for marker in ("t('editor.tile.goes_to.label')", 'retargetPageTile(tile, Number(v))'):
             self.assertIn(marker, drawer, marker)
         # A tile's size, the whole page too, is set with its handles on the tile itself (app 0.4.32).
-        self.assertIn('resizeChoices(', editor_sources.source('store.ts'))
+        self.assertIn('export function resizeChoices(', editor_sources.source('editor/tiles.ts'))
         self.assertEqual(editor_sources.text('tile.goes_to.label'), 'Goes to page')
         self.assertIn(':class="{ wide, full, tall,', editor_sources.component('TileCard'))
         self.assertIn('"timer", "screen",', editor_sources.component('Library'))

@@ -72,7 +72,7 @@ class WhatAChangeReaches(unittest.TestCase):
 
     def test_the_app_the_editor_docs_and_tools_are_no_firmware(self):
         for name in ('screen_manager/app/core.py', 'screen_manager/config.yaml', 'screen_manager/CHANGELOG.md',
-                     'web/src/store.ts', 'docs/BOARD_RELEASES.md', 'README.md', 'tools/check.sh', 'tests/test_updates.py',
+                     'web/src/stores/document.ts', 'docs/BOARD_RELEASES.md', 'README.md', 'tools/check.sh', 'tests/test_updates.py',
                      'boards.yaml', 'screen_manager/app/boards.json', '.github/ISSUE_TEMPLATE/bug_report.yml',
                      'tools/generate_issue_templates.py'):
             self.assertEqual(reach(name)[name], set(), name)
@@ -397,7 +397,7 @@ class ReviewFindings(unittest.TestCase):
                      'tests/fixtures/overrides/cyd-backlight.yaml', '.github/workflows/ci.yml', 'screen_manager/Dockerfile',
                      'tools/affected_boards.py', 'tools/firmware_count.py'):
             self.assertEqual(keys([path]), (0, every), path)
-        self.assertEqual(keys(['docs/BOARD_RELEASES.md', 'web/src/store.ts', 'tools/check_packages.py']), (0, []))
+        self.assertEqual(keys(['docs/BOARD_RELEASES.md', 'web/src/stores/document.ts', 'tools/check_packages.py']), (0, []))
         self.assertEqual(keys([str(profiles.BOARDS['cyd'].relative_to(ROOT))]), (0, ['cyd']))
         self.assertEqual(keys([], known=False), (0, every))
         # --keys keeps sorting for the update offer: the build's tools are no update for a screen.

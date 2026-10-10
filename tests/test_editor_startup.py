@@ -19,7 +19,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import editor_sources  # noqa: E402
 
 SCRIPT = editor_sources.SCRIPT
-STORE = editor_sources.source('store.ts')
 
 
 class Startup(unittest.TestCase):
@@ -56,7 +55,7 @@ class Startup(unittest.TestCase):
         # With screens and none chosen, the right side is the overview of every screen (app 0.4.0); the card that asks
         # for a screen stays for a chosen screen whose layout is still on its way.
         app = editor_sources.source('App.vue')
-        self.assertIn('if (scr.currentScreen && state.layout) return ScreenView;', app)
+        self.assertIn('if (scr.currentScreen && doc.layout) return ScreenView;', app)
         self.assertIn('return scr.selected || !inv.inventory.screens.length ? EmptyState : HomeView;', app)
 
     def test_a_light_poll_keeps_the_catalogue_and_names_follow_the_inventory(self):

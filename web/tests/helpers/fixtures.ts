@@ -72,21 +72,22 @@ function keep(screen: Screen) {
   const inv = useInventoryStore(), at = inv.inventory.screens.findIndex((item) => item.id === screen.id);
   if (at >= 0) inv.inventory.screens.splice(at, 1, screen); else inv.inventory.screens.push(screen);
 }
-/** The open screen's saved document becomes `document`, and the draft is read from it, as when a newer save arrives. A
- * test that opened no screen edits a test screen of its own. */
-function loadSaved(page_document: Screen["page_document"], source_grid?: PageGrid) {
+/** The open screen's saved document becomes `record` (on `grid`), and the draft is read from it, as when a newer save
+ * arrives. A test that opened no screen edits a test screen of its own. */
+function loadSaved(record: Screen["page_document"], grid?: PageGrid) {
   const scr = useScreenStore(), open = scr.currentScreen || TEST_SCREEN;
-  const screen = { ...open, page_document, ...(source_grid ? { source_grid } : { source_grid: undefined }) } as Screen;
+  const screen = { ...open, page_document: record, source_grid: grid } as Screen;
   keep(screen);
   scr.selected = screen.id;
   useDocumentStore().loadDocument(screen);
 }
+const LEGACY = { format: "legacy-v1" } as Screen["page_document"];
 
 /** The open screen's layout becomes `view`, saved, and the draft is read from it; null for a screen saved before page
- * documents (a draft that waits for its migration). */
+ * documents (no draft until it is brought over), or for no draft at all when no screen is open. */
 export function loadLayout(view: Layout | null) {
-  if (!view && !useScreenStore().currentScreen) return useDocumentStore().loadDocument({ ...TEST_SCREEN, page_document: { format: "legacy-v1" } as Screen["page_document"] });
-  if (!view) return loadSaved({ format: "legacy-v1" } as Screen["page_document"]);
+  if (!view && !useScreenStore().currentScreen) return useDocumentStore().loadDocument({ ...TEST_SCREEN, page_document: LEGACY });
+  if (!view) return loadSaved(LEGACY);
   const record = documentFixture(view, useDocumentStore().documentGrid || testGrid);
   loadSaved(record, record.sourceGrid);
 }
