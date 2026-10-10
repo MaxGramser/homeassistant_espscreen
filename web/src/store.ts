@@ -37,7 +37,6 @@ import { useRegionStore } from "./stores/region";
 import { useScreenStore } from "./stores/screen";
 import { useSessionStore } from "./stores/session";
 import { useSettingsStore } from "./stores/settings";
-import { itemList, useTopbarStore } from "./stores/topbar";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
 
 export type Inspector =
@@ -913,15 +912,7 @@ export function openBarAdd() {
   state.selectedTileId = null;
   state.inspector = { kind: "bar-add" };
 }
-// The clock's row of entities on the screensaver (app 0.4.81): the top bar's entity items, shown by their state, their icon
-// or both, in the drawer the top bar uses. At most four, in the order they stand on the glass after the temperature.
-export const SAVER_ITEMS_MAX = 4;
-export const saverItems = (): HeaderItem[] => scr().currentScreen?.screensaver?.items || [];
-export function setSaverItems(items: HeaderItem[]) {
-  const screen = scr().currentScreen;
-  if (!screen) return;
-  scr().setScreensaver(screen, { items });
-}
+// The drawer of one entity of the screensaver clock's row (app 0.4.81, stores/screensaver.ts).
 export function openSaverItem(index: number) {
   if (!(state.inspector?.kind === "saver-item" && state.inspector.index === index)) state.iconPickerOpen = false;
   state.selectedTileId = null;
@@ -937,18 +928,6 @@ export function openSaverAdd() {
   state.selectedTileId = null;
   state.inspector = { kind: "saver-add" };
 }
-const saverList = itemList({
-  items: saverItems, set: setSaverItems, max: () => SAVER_ITEMS_MAX, open: openSaverItem, inspector: "saver-item",
-  label: (item) => useTopbarStore().topbarLabel(item), toast,
-  // One entity once: the clock has no room for the same one twice, whatever it shows of it.
-  same: (a, b) => a.entity === b.entity,
-  full: () => t("editor.screen_settings.screensaver.items_full", { n: SAVER_ITEMS_MAX }),
-  already: () => t("editor.screen_settings.screensaver.items_already"),
-  removed: (name) => t("editor.screen_settings.screensaver.items_removed", { name }),
-  // An entity taken off in its own drawer leads back to the clock it stood on.
-  back: () => openSaverStep("clock"),
-});
-export const { add: addSaverItem, update: updateSaverItem, move: moveSaverItem, remove: removeSaverItem } = saverList;
 export function closeInspector() {
   state.inspector = null;
   state.selectedTileId = null;

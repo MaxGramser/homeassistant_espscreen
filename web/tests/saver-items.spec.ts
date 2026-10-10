@@ -1,9 +1,10 @@
 // The clock's row of entities on the screensaver (app 0.4.80): the top bar's items, kept in the screensaver's choice.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, state, updateSaverItem } from "../src/store";
+import { state } from "../src/store";
 import type { Inventory } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
+import { SAVER_ITEMS_MAX, useScreensaverStore } from "../src/stores/screensaver";
 
 const item = (entity: string) => ({ type: "entity", entity, content: "state", icon: "auto", show: "always" });
 
@@ -17,26 +18,26 @@ beforeEach(() => {
 
 describe("the clock's entities", () => {
   it("are added to the screen's choice, and the drawer opens on the new one", () => {
-    addSaverItem(item("sensor.power"));
-    expect(saverItems().map((i) => i.entity)).toEqual(["sensor.power"]);
+    useScreensaverStore().addSaverItem(item("sensor.power"));
+    expect(useScreensaverStore().saverItems.map((i) => i.entity)).toEqual(["sensor.power"]);
     expect(state.inspector).toEqual({ kind: "saver-item", index: 0 });
   });
 
   it("take no entity twice and no more than the clock has room for", () => {
-    addSaverItem(item("sensor.a"));
-    addSaverItem(item("sensor.a"));
+    useScreensaverStore().addSaverItem(item("sensor.a"));
+    useScreensaverStore().addSaverItem(item("sensor.a"));
     expect(useUiStore().notice?.message).toBe("This is already on the clock.");
-    for (let n = 0; n < SAVER_ITEMS_MAX; n++) addSaverItem(item(`sensor.n${n}`));
-    expect(saverItems()).toHaveLength(SAVER_ITEMS_MAX);
+    for (let n = 0; n < SAVER_ITEMS_MAX; n++) useScreensaverStore().addSaverItem(item(`sensor.n${n}`));
+    expect(useScreensaverStore().saverItems).toHaveLength(SAVER_ITEMS_MAX);
     expect(useUiStore().notice?.message).toBe(`The clock has room for ${SAVER_ITEMS_MAX} entities.`);
   });
 
   it("change what they show, and leave when removed, back to the clock's drawer", () => {
-    addSaverItem(item("sensor.power"));
-    updateSaverItem(0, { content: "icon" });
-    expect(saverItems()[0].content).toBe("icon");
-    removeSaverItem(0);
-    expect(saverItems()).toEqual([]);
+    useScreensaverStore().addSaverItem(item("sensor.power"));
+    useScreensaverStore().updateSaverItem(0, { content: "icon" });
+    expect(useScreensaverStore().saverItems[0].content).toBe("icon");
+    useScreensaverStore().removeSaverItem(0);
+    expect(useScreensaverStore().saverItems).toEqual([]);
     expect(state.inspector).toEqual({ kind: "saver", step: "clock" });
   });
 });

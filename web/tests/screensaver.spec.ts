@@ -6,9 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import SaverInspector from "../src/components/SaverInspector.vue";
 import ScreensaverCard from "../src/components/ScreensaverCard.vue";
 import { openSaverStep, startStore, state } from "../src/store";
-import { summary } from "../src/saver";
 import type { Inventory, ScreensaverView } from "../src/types";
 import { useScreenStore } from "../src/stores/screen";
+import { useScreensaverStore } from "../src/stores/screensaver";
 
 const saver = (patch: Partial<ScreensaverView> = {}): ScreensaverView => ({
   show: true, media: "media_player.tv", more: ["media_player.speaker"], camera: "", order: ["media", "camera", "clock"], off: ["camera"],
@@ -44,9 +44,9 @@ describe("the screensaver card", () => {
 
   it("says what a step still lacks, and names the clock's temperature and entities", () => {
     useScreenStore().currentScreen!.screensaver = saver({ media: "", more: [], off: [], weather: "", items: [{ type: "entity", entity: "lock.front", content: "state", icon: "auto", show: "always" }] });
-    expect(summary("media")).toEqual({ text: "No player yet", missing: true });
-    expect(summary("camera")).toEqual({ text: "No camera yet", missing: true });
-    expect(summary("clock").text).toBe("Time and date, Front lock");
+    expect(useScreensaverStore().summary("media")).toEqual({ text: "No player yet", missing: true });
+    expect(useScreensaverStore().summary("camera")).toEqual({ text: "No camera yet", missing: true });
+    expect(useScreensaverStore().summary("clock").text).toBe("Time and date, Front lock");
   });
 
   it("opens a step in the drawer on a click, and its switch turns it off without opening it", async () => {
