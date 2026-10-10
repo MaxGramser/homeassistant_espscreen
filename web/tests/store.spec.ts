@@ -8,6 +8,8 @@ import {
   setEditorMode, setFullEditor,
 } from "../src/store";
 import { t } from "../src/i18n";
+import type { Question } from "../src/composables/useConfirm";
+import { answerDialogs } from "./helpers/dialogs";
 import { customPreview } from "../src/model/preview";
 import { phaseText } from "../src/model/screen-status";
 import renderer from "../src/wasm/renderer.json";
@@ -42,6 +44,7 @@ function inventory(): Inventory {
   } as unknown as Inventory;
 }
 
+let asked: Question[] = [];
 beforeEach(() => {
   const storage = new Map<string, string>();
   vi.stubGlobal("localStorage", {
@@ -50,7 +53,8 @@ beforeEach(() => {
     removeItem: (key: string) => storage.delete(key),
   });
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  // Every question of the editor's is answered yes (ConfirmDialog), and kept to look at.
+  asked = answerDialogs(true);
   state.inventory = inventory();
   state.selected = null;
   seedLayout(null);
@@ -305,12 +309,11 @@ describe("copy, export and import", () => {
     expect(document.querySelector("textarea")).toBeNull();
     vi.unstubAllGlobals();
   });
-  it("shows the text in a prompt when even the old way cannot copy", async () => {
+  it("shows the text selected in the editor's own dialog when even the old way cannot copy", async () => {
     vi.stubGlobal("isSecureContext", false);
     document.execCommand = vi.fn(() => false);
-    const prompt = vi.spyOn(window, "prompt").mockReturnValue(null);
     await copyText("the-key");
-    expect(prompt).toHaveBeenCalledWith(expect.stringMatching(/selected/), "the-key");
+    expect(asked).toEqual([{ kind: "copy", message: expect.stringMatching(/selected/), value: "the-key" }]);
     vi.unstubAllGlobals();
   });
 });
@@ -406,7 +409,7 @@ describe("the open screen chosen again (app 0.2.78)", () => {
     expect(state.tab).toBe("layout");
     expect(state.inspector).toBeNull();
     expect(state.route).toBe("");
-    expect(window.confirm).not.toHaveBeenCalled();
+    expect(asked).toEqual([]);
   });
   it("reads the stored layout again when nothing is unsaved, so a change from Claude or another tab shows up", () => {
     select("living");
@@ -464,7 +467,8 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     addTile("light.b");
     const { control } = slowServer();
     const saving = save();
-    select("kitchen");
+    // The unsaved edit of the first screen is confirmed away (ConfirmDialog) before the other opens.
+    await select("kitchen");
     addTile("light.b");
     control.answer();
     await saving;

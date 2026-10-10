@@ -19,6 +19,7 @@ import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useListNavigation } from "../composables/useListNavigation";
 import { isEditableTarget } from "../composables/isEditableTarget";
+import { question } from "../composables/useConfirm";
 import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, phone, pictures, repeatable, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
@@ -172,7 +173,7 @@ function onSearchKey(e: KeyboardEvent) {
 // A key typed where nothing takes text is the start of a search: the drawer opens on it (Notion's and Apple's way of
 // letting a person just start typing). "/" only puts the cursor there. A dialog, a menu or a field keeps its keys.
 function onPageKey(e: KeyboardEvent) {
-  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || state.tab !== "layout" || state.palette) return;
+  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || state.tab !== "layout" || state.palette || question.value) return;
   const target = e.target as HTMLElement | null;
   if (isEditableTarget(target) || target?.closest?.("select, dialog, [role='dialog'], [role='menu'], [role='listbox']")) return;
   if (document.querySelector("dialog[open], [role='dialog'], [role='menu']")) return;

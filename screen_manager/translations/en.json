@@ -1365,6 +1365,7 @@
       "unknown": "unknown",
       "unsaved": "Unsaved changes",
       "cancel": "Cancel",
+      "ok": "OK",
       "open_integrations": "Open Devices & services",
       "save_send": "Save & send",
       "saving": "Saving…",

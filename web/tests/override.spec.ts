@@ -7,6 +7,7 @@ import OverrideView from "../src/components/OverrideView.vue";
 import { state } from "../src/store";
 import { setHidden } from "./helpers/browser";
 import { useFakeClock } from "./helpers/clock";
+import { answerDialogs } from "./helpers/dialogs";
 import { fakeApi } from "./helpers/fake-api";
 
 function addOn(states: { state: string; stage?: string; logs?: string[] }[]) {
@@ -59,5 +60,29 @@ describe("checking an override", () => {
     await clock.tick(1200);
     expect(view.find("#override-status").text()).toBe("ERROR display: unknown model");
     expect(view.find("#override-status").classes()).toContain("error");
+  });
+});
+
+describe("the override's example and Clear", () => {
+  it("ask before they replace what is typed, in the editor's own dialog, and keep it when told no", async () => {
+    state.overrideProfile = "hall.yaml";
+    addOn([{ state: "running" }]);
+    const view = mount(OverrideView);
+    await flushPromises();
+    const typed = () => (view.find("#override-editor").element as HTMLTextAreaElement).value;
+    let yes = false;
+    const asked = answerDialogs(() => yes);
+    await view.find("#override-example").trigger("click");
+    await flushPromises();
+    expect(typed()).toBe("display: []\n");
+    yes = true;
+    await view.find("#override-example").trigger("click");
+    await flushPromises();
+    expect(typed()).toContain("id: !extend my_display");
+    await view.find("#override-empty").trigger("click");
+    await flushPromises();
+    expect(typed()).toBe("");
+    expect(asked.map((question) => question.message)).toEqual([
+      "Replace the current text with the example?", "Replace the current text with the example?", "Clear the local override?"]);
   });
 });

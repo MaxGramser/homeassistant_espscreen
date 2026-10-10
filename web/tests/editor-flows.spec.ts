@@ -9,10 +9,15 @@ import PageInspector from "../src/components/PageInspector.vue";
 import { addPage, addTile, beginFieldEdit, endFieldEdit, goHome, liveEntries, placeTile, retargetPageTile, select, setTileOption, state } from "../src/store";
 import { validatePages } from "../src/model/pages";
 import { tileCost } from "../src/model/memory";
+import type { Question } from "../src/composables/useConfirm";
+import { answerDialogs } from "./helpers/dialogs";
 
+let yes = true, asked: Question[] = [];
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ states: {}, capabilities: {} }))));
-  vi.stubGlobal("confirm", vi.fn(() => true));
+  // Every question of the editor's is answered yes, unless a test answers otherwise.
+  yes = true;
+  asked = answerDialogs(() => yes);
   state.dirty = false; state.selected = null; state.toast = null;
   state.inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
     layout: { title: "Home", tiles: [{ entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 }] } } as any)],
@@ -35,10 +40,10 @@ describe("the editor", () => {
     host.unmount();
   });
 
-  it("leaves nothing unsaved after going home from the logo past a confirmed discard", () => {
+  it("leaves nothing unsaved after going home from the logo past a confirmed discard", async () => {
     setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
     expect(state.dirty).toBe(true);
-    goHome();
+    await goHome();
     expect(state.selected).toBeNull();
     expect(state.dirty).toBe(false);
   });
@@ -157,24 +162,23 @@ describe("the editor", () => {
     expect((state.document!.pages[1].tiles[0].content as any).target.kind).toBe("page");
   });
 
-  it("asks before a tile takes the screen past its memory, and adds it when told to (GitHub #157)", () => {
+  it("asks before a tile takes the screen past its memory, and adds it when told to (GitHub #157)", async () => {
     // A screen without PSRAM that measured room for about two and a half lights, as one CYD did.
     const memory = { room: 0, used: 0, psram: false, tile: 524, extra: 1056, page: 336, short: false, live: true };
     memory.room = Math.round(2.5 * tileCost({ entity: "light.x" }, memory));
     (state.inventory.screens[0] as any).memory = memory;
-    const ask = vi.fn(() => false);
-    vi.stubGlobal("confirm", ask);
-    addTile("light.c");
-    expect(ask).toHaveBeenCalledTimes(1);
-    expect(ask.mock.calls[0][0]).toMatch(/Add it anyway\?/);
+    yes = false;
+    await addTile("light.c");
+    expect(asked).toHaveLength(1);
+    expect(asked[0].message).toMatch(/Add it anyway\?/);
     expect(state.layout!.tiles.some((tile) => tile.entity === "light.c")).toBe(false);
-    ask.mockReturnValue(true);
-    addTile("light.c");
+    yes = true;
+    await addTile("light.c");
     expect(state.layout!.tiles.some((tile) => tile.entity === "light.c")).toBe(true);
-    // Past the line once, the next tile goes on without asking again.
-    ask.mockClear();
+    // Past the line once, the next tile goes on without asking again, at once.
+    asked.length = 0;
     addTile("light.d");
-    expect(ask).not.toHaveBeenCalled();
+    expect(asked).toEqual([]);
     expect(state.layout!.tiles.some((tile) => tile.entity === "light.d")).toBe(true);
   });
 });

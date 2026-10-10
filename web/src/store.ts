@@ -33,6 +33,7 @@ import { onReset } from "./resets";
 import { readStored, writeStored } from "./storage";
 import { flagSerializer, renewable, usePreference } from "./composables/usePreference";
 import { useClock } from "./composables/useClock";
+import { askConfirm, showText } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
 import { atMost, useAtMost } from "./composables/useWidths";
 
@@ -239,12 +240,13 @@ export const memory = computed(() => (screenMemory.value && !memoryMeasuring.val
 // Whether a new tile of this entity goes on, as a library click or drag makes it (its own action and line come later, in
 // its settings). Past nine tenths of the screen's memory for tiles, and past all of it, the editor asks first. A warning,
 // not a rule (app 0.4.61): a screen measured far less room than the screens it was priced on (GitHub #157), and a screen
-// protects itself when it runs short, so whoever wants to try may.
-export function confirmMemory(entity: string) {
+// protects itself when it runs short, so whoever wants to try may. True at once when there is nothing to ask, else the
+// answer to the question (useConfirm).
+export function confirmMemory(entity: string): true | Promise<boolean> {
   if (!screenMemory.value || memoryMeasuring.value || !state.layout) return true;
   const crossing = memoryCrossing(state.layout.tiles, { entity }, screenMemory.value, state.document?.pages || []);
   if (!crossing) return true;
-  return window.confirm(t(`editor.memory.confirm_${crossing.line}`, { n: Math.min(999, Math.round(crossing.share * 100)) }));
+  return askConfirm(t(`editor.memory.confirm_${crossing.line}`, { n: Math.min(999, Math.round(crossing.share * 100)) }));
 }
 export const fullPage = computed(() => {
   const full = currentScreen.value?.full_page;
@@ -417,9 +419,9 @@ export async function copyText(text: string, element?: Element | null, what: Cop
       spare.remove();
       selection?.removeAllRanges();
       focused?.focus?.();
-      // Nothing on the page to leave selected: a prompt shows the text selected, which is what "selected" promises.
+      // Nothing on the page to leave selected: the editor shows the text selected, which is what "selected" promises.
       if (!copied) {
-        window.prompt(t(`editor.copy.${what}.selected`), text);
+        void showText(t(`editor.copy.${what}.selected`), text);
         return;
       }
     }
@@ -583,9 +585,11 @@ export async function loadOverview() {
   }
 }
 // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
-export function goHome() {
-  if (state.selected) select(null);
-  if (!state.selected) go("");
+export function goHome(): void | Promise<void> {
+  const home = () => { if (!state.selected) go(""); };
+  const asking = state.selected ? select(null) : undefined;
+  if (asking) return asking.then(home);
+  home();
 }
 
 // ---- Selecting a screen and editing its layout ----
@@ -721,11 +725,16 @@ export function loadDocument(screen: Screen) {
   state.conflict = false;
   draftHistory.clear(); historyCounts();
 }
-export function select(id: string | null) {
+// Another screen, or none (the overview). With unsaved changes the editor asks first, and the switch waits for the answer
+// (the promise returned then); otherwise it happens at once.
+export function select(id: string | null): void | Promise<void> {
   if (id === state.selected && state.document && state.dirty) {
     state.tab = "layout"; state.menuOpen = false; closeInspector(); go(""); return;
   }
-  if (id !== state.selected && state.dirty && !confirm(t("editor.screen_view.confirm.switch"))) return;
+  if (id !== state.selected && state.dirty) return askConfirm(t("editor.screen_view.confirm.switch")).then((yes) => { if (yes) openScreen(id); });
+  openScreen(id);
+}
+function openScreen(id: string | null) {
   if (id !== state.selected) { flushSettings(); state.settingEdits = {}; }
   state.selected = id; state.selectedTileId = null; state.inspector = null;
   state.tab = "layout"; state.menuOpen = false; state.addSheet = false; state.pagesSheet = false; state.previewOpen = false; state.pageWizardOpen = false;
@@ -784,10 +793,13 @@ export function startTile(id: string): Tile {
   const fitting = tileSizeChoices(tile).sort((a, b) => area(a) - area(b));
   return { ...tile, options: { ...tile.options, size: fitting.includes("square") ? "square" : fitting[0] ?? "full" } };
 }
-export function addTile(id: string) {
+export async function addTile(id: string) {
+  if (!state.layout || (!repeatable(id) && state.layout.tiles.some((t) => t.entity === id)) || state.layout.tiles.length >= tileLimit.value) return;
+  // Past the screen's memory the tile waits for the answer; otherwise it goes on at once.
+  const allowed = confirmMemory(id);
+  if (allowed !== true && !(await allowed)) return;
   const layout = state.layout;
-  if (!layout || (!repeatable(id) && layout.tiles.some((t) => t.entity === id)) || layout.tiles.length >= tileLimit.value) return;
-  if (!confirmMemory(id)) return;
+  if (!layout) return;
   if (state.insertKey) {
     const { holder, key } = state.insertKey;
     state.insertKey = null;
@@ -1324,7 +1336,7 @@ export async function identify(screen: Screen) {
 // in Home Assistant. It asks first: the screen goes to the crosses and stays there until someone standing in front
 // of it has tapped all five, so it is not something to set off by accident from a browser.
 export async function calibrateTouch(screen: Screen) {
-  if (!confirm(t("editor.screen_settings.actions.calibrate.confirm", { name: screen.name }))) return;
+  if (!(await askConfirm(t("editor.screen_settings.actions.calibrate.confirm", { name: screen.name })))) return;
   try {
     await send(`screens/${encodeURIComponent(screen.id)}/calibrate`, "POST");
     toast(t("editor.screen_settings.actions.calibrate.done", { name: screen.name }));
@@ -1593,7 +1605,7 @@ export async function importLayout(text: string) {
   try { data = JSON.parse(text); } catch { toast(t("editor.layout.not_json")); return; }
   if (!state.selected || !state.documentGrid) return;
   const screen = state.selected, selection = selectionEpoch;
-  if (data?.esp_screens_layout !== 2 && !confirm(t("addon.errors.pages.import_grid", { columns: state.documentGrid.columns, rows: state.documentGrid.rows }))) return;
+  if (data?.esp_screens_layout !== 2 && !(await askConfirm(t("addon.errors.pages.import_grid", { columns: state.documentGrid.columns, rows: state.documentGrid.rows })))) return;
   try {
     const path = currentScreen.value?.virtual ? 'firmware-preview/import' : `screens/${encodeURIComponent(screen)}/import`;
     const record = await send<PageDocument>(path, "POST", {
@@ -1958,7 +1970,7 @@ export async function dismissMigrationNote() {
 
 export async function startFreshLayout() {
   const screen = currentScreen.value, record = screen?.page_document;
-  if (!screen || record?.format !== 'legacy-v1' || !confirm(t('editor.pages.start_fresh_confirm'))) return;
+  if (!screen || record?.format !== 'legacy-v1' || !(await askConfirm(t('editor.pages.start_fresh_confirm')))) return;
   try {
     await send(`screens/${encodeURIComponent(screen.id)}/migration/reset`, 'POST', { revision: record.migrationRevision });
     await refresh(false);

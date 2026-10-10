@@ -1,5 +1,10 @@
 ## Unreleased
 
+- **The editor asks in its own look.** Before something that can't be taken back (leaving unsaved changes, replacing a
+  layout, starting the calibration, clearing an override), for a new name on a phone, and for a text to copy by hand,
+  the editor now asks in a dialog of its own, light or dark and at the bottom of a phone, instead of the browser's, in
+  the same words. Cancel has the focus at first, so Enter alone never throws work away, and Escape cancels.
+
 - **Find plugins by what they are.** The Plugins page has tabs for tiles, functions for the whole screen, and hardware,
   with topics such as Time, Weather or On the move under them, and what fits none of your screens folded away. Give a
   plugin you use a heart, and see which plugins others like. A plugin that needs another one, or needs a speaker or a

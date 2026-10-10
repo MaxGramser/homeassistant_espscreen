@@ -6,6 +6,7 @@
 import type { Directive } from "vue";
 import { entriesOf, pageOrder } from "./model/layout";
 import { commitArrangement, confirmMemory, editorLayout, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, startTile, state, toast } from "./store";
+import type { DragState } from "./store";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
@@ -229,14 +230,22 @@ function endDrag(drop: boolean) {
     if (drop) movePage(page.from, page.to);
     return;
   }
-  if (drop && fresh && moving && (key || preview) && !confirmMemory(moving.entity)) return;
+  const landing = { drop, preview, moving, key, refused, slot: drag.lastSlot };
+  // Past the screen's memory a new tile waits for the answer (useConfirm), then lands where the drag left it.
+  const allowed = drop && fresh && moving && (key || preview) ? confirmMemory(moving.entity) : true;
+  if (allowed !== true) { void allowed.then((yes) => { if (yes) land(landing); }); return; }
+  land(landing);
+}
+// Where a dropped tile goes: under a bedside clock, off its clock to an empty cell, or into the place the drag showed.
+function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; preview: DragState["preview"]; moving: Tile | null;
+  key: DragState["key"]; refused: DragState["refused"]; slot: number | null }) {
   if (drop && key && moving && state.layout) {
     const clock = state.layout.tiles.find((tile) => tile.id === key.holder);
     if (clock && moving.entity !== clock.entity && placeKey(moving, clock, key.key)) loadCapabilities([moving.entity]);
     return;
   }
-  if (drop && moving?.in !== undefined && drag.lastSlot !== null && drag.lastSlot >= 0) {
-    if (keyToCell(moving, drag.lastSlot)) loadCapabilities([moving.entity]);
+  if (drop && moving?.in !== undefined && slot !== null && slot >= 0) {
+    if (keyToCell(moving, slot)) loadCapabilities([moving.entity]);
     return;
   }
   if (drop && preview && moving && state.layout) {

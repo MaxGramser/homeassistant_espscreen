@@ -8,6 +8,7 @@ import {
   phone, redo, renameScreen, save, setFullEditor, startUpdate, state, tileLimit, undo,
 } from "../store";
 import { isEditableTarget } from "../composables/isEditableTarget";
+import { useConfirm } from "../composables/useConfirm";
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
 import ScreenPluginsTab from "./ScreenPluginsTab.vue";
@@ -43,9 +44,10 @@ function inspectAll() {
   state.selectedTileId = null;
   state.inspector = { kind: "inspect" };
 }
-function copyFrom(id: string) {
+const { confirm, prompt, question } = useConfirm();
+async function copyFrom(id: string) {
   closeMenu();
-  if (state.dirty && !confirm(t("editor.screen_view.confirm.copy"))) return;
+  if (state.dirty && !(await confirm(t("editor.screen_view.confirm.copy")))) return;
   copyLayoutFrom(id);
 }
 function pickFile() { closeMenu(); fileInput.value?.click(); }
@@ -57,9 +59,9 @@ function phoneBack() {
 const phoneStatus = computed(() => !screen.value.online ? t("editor.common.offline")
   : state.dirty ? t("editor.phone.not_sent") : screen.value.in_sync ? t("editor.phone.on_screen") : t("editor.screen_view.sending"));
 function phoneSettings() { closeMenu(); closeInspector(); state.tab = "settings"; }
-function phoneRename() {
+async function phoneRename() {
   closeMenu();
-  const name = prompt(t("editor.sidebar.rename.label"), screen.value.name);
+  const name = await prompt(t("editor.sidebar.rename.label"), screen.value.name);
   if (name && name.trim() && name.trim() !== screen.value.name) renameScreen(screen.value, name.trim());
 }
 const full = computed(() => (state.layout?.tiles.length || 0) >= tileLimit.value);
@@ -69,7 +71,7 @@ async function onFile(e: Event) {
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
-  if (state.dirty && !confirm(t("editor.screen_view.confirm.import"))) return;
+  if (state.dirty && !(await confirm(t("editor.screen_view.confirm.import")))) return;
   importLayout(await file.text());
 }
 // Escape belongs to the innermost thing open (app 0.4.32): a list of choices or a menu closes and the inspector under it
@@ -80,6 +82,8 @@ function beforeKey(e: KeyboardEvent) {
   popoverEscape = e.key === "Escape" && Boolean(document.querySelector(".ui-popover"));
 }
 function onKey(e: KeyboardEvent) {
+  // A question of the editor's (ConfirmDialog) keeps every key to itself until it is answered.
+  if (question.value) return;
   if (e.key === "Escape") {
     if (popoverEscape) return;
     if (state.menuOpen) closeMenu();

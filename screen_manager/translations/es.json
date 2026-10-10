@@ -1365,6 +1365,7 @@
       "unknown": "desconocido",
       "unsaved": "Cambios no guardados",
       "cancel": "Cancelar",
+      "ok": "Aceptar",
       "open_integrations": "Abrir Dispositivos y servicios",
       "save_send": "Guardar y enviar",
       "saving": "Guardando…",

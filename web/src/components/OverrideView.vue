@@ -2,6 +2,7 @@
 // Per-screen local YAML override: a small file of the owner's, loaded after the shared screen package.
 import { computed, onMounted, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
+import { useConfirm } from "../composables/useConfirm";
 import { getJson, send } from "../api";
 import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { t } from "../i18n";
@@ -95,15 +96,16 @@ function followCheck(data: any) {
     setStatus(errorLine(data.logs || []) || t("editor.override.rejected"), "error");
   }
 }
-function useExample() {
-  if (!content.value.trim() || confirm(t("editor.override.confirm_example"))) {
+const { confirm } = useConfirm();
+async function useExample() {
+  if (!content.value.trim() || await confirm(t("editor.override.confirm_example"))) {
     content.value = OVERRIDE_EXAMPLE;
     setStatus(t("editor.override.example_loaded"));
     editor.value?.focus();
   }
 }
-function clear() {
-  if (!content.value.trim() || confirm(t("editor.override.confirm_clear"))) {
+async function clear() {
+  if (!content.value.trim() || await confirm(t("editor.override.confirm_clear"))) {
     content.value = "";
     setStatus(t("editor.override.cleared"));
     editor.value?.focus();

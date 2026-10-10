@@ -1365,6 +1365,7 @@
       "unknown": "inconnu",
       "unsaved": "Modifications non enregistrées",
       "cancel": "Annuler",
+      "ok": "OK",
       "open_integrations": "Ouvrir Appareils et services",
       "save_send": "Enregistrer et envoyer",
       "saving": "Enregistrement…",

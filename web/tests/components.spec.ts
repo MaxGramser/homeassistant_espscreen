@@ -20,6 +20,7 @@ import TileInspector from "../src/components/TileInspector.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
 import PageInspector from "../src/components/PageInspector.vue";
 import { t } from "../src/i18n";
+import { answerDialogs } from "./helpers/dialogs";
 import { currentTile, openBar, previewed, removePage, repeatable, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 
@@ -967,11 +968,13 @@ describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
     const panel = view({ calibrate: true });
     expect(panel.find("#settings-this-screen").text()).toContain("five crosses");
     // Cancel sends nothing.
-    vi.stubGlobal("confirm", vi.fn(() => false));
+    let yes = false;
+    const asked = answerDialogs(() => yes);
     await panel.find("#setting-calibrate").trigger("click");
     await flushPromises();
     expect(calls).toEqual([]);
-    vi.stubGlobal("confirm", vi.fn(() => true));
+    expect(asked.map((question) => question.message)).toEqual(["Start the calibration on Living room?"]);
+    yes = true;
     await panel.find("#setting-calibrate").trigger("click");
     await flushPromises();
     expect(calls.map(([path, options]) => [path, options.method])).toEqual([["api/screens/living/calibrate", "POST"]]);

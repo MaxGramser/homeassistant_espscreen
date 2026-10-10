@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted } from "vue";
 import Sidebar from "./components/Sidebar.vue";
 import Toast from "./components/Toast.vue";
 import CommandPalette from "./components/CommandPalette.vue";
+import ConfirmDialog from "./components/ConfirmDialog.vue";
 import ScreenView from "./components/ScreenView.vue";
 import EmptyState from "./components/EmptyState.vue";
 import HomeView from "./components/HomeView.vue";
@@ -13,6 +14,7 @@ import AlertsView from "./components/AlertsView.vue";
 import OverrideView from "./components/OverrideView.vue";
 import PluginsView from "./components/PluginsView.vue";
 import { pluginsEnabled } from "./plugin-state";
+import { question } from "./composables/useConfirm";
 import { currentScreen, phone, route, state } from "./store";
 import { sideWidth, sidebar } from "./sidebar-state";
 
@@ -29,7 +31,7 @@ const view = computed(() => {
 });
 // ⌘K (Ctrl+K) opens the search from anywhere.
 function onKey(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); state.palette = !state.palette; }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !question.value) { e.preventDefault(); state.palette = !state.palette; }
 }
 onMounted(() => document.addEventListener("keydown", onKey));
 onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
@@ -45,5 +47,6 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
     </main>
     <Toast />
     <CommandPalette />
+    <ConfirmDialog />
   </div>
 </template>

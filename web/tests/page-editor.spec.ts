@@ -11,13 +11,14 @@ import { placeTile, dismissMigrationNote, pageReady, removeTile, resolveLayoutCo
 import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo,
   acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, select, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
+import { answerDialogs } from "./helpers/dialogs";
 import type { PageDocument, Screen } from "../src/types";
 
 const record = () => state.inventory.screens[0].page_document as PageDocument;
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  answerDialogs(true);
   const preferences = new Map<string, string>();
   vi.stubGlobal("localStorage", { getItem: (key: string) => preferences.get(key) ?? null, setItem: (key: string, value: string) => preferences.set(key, value) });
   state.dirty = false; state.busy = false; state.workspaceDirty = false;
