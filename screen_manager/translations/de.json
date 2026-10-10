@@ -157,6 +157,7 @@
       "this_screen": "Dieser Bildschirm",
       "extras": "Extras",
       "microphone": "Mikrofon",
+      "media_player": "Lautstärke",
       "wake_when_moved": "Bei Bewegung aufwecken",
       "dark_mode": "Dunkler Modus",
       "auto_standby": "Auto-Standby",
@@ -1037,6 +1038,10 @@
           "icon": "Nur Symbol",
           "percent": "Prozent"
         },
+        "plugin_contents": {
+          "all": "Symbol und Text",
+          "icon": "Nur Symbol"
+        },
         "battery_shows": {
           "always": "Immer",
           "low": "Nur wenn niedrig"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Mikrofon",
           "hint": "Aus schaltet das Mikrofon für alles stumm, was zuhört. Der Bildschirm behält es nach einem Neustart."
+        },
+        "media_player": {
+          "label": "Lautstärke",
+          "hint": "Wie laut der Bildschirm spricht und spielt: Antworten, Durchsagen und Musik. Dieselbe Lautstärke wie der Mediaplayer des Bildschirms in Home Assistant."
         },
         "wake_when_moved": {
           "label": "Bei Bewegung aufwecken",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Mehrere Lautsprecher",
         "soundbar": "Soundbar",
         "headphones": "Kopfhörer",
+        "microphone": "Mikrofon",
         "piano": "Klavier",
         "guitar_acoustic": "Gitarre",
         "television": "Fernseher",
@@ -1987,7 +1997,9 @@
       "features": {
         "speaker": "Lautsprecher",
         "microphone": "Mikrofon",
-        "media_player": "Mediaplayer"
+        "media_player": "Mediaplayer",
+        "camera": "Kamerastream für Home Assistant",
+        "camera_sensor": "Kamerasensor"
       },
       "fitting_only": "Nur was auf meine Bildschirme passt",
       "made_by": {

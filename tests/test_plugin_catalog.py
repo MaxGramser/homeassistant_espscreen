@@ -48,6 +48,15 @@ class Manifest(unittest.TestCase):
         self.assertEqual(pm.check(manifest('voice', requires={'features': ['laser']}), strict=False)['requires']['features'],
                          ['laser'])
 
+    def test_a_camera_sensor_only_a_board_brings(self):
+        # Plugin API 0.8: the camera sensor is hardware a plugin drives; the board names its bus (CAMERA_I2C) and powers it.
+        self.assertEqual(pm.BOARD_ONLY, ('camera_sensor',))
+        with self.assertRaises(pm.ManifestError):
+            pm.check(manifest('camera', provides=['camera_sensor']))
+        camera = pm.check(manifest('camera', provides=['camera'], requires={'features': ['camera_sensor']}))
+        self.assertEqual((camera['provides'], camera['requires']['features']), (['camera'], ['camera_sensor']))
+        self.assertEqual(pm.FEATURES['camera'], ('esp_video_camera', 'ts_camera'))
+
 
 class Catalogue(unittest.TestCase):
     def service(self, *items, board='guition'):
@@ -120,6 +129,16 @@ class Catalogue(unittest.TestCase):
                                     'ref': 'a' * 40, 'version': '1.0.0'})
         other.keep_snapshot(other.index['audio'])
         self.assertIn('plugin_audio', other.sidecar('kitchen'))
+
+    def test_a_camera_plugin_fits_a_board_with_a_camera_sensor(self):
+        # The reTerminal D1001 names its camera's bus (CAMERA_I2C): a plugin that drives the sensor fits it, alone; a board
+        # without one has no plugin that could bring it.
+        camera = item('camera', provides=['camera'], requires={'features': ['camera_sensor']})
+        d1001 = self.service(camera, board='reterminald1001')
+        self.assertIsNone(d1001.fits(d1001.index['camera'], d1001.manager.screen('kitchen')))
+        self.assertEqual([s['id'] for s in d1001.plan('kitchen', {'add': [{'id': 'camera'}]})['add']], ['camera'])
+        guition = self.service(camera)
+        self.assertEqual(guition.fits(guition.index['camera'], guition.manager.screen('kitchen')), 'feature')
 
     def test_what_another_plugin_needs_goes_only_together_and_what_came_along_may_go(self):
         service = self.service(item('voice', requires={'features': ['microphone']}), item('audio', provides=['microphone']))

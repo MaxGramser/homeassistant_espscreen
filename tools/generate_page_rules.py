@@ -6,7 +6,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 from core import (DOMAINS, HEADER_ONLY_DOMAINS, CAMERA_DOMAINS, HEADER_BUILTIN,
-                  HEADER_CONTENTS, HEADER_SHOWS, WIFI_CONTENTS, WIFI_SHOWS, BATTERY_CONTENTS, BATTERY_SHOWS, DISPLAYS, WIDE_ONLY, CONTROLS,
+                  HEADER_CONTENTS, HEADER_SHOWS, WIFI_CONTENTS, WIFI_SHOWS, BATTERY_CONTENTS, BATTERY_SHOWS, PLUGIN_ITEM_CONTENTS,
+                  DISPLAYS, WIDE_ONLY, CONTROLS,
                   TILE_BACKGROUNDS, LIVE_REFRESH, PICTURE_OPTIONS, KEY_HOLDERS, KEY_DOMAINS, BUILTIN,
                   FAVORITE_SHUFFLES, FAVORITE_REPEATS, ENERGY_FLOWS)
 from tile_icons import ICONS
@@ -21,6 +22,8 @@ def rules():
             'headerLink': 'link', 'headerWifi': 'wifi', 'wifiContents': list(WIFI_CONTENTS), 'wifiShows': list(WIFI_SHOWS),
             # And its battery (firmware 0.41.0): the percentage beside its icon or not, and always or only while low.
             'headerBattery': 'battery', 'batteryContents': list(BATTERY_CONTENTS), 'batteryShows': list(BATTERY_SHOWS),
+            # A plugin's item (plugin API 0.8): its icon and words, or its icon alone.
+            'pluginContents': list(PLUGIN_ITEM_CONTENTS),
             'displays': DISPLAYS, 'wideOnly': list(WIDE_ONLY),
             'controls': {domain: [key for key, _ in values] for domain, values in CONTROLS.items()},
             'backgrounds': list(TILE_BACKGROUNDS), 'refresh': list(LIVE_REFRESH),

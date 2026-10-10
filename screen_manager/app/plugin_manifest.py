@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 7)
+PLUGIN_API = (0, 8)
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
 VERSION = re.compile(r'^\d+\.\d+\.\d+$')
@@ -45,8 +45,14 @@ MAX_TOPICS = 2
 # What a screen can have that a plugin may need (0.7), each a promise about one ESPHome component and its id, the way
 # ESPHome's voice_assistant takes whatever speaker there is: a plugin that needs a speaker finds `ts_speaker`, whether a
 # board brings it (boards.yaml) or a plugin (`provides`). One screen has one of each.
+# 0.8: `camera`, the screen's own camera as an ESPHome camera (Home Assistant shows it, another plugin may use it), and
+# `camera_sensor`, a board's own: the sensor a camera plugin drives. A board-only feature (no component) is hardware a
+# plugin cannot bring; its promise is a substitution of the board file that a plugin's ESPHome file uses, here
+# CAMERA_I2C, the I2C bus the sensor answers on. The board powers the sensor itself.
 FEATURES = {'speaker': ('speaker', 'ts_speaker'), 'microphone': ('microphone', 'ts_microphone'),
-            'media_player': ('media_player', 'ts_media_player')}
+            'media_player': ('media_player', 'ts_media_player'), 'camera': ('esp_video_camera', 'ts_camera'),
+            'camera_sensor': (None, 'CAMERA_I2C')}
+BOARD_ONLY = tuple(name for name, (domain, _) in FEATURES.items() if domain is None)
 INPUT_KINDS = ('secret', 'text', 'gpio', 'entity')
 OPTION_KINDS = ('text', 'choice', 'number', 'toggle')
 # `numbers` (0.5): every value the path reaches, as one list of numbers (a price per quarter of an hour, a forecast).
@@ -479,6 +485,9 @@ def check(manifest, english=None, strict=True):
         raise ManifestError('requires.plugins', 'a plugin cannot need itself')
     # What it brings for others (0.7): a feature of FEATURES, as the ESPHome component and id the feature promises.
     out['provides'] = _features(manifest.get('provides'), 'provides', strict)
+    for i, name in enumerate(out['provides']):
+        if name in BOARD_ONLY:
+            raise ManifestError(f'provides[{i}]', 'a board brings this one itself, never a plugin')
     if set(out['provides']) & set(out['requires']['features']):
         raise ManifestError('provides', 'a plugin cannot need a feature it brings itself')
     if 'esphome' in requires:

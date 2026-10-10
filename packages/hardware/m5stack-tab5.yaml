@@ -20,10 +20,10 @@ psram:
   mode: hex
   speed: 200MHz
 
+# The MIPI PHY's supply, not adjustable so the camera's MIPI-CSI can share it (hardware/esp32p4-c6.yaml says why).
 esp_ldo:
   - channel: 3
     voltage: 2.5V
-    adjustable: true
 
 esp32_hosted:
   variant: esp32c6

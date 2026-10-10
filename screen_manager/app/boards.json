@@ -1110,6 +1110,7 @@
    "name": "reTerminal D1001",
    "order": 19,
    "settings": [
+    "media_player",
     "microphone",
     "wake_when_moved"
    ],
@@ -1123,7 +1124,8 @@
   "features": [
    "speaker",
    "microphone",
-   "media_player"
+   "media_player",
+   "camera_sensor"
   ],
   "firmware": "0.53.0",
   "fonts": {
@@ -4427,6 +4429,7 @@
    "name": "reTerminal D1001",
    "order": 19,
    "settings": [
+    "media_player",
     "microphone",
     "wake_when_moved"
    ],
@@ -4440,7 +4443,8 @@
   "features": [
    "speaker",
    "microphone",
-   "media_player"
+   "media_player",
+   "camera_sensor"
   ],
   "firmware": "0.53.0",
   "fonts": {
@@ -5574,6 +5578,7 @@
    "name": "reTerminal D1001",
    "order": 19,
    "settings": [
+    "media_player",
     "microphone",
     "wake_when_moved"
    ],
@@ -5587,7 +5592,8 @@
   "features": [
    "speaker",
    "microphone",
-   "media_player"
+   "media_player",
+   "camera_sensor"
   ],
   "firmware": "0.53.0",
   "fonts": {

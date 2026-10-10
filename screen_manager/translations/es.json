@@ -157,6 +157,7 @@
       "this_screen": "Esta pantalla",
       "extras": "Extras",
       "microphone": "Micrófono",
+      "media_player": "Volumen",
       "wake_when_moved": "Despertar al moverlo",
       "dark_mode": "Modo oscuro",
       "auto_standby": "Reposo automático",
@@ -1037,6 +1038,10 @@
           "icon": "Solo icono",
           "percent": "Porcentaje"
         },
+        "plugin_contents": {
+          "all": "Icono y texto",
+          "icon": "Solo icono"
+        },
         "battery_shows": {
           "always": "Siempre",
           "low": "Solo si está baja"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Micrófono",
           "hint": "Apagado silencia el micrófono para todo lo que escucha. La pantalla lo recuerda tras reiniciar."
+        },
+        "media_player": {
+          "label": "Volumen",
+          "hint": "Lo alto que habla y suena la pantalla: respuestas, avisos y música. El mismo volumen que el reproductor multimedia de la pantalla en Home Assistant."
         },
         "wake_when_moved": {
           "label": "Despertar al moverlo",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Altavoces",
         "soundbar": "Barra de sonido",
         "headphones": "Auriculares",
+        "microphone": "Micrófono",
         "piano": "Piano",
         "guitar_acoustic": "Guitarra",
         "television": "TV",
@@ -1987,7 +1997,9 @@
       "features": {
         "speaker": "altavoz",
         "microphone": "micrófono",
-        "media_player": "reproductor multimedia"
+        "media_player": "reproductor multimedia",
+        "camera": "flujo de cámara para Home Assistant",
+        "camera_sensor": "sensor de cámara"
       },
       "fitting_only": "Solo lo que cabe en mis pantallas",
       "made_by": {

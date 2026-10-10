@@ -157,6 +157,7 @@
       "this_screen": "Ez a kijelző",
       "extras": "Extrák",
       "microphone": "Mikrofon",
+      "media_player": "Hangerő",
       "wake_when_moved": "Ébresztés mozgatásra",
       "dark_mode": "Sötét mód",
       "auto_standby": "Auto készenlét",
@@ -1037,6 +1038,10 @@
           "icon": "Csak ikon",
           "percent": "Százalék"
         },
+        "plugin_contents": {
+          "all": "Ikon és szöveg",
+          "icon": "Csak ikon"
+        },
         "battery_shows": {
           "always": "Mindig",
           "low": "Csak ha alacsony"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Mikrofon",
           "hint": "Kikapcsolva elnémítja a mikrofont mindenki számára, aki figyel. A kijelző újraindítás után is megjegyzi."
+        },
+        "media_player": {
+          "label": "Hangerő",
+          "hint": "Milyen hangosan beszél és szól a kijelző: válaszok, bejelentések és zene. Ugyanaz a hangerő, mint a kijelző médialejátszójáé a Home Assistantban."
         },
         "wake_when_moved": {
           "label": "Ébresztés mozgatásra",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Hangszórók",
         "soundbar": "Hangprojektor",
         "headphones": "Fejhallgató",
+        "microphone": "Mikrofon",
         "piano": "Zongora",
         "guitar_acoustic": "Gitár",
         "television": "TV",
@@ -1987,7 +1997,9 @@
       "features": {
         "speaker": "hangszóró",
         "microphone": "mikrofon",
-        "media_player": "médialejátszó"
+        "media_player": "médialejátszó",
+        "camera": "kamerakép a Home Assistantban",
+        "camera_sensor": "kameraszenzor"
       },
       "fitting_only": "Csak ami a kijelzőimre jó",
       "made_by": {

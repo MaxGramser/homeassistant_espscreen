@@ -6,11 +6,11 @@
   the same words. Cancel has the focus at first, so Enter alone never throws work away, and Escape cancels.
 - **Seeed reTerminal D1001 (experimental).** The 8-inch ESP32-P4 panel with a battery, as a new board in New screen:
   touch, a dimmable backlight, Wi-Fi through its ESP32-C6, the battery in the top bar, the button on top for standby,
-  the RGB LED, a clock that keeps the time while Home Assistant is away, and its speaker and microphones. Its camera,
-  SD card and LTE are not configured yet.
+  the RGB LED, a clock that keeps the time while Home Assistant is away, its speaker and microphones, and its camera
+  for the Screen camera plugin, which makes it a camera in Home Assistant. Its SD card and LTE are not configured yet.
 - **A screen with a speaker is a media player in Home Assistant.** On a board whose speaker Tessera configures (the
   reTerminal D1001 first), Home Assistant's text to speech and announcements play on the screen, without a voice
-  assistant.
+  assistant. Its volume is under Extras, on the screen and in Screen settings, and no sound starts with a pop.
 - **Extras: settings a board has of its own.** A screen whose board has something the others do not shows it under
   Screen settings in an Extras card, on the screen's own settings page under Extras, and in Home Assistant, all the same
   switch. On the reTerminal D1001: Microphone, and Wake when moved, which wakes the screen from standby when someone picks
@@ -21,6 +21,9 @@
   microphone, brings what it needs along in the same build, shown before you add it; removing a plugin another one needs
   asks first. Plugins are pinned to the exact commit they were added at, and a plugin from a fork never gets the key you
   filled in for the original. Plugin API 0.7.
+- **Plugin items in the top bar in colour.** A plugin's item lights up when it matters: a microphone in blue while a
+  voice assistant listens, amber while it thinks, a camera in red while it streams. Choose Show, Icon only, to keep the
+  top bar to icons. A microphone joins the icons for tiles. Plugin API 0.8, which also knows a screen's camera.
 
 - **All of a plugin's settings in one place.** Open a plugin in a screen's Plugins tab and its settings are there, in
   three groups: what takes effect on this screen at once, what is filled in once for every screen, and what builds the

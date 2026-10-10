@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on dev while the plugin API is 0.x (the plugin API is 0.7 now): in an app added from the `#dev` URL, a
+Plugins are on dev while the plugin API is 0.x (the plugin API is 0.8 now): in an app added from the `#dev` URL, a
 local copy of the app, and the editor's development server (`core.plugins_enabled()`). The stable app has no Plugins
 page, no routes and no loop.
 
@@ -154,7 +154,7 @@ beside it, read again a few times after a press, so a test can say how it went. 
 | A tile of an entity | `TileContext.entity`, `tessera::action` | the manifest's `domains`, `attributes` and `fields`; `Plugins.entity_part` (state, name, named attributes, fields), `related_entities`; `has_attributes` through `Plugins.entities_with` | entity picker of those domains, also ones Tessera draws no tile for; with `has_attributes` only the entities that have them, and always the one chosen (`offeredEntities`) |
 | A card | `Card`, `add_card`, `open_card`; closed by `hide_detail` | nothing | nothing |
 | A tap action | `add_tap_action`; `event()` runs a tile's `plugin:` tap | `validate_layout` takes a `plugin:` tap | the tile inspector's tap choices |
-| A top bar item | `add_bar_item`; `header_bar::Kind::plugin` | `validate_header` type `plugin`, sent to a screen whose hello says `plugins` | "From plugins" in Top bar, Add |
+| A top bar item | `add_bar_item`, its icon in a `tone` (0.8); `header_bar::Kind::plugin` | `validate_header` type `plugin`, `content` all or icon (wire `o`), sent to a screen whose hello says `plugins` | "From plugins" in Top bar, Add; Show: icon and words, or icon only |
 | Settings rows | `settings(SettingsPage&)`; `settings_screen::plugin_pages` | `Plugins.settings_for`, `set_setting`: the manifest's `settings` (switch, number, select, text, button with its `status`), entities of the screen's own device found in the entity registry (`_setting_entities`) | in the plugin's details on the screen's Plugins tab (`PluginSettings.vue`), with its inputs and parts; Screen settings links there |
 | A question to Home Assistant | `tessera::send`, `on_message` (op `plugin`) | `Plugins.answer`: only `permissions.ha_commands`, logged; an answer the manifest's `answers` maps goes as its fields, the rest as it came; both bounded (`bounded`, 3.2 KB, by bytes) | the commands under "What it may do" |
 | The moments | `on_ready`, `on_interval` (every 250 ms; `on_tick` before 0.4), `on_standby`, `before_update`, `on_cards_closed`, `on_alert`, `on_touch` (0.3: every tap `screen_input::TouchGuard` takes, through `screen_hooks::touched()`) | | |
@@ -190,8 +190,10 @@ moves a screen to another origin unless the person switches in the plugin's deta
 ## What comes along
 
 `requires.plugins` names plugins a plugin needs: they come along from the index, the newest that fits the screen.
-`requires.features` names features (`plugin_manifest.FEATURES`: speaker, microphone, media player), each a promise
-about one ESPHome id (`ts_speaker`, ...), which a board brings (boards.json `features`) or a plugin (`provides`). A
+`requires.features` names features (`plugin_manifest.FEATURES`: speaker, microphone, media player, camera, camera
+sensor), each a promise about one ESPHome id (`ts_speaker`, ...), which a board brings (boards.json `features`) or a
+plugin (`provides`). The camera sensor is only a board's (`BOARD_ONLY`): its promise is the board file's substitution
+`CAMERA_I2C`, the bus a camera plugin drives the sensor on, and the board powers the sensor itself. A
 feature the screen lacks comes along with the one plugin that brings it and fits; with several the person chooses
 (`providers`), with none the plugin does not fit. One screen has one of each feature. A part with `features` is
 offered and built only where the screen has them. `Plugins.plan` says what a change comes to before anything is built

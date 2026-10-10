@@ -224,7 +224,8 @@ the tables at the top of this page, README_EXTENDED.md and docs/EASY_SETUP.md.
 
 Some boards have something the others do not: a microphone, a motion sensor, a relay. A setting for it belongs to that
 board, not to every screen, so it does not go into the table above. It is an ESPHome entity of the board's files (a
-`switch`, `number`, `select`, `text` or `button`), and Tessera shows it in three places at once:
+`switch`, `number`, `select`, `text` or `button`, or a `media_player`, whose volume is the setting), and Tessera shows
+it in three places at once:
 
 - **Home Assistant**, as every entity of the screen's device;
 - **the screen**, on its settings page under **Extras**, a page that only a screen with such a setting has;
@@ -249,7 +250,7 @@ All three show and change the same entity, so there is no second copy of the val
    ```
 
 2. **The row on the screen.** A row in `settings_screen::board_rows`, through the file's own hook in `packages/core.yaml`
-   (`BOOT_BOARD_SETTINGS` for the board file, `BOOT_AUDIO_SETTINGS` for the audio feature; empty for every other
+   (`BOOT_BOARD_SETTINGS` for the board file, `BOOT_AUDIO` for the audio feature; empty for every other
    board), built with the same builders as the core's rows and bound to the entity:
 
    ```yaml

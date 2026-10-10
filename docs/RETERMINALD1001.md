@@ -15,13 +15,13 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
 | Power, resets | XL9535 expander on GPIO20/21 (`board_bus`) | the board file |
 | Backlight | PWM on GPIO14, at 1220 Hz | `features/backlight.yaml` |
 | Battery | voltage on GPIO18 through a divider of two, charging on GPIO15 | `features/battery-adc.yaml` with Seeed's discharge curve |
-| Speaker | ES8311 and an NS4150B, on its own I2S bus | `features/audio.yaml` |
+| Speaker | ES8311 and an NS4150B, on its own I2S bus | `features/audio.yaml`, with its volume under Extras |
 | Microphones | two, through an ES7210, on a second I2S bus | `features/audio.yaml` |
 | Motion | LSM6DS3TR-C at 0x6A | its temperature, and Wake when moved |
 | Clock | PCF8563 at 0x51 | keeps the time while Home Assistant is away |
 | Button | GPIO3, high while pressed | the core's Wake and Sleep |
 | RGB LED | GPIO22, 36, 23, lit low | `features/rgb-led.yaml` |
-| Camera | SC2356, 1 MIPI-CSI lane, SCCB 0x36 | not yet (below) |
+| Camera | SC2356, 1 MIPI-CSI lane, SCCB 0x36 on `touch_bus`, power on expander pins 1, 3 and 11 | powered by the board file, driven by the Screen camera plugin (below) |
 | SD card, LTE, LoRa | | not configured |
 
 ## Things to know
@@ -38,14 +38,21 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
 
 ## The camera
 
-The SC2356's driver is in Seeed's copy of Espressif's `esp_cam_sensor` (1.2.0), not in Espressif's own (2.6.0). The
-driver's interface is the same in both, and a sensor registers itself through a linker section every library takes
-part in, so the driver can be built as a component of its own beside the current `esp_video`. What is still open is
-the ISP tuning (`esp_ipa`), without which the picture is unprocessed. Until ESPHome has a MIPI-CSI camera of its own
-(pull requests #19480 and #16944), the camera belongs in a plugin.
+The SC2356 answers with the chip id and the address of the SC202CS (0xEB52 at 0x36), so the SC202CS driver of
+Espressif's own `esp_cam_sensor` finds it, and its colour tuning for this sensor gives a neutral picture once the
+exposure has settled. The board file powers the sensor at start as Seeed's BSP does and names its bus in `CAMERA_I2C`:
+that is the feature `camera_sensor` (docs/PLUGINS.md). Until ESPHome has a MIPI-CSI camera of its own (pull request
+#16944), the Screen camera plugin brings the driver (`esp_video_camera`) and makes it a camera of the screen's device in
+Home Assistant: a 1280 x 720 picture in about half a second, a stream at up to five pictures a second.
+
+- **One supply for both MIPI ports.** The camera input takes its PHY supply from the same internal regulator as the
+  display (channel 3, 2.5 V). ESP-IDF shares a channel only when nobody may change its voltage, so
+  `hardware/esp32p4-c6.yaml` claims it as not adjustable, ESPHome's default.
+- **A protective film** comes on the lens of a new board and makes the picture hazy.
 
 ## Tried on the glass
 
 Picture, colours, the way up, touch in every corner, a card held open, the settings strip, Wi-Fi, the battery, the
-button, the LED, Home Assistant's TTS through the speaker, the Extras page and card. Firmware 0.53.0 from the `d1001`
+button, the LED, Home Assistant's TTS through the speaker, the Extras page and card, the camera in Home Assistant with
+the Screen camera plugin, and the Voice assistant plugin end to end. Firmware 0.53.0 from the `d1001`
 branch, chip revision v1.3.

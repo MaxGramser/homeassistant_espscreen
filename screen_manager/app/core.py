@@ -1164,6 +1164,8 @@ BATTERY_FEATURE = 'battery'
 BATTERY_MIN_FIRMWARE = (0, 41, 0)
 BATTERY_CONTENTS = ('icon', 'percent')
 BATTERY_SHOWS = ('always', 'low')
+# A plugin's item (plugin API 0.8): its icon and the words its plugin gives, or its icon alone, as a person chooses.
+PLUGIN_ITEM_CONTENTS = ('all', 'icon')
 # Only shown, never controlled: the top bar takes these besides every tile domain.
 HEADER_ONLY_DOMAINS = frozenset('device_tracker zone counter event input_datetime input_text water_heater humidifier'.split())
 # What an entity item shows: its status, when it last changed, or its icon alone (GitHub #144, any firmware with a top bar:
@@ -1203,11 +1205,11 @@ def validate_header(data, most=HEADER_MAX_ITEMS):
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
         elif kind == 'plugin':
             # A plugin's item (docs/PLUGINS.md): it says itself what it shows, and shows nothing on a screen without it.
-            if set(item) != {'type', 'item'}:
+            if set(item) - {'type', 'item', 'content'} or 'item' not in item:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))
-            if not plugin_tile(item.get('item')):
+            if not plugin_tile(item.get('item')) or item.get('content', 'all') not in PLUGIN_ITEM_CONTENTS:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
-            clean = {'type': 'plugin', 'item': item['item']}
+            clean = {'type': 'plugin', 'item': item['item'], 'content': item.get('content', 'all')}
         elif kind == 'entity':
             if set(item) - {'type', 'entity', 'content', 'icon', 'show'}:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))

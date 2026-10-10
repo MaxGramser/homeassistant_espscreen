@@ -214,7 +214,7 @@ def shapes():
                  # Whether it has a battery (firmware 0.41.0, profiles.battery): the editor offers the top bar's battery
                  # item on a screen of this board before it ever connected; a screen's hello says `battery` itself.
                  'battery': profiles.battery(board),
-                 # What it brings that a plugin may need (plugin API 0.7, profiles.features): speaker, microphone, media
+                 # What it brings that a plugin may need (plugin API 0.8, profiles.features): speaker, microphone, media
                  # player, each a promise about one ESPHome id (plugins.Plugins reads it as the board's own).
                  'features': profiles.features(board),
                  # The most tiles and pages a screen of this board takes (firmware 0.34.0+, SCREEN_MAX_TILES and

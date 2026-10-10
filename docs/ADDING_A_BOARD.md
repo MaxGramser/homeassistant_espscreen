@@ -1,5 +1,7 @@
 # Adding a board
 
+To request a board, search [New boards on the wishlist](https://tessera-maxgramser.on-forge.com/wishlist?category=board) and upvote an existing request or add one. This guide is for implementing board support. Link that wish in your pull request to `dev`.
+
 The recipe, in the order the work actually goes: the hardware is looked up, the layout is computed, and only the
 grid is a choice. `docs/RESPONSIVE.md` says why the layout works the way it does.
 
@@ -161,6 +163,12 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
 - A battery: a sensor in the `battery` device class (and a `battery_charging` binary sensor when the board can tell)
   in its hardware file, which the firmware finds and the top bar shows. `packages/features/battery-voltage.yaml` and
   `battery-adc.yaml` turn a voltage on a pin into one (docs/BATTERY.md).
+- A speaker and microphones: `packages/features/audio.yaml`, with the board's I2S buses, DAC and ADC in its own file,
+  and how its DAC turns ESPHome's volume into decibels (`AUDIO_DAC_DB_AT_0`, `AUDIO_DAC_DB_AT_1`, from the codec's
+  datasheet or ESPHome's driver), so 0 to 100 % runs evenly in decibels up to the DAC's full scale. The screen is then a
+  media player in Home Assistant, and plugins that need a speaker or a microphone fit it.
+- A camera on the MIPI-CSI port: the board powers the sensor at start and names its I2C bus in `CAMERA_I2C` (the
+  feature `camera_sensor`); the Screen camera plugin drives it.
 - The docs: `docs/<BOARD>.md` for what is particular to it and what has been tried on glass, the board table in
   README.md and docs/EASY_SETUP.md, and the boards and tile counts in README_EXTENDED.md.
 

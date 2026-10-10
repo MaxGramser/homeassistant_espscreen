@@ -75,9 +75,16 @@ substitutions:
     if (x < t[0]) return 0.0f; for (int i = 1; i < 21; i++) if (x < t[i]) return (i - 1) * 5.0f + 5.0f * (x - t[i - 1]) / (t[i] - t[i - 1]);
     return 100.0f; })(v)
 
-  # The audio's data lines (features/audio.yaml); the buses and the two chips are below.
+  # The audio's data lines (features/audio.yaml); the buses and the two chips are below. The ES8311 turns ESPHome's
+  # volume into its DAC register from 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
   AUDIO_DOUT_PIN: GPIO30
   AUDIO_DIN_PIN: GPIO26
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the SC2356 on the MIPI-CSI port answers on the
+  # touch bus. The board powers it (switches below); a camera plugin drives it (screen_camera).
+  CAMERA_I2C: touch_bus
 
   # This board's own row on the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings").
   BOOT_BOARD_SETTINGS: |-
@@ -148,6 +155,23 @@ switch:
     internal: true
     restore_mode: ALWAYS_ON
     pin: {xl9535: board_expander, number: 13}
+  # The camera's sensor, powered at start as Seeed's BSP does it: pin 1 (BSP line 1) its supply, pin 3 (BSP line 3) out
+  # of power-down, pin 11 (BSP line 9) out of reset. It takes next to nothing until a camera plugin asks for pictures.
+  - platform: gpio
+    id: board_camera_power
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 1}
+  - platform: gpio
+    id: board_camera_awake
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 3}
+  - platform: gpio
+    id: board_camera_run
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 11}
   # Pin 12 (BSP line 10) stops the charger when high: low, so the battery charges on USB.
   - platform: gpio
     id: board_charge_off

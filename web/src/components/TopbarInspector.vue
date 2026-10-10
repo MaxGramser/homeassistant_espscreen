@@ -182,6 +182,11 @@ function onKey(e: KeyboardEvent, i: number) {
         <small v-if="!batterySupported" class="help warn">{{ t("editor.topbar.status_firmware", { version: batteryNeeded }) }}</small>
       </template>
       <template v-else-if="item.type === 'plugin'">
+        <!-- Its icon and the words its plugin gives, or its icon alone (plugin API 0.8). -->
+        <div class="f">
+          <span class="f-label">{{ t("editor.topbar.content.label") }}</span>
+          <Segmented id="topbar-plugin-content" :choices="(state.inventory.header?.plugin_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'all'" @pick="(v) => update({ content: v })" />
+        </div>
         <p class="help" id="topbar-plugin">{{ t("editor.topbar.plugin_item") }}</p>
       </template>
       <template v-else-if="item.type === 'link'">

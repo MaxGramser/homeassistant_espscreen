@@ -10144,7 +10144,7 @@ inline void tick() {
         const auto kind=bar->items[i].kind;
         if(kind!=header_bar::Kind::wifi && kind!=header_bar::Kind::battery && kind!=header_bar::Kind::plugin)continue;
         const auto now_shown=header_bar::device_item(bar->items[i],device);
-        now_said+=std::to_string(now_shown.shown)+':'+std::to_string(now_shown.icon)+':'+now_shown.text+'\x1f';
+        now_said+=std::to_string(now_shown.shown)+':'+std::to_string(now_shown.icon)+':'+now_shown.text+':'+std::to_string(now_shown.has_color?now_shown.color:0)+'\x1f';
       }
       if(now_said!=said){said=std::move(now_said);refresh_header_only();}
     }

@@ -157,6 +157,7 @@
       "this_screen": "Este ecrã",
       "extras": "Extras",
       "microphone": "Microfone",
+      "media_player": "Volume",
       "wake_when_moved": "Acordar ao mover",
       "dark_mode": "Modo escuro",
       "auto_standby": "Espera automática",
@@ -1037,6 +1038,10 @@
           "icon": "Só ícone",
           "percent": "Percentagem"
         },
+        "plugin_contents": {
+          "all": "Ícone e texto",
+          "icon": "Só ícone"
+        },
         "battery_shows": {
           "always": "Sempre",
           "low": "Só quando fraca"
@@ -1046,6 +1051,10 @@
         "microphone": {
           "label": "Microfone",
           "hint": "Desligado silencia o microfone para tudo o que escuta. O ecrã guarda-o depois de reiniciar."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "O volume a que o ecrã fala e toca: respostas, anúncios e música. O mesmo volume do leitor multimédia do ecrã no Home Assistant."
         },
         "wake_when_moved": {
           "label": "Acordar ao mover",
@@ -1195,6 +1204,7 @@
         "speaker_multiple": "Colunas",
         "soundbar": "Barra de som",
         "headphones": "Auscultadores",
+        "microphone": "Microfone",
         "piano": "Piano",
         "guitar_acoustic": "Guitarra",
         "television": "TV",
@@ -1987,7 +1997,9 @@
       "features": {
         "speaker": "altifalante",
         "microphone": "microfone",
-        "media_player": "leitor multimédia"
+        "media_player": "leitor multimédia",
+        "camera": "fluxo de câmara para o Home Assistant",
+        "camera_sensor": "sensor de câmara"
       },
       "fitting_only": "Só o que serve nos meus ecrãs",
       "made_by": {

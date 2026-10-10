@@ -10,7 +10,8 @@ import re
 import core
 from i18n import english, t
 
-SETTING_DOMAINS = ('switch', 'number', 'select', 'text', 'button')
+# A media player counts with its volume (a board's speaker, features/audio.yaml): a number from 0 to 100 %.
+SETTING_DOMAINS = ('switch', 'number', 'select', 'text', 'button', 'media_player')
 STATUS_DOMAINS = ('sensor',)       # an ESPHome text sensor is a sensor in Home Assistant
 
 
@@ -55,7 +56,12 @@ def row(setting, found, states, label, hint, online):
     # A button's state is when it was last pressed: it is there when it is not unavailable.
     available = bool(eid) and value not in (None, 'unavailable') and (kind == 'button' or value != 'unknown') and online
     out = {'key': setting['key'], 'entity': eid, 'kind': kind, 'label': label, 'hint': hint, 'available': bool(available)}
-    if kind == 'switch':
+    if kind == 'media_player':
+        # Its volume, as Home Assistant's more-info dialog sets it: 0 to 1, shown in percent.
+        level = attrs.get('volume_level')
+        out.update(kind='number', available=bool(available) and isinstance(level, (int, float)),
+                   value=round(level * 100) if isinstance(level, (int, float)) else None, min=0, max=100, step=5, unit='%')
+    elif kind == 'switch':
         out['value'] = value == 'on'
     elif kind == 'number':
         try:
@@ -86,6 +92,8 @@ async def change(manager, entity, value, refused):
         await manager.ha.call_service('switch', 'turn_on' if value else 'turn_off', {'entity_id': entity})
     elif domain == 'number' and isinstance(value, (int, float)) and not isinstance(value, bool):
         await manager.ha.call_service('number', 'set_value', {'entity_id': entity, 'value': value})
+    elif domain == 'media_player' and isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 100:
+        await manager.ha.call_service('media_player', 'volume_set', {'entity_id': entity, 'volume_level': value / 100})
     elif domain == 'select' and isinstance(value, str) and len(value) <= 64:
         await manager.ha.call_service('select', 'select_option', {'entity_id': entity, 'option': value})
     elif domain == 'text' and isinstance(value, str) and \

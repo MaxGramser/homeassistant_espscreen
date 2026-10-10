@@ -68,6 +68,16 @@ also be changed on the screen or by an automation, and your own YAML for one scr
 
 > **The manual is on the [Tessera website](https://tessera-maxgramser.on-forge.com/docs/):** from the [quick start](https://tessera-maxgramser.on-forge.com/docs/quick-start) to every tile, every screen setting, every supported screen and troubleshooting, with search. Anyone with a GitHub account can improve a page with **Edit this page**. This README is the overview; the files under `docs/` are the reference for contributors.
 
+## Requests, questions and bugs
+
+- **Features and improvements:** search the [wishlist](https://tessera-maxgramser.on-forge.com/wishlist). Upvote an existing wish or add your own.
+- **New ESP boards and displays:** use the [New boards category](https://tessera-maxgramser.on-forge.com/wishlist?category=board). Include the exact model, a product link and whether you can test it. Votes show how many people would use it and help set priorities. They do not guarantee support or a release date.
+- **Questions and examples:** post in [Community](https://tessera-maxgramser.on-forge.com/community), where the earlier GitHub conversations and replies have moved.
+- **Bugs:** use GitHub Issues for something that is broken in existing functionality. Include reproducible steps and version information.
+- **Code changes:** open a pull request and link the bug or website wish it implements.
+
+Sign in on the website with GitHub to vote, post or reply. Search before posting so the conversation and votes stay together.
+
 ## In real life
 
 A Guition in the living room, 37 seconds in one take: tapping tiles, swiping through the pages,

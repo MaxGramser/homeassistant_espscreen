@@ -46,7 +46,7 @@ export const PLUGIN_TYPES: PluginType[] = ["tiles", "functions", "hardware"];
 export const PLUGIN_TOPICS = ["time", "weather", "calendar", "home", "energy", "travel", "money", "sports", "news", "media",
   "photos", "fun", "voice", "tech"] as const;
 // What a screen can have that a plugin needs (plugin_manifest.FEATURES): each a promise about one ESPHome id.
-export const PLUGIN_FEATURES = ["speaker", "microphone", "media_player"] as const;
+export const PLUGIN_FEATURES = ["speaker", "microphone", "media_player", "camera", "camera_sensor"] as const;
 export type PluginStage = "stable" | "beta" | "example";
 export type Plugin = {
   id: string;

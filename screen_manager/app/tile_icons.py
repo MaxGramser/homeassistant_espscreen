@@ -77,6 +77,7 @@ GROUPS = (
         ('speaker-multiple', 'F0D38', 'Speakers'),
         ('soundbar', 'F17DB', 'Soundbar'),
         ('headphones', 'F02CB', 'Headphones'),
+        ('microphone', 'F036C', 'Microphone'),
         ('piano', 'F067D', 'Piano'),
         ('guitar-acoustic', 'F0771', 'Guitar'),
         ('television', 'F0502', 'TV'),

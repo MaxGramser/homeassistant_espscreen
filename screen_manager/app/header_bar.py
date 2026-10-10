@@ -16,8 +16,8 @@ from datetime import datetime, time
 
 import tile_icons
 from core import (BAR_STATUS_FEATURE, BAR_STATUS_MIN_FIRMWARE, BATTERY_CONTENTS, BATTERY_FEATURE, BATTERY_MIN_FIRMWARE, BATTERY_SHOWS,
-                  HEADER_BUILTIN, HEADER_CONTENTS, HEADER_MAX_ITEMS, HEADER_MIN_FIRMWARE, HEADER_SHOWS, HEADER_STATUS, WIFI_CONTENTS,
-                  WIFI_SHOWS, epoch, header_items, local_clock, one_mu, short, state_word)
+                  HEADER_BUILTIN, HEADER_CONTENTS, HEADER_MAX_ITEMS, HEADER_MIN_FIRMWARE, HEADER_SHOWS, HEADER_STATUS, PLUGIN_ITEM_CONTENTS,
+                  WIFI_CONTENTS, WIFI_SHOWS, epoch, header_items, local_clock, one_mu, short, state_word)
 import i18n
 from i18n import TRANSLATIONS, screen_number, screen_t, t
 
@@ -361,7 +361,7 @@ def message(layout, states, registry=None, units=None, tz=None, words=None, feat
         if item['type'] == 'plugin':
             # Only to a screen whose firmware has plugins: an older one refuses a bar with an item it does not know.
             if features is None or 'plugins' in features:
-                items.append({'k': 'plugin', 't': item['item']})
+                items.append({'k': 'plugin', 't': item['item'], **({'o': 1} if item.get('content') == 'icon' else {})})
             continue
         wire, shown = entity_item(item, states, registry, units, tz, words)
         if shown:
@@ -429,4 +429,6 @@ def catalogue():
             'battery_contents': [{'key': key, 'label': t(f'addon.labels.top_bar.battery_contents.{key}')} for key in BATTERY_CONTENTS],
             'battery_shows': [{'key': key, 'label': t(f'addon.labels.top_bar.battery_shows.{key}')} for key in BATTERY_SHOWS],
             'battery_min_firmware': '.'.join(map(str, BATTERY_MIN_FIRMWARE)),
+            # A plugin's item: its icon and words, or its icon alone (plugin API 0.8).
+            'plugin_contents': [{'key': key, 'label': t(f'addon.labels.top_bar.plugin_contents.{key}')} for key in PLUGIN_ITEM_CONTENTS],
             'max_items': HEADER_MAX_ITEMS, 'min_firmware': '.'.join(map(str, HEADER_MIN_FIRMWARE))}

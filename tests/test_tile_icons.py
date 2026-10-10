@@ -18,7 +18,7 @@ HEADER = runtime_source()
 
 class IconSetTests(unittest.TestCase):
     def test_set_is_complete_and_carried_by_every_icon_font(self):
-        self.assertEqual(len(tile_icons.ICONS), 153)
+        self.assertEqual(len(tile_icons.ICONS), 154)
         self.assertTrue(any(group == 'Media and music' and len(icons) >= 20 for group, icons in tile_icons.GROUPS))
         self.assertEqual(len(set(tile_icons.GLYPHS.values())), len(tile_icons.GLYPHS))
         for code in tile_icons.GLYPHS.values():
@@ -89,7 +89,7 @@ class IconSetTests(unittest.TestCase):
         for state, name in tile_icons.WEATHER.items():
             self.assertRegex(weather, rf'condition == "{re.escape(state)}"[^\n]*return "\\U000{tile_icons.GLYPHS[name]}";')
         editor = tile_icons.editor()
-        self.assertEqual(sum(len(group['icons']) for group in editor['groups']), 153)
+        self.assertEqual(sum(len(group['icons']) for group in editor['groups']), 154)
         self.assertIn(f'"\\U000{editor["sun"]["above_horizon"]}" : "\\U000{editor["sun"]["below_horizon"]}"', HEADER)
 
 class IconOptionTests(unittest.IsolatedAsyncioTestCase):

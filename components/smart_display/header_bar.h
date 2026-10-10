@@ -49,9 +49,11 @@ struct Item {
   bool has_color = false;
   // Shown only now and then (`a`): Kind::wifi while the signal is weak or gone, Kind::battery while it runs low.
   bool only_weak = false;
+  // Kind::plugin: its icon without the plugin's words (`o`, plugin API 0.8), as a person chose in the editor.
+  bool icon_only = false;
   bool operator==(const Item &o) const {
     return kind == o.kind && icon == o.icon && text == o.text && epoch == o.epoch && color == o.color && has_color == o.has_color &&
-           only_weak == o.only_weak;
+           only_weak == o.only_weak && icon_only == o.icon_only;
   }
 };
 
@@ -138,13 +140,19 @@ struct Shown {
   bool shown = false;
   uint32_t icon = 0;
   std::string text;
+  uint32_t color = 0;  // the icon's own colour while `has_color` (a plugin's tone), drawn as it is
+  bool has_color = false;
 };
 // What a plugin's item shows now (plugin_host sets it): nothing while the plugin has nothing to say, or the plugin is
 // not on this screen.
 inline Shown (*plugin_item)(const std::string &key) = nullptr;
 inline Shown device_item(const Item &item, const Device &device) {
   Shown s;
-  if (item.kind == Kind::plugin) return plugin_item ? plugin_item(item.text) : s;
+  if (item.kind == Kind::plugin) {
+    if (plugin_item) s = plugin_item(item.text);
+    if (item.icon_only && s.icon) s.text.clear();
+    return s;
+  }
   if (item.kind == Kind::link) {
     s.shown = !device.linked;
     s.icon = LINK_GLYPH;

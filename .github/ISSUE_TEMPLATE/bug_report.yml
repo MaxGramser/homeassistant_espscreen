@@ -1,12 +1,16 @@
 name: Bug report
-description: Something isn't working, a screen, the add-on, or the editor.
+description: Report a reproducible problem in an existing screen, app or editor feature.
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a problem. Please fill in as much as you can, it saves a lot of back and forth.
+        Use this form when existing functionality is broken. Please include the steps to reproduce it.
+
+        **Want a feature or improvement?** Search the [wishlist](https://tessera-maxgramser.on-forge.com/wishlist) and upvote an existing wish before adding another.
+        **Want a new ESP board or display?** Use [New boards on the wishlist](https://tessera-maxgramser.on-forge.com/wishlist?category=board), including the exact model and a product link. More votes help decide which boards get support. A single request does not guarantee support, and votes do not guarantee a release date.
+        **Have a question?** Ask in [Community](https://tessera-maxgramser.on-forge.com/community). Sign in with your GitHub account to post, vote or reply.
   - type: dropdown
     id: board
     attributes:
@@ -92,7 +96,9 @@ body:
     attributes:
       label: Before submitting
       options:
-        - label: I checked the README, README_EXTENDED.md, and the guides under docs/ for this
+        - label: This reports broken existing functionality, not a feature, improvement or new board request.
+          required: true
+        - label: I checked the Tessera manual and troubleshooting guide
           required: true
         - label: I searched the existing issues and this has not already been reported
           required: true

@@ -1429,8 +1429,8 @@ export function topbarView(item: HeaderItem): ItemView {
   if (item.type === "link") return { icon: LINK_GLYPH, text: "", shown: false };
   // The battery (firmware 0.41.0): three quarters and not charging, as the firmware's preview draws it.
   if (item.type === "battery") return batteryView(item, SAMPLE_BATTERY, false, percent);
-  // A plugin's item (docs/PLUGINS.md): the screen asks the plugin what it shows; the mockup shows its example.
-  if (item.type === "plugin") { const known = usePluginsStore().barItemOf(item.item); return { icon: known?.icon || "F0A66", text: known?.example || "", shown: true }; }
+  // A plugin's item shows its example, or its icon alone when a person chose so (plugin API 0.8).
+  if (item.type === "plugin") { const known = usePluginsStore().barItemOf(item.item); return { icon: known?.icon || "F0A66", text: item.content === "icon" ? "" : known?.example || "", shown: true }; }
   const entities = useEntitiesStore(), p = entities.topbarPreviews[itemKey(item)];
   if (!p) return { icon: item.icon === "none" ? null : entities.iconNamed(item.icon)?.cp || entities.automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
   return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(useUiStore().now / 1000), useRegionStore().screenLanguage) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };

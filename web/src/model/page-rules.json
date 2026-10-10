@@ -100,6 +100,10 @@
     "always",
     "low"
   ],
+  "pluginContents": [
+    "all",
+    "icon"
+  ],
   "displays": {
     "camera": [
       "standard",
@@ -333,6 +337,7 @@
     "map-marker",
     "meter-electric",
     "meter-gas",
+    "microphone",
     "microwave",
     "molecule-co2",
     "motion-sensor",
