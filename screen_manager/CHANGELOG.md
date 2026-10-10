@@ -74,6 +74,21 @@
   editor shows only the entities that have the attributes it needs, the price sensor instead of every sensor in the
   house. Plugin API 0.5.
 
+## 0.4.86 (firmware 0.54.0)
+
+A hotfix for 0.4.85: two fixes for screens that broke on firmware 0.53.0, nothing else.
+
+- **Dark mode no longer restarts a screen with many tiles (GitHub #227).** Turning Dark mode on or off restyled every
+  part of every card on every page, the pages kept off the glass included, and on a large grid with several pages that
+  took longer than the screen's watchdog allows: the screen froze, started again and came back light. Only colours
+  change, so the screen now fills in its new colours and draws itself again once. Tested on the 4-inch Guition, the
+  Waveshare 4.3 and the CYD: a switch went from 2.9 to 0.3 seconds on the Guition with nine pages and from 1.8 to 0.3
+  on the Waveshare, and the Guition after a switch matched, pixel for pixel, the same screen started in that look.
+- **Room for tiles on the Waveshare 7B (GitHub #207).** Its drawing buffer took 154 KB of the memory inside the chip,
+  which left about 17 KB for Wi-Fi, the connection to Home Assistant and the tiles: room for about four of them. The
+  buffer now lives in PSRAM, as on the larger boards. With the buffer there, owners of this board measured more than
+  150 KB free inside the chip.
+
 ## 0.4.85 (firmware 0.53.0)
 
 - **Your screens build the firmware of the Tessera you have.** A screen now always gets the firmware that belongs to
