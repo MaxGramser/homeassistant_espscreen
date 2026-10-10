@@ -104,8 +104,28 @@ describe("Firmware preview transport", () => {
     expect(firmware._preview_touch.mock.calls).toEqual([[695, 695, 1], [695, 695, 0]]);
     state.document!.title = "Updated panel";
     await flushPromises();
+    await vi.advanceTimersByTimeAsync(200);
     expect(vi.mocked(send).mock.lastCall?.[2]).toMatchObject({ layout: { title: "Updated panel", pages: [] } });
     expect(createModule).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the layout once typing pauses, not on every key", async () => {
+    const sent: string[] = [], layouts = () => sent;
+    vi.mocked(send).mockImplementation(async (path: string, _method: string, body: any) => {
+      if (path === "firmware-preview") sent.push(body.layout.title);
+      return bundle() as any;
+    });
+    await preview();
+    expect(layouts()).toEqual(["Test panel"]);
+    // A name typed into the inspector changes the draft with every key.
+    for (const title of ["H", "Ha", "Hal", "Hall"]) {
+      state.document!.title = title;
+      await flushPromises();
+      await vi.advanceTimersByTimeAsync(80);
+    }
+    expect(layouts()).toEqual(["Test panel"]);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(layouts()).toEqual(["Test panel", "Hall"]);
   });
 
   it("keeps the device session and page on value-only refreshes", async () => {

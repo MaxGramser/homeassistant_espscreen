@@ -28,7 +28,7 @@ let disposed = false, generation = 0, pointer: number | null = null, synced = fa
 let lastLayout = "", lastMessages = new Map<string, string>();
 let session = "", sequence = 0;
 let sendingActions = false;
-let liveRefresh: ReturnType<typeof setTimeout> | undefined;
+let liveRefresh: ReturnType<typeof setTimeout> | undefined, layoutTimer: ReturnType<typeof setTimeout> | undefined;
 let events: EventSource | null = null;
 let fetchingImage = false;
 let visible = true, lastDraw = 0;
@@ -36,6 +36,8 @@ let observer: IntersectionObserver | null = null;
 const downloads = new AbortController();
 // A still screen redraws its clock and the states coming in, not a finger: four frames a second is enough.
 const STILL_FRAME = 250;
+// A draft that changes with every key typed (a tile's name, a title) goes to the add-on once the typing pauses this long.
+const LAYOUT_PAUSE = 200;
 
 const layout = () => props.layout === undefined ? state.document : props.layout;
 // The screens' language, in which ESP Screens builds them and writes the words it sends (Settings -> Language & region).
@@ -262,7 +264,7 @@ onMounted(async () => {
     draw();
   } catch (e) { if (!disposed) fail(e instanceof Error ? e.message : String(e)); }
 });
-watch(layout, receive, { deep: true });
+watch(layout, () => { clearTimeout(layoutTimer); layoutTimer = setTimeout(receive, LAYOUT_PAUSE); }, { deep: true });
 watch(language, speak);
 watch(() => props.dark, shade);
 watch(entityQuery, listen);
@@ -273,7 +275,7 @@ onBeforeUnmount(() => {
   downloads.abort();
   if (raf !== null) cancelAnimationFrame(raf);
   raf = null;
-  clearTimeout(refreshTimer); clearTimeout(liveRefresh); cancel(); module = null;
+  clearTimeout(refreshTimer); clearTimeout(liveRefresh); clearTimeout(layoutTimer); cancel(); module = null;
 });
 </script>
 
