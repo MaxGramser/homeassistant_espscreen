@@ -29,6 +29,7 @@ class GT911Touchscreen final : public touchscreen::Touchscreen, public i2c::I2CD
   void update_touches() override;
 
   bool init_sequence_();
+  bool configuration_valid_();
   /// @brief Perform the internal setup routine for the GT911 touchscreen.
   ///
   /// This function checks the I2C address, configures the interrupt pin (if available),

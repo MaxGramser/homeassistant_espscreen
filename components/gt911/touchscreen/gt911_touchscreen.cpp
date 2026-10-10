@@ -17,6 +17,7 @@ static const uint8_t GET_SWITCHES[2] = {0x80, 0x4D};
 static const uint8_t GET_MAX_VALUES[2] = {0x80, 0x48};
 static const size_t MAX_TOUCHES = 5;  // max number of possible touches reported
 static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
+static constexpr uint8_t GT911_INIT_ATTEMPTS = 3;
 
 static constexpr uint8_t REG_CONFIG[2] = {0x80, 0x47};   // config version register
 static constexpr uint8_t REG_PRODUCT[2] = {0x81, 0x40};  // product name register
@@ -30,11 +31,19 @@ static constexpr uint8_t REG_TP_RES[2] = {0x80, 0x48};   // touch resolution reg
   }
 
 void GT911Touchscreen::setup() {
-  if (!this->init_sequence_()) {
-    this->mark_failed(LOG_STR("Power/reset sequence failed"));
-    return;
+  for (uint8_t attempt = 1; attempt <= GT911_INIT_ATTEMPTS; attempt++) {
+    ESP_LOGI(TAG, "GT911 power cycle attempt %u/%u", attempt, GT911_INIT_ATTEMPTS);
+    if (!this->init_sequence_()) {
+      this->mark_failed(LOG_STR("Power/reset sequence failed"));
+      return;
+    }
+    if (this->configuration_valid_()) {
+      this->setup_internal_();
+      return;
+    }
+    ESP_LOGW(TAG, "Invalid GT911 configuration after power cycle %u", attempt);
   }
-  this->setup_internal_();
+  this->mark_failed(LOG_STR("Invalid configuration after power-cycle retries"));
 }
 
 i2c::ErrorCode GT911Touchscreen::probe_address_(uint8_t address, uint8_t *switches) {
@@ -80,6 +89,27 @@ bool GT911Touchscreen::init_sequence_() {
   delay(200);  // NOLINT
 
   return true;
+}
+
+bool GT911Touchscreen::configuration_valid_() {
+  uint8_t data[4];
+  i2c::ErrorCode err = this->probe_address_(PRIMARY_ADDRESS, data);
+  if (err != i2c::ERROR_OK)
+    err = this->probe_address_(SECONDARY_ADDRESS, data);
+  if (err != i2c::ERROR_OK)
+    return false;
+
+  err = this->write(GET_MAX_VALUES, sizeof(GET_MAX_VALUES));
+  if (err != i2c::ERROR_OK)
+    return false;
+  err = this->read(data, sizeof(data));
+  if (err != i2c::ERROR_OK)
+    return false;
+
+  const uint16_t x_res = encode_uint16(data[1], data[0]);
+  const uint16_t y_res = encode_uint16(data[3], data[2]);
+  ESP_LOGI(TAG, "GT911 geometry after power cycle: %u x %u at 0x%02X", x_res, y_res, this->address_);
+  return x_res != 0 && y_res != 0;
 }
 
 void GT911Touchscreen::setup_internal_() {
