@@ -1064,6 +1064,121 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/reterminald1001.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": true,
+  "board": "reterminald1001",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    434,
+    244
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 8.0,
+   "model": "reTerminal D1001",
+   "name": "reTerminal D1001",
+   "order": 19,
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 189,
+  "firmware": "0.53.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 38,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 71,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      434,
+      244
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      432,
+      243
+     ]
+    },
+    "columns": 3,
+    "height": 1280,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 60,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 52,
+   "tile_pad": 13,
+   "top": 59
+  },
+  "wide_slots": false,
+  "width": 1280
+ },
  "checkout/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -4199,6 +4314,121 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/reterminald1001.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": true,
+  "board": "reterminald1001",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    434,
+    244
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 8.0,
+   "model": "reTerminal D1001",
+   "name": "reTerminal D1001",
+   "order": 19,
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 189,
+  "firmware": "0.53.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 38,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 71,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      434,
+      244
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      432,
+      243
+     ]
+    },
+    "columns": 3,
+    "height": 1280,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 60,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 52,
+   "tile_pad": 13,
+   "top": 59
+  },
+  "wide_slots": false,
+  "width": 1280
+ },
  "packages/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -5203,6 +5433,121 @@
   },
   "wide_slots": false,
   "width": 720
+ },
+ "reterminald1001": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": true,
+  "board": "reterminald1001",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    434,
+    244
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 8.0,
+   "model": "reTerminal D1001",
+   "name": "reTerminal D1001",
+   "order": 19,
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 189,
+  "firmware": "0.53.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 38,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 71,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      434,
+      244
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      432,
+      243
+     ]
+    },
+    "columns": 3,
+    "height": 1280,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 60,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 52,
+   "tile_pad": 13,
+   "top": 59
+  },
+  "wide_slots": false,
+  "width": 1280
  },
  "sunton8048s070": {
   "alert": {

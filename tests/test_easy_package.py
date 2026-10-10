@@ -150,9 +150,10 @@ class PackageTests(unittest.TestCase):
         self.assertGreater(len(shared), 90)
         for board, defined in names.items():
             own = defined - shared
-            # What a feature brings (the resistive panel's calibration, the capacitive one's edge swipe, camera images)
-            # and the hardware a screen's own YAML may change on the board that has it.
-            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$)', n) for n in own), f'{board}: {sorted(own)}')
+            # What a feature brings (the resistive panel's calibration, the capacitive one's edge swipe, camera images,
+            # a battery's voltage) and the hardware a screen's own YAML may change on the board that has it (the pins of
+            # an ESP32-P4's Wi-Fi link and touch bus, hardware/esp32p4-c6.yaml).
+            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$)', n) for n in own), f'{board}: {sorted(own)}')
 
     def test_the_checker_refuses_a_fixed_home_assistant_subscription(self):
         source = (ROOT / 'tools/check_packages.py').read_text()

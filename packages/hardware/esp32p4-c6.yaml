@@ -3,12 +3,23 @@
 # The chip, its memory, the supply of the MIPI-DSI PHY, the Wi-Fi co-processor and the I2C bus of the touch panel: what
 # the Guition P4 panels (hardware/guition-esp32p4.yaml) and the Waveshare ESP32-P4 86 panel share, pin for pin. The file
 # that includes this one adds the flash size, the backlight, the display and the touch panel. `HOSTED_SDIO_FREQUENCY`
-# is the clock of the Wi-Fi link, which a board may lower.
+# is the clock of the Wi-Fi link, which a board may lower. A board wired otherwise (the reTerminal D1001) states its
+# own pins for the Wi-Fi link (`HOSTED_*_PIN`) and the touch bus (`TOUCH_SDA`, `TOUCH_SCL`); the defaults are the
+# Guition's and the Waveshare's.
 packages:
   build: !include esp-idf.yaml
 
 substitutions:
   HOSTED_SDIO_FREQUENCY: "40MHz"
+  HOSTED_RESET_PIN: GPIO54
+  HOSTED_CMD_PIN: GPIO19
+  HOSTED_CLK_PIN: GPIO18
+  HOSTED_D0_PIN: GPIO14
+  HOSTED_D1_PIN: GPIO15
+  HOSTED_D2_PIN: GPIO16
+  HOSTED_D3_PIN: GPIO17
+  TOUCH_SDA: GPIO7
+  TOUCH_SCL: GPIO8
 
 esp32:
   variant: esp32p4
@@ -44,13 +55,13 @@ esp_ldo:
 # The P4 has no radio: an ESP32-C6 beside it does the Wi-Fi over a four-bit SDIO bus.
 esp32_hosted:
   variant: esp32c6
-  reset_pin: GPIO54
-  cmd_pin: GPIO19
-  clk_pin: GPIO18
-  d0_pin: GPIO14
-  d1_pin: GPIO15
-  d2_pin: GPIO16
-  d3_pin: GPIO17
+  reset_pin: ${HOSTED_RESET_PIN}
+  cmd_pin: ${HOSTED_CMD_PIN}
+  clk_pin: ${HOSTED_CLK_PIN}
+  d0_pin: ${HOSTED_D0_PIN}
+  d1_pin: ${HOSTED_D1_PIN}
+  d2_pin: ${HOSTED_D2_PIN}
+  d3_pin: ${HOSTED_D3_PIN}
   active_high: true
   sdio_frequency: ${HOSTED_SDIO_FREQUENCY}
 
@@ -58,12 +69,13 @@ logger:
   tx_buffer_size: 2048
   hardware_uart: UART0
 
+# A list, so a board with a second bus (the reTerminal D1001) adds it beside this one.
 i2c:
-  id: touch_bus
-  sda: GPIO7
-  scl: GPIO8
-  frequency: 400kHz
-  # The board has its own pull-ups on this bus.
-  sda_pullup_enabled: false
-  scl_pullup_enabled: false
-  scan: true
+  - id: touch_bus
+    sda: ${TOUCH_SDA}
+    scl: ${TOUCH_SCL}
+    frequency: 400kHz
+    # The board has its own pull-ups on this bus.
+    sda_pullup_enabled: false
+    scl_pullup_enabled: false
+    scan: true

@@ -138,3 +138,9 @@ wavesharep4:
   name: Waveshare
   model: ESP32-P4-86-Panel-ETH-2RO
   status: experimental
+
+reterminald1001:
+  file: reterminald1001.yaml
+  name: reTerminal D1001
+  model: reTerminal D1001
+  status: experimental
