@@ -9,7 +9,7 @@ import { dimensions, displayName, isFull, isWide, keysOf, pageTarget, sizeOf } f
 import { clockSample } from "../model/clock";
 import rules from "../model/page-rules.json";
 import { energyPaints, tileActive, tilePalette } from "../model/tile-palette";
-import { displayOf, tileFace } from "../model/tile-face";
+import { displayOf, sameFace, tileFace, type Face } from "../model/tile-face";
 import { bigKeyLine, bigValue, bodyText, favoriteLine, fillPercent, headLine, isGone, isOn, mediaSubtitle, pageLink, rangeChip, readingText,
   roundValue, runText, sameLive, sameWords, screenText, setpointText, stateText, subLine, type Live, type ScreenWords } from "../model/tile-text";
 import { glyph, clockText } from "../model/topbar";
@@ -86,11 +86,20 @@ export function useTileCard(props: TileCardProps) {
   });
   // The screen draws a thermostat's range on its -/+ (firmware 0.19.0+); an older one gets such a thermostat without them.
   const rangeReady = computed(() => scr.currentScreen?.climate_range !== false);
-  const face = computed(() => tileFace({
+  // The control set the add-on sends for it, and whether the screen draws big keys, the wide flip clock and a bedside
+  // clock's AM or PM (firmware 0.17.0+): worked out again only when the tile or the screen changes.
+  const chosenControls = computed(() => resolveControls(props.tile));
+  const bigKeys = computed(() => scr.supports(0, 17, 0));
+  // The same face for as long as it draws the same: a report that changes the card's words leaves its face alone.
+  const face = computed<Face>((before) => {
+    const next = faceOf();
+    return before && sameFace(before, next) ? before : next;
+  });
+  const faceOf = () => tileFace({
     entity: props.tile.entity, options: props.tile.options, shape: shape.value, full: isFull(props.tile), wide: isWide(props.tile),
-    live: current.value, chosen: resolveControls(props.tile), rangeReady: rangeReady.value, bigKeys: scr.supports(0, 17, 0),
+    live: current.value, chosen: chosenControls.value, rangeReady: rangeReady.value, bigKeys: bigKeys.value,
     favorite: Boolean(favoritePlay.value), plugin: Boolean(pluginTile.value), pluginRow: Boolean(pluginRow.value), watch: Boolean(watchFace.value),
-  }));
+  });
 
   // ---- What it writes ----
   const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && region.screenBuiltinName(props.tile.entity)) || entities.entityName(props.tile.entity));

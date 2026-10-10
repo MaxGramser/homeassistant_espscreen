@@ -14,8 +14,10 @@ import ModeBar from "../ModeBar.vue";
 import RangeChip from "./RangeChip.vue";
 
 const props = defineProps<{ card: TileCardView }>();
+// The same card for as long as this face stands (useTileCard): read without going through the props each time.
+const card = props.card;
 // A tall card's slider has a white mark where its fill ends.
-const rangeStyle = computed(() => ({ ...props.card.sliderStyle, "--fill": `${props.card.fill}%` }));
+const rangeStyle = computed(() => ({ ...card.sliderStyle, "--fill": `${card.fill}%` }));
 </script>
 
 <template>

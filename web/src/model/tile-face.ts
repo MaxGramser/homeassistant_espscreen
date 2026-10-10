@@ -141,3 +141,14 @@ function faceKind(input: FaceInput, face: Omit<Face, "kind">): FaceKind {
   if (face.wide) return "wide";
   return "standard";
 }
+
+const sameKeys = (a: ControlKey[], b: ControlKey[]) => a.length === b.length && a.every((key, i) =>
+  key.icon === b[i].icon && key.primary === b[i].primary && key.disabled === b[i].disabled && key.mode === b[i].mode && key.cp === b[i].cp);
+/** Whether two faces draw the same, so a card keeps the one it has when a report changes nothing of it. */
+export function sameFace(a: Face, b: Face) {
+  for (const key of Object.keys(a) as (keyof Face)[]) {
+    if (key === "tallKeys" || key === "panelKeys") { if (!sameKeys(a[key], b[key])) return false; }
+    else if (a[key] !== b[key]) return false;
+  }
+  return true;
+}

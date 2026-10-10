@@ -5,7 +5,9 @@
 import { glyph } from "../../model/topbar";
 import type { TileCardView } from "../../composables/useTileCard";
 
-defineProps<{ card: TileCardView }>();
+const props = defineProps<{ card: TileCardView }>();
+// The same card for as long as this face stands (useTileCard): read without going through the props each time.
+const card = props.card;
 </script>
 
 <template>

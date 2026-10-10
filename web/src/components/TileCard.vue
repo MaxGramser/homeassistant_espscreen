@@ -37,6 +37,9 @@ function activate() {
   else if (card.live) insp.openTile(props.tile);
 }
 const label = computed(() => t("editor.tile_card.label", { name: card.texts.name, slot: (props.slot % card.grid.slots) + 1, page: Math.floor(props.slot / card.grid.slots) + 1 }));
+// The remove key's words, said again only when the name changes, not each time the card is drawn.
+const removeText = computed(() => t("editor.tile_card.remove"));
+const removeLabel = computed(() => t("editor.tile_card.remove_named", { name: card.texts.name }));
 // Focus, a tap and a drag: a card of the editor's own layout; in the preview a tile that opens a page.
 const reachable = computed(() => !card.foreign && (props.preview ? Boolean(card.goesTo) : card.live));
 const classes = computed(() => {
@@ -91,7 +94,7 @@ async function onKey(e: KeyboardEvent) {
     <TileTall v-else-if="kind === 'tall' || kind === 'big-key'" :card="card" />
     <TileLine v-else :card="card" />
     <TileResize v-if="card.live && !preview && !placeholder" :tile="tile" />
-    <button v-if="card.live && !preview" type="button" class="remove" :title="t('editor.tile_card.remove')" :aria-label="t('editor.tile_card.remove_named', { name: card.texts.name })" @click.stop="removeTile(tile)">✕</button>
+    <button v-if="card.live && !preview" type="button" class="remove" :title="removeText" :aria-label="removeLabel" @click.stop="removeTile(tile)">✕</button>
   </div>
 </template>
 

@@ -1,7 +1,7 @@
 // Which face a card on the mockup takes and the controls it draws (model/tile-face.ts), as the screens decide them.
 import { describe, expect, it } from "vitest";
 import { resolveControls } from "../src/model/catalogue";
-import { displayOf, drawnControls, tileFace, type FaceInput } from "../src/model/tile-face";
+import { displayOf, drawnControls, sameFace, tileFace, type FaceInput } from "../src/model/tile-face";
 import type { TileOptions } from "../src/types";
 
 // A card as TileCard asks for its face: on a grid of two columns, a firmware with big keys and ranges.
@@ -86,5 +86,15 @@ describe("the controls a card draws", () => {
   it("puts a thermostat's modes on a bar on one row", () => {
     const modes = face("climate.c", [2, 1], { controls: "mode" }, { live: { state: "heat", a: { hvac_modes: ["off", "heat", "cool"] } } });
     expect([modes.modeBar, modes.controls]).toEqual([true, "mode"]);
+  });
+});
+
+describe("a face that stays", () => {
+  it("is the same while it draws the same, and another when a key or a flag changes", () => {
+    const playing = { state: "playing", a: { supported_features: 16384 | 1 | 32 | 16 } };
+    const player = (live = playing) => face("media_player.m", [2, 1], { controls: "playback" }, { live });
+    expect(sameFace(player(), player({ ...playing }))).toBe(true);
+    expect(sameFace(player(), player({ state: "paused", a: playing.a }))).toBe(false);
+    expect(sameFace(face("light.a"), face("light.a", [2, 1]))).toBe(false);
   });
 });
