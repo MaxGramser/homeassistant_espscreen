@@ -55,13 +55,15 @@ media player in Home Assistant for announcements, text to speech and music, a **
 under Extras (on the screen and in Screen settings), and the speaker and microphone that plugins use, such as the voice
 assistant and Tap sound. As ESPHome's own Tab5 configuration does, both codecs share one I2S bus, which ESPHome lets
 them take in turns, so the board sets `AUDIO_HALF_DUPLEX`: the speaker lets go of the bus after a sound, the amplifier
-(SPK_EN on the first I/O expander) is on only while sound plays, and the microphone pauses while the media player plays.
+(SPK_EN on the first I/O expander) is on only while sound plays, and the microphone lets go of the bus whenever the
+speaker wants it, for any sound, and listens again after.
 The volume runs evenly in decibels from -45 dB to the ES8388's full scale.
 
 ## Camera
 
 The 2 MP camera on the MIPI-CSI port answers on the system I2C bus and takes its 24 MHz clock from GPIO36, as M5Stack's
-own firmware drives it. The board states both (`CAMERA_I2C`, `CAMERA_XCLK_PIN`, the feature `camera_sensor`), and the
+own firmware drives it. The camera's driver makes that clock with LEDC timer 0 and channel 0, so the backlight's PWM
+stands on channel 2 (timer 1): on one timer, the backlight and the camera would undo each other. The board states both (`CAMERA_I2C`, `CAMERA_XCLK_PIN`, the feature `camera_sensor`), and the
 Screen camera plugin makes it a camera of the screen's device in Home Assistant.
 
 ## Built, not yet heard or seen

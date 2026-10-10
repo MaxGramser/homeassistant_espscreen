@@ -13,10 +13,10 @@
 # - `ts_media_player`: Home Assistant's media player of the screen, so announcements and TTS work without a voice
 #   assistant; music plays on its own mixer input under them.
 #
-# A board whose microphone and speaker share one I2S bus sets `AUDIO_HALF_DUPLEX: "true"`: ESPHome lets the two take
-# turns on a bus, never both at once. Its speaker then lets go of the bus half a second after a sound, the microphone
-# pauses while the media player plays (an announcement, an answer, music) and listens again after, and the bus runs at
-# one rate for both (`AUDIO_SAMPLE_RATE`, 16 kHz). A sound a plugin plays while something listens waits its turn.
+# A board whose microphone and speaker share one I2S bus sets `AUDIO_HALF_DUPLEX: "true"` and includes
+# features/audio-half-duplex.yaml: ESPHome lets the two take turns on a bus, never both at once. Its speaker then lets go
+# of the bus half a second after a sound, and the microphone lets go of it whenever the speaker wants it, for any sound,
+# and listens again after.
 #
 # Only boards with PSRAM include it: the decoders and the buffers live there.
 substitutions:
@@ -107,12 +107,6 @@ speaker:
     output_speaker: ts_media_input
     task_stack_in_psram: true
 
-globals:
-  # The microphone the media player paused on a shared bus, to start it again when it is quiet.
-  - id: ts_audio_microphone_paused
-    type: bool
-    initial_value: "false"
-
 media_source:
   - platform: audio_http
     id: ts_announcement_source
@@ -126,25 +120,6 @@ media_player:
     volume_initial: 0.5
     volume_min: ${ ((AUDIO_VOLUME_DB_LOW | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }
     volume_max: ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }
-    # On a bus the microphone shares (AUDIO_HALF_DUPLEX): it pauses while the player plays, which lets the speaker take
-    # the bus (it tries again every second), and listens again when the player is quiet. Whatever reads the microphone
-    # (a wake word) waits for its data meanwhile and goes on after.
-    on_announcement:
-      - lambda: &audio_pause_microphone |-
-          if (${AUDIO_HALF_DUPLEX} && id(ts_microphone)->is_running()) {
-            id(ts_audio_microphone_paused) = true;
-            id(ts_microphone)->stop();
-          }
-    on_play:
-      - lambda: *audio_pause_microphone
-    on_idle:
-      - lambda: &audio_resume_microphone |-
-          if (id(ts_audio_microphone_paused)) {
-            id(ts_audio_microphone_paused) = false;
-            id(ts_microphone)->start();
-          }
-    on_pause:
-      - lambda: *audio_resume_microphone
     announcement_pipeline:
       speaker: ts_speaker
       sources: [ts_announcement_source]
