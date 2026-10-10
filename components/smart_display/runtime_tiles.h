@@ -10845,7 +10845,9 @@ inline void live_try() {
   camera.live_failures = live_view::TRIES;
   pictures_round();
 }
+inline uint32_t camera_opened_at = 0;  // when the view opened, for the log of a live camera's first picture
 inline void live_begin(const std::string &url) {
+  ESP_LOGI("camera", "live link %u ms after the camera opened", (unsigned) (esphome::millis() - camera_opened_at));
   camera.live = true;
   camera.live_url = url;
   live_try();
@@ -10856,6 +10858,7 @@ inline void live_tick() {
   if (!camera_root || !camera.live) return;
   live_try();
   if (event == live_view::Event::FIRST) {
+    ESP_LOGI("camera", "live: first picture %u ms after the camera opened", (unsigned) (esphome::millis() - camera_opened_at));
     camera.shown = true;
     camera_note_text("");  // the spinner goes; LVGL no longer draws there while the camera streams
   } else if (event == live_view::Event::FAILED || event == live_view::Event::TURNED) {
@@ -11145,6 +11148,7 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
   map_focus = focus;
   map_pinned = !focus.empty();
   camera.open(entity);
+  camera_opened_at = esphome::millis();
   const int width = lv_display_get_horizontal_resolution(lv_display_get_default());
   const bool large = ui::large();
   // On the top layer: above the tiles, every card and an alert, which is there again after Back.

@@ -170,6 +170,11 @@ class Source:
         self.making = asyncio.Lock()  # one picture at a time: an encoder is not for two threads
         self.route = 'snapshot'
         self.made = self.made_ms = 0
+        # When the way to the first picture went by, in seconds after the source started (the log of the first picture).
+        self.started, self.marks = time.monotonic(), {}
+
+    def mark(self, what):
+        self.marks.setdefault(what, time.monotonic() - self.started)
 
     async def publish(self, jpeg=None, video=None):
         self.number += 1
@@ -215,6 +220,7 @@ class Source:
 
     def start(self):
         if self.task is None or self.task.done():
+            self.started, self.marks = time.monotonic(), {}
             self.task = asyncio.create_task(self.run())
 
     async def run(self):
@@ -270,6 +276,7 @@ class Source:
             async def pull():
                 while True:
                     frame = await track.recv()
+                    self.mark('first WebRTC frame')
                     first.set()
                     await self.publish(video=frame)
             pulls.append(asyncio.create_task(pull()))
@@ -278,6 +285,7 @@ class Source:
         still = asyncio.create_task(self.still_until(first))
         try:
             await connection.setLocalDescription(await connection.createOffer())
+            self.mark('offer')
             async with self.feed.websocket() as ws:
                 await ws.send_json({'id': 1, 'type': 'camera/webrtc/offer', 'entity_id': self.entity,
                                     'offer': connection.localDescription.sdp})
@@ -289,6 +297,7 @@ class Source:
                             raise ConnectionError((data.get('error') or {}).get('message') or 'refused')
                         event = data.get('event') or {}
                         if event.get('type') == 'answer':
+                            self.mark('answer')
                             await connection.setRemoteDescription(RTCSessionDescription(event['answer'], 'answer'))
                         elif event.get('type') == 'candidate' and (event.get('candidate') or {}).get('candidate'):
                             found = event['candidate']
@@ -322,6 +331,7 @@ class Source:
     async def still_until(self, first):
         try:
             raw = await self.feed.fetch(self.entity)
+            self.mark('still')
             if raw and not first.is_set():
                 await self.publish(jpeg=raw)
         except asyncio.CancelledError:
@@ -331,10 +341,10 @@ class Source:
 
 
 class Link:
-    __slots__ = ('entity', 'box', 'used', 'streaming')
+    __slots__ = ('entity', 'box', 'used', 'streaming', 'made')
 
     def __init__(self, entity, box, now):
-        self.entity, self.box, self.used, self.streaming = entity, box, now, 0
+        self.entity, self.box, self.used, self.streaming, self.made = entity, box, now, 0, now
 
 
 class LiveFeed:
@@ -398,6 +408,11 @@ class LiveFeed:
                     continue
                 await response.write(b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n' % len(jpeg)
                                      + jpeg + b'\r\n')
+                if not sent:
+                    LOG.info('Live %s: first picture %.1f s after the link went out (the screen came %.1f s after it); '
+                             'its source: %s', link.entity, self.clock() - link.made, began - link.made,
+                             ', '.join(f'{what} {at:.1f} s' for what, at in sorted(source.marks.items(), key=lambda m: m[1]))
+                             or 'running already')
                 sent += 1
                 size += len(jpeg)
                 # The next picture is made once this one has left this host: the newest, never a queue of old ones.

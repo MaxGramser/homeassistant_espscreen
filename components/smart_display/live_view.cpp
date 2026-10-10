@@ -60,6 +60,8 @@ struct Run {
   int turn = 0;
   std::atomic<bool> stopping{false}, done{false}, failed{false};
   std::atomic<uint32_t> shown{0}, bytes{0}, decode_us{0}, copy_us{0}, skipped{0};
+  // When the way to the first picture went by (ms after start, written once by the task, read after `shown`).
+  uint32_t connected_ms = 0, answered_ms = 0, first_bytes_ms = 0;
 };
 static Run *run = nullptr;
 static SemaphoreHandle_t glass = nullptr;
@@ -81,9 +83,12 @@ static uint32_t reported_shown = 0, reported_bytes = 0, reported_decode = 0, rep
 // the top bar above the picture. LVGL also sends this event while it draws, to have an area rounded (get_max_row, and
 // ESPHome's rounder listens to it for that): those are left alone, since asking LVGL to draw again while it draws
 // trips its assert, which spins the main loop until the watchdog restarts the screen (2026-10-10, the D1001).
-// Once the stream ends nothing is cut, and the view or the page is drawn there again.
+// Once the stream ends nothing is cut, and the view or the page is drawn there again. The cut starts with the first
+// picture (`armed`, set by the task just before it copies one): until then LVGL draws the view as ever, its spinner
+// turning while the camera comes.
 static lv_area_t kept_out{};
 static bool keeping_out = false;
+static std::atomic<bool> armed{false};
 static void invalidate(int x1, int y1, int x2, int y2) {
   const lv_area_t part{x1, y1, x2, y2};
   lv_inv_area(lv_display_get_default(), &part);
@@ -92,7 +97,8 @@ static void keep_out(lv_event_t *e) {
   auto *area = static_cast<lv_area_t *>(lv_event_get_param(e));
   lv_display_t *display = lv_display_get_default();
   lv_area_t common;
-  if (!keeping_out || !area || display->rendering_in_progress || !lv_area_intersect(&common, area, &kept_out)) return;
+  if (!keeping_out || !armed || !area || display->rendering_in_progress || !lv_area_intersect(&common, area, &kept_out))
+    return;
   const lv_area_t whole = *area;
   keeping_out = false;  // the parts outside pass straight through
   if (whole.y1 < kept_out.y1) invalidate(whole.x1, whole.y1, whole.x2, kept_out.y1 - 1);
@@ -105,6 +111,7 @@ static void keep_out(lv_event_t *e) {
 }
 static void keep_lvgl_out(const Rect &area) {
   kept_out = lv_area_t{area.x, area.y, area.x + area.w - 1, area.y + area.h - 1};
+  armed = false;
   if (!keeping_out) lv_display_add_event_cb(lv_display_get_default(), keep_out, LV_EVENT_INVALIDATE_AREA, nullptr);
   keeping_out = true;
 }
@@ -194,7 +201,10 @@ static void show(Run &r, size_t length) {
   srm.mode = PPA_TRANS_MODE_BLOCKING;
   xSemaphoreTake(glass, portMAX_DELAY);
   esp_err_t err = ESP_OK;
-  if (!r.stopping) err = ppa_do_scale_rotate_mirror(ppa, &srm);
+  if (!r.stopping) {
+    armed = true;  // from now on LVGL draws nothing here
+    err = ppa_do_scale_rotate_mirror(ppa, &srm);
+  }
   xSemaphoreGive(glass);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "copy to the glass failed: %s", esp_err_to_name(err));
@@ -216,6 +226,7 @@ static void stream(Run &r) {
     return;
   }
   // HTTP/1.0: the app answers without chunks, and ends the stream by closing it.
+  r.connected_ms = esphome::millis() - started_at;
   if (!picture_fetch::send_all(fd, "GET " + address.path + " HTTP/1.0\r\nHost: " + address.host + "\r\n\r\n")) {
     close(fd);
     r.failed = true;
@@ -243,6 +254,7 @@ static void stream(Run &r) {
       break;
     }
     heard = esphome::millis();
+    if (r.bytes == 0) r.first_bytes_ms = heard - started_at;
     r.bytes += n;
     const bool ok = reader.feed(
         chunk, n, [](size_t length) -> uint8_t * { return length <= input_size ? input : nullptr; },
@@ -252,6 +264,7 @@ static void stream(Run &r) {
       r.failed = true;
       break;
     }
+    if (!r.answered_ms && reader.status()) r.answered_ms = esphome::millis() - started_at;
   }
   close(fd);
   free(chunk);
@@ -354,7 +367,9 @@ Event tick() {
   if (now - reported_at >= REPORT_MS) report(now, false);
   if (!first_told && run->shown > 0) {
     first_told = true;
-    ESP_LOGI(TAG, "first picture after %u ms", (unsigned) (now - started_at));
+    ESP_LOGI(TAG, "first picture on the glass %u ms after the stream started: connected after %u, the app answered "
+             "after %u, its first picture came after %u", (unsigned) (now - started_at), (unsigned) run->connected_ms,
+             (unsigned) run->answered_ms, (unsigned) run->first_bytes_ms);
     return Event::FIRST;
   }
   return Event::NONE;
