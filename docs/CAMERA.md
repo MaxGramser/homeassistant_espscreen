@@ -308,7 +308,9 @@ from that tile has its sound at once.
 lies over its room, and starts again once nothing does: a visible object on LVGL's system layer, one on the top layer
 above it (for a tile, anything on the top layer: the update's progress, an alert, the camera full screen, the
 screensaver), or, for a tile, its page no longer on the glass (`drawn_over` in `runtime_tiles.h`). No list of overlays:
-one that comes later is covered by the same rule.
+one that comes later is covered by the same rule. The check runs on the board's 50 ms interval and as LVGL starts every
+drawing (`LV_EVENT_REFR_START`, `live_stop_covered`), so it also holds for a drawing the main loop does not run for: an
+update holds the loop and has its progress drawn at once.
 
 **Nothing of LVGL's over a live picture.** While a picture streams, LVGL must not draw its room: what it has there (the
 full view's black, a tile's still with its spinner and name) would cover the live picture until its next one. So the

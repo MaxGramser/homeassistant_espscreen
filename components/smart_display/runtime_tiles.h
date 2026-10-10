@@ -11066,10 +11066,15 @@ inline void live_tile_answer(size_t index, const std::string &url) {
 }
 // The board's 50 ms interval (features/camera.yaml), beside the downloads' hand-off: what each stream did, and live tiles
 // stopped the moment something lies over their page (a card, the camera full screen, an alert, the settings).
-inline void live_tick() {
+// Something came over a live picture (the update's progress, a toast, a sheet): it stops at once, and starts again once
+// nothing lies over it. On the board's interval, and as LVGL starts every drawing (LV_EVENT_REFR_START), before it draws:
+// also one the main loop does not run for, as ESPHome's update holds it and has its progress drawn at once (ota_draw,
+// lv_refr_now), where the live pictures went on over it (2026-10-10, the D1001).
+inline void live_stop_covered() {
+  if (live_tiles.empty() && !(camera_root && camera.live && camera.live_handle >= 0)) return;
+  lv_obj_update_layout(lv_layer_top());  // what was made just now has its place before it is asked for it
+  lv_obj_update_layout(lv_layer_sys());
   if (!live_tiles.empty() && !page_clear()) live_tiles_halt();
-  // Something came over a live picture (the update's progress, a toast, a sheet): it stops at once, and starts again
-  // once nothing lies over it.
   for (auto &l : live_tiles) {
     if (l.handle < 0) continue;
     Widgets *card = nullptr;
@@ -11089,6 +11094,14 @@ inline void live_tick() {
       camera.live_handle = -1;
     }
   }
+}
+inline void live_tick() {
+  static bool hooked = false;
+  if (!hooked && live_view::available()) {
+    hooked = true;
+    lv_display_add_event_cb(lv_display_get_default(), [](lv_event_t *) { live_stop_covered(); }, LV_EVENT_REFR_START, nullptr);
+  }
+  live_stop_covered();
   live_view::tick([](live_view::Handle handle, live_view::Event event) {
     if (camera_root && camera.live && handle == camera.live_handle) {
       if (event == live_view::Event::FIRST) {
