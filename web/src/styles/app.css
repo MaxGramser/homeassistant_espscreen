@@ -88,6 +88,7 @@ a:hover { text-decoration: underline; }
   .side-folded .screen-item .nav-item, .side-folded .screen-item.update .nav-item { padding: 0; position: relative; }
   .side-folded .screen-item .spin, .side-folded .screen-item .sub-icon, .side-folded .screen-item .row-ring { position: absolute; top: 3px; right: 6px; }
   .side-folded .builds-btn { width: 100%; }
+  .side-folded .screen-item .row-ring { width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--surface); }
   .side-folded .screen-item .sub-icon { font-size: 12px; }
   .side-folded .screen-item .spin.small { width: 9px; height: 9px; }
   .side-folded .fold-badge { position: absolute; top: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px var(--surface); }
