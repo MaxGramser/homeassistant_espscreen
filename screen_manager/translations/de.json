@@ -3235,7 +3235,8 @@
       "hint": "Die Firmware des Bildschirms selbst, gezeichnet aus dem Layout, das du bearbeitest. Tippe, halte und wische wie auf dem Bildschirm. Es wird nichts gespeichert.",
       "control": "Tippen steuert Geräte",
       "control_hint": "Ein: Ein Tippen auf eine Kachel führt ihre Aktion in Home Assistant aus, wie auf dem Bildschirm. Aus: Die Vorschau zeigt nur, was ein Tippen bewirkt.",
-      "skipped": "Vorschau-Bildschirm {names} ließ sich nicht laden und wurde ausgelassen."
+      "skipped": "Vorschau-Bildschirm {names} ließ sich nicht laden und wurde ausgelassen.",
+      "not_kept": "Dieser Browser konnte den Vorschau-Bildschirm nicht speichern: Sein Speicher ist voll oder gesperrt."
     },
     "inspector": {
       "kind": {

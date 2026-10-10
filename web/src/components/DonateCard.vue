@@ -4,6 +4,7 @@
 // after either link, and never after "I already donated". Kept in this browser only: nothing goes into the screens' data or leaves the house.
 import { ref } from "vue";
 import { t } from "../i18n";
+import { readStored, writeStored } from "../storage";
 import { toast } from "../store";
 
 const KEY = "esp-screens.donate";
@@ -12,20 +13,16 @@ const MONTHLY = "https://buymeacoffee.com/f5j9jnkmhpv/membership";
 const ONCE = "https://buymeacoffee.com/f5j9jnkmhpv";
 
 function due() {
-  try {
-    const stored = localStorage.getItem(KEY);
-    if (stored === "donated") return false;
-    if (!stored) { localStorage.setItem(KEY, String(Date.now() + 2 * DAY)); return false; }
-    return Date.now() >= Number(stored);
-  } catch {
-    return false;
-  }
+  const stored = readStored(KEY);
+  if (stored === "donated") return false;
+  if (!stored) { writeStored(KEY, String(Date.now() + 2 * DAY)); return false; }
+  return Date.now() >= Number(stored);
 }
 const open = ref(due());
 
 function hide(days: number | "donated") {
   open.value = false;
-  try { localStorage.setItem(KEY, days === "donated" ? days : String(Date.now() + days * DAY)); } catch {}
+  writeStored(KEY, days === "donated" ? days : String(Date.now() + days * DAY));
 }
 function donated() {
   hide("donated");

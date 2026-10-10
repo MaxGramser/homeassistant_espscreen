@@ -14,6 +14,7 @@ import { tilePalette } from "../model/tile-palette";
 import { isPluginTile } from "../model/plugins";
 import { pluginsEnabled, tilesOn } from "../plugin-state";
 import { currentScreen } from "../store";
+import { readStored, writeStored } from "../storage";
 import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, phone, pictures, repeatable, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
@@ -195,7 +196,7 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onPageKey));
 const HEIGHT_KEY = "esp-screens.library-height";
 const MIN = 180;
 const HEAD = 49;
-const height = ref(Math.max(MIN, Number(localStorage.getItem(HEIGHT_KEY)) || 300));
+const height = ref(Math.max(MIN, Number(readStored(HEIGHT_KEY)) || 300));
 const maxHeight = () => Math.max(MIN, Math.round(window.innerHeight * 0.7));
 function toggle() { open.value = !open.value; }
 // Typing in the folded bar opens the drawer on what it finds.
@@ -229,14 +230,14 @@ function release() {
   drag = null;
   resizing.value = false;
   document.body.style.userSelect = "";
-  localStorage.setItem(HEIGHT_KEY, String(Math.round(height.value)));
+  writeStored(HEIGHT_KEY, String(Math.round(height.value)));
 }
 function onResizeKey(e: KeyboardEvent) {
   if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
   e.preventDefault();
   open.value = true;
   height.value = Math.min(maxHeight(), Math.max(MIN, height.value + (e.key === "ArrowUp" ? 40 : -40)));
-  localStorage.setItem(HEIGHT_KEY, String(Math.round(height.value)));
+  writeStored(HEIGHT_KEY, String(Math.round(height.value)));
 }
 onBeforeUnmount(release);
 </script>

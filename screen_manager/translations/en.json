@@ -2889,7 +2889,8 @@
       "hint": "The screen's own firmware, drawn from the layout you are editing. Tap, hold and swipe as on the screen. Nothing is saved.",
       "control": "Taps control devices",
       "control_hint": "When on, a tap on a tile runs its action in Home Assistant, as on the screen. When off, the preview only shows what a tap does.",
-      "skipped": "Preview screen {names} could not be loaded and was left out."
+      "skipped": "Preview screen {names} could not be loaded and was left out.",
+      "not_kept": "This browser couldn't store the preview screen: its storage is full or blocked."
     },
     "inspector": {
       "kind": {

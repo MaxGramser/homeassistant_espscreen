@@ -3235,7 +3235,8 @@
       "hint": "A kijelző saját firmware-e, a szerkesztett elrendezésből rajzolva. Koppints, tartsd lenyomva és húzd, mint a kijelzőn. Semmi nem mentődik.",
       "control": "A koppintások vezérlik az eszközöket",
       "control_hint": "Bekapcsolva: egy csempére koppintás végrehajtja a műveletét a Home Assistantben, mint a kijelzőn. Kikapcsolva: az előnézet csak megmutatja, mit tenne a koppintás.",
-      "skipped": "A(z) {names} előnézeti kijelző nem tölthető be, kimaradt."
+      "skipped": "A(z) {names} előnézeti kijelző nem tölthető be, kimaradt.",
+      "not_kept": "Ez a böngésző nem tudta tárolni az előnézeti kijelzőt: a tárhelye megtelt vagy le van tiltva."
     },
     "inspector": {
       "kind": {

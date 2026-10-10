@@ -458,6 +458,31 @@ describe("Library: the drawer along the bottom, with every domain in one column 
     library.unmount();
   });
 
+  it("opens, grows and remembers its height in this browser, and works where the browser keeps nothing", async () => {
+    let library = mount(Library, { attachTo: document.body });
+    const height = () => library.find("#library").attributes("style");
+    expect(height()).toContain("height: 300px");
+    await library.find(".lib-grip").trigger("keydown", { key: "ArrowUp" });
+    expect(height()).toContain("height: 340px");
+    library.unmount();
+    library = mount(Library, { attachTo: document.body });
+    expect(height()).toContain("height: 340px");
+    library.unmount();
+    // A browser that blocks storage (a private window, an iframe without it) throws on every read and write: the drawer
+    // used to throw while mounting and took the layout with it.
+    const blocked = () => { throw new DOMException("The operation is insecure.", "SecurityError"); };
+    vi.stubGlobal("localStorage", { getItem: blocked, setItem: blocked, removeItem: blocked, clear: blocked });
+    library = mount(Library, { attachTo: document.body });
+    expect(height()).toContain("height: 300px");
+    await library.find(".lib-grip").trigger("keydown", { key: "ArrowUp" });
+    expect(height()).toContain("height: 340px");
+    const grip = library.find(".lib-grip").element as HTMLElement;
+    grip.setPointerCapture = () => {};
+    grip.dispatchEvent(Object.assign(new Event("pointerdown", { bubbles: true, cancelable: true }), { clientY: 400, pointerId: 1 }));
+    grip.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    library.unmount();
+  });
+
   it("walks the results with the arrows, adds with Enter, and clears then folds with Escape", async () => {
     const library = mount(Library);
     const search = library.find("#search");

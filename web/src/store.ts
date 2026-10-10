@@ -23,6 +23,7 @@ import { canonicalOptions, coupledOptions } from './model/tile-options';
 import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
 import { onReset } from "./resets";
+import { readStored, writeStored } from "./storage";
 
 export type Inspector =
   | { kind: "tile" }
@@ -80,10 +81,10 @@ const fresh = () => ({
   filter: "",
   search: "",
   // The library drawer along the bottom (app 0.4.32): open or folded, remembered in this browser.
-  libraryOpen: (() => { try { return localStorage.getItem("esp-screens.library-open") !== "0"; } catch { return true; } })(),
+  libraryOpen: readStored("esp-screens.library-open") !== "0",
   // On a phone (app 0.4.40): the editor of everyday changes, unless this browser asked for the whole editor; the
   // library as a sheet that opens for one tile, the pages in a sheet, and the tile just added marked for a moment.
-  fullEditor: (() => { try { return localStorage.getItem("esp-screens.full-editor") === "1"; } catch { return false; } })(),
+  fullEditor: readStored("esp-screens.full-editor") === "1",
   addSheet: false,
   pagesSheet: false,
   previewOpen: false,
@@ -137,7 +138,7 @@ export const phone = computed(() => narrowPhone.value && !state.fullEditor);
 export function setFullEditor(on: boolean) {
   state.fullEditor = on;
   state.addSheet = false; state.pagesSheet = false; state.menuOpen = false;
-  try { localStorage.setItem("esp-screens.full-editor", on ? "1" : "0"); } catch {}
+  writeStored("esp-screens.full-editor", on ? "1" : "0");
 }
 
 // This is a cached render projection of the one canonical draft. Mutations go
@@ -171,7 +172,7 @@ function previewGrids(shape: ScreenShape, orientation?: Orientation): ScreenGrid
 function virtualScreens(): Screen[] {
   let value: any[];
   try {
-    const stored = JSON.parse(localStorage.getItem(VIRTUAL_SCREENS_KEY) || "[]");
+    const stored = JSON.parse(readStored(VIRTUAL_SCREENS_KEY) || "[]");
     value = Array.isArray(stored) ? stored : [];
   } catch { value = []; }
   const usable = value.filter(usablePreview);
@@ -180,8 +181,11 @@ function virtualScreens(): Screen[] {
   return usable.map((s) => ({ ...s, firmware: renderer.firmware, firmware_known: renderer.firmware,
     tile_sizes: sizesOn(s.shape), grids: previewGrids(s.shape, s.orientation), page_capability: 'ready' }));
 }
+// A storage that keeps nothing (a private window, full or blocked) is said in the page's words, not the browser's, to
+// whoever wrote: a new preview screen, a save, a rename, a removal. Each writes here first, so what was not kept is not
+// changed either.
 function persistVirtualScreens(screens = state.inventory.screens) {
-  localStorage.setItem(VIRTUAL_SCREENS_KEY, JSON.stringify(screens.filter((s) => s.virtual)));
+  if (!writeStored(VIRTUAL_SCREENS_KEY, JSON.stringify(screens.filter((s) => s.virtual)))) throw new Error(t("editor.preview.not_kept"));
 }
 async function migrateVirtualScreens() {
   for (const screen of virtualScreens()) {
@@ -724,7 +728,7 @@ function historyStep(direction: 'undo' | 'redo') {
 export function undo() { historyStep('undo'); }
 export function redo() { historyStep('redo'); }
 function readMode(id: string): "simple" | "advanced" {
-  try { return localStorage.getItem(`esp-screens-mode:${id}`) === "advanced" ? "advanced" : "simple"; } catch { return "simple"; }
+  return readStored(`esp-screens-mode:${id}`) === "advanced" ? "advanced" : "simple";
 }
 export function setEditorMode(mode: "simple" | "advanced") {
   state.editorMode = mode;
@@ -733,7 +737,7 @@ export function setEditorMode(mode: "simple" | "advanced") {
   state.connectingTileId = null;
   state.drag.active = false; state.drag.preview = null; state.drag.page = null; state.drag.moving = null;
   if (mode === "advanced") initializeWorkspace();
-  try { if (state.selected) localStorage.setItem(`esp-screens-mode:${state.selected}`, mode); } catch {}
+  if (state.selected) writeStored(`esp-screens-mode:${state.selected}`, mode);
 }
 // A screen's saved document becomes the draft, with nothing to undo and nothing unsaved: when a screen is chosen, when it
 // is read again, and for the tests' fixtures (tests/page-fixtures.ts), which so start from what the editor starts from.
@@ -2212,7 +2216,7 @@ export function startStore() {
   stops.push(watch(screenLanguage, (code) => loadLanguage(code), { immediate: true }));
   // The screensaver's drawers belong to the settings: they close when the layout comes back.
   stops.push(watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); }));
-  stops.push(watch(() => state.libraryOpen, (open) => { try { localStorage.setItem("esp-screens.library-open", open ? "1" : "0"); } catch {} }));
+  stops.push(watch(() => state.libraryOpen, (open) => { writeStored("esp-screens.library-open", open ? "1" : "0"); }));
   const phoneWidth = phoneQuery(), toPhone = (event: MediaQueryListEvent) => { narrowPhone.value = event.matches; };
   phoneWidth?.addEventListener?.("change", toPhone);
   stops.push(() => phoneWidth?.removeEventListener?.("change", toPhone));

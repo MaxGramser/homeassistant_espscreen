@@ -3235,7 +3235,8 @@
       "hint": "Własny firmware ekranu, narysowany z układu, który edytujesz. Dotykaj, przytrzymuj i przesuwaj jak na ekranie. Nic nie jest zapisywane.",
       "control": "Dotknięcia sterują urządzeniami",
       "control_hint": "Włączone: dotknięcie kafelka wykonuje jego akcję w Home Assistant, jak na ekranie. Wyłączone: podgląd pokazuje tylko, co robi dotknięcie.",
-      "skipped": "Nie udało się wczytać ekranu podglądu {names}; został pominięty."
+      "skipped": "Nie udało się wczytać ekranu podglądu {names}; został pominięty.",
+      "not_kept": "Ta przeglądarka nie mogła zapisać ekranu podglądu: jej pamięć jest pełna lub zablokowana."
     },
     "inspector": {
       "kind": {

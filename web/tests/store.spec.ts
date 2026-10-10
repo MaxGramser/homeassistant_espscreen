@@ -6,6 +6,7 @@ import {
   pageReachWarning, pageTilesRepeat, phaseText, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports,
   tileLimit, topbarItems, topbarView, buildProgress, whatsNew, refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices,
 } from "../src/store";
+import { t } from "../src/i18n";
 import { customPreview } from "../src/model/preview";
 import renderer from "../src/wasm/renderer.json";
 import type { Inventory, Screen } from "../src/types";
@@ -168,7 +169,24 @@ describe("live values", () => {
     await save();
     expect(state.dirty).toBe(true);
     expect(virtual.layout.tiles).toHaveLength(0);
-    expect(state.toast?.message).toBe("Storage full");
+    expect(state.toast?.message).toBe(t("editor.preview.not_kept"));
+  });
+  it("says in its own words when this browser keeps no preview screen, and keeps nothing it did not store", async () => {
+    // A private window or a blocked storage throws the browser's own words ("The operation is insecure."); the page says
+    // what happened instead, wherever a preview screen is written: made, saved, renamed or removed.
+    const blocked = () => { throw new DOMException("The operation is insecure.", "SecurityError"); };
+    vi.spyOn(localStorage, "setItem").mockImplementation(blocked);
+    expect(() => createVirtualScreen("Hall", customPreview)).toThrow(t("editor.preview.not_kept"));
+    expect(state.inventory.screens.some((screen) => screen.virtual)).toBe(false);
+    vi.mocked(localStorage.setItem).mockRestore();
+    const virtual = createVirtualScreen("Hall", customPreview);
+    addTile("light.b");
+    vi.spyOn(localStorage, "setItem").mockImplementation(blocked);
+    await save();
+    expect(state.dirty).toBe(true);
+    expect(state.toast?.message).toBe(t("editor.preview.not_kept"));
+    expect(await removeScreen(virtual)).toBe(false);
+    expect(state.inventory.screens.map((screen) => screen.id)).toContain(virtual.id);
   });
   it.each([true, false])("migrates stored virtual layouts without losing them on failure (success=%s)", async (success) => {
     const legacy = { id: "virtual.old", name: "Old preview", virtual: true, shape: customPreview.shape,

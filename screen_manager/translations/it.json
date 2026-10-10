@@ -3235,7 +3235,8 @@
       "hint": "Il firmware stesso dello schermo, disegnato dal layout che stai modificando. Tocca, tieni premuto e scorri come sullo schermo. Non viene salvato nulla.",
       "control": "I tocchi controllano i dispositivi",
       "control_hint": "Attivo: un tocco su un riquadro esegue la sua azione in Home Assistant, come sullo schermo. Disattivo: l’anteprima mostra solo cosa fa un tocco.",
-      "skipped": "Lo schermo di anteprima {names} non è stato caricato ed è stato escluso."
+      "skipped": "Lo schermo di anteprima {names} non è stato caricato ed è stato escluso.",
+      "not_kept": "Questo browser non ha potuto salvare lo schermo di anteprima: la sua memoria è piena o bloccata."
     },
     "inspector": {
       "kind": {

@@ -3235,7 +3235,8 @@
       "hint": "El propio firmware de la pantalla, dibujado a partir del diseño que estás editando. Toca, mantén pulsado y desliza como en la pantalla. No se guarda nada.",
       "control": "Los toques controlan dispositivos",
       "control_hint": "Activado: un toque en un mosaico ejecuta su acción en Home Assistant, como en la pantalla. Desactivado: la vista previa solo muestra lo que hace un toque.",
-      "skipped": "No se pudo cargar la pantalla de vista previa {names} y se ha omitido."
+      "skipped": "No se pudo cargar la pantalla de vista previa {names} y se ha omitido.",
+      "not_kept": "Este navegador no pudo guardar la pantalla de vista previa: su almacenamiento está lleno o bloqueado."
     },
     "inspector": {
       "kind": {

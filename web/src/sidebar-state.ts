@@ -2,6 +2,7 @@
 // Kept per browser, as the library's state is: a convenience of this computer, not a setting of the screens.
 import { reactive } from "vue";
 import { onReset } from "./resets";
+import { readStored as read, writeStored as write } from "./storage";
 
 export const SIDE_MIN = 200, SIDE_MAX = 420, SIDE_DEFAULT = 248;
 // The icons alone: the board icon, the dot beside it and the room around them.
@@ -10,8 +11,6 @@ export const SIDE_FOLDED = 60;
 const FOLD_AT = 140;
 const WIDTH_KEY = "esp-screens.sidebar-width", FOLDED_KEY = "esp-screens.sidebar-folded";
 
-const read = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
-const write = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* private window: this visit only */ } };
 export const clampWidth = (px: number) => Math.round(Math.min(SIDE_MAX, Math.max(SIDE_MIN, px)));
 
 const fresh = () => ({ width: clampWidth(Number(read(WIDTH_KEY)) || SIDE_DEFAULT), folded: read(FOLDED_KEY) === "1", resizing: false });

@@ -3235,7 +3235,8 @@
       "hint": "Le firmware de l’écran lui-même, dessiné à partir de la disposition que vous modifiez. Appuyez, maintenez et balayez comme sur l’écran. Rien n’est enregistré.",
       "control": "Les appuis commandent les appareils",
       "control_hint": "Activé : un appui sur une tuile exécute son action dans Home Assistant, comme sur l’écran. Désactivé : l’aperçu montre seulement ce que fait un appui.",
-      "skipped": "L’écran d’aperçu {names} n’a pas pu être chargé et a été ignoré."
+      "skipped": "L’écran d’aperçu {names} n’a pas pu être chargé et a été ignoré.",
+      "not_kept": "Ce navigateur n’a pas pu enregistrer l’écran d’aperçu : son stockage est plein ou bloqué."
     },
     "inspector": {
       "kind": {

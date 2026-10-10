@@ -2889,7 +2889,8 @@
       "hint": "De eigen firmware van het scherm, getekend uit de indeling die je bewerkt. Tik, houd vast en veeg zoals op het scherm. Er wordt niets opgeslagen.",
       "control": "Tikken bedienen apparaten",
       "control_hint": "Aan: een tik op een tegel voert zijn actie uit in Home Assistant, net als op het scherm. Uit: het voorbeeld laat alleen zien wat een tik doet.",
-      "skipped": "Voorbeeldscherm {names} kon niet worden geladen en is overgeslagen."
+      "skipped": "Voorbeeldscherm {names} kon niet worden geladen en is overgeslagen.",
+      "not_kept": "Deze browser kon het voorbeeldscherm niet bewaren: de opslag is vol of geblokkeerd."
     },
     "inspector": {
       "kind": {

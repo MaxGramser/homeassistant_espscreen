@@ -3235,7 +3235,8 @@
       "hint": "O próprio firmware do ecrã, desenhado a partir do layout que está a editar. Toque, mantenha premido e deslize como no ecrã. Nada é guardado.",
       "control": "Os toques controlam dispositivos",
       "control_hint": "Ligado: um toque num mosaico executa a sua ação no Home Assistant, como no ecrã. Desligado: a pré-visualização mostra apenas o que um toque faz.",
-      "skipped": "Não foi possível carregar o ecrã de pré-visualização {names}; foi deixado de fora."
+      "skipped": "Não foi possível carregar o ecrã de pré-visualização {names}; foi deixado de fora.",
+      "not_kept": "Este navegador não conseguiu guardar o ecrã de pré-visualização: o armazenamento está cheio ou bloqueado."
     },
     "inspector": {
       "kind": {
