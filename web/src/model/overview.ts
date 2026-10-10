@@ -24,7 +24,7 @@ export function homeView(screen: Screen): HomeView | null {
   const tiles = view.tiles.filter((tile) => tile.in === undefined && Math.floor(tile.slot / slots) === index).map((tile) => ({ tile, slot: tile.slot }));
   // The keys of a bedside clock on that page, which its card draws under the time (app 0.4.12).
   const keys = view.tiles.filter((tile) => tile.in !== undefined && tiles.some(({ tile: clock }) => clock.entity === tile.in));
-  // The same proportions as the editor's mockup (deviceStyle), at a size that lets several stand side by side.
+  // The same proportions as the editor's mockup (stores/canvas.ts deviceStyle), at a size that lets several stand side by side.
   const width = shape.width >= shape.height ? Math.min(560, (OVERVIEW_SIDE * shape.width) / shape.height) : OVERVIEW_SIDE;
   return {
     screen, tiles, keys, grid: { columns: source.columns, rows: source.rows, slots }, shape: shape as NonNullable<Screen["shape"]>,

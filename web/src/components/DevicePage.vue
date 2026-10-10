@@ -9,7 +9,7 @@ import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { closeInspector, deviceStyle, isCompact, movePage, openBar, openPage, pageAt, pageTitleShown, previewed, roomyNames, setHomePage, state } from "../store";
+import { closeInspector, movePage, openBar, openPage, pageAt, pageTitleShown, previewed, setHomePage, state } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -23,6 +23,7 @@ import { useSettingsStore } from "../stores/settings";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
 import { useDragStore } from "../stores/drag";
+import { useCanvasStore } from "../stores/canvas";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -30,6 +31,7 @@ const settings = useSettingsStore();
 const scr = useScreenStore();
 const topbar = useTopbarStore();
 const dragging = useDragStore();
+const canvas = useCanvasStore();
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [intent: NavigationIntent] }>();
@@ -92,7 +94,7 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && state.selectedPageId === owned.id && state.inspector?.kind === 'page' }" :style="deviceStyle" :data-page-id="owned?.id" @click="pageClick">
+  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && state.selectedPageId === owned.id && state.inspector?.kind === 'page' }" :style="canvas.deviceStyle" :data-page-id="owned?.id" @click="pageClick">
     <div v-if="!preview" class="page-head" :class="{ selected: state.selectedPageId === owned?.id && state.inspector?.kind === 'page' }">
       <button v-if="movable" type="button" class="grab" :data-page="page" v-drag="{ kind: 'page', page }"
         :title="t('editor.page.move_title')" :aria-label="t('editor.page.move_aria', { page: page + 1 })" @keydown="onKey">
@@ -109,7 +111,7 @@ async function onKey(e: KeyboardEvent) {
         <PageMenu v-if="owned" :id="owned.id" />
       </span>
     </div>
-    <div class="device" :class="{ compact: isCompact, roomy: roomyNames }">
+    <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames }">
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
         @click="!preview && openBar(0, page)" @keydown.enter.prevent="!preview && openBar(0, page)">
         <TopbarSvg :items="topbar.topbarItems(page)" :name-text="pageTitleShown(page)" :home="topbar.homeKeyShown(page)" :back="backInHeader" />
@@ -133,7 +135,7 @@ async function onKey(e: KeyboardEvent) {
 
 <style scoped>
 .page { min-width: 0; }
-/* The page in the glass's proportions (store deviceStyle, app 0.4.74): the top bar from the top edge of the glass down
+/* The page in the glass's proportions (stores/canvas.ts deviceStyle, app 0.4.74): the top bar from the top edge of the glass down
    to where the tiles start, the grid's margins and gaps, and the page bar at its own height, so every card is as high
    against its page as the screen draws it. */
 .device { padding: 0 var(--frame-side, 10px) var(--frame-bottom, 10px); gap: 0; grid-template-rows: var(--frame-top, 48px) minmax(0, 1fr); }

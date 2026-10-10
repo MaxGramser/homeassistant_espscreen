@@ -12,7 +12,7 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clockSample } from "../model/clock";
-import { deviceStyle, pageBarShown, screenShape, isCompact, isSelected, openTile, placeTile, removeTile, state } from "../store";
+import { screenShape, isSelected, openTile, placeTile, removeTile, state } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -32,6 +32,7 @@ import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
 import { useDragStore } from "../stores/drag";
+import { useCanvasStore } from "../stores/canvas";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -40,6 +41,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
 const dragging = useDragStore();
+const canvas = useCanvasStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -160,7 +162,7 @@ const vChipFit = {
   unmounted(el: HTMLElement) { chipScopes.get(el)?.stop(); chipScopes.delete(el); },
 };
 // A wide card's chip as the glass works it out (ui-scale wideChip): its face and whether its icon fits.
-const glassScale = computed(() => Number(deviceStyle.value["--glass"]) || 1);
+const glassScale = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
 const wideFit = computed(() => rangeChip.value && wide.value
   ? wideChip(screenShape.value, state.documentGrid?.columns ?? screenShape.value.columns, widestSetpoint(current.value?.a || {})) : null);
 // A thermostat's modes on a card of one row or the whole page: its mode bar (ModeBar), as the screen draws it.
@@ -309,7 +311,7 @@ const watchFace = computed(() => {
   if (display.value !== "watch" || full.value || foreign.value || props.round || goesTo.value || props.slot < 0) return null;
   const s = screenShape.value, g = grid.value, cell = props.slot % g.slots, pad = watchPadding(s, g.rows);
   const width = cardContent(s, g.columns, shape.value.columns, cell % g.columns);
-  const height = cardHeight(s, g.rows, shape.value.rows, Math.floor(cell / g.columns), pageBarShown.value) - 2 * (pad + 1);
+  const height = cardHeight(s, g.rows, shape.value.rows, Math.floor(cell / g.columns), canvas.pageBarShown) - 2 * (pad + 1);
   return { pad, ...watchCard(s, width, height, bigValue.value, unit.value && !gone.value ? unit.value : "", pad) };
 });
 const glassPx = (n: number) => `${(n * glassScale.value).toFixed(2)}px`;
@@ -422,7 +424,7 @@ async function onKey(e: KeyboardEvent) {
     <button type="button" class="round-key" :aria-label="name" :disabled="preview && !live"
       v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click.stop="activate">
       <span class="disc" :class="{ lit: isOn }"><span v-if="roundValue" class="value">{{ roundValue }}</span><span v-else class="mdi">{{ glyph(entities.tileIconCp(tile)) }}</span></span>
-      <span v-if="tile.options?.overlay !== 'none' && !isCompact" class="kn">{{ name }}</span>
+      <span v-if="tile.options?.overlay !== 'none' && !canvas.isCompact" class="kn">{{ name }}</span>
     </button>
     <!-- The same remove key as on a tile, at the circle's corner. -->
     <button v-if="live && !preview" type="button" class="remove" :title="t('editor.tile_card.remove')" :aria-label="t('editor.tile_card.remove_named', { name })" @click.stop="removeTile(tile)">✕</button>
@@ -432,7 +434,7 @@ async function onKey(e: KeyboardEvent) {
     :tabindex="!foreign && (preview ? goesTo : live) ? 0 : -1" :role="!foreign && (preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
     v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
     <template v-if="bedside">
-      <span class="bedside-clock" :class="{ compact: isCompact }">
+      <span class="bedside-clock" :class="{ compact: canvas.isCompact }">
         <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!region.clock24 && scr.supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
         <span v-if="keyPlaces.length" class="keys">
           <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview || placeholder ? undefined : place.key" :data-holder="preview || placeholder ? undefined : tile.id"

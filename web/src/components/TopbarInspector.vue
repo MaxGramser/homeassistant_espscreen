@@ -11,7 +11,7 @@ import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
 import { clockSample } from "../model/clock";
 import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { barMetrics, openBar, openBarAdd, openPage, state, pageTitleShown } from "../store";
+import { openBar, openBarAdd, openPage, state, pageTitleShown } from "../store";
 import type { HeaderItem } from "../types";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
@@ -28,6 +28,7 @@ import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
 import { useInventoryStore } from "../stores/inventory";
+import { useCanvasStore } from "../stores/canvas";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -35,13 +36,14 @@ const entities = useEntitiesStore();
 const scr = useScreenStore();
 const topbar = useTopbarStore();
 const inv = useInventoryStore();
+const canvas = useCanvasStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => sort.live.value || topbar.topbarItems());
 const item = computed<HeaderItem | undefined>(() => items.value[props.index]);
 const lay = computed(() => {
   void ui.fontsVersion; void ui.now; void entities.topbarPreviews;
-  return barLayout(items.value, barMetrics.value, pageTitleShown(page.value), topbar.topbarView);
+  return barLayout(items.value, canvas.barMetrics, pageTitleShown(page.value), topbar.topbarView);
 });
 const overflow = computed(() => lay.value.dropped);
 const needed = computed(() => inv.inventory.header?.min_firmware || "0.2.32");

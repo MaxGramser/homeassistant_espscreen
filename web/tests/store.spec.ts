@@ -1,7 +1,7 @@
 import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, setTileOption, state, tileLimit, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
+import { addTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, setTileOption, state, tileLimit, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
@@ -16,6 +16,10 @@ import { useScreenStore } from "../src/stores/screen";
 import { useSessionStore } from "../src/stores/session";
 import { useTopbarStore } from "../src/stores/topbar";
 import { useInventoryStore } from "../src/stores/inventory";
+import { useCanvasStore } from "../src/stores/canvas";
+
+let canvas: ReturnType<typeof useCanvasStore>;
+beforeEach(() => { canvas = useCanvasStore(); });
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -676,44 +680,44 @@ describe("the mockup of a screen, whichever way it hangs", () => {
                          { width: 240, height: 320, columns: 1, rows: 4, look: "compact" },
                          { width: 800, height: 1280, columns: 4, rows: 5, look: "standard" }]) {
       shaped(shape);
-      expect(Math.round(shorter(deviceStyle.value))).toBe(300);
+      expect(Math.round(shorter(canvas.deviceStyle))).toBe(300);
     }
   });
   it("gives a page the screen's own proportions and its own cells", () => {
     shaped({ width: 480, height: 800, columns: 1, rows: 4, look: "standard" });
-    expect(deviceStyle.value).toMatchObject({
+    expect(canvas.deviceStyle).toMatchObject({
       "--screen-aspect": "480 / 800", "--screen-columns": "1", "--screen-rows": "4",
       // One column: a wide tile is that one cell, not two.
       "--screen-wide-span": "1", "--mockup-width": "300px",
     });
-    expect(height(deviceStyle.value)).toBe(500);
+    expect(height(canvas.deviceStyle)).toBe(500);
     shaped({ width: 800, height: 480, columns: 3, rows: 3, look: "standard" });
-    expect(px(deviceStyle.value)).toBe(500);
-    expect(deviceStyle.value["--screen-wide-span"]).toBe("2");
+    expect(px(canvas.deviceStyle)).toBe(500);
+    expect(canvas.deviceStyle["--screen-wide-span"]).toBe("2");
     // Glass wider than the cap is drawn shorter rather than wider, so a page still fits beside its neighbour.
     shaped({ width: 1920, height: 480, columns: 4, rows: 2, look: "standard" });
-    expect(px(deviceStyle.value)).toBe(560);
+    expect(px(canvas.deviceStyle)).toBe(560);
   });
   it("draws a card's -/+ pill at the size the screen does, from the board's density, look and faces", () => {
     // The Guition: 480 glass pixels drawn 300 wide, so 0.625 an editor pixel each. Its pill is px(46) + 2 = 48 high,
     // its keys 48 - 2 x 4, and its number face 38 (runtime_tiles panel_metrics, stepper_keys; boards.json fonts).
     shaped({ width: 480, height: 480, columns: 2, rows: 3, look: "standard", dpi: 170, fonts: { watch_value: 38, sublabel_big: 21, sublabel: 16 } } as any);
-    expect(deviceStyle.value).toMatchObject({ "--pill-h": "30.00px", "--pill-in": "2.50px", "--pill-key": "25.00px", "--face-watch": "23.75px", "--face-text": "13.13px" });
+    expect(canvas.deviceStyle).toMatchObject({ "--pill-h": "30.00px", "--pill-in": "2.50px", "--pill-key": "25.00px", "--face-watch": "23.75px", "--face-text": "13.13px" });
     // The CYD's compact look: px(34) + 2 = 36 high at 143 dpi, keys 36 - 2 x 3, face 22; 320 glass pixels drawn 400 wide.
     shaped({ width: 320, height: 240, columns: 2, rows: 3, look: "compact", dpi: 143, fonts: { watch_value: 22, sublabel_big: 14, sublabel: 11 } } as any);
-    expect(deviceStyle.value).toMatchObject({ "--pill-h": "45.00px", "--pill-key": "37.50px", "--face-watch": "27.50px" });
+    expect(canvas.deviceStyle).toMatchObject({ "--pill-h": "45.00px", "--pill-key": "37.50px", "--face-watch": "27.50px" });
   });
   it("keeps a board's look when it is built standing up", () => {
     // The board says which look it is, and that is what counts. Without it the shorter side decides, because the
     // width alone would read a 480 x 800 standard screen as a compact one.
     shaped({ width: 480, height: 800, columns: 1, rows: 4, look: "standard" });
-    expect(isCompact.value).toBe(false);
+    expect(canvas.isCompact).toBe(false);
     shaped({ width: 480, height: 800, columns: 1, rows: 4 });
-    expect(isCompact.value).toBe(false);
+    expect(canvas.isCompact).toBe(false);
     shaped({ width: 240, height: 320, columns: 1, rows: 4 });
-    expect(isCompact.value).toBe(true);
+    expect(canvas.isCompact).toBe(true);
     shaped({ width: 320, height: 240, columns: 2, rows: 3 });
-    expect(isCompact.value).toBe(true);
+    expect(canvas.isCompact).toBe(true);
   });
 });
 

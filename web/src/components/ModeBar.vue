@@ -11,16 +11,18 @@ import { glyph } from "../model/topbar";
 import { barKeys, thermostatMode } from "../model/tall-controls";
 import { thermostatModeColor } from "../model/tile-palette";
 import { cardContent, cellContent, modeBar, uiScale } from "../model/ui-scale";
-import { deviceStyle, screenShape, state } from "../store";
+import { screenShape, state } from "../store";
 import { useRegionStore } from "../stores/region";
 import { useInventoryStore } from "../stores/inventory";
+import { useCanvasStore } from "../stores/canvas";
 
 const region = useRegionStore();
 const inv = useInventoryStore();
+const canvas = useCanvasStore();
 
 // `columns`: how many of the page's columns the card spans. `mode`: the entity's state; `domain`: climate or humidifier.
 const props = withDefaults(defineProps<{ a: Record<string, any>; mode: string; place: "row" | "tall" | "full"; columns: number; domain?: string }>(), { domain: "climate" });
-const glass = computed(() => Number(deviceStyle.value["--glass"]) || 1);
+const glass = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
 // The room the glass gives the bar: the cell beside the name on a card of one row, the card's content on a taller one
 // or the page (runtime_tiles layout_panel), from the board's own spacing.
 const bar = computed(() => {

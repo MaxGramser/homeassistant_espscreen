@@ -10,7 +10,7 @@ import { useAtMost } from "../composables/useWidths";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { closeInspector, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, state, tileLimit, undo } from "../store";
+import { closeInspector, gridChanged, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, state, tileLimit, undo } from "../store";
 import PhonePages from "./PhonePages.vue";
 import PageWizard from "./PageWizard.vue";
 import DevicePage from "./DevicePage.vue";
@@ -28,11 +28,13 @@ import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
 import { useScreenStore } from "../stores/screen";
 import { useDragStore } from "../stores/drag";
+import { useCanvasStore } from "../stores/canvas";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
 const scr = useScreenStore();
 const dragging = useDragStore();
+const canvas = useCanvasStore();
 const droppedTiles = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
   ? scr.currentScreen.page_document.migration?.droppedTiles || [] : []);
 const adjustedFields = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
@@ -174,9 +176,9 @@ function onCanvasClick(e: MouseEvent) {
         </span>
         <p class="phone-hint">{{ t(state.document.pages.length > 1 ? "editor.phone.hint_pages" : "editor.phone.hint") }}</p>
       </div>
-      <div v-if="!narrow" class="page ghost" :style="deviceStyle" :class="{ disabled: !canAdd }">
+      <div v-if="!narrow" class="page ghost" :style="canvas.deviceStyle" :class="{ disabled: !canAdd }">
         <div class="page-head"><span class="page-name muted">{{ t("editor.page.label", { page: shown + 1 }) }}</span></div>
-        <div class="device" :class="{ compact: isCompact }" :style="deviceStyle" id="add-page" role="button" :tabindex="canAdd ? 0 : -1" @click="canAdd && (ui.pageWizardOpen = true)" @keydown.enter.prevent="canAdd && (ui.pageWizardOpen = true)">
+        <div class="device" :class="{ compact: canvas.isCompact }" :style="canvas.deviceStyle" id="add-page" role="button" :tabindex="canAdd ? 0 : -1" @click="canAdd && (ui.pageWizardOpen = true)" @keydown.enter.prevent="canAdd && (ui.pageWizardOpen = true)">
           <span class="ghost-plus"><Icon name="plus" /></span>
           <span>{{ canAdd ? t("editor.layout.add_page") : t("editor.layout.max_pages", grid.pages) }}</span>
         </div>

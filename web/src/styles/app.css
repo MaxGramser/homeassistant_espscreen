@@ -319,7 +319,7 @@ a:hover { text-decoration: underline; }
 
 /* The device mock keeps the Guition light palette on purpose: it is the screen, not the page. */
 /* The mockup is the screen's own glass and its own grid of cells: --screen-aspect, --screen-columns and
-   --screen-rows come from what the screen reported (store.ts: deviceStyle). The .compact class is the compact look
+   --screen-rows come from what the screen reported (stores/canvas.ts deviceStyle). The .compact class is the compact look
    of a small screen, not a board any more. */
 .device { background: #e7e7e7; border-radius: 18px; padding: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; color: #1b1b1b; aspect-ratio: var(--screen-aspect, 1 / 1); }
 .bar-wrap { cursor: pointer; border-radius: 8px; padding: 0 2px; }

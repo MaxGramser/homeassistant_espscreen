@@ -4,20 +4,22 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useGesture } from "../composables/useGesture";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
-import { arrangeFromHome, connectTile, deviceStyle, liveEntries, moveWorkspacePage, openPage, openTile, screenShape, state, workspacePositions } from "../store";
+import { arrangeFromHome, connectTile, liveEntries, moveWorkspacePage, openPage, openTile, screenShape, state, workspacePositions } from "../store";
 import DevicePage from "./DevicePage.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { useDragStore } from "../stores/drag";
+import { useCanvasStore } from "../stores/canvas";
 
 const ui = useUiStore();
 const dragging = useDragStore();
+const canvas = useCanvasStore();
 defineProps<{ compact?: boolean }>();
 const allConnections = ref(false);
 
 const world = ref<HTMLElement>(), zoom = ref(0.8);
 const positions = computed(workspacePositions), routes = computed(() => state.document ? connections(state.document) : []);
-const cardWidth = computed(() => parseFloat(deviceStyle.value['--mockup-width']));
+const cardWidth = computed(() => parseFloat(canvas.deviceStyle['--mockup-width']));
 const pitch = computed(() => ({ x: cardWidth.value + 110, y: cardWidth.value * screenShape.value.height / screenShape.value.width + 115 }));
 const extent = computed(() => ({ width: (Math.max(0, ...Object.values(positions.value).map((p) => p.x)) + 1) * pitch.value.x + 80,
   height: (Math.max(0, ...Object.values(positions.value).map((p) => p.y)) + 1) * pitch.value.y + 80 }));
