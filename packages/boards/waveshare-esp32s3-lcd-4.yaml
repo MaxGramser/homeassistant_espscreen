@@ -48,11 +48,10 @@ logger:
 # The GT911 and CH32V003 share the board's I2C bus.
 i2c:
   id: touch_bus
-  setup_priority: 1000
   sda: GPIO15
   scl: GPIO7
   frequency: 400kHz
-  scan: false
+  scan: true
 
 # The panel controller receives its setup over this serial bus.
 spi:
@@ -62,7 +61,6 @@ spi:
 
 waveshare_io_ch32v003:
   - id: expander
-    setup_priority: 850
     address: 0x24
     i2c_id: touch_bus
 
@@ -97,11 +95,12 @@ output:
       mode:
         output: true
 
+# The GT911's reset line is EXIO1 and its interrupt line EXIO2, both on the expander, so ESPHome polls the panel
+# instead of taking a real interrupt. The address is left to the driver: the chip latches it from the interrupt line
+# while it resets, so naming one here makes the driver talk to an address the panel may not answer on.
 touchscreen:
   - platform: gt911
     id: ts_touch
-    address: 0x5D
-    setup_priority: 600
     i2c_id: touch_bus
     display: my_display
     update_interval: 20ms
@@ -120,7 +119,8 @@ touchscreen:
 display:
   - platform: mipi_rgb
     id: my_display
-    setup_priority: -50
+    # The panel comes up after its supply and the expander that carries its reset line.
+    setup_priority: -100
     model: WAVESHARE-4-480X480
     spi_id: lcd
     reset_pin:
