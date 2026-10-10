@@ -2319,13 +2319,6 @@
       "download_how": "Put it on the screen with {esphome_web} in Chrome or Edge: Connect, choose the screen's USB port, Install, and select this file. It holds your Wi-Fi password and the screen's keys: keep it to yourself."
     },
     "installer": {
-      "title": {
-        "saved": "Profile saved.",
-        "running": "One moment…",
-        "ready": "Ready to download.",
-        "done": "Done.",
-        "failed": "That didn't work."
-      },
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
       "status": {

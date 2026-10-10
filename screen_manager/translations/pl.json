@@ -2669,13 +2669,6 @@
       "download_how": "Wgraj go na ekran przez {esphome_web} w Chrome lub Edge: „Connect”, wybierz port USB ekranu, „Install” i wskaż ten plik. Zawiera Twoje hasło Wi-Fi i klucze ekranu: nie udostępniaj go nikomu."
     },
     "installer": {
-      "title": {
-        "saved": "Profil zapisany.",
-        "running": "Chwileczkę…",
-        "ready": "Gotowe do pobrania.",
-        "done": "Gotowe.",
-        "failed": "Nie udało się."
-      },
       "board": "Jaki masz ekran?",
       "board_title": "{name} · {inch} cala",
       "status": {

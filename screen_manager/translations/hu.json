@@ -2669,13 +2669,6 @@
       "download_how": "Töltsd fel a kijelzőre a(z) {esphome_web} segítségével Chrome-ban vagy Edge-ben: Connect, válaszd a kijelző USB-portját, Install, majd jelöld ki ezt a fájlt. Tartalmazza a Wi-Fi-jelszavadat és a kijelző kulcsait: ne add ki másnak."
     },
     "installer": {
-      "title": {
-        "saved": "Profil mentve.",
-        "running": "Egy pillanat…",
-        "ready": "Letöltésre kész.",
-        "done": "Kész.",
-        "failed": "Ez nem sikerült."
-      },
       "board": "Milyen kijelződ van?",
       "board_title": "{name} · {inch} hüvelyk",
       "status": {

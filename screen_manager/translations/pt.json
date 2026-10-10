@@ -2669,13 +2669,6 @@
       "download_how": "Instale-o no ecrã com o {esphome_web} no Chrome ou no Edge: Connect, escolha a porta USB do ecrã, Install e selecione este ficheiro. Contém a sua palavra-passe de Wi-Fi e as chaves do ecrã: não o partilhe."
     },
     "installer": {
-      "title": {
-        "saved": "Perfil guardado.",
-        "running": "Um momento…",
-        "ready": "Pronto para descarregar.",
-        "done": "Concluído.",
-        "failed": "Não funcionou."
-      },
       "board": "Que ecrã tem?",
       "board_title": "{name} · {inch} polegadas",
       "status": {

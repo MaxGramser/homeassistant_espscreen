@@ -2669,13 +2669,6 @@
       "download_how": "Mettilo sullo schermo con {esphome_web} in Chrome o Edge: Connect, scegli la porta USB dello schermo, Install e seleziona questo file. Contiene la tua password Wi-Fi e le chiavi dello schermo: tienilo per te."
     },
     "installer": {
-      "title": {
-        "saved": "Profilo salvato.",
-        "running": "Un attimo…",
-        "ready": "Pronto da scaricare.",
-        "done": "Fatto.",
-        "failed": "Non ha funzionato."
-      },
       "board": "Quale schermo hai?",
       "board_title": "{name} · {inch} pollici",
       "status": {

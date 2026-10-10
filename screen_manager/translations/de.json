@@ -2669,13 +2669,6 @@
       "download_how": "Spiele sie mit {esphome_web} in Chrome oder Edge auf den Bildschirm: „Connect“ klicken, den USB-Port des Bildschirms wählen, „Install“ klicken und diese Datei auswählen. Sie enthält dein Wi-Fi-Passwort und die Schlüssel des Bildschirms: Behalte sie für dich."
     },
     "installer": {
-      "title": {
-        "saved": "Profil gespeichert.",
-        "running": "Einen Moment…",
-        "ready": "Bereit zum Herunterladen.",
-        "done": "Fertig.",
-        "failed": "Das hat nicht geklappt."
-      },
       "board": "Welchen Bildschirm hast du?",
       "board_title": "{name} · {inch} Zoll",
       "status": {

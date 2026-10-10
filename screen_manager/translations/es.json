@@ -2669,13 +2669,6 @@
       "download_how": "Instálalo en la pantalla con {esphome_web} en Chrome o Edge: Connect, elige el puerto USB de la pantalla, Install y selecciona este archivo. Contiene tu contraseña de Wi-Fi y las claves de la pantalla: no lo compartas."
     },
     "installer": {
-      "title": {
-        "saved": "Perfil guardado.",
-        "running": "Un momento…",
-        "ready": "Listo para descargar.",
-        "done": "Hecho.",
-        "failed": "No ha funcionado."
-      },
       "board": "¿Qué pantalla tienes?",
       "board_title": "{name} · {inch} pulgadas",
       "status": {

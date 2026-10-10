@@ -2669,13 +2669,6 @@
       "download_how": "Installez-le sur l'écran avec {esphome_web} dans Chrome ou Edge : Connect, choisissez le port USB de l'écran, Install, puis sélectionnez ce fichier. Il contient votre mot de passe Wi-Fi et les clés de l'écran : gardez-le pour vous."
     },
     "installer": {
-      "title": {
-        "saved": "Profil enregistré.",
-        "running": "Un instant…",
-        "ready": "Prêt à télécharger.",
-        "done": "Terminé.",
-        "failed": "Cela n'a pas fonctionné."
-      },
       "board": "Quel écran avez-vous ?",
       "board_title": "{name} · {inch} pouces",
       "status": {

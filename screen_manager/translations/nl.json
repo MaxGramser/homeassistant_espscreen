@@ -2319,13 +2319,6 @@
       "download_how": "Zet het met {esphome_web} op het scherm, in Chrome of Edge: klik op Connect, kies de USB-poort van het scherm, klik op Install en selecteer dit bestand. Het bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf."
     },
     "installer": {
-      "title": {
-        "saved": "Profiel bewaard.",
-        "running": "Even geduld…",
-        "ready": "Klaar om te downloaden.",
-        "done": "Klaar.",
-        "failed": "Dat lukte niet."
-      },
       "board": "Welk scherm heb je?",
       "board_title": "{name} · {inch} inch",
       "status": {
