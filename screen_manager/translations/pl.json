@@ -863,7 +863,8 @@
         "like_not_installed": "Najpierw dodaj wtyczkę do jednego z ekranów, potem możesz ją polubić.",
         "like_consent": "Najpierw zgódź się, aby polubienie liczyło się w publicznej liczbie.",
         "like_off": "Polubienia są wyłączone: obsługuje je nowsza wersja aplikacji.",
-        "like_failed": "Polubienie nie zostało wysłane. Spróbuj za chwilę."
+        "like_failed": "Polubienie nie zostało wysłane. Spróbuj za chwilę.",
+        "misfit_built_in": "{name} daje to, co ta płytka ma już sama."
       },
       "extras": {
         "request": "Tej zmiany dodatku nie można wprowadzić na tym ekranie."
@@ -1708,7 +1709,8 @@
         "blocked": "Zablokowana",
         "esphome": "Potrzebny nowszy ESPHome",
         "feature": "Brak sprzętu tutaj",
-        "needs": "Potrzebna niepasująca wtyczka"
+        "needs": "Potrzebna niepasująca wtyczka",
+        "built_in": "Wbudowane w tę płytkę"
       },
       "misfit": {
         "board": "Ta wtyczka jest przeznaczona dla innych płytek niż płytka ekranu {screen}.",
@@ -1718,7 +1720,8 @@
         "blocked": "Ta wersja wtyczki jest zablokowana: wiadomo, że jest szkodliwa lub uszkodzona.",
         "esphome": "Ta wtyczka potrzebuje nowszego ESPHome niż ten, którym kompiluje ta aplikacja.",
         "feature": "{screen} nie ma niczego, czego potrzebuje ta wtyczka, i żadna wtyczka, która to zapewnia, nie pasuje.",
-        "needs": "Ta wtyczka potrzebuje innej wtyczki, która nie pasuje do {screen}."
+        "needs": "Ta wtyczka potrzebuje innej wtyczki, która nie pasuje do {screen}.",
+        "built_in": "Płytka {screen} ma to już sama, więc wtyczka nie jest tam potrzebna."
       },
       "none_installed": "Na tym ekranie nie ma jeszcze wtyczek.",
       "none_found": "Żadna wtyczka nie pasuje do „{query}”.",

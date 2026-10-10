@@ -50,7 +50,7 @@ class Manifest(unittest.TestCase):
 
 
 class Catalogue(unittest.TestCase):
-    def service(self, *items):
+    def service(self, *items, board='guition'):
         import plugins as plugin_service
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -61,7 +61,7 @@ class Catalogue(unittest.TestCase):
             updates = type('Updates', (), {'resolve': lambda self, screen: (None, None)})()
 
             def screen(self, inbox):
-                return {'id': inbox, 'node': inbox, 'name': inbox.title(), 'board': 'guition'}
+                return {'id': inbox, 'node': inbox, 'name': inbox.title(), 'board': board}
 
             def screens(self):
                 return [self.screen('kitchen')]
@@ -99,6 +99,27 @@ class Catalogue(unittest.TestCase):
                                       'ref': 'a' * 40, 'version': '1.0.0'})
         service.keep_snapshot(service.index['audio'])
         self.assertTrue(service.plan('kitchen', {'add': [{'id': 'beeper'}]})['error'])
+
+    def test_what_the_board_brings_no_plugin_brings_again(self):
+        # The reTerminal D1001 brings a speaker, a microphone and a media player itself (boards.json `features`).
+        audio = item('audio', provides=['speaker', 'microphone'])
+        service = self.service(item('voice', requires={'features': ['microphone']}), audio, board='reterminald1001')
+        self.assertEqual(service.fits(service.index['audio'], service.manager.screen('kitchen')), 'built_in')
+        self.assertTrue(service.plan('kitchen', {'add': [{'id': 'audio'}]})['error'])
+        plan = service.plan('kitchen', {'add': [{'id': 'voice'}]})
+        self.assertEqual([s['id'] for s in plan['add']], ['voice'], 'nothing comes along: the board has the microphone')
+        # A screen that had such a plugin before its board brought the feature builds without it, and the editor says why.
+        service.store.put('kitchen', {'id': 'audio', 'source': 'index', 'repo': TESSERA, 'path': 'plugins/audio',
+                                      'ref': 'a' * 40, 'version': '1.0.0'})
+        service.keep_snapshot(service.index['audio'])
+        self.assertNotIn('plugin_audio', service.sidecar('kitchen'))
+        self.assertEqual(service.payload()['fit']['kitchen'].get('audio'), 'built_in')
+        # On a board that brings none, the same plugin is built.
+        other = self.service(audio)
+        other.store.put('kitchen', {'id': 'audio', 'source': 'index', 'repo': TESSERA, 'path': 'plugins/audio',
+                                    'ref': 'a' * 40, 'version': '1.0.0'})
+        other.keep_snapshot(other.index['audio'])
+        self.assertIn('plugin_audio', other.sidecar('kitchen'))
 
     def test_what_another_plugin_needs_goes_only_together_and_what_came_along_may_go(self):
         service = self.service(item('voice', requires={'features': ['microphone']}), item('audio', provides=['microphone']))

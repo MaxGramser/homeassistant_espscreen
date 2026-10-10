@@ -863,7 +863,8 @@
         "like_not_installed": "Zet de plugin eerst op een van je schermen, dan kun je hem liken.",
         "like_consent": "Ga eerst akkoord dat je like meetelt in een openbaar aantal.",
         "like_off": "Likes staan uit: een nieuwere versie van de app houdt ze bij.",
-        "like_failed": "De like is niet verstuurd. Probeer het zo nog eens."
+        "like_failed": "De like is niet verstuurd. Probeer het zo nog eens.",
+        "misfit_built_in": "{name} brengt iets wat dit bord zelf al heeft."
       },
       "extras": {
         "request": "Deze extra kan op dit scherm niet zo worden gewijzigd."
@@ -2983,7 +2984,8 @@
         "blocked": "Geblokkeerd",
         "esphome": "Nieuwere ESPHome nodig",
         "feature": "Mist hardware op dit scherm",
-        "needs": "Plugin nodig die niet past"
+        "needs": "Plugin nodig die niet past",
+        "built_in": "Zit al in dit bord"
       },
       "misfit": {
         "board": "Deze plugin is gemaakt voor andere bordjes dan dat van {screen}.",
@@ -2993,7 +2995,8 @@
         "blocked": "Deze versie van de plugin is geblokkeerd: hij is schadelijk of kapot.",
         "esphome": "Deze plugin heeft een nieuwere ESPHome nodig dan waarmee deze app bouwt.",
         "feature": "{screen} heeft niets wat levert wat deze plugin nodig heeft, en geen plugin die het levert past.",
-        "needs": "Deze plugin heeft een andere plugin nodig die niet op {screen} past."
+        "needs": "Deze plugin heeft een andere plugin nodig die niet op {screen} past.",
+        "built_in": "Het bord van {screen} heeft dit zelf al, dus de plugin is daar niet nodig."
       },
       "none_installed": "Nog geen plugins op dit scherm.",
       "none_found": "Geen plugin gevonden voor “{query}”.",

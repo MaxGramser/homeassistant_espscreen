@@ -863,7 +863,8 @@
         "like_not_installed": "Installez d'abord le plugin sur un de vos écrans, ensuite vous pourrez l'aimer.",
         "like_consent": "Acceptez d'abord que votre j'aime compte dans un nombre public.",
         "like_off": "Les j'aime sont désactivés : une version plus récente de l'app les gère.",
-        "like_failed": "Le j'aime n'est pas parti. Réessayez dans un instant."
+        "like_failed": "Le j'aime n'est pas parti. Réessayez dans un instant.",
+        "misfit_built_in": "{name} apporte ce que cette carte a déjà."
       },
       "extras": {
         "request": "Ce changement d’un extra n’est pas possible sur cet écran."
@@ -1708,7 +1709,8 @@
         "blocked": "Bloqué",
         "esphome": "ESPHome plus récent requis",
         "feature": "Matériel absent ici",
-        "needs": "Requiert un plugin incompatible"
+        "needs": "Requiert un plugin incompatible",
+        "built_in": "Intégré à cette carte"
       },
       "misfit": {
         "board": "Ce plugin est fait pour d'autres cartes que celle de {screen}.",
@@ -1718,7 +1720,8 @@
         "blocked": "Cette version du plugin est bloquée : elle est connue pour être nuisible ou défectueuse.",
         "esphome": "Ce plugin nécessite un ESPHome plus récent que celui avec lequel cette app compile.",
         "feature": "{screen} n'a rien qui apporte ce dont ce plugin a besoin, et aucun plugin qui l'apporte ne convient.",
-        "needs": "Ce plugin a besoin d'un autre plugin qui ne convient pas à {screen}."
+        "needs": "Ce plugin a besoin d'un autre plugin qui ne convient pas à {screen}.",
+        "built_in": "La carte de {screen} l’apporte elle-même, le plugin n’y est donc pas nécessaire."
       },
       "none_installed": "Aucun plugin sur cet écran pour l'instant.",
       "none_found": "Aucun plugin ne correspond à « {query} ».",

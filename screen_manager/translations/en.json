@@ -863,7 +863,8 @@
         "like_not_installed": "Put the plugin on one of your screens first, then you can like it.",
         "like_consent": "Agree first that your like counts in a public number.",
         "like_off": "Likes are off: a newer version of the app keeps them.",
-        "like_failed": "The like did not go out. Try again in a moment."
+        "like_failed": "The like did not go out. Try again in a moment.",
+        "misfit_built_in": "{name} brings what this board has itself."
       },
       "extras": {
         "request": "This change of an extra is not possible on this screen."
@@ -2983,7 +2984,8 @@
         "blocked": "Blocked",
         "esphome": "Needs newer ESPHome",
         "feature": "Needs hardware this screen lacks",
-        "needs": "Needs a plugin that does not fit"
+        "needs": "Needs a plugin that does not fit",
+        "built_in": "Built into this board"
       },
       "misfit": {
         "board": "This plugin is made for other boards than {screen}'s.",
@@ -2993,7 +2995,8 @@
         "blocked": "This version of the plugin is blocked: it is known to be harmful or broken.",
         "esphome": "This plugin needs a newer ESPHome than this app builds with.",
         "feature": "{screen} has nothing that brings what this plugin needs, and no plugin that brings it fits.",
-        "needs": "This plugin needs another plugin that does not fit {screen}."
+        "needs": "This plugin needs another plugin that does not fit {screen}.",
+        "built_in": "{screen}'s board brings this itself, so the plugin is not needed there."
       },
       "none_installed": "No plugins on this screen yet.",
       "none_found": "No plugin matches “{query}”.",

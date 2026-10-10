@@ -863,7 +863,8 @@
         "like_not_installed": "Metti prima il plugin su uno dei tuoi schermi, poi potrai mettere mi piace.",
         "like_consent": "Accetta prima che il tuo mi piace conti in un numero pubblico.",
         "like_off": "I mi piace sono disattivati: li gestisce una versione più recente dell'app.",
-        "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo."
+        "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo.",
+        "misfit_built_in": "{name} porta ciò che questa scheda ha già."
       },
       "extras": {
         "request": "Questa modifica di un extra non è possibile su questo schermo."
@@ -1708,7 +1709,8 @@
         "blocked": "Bloccato",
         "esphome": "Serve ESPHome più recente",
         "feature": "Manca hardware qui",
-        "needs": "Serve un plugin non adatto"
+        "needs": "Serve un plugin non adatto",
+        "built_in": "Già integrato nella scheda"
       },
       "misfit": {
         "board": "Questo plugin è fatto per schede diverse da quella di {screen}.",
@@ -1718,7 +1720,8 @@
         "blocked": "Questa versione del plugin è bloccata: è nota per essere dannosa o non funzionante.",
         "esphome": "Questo plugin richiede un ESPHome più recente di quello con cui compila questa app.",
         "feature": "{screen} non ha nulla che fornisca ciò che serve a questo plugin, e nessun plugin che lo fornisce va bene.",
-        "needs": "Questo plugin richiede un altro plugin che non va bene per {screen}."
+        "needs": "Questo plugin richiede un altro plugin che non va bene per {screen}.",
+        "built_in": "La scheda di {screen} lo porta già con sé, quindi lì il plugin non serve."
       },
       "none_installed": "Ancora nessun plugin su questo schermo.",
       "none_found": "Nessun plugin corrisponde a «{query}».",

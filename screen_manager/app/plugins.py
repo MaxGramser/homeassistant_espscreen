@@ -740,7 +740,7 @@ class Plugins:
         for screen in self.screens():
             features[screen['id']] = sorted(self.features_on(screen))
             reasons = {entry.id: reason for entry in listed.values()
-                       if (reason := self.fits(entry, screen)) in ('esphome', 'feature', 'needs')}
+                       if (reason := self.fits(entry, screen)) in ('esphome', 'feature', 'needs', 'built_in')}
             if reasons:
                 fit[screen['id']] = reasons
         return {'api': api_text(), 'plugins': [self.editor_plugin(entry, language) for entry in listed.values()],
@@ -760,8 +760,10 @@ class Plugins:
         have = self.features_on(self.manager.screen(inbox) or {'id': inbox}, records)
         for record in records:
             entry = self.entry_for(record)
-            # A release the index blocks is left out of the next build (drop_blocked); the editor says why.
-            if not entry or self.blocked_record(record):
+            # A release the index blocks is left out of the next build (drop_blocked); the editor says why. So is one that
+            # brings what the screen's board now brings itself: two of one ESPHome id would stop the build.
+            screen = self.manager.screen(inbox) or {'id': inbox}
+            if not entry or self.blocked_record(record) or self.fits(entry, screen, deep=False) == 'built_in':
                 continue
             values = record.get('values') or {}
             variables = {item['id'].upper(): str(values.get(item['id'], '')) for item in entry.manifest['inputs']
@@ -824,6 +826,10 @@ class Plugins:
             return 'api'
         if manifest['boards'] != 'any' and core.board_of(screen) not in manifest['boards']:
             return 'board'
+        # What the board brings itself (boards.json `features`): a plugin that brings it too would define its id twice.
+        # A screen that had such a plugin before its board brought the feature leaves it out of its build (sidecar).
+        if set(manifest['provides']) & set(core.SHAPES.get(core.board_of(screen), {}).get('features') or []):
+            return 'built_in'
         # PSRAM: a board that draws camera pictures has it (features/camera.yaml is for PSRAM boards only).
         if manifest['requires']['psram'] and not screen.get('pictures') and not core.SHAPES.get(core.board_of(screen), {}).get('camera'):
             return 'psram'
@@ -956,6 +962,7 @@ class Plugins:
                  'board': lambda: t('addon.errors.plugins.misfit_board', name=name),
                  'psram': lambda: t('addon.errors.plugins.misfit_psram', name=name),
                  'blocked': lambda: t('addon.errors.plugins.misfit_blocked', name=name),
+                 'built_in': lambda: t('addon.errors.plugins.misfit_built_in', name=name),
                  'esphome': lambda: t('addon.errors.plugins.misfit_esphome', name=name,
                                       version=entry.manifest['requires'].get('esphome', ''))}
         return {'error': texts[reason]()}

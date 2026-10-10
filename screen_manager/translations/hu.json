@@ -863,7 +863,8 @@
         "like_not_installed": "Előbb tedd fel a bővítményt egy kijelződre, utána kedvelheted.",
         "like_consent": "Előbb fogadd el, hogy a kedvelésed nyilvános számba számít.",
         "like_off": "A kedvelés ki van kapcsolva: az alkalmazás újabb verziója kezeli.",
-        "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később."
+        "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később.",
+        "misfit_built_in": "{name} azt hozza, ami ennek a lapkának már megvan."
       },
       "extras": {
         "request": "Ez a módosítás ezen a kijelzőn nem lehetséges."
@@ -1708,7 +1709,8 @@
         "blocked": "Letiltva",
         "esphome": "Újabb ESPHome kell",
         "feature": "Hiányzó hardver",
-        "needs": "Nem illő bővítmény kell"
+        "needs": "Nem illő bővítmény kell",
+        "built_in": "Ebben a lapkában már benne van"
       },
       "misfit": {
         "board": "Ez a bővítmény más lapkákhoz készült, mint ami a(z) {screen} kijelzőben van.",
@@ -1718,7 +1720,8 @@
         "blocked": "A bővítmény ezen verziója le van tiltva: ismerten ártalmas vagy hibás.",
         "esphome": "Ennek a bővítménynek újabb ESPHome kell, mint amivel ez az alkalmazás fordít.",
         "feature": "A(z) {screen} kijelzőn nincs meg, ami ennek a bővítménynek kell, és nincs hozzá illő bővítmény, amely biztosítaná.",
-        "needs": "Ennek a bővítménynek egy másik bővítmény kell, amely nem jó ehhez: {screen}."
+        "needs": "Ennek a bővítménynek egy másik bővítmény kell, amely nem jó ehhez: {screen}.",
+        "built_in": "{screen} lapkája ezt már magától tudja, ezért ott nincs szükség a bővítményre."
       },
       "none_installed": "Ezen a kijelzőn még nincs bővítmény.",
       "none_found": "Egy bővítmény sem felel meg ennek: „{query}”.",

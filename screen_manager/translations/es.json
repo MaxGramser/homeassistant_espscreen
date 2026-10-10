@@ -863,7 +863,8 @@
         "like_not_installed": "Pon primero el plugin en una de tus pantallas y luego podrás darle me gusta.",
         "like_consent": "Acepta primero que tu me gusta cuente en un número público.",
         "like_off": "Los me gusta están desactivados: una versión más nueva de la app los gestiona.",
-        "like_failed": "El me gusta no se envió. Inténtalo de nuevo en un momento."
+        "like_failed": "El me gusta no se envió. Inténtalo de nuevo en un momento.",
+        "misfit_built_in": "{name} aporta lo que esta placa ya tiene."
       },
       "extras": {
         "request": "Este cambio de un extra no es posible en esta pantalla."
@@ -1708,7 +1709,8 @@
         "blocked": "Bloqueado",
         "esphome": "Necesita ESPHome más nuevo",
         "feature": "Falta hardware aquí",
-        "needs": "Necesita un plugin que no cabe"
+        "needs": "Necesita un plugin que no cabe",
+        "built_in": "Ya está en esta placa"
       },
       "misfit": {
         "board": "Este plugin está hecho para otras placas distintas de la de {screen}.",
@@ -1718,7 +1720,8 @@
         "blocked": "Esta versión del plugin está bloqueada: se sabe que es dañina o que no funciona.",
         "esphome": "Este plugin necesita un ESPHome más nuevo que el que usa esta app para compilar.",
         "feature": "{screen} no tiene nada que aporte lo que necesita este plugin, y ningún plugin que lo aporte cabe.",
-        "needs": "Este plugin necesita otro plugin que no cabe en {screen}."
+        "needs": "Este plugin necesita otro plugin que no cabe en {screen}.",
+        "built_in": "La placa de {screen} ya lo trae, así que el plugin no hace falta allí."
       },
       "none_installed": "Todavía no hay plugins en esta pantalla.",
       "none_found": "Ningún plugin coincide con «{query}».",
