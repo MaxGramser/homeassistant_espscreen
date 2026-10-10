@@ -12,6 +12,7 @@ import { attachLine, barItemView, barTypesOf, choiceKey, fit, isTest, nodeOf, ow
 import { state } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
+import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
 
 export type PlanStep = { id: string; source: string; auto: boolean; for: string[]; flash_kb: number; permission_hash: string };
@@ -487,12 +488,16 @@ export const usePluginsStore = defineStore("plugins", () => {
 
   return {
     index, installed, loaded, secrets, files, choices, previews, entities, folders, features, likeConsent, appFit,
-    values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled,
-    pluginTileOf, barItemOf, fits, reloadPlugins, loadPlugins, choicesFor, previewFor, tapActionsFor, barItemsFor, entitiesIn,
-    needsConsent, realScreens, otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, setParts, valueOf, setValue, needsAttach,
-    markAttached, copyAttach, pluginsFile, setupChanged, openPluginOn, setupReady, partsKb, installedOn, buildingOn, testsOn,
-    allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, chooseProvider, neededBy, canLike, like,
-    forgetDrafts, addPlugin, updateAll, isSetAside, setAside, takeOut, toggleSetAside, trayGroups, trayPlan, trayAlong,
-    trayReady, setAsideKb, installTray, removePlugin, switchPlugin, setSecret, start,
+    values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups,
+    // What the Plugins page, a screen's tab and the cards read as they draw (stores/lookup.ts); choicesFor, previewFor and
+    // planOn answer at once and ask the add-on for what they do not have yet.
+    ...lookups({
+      pluginTileOf, barItemOf, fits, choicesFor, previewFor, tapActionsFor, barItemsFor, entitiesIn, needsConsent, realScreens,
+      otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, partsKb,
+      installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike,
+      isSetAside, trayPlan, trayAlong, trayReady, setAsideKb,
+    }),
+    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, openPluginOn, chooseProvider, like, forgetDrafts,
+    addPlugin, updateAll, setAside, takeOut, toggleSetAside, installTray, removePlugin, switchPlugin, setSecret, start,
   };
 });

@@ -11,6 +11,7 @@ import { text as pluginText } from "../model/plugins";
 import { itemKey } from "../model/topbar";
 import { state } from "../store";
 import type { Capability, EntityAction, Tile } from "../types";
+import { lookups } from "./lookup";
 import { usePluginsStore } from "./plugins";
 
 // What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
@@ -178,8 +179,8 @@ export const useEntitiesStore = defineStore("entities", () => {
   }
 
   return {
-    entityName, iconNamed, automaticIcon, tileIconCp,
+    ...lookups({ entityName, iconNamed, automaticIcon, tileIconCp, liveOf }),
     capabilities, entityActions, subtitleValues, loadCapabilities, loadSubtitleValues, loadEntityActions,
-    liveStates, loadStates, loadLibraryStates, liveOf, topbarPreviews, loadOverview, loadHistory,
+    liveStates, loadStates, loadLibraryStates, topbarPreviews, loadOverview, loadHistory,
   };
 });

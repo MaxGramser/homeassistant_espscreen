@@ -11,6 +11,7 @@ import { t } from "../i18n";
 import * as status from "../model/screen-status";
 import { refresh, state } from "../store";
 import type { Build, Screen } from "../types";
+import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
 
 // How often the firmware job is asked for while someone follows it (composables/useFirmwareJob.ts), unless one wants more.
@@ -102,7 +103,7 @@ export const useBuildsStore = defineStore("builds", () => {
   onScopeDispose(() => { flight = null; });
 
   return {
-    updating, buildOf, building, isBuilding, anyBuilding, buildingScreens, buildText, buildProgress, whatsNew, prune, forget,
+    updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew }), anyBuilding, buildingScreens, prune, forget,
     startUpdate, runUpdateAll, setAutoUpdate, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
   };
 });

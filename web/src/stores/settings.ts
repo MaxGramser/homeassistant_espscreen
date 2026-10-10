@@ -11,6 +11,7 @@ import { t } from "../i18n";
 import type { NavigationSettings } from "../model/pages";
 import { rowText, type SettingRow } from "../model/settings";
 import { currentScreen, state, supports } from "../store";
+import { lookups } from "./lookup";
 import { useRegionStore } from "./region";
 import { useUiStore } from "./ui";
 
@@ -138,7 +139,7 @@ export const useSettingsStore = defineStore("settings", () => {
   });
 
   return {
-    settingEdits, settingPending, settingsView, settingValues, settingText, navigationSettings,
+    settingEdits, settingPending, ...lookups({ settingsView, settingValues, settingText, navigationSettings }),
     setSetting, flushSettings, settleSettings, leaveScreen, forget, start,
   };
 });

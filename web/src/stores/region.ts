@@ -8,6 +8,7 @@ import { computed, effectScope, onScopeDispose, watch } from "vue";
 import { send } from "../api";
 import { languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "../i18n";
 import { refresh, state } from "../store";
+import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
 
 export type LanguageChanges = { setting?: string; clock?: string; numbers?: string };
@@ -73,5 +74,5 @@ export const useRegionStore = defineStore("region", () => {
   }
   onScopeDispose(() => running?.());
 
-  return { screenLanguage, screenText, languageName, screenBuiltinName, clock24, numberMarks, autoMarks, unitSuffix, saveLanguage, start };
+  return { screenLanguage, ...lookups({ screenText, languageName, screenBuiltinName, unitSuffix }), clock24, numberMarks, autoMarks, saveLanguage, start };
 });
