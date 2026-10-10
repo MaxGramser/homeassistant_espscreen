@@ -305,10 +305,13 @@ then takes the sound along in the tile's own WebRTC session (and drops it while 
 from that tile has its sound at once.
 
 **Nothing of LVGL's under a live picture.** A live picture writes past LVGL, so it stops the moment anything LVGL draws
-lies over its room, and starts again once nothing does: a visible object on LVGL's system layer, one on the top layer
-above it (for a tile, anything on the top layer: the update's progress, an alert, the camera full screen, the
-screensaver), or, for a tile, its page no longer on the glass (`drawn_over` in `runtime_tiles.h`). No list of overlays:
-one that comes later is covered by the same rule. The check runs on the board's 50 ms interval and as LVGL starts every
+lies over its room, and starts again once nothing does. What counts follows LVGL's own order of drawing
+(`drawn_over` in `runtime_tiles.h`): on the way from the tile or the camera view up to its screen or layer, every object
+that comes after it (a card opened on the page itself, as a lamp's colour card is); for a tile, anything on the top
+layer (the update's progress, an alert, the camera full screen, the screensaver) and its page no longer on the glass;
+and anything on the system layer. A plain, clear container is not in the way by itself, only what it holds. No list of
+overlays: one that comes later is covered by the same rule. Beside it, every card over the page (the detail card, the
+colour card, the effects and lamps pages) is one notion, `card_open()`, which stops the live tiles of the page at once. The check runs on the board's 50 ms interval and as LVGL starts every
 drawing (`LV_EVENT_REFR_START`, `live_stop_covered`), so it also holds for a drawing the main loop does not run for: an
 update holds the loop and has its progress drawn at once.
 
