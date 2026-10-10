@@ -30,6 +30,7 @@ import { slug } from "./model/slug";
 import { clockSample } from "./model/clock";
 import { onReset } from "./resets";
 import { readStored, writeStored } from "./storage";
+import { flagSerializer, renewable, usePreference } from "./composables/usePreference";
 
 export type Inspector =
   | { kind: "tile" }
@@ -49,8 +50,14 @@ export type DragState = { active: boolean; moving: Tile | null; preview: { tile:
 // What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
 export type Live = { state: string; word?: string | null; a: Record<string, any> };
 
+// What this browser remembers of the editor (composables/usePreference.ts): the library drawer open or folded, the whole
+// editor on a phone. Each is a field of the state below, written as it changes.
+const preferences = renewable(() => ({
+  libraryOpen: usePreference("esp-screens.library-open", true, { serializer: { read: (raw) => raw !== "0", write: (open) => (open ? "1" : "0") } }),
+  fullEditor: usePreference("esp-screens.full-editor", false, { serializer: flagSerializer }),
+}));
 // The editor's state as it starts, before the add-on has said anything: the page begins with it, and every test again
-// (resetStore). What this browser remembers of itself (the library drawer, the whole editor on a phone) is read here.
+// (resetStore).
 const fresh = () => ({
   inventory: { screens: [], entities: [] } as Inventory,
   connected: false,
@@ -87,11 +94,10 @@ const fresh = () => ({
   insertKey: null as null | { holder: string; key: number },
   filter: "",
   search: "",
-  // The library drawer along the bottom (app 0.4.32): open or folded, remembered in this browser.
-  libraryOpen: readStored("esp-screens.library-open") !== "0",
-  // On a phone (app 0.4.40): the editor of everyday changes, unless this browser asked for the whole editor; the
-  // library as a sheet that opens for one tile, the pages in a sheet, and the tile just added marked for a moment.
-  fullEditor: readStored("esp-screens.full-editor") === "1",
+  // The library drawer along the bottom (app 0.4.32): open or folded, remembered in this browser; and on a phone (app
+  // 0.4.40) the editor of everyday changes, unless this browser asked for the whole editor (fullEditor). There the
+  // library is a sheet that opens for one tile, the pages a sheet, and the tile just added is marked for a moment.
+  ...preferences(),
   addSheet: false,
   pagesSheet: false,
   previewOpen: false,
@@ -144,7 +150,6 @@ export const phone = computed(() => narrowPhone.value && !state.fullEditor);
 export function setFullEditor(on: boolean) {
   state.fullEditor = on;
   state.addSheet = false; state.pagesSheet = false; state.menuOpen = false;
-  writeStored("esp-screens.full-editor", on ? "1" : "0");
 }
 
 // This is a cached render projection of the one canonical draft. Mutations go
@@ -676,9 +681,12 @@ function historyStep(direction: 'undo' | 'redo') {
 }
 export function undo() { historyStep('undo'); }
 export function redo() { historyStep('redo'); }
-function readMode(id: string): "simple" | "advanced" {
-  return readStored(`esp-screens-mode:${id}`) === "advanced" ? "advanced" : "simple";
-}
+// The simple or the advanced editor, remembered in this browser per screen: the preference of the open screen.
+const screenPreferences = renewable(() => ({
+  mode: usePreference<"simple" | "advanced">(() => `esp-screens-mode:${state.selected ?? ""}`, "simple",
+    { serializer: { read: (raw) => (raw === "advanced" ? "advanced" : "simple"), write: (mode) => mode } }),
+}));
+let screenKept = screenPreferences();
 export function setEditorMode(mode: "simple" | "advanced") {
   state.editorMode = mode;
   historyCounts();
@@ -686,7 +694,7 @@ export function setEditorMode(mode: "simple" | "advanced") {
   state.connectingTileId = null;
   state.drag.active = false; state.drag.preview = null; state.drag.page = null; state.drag.moving = null;
   if (mode === "advanced") initializeWorkspace();
-  if (state.selected) writeStored(`esp-screens-mode:${state.selected}`, mode);
+  if (state.selected) screenKept.mode.value = mode;
 }
 // A screen's saved document becomes the draft, with nothing to undo and nothing unsaved: when a screen is chosen, when it
 // is read again, and for the tests' fixtures (tests/page-fixtures.ts), which so start from what the editor starts from.
@@ -722,7 +730,7 @@ export function select(id: string | null) {
   // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
   if (!screen) { state.document = null; state.documentGrid = null; state.dirty = false; return; }
   loadDocument(screen);
-  state.editorMode = readMode(screen.id);
+  state.editorMode = screenKept.mode.value;
   if (state.editorMode === "advanced") initializeWorkspace();
   state.insertAt = -1; state.dirty = false; state.saved = 0;
   loadTopbarPreview(0);
@@ -2056,7 +2064,6 @@ export function startStore() {
   stops.push(watch(screenLanguage, (code) => loadLanguage(code), { immediate: true }));
   // The screensaver's drawers belong to the settings: they close when the layout comes back.
   stops.push(watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); }));
-  stops.push(watch(() => state.libraryOpen, (open) => { writeStored("esp-screens.library-open", open ? "1" : "0"); }));
   const phoneWidth = phoneQuery(), toPhone = (event: MediaQueryListEvent) => { narrowPhone.value = event.matches; };
   phoneWidth?.addEventListener?.("change", toPhone);
   stops.push(() => phoneWidth?.removeEventListener?.("change", toPhone));
@@ -2117,6 +2124,7 @@ function startLive() {
 function resetStore() {
   started?.();
   Object.assign(state, fresh());
+  screenKept = screenPreferences();
   clearTimeout(toastTimer); clearTimeout(addedTimer); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
   mapSaver.cancel();
   narrowPhone.value = Boolean(phoneQuery()?.matches);

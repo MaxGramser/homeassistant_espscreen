@@ -5,6 +5,7 @@ import {
   addTile, canAlert, copyLayoutFrom, copyText, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage, moveTileToPage,
   pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports, supportsVersion,
   tileLimit, topbarItems, topbarView, buildProgress, whatsNew, refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices,
+  setEditorMode, setFullEditor,
 } from "../src/store";
 import { t } from "../src/i18n";
 import { customPreview } from "../src/model/preview";
@@ -120,6 +121,23 @@ describe("selecting and editing", () => {
     expect(topbarView({ type: "clock" }).text).toBe("10:08");
     expect(topbarView({ type: "date" }).text).toBe("Tu 15 Sep");
     expect(topbarView({ type: "analog" }).analog).toBe(true);
+  });
+});
+
+describe("what this browser remembers of the editor", () => {
+  it("keeps the editor chosen per screen, the library open or folded and the whole editor, in the values it always had", () => {
+    select("living");
+    setEditorMode("advanced");
+    select("kitchen");
+    expect(state.editorMode).toBe("simple");
+    select("living");
+    expect(state.editorMode).toBe("advanced");
+    expect([localStorage.getItem("esp-screens-mode:living"), localStorage.getItem("esp-screens-mode:kitchen")]).toEqual(["advanced", null]);
+    state.libraryOpen = false;
+    setFullEditor(true);
+    expect([localStorage.getItem("esp-screens.library-open"), localStorage.getItem("esp-screens.full-editor")]).toEqual(["0", "1"]);
+    state.libraryOpen = true;
+    expect(localStorage.getItem("esp-screens.library-open")).toBe("1");
   });
 });
 

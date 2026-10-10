@@ -4,25 +4,26 @@
 // after either link, and never after "I already donated". Kept in this browser only: nothing goes into the screens' data or leaves the house.
 import { ref } from "vue";
 import { t } from "../i18n";
-import { readStored, writeStored } from "../storage";
+import { usePreference } from "../composables/usePreference";
 import { toast } from "../store";
 
-const KEY = "esp-screens.donate";
 const DAY = 86_400_000;
 const MONTHLY = "https://buymeacoffee.com/f5j9jnkmhpv/membership";
 const ONCE = "https://buymeacoffee.com/f5j9jnkmhpv";
 
+// When to ask again, as this browser keeps it: a moment, or "donated" for never.
+const until = usePreference<number | "donated" | null>("esp-screens.donate", null,
+  { serializer: { read: (raw) => (raw === "donated" ? raw : raw ? Number(raw) : null), write: String } });
 function due() {
-  const stored = readStored(KEY);
-  if (stored === "donated") return false;
-  if (!stored) { writeStored(KEY, String(Date.now() + 2 * DAY)); return false; }
-  return Date.now() >= Number(stored);
+  if (until.value === "donated") return false;
+  if (until.value === null) { until.value = Date.now() + 2 * DAY; return false; }
+  return Date.now() >= until.value;
 }
 const open = ref(due());
 
 function hide(days: number | "donated") {
   open.value = false;
-  writeStored(KEY, days === "donated" ? days : String(Date.now() + days * DAY));
+  until.value = days === "donated" ? days : Date.now() + days * DAY;
 }
 function donated() {
   hide("donated");

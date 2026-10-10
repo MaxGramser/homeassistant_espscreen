@@ -15,7 +15,7 @@ import { tilePalette } from "../model/tile-palette";
 import { isPluginTile } from "../model/plugins";
 import { pluginsEnabled, tilesOn } from "../plugin-state";
 import { currentScreen } from "../store";
-import { readStored, writeStored } from "../storage";
+import { usePreference } from "../composables/usePreference";
 import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, phone, pictures, repeatable, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
@@ -191,10 +191,12 @@ onMounted(() => document.addEventListener("keydown", onPageKey));
 onBeforeUnmount(() => document.removeEventListener("keydown", onPageKey));
 
 // ---- Open or folded, and how tall, remembered in this browser ----
-const HEIGHT_KEY = "esp-screens.library-height";
 const MIN = 180;
 const HEAD = 49;
-const height = ref(Math.max(MIN, Number(readStored(HEIGHT_KEY)) || 300));
+// The height this browser keeps, written when the edge is let go or a key moved it; `height` follows the pointer.
+const keptHeight = usePreference("esp-screens.library-height", 300,
+  { serializer: { read: (raw) => Math.max(MIN, Number(raw) || 300), write: (px) => String(Math.round(px)) } });
+const height = ref(keptHeight.value);
 const maxHeight = () => Math.max(MIN, Math.round(window.innerHeight * 0.7));
 function toggle() { open.value = !open.value; }
 // Typing in the folded bar opens the drawer on what it finds.
@@ -228,14 +230,14 @@ function release() {
   drag = null;
   resizing.value = false;
   document.body.style.userSelect = "";
-  writeStored(HEIGHT_KEY, String(Math.round(height.value)));
+  keptHeight.value = height.value;
 }
 function onResizeKey(e: KeyboardEvent) {
   if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
   e.preventDefault();
   open.value = true;
   height.value = Math.min(maxHeight(), Math.max(MIN, height.value + (e.key === "ArrowUp" ? 40 : -40)));
-  writeStored(HEIGHT_KEY, String(Math.round(height.value)));
+  keptHeight.value = height.value;
 }
 onBeforeUnmount(release);
 </script>
