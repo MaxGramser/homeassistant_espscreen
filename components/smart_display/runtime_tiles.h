@@ -366,8 +366,10 @@ inline std::string hhmm(const esphome::ESPTime &time) {
 inline void history_received();
 // Camera images full screen and on an alert (firmware 0.2.57+, the Guition binds them; see the end of this file).
 inline void camera_open(const std::string &entity, const std::string &name, int map_index = -1, const std::string &focus = "");
+inline void camera_let_go();
 inline void camera_answer(const std::string &view, const std::string &entity, const std::string &url, uint32_t number);
 inline bool camera_supported();
+inline bool camera_viewable();
 // Every picture goes one way (picture_loader.h; see the end of this file): an owner says what it wants, and draws what
 // picture_of() has for its key.
 inline lv_image_dsc_t *picture_of(const std::string &key);
@@ -5729,7 +5731,7 @@ inline void event(lv_event_t *event) {
   // Scenes/scripts often have timestamps or 'off'; unavailable devices never act.
   if (!tile.available() || tile.waiting(esphome::millis()) || tile.tap=="none") return;
   // A camera or an image entity opens full screen on a board that draws images (firmware 0.2.57+).
-  if(d=="camera" || d=="image"){if(camera_supported())camera_open(tile.entity,tile.name);return;}
+  if(d=="camera" || d=="image"){if(camera_viewable())camera_open(tile.entity,tile.name);return;}
   // A map opens full screen as a camera does (firmware 0.21.0+): the app draws it as large as the board takes a camera,
   // from this tile's own choices (its index), in the screen's look.
   // Held, a person's tile opens its card with the history, as it always did; a person's map too.
@@ -9106,6 +9108,9 @@ inline void ota_draw() {
   if (p.phase == ota_status::Phase::none) { ota_forget(); return; }
   if (!ota_panel) {
     if (ota_status::wake) ota_status::wake();
+    // A camera written straight to the glass keeps LVGL from drawing (direct_hold): it goes first, or the update
+    // would run behind its picture. A camera LVGL draws stays; this panel lies over it.
+    camera_let_go();
     ota_panel = lv_obj_create(lv_layer_top());
     lv_obj_remove_style_all(ota_panel);
     lv_obj_set_size(ota_panel, lv_pct(100), lv_pct(100));
@@ -10252,6 +10257,9 @@ struct ImageHooks {
   std::function<void(const std::string &)> load;  // set the online_image's URL and download it
   std::function<void()> release;                  // free the decoded image
   std::function<lv_image_dsc_t *()> source;       // the decoded image for LVGL
+  // The download keeps no picture: its rows go straight to the glass (direct_band). Only the full view's, on a board
+  // without the memory to hold one (packages/features/camera-view.yaml).
+  bool direct = false;
 };
 // The page's strip (firmware 0.2.77+) comes through the third.
 inline ImageHooks camera_full, camera_thumb, camera_live;
@@ -10369,7 +10377,11 @@ inline uint32_t alert_announced_at = 0, alert_shown_at = 0;
 // picture: a download on its way finishes first, and one for a page out of sight breaks off for it.
 constexpr uint8_t ALERT_IMAGE_RETRIES = 3;
 
-inline bool camera_supported() { return static_cast<bool>(camera_full.load); }
+// A board that draws pictures: on its tiles and cards, in an alert, a map, the screensaver.
+inline bool camera_supported() { return static_cast<bool>(camera_full.load) && !camera_full.direct; }
+// A board that opens a camera full screen: one that draws pictures, and one that writes that one picture straight to
+// the glass (the CYD, direct_band).
+inline bool camera_viewable() { return static_cast<bool>(camera_full.load); }
 inline bool camera_visible() { return camera_root != nullptr; }
 
 // ---- Pictures kept until they change (firmware 0.3.2+, picture_store.h) ----
@@ -10835,7 +10847,18 @@ inline void camera_request(const std::string &entity, int size, uint32_t backgro
   const auto cap = picture_cap();
   const std::string cap_text = std::to_string(cap.bytes);
   const bool larger = size <= 0 && cap.bytes > picture_store::MAX_BYTES;
-  request.data.init(count + (saver ? 1 : 0) + (larger ? 1 : 0));
+  // A board that writes the picture straight to the glass says so, with the glass as it hangs now (`direct`): the app
+  // makes the picture for exactly that and in few bytes (camera_feed.encode_direct). An app that does not know the
+  // key has no camera for this board and sends no link.
+  const bool direct = size <= 0 && camera_full.direct;
+  const std::string glass_text = std::to_string(overlay_card::screen_width()) + "x" + std::to_string(overlay_card::screen_height());
+  request.data.init(count + (saver ? 1 : 0) + (larger ? 1 : 0) + (direct ? 1 : 0));
+  if (direct) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = esphome::StringRef("direct");
+    entry.value = esphome::StringRef(glass_text);
+    request.data.push_back(entry);
+  }
   if (saver) {
     esphome::api::HomeassistantServiceMap entry;
     entry.key = esphome::StringRef("saver");
@@ -10872,8 +10895,48 @@ inline void camera_release() {
 }
 
 
+// ---- A picture written straight to the glass (a board without the memory to hold one: the CYD) ----
+// picture_fetch hands the full view's picture over in bands (packages/features/camera-view.yaml), and each goes to the
+// glass the way LVGL's own pixels do (glass_write: the display's flush, so the way the screen hangs and the byte order
+// are the display's business). LVGL never learns of them and could not draw them again, so from the first band until
+// the view closes it draws nothing (direct_hold): a tile that changes under the view would otherwise come out as a
+// patch of the view's black page over the picture. Its timers and the touch go on, which is how the tap that closes
+// the view arrives; closing draws the whole glass again.
+inline std::function<void(const lv_area_t &, uint16_t *)> glass_write;
+inline int glass_rounding = 1;  // the step the display takes areas in (the LVGL component's draw_rounding)
+inline bool direct_holding = false;
+inline void direct_hold(bool hold) {
+  if (hold == direct_holding) return;
+  auto *display = lv_display_get_default();
+  if (hold) lv_refr_now(display);  // what LVGL still has to draw (the page where the spinner was) goes out first
+  lv_display_enable_invalidation(display, !hold);
+  direct_holding = hold;
+}
+// One band of the picture, on the main loop. False: no picture for this glass, and its download ends.
+inline bool direct_band(int width, int height, int top, int rows, uint16_t *pixels) {
+  if (!camera_root || !glass_write) return true;  // the view closed: the download breaks off by itself
+  const int glass_w = overlay_card::screen_width(), glass_h = overlay_card::screen_height();
+  if (width > glass_w || height > glass_h) return false;
+  if (!direct_holding) {
+    camera_note_text("");  // the spinner goes
+    direct_hold(true);
+  }
+  // In the middle of the glass, on a whole step of it.
+  const int step = glass_rounding > 0 ? glass_rounding : 1;
+  const int x = (glass_w - width) / 2 / step * step, y = (glass_h - height) / 2 / step * step + top;
+  const lv_area_t area{x, y, x + width - 1, y + rows - 1};
+#if defined(LV_COLOR_16_SWAP) && LV_COLOR_16_SWAP
+  // The display takes the two bytes of a pixel the other way round: LVGL swaps its own pixels before the flush
+  // (call_flush_cb in lv_refr.c), and so are these.
+  for (int i = 0, n = width * rows; i < n; ++i) pixels[i] = static_cast<uint16_t>(pixels[i] << 8 | pixels[i] >> 8);
+#endif
+  glass_write(area, pixels);
+  return true;
+}
+
 inline void camera_close() {
   if (!camera_root) return;
+  direct_hold(false);  // LVGL draws again: the view that goes leaves the whole glass to be drawn
   lv_obj_delete(camera_root);
   camera_root = camera_picture = camera_note = camera_back = camera_title = camera_spinner = map_card_obj = nullptr;
   map_zoom_keys = map_pad = map_waiting = nullptr;
@@ -10889,6 +10952,10 @@ inline void camera_close() {
   ESP_LOGI("camera", "closed %s", camera.entity.c_str());
   camera = ViewPicture{};
 }
+
+// What must not stay on the glass when something of LVGL's has to show over everything (an update coming in): the view
+// whose picture went past LVGL.
+inline void camera_let_go() { if (camera_full.direct) camera_close(); }
 
 // The map's card at the bottom of its full view: the name, the state since when, and the day's changes with their
 // times, in the card's own colours as a tile's card (firmware 0.21.0+). Every word comes ready from the app.
@@ -11072,7 +11139,8 @@ inline void map_keys_place() {
 }
 
 inline void camera_open(const std::string &entity, const std::string &name, int map_index, const std::string &focus) {
-  if (!camera_supported() || !valid_entity(entity)) return;
+  if (!camera_viewable() || !valid_entity(entity)) return;
+  if (camera_full.direct && map_index >= 0) return;  // a map has keys and a card over it, which need LVGL's picture
   camera_close();
   camera_map_index = map_index;
   // Opened on someone (a person tile tapped): focused from the start, and Back closes the map at once.
@@ -11102,6 +11170,17 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
   if (camera_spinner) {
     lv_obj_set_style_arc_color(camera_spinner, theme::color(on_page ? theme::TRACK : theme::CAMERA_TRACK), LV_PART_MAIN);
     lv_obj_center(camera_spinner);
+  }
+  if (camera_full.direct) {
+    // The picture is written straight to the glass (direct_band), where nothing of LVGL's can lie over it: no key and
+    // no name, and a tap anywhere closes the view. Closed after this event, as the back key does it.
+    lv_obj_add_event_cb(camera_root, [](lv_event_t *) {
+      lv_async_call([](void *) { camera_close(); }, nullptr);
+    }, LV_EVENT_SHORT_CLICKED, nullptr);
+    camera_name = name;
+    ESP_LOGI("camera", "open %s", entity.c_str());
+    pictures_round();
+    return;
   }
   // The top bar of every page a tap opens (detail_bar), its back key dark over a map.
   const auto home = detail_bar::back_slot(camera_root);
@@ -11209,7 +11288,8 @@ inline std::string camera_tag();
 // The app's answer: a link, or "" when it has no picture. It goes to the picture that asked (picture_loader::answer), and
 // the round right after starts the download, rather than the next tick (firmware 0.2.73+): the answer is most of the wait.
 inline void camera_answer(const std::string &view, const std::string &entity, const std::string &url, uint32_t number) {
-  if (!camera_supported()) return;
+  if (!camera_viewable()) return;
+  if (camera_full.direct && view != "full") return;  // the full view is the one picture such a board shows
   const uint32_t now = esphome::millis();
   if (view == "full" || view == "saver") {
     // "saver" (firmware 0.29.0+): the screensaver's picture, into the full view it opened without its keys.
@@ -11282,6 +11362,7 @@ inline void view_done(picture_loader::Outcome outcome) {
     saver_follow_pending();
     return;
   }
+  if (camera_full.direct) { camera.shown = true; return; }  // its rows are on the glass already (direct_band)
   lv_image_dsc_t *src = picture_of(camera_key());
   if (!src) return;
   picture_memory("after", "camera", src->header.w * src->header.h);
@@ -11524,7 +11605,7 @@ inline void loader_bind() {
 // of the app, a download's end, a page turn, a camera that opens.
 inline bool pictures_rounding = false;
 inline void pictures_round() {
-  if (!camera_supported() || pictures_rounding) return;
+  if (!camera_viewable() || pictures_rounding) return;
   pictures_rounding = true;
   if (!loader.load) loader_bind();
   const uint32_t now = esphome::millis();

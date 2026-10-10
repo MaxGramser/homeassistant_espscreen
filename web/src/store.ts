@@ -267,6 +267,9 @@ export const repeatable = (id: string) => pageTarget(id) > 0 ? pageTilesRepeat.v
 // Whether the screen's board draws pictures (camera tiles, an album cover): the add-on says so per screen from the
 // board's own camera sizes (app 0.2.94), and this page always comes with that add-on.
 export const pictures = computed(() => Boolean(currentScreen.value?.pictures));
+// Whether a camera or image tile belongs on the screen: its board draws pictures, or it opens a camera full screen
+// without them (a CYD, which writes that one picture straight to its glass).
+export const cameraTiles = computed(() => pictures.value || Boolean(currentScreen.value?.camera_view));
 // Whether a screen's board draws pictures, for its firmware preview (firmware 0.46.0 keeps no square for an album cover
 // on a board without them): the add-on says it per screen; a preview screen takes it from its board.
 export const drawsPictures = (screen?: Screen) =>

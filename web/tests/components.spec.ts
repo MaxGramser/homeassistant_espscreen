@@ -370,6 +370,20 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   ) as unknown as void;
   beforeEach(() => { state.libraryOpen = true; });
 
+  it("has cameras as a kind, with the image entities, on a screen that takes camera tiles and on no other", async () => {
+    state.inventory.entities.push({ id: "camera.front", name: "Front", state: "idle" }, { id: "image.bell", name: "Last ring", state: "" } as any);
+    Object.assign(state.inventory.screens[0], { pictures: false, camera_view: false });
+    expect(domains(mount(Library))).not.toContain("Cameras");
+    for (const able of [{ pictures: true }, { pictures: false, camera_view: true }]) {
+      Object.assign(state.inventory.screens[0], { pictures: false, camera_view: false }, able);
+      const library = mount(Library);
+      expect(counts(library)).toContain("Cameras 2");
+      await chip(library, "Cameras").trigger("click");
+      expect(library.findAll(".ent").map((e) => e.attributes("title"))).toEqual(["camera.front", "image.bell"]);
+      state.filter = "";
+    }
+  });
+
   it("offers the domains the results hold, each with its count, and narrows them as the search narrows the list", async () => {
     const library = mount(Library);
     // Four domains in this home, plus All. A domain with nothing behind it would filter to an empty list.
@@ -565,7 +579,15 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
   const row = (wrapper: ReturnType<typeof mount>, label: string) =>
     wrapper.findAll(".prop").find((f) => f.find(".prop-label").text().replace(/^[^\p{L}\d]+/u, "").trim() === label)!;
   const choices = (wrapper: ReturnType<typeof mount>, label: string) => row(wrapper, label).findAll(".seg button").map((b) => b.text());
+  it("keeps the live picture from a screen that only opens a camera full screen (a CYD)", () => {
+    Object.assign(state.inventory.screens[0], { board: "cyd", pictures: false, camera_view: true });
+    state.inventory.entities.push({ id: "camera.front", name: "Front", state: "idle", area: "Hall" } as any);
+    const tile: Tile = { entity: "camera.front", name: "", slot: 0 };
+    appendTiles(tile);
+    expect(choices(inspector(tile), "Display")).toEqual(["Name and status"]);
+  });
   it("offers the live picture for a camera, with its pace once chosen, and says which firmware it needs", async () => {
+    Object.assign(state.inventory.screens[0], { pictures: true });
     state.inventory.entities.push({ id: "camera.front", name: "Front", state: "idle", area: "Hall" } as any);
     const tile: Tile = { entity: "camera.front", name: "", slot: 0 };
     appendTiles(tile);

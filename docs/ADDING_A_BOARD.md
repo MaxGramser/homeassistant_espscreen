@@ -44,6 +44,8 @@ Then choose what the board includes:
 - `features/backlight.yaml`, and `features/backlight-always-on.yaml` after it for a backlight that must never go dark;
 - with PSRAM: `features/camera.yaml`, `features/self-test.yaml`, and `features/snapshot.yaml` when there is memory for
   a second frame.
+- without PSRAM: `features/camera-view.yaml` for a camera full screen, its picture written to the glass while it
+  downloads (docs/CAMERA.md). Never both camera files.
 
 One number to look at on a parallel (RGB) panel: `LVGL_BUFFER_SIZE`. The picture lives in PSRAM, but LVGL's draw
 buffer lives in the memory inside the chip, next to Wi-Fi, the API and the panel's bounce buffers, and a quarter of

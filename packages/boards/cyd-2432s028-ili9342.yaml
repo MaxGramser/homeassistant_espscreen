@@ -33,6 +33,8 @@ packages:
   self_test: !include ../features/self-test.yaml
   # The light on the RGB LED on the back of the board (the outputs are in the hardware file).
   led: !include ../features/rgb-led.yaml
+  # A camera full screen, its picture written to the glass in bands: this board has no memory to hold one.
+  camera_view: !include ../features/camera-view.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.

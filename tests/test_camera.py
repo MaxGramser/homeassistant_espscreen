@@ -150,6 +150,30 @@ class Rules(unittest.TestCase):
         for value in ('light.kitchen', 'camera', 'Camera.Max', None, 42, 'camera.' + 'x' * 120):
             self.assertFalse(camera_feed.supported(value), value)
 
+    def test_a_board_without_the_memory_opens_a_camera_full_screen(self):
+        # The CYDs are no boards that draw pictures, and still take a camera tile: they open it full screen.
+        self.assertEqual(camera_feed.VIEW_BOARDS, {'cyd', 'cyd9342'})
+        self.assertFalse(camera_feed.VIEW_BOARDS & set(camera_feed.BOXES))
+        self.assertTrue(camera_feed.can_view({'board': 'cyd'}) and camera_feed.takes_camera({'board': 'cyd9342'}))
+        self.assertFalse(camera_feed.can_show({'board': 'cyd', 'firmware': '0.60.0'}))
+        self.assertFalse(camera_feed.can_show_cover({'board': 'cyd', 'firmware': '0.60.0'}))
+        self.assertFalse(camera_feed.can_show_live({'board': 'cyd', 'firmware': '0.60.0'}))
+        self.assertFalse(camera_feed.can_show_map({'board': 'cyd', 'firmware': '0.60.0'}))
+        self.assertIsNone(camera_feed.box({'board': 'cyd'}, 'full'))
+        # A screen that reports what it can do is taken at its word: a CYD on firmware from before leaves the word out.
+        self.assertFalse(camera_feed.can_view({'board': 'cyd', 'features': 'dimmable standby'}))
+        self.assertTrue(camera_feed.can_view({'board': 'cyd', 'features': 'dimmable standby camera_view'}))
+        self.assertTrue(camera_feed.takes_camera({'board': 'guition'}) and not camera_feed.can_view({'board': 'guition'}))
+        for screen in ({'board': 'hosyond40'}, {'board': 'waveshare35'}, {'board': 'unknown'}, None, {}):
+            self.assertFalse(camera_feed.can_view(screen), screen)
+            self.assertFalse(camera_feed.takes_camera(screen), screen)
+        # The glass the screen names in its request, as it hangs now.
+        self.assertEqual(camera_feed.direct_request({'direct': '320x240'}), (320, 240))
+        self.assertEqual(camera_feed.direct_request({'direct': '240x320'}), (240, 320))
+        for value in ({}, None, {'direct': ''}, {'direct': '1'}, {'direct': '320'}, {'direct': '4000x3000'}, {'direct': '8x8'},
+                      {'direct': '320x240x2'}, {'direct': '-320x240'}, {'direct': 320}):
+            self.assertIsNone(camera_feed.direct_request(value), value)
+
     def test_the_alert_camera_field(self):
         self.assertEqual(alert_camera({'camera': 'camera.front_door'}), ('camera.front_door', True))
         self.assertEqual(alert_camera({'camera': ' image.doorbell '}), ('image.doorbell', True))
@@ -189,9 +213,31 @@ class Rules(unittest.TestCase):
             self.assertNotIn(gone, PROFILE, gone)
         # A busy camera port leaves the rest of the app running.
         self.assertIn("except OSError as error:\n            # Everything else still works; only camera images stay away.", (ROOT / 'screen_manager/app/server.py').read_text())
+        # The CYD has no memory for a picture: it binds the full view alone, in the form that keeps none and writes its
+        # rows to the glass in bands (packages/features/camera-view.yaml), and says so in its Screen features.
         cyd = profiles.text('checkout/cyd.yaml')
-        self.assertNotIn('picture_fetch::', cyd)
-        self.assertNotIn('camera_full.load', cyd)
+        for needle in ('picture_fetch::bind(picture_fetch::full(),', 'picture_fetch::direct(picture_fetch::full(), runtime_tiles::direct_band,',
+                       'runtime_tiles::camera_full.direct = true;', 'runtime_tiles::camera_full.load = ', 'settings_screen::camera_view = true;',
+                       "- lambda: 'picture_fetch::tick();'", 'runtime_tiles::camera_tick();', '-DSCREEN_PICTURES_DIRECT=1',
+                       'LvglComponent::static_flush_cb('):
+            self.assertIn(needle, cyd, needle)
+        for absent in ('picture_fetch::thumb()', 'picture_fetch::live()', 'camera_thumb.load', 'camera_live.load', '-DSCREEN_PICTURES=1',
+                       '-DLV_USE_IMAGE=1', 'id: alert_image_frame'):
+            self.assertNotIn(absent, cyd, absent)
+        self.assertIn('{camera_view, "camera_view"},', (ROOT / 'components/smart_display/settings_screen.h').read_text())
+        # Such a screen names its glass in the request, and draws no other picture than the full view's.
+        self.assertIn('entry.key = esphome::StringRef("direct");', TILES)
+        self.assertIn('inline bool camera_supported() { return static_cast<bool>(camera_full.load) && !camera_full.direct; }', TILES)
+        self.assertIn('if(d=="camera" || d=="image"){if(camera_viewable())camera_open(tile.entity,tile.name);return;}', TILES)
+        # LVGL draws nothing while the picture is on the glass, and everything again when the view closes.
+        self.assertIn('lv_display_enable_invalidation(display, !hold);', TILES)
+        # Its pixels go out in the display's byte order, as LVGL's own do.
+        self.assertIn('#if defined(LV_COLOR_16_SWAP) && LV_COLOR_16_SWAP', TILES)
+        self.assertIn('direct_hold(false);  // LVGL draws again', TILES)
+        # An update coming in shows over everything: the view whose picture went past LVGL goes first.
+        update = TILES.split('inline void ota_draw() {', 1)[1].split('\n}\n', 1)[0]
+        self.assertLess(update.index('camera_let_go();'), update.index('ota_panel = lv_obj_create('))
+        self.assertIn('inline void camera_let_go() { if (camera_full.direct) camera_close(); }', TILES)
         # The add-on's port is published, and the Docker route passes it on with the host network.
         config = (ROOT / 'screen_manager/config.yaml').read_text()
         self.assertIn(f'{camera_feed.PORT}/tcp: {camera_feed.PORT}', config)
@@ -359,6 +405,39 @@ class Encoding(unittest.TestCase):
             self.assertEqual(len(bmp), int.from_bytes(bmp[10:14], 'little') + size[1] * ((size[0] * 3 + 3) // 4 * 4))
         with self.assertRaises(Exception):
             camera_feed.encode(b'not an image', (480, 480))
+
+    def test_a_picture_for_the_glass_itself_is_small_even_and_top_down(self):
+        from PIL import Image
+        cases = [(picture('JPEG', (1920, 1080)), (320, 240), (320, 180)),
+                 (picture('JPEG', (1280, 960)), (320, 240), (320, 240)),
+                 (picture('JPEG', (1920, 1080)), (240, 320), (240, 134)),   # 135 rows fit: an even number of them
+                 (picture('PNG', (400, 100), 'RGBA'), (320, 240), (320, 80)),
+                 (picture('JPEG', (1080, 1440)), (320, 240), (180, 240)),
+                 (picture('PNG', (3, 500)), (320, 240), (2, 240))]
+        for raw, glass, size in cases:
+            bmp = camera_feed.encode_direct(raw, glass)
+            with Image.open(io.BytesIO(bmp)) as image:
+                self.assertEqual((image.format, image.size, image.mode), ('BMP', size, 'P'))
+            # What the screen's decoder reads (picture_fetch.h): 8 bits a pixel on a palette of 256, no compression,
+            # rows padded to four bytes, and a negative height, the first row the top one.
+            self.assertEqual((bmp[:2], int.from_bytes(bmp[28:30], 'little'), int.from_bytes(bmp[30:34], 'little')), (b'BM', 8, 0))
+            self.assertEqual(int.from_bytes(bmp[22:26], 'little', signed=True), -size[1])
+            self.assertEqual(int.from_bytes(bmp[10:14], 'little'), 54 + 256 * 4)
+            self.assertEqual(len(bmp), 54 + 256 * 4 + size[1] * ((size[0] + 3) // 4 * 4))
+        # A third of the 24-bit picture, which is what the screen waits for.
+        self.assertLess(len(camera_feed.encode_direct(picture('JPEG', (1920, 1080)), (320, 240))),
+                        len(camera_feed.encode(picture('JPEG', (1920, 1080)), (320, 240))) / 2.5)
+        # The top row is the picture's top: red above, blue below.
+        halves = Image.new('RGB', (64, 48), (255, 0, 0))
+        halves.paste((0, 0, 255), (0, 24, 64, 48))
+        out = io.BytesIO()
+        halves.save(out, 'PNG')
+        with Image.open(io.BytesIO(camera_feed.encode_direct(out.getvalue(), (320, 240)))) as image:
+            rgb = image.convert('RGB')
+            self.assertGreater(rgb.getpixel((160, 10))[0], 200)
+            self.assertGreater(rgb.getpixel((160, 230))[2], 200)
+        with self.assertRaises(Exception):
+            camera_feed.encode_direct(b'not an image', (320, 240))
 
     def test_fit_keeps_proportions(self):
         self.assertEqual(camera_feed.fit((1920, 1080), (480, 480)), (480, 270))
@@ -773,6 +852,55 @@ class App(unittest.IsolatedAsyncioTestCase):
                 m.save('text.d3_tiles', {'title': 'Attic', 'tiles': [{'entity': 'camera.max', 'name': ''}]})
             m.save('text.d1_tiles', {'title': 'Hall', 'tiles': [{'entity': 'camera.max', 'name': ''}]})
             self.assertEqual(m.layouts['text.d1_tiles']['tiles'][0]['entity'], 'camera.max')
+
+    async def test_a_cyd_opens_a_camera_full_screen_and_gets_a_picture_for_its_glass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = fake_ha(picture('JPEG', (1920, 1080)))
+            # The desk screen says it is a CYD, and that it opens a camera full screen.
+            ha.registry += [{'entity_id': 'sensor.d2_board', 'platform': 'esphome', 'original_name': 'Screen board', 'device_id': 'd2'},
+                            {'entity_id': 'sensor.d2_features', 'platform': 'esphome', 'original_name': 'Screen features', 'device_id': 'd2'}]
+            ha.states.update({'sensor.d2_board': {'state': 'cyd'}, 'sensor.d2_features': {'state': 'dimmable standby camera_view'}})
+            m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
+            m.inventory = lambda: (m.screens(), [{'id': 'camera.max'}])
+            m.write_layouts = lambda layouts: None
+            m.notify = lambda: None
+            m.save('text.d2_tiles', {'title': 'Desk', 'tiles': [{'entity': 'camera.max', 'name': ''}]})
+            self.assertEqual(m.layouts['text.d2_tiles']['tiles'][0]['entity'], 'camera.max')
+            # A map is a picture LVGL draws: still not on this board.
+            with self.assertRaisesRegex(ValueError, 'map'):
+                m.save('text.d2_tiles', {'title': 'Desk', 'tiles': [{'entity': 'person.max', 'name': '', 'options': {'display': 'map'}}]})
+            # So is a live picture on the tile itself.
+            with self.assertRaisesRegex(ValueError, 'cannot show camera'):
+                m.save('text.d2_tiles', {'title': 'Desk', 'tiles': [{'entity': 'camera.max', 'name': '', 'options': {'display': 'live'}}]})
+            # The screen names its glass; the link is a picture of exactly that, for a screen that keeps none.
+            with self.assertLogs('screen_manager', 'INFO'):
+                await m.answer_camera({'inbox': 'text.d2_tiles', 'entity': 'camera.max', 'direct': '320x240'})
+            (_, inbox, message), = [entry for entry in ha.log if entry[0] == 'send']
+            self.assertEqual((inbox, message['op'], message['t'], message['e']), ('text.d2_tiles', 'camera', 'full', 'camera.max'))
+            link = m.camera.links[message['u'].rsplit('/', 1)[1][:-4]]
+            self.assertEqual((link.box, link.direct), ((320, 240), True))
+            status, body, etag = await m.camera.serve(message['u'].rsplit('/', 1)[1][:-4])
+            self.assertEqual((status, body[:2], int.from_bytes(body[18:22], 'little'), int.from_bytes(body[22:26], 'little', signed=True),
+                              int.from_bytes(body[28:30], 'little')), (200, b'BM', 320, -180, 8))
+            # The same snapshot again is no new picture: nothing to download.
+            self.assertEqual((await m.camera.serve(message['u'].rsplit('/', 1)[1][:-4], etag))[0], 304)
+            ha.log.clear()
+            # Without its glass in the request this board gets no link (no picture it could hold), and a board that
+            # draws pictures gets its own kind whatever the request says.
+            await m.answer_camera({'inbox': 'text.d2_tiles', 'entity': 'camera.max'})
+            await m.answer_camera({'inbox': 'text.d2_tiles', 'entity': 'camera.max', 'direct': '4000x3000'})
+            self.assertEqual([entry for entry in ha.log if entry[0] == 'send'], [])
+            seed_layout(m, 'text.d1_tiles', validate_layout({'title': 'Hall', 'tiles': [{'entity': 'camera.max', 'name': ''}]}))
+            with self.assertLogs('screen_manager', 'INFO'):
+                await m.answer_camera({'inbox': 'text.d1_tiles', 'entity': 'camera.max', 'direct': '320x240'})
+            (_, inbox, message), = [entry for entry in ha.log if entry[0] == 'send']
+            link = m.camera.links[message['u'].rsplit('/', 1)[1][:-4]]
+            self.assertEqual((inbox, link.box, link.direct), ('text.d1_tiles', (480, 480), False))
+            # A CYD on firmware from before leaves the word out: it is told so before the tile is saved.
+            ha.states['sensor.d2_features'] = {'state': 'dimmable standby'}
+            m._screens_key = None
+            with self.assertRaisesRegex(ValueError, 'cannot show camera'):
+                m.save('text.d2_tiles', {'title': 'Desk', 'tiles': [{'entity': 'camera.max', 'name': ''}]})
 
     async def test_home_assistant_queues_camera_requests(self):
         from aiohttp import WSMsgType

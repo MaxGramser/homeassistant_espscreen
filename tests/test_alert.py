@@ -120,7 +120,9 @@ class AlertTests(unittest.TestCase):
             self.assertIn('screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX}, ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX}, button2_text, button_color, button2_color)', show, name)
             self.assertLess(show.index('script.execute: wake_display'), show.index('lvgl.widget.show: alert_overlay'), name)
             self.assertLess(show.index('lvgl.widget.show: alert_overlay'), show.index('script.execute: alert_flash'), name)
-            self_test = section(text, '  - id: ui_self_test\n', '\n  - id: ')
+            # The self test is the core's last script: its block ends where the next file of the profile begins, or it
+            # would take in a feature without scripts of its own (features/camera-view.yaml adds to alert_show's list).
+            self_test = section(text, '  - id: ui_self_test\n', '\n  - id: ').split('\n# ESP Screens - ')[0]
             self.assertIn('lvgl.widget.show: alert_overlay', self_test, name)
             self.assertIn('lvgl.widget.hide: alert_overlay', self_test, name)
             for forbidden in ('alert_show', 'alert_dismiss', 'homeassistant.event'):

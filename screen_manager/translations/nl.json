@@ -1657,6 +1657,7 @@
         "screen": "Scherm",
         "alarm_control_panel": "Alarm",
         "lock": "Sloten",
+        "camera": "Camera's",
         "humidifier": "Luchtbevochtigers"
       },
       "room": "Ruimte",

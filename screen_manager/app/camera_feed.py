@@ -18,12 +18,13 @@ import logging
 import os
 import re
 import secrets
+import struct
 import time
 
 import catalogue
 import tile_art
 import alert_layout
-from core import SHAPES, board_of, screen_firmware, shape_of
+from core import SHAPES, board_of, features_of, screen_firmware, shape_of
 
 LOG = logging.getLogger(__name__)
 
@@ -104,6 +105,42 @@ PICTURE_LARGE_SIDE = 2048
 PICTURE_LARGE_BYTES = 4 * 1024 * 1024
 BOXES = {shape['board']: {view: tuple(box) for view, box in shape['camera'].items()}
          for shape in SHAPES.values() if shape.get('camera')}
+
+
+# A board without the memory for pictures that still opens a camera full screen (dev, the CYD): the screen
+# writes the picture to its glass in bands as it downloads and never holds it (packages/features/camera-view.yaml,
+# docs/CAMERA.md). Such a board is in boards.json with `camera_view` and not in BOXES: it gets a camera's full view and
+# none of the other pictures. A screen says the same itself with this word in its Screen features.
+VIEW_FEATURE = 'camera_view'
+VIEW_BOARDS = {shape['board'] for shape in SHAPES.values() if shape.get('camera_view')}
+# The glass such a screen may ask a picture for: nothing near the size of a board that would hold its pictures.
+DIRECT_MAX_SIDE = 480
+
+
+def can_view(screen):
+    """Whether this screen opens a camera full screen without drawing pictures: its own word when it reported its
+    features (a CYD on firmware from before that says so by leaving the word out), else its board's row."""
+    if not screen:
+        return False
+    words = features_of(screen)
+    if words is not None:
+        return VIEW_FEATURE in words
+    return board_of(screen) in VIEW_BOARDS
+
+
+def takes_camera(screen):
+    """Whether a camera or image tile belongs on this screen: its board draws pictures, or it opens one full screen."""
+    return board_of(screen) in BOXES or can_view(screen)
+
+
+def direct_request(request):
+    """The glass (width, height) a screen that writes the picture straight to it asked for (`direct`, "320x240": its
+    canvas as it hangs now), or None when the request has no such key or it is not a glass such a screen has."""
+    found = re.fullmatch(r'(\d{2,4})x(\d{2,4})', str((request or {}).get('direct') or ''))
+    if not found:
+        return None
+    width, height = int(found.group(1)), int(found.group(2))
+    return (width, height) if 32 <= width <= DIRECT_MAX_SIDE and 32 <= height <= DIRECT_MAX_SIDE else None
 
 
 def boxes(screen):
@@ -339,6 +376,44 @@ def encode(raw, box, exact=False):
     return out.getvalue()
 
 
+def encode_direct(raw, glass):
+    """A snapshot for a screen that writes it straight to its glass, a band of rows at a time (encode's picture for a
+    board without the memory to hold one). The largest size with the snapshot's proportions that fits `glass`, each
+    side even because the display takes its areas in steps of two; the screen puts it in the middle of its black page.
+    8 bits a pixel on the picture's own palette, dithered, as the live tiles get theirs: a third of the bytes of
+    encode's 24, about 77 KB for 320x240, and the bytes are what the screen waits for. Top-down, so the picture fills
+    the glass from the top as it comes; Pillow writes a BMP bottom-up, so the file is put together here."""
+    from PIL import Image, ImageOps
+    with Image.open(io.BytesIO(raw)) as source:
+        source.draft('RGB', glass)
+        image = ImageOps.exif_transpose(source)
+        if image.mode in ('RGBA', 'LA', 'P', 'PA'):
+            image = image.convert('RGBA')
+            ground = Image.new('RGB', image.size)
+            ground.paste(image, mask=image.getchannel('A'))
+            image = ground
+        elif image.mode != 'RGB':
+            image = image.convert('RGB')
+        width, height = fit(image.size, glass)
+        size = max(2, width // 2 * 2), max(2, height // 2 * 2)
+        if image.size != size:
+            image = image.resize(size, Image.Resampling.LANCZOS)
+        palette = image.quantize(256, method=Image.Quantize.FASTOCTREE)
+        image = image.quantize(palette=palette, dither=Image.Dither.FLOYDSTEINBERG)
+        colours = (image.getpalette() or [])[:768]
+        colours += [0] * (768 - len(colours))
+        pixels = image.tobytes()
+    width, height = size
+    row = (width + 3) // 4 * 4
+    table = b''.join(bytes((colours[n + 2], colours[n + 1], colours[n], 0)) for n in range(0, 768, 3))
+    offset = 14 + 40 + len(table)
+    body = b''.join(pixels[y * width:(y + 1) * width].ljust(row, b'\0') for y in range(height))
+    # BITMAPFILEHEADER and BITMAPINFOHEADER; a negative height is a picture whose first row is its top.
+    head = struct.pack('<2sIHHI', b'BM', offset + len(body), 0, 0, offset)
+    info = struct.pack('<IiiHHIIiiII', 40, width, -height, 1, 8, 0, len(body), 2835, 2835, 256, 0)
+    return head + info + table + body
+
+
 # The screensaver (firmware 0.29.0+, screen_saver.py): one picture of exactly the screen's full box, the whole of it a
 # little darker so the few words the screen writes over it always read, with no gradient (a 16-bit panel shows one as
 # bands, GitHub #135). A camera fills the glass, cut to it the way a photo fills a frame. A cover fills it too while the
@@ -484,14 +559,15 @@ class Watch:
 
 
 class Link:
-    __slots__ = ('entity', 'box', 'still', 'etag', 'used', 'lifetime', 'cover', 'live', 'saver')
+    __slots__ = ('entity', 'box', 'still', 'etag', 'used', 'lifetime', 'cover', 'live', 'saver', 'direct')
 
-    def __init__(self, entity, box, now, still=None, cover=None, live=None, saver=None):
+    def __init__(self, entity, box, now, still=None, cover=None, live=None, saver=None, direct=False):
         self.entity, self.box, self.used = entity, box, now
         self.still = still
         self.cover = cover  # (size, background) of a media player's cover, else None
         self.live = live    # (entities, size, grounds, paces[, {atlas, modes, compact}]) of a page's live tiles, else None
         self.saver = saver  # (kind, ground) of a screensaver's picture, else None
+        self.direct = direct  # for a screen that writes it straight to its glass (encode_direct); `box` is that glass
         self.etag = f'"{hashlib.sha1(still).hexdigest()[:16]}"' if still else ''
         self.lifetime = STILL_SECONDS if still else LINK_SECONDS
 
@@ -582,8 +658,9 @@ class CameraFeed:
             if watch.failures in (1, 30):
                 LOG.info('No image from %s (%s)', entity, type(error).__name__)
 
-    async def frame(self, entity, box, wait=FIRST_FRAME_SECONDS, fresh=True, now=False, exact=False):
-        """(etag, BMP) of the camera's last snapshot at `box`, or None when it has none (yet). The first snapshot is
+    async def frame(self, entity, box, wait=FIRST_FRAME_SECONDS, fresh=True, now=False, exact=False, direct=False):
+        """(etag, BMP) of the camera's last snapshot at `box`, or None when it has none (yet). `direct` makes it the
+        picture a screen writes straight to its glass, `box` (encode_direct). The first snapshot is
         waited for; `fresh` (the full view) gets the snapshot of now and sets the next fetch for just before the next load. `now` (an alert) waits for a snapshot whose
         fetch starts now or is already on its way, never one kept from an earlier load."""
         watch = self.watch(entity)
@@ -613,16 +690,19 @@ class CameraFeed:
             self.ahead(entity, watch, FULL_VIEW_SECONDS)
         if box is None:  # only the snapshot was asked for (snapshot_size)
             return digest, None
-        key = (box, 'exact') if exact else box
+        key = (box, 'direct') if direct else (box, 'exact') if exact else box
         cached = watch.frames.get(key)
         if cached is None or cached[0] != digest:
             try:
-                image = await asyncio.get_running_loop().run_in_executor(None, encode, raw, box, exact)
+                if direct:
+                    image = await asyncio.get_running_loop().run_in_executor(None, encode_direct, raw, box)
+                else:
+                    image = await asyncio.get_running_loop().run_in_executor(None, encode, raw, box, exact)
             except Exception as error:
                 LOG.info('The image of %s cannot be read (%s)', entity, type(error).__name__)
                 return None
             cached = watch.frames[key] = (digest, image)
-        return f'"{digest[:16]}-{box[0]}x{box[1]}"', cached[1]
+        return f'"{digest[:16]}-{box[0]}x{box[1]}{"d" if direct else ""}"', cached[1]
 
     async def snapshot_size(self, entity, wait=FIRST_FRAME_SECONDS):
         """(width, height) of the camera's snapshot of this moment, fetched now or already on its way (as frame with
@@ -819,12 +899,13 @@ class CameraFeed:
         while len(self.links) >= MAX_LINKS:
             del self.links[min(self.links, key=lambda token: self.links[token].used)]
 
-    def link(self, entity, box, still=None, cover=None, live=None, saver=None):
+    def link(self, entity, box, still=None, cover=None, live=None, saver=None, direct=False):
         """A new random token for one camera at one size; `still` makes it one fixed image (an alert's), `cover`
-        (size, background) a media player's cover, `live` (entities, size, grounds, paces) a page's live tiles."""
+        (size, background) a media player's cover, `live` (entities, size, grounds, paces) a page's live tiles,
+        `direct` the picture a screen writes straight to its glass."""
         self.prune()
         token = secrets.token_urlsafe(18)
-        self.links[token] = Link(entity, box, self.clock(), still, cover, live, saver)
+        self.links[token] = Link(entity, box, self.clock(), still, cover, live, saver, direct)
         return token
 
     async def serve(self, token, etag=None):
@@ -847,7 +928,8 @@ class CameraFeed:
         if link.saver:
             found = await self.saver(link.entity, link.box, *link.saver)
         else:
-            found = await self.cover(link.entity, *link.cover) if link.cover else await self.frame(link.entity, link.box)
+            found = (await self.cover(link.entity, *link.cover) if link.cover
+                     else await self.frame(link.entity, link.box, direct=link.direct))
         if found is None:
             return 503, None, ''
         tag, image = found

@@ -237,6 +237,11 @@ def shapes():
             for side in both.values():
                 side['camera'] = camera_of(values, side)
             shape['camera'] = dict(both['landscape']['camera'])
+        # A board without the memory for pictures that still opens a camera full screen, its picture written to the
+        # glass in bands (features/camera-view.yaml states the band, CAMERA_BAND_BYTES): the manager takes a camera
+        # tile on it and offers none of the other pictures. A screen says so itself with the word `camera_view` in
+        # its Screen features (core.FEATURES); this is the row for one that has not reported yet.
+        shape['camera_view'] = 'CAMERA_BAND_BYTES' in values
         found[board] = shape
     for entry, board in profiles.ENTRIES.items():
         found[entry] = found[board]

@@ -1658,6 +1658,7 @@
         "screen": "Pantalla",
         "alarm_control_panel": "Alarma",
         "lock": "Cerraduras",
+        "camera": "Cámaras",
         "humidifier": "Humidificadores"
       },
       "room": "Habitación",

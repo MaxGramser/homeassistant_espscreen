@@ -254,8 +254,9 @@ on the screen itself, and how updates work.
 - **Cameras** on a Guition (app 0.2.66 / firmware 0.2.57): a `camera.*` entity, or an `image.*` one such
   as a doorbell's last ring, is a tile like any other. A tap opens the picture full screen, refreshed every
   four seconds, with the round back key; standby and **Back to page 1** close it. The same camera can bring its
-  picture to an alert ([With a camera picture](#with-a-camera-picture)). The CYD has no memory for pictures and
-  the editor doesn't offer it camera tiles. How the picture travels: [docs/CAMERA.md](docs/CAMERA.md).
+  picture to an alert ([With a camera picture](#with-a-camera-picture)). The CYD has no memory to keep a picture: it
+  opens a camera full screen all the same, drawn while it downloads, with a tap on the picture to close it, and
+  shows no other pictures. How the picture travels: [docs/CAMERA.md](docs/CAMERA.md).
 - **A map** on a person tile (app 0.4.33 / firmware 0.20.0): the streets around the people on the card, your
   zones, and a marker with the initials of each person or tracker (a phone, a car, a tag) on it, framed around
   everyone, around home or around that person.

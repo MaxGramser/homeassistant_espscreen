@@ -163,5 +163,61 @@ int main() {
     px = decode(longer, 17);
     assert(px.size() == 6 && px[0] == expect(rgb[0]));
   }
+
+  // ---- a picture in bands (a board without the memory for a whole one) ----
+  // The rows a band holds: what fits its bytes, in whole steps of the glass.
+  assert(Band::rows_in(8192, 320, 2) == 12 && Band::rows_in(8192, 320, 1) == 12 && Band::rows_in(8192, 240, 4) == 16);
+  assert(Band::rows_in(600, 320, 2) == 0 && Band::rows_in(8192, 0, 2) == 0);
+  // Ten rows of four pixels, each row its own colour, in bands of four rows: both ways a file runs, the bands come
+  // out with their top row first, every row once, and together they are the picture.
+  for (bool top_down : {false, true}) {
+    const int w = 4, h = 10, band_rows = 4;
+    std::vector<uint32_t> colours;
+    for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x) colours.push_back(0x101010u * (y + 1) + x * 8);
+    for (int bpp : {8, 24}) {
+      const auto bands_file = make_bmp(w, h, bpp, colours, top_down);
+      std::vector<uint16_t> buffer(size_t(w) * band_rows, 0xBEEF), glass(size_t(w) * h, 0xBEEF);
+      std::vector<int> tops;
+      Band band;
+      const Bmp *shape = nullptr;
+      Decoder::Rows rows;
+      rows.place = [&](int y) { return band.place(y); };
+      rows.placed = [&](int y) {
+        if (!band.full(y)) return true;
+        tops.push_back(band.top);
+        for (int r = 0; r < band.rows; ++r)
+          for (int x = 0; x < w; ++x) {
+            assert(glass[size_t(band.top + r) * w + x] == 0xBEEF);  // no row twice
+            glass[size_t(band.top + r) * w + x] = band.pixels[size_t(r) * w + x];
+          }
+        return true;
+      };
+      Decoder d([&](int width, int height) { band.start(buffer.data(), width, height, band_rows, shape->top_down); return buffer.data(); }, rows);
+      shape = &d.bmp();
+      for (size_t at = 0; at < bands_file.size(); at += 7)
+        assert(d.feed(bands_file.data() + at, std::min<size_t>(7, bands_file.size() - at)));
+      assert(d.done());
+      assert(tops == (top_down ? std::vector<int>{0, 4, 8} : std::vector<int>{6, 2, 0}));
+      for (size_t i = 0; i < glass.size(); ++i) assert(glass[i] == expect(colours[i]));
+    }
+  }
+  // A band the glass refuses ends the picture, and nothing more is taken.
+  {
+    std::vector<uint16_t> buffer(8);
+    Band band;
+    Decoder::Rows rows;
+    rows.place = [&](int y) { return band.place(y); };
+    rows.placed = [&](int y) { return !band.full(y); };
+    Decoder d([&](int width, int height) { band.start(buffer.data(), width, height, 2, false); return buffer.data(); }, rows);
+    const auto refused = make_bmp(4, 4, 24, std::vector<uint32_t>(16, 0x336699));
+    assert(!d.feed(refused.data(), refused.size()) && d.failed() && d.rows() == 2);
+  }
+  // A row outside the picture has no place.
+  {
+    std::vector<uint16_t> buffer(8);
+    Band band;
+    band.start(buffer.data(), 4, 4, 2, true);
+    assert(band.place(4) == nullptr && band.place(-1) == nullptr && band.place(0) == buffer.data() && band.place(1) == buffer.data() + 4);
+  }
   return 0;
 }
