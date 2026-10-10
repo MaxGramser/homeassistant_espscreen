@@ -24,7 +24,7 @@ beforeEach(() => { insp = useInspectorStore(); });
 let doc: ReturnType<typeof useDocumentStore>;
 beforeEach(() => { doc = useDocumentStore(); });
 
-const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
+const t = (key: string, named: Record<string, unknown> | number = {}) => i18n.global.t(key, named as any);
 const entity = (id: string): HeaderItem => ({ type: "entity", entity: id, content: "state", icon: "auto", show: "always" });
 const screen = (id: string, items: HeaderItem[] = []) => screenFixture({ id, name: id, online: true, firmware: "0.53.0",
   layout: { title: id, tiles: [{ entity: "light.a", name: "", slot: 0 }], header: { items } },

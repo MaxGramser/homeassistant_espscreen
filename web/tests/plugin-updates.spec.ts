@@ -13,7 +13,7 @@ import { useInventoryStore } from "../src/stores/inventory";
 
 const plugin = (id: string, version: string, more: Partial<Plugin> = {}): Plugin => ({
   id, name: { en: id === "bus" ? "Public transport" : "Waste collection" }, summary: { en: "" }, icon: "F00E7", maintainer: "x",
-  tessera: true, version, repo: "", license: "MIT", kind: "behaviour", boards: "any", requires: {}, flash_kb: 1,
+  tessera: true, version, repo: "", license: "MIT", type: "functions", boards: "any", requires: {}, flash_kb: 1,
   permissions: { home_assistant: [], network: [] }, readme: { en: "" }, languages: ["en"], attributes: [], source: "index",
   permission_hash: "same", ...more,
 });

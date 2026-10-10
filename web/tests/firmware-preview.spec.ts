@@ -9,7 +9,7 @@ import { useDocumentStore } from "../src/stores/document";
 vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
 vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn() }));
 const bundle = () => ({ revision: "1111111111111111", configuration: [{ op: "begin" }, { op: "commit" }], values: [{ op: "state", i: 0, state: "on" }] });
-function response(name: string, _result?: unknown, _types?: unknown, args?: unknown[]) {
+function response(name: string, _result?: unknown, _types?: unknown, args?: unknown[]): string {
   if (name === "preview_next_action" || name === "preview_next_image") return "";
   if (name === "preview_receive" && JSON.parse(String(args?.[0])).op === "hello") return "Session:2222222222222222";
   return "Synced";

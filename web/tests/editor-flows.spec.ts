@@ -38,7 +38,7 @@ describe("the editor", () => {
   it("keeps moving a tile with the arrow keys: the focus follows the tile, not the cell", async () => {
     const host = mount(defineComponent({ setup: () => () => h("div", { class: "pages" }, [h(DevicePage, { page: 0, entries: liveEntries(), pages: 1, moving: null })]) }), { attachTo: document.body });
     const a = () => doc.layout!.tiles.find((t) => t.name === "A")!;
-    const card = () => host.element.querySelector<HTMLElement>(`[data-tile-id="${a().id}"]`)!;
+    const card = () => (host.element as HTMLElement).querySelector<HTMLElement>(`[data-tile-id="${a().id}"]`)!;
     for (const expected of [2, 4]) {
       card().focus();
       card().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
@@ -60,7 +60,7 @@ describe("the editor", () => {
   it("calls a change that changes nothing no change, whatever order the add-on wrote the fields in", () => {
     // A tile as the add-on writes it after a migration: placement before appearance.
     useSessionStore().select(null);
-    const layout = useInventoryStore().inventory.screens[0].page_document!.layout as any;
+    const layout = (useInventoryStore().inventory.screens[0].page_document as any).layout;
     const tile = layout.pages[0].tiles[0];
     tile.appearance.icon = "lightbulb";
     layout.pages[0].tiles[0] = { id: tile.id, content: tile.content, placement: tile.placement, interaction: tile.interaction, appearance: tile.appearance };

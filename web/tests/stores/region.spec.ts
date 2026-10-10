@@ -2,7 +2,7 @@
 // screens' language loading once its start follows it.
 import { flushPromises } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
-import { i18n } from "../../src/i18n";
+import { i18n, te } from "../../src/i18n";
 import { useRegionStore } from "../../src/stores/region";
 import { useUiStore } from "../../src/stores/ui";
 import type { Languages } from "../../src/types";
@@ -46,14 +46,14 @@ describe("the screens' language and region", () => {
   it("loads the screens' language once its start follows it, and not after it stopped", async () => {
     const region = useRegionStore();
     useInventoryStore().inventory = { screens: [], entities: [], language: language({ effective: "de" }) } as any;
-    expect(i18n.global.te("editor.common.ok", "de")).toBe(false);
+    expect(te("editor.common.ok", "de")).toBe(false);
     const stop = region.start();
     expect(region.start()).toBe(stop);
     await flushPromises();
-    await vi.waitFor(() => expect(i18n.global.te("editor.common.ok", "de")).toBe(true));
+    await vi.waitFor(() => expect(te("editor.common.ok", "de")).toBe(true));
     stop();
     useInventoryStore().inventory.language = language({ effective: "fr" });
     await flushPromises();
-    expect(i18n.global.te("editor.common.ok", "fr")).toBe(false);
+    expect(te("editor.common.ok", "fr")).toBe(false);
   });
 });

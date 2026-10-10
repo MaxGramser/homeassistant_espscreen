@@ -76,7 +76,7 @@ describe("the overview's home page of a screen", () => {
     expect(view.compact).toBe(false);
     expect(view.style["--mockup-width"]).toBe("500px");
     expect(view.home).toBe(true);
-    expect(homeView({ ...hall, settings: { values: { home_button: false } } } as Screen)!.home).toBe(false);
+    expect(homeView({ ...hall, settings: { values: { home_button: false } } } as unknown as Screen)!.home).toBe(false);
     expect(homeView({ ...hall, firmware: "0.2.99" })!.home).toBe(false);
     const record = hall.page_document as any;
     record.layout.homePageId = record.layout.pages[1].id;

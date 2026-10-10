@@ -5,7 +5,7 @@
 // drop off the grid changes nothing. A finished drag never doubles as a click. What the
 // mockup draws of a drag is the drag store's (stores/drag.ts); the pointer's own bookkeeping
 // (the hold, the ghost, the scrolling near an edge) stays here, outside any store.
-import type { Directive } from "vue";
+import type { ObjectDirective } from "vue";
 import { entriesOf, pageOrder } from "./model/layout";
 import { commitArrangement, confirmMemory, keyToCell, placeKey, startTile } from "./editor/tiles";
 import { movePage, pagesShown } from "./editor/pages";
@@ -26,7 +26,7 @@ type Drag = {
 };
 const drag: Drag = { source: null, element: null, ghost: null, timer: 0, start: null, offset: { x: 0, y: 0 }, pointerId: null, suppressUntil: 0, last: null, scroller: 0, target: null, lastSlot: null };
 
-export const vDrag: Directive<HTMLElement, DragSource | null> = {
+export const vDrag: ObjectDirective<HTMLElement, DragSource | null> = {
   mounted(element, binding) {
     (element as any).__dragSource = binding.value;
     element.dataset.drag = "";

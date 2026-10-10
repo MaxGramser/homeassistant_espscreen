@@ -254,7 +254,7 @@ describe("page-owned document operations", () => {
     expect(() => arrangeTiles(layout, grid, view.tiles.map((tile) => ({ tile, slot: 0 })))).toThrow("same spot");
     // The screen's own page limit when the grid carries it (eight, or 24 on a board that states it, firmware 0.34.0+),
     // the most any board takes (32) for a stored document whose grid says nothing.
-    for (const board of [{ ...grid, pages: 8 }, { columns: 3, rows: 3, pages: 8 }, { columns: 2, rows: 3, pages: 24 }, { columns: 2, rows: 3 }]) {
+    for (const board of [{ ...grid, pages: 8 }, { columns: 3, rows: 3, pages: 8 }, { columns: 2, rows: 3, pages: 24 }, { columns: 2, rows: 3 }] as PageGrid[]) {
       const full = emptyLayout("Capacity"), limit = board.pages ?? 32;
       while (full.pages.length < limit) full.pages.push(emptyPage());
       expect(validatePages(full, board)).toBe(full);

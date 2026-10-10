@@ -17,7 +17,7 @@ import { useSessionStore } from "../src/stores/session";
 import { useTopbarStore } from "../src/stores/topbar";
 import { useInventoryStore } from "../src/stores/inventory";
 import { placeTile, removeTile, addTile } from "../src/editor/tiles";
-import { addPage, movePage, addPage, connectTile, movePage, setHomePage, setPageExcluded, setPageTitle } from "../src/editor/pages";
+import { addPage, connectTile, movePage, setHomePage, setPageExcluded, setPageTitle } from "../src/editor/pages";
 import { useDocumentStore } from "../src/stores/document";
 
 let doc: ReturnType<typeof useDocumentStore>;
