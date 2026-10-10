@@ -21,7 +21,6 @@ import TopbarInspector from "../src/components/TopbarInspector.vue";
 import PageInspector from "../src/components/PageInspector.vue";
 import { t } from "../src/i18n";
 import { answerDialogs } from "./helpers/dialogs";
-import { openBar, previewed, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 import { useDragStore } from "../src/stores/drag";
 import { useUiStore } from "../src/stores/ui";
@@ -32,6 +31,10 @@ import { useInventoryStore } from "../src/stores/inventory";
 import { removePage, setScreenTitle } from "../src/editor/pages";
 import { setTileOption } from "../src/editor/tiles";
 import { useDocumentStore } from "../src/stores/document";
+import { useInspectorStore } from "../src/stores/inspector";
+
+let insp: ReturnType<typeof useInspectorStore>;
+beforeEach(() => { insp = useInspectorStore(); });
 
 let doc: ReturnType<typeof useDocumentStore>;
 beforeEach(() => { doc = useDocumentStore(); });
@@ -74,7 +77,7 @@ beforeEach(() => {
   useInventoryStore().inventory.screens = useInventoryStore().inventory.screens.map(screenFixture);
   useScreenStore().selected = "living";
   loadLayout({ title: "Living room", tiles: [] });
-  doc.selectedTileId = null; state.inspector = null;
+  doc.selectedTileId = null; insp.inspector = null;
 });
 
 // A field's explanation (app 0.3.19): a warning stays in sight under the field, anything else is the tooltip beside its label.
@@ -340,7 +343,7 @@ describe("TileCard", () => {
     const lamp = placed({ entity: "light.a", name: "", slot: 0 });
     await lamp.trigger("click");
     expect(doc.currentTile?.entity).toBe("light.a");
-    expect(state.inspector).toEqual({ kind: "tile" });
+    expect(insp.inspector).toEqual({ kind: "tile" });
     expect(lamp.classes()).toContain("chosen");
   });
 });
@@ -532,7 +535,7 @@ describe("Library: the drawer along the bottom, with every domain in one column 
     const library = mount(Library);
     useUiStore().libraryOpen = false;
     await library.vm.$nextTick();
-    state.insertAt = 3;
+    insp.insert = { kind: "cell", slot: 3 };
     await library.vm.$nextTick();
     expect(useUiStore().libraryOpen).toBe(true);
   });
@@ -1079,13 +1082,13 @@ describe("the title above a page (app 0.2.105, in the page's settings since 0.3.
   });
   it("leaves the title out of the top bar's panel and leads to the page instead", async () => {
     loadLayout({ title: "Living room", tiles: [], pages: 2, page_titles: ["", "Music"] });
-    openBar(0, 1);
+    insp.openBar(0, 1);
     const drawer = mount(TopbarInspector, { props: { index: 0 } });
     expect(drawer.find("#screen-title").exists()).toBe(false);
     expect(drawer.find("#page-title").exists()).toBe(false);
     expect(drawer.find(".nav-row").text()).toContain("Music");
     await drawer.find(".nav-row").trigger("click");
-    expect(state.inspector).toEqual({ kind: "page", id: doc.document!.pages[1].id });
+    expect(insp.inspector).toEqual({ kind: "page", id: doc.document!.pages[1].id });
   });
   it("shows the page's own title in that page's mockup bar, and opens that page's field", async () => {
     loadLayout({ title: "Living room", tiles: [], pages: 2, page_titles: ["", "Music"] });
@@ -1587,28 +1590,28 @@ describe("ChoiceField: the choice under the pointer is drawn on its tile first (
     const field = mount(ChoiceField, { props: { choices, value: "standard", tile: placed, previewKey: "display" } });
     const [, big] = field.findAll("button");
     await big.trigger("pointerenter");
-    expect(state.optionPreview).toEqual({ tileId: placed.id, key: "display", value: "big" });
+    expect(insp.optionPreview).toEqual({ tileId: placed.id, key: "display", value: "big" });
     // The preview is drawn only while that tile's own settings are open, and never during a drag.
-    expect(previewed(placed)).toBe(placed);
+    expect(insp.previewed(placed)).toBe(placed);
     doc.selectedTileId = placed.id!;
-    expect(previewed(placed).options?.display).toBe("big");
+    expect(insp.previewed(placed).options?.display).toBe("big");
     useDragStore().active = true;
-    expect(previewed(placed)).toBe(placed);
+    expect(insp.previewed(placed)).toBe(placed);
     useDragStore().active = false;
     // Only that tile: another is drawn as it is.
-    expect(previewed({ ...placed, id: "other" }).options?.display).toBe("standard");
+    expect(insp.previewed({ ...placed, id: "other" }).options?.display).toBe("standard");
     await field.find(".seg").trigger("pointerleave");
-    expect(state.optionPreview).toBeNull();
-    expect(previewed(placed)).toBe(placed);
+    expect(insp.optionPreview).toBeNull();
+    expect(insp.previewed(placed)).toBe(placed);
     await big.trigger("pointerenter");
     await big.trigger("click");
-    expect(state.optionPreview).toBeNull();
+    expect(insp.optionPreview).toBeNull();
     expect(field.emitted("pick")).toEqual([["big"]]);
   });
   it("previews nothing for the choice already made", async () => {
     const field = mount(ChoiceField, { props: { choices, value: "standard", tile, previewKey: "display" } });
     await field.findAll("button")[0].trigger("pointerenter");
-    expect(state.optionPreview).toBeNull();
+    expect(insp.optionPreview).toBeNull();
   });
   it("folds a longer list into one field with the current choice", () => {
     const long = [["a", "Automatic"], ["b", "Nothing"], ["c", "A value"], ["d", "Own text"]] as const;

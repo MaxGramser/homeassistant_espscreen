@@ -13,7 +13,6 @@ import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
 import { CLICK_AFTER_DRAG_MS, HOLD_MS, SLOP_PX, THRESHOLD_PX } from "./composables/usePointerDrag";
-import { onReset } from "./resets";
 import { useDocumentStore } from "./stores/document";
 import { useDragStore, type DragPreview, type KeyPlace } from "./stores/drag";
 import { useUiStore } from "./stores/ui";
@@ -265,9 +264,10 @@ export function startDrag() {
   return () => window.removeEventListener("click", swallowClick, true);
 }
 export const dragSuppressed = () => Date.now() < drag.suppressUntil;
-// A drag still under way when a test ends lets go of the page, as a cancelled one does.
-onReset(() => {
+/** A drag still under way lets go of the page, as a cancelled one does, and the pointer's bookkeeping starts again (between
+ * tests, tests/setup.ts). */
+export function resetDrag() {
   clearTimeout(drag.timer);
   if (drag.ghost) endDrag(false);
   Object.assign(drag, { source: null, element: null, ghost: null, start: null, pointerId: null, suppressUntil: 0, last: null, target: null, lastSlot: null });
-});
+}

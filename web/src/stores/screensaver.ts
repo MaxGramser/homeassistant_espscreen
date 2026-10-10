@@ -6,9 +6,9 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { moved } from "../model/reorder";
-import { openSaverItem, openSaverStep } from "../store";
 import type { HeaderItem, SaverKind, ScreensaverChoice } from "../types";
 import { useEntitiesStore } from "./entities";
+import { useInspectorStore } from "./inspector";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useRegionStore } from "./region";
@@ -36,6 +36,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
   const entities = useEntitiesStore();
   const region = useRegionStore();
   const topbar = useTopbarStore();
+  const insp = useInspectorStore();
 
   const saver = computed(() => scr.currentScreen?.screensaver);
   const saverReady = computed(() => Boolean(saver.value?.ready));
@@ -100,7 +101,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
     if (screen) scr.setScreensaver(screen, { items });
   }
   const saverList = itemList({
-    items: () => saverItems.value, set: setSaverItems, max: () => SAVER_ITEMS_MAX, open: openSaverItem, inspector: "saver-item",
+    items: () => saverItems.value, set: setSaverItems, max: () => SAVER_ITEMS_MAX, open: (index) => insp.openSaverItem(index), inspector: "saver-item",
     label: (item) => topbar.topbarLabel(item), toast: (message, action) => ui.toast(message, action),
     // One entity once: the clock has no room for the same one twice, whatever it shows of it.
     same: (a, b) => a.entity === b.entity,
@@ -108,7 +109,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
     already: () => t("editor.screen_settings.screensaver.items_already"),
     removed: (name) => t("editor.screen_settings.screensaver.items_removed", { name }),
     // An entity taken off in its own drawer leads back to the clock it stood on.
-    back: () => openSaverStep("clock"),
+    back: () => insp.openSaverStep("clock"),
   });
 
   // One line that says what a step will show, so the list reads without opening a step.
@@ -147,7 +148,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
     };
   });
   // The way back from an entity of the clock: the clock's own drawer.
-  const clockCrumb = () => ({ text: saverLabel("clock"), open: () => openSaverStep("clock") });
+  const clockCrumb = () => ({ text: saverLabel("clock"), open: () => insp.openSaverStep("clock") });
 
   return {
     saver, saverReady, standbyOn, savedOrder, players, cameraChoices, weatherChoices, saverItems, weatherSource, glassRatio, clockPreview,

@@ -5,13 +5,16 @@ import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ScreensaverCard from "../src/components/ScreensaverCard.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
-import { openBar, state } from "../src/store";
 import type { Inventory } from "../src/types";
 import { loadLayout } from "./helpers/fixtures";
 import { liveListeners } from "./helpers/browser";
 import { useScreenStore } from "../src/stores/screen";
 import { useInventoryStore } from "../src/stores/inventory";
 import { useDocumentStore } from "../src/stores/document";
+import { useInspectorStore } from "../src/stores/inspector";
+
+let insp: ReturnType<typeof useInspectorStore>;
+beforeEach(() => { insp = useInspectorStore(); });
 
 let doc: ReturnType<typeof useDocumentStore>;
 beforeEach(() => { doc = useDocumentStore(); });
@@ -45,7 +48,7 @@ describe("a dragged list that closes while a row is held", () => {
 
   it.each(["touch", "mouse"])("a top bar's items let go of the page (%s)", async (pointer) => {
     loadLayout({ title: "Living", tiles: [], header: { items: [{ type: "clock" }, { type: "date" }] } } as any);
-    openBar(0);
+    insp.openBar(0);
     const tracked = liveListeners(document), live = () => following(tracked);
     const drawer = mount(TopbarInspector, { props: { index: 0 }, attachTo: document.body });
     press(drawer.find(".items .item[data-index='1']").element, pointer);
@@ -60,7 +63,7 @@ describe("a dragged list that closes while a row is held", () => {
 describe("a top bar's items dragged into another order", () => {
   it("takes the place the pointer passed, keeps the drawer on the item, and is no click when let go", async () => {
     loadLayout({ title: "Living", tiles: [], header: { items: [{ type: "clock" }, { type: "date" }, { type: "analog" }] } } as any);
-    openBar(0);
+    insp.openBar(0);
     const drawer = mount(TopbarInspector, { props: { index: 0 }, attachTo: document.body });
     drawer.findAll(".items .item[data-index]").forEach((row, i) => {
       row.element.getBoundingClientRect = () => ({ top: i * 40, height: 40, bottom: i * 40 + 40, left: 0, right: 200, width: 200 }) as DOMRect;
@@ -68,11 +71,11 @@ describe("a top bar's items dragged into another order", () => {
     const at = (y: number, type: string) => Object.assign(new Event(type, { bubbles: true, cancelable: true }), { pointerId: 1, pointerType: "mouse", button: 0, clientX: 10, clientY: y });
     drawer.find(".items .item[data-index='0']").element.dispatchEvent(at(10, "pointerdown"));
     document.dispatchEvent(at(70, "pointermove"));
-    expect(state.inspector).toEqual({ kind: "bar", index: 1 });
+    expect(insp.inspector).toEqual({ kind: "bar", index: 1 });
     document.dispatchEvent(at(70, "pointerup"));
     expect(doc.document!.pages[0].topbar.trailing.map((item) => item.type)).toEqual(["date", "clock", "analog"]);
     // The click the browser sends after the drag opens nothing.
     await drawer.find(".items .item[data-index='0']").trigger("click");
-    expect(state.inspector).toEqual({ kind: "bar", index: 1 });
+    expect(insp.inspector).toEqual({ kind: "bar", index: 1 });
   });
 });

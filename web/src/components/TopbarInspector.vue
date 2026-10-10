@@ -8,7 +8,6 @@ import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
 import { clockSample } from "../model/clock";
 import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { openBar, openBarAdd, openPage } from "../store";
 import type { HeaderItem } from "../types";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
@@ -28,6 +27,7 @@ import { useInventoryStore } from "../stores/inventory";
 import { useCanvasStore } from "../stores/canvas";
 import { pageTitleShown } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -37,6 +37,7 @@ const topbar = useTopbarStore();
 const inv = useInventoryStore();
 const canvas = useCanvasStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 const { pageCount } = doc.editorLayout;
 
 const props = defineProps<{ index: number }>();
@@ -77,10 +78,10 @@ const justAdded = (it: HeaderItem) => topbar.topbarAdded?.key === itemKey(it) &&
 const page = computed(() => doc.barPage ?? 0);
 const pages = computed(() => (doc.layout ? pageCount(entriesOf(doc.layout), doc.layout.pages) : 1));
 const pageId = computed(() => doc.document?.pages[page.value]?.id);
-const toPage = () => { if (pageId.value) openPage(pageId.value); };
+const toPage = () => { if (pageId.value) insp.openPage(pageId.value); };
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: page.value + 1 }), open: pageId.value ? toPage : undefined },
-  ...(item.value ? [{ text: t("editor.topbar.title"), open: () => openBar(-1) }] : []),
+  ...(item.value ? [{ text: t("editor.topbar.title"), open: () => insp.openBar(-1) }] : []),
 ]);
 function update(patch: Partial<HeaderItem>) {
   const list = [...items.value];
@@ -101,16 +102,16 @@ const samples = computed(() => {
 // updates while dragging, the mockup follows, and a finished drag is not a click (composables/useSortableRows.ts). The
 // drawer that closes while an item is held (another tile chosen, Escape) lets go of the page, without a change.
 const sort = useSortableRows<HeaderItem>({ rows: ".items .item[data-index]", items: () => topbar.topbarItems(), commit: (list) => topbar.setTopbarItems(list), skip: ".x",
-  onMove: (from, to) => { if (props.index === from) openBar(to); } });
+  onMove: (from, to) => { if (props.index === from) insp.openBar(to); } });
 const drag = sort.drag;
 function pick(e: MouseEvent, i: number) {
   if (sort.click(e)) return;
-  openBar(i);
+  insp.openBar(i);
 }
 function onKey(e: KeyboardEvent, i: number) {
-  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openBar(i); return; }
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); insp.openBar(i); return; }
   const step = ({ ArrowUp: -1, ArrowDown: 1 } as Record<string, number>)[e.key];
-  if (step && topbar.moveTopbarItem(i, i + step)) { if (props.index === i) openBar(i + step); e.preventDefault(); }
+  if (step && topbar.moveTopbarItem(i, i + step)) { if (props.index === i) insp.openBar(i + step); e.preventDefault(); }
 }
 </script>
 
@@ -139,7 +140,7 @@ function onKey(e: KeyboardEvent, i: number) {
           <span class="tx"><b>{{ topbar.topbarLabel(it) }}</b><small>{{ detail(it, i) }}</small></span>
           <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbar.topbarLabel(it) })" @click.stop="topbar.removeTopbarItem(i)"><Icon name="close" /></button>
         </div>
-        <button type="button" class="ghost-btn" id="topbar-add" :disabled="items.length >= scr.topbarMax" :title="items.length >= scr.topbarMax ? t('editor.topbar.max', scr.topbarMax) : t('editor.topbar.add_title')" @click="openBarAdd"><Icon name="plus" />{{ t("editor.topbar.add_button") }}</button>
+        <button type="button" class="ghost-btn" id="topbar-add" :disabled="items.length >= scr.topbarMax" :title="items.length >= scr.topbarMax ? t('editor.topbar.max', scr.topbarMax) : t('editor.topbar.add_title')" @click="insp.openBarAdd"><Icon name="plus" />{{ t("editor.topbar.add_button") }}</button>
       </div>
       <small v-if="overflow.size > 0 || !supported" id="topbar-hint" class="help warn">{{ hint }}</small>
     </Section>
@@ -212,8 +213,8 @@ function onKey(e: KeyboardEvent, i: number) {
     <button type="button" class="btn danger" @click="topbar.removeTopbarItem(index)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>
     <span class="spacer"></span>
     <div class="tool-group" role="group">
-      <button type="button" class="icon-btn" :disabled="index === 0" :aria-label="t('editor.topbar.up')" :title="t('editor.topbar.up')" @click="topbar.moveTopbarItem(index, index - 1) && openBar(index - 1)"><Icon name="arrow-up" /></button>
-      <button type="button" class="icon-btn" :disabled="index >= items.length - 1" :aria-label="t('editor.topbar.down')" :title="t('editor.topbar.down')" @click="topbar.moveTopbarItem(index, index + 1) && openBar(index + 1)"><Icon name="arrow-down" /></button>
+      <button type="button" class="icon-btn" :disabled="index === 0" :aria-label="t('editor.topbar.up')" :title="t('editor.topbar.up')" @click="topbar.moveTopbarItem(index, index - 1) && insp.openBar(index - 1)"><Icon name="arrow-up" /></button>
+      <button type="button" class="icon-btn" :disabled="index >= items.length - 1" :aria-label="t('editor.topbar.down')" :title="t('editor.topbar.down')" @click="topbar.moveTopbarItem(index, index + 1) && insp.openBar(index + 1)"><Icon name="arrow-down" /></button>
     </div>
   </div>
 </template>

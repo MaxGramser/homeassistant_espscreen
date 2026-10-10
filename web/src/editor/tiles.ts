@@ -11,10 +11,10 @@ import { validateCardOptions } from "../model/page-validation";
 import * as pages from "../model/pages";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "../model/sizes";
 import { canonicalOptions, coupledOptions } from "../model/tile-options";
-import { openTile, state as inspection } from "../store";
 import { energyFits } from "../model/ui-scale";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
+import { useInspectorStore } from "../stores/inspector";
 import { useInventoryStore } from "../stores/inventory";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
@@ -85,36 +85,37 @@ export function startTile(id: string): Tile {
 // A click in the picker: the marked empty cell or key place, else the selected page's first free cell. Never silently
 // spill a library click onto another page.
 export async function addTile(id: string) {
-  const doc = useDocumentStore(), scr = useScreenStore();
+  const doc = useDocumentStore(), insp = useInspectorStore(), scr = useScreenStore();
   if (!doc.layout || (!scr.repeatable(id) && doc.layout.tiles.some((t) => t.entity === id)) || doc.layout.tiles.length >= doc.tileLimit) return;
   // Past the screen's memory the tile waits for the answer; otherwise it goes on at once.
   const allowed = confirmMemory(id);
   if (allowed !== true && !(await allowed)) return;
   const layout = doc.layout;
   if (!layout) return;
-  if (inspection.insertKey) {
-    const { holder, key } = inspection.insertKey;
-    inspection.insertKey = null;
+  const marked = insp.insert;
+  if (marked?.kind === "key") {
+    const { holder, key } = marked;
+    insp.insert = null;
     const clock = layout.tiles.find((item) => item.id === holder);
     if (clock && placeKey(newTile(id), clock, key)) {
       // The key in the place it was put in: the same entity may stand under the clock twice (firmware 0.16.0+).
       const added = doc.layout!.tiles.find((item) => item.entity === id && item.in === clock.entity && item.key === key)
         || doc.layout!.tiles.find((item) => item.entity === id && item.in === clock.entity);
-      if (added) openTile(added);
+      if (added) insp.openTile(added);
     }
     return;
   }
   const tile = startTile(id), { grid, firstFree, occupied } = doc.editorLayout;
   const page = Math.max(0, doc.document!.pages.findIndex((page) => page.id === doc.selectedPageId));
-  const at = inspection.insertAt;
+  const at = marked?.kind === "cell" ? marked.slot : -1;
   const target = at >= 0 ? at : firstFree(occupied(entriesOf(layout)), sizeOf(tile), page * grid.slots);
   const slot = at >= 0 || target < (page + 1) * grid.slots ? target : -1;
-  inspection.insertAt = -1;
+  insp.insert = null;
   if (slot < 0) return toast(t("editor.pages.selected_full"));
   if (slot >= 0 && placeTile(tile, slot)) {
     const added = doc.layout!.tiles.find((item) => item.entity === id && item.slot === slot);
     if (added && useUiStore().phone) doc.markAdded(added);
-    else if (added) openTile(added);
+    else if (added) insp.openTile(added);
   }
 }
 export function removeTile(tile: Tile) {

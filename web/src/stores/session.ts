@@ -11,10 +11,10 @@ import { askConfirm } from "../composables/useConfirm";
 import { followBuilds } from "../composables/useFirmwareJob";
 import { startDrag } from "../drag";
 import type { PreviewProfile } from "../model/preview";
-import { closeInspector, startStore } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useDocumentStore } from "./document";
+import { useInspectorStore } from "./inspector";
 import { useInventoryStore } from "./inventory";
 import { usePluginsStore } from "./plugins";
 import { useRegionStore } from "./region";
@@ -33,6 +33,7 @@ export const useSessionStore = defineStore("session", () => {
   const plugins = usePluginsStore();
   const topbar = useTopbarStore();
   const doc = useDocumentStore();
+  const insp = useInspectorStore();
 
   // ---- Opening a screen ----
   // Another screen, or none (the overview). With unsaved changes the editor asks first, and the switch waits for the answer
@@ -40,7 +41,7 @@ export const useSessionStore = defineStore("session", () => {
   // its layout as it is.
   function select(id: string | null): void | Promise<void> {
     if (id === scr.selected && doc.document && doc.dirty) {
-      ui.tab = "layout"; ui.menuOpen = false; closeInspector(); ui.go(""); return;
+      ui.tab = "layout"; ui.menuOpen = false; insp.closeInspector(); ui.go(""); return;
     }
     if (id !== scr.selected && doc.dirty) return askConfirm(t("editor.screen_view.confirm.switch")).then((yes) => { if (yes) open(id); });
     open(id);
@@ -130,7 +131,7 @@ export const useSessionStore = defineStore("session", () => {
   function start() {
     if (running) return running;
     const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(),
-      inv.start({ busy: () => builds.anyBuilding }), doc.start(), startStore(), topbar.start(), followBuilds()];
+      inv.start({ busy: () => builds.anyBuilding }), doc.start(), topbar.start(), followBuilds()];
     running = () => { running = null; for (const stop of stops.reverse()) stop(); };
     return running;
   }

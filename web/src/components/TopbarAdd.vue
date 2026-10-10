@@ -4,7 +4,6 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { closeInspector, openBar } from "../store";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
@@ -15,6 +14,7 @@ import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
 import { useInventoryStore } from "../stores/inventory";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -23,6 +23,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const topbar = useTopbarStore();
 const inv = useInventoryStore();
+const insp = useInspectorStore();
 
 const taken = computed(() => new Set(topbar.topbarItems().map(itemKey)));
 const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
@@ -45,7 +46,7 @@ const builtins = computed(() => (inv.inventory.header?.builtin || []).filter((b)
 
 <template>
   <InspectorHead kind="bar" :title="t('editor.topbar.add.title')" icon="plus"
-    :crumbs="[{ text: t('editor.topbar.title'), open: () => openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbar.topbarItems().length }, scr.topbarMax) }]" />
+    :crumbs="[{ text: t('editor.topbar.title'), open: () => insp.openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbar.topbarItems().length }, scr.topbarMax) }]" />
   <div class="dr-body">
     <div class="f">
       <span class="f-label">{{ t("editor.topbar.add.builtin") }}</span>
@@ -69,6 +70,6 @@ const builtins = computed(() => (inv.inventory.header?.builtin || []).filter((b)
   </div>
   <div class="dr-foot">
     <span class="spacer"></span>
-    <button type="button" class="btn quiet" @click="closeInspector">{{ t("editor.common.cancel") }}</button>
+    <button type="button" class="btn quiet" @click="insp.closeInspector">{{ t("editor.common.cancel") }}</button>
   </div>
 </template>

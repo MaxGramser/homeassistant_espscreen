@@ -7,7 +7,6 @@ import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { closeInspector, openBar, openPage, previewed, state } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -24,6 +23,7 @@ import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
 import { movePage, pageTitleShown, setHomePage } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -33,6 +33,7 @@ const topbar = useTopbarStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 const { cellsOf, grid, pageOf, spanOf } = doc.editorLayout;
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
@@ -44,23 +45,23 @@ function pageClick(event: MouseEvent) {
   if (props.preview || !owned.value) return;
   const target = event.target as HTMLElement;
   if (target.closest(".tile, .cell, .bar-wrap, .home-chip, a, input, [role='menu'], [role='menuitem'], button:not(.grab)")) return;
-  openPage(owned.value.id);
+  insp.openPage(owned.value.id);
 }
 const isHome = computed(() => owned.value?.id === doc.document?.homePageId);
 const backInHeader = computed(() => !settings.navigationSettings().pageButtons && Boolean(owned.value?.navigation.excludeFromPagination));
 const bySlot = computed(() => new Map(props.entries.map((e) => [e.slot, e])));
 const covered = computed(() => new Set(props.entries.flatMap((e) => cellsOf(e.slot, sizeOf(e.tile)).slice(1))));
 const cells = computed(() => Array.from({ length: grid.slots }, (_, cell) => props.page * grid.slots + cell).filter((slot) => !covered.value.has(slot)));
-const barSelected = computed(() => doc.barPage === props.page && (state.inspector?.kind === "bar" || state.inspector?.kind === "bar-add"));
+const barSelected = computed(() => doc.barPage === props.page && (insp.inspector?.kind === "bar" || insp.inspector?.kind === "bar-add"));
 const filled = computed(() => props.entries.filter((e) => pageOf(e.slot) === props.page).reduce((n, e) => n + spanOf(sizeOf(e.tile)), 0));
 const cellStyle = (slot: number) => ({ gridColumn: slot % grid.columns + 1, gridRow: Math.floor(slot % grid.slots / grid.columns) + 1 });
 function pickCell(slot: number) {
   doc.selectedPageId = owned.value?.id || doc.selectedPageId;
-  const marked = state.insertAt === slot && !ui.phone;
-  state.insertAt = marked ? -1 : slot;
+  const marked = insp.insertAt === slot && !ui.phone;
+  insp.insert = marked ? null : { kind: "cell", slot };
   // On a phone the empty cell opens the sheet to add a tile there (app 0.4.40), without a keyboard over the list.
-  if (state.insertAt >= 0 && ui.phone) { closeInspector(); ui.addSheet = true; }
-  else if (state.insertAt >= 0) document.querySelector<HTMLInputElement>("#search")?.focus();
+  if (insp.insertAt >= 0 && ui.phone) { insp.closeInspector(); ui.addSheet = true; }
+  else if (insp.insertAt >= 0) document.querySelector<HTMLInputElement>("#search")?.focus();
 }
 // A whole page moves by its label (app 0.2.121) and leaves by the button beside its cell count (app 0.2.123). One
 // page has nowhere to go and cannot leave either, and the page a tile can start behind the last one isn't a page yet.
@@ -96,8 +97,8 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && doc.selectedPageId === owned.id && state.inspector?.kind === 'page' }" :style="canvas.deviceStyle" :data-page-id="owned?.id" @click="pageClick">
-    <div v-if="!preview" class="page-head" :class="{ selected: doc.selectedPageId === owned?.id && state.inspector?.kind === 'page' }">
+  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && doc.selectedPageId === owned.id && insp.inspector?.kind === 'page' }" :style="canvas.deviceStyle" :data-page-id="owned?.id" @click="pageClick">
+    <div v-if="!preview" class="page-head" :class="{ selected: doc.selectedPageId === owned?.id && insp.inspector?.kind === 'page' }">
       <button v-if="movable" type="button" class="grab" :data-page="page" v-drag="{ kind: 'page', page }"
         :title="t('editor.page.move_title')" :aria-label="t('editor.page.move_aria', { page: page + 1 })" @keydown="onKey">
         <Icon name="drag-vertical" class="grip" />{{ t("editor.page.label", { page: page + 1 }) }}
@@ -115,18 +116,18 @@ async function onKey(e: KeyboardEvent) {
     </div>
     <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames }">
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
-        @click="!preview && openBar(0, page)" @keydown.enter.prevent="!preview && openBar(0, page)">
+        @click="!preview && insp.openBar(0, page)" @keydown.enter.prevent="!preview && insp.openBar(0, page)">
         <TopbarSvg :items="topbar.topbarItems(page)" :name-text="pageTitleShown(page)" :home="topbar.homeKeyShown(page)" :back="backInHeader" />
         <button v-if="preview && (backInHeader || topbar.homeKeyShown(page))" type="button" class="preview-home" :aria-label="backInHeader ? region.screenText('screen.navigation.back') : t('editor.pages.go_home')" @click.stop="emit('navigate', { kind: backInHeader ? 'back' : 'home' })"></button>
       </div>
       <div class="tiles">
         <template v-for="slot in cells" :key="slot">
-          <TileCard v-if="bySlot.get(slot)" :tile="preview ? bySlot.get(slot)!.tile : previewed(bySlot.get(slot)!.tile)" :slot="slot" :placeholder="bySlot.get(slot)!.tile === moving" :preview="preview" @navigate="emit('navigate', { kind: 'tile', tileId: $event })" />
+          <TileCard v-if="bySlot.get(slot)" :tile="preview ? bySlot.get(slot)!.tile : insp.previewed(bySlot.get(slot)!.tile)" :slot="slot" :placeholder="bySlot.get(slot)!.tile === moving" :preview="preview" @navigate="emit('navigate', { kind: 'tile', tileId: $event })" />
           <span v-else-if="preview" class="cell preview-empty" :style="cellStyle(slot)"></span>
-          <button v-else type="button" class="cell" :style="cellStyle(slot)" :class="{ 'insert-here': state.insertAt === slot }" :data-slot="slot"
+          <button v-else type="button" class="cell" :style="cellStyle(slot)" :class="{ 'insert-here': insp.insertAt === slot }" :data-slot="slot"
             :title="t('editor.page.cell.title')"
             :aria-label="t('editor.page.cell.aria', { slot: (slot % grid.slots) + 1, page: page + 1 })" @click="pickCell(slot)">
-            <span>+</span><small>{{ state.insertAt === slot ? t("editor.page.cell.next") : t("editor.page.cell.empty") }}</small>
+            <span>+</span><small>{{ insp.insertAt === slot ? t("editor.page.cell.next") : t("editor.page.cell.empty") }}</small>
           </button>
         </template>
       </div>

@@ -5,7 +5,6 @@ import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pageTarget, SLIDER_DOMAINS, SWITCHES_ON_TAP, TOGGLE_BEFORE } from "../model/layout";
 import { controlOption, drawable, fits, ofType } from "../model/catalogue";
-import { openPage, openTile, state } from "../store";
 import { titleOf } from "../model/pages";
 import PluginTileInspector from "./PluginTileInspector.vue";
 import type { Tile } from "../types";
@@ -36,6 +35,7 @@ import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
 import { moveTileToPage, setTileName, removeTile, retargetPageTile, setTileOption } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -44,6 +44,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 const { grid, pageCount, pageOf } = doc.editorLayout;
 
 const props = defineProps<{ tile: Tile }>();
@@ -244,7 +245,7 @@ const taps = computed(() => {
 });
 function pickTap(value: string) {
   choosingAction.value = value === "action" && !props.tile.options?.action;
-  if (choosingAction.value) state.actionPickerOpen = true;
+  if (choosingAction.value) insp.actionPickerOpen = true;
   else setTileOption(props.tile, "tap", value);
 }
 // A lock's tile (firmware 0.5.0+): unlock after a second tap on it, or never unlock from this screen.
@@ -305,13 +306,13 @@ const fromHA = computed(() => Boolean(inv.entityOf(props.tile.entity)?.icon));
 const showIcon = computed(() => Boolean(inv.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
 function inspect() {
   // This tile's own data: its entity may be on several tiles (firmware 0.16.0+).
-  state.inspector = { kind: "inspect", entity: props.tile.entity, slot: props.tile.slot, key: props.tile.key };
+  insp.inspector = { kind: "inspect", entity: props.tile.entity, slot: props.tile.slot, key: props.tile.key };
 }
 // The way up in the head: the page the tile stands on opens that page's settings.
 const pageId = computed(() => doc.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
-  { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => openPage(pageId.value!) : undefined },
-  ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entities.entityName(holder.value.entity), open: () => openTile(holder.value!) }] : []),
+  { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => insp.openPage(pageId.value!) : undefined },
+  ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entities.entityName(holder.value.entity), open: () => insp.openTile(holder.value!) }] : []),
   { text: props.tile.entity, mono: true },
 ]);
 const lookShown = computed(() => !goesTo.value && !bedside.value && !key.value && (props.tile.entity !== "screen.settings" || display.value === "live" || domain.value === "sensor"));
@@ -320,8 +321,8 @@ const controlsShown = computed(() => (domain.value !== "screen" && !goesTo.value
 const subSample = (kind: string) => kind === "attr" ? `attr:${subAttribute.value || "state"}` : kind === "text" ? `text:${subText.value || t("editor.tile.sub.text_placeholder")}` : kind;
 const controlSample = (key: string) => domain.value === "cover" ? withCoverTilt(key, tiltSelected.value) : key;
 function previewBackground(key: string | null) {
-  if (key && props.tile.id && key !== (props.tile.options?.background || "auto")) state.optionPreview = { tileId: props.tile.id, key: "background", value: key };
-  else if (state.optionPreview?.key === "background") state.optionPreview = null;
+  if (key && props.tile.id && key !== (props.tile.options?.background || "auto")) insp.optionPreview = { tileId: props.tile.id, key: "background", value: key };
+  else if (insp.optionPreview?.key === "background") insp.optionPreview = null;
 }
 const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.options?.background || "auto"]?.label || "");
 </script>

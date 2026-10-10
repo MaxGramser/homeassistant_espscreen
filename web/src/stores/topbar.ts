@@ -10,11 +10,11 @@ import { clockSample } from "../model/clock";
 import * as pages from "../model/pages";
 import { agoText, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, wifiView } from "../model/topbar";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
-import { closeInspector, openBar, state } from "../store";
 import type { HeaderItem } from "../types";
 import { useDocumentStore } from "./document";
 import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
+import { useInspectorStore } from "./inspector";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { usePluginsStore } from "./plugins";
@@ -31,6 +31,8 @@ export function itemList(o: {
   inspector: string; same: (a: HeaderItem, b: HeaderItem) => boolean; label: (item: HeaderItem) => string; toast: Toast;
   full: () => string; already: () => string; removed: (name: string) => string; added?: (item: HeaderItem) => void; back?: () => void;
 }) {
+  // An item's drawer closes as the item goes (stores/inspector.ts); the list is made in the setup of the store it belongs to.
+  const insp = useInspectorStore();
   return {
     add(item: HeaderItem) {
       const items = o.items();
@@ -57,7 +59,7 @@ export function itemList(o: {
       const items = [...o.items()];
       const [item] = items.splice(index, 1);
       if (!item) return;
-      if (state.inspector?.kind === o.inspector) (o.back || closeInspector)();
+      if (insp.inspector?.kind === o.inspector) (o.back || insp.closeInspector)();
       o.set(items);
       o.toast(o.removed(o.label(item)), {
         label: t("editor.common.undo"),
@@ -76,6 +78,7 @@ export const useTopbarStore = defineStore("topbar", () => {
   const plugins = usePluginsStore();
   const settings = useSettingsStore();
   const doc = useDocumentStore();
+  const insp = useInspectorStore();
   const dragging = useDragStore();
 
   // ---- A page's top bar ----
@@ -129,7 +132,7 @@ export const useTopbarStore = defineStore("topbar", () => {
   // The new chip lights up briefly so the eye finds it.
   const topbarAdded = ref<null | { key: string; time: number }>(null);
   const topbarList = itemList({
-    items: () => topbarItems(), set: (items) => setTopbarItems(items), max: () => scr.topbarMax, open: (index) => openBar(index), inspector: "bar",
+    items: () => topbarItems(), set: (items) => setTopbarItems(items), max: () => scr.topbarMax, open: (index) => insp.openBar(index), inspector: "bar",
     same: (a, b) => itemKey(a) === itemKey(b), label: topbarLabel, toast: (message, action) => ui.toast(message, action),
     full: () => t("editor.topbar.full", scr.topbarMax), already: () => t("editor.topbar.already"),
     removed: (name) => t("editor.topbar.removed", { name }),

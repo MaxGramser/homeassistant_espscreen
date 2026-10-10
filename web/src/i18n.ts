@@ -6,7 +6,6 @@
 import metas from "virtual:esp-screens-languages";
 import { createI18n } from "vue-i18n";
 import english from "../../screen_manager/translations/en.json";
-import { onReset } from "./resets";
 
 export type LanguageMeta = { name: string; english: string; script?: string; plural: string; clock?: string; checked: boolean };
 // A language's texts as the build hands them over: compiled, and only the page's part (not the file's own shape).
@@ -89,9 +88,9 @@ export function addLanguage(code: string, texts: Texts, meta: LanguageMeta | und
   LOADED.add(code);
 }
 const loading: Record<string, Promise<boolean>> = {};
-// Back to the languages of the files, in English: a language a test made up with addLanguage goes again. One a file has
-// stays loaded, since loading it again would bring the same texts.
-onReset(() => {
+/** Back to the languages of the files, in English (between tests, tests/setup.ts): a language a test made up with
+ * addLanguage goes again. One a file has stays loaded, since loading it again would bring the same texts. */
+export function resetLanguages() {
   for (const code of Object.keys(META)) {
     if (code in metas) continue;
     delete META[code]; delete RULES[code]; delete loading[code];
@@ -100,7 +99,7 @@ onReset(() => {
   }
   Object.assign(META, metas);
   i18n.global.locale.value = "en";
-});
+}
 /** Loads a language once; true when the editor has it. */
 export function loadLanguage(code: string): Promise<boolean> {
   if (LOADED.has(code)) return Promise.resolve(true);

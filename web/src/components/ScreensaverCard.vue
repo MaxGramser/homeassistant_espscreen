@@ -6,27 +6,28 @@
 import { computed, onMounted } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { openSaverStep, state } from "../store";
 import { useSortableRows } from "../composables/useSortableRows";
 import type { SaverKind } from "../types";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
 import { useTopbarStore } from "../stores/topbar";
 import { SAVER_ICONS, SAVER_MIN_FIRMWARE, saverLabel, useScreensaverStore } from "../stores/screensaver";
+import { useInspectorStore } from "../stores/inspector";
 
 const topbar = useTopbarStore();
 const screensaver = useScreensaverStore();
+const insp = useInspectorStore();
 
 onMounted(() => topbar.loadTopbarPreview(0));
 const pictures = computed(() => Boolean(screensaver.saver?.pictures));
 const steps = useSortableRows<SaverKind>({ rows: "#screensaver-steps > .saver-row", items: () => screensaver.savedOrder,
   commit: (list) => screensaver.changeSaver({ order: list }), skip: ".ui-switch", grip: ".grip", enabled: () => screensaver.saverReady && pictures.value });
 const order = computed(() => screensaver.stepsShown(steps.live.value));
-const opened = (kind: SaverKind) => state.inspector?.kind === "saver" && state.inspector.step === kind;
+const opened = (kind: SaverKind) => insp.inspector?.kind === "saver" && insp.inspector.step === kind;
 const line = (kind: SaverKind) => (screensaver.isOn(kind) ? screensaver.summary(kind) : { text: t("editor.screen_settings.screensaver.summary.off"), missing: false });
 function open(e: MouseEvent, kind: SaverKind) {
   if (steps.click(e) || (e.target as HTMLElement).closest(".ui-switch")) return;
-  openSaverStep(kind);
+  insp.openSaverStep(kind);
 }
 </script>
 
@@ -48,7 +49,7 @@ function open(e: MouseEvent, kind: SaverKind) {
       <div class="saver-list" id="screensaver-steps" role="list" :aria-label="t('editor.screen_settings.screensaver.lead')">
         <div v-for="(kind, i) in order" :key="kind" class="saver-row" role="listitem" tabindex="0" :data-kind="kind"
           :class="{ off: !screensaver.isOn(kind), opened: opened(kind), dragging: steps.drag.value.active && steps.drag.value.index === i, still: !pictures }"
-          @pointerdown="steps.down($event, i)" @click="open($event, kind)" @keydown.enter.self.prevent="openSaverStep(kind)" @keydown="steps.key($event, i)">
+          @pointerdown="steps.down($event, i)" @click="open($event, kind)" @keydown.enter.self.prevent="insp.openSaverStep(kind)" @keydown="steps.key($event, i)">
           <span class="saver-av" aria-hidden="true">
             <span class="mdi">{{ glyph(SAVER_ICONS[kind]) }}</span>
             <Icon v-if="pictures" name="drag-vertical" class="saver-grip" />

@@ -4,7 +4,6 @@
 // one at a time in the order they were asked; each answer settles its promise. A store's action asks with askConfirm and
 // goes on with the answer; a component takes the three from useConfirm().
 import { computed, shallowRef } from "vue";
-import { onReset } from "../resets";
 
 export type Question =
   /** Yes or no; `confirm` names the button that says yes (OK when it is not named). */
@@ -46,9 +45,9 @@ export function useConfirm() {
   return { confirm: askConfirm, prompt: askText, show: showText, question, answer };
 }
 
-// A question still open when a test ends is cancelled, so no promise waits into the next one.
-onReset(() => {
+/** Every question still open cancelled (between tests, tests/setup.ts), so no promise waits into the next one. */
+export function cancelQuestions() {
   const open = asked.value;
   asked.value = [];
   for (const one of open) one.reply(one.kind === "prompt" ? null : false);
-});
+}

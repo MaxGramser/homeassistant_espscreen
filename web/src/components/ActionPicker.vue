@@ -4,7 +4,6 @@
 import { computed } from "vue";
 import { matchesQuery } from "../model/search";
 import { t } from "../i18n";
-import { state } from "../store";
 import type { EntityAction, Tile } from "../types";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
@@ -14,18 +13,20 @@ import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
 import { setTileAction } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const entities = useEntitiesStore();
 const scr = useScreenStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 
 const props = defineProps<{ tile: Tile }>();
 const list = computed(() => entities.entityActions[props.tile.entity]);
 const chosen = computed(() => props.tile.options?.action);
 const entry = computed(() => list.value?.find((a) => a.action === chosen.value?.action));
-const open = computed(() => state.actionPickerOpen || !chosen.value);
+const open = computed(() => insp.actionPickerOpen || !chosen.value);
 const rows = computed(() => {
-  return (list.value || []).filter((a) => matchesQuery(state.actionSearch, a.name, a.action, a.description));
+  return (list.value || []).filter((a) => matchesQuery(insp.actionSearch, a.name, a.action, a.description));
 });
 if (list.value === undefined) entities.loadEntityActions(props.tile.entity);
 
@@ -33,7 +34,7 @@ if (list.value === undefined) entities.loadEntityActions(props.tile.entity);
 // half-made choice never reaches the document (GitHub #47). The chosen action is the tile's own, from the document.
 function pick(action: EntityAction) {
   const same = action.action === chosen.value?.action;
-  if (setTileAction(props.tile, same && chosen.value ? chosen.value : { action: action.action }) || same) state.actionPickerOpen = false;
+  if (setTileAction(props.tile, same && chosen.value ? chosen.value : { action: action.action }) || same) insp.actionPickerOpen = false;
 }
 function setField(key: string, value: unknown) {
   const data: Record<string, unknown> = { ...(props.tile.options?.action?.data || {}) };
@@ -79,7 +80,7 @@ const unitOf = (field: Field) => configOf(field).unit_of_measurement || (kindOf(
     <small v-if="list === undefined">{{ t("editor.action.asking") }}</small>
     <small v-else-if="list === null" class="warn">{{ t("editor.action.not_answering") }}</small>
     <template v-else>
-      <button type="button" class="row" :aria-expanded="open ? 'true' : 'false'" @click="state.actionPickerOpen = !open">
+      <button type="button" class="row" :aria-expanded="open ? 'true' : 'false'" @click="insp.actionPickerOpen = !open">
         <span class="tx">
           <b>{{ entry ? entry.name : chosen ? chosen.action : t("editor.action.choose") }}</b>
           <small v-if="chosen" class="mono">{{ chosen.action }}</small>
@@ -87,7 +88,7 @@ const unitOf = (field: Field) => configOf(field).unit_of_measurement || (kindOf(
         <Icon :name="open ? 'chevron-up' : 'chevron-down'" class="row-chevron" />
       </button>
       <div v-if="open" class="picker">
-        <label class="search-field"><Icon name="magnify" /><input v-model="state.actionSearch" type="search" :placeholder="t('editor.action.search')" :aria-label="t('editor.action.search_label')" /></label>
+        <label class="search-field"><Icon name="magnify" /><input v-model="insp.actionSearch" type="search" :placeholder="t('editor.action.search')" :aria-label="t('editor.action.search_label')" /></label>
         <div class="action-list">
           <button v-for="action in rows" :key="action.action" type="button" class="action-choice" :aria-pressed="action.action === chosen?.action ? 'true' : 'false'" @click="pick(action)">
             <strong>{{ action.name }}</strong>

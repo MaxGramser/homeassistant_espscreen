@@ -4,7 +4,6 @@ import { useEventListener, useFileDialog } from "@vueuse/core";
 import { computed } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
-import { closeInspector, openBar, state } from "../store";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
 import LayoutView from "./LayoutView.vue";
@@ -26,6 +25,7 @@ import { useSessionStore } from "../stores/session";
 import { useInventoryStore } from "../stores/inventory";
 import { removeTile } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
@@ -34,6 +34,7 @@ const scr = useScreenStore();
 const session = useSessionStore();
 const inv = useInventoryStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 
 const screen = computed(() => scr.currentScreen!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
@@ -54,7 +55,7 @@ function openOverride() {
 function inspectAll() {
   closeMenu();
   doc.selectedTileId = null;
-  state.inspector = { kind: "inspect" };
+  insp.inspector = { kind: "inspect" };
 }
 const { confirm, prompt, question } = useConfirm();
 async function copyFrom(id: string) {
@@ -78,14 +79,14 @@ function phoneBack() {
 }
 const phoneStatus = computed(() => !screen.value.online ? t("editor.common.offline")
   : doc.dirty ? t("editor.phone.not_sent") : screen.value.in_sync ? t("editor.phone.on_screen") : t("editor.screen_view.sending"));
-function phoneSettings() { closeMenu(); closeInspector(); ui.tab = "settings"; }
+function phoneSettings() { closeMenu(); insp.closeInspector(); ui.tab = "settings"; }
 async function phoneRename() {
   closeMenu();
   const name = await prompt(t("editor.sidebar.rename.label"), screen.value.name);
   if (name && name.trim() && name.trim() !== screen.value.name) scr.renameScreen(screen.value, name.trim());
 }
 const full = computed(() => (doc.layout?.tiles.length || 0) >= doc.tileLimit);
-function phoneAdd() { state.insertAt = -1; closeInspector(); ui.addSheet = true; }
+function phoneAdd() { insp.forgetCell(); insp.closeInspector(); ui.addSheet = true; }
 // Escape belongs to the innermost thing open (app 0.4.32): a list of choices or a menu closes and the inspector under it
 // stays. Whether one was open is read before it closes, in the capture phase, since it is gone by the time the key
 // reaches this handler.
@@ -100,8 +101,8 @@ function onKey(e: KeyboardEvent) {
     if (popoverEscape) return;
     if (ui.menuOpen) closeMenu();
     else if (ui.palette) return;
-    else if (state.inspector && !(e.target as HTMLElement)?.closest?.(".picker")) closeInspector();
-  } else if ((e.key === "Delete" || e.key === "Backspace") && !e.defaultPrevented && state.inspector?.kind === "tile" && doc.currentTile
+    else if (insp.inspector && !(e.target as HTMLElement)?.closest?.(".picker")) insp.closeInspector();
+  } else if ((e.key === "Delete" || e.key === "Backspace") && !e.defaultPrevented && insp.inspector?.kind === "tile" && doc.currentTile
     && !isEditableTarget(e.target) && !(e.target as HTMLElement)?.closest?.("select, [role='menu'], dialog")) {
     // The selected tile goes, as a selected object does in Keynote (app 0.4.32); Undo brings it back.
     e.preventDefault();
@@ -132,10 +133,10 @@ useEventListener(document, "keydown", onKey);
       <button type="button" id="tab-layout" role="tab" :aria-pressed="ui.tab === 'layout' ? 'true' : 'false'" :aria-selected="ui.tab === 'layout'" @click="ui.tab = 'layout'">
         <Icon name="view-dashboard-outline" />{{ t("editor.screen_view.tabs.layout") }}
       </button>
-      <button v-if="!screen.virtual" type="button" id="tab-settings" role="tab" :aria-pressed="ui.tab === 'settings' ? 'true' : 'false'" :aria-selected="ui.tab === 'settings'" @click="ui.tab = 'settings'; closeInspector()">
+      <button v-if="!screen.virtual" type="button" id="tab-settings" role="tab" :aria-pressed="ui.tab === 'settings' ? 'true' : 'false'" :aria-selected="ui.tab === 'settings'" @click="ui.tab = 'settings'; insp.closeInspector()">
         <Icon name="cog-outline" />{{ t("editor.screen_view.tabs.settings") }}
       </button>
-      <button v-if="!screen.virtual && plugins.pluginsEnabled" type="button" id="tab-plugins" role="tab" :aria-pressed="ui.tab === 'plugins' ? 'true' : 'false'" :aria-selected="ui.tab === 'plugins'" @click="ui.tab = 'plugins'; closeInspector()">
+      <button v-if="!screen.virtual && plugins.pluginsEnabled" type="button" id="tab-plugins" role="tab" :aria-pressed="ui.tab === 'plugins' ? 'true' : 'false'" :aria-selected="ui.tab === 'plugins'" @click="ui.tab = 'plugins'; insp.closeInspector()">
         <Icon name="puzzle-outline" />{{ t("editor.screen_view.tabs.plugins") }}
         <span v-if="builds.buildOf(screen)?.by === 'plugins'" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span>
       </button>
@@ -160,10 +161,10 @@ useEventListener(document, "keydown", onKey);
           </div>
           <UiMenuItem icon="file-plus-outline" @select="ui.tab = 'layout'; ui.pageWizardOpen = true">{{ t("editor.layout.add_page") }}</UiMenuItem>
           <UiMenuItem icon="view-column-outline" @select="ui.tab = 'layout'; ui.pagesSheet = true">{{ t("editor.phone.pages_order") }}</UiMenuItem>
-          <UiMenuItem icon="page-layout-header" @select="ui.tab = 'layout'; openBar(0, doc.barPage)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
+          <UiMenuItem icon="page-layout-header" @select="ui.tab = 'layout'; insp.openBar(0, doc.barPage)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
           <UiMenuSeparator />
           <UiMenuItem v-if="!screen.virtual" icon="cog-outline" @select="phoneSettings">{{ t("editor.screen_view.tabs.settings") }}</UiMenuItem>
-          <UiMenuItem v-if="!screen.virtual && plugins.pluginsEnabled" icon="puzzle-outline" @select="closeMenu(); closeInspector(); ui.tab = 'plugins'">{{ t("editor.screen_view.tabs.plugins") }}</UiMenuItem>
+          <UiMenuItem v-if="!screen.virtual && plugins.pluginsEnabled" icon="puzzle-outline" @select="closeMenu(); insp.closeInspector(); ui.tab = 'plugins'">{{ t("editor.screen_view.tabs.plugins") }}</UiMenuItem>
           <UiMenuItem v-if="!screen.virtual" icon="pencil-outline" @select="phoneRename">{{ t("editor.sidebar.rename.button") }}</UiMenuItem>
           <UiMenuSeparator />
         </template>

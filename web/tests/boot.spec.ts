@@ -2,7 +2,6 @@
 // page's boot starts what it always did, and its stop takes all of it away again.
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { nextTick } from "vue";
 import { FakeEventSource, lastStream, mediaListeners, setMedia } from "./helpers/browser";
 
 const PHONE = "(max-width: 640px)";
@@ -60,7 +59,6 @@ describe("boot", () => {
     vi.stubGlobal("fetch", fetch);
     const ours = listeners();
     const { boot } = await import("../src/boot");
-    const store = await import("../src/store");
     const ui = (await import("../src/stores/ui")).useUiStore();
     const inventory = (await import("../src/stores/inventory")).useInventoryStore();
     const stop = boot();
@@ -78,13 +76,6 @@ describe("boot", () => {
     expect(ui.route).toBe("#settings");
     setMedia(PHONE, true);
     expect(ui.narrowPhone).toBe(true);
-    // The screensaver's drawers close when the layout comes back.
-    ui.tab = "settings";
-    await nextTick();
-    store.openSaverStep("clock");
-    ui.tab = "layout";
-    await nextTick();
-    expect(store.state.inspector).toBeNull();
     expect(ours.added()).toEqual(["document:visibilitychange", "window:beforeunload", "window:click", "window:hashchange", "window:pagehide"]);
 
     stop();

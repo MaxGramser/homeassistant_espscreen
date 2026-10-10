@@ -2,7 +2,7 @@
 // had, written as it changes and only then, never the default by itself, and nothing lost where the browser keeps nothing.
 import { describe, expect, it, vi } from "vitest";
 import { nextTick, ref } from "vue";
-import { flagSerializer, renewable, usePreference } from "../../src/composables/usePreference";
+import { flagSerializer, usePreference } from "../../src/composables/usePreference";
 import { inScope } from "../helpers/with-setup";
 
 describe("a preference", () => {
@@ -62,20 +62,5 @@ describe("a preference", () => {
     await nextTick();
     expect([quiet.result.value, listening.result.value]).toEqual(["a", "b"]);
     listening.stop();
-  });
-});
-
-describe("preferences a module keeps", () => {
-  it("are made again by the next call, reading the storage as it is then, and the old ones write no more", () => {
-    const make = renewable(() => usePreference("esp-screens.sidebar-folded", false, { serializer: flagSerializer }));
-    const first = make();
-    first.value = true;
-    expect(localStorage.getItem("esp-screens.sidebar-folded")).toBe("1");
-    localStorage.clear();
-    const second = make();
-    expect(second.value).toBe(false);
-    first.value = false;
-    first.value = true;
-    expect(localStorage.getItem("esp-screens.sidebar-folded")).toBeNull();
   });
 });

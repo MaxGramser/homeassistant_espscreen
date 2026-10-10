@@ -3,8 +3,8 @@
 // the map of pages beside it, a conflict with a newer save and its resolution, another grid or way of hanging chosen,
 // copying, importing and exporting a layout, which page, map page and tile are chosen (they are part of every undo step),
 // and what the screen's own shape and memory mean for this draft. The big edits of tiles and pages are plain functions
-// over this store (editor/tiles.ts, editor/pages.ts); the drawer beside the mockup is still store.ts's, which this store
-// closes when the draft is replaced as a whole or the chosen tile goes.
+// over this store (editor/tiles.ts, editor/pages.ts); the drawer beside the mockup is the inspector's (stores/inspector.ts),
+// which follows the draft and is told when it is replaced as a whole (onReplaced): nothing here reaches into it.
 import { useEventListener, useTimeoutFn } from "@vueuse/core";
 import { defineStore } from "pinia";
 import { computed, effectScope, markRaw, onScopeDispose, ref, shallowRef, toRef } from "vue";
@@ -22,7 +22,6 @@ import { savedDraft } from "../model/page-conflict";
 import { completePositions } from "../model/page-workspace";
 import * as pages from "../model/pages";
 import { slug } from "../model/slug";
-import { closeInspector, state as inspection } from "../store";
 import type { Inventory, Layout, PageDocument, PageGrid, PageLayout, PageWorkspace, Screen, Tile } from "../types";
 import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
@@ -37,6 +36,9 @@ export type EditorMode = "simple" | "advanced";
 export type GridReview = { record: PageDocument; layout: PageLayout; target: PageGrid; copy: boolean; message: string };
 // One step of undo: the draft, its grid and way, the map, and what was chosen.
 type DraftSnapshot = { layout: PageLayout; grid: PageGrid; upright: boolean | null; positions: PageWorkspace["positions"]; page: string | null; tile: string | null };
+// Whoever shows something of the draft (the inspector) is told when it is replaced as a whole: `opened` when a screen was
+// opened or closed, not when the same screen's draft was replaced (a copy, an import, the saved one read again).
+export type Replaced = (opened: boolean) => void;
 
 export const useDocumentStore = defineStore("document", () => {
   const inv = useInventoryStore();
@@ -182,10 +184,11 @@ export const useDocumentStore = defineStore("document", () => {
     if (editorMode.value === "advanced" || Object.keys(positions).length) initializeWorkspace();
     if (selectedPageId.value && !ids.has(selectedPageId.value)) selectedPageId.value = next.homePageId;
     if (focusedPageId.value && !ids.has(focusedPageId.value)) focusedPageId.value = null;
-    // A key under a bedside clock is a child of its clock: a change to it keeps it open like any tile.
+    // A key under a bedside clock is a child of its clock: a change to it keeps it chosen like any tile. A tile that went
+    // is no longer chosen, and its drawer closes (stores/inspector.ts follows the chosen tile).
     const selected = selectedTileId.value;
     if (selected && !next.pages.some((page) => page.tiles.some((tile) => tile.id === selected || tile.children?.some((child) => child.id === selected))))
-      closeInspector();
+      selectedTileId.value = null;
     markEdited();
     return true;
   }
@@ -262,6 +265,13 @@ export const useDocumentStore = defineStore("document", () => {
   }
 
   // ---- Opening and closing a screen's draft ----
+  const followers = new Set<Replaced>();
+  /** Told when the draft is replaced as a whole; the returned function stops it. */
+  function onReplaced(follower: Replaced) {
+    followers.add(follower);
+    return () => { followers.delete(follower); };
+  }
+  const replaced = (opened: boolean) => { for (const follower of followers) follower(opened); };
   // The states of the open layout's entities, for the mockup.
   function loadStates() {
     return entities.loadStates((layout.value?.tiles || []).map((tile) => tile.entity), stillSelected());
@@ -296,12 +306,12 @@ export const useDocumentStore = defineStore("document", () => {
   // The draft of the screen the session opens (stores/session.ts select), or none: what the editor shows of the screen
   // before starts again. True when there is a screen.
   function openDocument(screen: Screen | undefined) {
-    closeInspector();
+    selectedTileId.value = null;
     ui.tab = "layout";
+    replaced(true);
     // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
     if (!screen) { forgetDraft(); return false; }
     loadDocument(screen);
-    inspection.insertAt = -1;
     editorMode.value = keptMode.value;
     if (editorMode.value === "advanced") initializeWorkspace();
     saved.value = 0;
@@ -311,7 +321,8 @@ export const useDocumentStore = defineStore("document", () => {
   }
   // The open screen's draft gone without a question (stores/session.ts forgetOpenScreen): nothing of it is left to save.
   function closeDocument() {
-    closeInspector();
+    selectedTileId.value = null;
+    replaced(true);
     forgetDraft();
   }
   // A new inventory for the open screen (stores/session.ts arrived): its draft read again when the add-on has a newer one, a
@@ -475,7 +486,8 @@ export const useDocumentStore = defineStore("document", () => {
     const screen = scr.currentScreen, record = screen?.page_document;
     if (!screen || record?.format !== "pages-v2") return;
     if (choice === "reload") {
-      closeInspector();
+      selectedTileId.value = null;
+      replaced(false);
       loadDocument(screen);
       return;
     }
@@ -564,7 +576,8 @@ export const useDocumentStore = defineStore("document", () => {
       applyDocument(copied);
       workspace.value.positions = Object.fromEntries(Object.entries(record.workspace?.positions || {}).map(([id, point]) => [idMap.get(id)!, pages.clone(point)]));
       workspaceDirty.value = true;
-      closeInspector();
+      selectedTileId.value = null;
+      replaced(false);
       entities.loadCapabilities(layout.value!.tiles.map((tile) => tile.entity)); loadStates();
       ui.toast(message);
     } catch (error: any) { ui.toast(error.message); }
@@ -655,7 +668,7 @@ export const useDocumentStore = defineStore("document", () => {
     // What the mockup, the map and the edits read as they go (stores/lookup.ts).
     ...lookups({ isSelected, pageAt, stillSelected, heldTo, screenGridOf, takesGrid, workspacePositions, layoutJson }),
     applyDocument, applyEdit, editDocument, beginFieldEdit, endFieldEdit, undo, redo, undoToast, setEditorMode, markAdded,
-    loadStates, loadDocument, openDocument, closeDocument, reconcile,
+    onReplaced, loadStates, loadDocument, openDocument, closeDocument, reconcile,
     moveWorkspacePage, arrangeFromHome, saveWorkspace, save, resolveLayoutConflict,
     chooseHang, chooseGrid, reviewScreenGrid, acceptGridReview, copyLayoutFrom, exportLayout, importLayout,
     dismissMigrationNote, startFreshLayout, start,

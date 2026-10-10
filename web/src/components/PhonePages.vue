@@ -4,24 +4,25 @@
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { titleOf } from "../model/pages";
-import { state } from "../store";
 import PageMenu from "./PageMenu.vue";
 import MemoryMeter from "./MemoryMeter.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { movePage } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 
 const emit = defineEmits<{ add: [] }>();
 const list = computed(() => doc.document?.pages || []);
 const canAdd = computed(() => list.value.length < doc.editorLayout.grid.pages);
 const tiles = computed(() => list.value.reduce((n, page) => n + page.tiles.length, 0));
 function close() { ui.pagesSheet = false; }
-function choose(id: string) { doc.selectedPageId = id; state.insertAt = -1; close(); }
-watch(() => state.inspector, (open) => { if (open) close(); });
+function choose(id: string) { doc.selectedPageId = id; insp.forgetCell(); close(); }
+watch(() => insp.inspector, (open) => { if (open) close(); });
 
 // Moving a page by its handle: the row follows the finger, and the page lands where the finger is let go.
 const carried = ref<{ from: number; to: number; dy: number; y: number; row: number } | null>(null);

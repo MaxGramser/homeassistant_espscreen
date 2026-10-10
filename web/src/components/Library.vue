@@ -19,7 +19,6 @@ import { useResizeHandle } from "../composables/useResizeHandle";
 import { useListNavigation } from "../composables/useListNavigation";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { question } from "../composables/useConfirm";
-import { state } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
 import { useUiStore } from "../stores/ui";
@@ -30,6 +29,7 @@ import { useInventoryStore } from "../stores/inventory";
 import { addTile } from "../editor/tiles";
 import { pageTitleShown } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
@@ -37,6 +37,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
 const FILTERS = [
@@ -52,15 +53,15 @@ const open = computed({
   set: (value: boolean) => {
     if (!ui.phone) { ui.libraryOpen = value; return; }
     ui.addSheet = value;
-    if (!value) { state.insertAt = -1; ui.search = ""; }
+    if (!value) { insp.forgetCell(); ui.search = ""; }
   },
 });
 // Where the tile goes, said at the top of the phone's sheet.
 const destination = computed(() => {
   const pages = doc.document?.pages || [];
-  const page = state.insertAt >= 0 ? Math.floor(state.insertAt / doc.editorLayout.grid.slots) : Math.max(0, pages.findIndex((item) => item.id === doc.selectedPageId));
+  const page = insp.insertAt >= 0 ? Math.floor(insp.insertAt / doc.editorLayout.grid.slots) : Math.max(0, pages.findIndex((item) => item.id === doc.selectedPageId));
   const name = pageTitleShown(page) || t("editor.page.label", { page: page + 1 });
-  return state.insertAt >= 0 ? t("editor.phone.add_to_cell", { cell: state.insertAt % doc.editorLayout.grid.slots + 1, page: name }) : t("editor.phone.add_to_page", { page: name });
+  return insp.insertAt >= 0 ? t("editor.phone.add_to_cell", { cell: insp.insertAt % doc.editorLayout.grid.slots + 1, page: name }) : t("editor.phone.add_to_page", { page: name });
 });
 type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean };
 // How many tiles each entity has on the screen. One that is there stays addable when the firmware takes an entity on
@@ -217,10 +218,7 @@ function toggle() { open.value = !open.value; }
 // Typing in the folded bar opens the drawer on what it finds.
 watch(() => ui.search, (q) => { if (q) open.value = true; });
 // An empty cell or a clock's key marked for the next entity opens the drawer and puts the cursor in the search.
-watch(() => [state.insertAt, state.insertKey], () => {
-  if (state.insertAt < 0 && !state.insertKey) return;
-  openSearch();
-});
+watch(() => insp.insert, (marked) => { if (marked) openSearch(); });
 // While the top edge is held the drawer follows the pointer at once; otherwise it glides. Dragging the edge selects
 // nothing on the page it passes over, and the height is kept when it is let go (also when the drawer goes first).
 let from = { y: 0, h: 0 };

@@ -4,7 +4,6 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { glyph, itemKey } from "../model/topbar";
-import { openSaverItem } from "../store";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
@@ -13,10 +12,12 @@ import Section from "./ui/Section.vue";
 import { useEntitiesStore } from "../stores/entities";
 import { useTopbarStore } from "../stores/topbar";
 import { useScreensaverStore } from "../stores/screensaver";
+import { useInspectorStore } from "../stores/inspector";
 
 const entities = useEntitiesStore();
 const topbar = useTopbarStore();
 const screensaver = useScreensaverStore();
+const insp = useInspectorStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => screensaver.saverItems);
@@ -51,8 +52,8 @@ const crumbs = computed(() => [screensaver.clockCrumb()]);
     <button type="button" class="btn danger" @click="screensaver.removeSaverItem(index)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>
     <span class="spacer"></span>
     <div class="tool-group" role="group">
-      <button type="button" class="icon-btn" :disabled="index === 0" :aria-label="t('editor.topbar.up')" :title="t('editor.topbar.up')" @click="screensaver.moveSaverItem(index, index - 1) && openSaverItem(index - 1)"><Icon name="arrow-up" /></button>
-      <button type="button" class="icon-btn" :disabled="index >= items.length - 1" :aria-label="t('editor.topbar.down')" :title="t('editor.topbar.down')" @click="screensaver.moveSaverItem(index, index + 1) && openSaverItem(index + 1)"><Icon name="arrow-down" /></button>
+      <button type="button" class="icon-btn" :disabled="index === 0" :aria-label="t('editor.topbar.up')" :title="t('editor.topbar.up')" @click="screensaver.moveSaverItem(index, index - 1) && insp.openSaverItem(index - 1)"><Icon name="arrow-up" /></button>
+      <button type="button" class="icon-btn" :disabled="index >= items.length - 1" :aria-label="t('editor.topbar.down')" :title="t('editor.topbar.down')" @click="screensaver.moveSaverItem(index, index + 1) && insp.openSaverItem(index + 1)"><Icon name="arrow-down" /></button>
     </div>
   </div>
 </template>

@@ -10,7 +10,6 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clockSample } from "../model/clock";
-import { openTile, state } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -33,6 +32,7 @@ import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
 import { placeTile, removeTile } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -43,6 +43,7 @@ const inv = useInventoryStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 const { grid: editorGrid } = doc.editorLayout;
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
@@ -57,7 +58,7 @@ const foreign = computed(() => Boolean(props.grid));
 const emit = defineEmits<{ navigate: [tileId: string] }>();
 function activate() {
   if (props.preview) { if (goesTo.value && props.tile.id) emit('navigate', props.tile.id); }
-  else if (live.value) openTile(props.tile);
+  else if (live.value) insp.openTile(props.tile);
 }
 // A built-in card is named as the screens name it, in their language (app 0.2.90).
 // A favourite (app 0.4.42) is named after what it plays until it has a name of its own.
@@ -108,9 +109,9 @@ const keyPlaces = computed(() => Array.from({ length: (rules.keyHolders as Recor
   ({ key, tile: bedsideKeys.value.find((tile) => tile.key === key) }))
   .filter((place) => place.tile || !props.preview));
 function markKey(key: number) {
-  const marked = state.insertKey?.holder === props.tile.id && state.insertKey?.key === key;
-  state.insertKey = marked ? null : { holder: props.tile.id!, key };
-  if (state.insertKey) document.querySelector<HTMLInputElement>("#search")?.focus();
+  const marked = insp.insertKey?.holder === props.tile.id && insp.insertKey?.key === key;
+  insp.insert = marked ? null : { kind: "key", holder: props.tile.id!, key };
+  if (insp.insertKey) document.querySelector<HTMLInputElement>("#search")?.focus();
 }
 // What a key shows in its circle: its value where that is what it is for (a temperature), else its icon.
 const roundValue = computed(() => ["sensor", "number", "input_number"].includes(domain.value) && current.value && !gone.value ? bigValue.value + ((unit.value || "").startsWith("°") ? "°" : unit.value === "%" ? "%" : "") : "");
@@ -212,7 +213,7 @@ const headStatus = computed(() => bodyText.value && (line.value === bodyText.val
 const domain = computed(() => props.tile.entity.split(".")[0]);
 const cp = computed(() => inv.inventory.icons?.controls || {});
 const key = (n: string) => (cp.value[n] ? glyph(cp.value[n]) : "");
-const chosen = computed(() => doc.isSelected(props.tile) && state.inspector?.kind === "tile");
+const chosen = computed(() => doc.isSelected(props.tile) && insp.inspector?.kind === "tile");
 const live = computed(() => !props.placeholder && doc.layout?.tiles.some((tile) => tile.id === props.tile.id));
 const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.value.slots) + 1, page: Math.floor(props.slot / grid.value.slots) + 1 }));
 // The clock faces at the editor's one clock, as the screen draws them (model/clock.ts): the digital time, the analog
@@ -440,7 +441,7 @@ async function onKey(e: KeyboardEvent) {
         <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!region.clock24 && scr.supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
         <span v-if="keyPlaces.length" class="keys">
           <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview || placeholder ? undefined : place.key" :data-holder="preview || placeholder ? undefined : tile.id"
-            :class="{ 'insert-here': state.insertKey?.holder === tile.id && state.insertKey?.key === place.key, over: dragging.key?.holder === tile.id && dragging.key?.key === place.key }">
+            :class="{ 'insert-here': insp.insertKey?.holder === tile.id && insp.insertKey?.key === place.key, over: dragging.key?.holder === tile.id && dragging.key?.key === place.key }">
             <TileCard v-if="place.tile" :tile="place.tile" :slot="-1" round :preview="preview" />
             <button v-else type="button" class="key-empty" :title="t('editor.page.cell.title')" @click.stop="markKey(place.key)"><span>+</span></button>
           </span>

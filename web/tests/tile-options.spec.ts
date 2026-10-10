@@ -11,13 +11,16 @@ import Drawer from "../src/components/Drawer.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
 import { validatePages } from "../src/model/pages";
-import { openTile, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
 import { useInventoryStore } from "../src/stores/inventory";
 import { useDocumentStore } from "../src/stores/document";
+import { useInspectorStore } from "../src/stores/inspector";
+
+let insp: ReturnType<typeof useInspectorStore>;
+beforeEach(() => { insp = useInspectorStore(); });
 
 let doc: ReturnType<typeof useDocumentStore>;
 beforeEach(() => { doc = useDocumentStore(); });
@@ -51,7 +54,7 @@ beforeEach(() => {
   useScreenStore().selected = "living";
   doc.documentGrid = { columns: 2, rows: 3 };
   loadLayout({ title: "Living room", tiles: [] });
-  doc.selectedTileId = null; state.inspector = null; state.actionPickerOpen = false;
+  doc.selectedTileId = null; insp.inspector = null; insp.actionPickerOpen = false;
 });
 
 describe("the canonical options (tile-options.ts)", () => {
@@ -133,14 +136,14 @@ describe("the tile panel", () => {
     useEntitiesStore().entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [] }] as any;
     const lamp: Tile = { entity: "light.a", name: "", slot: 0 }, fan: Tile = { entity: "switch.s", name: "", slot: 1 };
     appendTiles(lamp, fan);
-    openTile(current(lamp)!);
+    insp.openTile(current(lamp)!);
     const drawer = mount(Drawer);
     await drawer.findAll("button").find((b) => b.text() === "Perform action")!.trigger("click");
     expect(drawer.findComponent(ActionPicker).exists()).toBe(true);
-    openTile(current(fan)!);
+    insp.openTile(current(fan)!);
     await nextTick();
     expect(drawer.findComponent(ActionPicker).exists()).toBe(false);
-    openTile(current(lamp)!);
+    insp.openTile(current(lamp)!);
     await nextTick();
     expect(drawer.findAll("button").find((b) => b.text() === "Perform action")!.attributes("aria-pressed")).toBe("false");
   });
@@ -197,13 +200,13 @@ describe("the tile panel", () => {
     const panel = mount(TileInspector, { props: { tile: current(key)! } });
     const choice = panel.find(".key-name-choice");
     expect(choice.exists()).toBe(true);
-    openTile(current(key)!);
+    insp.openTile(current(key)!);
     const id = current(key)!.id;
     await choice.find("[role=switch]").trigger("click");
     expect(current(key)!.options?.overlay).toBe("none");
     // The key stays open in the panel: the same tile, still chosen.
     expect(current(key)!.id).toBe(id);
-    expect(state.inspector?.kind).toBe("tile");
+    expect(insp.inspector?.kind).toBe("tile");
     expect(doc.isSelected(current(key)!)).toBe(true);
     expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
     const child = doc.document!.pages.flatMap((page) => page.tiles).flatMap((tile) => tile.children || [])[0];

@@ -4,7 +4,6 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useGesture } from "../composables/useGesture";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
-import { openPage, openTile } from "../store";
 import DevicePage from "./DevicePage.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
@@ -13,11 +12,13 @@ import { useCanvasStore } from "../stores/canvas";
 import { connectTile } from "../editor/pages";
 import { liveEntries } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 defineProps<{ compact?: boolean }>();
 const allConnections = ref(false);
 
@@ -54,7 +55,7 @@ async function measure() {
 watch([() => doc.document, positions, zoom, pitch, () => ui.fontsVersion], measure, { immediate: true });
 // The links follow the cards wherever the map's size changes them.
 useResizeObserver(world, measure);
-function selectRoute(tileId: string) { const tile = doc.layout?.tiles.find((tile) => tile.id === tileId); if (tile) openTile(tile); }
+function selectRoute(tileId: string) { const tile = doc.layout?.tiles.find((tile) => tile.id === tileId); if (tile) insp.openTile(tile); }
 function destinationClick(event: MouseEvent, id: string) {
   if (!doc.connectingTileId) return;
   event.preventDefault(); event.stopPropagation();
@@ -104,7 +105,7 @@ onBeforeUnmount(() => { doc.connectingTileId = null; });
   <div v-if="compact" class="map-list">
     <section v-for="(page, index) in doc.document!.pages" :key="page.id">
       <div class="map-list-head">
-        <button type="button" class="map-list-name" @click="openPage(page.id)"><b>{{ t('editor.page.label', { page: index + 1 }) }}</b> {{ name(page.id) }}</button>
+        <button type="button" class="map-list-name" @click="insp.openPage(page.id)"><b>{{ t('editor.page.label', { page: index + 1 }) }}</b> {{ name(page.id) }}</button>
         <button type="button" class="btn quiet mini" @click="doc.selectedPageId = page.id; doc.focusedPageId = page.id"><Icon name="pencil-outline" />{{ t('editor.pages.edit_page') }}</button>
       </div>
       <button v-for="route in routes.filter((route) => route.from === page.id || route.to === page.id)" :key="route.tileId" type="button" class="map-list-route" @click="selectRoute(route.tileId)">
@@ -152,7 +153,7 @@ onBeforeUnmount(() => { doc.connectingTileId = null; });
           <DevicePage :page="index" :entries="dragging.preview || liveEntries()" :pages="doc.document!.pages.length" :moving="dragging.moving" map>
             <template #handle>
               <button type="button" class="grab map-handle" :aria-label="t('editor.pages.move_map', { name: name(page.id) })" :title="t('editor.pages.move_map', { name: name(page.id) })"
-                @pointerdown.stop="movePage($event, page.id)" @click="openPage(page.id)">
+                @pointerdown.stop="movePage($event, page.id)" @click="insp.openPage(page.id)">
                 <Icon name="drag" class="grip" />{{ t('editor.page.label', { page: index + 1 }) }}
               </button>
             </template>

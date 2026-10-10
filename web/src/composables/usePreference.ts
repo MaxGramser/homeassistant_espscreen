@@ -9,7 +9,7 @@
 // change another tab makes is followed only where `listen` asks for it, and the storage is looked up at each read and
 // write, so a test that puts another in place (vi.stubGlobal) or a browser that refuses it is met where it is.
 import { customStorageEventName, useEventListener, useStorage, type RemovableRef, type Serializer, type StorageEventLike, type StorageLike } from "@vueuse/core";
-import { effectScope, toValue, type EffectScope, type MaybeRefOrGetter, type WatchOptions } from "vue";
+import { toValue, type MaybeRefOrGetter, type WatchOptions } from "vue";
 
 const browserStorage: StorageLike = {
   getItem: (key) => localStorage.getItem(key),
@@ -47,16 +47,4 @@ export function usePreference<T>(key: MaybeRefOrGetter<string>, initial: MaybeRe
     flush: options.flush ?? "sync",
     onError: () => { /* Nothing kept: the default stands, and the editor goes on as it always does. */ },
   });
-}
-
-/** For a module that keeps preferences while the page is open, outside any component (the sidebar, the store): each call
- * makes them again in a scope of their own and stops the ones the call before made, so a test that starts over
- * (src/resets.ts) reads the storage as it is then, and the old ones write nothing more. */
-export function renewable<T>(make: () => T): () => T {
-  let scope: EffectScope | undefined;
-  return () => {
-    scope?.stop();
-    scope = effectScope(true);
-    return scope.run(make) as T;
-  };
 }

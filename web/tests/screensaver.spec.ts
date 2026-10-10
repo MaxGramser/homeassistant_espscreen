@@ -5,12 +5,15 @@ import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SaverInspector from "../src/components/SaverInspector.vue";
 import ScreensaverCard from "../src/components/ScreensaverCard.vue";
-import { openSaverStep, startStore, state } from "../src/store";
 import type { Inventory, ScreensaverView } from "../src/types";
 import { useScreenStore } from "../src/stores/screen";
 import { useScreensaverStore } from "../src/stores/screensaver";
 import { useInventoryStore } from "../src/stores/inventory";
 import { useUiStore } from "../src/stores/ui";
+import { useInspectorStore } from "../src/stores/inspector";
+
+let insp: ReturnType<typeof useInspectorStore>;
+beforeEach(() => { insp = useInspectorStore(); });
 
 let ui: ReturnType<typeof useUiStore>;
 beforeEach(() => { ui = useUiStore(); });
@@ -32,7 +35,7 @@ beforeEach(() => {
     builtin: [], header: { max_items: 6, builtin: [] },
   } as unknown as Inventory;
   useScreenStore().selected = "living";
-  state.inspector = null;
+  insp.inspector = null;
   ui.tab = "settings";
 });
 
@@ -59,9 +62,9 @@ describe("the screensaver card", () => {
     await wrapper.find('.saver-row[data-kind="media"] [role="switch"]').trigger("click");
     await flushPromises();
     expect(useScreenStore().currentScreen!.screensaver!.off).toEqual(["camera", "media"]);
-    expect(state.inspector).toBeNull();
+    expect(insp.inspector).toBeNull();
     await wrapper.find('.saver-row[data-kind="clock"]').trigger("click");
-    expect(state.inspector).toEqual({ kind: "saver", step: "clock" });
+    expect(insp.inspector).toEqual({ kind: "saver", step: "clock" });
     expect(wrapper.find('.saver-row[data-kind="clock"]').classes()).toContain("opened");
   });
 
@@ -108,12 +111,10 @@ describe("a step in the drawer", () => {
   });
 
   it("closes when the layout comes back", async () => {
-    // The store's reactions run once the page has started it (boot.ts).
-    const stop = startStore();
-    openSaverStep("clock");
+    // The inspector closes the screensaver's drawers itself: nothing has to be started for it.
+    insp.openSaverStep("clock");
     ui.tab = "layout";
     await nextTick();
-    expect(state.inspector).toBeNull();
-    stop();
+    expect(insp.inspector).toBeNull();
   });
 });

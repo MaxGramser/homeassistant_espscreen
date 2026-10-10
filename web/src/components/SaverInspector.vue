@@ -5,7 +5,6 @@
 import { computed, watch } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { closeInspector, openSaverAdd, openSaverItem } from "../store";
 import { useSortableRows } from "../composables/useSortableRows";
 import type { SaverKind } from "../types";
 import SaverGlass from "./SaverGlass.vue";
@@ -20,17 +19,19 @@ import { useEntitiesStore } from "../stores/entities";
 import { useTopbarStore } from "../stores/topbar";
 import { MAX_PLAYERS, SAVER_ICONS, SAVER_ITEMS_MAX, saverLabel, useScreensaverStore } from "../stores/screensaver";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const entities = useEntitiesStore();
 const topbar = useTopbarStore();
 const screensaver = useScreensaverStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 
 const props = defineProps<{ step: SaverKind }>();
 const T = (name: string, values?: Record<string, unknown>) => t(`editor.screen_settings.screensaver.${name}`, values || {});
 const place = computed(() => screensaver.savedOrder.indexOf(props.step));
 const crumbs = computed(() => [
-  { text: T("title"), open: closeInspector },
+  { text: T("title"), open: insp.closeInspector },
   ...(screensaver.saver?.pictures ? [{ text: T("place", { n: place.value + 1, count: screensaver.savedOrder.length }) }] : []),
 ]);
 const shown = computed(() => playerSort.live.value || screensaver.players);
@@ -86,13 +87,13 @@ watch(() => screensaver.weatherSource, (id) => id && entities.loadLibraryStates(
       </Section>
       <Section :title="T('beside')" :aside="`${screensaver.saverItems.length} / ${SAVER_ITEMS_MAX}`">
         <div v-if="screensaver.saverItems.length" id="screensaver-items" class="items" role="list" :aria-label="T('items_title')">
-          <div v-for="(it, i) in screensaver.saverItems" :key="it.entity" class="item" role="listitem" tabindex="0" @click="openSaverItem(i)" @keydown.enter.prevent="openSaverItem(i)">
+          <div v-for="(it, i) in screensaver.saverItems" :key="it.entity" class="item" role="listitem" tabindex="0" @click="insp.openSaverItem(i)" @keydown.enter.prevent="insp.openSaverItem(i)">
             <span class="av mdi">{{ topbar.topbarView(it).icon ? glyph(topbar.topbarView(it).icon!) : "" }}</span>
             <span class="tx"><b>{{ topbar.topbarLabel(it) }}</b><small>{{ it.content === "icon" ? T("item_icon") : topbar.topbarView(it).text }}</small></span>
             <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbar.topbarLabel(it) })" @click.stop="screensaver.removeSaverItem(i)"><Icon name="close" /></button>
           </div>
         </div>
-        <button v-if="screensaver.saverItems.length < SAVER_ITEMS_MAX" type="button" class="ghost-btn" id="screensaver-add-item" @click="openSaverAdd"><Icon name="plus" />{{ T("items_add") }}</button>
+        <button v-if="screensaver.saverItems.length < SAVER_ITEMS_MAX" type="button" class="ghost-btn" id="screensaver-add-item" @click="insp.openSaverAdd"><Icon name="plus" />{{ T("items_add") }}</button>
         <small class="help">{{ T("items_hint") }}</small>
       </Section>
     </template>

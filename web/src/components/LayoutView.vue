@@ -8,7 +8,6 @@ import { useAtMost } from "../composables/useWidths";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { closeInspector, state } from "../store";
 import PhonePages from "./PhonePages.vue";
 import PageWizard from "./PageWizard.vue";
 import DevicePage from "./DevicePage.vue";
@@ -28,6 +27,7 @@ import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
 import { pageReachWarning, pagesShown, pageTitleShown } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
@@ -35,6 +35,7 @@ const scr = useScreenStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 const { grid, hasGaps, pageCount } = doc.editorLayout;
 const droppedTiles = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
   ? scr.currentScreen.page_document.migration?.droppedTiles || [] : []);
@@ -55,7 +56,7 @@ const selectedIndex = computed(() => Math.max(0, doc.document?.pages.findIndex((
 function stepPage(step: number) {
   const list = doc.document?.pages || [];
   const next = list[selectedIndex.value + step];
-  if (next) { doc.selectedPageId = next.id; state.insertAt = -1; }
+  if (next) { doc.selectedPageId = next.id; insp.forgetCell(); }
 }
 // A swipe is a finger that went more than 48 px sideways, half again as far as up or down, within 700 ms.
 const pagesView = ref<HTMLElement | null>(null);
@@ -86,7 +87,7 @@ const tips: [IconName, string][] = [["pencil-outline", "change"], ["plus", "add"
 function onCanvasClick(e: MouseEvent) {
   // A click beside the pages closes the drawer; the cards and the bar handle their own clicks.
   if ((e.target as HTMLElement).closest(".device, .page-label, .page-head, .editor-toolbar, .map-node, .map-links, button, select, input")) return;
-  if (state.inspector) closeInspector();
+  if (insp.inspector) insp.closeInspector();
 }
 </script>
 

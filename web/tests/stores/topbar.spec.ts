@@ -4,7 +4,6 @@
 // after its stop.
 import { describe, expect, it, beforeEach } from "vitest";
 import { i18n } from "../../src/i18n";
-import { state } from "../../src/store";
 import { useScreenStore } from "../../src/stores/screen";
 import { useSessionStore } from "../../src/stores/session";
 import { useTopbarStore } from "../../src/stores/topbar";
@@ -17,6 +16,10 @@ import { useInventoryStore } from "../../src/stores/inventory";
 import { addPage } from "../../src/editor/pages";
 import { setTileOption } from "../../src/editor/tiles";
 import { useDocumentStore } from "../../src/stores/document";
+import { useInspectorStore } from "../../src/stores/inspector";
+
+let insp: ReturnType<typeof useInspectorStore>;
+beforeEach(() => { insp = useInspectorStore(); });
 
 let doc: ReturnType<typeof useDocumentStore>;
 beforeEach(() => { doc = useDocumentStore(); });
@@ -98,7 +101,7 @@ describe("a page's top bar", () => {
     expect(ui.notice?.message).toBe(t("editor.topbar.already"));
     topbar.addTopbarItem({ type: "date" });
     expect(topbar.topbarAdded?.key).toBe(JSON.stringify(["date"]));
-    expect(state.inspector).toEqual({ kind: "bar", index: 1 });
+    expect(insp.inspector).toEqual({ kind: "bar", index: 1 });
     topbar.addTopbarItem(entity("sensor.out"));
     topbar.addTopbarItem(entity("sensor.in"));
     expect(ui.notice?.message).toBe(t("editor.topbar.full", 3));
@@ -106,7 +109,7 @@ describe("a page's top bar", () => {
     expect(topbar.topbarItems().map((item) => item.type)).toEqual(["entity", "clock", "date"]);
     topbar.removeTopbarItem(0);
     expect(ui.notice?.message).toBe(t("editor.topbar.removed", { name: "Outside" }));
-    expect(state.inspector).toBeNull();
+    expect(insp.inspector).toBeNull();
     ui.notice!.action!.run();
     expect(topbar.topbarItems().map((item) => item.type)).toEqual(["entity", "clock", "date"]);
   });

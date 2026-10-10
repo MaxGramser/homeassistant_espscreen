@@ -3,7 +3,6 @@
 // copy, and removing it. The header of the page keeps only its name, its handle and this menu.
 import { computed } from "vue";
 import { t } from "../i18n";
-import { openBar, openPage } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
@@ -11,9 +10,11 @@ import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import { useScreenStore } from "../stores/screen";
 import { duplicateEditorPage, pageCopyable, removePage, setHomePage } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
 
 const scr = useScreenStore();
 const doc = useDocumentStore();
+const insp = useInspectorStore();
 
 const props = defineProps<{ id: string }>();
 const index = computed(() => doc.document?.pages.findIndex((page) => page.id === props.id) ?? -1);
@@ -29,8 +30,8 @@ const tiles = computed(() => page.value?.tiles.length || 0);
     <template #trigger>
       <button type="button" class="icon-btn page-menu" :aria-label="t('editor.pages.page_menu', { page: index + 1 })"><Icon name="dots-horizontal" /></button>
     </template>
-    <UiMenuItem icon="cog-outline" @select="openPage(id)">{{ t("editor.pages.page_settings") }}</UiMenuItem>
-    <UiMenuItem icon="page-layout-header" @select="openBar(0, index)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
+    <UiMenuItem icon="cog-outline" @select="insp.openPage(id)">{{ t("editor.pages.page_settings") }}</UiMenuItem>
+    <UiMenuItem icon="page-layout-header" @select="insp.openBar(0, index)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
     <UiMenuSeparator />
     <UiMenuItem icon="home-outline" :disabled="home || !scr.pageReady" @select="setHomePage(id)">{{ t(home ? "editor.pages.is_home" : "editor.pages.set_home") }}</UiMenuItem>
     <UiMenuItem v-if="canCopy" icon="content-duplicate" @select="duplicateEditorPage(id, false)">{{ t("editor.pages.duplicate") }}</UiMenuItem>

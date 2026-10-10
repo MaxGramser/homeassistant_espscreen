@@ -6,15 +6,16 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
 import { matchesQuery } from "../model/search";
-import { state } from "../store";
 import Icon from "./ui/Icon.vue";
 import PropRow from "./ui/PropRow.vue";
 import type { Tile } from "../types";
 import { useEntitiesStore } from "../stores/entities";
 import { useInventoryStore } from "../stores/inventory";
+import { useInspectorStore } from "../stores/inspector";
 
 const entities = useEntitiesStore();
 const inv = useInventoryStore();
+const insp = useInspectorStore();
 
 const props = defineProps<{ selected: string; automatic: string; autoLabel: string; allowNone?: boolean; note?: string; tile?: Tile }>();
 const emit = defineEmits<{ (e: "pick", name: string): void }>();
@@ -24,8 +25,8 @@ const currentGlyph = computed(() => (props.selected === "none" ? "" : glyph(chos
 const currentText = computed(() => (props.selected === "none" ? t("editor.icon.none") : chosen.value?.label || props.autoLabel));
 function show(name: string | null) {
   if (!props.tile?.id) return;
-  if (name && name !== props.selected) state.optionPreview = { tileId: props.tile.id, key: "icon", value: name };
-  else if (state.optionPreview?.key === "icon") state.optionPreview = null;
+  if (name && name !== props.selected) insp.optionPreview = { tileId: props.tile.id, key: "icon", value: name };
+  else if (insp.optionPreview?.key === "icon") insp.optionPreview = null;
 }
 function pick(name: string) { show(null); emit("pick", name); }
 const groups = computed(() => {
@@ -38,13 +39,13 @@ const groups = computed(() => {
 
 <template>
   <PropRow :label="t('editor.icon.label')" icon="tablet-dashboard">
-    <button type="button" class="choice-field" :aria-expanded="state.iconPickerOpen ? 'true' : 'false'" :data-state="state.iconPickerOpen ? 'open' : 'closed'" @click="state.iconPickerOpen = !state.iconPickerOpen">
+    <button type="button" class="choice-field" :aria-expanded="insp.iconPickerOpen ? 'true' : 'false'" :data-state="insp.iconPickerOpen ? 'open' : 'closed'" @click="insp.iconPickerOpen = !insp.iconPickerOpen">
       <span class="choice-glyph mdi" aria-hidden="true">{{ currentGlyph }}</span>
       <span class="choice-text">{{ currentText }}</span>
-      <Icon :name="state.iconPickerOpen ? 'chevron-up' : 'chevron-down'" />
+      <Icon :name="insp.iconPickerOpen ? 'chevron-up' : 'chevron-down'" />
     </button>
-    <template v-if="state.iconPickerOpen || note" #note>
-      <div v-if="state.iconPickerOpen" class="picker" @pointerleave="show(null)">
+    <template v-if="insp.iconPickerOpen || note" #note>
+      <div v-if="insp.iconPickerOpen" class="picker" @pointerleave="show(null)">
         <label class="search-field"><Icon name="magnify" /><input v-model="query" type="search" :placeholder="t('editor.icon.search')" :aria-label="t('editor.icon.search_label')" /></label>
         <button type="button" class="icon-choice icon-auto" :aria-pressed="selected === 'auto' ? 'true' : 'false'" :title="autoLabel" @pointerenter="show('auto')" @click="pick('auto')">
           <span class="mdi">{{ glyph(automatic) }}</span><span>{{ autoLabel }}</span>

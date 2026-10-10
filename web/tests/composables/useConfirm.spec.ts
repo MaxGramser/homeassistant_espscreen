@@ -4,8 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import { nextTick } from "vue";
 import ConfirmDialog from "../../src/components/ConfirmDialog.vue";
-import { answer, askConfirm, askText, question, showText } from "../../src/composables/useConfirm";
-import { resetAll } from "../../src/resets";
+import { answer, askConfirm, askText, cancelQuestions, question, showText } from "../../src/composables/useConfirm";
 import { answerDialogs } from "../helpers/dialogs";
 
 const dialog = () => document.querySelector<HTMLElement>("[role='alertdialog']");
@@ -26,7 +25,7 @@ describe("the editor's questions", () => {
     answer(false);
     expect(await name).toBeNull();
     const open = askConfirm("Start the calibration?");
-    resetAll();
+    cancelQuestions();
     expect(await open).toBe(false);
   });
   it("are answered by a test as a person would", async () => {

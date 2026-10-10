@@ -3,7 +3,6 @@ import { computedAsync } from '@vueuse/core';
 import { computed, shallowRef } from 'vue';
 import { t } from '../i18n';
 import { historyGeometry, type HistoryPreview } from '../model/history-preview';
-import { state } from '../store';
 import { useEntitiesStore } from '../stores/entities';
 import { useUiStore } from '../stores/ui';
 

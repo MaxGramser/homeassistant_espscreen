@@ -3,7 +3,6 @@
 // and its start, which starts everything once and stops it again.
 import { describe, expect, it, beforeEach } from "vitest";
 import { i18n } from "../../src/i18n";
-import { openSaverStep, state } from "../../src/store";
 import { customPreview } from "../../src/model/preview";
 import { useBuildsStore } from "../../src/stores/builds";
 import { useScreenStore } from "../../src/stores/screen";
@@ -17,6 +16,10 @@ import { screenFixture } from "../helpers/fixtures";
 import { useInventoryStore } from "../../src/stores/inventory";
 import { addTile } from "../../src/editor/tiles";
 import { useDocumentStore } from "../../src/stores/document";
+import { useInspectorStore } from "../../src/stores/inspector";
+
+let insp: ReturnType<typeof useInspectorStore>;
+beforeEach(() => { insp = useInspectorStore(); });
 
 let doc: ReturnType<typeof useDocumentStore>;
 beforeEach(() => { doc = useDocumentStore(); });
@@ -72,10 +75,10 @@ describe("opening a screen", () => {
     session.select("hall");
     addTile("light.b");
     ui.tab = "settings";
-    openSaverStep("clock");
+    insp.openSaverStep("clock");
     const asked = answerDialogs(false);
     await session.select("hall");
-    expect([asked.length, ui.tab, state.inspector, doc.dirty, doc.layout?.tiles.length]).toEqual([0, "layout", null, true, 1]);
+    expect([asked.length, ui.tab, insp.inspector, doc.dirty, doc.layout?.tiles.length]).toEqual([0, "layout", null, true, 1]);
   });
 
   it("goes home from the logo: the overview, after asking about unsaved edits", async () => {
