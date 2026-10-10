@@ -1,17 +1,35 @@
-// Another entity for a tile: one whose entity Home Assistant no longer has (stores/broken.ts), or any tile of an entity
-// whose menu asks for another. The tile keeps its place, its size, its name, its icon and its colour; another entity
+// A tile shown from elsewhere (the broken tiles, ⌘K), and another entity for a tile: one whose entity Home Assistant no
+// longer has (stores/broken.ts), or any tile of an entity whose menu asks for another. The tile keeps its place, its size, its name, its icon and its colour; another entity
 // of the same kind keeps every choice made for it as well, one of another kind starts with that kind's own choices,
 // as a new tile of it would. A plain function over the stores, as editing the tiles is (editor/tiles.ts).
 import { t } from "../i18n";
 import { dimensions, effectiveControls, newTile, sizeOf } from "../model/layout";
 import * as pages from "../model/pages";
 import { canonicalOptions } from "../model/tile-options";
+import { revealTile } from "../composables/revealTile";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
+import { useInspectorStore } from "../stores/inspector";
 import { useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
 import { useUiStore } from "../stores/ui";
-import type { Tile, TileOptions } from "../types";
+import type { Screen, Tile, TileOptions } from "../types";
 import { commitArrangement, setTileOption } from "./tiles";
+
+/** A tile in the inspector, on its screen and page, brought into sight. The screen is opened first (which asks about
+ * unsaved changes on another one); a person who keeps those stays where they are. True when it is shown. */
+export async function showTile(screen: Screen, tileId: string) {
+  const scr = useScreenStore(), doc = useDocumentStore(), ui = useUiStore();
+  if (scr.selected !== screen.id || !doc.document) await useSessionStore().select(screen.id);
+  if (scr.selected !== screen.id || !doc.layout) return false;
+  ui.go("");
+  ui.tab = "layout";
+  const found = doc.layout.tiles.find((item) => item.id === tileId);
+  if (!found) return false;
+  useInspectorStore().openTile(found);
+  void revealTile(tileId);
+  return true;
+}
 
 // What a tile keeps of its own whatever it shows.
 const KEPT = ["size", "icon", "background", "overlay"] as const;

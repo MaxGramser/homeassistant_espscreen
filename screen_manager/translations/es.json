@@ -1535,6 +1535,38 @@
       "placeholder": "Busca pantallas, entidades, acciones…",
       "empty": "No hay coincidencias. Escribe parte del nombre de una pantalla, entidad o acción."
     },
+    "search": {
+      "groups": {
+        "recent": "Recientes",
+        "settings": "Ajustes de pantalla",
+        "tiles": "En tus pantallas",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Abrir",
+        "run": "Ejecutar",
+        "show": "Mostrar",
+        "add": "Añadir"
+      },
+      "keys": {
+        "move": "Mover",
+        "choose": "Elegir",
+        "close": "Cerrar"
+      },
+      "identify": "Identificar {name}",
+      "update": "Actualizar {name}",
+      "update_detail": "A {version}",
+      "update_all": "Actualizar todas las pantallas",
+      "update_all_detail": "1 pantalla espera | {n} pantallas esperan",
+      "update_all_confirm": "¿Actualizar 1 pantalla ahora? Se reinicia cuando la actualización esté instalada. | ¿Actualizar {n} pantallas ahora? Una tras otra, cada una se reinicia cuando su actualización esté instalada.",
+      "update_all_go": "Actualizar ahora",
+      "install": "Instalar los plugins apartados",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Añadir {plugin} a {screen}",
+      "add_plugin_detail": "Apartado, listo para instalar",
+      "on": "Activado",
+      "off": "Desactivado"
+    },
     "empty": {
       "choose": {
         "title": "Elige una pantalla",

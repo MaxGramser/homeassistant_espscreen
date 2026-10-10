@@ -94,6 +94,11 @@ const open = computed(() => everything.value.find((plugin) => plugin.id === open
 // The tray folds to its head while details are open, and opens again when they close.
 function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; plugins.tray.open = false; }
 function close() { panel.value = null; openId.value = null; plugins.tray.open = true; }
+// ⌘K sends a person to a plugin: its details open once the page has it (the screen's Plugins tab does the same).
+watch(() => [plugins.focus, everything.value.length] as const, ([id]) => {
+  const plugin = id ? everything.value.find((p) => p.id === id) : null;
+  if (plugin) { show(plugin); plugins.focus = null; }
+}, { immediate: true });
 // Add on a card goes straight to the tray when there is one screen it can go on; with more, its details ask which.
 const onlyScreen = (plugin: Plugin) => {
   const fits = plugins.realScreens().filter((screen) => !plugins.installedOn(screen, plugin.id) && plugins.fits(plugin, screen).ok);

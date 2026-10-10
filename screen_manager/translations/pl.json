@@ -1535,6 +1535,38 @@
       "placeholder": "Szukaj ekranów, encji, poleceń…",
       "empty": "Brak wyników. Wpisz część nazwy ekranu, encji lub polecenia."
     },
+    "search": {
+      "groups": {
+        "recent": "Ostatnie",
+        "settings": "Ustawienia ekranu",
+        "tiles": "Na twoich ekranach",
+        "plugins": "Wtyczki"
+      },
+      "hint": {
+        "open": "Otwórz",
+        "run": "Uruchom",
+        "show": "Pokaż",
+        "add": "Dodaj"
+      },
+      "keys": {
+        "move": "Przejdź",
+        "choose": "Wybierz",
+        "close": "Zamknij"
+      },
+      "identify": "Zidentyfikuj {name}",
+      "update": "Zaktualizuj {name}",
+      "update_detail": "Do {version}",
+      "update_all": "Zaktualizuj wszystkie ekrany",
+      "update_all_detail": "1 ekran czeka | {n} ekrany czekają | {n} ekranów czeka",
+      "update_all_confirm": "Zaktualizować teraz 1 ekran? Uruchomi się ponownie po instalacji aktualizacji. | Zaktualizować teraz {n} ekrany? Jeden po drugim, każdy uruchomi się ponownie po instalacji aktualizacji. | Zaktualizować teraz {n} ekranów? Jeden po drugim, każdy uruchomi się ponownie po instalacji aktualizacji.",
+      "update_all_go": "Aktualizuj teraz",
+      "install": "Zainstaluj odłożone wtyczki",
+      "install_detail": "1 wtyczka | {n} wtyczki | {n} wtyczek",
+      "add_plugin": "Dodaj {plugin} do {screen}",
+      "add_plugin_detail": "Odłożona, gotowa do instalacji",
+      "on": "Wł.",
+      "off": "Wył."
+    },
     "empty": {
       "choose": {
         "title": "Wybierz ekran",

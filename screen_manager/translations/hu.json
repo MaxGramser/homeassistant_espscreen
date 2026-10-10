@@ -1535,6 +1535,38 @@
       "placeholder": "Kijelzők, entitások, műveletek keresése…",
       "empty": "Nincs találat. Írd be egy kijelző, entitás vagy művelet nevének egy részét."
     },
+    "search": {
+      "groups": {
+        "recent": "Legutóbbi",
+        "settings": "Kijelzőbeállítások",
+        "tiles": "A kijelzőiden",
+        "plugins": "Bővítmények"
+      },
+      "hint": {
+        "open": "Megnyitás",
+        "run": "Futtatás",
+        "show": "Mutatás",
+        "add": "Hozzáadás"
+      },
+      "keys": {
+        "move": "Mozgás",
+        "choose": "Választás",
+        "close": "Bezárás"
+      },
+      "identify": "{name} azonosítása",
+      "update": "{name} frissítése",
+      "update_detail": "Erre: {version}",
+      "update_all": "Minden kijelző frissítése",
+      "update_all_detail": "1 kijelző vár | {n} kijelző vár",
+      "update_all_confirm": "Frissíted most az 1 kijelzőt? Újraindul, amint a frissítés felkerült. | Frissítesz most {n} kijelzőt? Egymás után, mindegyik újraindul, amint a frissítése felkerült.",
+      "update_all_go": "Frissítés most",
+      "install": "A félretett bővítmények telepítése",
+      "install_detail": "1 bővítmény | {n} bővítmény",
+      "add_plugin": "{plugin} hozzáadása ide: {screen}",
+      "add_plugin_detail": "Félretéve, telepítésre kész",
+      "on": "Be",
+      "off": "Ki"
+    },
     "empty": {
       "choose": {
         "title": "Válassz kijelzőt",

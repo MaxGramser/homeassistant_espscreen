@@ -1535,6 +1535,38 @@
       "placeholder": "Search screens, entities, actions…",
       "empty": "Nothing matches. Type part of a screen, entity or action."
     },
+    "search": {
+      "groups": {
+        "recent": "Recent",
+        "settings": "Screen settings",
+        "tiles": "On your screens",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Open",
+        "run": "Run",
+        "show": "Show",
+        "add": "Add"
+      },
+      "keys": {
+        "move": "Move",
+        "choose": "Choose",
+        "close": "Close"
+      },
+      "identify": "Identify {name}",
+      "update": "Update {name}",
+      "update_detail": "To {version}",
+      "update_all": "Update all screens",
+      "update_all_detail": "1 screen is waiting | {n} screens are waiting",
+      "update_all_confirm": "Update 1 screen now? It restarts once its update is in. | Update {n} screens now? One after the other, each restarts once its update is in.",
+      "update_all_go": "Update now",
+      "install": "Install the plugins set aside",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Add {plugin} to {screen}",
+      "add_plugin_detail": "Set aside, ready to install",
+      "on": "On",
+      "off": "Off"
+    },
     "empty": {
       "choose": {
         "title": "Choose a screen",

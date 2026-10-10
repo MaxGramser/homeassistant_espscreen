@@ -1535,6 +1535,38 @@
       "placeholder": "Cerca schermi, entità, azioni…",
       "empty": "Nessun risultato. Scrivi parte del nome di uno schermo, di un'entità o di un'azione."
     },
+    "search": {
+      "groups": {
+        "recent": "Recenti",
+        "settings": "Impostazioni schermo",
+        "tiles": "Sui tuoi schermi",
+        "plugins": "Plugin"
+      },
+      "hint": {
+        "open": "Apri",
+        "run": "Esegui",
+        "show": "Mostra",
+        "add": "Aggiungi"
+      },
+      "keys": {
+        "move": "Sposta",
+        "choose": "Scegli",
+        "close": "Chiudi"
+      },
+      "identify": "Identifica {name}",
+      "update": "Aggiorna {name}",
+      "update_detail": "A {version}",
+      "update_all": "Aggiorna tutti gli schermi",
+      "update_all_detail": "1 schermo in attesa | {n} schermi in attesa",
+      "update_all_confirm": "Aggiornare 1 schermo adesso? Si riavvia appena l'aggiornamento è installato. | Aggiornare {n} schermi adesso? Uno dopo l'altro, ognuno si riavvia appena il suo aggiornamento è installato.",
+      "update_all_go": "Aggiorna ora",
+      "install": "Installa i plugin messi da parte",
+      "install_detail": "1 plugin | {n} plugin",
+      "add_plugin": "Aggiungi {plugin} a {screen}",
+      "add_plugin_detail": "Messo da parte, pronto da installare",
+      "on": "Acceso",
+      "off": "Spento"
+    },
     "empty": {
       "choose": {
         "title": "Scegli uno schermo",

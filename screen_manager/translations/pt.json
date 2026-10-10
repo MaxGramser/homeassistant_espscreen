@@ -1535,6 +1535,38 @@
       "placeholder": "Procurar ecrãs, entidades, ações…",
       "empty": "Sem resultados. Escreva parte do nome de um ecrã, entidade ou ação."
     },
+    "search": {
+      "groups": {
+        "recent": "Recentes",
+        "settings": "Definições do ecrã",
+        "tiles": "Nos seus ecrãs",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Abrir",
+        "run": "Executar",
+        "show": "Mostrar",
+        "add": "Adicionar"
+      },
+      "keys": {
+        "move": "Mover",
+        "choose": "Escolher",
+        "close": "Fechar"
+      },
+      "identify": "Identificar {name}",
+      "update": "Atualizar {name}",
+      "update_detail": "Para {version}",
+      "update_all": "Atualizar todos os ecrãs",
+      "update_all_detail": "1 ecrã à espera | {n} ecrãs à espera",
+      "update_all_confirm": "Atualizar 1 ecrã agora? Reinicia quando a atualização estiver instalada. | Atualizar {n} ecrãs agora? Um após outro, cada um reinicia quando a sua atualização estiver instalada.",
+      "update_all_go": "Atualizar agora",
+      "install": "Instalar os plugins postos de lado",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Adicionar {plugin} a {screen}",
+      "add_plugin_detail": "Posto de lado, pronto a instalar",
+      "on": "Ligado",
+      "off": "Desligado"
+    },
     "empty": {
       "choose": {
         "title": "Escolha um ecrã",

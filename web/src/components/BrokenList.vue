@@ -4,7 +4,6 @@
 // with the entity picker ready.
 import { healthText, whereText, type BrokenTile } from "../model/broken-tiles";
 import { glyph } from "../model/topbar";
-import { revealTile } from "../composables/revealTile";
 import { useBrokenStore } from "../stores/broken";
 import { useEntitiesStore } from "../stores/entities";
 import { useUiStore } from "../stores/ui";
@@ -16,7 +15,7 @@ const entities = useEntitiesStore();
 const ui = useUiStore();
 async function open(tile: BrokenTile) {
   emit("done");
-  if (await broken.show(tile)) void revealTile(tile.tileId);
+  await broken.show(tile);
 }
 </script>
 

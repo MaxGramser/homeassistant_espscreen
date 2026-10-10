@@ -81,6 +81,10 @@
   longer has, or one it has had no word from for more than a few minutes, and on which screens; the sidebar marks each
   screen and lists them. A click opens that tile with a list of entities ready to choose another, those of the same
   kind and with the closest names first. A tile's menu offers Show another entity for any tile.
+- **⌘K can do everything.** The search finds a screen's settings on every screen with their value ("brightness" opens
+  it on its screen and marks it), the tiles that show an entity on whichever screen they stand, the plugins (open one,
+  add it to this screen), and identifies or updates a screen by its name; updating every screen asks first. What was
+  chosen last comes first, the arrow keys walk the rows, and the row in focus says what Enter does.
 
 ## 0.4.85 (firmware 0.53.0)
 

@@ -1535,6 +1535,38 @@
       "placeholder": "Bildschirme, Entitäten, Aktionen suchen…",
       "empty": "Nichts gefunden. Gib einen Teil eines Bildschirm-, Entitäts- oder Aktionsnamens ein."
     },
+    "search": {
+      "groups": {
+        "recent": "Zuletzt",
+        "settings": "Bildschirmeinstellungen",
+        "tiles": "Auf deinen Bildschirmen",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Öffnen",
+        "run": "Ausführen",
+        "show": "Zeigen",
+        "add": "Hinzufügen"
+      },
+      "keys": {
+        "move": "Bewegen",
+        "choose": "Wählen",
+        "close": "Schließen"
+      },
+      "identify": "{name} identifizieren",
+      "update": "{name} aktualisieren",
+      "update_detail": "Auf {version}",
+      "update_all": "Alle Bildschirme aktualisieren",
+      "update_all_detail": "1 Bildschirm wartet | {n} Bildschirme warten",
+      "update_all_confirm": "1 Bildschirm jetzt aktualisieren? Er startet neu, sobald das Update drauf ist. | {n} Bildschirme jetzt aktualisieren? Einer nach dem anderen, jeder startet neu, sobald sein Update drauf ist.",
+      "update_all_go": "Jetzt aktualisieren",
+      "install": "Bereitgelegte Plugins installieren",
+      "install_detail": "1 Plugin | {n} Plugins",
+      "add_plugin": "{plugin} zu {screen} hinzufügen",
+      "add_plugin_detail": "Bereitgelegt zum Installieren",
+      "on": "An",
+      "off": "Aus"
+    },
     "empty": {
       "choose": {
         "title": "Wähle einen Bildschirm",

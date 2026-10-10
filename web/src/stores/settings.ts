@@ -141,8 +141,11 @@ export const useSettingsStore = defineStore("settings", () => {
     for (const settle of settles) clearTimeout(settle);
   });
 
+  // The setting ⌘K found (model/palette.ts): the settings page brings its row into sight and marks it a moment.
+  const spotlight = ref<string | null>(null);
+
   return {
-    settingEdits, settingPending, ...lookups({ settingsView, settingValues, settingText, navigationSettings }),
+    spotlight, settingEdits, settingPending, ...lookups({ settingsView, settingValues, settingText, navigationSettings }),
     setSetting, flushSettings, settleSettings, leaveScreen, forget, start,
   };
 });

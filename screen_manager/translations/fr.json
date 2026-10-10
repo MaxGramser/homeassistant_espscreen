@@ -1535,6 +1535,38 @@
       "placeholder": "Rechercher des écrans, entités, actions…",
       "empty": "Aucun résultat. Saisissez une partie du nom d'un écran, d'une entité ou d'une action."
     },
+    "search": {
+      "groups": {
+        "recent": "Récents",
+        "settings": "Réglages de l'écran",
+        "tiles": "Sur vos écrans",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Ouvrir",
+        "run": "Lancer",
+        "show": "Afficher",
+        "add": "Ajouter"
+      },
+      "keys": {
+        "move": "Naviguer",
+        "choose": "Choisir",
+        "close": "Fermer"
+      },
+      "identify": "Identifier {name}",
+      "update": "Mettre à jour {name}",
+      "update_detail": "Vers {version}",
+      "update_all": "Mettre à jour tous les écrans",
+      "update_all_detail": "1 écran attend | {n} écrans attendent",
+      "update_all_confirm": "Mettre à jour 1 écran maintenant ? Il redémarre dès que la mise à jour est installée. | Mettre à jour {n} écrans maintenant ? L'un après l'autre, chacun redémarre dès que sa mise à jour est installée.",
+      "update_all_go": "Mettre à jour",
+      "install": "Installer les plugins mis de côté",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Ajouter {plugin} à {screen}",
+      "add_plugin_detail": "Mis de côté, prêt à installer",
+      "on": "Activé",
+      "off": "Désactivé"
+    },
     "empty": {
       "choose": {
         "title": "Choisissez un écran",

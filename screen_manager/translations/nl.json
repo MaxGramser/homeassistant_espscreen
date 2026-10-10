@@ -1535,6 +1535,38 @@
       "placeholder": "Zoek schermen, entiteiten, acties…",
       "empty": "Niets gevonden. Typ een deel van een scherm, entiteit of actie."
     },
+    "search": {
+      "groups": {
+        "recent": "Recent",
+        "settings": "Scherminstellingen",
+        "tiles": "Op je schermen",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Openen",
+        "run": "Uitvoeren",
+        "show": "Tonen",
+        "add": "Toevoegen"
+      },
+      "keys": {
+        "move": "Bewegen",
+        "choose": "Kiezen",
+        "close": "Sluiten"
+      },
+      "identify": "{name} identificeren",
+      "update": "{name} bijwerken",
+      "update_detail": "Naar {version}",
+      "update_all": "Alle schermen bijwerken",
+      "update_all_detail": "1 scherm wacht | {n} schermen wachten",
+      "update_all_confirm": "1 scherm nu bijwerken? Het herstart zodra de update erop staat. | {n} schermen nu bijwerken? Een voor een, elk herstart zodra de update erop staat.",
+      "update_all_go": "Nu bijwerken",
+      "install": "Klaargezette plugins installeren",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "{plugin} toevoegen aan {screen}",
+      "add_plugin_detail": "Klaargezet om te installeren",
+      "on": "Aan",
+      "off": "Uit"
+    },
     "empty": {
       "choose": {
         "title": "Kies een scherm",
