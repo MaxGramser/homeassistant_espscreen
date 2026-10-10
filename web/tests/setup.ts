@@ -3,8 +3,26 @@ import { config, enableAutoUnmount } from "@vue/test-utils";
 import { afterEach, vi } from "vitest";
 import { defineComponent, h } from "vue";
 import { i18n } from "../src/i18n";
+import { resetAll } from "../src/resets";
+import { installBrowser, resetBrowser } from "./helpers/browser";
 
 config.global.plugins = [i18n];
+installBrowser();
+// Every test starts where the page starts, whatever ran before it (npm run test:shuffle runs them in another order each
+// time): real timers, nothing stubbed, an empty storage, page and address, and every module's state as it loaded
+// (src/resets.ts). Registered before the unmount below, so it runs after it: hooks after a test run last first.
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  try { localStorage.clear(); sessionStorage.clear(); } catch { /* a test made storage throw */ }
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  document.body.innerHTML = "";
+  document.body.removeAttribute("style");
+  document.documentElement.removeAttribute("lang");
+  resetBrowser();
+  resetAll();
+});
 enableAutoUnmount(afterEach);
 // jsdom does not draw glyphs or implement modal dialogs. Geometry is verified
 // with the real fonts in the browser and the firmware host renders.

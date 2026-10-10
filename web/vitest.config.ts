@@ -13,6 +13,9 @@ export default defineConfig({
     environment: "jsdom",
     include: ["tests/**/*.spec.ts"],
     setupFiles: ["tests/setup.ts"],
+    // What a test stubs or spies on is undone before the next one, so no test depends on the order they run in.
     restoreMocks: true,
+    unstubGlobals: true,
+    unstubEnvs: true,
   },
 });

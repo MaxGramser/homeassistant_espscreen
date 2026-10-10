@@ -22,6 +22,7 @@ import pageRules from './model/page-rules.json';
 import { canonicalOptions, coupledOptions } from './model/tile-options';
 import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
+import { onReset } from "./resets";
 
 export type Inspector =
   | { kind: "tile" }
@@ -41,7 +42,9 @@ export type DragState = { active: boolean; moving: Tile | null; preview: { tile:
 // What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
 export type Live = { state: string; word?: string | null; a: Record<string, any> };
 
-export const state = reactive({
+// The editor's state as it starts, before the add-on has said anything: the page begins with it, and every test again
+// (resetStore). What this browser remembers of itself (the library drawer, the whole editor on a phone) is read here.
+const fresh = () => ({
   inventory: { screens: [], entities: [] } as Inventory,
   connected: false,
   reachable: true,
@@ -61,7 +64,6 @@ export const state = reactive({
   conflict: false,
   undoCount: 0,
   redoCount: 0,
-  get layout(): Layout | null { return renderedLayout.value; },
   dirty: false,
   busy: false,
   saved: 0,
@@ -93,8 +95,6 @@ export const state = reactive({
   entityActions: {} as Record<string, EntityAction[] | null | undefined>,
   // Per entity, the values its second line may say: Home Assistant's own named attributes (app 0.2.105).
   subtitleValues: {} as Record<string, { key: string; name: string }[] | undefined>,
-  // Index projection for older view helpers; selection itself is always an ID.
-  get barPage(): number { return Math.max(0, state.document?.pages.findIndex(page => page.id === state.selectedPageId) ?? 0); },
   topbarPreviews: {} as Record<string, any>,
   topbarAdded: null as null | { key: string; time: number },
   topbarOverflow: [] as number[],
@@ -118,6 +118,12 @@ export const state = reactive({
   hidePlaced: false,
   palette: false,
   firmwareJob: null as null | { job: any; logs: string[] },
+});
+export const state = reactive({
+  ...fresh(),
+  get layout(): Layout | null { return renderedLayout.value; },
+  // Index projection for older view helpers; selection itself is always an ID.
+  get barPage(): number { return Math.max(0, state.document?.pages.findIndex(page => page.id === state.selectedPageId) ?? 0); },
 });
 
 // ---- The phone (app 0.4.40) ----
@@ -728,7 +734,9 @@ export function setEditorMode(mode: "simple" | "advanced") {
   if (mode === "advanced") initializeWorkspace();
   try { if (state.selected) localStorage.setItem(`esp-screens-mode:${state.selected}`, mode); } catch {}
 }
-function loadDocument(screen: Screen) {
+// A screen's saved document becomes the draft, with nothing to undo and nothing unsaved: when a screen is chosen, when it
+// is read again, and for the tests' fixtures (tests/page-fixtures.ts), which so start from what the editor starts from.
+export function loadDocument(screen: Screen) {
   endFieldEdit();
   selectionEpoch++;
   const record = screen.page_document;
@@ -2224,3 +2232,24 @@ export function boot() {
     if (state.dirty) { e.preventDefault(); e.returnValue = ""; }
   });
 }
+
+// ---- A fresh start (tests/setup.ts, between tests) ----
+// Every field back to how it starts, and what the module keeps outside the state forgotten: the committed draft and its
+// undo, the caches of what was asked, the timers still waiting. A request still on its way finds another selection and
+// keeps its answer to itself.
+function resetStore() {
+  Object.assign(state, fresh());
+  clearTimeout(toastTimer); clearTimeout(addedTimer); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
+  mapSaver.cancel();
+  narrowPhone.value = Boolean(PHONE?.matches);
+  previewsSkipped = "";
+  askedCapabilities.clear(); askedSubtitles.clear(); askedActions.clear();
+  statesFlight = false; overviewFlight = false; firmwareFlight = false;
+  edits = 0; selectionEpoch++;
+  committedLayout = null; committedGrid = null; committedUpright = null;
+  draftHistory.clear();
+  focusedField = null; groupedEdit = -1;
+  saverEdits = 0;
+  settingQueue = {}; settingTarget = null; settingFlight = null;
+}
+onReset(resetStore);

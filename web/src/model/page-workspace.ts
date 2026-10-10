@@ -52,5 +52,7 @@ export function workspaceSaver(state: State, services: Services) {
       if (services.epoch() !== epoch && state.workspaceDirty) schedule();
     }
   }
-  return { schedule, save };
+  // Drops a save still waiting for its pause (the store when a test starts again).
+  function cancel() { clearTimeout(timer); }
+  return { schedule, save, cancel };
 }

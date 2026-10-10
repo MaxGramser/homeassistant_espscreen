@@ -17,6 +17,7 @@
     "check": "vue-tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:shuffle": "vitest run --sequence.shuffle",
     "test:watch": "vitest"
   },
   "dependencies": {

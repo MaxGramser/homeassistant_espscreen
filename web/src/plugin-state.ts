@@ -10,8 +10,10 @@ import { pluginTiles } from "./model/page-validation";
 import { computed, watch } from "vue";
 import { buildOf, copyText, state, toast } from "./store";
 import type { Screen } from "./types";
+import { onReset } from "./resets";
 
-export const plugins = reactive({
+// What the page knows of the plugins before the add-on has said anything (and again for every test, resetPlugins).
+const fresh = () => ({
   index: [] as Plugin[],
   installed: {} as Record<string, Installed[]>,
   loaded: false,
@@ -44,6 +46,7 @@ export const plugins = reactive({
   // The plugin a person chose for a feature, per screen: {inbox: {feature: plugin}}.
   providers: {} as Record<string, Record<string, string>>,
 });
+export const plugins = reactive(fresh());
 export type PlanStep = { id: string; source: string; auto: boolean; for: string[]; flash_kb: number; permission_hash: string };
 export type Plan = {
   error: string | null; needed_by?: Record<string, string[]>; add?: PlanStep[]; remove?: string[];
@@ -385,7 +388,8 @@ export async function updateAll(screen: Screen, list: Plugin[]) {
 // Adding a plugin no longer builds at once: it goes into the tray (PluginTray), where a person can set aside more, on
 // this screen or another, and press Install once. Each screen then builds once with all of its plugins, the request
 // updateAll already makes. What a plugin asks for (its inputs, trust in a community maker) is filled in its details.
-export const tray = reactive({ items: [] as { screen: string; plugin: string }[], open: true, sending: false });
+const freshTray = () => ({ items: [] as { screen: string; plugin: string }[], open: true, sending: false });
+export const tray = reactive(freshTray());
 export const isSetAside = (screen: Screen, id: string) => tray.items.some((item) => item.screen === screen.id && item.plugin === id);
 export function setAside(screen: Screen, plugin: Plugin) {
   if (!isSetAside(screen, plugin.id)) tray.items.push({ screen: screen.id, plugin: plugin.id });
@@ -468,3 +472,13 @@ export async function setSecret(plugin: Plugin, input: string, value: string) {
   await send(`plugins/${plugin.id}/secrets/${input}`, "PUT", { value });
   await reloadPlugins();
 }
+
+// Every list and cache back to how it starts, the model's registers of plugin tiles and fits too (tests/setup.ts).
+onReset(() => {
+  Object.assign(plugins, fresh());
+  Object.assign(tray, freshTray());
+  for (const screen of Object.keys(sending)) delete sending[screen];
+  asking.clear(); drawing.clear(); planning.clear();
+  knowTileTypes([]); knowAppFit({});
+  pluginTiles.enabled = false;
+});
