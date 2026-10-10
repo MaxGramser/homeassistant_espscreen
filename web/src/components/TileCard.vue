@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { pluginTileOf, text as pluginText } from "../model/plugins";
-import { previewFor } from "../plugin-state";
+import { text as pluginText } from "../model/plugins";
 import { editorLayout } from "../store";
 const { grid: editorGrid } = editorLayout;
 
@@ -29,10 +28,12 @@ import rules from "../model/page-rules.json";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
+const plugins = usePluginsStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -71,10 +72,10 @@ const bedside = computed(() => props.tile.entity === "screen.nightstand");
 const energyTile = computed(() => props.tile.entity === "screen.energy");
 // A plugin's tile (design): the editor cannot draw what the plugin draws on the glass, so it shows a placeholder with the
 // tile's icon, its name, one line of what it shows, and the plugin it comes from.
-const pluginTile = computed(() => pluginTileOf(props.tile.entity));
+const pluginTile = computed(() => plugins.pluginTileOf(props.tile.entity));
 // With data, it looks like the glass: the add-on fills in the manifest's preview (a line's number, where it goes, and
 // the minutes to the next departure), and the mockup counts down on the editor's clock as the screen does on its own.
-const pluginRows = computed(() => (pluginTile.value && !props.placeholder ? previewFor(props.tile.entity, props.tile.options?.plugin, props.tile.options?.plugin_entity) : null));
+const pluginRows = computed(() => (pluginTile.value && !props.placeholder ? plugins.previewFor(props.tile.entity, props.tile.options?.plugin, props.tile.options?.plugin_entity) : null));
 const pluginRow = computed(() => {
   const rows = pluginRows.value || [];
   const seconds = ui.now / 1000;

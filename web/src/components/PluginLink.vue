@@ -5,19 +5,20 @@
 import { computed, reactive } from "vue";
 import { t } from "../i18n";
 import type { Plugin, PluginSource } from "../model/plugins";
-import { addPlugin, plugins, realScreens, reloadPlugins } from "../plugin-state";
 import { send } from "../api";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
+const plugins = usePluginsStore();
 
 const props = defineProps<{ screen?: Screen | null }>();
 const emit = defineEmits<{ close: []; found: [plugin: Plugin] }>();
 
-const link = reactive({ source: "link" as Exclude<PluginSource, "index">, url: "", branch: "main", folder: "/config/tessera-plugins/", screen: props.screen?.id || realScreens()[0]?.id || "" });
-const target = computed(() => props.screen || realScreens().find((s) => s.id === link.screen) || null);
+const link = reactive({ source: "link" as Exclude<PluginSource, "index">, url: "", branch: "main", folder: "/config/tessera-plugins/", screen: props.screen?.id || plugins.realScreens()[0]?.id || "" });
+const target = computed(() => props.screen || plugins.realScreens().find((s) => s.id === link.screen) || null);
 const ready = computed(() => link.source === "folder" ? link.folder.trim().length > "/config/".length : /^https:\/\/github\.com\/[^/]+\/[^/]+/.test(link.url.trim()));
 const reading = reactive({ busy: false });
 // The add-on reads the plugin's description first (api/plugins/link): a release opens its details, a test goes on the
@@ -28,8 +29,8 @@ async function read() {
     const body = link.source === "folder" ? { folder: link.folder.trim() }
       : { url: link.url.trim(), ...(link.source === "branch" ? { branch: link.branch.trim() } : {}) };
     const plugin = await send<Plugin>("plugins/link", "POST", body);
-    await reloadPlugins();
-    if (link.source !== "link" && target.value) await addPlugin([target.value], plugins.index.find((p) => p.id === plugin.id) || plugin);
+    await plugins.reloadPlugins();
+    if (link.source !== "link" && target.value) await plugins.addPlugin([target.value], plugins.index.find((p) => p.id === plugin.id) || plugin);
     emit("found", plugins.index.find((p) => p.id === plugin.id) || plugin);
   } catch (error: any) {
     ui.toast(error.message || t("editor.plugins.link.not_found"));
@@ -64,7 +65,7 @@ async function read() {
     </div>
     <div v-if="link.source !== 'link' && !screen" class="field">
       <label class="f-label" for="plugin-test-screen">{{ t("editor.plugins.link.on_screen") }}</label>
-      <select id="plugin-test-screen" v-model="link.screen"><option v-for="s in realScreens()" :key="s.id" :value="s.id">{{ s.name }}</option></select>
+      <select id="plugin-test-screen" v-model="link.screen"><option v-for="s in plugins.realScreens()" :key="s.id" :value="s.id">{{ s.name }}</option></select>
     </div>
     <p class="pd-note">{{ t(`editor.plugins.link.hints.${link.source}`) }}</p>
     <button type="submit" class="btn primary" id="plugin-fetch" :disabled="!ready || reading.busy || (link.source !== 'link' && !target)">{{ link.source === "link" ? t("editor.plugins.link.fetch") : t("editor.plugins.link.test", { screen: target?.name || "" }) }}</button>

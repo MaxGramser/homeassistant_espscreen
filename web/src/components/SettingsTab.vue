@@ -9,13 +9,14 @@ import FeedbackPanel from "./FeedbackPanel.vue";
 import ScreensaverCard from "./ScreensaverCard.vue";
 import Icon from "./ui/Icon.vue";
 import PluginSettings from "./PluginSettings.vue";
-import { installedOn, openPluginOn, plugins, testsOn } from "../plugin-state";
 import { text } from "../model/plugins";
 import { choiceText, SETTING_GROUPS, settingLabel, steppedSetting, type SettingRow } from "../model/settings";
 import { calibrateTouch, currentScreen, pageReachWarning, state } from "../store";
 import { useSettingsStore } from "../stores/settings";
+import { usePluginsStore } from "../stores/plugins";
 
 const settings = useSettingsStore();
+const plugins = usePluginsStore();
 
 const view = computed(() => settings.settingsView());
 // The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).
@@ -24,7 +25,7 @@ const boardExtras = computed(() => Boolean(currentScreen.value?.shape?.catalog?.
 const pluginsWithSettings = computed(() => {
   const screen = currentScreen.value;
   if (!screen || screen.virtual) return [];
-  return [...plugins.index.filter((plugin) => installedOn(screen, plugin.id)), ...testsOn(screen)]
+  return [...plugins.index.filter((plugin) => plugins.installedOn(screen, plugin.id)), ...plugins.testsOn(screen)]
     .filter((plugin, i, all) => all.findIndex((other) => other.id === plugin.id) === i)
     .filter((plugin) => plugin.settings?.length || (plugin.inputs || []).length || (plugin.parts || []).length);
 });
@@ -118,7 +119,7 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
         <h4><span class="mdi">{{ glyph("F0A66") }}</span>{{ t("editor.screen_settings.plugins.title") }}</h4>
         <p class="hint">{{ t("editor.screen_settings.plugins.note") }}</p>
         <div class="s-action plugin-links">
-          <button v-for="plugin in pluginsWithSettings" :key="plugin.id" type="button" class="btn quiet" :data-plugin="plugin.id" @click="openPluginOn(plugin.id)">
+          <button v-for="plugin in pluginsWithSettings" :key="plugin.id" type="button" class="btn quiet" :data-plugin="plugin.id" @click="plugins.openPluginOn(plugin.id)">
             {{ text(plugin.name) }}<Icon name="arrow-right" />
           </button>
         </div>

@@ -5,7 +5,7 @@ import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import type { Installed, Plugin } from "../src/model/plugins";
-import { hasUpdate, plugins, updatesOn } from "../src/plugin-state";
+import { usePluginsStore } from "../src/stores/plugins";
 import { state } from "../src/store";
 import ScreenPluginsTab from "../src/components/ScreenPluginsTab.vue";
 import type { Screen } from "../src/types";
@@ -22,8 +22,10 @@ const installed = (id: string, version: string, more: Partial<Installed> = {}): 
   ({ id, version, source: "index", consent: "same", state: "active", ...more });
 
 let calls: { path: string; body: any }[] = [];
+let plugins: ReturnType<typeof usePluginsStore>;
 beforeEach(() => {
   calls = [];
+  plugins = usePluginsStore();
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     const path = String(url);
     if (init?.method === "POST") calls.push({ path, body: JSON.parse(String(init.body)) });
@@ -34,9 +36,6 @@ beforeEach(() => {
   state.inventory.screens = [hall];
   state.selected = hall.id;
   plugins.loaded = true;
-  plugins.consented = {};
-  plugins.values = {};
-  plugins.parts = {};
   state.inventory.builds = {};
   plugins.index = [
     plugin("bus", "1.2.0"),
@@ -48,10 +47,10 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("update all on this screen", () => {
   it("finds every plugin of the screen with an update, and no test", () => {
-    expect(updatesOn(hall).map((p) => p.id)).toEqual(["bus", "waste"]);
+    expect(plugins.updatesOn(hall).map((p) => p.id)).toEqual(["bus", "waste"]);
     plugins.installed[hall.id][0] = installed("bus", "main", { source: "branch" });
-    expect(hasUpdate(hall, plugins.index[0])).toBe(false);
-    expect(updatesOn(hall).map((p) => p.id)).toEqual(["waste"]);
+    expect(plugins.hasUpdate(hall, plugins.index[0])).toBe(false);
+    expect(plugins.updatesOn(hall).map((p) => p.id)).toEqual(["waste"]);
   });
 
   it("sends every update in one request, with what was filled in when the plugin was added", async () => {

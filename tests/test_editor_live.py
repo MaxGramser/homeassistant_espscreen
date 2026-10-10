@@ -475,7 +475,7 @@ class Editor(unittest.TestCase):
             self.assertIn(name, self.store)
         for marker in ('id="copy-layout"', 'id="export-layout"', 'id="import-layout"', 'accept: "application/json,.json"'):
             self.assertIn(marker, self.page, marker)
-        self.assertIn('pages.remapLayout(record.layout, state.documentGrid)', self.store)
+        self.assertIn('pages.remapLayout(record.layout, heldTo(state.documentGrid))', self.store)
         self.assertNotIn('.slice(0, tileLimit.value)', self.store, 'an incompatible import must be reviewed, never silently truncated')
 
     def test_the_library_filters_by_room_and_placement_and_the_palette_exists(self):

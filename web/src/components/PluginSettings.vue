@@ -8,14 +8,15 @@
 import { onBeforeUnmount, ref, watch } from "vue";
 import { getJson, send } from "../api";
 import { editorNumber, t } from "../i18n";
-import { text, type Texts } from "../model/plugins";
+import { nodeOf, text, type Texts } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import { nodeOf, plugins, pluginsEnabled } from "../plugin-state";
 import { currentScreen } from "../store";
 import UiSelect from "./ui/UiSelect.vue";
 import { useUiStore } from "../stores/ui";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
+const plugins = usePluginsStore();
 
 const props = defineProps<{ plugin?: string; extras?: boolean }>();
 const route = (screenId: string) => `screens/${encodeURIComponent(screenId)}/${props.extras ? "extras" : "plugins/settings"}`;
@@ -31,7 +32,7 @@ async function load() {
     try { rows.value = await getJson<Row[]>(route(screen.id)); } catch { rows.value = []; }
     return;
   }
-  if (!pluginsEnabled.value || !plugins.installed[nodeOf(screen)]?.length) { rows.value = []; return; }
+  if (!plugins.pluginsEnabled || !plugins.installed[nodeOf(screen)]?.length) { rows.value = []; return; }
   try {
     const groups = await getJson<Group[]>(route(screen.id));
     rows.value = groups.find((group) => group.plugin === props.plugin)?.rows || [];

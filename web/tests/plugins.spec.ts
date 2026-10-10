@@ -1,7 +1,7 @@
 // Plugins (docs/PLUGINS.md): whether a plugin fits a screen, the one rule the Plugins page and its details share.
 import { describe, expect, it } from "vitest";
-import { changesBetween, fit, flashShare, headroomKb, knowAppFit, offeredEntities, type Plugin } from "../src/model/plugins";
-import { hasUpdate, plugins, stageOf } from "../src/plugin-state";
+import { changesBetween, fit, flashShare, headroomKb, offeredEntities, type Plugin } from "../src/model/plugins";
+import { usePluginsStore } from "../src/stores/plugins";
 import type { Screen } from "../src/types";
 
 // A plugin as the add-on describes it (plugins.editor_plugin), with only what fit() reads changed per test.
@@ -23,24 +23,27 @@ describe("plugins", () => {
   });
 
   it("takes what only the add-on knows: a feature nothing brings, a plugin it needs that does not fit", () => {
-    knowAppFit({ "text.guition": { voice: "feature" } });
-    expect(fit(plugin({ id: "voice" }), screen("guition"))).toEqual({ ok: false, reason: "feature" });
-    expect(fit(plugin({ id: "voice" }), screen("cyd", { pictures: true }))).toEqual({ ok: true });
-    knowAppFit({});
+    expect(fit(plugin({ id: "voice" }), screen("guition"), { voice: "feature" })).toEqual({ ok: false, reason: "feature" });
+    expect(fit(plugin({ id: "voice" }), screen("cyd", { pictures: true }), {})).toEqual({ ok: true });
+    // The plugins store hands each screen its part of what the add-on said.
+    const plugins = usePluginsStore();
+    plugins.appFit = { "text.guition": { voice: "feature" } };
+    expect(plugins.fits(plugin({ id: "voice" }), screen("guition"))).toEqual({ ok: false, reason: "feature" });
+    expect(plugins.fits(plugin({ id: "voice" }), screen("cyd", { pictures: true }))).toEqual({ ok: true });
   });
 
   it("offers an update only from the plugin's own origin, and a newer commit for a branch", () => {
-    const s = screen("guition");
+    const s = screen("guition"), plugins = usePluginsStore(), hasUpdate = plugins.hasUpdate;
     plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "index", origin: "github.com/someone/fork" }] };
     expect(hasUpdate(s, plugin({ version: "1.1.0", origin: "github.com/maxgramser/tessera-plugins/plugins/bus" }))).toBe(false);
     plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "index", origin: "github.com/a/b" }] };
     expect(hasUpdate(s, plugin({ version: "1.1.0", origin: "github.com/a/b" }))).toBe(true);
     plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "branch", ref: "a".repeat(40), origin: "github.com/a/b" }] };
     expect(hasUpdate(s, plugin({ version: "1.0.0", ref: "b".repeat(40), origin: "github.com/a/b", source: "branch" }))).toBe(true);
-    plugins.installed = {};
   });
 
   it("shows a badge for a beta plugin and an example, none for a stable one or a test", () => {
+    const { stageOf } = usePluginsStore();
     expect(stageOf(plugin({ stage: "example", label: "tessera" }))).toBe("example");
     expect(stageOf(plugin({ stage: "beta", label: "community" }))).toBe("beta");
     expect(stageOf(plugin({ stage: "stable", label: "tessera" }))).toBe("");
@@ -99,7 +102,7 @@ describe("the entities a plugin tile offers", () => {
 
 describe("saving a plugin's settings on a screen", () => {
   it("asks for a build only when what is filled in differs from what the screen was built with", async () => {
-    const { plugins, setupChanged, setValue, setParts } = await import("../src/plugin-state");
+    const plugins = usePluginsStore(), { setupChanged, setValue, setParts } = plugins;
     const voice = plugin({ id: "voice", inputs: [
       { id: "key", kind: "secret", label: { en: "Key" }, scope: "all" },
       { id: "words", kind: "text", label: { en: "Words" }, scope: "screen" }],
@@ -124,7 +127,7 @@ describe("saving a plugin's settings on a screen", () => {
   });
 
   it("forgets what was filled in once the add-on has it, so a saved secret no longer counts as a change", async () => {
-    const { plugins, setupChanged, setValue, forgetDrafts, valueOf } = await import("../src/plugin-state");
+    const plugins = usePluginsStore(), { setupChanged, setValue, forgetDrafts, valueOf } = plugins;
     const voice = plugin({ id: "voice2", inputs: [{ id: "key", kind: "secret", label: { en: "Key" }, scope: "all" }] });
     const hall = screen("guition", { id: "hall", node: "hall" } as Partial<Screen>);
     plugins.installed.hall = [{ id: "voice2", version: "1.0.0", source: "index", values: {}, parts: [] }];

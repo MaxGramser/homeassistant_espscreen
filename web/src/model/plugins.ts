@@ -114,23 +114,28 @@ export type Installed = {
 export const PLUGIN_TILE = /^plugin:([a-z0-9_]+)\.([a-z0-9_]+)$/;
 export const pluginTileId = (plugin: string, tile: string) => `plugin:${plugin}.${tile}`;
 export const isPluginTile = (entity: string) => PLUGIN_TILE.test(entity);
-// The tile types of the plugins the editor knows, kept by the plugin state as its index changes, so the layout model,
-// the memory price and the tile card can ask without depending on it.
-const tileTypes = new Map<string, { plugin: Plugin; tile: PluginTile }>();
-export function knowTileTypes(index: Plugin[]) {
-  tileTypes.clear();
-  for (const plugin of index) for (const tile of plugin.tiles || []) tileTypes.set(pluginTileId(plugin.id, tile.id), { plugin, tile });
-  barTypes.clear();
-  for (const plugin of index) for (const bar of plugin.bar_items || []) barTypes.set(`plugin:${plugin.id}.${bar.id}`, { plugin, ...bar });
+// A plugin's tile type by its entity (plugin:<plugin>.<tile>), and what finds one: the plugins store keeps the tile types
+// of the plugins the editor knows (tileTypesOf its index) and hands its lookup to the layout model, the memory price and
+// the tile card, which ask it without depending on the store.
+export type PluginTileType = { plugin: Plugin; tile: PluginTile };
+export type PluginTileLookup = (entity: string) => PluginTileType | undefined;
+export const noPluginTiles: PluginTileLookup = () => undefined;
+export function tileTypesOf(index: Plugin[]) {
+  const types = new Map<string, PluginTileType>();
+  for (const plugin of index) for (const tile of plugin.tiles || []) types.set(pluginTileId(plugin.id, tile.id), { plugin, tile });
+  return types;
 }
-export const pluginTileOf = (entity: string) => tileTypes.get(entity);
 // A plugin's top bar item by its key (plugin:<plugin>.<item>), from the same index.
-const barTypes = new Map<string, { plugin: Plugin; label: Texts; icon: string; example?: Texts | null }>();
-export function barItemOf(key: string | undefined) {
-  const known = key ? barTypes.get(key) : undefined;
-  return known ? { label: text(known.label), icon: known.icon, example: known.example ? text(known.example) : "", plugin: text(known.plugin.name) } : null;
+export type PluginBarType = { plugin: Plugin; label: Texts; icon: string; example?: Texts | null };
+export function barTypesOf(index: Plugin[]) {
+  const types = new Map<string, PluginBarType>();
+  for (const plugin of index) for (const bar of plugin.bar_items || []) types.set(`plugin:${plugin.id}.${bar.id}`, { plugin, ...bar });
+  return types;
 }
-// The key of one list of choices: plugin, fetch, and the other options it is asked with (plugin-state keeps the lists).
+/** A known bar item as the editor shows it: its label, icon and example in the editor's language, and its plugin's name. */
+export const barItemView = (known: PluginBarType | undefined) =>
+  known ? { label: text(known.label), icon: known.icon, example: known.example ? text(known.example) : "", plugin: text(known.plugin.name) } : null;
+// The key of one list of choices: plugin, fetch, and the other options it is asked with (the plugins store keeps the lists).
 export const choiceKey = (plugin: Plugin, option: PluginTileOption, values: Record<string, unknown>) =>
   `${plugin.id}.${option.options_from}.${JSON.stringify(Object.entries(values).filter(([k]) => k !== option.id).sort())}`;
 // What a plugin tile's options are when nothing is chosen yet.
@@ -142,6 +147,22 @@ const own = (texts: Texts) => texts[editorLanguage()] ?? texts[editorLanguage().
 export const text = (texts: Texts) => own(texts) ?? texts.en ?? "";
 // Whether these words exist in the editor's language, or the page falls back to English and says so.
 export const inEditorLanguage = (texts: Texts) => own(texts) !== undefined;
+
+// ---- A plugin on a screen ----
+// A test: a branch (pinned to the commit it was built from; a newer commit is offered as an update) or a folder (every
+// build takes what it holds now).
+export const isTest = (item: Installed | undefined) => item?.source === "branch" || item?.source === "folder";
+// The add-on keeps a screen's plugins by its inbox, the id every screen route takes.
+export const nodeOf = (screen: Screen) => screen.id;
+// A screen built from its own YAML (in ESPHome Device Builder, with no profile in Tessera): the add-on cannot add a
+// plugin to it, so the page shows the lines to paste instead.
+export const ownYaml = (screen: Screen) => !screen.update?.profile;
+// Every screen's plugins live in one file only the add-on writes, <node>.plugins.yaml beside its YAML, attached once by
+// one line under `packages:`, the way Override YAML attaches <node>.local.yaml. A screen Tessera installed gets the line
+// from the add-on; a screen with its own YAML gets it pasted once. After that ESPHome Device Builder, another computer
+// sharing the config folder, or the add-on's own update builds the same plugins.
+export const fileOf = (screen: Screen) => `${screen.node || screen.id}.plugins.yaml`;
+export const attachLine = (screen: Screen) => `packages:\n  tessera_plugins: !include ${fileOf(screen)}`;
 
 // ---- What changed: the releases of a changelog between the version a screen runs and the one on offer ----
 const versionOf = (text: string) => text.split(".").map((n) => Number.parseInt(n, 10) || 0);
@@ -168,13 +189,9 @@ export function changesBetween(markdown: string, from?: string | null, to?: stri
 export type Misfit = "board" | "psram" | "firmware" | "flash" | "blocked" | "esphome" | "feature" | "needs" | "built_in";
 export type Fit = { ok: true } | { ok: false; reason: Misfit };
 // What only the add-on knows about a screen and a plugin (its payload's `fit`, by screen and plugin): a feature nothing
-// brings there, a plugin it needs that does not fit, an ESPHome too old to build it. The page keeps it here, as the tile
-// types, so fit() stays one pure rule.
-const appFit = new Map<string, Record<string, Misfit>>();
-export function knowAppFit(byScreen: Record<string, Record<string, Misfit>> = {}) {
-  appFit.clear();
-  for (const [screen, reasons] of Object.entries(byScreen)) appFit.set(screen, reasons);
-}
+// brings there, a plugin it needs that does not fit, an ESPHome too old to build it. The plugins store keeps it and hands
+// fit() the screen's part (`known`), so fit() stays one pure rule.
+export type AppFit = Record<string, Record<string, Misfit>>;
 
 // The 4 MB boards (the classic ESP32: the CYD, its ILI9342 sibling, the Hosyond) run close to the top of their slot.
 // What a plugin may add there keeps the image under the 93 % line of docs/RELEASING.md: the CYD's 0.51.0 image is
@@ -196,14 +213,14 @@ export const headroomKb = (screen?: Screen) => {
 export const FREE_PINS: Record<string, string[]> = { cyd: ["GPIO22", "GPIO27"], cyd9342: ["GPIO22", "GPIO27"] };
 export const freePins = (screen: Screen) => (screen.board && FREE_PINS[screen.board]) || [];
 
-export function fit(plugin: Plugin, screen: Screen | null): Fit {
+export function fit(plugin: Plugin, screen: Screen | null, known: Record<string, Misfit> = {}): Fit {
   if (!screen) return { ok: true };
   if (plugin.blocked) return { ok: false, reason: "blocked" };
   if (plugin.fits_api === false) return { ok: false, reason: "firmware" };
   if (plugin.boards !== "any" && !(screen.board && plugin.boards.includes(screen.board))) return { ok: false, reason: "board" };
   if (plugin.requires.psram && !screen.pictures) return { ok: false, reason: "psram" };
-  const known = appFit.get(screen.id)?.[plugin.id];
-  if (known) return { ok: false, reason: known };
+  const reason = known[plugin.id];
+  if (reason) return { ok: false, reason };
   if (smallFlash(screen) && plugin.flash_kb > headroomKb(screen)) return { ok: false, reason: "flash" };
   return { ok: true };
 }

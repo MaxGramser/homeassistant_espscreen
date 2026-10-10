@@ -6,27 +6,24 @@
 import { computed, reactive, ref, watch } from "vue";
 import { editorLanguage, editorNumber, t, te } from "../i18n";
 import { boardTitle } from "../model/boards";
-import { changesBetween, fit, flashShare, headroomKb, inEditorLanguage, text, type Plugin } from "../model/plugins";
+import { attachLine, changesBetween, fileOf, flashShare, headroomKb, inEditorLanguage, isTest, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import {
-  addPlugin, attachLine, buildingOn, isSetAside, setAside, toggleSetAside, copyAttach, fileOf, hasUpdate, installedOn, isTest, labelOf, stageOf, markAttached, needsAttach, partsKb,
-  pluginsFile, realScreens, needsConsent, plugins, removePlugin, setupChanged, setupReady, statusOn,
-  canLike, chooseProvider, comesAlong, like, neededBy, otherOrigin, planOn, switchPlugin,
-} from "../plugin-state";
 import type { Screen } from "../types";
 import PluginReadme from "./PluginReadme.vue";
 import PluginSettings from "./PluginSettings.vue";
 import PluginSetup from "./PluginSetup.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
+const plugins = usePluginsStore();
 
 const props = defineProps<{ plugin: Plugin; screen?: Screen | null }>();
 defineEmits<{ close: [] }>();
 
-const label = computed(() => labelOf(props.plugin));
-const stage = computed(() => stageOf(props.plugin));
+const label = computed(() => plugins.labelOf(props.plugin));
+const stage = computed(() => plugins.stageOf(props.plugin));
 const kb = (value: number) => editorNumber(value);
 const percent = (share: number) => `${editorNumber((share * 100).toFixed(1))} %`;
 const works = computed(() => props.plugin.boards === "any"
@@ -40,29 +37,29 @@ const trust = ref(false);
 
 // ---- One screen (its Plugins tab) ----
 const here = computed(() => props.screen || null);
-const hereStatus = computed(() => (here.value ? statusOn(props.plugin, here.value) : null));
-const hereInstalled = computed(() => (here.value ? installedOn(here.value, props.plugin.id) : undefined));
-const hereFit = computed(() => (here.value ? fit(props.plugin, here.value) : { ok: true as const }));
-const hereFlash = computed(() => (here.value ? flashShare(props.plugin, here.value, partsKb(here.value, props.plugin)) : null));
-const hereAttach = computed(() => Boolean(here.value && needsAttach(here.value)));
+const hereStatus = computed(() => (here.value ? plugins.statusOn(props.plugin, here.value) : null));
+const hereInstalled = computed(() => (here.value ? plugins.installedOn(here.value, props.plugin.id) : undefined));
+const hereFit = computed(() => (here.value ? plugins.fits(props.plugin, here.value) : { ok: true as const }));
+const hereFlash = computed(() => (here.value ? flashShare(props.plugin, here.value, plugins.partsKb(here.value, props.plugin)) : null));
+const hereAttach = computed(() => Boolean(here.value && plugins.needsAttach(here.value)));
 // The settings of a plugin this screen runs, grouped by what a change does: at once (its ESPHome entities), for every
 // screen (what was filled in once), or a new build of this screen (its own inputs and parts).
 const sharedInputs = computed(() => (props.plugin.inputs || []).filter((input) => input.scope === "all"));
 const buildInputs = computed(() => (props.plugin.inputs || []).filter((input) => input.scope === "screen").length + (props.plugin.parts || []).length);
 const hereSettings = computed(() => Boolean(here.value && hereInstalled.value
   && (props.plugin.settings?.length || sharedInputs.value.length || buildInputs.value)));
-const hereChanged = computed(() => Boolean(here.value && setupChanged(here.value, props.plugin)));
+const hereChanged = computed(() => Boolean(here.value && plugins.setupChanged(here.value, props.plugin)));
 
 // ---- What it needs, what comes along, and the plugins that need it ----
 const byId = (id: string) => plugins.index.find((p) => p.id === id);
 const nameOf = (id: string) => (byId(id) ? text(byId(id)!.name) : id);
 const feature = (name: string) => (te(`editor.plugins.features.${name}`) ? t(`editor.plugins.features.${name}`) : name);
 // On this screen: what adding it brings along (the add-on's plan), a feature to choose a plugin for, or why it cannot.
-const herePlan = computed(() => (here.value && !hereInstalled.value && hereFit.value.ok ? planOn(here.value, [props.plugin.id]) : null));
-const hereAlong = computed(() => comesAlong(herePlan.value, [props.plugin.id]));
-const hereNeeded = computed(() => (here.value && hereInstalled.value ? neededBy(here.value, props.plugin.id) : []));
+const herePlan = computed(() => (here.value && !hereInstalled.value && hereFit.value.ok ? plugins.planOn(here.value, [props.plugin.id]) : null));
+const hereAlong = computed(() => plugins.comesAlong(herePlan.value, [props.plugin.id]));
+const hereNeeded = computed(() => (here.value && hereInstalled.value ? plugins.neededBy(here.value, props.plugin.id) : []));
 const cameWith = computed(() => (here.value && hereInstalled.value?.auto ? hereNeeded.value : []));
-const hereOther = computed(() => Boolean(here.value && otherOrigin(here.value, props.plugin)));
+const hereOther = computed(() => Boolean(here.value && plugins.otherOrigin(here.value, props.plugin)));
 const whyAlong = (row: { step: { for: string[] }; plugin: Plugin }) => {
   const brings = (row.plugin.provides || []).filter((f) => row.step.for.some((id) => (byId(id) || props.plugin).requires.features?.includes(f)));
   return brings.length ? t("editor.plugins.along.brings", { what: brings.map(feature).join(", ") })
@@ -72,35 +69,35 @@ const whyAlong = (row: { step: { for: string[] }; plugin: Plugin }) => {
 const confirming = ref<null | { screens: Screen[]; with: string[]; orphans: string[] }>(null);
 const alsoOrphans = ref(true);
 function askRemove(screens: Screen[]) {
-  const needing = [...new Set(screens.flatMap((screen) => neededBy(screen, props.plugin.id).map((p) => p.id)))];
+  const needing = [...new Set(screens.flatMap((screen) => plugins.neededBy(screen, props.plugin.id).map((p) => p.id)))];
   const orphans = [...new Set(screens.flatMap((screen) => (plugins.installed[screen.id] || []).filter((item) => item.auto
-    && item.id !== props.plugin.id && neededBy(screen, item.id).every((p) => p.id === props.plugin.id || needing.includes(p.id)))
+    && item.id !== props.plugin.id && plugins.neededBy(screen, item.id).every((p) => p.id === props.plugin.id || needing.includes(p.id)))
     .map((item) => item.id)))];
-  if (!needing.length && !orphans.length) return removePlugin(screens, props.plugin);
+  if (!needing.length && !orphans.length) return plugins.removePlugin(screens, props.plugin);
   alsoOrphans.value = true;
   confirming.value = { screens, with: needing, orphans };
 }
 function confirmRemove() {
   const ask = confirming.value!;
   confirming.value = null;
-  removePlugin(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
+  plugins.removePlugin(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
 }
 // A like: the first one asks once whether it may count in a public number (plugin_likes.py).
 const askingLike = ref(false);
 async function toggleLike(consent = false) {
   if (!props.plugin.liked && !plugins.likeConsent && !consent) { askingLike.value = true; return; }
   askingLike.value = false;
-  try { await like(props.plugin, !props.plugin.liked, consent); } catch (error: any) { ui.toast(error.message); }
+  try { await plugins.like(props.plugin, !props.plugin.liked, consent); } catch (error: any) { ui.toast(error.message); }
 }
 
 // What an update brings: the plugin's changelog from the version the screen runs (on the Plugins page: the oldest of
 // the screens with the update) up to the one on offer, and GitHub's compare as the full story.
 const newsFrom = computed(() => (here.value ? (hereStatus.value?.kind === "update" ? hereInstalled.value?.version : null)
-  : updatable.value.map((s) => installedOn(s, props.plugin.id)?.version || "").sort()[0] || null));
+  : updatable.value.map((s) => plugins.installedOn(s, props.plugin.id)?.version || "").sort()[0] || null));
 const news = computed(() => (newsFrom.value ? changesBetween(text(props.plugin.changelog || {}), newsFrom.value, props.plugin.version) : ""));
 const newsCompare = computed(() => {
   const screen = here.value || updatable.value[0];
-  const have = screen ? installedOn(screen, props.plugin.id)?.ref : null, next = props.plugin.ref;
+  const have = screen ? plugins.installedOn(screen, props.plugin.id)?.ref : null, next = props.plugin.ref;
   const sha = /^[0-9a-f]{40}$/;
   return props.plugin.repo && have && next && have !== next && sha.test(have) && sha.test(next)
     ? `${props.plugin.repo.replace(/\/tree\/.*$/, "")}/compare/${have}...${next}` : null;
@@ -109,34 +106,34 @@ const newsCompare = computed(() => {
 const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plugin.changelog || {})) : ""));
 
 // ---- Every screen (the Plugins page): a box per screen, applied together ----
-const screens = computed(() => realScreens());
+const screens = computed(() => plugins.realScreens());
 const wanted = reactive<Record<string, boolean>>({});
 function reset() {
   for (const key of Object.keys(wanted)) delete wanted[key];
-  for (const screen of screens.value) wanted[screen.id] = Boolean(installedOn(screen, props.plugin.id));
+  for (const screen of screens.value) wanted[screen.id] = Boolean(plugins.installedOn(screen, props.plugin.id));
 }
 watch([() => props.plugin.id, () => screens.value.map((s) => s.id).join()], reset, { immediate: true });
-const has = (screen: Screen) => Boolean(installedOn(screen, props.plugin.id));
-const canTick = (screen: Screen) => !buildingOn(screen, props.plugin.id) && !needsAttach(screen) && (has(screen) || fit(props.plugin, screen).ok);
+const has = (screen: Screen) => Boolean(plugins.installedOn(screen, props.plugin.id));
+const canTick = (screen: Screen) => !plugins.buildingOn(screen, props.plugin.id) && !plugins.needsAttach(screen) && (has(screen) || plugins.fits(props.plugin, screen).ok);
 function rowLine(screen: Screen) {
-  const have = installedOn(screen, props.plugin.id);
-  if (buildingOn(screen, props.plugin.id)) return t("editor.plugins.state.building");
+  const have = plugins.installedOn(screen, props.plugin.id);
+  if (plugins.buildingOn(screen, props.plugin.id)) return t("editor.plugins.state.building");
   if (wanted[screen.id] && !have) return t("editor.plugins.pending.add");
   if (!wanted[screen.id] && have) return t("editor.plugins.pending.remove");
   if (isTest(have)) return t(`editor.plugins.source.${have!.source}`);
-  if (hasUpdate(screen, props.plugin)) return t("editor.plugins.screen_update", { from: have!.version, to: props.plugin.version });
+  if (plugins.hasUpdate(screen, props.plugin)) return t("editor.plugins.screen_update", { from: have!.version, to: props.plugin.version });
   if (have) return t("editor.plugins.screen_version", { version: have.version });
-  const result = fit(props.plugin, screen);
+  const result = plugins.fits(props.plugin, screen);
   if (!result.ok) return t(`editor.plugins.misfit_short.${result.reason}`);
-  if (needsAttach(screen)) return t("editor.plugins.attach.row");
+  if (plugins.needsAttach(screen)) return t("editor.plugins.attach.row");
   return screen.shape?.catalog ? boardTitle(screen.shape.catalog) : "";
 }
 const adding = computed(() => screens.value.filter((s) => wanted[s.id] && !has(s)));
 const removing = computed(() => screens.value.filter((s) => !wanted[s.id] && has(s)));
 // An update that asks for other rights waits for the person's yes, shown above the update keys.
-const askConsent = computed(() => screens.value.some((s) => installedOn(s, props.plugin.id) && needsConsent(s, props.plugin)));
+const askConsent = computed(() => screens.value.some((s) => plugins.installedOn(s, props.plugin.id) && plugins.needsConsent(s, props.plugin)));
 const agreed = computed(() => !askConsent.value || Boolean(plugins.consented[props.plugin.id]));
-const updatable = computed(() => screens.value.filter((s) => hasUpdate(s, props.plugin)));
+const updatable = computed(() => screens.value.filter((s) => plugins.hasUpdate(s, props.plugin)));
 const applyText = computed(() => {
   const add = adding.value.length, drop = removing.value.length;
   if (add && drop) return t("editor.plugins.apply.both", { n: add + drop }, add + drop);
@@ -146,11 +143,11 @@ const applyText = computed(() => {
 });
 function apply() {
   // Adding sets the plugin aside on each ticked screen (the tray builds them); taking it off a screen goes at once.
-  for (const screen of adding.value) setAside(screen, props.plugin);
+  for (const screen of adding.value) plugins.setAside(screen, props.plugin);
   if (removing.value.length) askRemove(removing.value);
   trust.value = false;
 }
-watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?.version || ""}`).join(), reset);
+watch(() => screens.value.map((s) => `${s.id}:${plugins.installedOn(s, props.plugin.id)?.version || ""}`).join(), reset);
 </script>
 
 <template>
@@ -159,7 +156,7 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
     <span class="pd-top-end">
       <!-- A heart for a plugin that runs on one of the screens; before that it only shows how many like it. -->
       <button v-if="plugin.source === 'index'" type="button" class="pd-like" id="plugin-like" :class="{ on: plugin.liked }" :aria-pressed="Boolean(plugin.liked)"
-        :disabled="!canLike(plugin) && !plugin.liked" :title="canLike(plugin) || plugin.liked ? t(plugin.liked ? 'editor.plugins.likes.unlike' : 'editor.plugins.likes.like') : t('editor.plugins.likes.install_first')"
+        :disabled="!plugins.canLike(plugin) && !plugin.liked" :title="plugins.canLike(plugin) || plugin.liked ? t(plugin.liked ? 'editor.plugins.likes.unlike' : 'editor.plugins.likes.like') : t('editor.plugins.likes.install_first')"
         @click="toggleLike()"><Icon :name="plugin.liked ? 'heart' : 'heart-outline'" /><span>{{ plugin.likes || 0 }}</span></button>
       <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="$emit('close')"><Icon name="close" /></button>
     </span>
@@ -209,12 +206,12 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
     <p class="pd-note pd-attach-note"><Icon name="code-braces" /><span>{{ t("editor.plugins.attach.text", { screen: here.name }) }}</span></p>
     <pre class="pd-yaml">{{ attachLine(here) }}</pre>
     <div class="pd-buttons">
-      <button type="button" class="btn quiet" id="plugin-copy-line" @click="copyAttach(here)"><Icon name="content-copy" />{{ t("editor.plugins.attach.copy") }}</button>
-      <button type="button" class="btn primary" id="plugin-attached" @click="markAttached(here)">{{ t("editor.plugins.attach.done") }}</button>
+      <button type="button" class="btn quiet" id="plugin-copy-line" @click="plugins.copyAttach(here)"><Icon name="content-copy" />{{ t("editor.plugins.attach.copy") }}</button>
+      <button type="button" class="btn primary" id="plugin-attached" @click="plugins.markAttached(here)">{{ t("editor.plugins.attach.done") }}</button>
     </div>
-    <details v-if="pluginsFile(here)" class="pd-file">
+    <details v-if="plugins.pluginsFile(here)" class="pd-file">
       <summary><Icon name="chevron-right" />{{ t("editor.plugins.attach.file", { file: fileOf(here) }) }}</summary>
-      <pre class="pd-yaml">{{ pluginsFile(here) }}</pre>
+      <pre class="pd-yaml">{{ plugins.pluginsFile(here) }}</pre>
     </details>
   </div>
 
@@ -224,14 +221,14 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
     <template v-else-if="hereStatus.kind === 'test'">
       <p class="pd-note">{{ t("editor.plugins.test_note") }}</p>
       <div class="pd-buttons">
-        <button type="button" class="btn primary" id="plugin-rebuild" @click="addPlugin([here], plugin)">{{ t("editor.plugins.rebuild") }}</button>
+        <button type="button" class="btn primary" id="plugin-rebuild" @click="plugins.addPlugin([here], plugin)">{{ t("editor.plugins.rebuild") }}</button>
         <button type="button" class="btn quiet" @click="askRemove([here])">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
       </div>
     </template>
     <template v-else-if="hereStatus.kind === 'failed'">
       <p class="pd-misfit" id="plugin-failed"><Icon name="information-outline" />{{ t("editor.plugins.failed", { screen: here.name }) }}</p>
       <div class="pd-buttons">
-        <button type="button" class="btn primary" @click="addPlugin([here], plugin)">{{ t("editor.plugins.retry") }}</button>
+        <button type="button" class="btn primary" @click="plugins.addPlugin([here], plugin)">{{ t("editor.plugins.retry") }}</button>
         <button type="button" class="btn quiet" @click="askRemove([here])">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
       </div>
     </template>
@@ -243,14 +240,14 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       <p v-if="hereInstalled.blocked" class="pd-misfit" id="plugin-blocked"><Icon name="alert-circle-outline" />{{ t("editor.plugins.blocked_now", { why: hereInstalled.blocked }) }}</p>
       <template v-if="hereOther">
         <p class="pd-misfit" id="plugin-other-origin"><Icon name="information-outline" />{{ t("editor.plugins.other_origin", { origin: hereInstalled.origin }) }}</p>
-        <div class="pd-buttons"><button type="button" class="btn quiet" id="plugin-switch" @click="switchPlugin(here, plugin)">{{ t("editor.plugins.switch", { origin: plugin.origin }) }}</button></div>
+        <div class="pd-buttons"><button type="button" class="btn quiet" id="plugin-switch" @click="plugins.switchPlugin(here, plugin)">{{ t("editor.plugins.switch", { origin: plugin.origin }) }}</button></div>
       </template>
       <label v-if="hereStatus.kind === 'update' && askConsent" class="pd-trust" id="plugin-consent">
         <input type="checkbox" :checked="plugins.consented[plugin.id]" @change="plugins.consented[plugin.id] = ($event.target as HTMLInputElement).checked" />
         <span><b>{{ t("editor.plugins.consent.title") }}</b>{{ t("editor.plugins.consent.agree") }}</span>
       </label>
       <div class="pd-buttons">
-        <button v-if="hereStatus.kind === 'update'" type="button" class="btn primary" id="plugin-update" :disabled="!agreed" @click="addPlugin([here], plugin)">{{ t("editor.plugins.update", { version: plugin.version }) }}</button>
+        <button v-if="hereStatus.kind === 'update'" type="button" class="btn primary" id="plugin-update" :disabled="!agreed" @click="plugins.addPlugin([here], plugin)">{{ t("editor.plugins.update", { version: plugin.version }) }}</button>
         <button type="button" class="btn quiet" id="plugin-remove" @click="askRemove([here])">{{ t("editor.plugins.remove", { screen: here.name }) }}</button>
       </div>
     </template>
@@ -266,17 +263,17 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
         </div>
         <label v-for="choice in herePlan?.choose || []" :key="choice.feature" class="field pd-choose">
           <span class="f-label">{{ t("editor.plugins.along.choose", { what: feature(choice.feature) }) }}</span>
-          <select :data-feature="choice.feature" @change="chooseProvider(here!, choice.feature, ($event.target as HTMLSelectElement).value)">
+          <select :data-feature="choice.feature" @change="plugins.chooseProvider(here!, choice.feature, ($event.target as HTMLSelectElement).value)">
             <option value="" selected disabled>{{ t("editor.plugin_tile.choose") }}</option>
             <option v-for="id in choice.options" :key="id" :value="id">{{ nameOf(id) }}</option>
           </select>
         </label>
       </div>
       <!-- Set aside, not built: the tray takes it with whatever else is chosen, and builds the screen once. -->
-      <button type="button" class="btn pd-install" :class="isSetAside(here, plugin.id) ? 'quiet' : 'primary'" id="plugin-install" @click="toggleSetAside(here, plugin)">
-        <Icon :name="isSetAside(here, plugin.id) ? 'check' : 'plus'" />{{ isSetAside(here, plugin.id) ? t("editor.plugins.tray.in_tray") : t("editor.plugins.tray.stage", { screen: here.name }) }}
+      <button type="button" class="btn pd-install" :class="plugins.isSetAside(here, plugin.id) ? 'quiet' : 'primary'" id="plugin-install" @click="plugins.toggleSetAside(here, plugin)">
+        <Icon :name="plugins.isSetAside(here, plugin.id) ? 'check' : 'plus'" />{{ plugins.isSetAside(here, plugin.id) ? t("editor.plugins.tray.in_tray") : t("editor.plugins.tray.stage", { screen: here.name }) }}
       </button>
-      <p class="pd-build-note">{{ isSetAside(here, plugin.id) ? t("editor.plugins.tray.in_tray_note") : t("editor.plugins.build_note") }}</p>
+      <p class="pd-build-note">{{ plugins.isSetAside(here, plugin.id) ? t("editor.plugins.tray.in_tray_note") : t("editor.plugins.build_note") }}</p>
     </template>
   </div>
 
@@ -289,17 +286,17 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
           <input type="checkbox" :checked="wanted[s.id]" :disabled="!canTick(s)" :data-screen="s.name" @change="wanted[s.id] = ($event.target as HTMLInputElement).checked" />
           <span class="pd-screen-words"><b>{{ s.name }}</b><small :class="{ 'pd-pending': Boolean(wanted[s.id]) !== has(s) }">{{ rowLine(s) }}</small></span>
         </label>
-        <span v-if="buildingOn(s, plugin.id)" class="spin small" aria-hidden="true"></span>
+        <span v-if="plugins.buildingOn(s, plugin.id)" class="spin small" aria-hidden="true"></span>
       </li>
     </ul>
     <PluginSetup :plugin="plugin" :screens="adding" />
     <div class="pd-buttons">
-      <button type="button" class="btn primary" id="plugin-apply" :disabled="!(adding.length || removing.length) || !setupReady(plugin, adding)" @click="apply">{{ applyText }}</button>
+      <button type="button" class="btn primary" id="plugin-apply" :disabled="!(adding.length || removing.length) || !plugins.setupReady(plugin, adding)" @click="apply">{{ applyText }}</button>
       <label v-if="updatable.length && askConsent" class="pd-trust" id="plugin-consent-all">
         <input type="checkbox" :checked="plugins.consented[plugin.id]" @change="plugins.consented[plugin.id] = ($event.target as HTMLInputElement).checked" />
         <span><b>{{ t("editor.plugins.consent.title") }}</b>{{ t("editor.plugins.consent.agree") }}</span>
       </label>
-      <button v-if="updatable.length" type="button" class="btn quiet" id="plugin-update-all" :disabled="!agreed" @click="addPlugin(updatable, plugin)">{{ t("editor.plugins.update_all", { n: updatable.length, version: plugin.version }, updatable.length) }}</button>
+      <button v-if="updatable.length" type="button" class="btn quiet" id="plugin-update-all" :disabled="!agreed" @click="plugins.addPlugin(updatable, plugin)">{{ t("editor.plugins.update_all", { n: updatable.length, version: plugin.version }, updatable.length) }}</button>
     </div>
   </div>
 
@@ -327,7 +324,7 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
       <PluginSetup :plugin="plugin" :screens="[here]" only="screen" />
     </div>
     <button v-if="sharedInputs.length || buildInputs" type="button" class="btn primary pd-save" id="plugin-settings-save"
-      :disabled="!hereChanged || hereStatus?.kind === 'building'" @click="addPlugin([here], plugin)">{{ t("editor.plugins.settings.save_build") }}</button>
+      :disabled="!hereChanged || hereStatus?.kind === 'building'" @click="plugins.addPlugin([here], plugin)">{{ t("editor.plugins.settings.save_build") }}</button>
   </section>
 
   <!-- The plugin's README: what to do in Home Assistant, where a key comes from. Its own words, safely shown. -->
@@ -376,9 +373,9 @@ watch(() => screens.value.map((s) => `${s.id}:${installedOn(s, props.plugin.id)?
         <i class="before" :style="{ width: hereFlash.before * 100 + '%' }"></i>
         <i class="added" :style="{ left: hereFlash.before * 100 + '%', width: Math.max(0.6, (hereFlash.after - hereFlash.before) * 100) + '%' }"></i>
       </div>
-      <p class="pd-room">{{ t("editor.plugins.room.small", { kb: kb(plugin.flash_kb + (here ? partsKb(here, plugin) : 0)), before: percent(hereFlash.before), after: percent(hereFlash.after) }) }}</p>
+      <p class="pd-room">{{ t("editor.plugins.room.small", { kb: kb(plugin.flash_kb + (here ? plugins.partsKb(here, plugin) : 0)), before: percent(hereFlash.before), after: percent(hereFlash.after) }) }}</p>
     </template>
-    <p v-else-if="here" class="pd-room">{{ t("editor.plugins.room.large", { kb: kb(plugin.flash_kb + partsKb(here, plugin)) }) }}</p>
+    <p v-else-if="here" class="pd-room">{{ t("editor.plugins.room.large", { kb: kb(plugin.flash_kb + plugins.partsKb(here, plugin)) }) }}</p>
     <p v-else class="pd-room">{{ t("editor.plugins.room.per_screen", { kb: kb(plugin.flash_kb) }) }}</p>
     <p class="pd-room"><span class="pd-works">{{ t("editor.plugins.works.title") }}</span> {{ works }}</p>
   </section>

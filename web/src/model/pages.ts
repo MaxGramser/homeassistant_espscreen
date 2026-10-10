@@ -261,7 +261,7 @@ export function projectLayout(layout: PageLayout, grid: PageGrid): Layout {
 }
 
 export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
-  validatePageShape(layout);
+  validatePageShape(layout, grid.plugins === true);
   if (![grid.columns, grid.rows].every((n) => Number.isInteger(n) && n > 0) || grid.columns * grid.rows > 64)
     throw new Error(t("editor.pages.wait_grid"));
   if (!layout.pages.length || layout.pages.length > pageLimit(grid)) throw new Error(t("addon.errors.pages.pages_full"));

@@ -14,21 +14,22 @@ import FirmwareView from "./components/FirmwareView.vue";
 import AlertsView from "./components/AlertsView.vue";
 import OverrideView from "./components/OverrideView.vue";
 import PluginsView from "./components/PluginsView.vue";
-import { pluginsEnabled } from "./plugin-state";
 import { question } from "./composables/useConfirm";
 import { currentScreen, state } from "./store";
 import { useSidebarStore } from "./stores/sidebar";
 import { useUiStore } from "./stores/ui";
+import { usePluginsStore } from "./stores/plugins";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
+const plugins = usePluginsStore();
 const view = computed(() => {
   if (ui.route === "#settings") return AppSettingsView;
   if (ui.route === "#new-screen") return InstallerView;
   if (ui.route === "#firmware") return FirmwareView;
   if (ui.route === "#alerts") return AlertsView;
   if (ui.route === "#override") return OverrideView;
-  if (ui.route === "#plugins" && pluginsEnabled.value) return PluginsView;
+  if (ui.route === "#plugins" && plugins.pluginsEnabled) return PluginsView;
   // Nothing chosen is the overview of every screen (app 0.4.0); a house without screens starts with the first.
   if (currentScreen.value && state.layout) return ScreenView;
   return state.selected || !state.inventory.screens.length ? EmptyState : HomeView;

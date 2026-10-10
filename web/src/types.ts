@@ -41,8 +41,9 @@ export type HeaderItem = { id?: string; type: string; entity?: string; content?:
 // said before it went offline.
 // `room` is null while the screen is still measuring it (firmware 0.51.0).
 export type ScreenMemory = { room: number | null; used: number; psram: boolean; tile: number; extra: number; page?: number; short?: boolean; live?: boolean };
-// `barItems`: the items one page's top bar takes there (model/pages.ts barLimit).
-export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number; barItems?: number }>;
+// `barItems`: the items one page's top bar takes there (model/pages.ts barLimit). `plugins`: whether plugin tiles and
+// items are taken there (the add-on serves plugins, the plugins store's pluginsEnabled); never stored with a document.
+export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number; barItems?: number; plugins?: boolean }>;
 // The grids a screen takes one way its glass hangs, and the one it keeps for that way (firmware 0.53.0+, its hello).
 export type GridWay = { columns: number; rows: number; min: [number, number]; max: [number, number] };
 export type ScreenGrids = { upright: boolean; landscape: GridWay; portrait: GridWay };

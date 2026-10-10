@@ -41,12 +41,12 @@ export function previewShapeOf(screen: Pick<Screen, "shape">, grid?: PageGrid | 
 
 // Preview screens live in this browser's storage, written by an older app too. Each one is checked on its own (app
 // 0.4.32): one that no longer reads, or whose pages this app refuses, is left out, and never keeps the editor or the
-// other preview screens from loading.
-export function usablePreview(s: any): boolean {
+// other preview screens from loading. `plugins`: whether plugin tiles are taken (model/pages.ts PageGrid).
+export function usablePreview(s: any, plugins = false): boolean {
   try {
     if (!(s?.virtual && typeof s.id === "string" && s.id.startsWith("virtual.") && s.shape && validPreviewShape(s.shape) && Array.isArray(s.layout?.tiles))) return false;
     const document = s.page_document;
-    if (document?.format === "pages-v2") validatePages(document.layout, document.sourceGrid);
+    if (document?.format === "pages-v2") validatePages(document.layout, { ...document.sourceGrid, plugins });
     return true;
   } catch { return false; }
 }

@@ -14,15 +14,16 @@ import {
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
-import { pluginsEnabled } from "../plugin-state";
 import { SIDE_MAX, SIDE_MIN, useSidebarStore } from "../stores/sidebar";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
 const builds = useBuildsStore();
+const plugins = usePluginsStore();
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
@@ -310,7 +311,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     <div class="more">
       <!-- The firmware tool (build, USB, OTA, download) is for repairs, not for adding a screen, so it lives in Settings,
            the command palette and a screen's menu rather than here, where it read as the way in (app 0.3.27). -->
-      <button v-if="pluginsEnabled" id="open-plugins" type="button" class="nav-item" data-tip="plugins" v-tooltip="tip('plugins', t('editor.nav.plugins'))" :aria-current="ui.route === '#plugins' ? 'true' : 'false'" @click="ui.go('#plugins')"><Icon name="puzzle-outline"/><span class="txt">{{ t("editor.nav.plugins") }}</span><span v-if="pluginBuilds()" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span></button>
+      <button v-if="plugins.pluginsEnabled" id="open-plugins" type="button" class="nav-item" data-tip="plugins" v-tooltip="tip('plugins', t('editor.nav.plugins'))" :aria-current="ui.route === '#plugins' ? 'true' : 'false'" @click="ui.go('#plugins')"><Icon name="puzzle-outline"/><span class="txt">{{ t("editor.nav.plugins") }}</span><span v-if="pluginBuilds()" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span></button>
       <button id="open-alerts" type="button" class="nav-item" data-tip="alerts" v-tooltip="tip('alerts', t('editor.nav.alerts'))" :aria-current="ui.route === '#alerts' ? 'true' : 'false'" @click="ui.go('#alerts')"><span class="mdi">{{ glyph("F0594") }}</span><span class="txt">{{ t("editor.nav.alerts") }}</span></button>
       <button id="open-settings" type="button" class="nav-item" data-tip="settings" v-tooltip="tip('settings', t('editor.nav.settings'))" :aria-current="ui.route === '#settings' ? 'true' : 'false'" @click="ui.go('#settings')"><span class="mdi">{{ glyph("F0493") }}</span><span class="txt">{{ t("editor.nav.settings") }}</span></button>
     </div>

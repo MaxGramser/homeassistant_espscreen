@@ -5,9 +5,8 @@
 // add-on's: the plugin index, and the plugins someone is making in a folder of Home Assistant's config (a test).
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
-import { fit, PLUGIN_TOPICS, PLUGIN_TYPES, text, type Plugin } from "../model/plugins";
+import { PLUGIN_TOPICS, PLUGIN_TYPES, text, type Plugin } from "../model/plugins";
 import { matchesWords, queryWords } from "../model/search";
-import { allTests, installedOn, isSetAside, loadPlugins, plugins, realScreens, statusOverall, toggleSetAside, tray } from "../plugin-state";
 // The folder as Home Assistant shows it (config/...), not as the app's container mounts it (/homeassistant/...).
 const folderShown = (path: string) => path.replace(/^\/(homeassistant|config)\//, "config/");
 import BuildLog from "./BuildLog.vue";
@@ -24,11 +23,13 @@ import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import { DropdownMenuCheckboxItem, DropdownMenuItemIndicator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "reka-ui";
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
+const plugins = usePluginsStore();
 
-loadPlugins();
+plugins.loadPlugins();
 // Three tabs by what a plugin adds (read from its manifest), so a countdown is never found among a board's audio parts,
 // and what is on a screen now; under them the topics its makers gave, as chips; a search looks through every tab.
 const TABS = [...PLUGIN_TYPES, "in_use"] as const;
@@ -44,8 +45,8 @@ const maker = ref<(typeof MAKERS)[number]>("all");
 // Only what fits one of the screens: on by default, the rest folds away under the list.
 const fittingOnly = ref(true);
 const query = ref("");
-const everything = computed(() => [...plugins.index, ...allTests()]);
-const inUse = (plugin: Plugin) => realScreens().some((screen) => installedOn(screen, plugin.id));
+const everything = computed(() => [...plugins.index, ...plugins.allTests()]);
+const inUse = (plugin: Plugin) => plugins.realScreens().some((screen) => plugins.installedOn(screen, plugin.id));
 const inTab = (plugin: Plugin, key: Tab) => (key === "in_use" ? inUse(plugin) : (plugin.type || "functions") === key);
 const matches = (plugin: Plugin) => {
   const words = queryWords(query.value);
@@ -82,7 +83,7 @@ const listed = computed(() => found.value.filter((plugin) => inTab(plugin, tab.v
   && (!chosenTopics.value.length || (plugin.topics || []).some((name) => chosenTopics.value.includes(name)))).sort(order));
 // What fits none of this app's screens folds away under the list, with its reason on the card: it is still there to look
 // at, never hidden the way a store hides what a phone cannot run.
-const fitsSome = (plugin: Plugin) => !realScreens().length || inUse(plugin) || realScreens().some((screen) => fit(plugin, screen).ok);
+const fitsSome = (plugin: Plugin) => !plugins.realScreens().length || inUse(plugin) || plugins.realScreens().some((screen) => plugins.fits(plugin, screen).ok);
 const shown = computed(() => listed.value.filter((plugin) => !fittingOnly.value || fitsSome(plugin)));
 const misfits = computed(() => (fittingOnly.value ? listed.value.filter((plugin) => !fitsSome(plugin)) : []));
 const misfitsOpen = ref(false);
@@ -91,12 +92,12 @@ const panel = ref<"plugin" | "link" | null>(null);
 const openId = ref<string | null>(null);
 const open = computed(() => everything.value.find((plugin) => plugin.id === openId.value) || null);
 // The tray folds to its head while details are open, and opens again when they close.
-function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; tray.open = false; }
-function close() { panel.value = null; openId.value = null; tray.open = true; }
+function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; plugins.tray.open = false; }
+function close() { panel.value = null; openId.value = null; plugins.tray.open = true; }
 // Add on a card goes straight to the tray when there is one screen it can go on; with more, its details ask which.
 const onlyScreen = (plugin: Plugin) => {
-  const fits = realScreens().filter((screen) => !installedOn(screen, plugin.id) && fit(plugin, screen).ok);
-  return fits.length === 1 && realScreens().length === 1 ? fits[0] : null;
+  const fits = plugins.realScreens().filter((screen) => !plugins.installedOn(screen, plugin.id) && plugins.fits(plugin, screen).ok);
+  return fits.length === 1 && plugins.realScreens().length === 1 ? fits[0] : null;
 };
 const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => builds.buildOf(screen)?.by === "plugins"));
 </script>
@@ -154,7 +155,7 @@ const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => bu
                 <span class="ui-menu-text">{{ t(`editor.plugins.made_by.${key}`) }}</span>
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
-            <template v-if="realScreens().length">
+            <template v-if="plugins.realScreens().length">
               <UiMenuSeparator />
               <DropdownMenuCheckboxItem v-model="fittingOnly" class="ui-menu-item pb-check" id="plugin-fitting" @select="(e: Event) => e.preventDefault()">
                 <span class="pb-tick"><DropdownMenuItemIndicator><Icon name="check" /></DropdownMenuItemIndicator></span>
@@ -180,8 +181,8 @@ const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => bu
           </UiMenu>
         </div>
         <div class="plugin-grid" role="list">
-          <PluginCard v-for="plugin in shown" :key="plugin.id" :plugin="plugin" :status="statusOverall(plugin)" :chosen="openId === plugin.id"
-            :staged="onlyScreen(plugin) ? isSetAside(onlyScreen(plugin)!, plugin.id) : null" @open="show(plugin)" @add="toggleSetAside(onlyScreen(plugin)!, plugin)" />
+          <PluginCard v-for="plugin in shown" :key="plugin.id" :plugin="plugin" :status="plugins.statusOverall(plugin)" :chosen="openId === plugin.id"
+            :staged="onlyScreen(plugin) ? plugins.isSetAside(onlyScreen(plugin)!, plugin.id) : null" @open="show(plugin)" @add="plugins.toggleSetAside(onlyScreen(plugin)!, plugin)" />
           <p v-if="!shown.length" class="pick-none">{{ query.trim() ? t("editor.plugins.none_found", { query: query.trim() })
             : tab === "in_use" ? t("editor.plugins.none_in_use") : t(`editor.plugins.none_in_tab.${tab}`) }}</p>
         </div>
@@ -191,7 +192,7 @@ const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => bu
             <Icon :name="misfitsOpen ? 'chevron-down' : 'chevron-right'" />{{ t("editor.plugins.fits_none_group", { n: misfits.length }, misfits.length) }}
           </button>
           <div v-if="misfitsOpen" class="plugin-grid" role="list">
-            <PluginCard v-for="plugin in misfits" :key="plugin.id" :plugin="plugin" :status="statusOverall(plugin)" :chosen="openId === plugin.id" @open="show(plugin)" />
+            <PluginCard v-for="plugin in misfits" :key="plugin.id" :plugin="plugin" :status="plugins.statusOverall(plugin)" :chosen="openId === plugin.id" @open="show(plugin)" />
           </div>
         </div>
         <PluginMaker :folder="plugins.folders.path ? folderShown(plugins.folders.path) : ''" @link="panel = 'link'; openId = null" />

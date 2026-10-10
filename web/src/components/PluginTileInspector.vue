@@ -4,8 +4,7 @@
 // a stop): the add-on asks the plugin's service with the tile's other options and hands back only the choices.
 import { computed } from "vue";
 import { editorNumber, t } from "../i18n";
-import { offeredEntities, pluginDefaults, pluginTileOf, text, type PluginTileOption } from "../model/plugins";
-import { choicesFor, entitiesIn } from "../plugin-state";
+import { offeredEntities, pluginDefaults, text, type PluginTileOption } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import { closeInspector, removeTile, setTileName, setTileOption, state } from "../store";
 import type { Tile } from "../types";
@@ -15,18 +14,21 @@ import PropRow from "./ui/PropRow.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import UiSelect from "./ui/UiSelect.vue";
+import { usePluginsStore } from "../stores/plugins";
+
+const plugins = usePluginsStore();
 
 const props = defineProps<{ tile: Tile }>();
-const kind = computed(() => pluginTileOf(props.tile.entity)!);
+const kind = computed(() => plugins.pluginTileOf(props.tile.entity)!);
 const values = computed(() => ({ ...pluginDefaults(kind.value.tile), ...(props.tile.options?.plugin || {}) }));
 function set(option: PluginTileOption, value: string | number | boolean) {
   setTileOption(props.tile, "plugin", { ...(props.tile.options?.plugin || {}), [option.id]: value });
 }
 // A tile that belongs to an entity (its manifest's `domains`): the entities of those domains, only those with the
 // attributes it needs when its manifest names them (`has_attributes`).
-const entityChoices = computed(() => offeredEntities(entitiesIn(kind.value.tile.domains), kind.value.tile, props.tile.options?.plugin_entity)
+const entityChoices = computed(() => offeredEntities(plugins.entitiesIn(kind.value.tile.domains), kind.value.tile, props.tile.options?.plugin_entity)
   .map((e) => [e.id, e.name !== e.id ? `${e.name} (${e.id})` : e.id] as [string, string]));
-const choices = (option: PluginTileOption) => choicesFor(kind.value.plugin, option, values.value).map((choice) => [choice.value, text(choice.label)] as [string, string]);
+const choices = (option: PluginTileOption) => plugins.choicesFor(kind.value.plugin, option, values.value).map((choice) => [choice.value, text(choice.label)] as [string, string]);
 const fromFetch = (option: PluginTileOption) => Boolean(option.options_from);
 const size = (value: string) => value.replace("x", "×");
 const number = (value: number) => editorNumber(value);

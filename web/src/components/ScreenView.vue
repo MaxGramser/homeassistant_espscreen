@@ -13,7 +13,6 @@ import { useConfirm } from "../composables/useConfirm";
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
 import ScreenPluginsTab from "./ScreenPluginsTab.vue";
-import { pluginsEnabled } from "../plugin-state";
 import Drawer from "./Drawer.vue";
 import FeedbackPanel from "./FeedbackPanel.vue";
 import Icon from "./ui/Icon.vue";
@@ -24,9 +23,11 @@ import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import UiMenuSub from "./ui/UiMenuSub.vue";
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
+const plugins = usePluginsStore();
 
 const screen = computed(() => currentScreen.value!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
@@ -128,7 +129,7 @@ useEventListener(document, "keydown", onKey);
       <button v-if="!screen.virtual" type="button" id="tab-settings" role="tab" :aria-pressed="state.tab === 'settings' ? 'true' : 'false'" :aria-selected="state.tab === 'settings'" @click="state.tab = 'settings'; closeInspector()">
         <Icon name="cog-outline" />{{ t("editor.screen_view.tabs.settings") }}
       </button>
-      <button v-if="!screen.virtual && pluginsEnabled" type="button" id="tab-plugins" role="tab" :aria-pressed="state.tab === 'plugins' ? 'true' : 'false'" :aria-selected="state.tab === 'plugins'" @click="state.tab = 'plugins'; closeInspector()">
+      <button v-if="!screen.virtual && plugins.pluginsEnabled" type="button" id="tab-plugins" role="tab" :aria-pressed="state.tab === 'plugins' ? 'true' : 'false'" :aria-selected="state.tab === 'plugins'" @click="state.tab = 'plugins'; closeInspector()">
         <Icon name="puzzle-outline" />{{ t("editor.screen_view.tabs.plugins") }}
         <span v-if="builds.buildOf(screen)?.by === 'plugins'" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span>
       </button>
@@ -156,7 +157,7 @@ useEventListener(document, "keydown", onKey);
           <UiMenuItem icon="page-layout-header" @select="state.tab = 'layout'; openBar(0, state.barPage)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
           <UiMenuSeparator />
           <UiMenuItem v-if="!screen.virtual" icon="cog-outline" @select="phoneSettings">{{ t("editor.screen_view.tabs.settings") }}</UiMenuItem>
-          <UiMenuItem v-if="!screen.virtual && pluginsEnabled" icon="puzzle-outline" @select="closeMenu(); closeInspector(); state.tab = 'plugins'">{{ t("editor.screen_view.tabs.plugins") }}</UiMenuItem>
+          <UiMenuItem v-if="!screen.virtual && plugins.pluginsEnabled" icon="puzzle-outline" @select="closeMenu(); closeInspector(); state.tab = 'plugins'">{{ t("editor.screen_view.tabs.plugins") }}</UiMenuItem>
           <UiMenuItem v-if="!screen.virtual" icon="pencil-outline" @select="phoneRename">{{ t("editor.sidebar.rename.button") }}</UiMenuItem>
           <UiMenuSeparator />
         </template>

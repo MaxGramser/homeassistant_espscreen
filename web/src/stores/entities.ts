@@ -7,10 +7,11 @@ import { computed, ref, toRaw } from "vue";
 import { getJson, send } from "../api";
 import type { HistoryPreview } from "../model/history-preview";
 import { homeView, type HomeView } from "../model/overview";
-import { pluginTileOf, text as pluginText } from "../model/plugins";
+import { text as pluginText } from "../model/plugins";
 import { itemKey } from "../model/topbar";
 import { state } from "../store";
 import type { Capability, EntityAction, Tile } from "../types";
+import { usePluginsStore } from "./plugins";
 
 // What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
 export type Live = { state: string; word?: string | null; a: Record<string, any> };
@@ -22,9 +23,12 @@ const query = (ids: string[]) => ids.map((id) => `entity=${encodeURIComponent(id
 const own = (ids: string[]) => [...new Set(ids)].filter((id) => !id.startsWith("screen."));
 
 export const useEntitiesStore = defineStore("entities", () => {
+  const plugins = usePluginsStore();
+
   // ---- Names and icons ----
+  // A plugin's tile is named and drawn as its manifest says (stores/plugins.ts).
   function entityName(id: string) {
-    const plugin = pluginTileOf(id);
+    const plugin = plugins.pluginTileOf(id);
     if (plugin) return pluginText(plugin.tile.name);
     return state.inventory.entities.find((e) => e.id === id)?.name || state.inventory.builtin?.find((e) => e.id === id)?.name ||
       state.inventory.trackers?.find((e) => e.id === id)?.name || id;
@@ -36,7 +40,7 @@ export const useEntitiesStore = defineStore("entities", () => {
   const iconNamed = (name: string | undefined) => (name ? iconsByName.value[name] : undefined);
   // What the firmware draws without a choice: Home Assistant's own icon, else the domain icon.
   function automaticIcon(id: string): string {
-    const plugin = pluginTileOf(id);
+    const plugin = plugins.pluginTileOf(id);
     if (plugin) return plugin.tile.icon || plugin.plugin.icon;
     const icons = state.inventory.icons;
     if (!icons) return "F0335";

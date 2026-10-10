@@ -9,10 +9,8 @@ import { beginFieldEdit, endFieldEdit } from '../store';
 import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pageTarget, SLIDER_DOMAINS, SWITCHES_ON_TAP, TOGGLE_BEFORE } from "../model/layout";
 import { glyph } from "../model/topbar";
 import { controlOption, drawable, fits, ofType } from "../model/catalogue";
-import { pluginsEnabled, tapActionsFor } from "../plugin-state";
 import { currentScreen, moveTileToPage, openPage, openTile, fullPage, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports } from "../store";
 import { titleOf } from "../model/pages";
-import { pluginTileOf } from "../model/plugins";
 import PluginTileInspector from "./PluginTileInspector.vue";
 import type { Tile } from "../types";
 import ActionPicker from "./ActionPicker.vue";
@@ -37,10 +35,12 @@ import { isTallSize } from "../model/sizes";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
+const plugins = usePluginsStore();
 
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
@@ -57,7 +57,7 @@ const otherPages = computed(() => (state.document?.pages || []).map((page, index
 const nameDraft = useTextDraft(() => props.tile.name, value => setTileName(props.tile, value));
 const domain = computed(() => props.tile.entity.split(".")[0]);
 // A plugin's tile (design) has an inspector of its own, built from the plugin's manifest.
-const pluginTile = computed(() => Boolean(pluginTileOf(props.tile.entity)));
+const pluginTile = computed(() => Boolean(plugins.pluginTileOf(props.tile.entity)));
 const name = computed(() => entities.entityName(props.tile.entity));
 // A navigation tile (screen.page_<n>): the page it opens, its size, icon and colour; nothing else applies.
 const goesTo = computed(() => pageTarget(props.tile.entity));
@@ -234,7 +234,7 @@ const taps = computed(() => {
   if (display.value !== "favorite") keys.push("action");
   // A plugin on this screen may offer a tap of its own for this kind of tile (docs/PLUGINS.md): a thermostat that opens
   // its schedule. A tap set to one whose plugin left the screen stays listed under its own name until it is changed.
-  const fromPlugins = pluginsEnabled.value ? tapActionsFor(currentScreen.value, domain.value) : [];
+  const fromPlugins = plugins.pluginsEnabled ? plugins.tapActionsFor(currentScreen.value, domain.value) : [];
   if (tap.value.startsWith("plugin:") && !fromPlugins.some(([key]) => key === tap.value)) fromPlugins.push([tap.value, tap.value]);
   return [...offer("tap", keys.map((key) => [key, t(`editor.tile.tap.${key}`)] as [string, string]), tap.value), ...fromPlugins];
 });

@@ -11,7 +11,6 @@ import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
 import { measuring, memoryCrossing, memoryUse } from "./model/memory";
 import { previewGrids, usablePreview, validPreviewShape, type PreviewProfile } from "./model/preview";
-import { barItemOf, pluginTileOf } from "./model/plugins";
 import renderer from "./wasm/renderer.json";
 import type { BoardChoice, ChildTile, FeedbackView, HeaderItem, Inventory, Layout, SaverKind, Screen, ScreensaverChoice, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
 
@@ -36,6 +35,7 @@ import { askConfirm } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
 import { useBuildsStore } from "./stores/builds";
 import { useEntitiesStore } from "./stores/entities";
+import { usePluginsStore } from "./stores/plugins";
 import { useRegionStore } from "./stores/region";
 import { useSettingsStore } from "./stores/settings";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
@@ -129,7 +129,8 @@ function virtualScreens(): Screen[] {
     const stored = JSON.parse(readStored(VIRTUAL_SCREENS_KEY) || "[]");
     value = Array.isArray(stored) ? stored : [];
   } catch { value = []; }
-  const usable = value.filter(usablePreview);
+  const plugins = usePluginsStore().pluginsEnabled;
+  const usable = value.filter((s) => usablePreview(s, plugins));
   const skipped = value.filter((s) => !usable.includes(s)).map((s) => (typeof s?.name === "string" && s.name) || "?").join(", ");
   if (skipped && skipped !== previewsSkipped) { previewsSkipped = skipped; setTimeout(() => toast(t("editor.preview.skipped", { names: skipped })), 0); }
   return usable.map((s) => ({ ...s, firmware: renderer.firmware, firmware_known: renderer.firmware,
@@ -194,7 +195,7 @@ export const screenMemory = computed(() => currentScreen.value?.memory || null);
 // A screen that is still measuring its room (firmware 0.51.0) has no share yet: the meter says so, and nothing asks.
 export const memoryMeasuring = computed(() => !!screenMemory.value && measuring(screenMemory.value));
 export const memory = computed(() => (screenMemory.value && !memoryMeasuring.value && state.layout
-  ? memoryUse(state.layout.tiles, screenMemory.value, state.document?.pages || []) : null));
+  ? memoryUse(state.layout.tiles, screenMemory.value, state.document?.pages || [], usePluginsStore().pluginTileOf) : null));
 // Whether a new tile of this entity goes on, as a library click or drag makes it (its own action and line come later, in
 // its settings). Past nine tenths of the screen's memory for tiles, and past all of it, the editor asks first. A warning,
 // not a rule (app 0.4.61): a screen measured far less room than the screens it was priced on (GitHub #157), and a screen
@@ -202,7 +203,7 @@ export const memory = computed(() => (screenMemory.value && !memoryMeasuring.val
 // answer to the question (useConfirm).
 export function confirmMemory(entity: string): true | Promise<boolean> {
   if (!screenMemory.value || memoryMeasuring.value || !state.layout) return true;
-  const crossing = memoryCrossing(state.layout.tiles, { entity }, screenMemory.value, state.document?.pages || []);
+  const crossing = memoryCrossing(state.layout.tiles, { entity }, screenMemory.value, state.document?.pages || [], usePluginsStore().pluginTileOf);
   if (!crossing) return true;
   return askConfirm(t(`editor.memory.confirm_${crossing.line}`, { n: Math.min(999, Math.round(crossing.share * 100)) }));
 }
@@ -374,8 +375,10 @@ function historyCounts() {
   state.undoCount = counts.undo; state.redoCount = counts.redo;
 }
 // A document's grid with the pages this screen takes (page_limit): what every edit is held to, where a stored document is
-// held to the most any board takes (model/pages.ts pageLimit).
-const screenGridOf = (grid: PageGrid): PageGrid => ({ columns: grid.columns, rows: grid.rows, pages: editorLayout.grid.pages, barItems: topbarMax() });
+// held to the most any board takes (model/pages.ts pageLimit). Plugin tiles and items are taken where the add-on serves
+// plugins (stores/plugins.ts pluginsEnabled), on the grid of every change (heldTo) as on the screen's.
+const heldTo = (grid: PageGrid): PageGrid => ({ ...grid, plugins: usePluginsStore().pluginsEnabled });
+const screenGridOf = (grid: PageGrid): PageGrid => heldTo({ columns: grid.columns, rows: grid.rows, pages: editorLayout.grid.pages, barItems: topbarMax() });
 function applyDocument(next: PageLayout, remember = true, nextGrid = state.documentGrid) {
   if (!state.document || !state.documentGrid) return false;
   if (!nextGrid) return false;
@@ -410,7 +413,7 @@ export function editDocument(apply: (draft: PageLayout) => void, field?: string)
   if (!state.document || !state.documentGrid) return false;
   try {
     const grouped = field !== undefined && focusedField === field;
-    const changed = applyDocument(pages.changePages(state.document, state.documentGrid, apply), !(grouped && groupedEdit === edits));
+    const changed = applyDocument(pages.changePages(state.document, heldTo(state.documentGrid), apply), !(grouped && groupedEdit === edits));
     if (changed) groupedEdit = grouped ? edits : -1;
     return changed;
   }
@@ -621,14 +624,14 @@ export function movePage(from: number, to: number) {
   // Older firmware knows no home page of its own: it starts on the first page, so there the home page stays first
   // (app 0.4.1). Before, the move was taken and the save refused it later with no clue why.
   if (!pageReady.value && (from === 0 || to === 0)) { toast(t("editor.pages.update_notice")); return false; }
-  try { return applyDocument(pages.reorderPage(state.document, state.documentGrid, state.document.pages[from]?.id, to)); }
+  try { return applyDocument(pages.reorderPage(state.document, heldTo(state.documentGrid), state.document.pages[from]?.id, to)); }
   catch (error: any) { toast(error.message); return false; }
 }
 export function removePage(page: number) {
   if (!state.document || !state.documentGrid || !state.document.pages[page] || state.document.pages.length === 1) return;
   const id = state.document.pages[page].id;
   try {
-    const next = pages.deletePage(state.document, state.documentGrid, id);
+    const next = pages.deletePage(state.document, heldTo(state.documentGrid), id);
     const removed = state.layout!.tiles.length - pages.projectLayout(next, state.documentGrid).tiles.length;
     if (applyDocument(next)) toast(removed ? t("editor.layout.page_removed_tiles", { page: page + 1 }, removed)
       : t("editor.layout.page_removed", { page: page + 1 }), { label: t("editor.common.undo"), run: undo });
@@ -740,9 +743,9 @@ export function tileSizeChoices(tile: Tile): Size[] {
     if (!span || !spanOffered(span.columns, span.rows, grid) || (span.rows > 1 && !tallerTilesEnabled.value) || (span.columns === 1 && narrow)) continue;
     choices.push(size as Size);
   }
-  if (!pageTarget(tile.entity) && !pluginTileOf(tile.entity)) choices.push('full');
   // A plugin's tile takes the sizes between its manifest's smallest and largest (design, docs: the plugins proposal).
-  const plugin = pluginTileOf(tile.entity);
+  const plugin = usePluginsStore().pluginTileOf(tile.entity);
+  if (!pageTarget(tile.entity) && !plugin) choices.push('full');
   if (plugin) {
     const least = dimensions(plugin.tile.min as Size, grid), most = dimensions(plugin.tile.max as Size, grid);
     return choices.filter((size) => { const d = dimensions(size, grid);
@@ -1244,7 +1247,7 @@ function adopt(record: PageDocument, message: string) {
   if (!state.documentGrid) return;
   if (!pages.sameGrid(record.sourceGrid, state.documentGrid)) return reviewGrid(record, state.documentGrid, true, message);
   try {
-    const copied = pages.remapLayout(record.layout, state.documentGrid), idMap = new Map(record.layout.pages.map((page, index) => [page.id, copied.pages[index].id]));
+    const copied = pages.remapLayout(record.layout, heldTo(state.documentGrid)), idMap = new Map(record.layout.pages.map((page, index) => [page.id, copied.pages[index].id]));
     applyDocument(copied);
     state.workspace.positions = Object.fromEntries(Object.entries(record.workspace?.positions || {}).map(([id, point]) => [idMap.get(id)!, pages.clone(point)]));
     state.workspaceDirty = true;
@@ -1283,7 +1286,7 @@ export function chooseHang(upright: boolean) {
   let first: Error | null = null;
   for (const target of candidates) {
     try {
-      pages.adaptGrid(state.document, state.documentGrid, screenGridOf(target));
+      pages.adaptGrid(state.document, heldTo(state.documentGrid), screenGridOf(target));
       return hangOn(upright, target);
     } catch (error: any) { first ??= error; }
   }
@@ -1292,7 +1295,7 @@ export function chooseHang(upright: boolean) {
 function hangOn(upright: boolean, target: PageGrid) {
   if (!state.document || !state.documentGrid) return;
   try {
-    const adapted = pages.adaptGrid(state.document, state.documentGrid, screenGridOf(target));
+    const adapted = pages.adaptGrid(state.document, heldTo(state.documentGrid), screenGridOf(target));
     const added = adapted.pages.length - state.document.pages.length;
     const before = snapshot();
     if (!applyDocument(adapted, true, target)) { draftHistory.remember(before); historyCounts(); }
@@ -1308,7 +1311,7 @@ export function chooseGrid(columns: number, rows: number) {
   const target = { columns, rows };
   if (pages.sameGrid(target, state.documentGrid) || !takesGrid(target)) return;
   try {
-    const adapted = pages.adaptGrid(state.document, state.documentGrid, screenGridOf(target));
+    const adapted = pages.adaptGrid(state.document, heldTo(state.documentGrid), screenGridOf(target));
     const added = adapted.pages.length - state.document.pages.length;
     applyDocument(adapted, true, target);
     if (added > 0) toast(t('editor.grid.pages_added', { n: added }, added));
@@ -1317,7 +1320,7 @@ export function chooseGrid(columns: number, rows: number) {
 function reviewGrid(record: PageDocument, target: PageGrid, copy: boolean, message = '') {
   try {
     if (record.layout.pages.length > editorLayout.grid.pages) throw new Error(t("addon.errors.pages.adapt_pages"));
-    state.gridReview = { record: pages.clone(record), layout: pages.adaptGrid(record.layout, record.sourceGrid, screenGridOf(target)),
+    state.gridReview = { record: pages.clone(record), layout: pages.adaptGrid(record.layout, heldTo(record.sourceGrid), screenGridOf(target)),
     target: { columns: target.columns, rows: target.rows }, copy, message }; }
   catch (error: any) { toast(error.message); }
 }
@@ -1376,12 +1379,12 @@ export const topbarItems = (page = state.barPage): HeaderItem[] => pageAt(page)?
 export const topbarMax = () => currentScreen.value?.bar_limit || state.inventory.header?.max_items || 6;
 export function setTopbarItems(items: HeaderItem[], page = state.barPage) {
   if (!state.document || !state.documentGrid || !state.document.pages[page]) return;
-  try { applyDocument(pages.setBarItems(state.document, state.documentGrid, state.document.pages[page].id, items, !pageReady.value)); }
+  try { applyDocument(pages.setBarItems(state.document, heldTo(state.documentGrid), state.document.pages[page].id, items, !pageReady.value)); }
   catch (error: any) { toast(error.message); }
 }
 export function copyPageBars(source: string, targets: string[], whole: boolean) {
   if (!pageReady.value || !state.document || !state.documentGrid || !targets.length) return false;
-  try { return applyDocument(pages.replaceBar(state.document, state.documentGrid, source, targets, whole)); }
+  try { return applyDocument(pages.replaceBar(state.document, heldTo(state.documentGrid), source, targets, whole)); }
   catch (error: any) { toast(error.message); return false; }
 }
 let topbarTimer = 0;
@@ -1409,7 +1412,7 @@ export function loadTopbarPreview(delay = 150) {
 }
 export function topbarLabel(item: HeaderItem) {
   if (item.type === "entity") return entityName(item.entity!);
-  if (item.type === "plugin") return barItemOf(item.item)?.label || item.item || "";
+  if (item.type === "plugin") return usePluginsStore().barItemOf(item.item)?.label || item.item || "";
   return state.inventory.header?.builtin.find((b) => b.type === item.type)?.label || item.type;
 }
 // What the item shows right now: { icon, text, color, shown }. Entities wait for the add-on's preview.
@@ -1427,7 +1430,7 @@ export function topbarView(item: HeaderItem): ItemView {
   // The battery (firmware 0.41.0): three quarters and not charging, as the firmware's preview draws it.
   if (item.type === "battery") return batteryView(item, SAMPLE_BATTERY, false, percent);
   // A plugin's item (docs/PLUGINS.md): the screen asks the plugin what it shows; the mockup shows its example.
-  if (item.type === "plugin") { const known = barItemOf(item.item); return { icon: known?.icon || "F0A66", text: known?.example || "", shown: true }; }
+  if (item.type === "plugin") { const known = usePluginsStore().barItemOf(item.item); return { icon: known?.icon || "F0A66", text: known?.example || "", shown: true }; }
   const entities = useEntitiesStore(), p = entities.topbarPreviews[itemKey(item)];
   if (!p) return { icon: item.icon === "none" ? null : entities.iconNamed(item.icon)?.cp || entities.automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
   return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(useUiStore().now / 1000), useRegionStore().screenLanguage) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
