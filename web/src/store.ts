@@ -2185,21 +2185,33 @@ function applyLive(data: Partial<Inventory>) {
   for (const screen of state.inventory.screens) if (buildOf(screen)) state.updating = state.updating.filter((id) => id !== screen.id);
   if (state.selected) { settleSettings(); reconcileDocument(); }
 }
-let pollTimer = 0, lastFull = Date.now(), live = false, polling = false, stream: EventSource | null = null;
+let pollTimer = 0, lastFull = Date.now(), live = false, following = false, stream: EventSource | null = null;
+// The browser opens a broken stream again by itself, but one it gave up on (CLOSED: ingress answered 502 while the add-on
+// restarted) stays closed, and the page polled every ten seconds until it was reloaded. A new stream is opened instead,
+// a little later each time, and the polls stand in meanwhile; a stream that opens starts the count again.
+const RECONNECT_MS = [1000, 2000, 5000, 10000, 30000];
+let reconnects = 0, reconnectTimer = 0;
 function listen() {
-  if (stream || typeof EventSource === "undefined") return;
+  if (stream || !following || typeof EventSource === "undefined") return;
   // An EventSource sends no headers of its own: the editor's language goes along in the address (app 0.2.90).
-  stream = new EventSource(`api/events?language=${encodeURIComponent(editorLanguage())}`);
-  stream.onopen = () => { live = true; poll(); };
-  stream.onmessage = (e) => { if (!document.hidden) applyLive(JSON.parse(e.data)); };
-  stream.onerror = () => { live = false; poll(); };
+  const source = (stream = new EventSource(`api/events?language=${encodeURIComponent(editorLanguage())}`));
+  source.onopen = () => { live = true; reconnects = 0; poll(); };
+  source.onmessage = (e) => { if (!document.hidden) applyLive(JSON.parse(e.data)); };
+  source.onerror = () => {
+    live = false;
+    poll();
+    if (stream !== source || source.readyState !== EventSource.CLOSED) return;
+    stream = null;
+    clearTimeout(reconnectTimer);
+    reconnectTimer = window.setTimeout(listen, RECONNECT_MS[Math.min(reconnects++, RECONNECT_MS.length - 1)]);
+  };
 }
 // Poll only while the tab is visible; a hidden tab would otherwise keep the add-on busy.
 // Live updates arrive over server-sent events; polling is the fallback while the stream is down,
 // plus a full catalogue refresh every 5 minutes.
 function poll() {
   clearTimeout(pollTimer);
-  if (!polling) return;
+  if (!following) return;
   const wait = live ? 60000 : anyBuilding() || state.inventory.updates?.busy ? 3000 : 10000;
   pollTimer = window.setTimeout(async () => {
     if (!document.hidden) {
@@ -2268,16 +2280,16 @@ function startLive() {
     await refresh();
     poll();
   };
-  polling = true;
+  following = true;
   refresh();
   listen();
   poll();
   document.addEventListener("visibilitychange", shown);
   return () => {
     document.removeEventListener("visibilitychange", shown);
-    polling = false;
-    clearTimeout(pollTimer);
-    stream?.close(); stream = null; live = false;
+    following = false;
+    clearTimeout(pollTimer); clearTimeout(reconnectTimer);
+    stream?.close(); stream = null; live = false; reconnects = 0;
   };
 }
 
