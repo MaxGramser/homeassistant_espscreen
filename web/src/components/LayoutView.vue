@@ -27,10 +27,12 @@ import { titleOf } from '../model/pages';
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
 import { useScreenStore } from "../stores/screen";
+import { useDragStore } from "../stores/drag";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
 const scr = useScreenStore();
+const dragging = useDragStore();
 const droppedTiles = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
   ? scr.currentScreen.page_document.migration?.droppedTiles || [] : []);
 const adjustedFields = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
@@ -60,13 +62,13 @@ const swipe = useSwipe(pagesView, {
   onSwipeStart: () => { swipeAt = Date.now(); },
   onSwipeEnd: () => {
     const dx = -swipe.lengthX.value, dy = -swipe.lengthY.value;
-    if (!ui.phone || state.drag.active) return;
+    if (!ui.phone || dragging.active) return;
     if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - swipeAt < 700) stepPage(dx < 0 ? 1 : -1);
   },
 });
 
 const layout = computed(() => state.layout!);
-const entries = computed(() => state.drag.preview || entriesOf(layout.value));
+const entries = computed(() => dragging.preview || entriesOf(layout.value));
 const pages = computed(() => pageCount(entries.value, layout.value.pages));
 const shown = computed(() => pagesShown());
 const canAdd = computed(() => pages.value < grid.pages);
@@ -153,7 +155,7 @@ function onCanvasClick(e: MouseEvent) {
     <div v-if="!layout.tiles.length" id="no-tiles" class="notice" role="status"><Icon name="plus" /><span class="notice-text">{{ t("editor.layout.no_tiles") }}</span></div>
     <template v-if="mode === 'advanced' && focused >= 0">
       <button type="button" class="btn quiet back-map" @click="state.focusedPageId = null"><Icon name="arrow-left" />{{ t('editor.pages.back_map') }}</button>
-      <div class="pages focused-page"><DevicePage :page="focused" :entries="entries" :pages="pages" :moving="state.drag.moving" map /></div>
+      <div class="pages focused-page"><DevicePage :page="focused" :entries="entries" :pages="pages" :moving="dragging.moving" map /></div>
     </template>
     <PageMap v-else-if="mode === 'advanced'" :key="String(narrow)" :compact="narrow" />
     <div v-else ref="pagesView" class="pages" id="layout-preview" :aria-label="t('editor.layout.aria')">
@@ -161,7 +163,7 @@ function onCanvasClick(e: MouseEvent) {
         <button v-for="(page, index) in state.document!.pages" :key="page.id" type="button" :aria-pressed="state.selectedPageId === page.id ? 'true' : 'false'"
           @click="state.selectedPageId = page.id"><b>{{ index + 1 }}</b> {{ titleOf(state.document!, page) }}</button>
       </div>
-      <DevicePage v-for="page in simplePages" :key="state.document?.pages[page - 1]?.id || page" :page="page - 1" :entries="entries" :pages="pages" :moving="state.drag.moving" />
+      <DevicePage v-for="page in simplePages" :key="state.document?.pages[page - 1]?.id || page" :page="page - 1" :entries="entries" :pages="pages" :moving="dragging.moving" />
       <div v-if="ui.phone && state.document" class="phone-pager">
         <button type="button" class="phone-page-name" id="phone-pages" @click="ui.pagesSheet = true">
           {{ pageTitleShown(selectedIndex) || t("editor.page.label", { page: selectedIndex + 1 }) }}

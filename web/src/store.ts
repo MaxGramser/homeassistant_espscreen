@@ -1,8 +1,8 @@
 // The draft of the open screen and what edits it: its pages and tiles, undo, saving, the map of pages, a grid or way of
-// hanging chosen, copying and importing a layout; the inspector that opens beside it; the mockup's sizes (the canvas);
-// and a drag. What the add-on says, the open screen, the session, the top bar and the screensaver are stores of their own
-// (stores/), and so will this be: until then the functions here read those stores, and none of them reaches back in
-// here but the session, the top bar and the screensaver, which are on top of the draft.
+// hanging chosen, copying and importing a layout; the inspector that opens beside it; and the mockup's sizes (the
+// canvas). What a drag shows (stores/drag.ts), what the add-on says, the open screen, the session, the top bar and the
+// screensaver are stores of their own (stores/), and so will this be: until then the functions here read those stores,
+// and none of them reaches back in here but the session, the top bar and the screensaver, which are on top of the draft.
 import { useEventListener, useTimeoutFn } from "@vueuse/core";
 import { computed, effectScope, onScopeDispose, reactive, shallowRef, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
@@ -30,6 +30,7 @@ import { renewable, usePreference } from "./composables/usePreference";
 import { useClock } from "./composables/useClock";
 import { askConfirm } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
+import { useDragStore } from "./stores/drag";
 import { useEntitiesStore } from "./stores/entities";
 import { usePluginsStore } from "./stores/plugins";
 import { useInventoryStore } from "./stores/inventory";
@@ -46,12 +47,6 @@ export type Inspector =
   | { kind: "saver"; step: SaverKind }
   | { kind: "page"; id: string }
   | { kind: "inspect"; entity?: string; slot?: number; key?: number };
-// A whole page on its way to another place in the row (app 0.2.121): where it came from, where it is heading, and
-// the row as it stands while it is in the air (`order[position]` is the page drawn there).
-export type PageDrag = { from: number; to: number; order: number[] };
-// `key`: the key place under a bedside clock the pointer is on (app 0.4.12), where a drop puts the tile.
-export type DragState = { active: boolean; moving: Tile | null; preview: { tile: Tile; slot: number }[] | null; page: PageDrag | null;
-  key?: { holder: string; key: number } | null; refused?: number | null };
 
 // The editor's state as it starts, before the add-on has said anything: the page begins with it, and every test again
 // (resetStore).
@@ -89,7 +84,6 @@ const fresh = () => ({
   justAdded: null as string | null,
   // A choice the pointer rests on in the inspector, drawn on its tile before it is picked (app 0.4.32).
   optionPreview: null as null | { tileId: string; key: string; value: unknown },
-  drag: { active: false, moving: null, preview: null, page: null } as DragState,
 });
 export const state = reactive({
   ...fresh(),
@@ -222,11 +216,11 @@ export const isSelected = (tile: Tile) => Boolean(tile.id) && state.selectedTile
 export function previewed(tile: Tile): Tile {
   const hover = state.optionPreview;
   // Only while that tile's own settings are open and nothing is being dragged: the drawn copy never reaches an edit.
-  if (!hover || !tile.id || hover.tileId !== tile.id || state.selectedTileId !== tile.id || state.drag.active) return tile;
+  if (!hover || !tile.id || hover.tileId !== tile.id || state.selectedTileId !== tile.id || useDragStore().active) return tile;
   return { ...tile, options: { ...(tile.options || {}), [hover.key]: hover.value } } as Tile;
 }
 const currentView = (tile: Tile, layout = state.layout) => tile.id ? layout?.tiles.find((item) => item.id === tile.id) : tile;
-export const pageAt = (index: number) => state.document?.pages[state.drag.page?.order[index] ?? index];
+export const pageAt = (index: number) => state.document?.pages[useDragStore().page?.order[index] ?? index];
 
 // ---- What Home Assistant says of the open layout's entities (stores/entities.ts) ----
 // An answer asked for one screen is dropped once another is open, or this one was read again (selectionEpoch).
@@ -353,7 +347,7 @@ export function setEditorMode(mode: "simple" | "advanced") {
   historyCounts();
   state.focusedPageId = null;
   state.connectingTileId = null;
-  state.drag.active = false; state.drag.preview = null; state.drag.page = null; state.drag.moving = null;
+  useDragStore().clear();
   if (mode === "advanced") initializeWorkspace();
   if (scr().selected) kept().mode.value = mode;
 }
@@ -605,13 +599,13 @@ export function moveTileToPage(tile: Tile, page: number) {
   return moved;
 }
 export function pagesShown() {
-  const layout = state.layout;
+  const layout = state.layout, dragging = useDragStore();
   if (!layout) return 1;
-  const entries = state.drag.preview || entriesOf(layout);
+  const entries = dragging.preview || entriesOf(layout);
   const pages = pageCount(entries, layout.pages);
   // While a tile is being dragged, one more page waits after the last one. A page on the move is looking for a place
   // in the row it is already in, so the row stays as long as it is.
-  return state.drag.active && !state.drag.page && pages < grid.pages ? pages + 1 : pages;
+  return dragging.active && !dragging.page && pages < grid.pages ? pages + 1 : pages;
 }
 /** The sizes the screen takes on the draft's grid: one given its grid with the layout (firmware 0.53.0+) every size of
  * that grid, an older one those it named for the grid it was built with. */
@@ -830,7 +824,7 @@ export const pageTitle = (page: number) => state.layout?.page_titles?.[page] ?? 
 // What stands above a position in the row: the title of the page drawn there, which while a page is being moved is
 // not the page that started there, and the screen's own title for a page that has none.
 export const pageTitleShown = (page: number) => {
-  const order = state.drag.page?.order;
+  const order = useDragStore().page?.order;
   return pageTitle(order ? order[page] ?? page : page) || state.layout?.title || "";
 };
 export function setPageTitle(page: number, value: string) {
@@ -1165,10 +1159,10 @@ export function startStore() {
   scope.run(() => {
     // The screensaver's drawers belong to the settings: they close when the layout comes back.
     watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); });
-    const ui = useUiStore();
+    const ui = useUiStore(), dragging = useDragStore();
     // The mockup's clocks tick while a screen is open and the page in sight, and hold still while a tile is dragged; the
     // entity values in its top bar follow Home Assistant as they tick.
-    const editing = () => Boolean(state.layout) && !state.drag.active;
+    const editing = () => Boolean(state.layout) && !dragging.active;
     useClock(30000, { now: toRef(ui, "now"), when: editing });
     // The mockup follows Home Assistant while it is on screen.
     useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && ui.route === "" });

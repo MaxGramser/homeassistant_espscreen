@@ -31,6 +31,7 @@ import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
+import { useDragStore } from "../stores/drag";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -38,6 +39,7 @@ const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
+const dragging = useDragStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -434,7 +436,7 @@ async function onKey(e: KeyboardEvent) {
         <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!region.clock24 && scr.supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
         <span v-if="keyPlaces.length" class="keys">
           <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview || placeholder ? undefined : place.key" :data-holder="preview || placeholder ? undefined : tile.id"
-            :class="{ 'insert-here': state.insertKey?.holder === tile.id && state.insertKey?.key === place.key, over: state.drag.key?.holder === tile.id && state.drag.key?.key === place.key }">
+            :class="{ 'insert-here': state.insertKey?.holder === tile.id && state.insertKey?.key === place.key, over: dragging.key?.holder === tile.id && dragging.key?.key === place.key }">
             <TileCard v-if="place.tile" :tile="place.tile" :slot="-1" round :preview="preview" />
             <button v-else type="button" class="key-empty" :title="t('editor.page.cell.title')" @click.stop="markKey(place.key)"><span>+</span></button>
           </span>

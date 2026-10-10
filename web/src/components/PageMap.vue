@@ -8,8 +8,10 @@ import { arrangeFromHome, connectTile, deviceStyle, liveEntries, moveWorkspacePa
 import DevicePage from "./DevicePage.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
+import { useDragStore } from "../stores/drag";
 
 const ui = useUiStore();
+const dragging = useDragStore();
 defineProps<{ compact?: boolean }>();
 const allConnections = ref(false);
 
@@ -141,7 +143,7 @@ onBeforeUnmount(() => { state.connectingTileId = null; });
           :class="{ selected: state.selectedPageId === page.id, destination: !!state.connectingTileId }"
           :style="{ left: `${positions[page.id].x * pitch.x + 40}px`, top: `${positions[page.id].y * pitch.y + 40}px`, width: `${cardWidth}px` }"
           @click.capture="destinationClick($event, page.id)">
-          <DevicePage :page="index" :entries="state.drag.preview || liveEntries()" :pages="state.document!.pages.length" :moving="state.drag.moving" map>
+          <DevicePage :page="index" :entries="dragging.preview || liveEntries()" :pages="state.document!.pages.length" :moving="dragging.moving" map>
             <template #handle>
               <button type="button" class="grab map-handle" :aria-label="t('editor.pages.move_map', { name: name(page.id) })" :title="t('editor.pages.move_map', { name: name(page.id) })"
                 @pointerdown.stop="movePage($event, page.id)" @click="openPage(page.id)">

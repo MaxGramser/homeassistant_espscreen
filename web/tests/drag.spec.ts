@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { dragScrollers, edgeStep, nearestRect, scrollsAlong, slotAt, vDrag } from "../src/drag";
 import { state } from '../src/store';
+import { useDragStore } from '../src/stores/drag';
 
 // jsdom has no layout: give an element the sizes a browser would measure, and the overflow longhands it computes.
 function sized(element: HTMLElement, size: { scrollWidth?: number; clientWidth?: number; scrollHeight?: number; clientHeight?: number }) {
@@ -105,13 +106,13 @@ describe("who a press belongs to", () => {
     vDrag.mounted!(round, { value: { kind: "tile", tile: key } } as any, null as any, null as any);
     pointer("pointerdown", round, 0);
     pointer("pointermove", round, 20);
-    expect(state.drag.active).toBe(true);
-    expect(state.drag.moving).toEqual(key);
+    expect(useDragStore().active).toBe(true);
+    expect(useDragStore().moving).toEqual(key);
     pointer("pointerup", document.documentElement, 20);
-    expect(state.drag.active).toBe(false);
+    expect(useDragStore().active).toBe(false);
     // The empty place is a button of its own: pressing it starts no drag of the clock.
     pointer("pointerdown", pages.querySelector(".key-empty")!, 0);
     pointer("pointermove", card, 20);
-    expect(state.drag.active).toBe(false);
+    expect(useDragStore().active).toBe(false);
   });
 });

@@ -22,12 +22,14 @@ import { useRegionStore } from "../stores/region";
 import { useSettingsStore } from "../stores/settings";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
+import { useDragStore } from "../stores/drag";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const settings = useSettingsStore();
 const scr = useScreenStore();
 const topbar = useTopbarStore();
+const dragging = useDragStore();
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [intent: NavigationIntent] }>();
@@ -75,7 +77,7 @@ function dragHome(event: PointerEvent) {
   });
 }
 // This is the page being carried, drawn in the place it would land.
-const carried = computed(() => state.drag.page?.to === props.page);
+const carried = computed(() => dragging.page?.to === props.page);
 // Left and right move the page a place along, for a finger on a phone and for anyone who can't drag.
 async function onKey(e: KeyboardEvent) {
   const step = ({ ArrowLeft: -1, ArrowRight: 1 } as Record<string, number>)[e.key];
@@ -90,7 +92,7 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="page" :class="{ carried, refused: state.drag.refused === page, chosen: !preview && !!owned && state.selectedPageId === owned.id && state.inspector?.kind === 'page' }" :style="deviceStyle" :data-page-id="owned?.id" @click="pageClick">
+  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && state.selectedPageId === owned.id && state.inspector?.kind === 'page' }" :style="deviceStyle" :data-page-id="owned?.id" @click="pageClick">
     <div v-if="!preview" class="page-head" :class="{ selected: state.selectedPageId === owned?.id && state.inspector?.kind === 'page' }">
       <button v-if="movable" type="button" class="grab" :data-page="page" v-drag="{ kind: 'page', page }"
         :title="t('editor.page.move_title')" :aria-label="t('editor.page.move_aria', { page: page + 1 })" @keydown="onKey">

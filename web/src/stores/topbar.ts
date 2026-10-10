@@ -12,6 +12,7 @@ import { agoText, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI,
 import { useVisibleInterval } from "../composables/useVisibleInterval";
 import { applyDocument, closeInspector, heldTo, openBar, pageAt, state } from "../store";
 import type { HeaderItem } from "../types";
+import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
@@ -73,6 +74,7 @@ export const useTopbarStore = defineStore("topbar", () => {
   const region = useRegionStore();
   const plugins = usePluginsStore();
   const settings = useSettingsStore();
+  const dragging = useDragStore();
 
   // ---- A page's top bar ----
   // Without a stored top bar the screen shows what it always did: the clock of show_clock.
@@ -166,7 +168,7 @@ export const useTopbarStore = defineStore("topbar", () => {
       watch([() => scr.selected, () => keys(state.document?.pages.flatMap((page) => page.topbar.trailing) || []),
         () => keys(scr.currentScreen?.screensaver?.items || [])],
       ([screen, , saver], [before, , saverBefore]) => loadTopbarPreview(screen !== before || saver !== saverBefore ? 0 : 150));
-      useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: () => Boolean(state.layout) && !state.drag.active });
+      useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: () => Boolean(state.layout) && !dragging.active });
     });
     running = () => { running = null; scope.stop(); };
     return running;

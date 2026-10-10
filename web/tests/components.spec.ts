@@ -23,6 +23,7 @@ import { t } from "../src/i18n";
 import { answerDialogs } from "./helpers/dialogs";
 import { currentTile, openBar, previewed, removePage, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
+import { useDragStore } from "../src/stores/drag";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useSettingsStore } from "../src/stores/settings";
@@ -1428,7 +1429,7 @@ describe("a page that moves as a whole", () => {
   const props = (page: number, pages: number) => ({ page, pages, entries: state.layout!.tiles.map((t) => ({ tile: t, slot: t.slot })), moving: null });
   beforeEach(() => {
     seedLayout({ title: "Living room", pages: 3, tiles: [{ entity: "light.a", name: "", slot: 6 }] });
-    state.drag = { active: false, moving: null, preview: null, page: null };
+    useDragStore().clear();
   });
   it("gives every page a handle, but not a screen with one page", () => {
     const second = mount(DevicePage, { props: props(1, 3) });
@@ -1471,7 +1472,7 @@ describe("a page that moves as a whole", () => {
   it("draws the page on the move where it would land, with the title that belongs there", () => {
     seedTitles(["", "Music", "Hall"]);
     // Page 3 is being carried to the middle: the row shows Hall there and Music after it.
-    state.drag = { active: true, moving: null, preview: [], page: { from: 2, to: 1, order: [0, 2, 1] } };
+    useDragStore().$patch({ active: true, moving: null, preview: [], page: { from: 2, to: 1, order: [0, 2, 1] } });
     const middle = mount(DevicePage, { props: props(1, 3) });
     expect(middle.find(".page").classes()).toContain("carried");
     expect(middle.find(".bar-wrap").text()).toContain("Hall");
@@ -1573,7 +1574,7 @@ describe("ChoiceField: the choice under the pointer is drawn on its tile first (
   const choices = [["standard", "Name"], ["big", "Big"]] as const;
   const tile: Tile = { id: "t1", entity: "sensor.t", name: "", slot: 0, options: { display: "standard" } };
   it("shows a choice on the tile while the pointer rests on it, and nothing once it leaves or picks", async () => {
-    Object.assign(state.drag, { active: false, moving: null, preview: null, page: null });
+    useDragStore().clear();
     appendTiles({ entity: "sensor.t", name: "", slot: 0, options: { display: "standard" } });
     const placed = state.layout!.tiles.find((item) => item.entity === "sensor.t")!;
     const field = mount(ChoiceField, { props: { choices, value: "standard", tile: placed, previewKey: "display" } });
@@ -1584,9 +1585,9 @@ describe("ChoiceField: the choice under the pointer is drawn on its tile first (
     expect(previewed(placed)).toBe(placed);
     state.selectedTileId = placed.id!;
     expect(previewed(placed).options?.display).toBe("big");
-    state.drag.active = true;
+    useDragStore().active = true;
     expect(previewed(placed)).toBe(placed);
-    state.drag.active = false;
+    useDragStore().active = false;
     // Only that tile: another is drawn as it is.
     expect(previewed({ ...placed, id: "other" }).options?.display).toBe("standard");
     await field.find(".seg").trigger("pointerleave");

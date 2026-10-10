@@ -2,16 +2,18 @@
 // cells, and a whole page to another place in the row (app 0.2.121). Touch starts after a
 // short hold so the page still scrolls. While dragging, the
 // mockup already shows where everything ends up; the drop confirms exactly that, and a
-// drop off the grid changes nothing. A finished drag never doubles as a click.
+// drop off the grid changes nothing. A finished drag never doubles as a click. What the
+// mockup draws of a drag is the drag store's (stores/drag.ts); the pointer's own bookkeeping
+// (the hold, the ghost, the scrolling near an edge) stays here, outside any store.
 import type { Directive } from "vue";
 import { entriesOf, pageOrder } from "./model/layout";
-import { commitArrangement, confirmMemory, editorLayout, keyToCell, movePage, pagesShown, placeKey, placeTile, startTile, state } from "./store";
-import type { DragState } from "./store";
+import { commitArrangement, confirmMemory, editorLayout, keyToCell, movePage, pagesShown, placeKey, startTile, state } from "./store";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
-import { onReset } from "./resets";
 import { CLICK_AFTER_DRAG_MS, HOLD_MS, SLOP_PX, THRESHOLD_PX } from "./composables/usePointerDrag";
+import { onReset } from "./resets";
+import { useDragStore, type DragPreview, type KeyPlace } from "./stores/drag";
 import { useUiStore } from "./stores/ui";
 import { useEntitiesStore } from "./stores/entities";
 
@@ -43,12 +45,12 @@ export const vDrag: Directive<HTMLElement, DragSource | null> = {
       if (e.pointerType === "touch") drag.timer = window.setTimeout(() => beginDrag(e), HOLD_MS);
     });
     element.addEventListener("pointermove", (e: PointerEvent) => {
-      if (state.drag.active || !drag.start || drag.element !== element) return;
+      if (useDragStore().active || !drag.start || drag.element !== element) return;
       const distance = Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y);
       if (e.pointerType === "touch") { if (distance > SLOP_PX) { clearTimeout(drag.timer); drag.start = null; } return; }
       if (distance >= THRESHOLD_PX) beginDrag(e);
     });
-    const cancel = () => { if (drag.element === element && !state.drag.active) { clearTimeout(drag.timer); drag.start = null; } };
+    const cancel = () => { if (drag.element === element && !useDragStore().active) { clearTimeout(drag.timer); drag.start = null; } };
     element.addEventListener("pointerup", cancel);
     element.addEventListener("pointercancel", cancel);
   },
@@ -58,15 +60,16 @@ export const vDrag: Directive<HTMLElement, DragSource | null> = {
 };
 
 function beginDrag(e: PointerEvent) {
-  if (state.drag.active || !drag.start || !drag.source || !drag.element) return;
+  const dragging = useDragStore();
+  if (dragging.active || !drag.start || !drag.source || !drag.element) return;
   const source = drag.source;
   // The row as it stands, read before the drag begins: from here on a tile drag adds a page to it.
   const pages = pagesShown();
-  state.drag.active = true;
-  state.drag.moving = source.kind === "page" ? null : source.kind === "tile" ? source.tile : startTile(source.id);
+  dragging.active = true;
+  dragging.moving = source.kind === "page" ? null : source.kind === "tile" ? source.tile : startTile(source.id);
   // A page keeps its own place until the pointer names another one; the ghost is the label you grabbed it by.
-  state.drag.page = source.kind === "page" ? { from: source.page, to: source.page, order: pageOrder(pages, source.page, source.page) } : null;
-  state.drag.preview = null;
+  dragging.page = source.kind === "page" ? { from: source.page, to: source.page, order: pageOrder(pages, source.page, source.page) } : null;
+  dragging.preview = null;
   drag.target = null;
   getSelection()?.removeAllRanges();
   const rect = drag.element.getBoundingClientRect();
@@ -94,7 +97,7 @@ function beginDrag(e: PointerEvent) {
     if (dy) y!.scrollBy(0, dy);
     if (dx || dy) aim(drag.last.x, drag.last.y);
   }, 16);
-  if (!state.drag.page) setTarget(-1);
+  if (!dragging.page) setTarget(-1);
   moveDrag(e);
 }
 // True when the element scrolls along that axis: more content than room, and an overflow that lets it scroll.
@@ -126,7 +129,7 @@ function visibleSpan(element: Element, axis: "x" | "y"): [number, number] {
 export function edgeStep(position: number, [start, end]: [number, number]) {
   return position < start + 60 ? -12 : position > end - 60 ? 12 : 0;
 }
-function blockScroll(e: TouchEvent) { if (state.drag.active) e.preventDefault(); }
+function blockScroll(e: TouchEvent) { if (useDragStore().active) e.preventDefault(); }
 function finishDrag(e: PointerEvent) { if (e.pointerId === drag.pointerId) endDrag(e.type === "pointerup"); }
 function moveDrag(e: PointerEvent) {
   if (!drag.ghost || e.pointerId !== drag.pointerId) return;
@@ -136,17 +139,18 @@ function moveDrag(e: PointerEvent) {
 }
 // What the pointer is over: a cell for a tile, a place in the row of pages for a page.
 function aim(x: number, y: number) {
-  if (state.drag.page) return setPageTarget(pageAt(x, y));
+  const dragging = useDragStore();
+  if (dragging.page) return setPageTarget(pageAt(x, y));
   // A key place under a bedside clock takes a tile as a cell does (app 0.4.12); it is checked first, since it lies on
   // the clock's card, which is a cell too.
   const key = keyAt(x, y);
-  state.drag.key = key;
-  if (key) { drag.target = null; state.drag.preview = null; return; }
+  dragging.key = key;
+  if (key) { drag.target = null; dragging.preview = null; return; }
   setTarget(slotAt(x, y));
 }
 // Only a tile that may be a key looks for a key place (rules.keyDomains), and never one of its own clock's.
 function keyAt(x: number, y: number) {
-  const moving = state.drag.moving;
+  const moving = useDragStore().moving;
   if (!moving || !(rules.keyDomains as string[]).includes(moving.entity.split(".")[0])) return null;
   for (const place of document.querySelectorAll<HTMLElement>(".pages [data-key][data-holder]")) {
     if (place.dataset.holder === moving.id) continue;
@@ -189,31 +193,31 @@ export function nearestRect(rects: { left: number; right: number; top: number; b
 }
 // Off the row the page goes back where it came from, so a drop away from the pages changes nothing.
 function setPageTarget(place: number) {
-  const page = state.drag.page;
+  const dragging = useDragStore(), page = dragging.page;
   if (!page || !state.layout) return;
   const to = place < 0 ? page.from : place;
   if (to === page.to) return;
   page.to = to;
   page.order = pageOrder(pagesShown(), page.from, to);
-  state.drag.preview = editorLayout.reorderPages(entriesOf(state.layout), page.order);
+  dragging.preview = editorLayout.reorderPages(entriesOf(state.layout), page.order);
 }
 function setTarget(slot: number) {
-  if (drag.target === slot || !state.layout || !state.drag.moving) return;
+  const dragging = useDragStore(), moving = dragging.moving, { arrange, pageOf } = editorLayout;
+  if (drag.target === slot || !state.layout || !moving) return;
   drag.target = slot;
   // A key leaves its clock for an empty cell only: the drop shows nothing moving aside.
-  if (state.drag.moving.in !== undefined) { state.drag.preview = null; return; }
+  if (moving.in !== undefined) { dragging.preview = null; return; }
   // Off the grid: a tile from the grid shows where it came from; a new one shows nowhere yet.
-  state.drag.preview = slot >= 0 ? editorLayout.arrange(state.layout.tiles, state.drag.moving, slot) : null;
+  dragging.preview = slot >= 0 ? arrange(state.layout.tiles, moving, slot) : null;
   // A page the tile can't land on says so as a whole, instead of showing nothing: a page-filling tile over a page
   // that has tiles, a large one where the tiles around it have nowhere to go.
-  state.drag.refused = slot >= 0 && !state.drag.preview ? editorLayout.pageOf(slot) : null;
+  dragging.refused = slot >= 0 && !dragging.preview ? pageOf(slot) : null;
 }
 function endDrag(drop: boolean) {
-  const preview = state.drag.preview, moving = state.drag.moving, page = state.drag.page, key = state.drag.key, refused = state.drag.refused;
+  const dragging = useDragStore();
+  const preview = dragging.preview, moving = dragging.moving, page = dragging.page, key = dragging.key, refused = dragging.refused;
   // A tile from the library, not one moved on the grid: past the screen's memory it asks first, as a click does.
   const fresh = drag.source?.kind === "entity";
-  state.drag.key = null;
-  state.drag.refused = null;
   document.removeEventListener("pointermove", moveDrag);
   document.removeEventListener("pointerup", finishDrag);
   document.removeEventListener("pointercancel", finishDrag);
@@ -223,10 +227,7 @@ function endDrag(drop: boolean) {
   drag.lastSlot = drag.target;
   Object.assign(drag, { ghost: null, suppressUntil: Date.now() + CLICK_AFTER_DRAG_MS, last: null, start: null, target: null, element: null, source: null });
   clearInterval(drag.scroller);
-  state.drag.active = false;
-  state.drag.preview = null;
-  state.drag.moving = null;
-  state.drag.page = null;
+  dragging.clear();
   // A page lands exactly where the row showed it; the move takes its title and its Go to page tiles with it.
   if (page) {
     if (drop) movePage(page.from, page.to);
@@ -239,10 +240,11 @@ function endDrag(drop: boolean) {
   land(landing);
 }
 // Where a dropped tile goes: under a bedside clock, off its clock to an empty cell, or into the place the drag showed.
-function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; preview: DragState["preview"]; moving: Tile | null;
-  key: DragState["key"]; refused: DragState["refused"]; slot: number | null }) {
-  if (drop && key && moving && state.layout) {
-    const clock = state.layout.tiles.find((tile) => tile.id === key.holder);
+function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; preview: DragPreview | null; moving: Tile | null;
+  key: KeyPlace | null; refused: number | null; slot: number | null }) {
+  const layout = state.layout;
+  if (drop && key && moving && layout) {
+    const clock = layout.tiles.find((tile) => tile.id === key.holder);
     if (clock && moving.entity !== clock.entity && placeKey(moving, clock, key.key)) useEntitiesStore().loadCapabilities([moving.entity]);
     return;
   }
@@ -250,7 +252,7 @@ function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; pr
     if (keyToCell(moving, slot)) useEntitiesStore().loadCapabilities([moving.entity]);
     return;
   }
-  if (drop && preview && moving && state.layout) {
+  if (drop && preview && moving && layout) {
     if (commitArrangement(preview)) useEntitiesStore().loadCapabilities([moving.entity]);
   } else if (drop && moving && refused !== null && refused !== undefined) useUiStore().toast(t("editor.layout.no_room", { page: refused + 1 }));
 }

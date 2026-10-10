@@ -21,12 +21,14 @@ import { useUiStore } from "./stores/ui";
 import { usePluginsStore } from "./stores/plugins";
 import { useScreenStore } from "./stores/screen";
 import { useInventoryStore } from "./stores/inventory";
+import { useDragStore } from "./stores/drag";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
+const dragging = useDragStore();
 const view = computed(() => {
   if (ui.route === "#settings") return AppSettingsView;
   if (ui.route === "#new-screen") return InstallerView;
@@ -44,7 +46,7 @@ onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !q
 </script>
 
 <template>
-  <div class="app" :class="{ dragging: state.drag.active, phone: ui.phone, 'side-folded': sidebar.folded, 'side-resizing': sidebar.resizing }"
+  <div class="app" :class="{ dragging: dragging.active, phone: ui.phone, 'side-folded': sidebar.folded, 'side-resizing': sidebar.resizing }"
     :style="{ '--side-w': `${sidebar.shownWidth}px` }">
     <!-- On a phone the overview and a screen carry their own way around (app 0.4.40): the sidebar's row stays for the rest. -->
     <Sidebar v-if="!(ui.phone && ui.route === '')" />
