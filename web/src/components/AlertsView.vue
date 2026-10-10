@@ -4,7 +4,8 @@ import { computed, reactive, ref } from "vue";
 import { andList, t } from "../i18n";
 import { versionAtLeast } from "../model/layout";
 import { glyph } from "../model/topbar";
-import { canAlert, copyText, firmwareVersion, go, sendTestAlert, state } from "../store";
+import { firmwareVersion } from "../model/screen-status";
+import { canAlert, copyText, go, sendTestAlert, state } from "../store";
 
 const alerts = computed(() => state.inventory.alerts);
 // The bytes a field holds on each look, with the boards that have it ("CYD 48 · Guition and Waveshare 64 bytes"): the

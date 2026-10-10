@@ -9,10 +9,8 @@ import ScreensaverCard from "./ScreensaverCard.vue";
 import Icon from "./ui/Icon.vue";
 import { installedOn, openPluginOn, plugins, testsOn } from "../plugin-state";
 import { text } from "../model/plugins";
-import {
-  calibrateTouch, choiceText, currentScreen, pageReachWarning, SETTING_GROUPS, setSetting, settingLabel, settingText, settingValues, settingsView, state, steppedSetting,
-  type SettingRow,
-} from "../store";
+import { choiceText, SETTING_GROUPS, settingLabel, steppedSetting, type SettingRow } from "../model/settings";
+import { calibrateTouch, currentScreen, pageReachWarning, setSetting, settingText, settingValues, settingsView, state } from "../store";
 
 const view = computed(() => settingsView());
 // The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).

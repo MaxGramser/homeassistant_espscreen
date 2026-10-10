@@ -2,8 +2,9 @@
 // One screen: the head with its status, the Layout and Settings tabs, and the inspector in a column on the right.
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { t } from "../i18n";
+import { needsUpdate } from "../model/screen-status";
 import {
-  buildOf, canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, go, goHome, identify, importLayout, narrowPhone, needsUpdate, openBar,
+  buildOf, canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, go, goHome, identify, importLayout, narrowPhone, openBar,
   phone, redo, renameScreen, save, setFullEditor, startUpdate, state, tileLimit, undo,
 } from "../store";
 import LayoutView from "./LayoutView.vue";

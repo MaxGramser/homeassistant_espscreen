@@ -9,10 +9,10 @@ import { agoText, barMetricsFor, batteryView, clockText, dateText, itemKey, LINK
 import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
 import { measuring, memoryCrossing, memoryUse } from "./model/memory";
-import { validPreviewShape, type PreviewProfile } from "./model/preview";
+import { previewGrids, usablePreview, validPreviewShape, type PreviewProfile } from "./model/preview";
 import { barItemOf, pluginTileOf, text as pluginText } from "./model/plugins";
 import renderer from "./wasm/renderer.json";
-import type { BoardChoice, Build, Capability, ChildTile, FeedbackView, ChangelogSection, EntityAction, HeaderItem, Inventory, Layout, SaverKind, Screen, ScreensaverChoice, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace, Orientation, ScreenShape, GridWay, ScreenGrids } from "./types";
+import type { BoardChoice, Build, Capability, ChildTile, FeedbackView, EntityAction, HeaderItem, Inventory, Layout, SaverKind, Screen, ScreensaverChoice, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
 
 import * as pages from "./model/pages";
 import { DraftHistory, type HistoryScope } from './model/draft-history';
@@ -22,6 +22,10 @@ import pageRules from './model/page-rules.json';
 import { canonicalOptions, coupledOptions } from './model/tile-options';
 import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
+import { rowText, type SettingRow } from "./model/settings";
+import * as status from "./model/screen-status";
+import { homeView, SMALLEST, type HomeView } from "./model/overview";
+import { firmwareVersion } from "./model/screen-status";
 import { onReset } from "./resets";
 import { readStored, writeStored } from "./storage";
 
@@ -147,28 +151,9 @@ const renderedLayout = computed<Layout | null>(() => state.document && state.doc
   ? pages.projectLayout(state.document, state.documentGrid) : null);
 const VIRTUAL_SCREENS_KEY = "esp-screens.virtual-screens";
 // What a preview screen's firmware says it takes, as a screen of that grid says it (the five names and its spans).
-// Preview screens live in this browser's storage, written by an older app too. Each one is checked on its own (app
-// 0.4.32): one that no longer reads, or whose pages this app refuses, is left out with a word about it, and never
-// keeps the editor or the other preview screens from loading.
+// Preview screens live in this browser's storage; one that no longer reads is left out with a word about it
+// (model/preview.ts usablePreview), the word said once for the same names.
 let previewsSkipped = "";
-function usablePreview(s: any): boolean {
-  try {
-    if (!(s?.virtual && typeof s.id === "string" && s.id.startsWith("virtual.") && s.shape && validPreviewShape(s.shape) && Array.isArray(s.layout?.tiles))) return false;
-    const document = s.page_document;
-    if (document?.format === "pages-v2") pages.validatePages(document.layout, document.sourceGrid);
-    return true;
-  } catch { return false; }
-}
-// A preview screen takes the grids its board takes (boards.json, firmware 0.53.0+), the way it was made; null for one
-// without its board's catalogue (the custom glass, or made by an app before 0.4.85).
-function previewGrids(shape: ScreenShape, orientation?: Orientation): ScreenGrids | null {
-  const way = (side: Orientation): GridWay | null => {
-    const o = (shape.catalog as Partial<BoardChoice> | undefined)?.orientations?.[side];
-    return o?.min && o.max ? { columns: o.columns, rows: o.rows, min: o.min, max: o.max } : null;
-  };
-  const landscape = way("landscape"), portrait = way("portrait");
-  return landscape && portrait ? { upright: orientation === "portrait", landscape, portrait } : null;
-}
 function virtualScreens(): Screen[] {
   let value: any[];
   try {
@@ -223,10 +208,6 @@ export function createVirtualScreen(name: string, profile: PreviewProfile) {
 }
 
 export const currentScreen = computed<Screen | undefined>(() => state.inventory.screens.find((s) => s.id === state.selected));
-// The firmware version a screen's features go by, as the add-on works it out (firmware_known, app 0.2.78; null when it
-// can't tell). A screen entry without the field goes by the firmware text, as before.
-export const firmwareVersion = (screen: Screen | undefined) =>
-  (screen && "firmware_known" in screen ? screen.firmware_known : screen?.firmware) || "";
 export const firmwareOf = computed(() => firmwareVersion(currentScreen.value));
 export const supports = (major: number, minor: number, patch: number) => supportsVersion(firmwareOf.value, major, minor, patch);
 // A new media tile starts with its album cover where the screen draws one (app 0.4.42): a board with pictures, firmware 0.2.78+.
@@ -283,8 +264,7 @@ export const drawsPictures = (screen?: Screen) =>
   screen?.pictures ?? (screen?.shape?.catalog as Partial<BoardChoice> | undefined)?.camera ?? true;
 // What the screen being edited looks like. The manager works it out (core.shape_of): what the screen reported
 // itself, else the board package its YAML builds from, else its board. The editor only draws it, and falls
-// back to the smallest screen there is while it has heard nothing at all.
-const SMALLEST = { width: 320, height: 240, columns: 2, rows: 3, dpi: 143, look: "compact" };
+// back to the smallest screen there is while it has heard nothing at all (SMALLEST).
 export const screenShape = computed(() => {
   const shape = currentScreen.value?.shape;
   if (!shape || !(shape.columns > 0 && shape.rows > 0)) return SMALLEST;
@@ -562,37 +542,7 @@ export function liveOf(entity: string): Live | null {
   return known?.state ? { state: known.state, word: null, a: {} } : null;
 }
 
-// ---- The overview (app 0.4.0): every screen of the home with its home page, as its mockup draws it ----
-// Nothing selected is the add-on's home. Each screen's home page comes from its own saved document, drawn on its own
-// grid and glass, with what Home Assistant reports right now; a click opens the screen in the editor.
-export type HomeView = { screen: Screen; tiles: { tile: Tile; slot: number }[]; keys: Tile[]; grid: { columns: number; rows: number; slots: number };
-  shape: NonNullable<Screen["shape"]>; title: string; items: HeaderItem[]; home: boolean; style: Record<string, string>; compact: boolean };
-const OVERVIEW_SIDE = 300;
-export function homeView(screen: Screen): HomeView | null {
-  const record = screen.page_document;
-  if (record?.format !== "pages-v2") return null;
-  const shape = screen.shape && screen.shape.columns > 0 && screen.shape.rows > 0 ? screen.shape : SMALLEST;
-  const source = record.sourceGrid, slots = source.columns * source.rows;
-  const index = Math.max(0, record.layout.pages.findIndex((page) => page.id === record.layout.homePageId));
-  const page = record.layout.pages[index];
-  if (!page) return null;
-  const view = pages.projectLayout(record.layout, source);
-  const tiles = view.tiles.filter((tile) => tile.in === undefined && Math.floor(tile.slot / slots) === index).map((tile) => ({ tile, slot: tile.slot }));
-  // The keys of a bedside clock on that page, which its card draws under the time (app 0.4.12).
-  const keys = view.tiles.filter((tile) => tile.in !== undefined && tiles.some(({ tile: clock }) => clock.entity === tile.in));
-  // The same proportions as the editor's mockup (deviceStyle), at a size that lets several stand side by side.
-  const width = shape.width >= shape.height ? Math.min(560, (OVERVIEW_SIDE * shape.width) / shape.height) : OVERVIEW_SIDE;
-  return {
-    screen, tiles, keys, grid: { columns: source.columns, rows: source.rows, slots }, shape: shape as NonNullable<Screen["shape"]>,
-    title: page.topbar.title.source === "text" ? page.topbar.title.text : record.layout.title,
-    items: page.topbar.trailing,
-    // The home key on the home page too, as the screen draws it there (homeKeyShown for the screen in the editor).
-    home: supportsVersion(firmwareVersion(screen), 0, 2, 100) && screen.settings?.values?.home_button !== false && page.topbar.leading.length > 0,
-    compact: shape.look ? shape.look === "compact" : Math.min(shape.width, shape.height) < 300,
-    style: { "--screen-aspect": `${shape.width} / ${shape.height}`, "--screen-columns": String(source.columns), "--screen-rows": String(source.rows),
-      "--screen-wide-span": String(Math.min(2, source.columns)), "--mockup-width": `${Math.round(width * 10) / 10}px` },
-  };
-}
+// ---- The overview (app 0.4.0): every screen of the home with its home page, as its mockup draws it (model/overview.ts) ----
 // What the overview draws with: the states of every home page's tiles and the values in their top bars.
 let overviewFlight = false;
 export async function loadOverview() {
@@ -1638,24 +1588,8 @@ export async function importLayout(text: string) {
   } catch (error: any) { toast(error.message); }
 }
 
-// ---- Updates with content (app 0.2.73): what a screen gets, and how far its update is ----
-// The changelog comes with the full inventory only (app 0.2.78): the live payload goes out every few seconds.
-// Each screen has its own target (app 0.3.21): a fix for one board is no update for another, and its notes are not
-// what another board gets either.
-export function whatsNew(screen: Screen): string[] {
-  const target = screen.update?.target || state.inventory.updates?.target;
-  const sections: ChangelogSection[] | undefined = state.inventory.changelog;
-  if (!Array.isArray(sections) || !target) return [];
-  const since = firmwareVersion(screen);
-  const lines: string[] = [];
-  for (const section of sections) {
-    if (versionAtLeast(section.firmware, target) && section.firmware !== target) continue;
-    if (since && versionAtLeast(since, section.firmware)) continue;
-    if (section.boards?.length && !section.boards.includes(screen.board || "")) continue;
-    for (const line of section.lines) if (!lines.includes(line)) lines.push(line);
-  }
-  return lines;
-}
+// ---- Updates with content (app 0.2.73): what a screen gets (model/screen-status.ts) ----
+export const whatsNew = (screen: Screen) => status.whatsNew(screen, state.inventory.changelog, state.inventory.updates?.target);
 // ---- The add-on's firmware job (api/firmware), asked for once whoever follows it ----
 // New screen, Firmware & USB, a YAML check and the build log all read the same answer: whoever asks while a request is on
 // its way gets its answer, and a poll (`fresh`: how old an answer may be) takes the last one when another poll has just
@@ -1687,29 +1621,15 @@ export async function loadFirmwareJob() {
 // page just asked to build, for the moment until the add-on's builds name them.
 export const buildOf = (screen: Screen): Build | null => state.inventory.builds?.[screen.id] ?? null;
 const asked = (screen: Screen) => state.updating.includes(screen.id);
-export const isBuilding = (screen: Screen) => buildOf(screen)?.state === "running" || asked(screen);
+const building = (screen: Screen): status.Building => ({ build: buildOf(screen), asked: asked(screen) });
+export const isBuilding = (screen: Screen) => status.isBuilding(building(screen));
 export const anyBuilding = () => Object.values(state.inventory.builds || {}).some((build) => build.state === "running") || state.updating.length > 0;
 // The screens with a build on the way, running first.
 export const buildingScreens = () => state.inventory.screens.filter((screen) => buildOf(screen) || asked(screen))
   .sort((a, b) => Number(isBuilding(b)) - Number(isBuilding(a)));
-// What a running build is doing, in words: an update's phase, or what a plugin build or an install is.
-export function buildText(screen: Screen) {
-  const build = buildOf(screen);
-  if (!build || build.by === "update") return phaseText(build?.phase ?? screen.update?.phase);
-  return t(build.by === "plugins" ? "editor.build.plugins" : "editor.build.install");
-}
-// Progress of a running build, from an update's phase and the ESPHome stage of the build.
-export function buildProgress(screen: Screen): { percent: number; text: string } | null {
-  if (!isBuilding(screen)) return null;
-  const build = buildOf(screen);
-  const stage = build?.stage ?? undefined;
-  const phase = build?.by === "update" || !build ? (build?.phase ?? screen.update?.phase) : "install";
-  if (phase === "verify") return { percent: 78, text: phaseText("verify") };
-  if (phase === "settle") return { percent: 92, text: phaseText("settle") };
-  if (stage === "upload") return { percent: 66, text: t("editor.update.writing") };
-  if (stage) return { percent: 40, text: t("editor.update.building") };
-  return { percent: 12, text: buildText(screen) };
-}
+// What a running build is doing in words, and how far it is (model/screen-status.ts).
+export const buildText = (screen: Screen) => status.buildText(screen, buildOf(screen));
+export const buildProgress = (screen: Screen) => status.buildProgress(screen, building(screen));
 
 // ---- Top bar ----
 // Without a stored top bar the screen shows what it always did: the clock of show_clock.
@@ -1822,39 +1742,7 @@ const topbarList = itemList({
 });
 export const { add: addTopbarItem, move: moveTopbarItem, remove: removeTopbarItem } = topbarList;
 
-// ---- Screen settings: the same groups and rows as the settings page on the screen itself ----
-// Every change applies at once, like on the screen; no Save needed. A screen with firmware 0.2.49+ owns its
-// settings and ESP Screens changes them through its entities in Home Assistant. A group's title and a row's label
-// are the texts editor.screen_settings.groups.<group> and editor.screen_settings.rows.<key> (app 0.2.90).
-export const SETTING_GROUPS = [
-  { group: "brightness", icon: "F0599", rows: [
-    { key: "brightness", kind: "number", min: 5, max: 100, step: 5, unit: "%" },
-    { key: "dark_mode", kind: "toggle" },
-    { key: "standby_enabled", kind: "toggle" },
-    { key: "standby_seconds", kind: "duration", min: 60, max: 86400, needs: "standby_enabled" },
-    { key: "standby_brightness", kind: "number", min: 0, max: 100, step: 5, unit: "%", needs: "standby_enabled", cap: "brightness" },
-  ] },
-  { group: "night", icon: "F0594", rows: [
-    { key: "night_enabled", kind: "toggle" },
-    { key: "night_start", kind: "moment", needs: "night_enabled" },
-    { key: "night_end", kind: "moment", needs: "night_enabled" },
-    { key: "night_brightness", kind: "number", min: 0, max: 100, step: 5, unit: "%", needs: "night_enabled", cap: "brightness" },
-  ] },
-  { group: "screen", icon: "F0379", rows: [
-    { key: "auto_home", kind: "toggle" },
-    { key: "auto_home_seconds", kind: "duration", min: 30, max: 3600, needs: "auto_home" },
-    { key: "home_on_standby", kind: "toggle" },
-    { key: "swipe_pages", kind: "toggle" },
-    { key: "page_buttons", kind: "toggle" },
-    { key: "home_button", kind: "toggle" },
-    { key: "rotation", kind: "choice", options: [0, 90, 180, 270] },
-  ] },
-] as const;
-export type SettingRow = (typeof SETTING_GROUPS)[number]["rows"][number] & { min?: number; max?: number; step?: number; unit?: string; needs?: string; cap?: string; options?: readonly unknown[] };
-export const settingLabel = (row: SettingRow) => t(`editor.screen_settings.rows.${row.key}`);
-// A choice in the same words in every language: the rotation's angle. The clock left this page for Settings → Language
-// & region, one choice for every screen (app 0.2.90).
-export const choiceText = (_row: SettingRow, value: unknown) => `${value}°`;
+// ---- Screen settings: the same groups and rows as the settings page on the screen itself (model/settings.ts) ----
 // Device navigation settings are separate from the page document. Unknown
 // settings remain permissive for warnings, avoiding a false unreachable report.
 export function navigationSettings(): pages.NavigationSettings {
@@ -1887,41 +1775,8 @@ export function settingValues(): Record<string, any> {
 // on every page, as on the screen, unless
 // the screen's Show home button is off. A screen whose value nobody can read right now (offline) is drawn as set.
 export const homeKeyShown = (page = state.barPage) => supports(0, 2, 100) && settingValues().home_button !== false && Boolean(pageAt(page)?.topbar.leading.length);
-// The same steps as settings_screen.h: seconds low down, quarters of an hour up top; times by the quarter,
-// whole hours while held.
-export const ladderStep = (seconds: number) => (seconds < 300 ? 30 : seconds < 900 ? 60 : seconds < 3600 ? 300 : seconds < 7200 ? 900 : 1800);
-export function steppedSetting(row: SettingRow, value: number, direction: number, held: boolean, values: Record<string, any>) {
-  if (row.kind === "moment") {
-    let next = held && value % 60 ? Math.floor(value / 60) * 60 + (direction > 0 ? 60 : 0) : value + direction * (held ? 60 : 15);
-    next %= 1440;
-    return next < 0 ? next + 1440 : next;
-  }
-  const step = row.kind === "duration" ? ladderStep(direction < 0 ? value - 1 : value) : row.step!;
-  const max = row.cap ? Math.min(row.max!, values[row.cap]) : row.max!;
-  return Math.min(max, Math.max(row.min!, value + direction * step));
-}
-export function durationText(seconds: number) {
-  if (seconds < 60) return t("editor.screen_settings.duration.seconds", { n: seconds });
-  if (seconds < 3600) return t("editor.screen_settings.duration.minutes", { n: Math.floor(seconds / 60) });
-  const hours = Math.floor(seconds / 3600), minutes = Math.floor((seconds % 3600) / 60);
-  return minutes
-    ? t("editor.screen_settings.duration.hours_minutes", { h: hours, m: String(minutes).padStart(2, "0") })
-    : t("editor.screen_settings.duration.hours", { n: hours });
-}
-export function momentText(minutes: number, clock24: boolean) {
-  const hour = Math.floor(minutes / 60), minute = String(minutes % 60).padStart(2, "0");
-  if (clock24) return `${String(hour).padStart(2, "0")}:${minute}`;
-  return t(hour < 12 ? "editor.screen_settings.time.am" : "editor.screen_settings.time.pm", { time: `${hour % 12 || 12}:${minute}` });
-}
-export function settingText(row: SettingRow, values: Record<string, any>) {
-  const value = values[row.key];
-  // Home Assistant has no value while the screen is offline or the entity is off.
-  if (value === null || value === undefined) return "—";
-  if (row.kind === "number") return `${value}${row.unit || ""}`;
-  if (row.kind === "duration") return durationText(value);
-  if (row.kind === "moment") return momentText(value, clock24.value);
-  return "";
-}
+// What a row says: its value with its unit, a duration, a moment in the clock the screens use (Language & region).
+export const settingText = (row: SettingRow, values: Record<string, any>) => rowText(row, values, clock24.value);
 export function setSetting(key: string, value: any, delay: number) {
   // One screen's changes at a time: the ones for the screen shown before go out first.
   if (settingTarget && settingTarget !== state.selected && Object.keys(settingQueue).length) {
@@ -1982,9 +1837,6 @@ export function settleSettings() {
 }
 
 // ---- Updates ----
-// What a running update is doing, by its phase.
-export const phaseText = (phase: string | undefined) =>
-  ["install", "verify", "settle"].includes(phase || "") ? t(`editor.update.phases.${phase}`) : t("editor.update.starting");
 // `reinstall` builds the screen again although it runs this firmware: the dev channel's newest dev keeps its number.
 export async function startUpdate(screen: Screen, host?: string, reinstall = false) {
   state.updating.push(screen.id);
@@ -2032,48 +1884,13 @@ export const screenText = (key: string, named: Record<string, unknown> = {}) => 
 /** A language by its own name ("Nederlands"), as the add-on lists it. */
 export const languageName = (code: string | null | undefined) =>
   state.inventory.language?.languages?.find((l) => l.code === code)?.name || languageMeta(code || "")?.name || code || "";
-// A screen that doesn't run the chosen language yet needs its update as well.
-export const needsUpdate = (screen: Screen) => Boolean(screen.update?.available || screen.update?.language);
-export const newLanguageText = () => t("editor.update.new_language", { name: languageName(state.inventory.language?.effective) });
-// ---- A screen's status, as the sidebar and the overview show it ----
-// A screen that only needs the new language (app 0.2.90) says so instead of naming the version it already has.
-export const languageOnly = (screen: Screen) => {
-  const u = screen.update || {};
-  return Boolean(u.language) && (!u.target || versionAtLeast(firmwareVersion(screen), u.target));
-};
-export function updateState(screen: Screen) {
-  const u = screen.update || {};
-  const build = buildOf(screen);
-  if (isBuilding(screen)) return { kind: "running", text: buildText(screen) };
-  if (build?.state === "queued") return { kind: "queued", text: t("editor.sidebar.update.queued") };
-  // A screen ESP Screens did not install has no YAML here to build from, so there is nothing to press: say why
-  // instead of offering a button that cannot work (the nightly round already passes such a screen by).
-  if (needsUpdate(screen) && screen.online && !u.profile)
-    return { kind: "blocked", text: t("editor.sidebar.update.no_profile") };
-  if (needsUpdate(screen) && screen.online)
-    return { kind: "available", text: languageOnly(screen) ? newLanguageText() : t("editor.sidebar.update.available", { version: u.target }) };
-  if (u.result && Date.now() / 1000 - u.result.time < 86400) return { kind: u.result.state === "failed" ? "failed" : "done", text: u.result.message };
-  return null;
-}
-// The light beside the icon: green when all is well, amber when an update waits or runs, red when the screen is away.
-export const screenLight = (screen: Screen) => {
-  if (screen.virtual) return 'ok';
-  if (!screen.online) return "down";
-  const kind = updateState(screen)?.kind;
-  return kind === "available" || kind === "blocked" || kind === "running" || kind === "queued" ? "update" : kind === "failed" ? "down" : "ok";
-};
-// One quiet line under the name, only when there is something to say; a healthy screen shows its name alone.
-export const screenSubline = (screen: Screen) => {
-  if (screen.virtual) return { kind: 'ok', text: t('editor.preview.virtual') };
-  if (!screen.online) return { kind: "down", text: t("editor.common.offline") };
-  const u = updateState(screen);
-  // An update nothing here can build is still an update: the line names it, the details say why it waits.
-  if (u?.kind === "blocked") return { kind: "update", text: t("editor.sidebar.update.available", { version: screen.update?.target }) };
-  return u && u.kind !== "done" ? u : null;
-};
-// Whether a screen asks for a look (app 0.4.0): away, an update waiting, running or failed. Only such a screen opens its
-// details in the sidebar by itself; a healthy one keeps them folded behind the chevron.
-export const needsAttention = (screen: Screen) => screenLight(screen) !== "ok";
+// ---- A screen's status, as the sidebar and the overview show it (model/screen-status.ts) ----
+const facts = (screen: Screen): status.StatusFacts => ({ ...building(screen), language: languageName(state.inventory.language?.effective), now: Date.now() });
+export const newLanguageText = () => status.newLanguageText(languageName(state.inventory.language?.effective));
+export const updateState = (screen: Screen) => status.updateState(screen, facts(screen));
+export const screenLight = (screen: Screen) => status.screenLight(screen, facts(screen));
+export const screenSubline = (screen: Screen) => status.screenSubline(screen, facts(screen));
+export const needsAttention = (screen: Screen) => status.needsAttention(screen, facts(screen));
 // Time and number format, for every screen at once under Settings → Language & region: a 24-hour clock and "1,234.5"
 // until the add-on says otherwise. The mockup's clocks and numbers follow what the add-on sends the screens: the style,
 // from how many digits a number is grouped, and the space before "%" (Home Assistant's language decides "auto").

@@ -4,9 +4,10 @@ import { vTooltip } from "floating-vue";
 import "floating-vue/dist/style.css";
 import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
+import { languageOnly } from "../model/screen-status";
 import { glyph } from "../model/topbar";
 import {
-  copyText, forgetPending, go, goHome, languageOnly, newLanguageText, openIntegrations, refresh, removeScreen, renameScreen, route, screenSubline,
+  copyText, forgetPending, go, goHome, newLanguageText, openIntegrations, refresh, removeScreen, renameScreen, route, screenSubline,
   buildOf, buildingScreens, buildProgress, select, startUpdate, state, updateState, whatsNew,
 } from "../store";
 import type { Screen } from "../types";

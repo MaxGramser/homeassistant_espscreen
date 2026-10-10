@@ -3,11 +3,12 @@ import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixtur
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addTile, canAlert, copyLayoutFrom, copyText, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage, moveTileToPage,
-  pageReachWarning, pageTilesRepeat, phaseText, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports,
+  pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports,
   tileLimit, topbarItems, topbarView, buildProgress, whatsNew, refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices,
 } from "../src/store";
 import { t } from "../src/i18n";
 import { customPreview } from "../src/model/preview";
+import { phaseText } from "../src/model/screen-status";
 import renderer from "../src/wasm/renderer.json";
 import type { Inventory, Screen } from "../src/types";
 
