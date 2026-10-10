@@ -156,8 +156,8 @@ useEventListener(document, "keydown", onKey);
         <template v-if="ui.phone && doc.layout">
           <div class="phone-menu-row" role="group">
             <button type="button" role="menuitem" @click="closeMenu(); ui.tab = 'layout'; ui.previewOpen = true"><Icon name="play" />{{ t("editor.pages.preview") }}</button>
-            <button type="button" role="menuitem" :disabled="!doc.undoCount" @click="doc.undo"><Icon name="undo" />{{ t("editor.common.undo") }}</button>
-            <button type="button" role="menuitem" :disabled="!doc.redoCount" @click="doc.redo"><Icon name="redo" />{{ t("editor.pages.redo") }}</button>
+            <button type="button" role="menuitem" :disabled="!doc.undoCount" :title="doc.undoWhat ? t('editor.undo.undo', { what: doc.undoWhat }) : undefined" @click="doc.undo"><Icon name="undo" />{{ t("editor.common.undo") }}</button>
+            <button type="button" role="menuitem" :disabled="!doc.redoCount" :title="doc.redoWhat ? t('editor.undo.redo', { what: doc.redoWhat }) : undefined" @click="doc.redo"><Icon name="redo" />{{ t("editor.pages.redo") }}</button>
           </div>
           <UiMenuItem icon="file-plus-outline" @select="ui.tab = 'layout'; ui.pageWizardOpen = true">{{ t("editor.layout.add_page") }}</UiMenuItem>
           <UiMenuItem icon="view-column-outline" @select="ui.tab = 'layout'; ui.pagesSheet = true">{{ t("editor.phone.pages_order") }}</UiMenuItem>

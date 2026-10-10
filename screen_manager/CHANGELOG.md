@@ -8,6 +8,9 @@
   the same words. Its button says what it does (Discard and open, Replace layout, Start calibration, Clear override),
   in red where it throws something away. Cancel has the focus at first, so Enter alone never throws work away, and
   Escape cancels.
+- **Undo says what it does.** Undo and Redo in Layout name the step they take back or do again ("Undo: Kitchen light
+  moved to page 2"), and after an undo a short note says what came back, with Redo beside it, so a change on a page out
+  of sight never goes unnoticed.
 - **A favourite says what it plays in Layout.** Its card on the mockup names the kind of thing again (Playlist, Album,
   Podcast) before the speaker, as the screen does.
 - **Seeed reTerminal D1001 (experimental).** The 8-inch ESP32-P4 panel with a battery, as a new board in New screen:

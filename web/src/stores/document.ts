@@ -14,6 +14,7 @@ import { useClock } from "../composables/useClock";
 import { askConfirm } from "../composables/useConfirm";
 import { usePreference } from "../composables/usePreference";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
+import { describeChange, label, type ChangeLabel } from "../model/change-label";
 import { DraftHistory, type HistoryScope } from "../model/draft-history";
 import { createLayout } from "../model/layout";
 import { memoryUse } from "../model/memory";
@@ -22,7 +23,7 @@ import { savedDraft } from "../model/page-conflict";
 import { completePositions } from "../model/page-workspace";
 import * as pages from "../model/pages";
 import { slug } from "../model/slug";
-import type { Inventory, Layout, PageDocument, PageGrid, PageLayout, PageWorkspace, Screen, Tile } from "../types";
+import type { ChildTile, Inventory, Layout, PageDocument, PageGrid, PageLayout, PageTile, PageWorkspace, Screen, Tile } from "../types";
 import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
 import { useInventoryStore } from "./inventory";
@@ -33,7 +34,7 @@ import { useUiStore } from "./ui";
 
 export type EditorMode = "simple" | "advanced";
 // A layout copied, imported or put on another grid, shown on the new grid before it is taken (GridReview.vue).
-export type GridReview = { record: PageDocument; layout: PageLayout; target: PageGrid; copy: boolean; message: string };
+export type GridReview = { record: PageDocument; layout: PageLayout; target: PageGrid; copy: boolean; message: string; said?: ChangeLabel };
 // One step of undo: the draft, its grid and way, the map, and what was chosen.
 type DraftSnapshot = { layout: PageLayout; grid: PageGrid; upright: boolean | null; positions: PageWorkspace["positions"]; page: string | null; tile: string | null };
 // Whoever shows something of the draft (the inspector) is told when it is replaced as a whole: `opened` when a screen was
@@ -150,12 +151,24 @@ export const useDocumentStore = defineStore("document", () => {
   const counts = computed(() => { historyVersion.value; return history.counts(editorMode.value === "advanced"); });
   const undoCount = computed(() => counts.value.undo);
   const redoCount = computed(() => counts.value.redo);
-  // A removal toast only belongs to the latest history entry. Once another edit, map move, undo or screen selection
-  // changes history, retire it.
+  // What the next undo and redo do, in words in the editor's language ("Kitchen light moved to page 2"), for the buttons'
+  // tooltips and the toast after them; empty when there is nothing to do.
+  const said = (change: ChangeLabel | undefined) => change ? (change.count === undefined
+    ? t(`editor.undo.what.${change.key}`, change.named || {}) : t(`editor.undo.what.${change.key}`, change.named || {}, change.count)) : "";
+  const undoWhat = computed(() => { historyVersion.value; return counts.value.undo ? said(history.peek("undo", editorMode.value === "advanced") || label("changed")) : ""; });
+  const redoWhat = computed(() => { historyVersion.value; return counts.value.redo ? said(history.peek("redo", editorMode.value === "advanced") || label("changed")) : ""; });
+  // A removal toast, and the one after an undo or redo, only belong to the latest history entry. Once another edit, map
+  // move, undo or screen selection changes history, retire it.
   function historyChanged() {
-    if (ui.notice?.action?.run === undo) ui.dismissToast();
+    if (ui.notice?.action?.run === undo || ui.notice?.action?.run === redo) ui.dismissToast();
     historyVersion.value++;
   }
+  // A tile's name as the mockup shows it, for the words of a change.
+  const nameOf = (tile: PageTile | ChildTile, layout: PageLayout) => {
+    if (tile.appearance.label) return tile.appearance.label;
+    try { return entities.entityName(tile.content.kind === "entity" ? tile.content.entityId : pages.entityOf(layout, tile as PageTile)); }
+    catch { return t("editor.undo.a_tile"); }
+  };
   const snapshot = (): DraftSnapshot => ({ layout: pages.clone(document.value!), grid: pages.clone(documentGrid.value!), upright: documentUpright.value,
     positions: pages.clone(workspace.value.positions), page: selectedPageId.value, tile: selectedTileId.value });
   /** A toast that offers to take back what was just done. */
@@ -165,13 +178,14 @@ export const useDocumentStore = defineStore("document", () => {
 
   // ---- Editing ----
   // The draft becomes `next` (and its grid `nextGrid`), checked against what the screen takes, remembered for undo unless
-  // `remember` is false. True when anything changed. A change of a page's top bar is the top bar store's (stores/topbar.ts).
-  function applyDocument(next: PageLayout, remember = true, nextGrid = documentGrid.value) {
+  // `remember` is false, with what it did in words: `said`, or worked out from the change (model/change-label.ts). True
+  // when anything changed. A change of a page's top bar is the top bar store's (stores/topbar.ts).
+  function applyDocument(next: PageLayout, remember = true, nextGrid = documentGrid.value, said?: ChangeLabel) {
     if (!document.value || !documentGrid.value || !nextGrid) return false;
     pages.validatePages(next, screenGridOf(nextGrid));
     if (pages.sameValue(next, document.value) && pages.sameGrid(nextGrid, documentGrid.value)) return false;
     if (remember) {
-      history.remember(snapshot());
+      history.remember(snapshot(), "document", said ?? describeChange(document.value, next, documentGrid.value, nextGrid, nameOf));
       historyChanged();
     }
     documentGrid.value = pages.clone(nextGrid);
@@ -233,10 +247,16 @@ export const useDocumentStore = defineStore("document", () => {
     historyChanged();
     scheduleWorkspaceSave();
   }
+  // An undo or a redo says what it took back or did again ("Undone: Kitchen light moved to page 2"), with the way back at
+  // hand: the change may be on a page out of sight, or on the map.
   function historyStep(direction: "undo" | "redo") {
     if (!document.value || !documentGrid.value) return;
     const entry = history.step(direction, snapshot(), editorMode.value === "advanced");
-    if (entry) restoreSnapshot(entry.value, entry.scope);
+    if (!entry) return;
+    restoreSnapshot(entry.value, entry.scope);
+    const what = said(entry.label || label("changed"));
+    if (direction === "undo") ui.toast(t("editor.undo.undone", { what }), { label: t("editor.pages.redo"), run: redo });
+    else ui.toast(t("editor.undo.redone", { what }), { label: t("editor.common.undo"), run: undo });
   }
   function undo() { historyStep("undo"); }
   function redo() { historyStep("redo"); }
@@ -360,13 +380,13 @@ export const useDocumentStore = defineStore("document", () => {
       ui.toast(t("editor.pages.position_occupied")); return;
     }
     if (positions[id]?.x === x && positions[id]?.y === y) return;
-    history.remember(snapshot(), "workspace"); historyChanged();
+    history.remember(snapshot(), "workspace", label("map_moved", { page: document.value.pages.findIndex((page) => page.id === id) + 1 })); historyChanged();
     workspace.value.positions = { ...positions, [id]: { x, y } };
     workspaceDirty.value = true; scheduleWorkspaceSave();
   }
   function arrangeFromHome() {
     if (!document.value) return;
-    history.remember(snapshot(), "workspace"); historyChanged();
+    history.remember(snapshot(), "workspace", label("map_arranged")); historyChanged();
     workspace.value.positions = pages.initialPositions(document.value);
     workspaceDirty.value = true; scheduleWorkspaceSave();
   }
@@ -526,8 +546,8 @@ export const useDocumentStore = defineStore("document", () => {
     try {
       const adapted = pages.adaptGrid(document.value, heldTo(documentGrid.value), screenGridOf(target));
       const added = adapted.pages.length - document.value.pages.length;
-      const before = snapshot();
-      if (!applyDocument(adapted, true, target)) { history.remember(before); historyChanged(); }
+      const before = snapshot(), turned = label(upright ? "stood_up" : "laid_down");
+      if (!applyDocument(adapted, true, target, turned)) { history.remember(before, "document", turned); historyChanged(); }
       documentUpright.value = upright;
       markEdited();
       if (added > 0) ui.toast(t("editor.grid.pages_added", { n: added }, added));
@@ -546,11 +566,11 @@ export const useDocumentStore = defineStore("document", () => {
       if (added > 0) ui.toast(t("editor.grid.pages_added", { n: added }, added));
     } catch (error: any) { ui.toast(error.message); }
   }
-  function reviewGrid(record: PageDocument, target: PageGrid, copy: boolean, message = "") {
+  function reviewGrid(record: PageDocument, target: PageGrid, copy: boolean, message = "", said?: ChangeLabel) {
     try {
       if (record.layout.pages.length > editorLayout.grid.pages) throw new Error(t("addon.errors.pages.adapt_pages"));
       gridReview.value = { record: pages.clone(record), layout: pages.adaptGrid(record.layout, heldTo(record.sourceGrid), screenGridOf(target)),
-        target: { columns: target.columns, rows: target.rows }, copy, message };
+        target: { columns: target.columns, rows: target.rows }, copy, message, said };
     } catch (error: any) { ui.toast(error.message); }
   }
   function reviewScreenGrid() {
@@ -562,18 +582,18 @@ export const useDocumentStore = defineStore("document", () => {
     const review = gridReview.value;
     if (!review) return;
     gridReview.value = null;
-    if (review.copy) adopt({ ...review.record, layout: review.layout, sourceGrid: review.target }, review.message);
+    if (review.copy) adopt({ ...review.record, layout: review.layout, sourceGrid: review.target }, review.message, review.said);
     else applyDocument(review.layout, true, review.target);
   }
 
   // ---- Copying and sharing a layout (app 0.2.73) ----
   // Another layout becomes the draft, with new ids for its pages, as one step of undo; on another grid it is shown first.
-  function adopt(record: PageDocument, message: string) {
+  function adopt(record: PageDocument, message: string, said?: ChangeLabel) {
     if (!documentGrid.value) return;
-    if (!pages.sameGrid(record.sourceGrid, documentGrid.value)) return reviewGrid(record, documentGrid.value, true, message);
+    if (!pages.sameGrid(record.sourceGrid, documentGrid.value)) return reviewGrid(record, documentGrid.value, true, message, said);
     try {
       const copied = pages.remapLayout(record.layout, heldTo(documentGrid.value)), idMap = new Map(record.layout.pages.map((page, index) => [page.id, copied.pages[index].id]));
-      applyDocument(copied);
+      applyDocument(copied, true, documentGrid.value, said);
       workspace.value.positions = Object.fromEntries(Object.entries(record.workspace?.positions || {}).map(([id, point]) => [idMap.get(id)!, pages.clone(point)]));
       workspaceDirty.value = true;
       selectedTileId.value = null;
@@ -587,7 +607,7 @@ export const useDocumentStore = defineStore("document", () => {
     if (other?.page_document?.format !== "pages-v2") { ui.toast(t("editor.layout.copy_needs_migration")); return; }
     const copy = pages.clone(other.page_document);
     copy.layout.title = document.value?.title || copy.layout.title;
-    adopt(copy, t("editor.layout.copied", { name: other.name }));
+    adopt(copy, t("editor.layout.copied", { name: other.name }), label("layout_copied", { name: other.name }));
   }
   const layoutJson = () => {
     if (!document.value || !documentGrid.value) return "";
@@ -616,7 +636,7 @@ export const useDocumentStore = defineStore("document", () => {
       const record = await send<PageDocument>(path, "POST", {
         document: data, sourceGrid: data?.sourceGrid || documentGrid.value,
       });
-      if (scr.selected === screen && selection === selectionEpoch) adopt(record, t("editor.layout.imported"));
+      if (scr.selected === screen && selection === selectionEpoch) adopt(record, t("editor.layout.imported"), label("layout_imported"));
     } catch (error: any) { ui.toast(error.message); }
   }
 
@@ -665,7 +685,7 @@ export const useDocumentStore = defineStore("document", () => {
   return {
     document, documentGrid, documentUpright, documentRevision, workspace, workspaceDirty, gridReview, conflict, busy, saved, editorMode,
     selectedPageId, focusedPageId, selectedTileId, connectingTileId, justAdded,
-    layout, barPage, currentTile, dirty, undoCount, redoCount, screenShape, editorLayout, tileLimit, memory, gridWay, gridChanged,
+    layout, barPage, currentTile, dirty, undoCount, redoCount, undoWhat, redoWhat, screenShape, editorLayout, tileLimit, memory, gridWay, gridChanged,
     // What the mockup, the map and the edits read as they go (stores/lookup.ts).
     ...lookups({ isSelected, pageAt, stillSelected, heldTo, screenGridOf, takesGrid, workspacePositions, layoutJson }),
     applyDocument, applyEdit, editDocument, beginFieldEdit, endFieldEdit, undo, redo, undoToast, setEditorMode, markAdded,

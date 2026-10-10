@@ -80,6 +80,9 @@ const focused = computed(() => doc.document?.pages.findIndex((page) => page.id =
 const positionsHint = computed(() => hasGaps(layout.value.tiles) && !scr.supports(0, 2, 26)
   ? t("editor.layout.positions_hint", { firmware: scr.currentScreen?.firmware || t("editor.common.unknown") })
   : "");
+// Undo and redo say what they do ("Undo: Kitchen light moved to page 2"), and only their name when there is nothing to do.
+const undoText = computed(() => doc.undoWhat ? t("editor.undo.undo", { what: doc.undoWhat }) : t("editor.common.undo"));
+const redoText = computed(() => doc.redoWhat ? t("editor.undo.redo", { what: doc.redoWhat }) : t("editor.pages.redo"));
 // Page buttons and swiping off: a page no Go to page tile reaches, or one without a way back.
 const reachHint = computed(() => pageReachWarning());
 // Everything the page used to explain in small (i) buttons beside the count, now behind one ? in the toolbar.
@@ -105,8 +108,8 @@ function onCanvasClick(e: MouseEvent) {
         <button type="button" :aria-pressed="doc.editorMode === 'advanced'" @click="doc.setEditorMode('advanced')"><Icon name="sitemap-outline" />{{ t('editor.pages.view_map') }}</button>
       </div>
       <div class="tool-group" role="group">
-        <button type="button" class="icon-btn" :disabled="!doc.undoCount" :aria-label="t('editor.common.undo')" :title="`${t('editor.common.undo')} · ⌘Z`" @click="doc.undo"><Icon name="undo" /></button>
-        <button type="button" class="icon-btn" :disabled="!doc.redoCount" :aria-label="t('editor.pages.redo')" :title="`${t('editor.pages.redo')} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
+        <button type="button" id="undo" class="icon-btn" :disabled="!doc.undoCount" :aria-label="undoText" :title="`${undoText} · ⌘Z`" @click="doc.undo"><Icon name="undo" /></button>
+        <button type="button" id="redo" class="icon-btn" :disabled="!doc.redoCount" :aria-label="redoText" :title="`${redoText} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
       </div>
       <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
       <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="ui.pageWizardOpen = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
