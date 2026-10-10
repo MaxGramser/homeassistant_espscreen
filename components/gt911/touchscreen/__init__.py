@@ -18,7 +18,7 @@ GT911Touchscreen = gt911_ns.class_(
 CONFIG_SCHEMA = touchscreen.TOUCHSCREEN_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(GT911Touchscreen),
-        cv.Optional(CONF_INTERRUPT_PIN): pins.gpio_output_pin_schema,
+        cv.Required(CONF_INTERRUPT_PIN): pins.gpio_output_pin_schema,
         cv.Required(CONF_RESET_PIN): pins.gpio_output_pin_schema,
         cv.Required(CONF_POWER_PIN): pins.gpio_output_pin_schema,
     }
@@ -30,7 +30,6 @@ async def to_code(config):
     await touchscreen.register_touchscreen(var, config)
     await i2c.register_i2c_device(var, config)
 
-    if interrupt_pin := config.get(CONF_INTERRUPT_PIN):
-        cg.add(var.set_interrupt_pin(await cg.gpio_pin_expression(interrupt_pin)))
+    cg.add(var.set_interrupt_pin(await cg.gpio_pin_expression(config[CONF_INTERRUPT_PIN])))
     cg.add(var.set_reset_pin(await cg.gpio_pin_expression(config[CONF_RESET_PIN])))
     cg.add(var.set_power_pin(await cg.gpio_pin_expression(config[CONF_POWER_PIN])))

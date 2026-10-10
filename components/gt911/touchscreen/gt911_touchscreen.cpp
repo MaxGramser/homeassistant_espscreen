@@ -56,17 +56,20 @@ i2c::ErrorCode GT911Touchscreen::probe_address_(uint8_t address, uint8_t *switch
 }
 
 bool GT911Touchscreen::init_sequence_() {
-  if (this->reset_pin_ == nullptr || this->power_pin_ == nullptr) {
-    ESP_LOGE(TAG, "Power and reset pins are required.");
+  if (this->interrupt_pin_ == nullptr || this->reset_pin_ == nullptr || this->power_pin_ == nullptr) {
+    ESP_LOGE(TAG, "Address-select, power and reset pins are required.");
     return false;
   }
 
+  this->interrupt_pin_->setup();
+  this->interrupt_pin_->pin_mode(gpio::FLAG_OUTPUT);
   this->power_pin_->setup();
   this->power_pin_->pin_mode(gpio::FLAG_OUTPUT);
   this->reset_pin_->setup();
   this->reset_pin_->pin_mode(gpio::FLAG_OUTPUT);
 
-  ESP_LOGI(TAG, "Holding system power and touch reset low for 200 ms");
+  ESP_LOGI(TAG, "Holding address-select, system power and touch reset low for 200 ms");
+  this->interrupt_pin_->digital_write(false);
   this->power_pin_->digital_write(false);
   this->reset_pin_->digital_write(false);
   delay(200);  // NOLINT
