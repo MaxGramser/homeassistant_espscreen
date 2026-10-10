@@ -94,7 +94,7 @@ class Catalog(unittest.TestCase):
         external = board['external_components'][0]
 
         self.assertEqual(external['source'],
-                         'github://leonardospina/homeassistant_espscreen@58db01a037d428db963ed911595d6b5bb4ad9449')
+                         'github://leonardospina/homeassistant_espscreen@2649adae176577c114c8c0491f888469ede59302')
         self.assertEqual(external['components'], ['gt911'])
         self.assertNotIn('use_primary_i2c_addr', touch)
         self.assertNotIn('setup_priority', touch)
@@ -114,6 +114,11 @@ class Catalog(unittest.TestCase):
         driver = (ROOT / 'components/gt911/touchscreen/gt911_touchscreen.cpp').read_text()
         setup = driver[driver.index('void GT911Touchscreen::setup()'):driver.index('bool GT911Touchscreen::init_sequence_')]
         self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
+        self.assertIn('GT911_INIT_ATTEMPTS = 3', driver)
+        self.assertIn('for (uint8_t attempt = 1; attempt <= GT911_INIT_ATTEMPTS; attempt++)', setup)
+        self.assertIn('configuration_valid_()', setup)
+        self.assertLess(setup.index('init_sequence_'), setup.index('configuration_valid_()'))
+        self.assertIn('Invalid GT911 configuration after power cycle', setup)
         sequence = driver[driver.index('bool GT911Touchscreen::init_sequence_'):
                           driver.index('void GT911Touchscreen::setup_internal_')]
         address_low = sequence.index('this->interrupt_pin_->digital_write(false);')
@@ -131,6 +136,10 @@ class Catalog(unittest.TestCase):
         self.assertLess(reset_high, second_wait)
         self.assertNotIn('this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);', sequence)
         self.assertIn('probe_address_(SECONDARY_ADDRESS', driver)
+        validation = driver[driver.index('bool GT911Touchscreen::configuration_valid_()'):
+                            driver.index('void GT911Touchscreen::setup_internal_')]
+        self.assertIn('GET_MAX_VALUES', validation)
+        self.assertIn('x_res != 0 && y_res != 0', validation)
 
 
 class Choices(unittest.TestCase):

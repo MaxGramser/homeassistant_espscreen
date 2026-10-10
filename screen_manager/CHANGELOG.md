@@ -110,7 +110,8 @@
   A screen built from it has started, drawn the interface and joined a network; the rest of the hardware acceptance
   is still open. Its experimental touch driver follows Waveshare's factory power sequence: address-select, system
   power and touch reset stay low for 200 ms, then power and reset stay high for 200 ms while address-select remains
-  low before it probes the GT911 at either supported address. It needs ESPHome 2026.7.0 or later.
+  low before it probes the GT911 at either supported address. It accepts the startup only when the controller reports
+  nonzero panel geometry, and otherwise repeats the full sequence up to three times. It needs ESPHome 2026.7.0 or later.
 
 ## 0.4.84 (firmware 0.52.0)
 

@@ -16,7 +16,7 @@ packages:
 external_components:
   # Waveshare powers the non-B board down for 200 ms, then raises system power and touch reset for another 200 ms
   # before probing the GT911. This temporary component preserves that board-specific factory sequence.
-  - source: github://leonardospina/homeassistant_espscreen@58db01a037d428db963ed911595d6b5bb4ad9449
+  - source: github://leonardospina/homeassistant_espscreen@2649adae176577c114c8c0491f888469ede59302
     components: [gt911]
 
 substitutions:
