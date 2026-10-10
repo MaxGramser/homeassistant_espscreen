@@ -510,7 +510,7 @@ class Editor(unittest.TestCase):
         self.assertIn('export function resizeChoices(', editor_sources.source('editor/tiles.ts'))
         self.assertEqual(editor_sources.text('tile.goes_to.label'), 'Goes to page')
         self.assertIn('return { wide: face.wide, full: face.full, tall: face.tall,', editor_sources.component('TileCard'))
-        self.assertIn('"timer", "screen",', editor_sources.component('Library'))
+        self.assertIn('"timer", "screen",', editor_sources.source('model/library.ts'))
         self.assertEqual(editor_sources.text('library.filters.screen'), 'Screen')
 
 

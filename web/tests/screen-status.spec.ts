@@ -3,8 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
 import { homeView, SMALLEST } from "../src/model/overview";
-import { buildProgress, firmwareVersion, languageOnly, needsAttention, screenLight, screenSubline, updateState, whatsNew,
-  type StatusFacts } from "../src/model/screen-status";
+import { buildProgress, explainsItself, firmwareVersion, languageOnly, needsAttention, pendingText, rowStatus, screenBoardName, screenIcon, screenLight,
+  screenSubline, updateNotes, updateState, whatsNew, type StatusFacts } from "../src/model/screen-status";
 import type { Screen } from "../src/types";
 import { screenFixture } from "./helpers/fixtures";
 
@@ -89,5 +89,41 @@ describe("the overview's home page of a screen", () => {
     expect(homeView(bare)!.shape).toEqual(SMALLEST);
     expect(homeView(bare)!.compact).toBe(true);
     expect(homeView(screen())).toBeNull();
+  });
+});
+
+describe("a screen's row in the sidebar (screen-status.ts)", () => {
+  const screen = (more: Partial<Screen> = {}) => ({ id: "s", name: "S", online: true, layout: { title: "", tiles: [] }, ...more }) as Screen;
+  it("says one thing on its right: virtual, away, building, its update's button, a failure or a wait", () => {
+    expect(rowStatus(screen({ virtual: true }), "available")).toBe("virtual");
+    expect(rowStatus(screen({ online: false }), "available")).toBe("down");
+    expect([rowStatus(screen(), "running"), rowStatus(screen(), "queued")]).toEqual(["running", "running"]);
+    expect(rowStatus(screen({ update: { profile: "s.yaml" } as any }), "available")).toBe("update");
+    expect([rowStatus(screen(), "available"), rowStatus(screen(), "blocked"), rowStatus(screen(), "failed"), rowStatus(screen(), undefined)]).toEqual(["waiting", "waiting", "failed", ""]);
+    expect([explainsItself(screen(), "failed"), explainsItself(screen(), "blocked"), explainsItself(screen(), "available"),
+      explainsItself(screen({ update_in_tessera: true } as any), "available")]).toEqual([true, true, false, true]);
+  });
+
+  it("draws a known board's icon and names it, a screen standing up as a phone", () => {
+    const catalog = { name: "Brand", inch: 4 } as any;
+    expect(screenIcon(screen({ board: "b", shape: { width: 480, height: 480, columns: 2, rows: 3, catalog } as any }))).toBe("F0ECE");
+    expect(screenIcon(screen({ shape: { width: 480, height: 800, columns: 2, rows: 3 } as any }))).toBe("F011C");
+    expect(screenIcon(screen())).toBe("F0A07");
+    expect(screenBoardName(screen({ board: "b", shape: { width: 480, height: 480, columns: 2, rows: 3, catalog } as any }))).toBe(t("editor.installer.board_title", { name: "Brand", inch: "4" }));
+    expect(screenBoardName(screen())).toBe("");
+  });
+
+  it("says what an update brings in headlines, without what was tested, the new language first", () => {
+    const notes = ["Faster pictures. Tested on the bench.", "Tested with the suite.", "A fix"];
+    expect(updateNotes(screen({ firmware: "0.50.0", update: { language: true, target: "0.53.0" } as any }), notes, "Dutch")).toEqual(["Dutch", "Faster pictures.", "A fix"]);
+    expect(updateNotes(screen(), notes, "Dutch")).toEqual(["Faster pictures.", "A fix"]);
+  });
+
+  it("follows a screen on its way in until Home Assistant has it", () => {
+    expect(pendingText({ file: "a.yaml" })).toBe(t("editor.sidebar.pending.not_flashed", { file: "a.yaml" }));
+    expect(pendingText({ file: "a.yaml", downloaded: true })).toBe(t("editor.sidebar.pending.downloaded"));
+    expect(pendingText({ file: "a.yaml", installed: true, downloaded: true })).toBe(t("editor.sidebar.pending.installed"));
+    expect(pendingText({ file: "a.yaml", installed: true, seen: true })).toBe(t("editor.sidebar.pending.adding"));
+    expect(pendingText({ file: "a.yaml", seen: true, pairing: "failed" })).toBe(t("editor.sidebar.pending.failed"));
   });
 });

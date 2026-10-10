@@ -4,6 +4,7 @@
 // screens' language and the time for what depends on them; the builds store gathers them (stores/builds.ts: buildOf,
 // updating).
 import { t } from "../i18n";
+import { boardTitle } from "./boards";
 import { versionAtLeast } from "./layout";
 import type { Build, ChangelogSection, Screen } from "../types";
 
@@ -103,3 +104,43 @@ export function whatsNew(screen: Screen, changelog: ChangelogSection[] | undefin
   }
   return lines;
 }
+
+// ---- A screen's row in the sidebar (app 0.4.32) ----
+// The row says one thing at most, on its right: the update's button, its progress, or why it is quiet. `kind`: its
+// update's state (updateState).
+export type RowStatus = "virtual" | "down" | "running" | "update" | "failed" | "waiting" | "";
+export function rowStatus(screen: Screen, kind: UpdateState["kind"] | undefined): RowStatus {
+  if (screen.virtual) return "virtual";
+  if (!screen.online) return "down";
+  if (kind === "running" || kind === "queued") return "running";
+  if (kind === "available" && screen.update?.profile) return "update";
+  if (kind === "failed") return "failed";
+  return kind === "blocked" || kind === "available" ? "waiting" : "";
+}
+/** Only a screen with something to explain opens its details by itself (app 0.4.32): an update that failed or waits for
+ * a build, or one that has to be updated here rather than in ESPHome Device Builder while it waits (app 0.4.82). An
+ * update ready to go has its button on the row; a screen that is away says so there. */
+export const explainsItself = (screen: Screen, kind: UpdateState["kind"] | undefined) =>
+  ["failed", "blocked"].includes(kind || "") || Boolean(screen.update_in_tessera && kind === "available");
+// A board this app knows carries its catalog entry in its shape (boards.json, app 0.2.129), which also names it.
+const knownBoard = (screen: Screen) => (screen.board && screen.shape?.catalog?.name ? screen.shape.catalog : null);
+/** The icon of a screen's row: a phone for a screen standing up, a panel with tiles for a board this app knows, a
+ * monitor for one it does not. */
+export const screenIcon = (screen: Screen) => (screen.shape && screen.shape.height > screen.shape.width ? "F011C" : knownBoard(screen) ? "F0ECE" : "F0A07");
+/** The board a screen is, by its name and the size of its glass; nothing for a board this app does not know. */
+export const screenBoardName = (screen: Screen) => { const board = knownBoard(screen); return board ? boardTitle(board) : ""; };
+/** What the update brings, in the sidebar: the new language first, when the version changes as well, then the
+ * firmware's notes, each its first sentence and without what was tested (a column this narrow holds a few headlines,
+ * not the release notes). */
+export function updateNotes(screen: Screen, notes: readonly string[], languageText: string) {
+  const headline = (line: string) => line.match(/^.*?[.!?](?=\s|$)/)?.[0] || line;
+  return [...(screen.update?.language && !languageOnly(screen) ? [languageText] : []), ...notes.filter((line) => !/^(Tested|Getest)\b/i.test(line)).map(headline)];
+}
+/** A screen on its way in (app 0.4.73): Tessera adds one Home Assistant found by itself and says so while it does, and
+ * that it is up to the person when Home Assistant asks something only they can answer. */
+export type Pending = { installed?: boolean; downloaded?: boolean; file: string; seen?: boolean; pairing?: string | null };
+export const pendingText = (p: Pending) => p.pairing === "failed" ? t("editor.sidebar.pending.failed")
+  : p.seen ? t("editor.sidebar.pending.adding")
+  : p.installed ? t("editor.sidebar.pending.installed")
+  : p.downloaded ? t("editor.sidebar.pending.downloaded")
+  : t("editor.sidebar.pending.not_flashed", { file: p.file });

@@ -35,7 +35,7 @@ class Startup(unittest.TestCase):
         self.assertIn('@click="choose(screen)"', sidebar)
         self.assertIn('  session.select(screen.id);\n}', sidebar)
         self.assertIn('@click="session.select(screen.id)"', editor_sources.component('HomeView'))
-        self.assertIn('run: () => session.select(screen.id)', editor_sources.component('CommandPalette'))
+        self.assertIn('openScreen: (screen) => session.select(screen.id)', editor_sources.component('CommandPalette'))
         # A new inventory opens nothing either: the inventory store knows no screen to open (stores/inventory.ts).
         inventory = editor_sources.source('stores/inventory.ts')
         for name in ('refresh', 'applyLive'):

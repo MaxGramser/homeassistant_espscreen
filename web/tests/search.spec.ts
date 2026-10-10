@@ -1,7 +1,7 @@
 // The editor's searches (model/search.ts): the library, ⌘K, the pickers, New screen's boards and the plugins compare
 // what is typed the same way.
 import { describe, expect, it } from "vitest";
-import { matchesQuery, matchesWords, prefixRank, queryWords, rankedValues, iconGroupsMatching } from "../src/model/search";
+import { iconGroupsMatching, matchesQuery, matchesWords, prefixRank, queryWords, rankedValues } from "../src/model/search";
 
 describe("a search", () => {
   it("finds what is typed in any field, without case, and across the space between two fields", () => {

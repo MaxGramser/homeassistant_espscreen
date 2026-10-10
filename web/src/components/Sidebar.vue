@@ -4,8 +4,7 @@ import { nextTick, onMounted, ref, watch } from "vue";
 import { vTooltip } from "floating-vue";
 import "floating-vue/dist/style.css";
 import { t } from "../i18n";
-import { boardTitle } from "../model/boards";
-import { languageOnly } from "../model/screen-status";
+import { explainsItself, languageOnly, pendingText, rowStatus, screenBoardName, screenIcon, updateNotes } from "../model/screen-status";
 import { glyph } from "../model/topbar";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
@@ -52,21 +51,10 @@ async function saveName(screen: Screen) {
 const folded = ref<{ id: string; open: boolean } | null>(null);
 const subline = scr.screenSubline;
 // The row says one thing at most, on its right (app 0.4.32): the update's button, its progress, or why it is quiet.
-const status = (screen: Screen) => {
-  const kind = scr.updateState(screen)?.kind;
-  if (screen.virtual) return "virtual";
-  if (!screen.online) return "down";
-  if (kind === "running" || kind === "queued") return "running";
-  if (kind === "available" && screen.update?.profile) return "update";
-  if (kind === "failed") return "failed";
-  return kind === "blocked" || kind === "available" ? "waiting" : "";
-};
+const status = (screen: Screen) => rowStatus(screen, scr.updateState(screen)?.kind);
 const isSelected = (screen: Screen) => screen.id === scr.selected && ui.route === "";
-// Only a screen with something to explain opens by itself (app 0.4.32): an update that failed or waits for a build.
-// An update ready to go has its button on the row; a screen that is away says so there.
-// So does one that has to be updated here rather than in ESPHome Device Builder (app 0.4.82), while an update waits.
-const explains = (screen: Screen) => ["failed", "blocked"].includes(scr.updateState(screen)?.kind || "")
-  || Boolean(screen.update_in_tessera && scr.updateState(screen)?.kind === "available");
+// Only a screen with something to explain opens by itself (model/screen-status.ts explainsItself).
+const explains = (screen: Screen) => explainsItself(screen, scr.updateState(screen)?.kind);
 // Folded to its icons the sidebar has no room for a screen's details: the row opens them again.
 const isOpen = (screen: Screen) => !sidebar.folded && (folded.value?.id === screen.id ? folded.value.open : isSelected(screen) && explains(screen));
 const chevronShown = (screen: Screen) => isSelected(screen) || isOpen(screen);
@@ -79,18 +67,10 @@ function toggleDetails(screen: Screen) {
   folded.value = { id: screen.id, open: !isOpen(screen) };
   if (!folded.value.open) removeFor.value = null;
 }
-// The icon: a panel with tiles on it, a phone for a screen standing up, a monitor for a board this app does not know.
-// A board it knows carries its catalog entry in its shape (boards.json, app 0.2.129), which also names it.
-const standing = (screen: Screen) => Boolean(screen.shape && screen.shape.height > screen.shape.width);
-const known = (screen: Screen) => (screen.board && screen.shape?.catalog?.name ? screen.shape.catalog : null);
-const boardIcon = (screen: Screen) => glyph(standing(screen) ? "F011C" : known(screen) ? "F0ECE" : "F0A07");
-const boardName = (screen: Screen) => { const board = known(screen); return board ? boardTitle(board) : ""; };
-// What the update brings: the new language first, when the version changes as well, then the firmware's notes.
-// In the sidebar each note is its first sentence, and what was tested stays in the changelog (app 0.4.32): a column this
-// narrow can hold a few headlines, not the release notes.
-const headline = (line: string) => line.match(/^.*?[.!?](?=\s|$)/)?.[0] || line;
-const notes = (screen: Screen) => [...(screen.update?.language && !languageOnly(screen) ? [scr.newLanguageText] : []),
-  ...builds.whatsNew(screen).filter((line) => !/^(Tested|Getest)\b/i.test(line)).map(headline)];
+// The icon and the board of a screen, and what its update brings (model/screen-status.ts).
+const boardIcon = (screen: Screen) => glyph(screenIcon(screen));
+const boardName = screenBoardName;
+const notes = (screen: Screen) => updateNotes(screen, builds.whatsNew(screen), scr.newLanguageText);
 function update(screen: Screen) {
   const u = screen.update || {};
   if (u.host && u.profile) builds.startUpdate(screen);
@@ -147,17 +127,6 @@ const lastLog = () => {
   const lines = builds.firmwareJob?.logs || [];
   return lines.length ? lines[lines.length - 1] : "";
 };
-// Tessera adds a screen Home Assistant found by itself (app 0.4.73): it says so while it does, and that it is up to the
-// person when Home Assistant asks something only they can answer.
-const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: string; seen?: boolean; pairing?: string | null }) => p.pairing === "failed"
-  ? t("editor.sidebar.pending.failed")
-  : p.seen
-    ? t("editor.sidebar.pending.adding")
-    : p.installed
-      ? t("editor.sidebar.pending.installed")
-      : p.downloaded
-        ? t("editor.sidebar.pending.downloaded")
-        : t("editor.sidebar.pending.not_flashed", { file: p.file });
 </script>
 
 <template>

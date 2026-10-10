@@ -24,7 +24,7 @@ RECEIVER = (COMPONENT / 'page_receiver.cpp').read_text()
 TILES = runtime_source()
 CARD = (ROOT / 'web/src/model/tile-text.ts').read_text()
 PALETTE = (ROOT / 'web/src/model/tile-palette.ts').read_text()
-LIBRARY = (ROOT / 'web/src/components/Library.vue').read_text()
+LIBRARY = (ROOT / 'web/src/model/library.ts').read_text()
 
 ACTIONS = {'remote.turn_on', 'remote.turn_off', 'remote.toggle', 'remote.send_command', 'remote.learn_command',
            'remote.delete_command'}

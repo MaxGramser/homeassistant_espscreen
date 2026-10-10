@@ -9,11 +9,11 @@ import { useEventListener, useTimeoutFn } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
-import { domainInfo, pageTarget } from "../model/layout";
+import { domainInfo } from "../model/layout";
 import { glyph } from "../model/topbar";
-import { matchesQuery, prefixRank } from "../model/search";
+import { entryDetail, entryTone as tone, kindCounts, libraryBase, libraryGroups, libraryMatches, markOf, roomCounts, shortName as short, SHOWN, tileCounts,
+  type Entry } from "../model/library";
 import { tilePalette } from "../model/tile-palette";
-import { isPluginTile } from "../model/plugins";
 import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useListNavigation } from "../composables/useListNavigation";
@@ -39,13 +39,6 @@ const inv = useInventoryStore();
 const doc = useDocumentStore();
 const insp = useInspectorStore();
 
-// The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
-const FILTERS = [
-  "", "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
-  "media_player", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock",
-];
-const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
-const SHOWN = 80;
 // Open: on a wider page the drawer along the bottom, remembered; on a phone (app 0.4.40) a sheet that opens for a tile
 // and goes once it is added, closed or swiped away. Closing it there forgets the cell it was opened for.
 const open = computed({
@@ -63,18 +56,12 @@ const destination = computed(() => {
   const name = pageTitleShown(page) || t("editor.page.label", { page: page + 1 });
   return insp.insertAt >= 0 ? t("editor.phone.add_to_cell", { cell: insp.insertAt % doc.editorLayout.grid.slots + 1, page: name }) : t("editor.phone.add_to_page", { page: name });
 });
-type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean };
 // How many tiles each entity has on the screen. One that is there stays addable when the firmware takes an entity on
 // several tiles (a page tile from 0.2.65, any entity but the bedside clock from 0.16.0): its mark says how often.
-const chosen = computed(() => {
-  const counts = new Map<string, number>();
-  for (const tile of doc.layout?.tiles || []) counts.set(tile.entity, (counts.get(tile.entity) || 0) + 1);
-  return counts;
-});
+const chosen = computed(() => tileCounts(doc.layout?.tiles || []));
 const onScreen = (id: string) => chosen.value.has(id);
 const placed = (id: string) => onScreen(id) && !scr.repeatable(id);
-const mark = (id: string) => (chosen.value.get(id) || 0) > 1 ? `×${chosen.value.get(id)}` : onScreen(id) ? "✓" : "+";
-const builtin = (id: string) => id.startsWith("screen.");
+const mark = (id: string) => markOf(id, chosen.value);
 // A plugin's tile type (design): listed under Plugins, only for a screen that runs that plugin.
 const pluginEntries = computed<(Entry & { plugin: string })[]>(() => (plugins.pluginsEnabled ? plugins.tilesOn(scr.currentScreen) : []));
 const pluginOf = (id: string) => pluginEntries.value.find((e) => e.id === id)?.plugin || "";
@@ -82,43 +69,17 @@ const pluginOf = (id: string) => pluginEntries.value.find((e) => e.id === id)?.p
 // screen takes: a board with 24 pages (firmware 0.34.0+) would otherwise list 24 of them.
 const pagesOffered = computed(() => Math.min(doc.editorLayout.grid.pages, Math.max(8, (doc.document?.pages.length || 0) + 1)));
 const query = computed(() => ui.search.trim().toLocaleLowerCase());
-// What the search and the hide switch leave over. The rooms are counted off this, the kinds off it narrowed to the
-// room, and neither off the finished list: picking one would take every other one away with it.
-const base = computed<Entry[]>(() => {
-  const q = query.value;
-  // The picker offers what a tile can show; camera and image tiles need a board that draws pictures (app 0.2.66).
-  // The screen's own cards and plugin tiles first: the list shows the first 80, and these are few.
-  return [...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities].filter((e) =>
-    e.tile !== false && pageTarget(e.id) <= pagesOffered.value &&
-    (scr.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
-    (!ui.hidePlaced || !onScreen(e.id)) &&
-    matchesQuery(q, e.name, e.id, e.device, e.area));
-});
+// What the search and the hide switch leave over (model/library.ts). The picker offers what a tile can show; camera and
+// image tiles need a board that draws pictures (app 0.2.66). The screen's own cards and plugin tiles first: the list
+// shows the first 80, and these are few.
+const base = computed(() => libraryBase([...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities],
+  { query: query.value, pages: pagesOffered.value, pictures: scr.pictures, hidePlaced: ui.hidePlaced, counts: chosen.value }));
 const pool = computed(() => base.value.filter((e) => !ui.room || e.area === ui.room));
-const inDomain = (id: string, filter: string) => !filter || id.startsWith(filter + ".") || ALIAS[filter] === id.split(".")[0];
-// A search ranks what it finds, the way Spotlight does: a name that starts with the words first, then one with a word
-// that does, then the rest. Without one the list keeps Home Assistant's order.
-const rank = (e: Entry) => prefixRank(e.name, query.value);
-const matches = computed(() => {
-  const found = pool.value.filter((e) => inDomain(e.id, ui.filter));
-  return query.value ? [...found].sort((a, b) => rank(a) - rank(b)) : found;
-});
+const matches = computed(() => libraryMatches(pool.value, ui.filter, query.value));
 const shownList = computed(() => matches.value.slice(0, SHOWN));
 // Browsing, the entities stand under their room, and the screen's own cards last; a search or a room is one list.
 const grouped = computed(() => !query.value && !ui.room);
-const groups = computed(() => {
-  if (!grouped.value) return [{ key: "", title: "", entities: shownList.value }];
-  const byRoom = new Map<string, Entry[]>();
-  for (const e of shownList.value) {
-    const key = isPluginTile(e.id) ? "\u0002plugins" : builtin(e.id) ? "\u0001screen" : e.area || "\u0000none";
-    byRoom.set(key, [...(byRoom.get(key) || []), e]);
-  }
-  const order = (key: string) => key === "\u0002plugins" ? 3 : key === "\u0001screen" ? 2 : key === "\u0000none" ? 1 : 0;
-  return [...byRoom.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((key) => ({
-    key, entities: byRoom.get(key)!,
-    title: key === "\u0002plugins" ? t("editor.library.plugins") : key === "\u0001screen" ? t("editor.library.filters.screen") : key === "\u0000none" ? t("editor.library.no_room") : key,
-  }));
-});
+const groups = computed(() => libraryGroups(shownList.value, grouped.value));
 // The order the arrow keys walk: the groups as they stand.
 const flat = computed(() => groups.value.flatMap((group) => group.entities));
 // The states of what is shown, asked once the list has stood still a moment (180 ms), again every minute, and never for a
@@ -127,40 +88,13 @@ const loadSoon = useTimeoutFn(() => entities.loadLibraryStates(shownList.value.m
 watch(() => [open.value, shownList.value.map((entity) => entity.id).join('|'), Math.floor(ui.now / 60000)],
   () => (open.value ? loadSoon.start() : loadSoon.stop()), { immediate: true });
 // The kinds and rooms the results hold, each with its count, so searching narrows the column the way it narrows the
-// entities. The chosen one stays even when nothing matches it any more, otherwise an empty list would have nothing to
-// explain it.
-const offered = computed(() => {
-  const counts = new Map<string, number>();
-  for (const e of pool.value) for (const d of FILTERS) if (d && inDomain(e.id, d)) counts.set(d, (counts.get(d) || 0) + 1);
-  return FILTERS.filter((d) => !d || d === ui.filter || counts.has(d)).map((d) => [d, d ? counts.get(d) || 0 : pool.value.length] as [string, number]);
-});
-const rooms = computed(() => {
-  const counts = new Map<string, number>();
-  for (const e of base.value) if (e.area) counts.set(e.area, (counts.get(e.area) || 0) + 1);
-  if (ui.room && !counts.has(ui.room)) counts.set(ui.room, 0);
-  return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b));
-});
+// entities.
+const offered = computed(() => kindCounts(pool.value, ui.filter));
+const rooms = computed(() => roomCounts(base.value, ui.room));
 const full = computed(() => (doc.layout?.tiles.length || 0) >= doc.tileLimit);
 const memoryFull = computed(() => doc.memory?.level === "full" || doc.memory?.level === "over");
 const count = computed(() => inv.inventory.entities.length);
-// The avatar shows the state at a glance: lit for on, grey for an entity Home Assistant can't reach.
-const tone = (e: { id: string; state?: string }) => {
-  const domain = e.id.split(".")[0];
-  if (e.state === "unavailable" || e.state === "unknown") return "gone";
-  if (["light", "switch", "input_boolean", "automation", "remote", "fan", "humidifier"].includes(domain) && e.state === "on") return "on";
-  return "";
-};
-// The name without its device's name in front, the way Home Assistant shows an entity on its device's card:
-// "Bedroom screen Night mode" is "Night mode" under "Bedroom screen". A name that is only the device's stays whole.
-const short = (e: Entry) => {
-  const device = e.device?.trim();
-  if (!device || !e.name.toLocaleLowerCase().startsWith(device.toLocaleLowerCase() + " ")) return e.name;
-  const rest = e.name.slice(device.length).trim();
-  return rest.charAt(0).toLocaleUpperCase() + rest.slice(1);
-};
-// Under the name: the device it was shortened by, else what it is, and its room where the list doesn't already stand
-// under it.
-const detail = (e: Entry) => isPluginTile(e.id) ? pluginOf(e.id) : builtin(e.id) ? "" : [short(e) !== e.name ? e.device : domainInfo(e.id)[0], grouped.value ? "" : e.area].filter(Boolean).join(" · ");
+const detail = (e: Entry) => entryDetail(e, grouped.value, pluginOf(e.id));
 
 // ---- Keyboard: type anywhere to search, arrows to walk, Enter to add ----
 const search = ref<HTMLInputElement | null>(null);
