@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // The editor's questions (composables/useConfirm.ts) in its own look, light and dark: the question in the words it always
-// had, Cancel and OK, a field for a new name, a text selected to copy by hand. Cancel has the focus at first, as an alert
-// should, so Enter alone never throws work away; a field has it where there is one, and Enter there is OK. Escape
-// cancels, a click beside it does nothing, and the focus goes back where it was. On a phone it stands at the bottom,
-// its keys the width of the thumb.
+// had, Cancel and the button that says what yes does ("Replace layout"), in red where that throws something away, a
+// field for a new name, a text selected to copy by hand with OK, as an alert that only tells something has. Cancel has
+// the focus at first, as an alert should, so Enter alone never throws work away; a field has it where there is one, and
+// Enter there is the yes. Escape cancels, a click beside it does nothing, and the focus goes back where it was. On a
+// phone it stands at the bottom, its keys the width of the thumb.
 import { AlertDialogCancel, AlertDialogContent, AlertDialogOverlay, AlertDialogPortal, AlertDialogRoot, AlertDialogTitle } from "reka-ui";
 import { computed, nextTick, ref, watch } from "vue";
 import { answer, question } from "../composables/useConfirm";
@@ -22,6 +23,8 @@ watch(question, async (now) => {
   field.value?.select();
 }, { immediate: true });
 function ok() { answer(question.value?.kind === "prompt" ? text.value : true); }
+// The yes in its own words, red when it throws something away; a text to copy only has OK.
+const yes = computed(() => question.value && question.value.kind !== "copy" ? question.value : null);
 function cancel() { answer(question.value?.kind === "prompt" ? null : false); }
 </script>
 
@@ -35,7 +38,7 @@ function cancel() { answer(question.value?.kind === "prompt" ? null : false); }
           :readonly="question.kind === 'copy'" :aria-label="question.message" />
         <div class="confirm-actions">
           <AlertDialogCancel v-if="question.kind !== 'copy'" class="btn quiet">{{ t("editor.common.cancel") }}</AlertDialogCancel>
-          <button type="button" class="btn primary" @click="ok">{{ question.kind !== "copy" && question.confirm || t("editor.common.ok") }}</button>
+          <button type="button" class="btn confirm-yes" :class="yes?.danger ? 'destructive' : 'primary'" @click="ok">{{ yes ? yes.confirm : t("editor.common.ok") }}</button>
         </div>
       </AlertDialogContent>
     </AlertDialogPortal>
@@ -53,6 +56,11 @@ function cancel() { answer(question.value?.kind === "prompt" ? null : false); }
 .confirm-field[readonly] { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2); }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .confirm-actions .btn { min-width: 84px; padding: 8px 14px; font-size: 13px; }
+/* A yes that throws something away (unsaved changes, a layout, an override) is red, as Apple's destructive buttons are. */
+.confirm-yes.destructive { background: var(--danger); color: var(--danger-ink); }
+.confirm-yes.destructive:hover { filter: brightness(1.06); }
+.confirm-yes:focus-visible { outline: none; box-shadow: var(--focus); }
+.confirm-yes.destructive:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 24%, transparent); }
 @keyframes confirm-fade { from { opacity: 0; } }
 @keyframes confirm-in { from { opacity: 0; scale: 0.97; } }
 @media (max-width: 640px) {

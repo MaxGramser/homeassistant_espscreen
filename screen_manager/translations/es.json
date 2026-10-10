@@ -3274,6 +3274,18 @@
         "bar": "Barra superior"
       }
     },
+    "confirm": {
+      "leave_question": "Tienes cambios sin guardar. ¿Ir al resumen de todos modos?",
+      "discard_open": "Descartar y abrir",
+      "discard_leave": "Descartar y salir",
+      "replace_layout": "Reemplazar diseño",
+      "import": "Importar",
+      "start_fresh": "Empezar de cero",
+      "calibrate": "Iniciar calibración",
+      "add_anyway": "Añadir de todos modos",
+      "use_example": "Reemplazar por el ejemplo",
+      "clear_override": "Vaciar el YAML personalizado"
+    },
     "phone": {
       "screens": "Pantallas",
       "add_tile": "Añadir mosaico",

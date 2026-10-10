@@ -100,14 +100,14 @@ function followCheck(data: any) {
 }
 const { confirm } = useConfirm();
 async function useExample() {
-  if (!content.value.trim() || await confirm(t("editor.override.confirm_example"))) {
+  if (!content.value.trim() || await confirm(t("editor.override.confirm_example"), { confirm: t("editor.confirm.use_example"), danger: true })) {
     content.value = OVERRIDE_EXAMPLE;
     setStatus(t("editor.override.example_loaded"));
     editor.value?.focus();
   }
 }
 async function clear() {
-  if (!content.value.trim() || await confirm(t("editor.override.confirm_clear"))) {
+  if (!content.value.trim() || await confirm(t("editor.override.confirm_clear"), { confirm: t("editor.confirm.clear_override"), danger: true })) {
     content.value = "";
     setStatus(t("editor.override.cleared"));
     editor.value?.focus();

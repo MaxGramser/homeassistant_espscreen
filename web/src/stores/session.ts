@@ -43,7 +43,8 @@ export const useSessionStore = defineStore("session", () => {
     if (id === scr.selected && doc.document && doc.dirty) {
       ui.tab = "layout"; ui.menuOpen = false; insp.closeInspector(); ui.go(""); return;
     }
-    if (id !== scr.selected && doc.dirty) return askConfirm(t("editor.screen_view.confirm.switch")).then((yes) => { if (yes) open(id); });
+    if (id !== scr.selected && doc.dirty) return askConfirm(t(id ? "editor.screen_view.confirm.switch" : "editor.confirm.leave_question"),
+      { confirm: t(id ? "editor.confirm.discard_open" : "editor.confirm.discard_leave"), danger: true }).then((yes) => { if (yes) open(id); });
     open(id);
   }
   function open(id: string | null) {

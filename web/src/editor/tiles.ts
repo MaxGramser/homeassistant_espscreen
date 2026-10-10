@@ -37,7 +37,7 @@ export function confirmMemory(entity: string): true | Promise<boolean> {
   if (!memory || scr.memoryMeasuring || !doc.layout) return true;
   const crossing = memoryCrossing(doc.layout.tiles, { entity }, memory, doc.document?.pages || [], usePluginsStore().pluginTileOf);
   if (!crossing) return true;
-  return askConfirm(t(`editor.memory.confirm_${crossing.line}`, { n: Math.min(999, Math.round(crossing.share * 100)) }));
+  return askConfirm(t(`editor.memory.confirm_${crossing.line}`, { n: Math.min(999, Math.round(crossing.share * 100)) }), { confirm: t("editor.confirm.add_anyway") });
 }
 
 // ---- Placing tiles ----

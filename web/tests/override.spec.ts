@@ -82,7 +82,9 @@ describe("the override's example and Clear", () => {
     await view.find("#override-empty").trigger("click");
     await flushPromises();
     expect(typed()).toBe("");
-    expect(asked.map((question) => question.message)).toEqual([
-      "Replace the current text with the example?", "Replace the current text with the example?", "Clear the local override?"]);
+    expect(asked).toEqual([
+      { kind: "confirm", message: "Replace the current text with the example?", confirm: "Replace with example", danger: true },
+      { kind: "confirm", message: "Replace the current text with the example?", confirm: "Replace with example", danger: true },
+      { kind: "confirm", message: "Clear the local override?", confirm: "Clear override", danger: true }]);
   });
 });

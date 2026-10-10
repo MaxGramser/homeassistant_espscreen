@@ -60,7 +60,7 @@ function inspectAll() {
 const { confirm, prompt, question } = useConfirm();
 async function copyFrom(id: string) {
   closeMenu();
-  if (doc.dirty && !(await confirm(t("editor.screen_view.confirm.copy")))) return;
+  if (doc.dirty && !(await confirm(t("editor.screen_view.confirm.copy"), { confirm: t("editor.confirm.replace_layout"), danger: true }))) return;
   doc.copyLayoutFrom(id);
 }
 // Import: the browser's file chooser for a layout file, the same file again as often as it is chosen.
@@ -68,7 +68,7 @@ const chooser = useFileDialog({ accept: "application/json,.json", multiple: fals
 chooser.onChange(async (files) => {
   const file = files?.[0];
   if (!file) return;
-  if (doc.dirty && !(await confirm(t("editor.screen_view.confirm.import")))) return;
+  if (doc.dirty && !(await confirm(t("editor.screen_view.confirm.import"), { confirm: t("editor.confirm.replace_layout"), danger: true }))) return;
   doc.importLayout(await file.text());
 });
 function pickFile() { closeMenu(); chooser.open(); }
@@ -82,7 +82,7 @@ const phoneStatus = computed(() => !screen.value.online ? t("editor.common.offli
 function phoneSettings() { closeMenu(); insp.closeInspector(); ui.tab = "settings"; }
 async function phoneRename() {
   closeMenu();
-  const name = await prompt(t("editor.sidebar.rename.label"), screen.value.name);
+  const name = await prompt(t("editor.sidebar.rename.label"), screen.value.name, { confirm: t("editor.sidebar.rename.button") });
   if (name && name.trim() && name.trim() !== screen.value.name) scr.renameScreen(screen.value, name.trim());
 }
 const full = computed(() => (doc.layout?.tiles.length || 0) >= doc.tileLimit);

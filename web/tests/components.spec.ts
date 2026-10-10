@@ -986,7 +986,7 @@ describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
     await panel.find("#setting-calibrate").trigger("click");
     await flushPromises();
     expect(calls).toEqual([]);
-    expect(asked.map((question) => question.message)).toEqual(["Start the calibration on Living room?"]);
+    expect(asked).toEqual([{ kind: "confirm", message: "Start the calibration on Living room?", confirm: "Start calibration" }]);
     yes = true;
     await panel.find("#setting-calibrate").trigger("click");
     await flushPromises();

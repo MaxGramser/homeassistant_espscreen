@@ -44,7 +44,7 @@ describe("a screen's head", () => {
       await flushPromises();
     };
     await choose();
-    expect(asked.map((question) => question.message)).toEqual(["Replace the unsaved layout with the imported one?"]);
+    expect(asked).toEqual([{ kind: "confirm", message: "Replace the unsaved layout with the imported one?", confirm: "Replace layout", danger: true }]);
     expect(api.count("POST screens/:id/import")).toBe(0);
     yes = true;
     await choose();
@@ -57,7 +57,7 @@ describe("a screen's head", () => {
     const view = mount(ScreenView, { attachTo: document.body });
     await (view.vm as unknown as Head).phoneRename();
     await flushPromises();
-    expect(asked).toEqual([{ kind: "prompt", message: "Name in this app", value: "Hall" }]);
+    expect(asked).toEqual([{ kind: "prompt", message: "Name in this app", value: "Hall", confirm: "Rename" }]);
     expect(api.asked("PUT screens/:id/name")[0].body).toEqual({ name: "Living room" });
     expect(useInventoryStore().inventory.screens[0].name).toBe("Living room");
   });

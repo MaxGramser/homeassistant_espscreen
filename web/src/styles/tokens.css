@@ -20,6 +20,7 @@
   --led-update: #e0902e;
   --danger: #c6372e;
   --danger-soft: #fdecea;
+  --danger-ink: #ffffff;
   --seg: #f1f2f3;
   /* What is open in the inspector (app 0.4.32): a tile in black, a page in the accent, the top bar in white. */
   --kind-tile: #101112;
@@ -54,6 +55,7 @@
     --led-update: #e8a544;
     --danger: #f07167;
     --danger-soft: #361b19;
+    --danger-ink: #1c0c0b;
     --seg: #262626;
     --kind-tile: #000000;
     --kind-page: #3f6fe0;

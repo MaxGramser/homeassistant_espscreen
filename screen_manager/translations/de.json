@@ -3274,6 +3274,18 @@
         "bar": "Kopfleiste"
       }
     },
+    "confirm": {
+      "leave_question": "Du hast nicht gespeicherte Änderungen. Trotzdem zur Übersicht?",
+      "discard_open": "Verwerfen und öffnen",
+      "discard_leave": "Verwerfen und verlassen",
+      "replace_layout": "Layout ersetzen",
+      "import": "Importieren",
+      "start_fresh": "Neu beginnen",
+      "calibrate": "Kalibrierung starten",
+      "add_anyway": "Trotzdem hinzufügen",
+      "use_example": "Durch Beispiel ersetzen",
+      "clear_override": "Anpassung leeren"
+    },
     "phone": {
       "screens": "Bildschirme",
       "add_tile": "Kachel hinzufügen",

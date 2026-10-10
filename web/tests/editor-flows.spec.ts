@@ -180,6 +180,9 @@ describe("the editor", () => {
     await addTile("light.c");
     expect(asked).toHaveLength(1);
     expect(asked[0].message).toMatch(/Add it anyway\?/);
+    // A warning, not a loss: the yes says what it does and is not red.
+    expect(asked[0]).toMatchObject({ kind: "confirm", confirm: "Add anyway" });
+    expect("danger" in asked[0]).toBe(false);
     expect(doc.layout!.tiles.some((tile) => tile.entity === "light.c")).toBe(false);
     yes = true;
     await addTile("light.c");

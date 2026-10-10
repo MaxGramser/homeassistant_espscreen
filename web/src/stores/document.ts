@@ -609,7 +609,8 @@ export const useDocumentStore = defineStore("document", () => {
     try { data = JSON.parse(text); } catch { ui.toast(t("editor.layout.not_json")); return; }
     const screen = scr.selected, selection = selectionEpoch;
     if (!screen || !documentGrid.value) return;
-    if (data?.esp_screens_layout !== 2 && !(await askConfirm(t("addon.errors.pages.import_grid", { columns: documentGrid.value.columns, rows: documentGrid.value.rows })))) return;
+    if (data?.esp_screens_layout !== 2 && !(await askConfirm(t("addon.errors.pages.import_grid", { columns: documentGrid.value.columns, rows: documentGrid.value.rows }),
+      { confirm: t("editor.confirm.import") }))) return;
     try {
       const path = scr.currentScreen?.virtual ? "firmware-preview/import" : `screens/${encodeURIComponent(screen)}/import`;
       const record = await send<PageDocument>(path, "POST", {
@@ -631,7 +632,7 @@ export const useDocumentStore = defineStore("document", () => {
   }
   async function startFreshLayout() {
     const screen = scr.currentScreen, record = screen?.page_document;
-    if (!screen || record?.format !== "legacy-v1" || !(await askConfirm(t("editor.pages.start_fresh_confirm")))) return;
+    if (!screen || record?.format !== "legacy-v1" || !(await askConfirm(t("editor.pages.start_fresh_confirm"), { confirm: t("editor.confirm.start_fresh"), danger: true }))) return;
     try {
       await send(`screens/${encodeURIComponent(screen.id)}/migration/reset`, "POST", { revision: record.migrationRevision });
       await inv.refresh(false);

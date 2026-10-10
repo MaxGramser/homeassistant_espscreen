@@ -3274,6 +3274,18 @@
         "bar": "Felső sáv"
       }
     },
+    "confirm": {
+      "leave_question": "Nem mentett módosításaid vannak. Mégis az áttekintésre lépsz?",
+      "discard_open": "Elvetés és megnyitás",
+      "discard_leave": "Elvetés és kilépés",
+      "replace_layout": "Elrendezés cseréje",
+      "import": "Importálás",
+      "start_fresh": "Újrakezdés",
+      "calibrate": "Kalibrálás indítása",
+      "add_anyway": "Hozzáadás mégis",
+      "use_example": "Csere a példára",
+      "clear_override": "Felülírás törlése"
+    },
     "phone": {
       "screens": "Képernyők",
       "add_tile": "Csempe hozzáadása",

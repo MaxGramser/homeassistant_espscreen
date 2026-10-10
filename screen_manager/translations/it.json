@@ -3274,6 +3274,18 @@
         "bar": "Barra superiore"
       }
     },
+    "confirm": {
+      "leave_question": "Hai modifiche non salvate. Andare comunque alla panoramica?",
+      "discard_open": "Scarta e apri",
+      "discard_leave": "Scarta ed esci",
+      "replace_layout": "Sostituisci disposizione",
+      "import": "Importa",
+      "start_fresh": "Ricomincia da zero",
+      "calibrate": "Avvia calibrazione",
+      "add_anyway": "Aggiungi comunque",
+      "use_example": "Sostituisci con l'esempio",
+      "clear_override": "Cancella il YAML personalizzato"
+    },
     "phone": {
       "screens": "Schermi",
       "add_tile": "Aggiungi riquadro",

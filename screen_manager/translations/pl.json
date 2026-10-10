@@ -3274,6 +3274,18 @@
         "bar": "Górny pasek"
       }
     },
+    "confirm": {
+      "leave_question": "Masz niezapisane zmiany. Mimo to przejść do przeglądu?",
+      "discard_open": "Odrzuć i otwórz",
+      "discard_leave": "Odrzuć i wyjdź",
+      "replace_layout": "Zastąp układ",
+      "import": "Importuj",
+      "start_fresh": "Zacznij od nowa",
+      "calibrate": "Rozpocznij kalibrację",
+      "add_anyway": "Dodaj mimo to",
+      "use_example": "Zastąp przykładem",
+      "clear_override": "Wyczyść nadpisanie"
+    },
     "phone": {
       "screens": "Ekrany",
       "add_tile": "Dodaj kafelek",

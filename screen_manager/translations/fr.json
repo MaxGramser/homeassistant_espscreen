@@ -3274,6 +3274,18 @@
         "bar": "Barre supérieure"
       }
     },
+    "confirm": {
+      "leave_question": "Vous avez des modifications non enregistrées. Revenir quand même à l'aperçu ?",
+      "discard_open": "Abandonner et ouvrir",
+      "discard_leave": "Abandonner et quitter",
+      "replace_layout": "Remplacer la mise en page",
+      "import": "Importer",
+      "start_fresh": "Repartir de zéro",
+      "calibrate": "Lancer l'étalonnage",
+      "add_anyway": "Ajouter quand même",
+      "use_example": "Remplacer par l'exemple",
+      "clear_override": "Effacer le YAML personnalisé"
+    },
     "phone": {
       "screens": "Écrans",
       "add_tile": "Ajouter une tuile",

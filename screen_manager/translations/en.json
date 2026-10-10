@@ -2924,6 +2924,18 @@
         "bar": "Top bar"
       }
     },
+    "confirm": {
+      "leave_question": "You have unsaved changes. Go to the overview anyway?",
+      "discard_open": "Discard and open",
+      "discard_leave": "Discard and leave",
+      "replace_layout": "Replace layout",
+      "import": "Import",
+      "start_fresh": "Start fresh",
+      "calibrate": "Start calibration",
+      "add_anyway": "Add anyway",
+      "use_example": "Replace with example",
+      "clear_override": "Clear override"
+    },
     "phone": {
       "screens": "Screens",
       "add_tile": "Add tile",

@@ -2924,6 +2924,18 @@
         "bar": "Bovenbalk"
       }
     },
+    "confirm": {
+      "leave_question": "Je hebt niet-opgeslagen wijzigingen. Toch naar het overzicht?",
+      "discard_open": "Weggooien en openen",
+      "discard_leave": "Weggooien en verlaten",
+      "replace_layout": "Indeling vervangen",
+      "import": "Importeren",
+      "start_fresh": "Opnieuw beginnen",
+      "calibrate": "Kalibratie starten",
+      "add_anyway": "Toch toevoegen",
+      "use_example": "Vervangen door voorbeeld",
+      "clear_override": "Override wissen"
+    },
     "phone": {
       "screens": "Schermen",
       "add_tile": "Tegel toevoegen",

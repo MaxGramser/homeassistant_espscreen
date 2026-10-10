@@ -91,7 +91,7 @@ export const useScreenStore = defineStore("screen", () => {
   // in Home Assistant. It asks first: the screen goes to the crosses and stays there until someone standing in front
   // of it has tapped all five, so it is not something to set off by accident from a browser.
   async function calibrateTouch(screen: Screen) {
-    if (!(await askConfirm(t("editor.screen_settings.actions.calibrate.confirm", { name: screen.name })))) return;
+    if (!(await askConfirm(t("editor.screen_settings.actions.calibrate.confirm", { name: screen.name }), { confirm: t("editor.confirm.calibrate") }))) return;
     try {
       await send(`screens/${encodeURIComponent(screen.id)}/calibrate`, "POST");
       ui.toast(t("editor.screen_settings.actions.calibrate.done", { name: screen.name }));

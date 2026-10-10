@@ -5,7 +5,9 @@
 - **The editor asks in its own look.** Before something that can't be taken back (leaving unsaved changes, replacing a
   layout, starting the calibration, clearing an override), for a new name on a phone, and for a text to copy by hand,
   the editor now asks in a dialog of its own, light or dark and at the bottom of a phone, instead of the browser's, in
-  the same words. Cancel has the focus at first, so Enter alone never throws work away, and Escape cancels.
+  the same words. Its button says what it does (Discard and open, Replace layout, Start calibration, Clear override),
+  in red where it throws something away. Cancel has the focus at first, so Enter alone never throws work away, and
+  Escape cancels.
 - **A favourite says what it plays in Layout.** Its card on the mockup names the kind of thing again (Playlist, Album,
   Podcast) before the speaker, as the screen does.
 - **Seeed reTerminal D1001 (experimental).** The 8-inch ESP32-P4 panel with a battery, as a new board in New screen:

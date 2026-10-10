@@ -3274,6 +3274,18 @@
         "bar": "Barra superior"
       }
     },
+    "confirm": {
+      "leave_question": "Tem alterações não guardadas. Ir para a visão geral mesmo assim?",
+      "discard_open": "Descartar e abrir",
+      "discard_leave": "Descartar e sair",
+      "replace_layout": "Substituir layout",
+      "import": "Importar",
+      "start_fresh": "Começar de novo",
+      "calibrate": "Iniciar calibração",
+      "add_anyway": "Adicionar mesmo assim",
+      "use_example": "Substituir pelo exemplo",
+      "clear_override": "Limpar o YAML personalizado"
+    },
     "phone": {
       "screens": "Ecrãs",
       "add_tile": "Adicionar mosaico",

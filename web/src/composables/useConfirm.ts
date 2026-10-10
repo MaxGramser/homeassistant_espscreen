@@ -2,14 +2,18 @@
 // (unsaved changes left behind, a layout replaced, the calibration started), for a new name, and for a text the
 // clipboard would not take, shown selected to copy by hand. ConfirmDialog (in App.vue) asks them in the editor's look,
 // one at a time in the order they were asked; each answer settles its promise. A store's action asks with askConfirm and
-// goes on with the answer; a component takes the three from useConfirm().
+// goes on with the answer; a component takes the three from useConfirm(). Every question names what its yes does
+// ("Discard and open", "Replace layout"), as Apple's alerts and Notion's do, never a bare OK, and says when that yes
+// throws something away (`danger`), which the dialog draws in red.
 import { computed, shallowRef } from "vue";
 
+/** What the button that says yes does, in its own words, and whether that throws something away. */
+export type Yes = { confirm: string; danger?: boolean };
 export type Question =
-  /** Yes or no; `confirm` names the button that says yes (OK when it is not named). */
-  | { kind: "confirm"; message: string; confirm?: string }
+  /** Yes or no. */
+  | ({ kind: "confirm"; message: string } & Yes)
   /** A text, starting at `value`; null when the question is cancelled. */
-  | { kind: "prompt"; message: string; value: string; confirm?: string }
+  | ({ kind: "prompt"; message: string; value: string } & Yes)
   /** A text shown selected, for the person to copy. */
   | { kind: "copy"; message: string; value: string };
 type Asked = Question & { reply: (answer: boolean | string | null) => void };
@@ -35,9 +39,9 @@ export function answer(value: boolean | string | null) {
 }
 
 /** Asks yes or no; true for yes. */
-export const askConfirm = (message: string, options: { confirm?: string } = {}) => ask<boolean>({ kind: "confirm", message, ...options });
+export const askConfirm = (message: string, yes: Yes) => ask<boolean>({ kind: "confirm", message, ...yes });
 /** Asks for a text, `value` to start with; the text, or null when cancelled. */
-export const askText = (message: string, value = "", options: { confirm?: string } = {}) => ask<string | null>({ kind: "prompt", message, value, ...options });
+export const askText = (message: string, value: string, yes: Yes) => ask<string | null>({ kind: "prompt", message, value, ...yes });
 /** Shows a text selected, for the person to copy; done when it is closed. */
 export const showText = (message: string, value: string) => ask<boolean>({ kind: "copy", message, value });
 

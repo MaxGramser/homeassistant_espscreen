@@ -58,7 +58,7 @@ describe("opening a screen", () => {
     let yes = false;
     const asked = answerDialogs(() => yes);
     await session.select("desk");
-    expect(asked.map((q) => q.message)).toEqual([t("editor.screen_view.confirm.switch")]);
+    expect(asked).toEqual([{ kind: "confirm", message: t("editor.screen_view.confirm.switch"), confirm: "Discard and open", danger: true }]);
     expect([useScreenStore().selected, doc.dirty]).toEqual(["hall", true]);
     settings.setSetting("brightness", 40, 1000);
     yes = true;
@@ -94,6 +94,8 @@ describe("opening a screen", () => {
     const asked = answerDialogs(() => yes);
     await session.goHome();
     expect([asked.length, useScreenStore().selected]).toEqual([1, "hall"]);
+    // Going home asks about leaving, not about another screen.
+    expect(asked[0]).toEqual({ kind: "confirm", message: "You have unsaved changes. Go to the overview anyway?", confirm: "Discard and leave", danger: true });
     yes = true;
     await session.goHome();
     expect([useScreenStore().selected, doc.dirty, ui.route]).toEqual([null, false, ""]);
