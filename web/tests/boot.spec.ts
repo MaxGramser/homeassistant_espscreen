@@ -79,10 +79,10 @@ describe("boot", () => {
     setMedia(PHONE, true);
     expect(ui.narrowPhone).toBe(true);
     // The screensaver's drawers close when the layout comes back.
-    store.state.tab = "settings";
+    ui.tab = "settings";
     await nextTick();
     store.openSaverStep("clock");
-    store.state.tab = "layout";
+    ui.tab = "layout";
     await nextTick();
     expect(store.state.inspector).toBeNull();
     expect(ours.added()).toEqual(["document:visibilitychange", "window:beforeunload", "window:click", "window:hashchange", "window:pagehide"]);

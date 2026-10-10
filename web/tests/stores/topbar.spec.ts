@@ -2,9 +2,9 @@
 // entity items' previews, which follow the items once the store has started: at once for another screen or the
 // screensaver clock's row, after a short pause for a page's bar, every half minute while a screen is open, and never
 // after its stop.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import { i18n } from "../../src/i18n";
-import { addPage, setTileOption, state } from "../../src/store";
+import { state } from "../../src/store";
 import { useScreenStore } from "../../src/stores/screen";
 import { useSessionStore } from "../../src/stores/session";
 import { useTopbarStore } from "../../src/stores/topbar";
@@ -12,8 +12,14 @@ import { useUiStore } from "../../src/stores/ui";
 import type { HeaderItem, Inventory, Screen } from "../../src/types";
 import { useFakeClock } from "../helpers/clock";
 import { fakeApi } from "../helpers/fake-api";
-import { screenFixture } from "../page-fixtures";
+import { screenFixture } from "../helpers/fixtures";
 import { useInventoryStore } from "../../src/stores/inventory";
+import { addPage } from "../../src/editor/pages";
+import { setTileOption } from "../../src/editor/tiles";
+import { useDocumentStore } from "../../src/stores/document";
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 const entity = (id: string): HeaderItem => ({ type: "entity", entity: id, content: "state", icon: "auto", show: "always" });
@@ -40,7 +46,7 @@ describe("the entity items' previews", () => {
     session.select("hall");
     await clock.tick(0);
     expect(asked()).toEqual(["sensor.out"]);
-    expect(topbar.topbarView(state.document!.pages[0].topbar.trailing[0]).text).toBe("sensor.out now");
+    expect(topbar.topbarView(doc.document!.pages[0].topbar.trailing[0]).text).toBe("sensor.out now");
     // A page's bar while it is typed in: once after a short pause.
     topbar.addTopbarItem(entity("sensor.in"));
     topbar.setTopbarItems([entity("sensor.in"), entity("sensor.out"), entity("sensor.rain")]);
@@ -49,7 +55,7 @@ describe("the entity items' previews", () => {
     await clock.tick(50);
     expect(asked().at(-1)).toBe("sensor.in,sensor.out,sensor.rain");
     // A change that is not the bar's asks nothing.
-    setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
+    setTileOption(doc.layout!.tiles[0], "icon", "lightbulb");
     await clock.tick(1000);
     expect(asked()).toHaveLength(2);
     // The screensaver clock's row: at once.
@@ -110,7 +116,7 @@ describe("a page's top bar", () => {
     useInventoryStore().inventory = inventory(screen("hall", [entity("sensor.out")]));
     useSessionStore().select("hall");
     addPage();
-    const topbar = useTopbarStore(), [first, second] = state.document!.pages;
+    const topbar = useTopbarStore(), [first, second] = doc.document!.pages;
     topbar.setTopbarItems([], 1);
     expect(topbar.topbarItems(1)).toEqual([]);
     expect(topbar.copyPageBars(first.id, [second.id], false)).toBe(true);

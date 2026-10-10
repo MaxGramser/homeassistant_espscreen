@@ -11,14 +11,16 @@ import Icon from "./ui/Icon.vue";
 import PluginSettings from "./PluginSettings.vue";
 import { text } from "../model/plugins";
 import { choiceText, SETTING_GROUPS, settingLabel, steppedSetting, type SettingRow } from "../model/settings";
-import { pageReachWarning, state } from "../store";
 import { useSettingsStore } from "../stores/settings";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
+import { pageReachWarning } from "../editor/pages";
+import { useUiStore } from "../stores/ui";
 
 const settings = useSettingsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const ui = useUiStore();
 
 const view = computed(() => settings.settingsView());
 // The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).
@@ -34,7 +36,7 @@ const pluginsWithSettings = computed(() => {
 // A plugin's details on the screen's Plugins tab, opened from here, where its settings used to be.
 function openPlugin(id: string) {
   plugins.focus = id;
-  state.tab = "plugins";
+  ui.tab = "plugins";
 }
 // The choices of a row: the rotation offers the angles this screen's glass allows (the manager says which, app
 // 0.2.94); an add-on from before said nothing, and then the four of the Guition stand.

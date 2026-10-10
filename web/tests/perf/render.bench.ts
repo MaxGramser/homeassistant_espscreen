@@ -9,12 +9,12 @@ import { bench, describe } from "vitest";
 import { defineComponent, h, nextTick } from "vue";
 import DevicePage from "../../src/components/DevicePage.vue";
 import { entriesOf } from "../../src/model/layout";
-import { loadDocument, state } from "../../src/store";
+import { useDocumentStore } from "../../src/stores/document";
 import { useEntitiesStore } from "../../src/stores/entities";
 import { useInventoryStore } from "../../src/stores/inventory";
 import { useScreenStore } from "../../src/stores/screen";
 import type { Inventory, Screen, Tile } from "../../src/types";
-import { documentFixture } from "../page-fixtures";
+import { documentFixture } from "../helpers/fixtures";
 
 const DOMAINS = ["light", "sensor", "switch", "climate", "cover", "binary_sensor", "fan", "media_player"];
 const grid = { columns: 8, rows: 8 };
@@ -35,7 +35,7 @@ const inventory = (): Inventory => ({
 function open() {
   useInventoryStore().inventory = inventory();
   useScreenStore().selected = "bench";
-  loadDocument(useInventoryStore().inventory.screens[0]);
+  useDocumentStore().loadDocument(useInventoryStore().inventory.screens[0]);
 }
 const arrive = () => { useInventoryStore().inventory = { ...useInventoryStore().inventory, entities: entities.map((e) => ({ ...e })) }; };
 
@@ -45,7 +45,7 @@ function draw() {
   const pinia = createPinia();
   setActivePinia(pinia);
   open();
-  page = mount(defineComponent({ setup: () => () => h(DevicePage, { page: 0, entries: entriesOf(state.layout!), pages: 1, moving: null }) }),
+  page = mount(defineComponent({ setup: () => () => h(DevicePage, { page: 0, entries: entriesOf(useDocumentStore().layout!), pages: 1, moving: null }) }),
     { global: { plugins: [pinia] } });
 }
 

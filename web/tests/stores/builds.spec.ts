@@ -2,7 +2,6 @@
 // inventory read again or the add-on's refusal said, and the firmware job asked for once by whoever follows it.
 import { describe, expect, it } from "vitest";
 import { i18n } from "../../src/i18n";
-import { state } from "../../src/store";
 import { useBuildsStore } from "../../src/stores/builds";
 import { useUiStore } from "../../src/stores/ui";
 import type { Screen } from "../../src/types";

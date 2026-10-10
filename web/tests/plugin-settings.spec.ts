@@ -3,7 +3,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import PluginSettings from "../src/components/PluginSettings.vue";
-import { state } from "../src/store";
 import { usePluginsStore } from "../src/stores/plugins";
 import { useUiStore } from "../src/stores/ui";
 import type { Screen } from "../src/types";

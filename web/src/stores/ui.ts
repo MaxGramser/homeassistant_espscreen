@@ -87,7 +87,8 @@ export const useUiStore = defineStore("ui", () => {
     }
   }
 
-  // ---- What is open: the screen's menu, the search, and on a phone its sheets ----
+  // ---- What is open: the open screen's tab, its menu, the search, and on a phone its sheets ----
+  const tab = ref<"layout" | "settings" | "plugins">("layout");
   const menuOpen = ref(false);
   const palette = ref(false);
   const addSheet = ref(false);
@@ -134,7 +135,7 @@ export const useUiStore = defineStore("ui", () => {
   // Counts up once the top bar's fonts have loaded, so what was measured before them is measured again.
   const fontsVersion = ref(0);
 
-  // ---- Started once the page is on the screen (store.ts startStore); the returned function stops it ----
+  // ---- Started once the page is on the screen (stores/session.ts start); the returned function stops it ----
   let running: (() => void) | null = null;
   function start() {
     if (running) return running;
@@ -155,7 +156,7 @@ export const useUiStore = defineStore("ui", () => {
 
   return {
     notice, toast, dismissToast, copyText, openIntegrations,
-    menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen,
+    tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen,
     narrowPhone, fullEditor, phone, setFullEditor,
     hash, route, go, overrideProfile, overrideFriendly,
     libraryOpen, filter, search, room, hidePlaced,

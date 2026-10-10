@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import { i18n } from "../../src/i18n";
 import type { Installed, Plugin } from "../../src/model/plugins";
-import { state } from "../../src/store";
 import { usePluginsStore } from "../../src/stores/plugins";
 import { useUiStore } from "../../src/stores/ui";
 import type { Screen } from "../../src/types";

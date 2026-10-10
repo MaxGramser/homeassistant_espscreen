@@ -12,7 +12,6 @@ import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
 import { t } from "../i18n";
 import { afterBrowserBuild, errorLine, ESPHOME_WEB, firmwareImage, memoryText, usbTarget } from "../model/firmware-job";
-import { state } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import { matchesWords, queryWords } from "../model/search";

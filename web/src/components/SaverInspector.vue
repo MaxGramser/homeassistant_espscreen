@@ -5,7 +5,7 @@
 import { computed, watch } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { closeInspector, openSaverAdd, openSaverItem, stillSelected } from "../store";
+import { closeInspector, openSaverAdd, openSaverItem } from "../store";
 import { useSortableRows } from "../composables/useSortableRows";
 import type { SaverKind } from "../types";
 import SaverGlass from "./SaverGlass.vue";
@@ -19,10 +19,12 @@ import UiSelect from "./ui/UiSelect.vue";
 import { useEntitiesStore } from "../stores/entities";
 import { useTopbarStore } from "../stores/topbar";
 import { MAX_PLAYERS, SAVER_ICONS, SAVER_ITEMS_MAX, saverLabel, useScreensaverStore } from "../stores/screensaver";
+import { useDocumentStore } from "../stores/document";
 
 const entities = useEntitiesStore();
 const topbar = useTopbarStore();
 const screensaver = useScreensaverStore();
+const doc = useDocumentStore();
 
 const props = defineProps<{ step: SaverKind }>();
 const T = (name: string, values?: Record<string, unknown>) => t(`editor.screen_settings.screensaver.${name}`, values || {});
@@ -35,7 +37,7 @@ const shown = computed(() => playerSort.live.value || screensaver.players);
 const free = computed(() => screensaver.entitiesOf("media", screensaver.players));
 const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", items: () => screensaver.players, commit: screensaver.setPlayers, skip: "button", grip: ".grip",
   enabled: () => screensaver.saverReady && screensaver.players.length > 1 });
-watch(() => screensaver.weatherSource, (id) => id && entities.loadLibraryStates([id], stillSelected()), { immediate: true });
+watch(() => screensaver.weatherSource, (id) => id && entities.loadLibraryStates([id], doc.stillSelected()), { immediate: true });
 </script>
 
 <template>

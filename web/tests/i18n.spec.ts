@@ -1,4 +1,4 @@
-import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
+import { loadLayout, loadTiles, loadPages, loadTitles, appendTiles, screenFixture, documentFixture, current } from "./helpers/fixtures";
 // The editor's texts (app 0.2.90): English from en.json with the page, another language when it is needed, the plural
 // rules of the screens, and which language the page, the add-on's answers and the mockup speak.
 import { mount } from "@vue/test-utils";
@@ -13,7 +13,6 @@ import {
   PLURAL_RULES, requestedLanguage, setEditorLanguage, STYLE_MARKS, t,
 } from "../src/i18n";
 import { agoText, dateText } from "../src/model/topbar";
-import { state } from "../src/store";
 import { pageTexts, TRANSLATIONS } from "../translations";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useInventoryStore } from "../src/stores/inventory";
@@ -190,7 +189,7 @@ describe("the mockup speaks the screens' language", () => {
       language: { setting: "td", effective: "td", ha: "en", languages: [], numbers: "auto", numbers_effective: "comma", group_min: 2 },
       controls: { script: { default: "run", choices: [{ key: "run", label: "Run" }, { key: "none", label: "None" }] } },
     } as any;
-    seedLayout({ title: "Living room", tiles: [] });
+    loadLayout({ title: "Living room", tiles: [] });
     useEntitiesStore().liveStates = {
       "light.c": { state: "on", word: null, a: {} },
       "weather.home": { state: "windy-variant", word: null, a: { temperature: 12.5 } },

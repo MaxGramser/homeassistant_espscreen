@@ -3,15 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FirmwarePreview from "../src/components/FirmwarePreview.vue";
 import createModule from "../src/wasm/firmware_preview.js";
 import { api, send } from "../src/api";
-import { state } from "../src/store";
 import { useInventoryStore } from "../src/stores/inventory";
+import { useDocumentStore } from "../src/stores/document";
 
 vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
 vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn() }));
-vi.mock("../src/store", async () => {
-  const { reactive } = await import("vue");
-  return { state: reactive({ document: { title: "Test panel", pages: [] }, liveStates: {}, inventory: { screens: [], entities: [] } as any }) };
-});
 const bundle = () => ({ revision: "1111111111111111", configuration: [{ op: "begin" }, { op: "commit" }], values: [{ op: "state", i: 0, state: "on" }] });
 function response(name: string, _result?: unknown, _types?: unknown, args?: unknown[]) {
   if (name === "preview_next_action" || name === "preview_next_image") return "";
@@ -29,11 +25,14 @@ const firmware = {
 let wrapper: VueWrapper | undefined;
 let putImageData: ReturnType<typeof vi.fn>;
 
+// The draft the preview draws (stores/document.ts).
+let doc: ReturnType<typeof useDocumentStore>;
 beforeEach(() => {
+  doc = useDocumentStore();
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
   vi.clearAllMocks();
   firmware.ccall.mockImplementation(response);
-  state.document = { title: "Test panel", pages: [] } as any;
+  doc.document = { title: "Test panel", pages: [] } as any;
   useInventoryStore().inventory = { screens: [], entities: [] } as any;
   vi.mocked(createModule).mockResolvedValue(firmware as any);
   vi.mocked(send).mockResolvedValue(bundle());
@@ -103,7 +102,7 @@ describe("Firmware preview transport", () => {
       canvas.dispatchEvent(event);
     }
     expect(firmware._preview_touch.mock.calls).toEqual([[695, 695, 1], [695, 695, 0]]);
-    state.document!.title = "Updated panel";
+    doc.document!.title = "Updated panel";
     await flushPromises();
     await vi.advanceTimersByTimeAsync(200);
     expect(vi.mocked(send).mock.lastCall?.[2]).toMatchObject({ layout: { title: "Updated panel", pages: [] } });
@@ -120,7 +119,7 @@ describe("Firmware preview transport", () => {
     expect(layouts()).toEqual(["Test panel"]);
     // A name typed into the inspector changes the draft with every key.
     for (const title of ["H", "Ha", "Hal", "Hall"]) {
-      state.document!.title = title;
+      doc.document!.title = title;
       await flushPromises();
       await vi.advanceTimersByTimeAsync(80);
     }
@@ -146,7 +145,7 @@ describe("Firmware preview transport", () => {
       close = vi.fn();
       constructor(public url: string) { streams.push(this); }
     });
-    state.document = { title: 'Music', pages: [{ tiles: [{ content: { kind: 'entity', entityId: 'media_player.test' } }],
+    doc.document = { title: 'Music', pages: [{ tiles: [{ content: { kind: 'entity', entityId: 'media_player.test' } }],
       topbar: { trailing: [{ type: 'entity', entity: 'sensor.temperature' }] } }] } as any;
     let track = 'First track';
     vi.mocked(send).mockImplementation(async () => ({ ...bundle(), values: [
@@ -166,7 +165,7 @@ describe("Firmware preview transport", () => {
     });
     expect(packets.filter(packet => packet.op === 'hello')).toHaveLength(1);
     expect(vi.mocked(send).mock.calls.filter(([path]) => path === 'firmware-preview')).toHaveLength(2);
-    state.document!.pages[0].tiles[0].content = { kind: 'entity', entityId: 'media_player.other' };
+    doc.document!.pages[0].tiles[0].content = { kind: 'entity', entityId: 'media_player.other' };
     await flushPromises();
     expect(streams[0].close).toHaveBeenCalledOnce();
     expect(streams[1].url).toContain('entity=media_player.other');

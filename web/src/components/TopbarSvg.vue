@@ -3,7 +3,6 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { barLayout, dotted, inkOf, type BarMetrics, type BarPart } from "../model/topbar";
-import { state } from "../store";
 import TesseraMark from "./TesseraMark.vue";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";

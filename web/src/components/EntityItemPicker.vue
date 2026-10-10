@@ -5,7 +5,6 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { entityItem, glyph, itemKey } from "../model/topbar";
 import { matchesQuery } from "../model/search";
-import { state } from "../store";
 import type { HeaderItem } from "../types";
 import Icon from "./ui/Icon.vue";
 import rules from "../model/page-rules.json";

@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import type { Installed, Plugin } from "../src/model/plugins";
 import { usePluginsStore } from "../src/stores/plugins";
-import { state } from "../src/store";
 import ScreenPluginsTab from "../src/components/ScreenPluginsTab.vue";
 import type { Screen } from "../src/types";
 import { useScreenStore } from "../src/stores/screen";

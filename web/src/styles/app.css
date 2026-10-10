@@ -927,7 +927,7 @@ td code { white-space: nowrap; }
 
 /* A full-page tile (firmware 0.2.62+): both columns and all three rows, one big button. */
 /* A full tile is the whole page, whatever the screen's grid is: two by three on the boards that shipped
-   first, three by three on a 800 x 480. The spans follow --screen-columns / --screen-rows (store.ts). */
+   first, three by three on a 800 x 480. The spans follow --screen-columns / --screen-rows (stores/canvas.ts). */
 .tile.full { grid-column: span var(--screen-columns, 2); grid-row: span var(--screen-rows, 3); flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; }
 .tile.full .ic { font-size: 34px; }
 .tile.full .lead { flex: 0 0 auto; align-content: center; justify-items: center; }
@@ -1220,7 +1220,7 @@ section.advanced code { font-size: 11.5px; }
 @media (max-width: 860px) { .arrive-form { grid-template-columns: 1fr; } }
 
 /* ---- The phone (app 0.4.40) ----
-   A page as narrow as a phone, unless it asked for the full editor, carries the class `phone` on .app (store.phone):
+   A page as narrow as a phone, unless it asked for the full editor, carries the class `phone` on .app (stores/ui.ts phone):
    the screen itself, one button to add a tile, sheets from the bottom for adding, a tile and the pages, and the rest
    under the screen's menu. Every rule here hangs on that class or on an element only a phone draws, so a wider page
    keeps every pixel it had. Text fields stay at 16px: a smaller one makes iOS zoom the page on focus. */

@@ -10,8 +10,9 @@ import { clockSample } from "../model/clock";
 import * as pages from "../model/pages";
 import { agoText, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, wifiView } from "../model/topbar";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
-import { applyDocument, closeInspector, heldTo, openBar, pageAt, state } from "../store";
+import { closeInspector, openBar, state } from "../store";
 import type { HeaderItem } from "../types";
+import { useDocumentStore } from "./document";
 import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
 import { useInventoryStore } from "./inventory";
@@ -74,26 +75,29 @@ export const useTopbarStore = defineStore("topbar", () => {
   const region = useRegionStore();
   const plugins = usePluginsStore();
   const settings = useSettingsStore();
+  const doc = useDocumentStore();
   const dragging = useDragStore();
 
   // ---- A page's top bar ----
   // Without a stored top bar the screen shows what it always did: the clock of show_clock.
-  const topbarItems = (page = state.barPage): HeaderItem[] => pageAt(page)?.topbar.trailing || [];
-  function setTopbarItems(items: HeaderItem[], page = state.barPage) {
-    if (!state.document || !state.documentGrid || !state.document.pages[page]) return;
-    try { applyDocument(pages.setBarItems(state.document, heldTo(state.documentGrid), state.document.pages[page].id, items, !scr.pageReady)); }
+  const topbarItems = (page = doc.barPage): HeaderItem[] => doc.pageAt(page)?.topbar.trailing || [];
+  function setTopbarItems(items: HeaderItem[], page = doc.barPage) {
+    const document = doc.document, grid = doc.documentGrid;
+    if (!document || !grid || !document.pages[page]) return;
+    try { doc.applyDocument(pages.setBarItems(document, doc.heldTo(grid), document.pages[page].id, items, !scr.pageReady)); }
     catch (error: any) { ui.toast(error.message); }
   }
   function copyPageBars(source: string, targets: string[], whole: boolean) {
-    if (!scr.pageReady || !state.document || !state.documentGrid || !targets.length) return false;
-    try { return applyDocument(pages.replaceBar(state.document, heldTo(state.documentGrid), source, targets, whole)); }
+    const document = doc.document, grid = doc.documentGrid;
+    if (!scr.pageReady || !document || !grid || !targets.length) return false;
+    try { return doc.applyDocument(pages.replaceBar(document, doc.heldTo(grid), source, targets, whole)); }
     catch (error: any) { ui.toast(error.message); return false; }
   }
   // The home key in the top bar of the mockup (app 0.2.122, firmware 0.2.100+), the Tessera mark since firmware 0.10.0: on
   // every page, as on the screen, unless the screen's Show home button is off. A screen whose value nobody can read right
   // now (offline) is drawn as set.
-  const homeKeyShown = (page = state.barPage) =>
-    scr.supports(0, 2, 100) && settings.settingValues().home_button !== false && Boolean(pageAt(page)?.topbar.leading.length);
+  const homeKeyShown = (page = doc.barPage) =>
+    scr.supports(0, 2, 100) && settings.settingValues().home_button !== false && Boolean(doc.pageAt(page)?.topbar.leading.length);
 
   // ---- What an item is called, and what it shows right now ----
   function topbarLabel(item: HeaderItem) {
@@ -135,7 +139,7 @@ export const useTopbarStore = defineStore("topbar", () => {
   // ---- The entity items as the screen will show them (stores/entities.ts topbarPreviews) ----
   // Every page's bar and the screensaver clock's row, each item once, asked for after a short pause, in sixes as a header
   // takes them; an answer for a screen no longer open, or for an item no longer used, is dropped.
-  const used = () => [...(state.document?.pages.flatMap((page) => page.topbar.trailing) || []), ...(scr.currentScreen?.screensaver?.items || [])];
+  const used = () => [...(doc.document?.pages.flatMap((page) => page.topbar.trailing) || []), ...(scr.currentScreen?.screensaver?.items || [])];
   let timer = 0;
   function loadTopbarPreview(delay = 150) {
     clearTimeout(timer);
@@ -165,10 +169,10 @@ export const useTopbarStore = defineStore("topbar", () => {
     const scope = effectScope(true);
     scope.run(() => {
       const keys = (items: HeaderItem[]) => items.filter((item) => item.type === "entity").map(itemKey).join("|");
-      watch([() => scr.selected, () => keys(state.document?.pages.flatMap((page) => page.topbar.trailing) || []),
+      watch([() => scr.selected, () => keys(doc.document?.pages.flatMap((page) => page.topbar.trailing) || []),
         () => keys(scr.currentScreen?.screensaver?.items || [])],
       ([screen, , saver], [before, , saverBefore]) => loadTopbarPreview(screen !== before || saver !== saverBefore ? 0 : 150));
-      useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: () => Boolean(state.layout) && !dragging.active });
+      useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: () => Boolean(doc.layout) && !dragging.active });
     });
     running = () => { running = null; scope.stop(); };
     return running;

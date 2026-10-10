@@ -15,13 +15,13 @@ import AlertsView from "./components/AlertsView.vue";
 import OverrideView from "./components/OverrideView.vue";
 import PluginsView from "./components/PluginsView.vue";
 import { question } from "./composables/useConfirm";
-import { state } from "./store";
 import { useSidebarStore } from "./stores/sidebar";
 import { useUiStore } from "./stores/ui";
 import { usePluginsStore } from "./stores/plugins";
 import { useScreenStore } from "./stores/screen";
 import { useInventoryStore } from "./stores/inventory";
 import { useDragStore } from "./stores/drag";
+import { useDocumentStore } from "./stores/document";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
@@ -29,6 +29,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
 const dragging = useDragStore();
+const doc = useDocumentStore();
 const view = computed(() => {
   if (ui.route === "#settings") return AppSettingsView;
   if (ui.route === "#new-screen") return InstallerView;
@@ -37,7 +38,7 @@ const view = computed(() => {
   if (ui.route === "#override") return OverrideView;
   if (ui.route === "#plugins" && plugins.pluginsEnabled) return PluginsView;
   // Nothing chosen is the overview of every screen (app 0.4.0); a house without screens starts with the first.
-  if (scr.currentScreen && state.layout) return ScreenView;
+  if (scr.currentScreen && doc.layout) return ScreenView;
   return scr.selected || !inv.inventory.screens.length ? EmptyState : HomeView;
 });
 // ⌘K (Ctrl+K) opens the search from anywhere, unless a question of the editor's is open.

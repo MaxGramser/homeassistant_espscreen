@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { t } from '../i18n';
-import { addPage, state } from "../store";
 import { clone, emptyPage, instanceId } from '../model/pages';
 import { matchesQuery } from '../model/search';
 import { tilePalette } from '../model/tile-palette';
@@ -15,10 +14,13 @@ import TesseraMark from './TesseraMark.vue';
 import { useEntitiesStore } from '../stores/entities';
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
+import { addPage } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
 
 const entities = useEntitiesStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
@@ -36,7 +38,7 @@ function create() {
   // A screen whose firmware still shares one top bar (app 0.4.1): the new page takes that bar and its home key, as
   // every other page does, or the save is refused long after this dialog closed. Only the title is its own.
   if (!scr.pageReady) {
-    const shared = clone(state.document!.pages[0].topbar);
+    const shared = clone(doc.document!.pages[0].topbar);
     shared.title = title.value.trim() ? { source: 'text', text: title.value.trim() } : { source: 'screen' };
     if (addPage(shared)) emit('close');
     return;
@@ -61,7 +63,7 @@ onMounted(() => dialog.value?.showModal());
       </header>
       <div class="f">
         <label class="f-label" for="new-page-title">{{ t('editor.pages.title') }}</label>
-        <input id="new-page-title" v-model="title" :placeholder="state.document?.title" :aria-invalid="invalidTitle" autofocus />
+        <input id="new-page-title" v-model="title" :placeholder="doc.document?.title" :aria-invalid="invalidTitle" autofocus />
         <small v-if="invalidTitle" class="help warn">{{ t('addon.errors.layout.page_title') }}</small>
       </div>
       <div v-if="!scr.pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>

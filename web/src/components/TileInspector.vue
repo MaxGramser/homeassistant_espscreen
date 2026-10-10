@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import { editorLayout } from "../store";
-const { grid, pageCount, pageOf } = editorLayout;
 
 // One tile's settings. Every change applies live, so the card on the mockup shows the result while you pick.
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
-import { beginFieldEdit, endFieldEdit } from '../store';
 import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pageTarget, SLIDER_DOMAINS, SWITCHES_ON_TAP, TOGGLE_BEFORE } from "../model/layout";
-import { glyph } from "../model/topbar";
 import { controlOption, drawable, fits, ofType } from "../model/catalogue";
-import { moveTileToPage, openPage, openTile, setTileName, removeTile, retargetPageTile, setTileOption, state } from "../store";
+import { openPage, openTile, state } from "../store";
 import { titleOf } from "../model/pages";
 import PluginTileInspector from "./PluginTileInspector.vue";
 import type { Tile } from "../types";
@@ -38,6 +34,8 @@ import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
+import { moveTileToPage, setTileName, removeTile, retargetPageTile, setTileOption } from "../editor/tiles";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -45,6 +43,8 @@ const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
+const doc = useDocumentStore();
+const { grid, pageCount, pageOf } = doc.editorLayout;
 
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
@@ -53,10 +53,10 @@ const props = defineProps<{ tile: Tile }>();
 const more = ref(false);
 // The tile goes to the first free cell of another page, and the sheet follows it there.
 function moveTile(page: number) {
-  const id = state.document?.pages[page]?.id;
-  if (moveTileToPage(props.tile, page) && id) state.selectedPageId = id;
+  const id = doc.document?.pages[page]?.id;
+  if (moveTileToPage(props.tile, page) && id) doc.selectedPageId = id;
 }
-const otherPages = computed(() => (state.document?.pages || []).map((page, index) => ({ index, name: titleOf(state.document!, page) || t("editor.page.label", { page: index + 1 }) }))
+const otherPages = computed(() => (doc.document?.pages || []).map((page, index) => ({ index, name: titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }))
   .filter((page) => page.index !== pageOf(props.tile.slot)));
 const nameDraft = useTextDraft(() => props.tile.name, value => setTileName(props.tile, value));
 const domain = computed(() => props.tile.entity.split(".")[0]);
@@ -67,11 +67,11 @@ const name = computed(() => entities.entityName(props.tile.entity));
 const goesTo = computed(() => pageTarget(props.tile.entity));
 // Pages counted from 1. "Goes to page" offers the pages the screen has and the empty one after them, where a sub-page
 // starts (app 0.2.78), and keeps a target beyond those so the choice stays visible.
-const pageTotal = computed(() => (state.layout ? pageCount(entriesOf(state.layout), state.layout.pages) : 1));
+const pageTotal = computed(() => (doc.layout ? pageCount(entriesOf(doc.layout), doc.layout.pages) : 1));
 // A key stands on its clock's page (it has no cell of its own); the clock is on a screen once.
-const holder = computed(() => props.tile.in !== undefined ? state.layout?.tiles.find((item) => item.entity === props.tile.in && item.in === undefined) : undefined);
+const holder = computed(() => props.tile.in !== undefined ? doc.layout?.tiles.find((item) => item.entity === props.tile.in && item.in === undefined) : undefined);
 const pageHere = computed(() => pageOf((holder.value || props.tile).slot) + 1);
-const emptyPage = (n: number) => !state.layout?.tiles.some((t) => pageOf(t.slot) === n - 1);
+const emptyPage = (n: number) => !doc.layout?.tiles.some((t) => pageOf(t.slot) === n - 1);
 const pages = computed(() => {
   const list = Array.from({ length: Math.min(grid.pages, pageTotal.value + 1) }, (_, i) => i + 1);
   if (goesTo.value > list.length) list.push(goesTo.value);
@@ -308,7 +308,7 @@ function inspect() {
   state.inspector = { kind: "inspect", entity: props.tile.entity, slot: props.tile.slot, key: props.tile.key };
 }
 // The way up in the head: the page the tile stands on opens that page's settings.
-const pageId = computed(() => state.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
+const pageId = computed(() => doc.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => openPage(pageId.value!) : undefined },
   ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entities.entityName(holder.value.entity), open: () => openTile(holder.value!) }] : []),
@@ -333,7 +333,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
     <!-- The name is edited where it stands, as a title: empty is the name Home Assistant gives it. -->
     <template #title>
       <input id="tile-name" class="dr-title" :value="nameDraft.value.value" :placeholder="name" maxlength="60" :aria-label="t('editor.tile.name')" :title="t('editor.tile.name')"
-        @focus="beginFieldEdit(`tile:${tile.id}`); nameDraft.focus()" @blur="endFieldEdit(); nameDraft.blur()" @keydown.enter="($event.target as HTMLInputElement).blur()"
+        @focus="doc.beginFieldEdit(`tile:${tile.id}`); nameDraft.focus()" @blur="doc.endFieldEdit(); nameDraft.blur()" @keydown.enter="($event.target as HTMLInputElement).blur()"
         @input="nameDraft.input(($event.target as HTMLInputElement).value)" />
     </template>
     <template #actions>
@@ -372,7 +372,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
           <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
             :aria-label="t('editor.tile.sub.value_aria')" @update:model-value="(key) => setTileOption(tile, 'sub', `attr:${key}`)" />
           <input v-else class="sub-text" :value="subText" maxlength="60"
-            @focus="beginFieldEdit(`sub:${tile.id}`)" @blur="endFieldEdit()"
+            @focus="doc.beginFieldEdit(`sub:${tile.id}`)" @blur="doc.endFieldEdit()"
             :placeholder="t('editor.tile.sub.text_placeholder')" :aria-label="t('editor.tile.sub.text_aria')"
             @input="writeSubText(($event.target as HTMLInputElement).value)" />
         </template>

@@ -7,12 +7,14 @@
 // (the hold, the ghost, the scrolling near an edge) stays here, outside any store.
 import type { Directive } from "vue";
 import { entriesOf, pageOrder } from "./model/layout";
-import { commitArrangement, confirmMemory, editorLayout, keyToCell, movePage, pagesShown, placeKey, startTile, state } from "./store";
+import { commitArrangement, confirmMemory, keyToCell, placeKey, startTile } from "./editor/tiles";
+import { movePage, pagesShown } from "./editor/pages";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
 import { CLICK_AFTER_DRAG_MS, HOLD_MS, SLOP_PX, THRESHOLD_PX } from "./composables/usePointerDrag";
 import { onReset } from "./resets";
+import { useDocumentStore } from "./stores/document";
 import { useDragStore, type DragPreview, type KeyPlace } from "./stores/drag";
 import { useUiStore } from "./stores/ui";
 import { useEntitiesStore } from "./stores/entities";
@@ -174,7 +176,7 @@ export function slotAt(x: number, y: number) {
   const columns = Number(best.cell.dataset.columns || 1), rows = Number(best.cell.dataset.rows || 1);
   const column = Math.max(0, Math.min(columns - 1, Math.floor((x - best.r.left) / best.r.width * columns)));
   const row = Math.max(0, Math.min(rows - 1, Math.floor((y - best.r.top) / best.r.height * rows)));
-  slot += row * editorLayout.grid.columns + column;
+  slot += row * useDocumentStore().editorLayout.grid.columns + column;
   return slot;
 }
 // The place in the row under the pointer, by the mockups as they stand right now: the page nearest to it, which
@@ -193,22 +195,22 @@ export function nearestRect(rects: { left: number; right: number; top: number; b
 }
 // Off the row the page goes back where it came from, so a drop away from the pages changes nothing.
 function setPageTarget(place: number) {
-  const dragging = useDragStore(), page = dragging.page;
-  if (!page || !state.layout) return;
+  const dragging = useDragStore(), doc = useDocumentStore(), page = dragging.page;
+  if (!page || !doc.layout) return;
   const to = place < 0 ? page.from : place;
   if (to === page.to) return;
   page.to = to;
   page.order = pageOrder(pagesShown(), page.from, to);
-  dragging.preview = editorLayout.reorderPages(entriesOf(state.layout), page.order);
+  dragging.preview = doc.editorLayout.reorderPages(entriesOf(doc.layout), page.order);
 }
 function setTarget(slot: number) {
-  const dragging = useDragStore(), moving = dragging.moving, { arrange, pageOf } = editorLayout;
-  if (drag.target === slot || !state.layout || !moving) return;
+  const dragging = useDragStore(), doc = useDocumentStore(), moving = dragging.moving, { arrange, pageOf } = doc.editorLayout;
+  if (drag.target === slot || !doc.layout || !moving) return;
   drag.target = slot;
   // A key leaves its clock for an empty cell only: the drop shows nothing moving aside.
   if (moving.in !== undefined) { dragging.preview = null; return; }
   // Off the grid: a tile from the grid shows where it came from; a new one shows nowhere yet.
-  dragging.preview = slot >= 0 ? arrange(state.layout.tiles, moving, slot) : null;
+  dragging.preview = slot >= 0 ? arrange(doc.layout.tiles, moving, slot) : null;
   // A page the tile can't land on says so as a whole, instead of showing nothing: a page-filling tile over a page
   // that has tiles, a large one where the tiles around it have nowhere to go.
   dragging.refused = slot >= 0 && !dragging.preview ? pageOf(slot) : null;
@@ -242,7 +244,7 @@ function endDrag(drop: boolean) {
 // Where a dropped tile goes: under a bedside clock, off its clock to an empty cell, or into the place the drag showed.
 function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; preview: DragPreview | null; moving: Tile | null;
   key: KeyPlace | null; refused: number | null; slot: number | null }) {
-  const layout = state.layout;
+  const layout = useDocumentStore().layout;
   if (drop && key && moving && layout) {
     const clock = layout.tiles.find((tile) => tile.id === key.holder);
     if (clock && moving.entity !== clock.entity && placeKey(moving, clock, key.key)) useEntitiesStore().loadCapabilities([moving.entity]);

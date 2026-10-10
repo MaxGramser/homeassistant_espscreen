@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { state } from "../store";
 import { useUiStore } from "../stores/ui";
 
 const ui = useUiStore();

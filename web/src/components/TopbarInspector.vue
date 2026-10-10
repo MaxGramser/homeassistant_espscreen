@@ -1,17 +1,14 @@
 <script setup lang="ts">
-import { editorLayout } from "../store";
-const { pageCount } = editorLayout;
 
 // The top bar: the name on the left; on the right up to six items: the time, an analog clock, the date, or an
 // entity's state or last change. Edits belong to the selected page.
 import { computed } from "vue";
 import { useSortableRows } from "../composables/useSortableRows";
 import { t } from "../i18n";
-import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
 import { clockSample } from "../model/clock";
 import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { openBar, openBarAdd, openPage, state, pageTitleShown } from "../store";
+import { openBar, openBarAdd, openPage } from "../store";
 import type { HeaderItem } from "../types";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
@@ -29,6 +26,8 @@ import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
 import { useInventoryStore } from "../stores/inventory";
 import { useCanvasStore } from "../stores/canvas";
+import { pageTitleShown } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -37,6 +36,8 @@ const scr = useScreenStore();
 const topbar = useTopbarStore();
 const inv = useInventoryStore();
 const canvas = useCanvasStore();
+const doc = useDocumentStore();
+const { pageCount } = doc.editorLayout;
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => sort.live.value || topbar.topbarItems());
@@ -73,9 +74,9 @@ const batterySupported = computed(() => scr.supportsVersion(batteryNeeded.value)
 const justAdded = (it: HeaderItem) => topbar.topbarAdded?.key === itemKey(it) && Date.now() - topbar.topbarAdded.time < 1200;
 // The page whose bar you clicked (app 0.2.105). Its left side, the title and the Home key, belongs to the page and is
 // set in the page's own settings (app 0.3.19); this inspector is about what stands on the right.
-const page = computed(() => state.barPage ?? 0);
-const pages = computed(() => (state.layout ? pageCount(entriesOf(state.layout), state.layout.pages) : 1));
-const pageId = computed(() => state.document?.pages[page.value]?.id);
+const page = computed(() => doc.barPage ?? 0);
+const pages = computed(() => (doc.layout ? pageCount(entriesOf(doc.layout), doc.layout.pages) : 1));
+const pageId = computed(() => doc.document?.pages[page.value]?.id);
 const toPage = () => { if (pageId.value) openPage(pageId.value); };
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: page.value + 1 }), open: pageId.value ? toPage : undefined },
@@ -205,7 +206,7 @@ function onKey(e: KeyboardEvent, i: number) {
       <small v-else class="help">{{ t("editor.topbar.date_hint", { date: samples.date }) }}</small>
     </Section>
 
-    <CopyPageBar v-if="scr.pageReady && state.document && pages > 1" :page-id="state.document.pages[page].id" />
+    <CopyPageBar v-if="scr.pageReady && doc.document && pages > 1" :page-id="doc.document.pages[page].id" />
   </div>
   <div v-if="item" class="dr-foot">
     <button type="button" class="btn danger" @click="topbar.removeTopbarItem(index)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>

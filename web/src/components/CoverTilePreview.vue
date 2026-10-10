@@ -2,24 +2,25 @@
 // This preview never sends HA actions. Native cover sliders own interaction.
 import { useElementSize } from '@vueuse/core';
 import { computed, ref } from 'vue';
-import { screenShape, state } from "../store";
 import { glyph } from '../model/topbar';
 import { tallKeys } from '../model/ui-scale';
 import { controlKeys, coverTiltKeys, coverTiltKind } from '../model/tall-controls';
 import { useRegionStore } from '../stores/region';
 import { useInventoryStore } from "../stores/inventory";
 import { useCanvasStore } from "../stores/canvas";
+import { useDocumentStore } from "../stores/document";
 
 const region = useRegionStore();
 const inv = useInventoryStore();
 const canvas = useCanvasStore();
+const doc = useDocumentStore();
 const props = defineProps<{ primary: string; entityState: string; attributes: Record<string, any> }>();
 const root = ref<HTMLElement>();
 // The card's own size, as it is drawn.
 const { width, height } = useElementSize(root);
-const scale = computed(() => parseFloat(canvas.deviceStyle['--mockup-width']) / screenShape.value.width);
+const scale = computed(() => parseFloat(canvas.deviceStyle['--mockup-width']) / doc.screenShape.width);
 // The keys and their gap as the glass draws them (ui-scale tallKeys), in the mockup's pixels.
-const keys = computed(() => tallKeys({ ...screenShape.value, look: canvas.isCompact ? 'compact' : 'standard' }));
+const keys = computed(() => tallKeys({ ...doc.screenShape, look: canvas.isCompact ? 'compact' : 'standard' }));
 const touch = computed(() => keys.value.touch * scale.value);
 const gap = computed(() => keys.value.gap * scale.value);
 const mainKeys = computed(() => controlKeys('cover', props.primary, props.entityState, props.attributes));

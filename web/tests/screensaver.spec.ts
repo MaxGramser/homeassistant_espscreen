@@ -10,6 +10,10 @@ import type { Inventory, ScreensaverView } from "../src/types";
 import { useScreenStore } from "../src/stores/screen";
 import { useScreensaverStore } from "../src/stores/screensaver";
 import { useInventoryStore } from "../src/stores/inventory";
+import { useUiStore } from "../src/stores/ui";
+
+let ui: ReturnType<typeof useUiStore>;
+beforeEach(() => { ui = useUiStore(); });
 
 const saver = (patch: Partial<ScreensaverView> = {}): ScreensaverView => ({
   show: true, media: "media_player.tv", more: ["media_player.speaker"], camera: "", order: ["media", "camera", "clock"], off: ["camera"],
@@ -29,7 +33,7 @@ beforeEach(() => {
   } as unknown as Inventory;
   useScreenStore().selected = "living";
   state.inspector = null;
-  state.tab = "settings";
+  ui.tab = "settings";
 });
 
 const rows = (wrapper: ReturnType<typeof mount>) => wrapper.findAll(".saver-row").map((row) => `${row.find("b").text()}: ${row.find("small").text()}`);
@@ -107,7 +111,7 @@ describe("a step in the drawer", () => {
     // The store's reactions run once the page has started it (boot.ts).
     const stop = startStore();
     openSaverStep("clock");
-    state.tab = "layout";
+    ui.tab = "layout";
     await nextTick();
     expect(state.inspector).toBeNull();
     stop();

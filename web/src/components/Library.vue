@@ -14,13 +14,12 @@ import { glyph } from "../model/topbar";
 import { matchesQuery, prefixRank } from "../model/search";
 import { tilePalette } from "../model/tile-palette";
 import { isPluginTile } from "../model/plugins";
-import { stillSelected } from "../store";
 import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useListNavigation } from "../composables/useListNavigation";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { question } from "../composables/useConfirm";
-import { addTile, editorLayout, memory, pageTitleShown, state, tileLimit } from "../store";
+import { state } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
 import { useUiStore } from "../stores/ui";
@@ -28,12 +27,16 @@ import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
+import { addTile } from "../editor/tiles";
+import { pageTitleShown } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
 const FILTERS = [
@@ -54,17 +57,17 @@ const open = computed({
 });
 // Where the tile goes, said at the top of the phone's sheet.
 const destination = computed(() => {
-  const pages = state.document?.pages || [];
-  const page = state.insertAt >= 0 ? Math.floor(state.insertAt / editorLayout.grid.slots) : Math.max(0, pages.findIndex((item) => item.id === state.selectedPageId));
+  const pages = doc.document?.pages || [];
+  const page = state.insertAt >= 0 ? Math.floor(state.insertAt / doc.editorLayout.grid.slots) : Math.max(0, pages.findIndex((item) => item.id === doc.selectedPageId));
   const name = pageTitleShown(page) || t("editor.page.label", { page: page + 1 });
-  return state.insertAt >= 0 ? t("editor.phone.add_to_cell", { cell: state.insertAt % editorLayout.grid.slots + 1, page: name }) : t("editor.phone.add_to_page", { page: name });
+  return state.insertAt >= 0 ? t("editor.phone.add_to_cell", { cell: state.insertAt % doc.editorLayout.grid.slots + 1, page: name }) : t("editor.phone.add_to_page", { page: name });
 });
 type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean };
 // How many tiles each entity has on the screen. One that is there stays addable when the firmware takes an entity on
 // several tiles (a page tile from 0.2.65, any entity but the bedside clock from 0.16.0): its mark says how often.
 const chosen = computed(() => {
   const counts = new Map<string, number>();
-  for (const tile of state.layout?.tiles || []) counts.set(tile.entity, (counts.get(tile.entity) || 0) + 1);
+  for (const tile of doc.layout?.tiles || []) counts.set(tile.entity, (counts.get(tile.entity) || 0) + 1);
   return counts;
 });
 const onScreen = (id: string) => chosen.value.has(id);
@@ -76,7 +79,7 @@ const pluginEntries = computed<(Entry & { plugin: string })[]>(() => (plugins.pl
 const pluginOf = (id: string) => pluginEntries.value.find((e) => e.id === id)?.plugin || "";
 // Go to page tiles for the pages there are and the next one, at least the eight every screen has and at most what this
 // screen takes: a board with 24 pages (firmware 0.34.0+) would otherwise list 24 of them.
-const pagesOffered = computed(() => Math.min(editorLayout.grid.pages, Math.max(8, (state.document?.pages.length || 0) + 1)));
+const pagesOffered = computed(() => Math.min(doc.editorLayout.grid.pages, Math.max(8, (doc.document?.pages.length || 0) + 1)));
 const query = computed(() => ui.search.trim().toLocaleLowerCase());
 // What the search and the hide switch leave over. The rooms are counted off this, the kinds off it narrowed to the
 // room, and neither off the finished list: picking one would take every other one away with it.
@@ -119,7 +122,7 @@ const groups = computed(() => {
 const flat = computed(() => groups.value.flatMap((group) => group.entities));
 // The states of what is shown, asked once the list has stood still a moment (180 ms), again every minute, and never for a
 // folded drawer; the wait goes with the drawer.
-const loadSoon = useTimeoutFn(() => entities.loadLibraryStates(shownList.value.map((entity) => entity.id), stillSelected()), 180, { immediate: false });
+const loadSoon = useTimeoutFn(() => entities.loadLibraryStates(shownList.value.map((entity) => entity.id), doc.stillSelected()), 180, { immediate: false });
 watch(() => [open.value, shownList.value.map((entity) => entity.id).join('|'), Math.floor(ui.now / 60000)],
   () => (open.value ? loadSoon.start() : loadSoon.stop()), { immediate: true });
 // The kinds and rooms the results hold, each with its count, so searching narrows the column the way it narrows the
@@ -136,8 +139,8 @@ const rooms = computed(() => {
   if (ui.room && !counts.has(ui.room)) counts.set(ui.room, 0);
   return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b));
 });
-const full = computed(() => (state.layout?.tiles.length || 0) >= tileLimit.value);
-const memoryFull = computed(() => memory.value?.level === "full" || memory.value?.level === "over");
+const full = computed(() => (doc.layout?.tiles.length || 0) >= doc.tileLimit);
+const memoryFull = computed(() => doc.memory?.level === "full" || doc.memory?.level === "over");
 const count = computed(() => inv.inventory.entities.length);
 // The avatar shows the state at a glance: lit for on, grey for an entity Home Assistant can't reach.
 const tone = (e: { id: string; state?: string }) => {
@@ -184,7 +187,7 @@ function onSearchKey(e: KeyboardEvent) {
 // A key typed where nothing takes text is the start of a search: the drawer opens on it (Notion's and Apple's way of
 // letting a person just start typing). "/" only puts the cursor there. A dialog, a menu or a field keeps its keys.
 function onPageKey(e: KeyboardEvent) {
-  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || state.tab !== "layout" || ui.palette || question.value) return;
+  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || ui.tab !== "layout" || ui.palette || question.value) return;
   const target = e.target as HTMLElement | null;
   if (isEditableTarget(target) || target?.closest?.("select, dialog, [role='dialog'], [role='menu'], [role='listbox']")) return;
   if (document.querySelector("dialog[open], [role='dialog'], [role='menu']")) return;
@@ -307,7 +310,7 @@ function onResizeKey(e: KeyboardEvent) {
         </section>
         <p v-if="!matches.length" class="hint lib-empty">{{ ui.hidePlaced && !ui.search && !ui.filter && !ui.room ? t("editor.library.all_placed") : t("editor.library.none_found") }}</p>
         <p v-else-if="matches.length > SHOWN" class="hint">{{ t("editor.common.results", matches.length) }}</p>
-        <div v-if="full" class="lib-foot">{{ t(tileLimit < 48 ? "editor.library.full_update" : "editor.library.full", tileLimit) }}</div>
+        <div v-if="full" class="lib-foot">{{ t(doc.tileLimit < 48 ? "editor.library.full_update" : "editor.library.full", doc.tileLimit) }}</div>
         <div v-else-if="memoryFull" class="lib-foot">{{ t("editor.memory.full_library") }}</div>
       </div>
     </div>

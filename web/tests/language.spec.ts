@@ -1,4 +1,4 @@
-import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
+import { loadLayout, loadTiles, loadPages, loadTitles, appendTiles, screenFixture, documentFixture, current } from "./helpers/fixtures";
 // Language & region (app 0.2.90): one place for every screen's language, clock and numbers, the update it takes, and
 // the top bar that points there.
 import { flushPromises, mount } from "@vue/test-utils";
@@ -7,7 +7,6 @@ import AppSettingsView from "../src/components/AppSettingsView.vue";
 import Sidebar from "../src/components/Sidebar.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
 import { loadLanguage } from "../src/i18n";
-import { state } from "../src/store";
 import type { Languages } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useInventoryStore } from "../src/stores/inventory";
@@ -146,7 +145,7 @@ describe("the update a new language takes", () => {
 
 describe("the top bar's clock", () => {
   it("points to Language & region instead of a clock of its own", () => {
-    seedLayout({ title: "Living room", tiles: [], header: { items: [{ type: "clock" }] } });
+    loadLayout({ title: "Living room", tiles: [], header: { items: [{ type: "clock" }] } });
     let drawer = mount(TopbarInspector, { props: { index: 0 } });
     expect(drawer.find(".seg").exists()).toBe(false);
     expect(drawer.find("#topbar-clock").text()).toBe("24 hour clock · change under Settings → Language & region");

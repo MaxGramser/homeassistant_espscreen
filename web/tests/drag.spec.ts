@@ -2,8 +2,11 @@
 // down, on a wide window the canvas both ways.
 import { beforeEach, describe, expect, it } from "vitest";
 import { dragScrollers, edgeStep, nearestRect, scrollsAlong, slotAt, vDrag } from "../src/drag";
-import { state } from '../src/store';
 import { useDragStore } from '../src/stores/drag';
+import { useDocumentStore } from "../src/stores/document";
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 // jsdom has no layout: give an element the sizes a browser would measure, and the overflow longhands it computes.
 function sized(element: HTMLElement, size: { scrollWidth?: number; clientWidth?: number; scrollHeight?: number; clientHeight?: number }) {
@@ -19,7 +22,7 @@ beforeEach(() => {
 
 describe("the scroller of a drag", () => {
   it('targets each covered cell of a multi-row tile and clamps nearby gaps', () => {
-    state.documentGrid = { columns: 3, rows: 3 };
+    doc.documentGrid = { columns: 3, rows: 3 };
     pages.innerHTML = '<div data-slot="10" data-columns="2" data-rows="2"></div>';
     const tile = pages.firstElementChild as HTMLElement;
     tile.getBoundingClientRect = () => ({ left: 20, top: 40, right: 220, bottom: 240, width: 200, height: 200 } as DOMRect);
@@ -31,7 +34,7 @@ describe("the scroller of a drag", () => {
     expect(slotAt(260, 270)).toBe(-1);
     tile.dataset.columns = '1';
     expect(slotAt(150, 170)).toBe(13);
-    state.documentGrid = { columns: 2, rows: 3 };
+    doc.documentGrid = { columns: 2, rows: 3 };
   });
   it("scrolls the canvas both ways on a wide window", () => {
     // The canvas scrolls (overflow: auto); the row of pages is wider than it but doesn't scroll itself.

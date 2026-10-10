@@ -11,14 +11,15 @@ import { glyph } from "../model/topbar";
 import { barKeys, thermostatMode } from "../model/tall-controls";
 import { thermostatModeColor } from "../model/tile-palette";
 import { cardContent, cellContent, modeBar, uiScale } from "../model/ui-scale";
-import { screenShape, state } from "../store";
 import { useRegionStore } from "../stores/region";
 import { useInventoryStore } from "../stores/inventory";
 import { useCanvasStore } from "../stores/canvas";
+import { useDocumentStore } from "../stores/document";
 
 const region = useRegionStore();
 const inv = useInventoryStore();
 const canvas = useCanvasStore();
+const doc = useDocumentStore();
 
 // `columns`: how many of the page's columns the card spans. `mode`: the entity's state; `domain`: climate or humidifier.
 const props = withDefaults(defineProps<{ a: Record<string, any>; mode: string; place: "row" | "tall" | "full"; columns: number; domain?: string }>(), { domain: "climate" });
@@ -26,7 +27,7 @@ const glass = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
 // The room the glass gives the bar: the cell beside the name on a card of one row, the card's content on a taller one
 // or the page (runtime_tiles layout_panel), from the board's own spacing.
 const bar = computed(() => {
-  const shape = screenShape.value, across = state.documentGrid?.columns ?? shape.columns;
+  const shape = doc.screenShape, across = doc.documentGrid?.columns ?? shape.columns;
   const reach = props.place === "row" ? cellContent(shape, across) : cardContent(shape, across, props.place === "full" ? across : props.columns);
   return modeBar(shape, props.place, reach, barKeys(props.a, props.mode, 6, props.domain).length);
 });
@@ -41,7 +42,7 @@ const word = (mode?: string) => {
 // Words where every segment has room for its icon, a gap and its word (runtime_tiles draw_mode_bar), measured with
 // the board's own sizes: its key icons and the card's value line.
 const words = computed(() => {
-  const { width, inset } = bar.value, shape = screenShape.value;
+  const { width, inset } = bar.value, shape = doc.screenShape;
   if (!width || !keys.value.length) return false;
   const { large, px } = uiScale(shape), fonts = ("fonts" in shape ? shape.fonts : undefined) || {};
   const segment = (width - 2 * inset) / keys.value.length, icon = Math.round((fonts.icon_mini ?? (large ? 26 : 18)) * 1.172);
@@ -52,7 +53,7 @@ const icons = computed(() => inv.inventory.icons?.controls || {});
 const icon = (k: { icon: string; cp?: string }) => (k.cp ? glyph(k.cp) : icons.value[k.icon] ? glyph(icons.value[k.icon]) : "");
 // The board's sizes in the mockup's pixels: the bar, its inset, its icons and its words.
 const style = computed(() => {
-  const shape = screenShape.value, { large } = uiScale(shape), fonts = ("fonts" in shape ? shape.fonts : undefined) || {}, g = glass.value;
+  const shape = doc.screenShape, { large } = uiScale(shape), fonts = ("fonts" in shape ? shape.fonts : undefined) || {}, g = glass.value;
   const sizes = { "--icon": `${((fonts.icon_mini ?? (large ? 26 : 18)) * g).toFixed(2)}px`, "--word": `${((fonts.sublabel ?? (large ? 16 : 11)) * g).toFixed(2)}px` };
   if (!bar.value.width) return sizes;
   return { ...sizes, width: `${(bar.value.width * g).toFixed(2)}px`, height: `${(bar.value.finger * g).toFixed(2)}px`, padding: `${(bar.value.inset * g).toFixed(2)}px` };

@@ -4,30 +4,34 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useGesture } from "../composables/useGesture";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
-import { arrangeFromHome, connectTile, liveEntries, moveWorkspacePage, openPage, openTile, screenShape, state, workspacePositions } from "../store";
+import { openPage, openTile } from "../store";
 import DevicePage from "./DevicePage.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
+import { connectTile } from "../editor/pages";
+import { liveEntries } from "../editor/tiles";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
+const doc = useDocumentStore();
 defineProps<{ compact?: boolean }>();
 const allConnections = ref(false);
 
 const world = ref<HTMLElement>(), zoom = ref(0.8);
-const positions = computed(workspacePositions), routes = computed(() => state.document ? connections(state.document) : []);
+const positions = computed(doc.workspacePositions), routes = computed(() => doc.document ? connections(doc.document) : []);
 const cardWidth = computed(() => parseFloat(canvas.deviceStyle['--mockup-width']));
-const pitch = computed(() => ({ x: cardWidth.value + 110, y: cardWidth.value * screenShape.value.height / screenShape.value.width + 115 }));
+const pitch = computed(() => ({ x: cardWidth.value + 110, y: cardWidth.value * doc.screenShape.height / doc.screenShape.width + 115 }));
 const extent = computed(() => ({ width: (Math.max(0, ...Object.values(positions.value).map((p) => p.x)) + 1) * pitch.value.x + 80,
   height: (Math.max(0, ...Object.values(positions.value).map((p) => p.y)) + 1) * pitch.value.y + 80 }));
-const name = (id: string) => { const page = state.document?.pages.find((page) => page.id === id); return page ? titleOf(state.document!, page) : ''; };
+const name = (id: string) => { const page = doc.document?.pages.find((page) => page.id === id); return page ? titleOf(doc.document!, page) : ''; };
 type Edge = { tileId: string; from: string; to: string; sx: number; sy: number; path: string };
 const edges = ref<Edge[]>([]), pointer = ref<{ x: number; y: number } | null>(null);
 const visibleEdges = computed(() => allConnections.value ? edges.value : edges.value.filter((edge) =>
-  state.selectedTileId ? edge.tileId === state.selectedTileId : edge.from === state.selectedPageId || edge.to === state.selectedPageId));
+  doc.selectedTileId ? edge.tileId === doc.selectedTileId : edge.from === doc.selectedPageId || edge.to === doc.selectedPageId));
 const placement = ref<{ id: string; x: number; y: number; blocked: boolean } | null>(null);
 function curve(sx: number, sy: number, tx: number, ty: number) {
   const bend = Math.max(50, Math.abs(tx - sx) / 2);
@@ -47,14 +51,14 @@ async function measure() {
   });
   if (JSON.stringify(next) !== JSON.stringify(edges.value)) edges.value = next;
 }
-watch([() => state.document, positions, zoom, pitch, () => ui.fontsVersion], measure, { immediate: true });
+watch([() => doc.document, positions, zoom, pitch, () => ui.fontsVersion], measure, { immediate: true });
 // The links follow the cards wherever the map's size changes them.
 useResizeObserver(world, measure);
-function selectRoute(tileId: string) { const tile = state.layout?.tiles.find((tile) => tile.id === tileId); if (tile) openTile(tile); }
+function selectRoute(tileId: string) { const tile = doc.layout?.tiles.find((tile) => tile.id === tileId); if (tile) openTile(tile); }
 function destinationClick(event: MouseEvent, id: string) {
-  if (!state.connectingTileId) return;
+  if (!doc.connectingTileId) return;
   event.preventDefault(); event.stopPropagation();
-  connectTile(state.connectingTileId, id); state.connectingTileId = null;
+  connectTile(doc.connectingTileId, id); doc.connectingTileId = null;
 }
 // A page carried or a link drawn: the pointer is followed on the whole window until it is let go or cancelled.
 const gesture = useGesture();
@@ -62,7 +66,7 @@ function cleanGesture() { gesture.end(); pointer.value = null; placement.value =
 function drag(event: PointerEvent, move: (event: PointerEvent) => void, finish: (event: PointerEvent) => void) {
   if (event.button !== 0) return;
   event.preventDefault(); cleanGesture();
-  const stop = (end: PointerEvent) => { cleanGesture(); if (end.type === 'pointerup') finish(end); else state.connectingTileId = null; };
+  const stop = (end: PointerEvent) => { cleanGesture(); if (end.type === 'pointerup') finish(end); else doc.connectingTileId = null; };
   gesture.begin(() => {
     useEventListener(window, 'pointermove', move);
     useEventListener(window, ['pointerup', 'pointercancel'], stop);
@@ -77,31 +81,31 @@ function movePage(event: PointerEvent, id: string) {
   drag(event, (move) => {
     const to = point(move);
     placement.value = { id, ...to, blocked: Object.entries(positions.value).some(([key, p]) => key !== id && p.x === to.x && p.y === to.y) };
-  }, (end) => { const to = point(end); moveWorkspacePage(id, to.x, to.y); });
+  }, (end) => { const to = point(end); doc.moveWorkspacePage(id, to.x, to.y); });
 }
 function beginConnection(event: PointerEvent, tileId: string) {
-  state.connectingTileId = tileId;
+  doc.connectingTileId = tileId;
   const start = { x: event.clientX, y: event.clientY };
   drag(event, (move) => { const rect = world.value!.getBoundingClientRect(); pointer.value = { x: (move.clientX - rect.left) / zoom.value, y: (move.clientY - rect.top) / zoom.value }; }, (end) => {
     if (Math.hypot(end.clientX - start.x, end.clientY - start.y) < 6) return;
     const id = document.elementFromPoint(end.clientX, end.clientY)?.closest<HTMLElement>('[data-node]')?.dataset.node;
     if (id) connectTile(tileId, id);
-    state.connectingTileId = null;
+    doc.connectingTileId = null;
   });
 }
 const pending = computed(() => {
-  const edge = edges.value.find((edge) => edge.tileId === state.connectingTileId);
+  const edge = edges.value.find((edge) => edge.tileId === doc.connectingTileId);
   return edge && pointer.value ? curve(edge.sx, edge.sy, pointer.value.x, pointer.value.y) : '';
 });
-onBeforeUnmount(() => { state.connectingTileId = null; });
+onBeforeUnmount(() => { doc.connectingTileId = null; });
 </script>
 
 <template>
   <div v-if="compact" class="map-list">
-    <section v-for="(page, index) in state.document!.pages" :key="page.id">
+    <section v-for="(page, index) in doc.document!.pages" :key="page.id">
       <div class="map-list-head">
         <button type="button" class="map-list-name" @click="openPage(page.id)"><b>{{ t('editor.page.label', { page: index + 1 }) }}</b> {{ name(page.id) }}</button>
-        <button type="button" class="btn quiet mini" @click="state.selectedPageId = page.id; state.focusedPageId = page.id"><Icon name="pencil-outline" />{{ t('editor.pages.edit_page') }}</button>
+        <button type="button" class="btn quiet mini" @click="doc.selectedPageId = page.id; doc.focusedPageId = page.id"><Icon name="pencil-outline" />{{ t('editor.pages.edit_page') }}</button>
       </div>
       <button v-for="route in routes.filter((route) => route.from === page.id || route.to === page.id)" :key="route.tileId" type="button" class="map-list-route" @click="selectRoute(route.tileId)">
         <span>{{ name(route.from) }}</span><Icon name="arrow-right" /><span>{{ name(route.to) }}</span>
@@ -116,23 +120,23 @@ onBeforeUnmount(() => { state.connectingTileId = null; });
       <button type="button" :aria-pressed="!allConnections" @click="allConnections = false">{{ t('editor.pages.connections_selected') }}</button>
       <button type="button" :aria-pressed="allConnections" @click="allConnections = true">{{ t('editor.pages.all_connections') }}</button>
     </div>
-    <button type="button" class="btn quiet mini" @click="arrangeFromHome"><Icon name="home-outline" />{{ t('editor.pages.arrange') }}</button>
+    <button type="button" class="btn quiet mini" @click="doc.arrangeFromHome"><Icon name="home-outline" />{{ t('editor.pages.arrange') }}</button>
     <div class="tool-group" role="group">
       <button type="button" class="icon-btn" :aria-label="t('editor.pages.zoom_out')" :disabled="zoom <= .4" @click="zoom = Math.max(.4, Math.round((zoom - .1) * 10) / 10)"><Icon name="magnify-minus-outline" /></button>
       <span class="zoom-value">{{ Math.round(zoom * 100) }}%</span>
       <button type="button" class="icon-btn" :aria-label="t('editor.pages.zoom_in')" :disabled="zoom >= 1.2" @click="zoom = Math.min(1.2, Math.round((zoom + .1) * 10) / 10)"><Icon name="magnify-plus-outline" /></button>
     </div>
   </div>
-  <div v-if="state.connectingTileId" class="connection-instruction" role="status">
+  <div v-if="doc.connectingTileId" class="connection-instruction" role="status">
     {{ t('editor.pages.choose_destination') }}
-    <button type="button" class="btn mini" @click="state.connectingTileId = null">{{ t('editor.common.cancel') }}</button>
+    <button type="button" class="btn mini" @click="doc.connectingTileId = null">{{ t('editor.common.cancel') }}</button>
   </div>
-  <div class="map-scroll" @keydown.esc="state.connectingTileId = null">
+  <div class="map-scroll" @keydown.esc="doc.connectingTileId = null">
     <div :style="{ width: `${extent.width * zoom}px`, height: `${extent.height * zoom}px` }">
       <div ref="world" class="map-world" :style="{ width: `${extent.width}px`, height: `${extent.height}px`, transform: `scale(${zoom})` }">
         <svg class="map-links" :width="extent.width" :height="extent.height" :aria-label="t('editor.pages.routes')">
           <defs><marker id="page-link-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
-          <g v-for="edge in visibleEdges" :key="edge.tileId" :class="{ chosen: state.selectedTileId === edge.tileId }">
+          <g v-for="edge in visibleEdges" :key="edge.tileId" :class="{ chosen: doc.selectedTileId === edge.tileId }">
             <path class="edge" :d="edge.path" marker-end="url(#page-link-arrow)" />
             <path class="edge-hit" :d="edge.path" role="button" tabindex="0" :aria-label="`${name(edge.from)} → ${name(edge.to)}`"
               @click.stop="selectRoute(edge.tileId)" @keydown.enter.prevent="selectRoute(edge.tileId)" />
@@ -141,11 +145,11 @@ onBeforeUnmount(() => { state.connectingTileId = null; });
         </svg>
         <div v-if="placement" class="map-placement" :class="{ blocked: placement.blocked }" aria-hidden="true"
           :style="{ left: `${placement.x * pitch.x + 35}px`, top: `${placement.y * pitch.y + 35}px`, width: `${cardWidth + 10}px`, height: `${pitch.y - 35}px` }"></div>
-        <article v-for="(page, index) in state.document?.pages" :key="page.id" class="map-node" :data-node="page.id"
-          :class="{ selected: state.selectedPageId === page.id, destination: !!state.connectingTileId }"
+        <article v-for="(page, index) in doc.document?.pages" :key="page.id" class="map-node" :data-node="page.id"
+          :class="{ selected: doc.selectedPageId === page.id, destination: !!doc.connectingTileId }"
           :style="{ left: `${positions[page.id].x * pitch.x + 40}px`, top: `${positions[page.id].y * pitch.y + 40}px`, width: `${cardWidth}px` }"
           @click.capture="destinationClick($event, page.id)">
-          <DevicePage :page="index" :entries="dragging.preview || liveEntries()" :pages="state.document!.pages.length" :moving="dragging.moving" map>
+          <DevicePage :page="index" :entries="dragging.preview || liveEntries()" :pages="doc.document!.pages.length" :moving="dragging.moving" map>
             <template #handle>
               <button type="button" class="grab map-handle" :aria-label="t('editor.pages.move_map', { name: name(page.id) })" :title="t('editor.pages.move_map', { name: name(page.id) })"
                 @pointerdown.stop="movePage($event, page.id)" @click="openPage(page.id)">
@@ -153,13 +157,13 @@ onBeforeUnmount(() => { state.connectingTileId = null; });
               </button>
             </template>
             <template #actions>
-              <button type="button" class="icon-btn" :aria-label="t('editor.pages.edit_page')" :title="t('editor.pages.edit_page')" @click="state.focusedPageId = page.id"><Icon name="pencil-outline" /></button>
+              <button type="button" class="icon-btn" :aria-label="t('editor.pages.edit_page')" :title="t('editor.pages.edit_page')" @click="doc.focusedPageId = page.id"><Icon name="pencil-outline" /></button>
             </template>
           </DevicePage>
         </article>
         <button v-for="edge in visibleEdges" :key="edge.tileId" type="button" class="connection-port"
           :style="{ left: `${edge.sx - 6}px`, top: `${edge.sy - 6}px` }" :aria-label="t('editor.pages.change_destination', { name: name(edge.from) })"
-          @pointerdown.stop="beginConnection($event, edge.tileId)" @keydown.enter.prevent="state.connectingTileId = edge.tileId"></button>
+          @pointerdown.stop="beginConnection($event, edge.tileId)" @keydown.enter.prevent="doc.connectingTileId = edge.tileId"></button>
       </div>
     </div>
   </div>

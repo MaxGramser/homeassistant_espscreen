@@ -1,7 +1,6 @@
 // What Home Assistant says of its entities (stores/entities.ts): asked once and again after a failure, the states of what
 // is asked with an answer dropped once it is no longer wanted, a sensor's history kept a minute, names and icons.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { state } from "../../src/store";
 import { useEntitiesStore } from "../../src/stores/entities";
 import { failure, fakeApi } from "../helpers/fake-api";
 import { useInventoryStore } from "../../src/stores/inventory";

@@ -5,7 +5,6 @@
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
 import { t } from "../i18n";
-import { state } from "../store";
 import type { FeedbackAnswer, FeedbackIssue, Screen } from "../types";
 import { useBuildsStore } from "../stores/builds";
 import { useScreenStore } from "../stores/screen";

@@ -3,20 +3,23 @@
 // copy, and removing it. The header of the page keeps only its name, its handle and this menu.
 import { computed } from "vue";
 import { t } from "../i18n";
-import { duplicateEditorPage, openBar, pageCopyable, openPage, removePage, setHomePage, state } from "../store";
+import { openBar, openPage } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import { useScreenStore } from "../stores/screen";
+import { duplicateEditorPage, pageCopyable, removePage, setHomePage } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
 
 const scr = useScreenStore();
+const doc = useDocumentStore();
 
 const props = defineProps<{ id: string }>();
-const index = computed(() => state.document?.pages.findIndex((page) => page.id === props.id) ?? -1);
-const page = computed(() => state.document?.pages[index.value]);
-const home = computed(() => state.document?.homePageId === props.id);
-// A full copy only when the screen takes every tile on it twice (store.pageCopyable).
+const index = computed(() => doc.document?.pages.findIndex((page) => page.id === props.id) ?? -1);
+const page = computed(() => doc.document?.pages[index.value]);
+const home = computed(() => doc.document?.homePageId === props.id);
+// A full copy only when the screen takes every tile on it twice (editor/pages.ts pageCopyable).
 const canCopy = computed(() => pageCopyable(page.value?.tiles));
 const tiles = computed(() => page.value?.tiles.length || 0);
 </script>
@@ -33,7 +36,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
     <UiMenuItem v-if="canCopy" icon="content-duplicate" @select="duplicateEditorPage(id, false)">{{ t("editor.pages.duplicate") }}</UiMenuItem>
     <UiMenuItem icon="file-plus-outline" @select="duplicateEditorPage(id, true)">{{ t("editor.pages.empty_copy") }}</UiMenuItem>
     <UiMenuSeparator />
-    <UiMenuItem class="page-remove" icon="delete-outline" danger :disabled="state.document!.pages.length < 2"
+    <UiMenuItem class="page-remove" icon="delete-outline" danger :disabled="doc.document!.pages.length < 2"
       :hint="tiles ? t('editor.pages.tiles_go', tiles) : undefined" @select="removePage(index)">{{ t("editor.page.remove") }}</UiMenuItem>
   </UiMenu>
 </template>

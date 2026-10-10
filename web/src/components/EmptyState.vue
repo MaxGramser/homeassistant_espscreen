@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { t } from "../i18n";
-import { state } from "../store";
 import { useUiStore } from "../stores/ui";
 import { useInventoryStore } from "../stores/inventory";
 

@@ -4,11 +4,14 @@ import { computed, ref, watch } from 'vue';
 import { useGesture } from '../composables/useGesture';
 import { t } from '../i18n';
 import { dimensions, sizeOf, type Size } from '../model/layout';
-import { grid, resizeChoices, resizeTile, state } from '../store';
 import type { Tile } from '../types';
 import { useScreenStore } from "../stores/screen";
+import { resizeChoices, resizeTile } from "../editor/tiles";
+import { useDocumentStore } from "../stores/document";
 
 const scr = useScreenStore();
+const doc = useDocumentStore();
+const { grid } = doc.editorLayout;
 
 const props = defineProps<{ tile: Tile }>();
 type Axis = 'columns' | 'rows';

@@ -1,9 +1,9 @@
 // The session (stores/session.ts): opening a screen and going home, asking first about unsaved edits; removing a screen,
 // the open one closing without a question; a new preview screen opened; what follows from a new inventory, in its order;
 // and its start, which starts everything once and stops it again.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
 import { i18n } from "../../src/i18n";
-import { addTile, openSaverStep, state } from "../../src/store";
+import { openSaverStep, state } from "../../src/store";
 import { customPreview } from "../../src/model/preview";
 import { useBuildsStore } from "../../src/stores/builds";
 import { useScreenStore } from "../../src/stores/screen";
@@ -13,8 +13,13 @@ import { useUiStore } from "../../src/stores/ui";
 import type { Inventory, Screen } from "../../src/types";
 import { answerDialogs } from "../helpers/dialogs";
 import { failure, fakeApi } from "../helpers/fake-api";
-import { screenFixture } from "../page-fixtures";
+import { screenFixture } from "../helpers/fixtures";
 import { useInventoryStore } from "../../src/stores/inventory";
+import { addTile } from "../../src/editor/tiles";
+import { useDocumentStore } from "../../src/stores/document";
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 const screen = (id: string, tiles: { entity: string; name: string; slot: number }[] = []) =>
@@ -29,15 +34,15 @@ describe("opening a screen", () => {
     useInventoryStore().inventory = inventory(screen("hall", [{ entity: "light.a", name: "", slot: 0 }]), screen("desk"));
     const ui = useUiStore(), session = useSessionStore();
     ui.$patch({ menuOpen: true, addSheet: true, pagesSheet: true });
-    state.tab = "settings";
+    ui.tab = "settings";
     ui.go("#settings");
     session.select("hall");
     expect(useScreenStore().selected).toBe("hall");
-    expect(state.layout?.tiles.map((tile) => tile.entity)).toEqual(["light.a"]);
-    expect([state.tab, state.dirty, ui.menuOpen, ui.addSheet, ui.pagesSheet, ui.route]).toEqual(["layout", false, false, false, false, ""]);
+    expect(doc.layout?.tiles.map((tile) => tile.entity)).toEqual(["light.a"]);
+    expect([ui.tab, doc.dirty, ui.menuOpen, ui.addSheet, ui.pagesSheet, ui.route]).toEqual(["layout", false, false, false, false, ""]);
     // None: the overview, with no draft left.
     session.select(null);
-    expect([useScreenStore().selected, state.document, state.dirty]).toEqual([null, null, false]);
+    expect([useScreenStore().selected, doc.document, doc.dirty]).toEqual([null, null, false]);
   });
 
   it("asks before leaving unsaved edits, stays on no, and on yes leaves the settings changes of the screen it leaves", async () => {
@@ -46,16 +51,16 @@ describe("opening a screen", () => {
     const session = useSessionStore(), settings = useSettingsStore();
     session.select("hall");
     addTile("light.b");
-    expect(state.dirty).toBe(true);
+    expect(doc.dirty).toBe(true);
     let yes = false;
     const asked = answerDialogs(() => yes);
     await session.select("desk");
     expect(asked.map((q) => q.message)).toEqual([t("editor.screen_view.confirm.switch")]);
-    expect([useScreenStore().selected, state.dirty]).toEqual(["hall", true]);
+    expect([useScreenStore().selected, doc.dirty]).toEqual(["hall", true]);
     settings.setSetting("brightness", 40, 1000);
     yes = true;
     await session.select("desk");
-    expect([useScreenStore().selected, state.dirty, state.layout?.tiles.length]).toEqual(["desk", false, 0]);
+    expect([useScreenStore().selected, doc.dirty, doc.layout?.tiles.length]).toEqual(["desk", false, 0]);
     // The brightness changed on the hall screen went out to it, and is not shown on this one.
     expect(settings.settingEdits).toEqual({});
   });
@@ -63,14 +68,14 @@ describe("opening a screen", () => {
   it("brings the open screen with unsaved edits back to its layout, without a question", async () => {
     api();
     useInventoryStore().inventory = inventory(screen("hall"));
-    const session = useSessionStore();
+    const session = useSessionStore(), ui = useUiStore();
     session.select("hall");
     addTile("light.b");
-    state.tab = "settings";
+    ui.tab = "settings";
     openSaverStep("clock");
     const asked = answerDialogs(false);
     await session.select("hall");
-    expect([asked.length, state.tab, state.inspector, state.dirty, state.layout?.tiles.length]).toEqual([0, "layout", null, true, 1]);
+    expect([asked.length, ui.tab, state.inspector, doc.dirty, doc.layout?.tiles.length]).toEqual([0, "layout", null, true, 1]);
   });
 
   it("goes home from the logo: the overview, after asking about unsaved edits", async () => {
@@ -88,7 +93,7 @@ describe("opening a screen", () => {
     expect([asked.length, useScreenStore().selected]).toEqual([1, "hall"]);
     yes = true;
     await session.goHome();
-    expect([useScreenStore().selected, state.dirty, ui.route]).toEqual([null, false, ""]);
+    expect([useScreenStore().selected, doc.dirty, ui.route]).toEqual([null, false, ""]);
   });
 
   it("opens a new preview screen at once", () => {
@@ -96,7 +101,7 @@ describe("opening a screen", () => {
     useInventoryStore().inventory = inventory(screen("hall"));
     const preview = useSessionStore().createVirtualScreen("Desk preview", customPreview);
     expect(useScreenStore().selected).toBe(preview.id);
-    expect(state.document?.title).toBe("Desk preview");
+    expect(doc.document?.title).toBe("Desk preview");
   });
 });
 
@@ -118,7 +123,7 @@ describe("removing a screen", () => {
     deleting.resolve();
     expect(await removing).toBe(true);
     expect(asked).toEqual([]);
-    expect([useScreenStore().selected, state.document, state.dirty, builds.updating, useScreenStore().removing]).toEqual([null, null, false, [], null]);
+    expect([useScreenStore().selected, doc.document, doc.dirty, builds.updating, useScreenStore().removing]).toEqual([null, null, false, [], null]);
     expect(useUiStore().notice?.message).toBe(t("editor.sidebar.remove.done", { name: "Hall screen" }));
     expect(add.calls.filter((r) => r.path.startsWith("inventory")).map((r) => r.path)).toEqual(["inventory"]);
     expect(add.asked("GET inventory")[0].query.get("light")).toBe("1");
@@ -151,7 +156,7 @@ describe("a new inventory", () => {
     await useInventoryStore().refresh(false);
     expect(heard).toEqual(["prune", "settleSettings"]);
     // This page has unsaved edits and the add-on a newer draft: a conflict, said and not overwritten.
-    expect([state.conflict, state.layout?.tiles.length]).toEqual([true, 1]);
+    expect([doc.conflict, doc.layout?.tiles.length]).toEqual([true, 1]);
     // No screen open: the builds alone.
     answerDialogs(true);
     await session.select(null);

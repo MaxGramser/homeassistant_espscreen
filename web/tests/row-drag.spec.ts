@@ -7,10 +7,14 @@ import ScreensaverCard from "../src/components/ScreensaverCard.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
 import { openBar, state } from "../src/store";
 import type { Inventory } from "../src/types";
-import { seedLayout } from "./page-fixtures";
+import { loadLayout } from "./helpers/fixtures";
 import { liveListeners } from "./helpers/browser";
 import { useScreenStore } from "../src/stores/screen";
 import { useInventoryStore } from "../src/stores/inventory";
+import { useDocumentStore } from "../src/stores/document";
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 // The pointer and touch listeners on the document (jsdom adds some of its own the first time a selector runs).
 const following = (live: () => string[]) => live().filter((name) => /^(pointer|touch)/.test(name));
@@ -40,7 +44,7 @@ describe("a dragged list that closes while a row is held", () => {
   });
 
   it.each(["touch", "mouse"])("a top bar's items let go of the page (%s)", async (pointer) => {
-    seedLayout({ title: "Living", tiles: [], header: { items: [{ type: "clock" }, { type: "date" }] } } as any);
+    loadLayout({ title: "Living", tiles: [], header: { items: [{ type: "clock" }, { type: "date" }] } } as any);
     openBar(0);
     const tracked = liveListeners(document), live = () => following(tracked);
     const drawer = mount(TopbarInspector, { props: { index: 0 }, attachTo: document.body });
@@ -55,7 +59,7 @@ describe("a dragged list that closes while a row is held", () => {
 
 describe("a top bar's items dragged into another order", () => {
   it("takes the place the pointer passed, keeps the drawer on the item, and is no click when let go", async () => {
-    seedLayout({ title: "Living", tiles: [], header: { items: [{ type: "clock" }, { type: "date" }, { type: "analog" }] } } as any);
+    loadLayout({ title: "Living", tiles: [], header: { items: [{ type: "clock" }, { type: "date" }, { type: "analog" }] } } as any);
     openBar(0);
     const drawer = mount(TopbarInspector, { props: { index: 0 }, attachTo: document.body });
     drawer.findAll(".items .item[data-index]").forEach((row, i) => {
@@ -66,7 +70,7 @@ describe("a top bar's items dragged into another order", () => {
     document.dispatchEvent(at(70, "pointermove"));
     expect(state.inspector).toEqual({ kind: "bar", index: 1 });
     document.dispatchEvent(at(70, "pointerup"));
-    expect(state.document!.pages[0].topbar.trailing.map((item) => item.type)).toEqual(["date", "clock", "analog"]);
+    expect(doc.document!.pages[0].topbar.trailing.map((item) => item.type)).toEqual(["date", "clock", "analog"]);
     // The click the browser sends after the drag opens nothing.
     await drawer.find(".items .item[data-index='0']").trigger("click");
     expect(state.inspector).toEqual({ kind: "bar", index: 1 });

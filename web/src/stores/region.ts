@@ -2,7 +2,7 @@
 // The editor speaks the language of the user's Home Assistant profile (i18n.ts). The screens have one language for all
 // of them, Home Assistant's unless the setting says another; the mockup draws their words in it, and in English until
 // the add-on tells which one it is. Their time and number format, for every screen at once under Settings → Language &
-// region, live here too. What the add-on says of them is the inventory's (store.ts, its language).
+// region, live here too. What the add-on says of them is the inventory's (stores/inventory.ts, its language).
 import { defineStore } from "pinia";
 import { computed, effectScope, onScopeDispose, watch } from "vue";
 import { send } from "../api";

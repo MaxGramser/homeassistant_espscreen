@@ -4,7 +4,6 @@
 // screen perform actions; and the status lines of the sidebar and the overview.
 import { describe, expect, it } from "vitest";
 import { i18n } from "../../src/i18n";
-import { state } from "../../src/store";
 import { useBuildsStore } from "../../src/stores/builds";
 import { useScreenStore } from "../../src/stores/screen";
 import { useUiStore } from "../../src/stores/ui";

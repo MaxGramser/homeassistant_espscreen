@@ -7,7 +7,6 @@ import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { languageOnly } from "../model/screen-status";
 import { glyph } from "../model/topbar";
-import { state } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
@@ -19,6 +18,7 @@ import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
 import { useInventoryStore } from "../stores/inventory";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
@@ -27,6 +27,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const session = useSessionStore();
 const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
@@ -192,7 +193,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
           <!-- Folded, the row keeps its news as a dot on the icon: an update ready, or one that waits. -->
           <span v-if="sidebar.folded && ['update', 'waiting'].includes(status(screen))" class="fold-badge" :class="status(screen)" aria-hidden="true"></span>
           <span class="name">{{ screen.name }}</span>
-          <span v-if="screen.id === scr.selected && state.dirty" class="unsaved" role="img" :aria-label="t('editor.common.unsaved')" :title="t('editor.common.unsaved')"></span>
+          <span v-if="screen.id === scr.selected && doc.dirty" class="unsaved" role="img" :aria-label="t('editor.common.unsaved')" :title="t('editor.common.unsaved')"></span>
           <span v-if="status(screen) === 'running'" class="spin small" role="img" :aria-label="subline(screen)?.text"></span>
           <Icon v-else-if="status(screen) === 'failed'" name="alert-circle-outline" class="sub-icon failed" />
           <small v-else-if="['down', 'virtual', 'waiting'].includes(status(screen))" class="sub" :class="subline(screen)?.kind">{{ status(screen) === 'waiting' ? t("editor.sidebar.update.short") : subline(screen)?.text }}</small>

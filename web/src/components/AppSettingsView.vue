@@ -3,7 +3,6 @@
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
-import { installClaudeSkill, state } from "../store";
 import BuildLog from "./BuildLog.vue";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
@@ -46,7 +45,7 @@ const skill = computed(() => inv.inventory.claude_skill);
 const installing = ref(false);
 async function install() {
   installing.value = true;
-  try { await installClaudeSkill(); } finally { installing.value = false; }
+  try { await inv.installClaudeSkill(); } finally { installing.value = false; }
 }
 
 // ---- Language & region (app 0.2.90): one place for every screen ----

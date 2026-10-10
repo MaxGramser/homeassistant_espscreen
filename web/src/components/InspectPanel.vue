@@ -4,16 +4,17 @@ import { onMounted, ref, watch } from "vue";
 import { getJson } from "../api";
 import { t } from "../i18n";
 import { controlsLabel, displayName, sizeName } from "../model/layout";
-import { state } from "../store";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
 import { useUiStore } from "../stores/ui";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const scr = useScreenStore();
 const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 // One tile (an entity may be on several, firmware 0.16.0+): its entity, its slot and, for a key, its place.
 const props = defineProps<{ entity?: string; slot?: number; tileKey?: number }>();
@@ -38,7 +39,7 @@ async function load() {
   }
 }
 const optionsText = (entity: string, own?: Record<string, any>) => {
-  const options = own || state.layout?.tiles.find((t) => t.entity === entity)?.options || {};
+  const options = own || doc.layout?.tiles.find((t) => t.entity === entity)?.options || {};
   return t("editor.inspect.options", {
     slider: t(options.inline === "slider" ? "editor.inspect.yes" : "editor.inspect.no"),
     display: displayName(options.display || "standard"),

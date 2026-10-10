@@ -5,7 +5,6 @@ import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import BuildLog from "../src/components/BuildLog.vue";
-import { state } from "../src/store";
 import type { Screen } from "../src/types";
 import { useBuildsStore } from "../src/stores/builds";
 import { useScreenStore } from "../src/stores/screen";

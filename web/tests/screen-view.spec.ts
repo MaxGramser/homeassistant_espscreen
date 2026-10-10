@@ -4,13 +4,17 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ScreenView from "../src/components/ScreenView.vue";
-import { setTileOption, state } from "../src/store";
 import type { Inventory, Screen } from "../src/types";
 import { answerDialogs } from "./helpers/dialogs";
 import { fakeApi } from "./helpers/fake-api";
-import { screenFixture } from "./page-fixtures";
+import { screenFixture } from "./helpers/fixtures";
 import { useSessionStore } from "../src/stores/session";
 import { useInventoryStore } from "../src/stores/inventory";
+import { setTileOption } from "../src/editor/tiles";
+import { useDocumentStore } from "../src/stores/document";
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 beforeEach(() => {
   useInventoryStore().inventory = { csrf: "t", connected: true, entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} },
@@ -26,14 +30,14 @@ describe("a screen's head", () => {
     let chooser: HTMLInputElement | null = null;
     vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (this: HTMLInputElement) { chooser = this; });
     const view = mount(ScreenView, { attachTo: document.body });
-    setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
+    setTileOption(doc.layout!.tiles[0], "icon", "lightbulb");
     let yes = false;
     const asked = answerDialogs(() => yes);
     const choose = async () => {
       (view.vm as unknown as Head).pickFile();
       expect([chooser?.type, chooser?.accept, chooser?.multiple]).toEqual(["file", "application/json,.json", false]);
       // jsdom's File has no text(): the one a browser's chooser hands over does.
-      const json = JSON.stringify({ esp_screens_layout: 2, sourceGrid: state.documentGrid, layout: state.document });
+      const json = JSON.stringify({ esp_screens_layout: 2, sourceGrid: doc.documentGrid, layout: doc.document });
       const file = Object.assign(new File([json], "hall.layout.json"), { text: async () => json });
       Object.defineProperty(chooser!, "files", { configurable: true, value: [file] });
       chooser!.dispatchEvent(new Event("change"));

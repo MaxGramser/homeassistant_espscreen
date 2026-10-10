@@ -6,7 +6,6 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useStickToBottom } from "../composables/useStickToBottom";
 import { t } from "../i18n";
-import { state } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
@@ -28,7 +27,8 @@ const failed = computed(() => !build.value && job.value?.job?.state === "failed"
 const lines = computed(() => job.value?.logs || []);
 const open = ref(false);
 const box = ref<HTMLElement | null>(null);
-// The lines come with the firmware job: asked at once, then every few seconds while a build runs (store, the poll).
+// The lines come with the firmware job: asked at once, then every few seconds while a build runs (the one poll of
+// composables/useFirmwareJob.ts).
 onMounted(() => { if (!job.value) builds.loadFirmwareJob(); });
 watch(open, (now) => { if (now) builds.loadFirmwareJob(); });
 // The log follows its last line while it is open, as the installer's does.

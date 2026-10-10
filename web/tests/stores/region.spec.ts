@@ -3,7 +3,6 @@
 import { flushPromises } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { i18n } from "../../src/i18n";
-import { state } from "../../src/store";
 import { useRegionStore } from "../../src/stores/region";
 import { useUiStore } from "../../src/stores/ui";
 import type { Languages } from "../../src/types";

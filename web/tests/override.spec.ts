@@ -4,7 +4,6 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import { nextTick } from "vue";
 import OverrideView from "../src/components/OverrideView.vue";
-import { state } from "../src/store";
 import { setHidden } from "./helpers/browser";
 import { useFakeClock } from "./helpers/clock";
 import { answerDialogs } from "./helpers/dialogs";

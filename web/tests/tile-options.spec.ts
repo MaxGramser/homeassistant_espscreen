@@ -1,4 +1,4 @@
-import { appendTiles, current, seedLayout } from "./page-fixtures";
+import { appendTiles, current, loadLayout } from "./helpers/fixtures";
 // Every choice the tile panel shows is one the add-on saves (app 0.4.0, GitHub #47). A reporter found two that never
 // could: Automatic for the second line once another was chosen ("Tile options need normalization"), and Perform action
 // ("Invalid or unsupported page configuration fields"). The walk below clicks every choice of every field for tiles of
@@ -11,12 +11,16 @@ import Drawer from "../src/components/Drawer.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
 import { validatePages } from "../src/model/pages";
-import { isSelected, openTile, state } from "../src/store";
+import { openTile, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
 import { useInventoryStore } from "../src/stores/inventory";
+import { useDocumentStore } from "../src/stores/document";
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 function inventory(): Inventory {
   return {
@@ -45,9 +49,9 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
   useInventoryStore().inventory = inventory();
   useScreenStore().selected = "living";
-  state.documentGrid = { columns: 2, rows: 3 };
-  seedLayout({ title: "Living room", tiles: [] });
-  state.selectedTileId = null; state.inspector = null; state.actionPickerOpen = false;
+  doc.documentGrid = { columns: 2, rows: 3 };
+  loadLayout({ title: "Living room", tiles: [] });
+  doc.selectedTileId = null; state.inspector = null; state.actionPickerOpen = false;
 });
 
 describe("the canonical options (tile-options.ts)", () => {
@@ -91,7 +95,7 @@ describe("the tile panel", () => {
     await automatic.trigger("click");
     expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.sub).toBeUndefined();
-    expect(state.dirty).toBe(true);
+    expect(doc.dirty).toBe(true);
   });
 
   it("stores Perform action once an action is chosen, and keeps it (GitHub #47)", async () => {
@@ -152,7 +156,7 @@ describe("the tile panel", () => {
     await tap().findAll(".seg button").find((b) => b.text() === "Run automation actions")!.trigger("click");
     expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBe("run");
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(tap().find(".seg button[aria-pressed='true']").text()).toBe("Run automation actions");
@@ -179,7 +183,7 @@ describe("the tile panel", () => {
         useUiStore().notice = null;
         await button.trigger("click");
         expect(useUiStore().notice, `${tile.entity}: "${button.text()}"`).toBeNull();
-        expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+        expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
       }
       panel.unmount();
     }
@@ -200,9 +204,9 @@ describe("the tile panel", () => {
     // The key stays open in the panel: the same tile, still chosen.
     expect(current(key)!.id).toBe(id);
     expect(state.inspector?.kind).toBe("tile");
-    expect(isSelected(current(key)!)).toBe(true);
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
-    const child = state.document!.pages.flatMap((page) => page.tiles).flatMap((tile) => tile.children || [])[0];
+    expect(doc.isSelected(current(key)!)).toBe(true);
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    const child = doc.document!.pages.flatMap((page) => page.tiles).flatMap((tile) => tile.children || [])[0];
     expect(child.appearance).toEqual({ label: "Bed", overlay: "none" });
     panel.unmount();
   });
@@ -237,7 +241,7 @@ describe("the tile panel", () => {
         await button.trigger("click");
         await nextTick();
         expect(useUiStore().notice, `${tile.entity}: "${label}"`).toBeNull();
-        expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+        expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
         panel.unmount();
       }
     }
@@ -274,10 +278,10 @@ describe("a map card in the panel (app 0.4.33)", () => {
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     (panel.vm as any).addMapEntity("device_tracker.car");
     expect(current(tile)!.options?.map).toEqual(["person.q", "device_tracker.car"]);
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
     (panel.vm as any).removeMapEntity("device_tracker.car");
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
-    const saved = state.document!.pages.flatMap((page) => page.tiles)[0];
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    const saved = doc.document!.pages.flatMap((page) => page.tiles)[0];
     expect(saved.appearance).toMatchObject({ display: "map", mapFraming: "home", mapEntities: ["person.q"] });
     (panel.vm as any).removeMapEntity("person.q");
     expect(current(tile)!.options?.map).toBeUndefined();
@@ -318,8 +322,8 @@ describe("the map tile (app 0.4.36)", () => {
       panel.unmount();
       panel = mount(TileInspector, { props: { tile: current(tile)! } });
     }
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
-    const saved = state.document!.pages.flatMap((page) => page.tiles)[0];
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    const saved = doc.document!.pages.flatMap((page) => page.tiles)[0];
     expect(saved.content).toEqual({ kind: "builtin", name: "map" });
     expect(saved.appearance).toMatchObject({ display: "map", mapFollow: "chosen", mapEntities: ["person.q"] });
     panel.unmount();

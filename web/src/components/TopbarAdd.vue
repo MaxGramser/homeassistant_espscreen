@@ -4,7 +4,7 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { closeInspector, openBar, state } from "../store";
+import { closeInspector, openBar } from "../store";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
 import InspectorHead from "./ui/InspectorHead.vue";

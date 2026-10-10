@@ -6,7 +6,7 @@ import { homeView, SMALLEST } from "../src/model/overview";
 import { buildProgress, firmwareVersion, languageOnly, needsAttention, screenLight, screenSubline, updateState, whatsNew,
   type StatusFacts } from "../src/model/screen-status";
 import type { Screen } from "../src/types";
-import { screenFixture } from "./page-fixtures";
+import { screenFixture } from "./helpers/fixtures";
 
 const NOW = Date.UTC(2026, 9, 10);
 const quiet: StatusFacts = { build: null, asked: false, language: "Nederlands", now: NOW };

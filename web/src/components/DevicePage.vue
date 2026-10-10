@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { editorLayout } from "../store";
-const { cellsOf, grid, pageOf, spanOf } = editorLayout;
 
 // One page of the screen as the mockup draws it: the top bar and the screen's own grid of cells.
 import { useEventListener } from "@vueuse/core";
@@ -9,7 +7,7 @@ import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { closeInspector, movePage, openBar, openPage, pageAt, pageTitleShown, previewed, setHomePage, state } from "../store";
+import { closeInspector, openBar, openPage, previewed, state } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -24,6 +22,8 @@ import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
 import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
+import { movePage, pageTitleShown, setHomePage } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -32,10 +32,12 @@ const scr = useScreenStore();
 const topbar = useTopbarStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
+const doc = useDocumentStore();
+const { cellsOf, grid, pageOf, spanOf } = doc.editorLayout;
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [intent: NavigationIntent] }>();
-const owned = computed(() => pageAt(props.page));
+const owned = computed(() => doc.pageAt(props.page));
 // A click on the page itself opens its settings: its head ("Page 3"), the room around the tiles and its dots. A tile, an
 // empty cell, the screen's top bar and the menus keep their own click (app 0.4.32).
 function pageClick(event: MouseEvent) {
@@ -44,16 +46,16 @@ function pageClick(event: MouseEvent) {
   if (target.closest(".tile, .cell, .bar-wrap, .home-chip, a, input, [role='menu'], [role='menuitem'], button:not(.grab)")) return;
   openPage(owned.value.id);
 }
-const isHome = computed(() => owned.value?.id === state.document?.homePageId);
+const isHome = computed(() => owned.value?.id === doc.document?.homePageId);
 const backInHeader = computed(() => !settings.navigationSettings().pageButtons && Boolean(owned.value?.navigation.excludeFromPagination));
 const bySlot = computed(() => new Map(props.entries.map((e) => [e.slot, e])));
 const covered = computed(() => new Set(props.entries.flatMap((e) => cellsOf(e.slot, sizeOf(e.tile)).slice(1))));
 const cells = computed(() => Array.from({ length: grid.slots }, (_, cell) => props.page * grid.slots + cell).filter((slot) => !covered.value.has(slot)));
-const barSelected = computed(() => state.barPage === props.page && (state.inspector?.kind === "bar" || state.inspector?.kind === "bar-add"));
+const barSelected = computed(() => doc.barPage === props.page && (state.inspector?.kind === "bar" || state.inspector?.kind === "bar-add"));
 const filled = computed(() => props.entries.filter((e) => pageOf(e.slot) === props.page).reduce((n, e) => n + spanOf(sizeOf(e.tile)), 0));
 const cellStyle = (slot: number) => ({ gridColumn: slot % grid.columns + 1, gridRow: Math.floor(slot % grid.slots / grid.columns) + 1 });
 function pickCell(slot: number) {
-  state.selectedPageId = owned.value?.id || state.selectedPageId;
+  doc.selectedPageId = owned.value?.id || doc.selectedPageId;
   const marked = state.insertAt === slot && !ui.phone;
   state.insertAt = marked ? -1 : slot;
   // On a phone the empty cell opens the sheet to add a tile there (app 0.4.40), without a keyboard over the list.
@@ -94,8 +96,8 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && state.selectedPageId === owned.id && state.inspector?.kind === 'page' }" :style="canvas.deviceStyle" :data-page-id="owned?.id" @click="pageClick">
-    <div v-if="!preview" class="page-head" :class="{ selected: state.selectedPageId === owned?.id && state.inspector?.kind === 'page' }">
+  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && doc.selectedPageId === owned.id && state.inspector?.kind === 'page' }" :style="canvas.deviceStyle" :data-page-id="owned?.id" @click="pageClick">
+    <div v-if="!preview" class="page-head" :class="{ selected: doc.selectedPageId === owned?.id && state.inspector?.kind === 'page' }">
       <button v-if="movable" type="button" class="grab" :data-page="page" v-drag="{ kind: 'page', page }"
         :title="t('editor.page.move_title')" :aria-label="t('editor.page.move_aria', { page: page + 1 })" @keydown="onKey">
         <Icon name="drag-vertical" class="grip" />{{ t("editor.page.label", { page: page + 1 }) }}

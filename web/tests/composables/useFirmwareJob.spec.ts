@@ -3,7 +3,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { nextTick, ref } from "vue";
 import { followBuilds, useFirmwareJob } from "../../src/composables/useFirmwareJob";
-import { state } from "../../src/store";
 import type { Inventory } from "../../src/types";
 import { setHidden } from "../helpers/browser";
 import { useFakeClock } from "../helpers/clock";

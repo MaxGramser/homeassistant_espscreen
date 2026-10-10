@@ -11,9 +11,10 @@ import { askConfirm } from "../composables/useConfirm";
 import { followBuilds } from "../composables/useFirmwareJob";
 import { startDrag } from "../drag";
 import type { PreviewProfile } from "../model/preview";
-import { closeDocument, closeInspector, openDocument, reconcileDocument, startStore, state } from "../store";
+import { closeInspector, startStore } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
+import { useDocumentStore } from "./document";
 import { useInventoryStore } from "./inventory";
 import { usePluginsStore } from "./plugins";
 import { useRegionStore } from "./region";
@@ -31,16 +32,17 @@ export const useSessionStore = defineStore("session", () => {
   const region = useRegionStore();
   const plugins = usePluginsStore();
   const topbar = useTopbarStore();
+  const doc = useDocumentStore();
 
   // ---- Opening a screen ----
   // Another screen, or none (the overview). With unsaved changes the editor asks first, and the switch waits for the answer
   // (the promise returned then); otherwise it happens at once. The open screen again, with unsaved changes, comes back to
   // its layout as it is.
   function select(id: string | null): void | Promise<void> {
-    if (id === scr.selected && state.document && state.dirty) {
-      state.tab = "layout"; ui.menuOpen = false; closeInspector(); ui.go(""); return;
+    if (id === scr.selected && doc.document && doc.dirty) {
+      ui.tab = "layout"; ui.menuOpen = false; closeInspector(); ui.go(""); return;
     }
-    if (id !== scr.selected && state.dirty) return askConfirm(t("editor.screen_view.confirm.switch")).then((yes) => { if (yes) open(id); });
+    if (id !== scr.selected && doc.dirty) return askConfirm(t("editor.screen_view.confirm.switch")).then((yes) => { if (yes) open(id); });
     open(id);
   }
   function open(id: string | null) {
@@ -49,7 +51,7 @@ export const useSessionStore = defineStore("session", () => {
     scr.selected = id;
     ui.$patch({ menuOpen: false, addSheet: false, pagesSheet: false, previewOpen: false, pageWizardOpen: false });
     // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
-    if (openDocument(inv.inventory.screens.find((item) => item.id === id))) ui.go("");
+    if (doc.openDocument(inv.inventory.screens.find((item) => item.id === id))) ui.go("");
   }
   // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
   function goHome(): void | Promise<void> {
@@ -62,7 +64,7 @@ export const useSessionStore = defineStore("session", () => {
   function forgetOpenScreen() {
     settings.forget();
     scr.selected = null;
-    closeDocument();
+    doc.closeDocument();
     ui.menuOpen = false;
   }
 
@@ -113,7 +115,7 @@ export const useSessionStore = defineStore("session", () => {
   // newer one (or a conflict is said when this page has unsaved changes).
   function arrived() {
     builds.prune();
-    if (scr.selected) { settings.settleSettings(); reconcileDocument(); }
+    if (scr.selected) { settings.settleSettings(); doc.reconcile(); }
   }
   // Followed from the moment the session is made (the page makes it as it boots): it is no listener of the page, and a test
   // that makes the session has what follows from a new inventory as the page has it.
@@ -128,7 +130,7 @@ export const useSessionStore = defineStore("session", () => {
   function start() {
     if (running) return running;
     const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(),
-      inv.start({ busy: () => builds.anyBuilding }), startStore(), topbar.start(), followBuilds()];
+      inv.start({ busy: () => builds.anyBuilding }), doc.start(), startStore(), topbar.start(), followBuilds()];
     running = () => { running = null; for (const stop of stops.reverse()) stop(); };
     return running;
   }

@@ -3,7 +3,6 @@
 // again once they match or four seconds passed, and sent on the way out when the page closes.
 import { describe, expect, it } from "vitest";
 import { i18n } from "../../src/i18n";
-import { state } from "../../src/store";
 import { SETTING_EDIT_MS, useSettingsStore } from "../../src/stores/settings";
 import { useUiStore } from "../../src/stores/ui";
 import type { Screen, SettingsView } from "../../src/types";

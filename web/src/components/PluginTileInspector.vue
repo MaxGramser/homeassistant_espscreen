@@ -6,7 +6,7 @@ import { computed } from "vue";
 import { editorNumber, t } from "../i18n";
 import { offeredEntities, pluginDefaults, text, type PluginTileOption } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import { closeInspector, removeTile, setTileName, setTileOption, state } from "../store";
+import { closeInspector } from "../store";
 import type { Tile } from "../types";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
@@ -15,8 +15,11 @@ import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import { usePluginsStore } from "../stores/plugins";
+import { removeTile, setTileName, setTileOption } from "../editor/tiles";
+import { useUiStore } from "../stores/ui";
 
 const plugins = usePluginsStore();
+const ui = useUiStore();
 
 const props = defineProps<{ tile: Tile }>();
 const kind = computed(() => plugins.pluginTileOf(props.tile.entity)!);
@@ -37,7 +40,7 @@ function step(option: PluginTileOption, by: number) {
   set(option, Math.min(option.max ?? Infinity, Math.max(option.min ?? -Infinity, now + by * (option.step ?? 1))));
 }
 // The plugin's details, in the screen's Plugins tab: the README says what the options mean.
-function openPlugin() { closeInspector(); state.tab = "plugins"; }
+function openPlugin() { closeInspector(); ui.tab = "plugins"; }
 </script>
 
 <template>

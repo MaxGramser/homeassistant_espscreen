@@ -1,4 +1,5 @@
-/** Editor-only map positions and their independent, revision-checked save queue. */
+/** Editor-only map positions: where each page of the map stands, a new page placed where nothing stands yet. The save of
+ * the map, revision-checked and on its own, is the document store's (stores/document.ts saveWorkspace). */
 import type { PageLayout, PageWorkspace } from '../types';
 import { clone, initialPositions } from './pages';
 
@@ -16,43 +17,4 @@ export function completePositions(document: PageLayout | null, existing: PageWor
     occupied.add(`${point.x},${point.y}`);
   }
   return positions;
-}
-
-type State = { busy: boolean; conflict: boolean; workspaceDirty: boolean; documentRevision: string | null; workspace: PageWorkspace };
-// `selected`: the screen that is open now.
-type Services = { epoch: () => number; selected: () => string | null; committed: () => PageLayout | null;
-  put: (screen: string, revision: string, workspace: PageWorkspace) => Promise<PageWorkspace>;
-  error: (error: unknown) => void };
-
-export function workspaceSaver(state: State, services: Services) {
-  let timer = 0, flight = false;
-  function schedule() {
-    clearTimeout(timer);
-    timer = window.setTimeout(save, 400);
-  }
-  async function save() {
-    const committed = services.committed(), screen = services.selected();
-    if (flight || state.busy || state.conflict || !state.workspaceDirty || !screen || !state.documentRevision || !committed) return;
-    const ids = new Set(committed.pages.map(page => page.id));
-    if (Object.keys(state.workspace.positions).some(id => !ids.has(id))) return;
-    const epoch = services.epoch(), workspace = clone(state.workspace), revision = state.documentRevision;
-    flight = true;
-    try {
-      const saved = await services.put(screen, revision, workspace);
-      if (services.selected() === screen && services.epoch() === epoch) {
-        state.workspace.revision = saved.revision;
-        state.workspaceDirty = JSON.stringify(state.workspace.positions) !== JSON.stringify(saved.positions);
-        if (state.workspaceDirty) schedule();
-      }
-    } catch (error) { services.error(error); }
-    finally {
-      flight = false;
-      // A timer for a newly selected screen may have fired while the old
-      // request was pending. It still deserves its own save afterwards.
-      if (services.epoch() !== epoch && state.workspaceDirty) schedule();
-    }
-  }
-  // Drops a save still waiting for its pause (the store when a test starts again).
-  function cancel() { clearTimeout(timer); }
-  return { schedule, save, cancel };
 }

@@ -7,7 +7,6 @@ import { versionAtLeast } from "../model/layout";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
 import { firmwareVersion } from "../model/screen-status";
-import { state } from "../store";
 import { useUiStore } from "../stores/ui";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";

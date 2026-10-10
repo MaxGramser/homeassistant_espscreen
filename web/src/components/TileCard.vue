@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { text as pluginText } from "../model/plugins";
-import { editorLayout } from "../store";
-const { grid: editorGrid } = editorLayout;
 
 // A card on the mockup, drawn with what Home Assistant reports right now. A placeholder is the tile being
 // dragged, drawn where it will land.
@@ -12,7 +10,7 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clockSample } from "../model/clock";
-import { screenShape, isSelected, openTile, placeTile, removeTile, state } from "../store";
+import { openTile, state } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -33,6 +31,8 @@ import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
 import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
+import { placeTile, removeTile } from "../editor/tiles";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -42,6 +42,8 @@ const scr = useScreenStore();
 const inv = useInventoryStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
+const doc = useDocumentStore();
+const { grid: editorGrid } = doc.editorLayout;
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -100,7 +102,7 @@ const pluginValue = computed(() => {
   return !row ? "" : row.at !== undefined ? countdown(row.at) : row.value || "";
 });
 const energy = energyPaints();
-const bedsideKeys = computed(() => props.keys ?? keysOf(state.layout, props.tile));
+const bedsideKeys = computed(() => props.keys ?? keysOf(doc.layout, props.tile));
 // As many places as the add-on lets this clock hold (page-rules.json, keyHolders).
 const keyPlaces = computed(() => Array.from({ length: (rules.keyHolders as Record<string, number>)[props.tile.entity] || 0 }, (_, key) =>
   ({ key, tile: bedsideKeys.value.find((tile) => tile.key === key) }))
@@ -164,7 +166,7 @@ const vChipFit = {
 // A wide card's chip as the glass works it out (ui-scale wideChip): its face and whether its icon fits.
 const glassScale = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
 const wideFit = computed(() => rangeChip.value && wide.value
-  ? wideChip(screenShape.value, state.documentGrid?.columns ?? screenShape.value.columns, widestSetpoint(current.value?.a || {})) : null);
+  ? wideChip(doc.screenShape, doc.documentGrid?.columns ?? doc.screenShape.columns, widestSetpoint(current.value?.a || {})) : null);
 // A thermostat's modes on a card of one row or the whole page: its mode bar (ModeBar), as the screen draws it.
 const modeBar = computed(() => thermostat.value && controls.value === 'mode');
 // An on/off card stands as one centred stack, like the built-in action cards (firmware 0.3.1 render_tall).
@@ -210,8 +212,8 @@ const headStatus = computed(() => bodyText.value && (line.value === bodyText.val
 const domain = computed(() => props.tile.entity.split(".")[0]);
 const cp = computed(() => inv.inventory.icons?.controls || {});
 const key = (n: string) => (cp.value[n] ? glyph(cp.value[n]) : "");
-const chosen = computed(() => isSelected(props.tile) && state.inspector?.kind === "tile");
-const live = computed(() => !props.placeholder && state.layout?.tiles.some((tile) => tile.id === props.tile.id));
+const chosen = computed(() => doc.isSelected(props.tile) && state.inspector?.kind === "tile");
+const live = computed(() => !props.placeholder && doc.layout?.tiles.some((tile) => tile.id === props.tile.id));
 const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.value.slots) + 1, page: Math.floor(props.slot / grid.value.slots) + 1 }));
 // The clock faces at the editor's one clock, as the screen draws them (model/clock.ts): the digital time, the analog
 // hands, the flip clock's two blocks ("07" "12" on 24 hours, "7" "12" with AM or PM on 12) and the dates.
@@ -309,7 +311,7 @@ const bigValue = computed(() => (current.value && !gone.value ? (unit.value || N
 // number was cut off at its middle (GitHub #167). A card of another screen (the overview) keeps the old drawing.
 const watchFace = computed(() => {
   if (display.value !== "watch" || full.value || foreign.value || props.round || goesTo.value || props.slot < 0) return null;
-  const s = screenShape.value, g = grid.value, cell = props.slot % g.slots, pad = watchPadding(s, g.rows);
+  const s = doc.screenShape, g = grid.value, cell = props.slot % g.slots, pad = watchPadding(s, g.rows);
   const width = cardContent(s, g.columns, shape.value.columns, cell % g.columns);
   const height = cardHeight(s, g.rows, shape.value.rows, Math.floor(cell / g.columns), canvas.pageBarShown) - 2 * (pad + 1);
   return { pad, ...watchCard(s, width, height, bigValue.value, unit.value && !gone.value ? unit.value : "", pad) };
@@ -419,7 +421,7 @@ async function onKey(e: KeyboardEvent) {
 </script>
 
 <template>
-  <span v-if="round" class="round-tile" :class="{ chosen, placeholder: placeholder || (!live && !foreign), 'just-added': !preview && !!tile.id && state.justAdded === tile.id }" :data-tile-id="tile.id"
+  <span v-if="round" class="round-tile" :class="{ chosen, placeholder: placeholder || (!live && !foreign), 'just-added': !preview && !!tile.id && doc.justAdded === tile.id }" :data-tile-id="tile.id"
     :style="{ '--tile-icon': palette.icon, '--tile-circle': palette.circle }">
     <button type="button" class="round-key" :aria-label="name" :disabled="preview && !live"
       v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click.stop="activate">
@@ -429,7 +431,7 @@ async function onKey(e: KeyboardEvent) {
     <!-- The same remove key as on a tile, at the circle's corner. -->
     <button v-if="live && !preview" type="button" class="remove" :title="t('editor.tile_card.remove')" :aria-label="t('editor.tile_card.remove_named', { name })" @click.stop="removeTile(tile)">✕</button>
   </span>
-  <div v-else class="tile" :class="{ wide, full, tall, 'watch-card': !!watchFace, 'tall-action': tallAction || tallStack, 'big-key': bigKey, photo: artworkLoaded && !!artwork, camera: (cameraCard && cameraLoaded) || (favoriteCard && favoriteLoaded), bare, placeholder: placeholder || (!live && !foreign), chosen, 'just-added': !preview && !!tile.id && state.justAdded === tile.id }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
+  <div v-else class="tile" :class="{ wide, full, tall, 'watch-card': !!watchFace, 'tall-action': tallAction || tallStack, 'big-key': bigKey, photo: artworkLoaded && !!artwork, camera: (cameraCard && cameraLoaded) || (favoriteCard && favoriteLoaded), bare, placeholder: placeholder || (!live && !foreign), chosen, 'just-added': !preview && !!tile.id && doc.justAdded === tile.id }" :data-slot="slot" :data-tile-id="tile.id" :data-columns="shape.columns" :data-rows="shape.rows"
     :style="{ gridColumn: `${slot % grid.columns + 1} / span ${shape.columns}`, gridRow: `${Math.floor(slot % grid.slots / grid.columns) + 1} / span ${shape.rows}`, ...(background && !bare ? { backgroundColor: background } : {}), '--tile-icon': palette.icon, '--tile-circle': palette.circle, '--tile-accent': palette.accent, ...(watchStyle?.pad ?? {}) }"
     :tabindex="!foreign && (preview ? goesTo : live) ? 0 : -1" :role="!foreign && (preview ? goesTo : live) ? 'button' : undefined" :aria-label="live ? label : undefined"
     v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">

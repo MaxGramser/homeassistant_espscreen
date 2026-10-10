@@ -6,18 +6,20 @@ import { domainInfo } from "../model/layout";
 import { useListNavigation } from "../composables/useListNavigation";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
-import { addTile, exportLayout, save, state, tileLimit } from "../store";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
 import { useInventoryStore } from "../stores/inventory";
+import { addTile } from "../editor/tiles";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const scr = useScreenStore();
 const session = useSessionStore();
 const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
@@ -35,19 +37,19 @@ const items = computed<Item[]>(() => {
     { group: actionsGroup, label: t("editor.nav.alerts"), detail: t("editor.palette.alerts_detail"), icon: "F0594", run: () => ui.go("#alerts") },
     { group: actionsGroup, label: t("editor.nav.settings"), detail: t("editor.palette.settings_detail"), icon: "F0493", run: () => ui.go("#settings") },
   ];
-  if (screen && state.layout) {
+  if (screen && doc.layout) {
     actions.unshift(
-      { group: actionsGroup, label: t("editor.common.save_send"), detail: state.dirty ? t("editor.common.unsaved") : t("editor.palette.nothing_to_save"), key: "⌘S", run: () => save() },
-      { group: actionsGroup, label: t("editor.screen_view.tabs.layout"), detail: screen.name, run: () => { ui.go(""); state.tab = "layout"; } },
-      { group: actionsGroup, label: t("editor.screen_view.tabs.settings"), detail: screen.name, run: () => { ui.go(""); state.tab = "settings"; } },
+      { group: actionsGroup, label: t("editor.common.save_send"), detail: doc.dirty ? t("editor.common.unsaved") : t("editor.palette.nothing_to_save"), key: "⌘S", run: () => doc.save() },
+      { group: actionsGroup, label: t("editor.screen_view.tabs.layout"), detail: screen.name, run: () => { ui.go(""); ui.tab = "layout"; } },
+      { group: actionsGroup, label: t("editor.screen_view.tabs.settings"), detail: screen.name, run: () => { ui.go(""); ui.tab = "settings"; } },
       { group: actionsGroup, label: t("editor.palette.identify"), detail: scr.canAlert(screen) ? t("editor.palette.identify_detail") : t("editor.palette.identify_needs"), run: () => { if (scr.canAlert(screen)) scr.identify(screen); } },
-      { group: actionsGroup, label: t("editor.palette.export"), detail: t("editor.palette.export_detail"), run: exportLayout },
+      { group: actionsGroup, label: t("editor.palette.export"), detail: t("editor.palette.export_detail"), run: doc.exportLayout },
     );
   }
   list.push(...actions);
-  if (screen && state.layout && q) {
-    const chosen = new Set(state.layout.tiles.map((t) => t.entity));
-    const full = state.layout.tiles.length >= tileLimit.value;
+  if (screen && doc.layout && q) {
+    const chosen = new Set(doc.layout.tiles.map((t) => t.entity));
+    const full = doc.layout.tiles.length >= doc.tileLimit;
     for (const e of inv.inventory.entities) {
       // One on the screen comes again when the firmware takes an entity on several tiles (0.16.0+).
       if (e.tile === false || (chosen.has(e.id) && !scr.repeatable(e.id))) continue;

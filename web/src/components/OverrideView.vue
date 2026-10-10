@@ -8,7 +8,6 @@ import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { t } from "../i18n";
 import { errorLine } from "../model/firmware-job";
 import { glyph } from "../model/topbar";
-import { state } from "../store";
 import { useUiStore } from "../stores/ui";
 
 const ui = useUiStore();

@@ -4,7 +4,7 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { glyph, itemKey } from "../model/topbar";
-import { openSaverItem, state } from "../store";
+import { openSaverItem } from "../store";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";

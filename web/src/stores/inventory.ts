@@ -206,9 +206,19 @@ export const useInventoryStore = defineStore("inventory", () => {
   }
   onScopeDispose(() => running?.());
 
+  // ---- The Tessera skill for Claude Code in Home Assistant (Settings), which the add-on writes ----
+  async function installClaudeSkill() {
+    try {
+      inventory.value.claude_skill = await send("claude-skill", "POST");
+      ui.toast(t(inventory.value.claude_skill?.restart ? "editor.settings.claude.installed_restart" : "editor.settings.claude.installed"));
+    } catch (e: any) {
+      ui.toast(e.message);
+    }
+  }
+
   return {
     inventory, reachable, connected, tallerTilesEnabled, pluginsEnabled,
     ...lookups({ entityOf }),
-    persistVirtualScreens, createVirtualScreen, onArrival, refresh, applyLive, start,
+    persistVirtualScreens, createVirtualScreen, onArrival, refresh, applyLive, installClaudeSkill, start,
   };
 });

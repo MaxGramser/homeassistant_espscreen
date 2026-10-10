@@ -6,18 +6,19 @@ import { useElementVisibility, useRafFn, useTimeoutFn } from "@vueuse/core";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { FirmwarePreviewModule } from "../wasm/firmware_preview.js";
 import { loadFirmware } from "../wasm/load";
-import { state } from "../store";
 import { t } from "../i18n";
 import { api, send } from "../api";
 import type { PageLayout } from "../types";
 import { useInventoryStore } from "../stores/inventory";
+import { useDocumentStore } from "../stores/document";
 
 const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 const props = withDefaults(defineProps<{
   width: number; height: number; dpi?: number; columns: number; rows: number;
   layout?: PageLayout | null; still?: boolean; controls?: boolean;
-  // Whether the board draws pictures (store.drawsPictures): a CYD's preview has no square for an album cover.
+  // Whether the board draws pictures (stores/screen.ts drawsPictures): a CYD's preview has no square for an album cover.
   pictures?: boolean;
   // The screen's Dark mode (its settings), drawn as the firmware draws it.
   dark?: boolean;
@@ -40,7 +41,7 @@ const STILL_FRAME = 250;
 // A draft that changes with every key typed (a tile's name, a title) goes to the add-on once the typing pauses this long.
 const LAYOUT_PAUSE = 200;
 
-const layout = () => props.layout === undefined ? state.document : props.layout;
+const layout = () => props.layout === undefined ? doc.document : props.layout;
 // The states again every ten seconds after the last time (a fallback for the live stream), soon after the stream says
 // something changed, and once typing pauses; every wait goes with the preview.
 const refreshLater = useTimeoutFn(() => receive(), 10000, { immediate: false });

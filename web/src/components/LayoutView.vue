@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { editorLayout } from "../store";
-const { grid, hasGaps, pageCount } = editorLayout;
 
 // The pages side by side, like swiping on the screen, or as a map of where the page tiles lead; the library on the
 // right. One toolbar above both views: the view, undo and redo, the preview, a new page, and the how-to in one place.
@@ -10,7 +8,7 @@ import { useAtMost } from "../composables/useWidths";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { closeInspector, gridChanged, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, state, tileLimit, undo } from "../store";
+import { closeInspector, state } from "../store";
 import PhonePages from "./PhonePages.vue";
 import PageWizard from "./PageWizard.vue";
 import DevicePage from "./DevicePage.vue";
@@ -22,19 +20,22 @@ import GridPicker from './GridPicker.vue';
 import MemoryMeter from './MemoryMeter.vue';
 import Icon from './ui/Icon.vue';
 import type { IconName } from '../model/ui-icons';
-import { dismissMigrationNote, resolveLayoutConflict, startFreshLayout } from "../store";
 import { titleOf } from '../model/pages';
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
 import { useScreenStore } from "../stores/screen";
 import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
+import { pageReachWarning, pagesShown, pageTitleShown } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
 const scr = useScreenStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
+const doc = useDocumentStore();
+const { grid, hasGaps, pageCount } = doc.editorLayout;
 const droppedTiles = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
   ? scr.currentScreen.page_document.migration?.droppedTiles || [] : []);
 const adjustedFields = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
@@ -44,17 +45,17 @@ const recoveryField = (field: string) => t(({ title: 'editor.topbar.screen_name'
 // From 700 px down the pages stand one at a time (composables/useWidths.ts).
 const narrow = useAtMost('narrow');
 const simplePages = computed(() => narrow.value
-  ? [Math.max(0, state.document?.pages.findIndex((page) => page.id === state.selectedPageId) ?? 0) + 1]
+  ? [Math.max(0, doc.document?.pages.findIndex((page) => page.id === doc.selectedPageId) ?? 0) + 1]
   : Array.from({ length: shown.value }, (_, index) => index + 1));
 
 // On a phone (app 0.4.40) the pages stand one at a time, as on the glass: a swipe goes to the next, the page's name
 // under it opens the list of pages, and the map is the full editor's.
-const mode = computed(() => ui.phone ? "simple" : state.editorMode);
-const selectedIndex = computed(() => Math.max(0, state.document?.pages.findIndex((page) => page.id === state.selectedPageId) ?? 0));
+const mode = computed(() => ui.phone ? "simple" : doc.editorMode);
+const selectedIndex = computed(() => Math.max(0, doc.document?.pages.findIndex((page) => page.id === doc.selectedPageId) ?? 0));
 function stepPage(step: number) {
-  const list = state.document?.pages || [];
+  const list = doc.document?.pages || [];
   const next = list[selectedIndex.value + step];
-  if (next) { state.selectedPageId = next.id; state.insertAt = -1; }
+  if (next) { doc.selectedPageId = next.id; state.insertAt = -1; }
 }
 // A swipe is a finger that went more than 48 px sideways, half again as far as up or down, within 700 ms.
 const pagesView = ref<HTMLElement | null>(null);
@@ -69,12 +70,12 @@ const swipe = useSwipe(pagesView, {
   },
 });
 
-const layout = computed(() => state.layout!);
+const layout = computed(() => doc.layout!);
 const entries = computed(() => dragging.preview || entriesOf(layout.value));
 const pages = computed(() => pageCount(entries.value, layout.value.pages));
 const shown = computed(() => pagesShown());
 const canAdd = computed(() => pages.value < grid.pages);
-const focused = computed(() => state.document?.pages.findIndex((page) => page.id === state.focusedPageId) ?? -1);
+const focused = computed(() => doc.document?.pages.findIndex((page) => page.id === doc.focusedPageId) ?? -1);
 const positionsHint = computed(() => hasGaps(layout.value.tiles) && !scr.supports(0, 2, 26)
   ? t("editor.layout.positions_hint", { firmware: scr.currentScreen?.firmware || t("editor.common.unknown") })
   : "");
@@ -91,26 +92,26 @@ function onCanvasClick(e: MouseEvent) {
 
 <template>
   <div class="canvas" id="canvas" @click="onCanvasClick">
-    <div v-if="!state.layout" class="notice" role="status">
+    <div v-if="!doc.layout" class="notice" role="status">
       <Icon name="information-outline" />
       <span class="notice-text">{{ scr.currentScreen?.page_document?.format === 'legacy-v1' ? scr.currentScreen.page_document.migrationError : t('editor.pages.wait_grid') }}</span>
-      <button v-if="scr.currentScreen?.page_document?.format === 'legacy-v1' && scr.currentScreen.source_grid" type="button" class="btn quiet mini" @click="startFreshLayout">{{ t('editor.pages.start_fresh') }}</button>
+      <button v-if="scr.currentScreen?.page_document?.format === 'legacy-v1' && scr.currentScreen.source_grid" type="button" class="btn quiet mini" @click="doc.startFreshLayout">{{ t('editor.pages.start_fresh') }}</button>
     </div>
     <template v-else>
     <div v-if="!ui.phone" class="editor-toolbar">
       <div class="seg views" role="group" :aria-label="t('editor.pages.mode')">
-        <button type="button" :aria-pressed="state.editorMode === 'simple'" @click="setEditorMode('simple')"><Icon name="view-column-outline" />{{ t('editor.pages.view_row') }}</button>
-        <button type="button" :aria-pressed="state.editorMode === 'advanced'" @click="setEditorMode('advanced')"><Icon name="sitemap-outline" />{{ t('editor.pages.view_map') }}</button>
+        <button type="button" :aria-pressed="doc.editorMode === 'simple'" @click="doc.setEditorMode('simple')"><Icon name="view-column-outline" />{{ t('editor.pages.view_row') }}</button>
+        <button type="button" :aria-pressed="doc.editorMode === 'advanced'" @click="doc.setEditorMode('advanced')"><Icon name="sitemap-outline" />{{ t('editor.pages.view_map') }}</button>
       </div>
       <div class="tool-group" role="group">
-        <button type="button" class="icon-btn" :disabled="!state.undoCount" :aria-label="t('editor.common.undo')" :title="`${t('editor.common.undo')} · ⌘Z`" @click="undo"><Icon name="undo" /></button>
-        <button type="button" class="icon-btn" :disabled="!state.redoCount" :aria-label="t('editor.pages.redo')" :title="`${t('editor.pages.redo')} · ⇧⌘Z`" @click="redo"><Icon name="redo" /></button>
+        <button type="button" class="icon-btn" :disabled="!doc.undoCount" :aria-label="t('editor.common.undo')" :title="`${t('editor.common.undo')} · ⌘Z`" @click="doc.undo"><Icon name="undo" /></button>
+        <button type="button" class="icon-btn" :disabled="!doc.redoCount" :aria-label="t('editor.pages.redo')" :title="`${t('editor.pages.redo')} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
       </div>
       <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
       <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="ui.pageWizardOpen = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
       <GridPicker />
       <span class="spacer"></span>
-      <span id="count" class="toolbar-count">{{ t("editor.layout.count", { tiles: layout.tiles.length, limit: tileLimit }, pages) }}</span>
+      <span id="count" class="toolbar-count">{{ t("editor.layout.count", { tiles: layout.tiles.length, limit: doc.tileLimit }, pages) }}</span>
       <MemoryMeter />
       <PopoverRoot>
         <PopoverTrigger as-child>
@@ -133,7 +134,7 @@ function onCanvasClick(e: MouseEvent) {
         <span v-if="droppedTiles.length">{{ t('editor.pages.migration_dropped', { count: droppedTiles.length, names: droppedTiles.map(tile => tile.name || tile.entity || t('editor.common.unknown')).join(', ') }) }}</span>
         <span v-if="adjustedFields.length"> {{ t('editor.pages.migration_adjusted', { fields: adjustedFields.map(recoveryField).join(', ') }) }}</span>
       </span>
-      <button type="button" class="btn quiet mini" @click="dismissMigrationNote">{{ t('editor.pages.dismiss_migration') }}</button>
+      <button type="button" class="btn quiet mini" @click="doc.dismissMigrationNote">{{ t('editor.pages.dismiss_migration') }}</button>
     </div>
     <!-- Home Assistant ignores this screen's taps until it may perform actions (app 0.4.63, its own repair issue). -->
     <div v-if="scr.currentScreen?.actions_blocked" id="actions-blocked" class="notice warn" role="status">
@@ -146,35 +147,35 @@ function onCanvasClick(e: MouseEvent) {
       <Icon name="update" /><span class="notice-text">{{ t('editor.pages.update_notice') }}</span>
       <button v-if="scr.currentScreen?.online && scr.currentScreen.update?.profile" type="button" class="btn primary mini" @click="builds.startUpdate(scr.currentScreen)">{{ t('editor.screen_view.menu.update') }}</button>
     </div>
-    <div v-if="state.conflict" class="notice warn" role="alert">
+    <div v-if="doc.conflict" class="notice warn" role="alert">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.conflict') }}</span>
-      <button type="button" class="btn quiet mini" :disabled="state.busy" @click="resolveLayoutConflict('reload')">{{ t('editor.pages.reload_saved') }}</button>
-      <button type="button" class="btn primary mini" :disabled="state.busy" @click="resolveLayoutConflict('keep')">{{ t('editor.pages.keep_mine') }}</button>
+      <button type="button" class="btn quiet mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('reload')">{{ t('editor.pages.reload_saved') }}</button>
+      <button type="button" class="btn primary mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('keep')">{{ t('editor.pages.keep_mine') }}</button>
     </div>
-    <div v-if="gridChanged" class="notice warn" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
+    <div v-if="doc.gridChanged" class="notice warn" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
     <div v-if="positionsHint" id="positions-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ positionsHint }}</span></div>
     <div v-if="reachHint" id="page-reach-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ reachHint }}</span></div>
     <div v-if="!layout.tiles.length" id="no-tiles" class="notice" role="status"><Icon name="plus" /><span class="notice-text">{{ t("editor.layout.no_tiles") }}</span></div>
     <template v-if="mode === 'advanced' && focused >= 0">
-      <button type="button" class="btn quiet back-map" @click="state.focusedPageId = null"><Icon name="arrow-left" />{{ t('editor.pages.back_map') }}</button>
+      <button type="button" class="btn quiet back-map" @click="doc.focusedPageId = null"><Icon name="arrow-left" />{{ t('editor.pages.back_map') }}</button>
       <div class="pages focused-page"><DevicePage :page="focused" :entries="entries" :pages="pages" :moving="dragging.moving" map /></div>
     </template>
     <PageMap v-else-if="mode === 'advanced'" :key="String(narrow)" :compact="narrow" />
     <div v-else ref="pagesView" class="pages" id="layout-preview" :aria-label="t('editor.layout.aria')">
       <div v-if="narrow && !ui.phone" class="page-pills" role="group" :aria-label="t('editor.pages.choose_page')">
-        <button v-for="(page, index) in state.document!.pages" :key="page.id" type="button" :aria-pressed="state.selectedPageId === page.id ? 'true' : 'false'"
-          @click="state.selectedPageId = page.id"><b>{{ index + 1 }}</b> {{ titleOf(state.document!, page) }}</button>
+        <button v-for="(page, index) in doc.document!.pages" :key="page.id" type="button" :aria-pressed="doc.selectedPageId === page.id ? 'true' : 'false'"
+          @click="doc.selectedPageId = page.id"><b>{{ index + 1 }}</b> {{ titleOf(doc.document!, page) }}</button>
       </div>
-      <DevicePage v-for="page in simplePages" :key="state.document?.pages[page - 1]?.id || page" :page="page - 1" :entries="entries" :pages="pages" :moving="dragging.moving" />
-      <div v-if="ui.phone && state.document" class="phone-pager">
+      <DevicePage v-for="page in simplePages" :key="doc.document?.pages[page - 1]?.id || page" :page="page - 1" :entries="entries" :pages="pages" :moving="dragging.moving" />
+      <div v-if="ui.phone && doc.document" class="phone-pager">
         <button type="button" class="phone-page-name" id="phone-pages" @click="ui.pagesSheet = true">
           {{ pageTitleShown(selectedIndex) || t("editor.page.label", { page: selectedIndex + 1 }) }}
-          <small>{{ t("editor.phone.page_of", { n: selectedIndex + 1, total: state.document.pages.length }) }}</small><Icon name="chevron-down" />
+          <small>{{ t("editor.phone.page_of", { n: selectedIndex + 1, total: doc.document.pages.length }) }}</small><Icon name="chevron-down" />
         </button>
-        <span v-if="state.document.pages.length > 1" class="phone-dots" aria-hidden="true">
-          <i v-for="(page, index) in state.document.pages" :key="page.id" :class="{ on: index === selectedIndex }"></i>
+        <span v-if="doc.document.pages.length > 1" class="phone-dots" aria-hidden="true">
+          <i v-for="(page, index) in doc.document.pages" :key="page.id" :class="{ on: index === selectedIndex }"></i>
         </span>
-        <p class="phone-hint">{{ t(state.document.pages.length > 1 ? "editor.phone.hint_pages" : "editor.phone.hint") }}</p>
+        <p class="phone-hint">{{ t(doc.document.pages.length > 1 ? "editor.phone.hint_pages" : "editor.phone.hint") }}</p>
       </div>
       <div v-if="!narrow" class="page ghost" :style="canvas.deviceStyle" :class="{ disabled: !canAdd }">
         <div class="page-head"><span class="page-name muted">{{ t("editor.page.label", { page: shown + 1 }) }}</span></div>
@@ -186,11 +187,11 @@ function onCanvasClick(e: MouseEvent) {
     </div>
     </template>
   </div>
-  <Library v-if="state.layout" />
-  <NavigationPreview v-if="ui.previewOpen && state.document" :key="scr.selected || ''" @close="ui.previewOpen = false" />
+  <Library v-if="doc.layout" />
+  <NavigationPreview v-if="ui.previewOpen && doc.document" :key="scr.selected || ''" @close="ui.previewOpen = false" />
   <PageWizard v-if="ui.pageWizardOpen" :key="scr.selected || ''" @close="ui.pageWizardOpen = false" />
-  <PhonePages v-if="ui.phone && ui.pagesSheet && state.document" @add="ui.pagesSheet = false; ui.pageWizardOpen = true" />
-  <GridReview v-if="state.gridReview" />
+  <PhonePages v-if="ui.phone && ui.pagesSheet && doc.document" @add="ui.pagesSheet = false; ui.pageWizardOpen = true" />
+  <GridReview v-if="doc.gridReview" />
 </template>
 
 <style scoped>
