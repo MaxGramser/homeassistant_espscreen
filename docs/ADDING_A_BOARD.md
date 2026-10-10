@@ -53,6 +53,12 @@ buffer lives in the memory inside the chip, next to Wi-Fi, the API and the panel
 boots with 112 KB. Read `sensor.<screen>_heap_free` after the first boot with a full layout: under 40 KB is too
 little.
 
+ESPHome rounds the share to a whole fraction of the screen: an eighth below 19 %, a quarter up to 37.5 %, a half up to
+75 % and the whole screen above that. An eighth or a quarter goes inside the chip when a block that size is free there,
+and into PSRAM when it is not; a half or more always goes into PSRAM. So 8 % and 12 % are the same eighth, which is
+96 KB on 800 × 480 but 154 KB on 1024 × 600. On glass that large, a quarter (307 KB) never fits inside the chip and
+always lands in PSRAM, which keeps the inside free for the rest (the Waveshare 7B).
+
 ## 4. The layout: two grids, and sizes the look works out
 
 ```
