@@ -9,7 +9,7 @@ import { beginFieldEdit, endFieldEdit } from '../store';
 import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pageTarget, SLIDER_DOMAINS, SWITCHES_ON_TAP, TOGGLE_BEFORE } from "../model/layout";
 import { glyph } from "../model/topbar";
 import { controlOption, drawable, fits, ofType } from "../model/catalogue";
-import { currentScreen, moveTileToPage, openPage, openTile, fullPage, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports } from "../store";
+import { moveTileToPage, openPage, openTile, setTileName, removeTile, retargetPageTile, setTileOption, state } from "../store";
 import { titleOf } from "../model/pages";
 import PluginTileInspector from "./PluginTileInspector.vue";
 import type { Tile } from "../types";
@@ -36,11 +36,13 @@ import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
@@ -73,7 +75,7 @@ const pages = computed(() => {
   if (goesTo.value > list.length) list.push(goesTo.value);
   return list.map((n) => [n, emptyPage(n) ? t("editor.tile.goes_to.empty", { page: n }) : String(n)] as [number, string]);
 });
-const goesToHint = computed(() => !fullPage.value
+const goesToHint = computed(() => !scr.fullPage
   ? { text: t("editor.tile.goes_to.needs_firmware"), warn: false }
   : goesTo.value > pageTotal.value
     ? { text: t("editor.tile.goes_to.no_page", { page: goesTo.value }), warn: true }
@@ -95,9 +97,9 @@ const displays = computed(() => {
     if (key === "forecast") return !c || c.displays.includes("forecast") || display.value === "forecast";
     if (key === "graph") return !c || c.displays.includes("graph") || display.value === "graph";
     // The album cover on a media tile (app 0.2.92), on a board that draws pictures; the tile over the whole page has the card's big cover.
-    if (key === "cover") return (pictures.value || display.value === "cover") && size.value !== "full";
+    if (key === "cover") return (scr.pictures || display.value === "cover") && size.value !== "full";
     // A map (app 0.4.33) is a picture the add-on draws: only on a board that draws pictures.
-    if (key === "map") return pictures.value || display.value === "map";
+    if (key === "map") return scr.pictures || display.value === "map";
     // A favourite (app 0.4.42): a player whose library Home Assistant browses; never the whole page, where the card is the player.
     if (key === "favorite") return ((!c || c.displays.includes("favorite")) && size.value !== "full") || display.value === "favorite";
     return true;
@@ -107,12 +109,12 @@ const displays = computed(() => {
 // A live camera fills its card on every size (app 0.3.13, firmware 0.3.7; 1x2 and 2x2 since app 0.3.8, firmware 0.3.3):
 // whole or cut to fill it, its name on it or nothing.
 const pictureCard = computed(() => display.value === "live");
-const cardFilled = computed(() => supports(0, 3, 7) || (taller.value && supports(0, 3, 3)));
+const cardFilled = computed(() => scr.supports(0, 3, 7) || (taller.value && scr.supports(0, 3, 3)));
 // A hint is a warning unless the screen's firmware already does what it describes.
 const clockFace = computed(() => clock.value && ["dial", "flip"].includes(display.value));
-const displayWarns = computed(() => !(display.value === "live" && cardFilled.value) && !(display.value === "cover" && supports(0, 2, 78)) &&
-  !(display.value === "favorite" && supports(0, 24, 0)) &&
-  !(display.value === "map" && supports(0, 20, 0)) && !(clockFace.value && supports(0, 3, 6)));
+const displayWarns = computed(() => !(display.value === "live" && cardFilled.value) && !(display.value === "cover" && scr.supports(0, 2, 78)) &&
+  !(display.value === "favorite" && scr.supports(0, 24, 0)) &&
+  !(display.value === "map" && scr.supports(0, 20, 0)) && !(clockFace.value && scr.supports(0, 3, 6)));
 // A map card (app 0.4.33, docs/MAP.md): who rides along beside the tile's own person, how it frames them and how far a
 // fixed view reaches. The choices are the catalogue's (catalogue/person.yaml), the first of each the default.
 const MAP = ofType("person")?.map;
@@ -169,13 +171,13 @@ const displayHint = computed(() => {
   const c = caps.value;
   if (c && display.value === "graph" && !c.displays.includes("graph")) return t("editor.tile.display.no_graph");
   if (c && display.value === "forecast" && !c.displays.includes("forecast")) return t("editor.tile.display.no_forecast");
-  if (display.value === "live") return t(cardFilled.value ? "editor.tile.display.live_card_hint" : supports(0, 2, 77) ? "editor.tile.display.live_card_needs_firmware" : "editor.tile.display.live_needs_firmware");
-  if (display.value === "map") return t(supports(0, 20, 0) ? "editor.tile.display.map_hint" : "editor.tile.display.map_needs_firmware");
-  if (display.value === "favorite") return t(supports(0, 24, 0) ? "editor.tile.display.favorite_hint" : "editor.tile.display.favorite_needs_firmware");
+  if (display.value === "live") return t(cardFilled.value ? "editor.tile.display.live_card_hint" : scr.supports(0, 2, 77) ? "editor.tile.display.live_card_needs_firmware" : "editor.tile.display.live_needs_firmware");
+  if (display.value === "map") return t(scr.supports(0, 20, 0) ? "editor.tile.display.map_hint" : "editor.tile.display.map_needs_firmware");
+  if (display.value === "favorite") return t(scr.supports(0, 24, 0) ? "editor.tile.display.favorite_hint" : "editor.tile.display.favorite_needs_firmware");
   if (display.value === "cover" && taller.value) return t("editor.tile.display.tall_cover_hint");
-  if (display.value === "cover") return t(supports(0, 2, 78) ? "editor.tile.display.cover_hint" : "editor.tile.display.cover_needs_firmware");
+  if (display.value === "cover") return t(scr.supports(0, 2, 78) ? "editor.tile.display.cover_hint" : "editor.tile.display.cover_needs_firmware");
   // The calm dial and the flip clock (firmware 0.3.6): an older screen shows the digital clock until it is updated.
-  if (clockFace.value && !supports(0, 3, 6)) return t("editor.tile.display.face_needs_firmware");
+  if (clockFace.value && !scr.supports(0, 3, 6)) return t("editor.tile.display.face_needs_firmware");
   return "";
 });
 const refresh = computed(() => current("refresh", 15) as number);
@@ -204,14 +206,14 @@ const controlChoices = computed(() => {
     // the slats ask a second row), and a screen that draws it for this entity (a range: firmware 0.19.0+).
     .filter(ch => ch.key === "none" || fits(controlOption(domain.value, ch.key), size.value, grid.columns))
     .filter(ch => ch.key === "none" || drawable(domain.value, ch.key, entities.liveOf(props.tile.entity)?.a || {},
-      currentScreen.value?.climate_range === false ? new Set<string>() : null) === ch.key)
+      scr.currentScreen?.climate_range === false ? new Set<string>() : null) === ch.key)
     .filter((ch) => !c || ch.key === "none" || ch.key === primaryControl.value || c.controls.includes(ch.key)).map((ch) => [ch.key, ch.label] as [string, string]);
   return offer("controls", choices, primaryControl.value, (key) => domain.value === "cover" ? withCoverTilt(key, tiltSelected.value) : key);
 });
 const controlHint = computed(() => {
   const c = caps.value;
   if (c && controls.value !== "none" && !c.controls.includes(controls.value)) return { text: t("editor.tile.controls.not_offered"), warn: true };
-  return { text: supports(0, 2, 19)
+  return { text: scr.supports(0, 2, 19)
     ? t(taller.value ? "editor.tile.controls.tall_hint" : size.value === "full" ? "editor.tile.controls.full_hint" : "editor.tile.controls.wide_hint")
     : t("editor.tile.controls.needs_firmware"), warn: false };
 });
@@ -234,7 +236,7 @@ const taps = computed(() => {
   if (display.value !== "favorite") keys.push("action");
   // A plugin on this screen may offer a tap of its own for this kind of tile (docs/PLUGINS.md): a thermostat that opens
   // its schedule. A tap set to one whose plugin left the screen stays listed under its own name until it is changed.
-  const fromPlugins = plugins.pluginsEnabled ? plugins.tapActionsFor(currentScreen.value, domain.value) : [];
+  const fromPlugins = plugins.pluginsEnabled ? plugins.tapActionsFor(scr.currentScreen, domain.value) : [];
   if (tap.value.startsWith("plugin:") && !fromPlugins.some(([key]) => key === tap.value)) fromPlugins.push([tap.value, tap.value]);
   return [...offer("tap", keys.map((key) => [key, t(`editor.tile.tap.${key}`)] as [string, string]), tap.value), ...fromPlugins];
 });
@@ -247,11 +249,11 @@ function pickTap(value: string) {
 const guard = computed(() => current("guard", "confirm") as string);
 const guards = computed(() => offer("guard", ["confirm", "lock_only"].map((key) => [key, t(`editor.tile.guard.${key}`)] as [string, string]), guard.value));
 const tapHint = computed(() => {
-  if (domain.value === "automation" && !supports(0, 7, 0)) return { text: t("editor.tile.tap.automation_needs_firmware"), warn: true };
+  if (domain.value === "automation" && !scr.supports(0, 7, 0)) return { text: t("editor.tile.tap.automation_needs_firmware"), warn: true };
   if (domain.value === "automation" && ["auto", "toggle", "run"].includes(tap.value))
     return { text: t(tap.value === "run" ? "editor.tile.tap.hold_toggle" : "editor.tile.tap.hold_run"), warn: false };
   if (tap.value === "toggle" && caps.value && !caps.value.toggle) return { text: t("editor.tile.tap.no_toggle"), warn: true };
-  if (tap.value === "toggle" && !TOGGLE_BEFORE.includes(domain.value) && !supports(0, 2, 58)) return { text: t("editor.tile.tap.toggle_needs_firmware"), warn: false };
+  if (tap.value === "toggle" && !TOGGLE_BEFORE.includes(domain.value) && !scr.supports(0, 2, 58)) return { text: t("editor.tile.tap.toggle_needs_firmware"), warn: false };
   if (tap.value === "detail" && SWITCHES_ON_TAP.includes(domain.value))
     return { text: t("editor.tile.tap.detail_no_toggle", { auto: t("editor.tile.tap.auto") }), warn: false };
   // A camera opens full screen either way; every other tile opens its card when held.
@@ -345,7 +347,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     <p v-if="bedside" class="hint">{{ t("editor.tile.keys.hint") }}</p>
     <p v-if="key" class="hint">{{ t("editor.tile.keys.under") }}</p>
     <!-- A key's name under its circle (firmware 0.17.0+): off leaves the circle alone, as a picture can drop its name. -->
-    <Section v-if="key && supports(0, 17, 0)" :title="t('editor.tile.sections.look')">
+    <Section v-if="key && scr.supports(0, 17, 0)" :title="t('editor.tile.sections.look')">
       <SwitchRow class="key-name-choice" :label="t('editor.tile.keys.name_shown')" :description="t('editor.tile.keys.name_shown_hint')"
         :model-value="tile.options?.overlay !== 'none'" @update:model-value="(on) => setTileOption(tile, 'overlay', on ? 'name' : 'none')" />
     </Section>
@@ -353,7 +355,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     <!-- What the card shows first, then where it stands, what a finger does to it, and last its icon and colour. -->
     <template v-if="!ui.phone || more">
     <Section v-if="lookShown || (!bedside && !key)" :title="t('editor.tile.sections.look')">
-      <p v-if="energyTile" class="hint">{{ t(supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
+      <p v-if="energyTile" class="hint">{{ t(scr.supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
       <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
         <ChoiceField :choices="flowChoices" :value="current('flow', rules.energyFlow[0])" :tile="tile" preview-key="flow" :aria-label="t('editor.tile.energy.flow.label')" @pick="(v) => setTileOption(tile, 'flow', v)" />
       </PropRow>
@@ -413,7 +415,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
 
     <!-- A map (app 0.4.33, the map tile and these choices 0.4.36): whom it follows, how it frames them, how it looks. -->
     <Section v-if="lookShown && mapCard" :title="t('editor.tile.display.map')">
-      <p v-if="mapTile" class="hint">{{ t(supports(0, 21, 0) ? "editor.tile.display.map_hint" : "editor.tile.display.map_tile_needs_firmware") }}</p>
+      <p v-if="mapTile" class="hint">{{ t(scr.supports(0, 21, 0) ? "editor.tile.display.map_hint" : "editor.tile.display.map_tile_needs_firmware") }}</p>
       <PropRow v-if="mapTile" :label="t('editor.tile.map.follow.label')" icon="account-eye-outline"
         :hint="mapFollow === 'everyone' ? t('editor.tile.map.follow.everyone_hint') : undefined">
         <ChoiceField :choices="mapChoices('follow')" :value="mapFollow" :tile="tile" preview-key="follow" :aria-label="t('editor.tile.map.follow.label')" @pick="(v) => setTileOption(tile, 'follow', v)" />
@@ -488,7 +490,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     <Section :title="t('editor.tile.sections.style')" class="style-section">
       <IconPicker v-if="showIcon" :tile="tile" :selected="tile.options?.icon || 'auto'" :automatic="entities.automaticIcon(tile.entity)"
         :auto-label="t(fromHA ? 'editor.tile.icon.auto_ha' : 'editor.tile.icon.auto_default')"
-        :note="supports(0, 2, 18) ? '' : t('editor.tile.icon.needs_firmware')"
+        :note="scr.supports(0, 2, 18) ? '' : t('editor.tile.icon.needs_firmware')"
         @pick="(n) => setTileOption(tile, 'icon', n)" />
       <PropRow v-if="!key" :label="t('editor.tile.background.label')" icon="palette-outline" stack>
         <template #aside>{{ backgroundName }}</template>

@@ -28,7 +28,7 @@ class Startup(unittest.TestCase):
         # The ways into a screen are its button in the list and its row in the ⌘K search; both pass the chosen screen.
         # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen.
         self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )select\(([^)]*)\)', SCRIPT)), {'screen.id', 'id', 'null'})
-        self.assertIn('const asking = state.selected ? select(null) : undefined;', STORE)
+        self.assertIn('const asking = scr().selected ? select(null) : undefined;', STORE)
         # In the list a click chooses the screen (app 0.2.108; its details fold behind a chevron since app 0.4.0); the
         # choosing is still select's. The overview's cards choose a screen the same way.
         sidebar = editor_sources.component('Sidebar')
@@ -52,8 +52,8 @@ class Startup(unittest.TestCase):
         # With screens and none chosen, the right side is the overview of every screen (app 0.4.0); the card that asks
         # for a screen stays for a chosen screen whose layout is still on its way.
         app = editor_sources.source('App.vue')
-        self.assertIn('if (currentScreen.value && state.layout) return ScreenView;', app)
-        self.assertIn('return state.selected || !state.inventory.screens.length ? EmptyState : HomeView;', app)
+        self.assertIn('if (scr.currentScreen && state.layout) return ScreenView;', app)
+        self.assertIn('return scr.selected || !state.inventory.screens.length ? EmptyState : HomeView;', app)
 
     def test_a_light_poll_keeps_the_catalogue_and_names_follow_the_inventory(self):
         self.assertIn('state.inventory = full ? data : { ...state.inventory, ...data };', STORE)

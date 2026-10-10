@@ -5,11 +5,13 @@
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
 import { t } from "../i18n";
-import { feedbackAction, state } from "../store";
+import { state } from "../store";
 import type { FeedbackAnswer, FeedbackIssue, Screen } from "../types";
 import { useBuildsStore } from "../stores/builds";
+import { useScreenStore } from "../stores/screen";
 
 const builds = useBuildsStore();
+const scr = useScreenStore();
 
 const props = defineProps<{ screen: Screen; mode: "card" | "settings" }>();
 const ISSUES: FeedbackIssue[] = ["display", "touch", "connection", "installation", "other"];
@@ -78,7 +80,7 @@ function startDetails(chosen: FeedbackAnswer["outcome"]) {
 
 // One request at a time: a second press while one is on its way does nothing.
 async function run(body: Record<string, unknown>) {
-  return (await runOnce(() => { note.value = ""; return feedbackAction(props.screen, body); })) ?? false;
+  return (await runOnce(() => { note.value = ""; return scr.feedbackAction(props.screen, body); })) ?? false;
 }
 
 // Yes and Not quite send at once, so an answer without details counts too; details are a new revision of it.

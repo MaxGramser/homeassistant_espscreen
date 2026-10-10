@@ -9,6 +9,7 @@ import { usePluginsStore } from "../src/stores/plugins";
 import { state } from "../src/store";
 import ScreenPluginsTab from "../src/components/ScreenPluginsTab.vue";
 import type { Screen } from "../src/types";
+import { useScreenStore } from "../src/stores/screen";
 
 const plugin = (id: string, version: string, more: Partial<Plugin> = {}): Plugin => ({
   id, name: { en: id === "bus" ? "Public transport" : "Waste collection" }, summary: { en: "" }, icon: "F00E7", maintainer: "x",
@@ -34,7 +35,7 @@ beforeEach(() => {
     return new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } });
   }));
   state.inventory.screens = [hall];
-  state.selected = hall.id;
+  useScreenStore().selected = hall.id;
   plugins.loaded = true;
   state.inventory.builds = {};
   plugins.index = [

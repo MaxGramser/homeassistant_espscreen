@@ -9,6 +9,7 @@ import { useUiStore } from "../../src/stores/ui";
 import type { Screen, SettingsView } from "../../src/types";
 import { useFakeClock } from "../helpers/clock";
 import { failure, fakeApi, type ApiRequest } from "../helpers/fake-api";
+import { useScreenStore } from "../../src/stores/screen";
 
 const view = (values: Record<string, any>): SettingsView => ({ owner: "screen", keys: Object.keys(values), values, unavailable: [] });
 const screen = (id: string, values: Record<string, any>) => ({ id, name: id, online: true, layout: {}, settings: view(values) }) as unknown as Screen;
@@ -26,7 +27,7 @@ function addOn(echo = true) {
 }
 function open(selected = "living") {
   state.inventory = { screens: [screen("living", VALUES), screen("kitchen", VALUES)], entities: [] } as any;
-  state.selected = selected;
+  useScreenStore().selected = selected;
 }
 const t = (key: string) => i18n.global.t(key);
 
@@ -67,7 +68,7 @@ describe("a screen setting changed here", () => {
     const settings = useSettingsStore();
     settings.setSetting("dark_mode", true, 600);
     // Another screen is shown before the pause is over (the switch itself sends what waits; here only the selection moves).
-    state.selected = "kitchen";
+    useScreenStore().selected = "kitchen";
     settings.setSetting("brightness", 40, 600);
     expect(useUiStore().notice?.message).toBe(t("editor.screen_settings.other_screen_busy"));
     expect(settings.settingEdits.brightness).toBeUndefined();

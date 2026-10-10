@@ -5,9 +5,10 @@ import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SaverInspector from "../src/components/SaverInspector.vue";
 import ScreensaverCard from "../src/components/ScreensaverCard.vue";
-import { currentScreen, openSaverStep, startStore, state } from "../src/store";
+import { openSaverStep, startStore, state } from "../src/store";
 import { summary } from "../src/saver";
 import type { Inventory, ScreensaverView } from "../src/types";
+import { useScreenStore } from "../src/stores/screen";
 
 const saver = (patch: Partial<ScreensaverView> = {}): ScreensaverView => ({
   show: true, media: "media_player.tv", more: ["media_player.speaker"], camera: "", order: ["media", "camera", "clock"], off: ["camera"],
@@ -25,7 +26,7 @@ beforeEach(() => {
     ],
     builtin: [], header: { max_items: 6, builtin: [] },
   } as unknown as Inventory;
-  state.selected = "living";
+  useScreenStore().selected = "living";
   state.inspector = null;
   state.tab = "settings";
 });
@@ -42,7 +43,7 @@ describe("the screensaver card", () => {
   });
 
   it("says what a step still lacks, and names the clock's temperature and entities", () => {
-    currentScreen.value!.screensaver = saver({ media: "", more: [], off: [], weather: "", items: [{ type: "entity", entity: "lock.front", content: "state", icon: "auto", show: "always" }] });
+    useScreenStore().currentScreen!.screensaver = saver({ media: "", more: [], off: [], weather: "", items: [{ type: "entity", entity: "lock.front", content: "state", icon: "auto", show: "always" }] });
     expect(summary("media")).toEqual({ text: "No player yet", missing: true });
     expect(summary("camera")).toEqual({ text: "No camera yet", missing: true });
     expect(summary("clock").text).toBe("Time and date, Front lock");
@@ -52,7 +53,7 @@ describe("the screensaver card", () => {
     const wrapper = mount(ScreensaverCard);
     await wrapper.find('.saver-row[data-kind="media"] [role="switch"]').trigger("click");
     await flushPromises();
-    expect(currentScreen.value!.screensaver!.off).toEqual(["camera", "media"]);
+    expect(useScreenStore().currentScreen!.screensaver!.off).toEqual(["camera", "media"]);
     expect(state.inspector).toBeNull();
     await wrapper.find('.saver-row[data-kind="clock"]').trigger("click");
     expect(state.inspector).toEqual({ kind: "saver", step: "clock" });
@@ -63,11 +64,11 @@ describe("the screensaver card", () => {
     const wrapper = mount(ScreensaverCard, { attachTo: document.body });
     const clock = wrapper.find('.saver-row[data-kind="clock"]');
     await clock.trigger("keydown", { key: "ArrowUp" });
-    expect(currentScreen.value!.screensaver!.order).toEqual(["media", "clock", "camera"]);
+    expect(useScreenStore().currentScreen!.screensaver!.order).toEqual(["media", "clock", "camera"]);
   });
 
   it("shows the clock alone on a screen without pictures", () => {
-    currentScreen.value!.screensaver = saver({ pictures: false });
+    useScreenStore().currentScreen!.screensaver = saver({ pictures: false });
     const wrapper = mount(ScreensaverCard);
     expect(wrapper.findAll(".saver-row").map((row) => row.attributes("data-kind"))).toEqual(["clock"]);
   });
@@ -79,7 +80,7 @@ describe("a step in the drawer", () => {
     expect(wrapper.findAll(".saver-player").map((row) => row.find(".tx b").text())).toEqual(["Apple TV", "Speaker"]);
     expect(wrapper.findAll(".saver-rank").map((rank) => rank.text())).toEqual(["1", "2"]);
     await wrapper.findAll(".saver-player")[0].find("button.x").trigger("click");
-    expect(currentScreen.value!.screensaver).toMatchObject({ media: "media_player.speaker", more: [] });
+    expect(useScreenStore().currentScreen!.screensaver).toMatchObject({ media: "media_player.speaker", more: [] });
   });
 
   it("turns its step off and moves it a place later", async () => {
@@ -87,13 +88,13 @@ describe("a step in the drawer", () => {
     expect(wrapper.text()).toContain("1 of 3");
     await wrapper.find('.switch-row [role="switch"]').trigger("click");
     await flushPromises();
-    expect(currentScreen.value!.screensaver!.off).toContain("media");
+    expect(useScreenStore().currentScreen!.screensaver!.off).toContain("media");
     await wrapper.find('button[aria-label="Try later"]').trigger("click");
-    expect(currentScreen.value!.screensaver!.order).toEqual(["camera", "media", "clock"]);
+    expect(useScreenStore().currentScreen!.screensaver!.order).toEqual(["camera", "media", "clock"]);
   });
 
   it("shows the clock in the glass's own shape, without a temperature when none is chosen", async () => {
-    currentScreen.value!.screensaver = saver({ weather: "" });
+    useScreenStore().currentScreen!.screensaver = saver({ weather: "" });
     const wrapper = mount(SaverInspector, { props: { step: "clock" } });
     const glass = wrapper.find(".saver-glass");
     expect((glass.element as HTMLElement).style.aspectRatio).toBe("480 / 480");

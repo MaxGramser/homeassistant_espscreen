@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, state, updateSaverItem } from "../src/store";
 import type { Inventory } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
+import { useScreenStore } from "../src/stores/screen";
 
 const item = (entity: string) => ({ type: "entity", entity, content: "state", icon: "auto", show: "always" });
 
@@ -10,7 +11,7 @@ beforeEach(() => {
   vi.useRealTimers();
   state.inventory = { screens: [{ id: "living", name: "Living", virtual: true, screensaver: { show: true, media: "", camera: "", order: ["media", "camera", "clock"], off: [], weather: "auto", more: [], items: [], ready: true, pictures: true, standby: true } }],
     entities: [], builtin: [], header: { max_items: 6, builtin: [] } } as unknown as Inventory;
-  state.selected = "living";
+  useScreenStore().selected = "living";
   state.inspector = null;
 });
 

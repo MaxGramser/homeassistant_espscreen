@@ -9,7 +9,7 @@ import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { closeInspector, deviceStyle, homeKeyShown, isCompact, movePage, openBar, openPage, pageAt, pageReady, pageTitleShown, previewed, roomyNames, setHomePage, state, topbarItems } from "../store";
+import { closeInspector, deviceStyle, homeKeyShown, isCompact, movePage, openBar, openPage, pageAt, pageTitleShown, previewed, roomyNames, setHomePage, state, topbarItems } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -20,10 +20,12 @@ import type { NavigationIntent } from '../model/pages';
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useSettingsStore } from "../stores/settings";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const settings = useSettingsStore();
+const scr = useScreenStore();
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [intent: NavigationIntent] }>();
@@ -58,7 +60,7 @@ const movable = computed(() => !props.preview && !props.map && props.pages > 1 &
 // The home mark carried to another page: where the pointer is let go names the new home page.
 const homeDrag = useGesture();
 function dragHome(event: PointerEvent) {
-  if (!isHome.value || !pageReady.value || event.button !== 0) return;
+  if (!isHome.value || !scr.pageReady || event.button !== 0) return;
   const start = { x: event.clientX, y: event.clientY };
   homeDrag.begin(() => {
     useEventListener(window, 'pointerup', (end: PointerEvent) => {
@@ -94,7 +96,7 @@ async function onKey(e: KeyboardEvent) {
       </button>
       <slot v-else name="handle"><span class="page-name">{{ t("editor.page.label", { page: page + 1 }) }}</span></slot>
       <span v-if="owned" class="page-title" :title="pageTitleShown(page)">{{ pageTitleShown(page) }}</span>
-      <span v-if="isHome" class="home-chip" :class="{ movable: pageReady }" role="img" :aria-label="t('editor.pages.drag_home')" :title="t('editor.pages.drag_home')"
+      <span v-if="isHome" class="home-chip" :class="{ movable: scr.pageReady }" role="img" :aria-label="t('editor.pages.drag_home')" :title="t('editor.pages.drag_home')"
         @pointerdown.stop="dragHome"><Icon name="home" />{{ t('editor.pages.home_chip') }}</span>
       <span v-if="owned?.navigation.excludeFromPagination" class="detail-chip" :title="t('editor.pages.include_navigation_hint')"><Icon name="link-variant" />{{ t('editor.pages.detail_chip') }}</span>
       <span class="page-side">

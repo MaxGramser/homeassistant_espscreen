@@ -4,10 +4,7 @@ import { useEventListener, useFileDialog } from "@vueuse/core";
 import { computed } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
-import {
-  canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, goHome, identify,
-  importLayout, openBar, redo, renameScreen, save, state, tileLimit, undo,
-} from "../store";
+import { closeInspector, copyLayoutFrom, currentTile, removeTile, exportLayout, goHome, importLayout, openBar, redo, save, state, tileLimit, undo } from "../store";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
 import LayoutView from "./LayoutView.vue";
@@ -24,12 +21,14 @@ import UiMenuSub from "./ui/UiMenuSub.vue";
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
-const screen = computed(() => currentScreen.value!);
+const screen = computed(() => scr.currentScreen!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
   ? `${screen.value.delivery} · ${screen.value.status}`
   : t("editor.screen_view.offline"));
@@ -76,7 +75,7 @@ function phoneSettings() { closeMenu(); closeInspector(); state.tab = "settings"
 async function phoneRename() {
   closeMenu();
   const name = await prompt(t("editor.sidebar.rename.label"), screen.value.name);
-  if (name && name.trim() && name.trim() !== screen.value.name) renameScreen(screen.value, name.trim());
+  if (name && name.trim() && name.trim() !== screen.value.name) scr.renameScreen(screen.value, name.trim());
 }
 const full = computed(() => (state.layout?.tiles.length || 0) >= tileLimit.value);
 function phoneAdd() { state.insertAt = -1; closeInspector(); ui.addSheet = true; }
@@ -162,8 +161,8 @@ useEventListener(document, "keydown", onKey);
           <UiMenuSeparator />
         </template>
         <UiMenuLabel>{{ t("editor.screen_view.menu.group_screen") }}</UiMenuLabel>
-        <UiMenuItem id="identify" icon="monitor-eye" :hint="t('editor.screen_view.menu.identify_hint')" :disabled="!canAlert(screen) || !screen.online"
-          :title="canAlert(screen) ? '' : t('editor.screen_view.menu.identify_needs')" @select="identify(screen)">{{ t("editor.screen_view.menu.identify") }}</UiMenuItem>
+        <UiMenuItem id="identify" icon="monitor-eye" :hint="t('editor.screen_view.menu.identify_hint')" :disabled="!scr.canAlert(screen) || !screen.online"
+          :title="scr.canAlert(screen) ? '' : t('editor.screen_view.menu.identify_needs')" @select="scr.identify(screen)">{{ t("editor.screen_view.menu.identify") }}</UiMenuItem>
         <UiMenuItem id="inspect" icon="database-search-outline" @select="inspectAll">{{ t("editor.common.read_current_data") }}</UiMenuItem>
         <UiMenuItem v-if="updateReady" id="update-screen" icon="update" :hint="screen.update?.target" @select="builds.startUpdate(screen)">{{ t("editor.screen_view.menu.update") }}</UiMenuItem>
         <UiMenuSeparator />

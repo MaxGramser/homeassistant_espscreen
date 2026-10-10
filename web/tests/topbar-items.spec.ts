@@ -9,6 +9,7 @@ import { itemKey } from "../src/model/topbar";
 import { addTopbarItem, loadTopbarPreview, state, topbarView } from "../src/store";
 import type { Inventory } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
+import { useScreenStore } from "../src/stores/screen";
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -16,7 +17,7 @@ beforeEach(() => {
     icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} },
     header: { max_items: 6, builtin: [{ type: "clock", label: "Clock" }, { type: "date", label: "Date" }] } } as unknown as Inventory;
   state.documentGrid = { columns: 2, rows: 3 };
-  state.selected = "living";
+  useScreenStore().selected = "living";
   seedLayout({ title: "Home", pages: 2, tiles: [], header: { items: [{ type: "entity", entity: "sensor.out", content: "last_changed" }, { type: "clock" }] } });
 });
 

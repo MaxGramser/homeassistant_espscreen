@@ -4,7 +4,7 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { addTopbarItem, closeInspector, currentScreen, openBar, state, topbarItems, topbarMax } from "../store";
+import { addTopbarItem, closeInspector, openBar, state, topbarItems } from "../store";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
@@ -12,11 +12,13 @@ import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
 const taken = computed(() => new Set(topbarItems().map(itemKey)));
 const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
@@ -32,14 +34,14 @@ const samples = computed(() => ({
 const builtinItem = (type: string): HeaderItem => (type === "wifi" || type === "battery" ? { type, content: "icon", show: "always" } : { type });
 // The battery only on a screen that has one (firmware 0.41.0): its hello said so, or its board has one.
 // The items of the plugins this screen runs (docs/PLUGINS.md).
-const fromPlugins = computed(() => (plugins.pluginsEnabled ? plugins.barItemsFor(currentScreen.value) : []));
+const fromPlugins = computed(() => (plugins.pluginsEnabled ? plugins.barItemsFor(scr.currentScreen) : []));
 const pluginItem = (item: string): HeaderItem => ({ type: "plugin", item });
-const builtins = computed(() => (state.inventory.header?.builtin || []).filter((b) => b.type !== "battery" || currentScreen.value?.battery));
+const builtins = computed(() => (state.inventory.header?.builtin || []).filter((b) => b.type !== "battery" || scr.currentScreen?.battery));
 </script>
 
 <template>
   <InspectorHead kind="bar" :title="t('editor.topbar.add.title')" icon="plus"
-    :crumbs="[{ text: t('editor.topbar.title'), open: () => openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbarItems().length }, topbarMax()) }]" />
+    :crumbs="[{ text: t('editor.topbar.title'), open: () => openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbarItems().length }, scr.topbarMax) }]" />
   <div class="dr-body">
     <div class="f">
       <span class="f-label">{{ t("editor.topbar.add.builtin") }}</span>

@@ -10,7 +10,7 @@ import { useAtMost } from "../composables/useWidths";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { closeInspector, currentScreen, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, state, supports, tileLimit, undo } from "../store";
+import { closeInspector, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, state, tileLimit, undo } from "../store";
 import PhonePages from "./PhonePages.vue";
 import PageWizard from "./PageWizard.vue";
 import DevicePage from "./DevicePage.vue";
@@ -22,17 +22,19 @@ import GridPicker from './GridPicker.vue';
 import MemoryMeter from './MemoryMeter.vue';
 import Icon from './ui/Icon.vue';
 import type { IconName } from '../model/ui-icons';
-import { allowActions, dismissMigrationNote, resolveLayoutConflict, startFreshLayout } from '../store';
+import { dismissMigrationNote, resolveLayoutConflict, startFreshLayout } from "../store";
 import { titleOf } from '../model/pages';
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
-const droppedTiles = computed(() => currentScreen.value?.page_document?.format === 'pages-v2'
-  ? currentScreen.value.page_document.migration?.droppedTiles || [] : []);
-const adjustedFields = computed(() => currentScreen.value?.page_document?.format === 'pages-v2'
-  ? currentScreen.value.page_document.migration?.adjustedFields || [] : []);
+const scr = useScreenStore();
+const droppedTiles = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
+  ? scr.currentScreen.page_document.migration?.droppedTiles || [] : []);
+const adjustedFields = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
+  ? scr.currentScreen.page_document.migration?.adjustedFields || [] : []);
 const recoveryField = (field: string) => t(({ title: 'editor.topbar.screen_name', pages: 'editor.pages.choose_page',
   page_titles: 'editor.pages.title', header: 'editor.topbar.title', settings: 'editor.screen_view.tabs.settings' } as Record<string, string>)[field] || 'editor.common.unknown');
 // From 700 px down the pages stand one at a time (composables/useWidths.ts).
@@ -69,8 +71,8 @@ const pages = computed(() => pageCount(entries.value, layout.value.pages));
 const shown = computed(() => pagesShown());
 const canAdd = computed(() => pages.value < grid.pages);
 const focused = computed(() => state.document?.pages.findIndex((page) => page.id === state.focusedPageId) ?? -1);
-const positionsHint = computed(() => hasGaps(layout.value.tiles) && !supports(0, 2, 26)
-  ? t("editor.layout.positions_hint", { firmware: currentScreen.value?.firmware || t("editor.common.unknown") })
+const positionsHint = computed(() => hasGaps(layout.value.tiles) && !scr.supports(0, 2, 26)
+  ? t("editor.layout.positions_hint", { firmware: scr.currentScreen?.firmware || t("editor.common.unknown") })
   : "");
 // Page buttons and swiping off: a page no Go to page tile reaches, or one without a way back.
 const reachHint = computed(() => pageReachWarning());
@@ -87,8 +89,8 @@ function onCanvasClick(e: MouseEvent) {
   <div class="canvas" id="canvas" @click="onCanvasClick">
     <div v-if="!state.layout" class="notice" role="status">
       <Icon name="information-outline" />
-      <span class="notice-text">{{ currentScreen?.page_document?.format === 'legacy-v1' ? currentScreen.page_document.migrationError : t('editor.pages.wait_grid') }}</span>
-      <button v-if="currentScreen?.page_document?.format === 'legacy-v1' && currentScreen.source_grid" type="button" class="btn quiet mini" @click="startFreshLayout">{{ t('editor.pages.start_fresh') }}</button>
+      <span class="notice-text">{{ scr.currentScreen?.page_document?.format === 'legacy-v1' ? scr.currentScreen.page_document.migrationError : t('editor.pages.wait_grid') }}</span>
+      <button v-if="scr.currentScreen?.page_document?.format === 'legacy-v1' && scr.currentScreen.source_grid" type="button" class="btn quiet mini" @click="startFreshLayout">{{ t('editor.pages.start_fresh') }}</button>
     </div>
     <template v-else>
     <div v-if="!ui.phone" class="editor-toolbar">
@@ -130,15 +132,15 @@ function onCanvasClick(e: MouseEvent) {
       <button type="button" class="btn quiet mini" @click="dismissMigrationNote">{{ t('editor.pages.dismiss_migration') }}</button>
     </div>
     <!-- Home Assistant ignores this screen's taps until it may perform actions (app 0.4.63, its own repair issue). -->
-    <div v-if="currentScreen?.actions_blocked" id="actions-blocked" class="notice warn" role="status">
+    <div v-if="scr.currentScreen?.actions_blocked" id="actions-blocked" class="notice warn" role="status">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.actions_blocked') }}</span>
       <!-- One click instead of Home Assistant's Configure dialog (app 0.4.73). -->
-      <button type="button" class="btn primary mini" id="allow-actions" :disabled="Boolean(state.allowing)" @click="allowActions(currentScreen)"><span v-if="state.allowing === currentScreen.id" class="spin small"></span>{{ t('editor.pages.allow_actions') }}</button>
+      <button type="button" class="btn primary mini" id="allow-actions" :disabled="Boolean(scr.allowing)" @click="scr.allowActions(scr.currentScreen)"><span v-if="scr.allowing === scr.currentScreen.id" class="spin small"></span>{{ t('editor.pages.allow_actions') }}</button>
     </div>
-    <div v-if="currentScreen?.page_capability === 'offline'" class="notice" role="status"><Icon name="information-outline" /><span class="notice-text">{{ t('editor.pages.offline_notice') }}</span></div>
-    <div v-if="currentScreen?.page_capability === 'update_screen'" class="notice" role="status">
+    <div v-if="scr.currentScreen?.page_capability === 'offline'" class="notice" role="status"><Icon name="information-outline" /><span class="notice-text">{{ t('editor.pages.offline_notice') }}</span></div>
+    <div v-if="scr.currentScreen?.page_capability === 'update_screen'" class="notice" role="status">
       <Icon name="update" /><span class="notice-text">{{ t('editor.pages.update_notice') }}</span>
-      <button v-if="currentScreen?.online && currentScreen.update?.profile" type="button" class="btn primary mini" @click="builds.startUpdate(currentScreen)">{{ t('editor.screen_view.menu.update') }}</button>
+      <button v-if="scr.currentScreen?.online && scr.currentScreen.update?.profile" type="button" class="btn primary mini" @click="builds.startUpdate(scr.currentScreen)">{{ t('editor.screen_view.menu.update') }}</button>
     </div>
     <div v-if="state.conflict" class="notice warn" role="alert">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.conflict') }}</span>
@@ -181,8 +183,8 @@ function onCanvasClick(e: MouseEvent) {
     </template>
   </div>
   <Library v-if="state.layout" />
-  <NavigationPreview v-if="ui.previewOpen && state.document" :key="state.selected || ''" @close="ui.previewOpen = false" />
-  <PageWizard v-if="ui.pageWizardOpen" :key="state.selected || ''" @close="ui.pageWizardOpen = false" />
+  <NavigationPreview v-if="ui.previewOpen && state.document" :key="scr.selected || ''" @close="ui.previewOpen = false" />
+  <PageWizard v-if="ui.pageWizardOpen" :key="scr.selected || ''" @close="ui.pageWizardOpen = false" />
   <PhonePages v-if="ui.phone && ui.pagesSheet && state.document" @add="ui.pagesSheet = false; ui.pageWizardOpen = true" />
   <GridReview v-if="state.gridReview" />
 </template>

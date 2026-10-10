@@ -4,7 +4,6 @@
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { text, type Plugin } from "../model/plugins";
-import { currentScreen } from "../store";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 import PluginLink from "./PluginLink.vue";
@@ -13,12 +12,14 @@ import BuildLog from "./BuildLog.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
 plugins.loadPlugins();
-const screen = computed(() => currentScreen.value!);
+const screen = computed(() => scr.currentScreen!);
 const here = computed(() => [...plugins.index.filter((p) => plugins.installedOn(screen.value, p.id) || plugins.buildingOn(screen.value, p.id)), ...plugins.testsOn(screen.value)]);
 const addable = computed(() => plugins.index.filter((p) => !here.value.includes(p) && plugins.fits(p, screen.value).ok));
 const misfits = computed(() => plugins.index.filter((p) => !here.value.includes(p) && !plugins.fits(p, screen.value).ok));

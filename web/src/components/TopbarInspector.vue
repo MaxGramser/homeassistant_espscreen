@@ -11,10 +11,7 @@ import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
 import { clockSample } from "../model/clock";
 import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import {
-  barMetrics, homeKeyShown, moveTopbarItem, openBar, openBarAdd, openPage, removeTopbarItem, setTopbarItems, state,
-  supportsVersion, topbarItems, topbarLabel, topbarMax, topbarView, pageTitleShown, pageReady,
-} from "../store";
+import { barMetrics, homeKeyShown, moveTopbarItem, openBar, openBarAdd, openPage, removeTopbarItem, setTopbarItems, state, topbarItems, topbarLabel, topbarView, pageTitleShown } from "../store";
 import type { HeaderItem } from "../types";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
@@ -28,10 +25,12 @@ import HelpTip from './HelpTip.vue';
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
+const scr = useScreenStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => sort.live.value || topbarItems());
@@ -42,7 +41,7 @@ const lay = computed(() => {
 });
 const overflow = computed(() => lay.value.dropped);
 const needed = computed(() => state.inventory.header?.min_firmware || "0.2.32");
-const supported = computed(() => supportsVersion(needed.value));
+const supported = computed(() => scr.supportsVersion(needed.value));
 const hint = computed(() => supported.value
   ? t(overflow.value.size ? "editor.topbar.hint.overflow" : "editor.topbar.hint.reorder")
   : t("editor.topbar.hint.needs_firmware", { version: needed.value }));
@@ -61,10 +60,10 @@ const iconOf = (it: HeaderItem) => {
 };
 // The screen's own items need firmware 0.38.0; an older screen leaves them out of its bar.
 const statusNeeded = computed(() => state.inventory.header?.status_min_firmware || "0.38.0");
-const statusSupported = computed(() => supportsVersion(statusNeeded.value));
+const statusSupported = computed(() => scr.supportsVersion(statusNeeded.value));
 // The battery item needs firmware 0.41.0 (docs/BATTERY.md); an older screen leaves it out of its bar.
 const batteryNeeded = computed(() => state.inventory.header?.battery_min_firmware || "0.41.0");
-const batterySupported = computed(() => supportsVersion(batteryNeeded.value));
+const batterySupported = computed(() => scr.supportsVersion(batteryNeeded.value));
 const justAdded = (it: HeaderItem) => state.topbarAdded?.key === itemKey(it) && Date.now() - state.topbarAdded.time < 1200;
 // The page whose bar you clicked (app 0.2.105). Its left side, the title and the Home key, belongs to the page and is
 // set in the page's own settings (app 0.3.19); this inspector is about what stands on the right.
@@ -112,7 +111,7 @@ function onKey(e: KeyboardEvent, i: number) {
   <InspectorHead kind="bar" :title="item ? (item.type === 'entity' ? entities.entityName(item.entity!) : topbarLabel(item)) : t('editor.topbar.title')"
     :code="item ? iconOf(item) || 'F0150' : undefined" :icon="item ? undefined : 'page-layout-header'" :crumbs="crumbs" />
   <div class="dr-body">
-    <div v-if="!pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
+    <div v-if="!scr.pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
 
     <Section :title="t('editor.topbar.left')" icon="format-title">
       <button type="button" class="nav-row" :disabled="!pageId" @click="toPage">
@@ -122,7 +121,7 @@ function onKey(e: KeyboardEvent, i: number) {
       </button>
     </Section>
 
-    <Section :title="t('editor.topbar.right')" icon="format-list-bulleted" :aside="`${items.length} / ${topbarMax()}`" :hint="overflow.size > 0 || !supported ? undefined : hint">
+    <Section :title="t('editor.topbar.right')" icon="format-list-bulleted" :aside="`${items.length} / ${scr.topbarMax}`" :hint="overflow.size > 0 || !supported ? undefined : hint">
       <div class="items" id="topbar-chips" role="list" :aria-label="t('editor.topbar.right')">
         <div v-for="(it, i) in items" :key="itemKey(it) + i" class="item" role="listitem" tabindex="0" :data-index="i"
           :class="{ selected: i === index, 'is-hidden': !topbarView(it).shown, 'is-overflow': overflow.has(i), 'just-added': justAdded(it), 'dragging-chip': drag.active && drag.index === i }"
@@ -133,7 +132,7 @@ function onKey(e: KeyboardEvent, i: number) {
           <span class="tx"><b>{{ topbarLabel(it) }}</b><small>{{ detail(it, i) }}</small></span>
           <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbarLabel(it) })" @click.stop="removeTopbarItem(i)"><Icon name="close" /></button>
         </div>
-        <button type="button" class="ghost-btn" id="topbar-add" :disabled="items.length >= topbarMax()" :title="items.length >= topbarMax() ? t('editor.topbar.max', topbarMax()) : t('editor.topbar.add_title')" @click="openBarAdd"><Icon name="plus" />{{ t("editor.topbar.add_button") }}</button>
+        <button type="button" class="ghost-btn" id="topbar-add" :disabled="items.length >= scr.topbarMax" :title="items.length >= scr.topbarMax ? t('editor.topbar.max', scr.topbarMax) : t('editor.topbar.add_title')" @click="openBarAdd"><Icon name="plus" />{{ t("editor.topbar.add_button") }}</button>
       </div>
       <small v-if="overflow.size > 0 || !supported" id="topbar-hint" class="help warn">{{ hint }}</small>
     </Section>
@@ -200,7 +199,7 @@ function onKey(e: KeyboardEvent, i: number) {
       <small v-else class="help">{{ t("editor.topbar.date_hint", { date: samples.date }) }}</small>
     </Section>
 
-    <CopyPageBar v-if="pageReady && state.document && pages > 1" :page-id="state.document.pages[page].id" />
+    <CopyPageBar v-if="scr.pageReady && state.document && pages > 1" :page-id="state.document.pages[page].id" />
   </div>
   <div v-if="item" class="dr-foot">
     <button type="button" class="btn danger" @click="removeTopbarItem(index)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>

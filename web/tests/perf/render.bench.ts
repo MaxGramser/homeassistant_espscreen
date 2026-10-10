@@ -12,6 +12,7 @@ import { loadDocument, state } from "../../src/store";
 import { useEntitiesStore } from "../../src/stores/entities";
 import type { Inventory, Screen, Tile } from "../../src/types";
 import { documentFixture } from "../page-fixtures";
+import { useScreenStore } from "../../src/stores/screen";
 
 const DOMAINS = ["light", "sensor", "switch", "climate", "cover", "binary_sensor", "fan", "media_player"];
 const grid = { columns: 8, rows: 8 };
@@ -31,7 +32,7 @@ const inventory = (): Inventory => ({
 // ---- What differs between the store's shape before and after phase 2b: the inventory's place and the open screen ----
 function open() {
   state.inventory = inventory();
-  state.selected = "bench";
+  useScreenStore().selected = "bench";
   loadDocument(state.inventory.screens[0]);
 }
 const arrive = () => { state.inventory = { ...state.inventory, entities: entities.map((e) => ({ ...e })) }; };

@@ -12,6 +12,7 @@ import { attachLine, barItemView, barTypesOf, choiceKey, fit, isTest, nodeOf, ow
 import { state } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
+import { useScreenStore } from "./screen";
 import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
 
@@ -36,6 +37,7 @@ type Payload = {
 export const usePluginsStore = defineStore("plugins", () => {
   const ui = useUiStore();
   const builds = useBuildsStore();
+  const scr = useScreenStore();
 
   // ---- What the add-on says (api/plugins) ----
   const index = ref<Plugin[]>([]);
@@ -111,7 +113,7 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
 
   // `_screen`: the screen shown, whose own plugin of this id answers (two screens may run two plugins of one id).
-  const shownScreen = () => (state.selected && !state.inventory.screens.find((s) => s.id === state.selected)?.virtual ? state.selected : "");
+  const shownScreen = () => (scr.selected && !state.inventory.screens.find((s) => s.id === scr.selected)?.virtual ? scr.selected : "");
   // The choices of an option: its own, or those of one of the plugin's fetches (a stop's lines), asked of the add-on with
   // the tile's other options.
   function choicesFor(plugin: Plugin, option: PluginTileOption, given: Record<string, unknown>) {

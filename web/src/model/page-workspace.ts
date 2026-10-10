@@ -18,9 +18,9 @@ export function completePositions(document: PageLayout | null, existing: PageWor
   return positions;
 }
 
-type State = { busy: boolean; conflict: boolean; workspaceDirty: boolean; selected: string | null;
-  documentRevision: string | null; workspace: PageWorkspace };
-type Services = { epoch: () => number; committed: () => PageLayout | null;
+type State = { busy: boolean; conflict: boolean; workspaceDirty: boolean; documentRevision: string | null; workspace: PageWorkspace };
+// `selected`: the screen that is open now.
+type Services = { epoch: () => number; selected: () => string | null; committed: () => PageLayout | null;
   put: (screen: string, revision: string, workspace: PageWorkspace) => Promise<PageWorkspace>;
   error: (error: unknown) => void };
 
@@ -31,15 +31,15 @@ export function workspaceSaver(state: State, services: Services) {
     timer = window.setTimeout(save, 400);
   }
   async function save() {
-    const committed = services.committed();
-    if (flight || state.busy || state.conflict || !state.workspaceDirty || !state.selected || !state.documentRevision || !committed) return;
+    const committed = services.committed(), screen = services.selected();
+    if (flight || state.busy || state.conflict || !state.workspaceDirty || !screen || !state.documentRevision || !committed) return;
     const ids = new Set(committed.pages.map(page => page.id));
     if (Object.keys(state.workspace.positions).some(id => !ids.has(id))) return;
-    const screen = state.selected, epoch = services.epoch(), workspace = clone(state.workspace), revision = state.documentRevision;
+    const epoch = services.epoch(), workspace = clone(state.workspace), revision = state.documentRevision;
     flight = true;
     try {
       const saved = await services.put(screen, revision, workspace);
-      if (state.selected === screen && services.epoch() === epoch) {
+      if (services.selected() === screen && services.epoch() === epoch) {
         state.workspace.revision = saved.revision;
         state.workspaceDirty = JSON.stringify(state.workspace.positions) !== JSON.stringify(saved.positions);
         if (state.workspaceDirty) schedule();

@@ -6,7 +6,7 @@ import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
 import { homeView } from "../model/overview";
-import { drawsPictures, screenLight, screenSubline, select, state } from "../store";
+import { select, state } from "../store";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
@@ -19,9 +19,11 @@ import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
+import { drawsPictures, useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
+const scr = useScreenStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
@@ -83,10 +85,10 @@ onMounted(entities.loadOverview);
           <span v-else class="home-empty"><Icon name="view-dashboard-outline" />{{ t("editor.home.no_layout") }}</span>
         </span>
         <span class="home-foot">
-          <span class="led" :class="screenLight(screen)"></span>
+          <span class="led" :class="scr.screenLight(screen)"></span>
           <span class="home-name">
             <strong>{{ screen.name }}</strong>
-            <small v-if="screenSubline(screen)" :class="screenSubline(screen)!.kind">{{ screenSubline(screen)!.text }}</small>
+            <small v-if="scr.screenSubline(screen)" :class="scr.screenSubline(screen)!.kind">{{ scr.screenSubline(screen)!.text }}</small>
             <small v-else-if="place(screen)">{{ place(screen) }}</small>
           </span>
           <!-- A screen with 4 MB of flash on ESPHome's partition table (app 0.4.82): its next update comes from Tessera. -->

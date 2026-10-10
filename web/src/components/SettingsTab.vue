@@ -11,19 +11,21 @@ import Icon from "./ui/Icon.vue";
 import PluginSettings from "./PluginSettings.vue";
 import { text } from "../model/plugins";
 import { choiceText, SETTING_GROUPS, settingLabel, steppedSetting, type SettingRow } from "../model/settings";
-import { calibrateTouch, currentScreen, pageReachWarning, state } from "../store";
+import { pageReachWarning, state } from "../store";
 import { useSettingsStore } from "../stores/settings";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const settings = useSettingsStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
 const view = computed(() => settings.settingsView());
 // The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).
 // The settings the screen's board lists (boards.yaml `settings`, in its shape's catalog): its Extras card.
-const boardExtras = computed(() => Boolean(currentScreen.value?.shape?.catalog?.settings?.length));
+const boardExtras = computed(() => Boolean(scr.currentScreen?.shape?.catalog?.settings?.length));
 const pluginsWithSettings = computed(() => {
-  const screen = currentScreen.value;
+  const screen = scr.currentScreen;
   if (!screen || screen.virtual) return [];
   return [...plugins.index.filter((plugin) => plugins.installedOn(screen, plugin.id)), ...plugins.testsOn(screen)]
     .filter((plugin, i, all) => all.findIndex((other) => other.id === plugin.id) === i)
@@ -33,7 +35,7 @@ const pluginsWithSettings = computed(() => {
 // 0.2.94); an add-on from before said nothing, and then the four of the Guition stand.
 const optionsOf = (row: SettingRow) => (row.key === "rotation" && view.value?.rotations?.length ? view.value.rotations : row.options!);
 const values = computed(() => settings.settingValues());
-const offline = computed(() => view.value?.owner === "screen" && !currentScreen.value?.online);
+const offline = computed(() => view.value?.owner === "screen" && !scr.currentScreen?.online);
 // A screen whose backlight is lit or dark has no percentage for standby and night: the manager names those keys
 // and they are drawn as the switch the screen draws (app 0.2.105). The row stays the number it is - one number
 // underneath either way, 0 or 100 - only its control changes.
@@ -71,8 +73,8 @@ function click(e: MouseEvent, row: SettingRow, direction: number) {
   if (!hold.click(e)) step(row, direction, false);
 }
 // Calibrate touch (app 0.2.117): the screen has to be there to show the crosses, whoever owns its settings.
-const calibrateReady = computed(() => Boolean(currentScreen.value?.online));
-const startCalibration = () => currentScreen.value && calibrateTouch(currentScreen.value);
+const calibrateReady = computed(() => Boolean(scr.currentScreen?.online));
+const startCalibration = () => scr.currentScreen && scr.calibrateTouch(scr.currentScreen);
 </script>
 
 <template>
@@ -135,8 +137,8 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
       </section>
     </div>
     <!-- Does it work as you expect (app 0.3.10): always here, also for a screen that is offline or never got its tiles. -->
-    <div v-if="currentScreen?.feedback?.available" class="set-grid feedback-grid">
-      <FeedbackPanel :key="`settings-${currentScreen.id}`" :screen="currentScreen" mode="settings" />
+    <div v-if="scr.currentScreen?.feedback?.available" class="set-grid feedback-grid">
+      <FeedbackPanel :key="`settings-${scr.currentScreen.id}`" :screen="scr.currentScreen" mode="settings" />
     </div>
   </div>
 </template>

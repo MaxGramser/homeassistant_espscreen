@@ -9,6 +9,7 @@ import { openBar, state } from "../src/store";
 import type { Inventory } from "../src/types";
 import { seedLayout } from "./page-fixtures";
 import { liveListeners } from "./helpers/browser";
+import { useScreenStore } from "../src/stores/screen";
 
 // The pointer and touch listeners on the document (jsdom adds some of its own the first time a selector runs).
 const following = (live: () => string[]) => live().filter((name) => /^(pointer|touch)/.test(name));
@@ -21,7 +22,7 @@ beforeEach(() => {
   state.inventory = { screens: [{ id: "living", name: "Living", virtual: true, shape: { width: 480, height: 480 }, screensaver: {
     show: true, media: "", more: [], camera: "", order: ["media", "camera", "clock"], off: [], weather: "auto", items: [], ready: true,
     pictures: true, standby: true } }], entities: [], builtin: [], header: { max_items: 6, builtin: [] } } as unknown as Inventory;
-  state.selected = "living";
+  useScreenStore().selected = "living";
 });
 
 describe("a dragged list that closes while a row is held", () => {

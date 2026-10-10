@@ -6,6 +6,9 @@ import { t } from '../i18n';
 import { dimensions, sizeOf, type Size } from '../model/layout';
 import { grid, resizeChoices, resizeTile, state } from '../store';
 import type { Tile } from '../types';
+import { useScreenStore } from "../stores/screen";
+
+const scr = useScreenStore();
 
 const props = defineProps<{ tile: Tile }>();
 type Axis = 'columns' | 'rows';
@@ -76,7 +79,7 @@ function keyboard(event: KeyboardEvent, axis: Axis) {
   const target = choices[choices.indexOf(sizeOf(props.tile)) + direction];
   if (target) resizeTile(props.tile, target, axis);
 }
-watch(() => state.selected, cancel);
+watch(() => scr.selected, cancel);
 </script>
 
 <template>

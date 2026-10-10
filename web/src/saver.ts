@@ -4,11 +4,12 @@ import { computed } from "vue";
 import { t } from "./i18n";
 import { moved } from "./model/reorder";
 import { clockSample } from "./model/clock";
-import { currentScreen, openSaverStep, saverItems, setScreensaver, state, topbarLabel } from "./store";
+import { openSaverStep, saverItems, state, topbarLabel } from "./store";
 import type { SaverKind, ScreensaverChoice } from "./types";
 import { useUiStore } from "./stores/ui";
 import { useRegionStore } from "./stores/region";
 import { useEntitiesStore } from "./stores/entities";
+import { useScreenStore } from "./stores/screen";
 import { useSettingsStore } from "./stores/settings";
 
 export const SAVER_MIN_FIRMWARE = "0.29.0";
@@ -17,7 +18,7 @@ export const MAX_PLAYERS = 4;
 const DOMAINS: Record<"media" | "camera", string[]> = { media: ["media_player"], camera: ["camera", "image"] };
 const key = (name: string) => `editor.screen_settings.screensaver.${name}`;
 
-export const saver = computed(() => currentScreen.value?.screensaver);
+export const saver = computed(() => useScreenStore().currentScreen?.screensaver);
 export const saverReady = computed(() => Boolean(saver.value?.ready));
 export const standbyOn = computed(() => {
   const standby = useSettingsStore().settingValues().standby_enabled;
@@ -27,7 +28,8 @@ export const saverLabel = (kind: SaverKind) => t(key(`kinds.${kind}`));
 export const isOn = (kind: SaverKind) => !saver.value?.off.includes(kind);
 
 export function changeSaver(patch: Partial<ScreensaverChoice>) {
-  if (currentScreen.value) setScreensaver(currentScreen.value, patch);
+  const screen = useScreenStore().currentScreen;
+  if (screen) useScreenStore().setScreensaver(screen, patch);
 }
 export function toggleStep(kind: SaverKind, on = !isOn(kind)) {
   const off = (saver.value?.off || []).filter((k) => k !== kind);
@@ -99,7 +101,7 @@ export const weatherSource = computed(() => {
 });
 // The glass's proportions, so the preview is the screen's own shape (a square Guition, a wide 7-inch).
 export const glassRatio = computed(() => {
-  const shape = currentScreen.value?.shape as { width?: number; height?: number } | undefined;
+  const shape = useScreenStore().currentScreen?.shape as { width?: number; height?: number } | undefined;
   return shape?.width && shape?.height ? `${shape.width} / ${shape.height}` : "16 / 10";
 });
 export const clockPreview = computed(() => {

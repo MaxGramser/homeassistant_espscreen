@@ -6,18 +6,20 @@ import { t } from '../i18n';
 import { entriesOf } from '../model/layout';
 import { navigationStep, titleOf, type NavigationIntent } from '../model/pages';
 import { previewShapeOf } from '../model/preview';
-import { currentScreen, drawsPictures, screenShape, state } from '../store';
+import { screenShape, state } from "../store";
 import DevicePage from './DevicePage.vue';
 import FirmwarePreview from './FirmwarePreview.vue';
 import Icon from './ui/Icon.vue';
 import SwitchRow from './ui/SwitchRow.vue';
 import { useSettingsStore } from '../stores/settings';
+import { drawsPictures, useScreenStore } from "../stores/screen";
 
 const settings = useSettingsStore();
+const scr = useScreenStore();
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
 // The draft's way and grid (app 0.4.85): a screen stood up in the editor shows standing, before it turned.
-const live = computed(() => currentScreen.value ? previewShapeOf({ shape: screenShape.value }, state.documentGrid) : null);
+const live = computed(() => scr.currentScreen ? previewShapeOf({ shape: screenShape.value }, state.documentGrid) : null);
 const failed = ref(false);
 const controls = ref(false);
 // The firmware's own pixels at their own size where the window has room, smaller where it has not.
@@ -56,8 +58,8 @@ onBeforeUnmount(() => previouslyFocused?.focus());
     <template v-if="live && !failed">
       <p>{{ t('editor.preview.hint') }}</p>
       <div class="preview-live" :style="{ width: liveWidth }">
-        <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows" :pictures="drawsPictures(currentScreen)"
-          :dark="currentScreen?.settings?.values?.dark_mode === true" :layout="state.document" :controls="controls" @failed="failed = true" />
+        <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows" :pictures="drawsPictures(scr.currentScreen)"
+          :dark="scr.currentScreen?.settings?.values?.dark_mode === true" :layout="state.document" :controls="controls" @failed="failed = true" />
       </div>
       <SwitchRow v-model="controls" class="preview-controls" :label="t('editor.preview.control')" :description="t('editor.preview.control_hint')" />
     </template>

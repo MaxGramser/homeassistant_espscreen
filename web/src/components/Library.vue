@@ -14,22 +14,24 @@ import { glyph } from "../model/topbar";
 import { matchesQuery, prefixRank } from "../model/search";
 import { tilePalette } from "../model/tile-palette";
 import { isPluginTile } from "../model/plugins";
-import { currentScreen, stillSelected } from "../store";
+import { stillSelected } from "../store";
 import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useListNavigation } from "../composables/useListNavigation";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { question } from "../composables/useConfirm";
-import { addTile, editorLayout, memory, pageTitleShown, pictures, repeatable, state, tileLimit } from "../store";
+import { addTile, editorLayout, memory, pageTitleShown, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
 const FILTERS = [
@@ -64,11 +66,11 @@ const chosen = computed(() => {
   return counts;
 });
 const onScreen = (id: string) => chosen.value.has(id);
-const placed = (id: string) => onScreen(id) && !repeatable(id);
+const placed = (id: string) => onScreen(id) && !scr.repeatable(id);
 const mark = (id: string) => (chosen.value.get(id) || 0) > 1 ? `×${chosen.value.get(id)}` : onScreen(id) ? "✓" : "+";
 const builtin = (id: string) => id.startsWith("screen.");
 // A plugin's tile type (design): listed under Plugins, only for a screen that runs that plugin.
-const pluginEntries = computed<(Entry & { plugin: string })[]>(() => (plugins.pluginsEnabled ? plugins.tilesOn(currentScreen.value) : []));
+const pluginEntries = computed<(Entry & { plugin: string })[]>(() => (plugins.pluginsEnabled ? plugins.tilesOn(scr.currentScreen) : []));
 const pluginOf = (id: string) => pluginEntries.value.find((e) => e.id === id)?.plugin || "";
 // Go to page tiles for the pages there are and the next one, at least the eight every screen has and at most what this
 // screen takes: a board with 24 pages (firmware 0.34.0+) would otherwise list 24 of them.
@@ -82,7 +84,7 @@ const base = computed<Entry[]>(() => {
   // The screen's own cards and plugin tiles first: the list shows the first 80, and these are few.
   return [...pluginEntries.value, ...(state.inventory.builtin || []), ...state.inventory.entities].filter((e) =>
     e.tile !== false && pageTarget(e.id) <= pagesOffered.value &&
-    (pictures.value || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
+    (scr.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
     (!ui.hidePlaced || !onScreen(e.id)) &&
     matchesQuery(q, e.name, e.id, e.device, e.area));
 });

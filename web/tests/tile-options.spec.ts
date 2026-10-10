@@ -15,6 +15,7 @@ import { isSelected, openTile, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
+import { useScreenStore } from "../src/stores/screen";
 
 function inventory(): Inventory {
   return {
@@ -42,7 +43,7 @@ function inventory(): Inventory {
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
   state.inventory = inventory();
-  state.selected = "living";
+  useScreenStore().selected = "living";
   state.documentGrid = { columns: 2, rows: 3 };
   seedLayout({ title: "Living room", tiles: [] });
   state.selectedTileId = null; state.inspector = null; state.actionPickerOpen = false;

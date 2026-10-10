@@ -7,10 +7,12 @@ import { versionAtLeast } from "../model/layout";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
 import { firmwareVersion } from "../model/screen-status";
-import { canAlert, sendTestAlert, state } from "../store";
+import { state } from "../store";
 import { useUiStore } from "../stores/ui";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
+const scr = useScreenStore();
 
 const alerts = computed(() => state.inventory.alerts);
 // The bytes a field holds on each look, with the boards that have it ("CYD 48 · Guition and Waveshare 64 bytes"): the
@@ -31,12 +33,12 @@ const tryForm = reactive({
 const { busy: trying, run: whileTrying } = useBusy();
 const tryResult = ref("");
 const physicalScreens = computed(() => state.inventory.screens.filter(s => !s.virtual));
-const readyScreens = computed(() => physicalScreens.value.filter((s) => canAlert(s) && s.online));
+const readyScreens = computed(() => physicalScreens.value.filter((s) => scr.canAlert(s) && s.online));
 const tryAlert = () => whileTrying(async () => {
   tryResult.value = "";
   try {
     const { screen, ...data } = tryForm;
-    const result = await sendTestAlert(screen, data);
+    const result = await scr.sendTestAlert(screen, data);
     const name = physicalScreens.value.find((s) => s.id === screen)?.name;
     const sent = screen === "all"
       ? t("editor.alerts.try.sent_all", result.sent)
@@ -104,7 +106,7 @@ const oneScreenId = ref("");
 // The example starts at the screen that is open in the editor, else the first in the list.
 const oneScreen = computed(() => {
   const [first] = physicalScreens.value;
-  return physicalScreens.value.find((s) => s.id === (oneScreenId.value || state.selected)) || first;
+  return physicalScreens.value.find((s) => s.id === (oneScreenId.value || scr.selected)) || first;
 });
 const oneYaml = computed(() => {
   const screen = oneScreen.value;
@@ -173,7 +175,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <div class="field"><label class="f-label" for="try-screen">{{ t("editor.alerts.try.screen") }}</label>
             <select id="try-screen" v-model="tryForm.screen">
               <option value="all">{{ t("editor.alerts.try.all", { ready: readyScreens.length }) }}</option>
-              <option v-for="screen in physicalScreens" :key="screen.id" :value="screen.id" :disabled="!canAlert(screen) || !screen.online">{{ canAlert(screen) && screen.online ? screen.name : t("editor.alerts.try.not_ready", { name: screen.name }) }}</option>
+              <option v-for="screen in physicalScreens" :key="screen.id" :value="screen.id" :disabled="!scr.canAlert(screen) || !screen.online">{{ scr.canAlert(screen) && screen.online ? screen.name : t("editor.alerts.try.not_ready", { name: screen.name }) }}</option>
             </select></div>
           <div class="field"><label class="f-label" for="try-title">{{ t("editor.alerts.try.title") }}</label><input id="try-title" v-model="tryForm.title" maxlength="64" /></div>
           <div class="field"><label class="f-label" for="try-subtitle">{{ t("editor.alerts.try.subtitle") }}</label><input id="try-subtitle" v-model="tryForm.subtitle" maxlength="240" /></div>

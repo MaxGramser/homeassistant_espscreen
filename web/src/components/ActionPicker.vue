@@ -4,15 +4,17 @@
 import { computed } from "vue";
 import { matchesQuery } from "../model/search";
 import { t } from "../i18n";
-import { beginFieldEdit, endFieldEdit, setTileAction, state, supports } from "../store";
+import { beginFieldEdit, endFieldEdit, setTileAction, state } from "../store";
 import type { EntityAction, Tile } from "../types";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import UiSuggest from "./ui/UiSuggest.vue";
 import { useEntitiesStore } from "../stores/entities";
+import { useScreenStore } from "../stores/screen";
 
 const entities = useEntitiesStore();
+const scr = useScreenStore();
 
 const props = defineProps<{ tile: Tile }>();
 const list = computed(() => entities.entityActions[props.tile.entity]);
@@ -119,7 +121,7 @@ const unitOf = (field: Field) => configOf(field).unit_of_measurement || (kindOf(
         </div>
         <small v-if="missing.length" class="warn">{{ t("editor.action.needs", { fields: missing.join(", ") }) }}</small>
       </template>
-      <small v-if="!supports(0, 2, 58)">{{ t("editor.action.needs_firmware") }}</small>
+      <small v-if="!scr.supports(0, 2, 58)">{{ t("editor.action.needs_firmware") }}</small>
     </template>
   </div>
 </template>

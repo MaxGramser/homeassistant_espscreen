@@ -10,9 +10,10 @@ import { api } from "../api";
 import { t } from "../i18n";
 import type { NavigationSettings } from "../model/pages";
 import { rowText, type SettingRow } from "../model/settings";
-import { currentScreen, state, supports } from "../store";
+import { state } from "../store";
 import { lookups } from "./lookup";
 import { useRegionStore } from "./region";
+import { useScreenStore } from "./screen";
 import { useUiStore } from "./ui";
 
 // How long a change made here wins over what Home Assistant still reports.
@@ -24,6 +25,7 @@ export type SettingEdit = { value: any; at: number };
 export const useSettingsStore = defineStore("settings", () => {
   const ui = useUiStore();
   const region = useRegionStore();
+  const scr = useScreenStore();
 
   // The changes made here, by setting, and when.
   const settingEdits = ref<Record<string, SettingEdit>>({});
@@ -36,7 +38,7 @@ export const useSettingsStore = defineStore("settings", () => {
   // The looks again after a change came back, each four seconds later.
   const settles = new Set<number>();
 
-  const settingsView = () => currentScreen.value?.settings;
+  const settingsView = () => scr.currentScreen?.settings;
   function settingValues(): Record<string, any> {
     const view = settingsView(), values = { ...(view?.values || {}) };
     for (const [key, edit] of Object.entries(settingEdits.value)) values[key] = edit.value;
@@ -49,17 +51,17 @@ export const useSettingsStore = defineStore("settings", () => {
   function navigationSettings(): NavigationSettings {
     const values = settingValues();
     return { pageButtons: values.page_buttons !== false, swipe: values.swipe_pages !== false,
-      homeButton: supports(0, 2, 100) && values.home_button !== false };
+      homeButton: scr.supports(0, 2, 100) && values.home_button !== false };
   }
 
   function setSetting(key: string, value: any, delay: number) {
     // One screen's changes at a time: the ones for the screen shown before go out first.
-    if (target && target !== state.selected && Object.keys(queue.value).length) {
+    if (target && target !== scr.selected && Object.keys(queue.value).length) {
       flushSettings();
       ui.toast(t("editor.screen_settings.other_screen_busy"));
       return;
     }
-    target = state.selected;
+    target = scr.selected;
     const values = settingValues();
     settingEdits.value[key] = { value, at: Date.now() };
     queue.value[key] = value;
@@ -88,15 +90,15 @@ export const useSettingsStore = defineStore("settings", () => {
     } catch (e: any) {
       ui.toast(e.message);
       // What did not arrive is not kept: the panel shows the screen's own values again.
-      if (screen === state.selected) for (const key of Object.keys(changes)) delete settingEdits.value[key];
-      if (screen === state.selected && changes.brightness !== undefined) for (const dim of DIM_LEVELS) delete settingEdits.value[dim];
+      if (screen === scr.selected) for (const key of Object.keys(changes)) delete settingEdits.value[key];
+      if (screen === scr.selected && changes.brightness !== undefined) for (const dim of DIM_LEVELS) delete settingEdits.value[dim];
     } finally {
       flight.value = null;
       if (Object.keys(queue.value).length) timer = window.setTimeout(() => flushSettings(), 150);
       else target = null;
-      if (screen === state.selected) settleSettings();
+      if (screen === scr.selected) settleSettings();
       // A value the screen refused or clamped comes back without a live update: look again once edits expire.
-      const settle = window.setTimeout(() => { settles.delete(settle); if (screen === state.selected) settleSettings(); }, SETTING_EDIT_MS + 100);
+      const settle = window.setTimeout(() => { settles.delete(settle); if (screen === scr.selected) settleSettings(); }, SETTING_EDIT_MS + 100);
       settles.add(settle);
     }
   }

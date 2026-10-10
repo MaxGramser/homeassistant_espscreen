@@ -1,7 +1,8 @@
 /** Compact test fixtures for the page API. This is not an application importer. */
 import type { Layout, PageDocument, PageGrid, PageTile, Screen, Tile } from "../src/types";
 import { childOf, clone, emptyLayout, emptyPage, instanceId } from "../src/model/pages";
-import { currentScreen, loadDocument, state } from "../src/store";
+import { loadDocument, state } from "../src/store";
+import { useScreenStore } from "../src/stores/screen";
 
 export const testGrid: PageGrid = { columns: 2, rows: 3 };
 export function documentFixture(view: Layout, grid = testGrid): PageDocument {
@@ -51,7 +52,7 @@ export function screenFixture(screen: Screen): Screen {
 // The layout becomes the draft the way a screen's saved document does (loadDocument): what it was saved as, its undo and
 // what is unsaved start from it, not from the test before. Null: a screen without a page document.
 export function seedLayout(view: Layout | null) {
-  const screen = currentScreen.value || ({ id: "test", name: "Test", online: true, layout: { title: "Test", tiles: [] } } as unknown as Screen);
+  const screen = useScreenStore().currentScreen || ({ id: "test", name: "Test", online: true, layout: { title: "Test", tiles: [] } } as unknown as Screen);
   if (!view) { loadDocument({ ...screen, page_document: { format: "legacy-v1" } as Screen["page_document"], source_grid: undefined }); return; }
   loadDocument({ ...screen, page_document: documentFixture(view, state.documentGrid || testGrid) });
 }

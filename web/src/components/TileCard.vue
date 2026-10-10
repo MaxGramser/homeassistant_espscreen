@@ -12,7 +12,7 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clockSample } from "../model/clock";
-import { currentScreen, deviceStyle, pageBarShown, screenShape, isCompact, supports, pictures, isSelected, openTile, placeTile, removeTile, state } from "../store";
+import { deviceStyle, pageBarShown, screenShape, isCompact, isSelected, openTile, placeTile, removeTile, state } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -29,11 +29,13 @@ import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -107,7 +109,7 @@ const roundValue = computed(() => ["sensor", "number", "input_number"].includes(
 const display = computed(() => props.tile.entity === "screen.settings" ? "standard" : props.tile.options?.display || "standard");
 const note = computed(() => (display.value !== "standard" ? displayName(display.value) : ""));
 // The screen draws a thermostat's range on its -/+ (firmware 0.19.0+); an older one gets such a thermostat without them.
-const rangeReady = computed(() => currentScreen.value?.climate_range !== false);
+const rangeReady = computed(() => scr.currentScreen?.climate_range !== false);
 const controls = computed(() => {
   // What the screen draws for this entity (model/catalogue.ts drawable, as the add-on sends it): an older screen gets a
   // thermostat with only a range without its -/+, one without a temperature to set never has them.
@@ -164,11 +166,11 @@ const tallStack = computed(() => tall.value && tallControls.value === 'toggle');
 // A card that only switches or only runs, two rows tall, is one big key (firmware 0.17.0 big_key): a large circle, the
 // name and the state, and the whole card is the key. A slider or another control keeps the head and its controls.
 const BIG_KEY_DOMAINS = ["light", "switch", "input_boolean", "fan", "script", "scene", "button", "input_button"];
-const bigKey = computed(() => tall.value && !full.value && supports(0, 17, 0) && BIG_KEY_DOMAINS.includes(domain.value)
+const bigKey = computed(() => tall.value && !full.value && scr.supports(0, 17, 0) && BIG_KEY_DOMAINS.includes(domain.value)
   && props.tile.options?.inline !== "slider" && (!tallControls.value || tallControls.value === "toggle" || tallControls.value === "run"));
 // The flip clock on a card two columns wide and two rows tall, or a whole page (firmware 0.17.0): the blocks share the
 // width and the day and AM or PM stand on one line under them.
-const flipWide = computed(() => (full.value || (shape.value.columns > 1 && shape.value.rows > 1)) && supports(0, 17, 0));
+const flipWide = computed(() => (full.value || (shape.value.columns > 1 && shape.value.rows > 1)) && scr.supports(0, 17, 0));
 // The day under the wide flip clock, as the screen writes it: "Tuesday 29 Sep".
 const flipDay = computed(() => face.value.flipDate);
 // The line under a big key's name, as the screen draws it: a lamp that is on says how bright, a script or scene when it
@@ -348,7 +350,7 @@ const pageLink = computed(() => `${region.screenText("screen.tile.page", { n: go
 const sliderStyle = computed(() => ({ background: `linear-gradient(to right, ${palette.value.accent} ${fill.value}%, ${palette.value.track} ${fill.value}%)` }));
 const volumeStyle = sliderStyle;
 // The add-on prepares artwork; source URLs and HA credentials stay server-side.
-const artwork = computed(() => pictures.value && tall.value && display.value === 'cover' && domain.value === 'media_player' && current.value?.a?.artwork_mark
+const artwork = computed(() => scr.pictures && tall.value && display.value === 'cover' && domain.value === 'media_player' && current.value?.a?.artwork_mark
   ? `api/media-art?entity=${encodeURIComponent(props.tile.entity)}&v=${encodeURIComponent(String(current.value.a.artwork_mark))}` : '');
 const artworkLoaded = ref(false);
 watch(artwork, () => { artworkLoaded.value = false; });
@@ -358,7 +360,7 @@ const cameraCard = computed(() => display.value === 'live' && ['camera', 'image'
 // A favourite (app 0.4.42): what it plays fills the card, dimmed as an album cover over a card is, with its name, its
 // line and a round play key; on a screen without pictures the ordinary tile with the icon of what it plays.
 const favoriteCard = computed(() => Boolean(favoritePlay.value) && !full.value);
-const favoritePicture = computed(() => favoriteCard.value && pictures.value && favoritePlay.value?.thumb
+const favoritePicture = computed(() => favoriteCard.value && scr.pictures && favoritePlay.value?.thumb
   ? `api/media/picture?entity=${encodeURIComponent(props.tile.entity)}&url=${encodeURIComponent(favoritePlay.value.thumb)}` : '');
 const favoriteLoaded = ref(false);
 watch(favoritePicture, () => { favoriteLoaded.value = false; });
@@ -427,7 +429,7 @@ async function onKey(e: KeyboardEvent) {
     v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
     <template v-if="bedside">
       <span class="bedside-clock" :class="{ compact: isCompact }">
-        <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!region.clock24 && supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
+        <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!region.clock24 && scr.supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
         <span v-if="keyPlaces.length" class="keys">
           <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview || placeholder ? undefined : place.key" :data-holder="preview || placeholder ? undefined : tile.id"
             :class="{ 'insert-here': state.insertKey?.holder === tile.id && state.insertKey?.key === place.key, over: state.drag.key?.holder === tile.id && state.drag.key?.key === place.key }">

@@ -6,12 +6,14 @@ import { domainInfo } from "../model/layout";
 import { useListNavigation } from "../composables/useListNavigation";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
-import { addTile, canAlert, currentScreen, exportLayout, identify, repeatable, save, select, state, tileLimit } from "../store";
+import { addTile, exportLayout, save, select, state, tileLimit } from "../store";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
+const scr = useScreenStore();
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
@@ -22,7 +24,7 @@ const items = computed<Item[]>(() => {
   const screens = t("editor.palette.groups.screens"), actionsGroup = t("editor.palette.groups.actions");
   for (const screen of state.inventory.screens)
     list.push({ group: screens, label: screen.name, detail: `${screen.online ? t("editor.common.online") : t("editor.common.offline")} · ${screen.firmware || t("editor.common.unknown")}`, glyphText: "▦", run: () => select(screen.id) });
-  const screen = currentScreen.value;
+  const screen = scr.currentScreen;
   const actions: Item[] = [
     { group: actionsGroup, label: t("editor.nav.new_screen"), detail: t("editor.nav.new_screen_detail"), glyphText: "+", run: () => ui.go("#new-screen") },
     { group: actionsGroup, label: t("editor.nav.firmware"), icon: "F0241", run: () => ui.go("#firmware") },
@@ -34,7 +36,7 @@ const items = computed<Item[]>(() => {
       { group: actionsGroup, label: t("editor.common.save_send"), detail: state.dirty ? t("editor.common.unsaved") : t("editor.palette.nothing_to_save"), key: "⌘S", run: () => save() },
       { group: actionsGroup, label: t("editor.screen_view.tabs.layout"), detail: screen.name, run: () => { ui.go(""); state.tab = "layout"; } },
       { group: actionsGroup, label: t("editor.screen_view.tabs.settings"), detail: screen.name, run: () => { ui.go(""); state.tab = "settings"; } },
-      { group: actionsGroup, label: t("editor.palette.identify"), detail: canAlert(screen) ? t("editor.palette.identify_detail") : t("editor.palette.identify_needs"), run: () => { if (canAlert(screen)) identify(screen); } },
+      { group: actionsGroup, label: t("editor.palette.identify"), detail: scr.canAlert(screen) ? t("editor.palette.identify_detail") : t("editor.palette.identify_needs"), run: () => { if (scr.canAlert(screen)) scr.identify(screen); } },
       { group: actionsGroup, label: t("editor.palette.export"), detail: t("editor.palette.export_detail"), run: exportLayout },
     );
   }
@@ -44,7 +46,7 @@ const items = computed<Item[]>(() => {
     const full = state.layout.tiles.length >= tileLimit.value;
     for (const e of state.inventory.entities) {
       // One on the screen comes again when the firmware takes an entity on several tiles (0.16.0+).
-      if (e.tile === false || (chosen.has(e.id) && !repeatable(e.id))) continue;
+      if (e.tile === false || (chosen.has(e.id) && !scr.repeatable(e.id))) continue;
       if (!matchesQuery(q, e.name, e.id, e.area, e.device)) continue;
       list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: state.inventory.icons ? entities.automaticIcon(e.id) : undefined,
         run: () => { if (!full) addTile(e.id); } });

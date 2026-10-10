@@ -5,9 +5,10 @@ import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import BuildLog from "../src/components/BuildLog.vue";
-import { state, updateState } from "../src/store";
+import { state } from "../src/store";
 import type { Screen } from "../src/types";
 import { useBuildsStore } from "../src/stores/builds";
+import { useScreenStore } from "../src/stores/screen";
 
 const screen = (id: string, more: Partial<Screen> = {}) =>
   ({ id: `text.${id}`, name: id, node: id, online: true, board: "guition", firmware: "0.52.0", pictures: true, layout: {},
@@ -26,15 +27,15 @@ describe("builds", () => {
   it("knows nothing builds until the add-on says so", () => {
     expect(useBuildsStore().buildOf(hall)).toBeNull();
     expect(useBuildsStore().anyBuilding).toBe(false);
-    expect(updateState(hall)?.kind).not.toBe("running");
+    expect(useScreenStore().updateState(hall)?.kind).not.toBe("running");
   });
 
   it("shows a plugin build the way an update shows: running, with its ESPHome stage as progress", () => {
     state.inventory.builds = { [hall.id]: { by: "plugins", state: "running", plugins: ["bus"], file: "hall.yaml", stage: "compile" },
                                [desk.id]: { by: "plugins", state: "queued", plugins: ["waste"], file: "desk.yaml" } };
     expect(useBuildsStore().anyBuilding).toBe(true);
-    expect(updateState(hall)).toEqual({ kind: "running", text: "Building with its plugins" });
-    expect(updateState(desk)?.kind).toBe("queued");
+    expect(useScreenStore().updateState(hall)).toEqual({ kind: "running", text: "Building with its plugins" });
+    expect(useScreenStore().updateState(desk)?.kind).toBe("queued");
     expect(useBuildsStore().buildProgress(hall)).toEqual({ percent: 40, text: expect.any(String) });
     expect(useBuildsStore().buildProgress(desk)).toBeNull();
     expect(useBuildsStore().buildingScreens.map((s) => s.name)).toEqual(["hall", "desk"]);

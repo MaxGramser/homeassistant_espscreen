@@ -3,11 +3,14 @@
 // copy, and removing it. The header of the page keeps only its name, its handle and this menu.
 import { computed } from "vue";
 import { t } from "../i18n";
-import { duplicateEditorPage, openBar, pageCopyable, openPage, pageReady, removePage, setHomePage, state } from "../store";
+import { duplicateEditorPage, openBar, pageCopyable, openPage, removePage, setHomePage, state } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
+import { useScreenStore } from "../stores/screen";
+
+const scr = useScreenStore();
 
 const props = defineProps<{ id: string }>();
 const index = computed(() => state.document?.pages.findIndex((page) => page.id === props.id) ?? -1);
@@ -26,7 +29,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
     <UiMenuItem icon="cog-outline" @select="openPage(id)">{{ t("editor.pages.page_settings") }}</UiMenuItem>
     <UiMenuItem icon="page-layout-header" @select="openBar(0, index)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
     <UiMenuSeparator />
-    <UiMenuItem icon="home-outline" :disabled="home || !pageReady" @select="setHomePage(id)">{{ t(home ? "editor.pages.is_home" : "editor.pages.set_home") }}</UiMenuItem>
+    <UiMenuItem icon="home-outline" :disabled="home || !scr.pageReady" @select="setHomePage(id)">{{ t(home ? "editor.pages.is_home" : "editor.pages.set_home") }}</UiMenuItem>
     <UiMenuItem v-if="canCopy" icon="content-duplicate" @select="duplicateEditorPage(id, false)">{{ t("editor.pages.duplicate") }}</UiMenuItem>
     <UiMenuItem icon="file-plus-outline" @select="duplicateEditorPage(id, true)">{{ t("editor.pages.empty_copy") }}</UiMenuItem>
     <UiMenuSeparator />

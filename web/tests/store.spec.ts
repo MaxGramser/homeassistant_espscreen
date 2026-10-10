@@ -1,12 +1,7 @@
 import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  addTile, canAlert, copyLayoutFrom, deviceStyle, fullPage, importLayout, isCompact, layoutJson, movePage,
-  moveTileToPage, pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select,
-  setTileOption, state, supports, supportsVersion, tileLimit, topbarItems, topbarView, refresh, createVirtualScreen,
-  removeScreen, chooseGrid, tileSizeChoices, setEditorMode,
-} from "../src/store";
+import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, tileLimit, topbarItems, topbarView, refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
@@ -17,6 +12,7 @@ import type { Inventory, Screen } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useBuildsStore } from "../src/stores/builds";
 import { useEntitiesStore } from "../src/stores/entities";
+import { useScreenStore } from "../src/stores/screen";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -59,7 +55,7 @@ beforeEach(() => {
   // Every question of the editor's is answered yes (ConfirmDialog), and kept to look at.
   asked = answerDialogs(true);
   state.inventory = inventory();
-  state.selected = null;
+  useScreenStore().selected = null;
   seedLayout(null);
   state.dirty = false;
 });
@@ -160,7 +156,7 @@ describe("live values", () => {
     expect(state.inventory.screens[0].shape).toEqual(saved.shape);
     expect(await removeScreen(state.inventory.screens[0])).toBe(true);
     expect(JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!)).toEqual([]);
-    expect(state.selected).toBeNull();
+    expect(useScreenStore().selected).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("gives a preview screen the grids of its board, and keeps the one chosen", async () => {
@@ -257,7 +253,7 @@ describe("live values", () => {
     expect(state.inventory.screens.map((screen) => screen.id)).toEqual([virtual.id]);
     await refresh(false);
     expect(state.inventory.screens).toHaveLength(1);
-    expect(state.selected).toBe(virtual.id);
+    expect(useScreenStore().selected).toBe(virtual.id);
   });
   it("falls back to what the inventory knew", () => {
     expect(useEntitiesStore().liveOf("light.a")).toEqual({ state: "on", word: null, a: {} });
@@ -358,9 +354,9 @@ describe("updates with content", () => {
   });
   it("knows which screen can show an alert", () => {
     const [living, kitchen] = state.inventory.screens;
-    expect(canAlert(living)).toBe(true);
-    expect(canAlert(kitchen)).toBe(false);
-    expect(canAlert(undefined)).toBe(false);
+    expect(useScreenStore().canAlert(living)).toBe(true);
+    expect(useScreenStore().canAlert(kitchen)).toBe(false);
+    expect(useScreenStore().canAlert(undefined)).toBe(false);
   });
 });
 
@@ -471,7 +467,7 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     addTile("light.b");
     control.answer();
     await saving;
-    expect(state.selected).toBe("kitchen");
+    expect(useScreenStore().selected).toBe("kitchen");
     expect(state.dirty).toBe(true);
     expect(useUiStore().notice?.message).toBe("Saved. Living room is being updated.");
   });
@@ -530,8 +526,8 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     Object.assign(living, { firmware: "unknown", firmware_known: null, tile_limit: 48, full_page: true, page_tiles_repeat: true });
     select("living");
     expect(tileLimit.value).toBe(48);
-    expect(fullPage.value).toBe(true);
-    expect(pageTilesRepeat.value).toBe(true);
+    expect(useScreenStore().fullPage).toBe(true);
+    expect(useScreenStore().pageTilesRepeat).toBe(true);
     // A version Home Assistant can't report right now no longer cuts a copied or imported layout to ten.
     const many = Array.from({ length: 30 }, (_, i) => ({ entity: `light.l${i}`, name: "", slot: i }));
     const imported = documentFixture({ title: "Imported", tiles: many });
@@ -544,28 +540,28 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     const living = state.inventory.screens[0];
     Object.assign(living, { firmware: "unknown", firmware_known: "0.2.60" });
     select("living");
-    expect(supports(0, 2, 60)).toBe(true);
-    expect(supports(0, 2, 61)).toBe(false);
+    expect(useScreenStore().supports(0, 2, 60)).toBe(true);
+    expect(useScreenStore().supports(0, 2, 61)).toBe(false);
     // A version as the add-on names one ("0.38.0"), as the top bar's items need it.
-    expect([supportsVersion("0.2.60"), supportsVersion("0.2.61"), supportsVersion("0.2")]).toEqual([true, false, false]);
+    expect([useScreenStore().supportsVersion("0.2.60"), useScreenStore().supportsVersion("0.2.61"), useScreenStore().supportsVersion("0.2")]).toEqual([true, false, false]);
     expect(useBuildsStore().whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
-    expect(canAlert(living)).toBe(true);
+    expect(useScreenStore().canAlert(living)).toBe(true);
     Object.assign(living, { firmware: "0.2.63", firmware_known: null });
-    expect(supports(0, 2, 31)).toBe(false);
-    expect(canAlert(living)).toBe(false);
+    expect(useScreenStore().supports(0, 2, 31)).toBe(false);
+    expect(useScreenStore().canAlert(living)).toBe(false);
   });
   it("keeps today's rule, with a strict X.Y.Z, for a screen entry without the fields", () => {
     select("living");
     expect(tileLimit.value).toBe(20);
-    expect(fullPage.value).toBe(false);
-    expect(pageTilesRepeat.value).toBe(false);
+    expect(useScreenStore().fullPage).toBe(false);
+    expect(useScreenStore().pageTilesRepeat).toBe(false);
     state.inventory.screens[0].firmware = "0.2.65";
     expect(tileLimit.value).toBe(48);
-    expect(fullPage.value).toBe(true);
-    expect(pageTilesRepeat.value).toBe(true);
+    expect(useScreenStore().fullPage).toBe(true);
+    expect(useScreenStore().pageTilesRepeat).toBe(true);
     state.inventory.screens[0].firmware = "0.2.65 (ESPHome 2026.6.2)";
     expect(tileLimit.value).toBe(10);
-    expect(fullPage.value).toBe(false);
+    expect(useScreenStore().fullPage).toBe(false);
     state.inventory.screens[0].firmware = "unknown";
     expect(tileLimit.value).toBe(10);
   });

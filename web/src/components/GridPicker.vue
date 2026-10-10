@@ -6,8 +6,11 @@
 import { computed } from "vue";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
-import { chooseGrid, chooseHang, currentScreen, gridWay, screenShape, state } from "../store";
+import { chooseGrid, chooseHang, gridWay, screenShape, state } from "../store";
 import Icon from "./ui/Icon.vue";
+import { useScreenStore } from "../stores/screen";
+
+const scr = useScreenStore();
 
 const grid = computed(() => state.documentGrid);
 const axes = [["columns", 0], ["rows", 1]] as const;
@@ -22,12 +25,12 @@ function step(axis: "columns" | "rows", index: 0 | 1, by: number) {
 }
 const cells = computed(() => (grid.value ? grid.value.columns * grid.value.rows : 0));
 // Standing up or lying down, on glass that turns (the add-on says which way it is to hang; null on square glass).
-const turns = computed(() => !!currentScreen.value?.hang && state.documentUpright !== null);
+const turns = computed(() => !!scr.currentScreen?.hang && state.documentUpright !== null);
 const ways = [[false, "landscape", "crop-landscape"], [true, "portrait", "crop-portrait"]] as const;
 </script>
 
 <template>
-  <PopoverRoot v-if="grid && (gridWay || !currentScreen?.virtual)">
+  <PopoverRoot v-if="grid && (gridWay || !scr.currentScreen?.virtual)">
     <PopoverTrigger as-child>
       <button type="button" id="toolbar-grid" class="btn quiet" :title="t('editor.grid.title')">
         <Icon name="view-grid-outline" />{{ grid.columns }} × {{ grid.rows }}

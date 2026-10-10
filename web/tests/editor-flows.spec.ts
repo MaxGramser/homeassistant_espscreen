@@ -12,6 +12,7 @@ import { tileCost } from "../src/model/memory";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
 import { useEntitiesStore } from "../src/stores/entities";
+import { useScreenStore } from "../src/stores/screen";
 
 let yes = true, asked: Question[] = [];
 beforeEach(() => {
@@ -19,7 +20,7 @@ beforeEach(() => {
   // Every question of the editor's is answered yes, unless a test answers otherwise.
   yes = true;
   asked = answerDialogs(() => yes);
-  state.dirty = false; state.selected = null;
+  state.dirty = false; useScreenStore().selected = null;
   state.inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
     layout: { title: "Home", tiles: [{ entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 }] } } as any)],
     entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} } } as any;
@@ -45,7 +46,7 @@ describe("the editor", () => {
     setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
     expect(state.dirty).toBe(true);
     await goHome();
-    expect(state.selected).toBeNull();
+    expect(useScreenStore().selected).toBeNull();
     expect(state.dirty).toBe(false);
   });
 

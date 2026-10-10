@@ -464,8 +464,10 @@ class Editor(unittest.TestCase):
             self.assertIn(marker, self.page, marker)
 
     def test_identify_and_the_test_alert_have_their_buttons(self):
-        self.assertIn('send(`screens/${encodeURIComponent(screen.id)}/identify`, "POST")', self.store)
-        self.assertIn('send("alerts/test", "POST", { screen: target, data })', self.store)
+        import editor_sources
+        screen = editor_sources.source('stores/screen.ts')
+        self.assertIn('send(`screens/${encodeURIComponent(screen.id)}/identify`, "POST")', screen)
+        self.assertIn('send("alerts/test", "POST", { screen: target, data })', screen)
         self.assertIn('id="identify"', self.page)
         self.assertIn('id="alerts-try"', self.page)
         self.assertIn('id="try-send"', self.page)

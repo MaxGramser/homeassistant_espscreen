@@ -10,13 +10,14 @@ import { getJson, send } from "../api";
 import { editorNumber, t } from "../i18n";
 import { nodeOf, text, type Texts } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import { currentScreen } from "../store";
 import UiSelect from "./ui/UiSelect.vue";
 import { useUiStore } from "../stores/ui";
 import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
 
 const ui = useUiStore();
 const plugins = usePluginsStore();
+const scr = useScreenStore();
 
 const props = defineProps<{ plugin?: string; extras?: boolean }>();
 const route = (screenId: string) => `screens/${encodeURIComponent(screenId)}/${props.extras ? "extras" : "plugins/settings"}`;
@@ -26,7 +27,7 @@ type Row = { key: string; entity: string | null; kind: "switch" | "number" | "se
 type Group = { plugin: string; name: Texts; rows: Row[] };
 const rows = ref<Row[]>([]);
 async function load() {
-  const screen = currentScreen.value;
+  const screen = scr.currentScreen;
   if (!screen || screen.virtual) { rows.value = []; return; }
   if (props.extras) {
     try { rows.value = await getJson<Row[]>(route(screen.id)); } catch { rows.value = []; }
@@ -38,7 +39,7 @@ async function load() {
     rows.value = groups.find((group) => group.plugin === props.plugin)?.rows || [];
   } catch { rows.value = []; }
 }
-watch(() => [currentScreen.value?.id, props.plugin, currentScreen.value && plugins.installed[nodeOf(currentScreen.value)]?.length], load, { immediate: true });
+watch(() => [scr.currentScreen?.id, props.plugin, scr.currentScreen && plugins.installed[nodeOf(scr.currentScreen)]?.length], load, { immediate: true });
 // A button's status changes on the screen after the press: read the rows again a few times while it runs.
 let timers: number[] = [];
 function follow() {
@@ -47,7 +48,7 @@ function follow() {
 }
 onBeforeUnmount(() => timers.forEach(clearTimeout));
 async function set(row: Row, value: boolean | number | string) {
-  const screen = currentScreen.value;
+  const screen = scr.currentScreen;
   if (!screen || !row.entity) return;
   if (row.kind !== "button") row.value = value;   // as the screen's own rows: the change shows at once, Home Assistant squares it
   try {

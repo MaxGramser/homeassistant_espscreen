@@ -21,11 +21,12 @@ import TopbarInspector from "../src/components/TopbarInspector.vue";
 import PageInspector from "../src/components/PageInspector.vue";
 import { t } from "../src/i18n";
 import { answerDialogs } from "./helpers/dialogs";
-import { currentTile, openBar, previewed, removePage, repeatable, setTileOption, state } from "../src/store";
+import { currentTile, openBar, previewed, removePage, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useSettingsStore } from "../src/stores/settings";
+import { useScreenStore } from "../src/stores/screen";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
 // screen's shape carries, and what New screen gets for each board (firmware.BOARD_CHOICES), made the same way here.
@@ -61,7 +62,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
   state.inventory = inventory();
   state.inventory.screens = state.inventory.screens.map(screenFixture);
-  state.selected = "living";
+  useScreenStore().selected = "living";
   seedLayout({ title: "Living room", tiles: [] });
   state.selectedTileId = null; state.inspector = null;
   state.dirty = false; state.tab = "layout";
@@ -585,8 +586,8 @@ describe("several tiles of one entity in the library (firmware 0.2.65 for a page
     await row().trigger("click");
     expect(state.layout!.tiles.filter((t) => t.entity === "light.a")).toHaveLength(2);
     expect(row().find(".add").text()).toBe("×2");
-    expect(repeatable("screen.nightstand")).toBe(false);
-    expect(repeatable("light.b")).toBe(true);
+    expect(useScreenStore().repeatable("screen.nightstand")).toBe(false);
+    expect(useScreenStore().repeatable("light.b")).toBe(true);
   });
   it("marks it placed when the screen takes one per page", () => {
     Object.assign(state.inventory.screens[0], { page_tiles_repeat: false });
@@ -746,7 +747,7 @@ describe("Sidebar", () => {
     expect(state.tab).toBe("layout");
   });
   it("shows a screen's name alone on one line, and its details behind the chevron (app 0.4.32)", async () => {
-    state.selected = null;
+    useScreenStore().selected = null;
     const sidebar = mount(Sidebar);
     const item = sidebar.find("#screens .screen-item");
     expect(item.find(".led").exists()).toBe(false);
@@ -764,7 +765,7 @@ describe("Sidebar", () => {
     expect(item.classes()).not.toContain("open");
     // A screen that is off says so on its row, and keeps its details folded: there is nothing more to say there.
     Object.assign(state.inventory.screens[0], { online: false });
-    state.selected = null;
+    useScreenStore().selected = null;
     await nextTick();
     expect(item.classes()).toContain("down");
     expect(item.find(".sub").text()).toBe("Offline");
@@ -840,7 +841,7 @@ describe("Sidebar", () => {
   it("goes home from the logo: the overview, nothing chosen (app 0.4.0)", async () => {
     const sidebar = mount(Sidebar);
     await sidebar.find(".brand").trigger("click");
-    expect(state.selected).toBeNull();
+    expect(useScreenStore().selected).toBeNull();
     expect(state.layout).toBeNull();
   });
   it("removes a screen that never got its firmware, after asking (GitHub #114)", async () => {
@@ -881,7 +882,7 @@ describe("Sidebar", () => {
     await flushPromises();
     expect(calls.map(([path, options]) => [path, options.method])).toEqual([
       ["api/screens/living", "DELETE"], ["api/inventory?light=1", undefined]]);
-    expect(state.selected).toBeNull();
+    expect(useScreenStore().selected).toBeNull();
     expect(state.layout).toBeNull();
     expect(useUiStore().notice?.message).toBe("Living room is removed.");
   });
@@ -907,7 +908,7 @@ describe("HomeView: every screen with its home page (app 0.4.0)", () => {
       screenFixture({ id: "hall", name: "Hall", online: false, firmware: "0.3.9", board: "waveshare43",
         shape: { width: 800, height: 480, columns: 3, rows: 3 }, layout: { title: "Hall", tiles: [{ entity: "cover.c", name: "", slot: 4 }] } } as any),
     ];
-    state.selected = null;
+    useScreenStore().selected = null;
     seedLayout(null);
     const home = mount(HomeView);
     const cards = home.findAll(".home-card:not(.home-new)");
@@ -922,7 +923,7 @@ describe("HomeView: every screen with its home page (app 0.4.0)", () => {
     expect(cards[1].find(".home-name small").text()).toBe("Offline");
     expect(home.find(".home-head p").text()).toBe("1 of 2 online");
     await cards[1].trigger("click");
-    expect(state.selected).toBe("hall");
+    expect(useScreenStore().selected).toBe("hall");
     // The next test starts on the fixture's own grid again.
     state.documentGrid = null;
   });

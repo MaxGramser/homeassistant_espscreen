@@ -5,10 +5,11 @@ import { resizeChoices, resizeTile, select, setTileOption, state, tileSizeChoice
 import TileResize from '../src/components/TileResize.vue';
 import TileInspector from '../src/components/TileInspector.vue';
 import { useUiStore } from "../src/stores/ui";
+import { useScreenStore } from "../src/stores/screen";
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ states: {}, previews: [], capabilities: {} }))));
-  state.dirty = false; state.busy = false; state.selected = null;
+  state.dirty = false; state.busy = false; useScreenStore().selected = null;
   state.inventory = { screens: [screenFixture({ id: 'test', name: 'Test', firmware: '0.3.1', online: true,
     tile_sizes: ['single', 'wide', 'full', 'tall', 'square'],
     layout: { title: 'Home', tiles: [{ entity: 'light.test', name: 'Test', slot: 0 }] },

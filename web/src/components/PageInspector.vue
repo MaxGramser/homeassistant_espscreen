@@ -6,10 +6,9 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
 import { beginFieldEdit, endFieldEdit } from '../store';
-import { currentScreen, duplicateEditorPage, pageCopyable, homeKeyShown, pageTitleShown, movePage, moveWorkspacePage, openBar, openTile, pageReady, pageTitle, removePage, screenTitle,
-  setHomePage, setPageExcluded, setPageHomeControl, setPageTitle, state, topbarItems, topbarMax, workspacePositions } from "../store";
+import { duplicateEditorPage, pageCopyable, homeKeyShown, pageTitleShown, movePage, moveWorkspacePage, openBar, openTile, pageTitle, removePage, screenTitle, setHomePage, setPageExcluded, setPageHomeControl, setPageTitle, state, topbarItems, workspacePositions } from "../store";
 import { useTextDraft } from '../composables/useTextDraft';
-import { noTitle, setScreenTitle } from '../store';
+import { setScreenTitle } from "../store";
 import TopbarSvg from "./TopbarSvg.vue";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
@@ -17,6 +16,9 @@ import InspectorHead from "./ui/InspectorHead.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import HelpTip from "./HelpTip.vue";
+import { useScreenStore } from "../stores/screen";
+
+const scr = useScreenStore();
 
 const props = defineProps<{ id: string }>();
 const page = computed(() => state.document?.pages.find((item) => item.id === props.id));
@@ -32,7 +34,7 @@ function editRoute(tileId: string) { const tile = state.layout?.tiles.find((item
 // row keeps its own field, so nothing is set that nobody can see.
 const ownTitle = computed(() => count.value > 1 || !!pageTitle(index.value));
 // Firmware 0.17.0+ takes a screen without a title: an empty field leaves the home key alone in the top bar.
-const titleDraft = useTextDraft(screenTitle, setScreenTitle, () => !noTitle.value);
+const titleDraft = useTextDraft(screenTitle, setScreenTitle, () => !scr.noTitle);
 // A page's own title keeps the spaces you type while you type, and is saved without the ones at its ends (app 0.4.2).
 const pageTitleDraft = useTextDraft(() => page.value?.topbar.title.source === 'text' ? page.value.topbar.title.text : '', (value) => setPageTitle(index.value, value));
 const screenTitleOpen = ref(false);
@@ -44,7 +46,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
 <template>
   <template v-if="page">
     <InspectorHead kind="page" :title="t('editor.page.label', { page: index + 1 })" :icon="home ? 'home' : 'view-column-outline'"
-      :crumbs="[{ text: currentScreen?.name || '' }, { text: name(id) }]" />
+      :crumbs="[{ text: scr.currentScreen?.name || '' }, { text: name(id) }]" />
     <div class="dr-body">
       <Section :title="t('editor.pages.sections.title')" icon="format-title">
         <div v-if="ownTitle" class="f">
@@ -61,7 +63,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
           <input id="screen-title" :value="titleDraft.value.value" maxlength="60" :placeholder="t('editor.topbar.name_placeholder')"
             @focus="beginFieldEdit('screen-title'); titleDraft.focus()" @blur="endFieldEdit(); titleDraft.blur()"
             @input="titleDraft.input(($event.target as HTMLInputElement).value)" />
-          <small v-if="noTitle" class="help">{{ t('editor.topbar.no_title_hint') }}</small>
+          <small v-if="scr.noTitle" class="help">{{ t('editor.topbar.no_title_hint') }}</small>
         </div>
       </Section>
 
@@ -69,12 +71,12 @@ const tiles = computed(() => page.value?.tiles.length || 0);
         <div class="switch-row">
           <span class="sr-text"><span class="sr-label"><b>{{ t('editor.pages.is_home') }}</b><HelpTip :text="t('editor.pages.home_hint')" /></span></span>
           <span v-if="home" class="chip good"><Icon name="check" />{{ t('editor.pages.home_chip') }}</span>
-          <button v-else type="button" class="btn quiet mini" :disabled="!pageReady" @click="setHomePage(id)"><Icon name="home-outline" />{{ t('editor.pages.set_home') }}</button>
+          <button v-else type="button" class="btn quiet mini" :disabled="!scr.pageReady" @click="setHomePage(id)"><Icon name="home-outline" />{{ t('editor.pages.set_home') }}</button>
         </div>
         <SwitchRow class="page-check" :label="t('editor.pages.include_navigation')" :description="t('editor.pages.include_navigation_hint')"
-          :model-value="!page.navigation.excludeFromPagination" :disabled="!pageReady" @update:model-value="(on) => setPageExcluded(id, !on)" />
+          :model-value="!page.navigation.excludeFromPagination" :disabled="!scr.pageReady" @update:model-value="(on) => setPageExcluded(id, !on)" />
         <SwitchRow class="home-control" :label="t('editor.pages.home_control')"
-          :model-value="!!page.topbar.leading.length" :disabled="!pageReady" @update:model-value="(on) => setPageHomeControl(id, on)" />
+          :model-value="!!page.topbar.leading.length" :disabled="!scr.pageReady" @update:model-value="(on) => setPageHomeControl(id, on)" />
         <div v-if="count > 1" class="f">
           <span class="f-label"><span id="page-order-label">{{ t('editor.pages.order') }}</span><HelpTip :text="t('editor.pages.order_hint')" /></span>
           <Segmented id="page-order" :choices="orders" :value="index" aria-labelledby="page-order-label" @pick="(to) => movePage(index, Number(to))" />
@@ -84,7 +86,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
       <Section :title="t('editor.topbar.title')" icon="page-layout-header">
         <button type="button" class="nav-row" :aria-label="t('editor.pages.edit_topbar')" :title="t('editor.pages.edit_topbar')" @click="openBar(0, index)">
           <span class="bar-preview"><TopbarSvg :items="barItems" :name-text="pageTitleShown(index)" :home="homeKeyShown(index)" /></span>
-          <span class="nav-row-end"><small>{{ t('editor.topbar.items', { used: barItems.length }, topbarMax()) }}</small><Icon name="chevron-right" /></span>
+          <span class="nav-row-end"><small>{{ t('editor.topbar.items', { used: barItems.length }, scr.topbarMax) }}</small><Icon name="chevron-right" /></span>
         </button>
       </Section>
 

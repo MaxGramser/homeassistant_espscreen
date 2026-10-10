@@ -7,7 +7,7 @@ import LayoutView from "../src/components/LayoutView.vue";
 import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
 import TopbarInspector from '../src/components/TopbarInspector.vue';
-import { placeTile, dismissMigrationNote, pageReady, removeTile, resolveLayoutConflict, addPage, movePage } from '../src/store';
+import { placeTile, dismissMigrationNote, removeTile, resolveLayoutConflict, addPage, movePage } from "../src/store";
 import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo,
   acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, select, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
@@ -15,6 +15,7 @@ import { answerDialogs } from "./helpers/dialogs";
 import { setMedia } from "./helpers/browser";
 import type { PageDocument, Screen } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
+import { useScreenStore } from "../src/stores/screen";
 
 const record = () => state.inventory.screens[0].page_document as PageDocument;
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
@@ -28,7 +29,7 @@ beforeEach(() => {
     board: "guition", shape: { columns: 2, rows: 3, width: 480, height: 480 },
     layout: { title: "Home", pages: 2, tiles: [{ entity: "screen.page_2", name: "Controls", slot: 0 }] },
   } as Screen)], entities: [], icons: { groups: [], defaults: {}, weather: {}, sun: {}, controls: {}, fallback: "F0335" } } as any;
-  state.selected = null;
+  useScreenStore().selected = null;
   vi.stubGlobal("fetch", vi.fn(async () => reply({ states: {}, previews: [], capabilities: {} })));
   select("test");
 });
@@ -91,7 +92,7 @@ describe("one draft in both editor modes", () => {
   it('keeps verified page editing available offline without asking for an update', () => {
     Object.assign(state.inventory.screens[0], { online: false, page_capability: 'offline', page_last_capability: 'ready' });
     const view = mount(LayoutView);
-    expect(pageReady.value).toBe(true);
+    expect(useScreenStore().pageReady).toBe(true);
     expect(view.text()).not.toContain('Update screen to use the new titlebar and layout');
     expect(view.text()).toContain('Waiting for the screen to reconnect');
   });
@@ -113,7 +114,7 @@ describe("one draft in both editor modes", () => {
     vi.stubGlobal('fetch', vi.fn(async () => reply({ error: 'Home Assistant didn\'t take it.' }, 400)));
     const view = mount(LayoutView);
     await view.find('#allow-actions').trigger('click');
-    await vi.waitFor(() => expect(state.allowing).toBeNull());
+    await vi.waitFor(() => expect(useScreenStore().allowing).toBeNull());
     expect(view.find('#actions-blocked').exists()).toBe(true);
     expect(useUiStore().notice?.message).toContain("Home Assistant didn't take it.");
   });
