@@ -22,7 +22,7 @@ CONTROLS = (COMPONENT / 'tile_controls.h').read_text()
 RECEIVER = (COMPONENT / 'page_receiver.cpp').read_text()
 TILES = runtime_source()
 VALIDATION = (ROOT / 'web/src/model/page-validation.ts').read_text()
-INSPECTOR = (ROOT / 'web/src/components/TileInspector.vue').read_text()
+INSPECTOR = (ROOT / 'web/src/model/tile-options.ts').read_text()
 PALETTE = (ROOT / 'web/src/model/tile-palette.ts').read_text()
 
 

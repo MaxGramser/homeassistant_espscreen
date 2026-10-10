@@ -9,7 +9,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ActionPicker from "../src/components/ActionPicker.vue";
 import Drawer from "../src/components/Drawer.vue";
 import TileInspector from "../src/components/TileInspector.vue";
-import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
+import MapSection from "../src/components/inspector/MapSection.vue";
+import { canonicalOptions, choiceOffered, controlChoices, controlHint, displayChoices, displayHint, goesToChoices, goesToHint, sliderOffered, subChoices,
+  tapChoices, tapHint, tileControls, tileDisplay, type TilePanel } from "../src/model/tile-options";
+import { supportsFirmware } from "../src/model/layout";
+import { t } from "../src/i18n";
 import { validatePages } from "../src/model/pages";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
@@ -18,6 +22,9 @@ import { useScreenStore } from "../src/stores/screen";
 import { useInventoryStore } from "../src/stores/inventory";
 import { useDocumentStore } from "../src/stores/document";
 import { useInspectorStore } from "../src/stores/inspector";
+
+// A map card's own section of the panel (inspector/MapSection.vue).
+const mapOf = (panel: ReturnType<typeof mount>) => panel.findComponent(MapSection).vm as any;
 
 let insp: ReturnType<typeof useInspectorStore>;
 beforeEach(() => { insp = useInspectorStore(); });
@@ -273,20 +280,20 @@ describe("a map card in the panel (app 0.4.33)", () => {
     expect(panel.text()).toContain("Distance");
     // Device trackers with a place come in their own list (app 0.4.35): a car rides along like a person.
     useInventoryStore().inventory.trackers = [{ id: "device_tracker.car", name: "Car" }];
-    expect((panel.vm as any).mapOffered.map(([id]: [string]) => id)).toEqual(["person.q", "device_tracker.car"]);
-    (panel.vm as any).addMapEntity("person.q");
+    expect(mapOf(panel).offered.map(([id]: [string]) => id)).toEqual(["person.q", "device_tracker.car"]);
+    mapOf(panel).add("person.q");
     await nextTick();
     expect(current(tile)!.options).toMatchObject({ display: "map", framing: "home", map: ["person.q"] });
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
-    (panel.vm as any).addMapEntity("device_tracker.car");
+    mapOf(panel).add("device_tracker.car");
     expect(current(tile)!.options?.map).toEqual(["person.q", "device_tracker.car"]);
     expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
-    (panel.vm as any).removeMapEntity("device_tracker.car");
+    mapOf(panel).remove("device_tracker.car");
     expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
     const saved = doc.document!.pages.flatMap((page) => page.tiles)[0];
     expect(saved.appearance).toMatchObject({ display: "map", mapFraming: "home", mapEntities: ["person.q"] });
-    (panel.vm as any).removeMapEntity("person.q");
+    mapOf(panel).remove("person.q");
     expect(current(tile)!.options?.map).toBeUndefined();
     panel.unmount();
   });
@@ -315,7 +322,7 @@ describe("the map tile (app 0.4.36)", () => {
     panel.unmount();
     // Chosen starts with nobody: the list to add someone to.
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
-    (panel.vm as any).addMapEntity("person.q");
+    mapOf(panel).add("person.q");
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.text()).toContain("On the map");
@@ -330,5 +337,79 @@ describe("the map tile (app 0.4.36)", () => {
     expect(saved.content).toEqual({ kind: "builtin", name: "map" });
     expect(saved.appearance).toMatchObject({ display: "map", mapFollow: "chosen", mapEntities: ["person.q"] });
     panel.unmount();
+  });
+});
+
+describe("what the panel offers, as functions of the tile, Home Assistant and the firmware (tile-options.ts)", () => {
+  const at = (version: string): TilePanel["supports"] => (major, minor, patch) => supportsFirmware(version, major, minor, patch);
+  const panel = (more: Partial<TilePanel> = {}): TilePanel => ({ supports: at("0.53.0"), pictures: true, columns: 2, attributes: {}, rangeless: false, ...more });
+  const tile = (entity: string, options: Tile["options"] = {}): Tile => ({ id: "t", entity, name: "", slot: 0, options });
+  const keys = (choices: [string | number, string][]) => choices.map(([key]) => key);
+  const lights = { default: "toggle", choices: [{ key: "toggle", label: "On/off" }, { key: "brightness", label: "Brightness" }, { key: "none", label: "None" }] };
+
+  it("offers the faces the add-on saves, the board draws and Home Assistant has", () => {
+    expect(keys(displayChoices(tile("camera.door"), panel()))).toContain("live");
+    expect(keys(displayChoices(tile("person.p"), panel({ pictures: false })))).not.toContain("map");
+    expect(keys(displayChoices(tile("person.p", { display: "map" }), panel({ pictures: false })))).toContain("map");
+    const caps = { toggle: false, inline: false, controls: [], displays: ["standard"] };
+    expect(keys(displayChoices(tile("sensor.t"), panel({ caps })))).not.toContain("graph");
+    expect(keys(displayChoices(tile("sensor.t"), panel()))).toContain("graph");
+    expect(keys(displayChoices(tile("media_player.m", { size: "full" }), panel()))).not.toContain("favorite");
+    expect(tileDisplay(tile("screen.clock"))).toBe("digital");
+    expect(tileDisplay(tile("screen.settings", { display: "dial" }))).toBe("standard");
+  });
+
+  it("says what a face needs, a warning until the screen's firmware draws it", () => {
+    expect(displayHint(tile("camera.door", { display: "live" }), panel({ supports: at("0.3.0") }))?.warn).toBe(true);
+    expect(displayHint(tile("camera.door", { display: "live" }), panel())?.warn).toBe(false);
+    expect(displayHint(tile("camera.door", { display: "live", size: "tall" }), panel({ supports: at("0.3.3") }))?.warn).toBe(false);
+    expect(displayHint(tile("person.p", { display: "map" }), panel({ supports: at("0.19.0") }))?.warn).toBe(true);
+    expect(displayHint(tile("screen.clock", { display: "dial" }), panel({ supports: at("0.3.5") }))?.text).toBe(t("editor.tile.display.face_needs_firmware"));
+    expect(displayHint(tile("screen.clock", { display: "dial" }), panel())).toBeNull();
+    expect(displayHint(tile("light.a"), panel())).toBeNull();
+  });
+
+  it("offers the controls that fit the card and that Home Assistant has, and says when one is not offered", () => {
+    const wide = tile("light.a", { size: "wide" });
+    expect(keys(controlChoices(wide, panel({ catalogue: lights }), tileControls(wide, panel({ catalogue: lights }), "brightness")))).toEqual(["toggle", "brightness", "none"]);
+    const caps = { toggle: true, inline: true, controls: ["toggle"], displays: ["standard"] };
+    expect(keys(controlChoices(wide, panel({ catalogue: lights, caps }), "toggle"))).toEqual(["toggle", "none"]);
+    expect(controlHint(tile("light.a", { size: "wide", controls: "brightness" }), panel({ caps }), "brightness")).toEqual({ text: t("editor.tile.controls.not_offered"), warn: true });
+    expect(controlHint(wide, panel({ supports: at("0.2.18") }), "toggle").text).toBe(t("editor.tile.controls.needs_firmware"));
+    // A card two rows high has none until one is chosen; a slider there is the slider's own kind.
+    expect(tileControls(tile("light.a", { size: "tall" }), panel({ catalogue: lights }), "brightness")).toBe("none");
+    expect(tileControls(tile("light.a", { size: "tall", inline: "slider" }), panel({ catalogue: lights }), "brightness")).toBe("brightness");
+  });
+
+  it("offers a tap that switches only where Home Assistant can, an action except on a favourite, and a plugin's own", () => {
+    expect(keys(tapChoices(tile("automation.a"), panel(), "auto", []))).toEqual(["auto", "run", "none", "action"]);
+    expect(keys(tapChoices(tile("light.a"), panel({ caps: { toggle: false, inline: true, controls: [], displays: [] } }), "auto", []))).not.toContain("toggle");
+    expect(keys(tapChoices(tile("light.a"), panel(), "auto", []))).toContain("toggle");
+    expect(keys(tapChoices(tile("media_player.m", { display: "favorite" }), panel(), "auto", []))).not.toContain("action");
+    expect(keys(tapChoices(tile("climate.c"), panel(), "plugin:gone.tap", [["plugin:sched.open", "Schedule"]])).slice(-2)).toEqual(["plugin:sched.open", "plugin:gone.tap"]);
+  });
+
+  it("says what holding a tile does, and what a firmware or Home Assistant lacks for a tap", () => {
+    expect(tapHint(tile("automation.a"), panel({ supports: at("0.6.0") }), "auto")?.warn).toBe(true);
+    expect(tapHint(tile("automation.a"), panel(), "run")?.text).toBe(t("editor.tile.tap.hold_toggle"));
+    expect(tapHint(tile("light.a"), panel({ caps: { toggle: false, inline: true, controls: [], displays: [] } }), "toggle")?.warn).toBe(true);
+    expect(tapHint(tile("cover.c"), panel({ supports: at("0.2.57") }), "toggle")?.text).toBe(t("editor.tile.tap.toggle_needs_firmware"));
+    expect(tapHint(tile("light.a"), panel(), "detail")?.warn).toBe(false);
+    expect(tapHint(tile("sensor.t"), panel(), "auto")).toBeNull();
+  });
+
+  it("offers a value of the entity for the second line where Home Assistant names one, and the small slider on one row", () => {
+    expect(keys(subChoices(tile("light.a"), panel(), "auto", 0, ""))).toEqual(["auto", "none", "text"]);
+    expect(keys(subChoices(tile("light.a"), panel(), "auto", 2, "brightness"))).toEqual(["auto", "none", "attr", "text"]);
+    expect(sliderOffered(tile("light.a"), panel())).toBe(true);
+    expect(sliderOffered(tile("light.a", { size: "tall" }), panel())).toBe(false);
+    expect(sliderOffered(tile("switch.s"), panel())).toBe(false);
+  });
+
+  it("offers the pages there are and the next one for a Go to page tile", () => {
+    expect(goesToChoices(2, 3, 8, (n) => n === 4)).toEqual([[1, "1"], [2, "2"], [3, "3"], [4, t("editor.tile.goes_to.empty", { page: 4 })]]);
+    expect(goesToChoices(7, 2, 8, () => false).map(([n]) => n)).toEqual([1, 2, 3, 7]);
+    expect(goesToHint(5, 3, true)).toEqual({ text: t("editor.tile.goes_to.no_page", { page: 5 }), warn: true });
+    expect(goesToHint(2, 3, false).text).toBe(t("editor.tile.goes_to.needs_firmware"));
   });
 });
