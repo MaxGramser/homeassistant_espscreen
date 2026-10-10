@@ -165,8 +165,14 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
   `battery-adc.yaml` turn a voltage on a pin into one (docs/BATTERY.md).
 - A speaker and microphones: `packages/features/audio.yaml`, with the board's I2S buses, DAC and ADC in its own file,
   and how its DAC turns ESPHome's volume into decibels (`AUDIO_DAC_DB_AT_0`, `AUDIO_DAC_DB_AT_1`, from the codec's
-  datasheet or ESPHome's driver), so 0 to 100 % runs evenly in decibels up to the DAC's full scale. The screen is then a
-  media player in Home Assistant, and plugins that need a speaker or a microphone fit it.
+  datasheet or ESPHome's driver), so 0 to 100 % runs evenly in decibels up to the DAC's full scale. A board whose
+  microphone and speaker share one I2S bus sets `AUDIO_HALF_DUPLEX`, `AUDIO_MIC_BUS` and one `AUDIO_SAMPLE_RATE` for both
+  (the Waveshare P4 86 panel), and switches an amplifier around the sound itself. The screen is then a media player in
+  Home Assistant, and plugins that need a speaker or a microphone fit it.
+- Settings of its own, for hardware the other boards do not have (a volume, a microphone switch, waking when the board
+  is moved): an ESPHome entity in its files, a row on the screen through `BOOT_BOARD_SETTINGS`, words in the
+  translations and the key in its `boards.yaml` entry. They show under Extras on the screen, in the app's Screen
+  settings and in Home Assistant, all three the same entity (docs/SETTINGS.md, "A board's own settings").
 - A camera on the MIPI-CSI port: the board powers the sensor at start and names its I2C bus in `CAMERA_I2C` (the
   feature `camera_sensor`); the Screen camera plugin drives it.
 - The docs: `docs/<BOARD>.md` for what is particular to it and what has been tried on glass, the board table in

@@ -1352,7 +1352,10 @@
    "model": "Tab5 ST7121",
    "name": "M5Stack Tab5",
    "order": 16,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "new",
    "touch": "ST7121"
   },
@@ -1360,7 +1363,12 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
   "firmware": "0.53.0",
   "fonts": {
    "headline": 47,
@@ -2141,7 +2149,10 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 18,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -2149,7 +2160,11 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.53.0",
   "fonts": {
    "headline": 40,
@@ -4671,7 +4686,10 @@
    "model": "Tab5 ST7121",
    "name": "M5Stack Tab5",
    "order": 16,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "new",
    "touch": "ST7121"
   },
@@ -4679,7 +4697,12 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
   "firmware": "0.53.0",
   "fonts": {
    "headline": 47,
@@ -5460,7 +5483,10 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 18,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5468,7 +5494,11 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.53.0",
   "fonts": {
    "headline": 40,
@@ -5820,7 +5850,10 @@
    "model": "Tab5 ST7121",
    "name": "M5Stack Tab5",
    "order": 16,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "new",
    "touch": "ST7121"
   },
@@ -5828,7 +5861,12 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
   "firmware": "0.53.0",
   "fonts": {
    "headline": 47,
@@ -6609,7 +6647,10 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 18,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -6617,7 +6658,11 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.53.0",
   "fonts": {
    "headline": 40,

@@ -70,8 +70,27 @@ credentials. See ESPHome's [coprocessor update documentation](https://esphome.io
 This board file uses **Wi-Fi only**. The board has Ethernet hardware, but this version does not
 configure Ethernet. Ethernet support is planned as a separate contribution.
 
-Relays, RS485, microSD and audio are not configured by this board file. The model name describes
-the hardware fitted to the board; it does not mean these peripherals are enabled in firmware.
+Relays, RS485 and microSD are not configured by this board file. The model name describes the
+hardware fitted to the board; it does not mean these peripherals are enabled in firmware.
+
+## Audio
+
+The speaker (an ES8311 and an amplifier on GPIO53) and the microphones (an ES7210) are the screen's
+audio through `features/audio.yaml`: a media player in Home Assistant, a Volume and a Microphone
+setting under Extras, and the speaker and microphone that plugins such as the voice assistant use.
+Both codecs share one I2S bus, which ESPHome lets them take in turns, so the board sets
+`AUDIO_HALF_DUPLEX`:
+
+- the bus runs at 16 kHz for both;
+- the speaker lets go of the bus half a second after a sound, and the amplifier follows the sound,
+  on while it plays and off just before the bus stops, so the DAC's clock is not heard;
+- the microphone pauses while the media player plays (an announcement, an answer, music) and
+  listens again after, so a wake word does not hear during that time;
+- a short sound a plugin plays while the microphone listens (a voice assistant's wake sound) does
+  not play.
+
+This replaces the `p4_audio` plugin, which brought the codecs to this board before. The audio has
+been built for this board but not yet heard on one.
 
 For Docker Desktop builds, keep compiler and build caches in container-local storage rather than
 a macOS shared folder. The first build still has to obtain its dependencies; see

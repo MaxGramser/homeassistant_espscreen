@@ -9,6 +9,10 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  # The speaker and the two microphones as the screen's audio (features/audio.yaml), with the amplifier following the
+  # sound (features/audio-amplifier.yaml): its hardware below.
+  audio: !include ../features/audio.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -31,13 +35,31 @@ substitutions:
   TOUCH_CONTROLLER: "ST7121"                    # The ESPHome driver is named st7123; the glass reports ST7121.
   TOUCH_TEST_READY_LOG: "ST7121 touch test ready; no tile actions"
 
+  # The audio (features/audio.yaml), as ESPHome's own Tab5 configuration and M5Stack's BSP wire it: an ES8388 for the
+  # speaker and an ES7210 for the microphones on one I2S bus, which ESPHome lets them take in turns. The ES8388 turns
+  # ESPHome's volume into its DAC register from -96 dB at 0 to 0 dB at 1, half a decibel a step.
+  AUDIO_HALF_DUPLEX: "true"
+  AUDIO_MIC_BUS: ts_speaker_bus
+  AUDIO_DOUT_PIN: GPIO26
+  AUDIO_DIN_PIN: GPIO28
+  AUDIO_DAC_DB_AT_0: "-96"
+  AUDIO_DAC_DB_AT_1: "0"
+  AUDIO_AMPLIFIER: board_speaker_amp
+
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the SC2356 on the MIPI-CSI port answers on the
+  # system I2C bus, and takes its 24 MHz clock from GPIO36, as M5Stack's BSP drives it. A camera plugin drives it
+  # (screen_camera).
+  CAMERA_I2C: tab5_bus
+  CAMERA_XCLK_PIN: "36"
+
 # ============================================================
 # No need to edit below this line.
 # ============================================================
 
 esphome:
-  # M5STACK-TAB5-ST7121 and the st7123 touch driver are available from ESPHome 2026.7.0.
-  min_version: 2026.7.0
+  # M5STACK-TAB5-ST7121 and the st7123 touch driver are available from ESPHome 2026.7.0; the screen's audio
+  # (features/audio.yaml: the speaker_source media player, resamplers) is built and tried on 2026.9.0.
+  min_version: 2026.9.0
 
 # The factory firmware identifies this variant as ST7121. ESPHome currently exposes the compatible touch protocol
 # through its st7123 platform; on this board the reset is driven by the I/O expander.
@@ -69,3 +91,32 @@ display:
       number: 4
     update_interval: never
     auto_clear_enabled: false
+
+# The audio: both codecs on the system I2C bus, one I2S bus for both (pins of M5Stack's BSP, m5stack_tab5.h), and the
+# speaker's amplifier on pin 1 of the first I/O expander (SPK_EN).
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: GPIO30
+    i2s_bclk_pin: GPIO27
+    i2s_lrclk_pin: GPIO29
+
+audio_adc:
+  - platform: es7210
+    id: ts_audio_adc
+    i2c_id: tab5_bus
+    sample_rate: 16000
+    bits_per_sample: 16bit
+
+audio_dac:
+  - platform: es8388
+    id: ts_audio_dac
+    i2c_id: tab5_bus
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    restore_mode: ALWAYS_OFF
+    pin:
+      pi4ioe5v6408: tab5_ioe
+      number: 1
