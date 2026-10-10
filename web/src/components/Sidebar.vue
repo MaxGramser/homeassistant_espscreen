@@ -141,9 +141,9 @@ const lastLog = () => {
         :aria-label="t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold')" v-tooltip="tip('fold', t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold'), true)"
         @click="sidebar.toggle()"><Icon name="dock-left" /></button>
     </div>
-    <span v-if="!inv.reachable || !inv.connected" id="connection" class="conn" role="status"
-      v-tooltip="tip('conn', !inv.reachable ? t('editor.sidebar.connection.unreachable') : t('editor.sidebar.connection.reconnecting'))">
-      <Icon name="wifi-off" class="conn-icon" /><span class="conn-text">{{ !inv.reachable ? t("editor.sidebar.connection.unreachable") : t("editor.sidebar.connection.reconnecting") }}</span>
+    <!-- The add-on out of reach is the line over the page's (ConnectionBar); here only Home Assistant away from the add-on. -->
+    <span v-if="inv.reachable && !inv.connected" id="connection" class="conn" role="status" v-tooltip="tip('conn', t('editor.sidebar.connection.reconnecting'))">
+      <Icon name="wifi-off" class="conn-icon" /><span class="conn-text">{{ t("editor.sidebar.connection.reconnecting") }}</span>
     </span>
     <button type="button" class="search-btn" id="open-palette" data-tip="search" v-tooltip="tip('search', `${t('editor.sidebar.search')} ⌘K`)" :aria-label="t('editor.sidebar.search')"
       @click="ui.palette = true"><Icon name="magnify" /><span class="txt">{{ t("editor.sidebar.search") }}</span><kbd>⌘K</kbd></button>

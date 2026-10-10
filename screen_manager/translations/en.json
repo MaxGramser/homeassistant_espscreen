@@ -1455,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Management page unreachable · retrying…",
         "reconnecting": "Reconnecting to Home Assistant…"
       },
       "search": "Search",
@@ -2994,6 +2993,11 @@
       "elsewhere_hint": "Its changes are not saved yet.",
       "take_over": "Take over here",
       "keep_mine": "Keep mine"
+    },
+    "connection": {
+      "lost": "ESP Screen Manager can't be reached.",
+      "lost_hint": "Your changes stay here. Trying again…",
+      "restored": "Connection restored"
     },
     "phone": {
       "screens": "Screens",

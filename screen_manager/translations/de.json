@@ -1455,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Verwaltungsseite nicht erreichbar · neuer Versuch…",
         "reconnecting": "Verbinde erneut mit Home Assistant…"
       },
       "search": "Suchen",
@@ -3344,6 +3343,11 @@
       "elsewhere_hint": "Die Änderungen dort sind noch nicht gespeichert.",
       "take_over": "Hier übernehmen",
       "keep_mine": "Meine behalten"
+    },
+    "connection": {
+      "lost": "ESP Screen Manager ist nicht erreichbar.",
+      "lost_hint": "Deine Änderungen bleiben hier. Neuer Versuch…",
+      "restored": "Verbindung wiederhergestellt"
     },
     "phone": {
       "screens": "Bildschirme",

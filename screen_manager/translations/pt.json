@@ -1455,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Página de gestão inacessível · a tentar novamente…",
         "reconnecting": "A ligar novamente ao Home Assistant…"
       },
       "search": "Procurar",
@@ -3344,6 +3343,11 @@
       "elsewhere_hint": "As alterações ainda não foram guardadas.",
       "take_over": "Continuar aqui",
       "keep_mine": "Manter as minhas"
+    },
+    "connection": {
+      "lost": "Não é possível contactar o ESP Screen Manager.",
+      "lost_hint": "As suas alterações ficam aqui. A tentar novamente…",
+      "restored": "Ligação restabelecida"
     },
     "phone": {
       "screens": "Ecrãs",

@@ -142,16 +142,22 @@ export const useInventoryStore = defineStore("inventory", () => {
 
   // ---- The live stream, and the polls that stand in for it ----
   // Live updates arrive over server-sent events; polling is the fallback while the stream is down, plus a full catalogue
-  // refresh every five minutes. Nothing is polled while the tab is hidden: a hidden tab would keep the add-on busy, and it
-  // is read in full again when it is shown.
+  // refresh every five minutes. Nothing is polled while the tab is hidden, and a stream given up is opened again only once
+  // the tab is shown: a hidden tab would keep the add-on busy, and it is read in full again when it is shown. A stream that
+  // opens or speaks proves the add-on is there again; one that opens after it could not be reached reads what changed
+  // meanwhile at once, rather than at the next full refresh.
   let following = false, live = false, stream: EventSource | null = null, busy: () => boolean = () => false;
   let pollTimer = 0, reconnectTimer = 0, reconnects = 0, lastFull = 0;
   function listen() {
-    if (stream || !following || typeof EventSource === "undefined") return;
+    if (stream || !following || typeof EventSource === "undefined" || document.hidden) return;
     // An EventSource sends no headers of its own: the editor's language goes along in the address (app 0.2.90).
     const source = (stream = new EventSource(`api/events?language=${encodeURIComponent(editorLanguage())}`));
-    source.onopen = () => { live = true; reconnects = 0; poll(); };
-    source.onmessage = (e) => { if (!document.hidden) applyLive(JSON.parse(e.data)); };
+    source.onopen = () => {
+      live = true; reconnects = 0;
+      if (!reachable.value) void refresh(false);
+      poll();
+    };
+    source.onmessage = (e) => { reachable.value = true; if (!document.hidden) applyLive(JSON.parse(e.data)); };
     source.onerror = () => {
       live = false;
       poll();
@@ -192,6 +198,7 @@ export const useInventoryStore = defineStore("inventory", () => {
       useEventListener(document, "visibilitychange", async () => {
         if (document.hidden) return;
         lastFull = Date.now();
+        listen();
         await refresh();
         poll();
       });

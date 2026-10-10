@@ -15,6 +15,9 @@
 - **A second tab knows.** When another tab of the same browser has unsaved changes to the screen you have open, Layout
   says so before anyone saves, with Take over here (its changes come to this tab, and Undo takes them back) and Keep
   mine. A tab that closes stops counting.
+- **The connection is visible.** While ESP Screen Manager can't be reached (it restarts or updates), a calm line over
+  the page says so and that your changes stay; when it is back the line says "Connection restored" and goes. The editor
+  follows it again at once, and nothing is asked while the tab is hidden, the screen preview included.
 - **Undo says what it does.** Undo and Redo in Layout name the step they take back or do again ("Undo: Kitchen light
   moved to page 2"), and after an undo a short note says what came back, with Redo beside it, so a change on a page out
   of sight never goes unnoticed.

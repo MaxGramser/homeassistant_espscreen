@@ -1455,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Beheerpagina niet bereikbaar · opnieuw proberen…",
         "reconnecting": "Verbinding met Home Assistant herstellen…"
       },
       "search": "Zoeken",
@@ -2994,6 +2993,11 @@
       "elsewhere_hint": "De wijzigingen daar zijn nog niet opgeslagen.",
       "take_over": "Hier overnemen",
       "keep_mine": "Mijne houden"
+    },
+    "connection": {
+      "lost": "ESP Screen Manager is niet bereikbaar.",
+      "lost_hint": "Je wijzigingen blijven hier. Opnieuw proberen…",
+      "restored": "Verbinding hersteld"
     },
     "phone": {
       "screens": "Schermen",

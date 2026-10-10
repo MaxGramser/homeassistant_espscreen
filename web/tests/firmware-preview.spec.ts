@@ -5,6 +5,7 @@ import createModule from "../src/wasm/firmware_preview.js";
 import { api, send } from "../src/api";
 import { useInventoryStore } from "../src/stores/inventory";
 import { useDocumentStore } from "../src/stores/document";
+import { setHidden } from "./helpers/browser";
 
 vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
 vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn() }));
@@ -126,6 +127,20 @@ describe("Firmware preview transport", () => {
     expect(layouts()).toEqual(["Test panel"]);
     await vi.advanceTimersByTimeAsync(200);
     expect(layouts()).toEqual(["Test panel", "Hall"]);
+  });
+
+  it("asks nothing while the tab is hidden, and what came due once it is shown again", async () => {
+    const asked = () => vi.mocked(send).mock.calls.filter(([path]) => path === "firmware-preview").length;
+    await preview();
+    expect(asked()).toBe(1);
+    setHidden(true);
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(asked()).toBe(1);
+    setHidden(false);
+    await flushPromises();
+    expect(asked()).toBe(2);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(asked()).toBe(3);
   });
 
   it("keeps the device session and page on value-only refreshes", async () => {

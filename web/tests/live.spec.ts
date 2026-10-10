@@ -135,4 +135,41 @@ describe("the live stream", () => {
     expect(vi.getTimerCount()).toBe(0);
     expect(lastStream()!.readyState).toBe(FakeEventSource.CLOSED);
   });
+
+  it("knows the add-on is back as soon as a new stream opens, and reads what changed meanwhile at once", async () => {
+    const inventory = useInventoryStore();
+    const stop = inventory.start();
+    await vi.advanceTimersByTimeAsync(0);
+    lastStream()!.open();
+    // The add-on restarts: the stream is given up, the poll fails.
+    answer = () => new Response("Bad gateway", { status: 502 });
+    lastStream()!.fail(true);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(inventory.reachable).toBe(false);
+    answer = ok;
+    const before = inventories().length;
+    // Back: the next stream opens before the next poll, and the page reads the inventory at once.
+    lastStream()!.open();
+    await vi.advanceTimersByTimeAsync(0);
+    expect([inventory.reachable, inventories().length - before]).toEqual([true, 1]);
+    // A message on the stream says so as well.
+    inventory.reachable = false;
+    lastStream()!.send({ connected: true });
+    expect(inventory.reachable).toBe(true);
+    stop();
+  });
+
+  it("opens no new stream while the tab is hidden, and opens it when the tab is shown", async () => {
+    const stop = useInventoryStore().start();
+    await vi.advanceTimersByTimeAsync(0);
+    setHidden(true);
+    const count = FakeEventSource.streams.length;
+    lastStream()!.fail(true);
+    await vi.advanceTimersByTimeAsync(120000);
+    expect(FakeEventSource.streams).toHaveLength(count);
+    setHidden(false);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(FakeEventSource.streams).toHaveLength(count + 1);
+    stop();
+  });
 });

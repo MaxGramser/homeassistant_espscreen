@@ -1455,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Strona zarządzania nieosiągalna · ponawianie…",
         "reconnecting": "Ponowne łączenie z Home Assistant…"
       },
       "search": "Szukaj",
@@ -3344,6 +3343,11 @@
       "elsewhere_hint": "Jego zmiany nie są jeszcze zapisane.",
       "take_over": "Przejmij tutaj",
       "keep_mine": "Zachowaj moje"
+    },
+    "connection": {
+      "lost": "Brak połączenia z ESP Screen Manager.",
+      "lost_hint": "Twoje zmiany zostają tutaj. Ponawianie…",
+      "restored": "Połączenie przywrócone"
     },
     "phone": {
       "screens": "Ekrany",

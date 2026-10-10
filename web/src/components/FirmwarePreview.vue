@@ -2,7 +2,7 @@
 // The shared firmware and LVGL in WebAssembly, fed the same packets a screen gets. `still` shows a layout without
 // touch at a few frames a second (the home page); otherwise it takes taps and swipes, and `controls` decides whether
 // a tap on a tile reaches Home Assistant.
-import { useElementVisibility, useRafFn, useTimeoutFn } from "@vueuse/core";
+import { useDocumentVisibility, useElementVisibility, useRafFn, useTimeoutFn } from "@vueuse/core";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { FirmwarePreviewModule } from "../wasm/firmware_preview.js";
 import { loadFirmware } from "../wasm/load";
@@ -44,8 +44,13 @@ const LAYOUT_PAUSE = 200;
 const layout = () => props.layout === undefined ? doc.document : props.layout;
 // The states again every ten seconds after the last time (a fallback for the live stream), soon after the stream says
 // something changed, and once typing pauses; every wait goes with the preview.
-const refreshLater = useTimeoutFn(() => receive(), 10000, { immediate: false });
-const refreshSoon = useTimeoutFn(() => receive(), 100, { immediate: false });
+// A hidden tab asks nothing: what came due meanwhile is asked for once the tab is shown again.
+const sight = useDocumentVisibility();
+let due = false;
+const whenInSight = () => { if (sight.value === "hidden") due = true; else receive(); };
+watch(sight, (now) => { if (now === "visible" && due) { due = false; receive(); } });
+const refreshLater = useTimeoutFn(whenInSight, 10000, { immediate: false });
+const refreshSoon = useTimeoutFn(whenInSight, 100, { immediate: false });
 const layoutPause = useTimeoutFn(() => receive(), LAYOUT_PAUSE, { immediate: false });
 // One frame each time the browser draws; a still screen only while it is in sight (useElementVisibility).
 const frames = useRafFn(draw, { immediate: false });

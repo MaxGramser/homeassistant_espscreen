@@ -1455,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "A kezelőoldal nem érhető el · újrapróbálás…",
         "reconnecting": "Újracsatlakozás a Home Assistanthoz…"
       },
       "search": "Keresés",
@@ -3344,6 +3343,11 @@
       "elsewhere_hint": "A módosítások ott még nincsenek mentve.",
       "take_over": "Átvétel ide",
       "keep_mine": "Az enyém marad"
+    },
+    "connection": {
+      "lost": "Az ESP Screen Manager nem érhető el.",
+      "lost_hint": "A módosításaid itt maradnak. Újrapróbálkozás…",
+      "restored": "A kapcsolat helyreállt"
     },
     "phone": {
       "screens": "Képernyők",

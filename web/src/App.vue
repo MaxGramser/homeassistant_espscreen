@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar.vue";
 import Toast from "./components/Toast.vue";
 import CommandPalette from "./components/CommandPalette.vue";
 import ConfirmDialog from "./components/ConfirmDialog.vue";
+import ConnectionBar from "./components/ConnectionBar.vue";
 import ScreenView from "./components/ScreenView.vue";
 import EmptyState from "./components/EmptyState.vue";
 import HomeView from "./components/HomeView.vue";
@@ -52,6 +53,7 @@ onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !q
     <!-- On a phone the overview and a screen carry their own way around (app 0.4.40): the sidebar's row stays for the rest. -->
     <Sidebar v-if="!(ui.phone && ui.route === '')" />
     <main class="main">
+      <ConnectionBar />
       <component :is="view" />
     </main>
     <Toast />
