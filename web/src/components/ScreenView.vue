@@ -5,8 +5,8 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
 import {
-  buildOf, canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, goHome,
-  identify, importLayout, openBar, redo, renameScreen, save, startUpdate, state, tileLimit, undo,
+  canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, goHome, identify,
+  importLayout, openBar, redo, renameScreen, save, state, tileLimit, undo,
 } from "../store";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
@@ -23,8 +23,10 @@ import UiMenuLabel from "./ui/UiMenuLabel.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import UiMenuSub from "./ui/UiMenuSub.vue";
 import { useUiStore } from "../stores/ui";
+import { useBuildsStore } from "../stores/builds";
 
 const ui = useUiStore();
+const builds = useBuildsStore();
 
 const screen = computed(() => currentScreen.value!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
@@ -128,7 +130,7 @@ useEventListener(document, "keydown", onKey);
       </button>
       <button v-if="!screen.virtual && pluginsEnabled" type="button" id="tab-plugins" role="tab" :aria-pressed="state.tab === 'plugins' ? 'true' : 'false'" :aria-selected="state.tab === 'plugins'" @click="state.tab = 'plugins'; closeInspector()">
         <Icon name="puzzle-outline" />{{ t("editor.screen_view.tabs.plugins") }}
-        <span v-if="buildOf(screen)?.by === 'plugins'" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span>
+        <span v-if="builds.buildOf(screen)?.by === 'plugins'" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span>
       </button>
     </div>
     <div class="head-right">
@@ -162,7 +164,7 @@ useEventListener(document, "keydown", onKey);
         <UiMenuItem id="identify" icon="monitor-eye" :hint="t('editor.screen_view.menu.identify_hint')" :disabled="!canAlert(screen) || !screen.online"
           :title="canAlert(screen) ? '' : t('editor.screen_view.menu.identify_needs')" @select="identify(screen)">{{ t("editor.screen_view.menu.identify") }}</UiMenuItem>
         <UiMenuItem id="inspect" icon="database-search-outline" @select="inspectAll">{{ t("editor.common.read_current_data") }}</UiMenuItem>
-        <UiMenuItem v-if="updateReady" id="update-screen" icon="update" :hint="screen.update?.target" @select="startUpdate(screen)">{{ t("editor.screen_view.menu.update") }}</UiMenuItem>
+        <UiMenuItem v-if="updateReady" id="update-screen" icon="update" :hint="screen.update?.target" @select="builds.startUpdate(screen)">{{ t("editor.screen_view.menu.update") }}</UiMenuItem>
         <UiMenuSeparator />
         <UiMenuLabel>{{ t("editor.screen_view.menu.group_layout") }}</UiMenuLabel>
         <UiMenuSub id="copy-layout" icon="content-copy" :label="t('editor.screen_view.menu.copy')" :disabled="!others.length"

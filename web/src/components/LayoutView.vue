@@ -10,7 +10,7 @@ import { useAtMost } from "../composables/useWidths";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { closeInspector, currentScreen, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, startUpdate, state, supports, tileLimit, undo } from "../store";
+import { closeInspector, currentScreen, deviceStyle, gridChanged, isCompact, pageReachWarning, pagesShown, pageTitleShown, redo, reviewScreenGrid, setEditorMode, state, supports, tileLimit, undo } from "../store";
 import PhonePages from "./PhonePages.vue";
 import PageWizard from "./PageWizard.vue";
 import DevicePage from "./DevicePage.vue";
@@ -25,8 +25,10 @@ import type { IconName } from '../model/ui-icons';
 import { allowActions, dismissMigrationNote, resolveLayoutConflict, startFreshLayout } from '../store';
 import { titleOf } from '../model/pages';
 import { useUiStore } from "../stores/ui";
+import { useBuildsStore } from "../stores/builds";
 
 const ui = useUiStore();
+const builds = useBuildsStore();
 const droppedTiles = computed(() => currentScreen.value?.page_document?.format === 'pages-v2'
   ? currentScreen.value.page_document.migration?.droppedTiles || [] : []);
 const adjustedFields = computed(() => currentScreen.value?.page_document?.format === 'pages-v2'
@@ -136,7 +138,7 @@ function onCanvasClick(e: MouseEvent) {
     <div v-if="currentScreen?.page_capability === 'offline'" class="notice" role="status"><Icon name="information-outline" /><span class="notice-text">{{ t('editor.pages.offline_notice') }}</span></div>
     <div v-if="currentScreen?.page_capability === 'update_screen'" class="notice" role="status">
       <Icon name="update" /><span class="notice-text">{{ t('editor.pages.update_notice') }}</span>
-      <button v-if="currentScreen?.online && currentScreen.update?.profile" type="button" class="btn primary mini" @click="startUpdate(currentScreen)">{{ t('editor.screen_view.menu.update') }}</button>
+      <button v-if="currentScreen?.online && currentScreen.update?.profile" type="button" class="btn primary mini" @click="builds.startUpdate(currentScreen)">{{ t('editor.screen_view.menu.update') }}</button>
     </div>
     <div v-if="state.conflict" class="notice warn" role="alert">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.conflict') }}</span>

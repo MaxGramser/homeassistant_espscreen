@@ -484,12 +484,14 @@ class Editor(unittest.TestCase):
     def test_updates_show_their_notes_and_progress(self):
         import editor_sources
         status = editor_sources.source('model/screen-status.ts')
+        builds = editor_sources.source('stores/builds.ts')
         self.assertIn('export function whatsNew', status)
-        self.assertIn('export const whatsNew', self.store)
-        # Every build's progress, an update's as a plugin build's, from the store's one source (buildOf, Manager.builds).
+        self.assertIn('const whatsNew = (screen: Screen) => status.whatsNew(', builds)
+        # Every build's progress, an update's as a plugin build's, from the builds store's one source (buildOf,
+        # Manager.builds).
         self.assertIn('export function buildProgress', status)
-        self.assertIn('export const buildProgress', self.store)
-        self.assertIn('export const buildOf', self.store)
+        self.assertIn('const buildProgress = (screen: Screen) => status.buildProgress(', builds)
+        self.assertIn('const buildOf = (screen: Screen): Build | null => state.inventory.builds?.[screen.id]', builds)
         for marker in ('class="whatsnew"', 'role="progressbar"', "go('#firmware')"):
             self.assertIn(marker, self.page, marker)
 

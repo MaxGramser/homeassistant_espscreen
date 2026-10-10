@@ -35,6 +35,7 @@ import { renewable, usePreference } from "./composables/usePreference";
 import { useClock } from "./composables/useClock";
 import { askConfirm } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
+import { useBuildsStore } from "./stores/builds";
 import { useRegionStore } from "./stores/region";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
 
@@ -104,14 +105,12 @@ const fresh = () => ({
   topbarAdded: null as null | { key: string; time: number },
   settingEdits: {} as Record<string, { value: any; at: number }>,
   settingPending: false,
-  updating: [] as string[],
   // The screen whose removal is running, so its button waits instead of being pressed twice (app 0.2.112).
   removing: null as string | null,
   // The screen whose actions are being allowed (app 0.4.73).
   allowing: null as string | null,
   drag: { active: false, moving: null, preview: null, page: null } as DragState,
   liveStates: {} as Record<string, Live>,
-  firmwareJob: null as null | { job: any; logs: string[] },
 });
 export const state = reactive({
   ...fresh(),
@@ -1339,7 +1338,7 @@ export async function removeScreen(screen: Screen) {
     const name = result?.name || screen.name;
     // The screen that was open closes without asking about its edits: its layout went with it.
     if (state.selected === screen.id) forgetOpenScreen();
-    state.updating = state.updating.filter((id) => id !== screen.id);
+    useBuildsStore().forget(screen.id);
     state.inventory.screens = state.inventory.screens.filter((s) => s.id !== screen.id);
     toast(result?.kept?.length
       ? t("editor.sidebar.remove.kept", { name, file: result.kept[0] })
@@ -1504,50 +1503,6 @@ export async function importLayout(text: string) {
     if (state.selected === screen && selection === selectionEpoch) adopt(record, t("editor.layout.imported"));
   } catch (error: any) { toast(error.message); }
 }
-
-// ---- Updates with content (app 0.2.73): what a screen gets (model/screen-status.ts) ----
-export const whatsNew = (screen: Screen) => status.whatsNew(screen, state.inventory.changelog, state.inventory.updates?.target);
-// ---- The add-on's firmware job (api/firmware), asked for once whoever follows it ----
-// New screen, Firmware & USB, a YAML check and the build log all read the same answer: whoever asks while a request is on
-// its way gets its answer, and one asking with `fresh` (how old an answer may be) takes the last one when it is that
-// young. The one poll they all follow is composables/useFirmwareJob.ts. The newest answer is firmwareAnswer, and the job
-// and its log are kept for the build log (BuildLog).
-export const FIRMWARE_POLL_MS = 3000;
-const answer = shallowRef<any>(null);
-/** The add-on's newest answer about its firmware job, whoever asked for it. */
-export const firmwareAnswer = () => answer.value;
-let firmwareFlight: Promise<any> | null = null, firmwareAt = 0;
-export function fetchFirmware(fresh = 0): Promise<any> {
-  if (fresh && answer.value && Date.now() - firmwareAt < fresh) return Promise.resolve(answer.value);
-  if (firmwareFlight) return firmwareFlight;
-  const flight: Promise<any> = getJson("firmware").then((data) => {
-    if (firmwareFlight === flight) {
-      answer.value = data; firmwareAt = Date.now();
-      state.firmwareJob = { job: data.job, logs: data.logs || [] };
-    }
-    return data;
-  }).finally(() => { if (firmwareFlight === flight) firmwareFlight = null; });
-  return (firmwareFlight = flight);
-}
-export async function loadFirmwareJob() {
-  try { await fetchFirmware(); } catch { /* Keep what we have. */ }
-}
-// ---- Builds: one source for "something is building" ----
-// The add-on says per screen what is being built for it now, whoever asked (inventory.builds, Manager.builds): an update,
-// a plugin build, an install from Firmware & USB. Every part of the page that shows a build reads it here: the screen
-// list, the Plugins entry and tab, the settings' Updates card and the build log. `state.updating` holds the screens the
-// page just asked to build, for the moment until the add-on's builds name them.
-export const buildOf = (screen: Screen): Build | null => state.inventory.builds?.[screen.id] ?? null;
-const asked = (screen: Screen) => state.updating.includes(screen.id);
-const building = (screen: Screen): status.Building => ({ build: buildOf(screen), asked: asked(screen) });
-export const isBuilding = (screen: Screen) => status.isBuilding(building(screen));
-export const anyBuilding = () => Object.values(state.inventory.builds || {}).some((build) => build.state === "running") || state.updating.length > 0;
-// The screens with a build on the way, running first.
-export const buildingScreens = () => state.inventory.screens.filter((screen) => buildOf(screen) || asked(screen))
-  .sort((a, b) => Number(isBuilding(b)) - Number(isBuilding(a)));
-// What a running build is doing in words, and how far it is (model/screen-status.ts).
-export const buildText = (screen: Screen) => status.buildText(screen, buildOf(screen));
-export const buildProgress = (screen: Screen) => status.buildProgress(screen, building(screen));
 
 // ---- Top bar ----
 // Without a stored top bar the screen shows what it always did: the clock of show_clock.
@@ -1757,35 +1712,7 @@ export function settleSettings() {
   }
 }
 
-// ---- Updates ----
-// `reinstall` builds the screen again although it runs this firmware: the dev channel's newest dev keeps its number.
-export async function startUpdate(screen: Screen, host?: string, reinstall = false) {
-  state.updating.push(screen.id);
-  try {
-    await send(`screens/${encodeURIComponent(screen.id)}/update`, "POST", { ...(host ? { host } : {}), ...(reinstall ? { reinstall } : {}) });
-    await refresh();
-  } catch (e: any) {
-    state.updating = state.updating.filter((id) => id !== screen.id);
-    toast(e.message);
-  }
-}
-export async function runUpdateAll() {
-  try {
-    await send("updates/run", "POST");
-    await refresh();
-  } catch (e: any) {
-    toast(e.message);
-  }
-}
-export async function setAutoUpdate(auto: boolean) {
-  try {
-    await send("updates", "PUT", { auto });
-    if (state.inventory.updates) state.inventory.updates.auto = auto;
-    toast(t(auto ? "editor.settings.updates.auto_on" : "editor.settings.updates.auto_off"));
-  } catch (e: any) {
-    toast(e.message);
-  }
-}
+// ---- The Tessera skill for Claude Code in Home Assistant (Settings), which the add-on writes ----
 export async function installClaudeSkill() {
   try {
     state.inventory.claude_skill = await send("claude-skill", "POST");
@@ -1798,7 +1725,7 @@ export async function installClaudeSkill() {
 // ---- A screen's status, as the sidebar and the overview show it (model/screen-status.ts) ----
 // The screens' language by its own name (stores/region.ts), for what an update brings.
 const screensLanguage = () => useRegionStore().languageName(state.inventory.language?.effective);
-const facts = (screen: Screen): status.StatusFacts => ({ ...building(screen), language: screensLanguage(), now: Date.now() });
+const facts = (screen: Screen): status.StatusFacts => ({ ...useBuildsStore().building(screen), language: screensLanguage(), now: Date.now() });
 export const newLanguageText = () => status.newLanguageText(screensLanguage());
 export const updateState = (screen: Screen) => status.updateState(screen, facts(screen));
 export const screenLight = (screen: Screen) => status.screenLight(screen, facts(screen));
@@ -1860,7 +1787,7 @@ export async function refresh(full = true) {
     if (data.csrf) setCsrf(data.csrf);
     state.connected = Boolean(state.inventory.connected);
     state.reachable = true;
-    for (const screen of state.inventory.screens) if (buildOf(screen)) state.updating = state.updating.filter((id) => id !== screen.id);
+    useBuildsStore().prune();
     if (state.selected) { settleSettings(); reconcileDocument(); }
   } catch {
     state.reachable = false;
@@ -1870,7 +1797,7 @@ function applyLive(data: Partial<Inventory>) {
   state.inventory = { ...state.inventory, ...data } as Inventory;
   state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtualScreens()];
   state.connected = Boolean(state.inventory.connected);
-  for (const screen of state.inventory.screens) if (buildOf(screen)) state.updating = state.updating.filter((id) => id !== screen.id);
+  useBuildsStore().prune();
   if (state.selected) { settleSettings(); reconcileDocument(); }
 }
 let pollTimer = 0, lastFull = Date.now(), live = false, following = false, stream: EventSource | null = null;
@@ -1900,7 +1827,7 @@ function listen() {
 function poll() {
   clearTimeout(pollTimer);
   if (!following) return;
-  const wait = live ? 60000 : anyBuilding() || state.inventory.updates?.busy ? 3000 : 10000;
+  const wait = live ? 60000 : useBuildsStore().anyBuilding || state.inventory.updates?.busy ? 3000 : 10000;
   pollTimer = window.setTimeout(async () => {
     if (!document.hidden) {
       const full = Date.now() - lastFull >= 300000;
@@ -1972,7 +1899,7 @@ function resetStore() {
   mapSaver.cancel();
   previewsSkipped = "";
   askedCapabilities.clear(); askedSubtitles.clear(); askedActions.clear();
-  statesFlight = false; overviewFlight = false; firmwareFlight = null; answer.value = null; firmwareAt = 0;
+  statesFlight = false; overviewFlight = false;
   edits = 0; selectionEpoch++;
   committedLayout = null; committedGrid = null; committedUpright = null;
   draftHistory.clear();

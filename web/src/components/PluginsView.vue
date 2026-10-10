@@ -10,7 +10,6 @@ import { matchesWords, queryWords } from "../model/search";
 import { allTests, installedOn, isSetAside, loadPlugins, plugins, realScreens, statusOverall, toggleSetAside, tray } from "../plugin-state";
 // The folder as Home Assistant shows it (config/...), not as the app's container mounts it (/homeassistant/...).
 const folderShown = (path: string) => path.replace(/^\/(homeassistant|config)\//, "config/");
-import { buildingScreens, buildOf } from "../store";
 import BuildLog from "./BuildLog.vue";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
@@ -24,8 +23,10 @@ import UiMenuLabel from "./ui/UiMenuLabel.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import { DropdownMenuCheckboxItem, DropdownMenuItemIndicator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "reka-ui";
 import { useUiStore } from "../stores/ui";
+import { useBuildsStore } from "../stores/builds";
 
 const ui = useUiStore();
+const builds = useBuildsStore();
 
 loadPlugins();
 // Three tabs by what a plugin adds (read from its manifest), so a countdown is never found among a board's audio parts,
@@ -97,7 +98,7 @@ const onlyScreen = (plugin: Plugin) => {
   const fits = realScreens().filter((screen) => !installedOn(screen, plugin.id) && fit(plugin, screen).ok);
   return fits.length === 1 && realScreens().length === 1 ? fits[0] : null;
 };
-const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf(screen)?.by === "plugins"));
+const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => builds.buildOf(screen)?.by === "plugins"));
 </script>
 
 <template>
@@ -115,7 +116,7 @@ const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf
       <section class="plugins-list">
         <h1>{{ t("editor.plugins.title") }}</h1>
         <p class="setup-lead">{{ t("editor.plugins.intro") }}</p>
-        <!-- The screens building their plugins now, each with its progress and log (the store's builds). -->
+        <!-- The screens building their plugins now, each with its progress and log (the builds store, stores/builds.ts). -->
         <div v-if="pluginBuilds.length" class="plugin-builds" id="plugin-builds">
           <BuildLog v-for="screen in pluginBuilds" :key="screen.id" :screen="screen" name />
         </div>

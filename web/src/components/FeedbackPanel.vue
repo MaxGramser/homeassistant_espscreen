@@ -7,6 +7,9 @@ import { useBusy } from "../composables/useBusy";
 import { t } from "../i18n";
 import { feedbackAction, state } from "../store";
 import type { FeedbackAnswer, FeedbackIssue, Screen } from "../types";
+import { useBuildsStore } from "../stores/builds";
+
+const builds = useBuildsStore();
 
 const props = defineProps<{ screen: Screen; mode: "card" | "settings" }>();
 const ISSUES: FeedbackIssue[] = ["display", "touch", "connection", "installation", "other"];
@@ -32,7 +35,7 @@ const uid = `feedback-${props.mode}`;
 // screen is updating or offline: then there are other things to read.
 const engaged = ref(false);
 const visible = computed(() => props.mode === "settings" || (
-  !state.updating.includes(props.screen.id) && (engaged.value ? step.value !== "done" : fb.value.ask && props.screen.online)));
+  !builds.updating.includes(props.screen.id) && (engaged.value ? step.value !== "done" : fb.value.ask && props.screen.online)));
 
 const current = computed(() => fb.value.pending || fb.value.shared);
 

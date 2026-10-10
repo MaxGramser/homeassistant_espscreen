@@ -9,6 +9,7 @@ import InstallerView from "../src/components/InstallerView.vue";
 import { followBuilds } from "../src/composables/useFirmwareJob";
 import { startStore, state } from "../src/store";
 import { setHidden } from "./helpers/browser";
+import { useBuildsStore } from "../src/stores/builds";
 
 const SHAPES = JSON.parse(readFileSync("../screen_manager/app/boards.json", "utf8"));
 const BOARDS = Object.fromEntries(Object.entries(SHAPES).filter(([key, shape]: [string, any]) => shape.board === key)
@@ -62,7 +63,7 @@ describe("the firmware job", () => {
     // The store alone: its build poll asks every three seconds for the build log.
     await vi.advanceTimersByTimeAsync(9000);
     expect(firmwareAsks()).toBe(3);
-    expect(state.firmwareJob?.logs).toEqual(["INFO Compiling"]);
+    expect(useBuildsStore().firmwareJob?.logs).toEqual(["INFO Compiling"]);
     // New screen opens between two turns of the store: its first look, then one answer every three seconds for both
     // (before, each asked every three seconds: 21).
     await vi.advanceTimersByTimeAsync(1500);

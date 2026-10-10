@@ -9,6 +9,7 @@ import { setHidden } from "../helpers/browser";
 import { useFakeClock } from "../helpers/clock";
 import { failure, fakeApi } from "../helpers/fake-api";
 import { inScope } from "../helpers/with-setup";
+import { useBuildsStore } from "../../src/stores/builds";
 
 const job = (n: number) => ({ job: { file: "hall.yaml", state: "running", stage: `step ${n}` }, logs: [`line ${n}`] });
 
@@ -72,7 +73,7 @@ describe("the firmware job", () => {
     expect(errors).toEqual(["Bad gateway", "Bad gateway"]);
     api.on("GET firmware", job(1));
     await clock.tick(3000);
-    expect(state.firmwareJob?.logs).toEqual(["line 1"]);
+    expect(useBuildsStore().firmwareJob?.logs).toEqual(["line 1"]);
   });
 
   it("is followed by the store only while something builds, for the build log", async () => {
@@ -82,12 +83,12 @@ describe("the firmware job", () => {
     const stop = followBuilds();
     await clock.tick(30000);
     expect(api.count("firmware")).toBe(0);
-    state.updating = ["hall"];
+    useBuildsStore().updating = ["hall"];
     await nextTick();
     await clock.tick(9000);
     expect(api.count("firmware")).toBe(3);
-    expect(state.firmwareJob?.logs).toEqual(["line 1"]);
-    state.updating = [];
+    expect(useBuildsStore().firmwareJob?.logs).toEqual(["line 1"]);
+    useBuildsStore().updating = [];
     await nextTick();
     await clock.tick(30000);
     expect(api.count("firmware")).toBe(3);

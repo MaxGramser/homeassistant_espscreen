@@ -8,10 +8,11 @@ import { choiceKey, fit, knowAppFit, knowTileTypes, pluginTileId, testPlugin, te
   type PluginTileOption, type Texts, pluginTileOf, pluginDefaults} from "./model/plugins";
 import { pluginTiles } from "./model/page-validation";
 import { computed, watch } from "vue";
-import { buildOf, state } from "./store";
+import { state } from "./store";
 import type { Screen } from "./types";
 import { onReset } from "./resets";
 import { useUiStore } from "./stores/ui";
+import { useBuildsStore } from "./stores/builds";
 
 // What the page knows of the plugins before the add-on has said anything (and again for every test, resetPlugins).
 const fresh = () => ({
@@ -237,7 +238,7 @@ export const installedOn = (screen: Screen, id: string) => plugins.installed[nod
 // Whether this screen's build (the store's, live from the add-on) brings this plugin, or the page is asking for it now.
 const sending = reactive<Record<string, string[]>>({});
 export const buildingOn = (screen: Screen, id: string) => {
-  const build = buildOf(screen);
+  const build = useBuildsStore().buildOf(screen);
   return Boolean((build?.by === "plugins" && build.plugins?.includes(id)) || sending[screen.id]?.includes(id));
 };
 // A plugin on a screen the add-on has no manifest of any more (a test folder that went): known only by its record.
@@ -260,7 +261,7 @@ export type Status = { kind: "installed" | "update" | "building" | "test" | "mis
 export function statusOn(plugin: Plugin, screen: Screen): Status {
   // A screen in the add-on's build queue waits its turn; one at a time builds (docs/PLUGINS.md).
   if (buildingOn(screen, plugin.id))
-    return { kind: "building", label: t(buildOf(screen)?.state === "queued" ? "editor.plugins.state.queued" : "editor.plugins.state.building") };
+    return { kind: "building", label: t(useBuildsStore().buildOf(screen)?.state === "queued" ? "editor.plugins.state.queued" : "editor.plugins.state.building") };
   const have = installedOn(screen, plugin.id);
   if (have?.state === "failed") return { kind: "failed", label: t("editor.plugins.state.failed") };
   if (hasUpdate(screen, plugin)) return { kind: "update", label: t("editor.plugins.state.update", { version: plugin.version }) };

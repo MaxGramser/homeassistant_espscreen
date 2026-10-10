@@ -8,8 +8,8 @@ import { boardTitle } from "../model/boards";
 import { languageOnly } from "../model/screen-status";
 import { glyph } from "../model/topbar";
 import {
-  forgetPending, goHome, newLanguageText, refresh, removeScreen, renameScreen, screenSubline, buildOf, buildingScreens,
-  buildProgress, select, startUpdate, state, updateState, whatsNew,
+  forgetPending, goHome, newLanguageText, refresh, removeScreen, renameScreen, screenSubline, select, state,
+  updateState,
 } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
@@ -18,9 +18,11 @@ import { pluginsEnabled } from "../plugin-state";
 import { SIDE_MAX, SIDE_MIN, useSidebarStore } from "../stores/sidebar";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useUiStore } from "../stores/ui";
+import { useBuildsStore } from "../stores/builds";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
+const builds = useBuildsStore();
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
@@ -83,10 +85,10 @@ const boardName = (screen: Screen) => { const board = known(screen); return boar
 // narrow can hold a few headlines, not the release notes.
 const headline = (line: string) => line.match(/^.*?[.!?](?=\s|$)/)?.[0] || line;
 const notes = (screen: Screen) => [...(screen.update?.language && !languageOnly(screen) ? [newLanguageText()] : []),
-  ...whatsNew(screen).filter((line) => !/^(Tested|Getest)\b/i.test(line)).map(headline)];
+  ...builds.whatsNew(screen).filter((line) => !/^(Tested|Getest)\b/i.test(line)).map(headline)];
 function update(screen: Screen) {
   const u = screen.update || {};
-  if (u.host && u.profile) startUpdate(screen);
+  if (u.host && u.profile) builds.startUpdate(screen);
   else if (u.profile) { hostFor.value = screen.id; host.value = ""; }
 }
 // The dev channel's own button (docs/RELEASING.md, "Testing dev"): the newest dev keeps the firmware number, so it is
@@ -97,7 +99,7 @@ function startWithHost(screen: Screen) {
   const address = host.value.trim();
   if (!address) return;
   hostFor.value = null;
-  startUpdate(screen, address);
+  builds.startUpdate(screen, address);
 }
 // Folded to its icons (app 0.4.85) every row says what it is in a tooltip beside it; open, only a row whose name is
 // cut short does, with its whole name. Which names are cut is measured when the width or the list changes.
@@ -135,9 +137,9 @@ function resizeKey(event: KeyboardEvent) {
   event.preventDefault();
 }
 // A plugin build on the way on any screen: the Plugins entry turns.
-const pluginBuilds = () => buildingScreens().some((screen) => buildOf(screen)?.by === "plugins");
+const pluginBuilds = () => builds.buildingScreens.some((screen) => builds.buildOf(screen)?.by === "plugins");
 const lastLog = () => {
-  const lines = state.firmwareJob?.logs || [];
+  const lines = builds.firmwareJob?.logs || [];
   return lines.length ? lines[lines.length - 1] : "";
 };
 // Tessera adds a screen Home Assistant found by itself (app 0.4.73): it says so while it does, and that it is up to the
@@ -245,9 +247,9 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
                 <ul><li v-for="line in notes(screen).slice(0, 5)" :key="line">{{ line }}</li></ul>
               </details>
             </template>
-            <template v-else-if="updateState(screen)!.kind === 'running' && buildProgress(screen)">
-              <div class="progress" role="progressbar" :aria-valuenow="buildProgress(screen)!.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: buildProgress(screen)!.percent + '%' }"></i></div>
-              <div class="progress-text"><span>{{ buildProgress(screen)!.percent }} %</span><span :title="lastLog()">{{ buildProgress(screen)!.text }}</span></div>
+            <template v-else-if="updateState(screen)!.kind === 'running' && builds.buildProgress(screen)">
+              <div class="progress" role="progressbar" :aria-valuenow="builds.buildProgress(screen)!.percent" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: builds.buildProgress(screen)!.percent + '%' }"></i></div>
+              <div class="progress-text"><span>{{ builds.buildProgress(screen)!.percent }} %</span><span :title="lastLog()">{{ builds.buildProgress(screen)!.text }}</span></div>
               <small v-if="lastLog()" :title="lastLog()" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ lastLog() }}</small>
               <button type="button" class="btn link mini" style="justify-self: start" @click="ui.go('#firmware')">{{ t("editor.sidebar.update.full_log") }}</button>
             </template>
@@ -262,7 +264,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
           </form>
           <!-- What can be done with the screen, as the rows of a menu: quiet until pointed at, the one that removes in red. -->
           <div class="screen-actions-list">
-            <button v-if="reinstallable(screen)" type="button" class="act reinstall-dev" :title="t('editor.sidebar.update.reinstall_why')" @click="startUpdate(screen, undefined, true)"><Icon name="update" />{{ t("editor.sidebar.update.reinstall") }}</button>
+            <button v-if="reinstallable(screen)" type="button" class="act reinstall-dev" :title="t('editor.sidebar.update.reinstall_why')" @click="builds.startUpdate(screen, undefined, true)"><Icon name="update" />{{ t("editor.sidebar.update.reinstall") }}</button>
             <button v-if="renameFor !== screen.id" type="button" class="act rename-screen" @click="startRename(screen)"><Icon name="pencil-outline" />{{ t("editor.sidebar.rename.button") }}</button>
             <!-- The screen's YAML, Override YAML and the secrets they use, to build it with ESPHome on your own computer. -->
             <a v-if="screen.update?.profile" class="act screen-files" :href="`api/firmware/profiles/${encodeURIComponent(screen.update.profile)}/files`" download

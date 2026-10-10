@@ -1,7 +1,8 @@
 // A screen as the sidebar and the overview tell it: the firmware its features go by, whether an update waits, runs or
 // failed, the light beside its icon and the one line under its name, and what an update brings. What the add-on is
 // building for the screen and whether this page just asked for a build come in as Building, with the name of the
-// screens' language and the time for what depends on them; the store gathers them (buildOf, state.updating).
+// screens' language and the time for what depends on them; the builds store gathers them (stores/builds.ts: buildOf,
+// updating).
 import { t } from "../i18n";
 import { versionAtLeast } from "./layout";
 import type { Build, ChangelogSection, Screen } from "../types";

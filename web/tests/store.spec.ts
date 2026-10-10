@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addTile, canAlert, copyLayoutFrom, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage,
   moveTileToPage, pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select,
-  setTileOption, state, supports, supportsVersion, tileLimit, topbarItems, topbarView, buildProgress, whatsNew,
-  refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices, setEditorMode,
+  setTileOption, state, supports, supportsVersion, tileLimit, topbarItems, topbarView, refresh, createVirtualScreen,
+  removeScreen, chooseGrid, tileSizeChoices, setEditorMode,
 } from "../src/store";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
@@ -15,6 +15,7 @@ import { phaseText } from "../src/model/screen-status";
 import renderer from "../src/wasm/renderer.json";
 import type { Inventory, Screen } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
+import { useBuildsStore } from "../src/stores/builds";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -61,9 +62,6 @@ beforeEach(() => {
   seedLayout(null);
   state.dirty = false;
   state.liveStates = {};
-  useUiStore().notice = null;
-  state.updating = [];
-  state.firmwareJob = null;
 });
 
 describe("selecting and editing", () => {
@@ -322,9 +320,9 @@ describe("copy, export and import", () => {
 describe("updates with content", () => {
   it("lists what a screen gets, and nothing it already has", () => {
     const [living, kitchen] = state.inventory.screens;
-    expect(whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
-    expect(whatsNew(kitchen)).toEqual(["Full-page tiles.", "Live values.", "Slider stays put.", "English."]);
-    expect(whatsNew({ ...living, firmware: "0.2.62" })).toEqual([]);
+    expect(useBuildsStore().whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
+    expect(useBuildsStore().whatsNew(kitchen)).toEqual(["Full-page tiles.", "Live values.", "Slider stays put.", "English."]);
+    expect(useBuildsStore().whatsNew({ ...living, firmware: "0.2.62" })).toEqual([]);
   });
   it("goes by the screen's own target and leaves out a fix for another board (app 0.3.20)", () => {
     const [living] = state.inventory.screens;
@@ -334,28 +332,28 @@ describe("updates with content", () => {
       { app: "0.2.74", firmware: "0.2.62", lines: ["Full-page tiles."] },
     ];
     // The Guition is offered 0.2.64: the shared release, not the CYD's own fix in between.
-    expect(whatsNew({ ...living, update: { available: true, target: "0.2.64" } })).toEqual(["Shared.", "Full-page tiles."]);
+    expect(useBuildsStore().whatsNew({ ...living, update: { available: true, target: "0.2.64" } })).toEqual(["Shared.", "Full-page tiles."]);
     // A CYD offered only its own fix sees that and what came before, never the newer shared notes.
-    expect(whatsNew({ ...living, board: "cyd", update: { available: true, target: "0.2.63" } })).toEqual(["CYD fix.", "Full-page tiles."]);
+    expect(useBuildsStore().whatsNew({ ...living, board: "cyd", update: { available: true, target: "0.2.63" } })).toEqual(["CYD fix.", "Full-page tiles."]);
   });
   it("turns the phase and the ESPHome stage into a progress bar", () => {
     const living = state.inventory.screens[0];
     state.inventory.builds = {};
-    expect(buildProgress(living)).toBeNull();
+    expect(useBuildsStore().buildProgress(living)).toBeNull();
     // What the add-on says is being built for this screen (Manager.builds): an update, its phase, ESPHome's stage.
     const build = (phase: string, stage: string | null = null) =>
       (state.inventory.builds = { [living.id]: { by: "update", state: "running", phase, stage } });
     build("install");
-    expect(buildProgress(living)).toEqual({ percent: 12, text: phaseText("install") });
+    expect(useBuildsStore().buildProgress(living)).toEqual({ percent: 12, text: phaseText("install") });
     expect(phaseText("install")).toBe("Building and installing…");
     build("install", "compile");
-    expect(buildProgress(living)!.percent).toBe(40);
+    expect(useBuildsStore().buildProgress(living)!.percent).toBe(40);
     build("install", "upload");
-    expect(buildProgress(living)!.percent).toBe(66);
+    expect(useBuildsStore().buildProgress(living)!.percent).toBe(66);
     build("verify");
-    expect(buildProgress(living)!.percent).toBe(78);
+    expect(useBuildsStore().buildProgress(living)!.percent).toBe(78);
     build("settle");
-    expect(buildProgress(living)!.percent).toBe(92);
+    expect(useBuildsStore().buildProgress(living)!.percent).toBe(92);
     state.inventory.builds = {};
   });
   it("knows which screen can show an alert", () => {
@@ -550,7 +548,7 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     expect(supports(0, 2, 61)).toBe(false);
     // A version as the add-on names one ("0.38.0"), as the top bar's items need it.
     expect([supportsVersion("0.2.60"), supportsVersion("0.2.61"), supportsVersion("0.2")]).toEqual([true, false, false]);
-    expect(whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
+    expect(useBuildsStore().whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
     expect(canAlert(living)).toBe(true);
     Object.assign(living, { firmware: "0.2.63", firmware_known: null });
     expect(supports(0, 2, 31)).toBe(false);
@@ -577,11 +575,11 @@ describe("the changelog from the full inventory (app 0.2.78)", () => {
   it("reads the notes next to the screens and ignores an update summary that still has them", () => {
     const living = state.inventory.screens[0];
     state.inventory.updates = { target: "0.2.62", changelog: [{ app: "0.2.1", firmware: "0.2.62", lines: ["Old place."] }] } as any;
-    expect(whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
+    expect(useBuildsStore().whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
   });
   it("shows nothing without a changelog", () => {
     delete state.inventory.changelog;
-    expect(whatsNew(state.inventory.screens[1])).toEqual([]);
+    expect(useBuildsStore().whatsNew(state.inventory.screens[1])).toEqual([]);
   });
 });
 

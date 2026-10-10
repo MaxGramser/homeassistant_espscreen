@@ -5,8 +5,9 @@ import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import BuildLog from "../src/components/BuildLog.vue";
-import { anyBuilding, buildingScreens, buildOf, buildProgress, state, updateState } from "../src/store";
+import { state, updateState } from "../src/store";
 import type { Screen } from "../src/types";
+import { useBuildsStore } from "../src/stores/builds";
 
 const screen = (id: string, more: Partial<Screen> = {}) =>
   ({ id: `text.${id}`, name: id, node: id, online: true, board: "guition", firmware: "0.52.0", pictures: true, layout: {},
@@ -14,41 +15,39 @@ const screen = (id: string, more: Partial<Screen> = {}) =>
 const hall = screen("hall"), desk = screen("desk");
 
 beforeEach(() => {
-  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ job: state.firmwareJob?.job, logs: state.firmwareJob?.logs || [] }),
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ job: useBuildsStore().firmwareJob?.job, logs: useBuildsStore().firmwareJob?.logs || [] }),
     { status: 200, headers: { "Content-Type": "application/json" } })));
   state.inventory.screens = [hall, desk];
   state.inventory.builds = {};
-  state.updating = [];
-  state.firmwareJob = null;
 });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("builds", () => {
   it("knows nothing builds until the add-on says so", () => {
-    expect(buildOf(hall)).toBeNull();
-    expect(anyBuilding()).toBe(false);
+    expect(useBuildsStore().buildOf(hall)).toBeNull();
+    expect(useBuildsStore().anyBuilding).toBe(false);
     expect(updateState(hall)?.kind).not.toBe("running");
   });
 
   it("shows a plugin build the way an update shows: running, with its ESPHome stage as progress", () => {
     state.inventory.builds = { [hall.id]: { by: "plugins", state: "running", plugins: ["bus"], file: "hall.yaml", stage: "compile" },
                                [desk.id]: { by: "plugins", state: "queued", plugins: ["waste"], file: "desk.yaml" } };
-    expect(anyBuilding()).toBe(true);
+    expect(useBuildsStore().anyBuilding).toBe(true);
     expect(updateState(hall)).toEqual({ kind: "running", text: "Building with its plugins" });
     expect(updateState(desk)?.kind).toBe("queued");
-    expect(buildProgress(hall)).toEqual({ percent: 40, text: expect.any(String) });
-    expect(buildProgress(desk)).toBeNull();
-    expect(buildingScreens().map((s) => s.name)).toEqual(["hall", "desk"]);
+    expect(useBuildsStore().buildProgress(hall)).toEqual({ percent: 40, text: expect.any(String) });
+    expect(useBuildsStore().buildProgress(desk)).toBeNull();
+    expect(useBuildsStore().buildingScreens.map((s) => s.name)).toEqual(["hall", "desk"]);
   });
 
   it("reads an update's phase from the same record", () => {
     state.inventory.builds = { [hall.id]: { by: "update", state: "running", phase: "verify", file: "hall.yaml" } };
-    expect(buildProgress(hall)?.percent).toBe(78);
+    expect(useBuildsStore().buildProgress(hall)?.percent).toBe(78);
   });
 
   it("a build log shows the progress, and the lines of this screen's build when opened", async () => {
     state.inventory.builds = { [hall.id]: { by: "plugins", state: "running", plugins: ["bus"], file: "hall.yaml", stage: "upload" } };
-    state.firmwareJob = { job: { file: "hall.yaml", state: "running", stage: "upload" }, logs: ["Compiling", "Uploading"] };
+    useBuildsStore().firmwareJob = { job: { file: "hall.yaml", state: "running", stage: "upload" }, logs: ["Compiling", "Uploading"] };
     const view = mount(BuildLog, { props: { screen: hall, name: true } });
     await nextTick();
     expect(view.text()).toContain("hall · 66 %");
@@ -56,7 +55,7 @@ describe("builds", () => {
   });
 
   it("keeps the log of a build that failed, and says so, until the next build", async () => {
-    state.firmwareJob = { job: { file: "hall.yaml", state: "failed" }, logs: ["error: plugin ov_departures"] };
+    useBuildsStore().firmwareJob = { job: { file: "hall.yaml", state: "failed" }, logs: ["error: plugin ov_departures"] };
     const view = mount(BuildLog, { props: { screen: hall } });
     await nextTick();
     expect(view.text()).toContain("The last build of hall failed");

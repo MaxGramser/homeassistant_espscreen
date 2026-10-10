@@ -3,13 +3,15 @@
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
-import { anyBuilding, buildingScreens, installClaudeSkill, runUpdateAll, setAutoUpdate, state } from "../store";
+import { installClaudeSkill, state } from "../store";
 import BuildLog from "./BuildLog.vue";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
+import { useBuildsStore } from "../stores/builds";
 
 const ui = useUiStore();
 const region = useRegionStore();
+const builds = useBuildsStore();
 
 const u = computed(() => state.inventory.updates);
 const outdated = computed(() => state.inventory.screens.filter((s) => s.update?.available).length);
@@ -102,15 +104,15 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
       <section v-if="u" class="card updates" id="updates">
         <h2>{{ t("editor.settings.updates.title") }}</h2>
         <p id="updates-hint">{{ updatesHint }}</p>
-        <!-- Every build on the way, whoever asked: an update, a plugin build, an install (the store's builds). -->
-        <BuildLog v-for="screen in buildingScreens()" :key="screen.id" :screen="screen" name />
-        <button v-if="u.pending && !u.busy && u.pending >= 2" id="update-all" type="button" class="btn primary" @click="runUpdateAll">{{ t("editor.settings.updates.all", u.pending) }}</button>
-        <details v-if="targetNotes.length && !anyBuilding()" class="whatsnew">
+        <!-- Every build on the way, whoever asked: an update, a plugin build, an install (the builds store, stores/builds.ts). -->
+        <BuildLog v-for="screen in builds.buildingScreens" :key="screen.id" :screen="screen" name />
+        <button v-if="u.pending && !u.busy && u.pending >= 2" id="update-all" type="button" class="btn primary" @click="builds.runUpdateAll">{{ t("editor.settings.updates.all", u.pending) }}</button>
+        <details v-if="targetNotes.length && !builds.anyBuilding" class="whatsnew">
           <summary>{{ t("editor.settings.updates.whats_new", { version: u.target }) }}</summary>
           <ul><li v-for="line in targetNotes" :key="line">{{ line }}</li></ul>
         </details>
         <label class="check">
-          <input type="checkbox" id="auto-update" :checked="Boolean(u.auto)" @change="setAutoUpdate(($event.target as HTMLInputElement).checked)" />
+          <input type="checkbox" id="auto-update" :checked="Boolean(u.auto)" @change="builds.setAutoUpdate(($event.target as HTMLInputElement).checked)" />
           <span>{{ t("editor.settings.updates.auto_label") }}<small>{{ t("editor.settings.updates.auto_hint") }}</small></span>
         </label>
       </section>
