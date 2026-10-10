@@ -4,18 +4,25 @@
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { titleOf } from "../model/pages";
-import { editorLayout, movePage, state, tileLimit } from "../store";
 import PageMenu from "./PageMenu.vue";
 import MemoryMeter from "./MemoryMeter.vue";
 import Icon from "./ui/Icon.vue";
+import { useUiStore } from "../stores/ui";
+import { movePage } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
+import { useInspectorStore } from "../stores/inspector";
+
+const ui = useUiStore();
+const doc = useDocumentStore();
+const insp = useInspectorStore();
 
 const emit = defineEmits<{ add: [] }>();
-const list = computed(() => state.document?.pages || []);
-const canAdd = computed(() => list.value.length < editorLayout.grid.pages);
+const list = computed(() => doc.document?.pages || []);
+const canAdd = computed(() => list.value.length < doc.editorLayout.grid.pages);
 const tiles = computed(() => list.value.reduce((n, page) => n + page.tiles.length, 0));
-function close() { state.pagesSheet = false; }
-function choose(id: string) { state.selectedPageId = id; state.insertAt = -1; close(); }
-watch(() => state.inspector, (open) => { if (open) close(); });
+function close() { ui.pagesSheet = false; }
+function choose(id: string) { doc.selectedPageId = id; insp.forgetCell(); close(); }
+watch(() => insp.inspector, (open) => { if (open) close(); });
 
 // Moving a page by its handle: the row follows the finger, and the page lands where the finger is let go.
 const carried = ref<{ from: number; to: number; dy: number; y: number; row: number } | null>(null);
@@ -50,15 +57,15 @@ const shift = (index: number) => {
   <section class="phone-sheet phone-pages" role="dialog" :aria-label="t('editor.phone.pages')">
     <span class="sheet-grab" aria-hidden="true"></span>
     <header class="sheet-head">
-      <span class="sheet-title"><b>{{ t("editor.phone.pages") }}</b><small>{{ t("editor.layout.count", { tiles, limit: tileLimit }, list.length) }} <MemoryMeter /></small></span>
+      <span class="sheet-title"><b>{{ t("editor.phone.pages") }}</b><small>{{ t("editor.layout.count", { tiles, limit: doc.tileLimit }, list.length) }} <MemoryMeter /></small></span>
       <button type="button" class="icon-btn sheet-close" :aria-label="t('editor.common.close')" @click="close"><Icon name="close" /></button>
     </header>
     <ol class="sheet-list">
-      <li v-for="(page, index) in list" :key="page.id" :class="{ on: page.id === state.selectedPageId, carried: carried?.from === index }" :style="shift(index)">
+      <li v-for="(page, index) in list" :key="page.id" :class="{ on: page.id === doc.selectedPageId, carried: carried?.from === index }" :style="shift(index)">
         <button type="button" class="sheet-row" @click="choose(page.id)">
           <span class="num">{{ index + 1 }}</span>
           <span class="tx">
-            <b>{{ titleOf(state.document!, page) || t("editor.page.label", { page: index + 1 }) }}<span v-if="page.id === state.document!.homePageId" class="home-tag">{{ t("editor.pages.home_chip") }}</span></b>
+            <b>{{ titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }}<span v-if="page.id === doc.document!.homePageId" class="home-tag">{{ t("editor.pages.home_chip") }}</span></b>
             <small>{{ t("editor.phone.page_tiles", page.tiles.length) }}</small>
           </span>
         </button>

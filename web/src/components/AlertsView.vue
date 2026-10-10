@@ -1,132 +1,46 @@
 <script setup lang="ts">
-// Alerts: the cheatsheet for esphome.<node>_show_alert, built from the inventory.
-import { computed, reactive, ref } from "vue";
-import { andList, t } from "../i18n";
-import { versionAtLeast } from "../model/layout";
+// Alerts: the cheatsheet for esphome.<node>_show_alert, built from the inventory. Trying one is AlertTry; the YAML to copy
+// is model/alert-yaml.ts.
+import { computed, ref } from "vue";
+import { t } from "../i18n";
+import { actionYaml, allScreensYaml, choiceYaml, limitText, oneScreenYaml, screenValue, waitYaml, type AlertReference } from "../model/alert-yaml";
+import { iconGroupsMatching } from "../model/search";
 import { glyph } from "../model/topbar";
-import { canAlert, copyText, firmwareVersion, go, sendTestAlert, state } from "../store";
+import type { IconInfo } from "../types";
+import AlertTry from "./alerts/AlertTry.vue";
+import { useUiStore } from "../stores/ui";
+import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
-const alerts = computed(() => state.inventory.alerts);
-// The bytes a field holds on each look, with the boards that have it ("CYD 48 · Guition and Waveshare 64 bytes"): the
-// add-on names the boards from its catalog, so a new board shows up here without a word of this page changing.
-function limitText(field: string) {
-  const limits: Record<string, Record<string, number>> = alerts.value?.limits || {};
-  const boards: Record<string, string[]> = alerts.value?.limit_boards || {};
-  const parts = Object.entries(limits).filter(([look, values]) => values[field] && boards[look]?.length)
-    .map(([look, values]) => `${andList(boards[look])} ${values[field]}`);
-  return parts.length ? t("editor.alerts.fields.bytes", { limits: parts.join(" · ") }) : "";
-}
-// Try it: the same seven fields an automation sends, to one screen or to all of them. The example is the doorbell, in
-// the editor's language; the YAML examples below stay as code.
-const tryForm = reactive({
-  screen: "all", title: t("editor.alerts.example.title"), subtitle: t("editor.alerts.example.subtitle"), icon: "doorbell", color: "orange",
-  button_text: t("editor.alerts.example.button"), timeout: 30, flash: true,
-});
-const trying = ref(false);
-const tryResult = ref("");
-const physicalScreens = computed(() => state.inventory.screens.filter(s => !s.virtual));
-const readyScreens = computed(() => physicalScreens.value.filter((s) => canAlert(s) && s.online));
-async function tryAlert() {
-  trying.value = true;
-  tryResult.value = "";
-  try {
-    const { screen, ...data } = tryForm;
-    const result = await sendTestAlert(screen, data);
-    const name = physicalScreens.value.find((s) => s.id === screen)?.name;
-    const sent = screen === "all"
-      ? t("editor.alerts.try.sent_all", result.sent)
-      : name ? t("editor.alerts.try.sent_to", { name }) : t("editor.alerts.try.sent_one");
-    tryResult.value = result.sent
-      ? [sent, result.skipped ? t("editor.alerts.try.skipped", result.skipped) : "",
-         result.unusable?.length ? t("editor.alerts.try.left_empty", { fields: result.unusable.join(", ") }) : ""].filter(Boolean).join(" ")
-      : t("editor.alerts.try.nothing", { version: alerts.value?.min_firmware || "0.2.31" });
-  } catch (e: any) {
-    tryResult.value = e.message;
-  } finally {
-    trying.value = false;
-  }
-}
-const icons = computed(() => state.inventory.icons);
+const ui = useUiStore();
+const scr = useScreenStore();
+const inv = useInventoryStore();
+
+const alerts = computed(() => inv.inventory.alerts);
+const reference = computed(() => alerts.value as AlertReference | undefined);
+const physicalScreens = computed(() => inv.inventory.screens.filter(s => !s.virtual));
+const icons = computed(() => inv.inventory.icons);
 const exampleAction = ref("");
 const iconQuery = ref("");
-const yamlString = (text: unknown) => `"${String(text).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-const fieldValue = (f: any) => f.type === "string" ? (/^[a-z][a-z0-9-]*$/.test(f.example) ? f.example : yamlString(f.example)) : f.example === true ? "true" : f.example === false ? "false" : String(f.example);
 const screensWithAction = computed(() => physicalScreens.value.filter((s) => s.alert_action));
 const chosenAction = computed(() => exampleAction.value || screensWithAction.value[0]?.alert_action || "");
-const exampleYaml = computed(() => {
-  const lines = (alerts.value?.fields || []).map((f: any) => `  ${f.name}: ${fieldValue(f)}`);
-  return `action: ${chosenAction.value || "esphome.<device_name>_show_alert"}\ndata:\n${lines.join("\n")}`;
-});
-// The doorbell example in the editor's language: the fields' own examples, and two lines of its own.
-const example = (name: string, fallback: string) => yamlString((alerts.value?.fields || []).find((f: any) => f.name === name)?.example || fallback);
-const waitYaml = computed(() => [
-  `# ${t("editor.alerts.wait_yaml.comment")}`,
-  `actions:`,
-  `  - action: ${chosenAction.value || "esphome.<device_name>_show_alert"}`,
-  `    data:`,
-  `      title: ${example("title", "Someone is at the door")}`,
-  `      subtitle: ${example("subtitle", "Door 3, back")}`,
-  `      icon: doorbell`,
-  `      color: orange`,
-  `      button_text: ${example("button_text", "Coming")}`,
-  `      timeout: 0`,
-  `      flash: true`,
-  `  - wait_for_trigger:`,
-  `      - trigger: event`,
-  `        event_type: ${alerts.value?.event || "esphome.screen_alert"}`,
-  `        event_data:`,
-  `          action: ok`,
-  `    timeout: "00:05:00"`,
-  `  - if:`,
-  `      - condition: template`,
-  `        value_template: "{{ wait.trigger is not none }}"`,
-  `    then:`,
-  `      - action: notify.notify`,
-  `        data:`,
-  `          message: ${yamlString(t("editor.alerts.wait_yaml.message"))}`,
-].join("\n"));
+const exampleYaml = computed(() => actionYaml(reference.value, chosenAction.value));
+const waitExample = computed(() => waitYaml(reference.value, chosenAction.value));
 // One event for every screen (app 0.2.45): an action for "Edit in YAML" of the Event action.
-const allYaml = computed(() => {
-  const lines = (alerts.value?.fields || []).map((f: any) => `  ${f.name}: ${fieldValue(f)}`);
-  const camera = alerts.value?.camera;
-  if (camera) lines.push(`  # ${camera.name}: ${camera.example}   # a Guition shows its picture on the card`);
-  return `event: ${alerts.value?.broadcast?.show || "esp_screens_show_alert"}\nevent_data:\n${lines.join("\n")}`;
-});
-// One screen through the same event (app 0.2.133): what goes after `screen:` for each paired screen, and the example for the
-// one chosen. The device name is what the screen reports itself and what its actions are named after; a screen that has
-// not said it yet goes by the name Home Assistant shows, which the app matches as well.
-const screenValue = (screen: { node?: string; name: string }) => screen.node || screen.name;
-const yamlName = (text: string) => (/^[a-z][a-z0-9_-]*$/.test(text) ? text : yamlString(text));
+const allYaml = computed(() => allScreensYaml(reference.value));
+// One screen through the same event (app 0.2.133); the example starts at the screen that is open in the editor, else the
+// first in the list.
 const oneScreenId = ref("");
-// The example starts at the screen that is open in the editor, else the first in the list.
 const oneScreen = computed(() => {
   const [first] = physicalScreens.value;
-  return physicalScreens.value.find((s) => s.id === (oneScreenId.value || state.selected)) || first;
+  return physicalScreens.value.find((s) => s.id === (oneScreenId.value || scr.selected)) || first;
 });
-const oneYaml = computed(() => {
-  const screen = oneScreen.value;
-  const lines = [`  screen: ${screen ? yamlName(screenValue(screen)) : alerts.value?.screen?.example || "kitchen-screen"}`,
-    ...(alerts.value?.fields || []).map((f: any) => `  ${f.name}: ${fieldValue(f)}`)];
-  // The picture only where the board draws one; a CYD gets the same alert without it.
-  if (alerts.value?.camera && (!screen || screen.pictures)) lines.push(`  ${alerts.value.camera.name}: ${alerts.value.camera.example}`);
-  return `event: ${alerts.value?.broadcast?.show || "esp_screens_show_alert"}\nevent_data:\n${lines.join("\n")}`;
-});
+const oneYaml = computed(() => oneScreenYaml(reference.value, oneScreen.value));
 // Two buttons (firmware 0.3.3+): the event with a second button, its colours and its action, as an automation writes it.
-const choiceYaml = computed(() => {
-  const choice = alerts.value?.choice;
-  const lines = [`  title: ${example("title", "Someone is at the door")}`, `  icon: doorbell`,
-    `  button_text: ${example("button_text", "Coming")}`, `  button_color: green`];
-  const text = choice?.fields?.find((f: any) => f.name === "button2_text")?.example || "Not now";
-  lines.push(`  button2_text: ${yamlString(text)}`, `  button2_color: red`, `  action: script.open_gate`,
-    `  ${choice?.action2?.name || "button2_action"}: ${choice?.action2?.example || "script.snooze_reminder"}`);
-  return `event: ${alerts.value?.broadcast?.show || "esp_screens_show_alert"}\nevent_data:\n${lines.join("\n")}`;
-});
-const iconGroups = computed(() => {
-  if (!alerts.value || !icons.value) return [];
-  const query = iconQuery.value.trim().toLowerCase();
-  const all = [...icons.value.groups, { label: t("editor.alerts.icons.extra"), icons: alerts.value.extra_icons }];
-  return all.map((group) => ({ label: group.label, icons: group.icons.filter((i: any) => !query || i.name.includes(query) || (i.label || "").toLowerCase().includes(query)) })).filter((g) => g.icons.length);
-});
+const twoButtonsYaml = computed(() => choiceYaml(reference.value));
+// The icons the screens have, and the few more an alert takes, as the tile's icon picker searches them.
+const iconGroups = computed(() => alerts.value && icons.value
+  ? iconGroupsMatching<IconInfo>([...icons.value.groups, { label: t("editor.alerts.icons.extra"), icons: alerts.value.extra_icons }], iconQuery.value) : []);
 const doorbell = computed(() => alerts.value?.suggested_icons?.find((i: any) => i.name === "doorbell"));
 const orange = computed(() => alerts.value?.colors?.find((c: any) => c.name === "orange"));
 // A field's type in words (editor.alerts.fields.types); another type shows as it is.
@@ -146,7 +60,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <template #action><code>show_alert</code></template>
         </i18n-t>
       </div>
-      <button type="button" class="btn quiet" id="close-alerts" @click="go('')">{{ t("editor.common.back") }}</button>
+      <button type="button" class="btn quiet" id="close-alerts" @click="ui.go('')">{{ t("editor.common.back") }}</button>
     </div>
     <p v-if="!alerts" class="hint">{{ t("editor.alerts.loading") }}</p>
     <template v-else>
@@ -163,30 +77,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <button v-for="id in sections" :key="id" type="button" :data-jump="id" @click="jump(id)">{{ t(`editor.alerts.nav.${id.slice("alerts-".length)}`) }}</button>
         </nav>
       </div>
-      <section id="alerts-try" class="card">
-        <h2>{{ t("editor.alerts.nav.try") }}</h2>
-        <p>{{ t("editor.alerts.try.text") }}</p>
-        <form class="try-grid" @submit.prevent="tryAlert">
-          <div class="field"><label class="f-label" for="try-screen">{{ t("editor.alerts.try.screen") }}</label>
-            <select id="try-screen" v-model="tryForm.screen">
-              <option value="all">{{ t("editor.alerts.try.all", { ready: readyScreens.length }) }}</option>
-              <option v-for="screen in physicalScreens" :key="screen.id" :value="screen.id" :disabled="!canAlert(screen) || !screen.online">{{ canAlert(screen) && screen.online ? screen.name : t("editor.alerts.try.not_ready", { name: screen.name }) }}</option>
-            </select></div>
-          <div class="field"><label class="f-label" for="try-title">{{ t("editor.alerts.try.title") }}</label><input id="try-title" v-model="tryForm.title" maxlength="64" /></div>
-          <div class="field"><label class="f-label" for="try-subtitle">{{ t("editor.alerts.try.subtitle") }}</label><input id="try-subtitle" v-model="tryForm.subtitle" maxlength="240" /></div>
-          <div class="field"><label class="f-label" for="try-icon">{{ t("editor.alerts.try.icon") }}</label><input id="try-icon" v-model="tryForm.icon" list="try-icons" placeholder="doorbell" />
-            <datalist id="try-icons"><option v-for="icon in alerts.suggested_icons" :key="icon.name" :value="icon.name">{{ icon.label || icon.name }}</option></datalist></div>
-          <div class="field"><label class="f-label" for="try-color">{{ t("editor.alerts.try.color") }}</label>
-            <select id="try-color" v-model="tryForm.color"><option value="">{{ t("editor.alerts.white") }}</option><option v-for="colour in alerts.colors" :key="colour.name" :value="colour.name">{{ colour.label }}</option></select></div>
-          <div class="field"><label class="f-label" for="try-button">{{ t("editor.alerts.try.button") }}</label><input id="try-button" v-model="tryForm.button_text" maxlength="16" /></div>
-          <div class="field"><label class="f-label" for="try-timeout">{{ t("editor.alerts.try.timeout") }}</label><input id="try-timeout" v-model.number="tryForm.timeout" type="number" min="0" max="86400" /></div>
-          <label class="check field"><input type="checkbox" id="try-flash" v-model="tryForm.flash" /><span>{{ t("editor.alerts.try.flash") }}<small>{{ t("editor.alerts.try.flash_hint") }}</small></span></label>
-          <div class="actions field wide">
-            <button type="submit" class="btn primary" id="try-send" :disabled="trying || !readyScreens.length">{{ trying ? t("editor.alerts.try.sending") : t("editor.alerts.try.send") }}</button>
-            <span class="status-line" id="try-result" role="status">{{ tryResult }}</span>
-          </div>
-        </form>
-      </section>
+      <AlertTry />
       <section id="alerts-screens" class="card">
         <h2>{{ t("editor.alerts.nav.screens") }}</h2>
         <i18n-t keypath="editor.alerts.screens.text" tag="p" scope="global">
@@ -197,19 +88,19 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <div v-for="screen in physicalScreens" :key="screen.id" class="alert-screen">
             <div class="alert-screen-head">
               <strong>{{ screen.name }}</strong>
-              <span class="chip" :class="versionAtLeast(firmwareVersion(screen), alerts.min_firmware) && screen.alert_action ? 'good' : 'update'">
-                {{ versionAtLeast(firmwareVersion(screen), alerts.min_firmware) && screen.alert_action
+              <span class="chip" :class="scr.canAlert(screen) ? 'good' : 'update'">
+                {{ scr.canAlert(screen)
                   ? t("editor.alerts.screens.ready", { version: screen.firmware })
                   : screen.alert_action ? t("editor.alerts.screens.update", { version: screen.firmware || t("editor.common.unknown") }) : t("editor.alerts.screens.unknown") }}
               </span>
             </div>
             <div v-for="[label, action] in [[t('editor.alerts.screens.show'), screen.alert_action], [t('editor.alerts.screens.dismiss'), screen.dismiss_action]]" :key="label" class="copy-line">
               <span class="copy-label">{{ label }}</span><code>{{ action || "esphome.<device_name>_show_alert" }}</code>
-              <button v-if="action" type="button" class="btn quiet mini" @click="copyText(action!, undefined, 'action_name')">{{ t("editor.common.copy") }}</button>
+              <button v-if="action" type="button" class="btn quiet mini" @click="ui.copyText(action!, undefined, 'action_name')">{{ t("editor.common.copy") }}</button>
             </div>
             <div class="copy-line alert-screen-value">
               <span class="copy-label">{{ t("editor.alerts.one.value") }}</span><code>{{ screenValue(screen) }}</code>
-              <button type="button" class="btn quiet mini" @click="copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button>
+              <button type="button" class="btn quiet mini" @click="ui.copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button>
             </div>
           </div>
         </div>
@@ -240,7 +131,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </div>
         <div class="copy-line">
           <pre id="alerts-example">{{ exampleYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-example-copy" @click="copyText(exampleYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-example-copy" @click="ui.copyText(exampleYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section id="alerts-all" class="card">
@@ -253,7 +144,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </i18n-t>
         <div class="copy-line">
           <pre id="alerts-all-example">{{ allYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-all-copy" @click="copyText(allYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-all-copy" @click="ui.copyText(allYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section id="alerts-one" class="card">
@@ -268,7 +159,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
             <tr><th>{{ t("editor.alerts.one.value") }}</th><th>{{ t("editor.alerts.one.name") }}</th><th>{{ t("editor.alerts.one.room") }}</th><th>{{ t("editor.alerts.one.picture") }}</th></tr>
             <tr v-for="screen in physicalScreens" :key="screen.id">
               <td><span class="copy-line"><code>{{ screenValue(screen) }}</code>
-                <button type="button" class="btn quiet mini" @click="copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button></span></td>
+                <button type="button" class="btn quiet mini" @click="ui.copyText(screenValue(screen), undefined, 'screen_name')">{{ t("editor.common.copy") }}</button></span></td>
               <td>{{ screen.name }}</td>
               <td>{{ screen.area || "—" }}</td>
               <td>{{ screen.pictures ? t("editor.alerts.one.picture_yes") : t("editor.alerts.one.picture_no") }}</td>
@@ -287,7 +178,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </div>
         <div class="copy-line">
           <pre id="alerts-one-example">{{ oneYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-one-copy" @click="copyText(oneYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <button type="button" class="btn quiet mini" id="alerts-one-copy" @click="ui.copyText(oneYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section v-if="alerts.choice" id="alerts-choice" class="card">
@@ -304,8 +195,8 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <template #version>{{ alerts.choice.min_firmware }}</template>
         </i18n-t>
         <div class="copy-line">
-          <pre id="alerts-choice-example">{{ choiceYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-choice-copy" @click="copyText(choiceYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <pre id="alerts-choice-example">{{ twoButtonsYaml }}</pre>
+          <button type="button" class="btn quiet mini" id="alerts-choice-copy" @click="ui.copyText(twoButtonsYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
         <i18n-t keypath="editor.alerts.choice.direct" tag="p" scope="global">
           <template #choice><code>esphome.&lt;device_name&gt;_{{ alerts.choice.action }}</code></template>
@@ -323,14 +214,14 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
               <td>{{ typeName(field.type) }}</td>
               <td>{{ field.help }}</td>
               <td><code>{{ typeof field.example === "string" ? field.example : String(field.example) }}</code></td>
-              <td>{{ limitText(field.name) || (field.type === "int" ? t("editor.alerts.fields.seconds") : "—") }}</td>
+              <td>{{ limitText(reference, field.name) || (field.type === "int" ? t("editor.alerts.fields.seconds") : "—") }}</td>
             </tr>
             <tr v-for="field in alerts.choice?.fields || []" :key="field.name">
               <td><code>{{ field.name }}</code><small>{{ field.label }}</small></td>
               <td>{{ typeName(field.type) }}</td>
               <td>{{ field.help }}</td>
               <td><code>{{ field.example }}</code></td>
-              <td>{{ field.name === "button2_text" ? limitText("button_text") : "—" }}</td>
+              <td>{{ field.name === "button2_text" ? limitText(reference, "button_text") : "—" }}</td>
             </tr>
             <tr v-if="alerts.choice?.action2">
               <td><code>{{ alerts.choice.action2.name }}</code><small>{{ alerts.choice.action2.label }}</small></td>
@@ -366,7 +257,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </i18n-t>
         <p class="subhead">{{ t("editor.alerts.icons.handy") }}</p>
         <div class="chips" id="alerts-suggested">
-          <button v-for="icon in alerts.suggested_icons" :key="icon.name" type="button" class="chip" @click="copyText(icon.name, undefined, 'icon_name')"><span class="mdi">{{ glyph(icon.cp) }}</span><code>{{ icon.name }}</code></button>
+          <button v-for="icon in alerts.suggested_icons" :key="icon.name" type="button" class="chip" @click="ui.copyText(icon.name, undefined, 'icon_name')"><span class="mdi">{{ glyph(icon.cp) }}</span><code>{{ icon.name }}</code></button>
         </div>
         <div class="field">
           <label class="f-label" for="alerts-icon-search">{{ t("editor.alerts.icons.search_label") }}</label>
@@ -376,7 +267,7 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <div v-for="group in iconGroups" :key="group.label" class="field">
             <p class="subhead">{{ group.label }} · {{ group.icons.length }}</p>
             <div class="alert-icon-grid">
-              <button v-for="icon in group.icons" :key="icon.name" type="button" class="alert-icon" :title="t('editor.alerts.icons.copy', { name: icon.name })" @click="copyText(icon.name, undefined, 'icon_name')">
+              <button v-for="icon in group.icons" :key="icon.name" type="button" class="alert-icon" :title="t('editor.alerts.icons.copy', { name: icon.name })" @click="ui.copyText(icon.name, undefined, 'icon_name')">
                 <span class="mdi">{{ glyph(icon.cp) }}</span><code>{{ icon.name }}</code><small v-if="icon.label">{{ icon.label }}</small>
               </button>
             </div>
@@ -390,8 +281,8 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <template #field><code>color</code></template>
         </i18n-t>
         <div class="swatches" id="alerts-swatches">
-          <button type="button" class="swatch" @click="copyText('', undefined, 'empty_color')"><i style="background: #ffffff"></i><span><code>empty</code><small>{{ t("editor.alerts.white") }}</small></span></button>
-          <button v-for="colour in alerts.colors" :key="colour.name" type="button" class="swatch" @click="copyText(colour.name, undefined, 'color_name')"><i :style="{ background: colour.color }"></i><span><code>{{ colour.name }}</code><small>{{ colour.label }} · {{ colour.color }}</small></span></button>
+          <button type="button" class="swatch" @click="ui.copyText('', undefined, 'empty_color')"><i style="background: #ffffff"></i><span><code>empty</code><small>{{ t("editor.alerts.white") }}</small></span></button>
+          <button v-for="colour in alerts.colors" :key="colour.name" type="button" class="swatch" @click="ui.copyText(colour.name, undefined, 'color_name')"><i :style="{ background: colour.color }"></i><span><code>{{ colour.name }}</code><small>{{ colour.label }} · {{ colour.color }}</small></span></button>
         </div>
       </section>
       <section id="alerts-behaviour" class="card">
@@ -442,8 +333,8 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
         </div>
         <p class="subhead">{{ t("editor.alerts.events.wait") }}</p>
         <div class="copy-line">
-          <pre id="alerts-wait-example">{{ waitYaml }}</pre>
-          <button type="button" class="btn quiet mini" id="alerts-wait-copy" @click="copyText(waitYaml, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
+          <pre id="alerts-wait-example">{{ waitExample }}</pre>
+          <button type="button" class="btn quiet mini" id="alerts-wait-copy" @click="ui.copyText(waitExample, undefined, 'yaml')">{{ t("editor.alerts.copy_yaml") }}</button>
         </div>
       </section>
       <section id="alerts-tips" class="card">

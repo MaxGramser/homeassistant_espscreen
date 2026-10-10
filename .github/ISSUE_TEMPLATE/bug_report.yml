@@ -1,12 +1,18 @@
-name: Bug report
-description: Something isn't working, a screen, the add-on, or the editor.
+name: Bug report (bugs only)
+description: Report a reproducible problem in an existing screen, app or editor feature.
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a problem. Please fill in as much as you can, it saves a lot of back and forth.
+        **Only bug reports are reviewed on GitHub.** Feature requests, improvements and new board requests posted here will not be reviewed. They must go on the website. Questions and general discussions also belong on the website, not in GitHub Issues or Discussions.
+
+        Use this form when existing functionality is broken. Please include the steps to reproduce it.
+
+        **Want a feature or improvement?** Search the [wishlist](https://tessera-maxgramser.on-forge.com/wishlist) and upvote an existing wish before adding another.
+        **Want a new ESP board or display?** Use [New boards on the wishlist](https://tessera-maxgramser.on-forge.com/wishlist?category=board), including the exact model and a product link. More votes help decide which boards get support. A single request does not guarantee support, and votes do not guarantee a release date.
+        **Have a question?** Ask in [Community](https://tessera-maxgramser.on-forge.com/community). Sign in with your GitHub account to post, vote or reply.
   - type: dropdown
     id: board
     attributes:
@@ -32,6 +38,7 @@ body:
         - M5Stack Tab5 (Tab5 ST7121)
         - Waveshare (ESP32-S3-Touch-LCD-5)
         - Waveshare (ESP32-P4-86-Panel-ETH-2RO)
+        - reTerminal D1001 (reTerminal D1001)
         - Waveshare (ESP32-S3-Touch-LCD-4)
         - Other / not listed here
         - Not board-specific (add-on, editor, documentation)
@@ -92,7 +99,9 @@ body:
     attributes:
       label: Before submitting
       options:
-        - label: I checked the README, README_EXTENDED.md, and the guides under docs/ for this
+        - label: This reports broken existing functionality, not a feature, improvement or new board request.
+          required: true
+        - label: I checked the Tessera manual and troubleshooting guide
           required: true
         - label: I searched the existing issues and this has not already been reported
           required: true

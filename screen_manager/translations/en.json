@@ -155,6 +155,10 @@
       "night": "Night",
       "screen": "Screen",
       "this_screen": "This screen",
+      "extras": "Extras",
+      "microphone": "Microphone",
+      "media_player": "Volume",
+      "wake_when_moved": "Wake when moved",
       "dark_mode": "Dark mode",
       "auto_standby": "Auto standby",
       "standby_after": "Standby after",
@@ -840,7 +844,6 @@
         "misfit_board": "{name} is made for other boards.",
         "misfit_psram": "{name} needs a board with PSRAM.",
         "misfit_blocked": "{name} is blocked: this version is known to be harmful or broken.",
-        "requires": "{name} needs the plugin {other} on this screen first.",
         "firmware": "This screen's firmware has no plugins yet. Update it, then the plugin tiles appear.",
         "file": "The plugins file is not valid.",
         "other_include": "This screen's YAML already has a different tessera_plugins include.",
@@ -849,7 +852,23 @@
         "link_rate": "GitHub is not answering right now (too many questions in an hour). Try again later.",
         "folder": "The folder {folder} in tessera-plugins is not a plugin yet: {why}",
         "manifest": "The plugin's description is not valid: {why}",
-        "consent": "{name} asks for other rights than before. Look at what it may do now and agree, then update."
+        "consent": "{name} asks for other rights than before. Look at what it may do now and agree, then update.",
+        "requires_unknown": "{name} needs the plugin {other}, which the plugin list does not have.",
+        "requires_misfit": "{name} needs {other}, which does not fit this screen.",
+        "feature_missing": "{name} needs a {feature}, and nothing that brings one fits this screen.",
+        "feature_conflict": "A screen has one {feature}, and {names} would each bring one.",
+        "needed_by": "{others} needs {name}: remove them together.",
+        "choose": "Choose which plugin brings the {feature} for {name}.",
+        "other_origin": "This screen runs another plugin called {name}, from {origin}. Switch to this one in its details.",
+        "misfit_esphome": "{name} needs ESPHome {version} or newer to build.",
+        "like_not_installed": "Put the plugin on one of your screens first, then you can like it.",
+        "like_consent": "Agree first that your like counts in a public number.",
+        "like_off": "Likes are off: a newer version of the app keeps them.",
+        "like_failed": "The like did not go out. Try again in a moment.",
+        "misfit_built_in": "{name} brings what this board has itself."
+      },
+      "extras": {
+        "request": "This change of an extra is not possible on this screen."
       }
     },
     "status": {
@@ -1019,9 +1038,27 @@
           "icon": "Icon only",
           "percent": "Percentage"
         },
+        "plugin_contents": {
+          "all": "Icon and words",
+          "icon": "Icon only"
+        },
         "battery_shows": {
           "always": "Always",
           "low": "Only when low"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microphone",
+          "hint": "Off mutes the microphone for everything that listens. The screen keeps it after a restart."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "How loud the screen speaks and plays: answers, announcements and music. The same volume as the screen's media player in Home Assistant."
+        },
+        "wake_when_moved": {
+          "label": "Wake when moved",
+          "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
         }
       }
     },
@@ -1167,6 +1204,7 @@
         "speaker_multiple": "Speakers",
         "soundbar": "Soundbar",
         "headphones": "Headphones",
+        "microphone": "Microphone",
         "piano": "Piano",
         "guitar_acoustic": "Guitar",
         "television": "TV",
@@ -1354,6 +1392,7 @@
       "unknown": "unknown",
       "unsaved": "Unsaved changes",
       "cancel": "Cancel",
+      "ok": "OK",
       "open_integrations": "Open Devices & services",
       "save_send": "Save & send",
       "saving": "Saving…",
@@ -1416,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Management page unreachable · retrying…",
         "reconnecting": "Reconnecting to Home Assistant…"
       },
       "search": "Search",
@@ -1496,6 +1534,38 @@
       "placeholder": "Search screens, entities, actions…",
       "empty": "Nothing matches. Type part of a screen, entity or action."
     },
+    "search": {
+      "groups": {
+        "recent": "Recent",
+        "settings": "Screen settings",
+        "tiles": "On your screens",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Open",
+        "run": "Run",
+        "show": "Show",
+        "add": "Add"
+      },
+      "keys": {
+        "move": "Move",
+        "choose": "Choose",
+        "close": "Close"
+      },
+      "identify": "Identify {name}",
+      "update": "Update {name}",
+      "update_detail": "To {version}",
+      "update_all": "Update all screens",
+      "update_all_detail": "1 screen is waiting | {n} screens are waiting",
+      "update_all_confirm": "Update 1 screen now? It restarts once its update is in. | Update {n} screens now? One after the other, each restarts once its update is in.",
+      "update_all_go": "Update now",
+      "install": "Install the plugins set aside",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Add {plugin} to {screen}",
+      "add_plugin_detail": "Set aside, ready to install",
+      "on": "On",
+      "off": "Off"
+    },
     "empty": {
       "choose": {
         "title": "Choose a screen",
@@ -1513,6 +1583,31 @@
       "open": "Open {name}",
       "no_layout": "No layout yet",
       "in_tessera": "Update in Tessera first"
+    },
+    "broken": {
+      "screens": "1 screen | {n} screens",
+      "summary": {
+        "missing": "1 tile on {screens} shows an entity that no longer exists | {n} tiles on {screens} show an entity that no longer exists",
+        "unavailable": "1 tile on {screens} shows an entity that has been unavailable for a while | {n} tiles on {screens} show an entity that has been unavailable for a while",
+        "mixed": "1 tile on {screens} shows an entity that is gone or unavailable | {n} tiles on {screens} show an entity that is gone or unavailable"
+      },
+      "short": "1 tile to check | {n} tiles to check",
+      "review": "Review",
+      "hide": "Hide",
+      "missing": "No longer in Home Assistant",
+      "unavailable_minutes": "Unavailable for 1 minute | Unavailable for {n} minutes",
+      "unavailable_hours": "Unavailable for 1 hour | Unavailable for {n} hours",
+      "unavailable_days": "Unavailable for 1 day | Unavailable for {n} days",
+      "change": "Show another entity",
+      "on_screen": "That entity is on this screen already.",
+      "replaced": "Now shows {name}",
+      "fix": {
+        "choose": "Choose another entity",
+        "missing": "Home Assistant no longer has this entity",
+        "missing_hint": "It was removed or renamed. Choose what this tile shows now.",
+        "unavailable_hint": "Home Assistant has had no word from it. Choose another entity, or wait for it to come back.",
+        "search": "Search entities"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -1760,7 +1855,8 @@
       },
       "refresh": {
         "label": "Refresh",
-        "seconds": "Every {n} s"
+        "seconds": "Every {n} s",
+        "live": "Live"
       },
       "picture": {
         "fit": {
@@ -2175,6 +2271,14 @@
         "item_look": "Shows",
         "item_hint": "Black and white on the screensaver, whatever the colour of the entity.",
         "items_add_title": "Add to the clock"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "Each plugin's settings are in its details on the Plugins tab."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Settings only this screen has, from its board. The same switches are on the screen's own settings page and in Home Assistant."
       }
     },
     "update": {
@@ -2272,13 +2376,6 @@
       "download_how": "Put it on the screen with {esphome_web} in Chrome or Edge: Connect, choose the screen's USB port, Install, and select this file. It holds your Wi-Fi password and the screen's keys: keep it to yourself."
     },
     "installer": {
-      "title": {
-        "saved": "Profile saved.",
-        "running": "One moment…",
-        "ready": "Ready to download.",
-        "done": "Done.",
-        "failed": "That didn't work."
-      },
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
       "status": {
@@ -2874,7 +2971,8 @@
       "hint": "The screen's own firmware, drawn from the layout you are editing. Tap, hold and swipe as on the screen. Nothing is saved.",
       "control": "Taps control devices",
       "control_hint": "When on, a tap on a tile runs its action in Home Assistant, as on the screen. When off, the preview only shows what a tap does.",
-      "skipped": "Preview screen {names} could not be loaded and was left out."
+      "skipped": "Preview screen {names} could not be loaded and was left out.",
+      "not_kept": "This browser couldn't store the preview screen: its storage is full or blocked."
     },
     "inspector": {
       "kind": {
@@ -2882,6 +2980,86 @@
         "page": "Page",
         "bar": "Top bar"
       }
+    },
+    "confirm": {
+      "leave_question": "You have unsaved changes. Go to the overview anyway?",
+      "discard_open": "Discard and open",
+      "discard_leave": "Discard and leave",
+      "replace_layout": "Replace layout",
+      "import": "Import",
+      "start_fresh": "Start fresh",
+      "calibrate": "Start calibration",
+      "add_anyway": "Add anyway",
+      "use_example": "Replace with example",
+      "clear_override": "Clear override"
+    },
+    "undo": {
+      "undo": "Undo: {what}",
+      "redo": "Redo: {what}",
+      "undone": "Undone: {what}",
+      "redone": "Redone: {what}",
+      "a_tile": "tile",
+      "what": {
+        "grid": "grid changed to {grid}",
+        "page_added": "page {page} added",
+        "page_copied": "page {page} added as a copy",
+        "page_removed": "page {page} removed",
+        "page_moved": "page moved to place {page}",
+        "pages_moved": "pages reordered",
+        "tile_added": "{name} added",
+        "tiles_added": "1 tile added | {n} tiles added",
+        "tile_removed": "{name} removed",
+        "tiles_removed": "1 tile removed | {n} tiles removed",
+        "tile_moved": "{name} moved",
+        "tile_moved_page": "{name} moved to page {page}",
+        "tiles_moved": "1 tile moved | {n} tiles moved",
+        "tile_link": "{name} now opens page {page}",
+        "tile_renamed": "{name} renamed",
+        "tile_look": "display of {name} changed",
+        "tile_resized": "{name} resized",
+        "tile_icon": "icon of {name} changed",
+        "tile_color": "background of {name} changed",
+        "tile_tap": "on tap for {name} changed",
+        "tile_option": "settings of {name} changed",
+        "tiles_changed": "1 tile changed | {n} tiles changed",
+        "screen_title": "screen title changed",
+        "page_title": "title of page {page} changed",
+        "home_page": "page {page} made the home page",
+        "page_buttons": "page buttons for page {page} changed",
+        "home_key": "Home control on page {page} changed",
+        "top_bar": "top bar of page {page} changed",
+        "top_bars": "top bars changed",
+        "map_moved": "page {page} moved on the map",
+        "map_arranged": "map arranged from Home",
+        "stood_up": "screen turned to portrait",
+        "laid_down": "screen turned to landscape",
+        "layout_copied": "layout copied from {name}",
+        "layout_imported": "layout imported",
+        "changed": "layout changed",
+        "restored": "unsaved changes restored",
+        "taken_over": "changes from the other tab taken over"
+      }
+    },
+    "draft": {
+      "kept": "Unsaved changes from {time}",
+      "kept_hint": "Kept in this browser, not on the screen yet.",
+      "restore": "Restore",
+      "discard": "Discard"
+    },
+    "tabs": {
+      "elsewhere": "This screen is being edited in another tab",
+      "elsewhere_hint": "Its changes are not saved yet.",
+      "take_over": "Take over here",
+      "keep_mine": "Keep mine"
+    },
+    "connection": {
+      "lost": "ESP Screen Manager can't be reached.",
+      "lost_hint": "Your changes stay here. Trying again…",
+      "restored": "Connection restored"
+    },
+    "naming": {
+      "rename": "Rename",
+      "reset": "Back to {name}"
     },
     "phone": {
       "screens": "Screens",
@@ -2914,15 +3092,9 @@
     },
     "plugins": {
       "title": "Plugins",
-      "intro": "Extras for your screens: hardware on the board, or something more a screen can do. A plugin is built into a screen's firmware, so you choose per screen which ones it gets.",
+      "intro": "Extras for your screens: tiles to put on a page, something more the whole screen can do, or hardware on the board. A plugin is built into a screen's firmware, so you choose per screen which ones it gets.",
       "search": "Search by name, maker or what it does",
       "filter": "Show",
-      "filters": {
-        "all": "All",
-        "tessera": "From Tessera",
-        "community": "Community",
-        "in_use": "In use"
-      },
       "from_tessera": "From Tessera",
       "by": "By {maker}",
       "label": {
@@ -2951,22 +3123,26 @@
         "psram": "Needs PSRAM",
         "firmware": "Needs newer firmware",
         "flash": "Too large for this screen",
-        "blocked": "Blocked"
+        "blocked": "Blocked",
+        "esphome": "Needs newer ESPHome",
+        "feature": "Needs hardware this screen lacks",
+        "needs": "Needs a plugin that does not fit",
+        "built_in": "Built into this board"
       },
       "misfit": {
         "board": "This plugin is made for other boards than {screen}'s.",
         "psram": "This plugin needs a board with PSRAM, and {screen} has none.",
         "firmware": "{screen} needs a firmware update before it can take this plugin.",
         "flash": "{screen} has room for about {kb} KB more, and this plugin is larger.",
-        "blocked": "This version of the plugin is blocked: it is known to be harmful or broken."
+        "blocked": "This version of the plugin is blocked: it is known to be harmful or broken.",
+        "esphome": "This plugin needs a newer ESPHome than this app builds with.",
+        "feature": "{screen} has nothing that brings what this plugin needs, and no plugin that brings it fits.",
+        "needs": "This plugin needs another plugin that does not fit {screen}.",
+        "built_in": "{screen}'s board brings this itself, so the plugin is not needed there."
       },
       "none_installed": "No plugins on this screen yet.",
       "none_found": "No plugin matches “{query}”.",
       "version": "version {version}",
-      "kind": {
-        "hardware": "Hardware",
-        "behaviour": "Feature"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Example"
@@ -2980,7 +3156,7 @@
         "commercial": "Commercial",
         "ai-developed": "Made with AI"
       },
-      "test_note": "A test: every build takes the newest version, and Tessera offers no updates for it.",
+      "test_note": "A test: the screen stays on the commit it was built from, and a newer commit shows up here as an update. A folder is built as it is now.",
       "remove": "Remove from {screen}",
       "building": "Building the firmware for {screen}…",
       "installed_on": "On {screen}, version {version}",
@@ -2997,7 +3173,7 @@
         "card": "“{name}”, a screen of its own on the glass",
         "bar": "Top bar item “{name}”",
         "settings": "Settings",
-        "settings_where": "On the screen's settings page and under Screen settings"
+        "settings_where": "On the screen's settings page and here, in its details on the Plugins tab"
       },
       "may": {
         "title": "What it may do",
@@ -3036,8 +3212,8 @@
         "branch": "Branch",
         "folder": "Folder on this machine",
         "hints": {
-          "link": "Tessera takes the newest release and keeps the screen on it. A new release shows up as an update.",
-          "branch": "Every build takes the newest commit of this branch. For trying out, not for every day.",
+          "link": "Tessera takes the newest release (without one, the newest commit) and keeps the screen on it. Something newer shows up as an update.",
+          "branch": "Tessera takes the newest commit of this branch and keeps the screen on it; a newer commit shows up as an update. For trying out.",
           "folder": "For a plugin you are making: save, and the next build takes it. The folder lives in Home Assistant's config."
         },
         "fetch": "Read the plugin",
@@ -3075,7 +3251,8 @@
         "on_screen": "{label} on {screen}",
         "choose_pin": "Choose a pin",
         "part_kb": "{kb} KB more",
-        "secret_set": "Set. Fill in a new one to replace it."
+        "secret_set": "Set. Fill in a new one to replace it.",
+        "part_needs": "Needs a {what} on the screen"
       },
       "readme": {
         "title": "Read me"
@@ -3115,7 +3292,8 @@
         "builds": "{n} screens build, one after the other.",
         "stage": "Add to {screen}",
         "in_tray": "Ready to install",
-        "in_tray_note": "Install it from the card in the corner, alone or with others."
+        "in_tray_note": "Install it from the card in the corner, alone or with others.",
+        "along": "comes along with {names}"
       },
       "maker": {
         "title": "Make a plugin of your own",
@@ -3128,7 +3306,7 @@
         },
         "test": {
           "title": "Try it on your screen",
-          "text": "Add your repository with a link. Every release you publish shows up here as an update.",
+          "text": "Add your repository with a link. Push, and each new commit or release shows up here as an update.",
           "folder": "Or put its folder in {path} to test without a release."
         },
         "share": {
@@ -3136,6 +3314,114 @@
           "text": "Works well? List it in the community and it shows up here for everyone, straight from your repository. You stay its maker.",
           "action": "List it"
         }
+      },
+      "settings": {
+        "title": "Settings",
+        "live": "On this screen",
+        "live_note": "A change takes effect at once.",
+        "shared": "For every screen",
+        "shared_note": "Filled in once, for every screen with this plugin.",
+        "build": "When building",
+        "build_note": "A change builds {screen} again.",
+        "save_build": "Save and build",
+        "run": "Run",
+        "too_short": "At least {n} characters."
+      },
+      "tabs": {
+        "tiles": "Tiles",
+        "functions": "Functions",
+        "hardware": "Hardware",
+        "in_use": "In use"
+      },
+      "types": {
+        "tiles": "Tiles",
+        "functions": "Function",
+        "hardware": "Hardware"
+      },
+      "topics": {
+        "time": "Time & countdowns",
+        "weather": "Weather & sky",
+        "calendar": "Calendar & tasks",
+        "home": "Home",
+        "energy": "Energy",
+        "travel": "On the move",
+        "money": "Money",
+        "sports": "Sports",
+        "news": "News & facts",
+        "media": "Music & media",
+        "photos": "Photos & art",
+        "fun": "Games & fun",
+        "voice": "Voice & sound",
+        "tech": "Tech"
+      },
+      "topic_filter": "Topics",
+      "sort": {
+        "label": "Sort by",
+        "popular": "Most liked",
+        "new": "Newest",
+        "name": "Name"
+      },
+      "none_in_tab": {
+        "tiles": "No plugins with tiles yet.",
+        "functions": "No plugins for the whole screen yet.",
+        "hardware": "No hardware plugins yet."
+      },
+      "fits_none_group": "{n} plugin fits none of your screens | {n} plugins fit none of your screens",
+      "likes": {
+        "count": "{n} person likes this | {n} people like this",
+        "like": "Like",
+        "unlike": "Take back your like",
+        "install_first": "Put it on a screen first, then you can like it",
+        "ask": "Your like counts in a public number per plugin. Only the number is public: nothing about you, Home Assistant or your screens goes along."
+      },
+      "along": {
+        "title": "Comes along",
+        "brings": "brings the {what}",
+        "needed_by": "needed by {name}",
+        "came_with": "Came along with {names}.",
+        "needed_now": "{names} needs this plugin.",
+        "choose": "Which plugin brings the {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} needs {name}, so it goes as well.",
+        "orphans": "Also remove {names}",
+        "orphans_note": "It only came along with {name}; nothing else on the screen needs it.",
+        "both": "Remove them together",
+        "go": "Remove"
+      },
+      "blocked_now": "This version is blocked ({why}) and leaves the next build. Update to a newer one.",
+      "other_origin": "This screen runs another plugin with this name, from {origin}. It is not updated from here.",
+      "switch": "Switch to the one from {origin}",
+      "needs": {
+        "title": "Needs and brings",
+        "plugin": "Another plugin; it comes along when you add this one.",
+        "feature": "A {what}",
+        "feature_note": "From the screen's board, or a plugin that brings one: it comes along when there is just one.",
+        "brings": "Brings a {what}",
+        "brings_note": "For other plugins that need one, on the same screen."
+      },
+      "features": {
+        "speaker": "speaker",
+        "microphone": "microphone",
+        "media_player": "media player",
+        "camera": "camera stream for Home Assistant",
+        "camera_sensor": "camera sensor"
+      },
+      "fitting_only": "Only what fits my screens",
+      "made_by": {
+        "label": "Made by",
+        "all": "Anyone",
+        "tessera": "Tessera",
+        "community": "Community"
+      },
+      "filter_button": "Filter",
+      "filter_remove": "Remove {what}",
+      "filter_clear": "Clear filters",
+      "fitting_all": "Also what does not fit",
+      "news": {
+        "title": "What's new in {version}",
+        "none": "The maker wrote no notes for this update.",
+        "history": "All versions"
       }
     },
     "plugin_tile": {
@@ -3157,7 +3443,15 @@
     "build": {
       "plugins": "Building with its plugins",
       "install": "Installing",
-      "failed": "The last build of {screen} failed. The log says why."
+      "failed": "The last build of {screen} failed. The log says why.",
+      "title": "Building now",
+      "count": "1 build on its way | {n} builds on their way",
+      "waiting": "Waiting its turn",
+      "ready": "{name} is ready",
+      "ready_several": "{names} are ready",
+      "update_failed": "Updating {name} failed",
+      "build_failed": "Building {name} failed",
+      "show_log": "Show log"
     },
     "grid": {
       "title": "Grid",

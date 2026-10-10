@@ -35,7 +35,13 @@ namespace tessera {
 // with millis()) became on_interval, so that on_tick everywhere means once a second with the clock. 0.5: the app's side
 // only: lists of an entity bounded by bytes instead of 16 items, `fields` of a tile's entity and of an answer, the
 // field kind `numbers`, `has_attributes` for the entity list (a plugin that uses them needs an app that knows them).
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 5;
+// 0.6: the app's side only: settings of kind text and button, a button's `status`, settings found by their name in the
+// entity registry, and each plugin's settings in its details on the screen's Plugins tab. 0.7: the manifest's side only:
+// `topics`, `provides` and `requires.features` (a feature is a promise about one ESPHome id, such as a speaker with id
+// ts_speaker, whichever plugin or board brings it), parts that need a feature, and plugins that come along with the one
+// that needs them. 0.8: the features `camera` (ts_camera) and `camera_sensor`, the first feature only a board brings (its
+// I2C bus as the substitution CAMERA_I2C), and a top bar item's `tone`, the colour of its icon.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 8;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -149,10 +155,15 @@ class SettingsPage {
 };
 
 // What an item of a plugin in the top bar shows now: an icon of Tessera's set and a short text, or nothing.
+// The colour of a top bar item's icon (0.8), by what it means: the core picks the colour, in both looks. NORMAL is the
+// bar's own grey; ACCENT the screen's blue (it listens, it is on); BUSY Home Assistant's amber (it works on something);
+// ALERT its red (a camera that streams, something that went wrong).
+enum class Tone : uint8_t { NORMAL, ACCENT, BUSY, ALERT };
 struct BarItem {
   bool shown = false;
   uint32_t icon = 0;         // a codepoint of Tessera's icon set (0xF00E7), 0 for none
-  std::string text;          // a few words ("Tomorrow: paper"), "" for an icon alone
+  std::string text;          // a few words ("Tomorrow: paper"), "" for an icon alone; a person may show the icon alone
+  Tone tone = Tone::NORMAL;  // the icon's colour; the words keep the bar's
 };
 
 class Plugin;
@@ -302,6 +313,8 @@ lv_obj_t *label(lv_obj_t *parent, Font font, theme::Role role = theme::INK);
 void set_text(lv_obj_t *label, const std::string &text);
 void set_font(lv_obj_t *label, Font font);
 void set_color(lv_obj_t *label, theme::Role role);
+// A label in a tone (0.8), the colours a top bar item's icon takes; NORMAL takes `normal`.
+void set_tone(lv_obj_t *label, Tone tone, theme::Role normal);
 // A rounded block (a line number's badge, a bar): no border, the radius of a key.
 lv_obj_t *block(lv_obj_t *parent, theme::Role fill);
 // The UTF-8 of an icon of Tessera's set by its codepoint (0xF0B5E), for a label in Font::ICON or ICON_SMALL.

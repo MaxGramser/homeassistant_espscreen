@@ -22,9 +22,9 @@ MODEL = (COMPONENT / 'runtime_model.h').read_text()
 CONTROLS = (COMPONENT / 'tile_controls.h').read_text()
 RECEIVER = (COMPONENT / 'page_receiver.cpp').read_text()
 TILES = runtime_source()
-CARD = (ROOT / 'web/src/components/TileCard.vue').read_text()
+CARD = (ROOT / 'web/src/model/tile-text.ts').read_text()
 PALETTE = (ROOT / 'web/src/model/tile-palette.ts').read_text()
-LIBRARY = (ROOT / 'web/src/components/Library.vue').read_text()
+LIBRARY = (ROOT / 'web/src/model/library.ts').read_text()
 
 ACTIONS = {'remote.turn_on', 'remote.turn_off', 'remote.toggle', 'remote.send_command', 'remote.learn_command',
            'remote.delete_command'}
@@ -180,7 +180,7 @@ class HomeAssistantsWay(unittest.TestCase):
         self.assertIn('if(t.extra().options.empty()){', TILES)
         # The tile names the activity it runs, on the screen and in the editor's mockup.
         self.assertIn('value = t.extra().activity;', TILES)
-        self.assertIn('if (domain.value === "remote" && c.state === "on" && a.current_activity)', CARD)
+        self.assertIn('if (domain === "remote" && live.state === "on" && a.current_activity)', CARD)
         self.assertIn('"remote"', LIBRARY)
 
 

@@ -155,6 +155,10 @@
       "night": "Noche",
       "screen": "Pantalla",
       "this_screen": "Esta pantalla",
+      "extras": "Extras",
+      "microphone": "Micrófono",
+      "media_player": "Volumen",
+      "wake_when_moved": "Despertar al moverlo",
       "dark_mode": "Modo oscuro",
       "auto_standby": "Reposo automático",
       "standby_after": "Reposo tras",
@@ -840,7 +844,6 @@
         "misfit_board": "{name} está hecho para otras placas.",
         "misfit_psram": "{name} necesita una placa con PSRAM.",
         "misfit_blocked": "{name} está bloqueado: esta versión es dañina o está rota.",
-        "requires": "{name} necesita primero el plugin {other} en esta pantalla.",
         "firmware": "El firmware de esta pantalla aún no conoce los plugins. Actualízalo y aparecerán los mosaicos del plugin.",
         "file": "El archivo de plugins no es válido.",
         "other_include": "El YAML de esta pantalla ya tiene otro include tessera_plugins.",
@@ -849,7 +852,23 @@
         "link_rate": "GitHub no responde ahora (demasiadas peticiones en una hora). Inténtalo más tarde.",
         "folder": "La carpeta {folder} de tessera-plugins aún no es un plugin: {why}",
         "manifest": "La descripción del plugin no es válida: {why}",
-        "consent": "{name} pide otros permisos que antes. Revisa lo que puede hacer ahora y acepta, luego actualiza."
+        "consent": "{name} pide otros permisos que antes. Revisa lo que puede hacer ahora y acepta, luego actualiza.",
+        "requires_unknown": "{name} necesita el plugin {other}, que no está en la lista de plugins.",
+        "requires_misfit": "{name} necesita {other}, que no cabe en esta pantalla.",
+        "feature_missing": "{name} necesita un {feature}, y nada que lo aporte cabe en esta pantalla.",
+        "feature_conflict": "Una pantalla tiene un solo {feature}, y {names} aportarían uno cada uno.",
+        "needed_by": "{others} necesita {name}: quítalos juntos.",
+        "choose": "Elige qué plugin aporta el {feature} para {name}.",
+        "other_origin": "Esta pantalla usa otro plugin llamado {name}, de {origin}. Cambia a este en sus detalles.",
+        "misfit_esphome": "{name} necesita ESPHome {version} o más nuevo para compilar.",
+        "like_not_installed": "Pon primero el plugin en una de tus pantallas y luego podrás darle me gusta.",
+        "like_consent": "Acepta primero que tu me gusta cuente en un número público.",
+        "like_off": "Los me gusta están desactivados: una versión más nueva de la app los gestiona.",
+        "like_failed": "El me gusta no se envió. Inténtalo de nuevo en un momento.",
+        "misfit_built_in": "{name} aporta lo que esta placa ya tiene."
+      },
+      "extras": {
+        "request": "Este cambio de un extra no es posible en esta pantalla."
       }
     },
     "status": {
@@ -1019,9 +1038,27 @@
           "icon": "Solo icono",
           "percent": "Porcentaje"
         },
+        "plugin_contents": {
+          "all": "Icono y texto",
+          "icon": "Solo icono"
+        },
         "battery_shows": {
           "always": "Siempre",
           "low": "Solo si está baja"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Micrófono",
+          "hint": "Apagado silencia el micrófono para todo lo que escucha. La pantalla lo recuerda tras reiniciar."
+        },
+        "media_player": {
+          "label": "Volumen",
+          "hint": "Lo alto que habla y suena la pantalla: respuestas, avisos y música. El mismo volumen que el reproductor multimedia de la pantalla en Home Assistant."
+        },
+        "wake_when_moved": {
+          "label": "Despertar al moverlo",
+          "hint": "La pantalla sale del modo de espera cuando alguien la coge, la mueve o la golpea. Siente la propia pantalla, no a alguien que pasa."
         }
       }
     },
@@ -1167,6 +1204,7 @@
         "speaker_multiple": "Altavoces",
         "soundbar": "Barra de sonido",
         "headphones": "Auriculares",
+        "microphone": "Micrófono",
         "piano": "Piano",
         "guitar_acoustic": "Guitarra",
         "television": "TV",
@@ -1354,6 +1392,7 @@
       "unknown": "desconocido",
       "unsaved": "Cambios no guardados",
       "cancel": "Cancelar",
+      "ok": "Aceptar",
       "open_integrations": "Abrir Dispositivos y servicios",
       "save_send": "Guardar y enviar",
       "saving": "Guardando…",
@@ -1416,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Página de gestión inaccesible · reintentando…",
         "reconnecting": "Reconectando con Home Assistant…"
       },
       "search": "Buscar",
@@ -1496,6 +1534,38 @@
       "placeholder": "Busca pantallas, entidades, acciones…",
       "empty": "No hay coincidencias. Escribe parte del nombre de una pantalla, entidad o acción."
     },
+    "search": {
+      "groups": {
+        "recent": "Recientes",
+        "settings": "Ajustes de pantalla",
+        "tiles": "En tus pantallas",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Abrir",
+        "run": "Ejecutar",
+        "show": "Mostrar",
+        "add": "Añadir"
+      },
+      "keys": {
+        "move": "Mover",
+        "choose": "Elegir",
+        "close": "Cerrar"
+      },
+      "identify": "Identificar {name}",
+      "update": "Actualizar {name}",
+      "update_detail": "A {version}",
+      "update_all": "Actualizar todas las pantallas",
+      "update_all_detail": "1 pantalla espera | {n} pantallas esperan",
+      "update_all_confirm": "¿Actualizar 1 pantalla ahora? Se reinicia cuando la actualización esté instalada. | ¿Actualizar {n} pantallas ahora? Una tras otra, cada una se reinicia cuando su actualización esté instalada.",
+      "update_all_go": "Actualizar ahora",
+      "install": "Instalar los plugins apartados",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Añadir {plugin} a {screen}",
+      "add_plugin_detail": "Apartado, listo para instalar",
+      "on": "Activado",
+      "off": "Desactivado"
+    },
     "empty": {
       "choose": {
         "title": "Elige una pantalla",
@@ -1513,6 +1583,31 @@
       "open": "Abrir {name}",
       "no_layout": "Aún sin diseño",
       "in_tessera": "Actualiza primero en Tessera"
+    },
+    "broken": {
+      "screens": "1 pantalla | {n} pantallas",
+      "summary": {
+        "missing": "1 mosaico en {screens} muestra una entidad que ya no existe | {n} mosaicos en {screens} muestran una entidad que ya no existe",
+        "unavailable": "1 mosaico en {screens} muestra una entidad no disponible desde hace un rato | {n} mosaicos en {screens} muestran una entidad no disponible desde hace un rato",
+        "mixed": "1 mosaico en {screens} muestra una entidad que falta o no está disponible | {n} mosaicos en {screens} muestran una entidad que falta o no está disponible"
+      },
+      "short": "1 mosaico por revisar | {n} mosaicos por revisar",
+      "review": "Revisar",
+      "hide": "Ocultar",
+      "missing": "Ya no está en Home Assistant",
+      "unavailable_minutes": "No disponible desde hace 1 minuto | No disponible desde hace {n} minutos",
+      "unavailable_hours": "No disponible desde hace 1 hora | No disponible desde hace {n} horas",
+      "unavailable_days": "No disponible desde hace 1 día | No disponible desde hace {n} días",
+      "change": "Mostrar otra entidad",
+      "on_screen": "Esa entidad ya está en esta pantalla.",
+      "replaced": "Ahora muestra {name}",
+      "fix": {
+        "choose": "Elige otra entidad",
+        "missing": "Home Assistant ya no tiene esta entidad",
+        "missing_hint": "Se eliminó o cambió de nombre. Elige lo que muestra ahora este mosaico.",
+        "unavailable_hint": "Home Assistant no sabe nada de ella desde hace un rato. Elige otra entidad o espera a que vuelva.",
+        "search": "Buscar entidades"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -1647,15 +1742,9 @@
     },
     "plugins": {
       "title": "Plugins",
-      "intro": "Extras para tus pantallas: hardware en la placa, o algo más que una pantalla puede hacer. Un plugin se integra en el firmware de una pantalla, así que eliges para cada pantalla cuáles recibe.",
+      "intro": "Extras para tus pantallas: mosaicos para una página, algo más que puede hacer toda la pantalla o hardware en la placa. Un plugin se integra en el firmware de una pantalla, así que eliges por pantalla cuáles recibe.",
       "search": "Busca por nombre, autor o lo que hace",
       "filter": "Mostrar",
-      "filters": {
-        "all": "Todos",
-        "tessera": "De Tessera",
-        "community": "Comunidad",
-        "in_use": "En uso"
-      },
       "from_tessera": "De Tessera",
       "by": "Por {maker}",
       "label": {
@@ -1684,22 +1773,26 @@
         "psram": "Necesita PSRAM",
         "firmware": "Necesita un firmware más reciente",
         "flash": "Demasiado grande para esta pantalla",
-        "blocked": "Bloqueado"
+        "blocked": "Bloqueado",
+        "esphome": "Necesita ESPHome más nuevo",
+        "feature": "Falta hardware aquí",
+        "needs": "Necesita un plugin que no cabe",
+        "built_in": "Ya está en esta placa"
       },
       "misfit": {
         "board": "Este plugin está hecho para otras placas distintas de la de {screen}.",
         "psram": "Este plugin necesita una placa con PSRAM, y {screen} no la tiene.",
         "firmware": "{screen} necesita una actualización de firmware antes de poder recibir este plugin.",
         "flash": "A {screen} le queda sitio para unos {kb} KB más, y este plugin es más grande.",
-        "blocked": "Esta versión del plugin está bloqueada: se sabe que es dañina o que no funciona."
+        "blocked": "Esta versión del plugin está bloqueada: se sabe que es dañina o que no funciona.",
+        "esphome": "Este plugin necesita un ESPHome más nuevo que el que usa esta app para compilar.",
+        "feature": "{screen} no tiene nada que aporte lo que necesita este plugin, y ningún plugin que lo aporte cabe.",
+        "needs": "Este plugin necesita otro plugin que no cabe en {screen}.",
+        "built_in": "La placa de {screen} ya lo trae, así que el plugin no hace falta allí."
       },
       "none_installed": "Todavía no hay plugins en esta pantalla.",
       "none_found": "Ningún plugin coincide con «{query}».",
       "version": "versión {version}",
-      "kind": {
-        "hardware": "Hardware",
-        "behaviour": "Función"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Ejemplo"
@@ -1713,7 +1806,7 @@
         "commercial": "Comercial",
         "ai-developed": "Hecho con IA"
       },
-      "test_note": "Una prueba: cada compilación toma la versión más reciente, y Tessera no ofrece actualizaciones para ella.",
+      "test_note": "Una prueba: la pantalla se queda en el commit con el que se compiló, y un commit más nuevo aparece aquí como actualización. Una carpeta se compila tal como está.",
       "remove": "Eliminar de {screen}",
       "building": "Compilando el firmware para {screen}…",
       "installed_on": "En {screen}, versión {version}",
@@ -1730,7 +1823,7 @@
         "card": "«{name}», una vista propia en la pantalla",
         "bar": "Elemento de la barra superior «{name}»",
         "settings": "Configuración",
-        "settings_where": "En la página de configuración de la pantalla y en Configuración de pantalla"
+        "settings_where": "En la página de ajustes de la pantalla y aquí, en sus detalles de la pestaña Plugins"
       },
       "may": {
         "title": "Qué puede hacer",
@@ -1769,8 +1862,8 @@
         "branch": "Rama",
         "folder": "Carpeta en este equipo",
         "hints": {
-          "link": "Tessera toma la versión publicada más reciente y mantiene la pantalla en ella. Una nueva versión aparece como actualización.",
-          "branch": "Cada compilación toma el commit más reciente de esta rama. Para probar, no para el día a día.",
+          "link": "Tessera toma la versión más nueva (sin versión, el commit más nuevo) y mantiene la pantalla en ella. Algo más nuevo aparece como actualización.",
+          "branch": "Tessera toma el commit más nuevo de esta rama y mantiene la pantalla en él; un commit más nuevo aparece como actualización. Para probar.",
           "folder": "Para un plugin que estás haciendo: guarda, y la siguiente compilación lo incluye. La carpeta está en la configuración de Home Assistant."
         },
         "fetch": "Leer el plugin",
@@ -1808,7 +1901,8 @@
         "on_screen": "{label} en {screen}",
         "choose_pin": "Elige un pin",
         "part_kb": "{kb} KB más",
-        "secret_set": "Configurado. Escribe uno nuevo para sustituirlo."
+        "secret_set": "Configurado. Escribe uno nuevo para sustituirlo.",
+        "part_needs": "Necesita un {what} en la pantalla"
       },
       "readme": {
         "title": "Léeme"
@@ -1848,7 +1942,8 @@
         "builds": "{n} pantallas se compilan una tras otra.",
         "stage": "Añadir a {screen}",
         "in_tray": "Listo para instalar",
-        "in_tray_note": "Instálalo desde la tarjeta de la esquina, solo o junto con otros."
+        "in_tray_note": "Instálalo desde la tarjeta de la esquina, solo o junto con otros.",
+        "along": "viene con {names}"
       },
       "maker": {
         "title": "Crea tu propio plugin",
@@ -1861,7 +1956,7 @@
         },
         "test": {
           "title": "Pruébalo en tu pantalla",
-          "text": "Añade tu repositorio con un enlace. Cada versión que publiques aparece aquí como actualización.",
+          "text": "Añade tu repositorio con un enlace. Haz push, y cada commit o versión nueva aparece aquí como actualización.",
           "folder": "O pon su carpeta en {path} para probar sin publicar una versión."
         },
         "share": {
@@ -1869,6 +1964,114 @@
           "text": "¿Funciona bien? Inscríbelo en la comunidad y aparecerá aquí para todos, directamente desde tu repositorio. Sigues siendo su autor.",
           "action": "Inscribir"
         }
+      },
+      "settings": {
+        "title": "Ajustes",
+        "live": "En esta pantalla",
+        "live_note": "Un cambio se aplica al momento.",
+        "shared": "Para todas las pantallas",
+        "shared_note": "Se rellena una vez, para cada pantalla con este plugin.",
+        "build": "Al compilar",
+        "build_note": "Un cambio vuelve a compilar {screen}.",
+        "save_build": "Guardar y compilar",
+        "run": "Ejecutar",
+        "too_short": "Al menos {n} caracteres."
+      },
+      "tabs": {
+        "tiles": "Mosaicos",
+        "functions": "Funciones",
+        "hardware": "Hardware",
+        "in_use": "En uso"
+      },
+      "types": {
+        "tiles": "Mosaicos",
+        "functions": "Función",
+        "hardware": "Hardware"
+      },
+      "topics": {
+        "time": "Hora y cuentas atrás",
+        "weather": "Tiempo y cielo",
+        "calendar": "Agenda y tareas",
+        "home": "Hogar",
+        "energy": "Energía",
+        "travel": "En camino",
+        "money": "Dinero",
+        "sports": "Deportes",
+        "news": "Noticias y curiosidades",
+        "media": "Música y medios",
+        "photos": "Fotos y arte",
+        "fun": "Juegos y diversión",
+        "voice": "Voz y sonido",
+        "tech": "Tecnología"
+      },
+      "topic_filter": "Temas",
+      "sort": {
+        "label": "Ordenar por",
+        "popular": "Más gustados",
+        "new": "Más nuevos",
+        "name": "Nombre"
+      },
+      "none_in_tab": {
+        "tiles": "Aún no hay plugins con mosaicos.",
+        "functions": "Aún no hay plugins para toda la pantalla.",
+        "hardware": "Aún no hay plugins de hardware."
+      },
+      "fits_none_group": "{n} plugin no cabe en ninguna de tus pantallas | {n} plugins no caben en ninguna de tus pantallas",
+      "likes": {
+        "count": "A {n} persona le gusta | A {n} personas les gusta",
+        "like": "Me gusta",
+        "unlike": "Quitar tu me gusta",
+        "install_first": "Ponlo primero en una pantalla y luego podrás darle me gusta",
+        "ask": "Tu me gusta cuenta en un número público por plugin. Solo el número es público: no se envía nada sobre ti, Home Assistant ni tus pantallas."
+      },
+      "along": {
+        "title": "Viene con él",
+        "brings": "aporta el {what}",
+        "needed_by": "lo necesita {name}",
+        "came_with": "Vino con {names}.",
+        "needed_now": "{names} necesita este plugin.",
+        "choose": "¿Qué plugin aporta el {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} necesita {name}, así que también se quita.",
+        "orphans": "Quitar también {names}",
+        "orphans_note": "Solo vino con {name}; nada más en la pantalla lo necesita.",
+        "both": "Quitar juntos",
+        "go": "Quitar"
+      },
+      "blocked_now": "Esta versión está bloqueada ({why}) y sale en la próxima compilación. Actualiza a una más nueva.",
+      "other_origin": "Esta pantalla usa otro plugin con este nombre, de {origin}. No se actualiza desde aquí.",
+      "switch": "Cambiar al de {origin}",
+      "needs": {
+        "title": "Necesita y aporta",
+        "plugin": "Otro plugin; viene con este cuando lo añades.",
+        "feature": "Un {what}",
+        "feature_note": "De la placa de la pantalla o de un plugin que lo aporte: viene con él cuando hay solo uno.",
+        "brings": "Aporta un {what}",
+        "brings_note": "Para otros plugins que lo necesiten, en la misma pantalla."
+      },
+      "features": {
+        "speaker": "altavoz",
+        "microphone": "micrófono",
+        "media_player": "reproductor multimedia",
+        "camera": "flujo de cámara para Home Assistant",
+        "camera_sensor": "sensor de cámara"
+      },
+      "fitting_only": "Solo lo que cabe en mis pantallas",
+      "made_by": {
+        "label": "Hecho por",
+        "all": "Cualquiera",
+        "tessera": "Tessera",
+        "community": "Comunidad"
+      },
+      "filter_button": "Filtrar",
+      "filter_remove": "Quitar {what}",
+      "filter_clear": "Borrar filtros",
+      "fitting_all": "También lo que no cabe",
+      "news": {
+        "title": "Novedades de {version}",
+        "none": "El autor no escribió notas para esta actualización.",
+        "history": "Todas las versiones"
       }
     },
     "plugin_tile": {
@@ -2002,7 +2205,8 @@
       },
       "refresh": {
         "label": "Actualizar",
-        "seconds": "Cada {n} s"
+        "seconds": "Cada {n} s",
+        "live": "En directo"
       },
       "picture": {
         "fit": {
@@ -2417,6 +2621,14 @@
         "item_look": "Muestra",
         "item_hint": "En blanco y negro en el salvapantallas, sea cual sea el color de la entidad.",
         "items_add_title": "Añadir al reloj"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "Los ajustes de cada plugin están en sus detalles, en la pestaña Plugins."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Ajustes que solo tiene esta pantalla, de su placa. Los mismos interruptores están en la página de ajustes de la propia pantalla y en Home Assistant."
       }
     },
     "update": {
@@ -2514,13 +2726,6 @@
       "download_how": "Instálalo en la pantalla con {esphome_web} en Chrome o Edge: Connect, elige el puerto USB de la pantalla, Install y selecciona este archivo. Contiene tu contraseña de Wi-Fi y las claves de la pantalla: no lo compartas."
     },
     "installer": {
-      "title": {
-        "saved": "Perfil guardado.",
-        "running": "Un momento…",
-        "ready": "Listo para descargar.",
-        "done": "Hecho.",
-        "failed": "No ha funcionado."
-      },
       "board": "¿Qué pantalla tienes?",
       "board_title": "{name} · {inch} pulgadas",
       "status": {
@@ -3116,7 +3321,8 @@
       "hint": "El propio firmware de la pantalla, dibujado a partir del diseño que estás editando. Toca, mantén pulsado y desliza como en la pantalla. No se guarda nada.",
       "control": "Los toques controlan dispositivos",
       "control_hint": "Activado: un toque en un mosaico ejecuta su acción en Home Assistant, como en la pantalla. Desactivado: la vista previa solo muestra lo que hace un toque.",
-      "skipped": "No se pudo cargar la pantalla de vista previa {names} y se ha omitido."
+      "skipped": "No se pudo cargar la pantalla de vista previa {names} y se ha omitido.",
+      "not_kept": "Este navegador no pudo guardar la pantalla de vista previa: su almacenamiento está lleno o bloqueado."
     },
     "inspector": {
       "kind": {
@@ -3124,6 +3330,86 @@
         "page": "Página",
         "bar": "Barra superior"
       }
+    },
+    "confirm": {
+      "leave_question": "Tienes cambios sin guardar. ¿Ir al resumen de todos modos?",
+      "discard_open": "Descartar y abrir",
+      "discard_leave": "Descartar y salir",
+      "replace_layout": "Reemplazar diseño",
+      "import": "Importar",
+      "start_fresh": "Empezar de cero",
+      "calibrate": "Iniciar calibración",
+      "add_anyway": "Añadir de todos modos",
+      "use_example": "Reemplazar por el ejemplo",
+      "clear_override": "Vaciar el YAML personalizado"
+    },
+    "undo": {
+      "undo": "Deshacer: {what}",
+      "redo": "Rehacer: {what}",
+      "undone": "Deshecho: {what}",
+      "redone": "Rehecho: {what}",
+      "a_tile": "mosaico",
+      "what": {
+        "grid": "cuadrícula cambiada a {grid}",
+        "page_added": "página {page} añadida",
+        "page_copied": "página {page} añadida como copia",
+        "page_removed": "página {page} eliminada",
+        "page_moved": "página movida a la posición {page}",
+        "pages_moved": "páginas reordenadas",
+        "tile_added": "se añadió {name}",
+        "tiles_added": "se añadió 1 mosaico | se añadieron {n} mosaicos",
+        "tile_removed": "se eliminó {name}",
+        "tiles_removed": "se eliminó 1 mosaico | se eliminaron {n} mosaicos",
+        "tile_moved": "se movió {name}",
+        "tile_moved_page": "se movió {name} a la página {page}",
+        "tiles_moved": "se movió 1 mosaico | se movieron {n} mosaicos",
+        "tile_link": "{name} ahora abre la página {page}",
+        "tile_renamed": "se renombró {name}",
+        "tile_look": "presentación de {name} cambiada",
+        "tile_resized": "tamaño de {name} cambiado",
+        "tile_icon": "icono de {name} cambiado",
+        "tile_color": "fondo de {name} cambiado",
+        "tile_tap": "toque de {name} cambiado",
+        "tile_option": "ajustes de {name} cambiados",
+        "tiles_changed": "1 mosaico cambiado | {n} mosaicos cambiados",
+        "screen_title": "título de la pantalla cambiado",
+        "page_title": "título de la página {page} cambiado",
+        "home_page": "la página {page} es ahora la de inicio",
+        "page_buttons": "botones de página de la página {page} cambiados",
+        "home_key": "botón de inicio de la página {page} cambiado",
+        "top_bar": "barra superior de la página {page} cambiada",
+        "top_bars": "barras superiores cambiadas",
+        "map_moved": "página {page} movida en el mapa",
+        "map_arranged": "mapa ordenado desde Inicio",
+        "stood_up": "pantalla puesta en vertical",
+        "laid_down": "pantalla puesta en horizontal",
+        "layout_copied": "diseño copiado de {name}",
+        "layout_imported": "diseño importado",
+        "changed": "diseño cambiado",
+        "restored": "cambios sin guardar restaurados",
+        "taken_over": "cambios de la otra pestaña traídos aquí"
+      }
+    },
+    "draft": {
+      "kept": "Cambios sin guardar ({time})",
+      "kept_hint": "Guardados en este navegador, aún no en la pantalla.",
+      "restore": "Restaurar",
+      "discard": "Descartar"
+    },
+    "tabs": {
+      "elsewhere": "Esta pantalla se está editando en otra pestaña",
+      "elsewhere_hint": "Sus cambios aún no se han guardado.",
+      "take_over": "Continuar aquí",
+      "keep_mine": "Conservar los míos"
+    },
+    "connection": {
+      "lost": "No se puede conectar con ESP Screen Manager.",
+      "lost_hint": "Tus cambios se quedan aquí. Reintentando…",
+      "restored": "Conexión restablecida"
+    },
+    "naming": {
+      "rename": "Cambiar nombre",
+      "reset": "Volver a {name}"
     },
     "phone": {
       "screens": "Pantallas",
@@ -3157,7 +3443,15 @@
     "build": {
       "plugins": "Compilando con sus plugins",
       "install": "Instalando",
-      "failed": "La última compilación de {screen} falló. El registro dice por qué."
+      "failed": "La última compilación de {screen} falló. El registro dice por qué.",
+      "title": "Compilando ahora",
+      "count": "1 compilación en curso | {n} compilaciones en curso",
+      "waiting": "Esperando su turno",
+      "ready": "{name} está listo",
+      "ready_several": "{names} están listos",
+      "update_failed": "No se pudo actualizar {name}",
+      "build_failed": "No se pudo compilar {name}",
+      "show_log": "Ver registro"
     },
     "grid": {
       "title": "Cuadrícula",

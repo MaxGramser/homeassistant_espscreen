@@ -20,10 +20,10 @@ psram:
   mode: hex
   speed: 200MHz
 
+# The MIPI PHY's supply, not adjustable so the camera's MIPI-CSI can share it (hardware/esp32p4-c6.yaml says why).
 esp_ldo:
   - channel: 3
     voltage: 2.5V
-    adjustable: true
 
 esp32_hosted:
   variant: esp32c6
@@ -136,6 +136,9 @@ binary_sensor:
       lower: 0.02
 
 output:
+  # Channel 2 (timer 1): the camera's 24 MHz clock on GPIO36 (CAMERA_XCLK_PIN) takes LEDC timer 0 and channel 0, which
+  # ESPHome would give the first PWM output otherwise; on one timer, the backlight and the camera undo each other.
   - platform: ledc
     pin: GPIO22
     id: gpio_backlight_pwm
+    channel: 2

@@ -55,7 +55,7 @@ function addon(image: Uint8Array, extra: (url: string, options: any) => any = ()
     calls.push({ url: String(url), method: options.method || "GET" });
     const own = extra(String(url), options);
     if (own) return own;
-    if (String(url).endsWith("/download")) return new Response(image, { status: 200 });
+    if (String(url).endsWith("/download")) return new Response(image as Uint8Array<ArrayBuffer>, { status: 200 });
     return new Response("", { status: 200 });
   }));
   return calls;

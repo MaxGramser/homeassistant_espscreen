@@ -295,6 +295,10 @@ on the screen itself, and how updates work.
   the clock, back to page 1, swiping, the page buttons, the home button, rotation, and what this screen is
   (name, IP address, firmware, whether Home Assistant is connected, and Restart). Changes show up in Tessera
   within a second. See [Settings on the screen](#settings-on-the-screen).
+- **A board's own settings (Extras):** a screen whose board has hardware the others do not has settings for it under
+  **Extras**, on the screen's settings page and in Tessera's Screen settings, and the same switch or slider in Home
+  Assistant. A screen with a speaker has its **Volume** and **Microphone** there, the reTerminal D1001 also **Wake when
+  moved**. Only a board with such hardware shows the Extras page.
 - **Rotation:** every screen turns upside down (180°) from the management page, and a square
   screen (the Guition) a quarter turn as well: 0°, 90°, 180°, or 270°. Native LVGL rotation turns the
   display and touch together (firmware 0.2.80+; the Guition since 0.2.9).

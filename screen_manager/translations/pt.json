@@ -155,6 +155,10 @@
       "night": "Noite",
       "screen": "Ecrã",
       "this_screen": "Este ecrã",
+      "extras": "Extras",
+      "microphone": "Microfone",
+      "media_player": "Volume",
+      "wake_when_moved": "Acordar ao mover",
       "dark_mode": "Modo escuro",
       "auto_standby": "Espera automática",
       "standby_after": "Espera após",
@@ -840,7 +844,6 @@
         "misfit_board": "{name} foi feito para outras placas.",
         "misfit_psram": "{name} precisa de uma placa com PSRAM.",
         "misfit_blocked": "{name} está bloqueado: esta versão é prejudicial ou está avariada.",
-        "requires": "{name} precisa primeiro do plugin {other} neste ecrã.",
         "firmware": "O firmware deste ecrã ainda não conhece plugins. Atualize-o e os mosaicos do plugin aparecem.",
         "file": "O ficheiro de plugins não é válido.",
         "other_include": "O YAML deste ecrã já tem outro include tessera_plugins.",
@@ -849,7 +852,23 @@
         "link_rate": "O GitHub não está a responder agora (demasiados pedidos numa hora). Tente mais tarde.",
         "folder": "A pasta {folder} em tessera-plugins ainda não é um plugin: {why}",
         "manifest": "A descrição do plugin não é válida: {why}",
-        "consent": "{name} pede outras permissões do que antes. Veja o que pode fazer agora e aceite, depois atualize."
+        "consent": "{name} pede outras permissões do que antes. Veja o que pode fazer agora e aceite, depois atualize.",
+        "requires_unknown": "{name} precisa do plugin {other}, que não está na lista de plugins.",
+        "requires_misfit": "{name} precisa de {other}, que não serve neste ecrã.",
+        "feature_missing": "{name} precisa de um {feature}, e nada que o traga serve neste ecrã.",
+        "feature_conflict": "Um ecrã tem um só {feature}, e {names} trariam cada um o seu.",
+        "needed_by": "{others} precisa de {name}: remova-os juntos.",
+        "choose": "Escolha que plugin traz o {feature} para {name}.",
+        "other_origin": "Este ecrã usa outro plugin chamado {name}, de {origin}. Mude para este nos seus detalhes.",
+        "misfit_esphome": "{name} precisa do ESPHome {version} ou mais recente para compilar.",
+        "like_not_installed": "Coloque primeiro o plugin num dos seus ecrãs, depois pode dar gosto.",
+        "like_consent": "Aceite primeiro que o seu gosto conte num número público.",
+        "like_off": "Os gostos estão desligados: uma versão mais recente da app gere-os.",
+        "like_failed": "O gosto não foi enviado. Tente de novo daqui a pouco.",
+        "misfit_built_in": "{name} traz o que esta placa já tem."
+      },
+      "extras": {
+        "request": "Esta alteração de um extra não é possível neste ecrã."
       }
     },
     "status": {
@@ -1019,9 +1038,27 @@
           "icon": "Só ícone",
           "percent": "Percentagem"
         },
+        "plugin_contents": {
+          "all": "Ícone e texto",
+          "icon": "Só ícone"
+        },
         "battery_shows": {
           "always": "Sempre",
           "low": "Só quando fraca"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microfone",
+          "hint": "Desligado silencia o microfone para tudo o que escuta. O ecrã guarda-o depois de reiniciar."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "O volume a que o ecrã fala e toca: respostas, anúncios e música. O mesmo volume do leitor multimédia do ecrã no Home Assistant."
+        },
+        "wake_when_moved": {
+          "label": "Acordar ao mover",
+          "hint": "O ecrã sai do modo de espera quando alguém o pega, move ou bate nele. Sente o próprio ecrã, não alguém que passa."
         }
       }
     },
@@ -1167,6 +1204,7 @@
         "speaker_multiple": "Colunas",
         "soundbar": "Barra de som",
         "headphones": "Auscultadores",
+        "microphone": "Microfone",
         "piano": "Piano",
         "guitar_acoustic": "Guitarra",
         "television": "TV",
@@ -1354,6 +1392,7 @@
       "unknown": "desconhecido",
       "unsaved": "Alterações não guardadas",
       "cancel": "Cancelar",
+      "ok": "OK",
       "open_integrations": "Abrir Dispositivos & serviços",
       "save_send": "Guardar e enviar",
       "saving": "A guardar…",
@@ -1416,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Página de gestão inacessível · a tentar novamente…",
         "reconnecting": "A ligar novamente ao Home Assistant…"
       },
       "search": "Procurar",
@@ -1496,6 +1534,38 @@
       "placeholder": "Procurar ecrãs, entidades, ações…",
       "empty": "Sem resultados. Escreva parte do nome de um ecrã, entidade ou ação."
     },
+    "search": {
+      "groups": {
+        "recent": "Recentes",
+        "settings": "Definições do ecrã",
+        "tiles": "Nos seus ecrãs",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Abrir",
+        "run": "Executar",
+        "show": "Mostrar",
+        "add": "Adicionar"
+      },
+      "keys": {
+        "move": "Mover",
+        "choose": "Escolher",
+        "close": "Fechar"
+      },
+      "identify": "Identificar {name}",
+      "update": "Atualizar {name}",
+      "update_detail": "Para {version}",
+      "update_all": "Atualizar todos os ecrãs",
+      "update_all_detail": "1 ecrã à espera | {n} ecrãs à espera",
+      "update_all_confirm": "Atualizar 1 ecrã agora? Reinicia quando a atualização estiver instalada. | Atualizar {n} ecrãs agora? Um após outro, cada um reinicia quando a sua atualização estiver instalada.",
+      "update_all_go": "Atualizar agora",
+      "install": "Instalar os plugins postos de lado",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Adicionar {plugin} a {screen}",
+      "add_plugin_detail": "Posto de lado, pronto a instalar",
+      "on": "Ligado",
+      "off": "Desligado"
+    },
     "empty": {
       "choose": {
         "title": "Escolha um ecrã",
@@ -1513,6 +1583,31 @@
       "open": "Abrir {name}",
       "no_layout": "Ainda sem disposição",
       "in_tessera": "Atualize primeiro no Tessera"
+    },
+    "broken": {
+      "screens": "1 ecrã | {n} ecrãs",
+      "summary": {
+        "missing": "1 mosaico em {screens} mostra uma entidade que já não existe | {n} mosaicos em {screens} mostram uma entidade que já não existe",
+        "unavailable": "1 mosaico em {screens} mostra uma entidade indisponível há algum tempo | {n} mosaicos em {screens} mostram uma entidade indisponível há algum tempo",
+        "mixed": "1 mosaico em {screens} mostra uma entidade em falta ou indisponível | {n} mosaicos em {screens} mostram uma entidade em falta ou indisponível"
+      },
+      "short": "1 mosaico a verificar | {n} mosaicos a verificar",
+      "review": "Ver",
+      "hide": "Ocultar",
+      "missing": "Já não está no Home Assistant",
+      "unavailable_minutes": "Indisponível há 1 minuto | Indisponível há {n} minutos",
+      "unavailable_hours": "Indisponível há 1 hora | Indisponível há {n} horas",
+      "unavailable_days": "Indisponível há 1 dia | Indisponível há {n} dias",
+      "change": "Mostrar outra entidade",
+      "on_screen": "Essa entidade já está neste ecrã.",
+      "replaced": "Agora mostra {name}",
+      "fix": {
+        "choose": "Escolher outra entidade",
+        "missing": "O Home Assistant já não tem esta entidade",
+        "missing_hint": "Foi removida ou mudou de nome. Escolha o que este mosaico mostra agora.",
+        "unavailable_hint": "O Home Assistant não tem notícias dela há algum tempo. Escolha outra entidade ou espere que volte.",
+        "search": "Procurar entidades"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -1647,15 +1742,9 @@
     },
     "plugins": {
       "title": "Plugins",
-      "intro": "Extras para os seus ecrãs: hardware na placa, ou algo mais que um ecrã consegue fazer. Um plugin é integrado no firmware de um ecrã, por isso escolhe para cada ecrã quais recebe.",
+      "intro": "Extras para os seus ecrãs: mosaicos para uma página, algo mais que o ecrã inteiro pode fazer, ou hardware na placa. Um plugin é integrado no firmware de um ecrã, por isso escolhe por ecrã quais recebe.",
       "search": "Procurar por nome, autor ou o que faz",
       "filter": "Mostrar",
-      "filters": {
-        "all": "Todos",
-        "tessera": "Do Tessera",
-        "community": "Comunidade",
-        "in_use": "Em uso"
-      },
       "from_tessera": "Do Tessera",
       "by": "Por {maker}",
       "label": {
@@ -1684,22 +1773,26 @@
         "psram": "Precisa de PSRAM",
         "firmware": "Precisa de firmware mais recente",
         "flash": "Demasiado grande para este ecrã",
-        "blocked": "Bloqueado"
+        "blocked": "Bloqueado",
+        "esphome": "Precisa de ESPHome mais recente",
+        "feature": "Falta hardware aqui",
+        "needs": "Precisa de um plugin que não serve",
+        "built_in": "Já incluído nesta placa"
       },
       "misfit": {
         "board": "Este plugin foi feito para outras placas que não a de {screen}.",
         "psram": "Este plugin precisa de uma placa com PSRAM, e {screen} não tem.",
         "firmware": "{screen} precisa de uma atualização de firmware antes de poder receber este plugin.",
         "flash": "{screen} tem espaço para cerca de mais {kb} KB, e este plugin é maior.",
-        "blocked": "Esta versão do plugin está bloqueada: sabe-se que é prejudicial ou que não funciona."
+        "blocked": "Esta versão do plugin está bloqueada: sabe-se que é prejudicial ou que não funciona.",
+        "esphome": "Este plugin precisa de um ESPHome mais recente do que aquele com que esta app compila.",
+        "feature": "{screen} não tem nada que traga o que este plugin precisa, e nenhum plugin que o traga serve.",
+        "needs": "Este plugin precisa de outro plugin que não serve em {screen}.",
+        "built_in": "A placa de {screen} já traz isto, por isso o plugin não é necessário aí."
       },
       "none_installed": "Ainda não há plugins neste ecrã.",
       "none_found": "Nenhum plugin corresponde a «{query}».",
       "version": "versão {version}",
-      "kind": {
-        "hardware": "Hardware",
-        "behaviour": "Função"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Exemplo"
@@ -1713,7 +1806,7 @@
         "commercial": "Comercial",
         "ai-developed": "Feito com IA"
       },
-      "test_note": "Um teste: cada compilação usa a versão mais recente, e o Tessera não oferece atualizações para ele.",
+      "test_note": "Um teste: o ecrã fica no commit com que foi compilado, e um commit mais recente aparece aqui como atualização. Uma pasta é compilada como está agora.",
       "remove": "Remover de {screen}",
       "building": "A compilar o firmware para {screen}…",
       "installed_on": "Em {screen}, versão {version}",
@@ -1730,7 +1823,7 @@
         "card": "«{name}», uma vista própria no ecrã",
         "bar": "Elemento da barra superior «{name}»",
         "settings": "Definições",
-        "settings_where": "Na página de definições do ecrã e em Definições do ecrã"
+        "settings_where": "Na página de definições do ecrã e aqui, nos detalhes do separador Plugins"
       },
       "may": {
         "title": "O que pode fazer",
@@ -1769,8 +1862,8 @@
         "branch": "Branch",
         "folder": "Pasta nesta máquina",
         "hints": {
-          "link": "O Tessera usa a versão publicada mais recente e mantém o ecrã nela. Uma nova versão aparece como atualização.",
-          "branch": "Cada compilação usa o commit mais recente deste branch. Para experimentar, não para o dia a dia.",
+          "link": "O Tessera usa a versão mais recente (sem versão, o commit mais recente) e mantém o ecrã nela. Algo mais recente aparece como atualização.",
+          "branch": "O Tessera usa o commit mais recente deste ramo e mantém o ecrã nele; um commit mais recente aparece como atualização. Para experimentar.",
           "folder": "Para um plugin que está a criar: guarde, e a compilação seguinte inclui-o. A pasta fica na configuração do Home Assistant."
         },
         "fetch": "Ler o plugin",
@@ -1808,7 +1901,8 @@
         "on_screen": "{label} em {screen}",
         "choose_pin": "Escolha um pino",
         "part_kb": "Mais {kb} KB",
-        "secret_set": "Definido. Introduza um novo para o substituir."
+        "secret_set": "Definido. Introduza um novo para o substituir.",
+        "part_needs": "Precisa de um {what} no ecrã"
       },
       "readme": {
         "title": "Leia-me"
@@ -1848,7 +1942,8 @@
         "builds": "{n} ecrãs são compilados um após o outro.",
         "stage": "Adicionar a {screen}",
         "in_tray": "Pronto para instalar",
-        "in_tray_note": "Instale-o a partir do cartão no canto, sozinho ou com outros."
+        "in_tray_note": "Instale-o a partir do cartão no canto, sozinho ou com outros.",
+        "along": "vem com {names}"
       },
       "maker": {
         "title": "Crie o seu próprio plugin",
@@ -1861,7 +1956,7 @@
         },
         "test": {
           "title": "Experimente no seu ecrã",
-          "text": "Adicione o seu repositório com um link. Cada versão que publicar aparece aqui como atualização.",
+          "text": "Adicione o seu repositório com uma ligação. Faça push, e cada commit ou versão nova aparece aqui como atualização.",
           "folder": "Ou coloque a pasta em {path} para testar sem uma versão."
         },
         "share": {
@@ -1869,6 +1964,114 @@
           "text": "Funciona bem? Inscreva-o na comunidade e aparece aqui para todos, diretamente do seu repositório. Continua a ser o autor.",
           "action": "Inscrever"
         }
+      },
+      "settings": {
+        "title": "Definições",
+        "live": "Neste ecrã",
+        "live_note": "Uma alteração aplica-se logo.",
+        "shared": "Para todos os ecrãs",
+        "shared_note": "Preenchido uma vez, para cada ecrã com este plugin.",
+        "build": "Ao compilar",
+        "build_note": "Uma alteração volta a compilar {screen}.",
+        "save_build": "Guardar e compilar",
+        "run": "Executar",
+        "too_short": "Pelo menos {n} caracteres."
+      },
+      "tabs": {
+        "tiles": "Mosaicos",
+        "functions": "Funções",
+        "hardware": "Hardware",
+        "in_use": "Em uso"
+      },
+      "types": {
+        "tiles": "Mosaicos",
+        "functions": "Função",
+        "hardware": "Hardware"
+      },
+      "topics": {
+        "time": "Hora e contagens",
+        "weather": "Tempo e céu",
+        "calendar": "Agenda e tarefas",
+        "home": "Casa",
+        "energy": "Energia",
+        "travel": "Em viagem",
+        "money": "Dinheiro",
+        "sports": "Desporto",
+        "news": "Notícias e curiosidades",
+        "media": "Música e média",
+        "photos": "Fotos e arte",
+        "fun": "Jogos e diversão",
+        "voice": "Voz e som",
+        "tech": "Técnica"
+      },
+      "topic_filter": "Temas",
+      "sort": {
+        "label": "Ordenar por",
+        "popular": "Mais gostados",
+        "new": "Mais recentes",
+        "name": "Nome"
+      },
+      "none_in_tab": {
+        "tiles": "Ainda não há plugins com mosaicos.",
+        "functions": "Ainda não há plugins para o ecrã inteiro.",
+        "hardware": "Ainda não há plugins de hardware."
+      },
+      "fits_none_group": "{n} plugin não serve em nenhum dos seus ecrãs | {n} plugins não servem em nenhum dos seus ecrãs",
+      "likes": {
+        "count": "{n} pessoa gosta | {n} pessoas gostam",
+        "like": "Gosto",
+        "unlike": "Retirar o seu gosto",
+        "install_first": "Coloque-o primeiro num ecrã, depois pode dar gosto",
+        "ask": "O seu gosto conta num número público por plugin. Só o número é público: nada sobre si, o Home Assistant ou os seus ecrãs é enviado."
+      },
+      "along": {
+        "title": "Vem junto",
+        "brings": "traz o {what}",
+        "needed_by": "necessário para {name}",
+        "came_with": "Veio com {names}.",
+        "needed_now": "{names} precisa deste plugin.",
+        "choose": "Que plugin traz o {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} precisa de {name}, por isso também sai.",
+        "orphans": "Remover também {names}",
+        "orphans_note": "Só veio com {name}; nada mais no ecrã precisa dele.",
+        "both": "Remover juntos",
+        "go": "Remover"
+      },
+      "blocked_now": "Esta versão está bloqueada ({why}) e sai na próxima compilação. Atualize para uma mais recente.",
+      "other_origin": "Este ecrã usa outro plugin com este nome, de {origin}. Não é atualizado a partir daqui.",
+      "switch": "Mudar para o de {origin}",
+      "needs": {
+        "title": "Precisa e traz",
+        "plugin": "Outro plugin; vem junto quando adiciona este.",
+        "feature": "Um {what}",
+        "feature_note": "Da placa do ecrã, ou de um plugin que o traga: vem junto quando há só um.",
+        "brings": "Traz um {what}",
+        "brings_note": "Para outros plugins que precisem dele, no mesmo ecrã."
+      },
+      "features": {
+        "speaker": "altifalante",
+        "microphone": "microfone",
+        "media_player": "leitor multimédia",
+        "camera": "fluxo de câmara para o Home Assistant",
+        "camera_sensor": "sensor de câmara"
+      },
+      "fitting_only": "Só o que serve nos meus ecrãs",
+      "made_by": {
+        "label": "Feito por",
+        "all": "Qualquer pessoa",
+        "tessera": "Tessera",
+        "community": "Comunidade"
+      },
+      "filter_button": "Filtrar",
+      "filter_remove": "Remover {what}",
+      "filter_clear": "Limpar filtros",
+      "fitting_all": "Também o que não serve",
+      "news": {
+        "title": "Novidades da {version}",
+        "none": "O autor não escreveu notas para esta atualização.",
+        "history": "Todas as versões"
       }
     },
     "plugin_tile": {
@@ -2002,7 +2205,8 @@
       },
       "refresh": {
         "label": "Atualizar",
-        "seconds": "A cada {n} s"
+        "seconds": "A cada {n} s",
+        "live": "Ao vivo"
       },
       "picture": {
         "fit": {
@@ -2417,6 +2621,14 @@
         "item_look": "Mostra",
         "item_hint": "A preto e branco no protetor de ecrã, seja qual for a cor da entidade.",
         "items_add_title": "Adicionar ao relógio"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "As definições de cada plugin estão nos detalhes, no separador Plugins."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Definições que só este ecrã tem, da sua placa. Os mesmos interruptores estão na página de definições do próprio ecrã e no Home Assistant."
       }
     },
     "update": {
@@ -2514,13 +2726,6 @@
       "download_how": "Instale-o no ecrã com o {esphome_web} no Chrome ou no Edge: Connect, escolha a porta USB do ecrã, Install e selecione este ficheiro. Contém a sua palavra-passe de Wi-Fi e as chaves do ecrã: não o partilhe."
     },
     "installer": {
-      "title": {
-        "saved": "Perfil guardado.",
-        "running": "Um momento…",
-        "ready": "Pronto para descarregar.",
-        "done": "Concluído.",
-        "failed": "Não funcionou."
-      },
       "board": "Que ecrã tem?",
       "board_title": "{name} · {inch} polegadas",
       "status": {
@@ -3116,7 +3321,8 @@
       "hint": "O próprio firmware do ecrã, desenhado a partir do layout que está a editar. Toque, mantenha premido e deslize como no ecrã. Nada é guardado.",
       "control": "Os toques controlam dispositivos",
       "control_hint": "Ligado: um toque num mosaico executa a sua ação no Home Assistant, como no ecrã. Desligado: a pré-visualização mostra apenas o que um toque faz.",
-      "skipped": "Não foi possível carregar o ecrã de pré-visualização {names}; foi deixado de fora."
+      "skipped": "Não foi possível carregar o ecrã de pré-visualização {names}; foi deixado de fora.",
+      "not_kept": "Este navegador não conseguiu guardar o ecrã de pré-visualização: o armazenamento está cheio ou bloqueado."
     },
     "inspector": {
       "kind": {
@@ -3124,6 +3330,86 @@
         "page": "Página",
         "bar": "Barra superior"
       }
+    },
+    "confirm": {
+      "leave_question": "Tem alterações não guardadas. Ir para a visão geral mesmo assim?",
+      "discard_open": "Descartar e abrir",
+      "discard_leave": "Descartar e sair",
+      "replace_layout": "Substituir layout",
+      "import": "Importar",
+      "start_fresh": "Começar de novo",
+      "calibrate": "Iniciar calibração",
+      "add_anyway": "Adicionar mesmo assim",
+      "use_example": "Substituir pelo exemplo",
+      "clear_override": "Limpar o YAML personalizado"
+    },
+    "undo": {
+      "undo": "Desfazer: {what}",
+      "redo": "Refazer: {what}",
+      "undone": "Desfeito: {what}",
+      "redone": "Refeito: {what}",
+      "a_tile": "mosaico",
+      "what": {
+        "grid": "grelha mudada para {grid}",
+        "page_added": "página {page} adicionada",
+        "page_copied": "página {page} adicionada como cópia",
+        "page_removed": "página {page} removida",
+        "page_moved": "página movida para a posição {page}",
+        "pages_moved": "páginas reordenadas",
+        "tile_added": "adição de {name}",
+        "tiles_added": "adição de 1 mosaico | adição de {n} mosaicos",
+        "tile_removed": "remoção de {name}",
+        "tiles_removed": "remoção de 1 mosaico | remoção de {n} mosaicos",
+        "tile_moved": "mudança de {name}",
+        "tile_moved_page": "mudança de {name} para a página {page}",
+        "tiles_moved": "mudança de 1 mosaico | mudança de {n} mosaicos",
+        "tile_link": "{name} abre agora a página {page}",
+        "tile_renamed": "novo nome para {name}",
+        "tile_look": "apresentação de {name} alterada",
+        "tile_resized": "tamanho de {name} alterado",
+        "tile_icon": "ícone de {name} alterado",
+        "tile_color": "fundo de {name} alterado",
+        "tile_tap": "toque de {name} alterado",
+        "tile_option": "definições de {name} alteradas",
+        "tiles_changed": "1 mosaico alterado | {n} mosaicos alterados",
+        "screen_title": "título do ecrã alterado",
+        "page_title": "título da página {page} alterado",
+        "home_page": "a página {page} passou a ser a página inicial",
+        "page_buttons": "botões de página da página {page} alterados",
+        "home_key": "botão de início da página {page} alterado",
+        "top_bar": "barra superior da página {page} alterada",
+        "top_bars": "barras superiores alteradas",
+        "map_moved": "página {page} movida no mapa",
+        "map_arranged": "mapa organizado a partir do início",
+        "stood_up": "ecrã posto na vertical",
+        "laid_down": "ecrã posto na horizontal",
+        "layout_copied": "layout copiado de {name}",
+        "layout_imported": "layout importado",
+        "changed": "layout alterado",
+        "restored": "alterações não guardadas restauradas",
+        "taken_over": "alterações do outro separador trazidas para aqui"
+      }
+    },
+    "draft": {
+      "kept": "Alterações não guardadas ({time})",
+      "kept_hint": "Guardadas neste navegador, ainda não no ecrã.",
+      "restore": "Restaurar",
+      "discard": "Descartar"
+    },
+    "tabs": {
+      "elsewhere": "Este ecrã está a ser editado noutro separador",
+      "elsewhere_hint": "As alterações ainda não foram guardadas.",
+      "take_over": "Continuar aqui",
+      "keep_mine": "Manter as minhas"
+    },
+    "connection": {
+      "lost": "Não é possível contactar o ESP Screen Manager.",
+      "lost_hint": "As suas alterações ficam aqui. A tentar novamente…",
+      "restored": "Ligação restabelecida"
+    },
+    "naming": {
+      "rename": "Mudar o nome",
+      "reset": "Voltar a {name}"
     },
     "phone": {
       "screens": "Ecrãs",
@@ -3157,7 +3443,15 @@
     "build": {
       "plugins": "A compilar com os seus plugins",
       "install": "A instalar",
-      "failed": "A última compilação de {screen} falhou. O registo diz porquê."
+      "failed": "A última compilação de {screen} falhou. O registo diz porquê.",
+      "title": "A compilar agora",
+      "count": "1 compilação em curso | {n} compilações em curso",
+      "waiting": "À espera da sua vez",
+      "ready": "{name} está pronto",
+      "ready_several": "{names} estão prontos",
+      "update_failed": "A atualização de {name} falhou",
+      "build_failed": "A compilação de {name} falhou",
+      "show_log": "Ver registo"
     },
     "grid": {
       "title": "Grelha",

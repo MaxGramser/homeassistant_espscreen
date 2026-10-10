@@ -56,7 +56,8 @@ CAMERA_CARD_FIRMWARE = (0, 3, 7)
 # colour (tile_art.bmp), a third of the bytes of 24-bit. Older screens keep 24-bit.
 LIVE_SIZES = (24, 160)   # a square's side, in pixels
 LIVE_MAX_TILES = 6       # one page
-LIVE_REFRESH = (5, 10, 15, 30)  # the paces a tile may choose, in seconds
+# The paces a tile may choose, in seconds, from the catalogue: 0 is Live, a camera that streams on its tile (live_feed.py).
+LIVE_REFRESH = tuple(catalogue.of_type('camera')['picture']['refresh'])
 LIVE_REFRESH_DEFAULT = 15
 LIVE_RADIUS_SHARE = 6    # a rounder corner than a cover's: the square is small
 PORT = 8098
@@ -854,8 +855,9 @@ class CameraFeed:
         return (304, None, tag) if etag == tag else (200, image, tag)
 
 
-def web_app(feed):
-    """The camera port: GET /camera/<token>.bmp and nothing else, open to the LAN like the screens are."""
+def web_app(feed, live=None):
+    """The camera port: GET /camera/<token>.bmp, and /camera/<token>.mjpeg for a camera live on a P4 (live_feed.py),
+    open to the LAN like the screens are."""
     from aiohttp import web
 
     async def image(request):
@@ -871,6 +873,10 @@ def web_app(feed):
 
     app = web.Application(client_max_size=1024)
     app.router.add_get(r'/camera/{token:[A-Za-z0-9_-]{16,64}}.bmp', image)
+    if live is not None:
+        async def stream(request):
+            return await live.serve(request, request.match_info['token'])
+        app.router.add_get(r'/camera/{token:[A-Za-z0-9_-]{16,64}}.mjpeg', stream)
     return app
 
 

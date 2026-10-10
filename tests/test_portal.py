@@ -56,6 +56,20 @@ class ProtocolTests(unittest.TestCase):
         screens,_=discover(registry,{'text.screen':{'state':'Synced'}},[],[])
         self.assertEqual([s['id'] for s in screens],['text.screen'])
 
+    def test_discovery_says_since_when_an_entity_is_unavailable(self):
+        registry=[{'entity_id':'sensor.gone_quiet'},{'entity_id':'sensor.fine'},{'entity_id':'sensor.never_seen'}]
+        states={'sensor.gone_quiet':{'state':'unavailable','last_changed':'2026-10-10T08:12:00+00:00'},
+                'sensor.fine':{'state':'21','last_changed':'2026-10-10T08:12:00+00:00'},
+                'light.yaml_only':{'state':'unavailable','last_changed':'2026-10-10T09:00:00Z'}}
+        _,entities=discover(registry,states,[],[])
+        found={e['id']:e for e in entities}
+        self.assertEqual(found['sensor.gone_quiet']['unavailable_since'],1791619920)
+        self.assertNotIn('unavailable_since',found['sensor.fine'])
+        # A registered entity without a state says nothing of since when: the editor can't tell how long that has been.
+        self.assertEqual(found['sensor.never_seen']['state'],'unavailable')
+        self.assertNotIn('unavailable_since',found['sensor.never_seen'])
+        self.assertEqual(found['light.yaml_only']['unavailable_since'],1791622800)
+
     def test_unique_credentials_and_remote_profiles(self):
         data={'board':'cyd','name':'living-room','friendly_name':'Living room'}
         first,second=installation_yaml(data),installation_yaml(data)

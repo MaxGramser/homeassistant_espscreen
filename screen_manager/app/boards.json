@@ -19,6 +19,7 @@
    "model": "ESP32-2432S028",
    "name": "CYD",
    "order": 0,
+   "settings": [],
    "status": "stable",
    "touch": "XPT2046"
   },
@@ -26,7 +27,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -104,6 +106,7 @@
    "model": "ESP32-2432S028 ILI9342",
    "name": "CYD",
    "order": 1,
+   "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -111,7 +114,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -199,6 +203,7 @@
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
    "order": 2,
+   "settings": [],
    "status": "stable",
    "touch": "GT911"
   },
@@ -206,7 +211,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -304,6 +310,7 @@
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
    "order": 11,
+   "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -311,7 +318,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -399,6 +407,7 @@
    "model": "JC1060P470",
    "name": "Guition",
    "order": 9,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -406,7 +415,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -514,6 +524,7 @@
    "model": "JC1060P470 V2",
    "name": "Guition",
    "order": 10,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -521,7 +532,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -629,6 +641,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
+   "settings": [],
    "status": "new",
    "touch": "AXS15231"
   },
@@ -636,7 +649,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -744,6 +758,7 @@
    "model": "JC8012P4A1",
    "name": "Guition",
    "order": 4,
+   "settings": [],
    "status": "new",
    "touch": "GSL3670"
   },
@@ -751,7 +766,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -859,6 +875,7 @@
    "model": "JC8012P4A1 V2",
    "name": "Guition",
    "order": 15,
+   "settings": [],
    "status": "experimental",
    "touch": "GSL3680"
   },
@@ -866,7 +883,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -974,6 +992,7 @@
    "model": "JC8012P4A1 V3",
    "name": "Guition",
    "order": 5,
+   "settings": [],
    "status": "experimental",
    "touch": "GSL3680"
   },
@@ -981,7 +1000,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -1064,6 +1084,132 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/reterminald1001.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": true,
+  "board": "reterminald1001",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    434,
+    244
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 8.0,
+   "model": "reTerminal D1001",
+   "name": "reTerminal D1001",
+   "order": 19,
+   "settings": [
+    "media_player",
+    "microphone",
+    "wake_when_moved"
+   ],
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 189,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
+  "firmware": "0.54.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 38,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 71,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      434,
+      244
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      432,
+      243
+     ]
+    },
+    "columns": 3,
+    "height": 1280,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 60,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 52,
+   "tile_pad": 13,
+   "top": 59
+  },
+  "wide_slots": false,
+  "width": 1280
+ },
  "checkout/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -1089,6 +1235,7 @@
    "model": "ESP32-8048S070",
    "name": "Sunton",
    "order": 14,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1096,7 +1243,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -1204,6 +1352,10 @@
    "model": "Tab5 ST7121",
    "name": "M5Stack Tab5",
    "order": 16,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "new",
    "touch": "ST7121"
   },
@@ -1211,7 +1363,13 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "firmware": "0.53.0",
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 47,
    "icon_home": 59,
@@ -1309,6 +1467,7 @@
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
    "order": 8,
+   "settings": [],
    "status": "new",
    "touch": "FT63X6"
   },
@@ -1316,7 +1475,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -1404,6 +1564,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3",
    "name": "Waveshare",
    "order": 3,
+   "settings": [],
    "status": "stable",
    "touch": "GT911"
   },
@@ -1411,7 +1572,8 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -1519,6 +1681,7 @@
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
    "order": 7,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1526,7 +1689,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -1634,6 +1798,7 @@
    "model": "ESP32-S3-Touch-LCD-5",
    "name": "Waveshare",
    "order": 17,
+   "settings": [],
    "status": "new",
    "touch": "GT911"
   },
@@ -1641,7 +1806,8 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 187,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -1749,6 +1915,7 @@
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
    "order": 6,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1756,7 +1923,8 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -1864,6 +2032,7 @@
    "model": "ESP32-S3-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 13,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1871,7 +2040,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -1978,7 +2148,8 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4",
    "name": "Waveshare",
-   "order": 19,
+   "order": 20,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -1986,7 +2157,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2094,6 +2266,10 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 18,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -2101,7 +2277,12 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.53.0",
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -2204,6 +2385,7 @@
    "model": "ESP32-2432S028",
    "name": "CYD",
    "order": 0,
+   "settings": [],
    "status": "stable",
    "touch": "XPT2046"
   },
@@ -2211,7 +2393,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -2289,6 +2472,7 @@
    "model": "ESP32-2432S028 ILI9342",
    "name": "CYD",
    "order": 1,
+   "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -2296,7 +2480,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -2384,6 +2569,7 @@
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
    "order": 2,
+   "settings": [],
    "status": "stable",
    "touch": "GT911"
   },
@@ -2391,7 +2577,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2489,6 +2676,7 @@
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
    "order": 11,
+   "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -2496,7 +2684,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -2584,6 +2773,7 @@
    "model": "JC1060P470",
    "name": "Guition",
    "order": 9,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -2591,7 +2781,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2699,6 +2890,7 @@
    "model": "JC1060P470 V2",
    "name": "Guition",
    "order": 10,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -2706,7 +2898,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2814,6 +3007,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
+   "settings": [],
    "status": "new",
    "touch": "AXS15231"
   },
@@ -2821,7 +3015,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -2929,6 +3124,7 @@
    "model": "JC8012P4A1",
    "name": "Guition",
    "order": 4,
+   "settings": [],
    "status": "new",
    "touch": "GSL3670"
   },
@@ -2936,7 +3132,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -3044,6 +3241,7 @@
    "model": "JC8012P4A1 V2",
    "name": "Guition",
    "order": 15,
+   "settings": [],
    "status": "experimental",
    "touch": "GSL3680"
   },
@@ -3051,7 +3249,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -3159,6 +3358,7 @@
    "model": "JC8012P4A1 V3",
    "name": "Guition",
    "order": 5,
+   "settings": [],
    "status": "experimental",
    "touch": "GSL3680"
   },
@@ -3166,7 +3366,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -3269,6 +3470,7 @@
    "model": "ESP32-2432S028",
    "name": "CYD",
    "order": 0,
+   "settings": [],
    "status": "stable",
    "touch": "XPT2046"
   },
@@ -3276,7 +3478,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -3354,6 +3557,7 @@
    "model": "ESP32-2432S028 ILI9342",
    "name": "CYD",
    "order": 1,
+   "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -3361,7 +3565,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 143,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -3449,6 +3654,7 @@
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
    "order": 2,
+   "settings": [],
    "status": "stable",
    "touch": "GT911"
   },
@@ -3456,7 +3662,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3554,6 +3761,7 @@
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
    "order": 11,
+   "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
   },
@@ -3561,7 +3769,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 146,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -3649,6 +3858,7 @@
    "model": "JC1060P470",
    "name": "Guition",
    "order": 9,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -3656,7 +3866,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3764,6 +3975,7 @@
    "model": "JC1060P470 V2",
    "name": "Guition",
    "order": 10,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -3771,7 +3983,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3879,6 +4092,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
+   "settings": [],
    "status": "new",
    "touch": "AXS15231"
   },
@@ -3886,7 +4100,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -3994,6 +4209,7 @@
    "model": "JC8012P4A1",
    "name": "Guition",
    "order": 4,
+   "settings": [],
    "status": "new",
    "touch": "GSL3670"
   },
@@ -4001,7 +4217,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -4109,6 +4326,7 @@
    "model": "JC8012P4A1 V2",
    "name": "Guition",
    "order": 15,
+   "settings": [],
    "status": "experimental",
    "touch": "GSL3680"
   },
@@ -4116,7 +4334,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -4224,6 +4443,7 @@
    "model": "JC8012P4A1 V3",
    "name": "Guition",
    "order": 5,
+   "settings": [],
    "status": "experimental",
    "touch": "GSL3680"
   },
@@ -4231,7 +4451,8 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -4314,6 +4535,132 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/reterminald1001.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": true,
+  "board": "reterminald1001",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    434,
+    244
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 8.0,
+   "model": "reTerminal D1001",
+   "name": "reTerminal D1001",
+   "order": 19,
+   "settings": [
+    "media_player",
+    "microphone",
+    "wake_when_moved"
+   ],
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 189,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
+  "firmware": "0.54.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 38,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 71,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      434,
+      244
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      432,
+      243
+     ]
+    },
+    "columns": 3,
+    "height": 1280,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 60,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 52,
+   "tile_pad": 13,
+   "top": 59
+  },
+  "wide_slots": false,
+  "width": 1280
+ },
  "packages/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -4339,6 +4686,7 @@
    "model": "ESP32-8048S070",
    "name": "Sunton",
    "order": 14,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -4346,7 +4694,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -4454,6 +4803,10 @@
    "model": "Tab5 ST7121",
    "name": "M5Stack Tab5",
    "order": 16,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "new",
    "touch": "ST7121"
   },
@@ -4461,7 +4814,13 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "firmware": "0.53.0",
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 47,
    "icon_home": 59,
@@ -4559,6 +4918,7 @@
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
    "order": 8,
+   "settings": [],
    "status": "new",
    "touch": "FT63X6"
   },
@@ -4566,7 +4926,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -4654,6 +5015,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3",
    "name": "Waveshare",
    "order": 3,
+   "settings": [],
    "status": "stable",
    "touch": "GT911"
   },
@@ -4661,7 +5023,8 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -4769,6 +5132,7 @@
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
    "order": 7,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -4776,7 +5140,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -4884,6 +5249,7 @@
    "model": "ESP32-S3-Touch-LCD-5",
    "name": "Waveshare",
    "order": 17,
+   "settings": [],
    "status": "new",
    "touch": "GT911"
   },
@@ -4891,7 +5257,8 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 187,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -4999,6 +5366,7 @@
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
    "order": 6,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5006,7 +5374,8 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -5114,6 +5483,7 @@
    "model": "ESP32-S3-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 13,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5121,7 +5491,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -5228,7 +5599,8 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4",
    "name": "Waveshare",
-   "order": 19,
+   "order": 20,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5236,7 +5608,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -5344,6 +5717,10 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 18,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5351,7 +5728,12 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.53.0",
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -5434,6 +5816,132 @@
   "wide_slots": false,
   "width": 720
  },
+ "reterminald1001": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": true,
+  "board": "reterminald1001",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    434,
+    244
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 8.0,
+   "model": "reTerminal D1001",
+   "name": "reTerminal D1001",
+   "order": 19,
+   "settings": [
+    "media_player",
+    "microphone",
+    "wake_when_moved"
+   ],
+   "status": "experimental",
+   "touch": "GSL3670"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 189,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
+  "firmware": "0.54.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 38,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 71,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      434,
+      244
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      432,
+      243
+     ]
+    },
+    "columns": 3,
+    "height": 1280,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 60,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 52,
+   "tile_pad": 13,
+   "top": 59
+  },
+  "wide_slots": false,
+  "width": 1280
+ },
  "sunton8048s070": {
   "alert": {
    "line": 19,
@@ -5459,6 +5967,7 @@
    "model": "ESP32-8048S070",
    "name": "Sunton",
    "order": 14,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5466,7 +5975,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 133,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -5574,6 +6084,10 @@
    "model": "Tab5 ST7121",
    "name": "M5Stack Tab5",
    "order": 16,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "new",
    "touch": "ST7121"
   },
@@ -5581,7 +6095,13 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "firmware": "0.53.0",
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor"
+  ],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 47,
    "icon_home": 59,
@@ -5679,6 +6199,7 @@
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
    "order": 8,
+   "settings": [],
    "status": "new",
    "touch": "FT63X6"
   },
@@ -5686,7 +6207,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 165,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -5774,6 +6296,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3",
    "name": "Waveshare",
    "order": 3,
+   "settings": [],
    "status": "stable",
    "touch": "GT911"
   },
@@ -5781,7 +6304,8 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 217,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -5889,6 +6413,7 @@
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
    "order": 7,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -5896,7 +6421,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -6004,6 +6530,7 @@
    "model": "ESP32-S3-Touch-LCD-5",
    "name": "Waveshare",
    "order": 17,
+   "settings": [],
    "status": "new",
    "touch": "GT911"
   },
@@ -6011,7 +6538,8 @@
   "columns": 3,
   "dimmable": false,
   "dpi": 187,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -6119,6 +6647,7 @@
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
    "order": 6,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -6126,7 +6655,8 @@
   "columns": 4,
   "dimmable": false,
   "dpi": 133,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -6234,6 +6764,7 @@
    "model": "ESP32-S3-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 13,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -6241,7 +6772,8 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -6348,7 +6880,8 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4",
    "name": "Waveshare",
-   "order": 19,
+   "order": 20,
+   "settings": [],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -6356,7 +6889,8 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 170,
-  "firmware": "0.53.0",
+  "features": [],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -6464,6 +6998,10 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 18,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -6471,7 +7009,12 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "firmware": "0.53.0",
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
+  "firmware": "0.54.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,

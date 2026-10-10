@@ -453,28 +453,31 @@ class Editor(unittest.TestCase):
     """The page side of the same features, read from the Vue sources."""
     def setUp(self):
         import editor_sources
-        self.store = editor_sources.source('store.ts')
+        self.store = editor_sources.source('stores/document.ts')
         self.page = editor_sources.PAGE
 
     def test_the_mockup_polls_live_values_and_draws_them(self):
-        self.assertIn('getJson(`states?${query}`)', self.store)
-        self.assertIn('if (!document.hidden && state.layout && state.tab === "layout" && route.value === "") loadStates();', self.store)
-        for marker in ('liveOf(props.tile.entity)', 'lit: isOn', ':style="sliderStyle"', "class=\"tog\" :class=\"{ off: !on }\""):
+        import editor_sources
+        self.assertIn('getJson(`states?${query(entities.slice(i, i + 60))}`)', editor_sources.source('stores/entities.ts'))
+        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(layout.value) && ui.tab === "layout" && ui.route === "" });', self.store)
+        for marker in ('liveOf(props.tile.entity)', 'lit: card.lit', ':style="card.sliderStyle"', "class=\"tog\" :class=\"{ off: !card.on }\""):
             self.assertIn(marker, self.page, marker)
 
     def test_identify_and_the_test_alert_have_their_buttons(self):
-        self.assertIn('send(`screens/${encodeURIComponent(screen.id)}/identify`, "POST")', self.store)
-        self.assertIn('send("alerts/test", "POST", { screen: target, data })', self.store)
+        import editor_sources
+        screen = editor_sources.source('stores/screen.ts')
+        self.assertIn('send(`screens/${encodeURIComponent(screen.id)}/identify`, "POST")', screen)
+        self.assertIn('send("alerts/test", "POST", { screen: target, data })', screen)
         self.assertIn('id="identify"', self.page)
         self.assertIn('id="alerts-try"', self.page)
         self.assertIn('id="try-send"', self.page)
 
     def test_layouts_can_be_copied_exported_and_imported(self):
-        for name in ('export function copyLayoutFrom', 'export function exportLayout', 'export async function importLayout'):
+        for name in ('function copyLayoutFrom(', 'function exportLayout(', 'async function importLayout('):
             self.assertIn(name, self.store)
-        for marker in ('id="copy-layout"', 'id="export-layout"', 'id="import-layout"', 'accept="application/json,.json"'):
+        for marker in ('id="copy-layout"', 'id="export-layout"', 'id="import-layout"', 'accept: "application/json,.json"'):
             self.assertIn(marker, self.page, marker)
-        self.assertIn('pages.remapLayout(record.layout, state.documentGrid)', self.store)
+        self.assertIn('pages.remapLayout(record.layout, heldTo(documentGrid.value))', self.store)
         self.assertNotIn('.slice(0, tileLimit.value)', self.store, 'an incompatible import must be reviewed, never silently truncated')
 
     def test_the_library_filters_by_room_and_placement_and_the_palette_exists(self):
@@ -482,10 +485,16 @@ class Editor(unittest.TestCase):
             self.assertIn(marker, self.page, marker)
 
     def test_updates_show_their_notes_and_progress(self):
-        self.assertIn('export function whatsNew', self.store)
-        # Every build's progress, an update's as a plugin build's, from the store's one source (buildOf, Manager.builds).
-        self.assertIn('export function buildProgress', self.store)
-        self.assertIn('export const buildOf', self.store)
+        import editor_sources
+        status = editor_sources.source('model/screen-status.ts')
+        builds = editor_sources.source('stores/builds.ts')
+        self.assertIn('export function whatsNew', status)
+        self.assertIn('const whatsNew = (screen: Screen) => status.whatsNew(', builds)
+        # Every build's progress, an update's as a plugin build's, from the builds store's one source (buildOf,
+        # Manager.builds).
+        self.assertIn('export function buildProgress', status)
+        self.assertIn('const buildProgress = (screen: Screen) => status.buildProgress(', builds)
+        self.assertIn('const buildOf = (screen: Screen): Build | null => inv.inventory.builds?.[screen.id]', builds)
         for marker in ('class="whatsnew"', 'role="progressbar"', "go('#firmware')"):
             self.assertIn(marker, self.page, marker)
 
@@ -498,10 +507,10 @@ class Editor(unittest.TestCase):
         for marker in ("t('editor.tile.goes_to.label')", 'retargetPageTile(tile, Number(v))'):
             self.assertIn(marker, drawer, marker)
         # A tile's size, the whole page too, is set with its handles on the tile itself (app 0.4.32).
-        self.assertIn('resizeChoices(', editor_sources.source('store.ts'))
+        self.assertIn('export function resizeChoices(', editor_sources.source('editor/tiles.ts'))
         self.assertEqual(editor_sources.text('tile.goes_to.label'), 'Goes to page')
-        self.assertIn(':class="{ wide, full, tall,', editor_sources.component('TileCard'))
-        self.assertIn('"timer", "screen",', editor_sources.component('Library'))
+        self.assertIn('return { wide: face.wide, full: face.full, tall: face.tall,', editor_sources.component('TileCard'))
+        self.assertIn('"timer", "screen",', editor_sources.source('model/library.ts'))
         self.assertEqual(editor_sources.text('library.filters.screen'), 'Screen')
 
 

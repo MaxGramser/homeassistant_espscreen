@@ -1,21 +1,30 @@
 <script setup lang="ts">
 // Everything around the screens: firmware updates, language and region, alerts, Claude.
 import { computed, ref } from "vue";
+import { useBusy } from "../composables/useBusy";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
-import { anyBuilding, autoMarks, buildingScreens, go, installClaudeSkill, runUpdateAll, saveLanguage, setAutoUpdate, state } from "../store";
 import BuildLog from "./BuildLog.vue";
+import { useUiStore } from "../stores/ui";
+import { useRegionStore } from "../stores/region";
+import { useBuildsStore } from "../stores/builds";
+import { useInventoryStore } from "../stores/inventory";
 
-const u = computed(() => state.inventory.updates);
-const outdated = computed(() => state.inventory.screens.filter((s) => s.update?.available).length);
-const running = computed(() => state.inventory.screens.find((s) => s.id === state.inventory.updates?.busy));
+const ui = useUiStore();
+const region = useRegionStore();
+const builds = useBuildsStore();
+const inv = useInventoryStore();
+
+const u = computed(() => inv.inventory.updates);
+const outdated = computed(() => inv.inventory.screens.filter((s) => s.update?.available).length);
+const running = computed(() => inv.inventory.screens.find((s) => s.id === inv.inventory.updates?.busy));
 // Each screen is offered its own board's firmware (app 0.3.21): one number only when those screens share it.
-const oneTarget = (screens: typeof state.inventory.screens) => {
+const oneTarget = (screens: typeof inv.inventory.screens) => {
   const targets = new Set(screens.map((s) => s.update?.target || u.value?.target));
   return targets.size === 1 ? [...targets][0] : null;
 };
 const updatesHint = computed(() => {
   if (!u.value) return "";
-  const screens = state.inventory.screens;
+  const screens = inv.inventory.screens;
   if (u.value.busy) return t("editor.settings.updates.busy", { version: running.value?.update?.target || u.value.target });
   if (!screens.length) return t("editor.settings.updates.no_screens", { version: u.value.target });
   if (outdated.value) {
@@ -28,15 +37,15 @@ const updatesHint = computed(() => {
 });
 // What the current firmware brings: the changelog sections that mention it.
 const targetNotes = computed(() => {
-  const sections = state.inventory.changelog, target = u.value?.target;
+  const sections = inv.inventory.changelog, target = u.value?.target;
   if (!Array.isArray(sections) || !target) return [];
   return sections.filter((s) => s.firmware === target).flatMap((s) => s.lines).slice(0, 10);
 });
-const skill = computed(() => state.inventory.claude_skill);
+const skill = computed(() => inv.inventory.claude_skill);
 const installing = ref(false);
 async function install() {
   installing.value = true;
-  try { await installClaudeSkill(); } finally { installing.value = false; }
+  try { await inv.installClaudeSkill(); } finally { installing.value = false; }
 }
 
 // ---- Language & region (app 0.2.90): one place for every screen ----
@@ -44,7 +53,7 @@ async function install() {
 // shows no card.
 const GUIDE = "https://github.com/MaxGramser/homeassistant_espscreen/blob/main/docs/TRANSLATING.md";
 const STYLES: NumberStyle[] = ["point", "comma", "space"];
-const lang = computed(() => state.inventory.language);
+const lang = computed(() => inv.inventory.language);
 // Home Assistant's language as the list has it: the same one, else its base language.
 const haName = computed(() => {
   const l = lang.value, code = l?.ha ? matchLanguage(l.ha, l.languages.map((own) => own.code)) : undefined;
@@ -65,20 +74,14 @@ const different = computed(() => {
 });
 const profileText = computed(() => [different.value.clock && clockName(different.value.clock), different.value.numbers && example(STYLE_MARKS[different.value.numbers])]
   .filter(Boolean).join(" · "));
-const saving = ref(false);
+const { busy: saving, run: whileSaving } = useBusy();
 async function choose(field: "setting" | "clock" | "numbers", event: Event) {
   const select = event.target as HTMLSelectElement;
-  saving.value = true;
-  const saved = await saveLanguage({ [field]: select.value });
-  saving.value = false;
+  const saved = await whileSaving(() => region.saveLanguage({ [field]: select.value }));
   // A refused change shows the stored choice again.
   if (!saved) select.value = String(lang.value?.[field] ?? "auto");
 }
-async function useProfile() {
-  saving.value = true;
-  await saveLanguage(different.value);
-  saving.value = false;
-}
+const useProfile = () => whileSaving(() => region.saveLanguage(different.value));
 </script>
 
 <template>
@@ -88,29 +91,29 @@ async function useProfile() {
         <span class="eyebrow">{{ t("editor.nav.settings") }}</span>
         <h1 id="settings-title">{{ t("editor.settings.title") }}</h1>
       </div>
-      <button type="button" class="btn quiet" id="close-settings" @click="go('')">{{ t("editor.settings.back") }}</button>
+      <button type="button" class="btn quiet" id="close-settings" @click="ui.go('')">{{ t("editor.settings.back") }}</button>
     </div>
     <div class="card-grid">
       <section class="card">
         <h2>{{ t("editor.settings.screens.title") }}</h2>
         <p>{{ t("editor.settings.screens.text") }}</p>
         <div class="tools">
-          <button type="button" class="tool" @click="go('#new-screen')"><span class="tool-icon">＋</span><span class="tx"><b>{{ t("editor.nav.new_screen") }}</b><small>{{ t("editor.nav.new_screen_detail") }}</small></span></button>
-          <button type="button" class="tool" @click="go('#firmware')"><span class="tool-icon">⇪</span><span class="tx"><b>{{ t("editor.nav.firmware") }}</b><small>{{ t("editor.settings.screens.firmware_detail") }}</small></span></button>
+          <button type="button" class="tool" @click="ui.go('#new-screen')"><span class="tool-icon">＋</span><span class="tx"><b>{{ t("editor.nav.new_screen") }}</b><small>{{ t("editor.nav.new_screen_detail") }}</small></span></button>
+          <button type="button" class="tool" @click="ui.go('#firmware')"><span class="tool-icon">⇪</span><span class="tx"><b>{{ t("editor.nav.firmware") }}</b><small>{{ t("editor.settings.screens.firmware_detail") }}</small></span></button>
         </div>
       </section>
       <section v-if="u" class="card updates" id="updates">
         <h2>{{ t("editor.settings.updates.title") }}</h2>
         <p id="updates-hint">{{ updatesHint }}</p>
-        <!-- Every build on the way, whoever asked: an update, a plugin build, an install (the store's builds). -->
-        <BuildLog v-for="screen in buildingScreens()" :key="screen.id" :screen="screen" name />
-        <button v-if="u.pending && !u.busy && u.pending >= 2" id="update-all" type="button" class="btn primary" @click="runUpdateAll">{{ t("editor.settings.updates.all", u.pending) }}</button>
-        <details v-if="targetNotes.length && !anyBuilding()" class="whatsnew">
+        <!-- Every build on the way, whoever asked: an update, a plugin build, an install (the builds store, stores/builds.ts). -->
+        <BuildLog v-for="screen in builds.buildingScreens" :key="screen.id" :screen="screen" name />
+        <button v-if="u.pending && !u.busy && u.pending >= 2" id="update-all" type="button" class="btn primary" @click="builds.runUpdateAll">{{ t("editor.settings.updates.all", u.pending) }}</button>
+        <details v-if="targetNotes.length && !builds.anyBuilding" class="whatsnew">
           <summary>{{ t("editor.settings.updates.whats_new", { version: u.target }) }}</summary>
           <ul><li v-for="line in targetNotes" :key="line">{{ line }}</li></ul>
         </details>
         <label class="check">
-          <input type="checkbox" id="auto-update" :checked="Boolean(u.auto)" @change="setAutoUpdate(($event.target as HTMLInputElement).checked)" />
+          <input type="checkbox" id="auto-update" :checked="Boolean(u.auto)" @change="builds.setAutoUpdate(($event.target as HTMLInputElement).checked)" />
           <span>{{ t("editor.settings.updates.auto_label") }}<small>{{ t("editor.settings.updates.auto_hint") }}</small></span>
         </label>
       </section>
@@ -140,7 +143,7 @@ async function useProfile() {
         <div class="field">
           <label class="f-label" for="number-format">{{ t("editor.settings.language.numbers") }}</label>
           <select id="number-format" :value="lang.numbers || 'auto'" :disabled="saving" @change="choose('numbers', $event)">
-            <option value="auto">{{ t("editor.settings.language.numbers_auto", { example: example(autoMarks) }) }}</option>
+            <option value="auto">{{ t("editor.settings.language.numbers_auto", { example: example(region.autoMarks) }) }}</option>
             <option v-for="style in STYLES" :key="style" :value="style">{{ example(STYLE_MARKS[style]) }}</option>
           </select>
         </div>
@@ -154,7 +157,7 @@ async function useProfile() {
         <h2>{{ t("editor.nav.alerts") }}</h2>
         <p>{{ t("editor.settings.alerts.text") }}</p>
         <div class="tools">
-          <button type="button" class="tool" @click="go('#alerts')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.alerts") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
+          <button type="button" class="tool" @click="ui.go('#alerts')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.alerts") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
         </div>
       </section>
       <section class="card" id="claude">

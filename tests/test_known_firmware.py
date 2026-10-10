@@ -6,7 +6,7 @@ device registry keeps the version ESPHome reported, "<project version> (ESPHome 
 now falls back to that. Only a plain X.Y.Z counts, as before: "0.2.65-dev" is no release.
 
 Each screen in the inventory says what that means for the editor: `firmware_known`, `tile_limit`, `full_page` and
-`page_tiles_repeat` (the contract with web/src/store.ts).
+`page_tiles_repeat` (the contract with web/src/stores/screen.ts).
 """
 from manager_fixtures import with_screen_grid
 import importlib.util

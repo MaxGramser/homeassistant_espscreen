@@ -24,7 +24,7 @@ ENGLISH = {'app': {'name': 'Bus', 'summary': 'Next bus.', 'tile': 'Next', 'stop'
 
 def manifest(**changes):
     data = {
-        'id': 'bus', 'version': '1.0.0', 'api': '0.1', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT',
+        'id': 'bus', 'version': '1.0.0', 'api': '0.1', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT', 'topics': ['travel'],
         'permissions': {'network': ['api.example.org']}, 'attributes': ['cloud'], 'privacy': 'https://example.org/p',
         'tiles': [{'id': 'next', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 900,
                    'data': 'departures', 'options': [
@@ -973,3 +973,87 @@ class SeriesManifest(unittest.TestCase):
         field = {'path': pm.parse_path('[*]', root=False), 'as': 'numbers'}
         self.assertEqual(plugin_fetch.field_value([0.1, None, '0,25', 'x', True, float('nan'), 3], field),
                          [0.1, None, 0.25, None, 1, None, 3])
+
+
+class PanelSettings(unittest.IsolatedAsyncioTestCase):
+    """A plugin's settings on a screen (plugin API 0.6): found by their name in plugin.yaml through the entity registry,
+    so a rename in Home Assistant keeps them; a text and a button with its status; only the screen's own entities."""
+
+    def service(self, registry, states):
+        import shutil
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+        folder = Path(tmp.name) / 'tessera-plugins' / 'voice_probe'
+        (folder / 'translations').mkdir(parents=True)
+        (folder / 'tessera-plugin.yaml').write_text(
+            'id: voice_probe\nversion: 1.0.0\napi: "0.6"\nicon: microphone\nmaintainer: someone\nlicense: MIT\ntopics: [voice]\n'
+            'settings:\n  - { key: wake_word, label: word }\n  - { key: spotify_market, label: market }\n'
+            '  - { key: test_wake, label: test, status: test_wake_result }\n')
+        (folder / 'translations' / 'en.json').write_text(json.dumps(
+            {'app': {'name': 'Voice', 'summary': 'Voice.', 'word': 'Word', 'market': 'Market', 'test': 'Test'}, 'screen': {}}))
+        calls = []
+
+        class FakeHA:
+            changed, dirty = asyncio.Event(), set()
+
+            async def call_service(self, domain, service, data):
+                calls.append((domain, service, data))
+        FakeHA.registry, FakeHA.states = registry, states
+
+        class FakeManager:
+            ha = FakeHA()
+            page_senders, aliases = {}, {}
+
+            def screen(self, inbox):
+                return {'id': inbox, 'device_id': 'dev1', 'online': True}
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', config)
+        service.scan_folders()
+        service.store.put('kitchen', {'id': 'voice_probe', 'source': 'folder', 'state': 'active'})
+        return service, calls
+
+    def esphome(self, entity_id, name, device='dev1'):
+        return {'entity_id': entity_id, 'device_id': device, 'platform': 'esphome', 'original_name': name}
+
+    async def test_found_by_name_after_a_rename_and_never_on_another_device(self):
+        registry = [self.esphome('select.my_kitchen_word', 'Wake word'),          # renamed in Home Assistant
+                    self.esphome('text.kitchen_spotify_market', 'Spotify market'),
+                    self.esphome('button.kitchen_test_wake', 'Test wake'),
+                    self.esphome('sensor.kitchen_test_wake_result', 'Test wake result'),
+                    self.esphome('select.hall_wake_word', 'Wake word', device='dev2')]
+        states = {'select.my_kitchen_word': {'state': 'Okay Nabu', 'attributes': {'options': ['Okay Nabu', 'Hey Jarvis']}},
+                  'text.kitchen_spotify_market': {'state': 'NL', 'attributes': {'min': 2, 'max': 2, 'mode': 'text'}},
+                  'button.kitchen_test_wake': {'state': 'unknown'},
+                  'sensor.kitchen_test_wake_result': {'state': 'Heard: Okay Nabu'}}
+        service, calls = self.service(registry, states)
+        rows = {row['key']: row for row in service.settings_for('kitchen')[0]['rows']}
+        self.assertEqual(rows['wake_word']['entity'], 'select.my_kitchen_word')
+        self.assertEqual(rows['wake_word']['options'], ['Okay Nabu', 'Hey Jarvis'])
+        self.assertEqual((rows['spotify_market']['kind'], rows['spotify_market']['value'], rows['spotify_market']['max']), ('text', 'NL', 2))
+        self.assertEqual((rows['test_wake']['kind'], rows['test_wake']['status']), ('button', 'Heard: Okay Nabu'))
+        self.assertTrue(rows['test_wake']['available'])            # a button that was never pressed is there
+        await service.set_setting('kitchen', 'button.kitchen_test_wake', True)
+        await service.set_setting('kitchen', 'text.kitchen_spotify_market', 'BE')
+        await service.set_setting('kitchen', 'select.my_kitchen_word', 'Hey Jarvis')
+        self.assertEqual(calls, [('button', 'press', {'entity_id': 'button.kitchen_test_wake'}),
+                                 ('text', 'set_value', {'entity_id': 'text.kitchen_spotify_market', 'value': 'BE'}),
+                                 ('select', 'select_option', {'entity_id': 'select.my_kitchen_word', 'option': 'Hey Jarvis'})])
+        for entity, value in (('text.kitchen_spotify_market', 'NLD'),            # longer than the entity takes
+                              ('button.kitchen_test_wake', 'yes'),
+                              ('sensor.kitchen_test_wake_result', 'x'),          # a status is shown, never set
+                              ('select.hall_wake_word', 'Hey Jarvis')):           # another screen's entity
+            with self.subTest(entity), self.assertRaises(ValueError):
+                await service.set_setting('kitchen', entity, value)
+
+    def test_the_object_id_is_esphomes(self):
+        import plugins as plugin_service
+        for name, key in (('Tap sound', 'tap_sound'), ('Mic gain (dB)', 'mic_gain__db_'), ('AEC', 'aec'), ('Wake-word', 'wake-word')):
+            self.assertEqual(plugin_service.Plugins.object_id(name), key)
+
+    def test_a_status_is_an_id_too(self):
+        good = manifest(settings=[{'key': 'test_wake', 'label': 'tile', 'status': 'test_wake_result'}])
+        self.assertEqual(pm.check(good, ENGLISH)['settings'][0]['status'], 'test_wake_result')
+        with self.assertRaises(pm.ManifestError):
+            pm.check(manifest(settings=[{'key': 'test_wake', 'label': 'tile', 'status': 'Test wake result'}]), ENGLISH)

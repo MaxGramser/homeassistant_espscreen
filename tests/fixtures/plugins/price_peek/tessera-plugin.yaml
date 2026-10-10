@@ -3,6 +3,7 @@ id: price_peek
 version: 1.0.0
 api: "0.5"
 icon: flash
+topics: [energy]
 maintainer: someone
 license: MIT
 permissions:

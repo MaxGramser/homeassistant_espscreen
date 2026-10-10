@@ -1,33 +1,37 @@
 <script setup lang="ts">
 // The screen's columns and rows, beside the mockup (app 0.4.85, firmware 0.53.0+). A change lays the draft out on the new
-// grid at once (store chooseGrid): what no longer fits moves on to a new page after its own, and the screen gets the
+// grid at once (stores/document.ts chooseGrid): what no longer fits moves on to a new page after its own, and the screen gets the
 // grid with the next save. A screen whose firmware keeps the grid it was built with says so instead; a preview screen
 // without its board's grids (the custom glass) has no button.
 import { computed } from "vue";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
-import { chooseGrid, chooseHang, currentScreen, gridWay, screenShape, state } from "../store";
 import Icon from "./ui/Icon.vue";
+import { useScreenStore } from "../stores/screen";
+import { useDocumentStore } from "../stores/document";
 
-const grid = computed(() => state.documentGrid);
+const scr = useScreenStore();
+const doc = useDocumentStore();
+
+const grid = computed(() => doc.documentGrid);
 const axes = [["columns", 0], ["rows", 1]] as const;
 const value = (axis: "columns" | "rows") => grid.value?.[axis] ?? 0;
 const can = (axis: "columns" | "rows", index: 0 | 1, by: number) => {
-  const way = gridWay.value, next = value(axis) + by;
+  const way = doc.gridWay, next = value(axis) + by;
   return !!way && next >= way.min[index] && next <= way.max[index];
 };
 function step(axis: "columns" | "rows", index: 0 | 1, by: number) {
   if (!grid.value || !can(axis, index, by)) return;
-  chooseGrid(axis === "columns" ? grid.value.columns + by : grid.value.columns, axis === "rows" ? grid.value.rows + by : grid.value.rows);
+  doc.chooseGrid(axis === "columns" ? grid.value.columns + by : grid.value.columns, axis === "rows" ? grid.value.rows + by : grid.value.rows);
 }
 const cells = computed(() => (grid.value ? grid.value.columns * grid.value.rows : 0));
 // Standing up or lying down, on glass that turns (the add-on says which way it is to hang; null on square glass).
-const turns = computed(() => !!currentScreen.value?.hang && state.documentUpright !== null);
+const turns = computed(() => !!scr.currentScreen?.hang && doc.documentUpright !== null);
 const ways = [[false, "landscape", "crop-landscape"], [true, "portrait", "crop-portrait"]] as const;
 </script>
 
 <template>
-  <PopoverRoot v-if="grid && (gridWay || !currentScreen?.virtual)">
+  <PopoverRoot v-if="grid && (doc.gridWay || !scr.currentScreen?.virtual)">
     <PopoverTrigger as-child>
       <button type="button" id="toolbar-grid" class="btn quiet" :title="t('editor.grid.title')">
         <Icon name="view-grid-outline" />{{ grid.columns }} × {{ grid.rows }}
@@ -36,10 +40,10 @@ const ways = [[false, "landscape", "crop-landscape"], [true, "portrait", "crop-p
     <PopoverPortal>
       <PopoverContent class="ui-popover grid-pop" align="start" :side-offset="8" :collision-padding="12">
         <h4>{{ t("editor.grid.title") }}</h4>
-        <template v-if="gridWay">
+        <template v-if="doc.gridWay">
           <div v-if="turns" class="seg grid-ways" role="group" :aria-label="t('editor.grid.way')">
             <button v-for="[upright, word, icon] in ways" :key="word" type="button" :id="`grid-${word}`"
-              :aria-pressed="state.documentUpright === upright ? 'true' : 'false'" @click="chooseHang(upright)">
+              :aria-pressed="doc.documentUpright === upright ? 'true' : 'false'" @click="doc.chooseHang(upright)">
               <Icon :name="icon" />{{ t(`editor.grid.${word}`) }}
             </button>
           </div>
@@ -55,7 +59,7 @@ const ways = [[false, "landscape", "crop-landscape"], [true, "portrait", "crop-p
               </div>
             </div>
             <div class="grid-sketch" aria-hidden="true"
-              :style="{ aspectRatio: `${screenShape.width} / ${screenShape.height}`, gridTemplateColumns: `repeat(${grid.columns}, 1fr)`, gridTemplateRows: `repeat(${grid.rows}, 1fr)` }">
+              :style="{ aspectRatio: `${doc.screenShape.width} / ${doc.screenShape.height}`, gridTemplateColumns: `repeat(${grid.columns}, 1fr)`, gridTemplateRows: `repeat(${grid.rows}, 1fr)` }">
               <i v-for="cell in cells" :key="cell"></i>
             </div>
           </div>

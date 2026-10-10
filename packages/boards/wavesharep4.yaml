@@ -5,7 +5,8 @@
 # ESP32-P4-WIFI6-Touch-LCD-4B schematic, page 1: the 86 panel and that board share their main board, and a community
 # member ran this file on a 4B as well. The first build came from pull request #142, tried on a panel with a pre-v3
 # ESP32-P4 ("chip revision: v1.3" in the boot log); a panel with rev3 silicon needs `engineering_sample: false`
-# (docs/WAVESHAREP4.md). The relays, RS485, Ethernet, the microSD slot and the audio codecs are not configured here.
+# (docs/WAVESHAREP4.md). The speaker and the microphone are the screen's audio (features/audio.yaml), on one I2S bus
+# they take turns on; the relays, RS485, Ethernet and the microSD slot are not configured here.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
@@ -20,6 +21,11 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  # The speaker and the microphone as the screen's audio (features/audio.yaml), and its amplifier following the sound
+  # (features/audio-amplifier.yaml): its hardware below.
+  audio: !include ../features/audio.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+  audio_half_duplex: !include ../features/audio-half-duplex.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -43,6 +49,18 @@ substitutions:
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
   BACKLIGHT_FREQUENCY: "100Hz"                  # the backlight's PWM; see the output block
+
+  # The audio (features/audio.yaml): an ES8311 for the speaker and an ES7210 for the microphones on one I2S bus, which
+  # ESPHome lets them take in turns, at one rate for both. The ES8311 turns ESPHome's volume into its DAC register from
+  # 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
+  AUDIO_HALF_DUPLEX: "true"
+  AUDIO_MIC_BUS: ts_speaker_bus
+  AUDIO_SAMPLE_RATE: "16000"
+  AUDIO_DOUT_PIN: GPIO9
+  AUDIO_DIN_PIN: GPIO11
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+  AUDIO_AMPLIFIER: board_speaker_amp
 
 # ============================================================
 # No need to edit below this line.
@@ -88,3 +106,37 @@ display:
     enable_pin: GPIO33
     update_interval: never
     auto_clear_enabled: false
+
+# The audio, as Waveshare's schematic wires it: both codecs on the touch panel's I2C bus, one I2S bus for both, and the
+# speaker's amplifier on GPIO53.
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: GPIO13
+    i2s_bclk_pin: GPIO12
+    i2s_lrclk_pin: GPIO10
+
+audio_adc:
+  - platform: es7210
+    id: ts_audio_adc
+    i2c_id: touch_bus
+    address: 0x40
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    mic_gain: 30db
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF

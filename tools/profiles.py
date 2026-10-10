@@ -13,6 +13,7 @@ check that needs the numbers or the whole lambda. None of this is what ESPHome b
 packages component makes; the firmware check in tools/check.sh compiles the real thing.
 """
 import re
+import sys
 from pathlib import Path
 
 import yaml
@@ -112,6 +113,20 @@ def battery(board):
     files has a sensor in Home Assistant's `battery` device class, which the firmware finds itself
     (runtime_tiles::find_battery). A screen with a battery of its own, in its Override YAML, says so in its hello."""
     return any(re.search(r'^\s+device_class: battery\s*$', path.read_text(), re.M) for path in chain(BOARDS[board]))
+
+
+def features(board):
+    """What a screen of this board brings that a plugin may need (plugin API 0.8, plugin_manifest.FEATURES): each a
+    component under its promised id in one of its files, `ts_speaker`, `ts_microphone`, `ts_media_player` (the board's
+    own, or features/audio.yaml's), and a board-only feature by its substitution (`CAMERA_I2C`). The app reads it from
+    boards.json, so such a plugin fits without one that brings it."""
+    sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+    import plugin_manifest
+    files = list(chain(BOARDS[board]))
+    text = '\n'.join(path.read_text() for path in files)
+    named = {key for path in files for key in substitutions_of(path)}
+    return [name for name, (domain, ident) in plugin_manifest.FEATURES.items()
+            if (ident in named if domain is None else re.search(rf'^\s+(?:- )?id: {ident}\s*$', text, re.M))]
 
 
 def files(name):

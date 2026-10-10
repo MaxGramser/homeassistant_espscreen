@@ -45,7 +45,7 @@ a:hover { text-decoration: underline; }
 [hidden] { display: none !important; }
 
 /* ---- Shell ---- */
-/* The sidebar's width is the page's (sidebar-state.ts, app 0.4.85): dragged by its edge, or folded to its icons. */
+/* The sidebar's width is the page's (stores/sidebar.ts, app 0.4.85): dragged by its edge, or folded to its icons. */
 .app { display: grid; grid-template-columns: var(--side-w, 248px) minmax(0, 1fr); height: 100%; min-height: 100vh; transition: grid-template-columns 0.16s ease; }
 .app.side-resizing { transition: none; cursor: col-resize; user-select: none; -webkit-user-select: none; }
 .app.dragging { user-select: none; -webkit-user-select: none; cursor: grabbing; }
@@ -80,13 +80,15 @@ a:hover { text-decoration: underline; }
   .side-folded .brand { justify-content: center; padding: 0; flex: none; width: 100%; }
   .side-folded .brand .txt, .side-folded .conn-text, .side-folded .search-btn .txt, .side-folded .search-btn kbd,
   .side-folded .label-row > span, .side-folded .label-row #refresh, .side-folded .screen-item .name, .side-folded .screen-item .sub,
-  .side-folded .screen-item .unsaved, .side-folded .row-end, .side-folded .side .more .nav-item .txt { display: none; }
+  .side-folded .screen-item .unsaved, .side-folded .row-end, .side-folded .side .more .nav-item .txt, .side-folded .broken-nav .txt, .side-folded .screen-item .broken-dot { display: none; }
   .side-folded .side-fold { width: 100%; }
   .side-folded .conn { justify-content: center; padding: 4px 0; }
   .side-folded .search-btn, .side-folded .nav-item { justify-content: center; padding: 0; gap: 0; }
   .side-folded .label-row { justify-content: center; padding: 10px 0 4px; }
   .side-folded .screen-item .nav-item, .side-folded .screen-item.update .nav-item { padding: 0; position: relative; }
-  .side-folded .screen-item .spin, .side-folded .screen-item .sub-icon { position: absolute; top: 3px; right: 6px; }
+  .side-folded .screen-item .spin, .side-folded .screen-item .sub-icon, .side-folded .screen-item .row-ring { position: absolute; top: 3px; right: 6px; }
+  .side-folded .builds-btn { width: 100%; }
+  .side-folded .screen-item .row-ring { width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--surface); }
   .side-folded .screen-item .sub-icon { font-size: 12px; }
   .side-folded .screen-item .spin.small { width: 9px; height: 9px; }
   .side-folded .fold-badge { position: absolute; top: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px var(--surface); }
@@ -223,6 +225,66 @@ a:hover { text-decoration: underline; }
 .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex: none; }
 .spin.small { width: 11px; height: 11px; border-width: 1.5px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* A build's ring (ui/ProgressRing.vue): the arc in the accent fills as it goes, an empty ring waits its turn, a ring
+   without a number turns as the spinner does. */
+.ring { flex: none; display: block; transform: rotate(-90deg); overflow: visible; }
+.ring circle { fill: none; stroke-width: 2; }
+.ring-track { stroke: var(--line-strong); }
+.ring-arc { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s; }
+.ring-waiting .ring-arc { opacity: 0; }
+.ring-turning { animation: ring-turn 0.9s linear infinite; }
+@keyframes ring-turn { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
+@media (prefers-reduced-motion: reduce) { .ring-turning { animation: none; } .ring-arc { transition: none; } }
+/* The builds in the head (BuildIndicator.vue): one ring while anything builds, how many beside it, each one's step in its
+   list. */
+.builds-btn { position: relative; flex: none; width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; }
+.builds-btn:hover { background: var(--surface-2); }
+.builds-count { position: absolute; right: 0; bottom: 1px; min-width: 13px; height: 13px; padding: 0 3px; border-radius: 7px; background: var(--accent);
+  color: var(--accent-ink); font-size: 9px; font-weight: 700; line-height: 13px; text-align: center; box-shadow: 0 0 0 2px var(--surface); }
+.builds-pop { width: 280px; padding: 6px; display: grid; gap: 1px; align-content: start; }
+.builds-pop h4 { font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 6px 8px 4px; }
+.builds-row { display: flex; align-items: center; justify-content: flex-start; width: 100%; gap: 10px; padding: 7px 8px; border-radius: 7px; text-align: left; min-width: 0; }
+.builds-row:hover, .builds-row:focus-visible { background: var(--surface-2); outline: none; }
+.builds-name { display: grid; flex: 1; min-width: 0; }
+.builds-name strong { font-size: 13px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.builds-name small, .builds-percent { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.builds-percent { flex: none; font-variant-numeric: tabular-nums; }
+.builds-log { display: flex; align-items: center; gap: 8px; margin-top: 3px; padding: 8px; border-top: 1px solid var(--line); border-radius: 0 0 7px 7px; font-size: 12.5px; color: var(--accent); font-weight: 500; }
+.builds-log:hover { background: var(--accent-soft); }
+.builds-log .ui-icon { font-size: 15px; }
+.screen-item .row-ring { margin-right: 2px; }
+.home-ring { flex: none; }
+.app.phone .home-head .builds-btn { position: absolute; top: 0; right: 42px; width: 34px; height: 34px; border-radius: 50%; background: var(--seg); }
+/* Broken tiles (stores/broken.ts): calm, in the warning colour only where it says what is wrong. The overview's line
+   opens their list; the sidebar has a dot on a screen's row, the tiles in its details and one row for all of them. */
+.broken-note { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.broken-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; text-align: left; font-size: 13px; color: var(--ink-2); }
+.broken-head:hover { background: var(--surface-2); }
+.broken-icon { color: var(--warn); font-size: 17px; flex: none; }
+.broken-text { flex: 1; min-width: 0; }
+.broken-toggle { flex: none; display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-weight: 500; font-size: 12.5px; }
+.broken-toggle .ui-icon { font-size: 16px; transition: transform 0.16s ease; }
+.broken-note.open .broken-toggle .ui-icon { transform: rotate(180deg); }
+.broken-note .broken-list { border-top: 1px solid var(--line); padding: 6px; }
+.broken-list { display: grid; gap: 1px; }
+.broken-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; padding: 7px 8px; border-radius: 7px; text-align: left; min-width: 0; }
+.broken-row:hover, .broken-row:focus-visible { background: var(--surface-2); outline: none; }
+.broken-row .mdi { font-size: 17px; width: 22px; text-align: center; color: var(--muted); flex: none; }
+.broken-row .tx { display: grid; min-width: 0; }
+.broken-row .tx strong { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.broken-row .tx small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.broken-pop { width: 360px; max-width: calc(100vw - 24px); padding: 6px; display: grid; gap: 2px; align-content: start; }
+.broken-pop h4 { font-size: 12px; font-weight: 500; color: var(--ink-2); padding: 6px 8px 6px; line-height: 1.4; }
+.broken-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-right: 4px; }
+.broken-nav { color: var(--ink-2); }
+.broken-nav .ui-icon { color: var(--warn); font-size: 16px; width: 18px; text-align: center; }
+.broken-nav .txt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.screen-broken { display: grid; gap: 2px; }
+.screen-broken-head { font-size: 11.5px; color: var(--warn); }
+.screen-broken .broken-list { margin: 0 -8px; }
+.screen-broken .broken-row { padding: 5px 8px; }
+.screen-broken .broken-row .tx strong { font-size: 12px; }
+.screen-broken .broken-row .tx small { font-size: 11px; }
 .switch { width: 36px; height: 21px; border-radius: 11px; background: var(--line-strong); position: relative; flex: none; padding: 0; transition: background 0.15s; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22); transition: left 0.15s; }
 .switch[aria-checked="true"] { background: var(--accent); }
@@ -319,7 +381,7 @@ a:hover { text-decoration: underline; }
 
 /* The device mock keeps the Guition light palette on purpose: it is the screen, not the page. */
 /* The mockup is the screen's own glass and its own grid of cells: --screen-aspect, --screen-columns and
-   --screen-rows come from what the screen reported (store.ts: deviceStyle). The .compact class is the compact look
+   --screen-rows come from what the screen reported (stores/canvas.ts deviceStyle). The .compact class is the compact look
    of a small screen, not a board any more. */
 .device { background: #e7e7e7; border-radius: 18px; padding: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; color: #1b1b1b; aspect-ratio: var(--screen-aspect, 1 / 1); }
 .bar-wrap { cursor: pointer; border-radius: 8px; padding: 0 2px; }
@@ -491,11 +553,6 @@ a:hover { text-decoration: underline; }
 .drawer-enter-from, .drawer-leave-to { width: 0; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .drawer-enter-active, .drawer-leave-active { transition: none; } }
 /* The name of what is open, edited where it stands. */
-.dr-title { width: 100%; height: 26px; margin-left: -6px; padding: 0 6px; border: 0; border-radius: 5px; background: transparent; font-size: 14px; font-weight: 600; color: var(--ink); }
-.dr-title:hover { background: var(--surface-2); }
-.dr-title:focus-visible { background: var(--surface); box-shadow: 0 0 0 1px var(--accent), var(--focus); }
-.dr-title::placeholder { color: var(--ink); }
-.dr-title:focus::placeholder { color: var(--muted); }
 .dr-head { display: flex; align-items: center; gap: 11px; padding: 12px 10px 12px 14px; border-bottom: 1px solid var(--line); }
 .dr-head .av { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 20px; flex: none; background: var(--seg); color: var(--ink-2); }
 .dr-head .av .ui-icon { font-size: 20px; }
@@ -625,6 +682,22 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .sw button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
 .picker { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .picker input { background: var(--surface); }
+/* A tile's entity chosen again (TileEntityFix.vue): why, when it is gone or away, then a search and the entities of its
+   kind, the closest first. Escape closes it and not the inspector (the .picker it is). */
+.entity-fix { gap: 8px; }
+.fix-head { display: flex; align-items: flex-start; gap: 9px; }
+.fix-icon { color: var(--warn); font-size: 18px; margin-top: 1px; }
+.fix-words { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.fix-words strong { font-size: 13px; font-weight: 600; }
+.fix-words small { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.fix-close { width: 24px; height: 24px; margin: -3px -3px 0 0; font-size: 15px; color: var(--muted); }
+.fix-list { display: grid; gap: 1px; max-height: 248px; overflow: auto; margin: 0 -4px; }
+.fix-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; padding: 6px 8px; border-radius: 7px; text-align: left; }
+.fix-row.active { background: var(--accent-soft); }
+.fix-row .mdi { font-size: 18px; width: 22px; text-align: center; color: var(--ink-2); flex: none; }
+.fix-row .tx { display: grid; min-width: 0; }
+.fix-row .tx strong { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fix-row .tx small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icon-list { display: grid; gap: 12px; max-height: 300px; overflow: auto; padding-right: 2px; }
 .icon-list small { margin-bottom: 6px; }
 .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
@@ -689,6 +762,10 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
 .srow > .s-label { color: var(--ink-2); }
 .srow.inactive .s-label, .srow.inactive .s-control { opacity: 0.45; }
+/* The row ⌘K found: a soft wash that fades, so the eye lands on it. */
+.srow.spotlit { animation: spotlit 1.6s ease-out; border-radius: 8px; }
+@keyframes spotlit { 0%, 35% { background: var(--accent-soft); box-shadow: 0 0 0 6px var(--accent-soft); } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } }
+@media (prefers-reduced-motion: reduce) { .srow.spotlit { animation: none; background: var(--accent-soft); } }
 .settings.offline .set-grid { opacity: 0.6; }
 .step { display: inline-flex; align-items: center; gap: 2px; }
 .step button { width: 26px; height: 26px; border-radius: 6px; color: var(--ink-2); background: var(--seg); display: grid; place-items: center; }
@@ -788,6 +865,12 @@ details.log-wrap pre { margin-top: 8px; }
 .notice-text { flex: 1; min-width: 0; }
 .notice.warn { background: var(--warn-soft); border-color: transparent; color: var(--ink); }
 .notice.warn .mdi { color: var(--warn); }
+/* A notice that asks for a choice (unsaved changes kept, another tab): on a phone its keys go under the words, at the right. */
+@media (max-width: 640px) {
+  .notice.choice { flex-wrap: wrap; row-gap: 8px; }
+  .notice.choice .notice-text { flex: 1 1 calc(100% - 30px); }
+  .notice.choice .notice-text + .btn { margin-left: auto; }
+}
 
 /* Alerts cheatsheet */
 .alerts section { display: grid; gap: 10px; }
@@ -842,7 +925,7 @@ td code { white-space: nowrap; }
 
 /* Toast */
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--ink); color: var(--surface); border-radius: 10px; box-shadow: var(--shadow); font-size: 13px; z-index: 60; max-width: min(92vw, 560px); }
-.toast button { color: #9fc4ff; font-weight: 650; }
+.toast button { color: var(--accent-soft); font-weight: 650; }
 
 /* Responsive */
 @media (max-width: 960px) {
@@ -894,8 +977,10 @@ td code { white-space: nowrap; }
 
 /* Command palette */
 .palette-backdrop { position: fixed; inset: 0; background: rgba(10, 12, 18, 0.28); z-index: 70; display: grid; align-items: start; justify-items: center; padding: 12vh 16px 16px; }
-.palette { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; }
+.palette { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; animation: pop-in 0.14s ease-out; }
 .palette input { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; font-size: 15px; background: transparent; }
+/* The open palette is the focus itself: its field needs no ring of its own. */
+.palette input:focus-visible { box-shadow: none; border-color: var(--line); }
 .palette-list { overflow: auto; padding: 6px; display: grid; gap: 2px; }
 .palette-group { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
 .palette-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; width: 100%; text-align: left; color: var(--ink); }
@@ -905,6 +990,13 @@ td code { white-space: nowrap; }
 .palette-item .hint-key { font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
 .palette-item.active, .palette-item:hover { background: var(--accent-soft); }
 .palette-empty { padding: 18px; color: var(--muted); font-size: 12.5px; text-align: center; }
+/* What Enter does, on the row in focus only; the keys along the foot, quiet. */
+.palette-hint { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+.palette kbd { font: 500 10.5px var(--ui-font); color: var(--muted); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; min-width: 16px; text-align: center; line-height: 15px; }
+.palette-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); background: var(--surface-2); }
+.palette-foot span { display: inline-flex; align-items: center; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .palette { animation: none; } }
+@media (max-width: 640px) { .palette-foot { display: none; } }
 /* Search is a row like the others, as in Notion and the Finder: an icon, the word, the shortcut faint at its end. */
 .side .search-btn { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; margin: 2px 0 0; padding: 0 8px; border-radius: 7px; background: transparent; color: var(--ink-2); font-size: 13px; text-align: left; }
 .side .search-btn .ui-icon { font-size: 17px; width: 20px; color: var(--muted); }
@@ -927,7 +1019,7 @@ td code { white-space: nowrap; }
 
 /* A full-page tile (firmware 0.2.62+): both columns and all three rows, one big button. */
 /* A full tile is the whole page, whatever the screen's grid is: two by three on the boards that shipped
-   first, three by three on a 800 x 480. The spans follow --screen-columns / --screen-rows (store.ts). */
+   first, three by three on a 800 x 480. The spans follow --screen-columns / --screen-rows (stores/canvas.ts). */
 .tile.full { grid-column: span var(--screen-columns, 2); grid-row: span var(--screen-rows, 3); flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; }
 .tile.full .ic { font-size: 34px; }
 .tile.full .lead { flex: 0 0 auto; align-content: center; justify-items: center; }
@@ -1183,10 +1275,7 @@ section.advanced code { font-size: 11.5px; }
 .dr-head.kind-tile { --kind: var(--kind-tile); }
 .dr-head.kind-page { --kind: var(--kind-page); }
 .dr-head.kind-bar { --kind: var(--surface); --head-ink: var(--ink); --head-soft: var(--muted); border-bottom-color: var(--line); }
-.dr-head[class*="kind-"] .tx b, .dr-head[class*="kind-"] .dr-title { color: var(--head-ink); }
-.dr-head[class*="kind-"] .dr-title::placeholder { color: var(--head-ink); }
-.dr-head[class*="kind-"] .dr-title:hover { background: color-mix(in srgb, var(--head-ink) 12%, transparent); }
-.dr-head[class*="kind-"] .dr-title:focus-visible { background: var(--surface); color: var(--ink); }
+.dr-head[class*="kind-"] .tx b { color: var(--head-ink); }
 .dr-head[class*="kind-"] .crumbs, .dr-head[class*="kind-"] .crumb, .dr-head[class*="kind-"] button.crumb { color: var(--head-soft); }
 .dr-head[class*="kind-"] button.crumb:hover { color: var(--head-ink); }
 .dr-head[class*="kind-"] .icon-btn { color: var(--head-soft); }
@@ -1220,7 +1309,7 @@ section.advanced code { font-size: 11.5px; }
 @media (max-width: 860px) { .arrive-form { grid-template-columns: 1fr; } }
 
 /* ---- The phone (app 0.4.40) ----
-   A page as narrow as a phone, unless it asked for the full editor, carries the class `phone` on .app (store.phone):
+   A page as narrow as a phone, unless it asked for the full editor, carries the class `phone` on .app (stores/ui.ts phone):
    the screen itself, one button to add a tile, sheets from the bottom for adding, a tile and the pages, and the rest
    under the screen's menu. Every rule here hangs on that class or on an element only a phone draws, so a wider page
    keeps every pixel it had. Text fields stay at 16px: a smaller one makes iOS zoom the page on focus. */
@@ -1318,7 +1407,11 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .drawer-enter-active, .app.phone .drawer-leave-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .app.phone .dr-head { padding: 14px 12px 14px 16px; }
 .app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
-.app.phone .dr-body .style-section { order: -1; border-top: 0; }
+/* On a phone the sheet starts with what a tile is changed for most: a way to another entity when its own is gone, then
+   its name, then its icon and colour. */
+.app.phone .dr-body .entity-fix { order: -3; }
+.app.phone .dr-body .name-sec { order: -2; }
+.app.phone .dr-body .style-section { order: -1; }
 .phone-more { display: flex; align-items: center; gap: 10px; margin: 6px 16px 0; padding: 12px 12px 12px 14px; border-radius: 12px; background: var(--surface-2); text-align: left; color: var(--muted); }
 .phone-more span { flex: 1; display: grid; gap: 2px; }
 .phone-more b { color: var(--accent); font-size: 15px; font-weight: 550; }
@@ -1514,6 +1607,21 @@ section.advanced code { font-size: 11.5px; }
 
 /* What a plugin asks for before it goes on: a key, a pin, a name, its optional parts. */
 .pd-setup { display: grid; gap: 12px; }
+/* A plugin's settings on a screen (plugin API 0.6): a group per kind of change, each with what a change does. */
+.pd-settings { gap: 12px; }
+.pd-group { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.pd-group-head { display: grid; gap: 2px; margin: 0; }
+.pd-group-head b { font-size: 13px; font-weight: 600; color: var(--ink); }
+.pd-group-head small { font-size: 11.5px; color: var(--muted); }
+.pd-group .plugin-settings .srow:first-child { border-top: 0; }
+.pd-group .srow { padding: 7px 0; }
+.pd-group .srow .s-label { font-size: 13px; display: grid; gap: 1px; }
+.pd-group .srow .s-label .help { font-size: 11.5px; color: var(--muted); }
+.pd-group .s-control { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+.s-text { height: 32px; font-size: 13px; border-radius: 8px; width: 150px; max-width: 100%; }
+.s-status { font-size: 12px; color: var(--good); font-variant-numeric: tabular-nums; max-width: 180px; overflow-wrap: anywhere; text-align: right; }
+.pd-save { justify-self: start; height: 36px; font-size: 13px; }
+.plugin-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .pd-setup .field { display: grid; gap: 5px; }
 .pd-setup .f-label { font-size: 12px; font-weight: 550; color: var(--ink-2); }
 .pd-setup input[type="text"], .pd-setup input[type="password"], .pd-setup select { height: 36px; font-size: 13px; }
@@ -1665,3 +1773,73 @@ section.advanced code { font-size: 11.5px; }
 @media (max-width: 760px) { .pm-head { grid-template-columns: auto minmax(0, 1fr); } .pm-guide { grid-column: 2; justify-self: start; } }
 /* Room under the last row, so nothing stays hidden behind the tray. */
 .sp-list:has(.plugin-tray), .plugins-list:has(.plugin-tray) { padding-bottom: 140px; }
+
+/* ---- Plugins: tabs by what a plugin adds, its topics as chips, likes, and what comes along (plugin API 0.7) ----
+   The tabs reuse the segmented control; topics are quiet pills that read like the chips on a card, one chosen at a
+   time. What fits none of the screens folds away under the list. A heart is a count first and a control only where
+   the plugin runs. What comes along sits in the action box as rows like the tray's, never as a second dialog. */
+.plugin-misfits { display: grid; gap: 10px; margin-top: 6px; }
+.plugin-misfits-head { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); padding: 4px 6px 4px 0; }
+.plugin-misfits-head:hover { color: var(--ink-2); }
+.plugin-misfits .plugin-card { opacity: 0.72; }
+.plugin-likes { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plugin-likes .ui-icon { font-size: 14px; }
+.plugin-likes.mine .ui-icon { color: var(--danger); }
+.plugin-chip.topic { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.pd-top-end { display: inline-flex; align-items: center; gap: 4px; }
+.pd-like { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px; border-radius: 999px; font-size: 13px; font-weight: 550;
+  color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-strong); font-variant-numeric: tabular-nums; transition: background 0.12s, color 0.12s; }
+.pd-like .ui-icon { font-size: 17px; transition: transform 0.18s cubic-bezier(.3, 1.6, .5, 1); }
+.pd-like:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+.pd-like.on .ui-icon { color: var(--danger); transform: scale(1.08); }
+.pd-like:disabled { opacity: 0.6; cursor: default; }
+.pd-confirm { display: grid; gap: 10px; padding: 12px 14px; margin: 10px 0 2px; border-radius: 12px; background: var(--surface-2); font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+.pd-confirm a { color: var(--accent); }
+.pd-confirm .btn { height: 32px; font-size: 12.5px; }
+.pd-along { display: grid; gap: 8px; }
+.pd-along-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.pd-along-row .plugin-icon { width: 30px; height: 30px; font-size: 17px; border-radius: 8px; }
+.pd-along-words { display: grid; min-width: 0; font-size: 13px; }
+.pd-along-words b { font-weight: 550; }
+.pd-along-words small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-along-note .ui-icon { color: var(--muted); }
+.pd-choose select, .pt-choose select { width: 100%; }
+.pd-part.off { cursor: default; opacity: 0.7; }
+.pt-along .pt-row.along { opacity: 0.85; }
+.pt-along .pt-words small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.pt-choose { margin: 4px 0 2px; }
+
+/* The plugin bar: one surface for finding a plugin. The search takes the room, what narrows the list sits in it as
+   pills (Backspace takes the last one away), then the tabs, Filter with a count of what is on, and the order. Menus
+   keep open while a filter is ticked, so several go in one visit. Wraps under itself when the details are open. */
+.plugin-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 5px; border-radius: 12px; background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line); }
+.pb-search { flex: 1 1 240px; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; min-height: 34px; padding: 0 8px; border-radius: 8px;
+  background: var(--surface); box-shadow: 0 1px 2px rgba(20, 24, 40, 0.06); cursor: text; }
+.pb-search > .ui-icon { font-size: 18px; color: var(--muted); }
+.pb-search input { flex: 1; min-width: 80px; height: 32px; border: 0; padding: 0; background: transparent; box-shadow: none; font-size: 13.5px; outline: none; }
+.pb-pill { display: inline-flex; align-items: center; gap: 2px; height: 24px; padding: 0 3px 0 9px; border-radius: 999px; font-size: 12px; font-weight: 550;
+  background: var(--accent-soft); color: var(--accent); white-space: nowrap; animation: pb-pill 0.16s ease-out; }
+.pb-pill button { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: inherit; opacity: 0.7; }
+.pb-pill button:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+.pb-pill .ui-icon { font-size: 13px; }
+@keyframes pb-pill { from { transform: scale(0.85); opacity: 0; } }
+.pb-tabs { background: transparent; }
+.pb-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px; border-radius: 8px; font-size: 12.5px; font-weight: 550; color: var(--ink-2);
+  white-space: nowrap; transition: background 0.12s, color 0.12s; }
+.pb-btn .ui-icon { font-size: 17px; }
+.pb-btn:hover, .pb-btn[data-state="open"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(20, 24, 40, 0.06); }
+.pb-btn.on { color: var(--accent); }
+.pb-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 11px; background: var(--accent); color: var(--surface); }
+.pb-check { padding-left: 6px; }
+.pb-tick { display: inline-grid; place-items: center; width: 18px; color: var(--accent); }
+.pb-tick .ui-icon { font-size: 16px; }
+
+/* What an update brings: the changelog's own lines between the version on the screen and the one on offer. */
+.pd-news { padding: 14px; border-radius: 12px; background: var(--accent-soft); }
+.pd-news h3 { color: var(--accent); }
+.pd-news-link { display: inline-block; margin-top: 8px; font-size: 12.5px; color: var(--accent); }
+.pd-history summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; list-style: none; }
+.pd-history summary::-webkit-details-marker { display: none; }
+.pd-history summary .ui-icon { color: var(--muted); transition: transform 0.15s; }
+.pd-history:not([open]) summary .ui-icon { transform: rotate(-90deg); }

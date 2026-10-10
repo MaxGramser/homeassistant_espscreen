@@ -37,9 +37,11 @@ substitutions:
   SCREEN_MAX_TILES: "128"
   SCREEN_MAX_PAGES: "24"
   SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
-  # LVGL's draw buffer as a share of the screen. It lives in the memory inside the chip, and 8 % of 1024 x 600 is
-  # 98 KB, about what the 12 % of the 800 x 480 boards takes (docs/ADDING_A_BOARD.md, step 3).
-  LVGL_BUFFER_SIZE: "8%"
+  # LVGL's draw buffer as a share of the screen, which ESPHome rounds to a whole fraction (docs/ADDING_A_BOARD.md, step
+  # 3). A quarter of 1024 x 600 is 307 KB, more than the chip holds inside, so it always lands in PSRAM. Below 19 % it
+  # was an eighth, 154 KB tried inside the chip first: it fitted there and left 17 KB for Wi-Fi, the API and the tiles,
+  # room for four of them (GitHub #207).
+  LVGL_BUFFER_SIZE: "25%"
 
   # Set by hand when the home key came (firmware 0.2.100); the look would give 27
   FONT_ICON_HOME_SIZE: "26"

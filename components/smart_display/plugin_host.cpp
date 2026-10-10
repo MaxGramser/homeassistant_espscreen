@@ -249,6 +249,17 @@ uint32_t send(const Plugin *plugin, JsonObjectConst request) {
   return number;
 }
 
+// A tone as the screen's colours (plugin API 0.8): the accent of the look, Home Assistant's amber and red made readable
+// in it; false for NORMAL, which keeps what the place has.
+static bool tone_color(Tone tone, uint32_t &color) {
+  switch (tone) {
+    case Tone::ACCENT: color = theme::hex(theme::ACCENT); return true;
+    case Tone::BUSY: color = theme::foreground(theme::ha::AMBER); return true;
+    case Tone::ALERT: color = theme::foreground(theme::ha::RED); return true;
+    default: return false;
+  }
+}
+
 void refresh() {
   for (auto &w : rt::widgets)
     if (w.plugin && w.index < rt::model.count) rt::mark_tile(w.index);
@@ -295,6 +306,13 @@ void set_font(lv_obj_t *l, Font f) {
 }
 void set_color(lv_obj_t *l, theme::Role role) {
   if (l) rt::set_color(l, LV_STYLE_TEXT_COLOR, theme::color(role));
+}
+
+void set_tone(lv_obj_t *l, Tone tone, theme::Role normal) {
+  if (!l) return;
+  uint32_t color = 0;
+  if (!tone_color(tone, color)) return set_color(l, normal);
+  rt::set_color(l, LV_STYLE_TEXT_COLOR, lv_color_hex(color));
 }
 
 lv_obj_t *block(lv_obj_t *parent, theme::Role fill) {
@@ -479,6 +497,9 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   open->root = lv_obj_create(lv_screen_active());
   lv_obj_remove_style_all(open->root);
   lv_obj_remove_flag(open->root, LV_OBJ_FLAG_SCROLLABLE);
+  // The whole glass high, as every card's root (detail_root): overlay_card::frame gives the width only, and a root of
+  // LVGL's default height cut off what the card draws under its top bar (GitHub #226).
+  lv_obj_set_height(open->root, lv_pct(100));
   const auto kind = type->wide ? overlay_card::picture : overlay_card::controls;
   overlay_card::frame(open->root, kind, 1);
   const int width = overlay_card::content_width(kind, 1), height = overlay_card::screen_height();
@@ -641,6 +662,7 @@ static header_bar::Shown bar_item(const std::string &key) {
       shown.shown = now.shown && (now.icon || !now.text.empty());
       shown.icon = now.icon && rt::has_icon_glyph(now.icon) ? now.icon : 0;
       shown.text = now.text.substr(0, header_bar::TEXT_BYTES);
+      shown.has_color = tessera::tone_color(now.tone, shown.color);
     }
   return shown;
 }

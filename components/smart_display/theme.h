@@ -449,16 +449,26 @@ inline lv_style_t *style(Paint paint) {
 }
 // What the board draws again after a change of look: the tiles, an open card, the settings page. Set by the profile.
 inline void (*redraw)() = nullptr;
-// The one way the look changes. Every paint is filled again and LVGL is told once; what code painted itself follows
-// through redraw(). A look the screen already has costs nothing, so the setting may be applied on every change.
+// The one way the look changes. Every paint is filled again, what code painted itself follows through redraw(), and the
+// glass is drawn again once, whole. A look the screen already has costs nothing, so the setting may be applied on every
+// change.
 inline void set_dark(bool on) {
   if (on == dark) return;
   dark = on;
   if (paints) paints();
   for (size_t i = 0; i < own.size(); ++i) if (own[i]) fill(own[i], static_cast<Paint>(i));
-  // One walk over every widget instead of one per paint.
-  lv_obj_report_style_change(nullptr);
+  // fill() only changes colours, and LVGL reads a colour when it draws: all a new colour asks of a widget is to be drawn
+  // again, which is all lv_obj_refresh_style does for one. So no restyle of every widget (lv_obj_report_style_change),
+  // which took seconds on a 4 x 6 grid with its pages kept and set off the task watchdog (GitHub #227). And LVGL's
+  // invalidation is off while redraw() repaints, as in warm_page: LVGL 9.5 walks the whole tree for blurred widgets at
+  // every invalidation, the hidden cards of the kept pages included.
+  auto *display = lv_display_get_default();
+  if (display) lv_display_enable_invalidation(display, false);
   if (redraw) redraw();
+  if (display) {
+    lv_display_enable_invalidation(display, true);
+    lv_obj_invalidate(lv_display_get_screen_active(display));
+  }
 }
 
 }  // namespace theme

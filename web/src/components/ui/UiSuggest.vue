@@ -3,44 +3,35 @@
 // Home Assistant and the library it pins. Typing narrows the list, the arrows and Enter pick, and anything else typed
 // still goes, so a learned code or a hub's own name keeps working. The list stays in the panel (no popover), as the
 // library's results do, and only while the field has the cursor.
-import { computed, ref, watch } from "vue";
+import { computed, ref, useId } from "vue";
+import { useListNavigation } from "../../composables/useListNavigation";
+import { rankedValues } from "../../model/search";
 
 const props = defineProps<{ modelValue: string; suggestions: readonly string[]; placeholder?: string; ariaLabel?: string; max?: number }>();
 const emit = defineEmits<{ "update:modelValue": [value: string]; pick: [value: string]; focus: []; blur: [] }>();
 const open = ref(false);
-const active = ref(0);
-const id = `suggest-${Math.random().toString(36).slice(2, 8)}`;
+const id = `suggest-${useId()}`;
 // What is typed narrows the list from the start of a word first, then anywhere: "vol" finds VOLUME_UP before
 // MEDIA_VOLUME; case and _ / - / space don't matter, as the integrations that fold case take it either way.
-const fold = (text: string) => text.toLocaleLowerCase().replace(/[\s_-]+/g, "");
-const shown = computed(() => {
-  const typed = fold(props.modelValue || "");
-  if (!typed) return props.suggestions.slice(0, props.max ?? 60);
-  const words = (value: string) => value.toLocaleLowerCase().split(/[\s_-]+/);
-  const first = props.suggestions.filter((value) => fold(value).startsWith(typed) || words(value).some((word) => word.startsWith(typed)));
-  const rest = props.suggestions.filter((value) => !first.includes(value) && fold(value).includes(typed));
-  return [...first, ...rest].slice(0, props.max ?? 60);
-});
+const shown = computed(() => rankedValues(props.suggestions, props.modelValue || "").slice(0, props.max ?? 60));
 // The list hides once the field holds exactly one of its values: there is nothing left to choose.
 const visible = computed(() => open.value && shown.value.length > 0 && !(shown.value.length === 1 && shown.value[0] === props.modelValue));
-watch(() => props.modelValue, () => { active.value = 0; });
 function pick(value: string) {
   emit("pick", value);
   open.value = false;
 }
+// The arrows walk the list round, the one in focus scrolled into view; Enter picks it; what is typed starts at the first.
+const { active, onKey: walk } = useListNavigation(shown, {
+  wrap: true, onPick: pick, resetOn: () => props.modelValue,
+  onMove: (index) => document.getElementById(`${id}-${index}`)?.scrollIntoView({ block: "nearest" }),
+});
 function onKey(event: KeyboardEvent) {
   if (!visible.value) {
     if (event.key === "ArrowDown") { open.value = true; event.preventDefault(); }
     return;
   }
-  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-    active.value = (active.value + (event.key === "ArrowDown" ? 1 : -1) + shown.value.length) % shown.value.length;
-    document.getElementById(`${id}-${active.value}`)?.scrollIntoView({ block: "nearest" });
-    event.preventDefault();
-  } else if (event.key === "Enter") {
-    pick(shown.value[active.value]);
-    event.preventDefault();
-  } else if (event.key === "Escape") {
+  if (walk(event)) return;
+  if (event.key === "Escape") {
     open.value = false;
     event.stopPropagation();
   }

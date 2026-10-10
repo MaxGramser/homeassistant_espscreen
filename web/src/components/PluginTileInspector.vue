@@ -3,50 +3,61 @@
 // with the inspector's own rows, and the sizes it takes. A choice can come from one of the plugin's fetches (the lines of
 // a stop): the add-on asks the plugin's service with the tile's other options and hands back only the choices.
 import { computed } from "vue";
-import { editorLanguage, languageMarks, numberText, t } from "../i18n";
-import { offeredEntities, pluginDefaults, pluginTileOf, text, type PluginTileOption } from "../model/plugins";
-import { choicesFor, entitiesIn } from "../plugin-state";
+import { editorNumber, t } from "../i18n";
+import { healthText } from "../model/broken-tiles";
+import { offeredEntities, pluginDefaults, text, type PluginTileOption } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import { closeInspector, removeTile, setTileName, setTileOption, state } from "../store";
 import type { Tile } from "../types";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
+import NameField from "./inspector/NameField.vue";
+import TitleButton from "./inspector/TitleButton.vue";
 import PropRow from "./ui/PropRow.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import UiSelect from "./ui/UiSelect.vue";
+import { usePluginsStore } from "../stores/plugins";
+import { removeTile, setTileOption } from "../editor/tiles";
+import { useUiStore } from "../stores/ui";
+import { useInspectorStore } from "../stores/inspector";
+import { useBrokenStore } from "../stores/broken";
+
+const plugins = usePluginsStore();
+const ui = useUiStore();
+const insp = useInspectorStore();
 
 const props = defineProps<{ tile: Tile }>();
-const kind = computed(() => pluginTileOf(props.tile.entity)!);
+const kind = computed(() => plugins.pluginTileOf(props.tile.entity)!);
 const values = computed(() => ({ ...pluginDefaults(kind.value.tile), ...(props.tile.options?.plugin || {}) }));
 function set(option: PluginTileOption, value: string | number | boolean) {
   setTileOption(props.tile, "plugin", { ...(props.tile.options?.plugin || {}), [option.id]: value });
 }
 // A tile that belongs to an entity (its manifest's `domains`): the entities of those domains, only those with the
 // attributes it needs when its manifest names them (`has_attributes`).
-const entityChoices = computed(() => offeredEntities(entitiesIn(kind.value.tile.domains), kind.value.tile, props.tile.options?.plugin_entity)
+const entityChoices = computed(() => offeredEntities(plugins.entitiesIn(kind.value.tile.domains), kind.value.tile, props.tile.options?.plugin_entity)
   .map((e) => [e.id, e.name !== e.id ? `${e.name} (${e.id})` : e.id] as [string, string]));
-const choices = (option: PluginTileOption) => choicesFor(kind.value.plugin, option, values.value).map((choice) => [choice.value, text(choice.label)] as [string, string]);
+const choices = (option: PluginTileOption) => plugins.choicesFor(kind.value.plugin, option, values.value).map((choice) => [choice.value, text(choice.label)] as [string, string]);
 const fromFetch = (option: PluginTileOption) => Boolean(option.options_from);
 const size = (value: string) => value.replace("x", "×");
-const number = (value: number) => numberText(value, languageMarks(editorLanguage()));
+const number = (value: number) => editorNumber(value);
 function step(option: PluginTileOption, by: number) {
   const now = Number(values.value[option.id] ?? option.min ?? 0);
   set(option, Math.min(option.max ?? Infinity, Math.max(option.min ?? -Infinity, now + by * (option.step ?? 1))));
 }
+// Its entity gone from Home Assistant, or away for a while (stores/broken.ts): said under the choice of another.
+const broken = useBrokenStore();
+const entityHealth = computed(() => props.tile.options?.plugin_entity ? broken.tileHealth(props.tile.options.plugin_entity) : null);
 // The plugin's details, in the screen's Plugins tab: the README says what the options mean.
-function openPlugin() { closeInspector(); state.tab = "plugins"; }
+function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
 </script>
 
 <template>
   <InspectorHead :title="tile.name || text(kind.tile.name)" :code="kind.tile.icon || kind.plugin.icon" :tone="{ color: 'var(--accent)', background: 'var(--accent-soft)' }"
     :crumbs="[{ text: text(kind.plugin.name) }, { text: tile.entity, mono: true }]" kind="tile">
-    <template #title>
-      <input id="tile-name" class="dr-title" :value="tile.name" :placeholder="text(kind.tile.name)" maxlength="60" :aria-label="t('editor.tile.name')"
-        @change="setTileName(tile, ($event.target as HTMLInputElement).value)" />
-    </template>
+    <template #title><TitleButton :text="tile.name || text(kind.tile.name)" @rename="insp.renameTile(tile)" /></template>
   </InspectorHead>
   <div class="dr-body" id="plugin-tile-inspector">
+    <NameField :tile="tile" :fallback="text(kind.tile.name)" />
     <p class="plugin-tile-from"><span class="mdi">{{ glyph("F0A66") }}</span>{{ t("editor.plugin_tile.from", { plugin: text(kind.plugin.name) }) }}
       <button type="button" class="btn link mini" @click="openPlugin">{{ t("editor.plugin_tile.details") }}</button></p>
 
@@ -54,6 +65,7 @@ function openPlugin() { closeInspector(); state.tab = "plugins"; }
       <PropRow :label="t('editor.plugin_tile.entity')" icon="link-variant" for="plugin-entity">
         <UiSelect id="plugin-entity" :model-value="tile.options?.plugin_entity || ''" :options="entityChoices"
           :placeholder="t('editor.plugin_tile.choose')" @update:model-value="(value: string) => setTileOption(tile, 'plugin_entity', value)" />
+        <template v-if="entityHealth" #note><small class="help warn" id="plugin-entity-broken">{{ healthText(entityHealth, ui.now) }}</small></template>
       </PropRow>
     </Section>
     <Section v-if="kind.tile.options?.length" :title="t('editor.plugin_tile.options')">

@@ -155,6 +155,10 @@
       "night": "Nacht",
       "screen": "Scherm",
       "this_screen": "Dit scherm",
+      "extras": "Extra's",
+      "microphone": "Microfoon",
+      "media_player": "Volume",
+      "wake_when_moved": "Wakker bij bewegen",
       "dark_mode": "Donkere modus",
       "auto_standby": "Automatisch stand-by",
       "standby_after": "Stand-by na",
@@ -840,7 +844,6 @@
         "misfit_board": "{name} is gemaakt voor andere bordjes.",
         "misfit_psram": "{name} heeft een bordje met PSRAM nodig.",
         "misfit_blocked": "{name} is geblokkeerd: deze versie is schadelijk of kapot.",
-        "requires": "{name} heeft eerst de plugin {other} op dit scherm nodig.",
         "firmware": "De firmware van dit scherm kent nog geen plugins. Werk hem bij, dan verschijnen de plugintegels.",
         "file": "Het pluginsbestand is niet geldig.",
         "other_include": "De YAML van dit scherm heeft al een andere tessera_plugins-include.",
@@ -849,7 +852,23 @@
         "link_rate": "GitHub antwoordt nu niet (te veel vragen in een uur). Probeer het later opnieuw.",
         "folder": "De map {folder} in tessera-plugins is nog geen plugin: {why}",
         "manifest": "De beschrijving van de plugin klopt niet: {why}",
-        "consent": "{name} vraagt andere rechten dan eerst. Bekijk wat hij nu mag en stem in, en werk dan bij."
+        "consent": "{name} vraagt andere rechten dan eerst. Bekijk wat hij nu mag en stem in, en werk dan bij.",
+        "requires_unknown": "{name} heeft de plugin {other} nodig, en die staat niet in de lijst met plugins.",
+        "requires_misfit": "{name} heeft {other} nodig, en die past niet op dit scherm.",
+        "feature_missing": "{name} heeft een {feature} nodig, en niets wat er een levert past op dit scherm.",
+        "feature_conflict": "Een scherm heeft één {feature}, en {names} zouden er elk een leveren.",
+        "needed_by": "{others} heeft {name} nodig: haal ze samen weg.",
+        "choose": "Kies welke plugin de {feature} levert voor {name}.",
+        "other_origin": "Dit scherm draait een andere plugin die {name} heet, uit {origin}. Stap over in de details van deze.",
+        "misfit_esphome": "{name} heeft ESPHome {version} of nieuwer nodig om te bouwen.",
+        "like_not_installed": "Zet de plugin eerst op een van je schermen, dan kun je hem liken.",
+        "like_consent": "Ga eerst akkoord dat je like meetelt in een openbaar aantal.",
+        "like_off": "Likes staan uit: een nieuwere versie van de app houdt ze bij.",
+        "like_failed": "De like is niet verstuurd. Probeer het zo nog eens.",
+        "misfit_built_in": "{name} brengt iets wat dit bord zelf al heeft."
+      },
+      "extras": {
+        "request": "Deze extra kan op dit scherm niet zo worden gewijzigd."
       }
     },
     "status": {
@@ -1019,9 +1038,27 @@
           "icon": "Alleen icoon",
           "percent": "Percentage"
         },
+        "plugin_contents": {
+          "all": "Icoon en tekst",
+          "icon": "Alleen icoon"
+        },
         "battery_shows": {
           "always": "Altijd",
           "low": "Alleen als laag"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microfoon",
+          "hint": "Uit dempt de microfoon voor alles wat luistert. Het scherm onthoudt het na een herstart."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "Hoe hard het scherm spreekt en speelt: antwoorden, aankondigingen en muziek. Hetzelfde volume als de mediaspeler van het scherm in Home Assistant."
+        },
+        "wake_when_moved": {
+          "label": "Wakker bij bewegen",
+          "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
         }
       }
     },
@@ -1167,6 +1204,7 @@
         "speaker_multiple": "Speakers",
         "soundbar": "Soundbar",
         "headphones": "Koptelefoon",
+        "microphone": "Microfoon",
         "piano": "Piano",
         "guitar_acoustic": "Gitaar",
         "television": "Televisie",
@@ -1354,6 +1392,7 @@
       "unknown": "onbekend",
       "unsaved": "Niet-opgeslagen wijzigingen",
       "cancel": "Annuleren",
+      "ok": "OK",
       "open_integrations": "Apparaten & diensten openen",
       "save_send": "Opslaan & versturen",
       "saving": "Opslaan…",
@@ -1416,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Beheerpagina niet bereikbaar · opnieuw proberen…",
         "reconnecting": "Verbinding met Home Assistant herstellen…"
       },
       "search": "Zoeken",
@@ -1496,6 +1534,38 @@
       "placeholder": "Zoek schermen, entiteiten, acties…",
       "empty": "Niets gevonden. Typ een deel van een scherm, entiteit of actie."
     },
+    "search": {
+      "groups": {
+        "recent": "Recent",
+        "settings": "Scherminstellingen",
+        "tiles": "Op je schermen",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Openen",
+        "run": "Uitvoeren",
+        "show": "Tonen",
+        "add": "Toevoegen"
+      },
+      "keys": {
+        "move": "Bewegen",
+        "choose": "Kiezen",
+        "close": "Sluiten"
+      },
+      "identify": "{name} identificeren",
+      "update": "{name} bijwerken",
+      "update_detail": "Naar {version}",
+      "update_all": "Alle schermen bijwerken",
+      "update_all_detail": "1 scherm wacht | {n} schermen wachten",
+      "update_all_confirm": "1 scherm nu bijwerken? Het herstart zodra de update erop staat. | {n} schermen nu bijwerken? Een voor een, elk herstart zodra de update erop staat.",
+      "update_all_go": "Nu bijwerken",
+      "install": "Klaargezette plugins installeren",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "{plugin} toevoegen aan {screen}",
+      "add_plugin_detail": "Klaargezet om te installeren",
+      "on": "Aan",
+      "off": "Uit"
+    },
     "empty": {
       "choose": {
         "title": "Kies een scherm",
@@ -1513,6 +1583,31 @@
       "open": "{name} openen",
       "no_layout": "Nog geen indeling",
       "in_tessera": "Update eerst via Tessera"
+    },
+    "broken": {
+      "screens": "1 scherm | {n} schermen",
+      "summary": {
+        "missing": "1 tegel op {screens} toont een entiteit die niet meer bestaat | {n} tegels op {screens} tonen een entiteit die niet meer bestaat",
+        "unavailable": "1 tegel op {screens} toont een entiteit die al een tijd onbeschikbaar is | {n} tegels op {screens} tonen een entiteit die al een tijd onbeschikbaar is",
+        "mixed": "1 tegel op {screens} toont een entiteit die weg of onbeschikbaar is | {n} tegels op {screens} tonen een entiteit die weg of onbeschikbaar is"
+      },
+      "short": "1 tegel om na te kijken | {n} tegels om na te kijken",
+      "review": "Bekijken",
+      "hide": "Verbergen",
+      "missing": "Niet meer in Home Assistant",
+      "unavailable_minutes": "1 minuut onbeschikbaar | {n} minuten onbeschikbaar",
+      "unavailable_hours": "1 uur onbeschikbaar | {n} uur onbeschikbaar",
+      "unavailable_days": "1 dag onbeschikbaar | {n} dagen onbeschikbaar",
+      "change": "Andere entiteit tonen",
+      "on_screen": "Die entiteit staat al op dit scherm.",
+      "replaced": "Toont nu {name}",
+      "fix": {
+        "choose": "Kies een andere entiteit",
+        "missing": "Home Assistant heeft deze entiteit niet meer",
+        "missing_hint": "Ze is verwijderd of hernoemd. Kies wat deze tegel nu toont.",
+        "unavailable_hint": "Home Assistant hoort er al een tijd niets van. Kies een andere entiteit, of wacht tot ze terug is.",
+        "search": "Entiteiten zoeken"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -1760,7 +1855,8 @@
       },
       "refresh": {
         "label": "Verversen",
-        "seconds": "Elke {n} s"
+        "seconds": "Elke {n} s",
+        "live": "Live"
       },
       "picture": {
         "fit": {
@@ -2175,6 +2271,14 @@
         "item_look": "Toont",
         "item_hint": "Zwart-wit op de screensaver, welke kleur de entiteit ook heeft.",
         "items_add_title": "Aan de klok toevoegen"
+      },
+      "plugins": {
+        "title": "Plugins",
+        "note": "De instellingen van elke plugin staan in de details op het tabblad Plugins."
+      },
+      "extras": {
+        "title": "Extra's",
+        "note": "Instellingen die alleen dit scherm heeft, van zijn bord. Dezelfde schakelaars staan op de instellingenpagina van het scherm zelf en in Home Assistant."
       }
     },
     "update": {
@@ -2272,13 +2376,6 @@
       "download_how": "Zet het met {esphome_web} op het scherm, in Chrome of Edge: klik op Connect, kies de USB-poort van het scherm, klik op Install en selecteer dit bestand. Het bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf."
     },
     "installer": {
-      "title": {
-        "saved": "Profiel bewaard.",
-        "running": "Even geduld…",
-        "ready": "Klaar om te downloaden.",
-        "done": "Klaar.",
-        "failed": "Dat lukte niet."
-      },
       "board": "Welk scherm heb je?",
       "board_title": "{name} · {inch} inch",
       "status": {
@@ -2874,7 +2971,8 @@
       "hint": "De eigen firmware van het scherm, getekend uit de indeling die je bewerkt. Tik, houd vast en veeg zoals op het scherm. Er wordt niets opgeslagen.",
       "control": "Tikken bedienen apparaten",
       "control_hint": "Aan: een tik op een tegel voert zijn actie uit in Home Assistant, net als op het scherm. Uit: het voorbeeld laat alleen zien wat een tik doet.",
-      "skipped": "Voorbeeldscherm {names} kon niet worden geladen en is overgeslagen."
+      "skipped": "Voorbeeldscherm {names} kon niet worden geladen en is overgeslagen.",
+      "not_kept": "Deze browser kon het voorbeeldscherm niet bewaren: de opslag is vol of geblokkeerd."
     },
     "inspector": {
       "kind": {
@@ -2882,6 +2980,86 @@
         "page": "Pagina",
         "bar": "Bovenbalk"
       }
+    },
+    "confirm": {
+      "leave_question": "Je hebt niet-opgeslagen wijzigingen. Toch naar het overzicht?",
+      "discard_open": "Weggooien en openen",
+      "discard_leave": "Weggooien en verlaten",
+      "replace_layout": "Indeling vervangen",
+      "import": "Importeren",
+      "start_fresh": "Opnieuw beginnen",
+      "calibrate": "Kalibratie starten",
+      "add_anyway": "Toch toevoegen",
+      "use_example": "Vervangen door voorbeeld",
+      "clear_override": "Override wissen"
+    },
+    "undo": {
+      "undo": "Ongedaan maken: {what}",
+      "redo": "Opnieuw: {what}",
+      "undone": "Ongedaan gemaakt: {what}",
+      "redone": "Opnieuw gedaan: {what}",
+      "a_tile": "tegel",
+      "what": {
+        "grid": "raster gewijzigd in {grid}",
+        "page_added": "pagina {page} toegevoegd",
+        "page_copied": "pagina {page} toegevoegd als kopie",
+        "page_removed": "pagina {page} verwijderd",
+        "page_moved": "pagina verplaatst naar plaats {page}",
+        "pages_moved": "pagina's anders geordend",
+        "tile_added": "{name} toegevoegd",
+        "tiles_added": "1 tegel toegevoegd | {n} tegels toegevoegd",
+        "tile_removed": "{name} verwijderd",
+        "tiles_removed": "1 tegel verwijderd | {n} tegels verwijderd",
+        "tile_moved": "{name} verplaatst",
+        "tile_moved_page": "{name} verplaatst naar pagina {page}",
+        "tiles_moved": "1 tegel verplaatst | {n} tegels verplaatst",
+        "tile_link": "{name} opent nu pagina {page}",
+        "tile_renamed": "{name} hernoemd",
+        "tile_look": "weergave van {name} gewijzigd",
+        "tile_resized": "formaat van {name} gewijzigd",
+        "tile_icon": "pictogram van {name} gewijzigd",
+        "tile_color": "achtergrond van {name} gewijzigd",
+        "tile_tap": "aantikken van {name} gewijzigd",
+        "tile_option": "instellingen van {name} gewijzigd",
+        "tiles_changed": "1 tegel gewijzigd | {n} tegels gewijzigd",
+        "screen_title": "schermtitel gewijzigd",
+        "page_title": "titel van pagina {page} gewijzigd",
+        "home_page": "pagina {page} is nu de thuispagina",
+        "page_buttons": "paginaknoppen voor pagina {page} gewijzigd",
+        "home_key": "thuisknop op pagina {page} gewijzigd",
+        "top_bar": "bovenbalk van pagina {page} gewijzigd",
+        "top_bars": "bovenbalken gewijzigd",
+        "map_moved": "pagina {page} verplaatst op de kaart",
+        "map_arranged": "kaart geordend vanaf Thuis",
+        "stood_up": "scherm staand gezet",
+        "laid_down": "scherm liggend gezet",
+        "layout_copied": "indeling gekopieerd van {name}",
+        "layout_imported": "indeling geïmporteerd",
+        "changed": "indeling gewijzigd",
+        "restored": "niet-opgeslagen wijzigingen hersteld",
+        "taken_over": "wijzigingen uit het andere tabblad overgenomen"
+      }
+    },
+    "draft": {
+      "kept": "Niet-opgeslagen wijzigingen van {time}",
+      "kept_hint": "Bewaard in deze browser, nog niet op het scherm.",
+      "restore": "Herstellen",
+      "discard": "Weggooien"
+    },
+    "tabs": {
+      "elsewhere": "Dit scherm wordt in een ander tabblad bewerkt",
+      "elsewhere_hint": "De wijzigingen daar zijn nog niet opgeslagen.",
+      "take_over": "Hier overnemen",
+      "keep_mine": "Mijne houden"
+    },
+    "connection": {
+      "lost": "ESP Screen Manager is niet bereikbaar.",
+      "lost_hint": "Je wijzigingen blijven hier. Opnieuw proberen…",
+      "restored": "Verbinding hersteld"
+    },
+    "naming": {
+      "rename": "Naam wijzigen",
+      "reset": "Terug naar {name}"
     },
     "phone": {
       "screens": "Schermen",
@@ -2914,15 +3092,9 @@
     },
     "plugins": {
       "title": "Plugins",
-      "intro": "Extra's voor je schermen: hardware op het bordje, of iets wat een scherm extra kan. Een plugin wordt in de firmware van een scherm gebouwd, dus je kiest per scherm welke het krijgt.",
+      "intro": "Extra's voor je schermen: tegels voor op een pagina, iets wat het hele scherm extra kan, of hardware op het bordje. Een plugin wordt in de firmware van een scherm gebouwd, dus je kiest per scherm welke het krijgt.",
       "search": "Zoek op naam, maker of wat hij doet",
       "filter": "Toon",
-      "filters": {
-        "all": "Alle",
-        "tessera": "Van Tessera",
-        "community": "Community",
-        "in_use": "In gebruik"
-      },
       "from_tessera": "Van Tessera",
       "by": "Door {maker}",
       "label": {
@@ -2951,22 +3123,26 @@
         "psram": "Heeft PSRAM nodig",
         "firmware": "Heeft nieuwere firmware nodig",
         "flash": "Te groot voor dit scherm",
-        "blocked": "Geblokkeerd"
+        "blocked": "Geblokkeerd",
+        "esphome": "Nieuwere ESPHome nodig",
+        "feature": "Mist hardware op dit scherm",
+        "needs": "Plugin nodig die niet past",
+        "built_in": "Zit al in dit bord"
       },
       "misfit": {
         "board": "Deze plugin is gemaakt voor andere bordjes dan dat van {screen}.",
         "psram": "Deze plugin heeft een bordje met PSRAM nodig, en {screen} heeft dat niet.",
         "firmware": "{screen} heeft eerst een firmware-update nodig voordat deze plugin erop kan.",
         "flash": "{screen} heeft nog ruimte voor ongeveer {kb} KB, en deze plugin is groter.",
-        "blocked": "Deze versie van de plugin is geblokkeerd: hij is schadelijk of kapot."
+        "blocked": "Deze versie van de plugin is geblokkeerd: hij is schadelijk of kapot.",
+        "esphome": "Deze plugin heeft een nieuwere ESPHome nodig dan waarmee deze app bouwt.",
+        "feature": "{screen} heeft niets wat levert wat deze plugin nodig heeft, en geen plugin die het levert past.",
+        "needs": "Deze plugin heeft een andere plugin nodig die niet op {screen} past.",
+        "built_in": "Het bord van {screen} heeft dit zelf al, dus de plugin is daar niet nodig."
       },
       "none_installed": "Nog geen plugins op dit scherm.",
       "none_found": "Geen plugin gevonden voor “{query}”.",
       "version": "versie {version}",
-      "kind": {
-        "hardware": "Hardware",
-        "behaviour": "Functie"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Voorbeeld"
@@ -2980,7 +3156,7 @@
         "commercial": "Commercieel",
         "ai-developed": "Gemaakt met AI"
       },
-      "test_note": "Een test: elke build neemt de nieuwste versie, en Tessera biedt er geen updates voor aan.",
+      "test_note": "Een test: het scherm blijft op de commit waarmee het gebouwd is, en een nieuwere commit verschijnt hier als update. Een map wordt gebouwd zoals hij nu is.",
       "remove": "Verwijderen van {screen}",
       "building": "De firmware voor {screen} wordt gebouwd…",
       "installed_on": "Op {screen}, versie {version}",
@@ -2997,7 +3173,7 @@
         "card": "“{name}”, een eigen scherm op het glas",
         "bar": "Bovenbalk-item “{name}”",
         "settings": "Instellingen",
-        "settings_where": "Op de instellingenpagina van het scherm en onder Scherminstellingen"
+        "settings_where": "Op de instellingenpagina van het scherm en hier, in de details op het tabblad Plugins"
       },
       "may": {
         "title": "Wat hij mag",
@@ -3036,8 +3212,8 @@
         "branch": "Branch",
         "folder": "Map op deze machine",
         "hints": {
-          "link": "Tessera neemt de nieuwste release en houdt het scherm daarop. Een nieuwe release verschijnt als update.",
-          "branch": "Elke build neemt de nieuwste commit van deze branch. Om te proberen, niet voor elke dag.",
+          "link": "Tessera neemt de nieuwste release (zonder release de nieuwste commit) en houdt het scherm daarop. Iets nieuwers verschijnt als update.",
+          "branch": "Tessera neemt de nieuwste commit van deze branch en houdt het scherm daarop; een nieuwere commit verschijnt als update. Om uit te proberen.",
           "folder": "Voor een plugin die je zelf maakt: opslaan, en de volgende build neemt hem mee. De map staat in de config van Home Assistant."
         },
         "fetch": "Plugin lezen",
@@ -3075,7 +3251,8 @@
         "on_screen": "{label} op {screen}",
         "choose_pin": "Kies een pin",
         "part_kb": "{kb} KB extra",
-        "secret_set": "Ingesteld. Vul een nieuwe in om hem te vervangen."
+        "secret_set": "Ingesteld. Vul een nieuwe in om hem te vervangen.",
+        "part_needs": "Heeft een {what} op het scherm nodig"
       },
       "readme": {
         "title": "Lees mij"
@@ -3115,7 +3292,8 @@
         "builds": "{n} schermen worden na elkaar gebouwd.",
         "stage": "Toevoegen aan {screen}",
         "in_tray": "Klaar om te installeren",
-        "in_tray_note": "Installeer hem met de kaart in de hoek, alleen of samen met andere."
+        "in_tray_note": "Installeer hem met de kaart in de hoek, alleen of samen met andere.",
+        "along": "komt mee met {names}"
       },
       "maker": {
         "title": "Zelf een plugin maken",
@@ -3128,7 +3306,7 @@
         },
         "test": {
           "title": "Probeer hem op je scherm",
-          "text": "Voeg je repository toe met een link. Elke release die je publiceert verschijnt hier als update.",
+          "text": "Voeg je repository toe met een link. Push, en elke nieuwe commit of release verschijnt hier als update.",
           "folder": "Of zet zijn map in {path} om te testen zonder release."
         },
         "share": {
@@ -3136,6 +3314,114 @@
           "text": "Werkt hij goed? Meld hem aan voor de community, dan staat hij hier bij iedereen, rechtstreeks uit jouw repository. Jij blijft de maker.",
           "action": "Aanmelden"
         }
+      },
+      "settings": {
+        "title": "Instellingen",
+        "live": "Op dit scherm",
+        "live_note": "Een wijziging werkt meteen.",
+        "shared": "Voor alle schermen",
+        "shared_note": "Eén keer ingevuld, voor elk scherm met deze plugin.",
+        "build": "Bij het bouwen",
+        "build_note": "Een wijziging bouwt {screen} opnieuw.",
+        "save_build": "Opslaan en bouwen",
+        "run": "Uitvoeren",
+        "too_short": "Minstens {n} tekens."
+      },
+      "tabs": {
+        "tiles": "Tegels",
+        "functions": "Functies",
+        "hardware": "Hardware",
+        "in_use": "In gebruik"
+      },
+      "types": {
+        "tiles": "Tegels",
+        "functions": "Functie",
+        "hardware": "Hardware"
+      },
+      "topics": {
+        "time": "Tijd & aftellen",
+        "weather": "Weer & lucht",
+        "calendar": "Agenda & taken",
+        "home": "Thuis",
+        "energy": "Energie",
+        "travel": "Onderweg",
+        "money": "Geld",
+        "sports": "Sport",
+        "news": "Nieuws & weetjes",
+        "media": "Muziek & media",
+        "photos": "Foto's & kunst",
+        "fun": "Spelletjes & plezier",
+        "voice": "Spraak & geluid",
+        "tech": "Techniek"
+      },
+      "topic_filter": "Onderwerpen",
+      "sort": {
+        "label": "Sorteren op",
+        "popular": "Meest geliket",
+        "new": "Nieuwste",
+        "name": "Naam"
+      },
+      "none_in_tab": {
+        "tiles": "Nog geen plugins met tegels.",
+        "functions": "Nog geen plugins voor het hele scherm.",
+        "hardware": "Nog geen hardware-plugins."
+      },
+      "fits_none_group": "{n} plugin past op geen van je schermen | {n} plugins passen op geen van je schermen",
+      "likes": {
+        "count": "{n} persoon vindt dit leuk | {n} mensen vinden dit leuk",
+        "like": "Liken",
+        "unlike": "Je like intrekken",
+        "install_first": "Zet hem eerst op een scherm, dan kun je hem liken",
+        "ask": "Je like telt mee in een openbaar aantal per plugin. Alleen het aantal is openbaar: er gaat niets mee over jou, Home Assistant of je schermen."
+      },
+      "along": {
+        "title": "Komt mee",
+        "brings": "levert de {what}",
+        "needed_by": "nodig voor {name}",
+        "came_with": "Kwam mee met {names}.",
+        "needed_now": "{names} heeft deze plugin nodig.",
+        "choose": "Welke plugin levert de {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} heeft {name} nodig en gaat dus ook weg.",
+        "orphans": "Ook {names} weghalen",
+        "orphans_note": "Kwam alleen mee met {name}; niets anders op het scherm heeft het nodig.",
+        "both": "Samen weghalen",
+        "go": "Weghalen"
+      },
+      "blocked_now": "Deze versie is geblokkeerd ({why}) en gaat bij de volgende build uit de firmware. Werk bij naar een nieuwere.",
+      "other_origin": "Dit scherm draait een andere plugin met deze naam, uit {origin}. Die wordt hier niet bijgewerkt.",
+      "switch": "Overstappen naar die uit {origin}",
+      "needs": {
+        "title": "Heeft nodig en levert",
+        "plugin": "Een andere plugin; die komt mee als je deze toevoegt.",
+        "feature": "Een {what}",
+        "feature_note": "Van het bord van het scherm, of van een plugin die er een levert: die komt mee als er maar één is.",
+        "brings": "Levert een {what}",
+        "brings_note": "Voor andere plugins die er een nodig hebben, op hetzelfde scherm."
+      },
+      "features": {
+        "speaker": "luidspreker",
+        "microphone": "microfoon",
+        "media_player": "mediaspeler",
+        "camera": "camerabeeld in Home Assistant",
+        "camera_sensor": "camerasensor"
+      },
+      "fitting_only": "Alleen wat op mijn schermen past",
+      "made_by": {
+        "label": "Gemaakt door",
+        "all": "Iedereen",
+        "tessera": "Tessera",
+        "community": "Community"
+      },
+      "filter_button": "Filter",
+      "filter_remove": "{what} weghalen",
+      "filter_clear": "Filters wissen",
+      "fitting_all": "Ook wat niet past",
+      "news": {
+        "title": "Nieuw in {version}",
+        "none": "De maker schreef geen notities bij deze update.",
+        "history": "Alle versies"
       }
     },
     "plugin_tile": {
@@ -3157,7 +3443,15 @@
     "build": {
       "plugins": "Bouwt met zijn plugins",
       "install": "Installeert",
-      "failed": "De laatste build van {screen} is mislukt. De log zegt waarom."
+      "failed": "De laatste build van {screen} is mislukt. De log zegt waarom.",
+      "title": "Nu aan het bouwen",
+      "count": "1 build onderweg | {n} builds onderweg",
+      "waiting": "Wacht op zijn beurt",
+      "ready": "{name} is klaar",
+      "ready_several": "{names} zijn klaar",
+      "update_failed": "Bijwerken van {name} is mislukt",
+      "build_failed": "Bouwen van {name} is mislukt",
+      "show_log": "Log tonen"
     },
     "grid": {
       "title": "Raster",

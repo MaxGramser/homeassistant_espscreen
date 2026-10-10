@@ -5,8 +5,15 @@ is the *standard* look, the CYD (2.8", 320x240, ~143 dpi) the *compact* look. Ev
 is expressed in millimetres so that a tile keeps its size on the wall whatever the glass.
 """
 import math
+import re
+from pathlib import Path
 
 MM = 25.4
+# The most columns or rows a grid takes, either way the glass hangs: the firmware's own ceiling in
+# packages/looks/shared/grid.yaml (GRID_MAX_ROWS and its three siblings), so a proposal is never a grid the firmware
+# refuses at its build ("the board's own grid is out of its range", runtime_model.h).
+GRID_CEILING = int(re.search(r'GRID_MAX_ROWS: \$\{ \[(\d+),',
+                             (Path(__file__).resolve().parents[1] / 'packages/looks/shared/grid.yaml').read_text())[1])
 
 # Physical spec of a look: everything in mm, measured back from the two existing boards.
 LOOKS = {
@@ -21,7 +28,7 @@ LABEL_MM = {"standard": 18 / 6.69, "compact": 11 / 5.63}
 
 def count(usable, pref, minimum, gap):
     n = round((usable + gap) / (pref + gap))
-    cap = math.floor((usable + gap) / (minimum + gap))
+    cap = min(math.floor((usable + gap) / (minimum + gap)), GRID_CEILING)
     return max(1, min(n, cap))
 
 

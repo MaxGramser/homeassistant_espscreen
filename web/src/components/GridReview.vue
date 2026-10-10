@@ -2,16 +2,18 @@
 import { computed, onMounted, ref } from 'vue';
 import { t } from '../i18n';
 import { titleOf } from '../model/pages';
-import { acceptGridReview, state } from '../store';
+import { useDocumentStore } from "../stores/document";
+
+const doc = useDocumentStore();
 const dialog = ref<HTMLDialogElement>();
-const review = computed(() => state.gridReview!);
+const review = computed(() => doc.gridReview!);
 const shape = (grid: { columns: number; rows: number }) => `${grid.columns} × ${grid.rows}`;
 // Each proposed page beside the page it was: a page added for what no longer fit (pages.adaptGrid) was none before.
 const before = (id: string) => review.value.record.layout.pages.find((page) => page.id === id) ?? null;
 onMounted(() => dialog.value?.showModal());
 </script>
 <template>
-  <dialog ref="dialog" class="grid-review" @cancel.prevent="state.gridReview = null">
+  <dialog ref="dialog" class="grid-review" @cancel.prevent="doc.gridReview = null">
     <h3>{{ t('editor.pages.grid_review') }}</h3>
     <p>{{ t('editor.pages.grid_review_hint') }}</p>
     <section v-for="(page, index) in review.layout.pages" :key="page.id">
@@ -27,7 +29,7 @@ onMounted(() => dialog.value?.showModal());
         </div>
       </div>
     </section>
-    <footer><button class="btn quiet" @click="state.gridReview = null">{{ t('editor.common.cancel') }}</button><button class="btn primary" @click="acceptGridReview">{{ t('editor.pages.grid_accept') }}</button></footer>
+    <footer><button class="btn quiet" @click="doc.gridReview = null">{{ t('editor.common.cancel') }}</button><button class="btn primary" @click="doc.acceptGridReview">{{ t('editor.pages.grid_accept') }}</button></footer>
   </dialog>
 </template>
 <style scoped>

@@ -41,8 +41,9 @@ export type HeaderItem = { id?: string; type: string; entity?: string; content?:
 // said before it went offline.
 // `room` is null while the screen is still measuring it (firmware 0.51.0).
 export type ScreenMemory = { room: number | null; used: number; psram: boolean; tile: number; extra: number; page?: number; short?: boolean; live?: boolean };
-// `barItems`: the items one page's top bar takes there (model/pages.ts barLimit).
-export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number; barItems?: number }>;
+// `barItems`: the items one page's top bar takes there (model/pages.ts barLimit). `plugins`: whether plugin tiles and
+// items are taken there (the add-on serves plugins, the plugins store's pluginsEnabled); never stored with a document.
+export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number; barItems?: number; plugins?: boolean }>;
 // The grids a screen takes one way its glass hangs, and the one it keeps for that way (firmware 0.53.0+, its hello).
 export type GridWay = { columns: number; rows: number; min: [number, number]; max: [number, number] };
 export type ScreenGrids = { upright: boolean; landscape: GridWay; portrait: GridWay };
@@ -121,6 +122,8 @@ export type BoardOrientation = { width: number; height: number; columns: number;
 export type BoardCatalog = {
   order: number; name: string; model: string; status: "stable" | "new" | "experimental"; inch: number; touch: string;
   calibrate: boolean; choices: Record<string, string[]>;
+  // Its extras under Screen settings (boards.yaml `settings`, docs/SETTINGS.md "A board's own settings").
+  settings?: string[];
 };
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
@@ -203,6 +206,9 @@ export type Screen = {
   firmware_image?: { size: number; slot: number } | null;
   // Whether it has a battery the top bar can show (app 0.4.68, firmware 0.41.0): its hello said so, or its board has one.
   battery?: boolean;
+  /** Streams a camera live (a P4 whose hello says `live`, or such a board while it is offline): Live is a camera tile's
+   * first and default pace there (app dev). */
+  live_camera?: boolean;
 };
 export type ScreenShape = NonNullable<Screen["shape"]>;
 // Language & region of the screens (app 0.2.90): the language setting ("auto" follows Home Assistant), the language that
@@ -220,7 +226,8 @@ export type Languages = {
 };
 // `boards`: the boards a firmware for some boards alone is for (app 0.3.21); empty or absent for the shared firmware.
 export type ChangelogSection = { app: string; firmware: string; boards?: string[]; lines: string[] };
-export type Entity = { id: string; name: string; area?: string; device?: string; icon?: string; state?: string; tile?: boolean; screen_name?: string };
+// `unavailable_since`: when an unavailable entity last changed in Home Assistant, in seconds; only on an unavailable one.
+export type Entity = { id: string; name: string; area?: string; device?: string; icon?: string; state?: string; tile?: boolean; screen_name?: string; unavailable_since?: number };
 export type IconInfo = { name: string; cp: string; label: string };
 // What is being built for one screen right now, whoever asked (Manager.builds in the add-on): the firmware update, the
 // plugin build queue, or Install over Wi-Fi from Firmware & USB. The editor's one source for "something is building".
@@ -266,6 +273,8 @@ export type Inventory = {
     battery_contents?: { key: string; label: string }[];
     battery_shows?: { key: string; label: string }[];
     battery_min_firmware?: string;
+    // A plugin's item: its icon and words, or its icon alone (plugin API 0.8).
+    plugin_contents?: { key: string; label: string }[];
     suggestions?: Record<string, { item: HeaderItem; label: string; name?: string; area?: string; icon?: string }[]>;
   };
   alerts?: any;

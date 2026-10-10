@@ -1,4 +1,4 @@
-import { screenFixture } from "./page-fixtures";
+import { screenFixture } from "./helpers/fixtures";
 // Editor flows that quietly broke with the page documents of app 0.3.1, found in the audit of app 0.4.1.
 import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, h, nextTick } from "vue";
@@ -6,25 +6,39 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import DevicePage from "../src/components/DevicePage.vue";
 import TileCard from "../src/components/TileCard.vue";
 import PageInspector from "../src/components/PageInspector.vue";
-import { addPage, addTile, beginFieldEdit, endFieldEdit, goHome, liveEntries, placeTile, retargetPageTile, select, setTileOption, state } from "../src/store";
 import { validatePages } from "../src/model/pages";
 import { tileCost } from "../src/model/memory";
+import type { Question } from "../src/composables/useConfirm";
+import { answerDialogs } from "./helpers/dialogs";
+import { useEntitiesStore } from "../src/stores/entities";
+import { useScreenStore } from "../src/stores/screen";
+import { useSessionStore } from "../src/stores/session";
+import { useInventoryStore } from "../src/stores/inventory";
+import { addPage } from "../src/editor/pages";
+import { addTile, liveEntries, placeTile, retargetPageTile, setTileOption } from "../src/editor/tiles";
+import { useDocumentStore } from "../src/stores/document";
 
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
+
+let yes = true, asked: Question[] = [];
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ states: {}, capabilities: {} }))));
-  vi.stubGlobal("confirm", vi.fn(() => true));
-  state.dirty = false; state.selected = null; state.toast = null;
-  state.inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
+  // Every question of the editor's is answered yes, unless a test answers otherwise.
+  yes = true;
+  asked = answerDialogs(() => yes);
+  useScreenStore().selected = null;
+  useInventoryStore().inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
     layout: { title: "Home", tiles: [{ entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 }] } } as any)],
     entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} } } as any;
-  select("test");
+  useSessionStore().select("test");
 });
 
 describe("the editor", () => {
   it("keeps moving a tile with the arrow keys: the focus follows the tile, not the cell", async () => {
     const host = mount(defineComponent({ setup: () => () => h("div", { class: "pages" }, [h(DevicePage, { page: 0, entries: liveEntries(), pages: 1, moving: null })]) }), { attachTo: document.body });
-    const a = () => state.layout!.tiles.find((t) => t.name === "A")!;
-    const card = () => host.element.querySelector<HTMLElement>(`[data-tile-id="${a().id}"]`)!;
+    const a = () => doc.layout!.tiles.find((t) => t.name === "A")!;
+    const card = () => (host.element as HTMLElement).querySelector<HTMLElement>(`[data-tile-id="${a().id}"]`)!;
     for (const expected of [2, 4]) {
       card().focus();
       card().dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
@@ -35,31 +49,31 @@ describe("the editor", () => {
     host.unmount();
   });
 
-  it("leaves nothing unsaved after going home from the logo past a confirmed discard", () => {
-    setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
-    expect(state.dirty).toBe(true);
-    goHome();
-    expect(state.selected).toBeNull();
-    expect(state.dirty).toBe(false);
+  it("leaves nothing unsaved after going home from the logo past a confirmed discard", async () => {
+    setTileOption(doc.layout!.tiles[0], "icon", "lightbulb");
+    expect(doc.dirty).toBe(true);
+    await useSessionStore().goHome();
+    expect(useScreenStore().selected).toBeNull();
+    expect(doc.dirty).toBe(false);
   });
 
   it("calls a change that changes nothing no change, whatever order the add-on wrote the fields in", () => {
     // A tile as the add-on writes it after a migration: placement before appearance.
-    select(null);
-    const layout = state.inventory.screens[0].page_document!.layout as any;
+    useSessionStore().select(null);
+    const layout = (useInventoryStore().inventory.screens[0].page_document as any).layout;
     const tile = layout.pages[0].tiles[0];
     tile.appearance.icon = "lightbulb";
     layout.pages[0].tiles[0] = { id: tile.id, content: tile.content, placement: tile.placement, interaction: tile.interaction, appearance: tile.appearance };
-    select("test");
+    useSessionStore().select("test");
     // Picking the icon the tile already has.
-    setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
-    expect(state.undoCount).toBe(0);
-    expect(state.dirty).toBe(false);
+    setTileOption(doc.layout!.tiles[0], "icon", "lightbulb");
+    expect(doc.undoCount).toBe(0);
+    expect(doc.dirty).toBe(false);
   });
 
   it("draws the second line the tile panel chose on the mockup: nothing, own words or a value", () => {
-    state.liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
-    const card = (sub?: string) => mount(TileCard, { props: { tile: { ...state.layout!.tiles[0], options: sub ? { sub } : {} }, slot: 0 } }).find(".st");
+    useEntitiesStore().liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
+    const card = (sub?: string) => mount(TileCard, { props: { tile: { ...doc.layout!.tiles[0], options: sub ? { sub } : {} }, slot: 0 } }).find(".st");
     expect(card().text()).toBe("On");
     expect(card("none").exists()).toBe(false);
     expect(card("text:Sofa left").text()).toBe("Sofa left");
@@ -70,47 +84,47 @@ describe("the editor", () => {
 
   it("never pushes a wide tile onto a new page to make room for a single one (app 0.4.2)", () => {
     // Page 1 is full: A B / W W / C E.
-    state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: "Home", tiles: [
+    useInventoryStore().inventory.screens[0] = screenFixture({ ...useInventoryStore().inventory.screens[0], layout: { title: "Home", tiles: [
       { entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 },
       { entity: "light.w", name: "W", slot: 2, options: { size: "wide" } },
       { entity: "light.c", name: "C", slot: 4 }, { entity: "light.e", name: "E", slot: 5 }] } } as any);
-    select(null); select("test");
-    const pagesBefore = state.document!.pages.length;
+    useSessionStore().select(null); useSessionStore().select("test");
+    const pagesBefore = doc.document!.pages.length;
     // E onto W: W does not fit in the one cell E leaves, and page 1 has no other room, so nothing moves.
-    expect(placeTile(state.layout!.tiles.find((t) => t.name === "E")!, 2)).toBe(false);
-    expect(state.document!.pages.length).toBe(pagesBefore);
-    expect(state.layout!.tiles.find((t) => t.name === "W")!.slot).toBe(2);
+    expect(placeTile(doc.layout!.tiles.find((t) => t.name === "E")!, 2)).toBe(false);
+    expect(doc.document!.pages.length).toBe(pagesBefore);
+    expect(doc.layout!.tiles.find((t) => t.name === "W")!.slot).toBe(2);
     // A tile in the way that fits in the cell left behind still swaps.
-    expect(placeTile(state.layout!.tiles.find((t) => t.name === "E")!, 4)).toBe(true);
-    expect(state.layout!.tiles.find((t) => t.name === "C")!.slot).toBe(5);
+    expect(placeTile(doc.layout!.tiles.find((t) => t.name === "E")!, 4)).toBe(true);
+    expect(doc.layout!.tiles.find((t) => t.name === "C")!.slot).toBe(5);
   });
 
   it("makes typing words of your own one step of undo (app 0.4.2)", () => {
-    const tile = state.layout!.tiles[0];
-    beginFieldEdit(`sub:${tile.id}`);
-    for (const words of ["S", "So", "Sof", "Sofa"]) setTileOption(state.layout!.tiles[0], "sub", `text:${words}`, `sub:${tile.id}`);
-    endFieldEdit();
-    expect(state.layout!.tiles[0].options?.sub).toBe("text:Sofa");
-    expect(state.undoCount).toBe(1);
+    const tile = doc.layout!.tiles[0];
+    doc.beginFieldEdit(`sub:${tile.id}`);
+    for (const words of ["S", "So", "Sof", "Sofa"]) setTileOption(doc.layout!.tiles[0], "sub", `text:${words}`, `sub:${tile.id}`);
+    doc.endFieldEdit();
+    expect(doc.layout!.tiles[0].options?.sub).toBe("text:Sofa");
+    expect(doc.undoCount).toBe(1);
   });
 
   it("saves a page title without the spaces at its ends, and keeps them while typing (app 0.4.2)", async () => {
     addPage();
-    const id = state.document!.pages[1].id;
+    const id = doc.document!.pages[1].id;
     const view = mount(PageInspector, { props: { id } });
     const input = view.find("#owned-page-title");
     await input.trigger("focus");
     await input.setValue("Study ");
     expect((input.element as HTMLInputElement).value).toBe("Study ");
-    expect(state.document!.pages[1].topbar.title).toEqual({ source: "text", text: "Study" });
+    expect(doc.document!.pages[1].topbar.title).toEqual({ source: "text", text: "Study" });
   });
 
   it("draws an on/off or run card two rows tall as one big key from firmware 0.17.0, and keeps controls where chosen", () => {
-    const card = (tile: any) => mount(TileCard, { props: { tile: { ...state.layout!.tiles[0], ...tile }, slot: 0 } });
+    const card = (tile: any) => mount(TileCard, { props: { tile: { ...doc.layout!.tiles[0], ...tile }, slot: 0 } });
     const square = { entity: "light.a", options: { size: "square" } };
     // Firmware 0.4.0 keeps the switch.
     expect(card(square).classes()).not.toContain("big-key");
-    state.inventory.screens[0].firmware = "0.17.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.17.0";
     for (const tile of [square, { entity: "light.a", options: { size: "tall" } }, { entity: "script.night", options: { size: "square" } }]) {
       const view = card(tile);
       expect(view.classes(), tile.entity).toContain("big-key");
@@ -124,9 +138,9 @@ describe("the editor", () => {
   });
 
   it("empties the screen title from firmware 0.17.0, which shows the logo alone, and keeps it on older firmware", async () => {
-    const title = () => state.document!.title;
+    const title = () => doc.document!.title;
     const type = async (text: string) => {
-      const view = mount(PageInspector, { props: { id: state.document!.pages[0].id } });
+      const view = mount(PageInspector, { props: { id: doc.document!.pages[0].id } });
       const input = view.find("#screen-title");
       await input.trigger("focus");
       await input.setValue(text);
@@ -139,42 +153,44 @@ describe("the editor", () => {
     const before = title();
     expect(await type("")).toBe(false);
     expect(title()).toBe(before);
-    state.inventory.screens[0].no_title = true;
+    useInventoryStore().inventory.screens[0].no_title = true;
     expect(await type("")).toBe(true);
     expect(title()).toBe("");
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
   });
 
   it("keeps a link that follows Home one when it is sent to the home page (app 0.4.2)", () => {
-    state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: "Home", pages: 2, tiles: [{ entity: "screen.page_1", name: "", slot: 6 }] } } as any);
-    const record = state.inventory.screens[0].page_document as any;
+    useInventoryStore().inventory.screens[0] = screenFixture({ ...useInventoryStore().inventory.screens[0], layout: { title: "Home", pages: 2, tiles: [{ entity: "screen.page_1", name: "", slot: 6 }] } } as any);
+    const record = useInventoryStore().inventory.screens[0].page_document as any;
     record.layout.pages[1].tiles[0].content.target = { kind: "home" };
-    select(null); select("test");
-    const link = state.layout!.tiles[0];
+    useSessionStore().select(null); useSessionStore().select("test");
+    const link = doc.layout!.tiles[0];
     retargetPageTile(link, 1);
-    expect(state.document!.pages[1].tiles[0].content).toEqual({ kind: "navigation", target: { kind: "home" } });
-    retargetPageTile(state.layout!.tiles[0], 2);
-    expect((state.document!.pages[1].tiles[0].content as any).target.kind).toBe("page");
+    expect(doc.document!.pages[1].tiles[0].content).toEqual({ kind: "navigation", target: { kind: "home" } });
+    retargetPageTile(doc.layout!.tiles[0], 2);
+    expect((doc.document!.pages[1].tiles[0].content as any).target.kind).toBe("page");
   });
 
-  it("asks before a tile takes the screen past its memory, and adds it when told to (GitHub #157)", () => {
+  it("asks before a tile takes the screen past its memory, and adds it when told to (GitHub #157)", async () => {
     // A screen without PSRAM that measured room for about two and a half lights, as one CYD did.
     const memory = { room: 0, used: 0, psram: false, tile: 524, extra: 1056, page: 336, short: false, live: true };
     memory.room = Math.round(2.5 * tileCost({ entity: "light.x" }, memory));
-    (state.inventory.screens[0] as any).memory = memory;
-    const ask = vi.fn(() => false);
-    vi.stubGlobal("confirm", ask);
-    addTile("light.c");
-    expect(ask).toHaveBeenCalledTimes(1);
-    expect(ask.mock.calls[0][0]).toMatch(/Add it anyway\?/);
-    expect(state.layout!.tiles.some((tile) => tile.entity === "light.c")).toBe(false);
-    ask.mockReturnValue(true);
-    addTile("light.c");
-    expect(state.layout!.tiles.some((tile) => tile.entity === "light.c")).toBe(true);
-    // Past the line once, the next tile goes on without asking again.
-    ask.mockClear();
+    (useInventoryStore().inventory.screens[0] as any).memory = memory;
+    yes = false;
+    await addTile("light.c");
+    expect(asked).toHaveLength(1);
+    expect(asked[0].message).toMatch(/Add it anyway\?/);
+    // A warning, not a loss: the yes says what it does and is not red.
+    expect(asked[0]).toMatchObject({ kind: "confirm", confirm: "Add anyway" });
+    expect("danger" in asked[0]).toBe(false);
+    expect(doc.layout!.tiles.some((tile) => tile.entity === "light.c")).toBe(false);
+    yes = true;
+    await addTile("light.c");
+    expect(doc.layout!.tiles.some((tile) => tile.entity === "light.c")).toBe(true);
+    // Past the line once, the next tile goes on without asking again, at once.
+    asked.length = 0;
     addTile("light.d");
-    expect(ask).not.toHaveBeenCalled();
-    expect(state.layout!.tiles.some((tile) => tile.entity === "light.d")).toBe(true);
+    expect(asked).toEqual([]);
+    expect(doc.layout!.tiles.some((tile) => tile.entity === "light.d")).toBe(true);
   });
 });

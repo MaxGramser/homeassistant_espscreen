@@ -166,7 +166,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.53.0'
+FIRMWARE_VERSION = '0.54.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -1164,6 +1164,8 @@ BATTERY_FEATURE = 'battery'
 BATTERY_MIN_FIRMWARE = (0, 41, 0)
 BATTERY_CONTENTS = ('icon', 'percent')
 BATTERY_SHOWS = ('always', 'low')
+# A plugin's item (plugin API 0.8): its icon and the words its plugin gives, or its icon alone, as a person chooses.
+PLUGIN_ITEM_CONTENTS = ('all', 'icon')
 # Only shown, never controlled: the top bar takes these besides every tile domain.
 HEADER_ONLY_DOMAINS = frozenset('device_tracker zone counter event input_datetime input_text water_heater humidifier'.split())
 # What an entity item shows: its status, when it last changed, or its icon alone (GitHub #144, any firmware with a top bar:
@@ -1203,11 +1205,11 @@ def validate_header(data, most=HEADER_MAX_ITEMS):
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
         elif kind == 'plugin':
             # A plugin's item (docs/PLUGINS.md): it says itself what it shows, and shows nothing on a screen without it.
-            if set(item) != {'type', 'item'}:
+            if set(item) - {'type', 'item', 'content'} or 'item' not in item:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))
-            if not plugin_tile(item.get('item')):
+            if not plugin_tile(item.get('item')) or item.get('content', 'all') not in PLUGIN_ITEM_CONTENTS:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
-            clean = {'type': 'plugin', 'item': item['item']}
+            clean = {'type': 'plugin', 'item': item['item'], 'content': item.get('content', 'all')}
         elif kind == 'entity':
             if set(item) - {'type', 'entity', 'content', 'icon', 'show'}:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))
@@ -2884,6 +2886,12 @@ def discover_screens(registry, states, devices, areas):
                         'status': state.get('state', english('screen.settings.not_connected'))})
     return screens
 
+def unavailable_since(state):
+    """Since when Home Assistant has had no word from an unavailable entity (its last_changed, in seconds), for the editor
+    to tell a moment away from a tile that has shown nothing for a while; nothing for any other state."""
+    since = epoch(state.get('last_changed')) if state.get('state') == 'unavailable' else None
+    return {'unavailable_since': since} if since is not None else {}
+
 def discover(registry, states, devices, areas):
     """(screens, entities): the paired screens and every entity a tile or the top bar can show."""
     device_map = {d['id']: d for d in devices}
@@ -2903,7 +2911,7 @@ def discover(registry, states, devices, areas):
                          'state': state.get('state', 'unavailable'),
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
-                         **({} if tile else {'tile': False})})
+                         **({} if tile else {'tile': False}), **unavailable_since(state)})
     # YAML entities may not have an entity-registry entry.
     registered = {e['id'] for e in entities}
     in_registry = {r['entity_id'] for r in registry}
@@ -2911,7 +2919,7 @@ def discover(registry, states, devices, areas):
         tile = entity_id(eid)
         if (tile or header_entity(eid)) and eid not in registered and eid not in in_registry:
             entities.append({'id': eid, 'name': state.get('attributes', {}).get('friendly_name', eid), 'device': '', 'area': '', 'state': state['state'],
-                             'icon': tile_icons.ha_icon(state.get('attributes')), **({} if tile else {'tile': False})})
+                             'icon': tile_icons.ha_icon(state.get('attributes')), **({} if tile else {'tile': False}), **unavailable_since(state)})
     return screens, sorted(entities, key=lambda e: e['name'].casefold())
 
 def hotspot_name(friendly):

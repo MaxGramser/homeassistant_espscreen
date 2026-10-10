@@ -3,9 +3,10 @@
 - `/data/plugins.json`: per screen (its inbox, the key LayoutStore uses) the plugins it has: where each comes from, the
   commit it is pinned to, its version, its optional parts, what was filled in (never a secret), what the person agreed to
   and its state. Written whole and atomically, like the layouts.
-- `/data/plugin_secrets.json` (mode 0600): the values of inputs of kind `secret`, by plugin, input and scope. A secret
-  never leaves this file except into a fetch of its own plugin: not to the editor (it only hears that one is set), not to
-  a screen, not into YAML or a log.
+- `/data/plugin_secrets.json` (mode 0600): the values of inputs of kind `secret`, by plugin, input and scope, each with
+  the origin it was filled in for (app 0.4.x, plugin API 0.7: `origins`). A secret never leaves this file except into a
+  fetch of its own plugin from that origin: not to another plugin with the same id (a fork), not to the editor (it only
+  hears that one is set), not to a screen, not into YAML or a log.
 
 A file that is missing means no screen has plugins. Version 1 starts empty; a newer version this app does not know is
 left alone and read as empty, so a downgrade never rewrites it.
@@ -114,29 +115,46 @@ class PluginSecrets:
         self.lock = threading.RLock()
         data = _read(self.path) or {}
         self.values = data.get('values') if isinstance(data.get('values'), dict) else {}
+        origins = data.get('origins') if isinstance(data.get('origins'), dict) else {}
+        self.origins = {key: origin for key, origin in origins.items() if key in self.values and isinstance(origin, str)}
 
     @staticmethod
     def key(plugin, input_id, scope='all'):
         return f'{plugin}/{input_id}/{scope}'
 
-    def set(self, plugin, input_id, value, scope='all'):
+    def _save(self):
+        _write(self.path, {'version': VERSION, 'values': self.values, 'origins': self.origins})
+
+    def set(self, plugin, input_id, value, scope='all', origin=None):
+        """Keep (or with no value forget) a secret, for the origin it was filled in for."""
         with self.lock:
             key = self.key(plugin, input_id, scope)
             if value:
                 self.values[key] = str(value)
+                if origin:
+                    self.origins[key] = origin
+                else:
+                    self.origins.pop(key, None)
             else:
                 self.values.pop(key, None)
-            _write(self.path, {'version': VERSION, 'values': self.values})
+                self.origins.pop(key, None)
+            self._save()
 
-    def has(self, plugin, input_id, scope='all'):
-        return self.key(plugin, input_id, scope) in self.values
+    def _matches(self, key, origin):
+        # None asks for every origin: a folder someone is making in their own config folder.
+        return origin is None or self.origins.get(key) == origin
 
-    def of(self, plugin, inbox=None):
-        """{input: value} of one plugin: the value for this screen where one is set, else the one for every screen."""
+    def has(self, plugin, input_id, scope='all', origin=None):
+        key = self.key(plugin, input_id, scope)
+        return key in self.values and self._matches(key, origin)
+
+    def of(self, plugin, inbox=None, origin=None):
+        """{input: value} of one plugin from one origin: the value for this screen where one is set, else the one for
+        every screen. A secret filled in for another origin of the same id is never handed out."""
         out = {}
         for key, value in self.values.items():
             owner, input_id, scope = key.split('/', 2)
-            if owner != plugin:
+            if owner != plugin or not self._matches(key, origin):
                 continue
             if scope == 'all' and input_id not in out:
                 out[input_id] = value
@@ -144,9 +162,12 @@ class PluginSecrets:
                 out[input_id] = value
         return out
 
-    def drop_plugin(self, plugin):
+    def drop_plugin(self, plugin, origin=None):
+        """Forget a plugin's secrets: those of one origin, or all of them."""
         with self.lock:
-            kept = {k: v for k, v in self.values.items() if not k.startswith(plugin + '/')}
+            kept = {k: v for k, v in self.values.items()
+                    if not k.startswith(plugin + '/') or (origin is not None and self.origins.get(k) != origin)}
             if kept != self.values:
                 self.values = kept
-                _write(self.path, {'version': VERSION, 'values': self.values})
+                self.origins = {k: o for k, o in self.origins.items() if k in kept}
+                self._save()

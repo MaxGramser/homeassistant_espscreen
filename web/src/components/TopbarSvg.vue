@@ -2,18 +2,27 @@
 // The bar at the top of a mockup page, drawn as the screen draws it: name left, items right.
 import { computed } from "vue";
 import { t } from "../i18n";
+import { handAngles } from "../model/clock";
 import { barLayout, dotted, inkOf, type BarMetrics, type BarPart } from "../model/topbar";
-import { barMetrics, state, topbarView } from "../store";
 import TesseraMark from "./TesseraMark.vue";
+import { useUiStore } from "../stores/ui";
+import { useEntitiesStore } from "../stores/entities";
+import { useTopbarStore } from "../stores/topbar";
+import { useCanvasStore } from "../stores/canvas";
+
+const ui = useUiStore();
+const entities = useEntitiesStore();
+const topbar = useTopbarStore();
+const canvas = useCanvasStore();
 
 // `metrics`: another screen's bar, for that screen's home page on the overview (app 0.4.0).
 const props = defineProps<{ items: any[]; nameText?: string; single?: boolean; home?: boolean; back?: boolean; metrics?: BarMetrics }>();
 
 const lay = computed(() => {
-  void state.fontsVersion;
-  void state.now;
-  void state.topbarPreviews;
-  return barLayout(props.items, props.metrics ?? barMetrics.value, props.nameText ?? '', topbarView,
+  void ui.fontsVersion;
+  void ui.now;
+  void entities.topbarPreviews;
+  return barLayout(props.items, props.metrics ?? canvas.barMetrics, props.nameText ?? '', topbar.topbarView,
                    Boolean(props.home) && !props.single, Boolean(props.back) && !props.single);
 });
 const m = computed(() => lay.value.metrics);
@@ -36,10 +45,10 @@ const markY = computed(() => baseline.value + nameCap.value.bottom - lay.value.k
 const backY = computed(() => baseline.value + nameCap.value.bottom - lay.value.key!.ink.bottom);
 const backX = computed(() => (lay.value.key!.size - (lay.value.key!.ink.right - lay.value.key!.ink.left)) / 2 - lay.value.key!.ink.left);
 const name = computed(() => dotted(lay.value.nameText, lay.value.fonts.name, Math.min(lay.value.natural, lay.value.nameRoom)));
-const now = computed(() => new Date(state.now));
+// The clock item's hands at the editor's one clock (model/clock.ts), as long as the screen draws them.
 function hands(d: number) {
-  const n = now.value;
-  return [[(n.getHours() % 12 + n.getMinutes() / 60) * 30, d * 0.24], [n.getMinutes() * 6, d * 0.34]].map(([angle, length]) => {
+  const angles = handAngles(ui.now);
+  return [[angles.hour, d * 0.24], [angles.minute, d * 0.34]].map(([angle, length]) => {
     const rad = (angle * Math.PI) / 180;
     return { x2: length * Math.sin(rad), y2: -length * Math.cos(rad) };
   });

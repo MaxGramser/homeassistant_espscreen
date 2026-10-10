@@ -19,7 +19,7 @@ CSS = '\n'.join(p.read_text() for p in sorted(WEB.glob('styles/*.css')))
 
 
 def source(name):
-    """One file by name, e.g. 'store.ts' or 'components/Sidebar.vue'."""
+    """One file by name, e.g. 'stores/document.ts' or 'components/Sidebar.vue'."""
     return (WEB / name).read_text()
 
 

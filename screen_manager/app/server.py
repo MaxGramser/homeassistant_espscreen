@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 import math
 from urllib.parse import urlsplit
 import camera_feed
+import live_feed
 import claude_skill
 import screen_hang
 import screen_labels
@@ -35,6 +36,7 @@ import map_tiles
 import tile_icons
 from updates import Updater
 import core
+import entity_settings
 import plugins
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
@@ -486,9 +488,31 @@ class HomeAssistant:
         state = self.states.get(entity_id)
         return ha_catalogue.capabilities(entity_id, actions, self.widen(entity_id, state) if self.widen else state, self.services)
 
+    def ws_url(self):
+        return ('ws://supervisor/core/websocket' if self.base == 'http://supervisor/core/api'
+                else self.base.replace('http://', 'ws://').replace('https://', 'wss://') + '/websocket')
+
+    @contextlib.asynccontextmanager
+    async def websocket(self):
+        """A websocket of its own, authenticated, for a conversation that has many answers (a live camera's WebRTC,
+        live_feed.py): it ends with the conversation, and Home Assistant ends the session with it."""
+        async with self.session.ws_connect(self.ws_url(), heartbeat=30, max_msg_size=4*1024*1024) as ws:
+            await ws.receive_json(timeout=15)
+            await ws.send_json({'type': 'auth', 'access_token': self.token})
+            if (await ws.receive_json(timeout=15)).get('type') != 'auth_ok':
+                raise ConnectionError('Home Assistant authentication failed.')
+            yield ws
+
+    def camera_streams(self, entity):
+        """Whether a camera has a stream of its own (CameraEntityFeature.STREAM): an RTSP camera, not a snapshot one."""
+        features = ((self.states.get(entity) or {}).get('attributes') or {}).get('supported_features') or 0
+        try:
+            return bool(int(features) & live_feed.STREAM_FEATURE)
+        except (TypeError, ValueError):
+            return False
+
     async def run(self):
-        url = ('ws://supervisor/core/websocket' if self.base == 'http://supervisor/core/api'
-               else self.base.replace('http://', 'ws://').replace('https://', 'wss://') + '/websocket')
+        url = self.ws_url()
         while True:
             reader, connected = None, None
             try:
@@ -921,6 +945,9 @@ class Manager:
                                              fetch_cover=lambda entity: self.ha.media_image(self.followed(entity)),
                                              picture=lambda entity: self.ha.media_picture(self.followed(entity)))
         self.alert_cameras = {}
+        # A camera live, full screen, on a P4 (live_feed.py): its links and the sources behind them, on the camera port.
+        self.live = live_feed.LiveFeed(lambda entity: self.ha.camera_image(entity), lambda: self.ha.websocket(),
+                                       lambda entity: self.ha.camera_streams(entity))
         # The streets of the map cards (app 0.4.33): one tile source for every screen, through Home Assistant. And the
         # last maps drawn, by their mark, frame and look: a screen in dark mode and one in light mode each have their
         # own, and a page that loads again for its camera does not draw its map again.
@@ -1077,6 +1104,15 @@ class Manager:
         said = lambda name: getattr(sender, name, None) or getattr(sender, 'last_' + name, None)
         return (said('max_pages') or FIRMWARE_MAX_PAGES, said('max_tiles') or FIRMWARE_MAX_TILES,
                 said('max_bar_items') or FIRMWARE_MAX_BAR_ITEMS)
+
+    def live_camera(self, screen):
+        """Whether this screen streams a camera live (live_feed.py): its hello while it is connected (`live`), else its
+        board (a P4 that draws pictures). The editor offers Live for its camera tiles, as their default."""
+        sender = self.page_senders.get(self.aliases.get(screen.get('id'), screen.get('id')))
+        if sender is not None and getattr(sender, 'protocol', None) is not None:
+            return live_feed.SCREEN_FEATURE in (getattr(sender, 'features', None) or ())
+        shape = core.shape_of(screen) or {}
+        return shape.get('chip') == 'ESP32-P4' and bool(shape.get('camera'))
 
     def has_battery(self, screen):
         """Whether this screen has a battery the top bar can show (core.has_battery): its Screen features or its hello
@@ -2558,13 +2594,14 @@ class Manager:
         hourly = self.forecasts.get((entity, 'hourly'))
         return not entry or not hourly or time.monotonic() - min(entry[0], hourly[0]) > FORECAST_SECONDS
 
-    async def tile_message(self, index, tile, lamps=False, features=None):
+    async def tile_message(self, index, tile, lamps=False, features=None, inbox=None):
         """The state message of one tile: state, options, extras, and the history the background task holds. `lamps`:
         the screen takes a light group's lamps (its hello said `group_lamps`, firmware 0.3.9+). `features`: the other
-        flags its hello said (page_delivery), None where the screen's hello is not known."""
-        # A plugin's tile (docs/PLUGINS.md): no entity behind it; its options and the data of its fetch.
+        flags its hello said (page_delivery), None where the screen's hello is not known. `inbox`: the screen it goes to."""
+        # A plugin's tile (docs/PLUGINS.md): no entity behind it; its options and the data of its fetch, from the plugin of
+        # that id this screen runs.
         if plugin_tile(tile['entity']):
-            return await self.plugins.tile_message(index, tile)
+            return await self.plugins.tile_message(index, tile, inbox=inbox)
         forecast=hourly=None
         if tile['entity'].startswith('weather.') and hasattr(self.ha,'forecast'):
             entity = tile['entity']
@@ -2632,6 +2669,8 @@ class Manager:
             else: message['a']['supported_features']=reported
         else:
             drawn_controls(message, features)
+        # A camera tile set to Live: pace 0 to a screen that streams, the default pace to any other (live_feed.live_pace).
+        live_feed.live_pace(message, tile, features)
         # The speaker, shuffle, repeat, the cover's colours and the library (firmware 0.24.0+): to a screen that draws
         # them, and to the editor's preview, which runs the newest firmware.
         if player and (features is None or media_library.FEATURE in features):
@@ -2803,7 +2842,7 @@ class Manager:
             if reuse and tile['entity'].startswith('weather.') and self.forecast_due(tile['entity']):
                 reuse = False
             # A screen on this route has no hello, and none of the flags a newer option needs.
-            states.append(previous['states'][i] if reuse else await self.tile_message(i, tile, features=frozenset()))
+            states.append(previous['states'][i] if reuse else await self.tile_message(i, tile, features=frozenset(), inbox=inbox))
         outgoing = []
         if force or not previous or layout_msg != previous['layout']:
             outgoing.append(layout_msg)
@@ -3105,6 +3144,18 @@ class Manager:
             url = f'{base}/camera/{token}.bmp' if token else ''
         return {'v': 1, 'op': 'camera', 't': 'alert' if view == 'thumb' else 'full', 'e': entity, 'u': url}
 
+    async def live_message(self, entity, box, view='full', fit=None):
+        """The screen message for a camera live (live_feed.py): a link to its stream of pictures, for the full view or
+        for a live tile (`view` 'live', `fit` the tile's: a picture that fills the card is cut by the screen, a whole one
+        is shown on black, and the link says which)."""
+        base = await camera_feed.base_url(self.ha.request)
+        if not base:
+            LOG.warning('Camera images: no address for this app on the LAN; set SCREEN_CAMERA_URL')
+        contain = fit == 'contain'
+        token = self.live.link(entity, box, cover=view == 'live' and not contain) if base else ''
+        url = f'{base}/camera/{token}.mjpeg' + ('?fit=contain' if contain else '') if base else ''
+        return {'v': 1, 'op': 'camera', 't': view, 'e': entity, 'u': url}
+
     async def answer_camera(self, request):
         """One screen's request: a camera it may show, on a screen that draws camera images."""
         if not isinstance(request, dict):
@@ -3138,8 +3189,13 @@ class Manager:
         action = self.transport(inbox, screen)
         if not action or not self.camera_allowed(inbox, entity):
             return
-        message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
-            entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
+        # A P4 takes a camera live (firmware dev): it names the room below its top bar, and gets a stream of pictures.
+        live_box = live_feed.parse_box(request.get('live')) if not cover and entity.startswith('camera.') else None
+        if live_box:
+            message = await self.live_message(entity, live_box)
+        else:
+            message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
+                entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
         await self.send_auxiliary(inbox, message, action, request)
         LOG.info('%s %s on %s%s', 'Cover of' if cover else 'Camera', entity, screen['name'], '' if message['u'] else ': no image')
 
@@ -3201,7 +3257,8 @@ class Manager:
         if any(entity not in tiles for entity in entities):
             LOG.info('Live pictures for %s: not the pictured tiles of %s', ', '.join(entities), screen['name'])
             return
-        paces = [min(option.get('refresh', camera_feed.LIVE_REFRESH_DEFAULT) if option.get('display') == 'live' else 0
+        # A tile set to Live (pace 0) streams where it can; its still keeps the default pace.
+        paces = [min((option.get('refresh') or camera_feed.LIVE_REFRESH_DEFAULT) if option.get('display') == 'live' else 0
                      for option in tiles[entity]) for entity in entities]
         # Each square's own tile (firmware 0.16.0+ names them by index, `idx`): an entity may be on several tiles, each
         # with its own fit and overlay. A screen without it has an entity on one tile at most, so its first is its own.
@@ -3212,6 +3269,15 @@ class Manager:
             return
         options_of = (lambda n, entity: placed_tiles[own[n]].get('options') or {}) if own is not None else \
             (lambda n, entity: next((o for o in tiles[entity] if o.get('display') == 'live'), None))
+        # A live tile on a P4 (firmware dev): its stream at the card's size, which the screen lays out as its card.
+        live_box = live_feed.parse_box(request.get('live'))
+        if live_box and len(entities) == 1 and entities[0].startswith('camera.') and own is not None:
+            options = options_of(0, entities[0]) or {}
+            if options.get('display') == 'live':
+                message = await self.live_message(entities[0], live_box, 'live', options.get('fit'))
+                await self.send_auxiliary(inbox, message, action, request)
+                LOG.info('Live tile %s on %s%s', entities[0], screen['name'], '' if message['u'] else ': no link')
+                return
         # How each picture fills its card (app 0.3.8). A favourite is dimmed whole, as an album cover over a card is: the
         # screen asks for that in its frame.
         modes = camera_feed.picture_modes(screen, options_of, entities) if atlas else None
@@ -3796,6 +3862,7 @@ def create_app(manager, development=False):
                     screen['shape'] = {**screen['shape'], 'width': screen['shape']['height'], 'height': screen['shape']['width']}
             # And whether it has a battery for the top bar (firmware 0.41.0): what its hello said, else its board.
             screen['battery'] = manager.has_battery(screen)
+            screen['live_camera'] = manager.live_camera(screen)
             # Whether the board draws pictures (camera tiles, an alert's snapshot, an album cover): the boards with
             # memory for them say so with their camera sizes (boards.json); the firmware that draws them is a
             # separate question the editor asks by version, so an older screen still learns what an update brings.
@@ -4476,6 +4543,7 @@ def create_app(manager, development=False):
         async def plugins_list(request):
             await manager.plugins.refresh_index(force=request.query.get('refresh') == '1')
             await manager.plugins.refresh_links(force=request.query.get('refresh') == '1')
+            await manager.plugins.refresh_likes()
             return web.json_response(manager.plugins.payload(REQUEST_LANGUAGE.get()))
 
         async def plugins_apply(request):
@@ -4493,19 +4561,35 @@ def create_app(manager, development=False):
             return web.json_response(manager.plugins.set_secret(request.match_info['plugin'], request.match_info['input'],
                                                                 data.get('value')))
 
+        # `_screen`: the screen the inspector shows (no option id starts with _), whose own plugin of that id answers.
         async def plugins_choices(request):
-            values = {key: value for key, value in request.query.items() if key != 'language'}
-            return web.json_response(await manager.plugins.choices(request.match_info['plugin'], request.match_info['fetch'], values))
+            values = {key: value for key, value in request.query.items() if key not in ('language', '_screen')}
+            return web.json_response(await manager.plugins.choices(request.match_info['plugin'], request.match_info['fetch'], values,
+                                                                   request.query.get('_screen')))
+
+        async def plugins_plan(request):
+            return web.json_response(manager.plugins.plan(request.match_info['inbox'], await request.json(),
+                                                          REQUEST_LANGUAGE.get()))
+
+        async def plugins_like(request):
+            data = await request.json()
+            if not isinstance(data, dict):
+                raise ValueError(t('addon.errors.plugins.request'))
+            return web.json_response(await manager.plugins.like(request.match_info['plugin'], data.get('like') is True,
+                                                                data.get('consent') is True))
 
         app.router.add_get('/api/plugins', plugins_list)
         app.router.add_post('/api/screens/{inbox}/plugins', plugins_apply)
         app.router.add_get('/api/screens/{inbox}/plugins/file', plugins_file)
         app.router.add_put('/api/plugins/{plugin}/secrets/{input}', plugins_secret)
         app.router.add_get('/api/plugins/{plugin}/choices/{fetch}', plugins_choices)
+        app.router.add_post('/api/screens/{inbox}/plugins/plan', plugins_plan)
+        app.router.add_put('/api/plugins/{plugin}/like', plugins_like)
 
         async def plugins_preview(request):
-            options = {key: value for key, value in request.query.items() if key != 'language'}
-            return web.json_response(await manager.plugins.preview(request.match_info['plugin'], request.match_info['tile'], options))
+            options = {key: value for key, value in request.query.items() if key not in ('language', '_screen')}
+            return web.json_response(await manager.plugins.preview(request.match_info['plugin'], request.match_info['tile'], options,
+                                                                   request.query.get('_screen')))
         app.router.add_get('/api/plugins/{plugin}/preview/{tile}', plugins_preview)
 
         async def plugins_link(request):
@@ -4527,6 +4611,18 @@ def create_app(manager, development=False):
             return web.json_response(result)
         app.router.add_get('/api/screens/{inbox}/plugins/settings', plugins_settings)
         app.router.add_post('/api/screens/{inbox}/plugins/settings', plugins_setting)
+    # A board's extras under Screen settings (docs/SETTINGS.md, "A board's own settings"): for every screen, plugins or not.
+    async def extras(request):
+        return web.json_response(entity_settings.extras_for(manager, request.match_info['inbox'], REQUEST_LANGUAGE.get()))
+
+    async def extra(request):
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError(t('addon.errors.extras.request'))
+        return web.json_response(await entity_settings.set_extra(manager, request.match_info['inbox'], data.get('entity'),
+                                                                 data.get('value')))
+    app.router.add_get('/api/screens/{inbox}/extras', extras)
+    app.router.add_post('/api/screens/{inbox}/extras', extra)
     app.router.add_get('/', index)
     app.router.add_get('/api/inventory', inventory)
     app.router.add_get('/api/capabilities', capabilities)
@@ -4611,7 +4707,7 @@ async def main():
         await runner.setup()
         await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
-        cameras = web.AppRunner(camera_feed.web_app(manager.camera), access_log=None)
+        cameras = web.AppRunner(camera_feed.web_app(manager.camera, manager.live), access_log=None)
         await cameras.setup()
         try:
             await web.TCPSite(cameras, '0.0.0.0', camera_feed.port()).start()

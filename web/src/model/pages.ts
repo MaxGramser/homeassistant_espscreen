@@ -16,6 +16,11 @@ import { validateCardOptions, validatePageShape } from './page-validation';
 import rules from './page-rules.json';
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+// The same document whatever the order of its keys (app 0.4.1): a tile the add-on wrote keeps its fields in another order
+// than one the editor rebuilt, and comparing the text of the two marked a change that changed nothing as unsaved.
+const ordered = (value: unknown): unknown => Array.isArray(value) ? value.map(ordered)
+  : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, ordered((value as Record<string, unknown>)[key])])) : value;
+export const sameValue = (a: unknown, b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
 export const instanceId = () => [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, "0")).join("");
 // The pages a grid takes: what its screen takes when the grid says (the store passes the screen's page_limit), else the
 // most any board may state, which is what a stored document is held to (the add-on's page_layout.grid_of_record).
@@ -256,7 +261,7 @@ export function projectLayout(layout: PageLayout, grid: PageGrid): Layout {
 }
 
 export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
-  validatePageShape(layout);
+  validatePageShape(layout, grid.plugins === true);
   if (![grid.columns, grid.rows].every((n) => Number.isInteger(n) && n > 0) || grid.columns * grid.rows > 64)
     throw new Error(t("editor.pages.wait_grid"));
   if (!layout.pages.length || layout.pages.length > pageLimit(grid)) throw new Error(t("addon.errors.pages.pages_full"));

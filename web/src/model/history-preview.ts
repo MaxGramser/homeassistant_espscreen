@@ -1,16 +1,6 @@
-import { getJson } from '../api';
+// A sensor's history as the add-on sends it (history-preview, asked for by the entities store, stores/entities.ts), and
+// the lines its graph draws.
 export type HistoryPreview = { start: number; end: number; values: (number | null)[]; dom?: [number, number]; hi?: [number, number]; lo?: [number, number]; unit: string };
-const cache = new Map<string, { time: number; result: Promise<HistoryPreview | null> }>();
-/** A bounded cache shared by map, focused page and navigation preview. */
-export function loadHistory(entity: string, hours: number) {
-  const key = `${entity}:${hours}`, previous = cache.get(key);
-  if (previous && Date.now() - previous.time < 60000) return previous.result;
-  const result = getJson<{ history: HistoryPreview | null }>(`history-preview?entity=${encodeURIComponent(entity)}&hours=${hours}`).then((data) => data.history);
-  cache.set(key, { time: Date.now(), result });
-  while (cache.size > 64) cache.delete(cache.keys().next().value!);
-  result.catch(() => { if (cache.get(key)?.result === result) cache.delete(key); });
-  return result;
-}
 /** Bucket centers retain their time positions; missing buckets break the line.
  * The recorder's extrema are drawn separately, so the average cannot hide them.
  */

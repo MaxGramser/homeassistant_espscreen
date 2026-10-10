@@ -3,8 +3,9 @@
 # One entry per board, keyed by the word ESP Screens knows it by (the BOARD_ID its firmware reports, and the name of
 # packages/<key>.yaml, the entry a screen installed from ESP Screens builds from over GitHub, and of checkout/<key>.yaml,
 # the one a build from a clone of this repository uses). An entry says only what
-# the hardware files cannot: what the board is called, what is printed on it, how far it has been tried, and the
-# choices someone makes when a screen of it is built. Everything else ESP Screens shows about a board is worked out
+# the hardware files cannot: what the board is called, what is printed on it, how far it has been tried, the
+# choices someone makes when a screen of it is built, and its own settings (`settings`, docs/SETTINGS.md, "A board's own
+# settings"). Everything else ESP Screens shows about a board is worked out
 # from its file under packages/boards/ by tools/generate_board_shapes.py, into screen_manager/app/boards.json: the
 # glass and its size in inches, the grid lying down and standing up, the touch controller, and what it can do
 # (camera pictures, dimming, standby, a touch calibration on the first start).
@@ -126,6 +127,8 @@ tab5:
   name: M5Stack Tab5
   model: Tab5 ST7121
   status: new
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 waveshare5:
   file: waveshare-esp32s3-5.yaml
@@ -138,6 +141,16 @@ wavesharep4:
   name: Waveshare
   model: ESP32-P4-86-Panel-ETH-2RO
   status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
+
+reterminald1001:
+  file: reterminald1001.yaml
+  name: reTerminal D1001
+  model: reTerminal D1001
+  status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone, wake_when_moved]
 
 wavesharelcd4:
   file: waveshare-esp32s3-lcd-4.yaml

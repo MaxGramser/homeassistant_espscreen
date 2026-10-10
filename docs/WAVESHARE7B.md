@@ -30,7 +30,8 @@ The board's one USB-C port goes through a USB-to-UART chip, and the logs go out 
 - Camera tiles, full-screen snapshots, live tile pictures, camera alerts and media artwork use the shared PSRAM implementation.
   Their operation on this board still needs physical verification.
 - GT911 reports pixel coordinates, with no resistive calibration. The existing touch filter and action guard remain in use.
-- LVGL uses an 8 % draw buffer, about the same amount of internal memory as the 800 x 480 boards use.
+- LVGL draws into a quarter of the screen in PSRAM (`LVGL_BUFFER_SIZE: "25%"`). A smaller share became an eighth of
+  the screen inside the chip, 154 KB, which left too little for more than a few tiles.
 - The SD card slot, the CAN and RS485 ports, the battery connector and the clock chip on the board stay unused.
 
 ## Hardware references

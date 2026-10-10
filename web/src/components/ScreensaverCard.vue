@@ -6,44 +6,50 @@
 import { computed, onMounted } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { loadTopbarPreview, openSaverStep, state } from "../store";
-import { changeSaver, isOn, SAVER_ICONS, SAVER_MIN_FIRMWARE, savedOrder, saver, saverLabel, saverReady, sorter, standbyOn, stepsShown, summary, toggleStep } from "../saver";
+import { useSortableRows } from "../composables/useSortableRows";
 import type { SaverKind } from "../types";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
+import { useTopbarStore } from "../stores/topbar";
+import { SAVER_ICONS, SAVER_MIN_FIRMWARE, saverLabel, useScreensaverStore } from "../stores/screensaver";
+import { useInspectorStore } from "../stores/inspector";
 
-onMounted(() => loadTopbarPreview(0));
-const pictures = computed(() => Boolean(saver.value?.pictures));
-const steps = sorter<SaverKind>("#screensaver-steps > .saver-row", () => savedOrder.value, (list) => changeSaver({ order: list }), ".ui-switch",
-  () => saverReady.value && pictures.value);
-const order = computed(() => stepsShown(steps.live.value));
-const opened = (kind: SaverKind) => state.inspector?.kind === "saver" && state.inspector.step === kind;
-const line = (kind: SaverKind) => (isOn(kind) ? summary(kind) : { text: t("editor.screen_settings.screensaver.summary.off"), missing: false });
+const topbar = useTopbarStore();
+const screensaver = useScreensaverStore();
+const insp = useInspectorStore();
+
+onMounted(() => topbar.loadTopbarPreview(0));
+const pictures = computed(() => Boolean(screensaver.saver?.pictures));
+const steps = useSortableRows<SaverKind>({ rows: "#screensaver-steps > .saver-row", items: () => screensaver.savedOrder,
+  commit: (list) => screensaver.changeSaver({ order: list }), skip: ".ui-switch", grip: ".grip", enabled: () => screensaver.saverReady && pictures.value });
+const order = computed(() => screensaver.stepsShown(steps.live.value));
+const opened = (kind: SaverKind) => insp.inspector?.kind === "saver" && insp.inspector.step === kind;
+const line = (kind: SaverKind) => (screensaver.isOn(kind) ? screensaver.summary(kind) : { text: t("editor.screen_settings.screensaver.summary.off"), missing: false });
 function open(e: MouseEvent, kind: SaverKind) {
   if (steps.click(e) || (e.target as HTMLElement).closest(".ui-switch")) return;
-  openSaverStep(kind);
+  insp.openSaverStep(kind);
 }
 </script>
 
 <template>
-  <section v-if="saver && saver.standby" class="set-card" id="settings-screensaver" :class="{ inactive: !saverReady }">
+  <section v-if="screensaver.saver && screensaver.saver.standby" class="set-card" id="settings-screensaver" :class="{ inactive: !screensaver.saverReady }">
     <h4><span class="mdi">{{ glyph("F04B2") }}</span>{{ t("editor.screen_settings.screensaver.title") }}</h4>
-    <div class="srow setting-toggle" :class="{ inactive: !saverReady || !standbyOn }" data-setting="screensaver"
-      @click="saverReady && !($event.target as HTMLElement).closest('button') && changeSaver({ show: !saver.show })">
+    <div class="srow setting-toggle" :class="{ inactive: !screensaver.saverReady || !screensaver.standbyOn }" data-setting="screensaver"
+      @click="screensaver.saverReady && !($event.target as HTMLElement).closest('button') && screensaver.changeSaver({ show: !screensaver.saver.show })">
       <span class="s-label" id="screensaver-show-label">{{ t("editor.screen_settings.screensaver.show") }}</span>
       <div class="s-control">
-        <button type="button" class="switch" role="switch" id="screensaver-show" :aria-checked="saver.show ? 'true' : 'false'"
-          aria-labelledby="screensaver-show-label" :disabled="!saverReady" @click.stop="changeSaver({ show: !saver.show })"></button>
+        <button type="button" class="switch" role="switch" id="screensaver-show" :aria-checked="screensaver.saver.show ? 'true' : 'false'"
+          aria-labelledby="screensaver-show-label" :disabled="!screensaver.saverReady" @click.stop="screensaver.changeSaver({ show: !screensaver.saver.show })"></button>
       </div>
     </div>
-    <p v-if="!saverReady" class="hint" id="screensaver-firmware">{{ t("editor.screen_settings.screensaver.needs_firmware", { version: SAVER_MIN_FIRMWARE }) }}</p>
-    <p v-else-if="!standbyOn" class="hint">{{ t("editor.screen_settings.screensaver.standby_off") }}</p>
-    <template v-if="saverReady && saver.show">
+    <p v-if="!screensaver.saverReady" class="hint" id="screensaver-firmware">{{ t("editor.screen_settings.screensaver.needs_firmware", { version: SAVER_MIN_FIRMWARE }) }}</p>
+    <p v-else-if="!screensaver.standbyOn" class="hint">{{ t("editor.screen_settings.screensaver.standby_off") }}</p>
+    <template v-if="screensaver.saverReady && screensaver.saver.show">
       <p class="saver-caption">{{ pictures ? t("editor.screen_settings.screensaver.lead") : t("editor.screen_settings.screensaver.no_pictures") }}</p>
       <div class="saver-list" id="screensaver-steps" role="list" :aria-label="t('editor.screen_settings.screensaver.lead')">
         <div v-for="(kind, i) in order" :key="kind" class="saver-row" role="listitem" tabindex="0" :data-kind="kind"
-          :class="{ off: !isOn(kind), opened: opened(kind), dragging: steps.drag.value.active && steps.drag.value.index === i, still: !pictures }"
-          @pointerdown="steps.down($event, i)" @click="open($event, kind)" @keydown.enter.self.prevent="openSaverStep(kind)" @keydown="steps.key($event, i)">
+          :class="{ off: !screensaver.isOn(kind), opened: opened(kind), dragging: steps.drag.value.active && steps.drag.value.index === i, still: !pictures }"
+          @pointerdown="steps.down($event, i)" @click="open($event, kind)" @keydown.enter.self.prevent="insp.openSaverStep(kind)" @keydown="steps.key($event, i)">
           <span class="saver-av" aria-hidden="true">
             <span class="mdi">{{ glyph(SAVER_ICONS[kind]) }}</span>
             <Icon v-if="pictures" name="drag-vertical" class="saver-grip" />
@@ -52,8 +58,8 @@ function open(e: MouseEvent, kind: SaverKind) {
             <b>{{ saverLabel(kind) }}</b>
             <small :class="{ missing: line(kind).missing }">{{ line(kind).text }}</small>
           </span>
-          <UiSwitch :model-value="isOn(kind)" :aria-label="t('editor.screen_settings.screensaver.use', { name: saverLabel(kind) })"
-            @update:model-value="(on: boolean) => toggleStep(kind, on)" />
+          <UiSwitch :model-value="screensaver.isOn(kind)" :aria-label="t('editor.screen_settings.screensaver.use', { name: saverLabel(kind) })"
+            @update:model-value="(on: boolean) => screensaver.toggleStep(kind, on)" />
           <Icon name="chevron-right" class="saver-chev" />
         </div>
       </div>

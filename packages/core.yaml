@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.53.0"
+  SCREEN_FIRMWARE_VERSION: "0.54.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -63,6 +63,10 @@ substitutions:
   CALIBRATION_PAINT_FILL: ""
   BOOT_CAMERA_HOOKS: ""                            # after the gesture: the camera images (features/camera.yaml)
   BOOT_CARDS_TAIL: ""                              # after the cards' hooks, before the settings page's
+  # A board's extras on the settings page (docs/SETTINGS.md, "A board's own settings"): rows a feature or the board file
+  # puts in settings_screen::board_rows. A screen without any has no Extras page.
+  BOOT_AUDIO: ""                                   # features/audio.yaml: the speaker's bus, the microphone
+  BOOT_BOARD_SETTINGS: ""                          # the board file's own
   # The screen's moments (every 250 ms, the cards closing, the settings page opening, away from page 1, an alert) are
   # lists, not substitutions (screen_hooks.h): a feature adds to them at boot, a plugin through the plugin API.
   # one more line of the ui_state diagnostics
@@ -282,6 +286,8 @@ esphome:
           effects_page::tap_limit = ${TOUCH_MOVE_LIMIT_PX};
           runtime_tiles::bind_pages();
           ${BOOT_CARDS_TAIL}
+          ${BOOT_AUDIO}
+          ${BOOT_BOARD_SETTINGS}
           plugin_host::ready();
       # The settings page the screen opens on its own (0.2.44+): the same values ESP Screen Manager
       # writes, reachable by holding the top bar. Fonts and hooks only; the page itself is built
@@ -661,6 +667,9 @@ api:
                     // with their weekday, the next 48 hours with their hour, and the wind's bearing, the air pressure,
                     // the visibility and the rain's unit.
                     features.add("weather_week");
+                    // live: a P4 that streams (live_view.h): a camera tile set to Live gets pace 0 and streams on the
+                    // glass, and ESP Screens makes Live the default for camera tiles here.
+                    if (live_view::available()) features.add("live");
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
                       if (size.fits(runtime_tiles::grid.columns, runtime_tiles::grid.rows)) sizes.add(size.name);
@@ -1020,6 +1029,7 @@ font:
       - "\U000F0D38" # speaker-multiple
       - "\U000F17DB" # soundbar
       - "\U000F02CB" # headphones
+      - "\U000F036C" # microphone
       - "\U000F067D" # piano
       - "\U000F0771" # guitar-acoustic
       - "\U000F0502" # television

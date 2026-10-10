@@ -1,4 +1,4 @@
-import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
+import { loadLayout, loadTiles, loadPages, loadTitles, appendTiles, screenFixture, documentFixture, current } from "./helpers/fixtures";
 // The editor's texts (app 0.2.90): English from en.json with the page, another language when it is needed, the plural
 // rules of the screens, and which language the page, the add-on's answers and the mockup speak.
 import { mount } from "@vue/test-utils";
@@ -9,12 +9,13 @@ import en from "../../screen_manager/translations/en.json";
 import { send } from "../src/api";
 import TileCard from "../src/components/TileCard.vue";
 import {
-  addLanguage, andList, haProfile, i18n, languageMarks, languageMeta, languages, loadLanguage, matchLanguage, numberText, pickLanguage,
+  addLanguage, andList, editorNumber, haProfile, i18n, languageMarks, languageMeta, languages, loadLanguage, matchLanguage, numberText, pickLanguage,
   PLURAL_RULES, requestedLanguage, setEditorLanguage, STYLE_MARKS, t,
 } from "../src/i18n";
 import { agoText, dateText } from "../src/model/topbar";
-import { state } from "../src/store";
 import { pageTexts, TRANSLATIONS } from "../translations";
+import { useEntitiesStore } from "../src/stores/entities";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const meta = (plural: string) => ({ name: "Test", english: "Test", script: "latin", plural, checked: false });
 // Every text of a part as [key, text]; a list's items get .0, .1, ... as in tools/i18n.py.
@@ -37,6 +38,10 @@ describe("English", () => {
     // Only shared validation errors from the add-on accompany the editor and screen mockup texts.
     expect(Object.keys(en).sort()).toEqual(["addon", "editor", "screen"]);
     expect(Object.keys((en as any).addon.errors).sort()).toEqual(['layout', 'pages', 'top_bar']);
+    // Of the add-on's words for the screens only what a favourite plays, which its card on the mockup names (Playlist).
+    expect(Object.keys((en as any).addon).sort()).toEqual(["errors", "screen"]);
+    expect(Object.keys((en as any).addon.screen)).toEqual(["media"]);
+    expect(t("addon.screen.media.playlist")).toBe("Playlist");
     expect(Object.keys((en as any).screen).sort()).toEqual(["climate", "cover", "date", "ha", "navigation", "number", "script", "tile", "time"]);
     expect(Object.keys((en as any).screen.tile)).toEqual(["page"]);
     expect(languageMeta("en")?.plural).toBe("one_other");
@@ -52,6 +57,9 @@ describe("English", () => {
       editor: { common: { close: "Sluiten", cancel: "" }, empty: {} },
     });
     expect(part).toEqual({ editor: { common: { close: "Sluiten" } }, screen: { number: { decimal: ",", group: " " }, tile: { page: "Pagina {n}" } } });
+    // What a favourite plays comes along, and nothing else of the add-on's words for the screens.
+    expect(pageTexts({ addon: { screen: { media: { playlist: "Afspeellijst", album: "" }, states: { error: "Fout" } } } }))
+      .toEqual({ addon: { screen: { media: { playlist: "Afspeellijst" } } } });
   });
   it("has a readable text for every key, and no text vue-i18n reads as something else", () => {
     for (const [key, text] of texts) {
@@ -182,14 +190,14 @@ describe("the mockup speaks the screens' language", () => {
         number: { decimal: ",", group: ".", group_min: "2" },
       },
     }, meta("one_other"));
-    state.inventory = {
+    useInventoryStore().inventory = {
       screens: [], entities: [{ id: "light.b", name: "Lamp B", state: "unavailable" }],
       // The add-on says how the screens write numbers: Automatic, worked out for their language (1.234,5).
       language: { setting: "td", effective: "td", ha: "en", languages: [], numbers: "auto", numbers_effective: "comma", group_min: 2 },
       controls: { script: { default: "run", choices: [{ key: "run", label: "Run" }, { key: "none", label: "None" }] } },
     } as any;
-    seedLayout({ title: "Living room", tiles: [] });
-    state.liveStates = {
+    loadLayout({ title: "Living room", tiles: [] });
+    useEntitiesStore().liveStates = {
       "light.c": { state: "on", word: null, a: {} },
       "weather.home": { state: "windy-variant", word: null, a: { temperature: 12.5 } },
       "binary_sensor.door": { state: "on", word: null, a: { device_class: "door" } },
@@ -233,6 +241,10 @@ describe("numbers, lists and the profile", () => {
     expect(numberText("1234.5", languageMarks("en"))).toBe("1,234.5");
     addLanguage("ti", { screen: { number: { decimal: ",", group: ".", group_min: "2" } } }, meta("one_other"));
     expect(["1234.5", "12345.5"].map((n) => numberText(n, languageMarks("ti")))).toEqual(["1234,5", "12.345,5"]);
+    // The editor's own numbers (a plugin's kilobytes, a board's inches) in the editor's language.
+    expect(editorNumber("1234.5")).toBe("1,234.5");
+    i18n.global.locale.value = "ti";
+    expect([editorNumber(12345.5), editorNumber(4.3)]).toEqual(["12.345,5", "4,3"]);
   });
   it("writes a list the way the language does, the English one without a comma before and", () => {
     expect(andList([1, 2, 3])).toBe("1, 2 and 3");

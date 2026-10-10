@@ -6,8 +6,10 @@
 import { t } from "../i18n";
 import { text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import { labelOf, stageOf, type Status } from "../plugin-state";
 import Icon from "./ui/Icon.vue";
+import { usePluginsStore, type Status } from "../stores/plugins";
+
+const plugins = usePluginsStore();
 
 defineProps<{ plugin: Plugin; status: Status; chosen: boolean; staged?: boolean | null }>();
 defineEmits<{ open: []; add: [] }>();
@@ -27,8 +29,10 @@ defineEmits<{ open: []; add: [] }>();
     </button>
     <span v-if="text(plugin.summary)" class="plugin-summary">{{ text(plugin.summary) }}</span>
     <span class="plugin-foot">
-      <em class="plugin-chip" :class="labelOf(plugin)">{{ t(`editor.plugins.label.${labelOf(plugin)}`) }}</em>
-      <em v-if="stageOf(plugin)" class="plugin-chip" :class="stageOf(plugin)" :title="t(`editor.plugins.stage_hint.${stageOf(plugin)}`)">{{ t(`editor.plugins.stage.${stageOf(plugin)}`) }}</em>
+      <em class="plugin-chip" :class="plugins.labelOf(plugin)">{{ t(`editor.plugins.label.${plugins.labelOf(plugin)}`) }}</em>
+      <em v-if="plugins.stageOf(plugin)" class="plugin-chip" :class="plugins.stageOf(plugin)" :title="t(`editor.plugins.stage_hint.${plugins.stageOf(plugin)}`)">{{ t(`editor.plugins.stage.${plugins.stageOf(plugin)}`) }}</em>
+      <span v-if="plugin.likes" class="plugin-likes" :class="{ mine: plugin.liked }" :title="t('editor.plugins.likes.count', { n: plugin.likes }, plugin.likes)">
+        <Icon :name="plugin.liked ? 'heart' : 'heart-outline'" />{{ plugin.likes }}</span>
       <span v-if="status.label" class="plugin-state" :class="status.kind">
         <Icon v-if="status.kind === 'installed'" name="check" />
         <Icon v-else-if="status.kind === 'update'" name="update" />

@@ -3,18 +3,22 @@
 import { computed, ref, watch } from 'vue';
 import { t } from '../i18n';
 import { titleOf } from '../model/pages';
-import { copyPageBars, state } from '../store';
 import CheckRow from './ui/CheckRow.vue';
 import Icon from './ui/Icon.vue';
 import Section from './ui/Section.vue';
 import UiSelect from './ui/UiSelect.vue';
+import { useTopbarStore } from "../stores/topbar";
+import { useDocumentStore } from "../stores/document";
+
+const topbar = useTopbarStore();
+const doc = useDocumentStore();
 const props = defineProps<{ pageId: string }>();
 const source = ref(props.pageId), targets = ref<string[]>([]), whole = ref('items');
 watch(() => props.pageId, (id) => { source.value = id; targets.value = []; });
 watch(source, (id) => { targets.value = id === props.pageId ? [] : [props.pageId]; });
-const pages = computed(() => state.document!.pages.map((page, index) => [page.id, `${index + 1} · ${titleOf(state.document!, page)}`] as [string, string]));
+const pages = computed(() => doc.document!.pages.map((page, index) => [page.id, `${index + 1} · ${titleOf(doc.document!, page)}`] as [string, string]));
 const toggle = (id: string) => { targets.value = targets.value.includes(id) ? targets.value.filter((item) => item !== id) : [...targets.value, id]; };
-function copy() { if (copyPageBars(source.value, targets.value, whole.value === 'whole')) targets.value = []; }
+function copy() { if (topbar.copyPageBars(source.value, targets.value, whole.value === 'whole')) targets.value = []; }
 </script>
 <template>
   <Section class="copy-bar" foldable :title="t('editor.pages.copy_bar')" icon="content-copy">

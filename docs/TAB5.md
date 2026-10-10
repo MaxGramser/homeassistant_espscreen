@@ -48,9 +48,44 @@ After flashing, confirm that the screen boots, has a stable picture with correct
 and across the surface, changes pages, pairs with Home Assistant, and remains working after a restart and a cold start.
 Check the USB log and report the firmware and board variant with the results.
 
+## Speaker and microphones
+
+The speaker (an ES8388) and the two microphones (an ES7210) are the screen's audio through `features/audio.yaml`: a
+media player in Home Assistant for announcements, text to speech and music, a **Volume** and a **Microphone** setting
+under Extras (on the screen and in Screen settings), and the speaker and microphone that plugins use, such as the voice
+assistant and Tap sound. As ESPHome's own Tab5 configuration does, both codecs share one I2S bus, which ESPHome lets
+them take in turns, so the board sets `AUDIO_HALF_DUPLEX`: the speaker lets go of the bus after a sound, the amplifier
+(SPK_EN on the first I/O expander) is on only while sound plays, and the microphone lets go of the bus whenever the
+speaker wants it, for any sound, and listens again after.
+The volume runs evenly in decibels from -45 dB to the ES8388's full scale.
+
+## Camera
+
+The 2 MP camera on the MIPI-CSI port answers on the system I2C bus and takes its 24 MHz clock from GPIO36, as M5Stack's
+own firmware drives it. The camera's driver makes that clock with LEDC timer 0 and channel 0, so the backlight's PWM
+stands on channel 2 (timer 1): on one timer, the backlight and the camera would undo each other. The board takes the
+sensor out of reset at start (CAM_RST, pin 6 of the first I/O expander, active low); with that pin loose, the sensor
+does not answer on its bus and the USB log says "Get sensor ID failed". The board states both (`CAMERA_I2C`, `CAMERA_XCLK_PIN`, the feature `camera_sensor`), and the
+Screen camera plugin makes it a camera of the screen's device in Home Assistant.
+
+## Built, not yet heard or seen
+
+The audio and the camera are built for this board on the `dev` branch but have not run on a Tab5 yet. To try them,
+install the app from the `#dev` repository URL (docs/RELEASING.md, "Testing dev"), update the screen, and add the
+plugins. Then report:
+
+1. an announcement or text to speech from Home Assistant on the screen's media player, at a few volumes;
+2. the Volume and Microphone rows under Extras, on the screen and in Screen settings;
+3. with the Voice assistant plugin: the wake word, a question and its spoken answer;
+4. with the Screen camera plugin: a picture and the live view in Home Assistant, and the camera in the top bar;
+5. the USB log of the first start, which says whether the camera's sensor was found.
+
 ## Hardware references
 
 - [M5Stack Tab5 product page](https://shop.m5stack.com/products/m5stack-tab5-iot-development-kit-esp32-p4)
 - [ESPHome MIPI-DSI display](https://esphome.io/components/display/mipi_dsi/)
 - [ESPHome ST7123 touchscreen](https://esphome.io/components/touchscreen/st7123/)
 - [Community ESPHome configuration](https://github.com/Axellum/M5-Tab5-ESPHome-LVGL)
+- [ESPHome's Tab5 configuration](https://devices.esphome.io/devices/m5stack-tab5) (the audio pins and codecs)
+- [M5Stack's Tab5 BSP](https://github.com/m5stack/M5Tab5-UserDemo) (`m5stack_tab5.h`, `m5stack_tab5.c`: the I2S pins and
+  the camera's clock)

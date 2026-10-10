@@ -1,5 +1,7 @@
 # Adding a board
 
+To request a board, search [New boards on the wishlist](https://tessera-maxgramser.on-forge.com/wishlist?category=board) and upvote an existing request or add one. This guide is for implementing board support. Link that wish in your pull request to `dev`.
+
 The recipe, in the order the work actually goes: the hardware is looked up, the layout is computed, and only the
 grid is a choice. `docs/RESPONSIVE.md` says why the layout works the way it does.
 
@@ -50,6 +52,12 @@ buffer lives in the memory inside the chip, next to Wi-Fi, the API and the panel
 800 × 480 is 192 KB of it. The Waveshare 4.3 ran on 15 KB free that way and hung under a large layout; at 12 % it
 boots with 112 KB. Read `sensor.<screen>_heap_free` after the first boot with a full layout: under 40 KB is too
 little.
+
+ESPHome rounds the share to a whole fraction of the screen: an eighth below 19 %, a quarter up to 37.5 %, a half up to
+75 % and the whole screen above that. An eighth or a quarter goes inside the chip when a block that size is free there,
+and into PSRAM when it is not; a half or more always goes into PSRAM. So 8 % and 12 % are the same eighth, which is
+96 KB on 800 × 480 but 154 KB on 1024 × 600. On glass that large, a quarter (307 KB) never fits inside the chip and
+always lands in PSRAM, which keeps the inside free for the rest (the Waveshare 7B).
 
 ## 4. The layout: two grids, and sizes the look works out
 
@@ -161,6 +169,20 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
 - A battery: a sensor in the `battery` device class (and a `battery_charging` binary sensor when the board can tell)
   in its hardware file, which the firmware finds and the top bar shows. `packages/features/battery-voltage.yaml` and
   `battery-adc.yaml` turn a voltage on a pin into one (docs/BATTERY.md).
+- A speaker and microphones: `packages/features/audio.yaml`, with the board's I2S buses, DAC and ADC in its own file,
+  and how its DAC turns ESPHome's volume into decibels (`AUDIO_DAC_DB_AT_0`, `AUDIO_DAC_DB_AT_1`, from the codec's
+  datasheet or ESPHome's driver), so 0 to 100 % runs evenly in decibels up to the DAC's full scale. A board whose
+  microphone and speaker share one I2S bus sets `AUDIO_HALF_DUPLEX` and `AUDIO_MIC_BUS` and includes
+  `features/audio-half-duplex.yaml` (the microphone lets the speaker have the bus for every sound), and
+  `features/audio-amplifier.yaml` for an amplifier that follows the sound (the Waveshare P4 86 panel, the M5Stack Tab5).
+  A camera clocked from a pin takes LEDC timer 0 and channel 0: give the board's own PWM outputs another channel. The screen is then a media player in
+  Home Assistant, and plugins that need a speaker or a microphone fit it.
+- Settings of its own, for hardware the other boards do not have (a volume, a microphone switch, waking when the board
+  is moved): an ESPHome entity in its files, a row on the screen through `BOOT_BOARD_SETTINGS`, words in the
+  translations and the key in its `boards.yaml` entry. They show under Extras on the screen, in the app's Screen
+  settings and in Home Assistant, all three the same entity (docs/SETTINGS.md, "A board's own settings").
+- A camera on the MIPI-CSI port: the board powers the sensor at start and names its I2C bus in `CAMERA_I2C` (the
+  feature `camera_sensor`); the Screen camera plugin drives it.
 - The docs: `docs/<BOARD>.md` for what is particular to it and what has been tried on glass, the board table in
   README.md and docs/EASY_SETUP.md, and the boards and tile counts in README_EXTENDED.md.
 

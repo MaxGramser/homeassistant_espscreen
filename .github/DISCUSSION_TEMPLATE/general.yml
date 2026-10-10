@@ -1,0 +1,18 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## This GitHub discussion will not be reviewed
+        **Only bug reports in GitHub Issues are reviewed here.** Feature requests, improvements, board requests, questions and general discussions must be posted on the Tessera website.
+        [Ask a question or start a conversation in Community](https://tessera-maxgramser.on-forge.com/community).
+        [Request a feature or improvement on the wishlist](https://tessera-maxgramser.on-forge.com/wishlist), or [request a new ESP board or display](https://tessera-maxgramser.on-forge.com/wishlist?category=board).
+        Search first and upvote an existing wish. More votes help decide what gets built. Sign in with GitHub to post, vote or reply.
+        Existing GitHub threads link to their new home, including their earlier replies. Please continue there so the conversation stays in one place.
+  - type: input
+    id: website-thread
+    attributes:
+      label: Website conversation (this GitHub post will not be reviewed)
+      description: Post only on the website. Adding a link here does not submit a request or bring it to the review queue. GitHub Issues are for bugs; pull requests are for code changes.
+      placeholder: https://tessera-maxgramser.on-forge.com/community/...
+    validations:
+      required: true

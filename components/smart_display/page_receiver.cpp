@@ -22,6 +22,7 @@ static bool parse_bar_item(JsonVariant value, header_bar::Item &item) {
     // while it runs low (firmware 0.41.0).
     item.only_weak = (item.kind == header_bar::Kind::wifi || item.kind == header_bar::Kind::battery) &&
                      value["a"].is<unsigned>() && value["a"].as<unsigned>() == 1;
+    item.icon_only = item.kind == header_bar::Kind::plugin && value["o"].is<unsigned>() && value["o"].as<unsigned>() == 1;
     if (item.kind == header_bar::Kind::ago && item.epoch == 0) return false;
     // A plugin's item names itself: plugin:<plugin>.<item> (docs/PLUGINS.md).
     if (item.kind == header_bar::Kind::plugin && !plugin_key(item.text)) return false;
@@ -658,9 +659,11 @@ std::string receive(const std::string &payload) {
     tile.display = string(options["display"]); if (tile.display.empty()) tile.display="standard";
     // How far a lock's tile may go (firmware 0.5.0+): "confirm" unlocks after a second tap, "lock_only" never unlocks.
     tile.guard = string(options["guard"], 16); if (tile.guard.empty()) tile.guard="confirm";
-    // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the default.
-    const int refresh = options["refresh"].is<int>() ? options["refresh"].as<int>() : 0;
-    tile.refresh = refresh >= 5 && refresh <= 3600 ? refresh : 15;
+    // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the
+    // default. 0 is Live (firmware dev, live_view.h): a camera that streams on its tile, which only a screen whose hello
+    // says `live` is sent. Firmware before it read 0 as 15.
+    const int refresh = options["refresh"].is<int>() ? options["refresh"].as<int>() : 15;
+    tile.refresh = refresh == 0 || (refresh >= 5 && refresh <= 3600) ? refresh : 15;
     tile.overlay = string(options["overlay"], 8) != "none";
     tile.energy_lines = string(options["flow"], 8) == "lines";
     tile.inline_control = string(options["inline"]); if (tile.inline_control.empty()) tile.inline_control="none";
