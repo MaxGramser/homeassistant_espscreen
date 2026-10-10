@@ -26,6 +26,7 @@ from core import SCREENSAVER_MIN_FIRMWARE, media_extras, short, validate_layout 
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
+    import camera_feed
     from server import Manager
 
 PLAYER, CAMERA = 'media_player.living_room', 'camera.front_door'
@@ -93,6 +94,27 @@ class Choice(unittest.TestCase):
             path = Path(tmp) / 'screensavers.json'
             path.write_text(json.dumps({'version': 1, 'screens': {'d1': {key: CHOICE[key] for key in CHOICE if key != 'more'}}}))
             self.assertEqual(screen_saver.ScreenSavers(path).get('d1'), CHOICE)
+
+    def test_a_player_whose_cover_does_not_come_gives_way(self):
+        """GitHub #229: a player that plays with an `entity_picture` the app cannot fetch (an HTTP error, the string
+        `none`) is passed over, so the screen shows the next step instead of a black glass where no cover comes."""
+        tv = 'media_player.apple_tv'
+        poster = {'state': 'playing', 'attributes': {'friendly_name': 'Apple TV', 'entity_picture': '/api/media_player_proxy/tv?cache=2'}}
+        states = {PLAYER: PLAYING, CAMERA: DOOR}
+        self.assertEqual(screen_saver.pick(CHOICE, states, True, broken={PLAYER}), 'camera')
+        self.assertEqual(screen_saver.pick({**CHOICE, 'camera': ''}, states, True, broken={PLAYER}), 'clock')
+        said = screen_saver.message(CHOICE, states, True, short, media_extras, broken={PLAYER})
+        self.assertEqual((said['k'], said['e']), ('camera', CAMERA))
+        # With more players the next one that plays with a cover shows.
+        choice = {**CHOICE, 'more': [tv]}
+        both = {**states, tv: poster}
+        self.assertEqual(screen_saver.message(choice, both, True, short, media_extras, broken={PLAYER})['e'], tv)
+        # On a screen with keys a paused player whose cover does not come counts no more than one that plays, also the
+        # one on the glass.
+        now = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc).timestamp()
+        paused = {**states, PLAYER: {**PLAYING, 'state': 'paused', 'last_changed': '2026-10-10T11:59:30+00:00'}}
+        self.assertEqual(screen_saver.pick(CHOICE, paused, True, keys=True, now=now, held=PLAYER), 'media')
+        self.assertEqual(screen_saver.pick(CHOICE, paused, True, keys=True, now=now, held=PLAYER, broken={PLAYER}), 'camera')
 
     def test_a_screen_with_keys_keeps_a_paused_player_for_a_while(self):
         """App 0.4.55, firmware 0.33.0: the screensaver has play or pause and the volume, so a player paused there still
@@ -366,6 +388,99 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
             m.savers.set('d1', {})
             await m.sync_saver('text.d1_tiles', screen)
             self.assertEqual(len(sent), count)
+
+    async def test_a_cover_that_does_not_come_gives_the_glass_to_the_next_step(self):
+        """GitHub #229: the cover cannot be fetched, the screen hears there is none and then the next step; a word whose
+        answer timed out is sent again, also when it equals the word before it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = self.ha('0.54.0')
+            m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
+            seed_layout(m, 'text.d1_tiles', validate_layout({'title': 'Hall', 'tiles': [{'entity': 'light.hall', 'name': 'Hall'}]}))
+            sent, refuse = [], []
+
+            class Sender:
+                protocol, session, confirmed, features = 2, 'S1', 'R1', {screen_saver.FEATURE}
+
+                async def auxiliary(self, message, *, session, revision):
+                    if refuse:
+                        refuse.pop()
+                        raise TimeoutError
+                    sent.append(dict(message))
+                    return True
+            m.page_senders['text.d1_tiles'] = Sender()
+            screen = m.screen('text.d1_tiles')
+            m.savers.set('d1', {**CHOICE, 'camera': ''})
+            clock = [100.0]
+            fetched = []
+
+            async def failing(entity):
+                fetched.append(entity)
+                raise RuntimeError('404')
+            pictures = {PLAYER: '/api/media_player_proxy/x?cache=1'}
+            m.camera.fetch_cover, m.camera.picture, m.camera.clock = failing, lambda e: pictures.get(e, ''), lambda: clock[0]
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(sent[-1]['k'], 'media', 'nothing is known of the cover yet: the player counts')
+            # The screen asks for the picture; the cover fails, so it hears there is none, and the next pass the clock.
+            answers = []
+
+            async def send_auxiliary(inbox, message, action, request):
+                answers.append(message)
+            m.send_auxiliary = send_auxiliary
+            m.transport = lambda inbox, screen: 'esphome.d1_tiles'
+
+            async def base_url(request):
+                return 'http://addon:8098'
+            original = camera_feed.base_url
+            camera_feed.base_url = base_url
+            try:
+                ha.changed.clear()
+                ha.request = None
+                screen['online'] = True
+                await m.answer_saver('text.d1_tiles', screen, {'saver': 'media', 'entity': PLAYER})
+            finally:
+                camera_feed.base_url = original
+            self.assertEqual(answers[-1]['u'], '')
+            self.assertTrue(ha.changed.is_set(), 'a pass right away')
+            self.assertTrue(m.camera.cover_broken(PLAYER))
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(sent[-1]['k'], 'clock')
+            # The app tries the cover again by itself, not before COVER_RETRY_SECONDS.
+            count = len(fetched)
+            await m.sync_saver('text.d1_tiles', screen)
+            await asyncio.sleep(0)
+            self.assertEqual(len(fetched), count)
+            clock[0] += camera_feed.COVER_RETRY_SECONDS
+
+            async def working(entity):
+                fetched.append(entity)
+                return b'cover'
+            m.camera.fetch_cover = working
+            self.assertTrue(m.camera.cover_broken(PLAYER), 'still on its way')
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            self.assertFalse(m.camera.cover_broken(PLAYER), 'it came')
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(sent[-1]['k'], 'media')
+            # A new track is another picture, which counts at once even after a failure.
+            m.camera.fetch_cover = failing
+            pictures[PLAYER] = '/api/media_player_proxy/x?cache=2'
+            await m.camera.fetch_cover_one(PLAYER, m.camera.watch(PLAYER), pictures[PLAYER])
+            self.assertTrue(m.camera.cover_broken(PLAYER))
+            pictures[PLAYER] = '/api/media_player_proxy/x?cache=3'
+            self.assertFalse(m.camera.cover_broken(PLAYER))
+            # The word whose answer timed out: clock, then media (timed out, yet it may have reached the screen), then
+            # clock again, which goes out although it equals the last word delivered.
+            ha.states[PLAYER] = {**PLAYING, 'state': 'idle'}
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(sent[-1]['k'], 'clock')
+            ha.states[PLAYER] = PLAYING
+            refuse.append(True)
+            count = len(sent)
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual(len(sent), count)
+            ha.states[PLAYER] = {**PLAYING, 'state': 'idle'}
+            await m.sync_saver('text.d1_tiles', screen)
+            self.assertEqual((len(sent), sent[-1]['k']), (count + 1, 'clock'))
 
     async def test_the_editor_sees_the_choice_and_what_the_screen_can(self):
         with tempfile.TemporaryDirectory() as tmp:
