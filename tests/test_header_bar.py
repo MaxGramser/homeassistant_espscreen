@@ -279,11 +279,12 @@ class MessageTests(unittest.TestCase):
             self.assertIn(f'"{glyph}"', EDITOR)
 
     def test_a_board_with_a_battery_says_so(self):
-        # boards.json `battery` (profiles.battery): a board file with a sensor in the battery device class. Today the Tab5.
+        # boards.json `battery` (profiles.battery): a board file with a sensor in the battery device class. Today the Tab5
+        # and the reTerminal D1001.
         shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
         with_battery = sorted(entry for entry, shape in shapes.items() if shape.get('battery'))
         self.assertTrue(with_battery)
-        self.assertTrue(all('tab5' in entry for entry in with_battery), with_battery)
+        self.assertTrue(all('tab5' in entry or 'reterminald1001' in entry for entry in with_battery), with_battery)
         glyphs = re.search(r'WIFI_GLYPHS\[5\] = \{WIFI_OFF_GLYPH, (0x\w+), (0x\w+), (0x\w+), (0x\w+)\}', FIRMWARE).groups()
         self.assertIn('export const WIFI_GLYPHS = ["F092E", ' + ', '.join(f'"{g[2:].upper()}"' for g in glyphs) + ']', EDITOR)
         self.assertIn('constexpr uint32_t WIFI_OFF_GLYPH = 0xF092E;', FIRMWARE)

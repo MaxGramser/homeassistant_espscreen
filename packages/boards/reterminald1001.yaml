@@ -282,7 +282,7 @@ script:
           condition:
             lambda: 'return id(board_wake_when_moved).state && id(display_dimmed);'
           then:
-            - logger.log: "Board moved: waking the screen"
+            - lambda: 'ESP_LOGI("board", "moved: waking the screen");'
             - button.press: wake_button
       - delay: 2s
 
