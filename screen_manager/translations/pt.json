@@ -155,6 +155,9 @@
       "night": "Noite",
       "screen": "Ecrã",
       "this_screen": "Este ecrã",
+      "extras": "Extras",
+      "microphone": "Microfone",
+      "wake_when_moved": "Acordar ao mover",
       "dark_mode": "Modo escuro",
       "auto_standby": "Espera automática",
       "standby_after": "Espera após",
@@ -861,6 +864,9 @@
         "like_consent": "Aceite primeiro que o seu gosto conte num número público.",
         "like_off": "Os gostos estão desligados: uma versão mais recente da app gere-os.",
         "like_failed": "O gosto não foi enviado. Tente de novo daqui a pouco."
+      },
+      "extras": {
+        "request": "Esta alteração de um extra não é possível neste ecrã."
       }
     },
     "status": {
@@ -1033,6 +1039,16 @@
         "battery_shows": {
           "always": "Sempre",
           "low": "Só quando fraca"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microfone",
+          "hint": "Desligado silencia o microfone para tudo o que escuta. O ecrã guarda-o depois de reiniciar."
+        },
+        "wake_when_moved": {
+          "label": "Acordar ao mover",
+          "hint": "O ecrã sai do modo de espera quando alguém o pega, move ou bate nele. Sente o próprio ecrã, não alguém que passa."
         }
       }
     },
@@ -2536,6 +2552,10 @@
       "plugins": {
         "title": "Plugins",
         "note": "As definições de cada plugin estão nos detalhes, no separador Plugins."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Definições que só este ecrã tem, da sua placa. Os mesmos interruptores estão na página de definições do próprio ecrã e no Home Assistant."
       }
     },
     "update": {

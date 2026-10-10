@@ -155,6 +155,9 @@
       "night": "Noc",
       "screen": "Ekran",
       "this_screen": "Ten ekran",
+      "extras": "Dodatki",
+      "microphone": "Mikrofon",
+      "wake_when_moved": "Wybudź przy ruchu",
       "dark_mode": "Tryb ciemny",
       "auto_standby": "Auto czuwanie",
       "standby_after": "Czuwanie po",
@@ -861,6 +864,9 @@
         "like_consent": "Najpierw zgódź się, aby polubienie liczyło się w publicznej liczbie.",
         "like_off": "Polubienia są wyłączone: obsługuje je nowsza wersja aplikacji.",
         "like_failed": "Polubienie nie zostało wysłane. Spróbuj za chwilę."
+      },
+      "extras": {
+        "request": "Tej zmiany dodatku nie można wprowadzić na tym ekranie."
       }
     },
     "status": {
@@ -1033,6 +1039,16 @@
         "battery_shows": {
           "always": "Zawsze",
           "low": "Tylko gdy słaba"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Mikrofon",
+          "hint": "Wyłączony wycisza mikrofon dla wszystkiego, co słucha. Ekran pamięta to po ponownym uruchomieniu."
+        },
+        "wake_when_moved": {
+          "label": "Wybudź przy ruchu",
+          "hint": "Ekran wybudza się ze stanu czuwania, gdy ktoś go podniesie, przesunie lub w niego stuknie. Czuje sam ekran, nie kogoś, kto przechodzi obok."
         }
       }
     },
@@ -2536,6 +2552,10 @@
       "plugins": {
         "title": "Wtyczki",
         "note": "Ustawienia każdej wtyczki są w jej szczegółach na karcie Wtyczki."
+      },
+      "extras": {
+        "title": "Dodatki",
+        "note": "Ustawienia, które ma tylko ten ekran, z jego płytki. Te same przełączniki są na stronie ustawień samego ekranu i w Home Assistant."
       }
     },
     "update": {

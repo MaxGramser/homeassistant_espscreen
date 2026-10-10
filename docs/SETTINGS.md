@@ -219,3 +219,56 @@ shared number from `tools/affected_boards.py` in `packages/core.yaml` and `FIRMW
 and the CHANGELOG. `settings_screen.h` is part of the firmware preview's sources, so the preview is rebuilt
 (`sh web/wasm/build.sh`, or `.github/workflows/preview.yml` on the branch). The user docs that list the settings follow:
 the tables at the top of this page, README_EXTENDED.md and docs/EASY_SETUP.md.
+
+## A board's own settings
+
+Some boards have something the others do not: a microphone, a motion sensor, a relay. A setting for it belongs to that
+board, not to every screen, so it does not go into the table above. It is an ESPHome entity of the board's files (a
+`switch`, `number`, `select`, `text` or `button`), and Tessera shows it in three places at once:
+
+- **Home Assistant**, as every entity of the screen's device;
+- **the screen**, on its settings page under **Extras**, a page that only a screen with such a setting has;
+- **the editor**, under Screen settings in an **Extras** card.
+
+All three show and change the same entity, so there is no second copy of the value to keep in step.
+
+### Adding one
+
+1. **The entity.** In the board file, or in a feature file when every board with that hardware has it (the microphone
+   is in `packages/features/audio.yaml`). A template switch that keeps its state over a restart, with
+   `entity_category: config`:
+
+   ```yaml
+   switch:
+     - platform: template
+       id: board_wake_when_moved
+       name: "Wake when moved"
+       entity_category: config
+       optimistic: true
+       restore_mode: RESTORE_DEFAULT_OFF
+   ```
+
+2. **The row on the screen.** A row in `settings_screen::board_rows`, through the file's own hook in `packages/core.yaml`
+   (`BOOT_BOARD_SETTINGS` for the board file, `BOOT_AUDIO_SETTINGS` for the audio feature; empty for every other
+   board), built with the same builders as the core's rows and bound to the entity:
+
+   ```yaml
+   substitutions:
+     BOOT_BOARD_SETTINGS: |-
+       settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_wake_when_moved,
+           []() -> int32_t { return id(board_wake_when_moved).state ? 1 : 0; },
+           [](int32_t on) { if (on) id(board_wake_when_moved).turn_on(); else id(board_wake_when_moved).turn_off(); }));
+   ```
+
+3. **The words.** The row's label in the `screen` section of every translation (`screen.settings.<key>`, then
+   `tools/i18n.py header`), and the editor's label and a one-line hint under `addon.labels.extras.<key>`.
+
+4. **The list.** The setting's key in the board's entry in `boards.yaml`, `settings: [microphone, wake_when_moved]`, in
+   the order the editor shows them. The key is the entity's name as ESPHome writes it in an id ("Wake when moved" is
+   `wake_when_moved`); `tools/generate_board_shapes.py` stops when no entity of the board's files has that name, and
+   writes the list into `boards.json`.
+
+The app finds the entity in Home Assistant's entity registry by that name on the screen's own device
+(`screen_manager/app/entity_settings.py`, the same code a plugin's settings use), and changes only an entity the board
+lists (`/api/screens/<inbox>/extras`). `tests/test_board_extras.py` holds the list, the entity, the screen's row and the
+words together.

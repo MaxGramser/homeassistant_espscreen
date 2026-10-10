@@ -63,6 +63,10 @@ substitutions:
   CALIBRATION_PAINT_FILL: ""
   BOOT_CAMERA_HOOKS: ""                            # after the gesture: the camera images (features/camera.yaml)
   BOOT_CARDS_TAIL: ""                              # after the cards' hooks, before the settings page's
+  # A board's extras on the settings page (docs/SETTINGS.md, "A board's own settings"): rows a feature or the board file
+  # puts in settings_screen::board_rows. A screen without any has no Extras page.
+  BOOT_AUDIO_SETTINGS: ""                          # features/audio.yaml: the microphone
+  BOOT_BOARD_SETTINGS: ""                          # the board file's own
   # The screen's moments (every 250 ms, the cards closing, the settings page opening, away from page 1, an alert) are
   # lists, not substitutions (screen_hooks.h): a feature adds to them at boot, a plugin through the plugin API.
   # one more line of the ui_state diagnostics
@@ -282,6 +286,8 @@ esphome:
           effects_page::tap_limit = ${TOUCH_MOVE_LIMIT_PX};
           runtime_tiles::bind_pages();
           ${BOOT_CARDS_TAIL}
+          ${BOOT_AUDIO_SETTINGS}
+          ${BOOT_BOARD_SETTINGS}
           plugin_host::ready();
       # The settings page the screen opens on its own (0.2.44+): the same values ESP Screen Manager
       # writes, reachable by holding the top bar. Fonts and hooks only; the page itself is built

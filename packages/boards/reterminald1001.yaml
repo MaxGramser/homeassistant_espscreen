@@ -79,6 +79,12 @@ substitutions:
   AUDIO_DOUT_PIN: GPIO30
   AUDIO_DIN_PIN: GPIO26
 
+  # This board's own row on the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings").
+  BOOT_BOARD_SETTINGS: |-
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_wake_when_moved,
+        []() -> int32_t { return id(board_wake_when_moved).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(board_wake_when_moved).turn_on(); else id(board_wake_when_moved).turn_off(); }));
+
 # ============================================================
 # No need to edit below this line.
 # ============================================================
@@ -114,6 +120,16 @@ xl9535:
     i2c_id: board_bus
 
 switch:
+  # Wake when moved: the motion sensor wakes the screen from standby when the board is picked up, moved or knocked.
+  # It feels the board itself, not someone walking past. Off at first, kept over a restart; the same switch in Home
+  # Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
+  - platform: template
+    id: board_wake_when_moved
+    name: "Wake when moved"
+    icon: "mdi:gesture-swipe"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
   # Pin 10 (BSP line 8) holds the board's 3.3 V on: on the battery, the board turns itself off without it.
   - platform: gpio
     id: board_power_hold
@@ -214,13 +230,14 @@ audio_dac:
     bits_per_sample: 16bit
     use_mclk: true
 
-# The LSM6DS3TR-C motion sensor, read once a minute for the temperature it measures on its own chip (warmer than the
-# room the board stands in: it shows how warm the board runs).
+# The LSM6DS3TR-C motion sensor, four times a second: a change of its acceleration means the board moved (Wake when
+# moved), and the temperature it measures on its own chip, averaged over a minute, is warmer than the room the board
+# stands in: it shows how warm the board runs.
 motion:
   - platform: lsm6ds
     id: board_motion
     i2c_id: board_bus
-    update_interval: 60s
+    update_interval: 250ms
 
 sensor:
   - platform: lsm6ds
@@ -229,6 +246,45 @@ sensor:
     name: "Board Temperature"
     entity_category: diagnostic
     accuracy_decimals: 1
+    filters:
+      - throttle_average: 60s
+  # Each axis tells board_moved when it changed by more than about a tenth of gravity since the last reading; none of
+  # them is ever published.
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_x
+    id: board_acceleration_x
+    internal: true
+    filters:
+      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_y
+    id: board_acceleration_y
+    internal: true
+    filters:
+      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_z
+    id: board_acceleration_z
+    internal: true
+    filters:
+      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+
+# The board moved: wake the screen the way Home Assistant's Wake button does, when Wake when moved is on and the screen
+# is in standby; once in two seconds at most.
+script:
+  - id: board_moved
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return id(board_wake_when_moved).state && id(display_dimmed);'
+          then:
+            - logger.log: "Board moved: waking the screen"
+            - button.press: wake_button
+      - delay: 2s
 
 # The PCF8563 clock keeps the time while the board is off or Home Assistant away: read at the start, so a clock shows
 # the time before Home Assistant has given it, and written once an hour from Home Assistant's time.

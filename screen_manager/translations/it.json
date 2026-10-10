@@ -155,6 +155,9 @@
       "night": "Notte",
       "screen": "Schermo",
       "this_screen": "Questo schermo",
+      "extras": "Extra",
+      "microphone": "Microfono",
+      "wake_when_moved": "Riattiva se mosso",
       "dark_mode": "Modalità scura",
       "auto_standby": "Standby automatico",
       "standby_after": "Standby dopo",
@@ -861,6 +864,9 @@
         "like_consent": "Accetta prima che il tuo mi piace conti in un numero pubblico.",
         "like_off": "I mi piace sono disattivati: li gestisce una versione più recente dell'app.",
         "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo."
+      },
+      "extras": {
+        "request": "Questa modifica di un extra non è possibile su questo schermo."
       }
     },
     "status": {
@@ -1033,6 +1039,16 @@
         "battery_shows": {
           "always": "Sempre",
           "low": "Solo se scarica"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microfono",
+          "hint": "Spento silenzia il microfono per tutto ciò che ascolta. Lo schermo lo ricorda dopo un riavvio."
+        },
+        "wake_when_moved": {
+          "label": "Riattiva se mosso",
+          "hint": "Lo schermo esce dallo standby quando qualcuno lo prende, lo sposta o lo urta. Sente lo schermo stesso, non chi passa."
         }
       }
     },
@@ -2536,6 +2552,10 @@
       "plugins": {
         "title": "Plugin",
         "note": "Le impostazioni di ogni plugin sono nei suoi dettagli, nella scheda Plugin."
+      },
+      "extras": {
+        "title": "Extra",
+        "note": "Impostazioni che ha solo questo schermo, dalla sua scheda. Gli stessi interruttori sono nella pagina impostazioni dello schermo e in Home Assistant."
       }
     },
     "update": {

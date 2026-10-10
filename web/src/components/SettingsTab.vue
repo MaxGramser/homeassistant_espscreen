@@ -7,6 +7,7 @@ import { glyph } from "../model/topbar";
 import FeedbackPanel from "./FeedbackPanel.vue";
 import ScreensaverCard from "./ScreensaverCard.vue";
 import Icon from "./ui/Icon.vue";
+import PluginSettings from "./PluginSettings.vue";
 import { installedOn, openPluginOn, plugins, testsOn } from "../plugin-state";
 import { text } from "../model/plugins";
 import {
@@ -16,6 +17,8 @@ import {
 
 const view = computed(() => settingsView());
 // The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).
+// The settings the screen's board lists (boards.yaml `settings`, in its shape's catalog): its Extras card.
+const boardExtras = computed(() => Boolean(currentScreen.value?.shape?.catalog?.settings?.length));
 const pluginsWithSettings = computed(() => {
   const screen = currentScreen.value;
   if (!screen || screen.virtual) return [];
@@ -116,6 +119,13 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
       <!-- The screensaver (app 0.4.48) goes with standby, so it stands right after the group that turns standby on. -->
       <ScreensaverCard v-if="group.group === 'brightness'" />
       </template>
+      <!-- The board's extras (docs/SETTINGS.md, "A board's own settings"): what only this board has, the same switches as
+           on the screen's own settings page under Extras and in Home Assistant. -->
+      <section v-if="boardExtras" class="set-card" id="settings-extras">
+        <h4><span class="mdi">{{ glyph("F0493") }}</span>{{ t("editor.screen_settings.extras.title") }}</h4>
+        <p class="hint">{{ t("editor.screen_settings.extras.note") }}</p>
+        <PluginSettings extras />
+      </section>
       <!-- This screen: the group the screen's own page keeps its actions in. Only what this screen can do shows up,
            so a capacitive panel has no card here at all. -->
       <!-- The plugins' own settings (docs/PLUGINS.md) are in each plugin's details on the Plugins tab; this says where. -->

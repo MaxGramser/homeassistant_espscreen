@@ -155,6 +155,9 @@
       "night": "Nacht",
       "screen": "Bildschirm",
       "this_screen": "Dieser Bildschirm",
+      "extras": "Extras",
+      "microphone": "Mikrofon",
+      "wake_when_moved": "Bei Bewegung aufwecken",
       "dark_mode": "Dunkler Modus",
       "auto_standby": "Auto-Standby",
       "standby_after": "Standby nach",
@@ -861,6 +864,9 @@
         "like_consent": "Stimme zuerst zu, dass dein Gefällt mir in einer öffentlichen Zahl zählt.",
         "like_off": "Gefällt mir ist aus: eine neuere Version der App verwaltet es.",
         "like_failed": "Das Gefällt mir wurde nicht gesendet. Versuch es gleich noch einmal."
+      },
+      "extras": {
+        "request": "Diese Änderung eines Extras ist auf diesem Bildschirm nicht möglich."
       }
     },
     "status": {
@@ -1033,6 +1039,16 @@
         "battery_shows": {
           "always": "Immer",
           "low": "Nur wenn niedrig"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Mikrofon",
+          "hint": "Aus schaltet das Mikrofon für alles stumm, was zuhört. Der Bildschirm behält es nach einem Neustart."
+        },
+        "wake_when_moved": {
+          "label": "Bei Bewegung aufwecken",
+          "hint": "Der Bildschirm wacht aus dem Standby auf, wenn jemand ihn hochnimmt, bewegt oder anstößt. Er spürt sich selbst, nicht jemanden, der vorbeigeht."
         }
       }
     },
@@ -2536,6 +2552,10 @@
       "plugins": {
         "title": "Plugins",
         "note": "Die Einstellungen jedes Plugins stehen in seinen Details im Tab Plugins."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Einstellungen, die nur dieser Bildschirm hat, von seinem Board. Dieselben Schalter stehen auf der Einstellungsseite des Bildschirms und in Home Assistant."
       }
     },
     "update": {

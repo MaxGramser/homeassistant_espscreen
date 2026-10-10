@@ -441,11 +441,20 @@ inline std::vector<Page> plugin_pages;
 inline bool has_plugin_pages() { return !plugin_pages.empty(); }
 constexpr uint8_t PLUGINS_PAGE = 5;  // the first page after the table's own (PAGE_COUNT, checked below)
 
+// A board's extras (docs/SETTINGS.md, "A board's own settings"): rows a feature or a board file adds at boot through its
+// hook (BOOT_AUDIO_SETTINGS, BOOT_BOARD_SETTINGS in packages/core.yaml), each bound to an ESPHome entity of the screen
+// so Home Assistant and the app show and change the same value. The page and its row in the menu are there only when a
+// board has some: a screen without stays as it was.
+inline std::vector<Row> board_rows;
+inline bool has_board_rows() { return !board_rows.empty(); }
+constexpr uint8_t BOARD_PAGE = 250;  // beside the numbered pages: the plugins' pages count up from PLUGINS_PAGE
+
 inline constexpr Row menu_rows[] = {
   page_row(screen_text::txt::settings_brightness, "\U000F0599", 1),
   page_row(screen_text::txt::settings_night, "\U000F0594", 2, [] { return can_standby; }),
   page_row(screen_text::txt::settings_screen, "\U000F0379", 3),
   page_row(screen_text::txt::settings_this_screen, "\U000F02FD", 4),
+  page_row(screen_text::txt::settings_extras, "\U000F0493", BOARD_PAGE, has_board_rows),
   page_row(screen_text::txt::settings_plugins, "\U000F0A66", PLUGINS_PAGE, has_plugin_pages),
 };
 
@@ -460,6 +469,12 @@ constexpr uint8_t PAGE_COUNT = (uint8_t) std::size(pages);
 static_assert(PLUGINS_PAGE == PAGE_COUNT, "the plugins' pages follow the table's own");
 inline uint8_t page_total() { return (uint8_t) (PAGE_COUNT + plugin_pages.size()); }
 inline const Page &page_at(uint8_t index) {
+  if (index == BOARD_PAGE) {
+    static Page board{screen_text::txt::settings_extras, nullptr, 0};
+    board.rows = board_rows.data();
+    board.count = (uint8_t) std::min<size_t>(board_rows.size(), 12);   // what one page draws (draw)
+    return board;
+  }
   return index < PAGE_COUNT || index - PAGE_COUNT >= plugin_pages.size() ? pages[index < PAGE_COUNT ? index : 0]
                                                                         : plugin_pages[index - PAGE_COUNT];
 }

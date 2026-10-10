@@ -182,6 +182,8 @@ int main() {
       assert(row.label != NO_TEXT && *label_text(row));
       // The Plugins row opens the plugins' pages after the table's own, and only shows while a plugin added one.
       if (row.kind == Kind::page && row.opens == PLUGINS_PAGE) assert(row.shown == has_plugin_pages && *row.icon);
+      // The Extras row opens the board's own rows, and only shows while a feature or the board file added one.
+      else if (row.kind == Kind::page && row.opens == BOARD_PAGE) assert(row.shown == has_board_rows && *row.icon);
       else if (row.kind == Kind::page) assert(row.opens > 0 && row.opens < PAGE_COUNT && *row.icon);
       if (row.kind == Kind::toggle || row.kind == Kind::choice || row.kind == Kind::number ||
           row.kind == Kind::duration || row.kind == Kind::moment)
@@ -324,6 +326,18 @@ int main() {
     assert(has_plugin_pages() && page_total() == PAGE_COUNT + 2);
     assert(std::string(page_title(page_at(PLUGINS_PAGE + 1))) == "Audio" && page_at(PLUGINS_PAGE + 1).parent == PLUGINS_PAGE);
     plugin_pages.clear();
+    // A board's extras (docs/SETTINGS.md, "A board's own settings"): no page until a feature or the board file adds a
+    // row; then the page under Extras holds it, its title is the core's word and Back goes to the menu.
+    assert(!has_board_rows());
+    static int32_t moved = 0;
+    board_rows.push_back(toggle(screen_text::txt::settings_wake_when_moved, []() -> int32_t { return moved; },
+                                [](int32_t on) { moved = on; }));
+    assert(has_board_rows() && page_at(BOARD_PAGE).count == 1 && page_at(BOARD_PAGE).parent == 0);
+    assert(page_at(BOARD_PAGE).title == screen_text::txt::settings_extras && *page_title(page_at(BOARD_PAGE)));
+    put(page_at(BOARD_PAGE).rows[0], 1);
+    assert(moved == 1 && get(page_at(BOARD_PAGE).rows[0]) == 1);
+    assert(page_total() == PAGE_COUNT && BOARD_PAGE > PAGE_COUNT + 32);   // beside the numbered pages, never among them
+    board_rows.clear();
     // An action says how it is going on its right when it has a text (plugin API 0.3), and nothing when it has none.
     static bool playing = false;
     Own test{};

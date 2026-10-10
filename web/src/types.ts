@@ -121,6 +121,8 @@ export type BoardOrientation = { width: number; height: number; columns: number;
 export type BoardCatalog = {
   order: number; name: string; model: string; status: "stable" | "new" | "experimental"; inch: number; touch: string;
   calibrate: boolean; choices: Record<string, string[]>;
+  // Its extras under Screen settings (boards.yaml `settings`, docs/SETTINGS.md "A board's own settings").
+  settings?: string[];
 };
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;

@@ -155,6 +155,9 @@
       "night": "Nacht",
       "screen": "Scherm",
       "this_screen": "Dit scherm",
+      "extras": "Extra's",
+      "microphone": "Microfoon",
+      "wake_when_moved": "Wakker bij bewegen",
       "dark_mode": "Donkere modus",
       "auto_standby": "Automatisch stand-by",
       "standby_after": "Stand-by na",
@@ -861,6 +864,9 @@
         "like_consent": "Ga eerst akkoord dat je like meetelt in een openbaar aantal.",
         "like_off": "Likes staan uit: een nieuwere versie van de app houdt ze bij.",
         "like_failed": "De like is niet verstuurd. Probeer het zo nog eens."
+      },
+      "extras": {
+        "request": "Deze extra kan op dit scherm niet zo worden gewijzigd."
       }
     },
     "status": {
@@ -1033,6 +1039,16 @@
         "battery_shows": {
           "always": "Altijd",
           "low": "Alleen als laag"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microfoon",
+          "hint": "Uit dempt de microfoon voor alles wat luistert. Het scherm onthoudt het na een herstart."
+        },
+        "wake_when_moved": {
+          "label": "Wakker bij bewegen",
+          "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
         }
       }
     },
@@ -2190,6 +2206,10 @@
       "plugins": {
         "title": "Plugins",
         "note": "De instellingen van elke plugin staan in de details op het tabblad Plugins."
+      },
+      "extras": {
+        "title": "Extra's",
+        "note": "Instellingen die alleen dit scherm heeft, van zijn bord. Dezelfde schakelaars staan op de instellingenpagina van het scherm zelf en in Home Assistant."
       }
     },
     "update": {

@@ -14,6 +14,11 @@
 # Only boards with PSRAM include it: the decoders and the buffers live there.
 substitutions:
   AUDIO_SAMPLE_RATE: "48000"
+  # The microphone's switch on the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings").
+  BOOT_AUDIO_SETTINGS: |-
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_microphone,
+        []() -> int32_t { return id(ts_microphone_on).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_microphone_on).turn_on(); else id(ts_microphone_on).turn_off(); }));
 
 microphone:
   - platform: i2s_audio
@@ -24,6 +29,21 @@ microphone:
     sample_rate: 16000
     bits_per_sample: 16bit
     channel: left
+
+# Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
+# Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
+switch:
+  - platform: template
+    id: ts_microphone_on
+    name: "Microphone"
+    icon: "mdi:microphone"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - microphone.unmute: ts_microphone
+    on_turn_off:
+      - microphone.mute: ts_microphone
 
 speaker:
   # The DAC, the one speaker that reaches the glass's loudspeaker.
