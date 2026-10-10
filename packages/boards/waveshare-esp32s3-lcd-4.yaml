@@ -16,7 +16,7 @@ packages:
 external_components:
   # Waveshare powers the non-B board down for 200 ms, then raises system power and touch reset for another 200 ms
   # before probing the GT911. This temporary component preserves that board-specific factory sequence.
-  - source: github://leonardospina/homeassistant_espscreen@494b0c7f3fb0bd372c1c4edac4ceaec410caf447
+  - source: github://leonardospina/homeassistant_espscreen@58db01a037d428db963ed911595d6b5bb4ad9449
     components: [gt911]
 
 substitutions:
@@ -89,8 +89,8 @@ output:
       mode:
         output: true
 
-# Waveshare's factory initialization holds system power (EXIO5) and touch reset (EXIO1) low for 200 ms, then raises
-# both and waits another 200 ms. The GT911 is polled because this board exposes no interrupt pin to the ESP32.
+# Waveshare's factory initialization drives all expander outputs low, including GT911 address-select (EXIO2), system
+# power (EXIO5) and touch reset (EXIO1). After 200 ms it raises power and reset, leaves EXIO2 low and waits 200 ms.
 touchscreen:
   - platform: gt911
     id: ts_touch
@@ -108,6 +108,9 @@ touchscreen:
     power_pin:
       waveshare_io_ch32v003: expander
       number: 5
+    interrupt_pin:
+      waveshare_io_ch32v003: expander
+      number: 2
 
 display:
   - platform: mipi_rgb

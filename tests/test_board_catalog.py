@@ -94,7 +94,7 @@ class Catalog(unittest.TestCase):
         external = board['external_components'][0]
 
         self.assertEqual(external['source'],
-                         'github://leonardospina/homeassistant_espscreen@494b0c7f3fb0bd372c1c4edac4ceaec410caf447')
+                         'github://leonardospina/homeassistant_espscreen@58db01a037d428db963ed911595d6b5bb4ad9449')
         self.assertEqual(external['components'], ['gt911'])
         self.assertNotIn('use_primary_i2c_addr', touch)
         self.assertNotIn('setup_priority', touch)
@@ -102,7 +102,9 @@ class Catalog(unittest.TestCase):
                          ('expander', 1))
         self.assertEqual((touch['power_pin']['waveshare_io_ch32v003'], touch['power_pin']['number']),
                          ('expander', 5))
-        self.assertNotIn('interrupt_pin', touch)
+        self.assertIn('interrupt_pin', touch)
+        self.assertEqual((touch['interrupt_pin']['waveshare_io_ch32v003'], touch['interrupt_pin']['number']),
+                         ('expander', 2))
         self.assertNotIn('power_supply', board)
         self.assertNotIn('power_supply', board['output'][0])
 
@@ -114,17 +116,20 @@ class Catalog(unittest.TestCase):
         self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
         sequence = driver[driver.index('bool GT911Touchscreen::init_sequence_'):
                           driver.index('void GT911Touchscreen::setup_internal_')]
+        address_low = sequence.index('this->interrupt_pin_->digital_write(false);')
         power_off = sequence.index('this->power_pin_->digital_write(false);')
         reset_low = sequence.index('this->reset_pin_->digital_write(false);')
         first_wait = sequence.index('delay(200);', reset_low)
         power_on = sequence.index('this->power_pin_->digital_write(true);', first_wait)
         reset_high = sequence.index('this->reset_pin_->digital_write(true);', power_on)
         second_wait = sequence.index('delay(200);', reset_high)
+        self.assertLess(address_low, power_off)
         self.assertLess(power_off, reset_low)
         self.assertLess(reset_low, first_wait)
         self.assertLess(first_wait, power_on)
         self.assertLess(power_on, reset_high)
         self.assertLess(reset_high, second_wait)
+        self.assertNotIn('this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);', sequence)
         self.assertIn('probe_address_(SECONDARY_ADDRESS', driver)
 
 
