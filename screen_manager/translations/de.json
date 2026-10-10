@@ -3328,8 +3328,15 @@
         "laid_down": "Bildschirm quer gestellt",
         "layout_copied": "Layout von {name} kopiert",
         "layout_imported": "Layout importiert",
-        "changed": "Layout geändert"
+        "changed": "Layout geändert",
+        "restored": "nicht gespeicherte Änderungen wiederhergestellt"
       }
+    },
+    "draft": {
+      "kept": "Nicht gespeicherte Änderungen von {time}",
+      "kept_hint": "In diesem Browser aufbewahrt, noch nicht auf dem Bildschirm.",
+      "restore": "Wiederherstellen",
+      "discard": "Verwerfen"
     },
     "phone": {
       "screens": "Bildschirme",

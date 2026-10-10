@@ -3328,8 +3328,15 @@
         "laid_down": "écran passé en paysage",
         "layout_copied": "mise en page copiée depuis {name}",
         "layout_imported": "mise en page importée",
-        "changed": "mise en page modifiée"
+        "changed": "mise en page modifiée",
+        "restored": "modifications non enregistrées restaurées"
       }
+    },
+    "draft": {
+      "kept": "Modifications non enregistrées ({time})",
+      "kept_hint": "Conservées dans ce navigateur, pas encore sur l'écran.",
+      "restore": "Restaurer",
+      "discard": "Abandonner"
     },
     "phone": {
       "screens": "Écrans",

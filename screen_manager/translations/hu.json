@@ -3328,8 +3328,15 @@
         "laid_down": "kijelző fekvő helyzetbe állítva",
         "layout_copied": "elrendezés másolva innen: {name}",
         "layout_imported": "elrendezés importálva",
-        "changed": "elrendezés módosítva"
+        "changed": "elrendezés módosítva",
+        "restored": "nem mentett módosítások visszaállítva"
       }
+    },
+    "draft": {
+      "kept": "Nem mentett módosítások ({time})",
+      "kept_hint": "Ebben a böngészőben megőrizve, még nincsenek a kijelzőn.",
+      "restore": "Visszaállítás",
+      "discard": "Elvetés"
     },
     "phone": {
       "screens": "Képernyők",

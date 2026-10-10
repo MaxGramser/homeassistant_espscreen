@@ -788,6 +788,12 @@ details.log-wrap pre { margin-top: 8px; }
 .notice-text { flex: 1; min-width: 0; }
 .notice.warn { background: var(--warn-soft); border-color: transparent; color: var(--ink); }
 .notice.warn .mdi { color: var(--warn); }
+/* A notice that asks for a choice (unsaved changes kept, another tab): on a phone its keys go under the words, at the right. */
+@media (max-width: 640px) {
+  .notice.choice { flex-wrap: wrap; row-gap: 8px; }
+  .notice.choice .notice-text { flex: 1 1 calc(100% - 30px); }
+  .notice.choice .notice-text + .btn { margin-left: auto; }
+}
 
 /* Alerts cheatsheet */
 .alerts section { display: grid; gap: 10px; }

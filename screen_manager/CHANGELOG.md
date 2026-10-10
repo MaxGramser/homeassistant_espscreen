@@ -8,6 +8,10 @@
   the same words. Its button says what it does (Discard and open, Replace layout, Start calibration, Clear override),
   in red where it throws something away. Cancel has the focus at first, so Enter alone never throws work away, and
   Escape cancels.
+- **Your work survives a reload.** Unsaved changes in Layout are kept in this browser as you make them. Close the tab,
+  reload or lose the browser, and opening the screen again says "Unsaved changes from 10:42" with Restore and Discard.
+  Changes made before someone else saved the screen come back through the usual question (Reload saved or Keep mine),
+  so a newer save is never written over unasked. Saving or discarding forgets them; preview screens need none of this.
 - **Undo says what it does.** Undo and Redo in Layout name the step they take back or do again ("Undo: Kitchen light
   moved to page 2"), and after an undo a short note says what came back, with Redo beside it, so a change on a page out
   of sight never goes unnoticed.

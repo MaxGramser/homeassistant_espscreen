@@ -14,6 +14,7 @@ import type { PreviewProfile } from "../model/preview";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useDocumentStore } from "./document";
+import { useDraftsStore } from "./drafts";
 import { useInspectorStore } from "./inspector";
 import { useInventoryStore } from "./inventory";
 import { usePluginsStore } from "./plugins";
@@ -34,6 +35,7 @@ export const useSessionStore = defineStore("session", () => {
   const topbar = useTopbarStore();
   const doc = useDocumentStore();
   const insp = useInspectorStore();
+  const drafts = useDraftsStore();
 
   // ---- Opening a screen ----
   // Another screen, or none (the overview). With unsaved changes the editor asks first, and the switch waits for the answer
@@ -48,12 +50,17 @@ export const useSessionStore = defineStore("session", () => {
     open(id);
   }
   function open(id: string | null) {
-    // What waits to go to the screen shown before goes out first, and its changes are no longer shown.
+    // What waits to go to the screen shown before goes out first, and its changes are no longer shown. Its unsaved changes
+    // were discarded on purpose (Discard and open): this browser forgets them too.
     if (id !== scr.selected) settings.leaveScreen();
+    if (id !== scr.selected && doc.dirty) drafts.forget(scr.selected);
     scr.selected = id;
     ui.$patch({ menuOpen: false, addSheet: false, pagesSheet: false, previewOpen: false, pageWizardOpen: false });
     // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
-    if (doc.openDocument(inv.inventory.screens.find((item) => item.id === id))) ui.go("");
+    const opened = doc.openDocument(inv.inventory.screens.find((item) => item.id === id));
+    // Unsaved changes this browser kept of it are offered (stores/drafts.ts).
+    drafts.opened();
+    if (opened) ui.go("");
   }
   // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
   function goHome(): void | Promise<void> {
@@ -95,6 +102,8 @@ export const useSessionStore = defineStore("session", () => {
     try {
       const result = await send<{ name?: string; kept?: string[] }>(`screens/${encodeURIComponent(screen.id)}`, "DELETE");
       const name = result?.name || screen.name;
+      // What this browser kept of its unsaved changes goes with it.
+      drafts.forget(screen.id);
       if (scr.selected === screen.id) forgetOpenScreen();
       builds.forget(screen.id);
       inv.inventory.screens = inv.inventory.screens.filter((s) => s.id !== screen.id);
@@ -132,7 +141,7 @@ export const useSessionStore = defineStore("session", () => {
   function start() {
     if (running) return running;
     const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(),
-      inv.start({ busy: () => builds.anyBuilding }), doc.start(), topbar.start(), followBuilds()];
+      inv.start({ busy: () => builds.anyBuilding }), doc.start(), drafts.start(), topbar.start(), followBuilds()];
     running = () => { running = null; for (const stop of stops.reverse()) stop(); };
     return running;
   }

@@ -3328,8 +3328,15 @@
         "laid_down": "schermo messo in orizzontale",
         "layout_copied": "disposizione copiata da {name}",
         "layout_imported": "disposizione importata",
-        "changed": "disposizione cambiata"
+        "changed": "disposizione cambiata",
+        "restored": "modifiche non salvate ripristinate"
       }
+    },
+    "draft": {
+      "kept": "Modifiche non salvate ({time})",
+      "kept_hint": "Conservate in questo browser, non ancora sullo schermo.",
+      "restore": "Ripristina",
+      "discard": "Scarta"
     },
     "phone": {
       "screens": "Schermi",

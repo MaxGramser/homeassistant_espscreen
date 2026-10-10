@@ -50,7 +50,8 @@ describe("the screens' language and region", () => {
     const stop = region.start();
     expect(region.start()).toBe(stop);
     await flushPromises();
-    await vi.waitFor(() => expect(te("editor.common.ok", "de")).toBe(true));
+    // The language file is compiled on its first load, which takes a while when the whole suite runs at once.
+    await vi.waitFor(() => expect(te("editor.common.ok", "de")).toBe(true), { timeout: 5000 });
     stop();
     useInventoryStore().inventory.language = language({ effective: "fr" });
     await flushPromises();

@@ -2978,8 +2978,15 @@
         "laid_down": "scherm liggend gezet",
         "layout_copied": "indeling gekopieerd van {name}",
         "layout_imported": "indeling geïmporteerd",
-        "changed": "indeling gewijzigd"
+        "changed": "indeling gewijzigd",
+        "restored": "niet-opgeslagen wijzigingen hersteld"
       }
+    },
+    "draft": {
+      "kept": "Niet-opgeslagen wijzigingen van {time}",
+      "kept_hint": "Bewaard in deze browser, nog niet op het scherm.",
+      "restore": "Herstellen",
+      "discard": "Weggooien"
     },
     "phone": {
       "screens": "Schermen",

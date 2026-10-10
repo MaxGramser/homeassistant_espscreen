@@ -2978,8 +2978,15 @@
         "laid_down": "screen turned to landscape",
         "layout_copied": "layout copied from {name}",
         "layout_imported": "layout imported",
-        "changed": "layout changed"
+        "changed": "layout changed",
+        "restored": "unsaved changes restored"
       }
+    },
+    "draft": {
+      "kept": "Unsaved changes from {time}",
+      "kept_hint": "Kept in this browser, not on the screen yet.",
+      "restore": "Restore",
+      "discard": "Discard"
     },
     "phone": {
       "screens": "Screens",

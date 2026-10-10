@@ -28,6 +28,7 @@ import { useCanvasStore } from "../stores/canvas";
 import { pageReachWarning, pagesShown, pageTitleShown } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { useDraftsStore } from "../stores/drafts";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
@@ -36,6 +37,7 @@ const dragging = useDragStore();
 const canvas = useCanvasStore();
 const doc = useDocumentStore();
 const insp = useInspectorStore();
+const drafts = useDraftsStore();
 const { grid, hasGaps, pageCount } = doc.editorLayout;
 const droppedTiles = computed(() => scr.currentScreen?.page_document?.format === 'pages-v2'
   ? scr.currentScreen.page_document.migration?.droppedTiles || [] : []);
@@ -150,6 +152,12 @@ function onCanvasClick(e: MouseEvent) {
     <div v-if="scr.currentScreen?.page_capability === 'update_screen'" class="notice" role="status">
       <Icon name="update" /><span class="notice-text">{{ t('editor.pages.update_notice') }}</span>
       <button v-if="scr.currentScreen?.online && scr.currentScreen.update?.profile" type="button" class="btn primary mini" @click="builds.startUpdate(scr.currentScreen)">{{ t('editor.screen_view.menu.update') }}</button>
+    </div>
+    <!-- Unsaved changes this browser kept when the page closed (app 0.4.x): the work comes back with one click. -->
+    <div v-if="drafts.offer" id="kept-draft" class="notice choice" role="status">
+      <Icon name="clock-outline" /><span class="notice-text"><strong>{{ drafts.offerText }}</strong>{{ t('editor.draft.kept_hint') }}</span>
+      <button type="button" id="kept-discard" class="btn quiet mini" @click="drafts.discard()">{{ t('editor.draft.discard') }}</button>
+      <button type="button" id="kept-restore" class="btn primary mini" @click="drafts.restore()">{{ t('editor.draft.restore') }}</button>
     </div>
     <div v-if="doc.conflict" class="notice warn" role="alert">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.conflict') }}</span>

@@ -3328,8 +3328,15 @@
         "laid_down": "pantalla puesta en horizontal",
         "layout_copied": "diseño copiado de {name}",
         "layout_imported": "diseño importado",
-        "changed": "diseño cambiado"
+        "changed": "diseño cambiado",
+        "restored": "cambios sin guardar restaurados"
       }
+    },
+    "draft": {
+      "kept": "Cambios sin guardar ({time})",
+      "kept_hint": "Guardados en este navegador, aún no en la pantalla.",
+      "restore": "Restaurar",
+      "discard": "Descartar"
     },
     "phone": {
       "screens": "Pantallas",

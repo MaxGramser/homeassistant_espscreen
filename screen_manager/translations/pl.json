@@ -3328,8 +3328,15 @@
         "laid_down": "ekran ustawiony poziomo",
         "layout_copied": "skopiowano układ z ekranu {name}",
         "layout_imported": "zaimportowano układ",
-        "changed": "zmieniono układ"
+        "changed": "zmieniono układ",
+        "restored": "przywrócono niezapisane zmiany"
       }
+    },
+    "draft": {
+      "kept": "Niezapisane zmiany z {time}",
+      "kept_hint": "Zachowane w tej przeglądarce, jeszcze nie na ekranie.",
+      "restore": "Przywróć",
+      "discard": "Odrzuć"
     },
     "phone": {
       "screens": "Ekrany",

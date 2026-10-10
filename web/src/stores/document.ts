@@ -90,9 +90,11 @@ export const useDocumentStore = defineStore("document", () => {
   const committedUpright = shallowRef<boolean | null>(null);
   const dirty = computed(() => !pages.sameValue(document.value, committedLayout.value) ||
     !pages.sameValue(documentGrid.value, committedGrid.value) || documentUpright.value !== committedUpright.value);
-  // Every edit counts, so a save only clears the edits it sent (app 0.2.78).
+  // Every edit counts, so a save only clears the edits it sent (app 0.2.78). When the draft last changed, for what this
+  // browser keeps of it (stores/drafts.ts): 0 for a draft as it was read.
   let edits = 0;
-  function markEdited() { saved.value = 0; edits++; }
+  const editedAt = ref(0);
+  function markEdited() { saved.value = 0; edits++; editedAt.value = Date.now(); }
   // An answer asked for one screen is dropped once another is open, or this one was read again.
   let selectionEpoch = 0;
   function stillSelected() {
@@ -316,6 +318,7 @@ export const useDocumentStore = defineStore("document", () => {
     selectedPageId.value = document.value?.homePageId || null;
     focusedPageId.value = null;
     conflict.value = false;
+    editedAt.value = 0;
     history.clear(); historyChanged();
   }
   // No draft at all: nothing shown, and nothing unsaved.
@@ -519,6 +522,25 @@ export const useDocumentStore = defineStore("document", () => {
     await save();
   }
 
+  // ---- A draft from elsewhere: kept in this browser, or another tab's (stores/drafts.ts) ----
+  // It becomes the draft as one step of undo, said in `said`. One that started from another saved revision than the one
+  // read here goes through the conflict: the add-on refuses a save of it until Reload saved or Keep mine is chosen, so a
+  // newer save is never written over without a question.
+  function takeDraft(draft: { layout: PageLayout; grid: PageGrid; upright: boolean | null; revision: string | null }, said: ChangeLabel) {
+    if (!document.value || !documentGrid.value) return false;
+    try {
+      const before = snapshot();
+      const changed = applyDocument(pages.clone(draft.layout), true, { columns: draft.grid.columns, rows: draft.grid.rows }, said);
+      if (draft.upright !== documentUpright.value) {
+        if (!changed) { history.remember(before, "document", said); historyChanged(); }
+        documentUpright.value = draft.upright;
+        markEdited();
+      }
+    } catch (error: any) { ui.toast(error.message); return false; }
+    if (draft.revision !== documentRevision.value) { documentRevision.value = draft.revision; conflict.value = true; }
+    return true;
+  }
+
   // ---- Another grid, or another way of hanging (app 0.4.85) ----
   // Stand the open screen up or lay it down (on glass that turns): the draft goes on the grid the screen keeps for that way,
   // or where its tiles need more pages than the screen takes there, on the grid of that way nearest to it that holds them;
@@ -683,14 +705,14 @@ export const useDocumentStore = defineStore("document", () => {
   onScopeDispose(() => { running?.(); clearTimeout(mapTimer); });
 
   return {
-    document, documentGrid, documentUpright, documentRevision, workspace, workspaceDirty, gridReview, conflict, busy, saved, editorMode,
+    document, documentGrid, documentUpright, documentRevision, workspace, workspaceDirty, gridReview, conflict, busy, saved, editedAt, editorMode,
     selectedPageId, focusedPageId, selectedTileId, connectingTileId, justAdded,
     layout, barPage, currentTile, dirty, undoCount, redoCount, undoWhat, redoWhat, screenShape, editorLayout, tileLimit, memory, gridWay, gridChanged,
     // What the mockup, the map and the edits read as they go (stores/lookup.ts).
     ...lookups({ isSelected, pageAt, stillSelected, heldTo, screenGridOf, takesGrid, workspacePositions, layoutJson }),
     applyDocument, applyEdit, editDocument, beginFieldEdit, endFieldEdit, undo, redo, undoToast, setEditorMode, markAdded,
     onReplaced, loadStates, loadDocument, openDocument, closeDocument, reconcile,
-    moveWorkspacePage, arrangeFromHome, saveWorkspace, save, resolveLayoutConflict,
+    moveWorkspacePage, arrangeFromHome, saveWorkspace, save, resolveLayoutConflict, takeDraft,
     chooseHang, chooseGrid, reviewScreenGrid, acceptGridReview, copyLayoutFrom, exportLayout, importLayout,
     dismissMigrationNote, startFreshLayout, start,
   };

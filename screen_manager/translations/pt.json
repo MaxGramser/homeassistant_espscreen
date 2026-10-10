@@ -3328,8 +3328,15 @@
         "laid_down": "ecrã posto na horizontal",
         "layout_copied": "layout copiado de {name}",
         "layout_imported": "layout importado",
-        "changed": "layout alterado"
+        "changed": "layout alterado",
+        "restored": "alterações não guardadas restauradas"
       }
+    },
+    "draft": {
+      "kept": "Alterações não guardadas ({time})",
+      "kept_hint": "Guardadas neste navegador, ainda não no ecrã.",
+      "restore": "Restaurar",
+      "discard": "Descartar"
     },
     "phone": {
       "screens": "Ecrãs",
