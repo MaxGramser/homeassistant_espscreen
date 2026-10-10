@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { go, state, toast } from "../store";
+import { fetchFirmware, go, state, toast } from "../store";
 
 const OVERRIDE_EXAMPLE = `# Hardware-specific changes for this screen.
 # This file is kept when the shared firmware package updates.
@@ -70,8 +70,10 @@ function pollCheck() {
   const started = Date.now(), checked = profile.value;
   const poll = async () => {
     if (!alive || profile.value !== checked) return;  // the page closed or shows another screen
+    // A hidden tab asks nothing until it is shown again; an answer another view has just had is this one's too.
+    if (document.hidden) { if (Date.now() - started < 7200000) setTimeout(poll, 1200); return; }
     try {
-      const data = await getJson("firmware");
+      const data = await fetchFirmware(1000);
       const current = data.job;
       if (current && current.file === checked && current.state === "running") {
         setStatus(current.stage ? t("editor.override.checking_stage", { stage: current.stage }) : t("editor.override.checking_profile"));

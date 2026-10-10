@@ -4,9 +4,9 @@
 // with the screen drawn filling in as it goes and ESPHome's own log a click away. The steps only show and hide; the
 // form, what it sends and when, is the one it always was.
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { getJson, send } from "../api";
+import { send } from "../api";
 import { editorLanguage, languageMarks, numberText, t } from "../i18n";
-import { copyText, createVirtualScreen, go, openIntegrations, refresh, state, toast } from "../store";
+import { copyText, createVirtualScreen, fetchFirmware, FIRMWARE_POLL_MS, go, openIntegrations, pollFirmware, refresh, state, toast } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import type { BoardChoice, BoardOrientation, Orientation } from "../types";
@@ -148,10 +148,13 @@ function syncTarget() {
   const kept = current === "download" || current === "browser" || current === "" ? installer.picked : ports.value.includes(current);
   if (!kept) form.target = ports.value[0] || "usb";
 }
-async function installerRefresh() {
+// `poll`: the turn of the poll below, which asks nothing while the tab is hidden and shares the answer of the store's poll.
+async function installerRefresh(poll = false) {
   let next: any;
   try {
-    next = await getJson("firmware");
+    const asked = poll ? pollFirmware() : fetchFirmware();
+    if (!asked) return;
+    next = await asked;
   } catch (e: any) {
     note.value = e.message;
     return;
@@ -283,7 +286,7 @@ async function retry() {
       return;
     }
     if (!download.value) {
-      const { ports: fresh } = await getJson("firmware");
+      const { ports: fresh } = await fetchFirmware();
       // The board may have been replugged; a single visible port is unambiguous.
       if (!fresh.includes(installer.target) && fresh.length === 1) installer.target = fresh[0];
     }
@@ -406,7 +409,7 @@ const arrival = computed(() => {
 let arrivalPoll = 0;
 watch(arrival, (value) => {
   clearInterval(arrivalPoll);
-  if (value && value !== "paired") arrivalPoll = window.setInterval(() => refresh(false), 5000);
+  if (value && value !== "paired") arrivalPoll = window.setInterval(() => { if (!document.hidden) refresh(false); }, 5000);
 }, { immediate: true });
 const fixing = ref(false);
 // The right network, then the same installation again: over the same cable, or from this computer after its click.
@@ -441,7 +444,12 @@ watch(() => logs.value.length, () => {
   if (!box || box.scrollHeight - box.scrollTop - box.clientHeight > 40) return;
   requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
 });
-onMounted(() => { installerRefresh(); poll = window.setInterval(installerRefresh, 3000); clock = window.setInterval(() => { now.value = Date.now(); }, 1000); });
+// The job and the clock follow while the page is in sight; a hidden tab asks the add-on nothing.
+onMounted(() => {
+  installerRefresh();
+  poll = window.setInterval(() => installerRefresh(true), FIRMWARE_POLL_MS);
+  clock = window.setInterval(() => { if (!document.hidden) now.value = Date.now(); }, 1000);
+});
 onBeforeUnmount(() => { clearInterval(poll); clearInterval(clock); clearInterval(arrivalPoll); flash.cancel(); });
 </script>
 

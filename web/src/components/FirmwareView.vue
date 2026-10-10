@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // Shared firmware workspace; always a concrete profile and upload target.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { getJson, send } from "../api";
+import { send } from "../api";
 import { editorLanguage, languageMarks, numberText, t } from "../i18n";
 import { memoryNote } from "../model/install-progress";
-import { go, toast } from "../store";
+import { fetchFirmware, FIRMWARE_POLL_MS, go, pollFirmware, toast } from "../store";
 import BrowserFlash from "./BrowserFlash.vue";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
@@ -22,9 +22,12 @@ const flash = useBrowserFlash();
 const support = flashSupport();
 // The build this page waits for: its profile and when it started, so an earlier job of the same profile never counts.
 const awaited = ref<{ file: string; started: number } | null>(null);
-async function refreshFirmware(initial = false) {
+// `poll`: the turn of the poll below, which asks nothing while the tab is hidden and shares the answer of the store's poll.
+async function refreshFirmware(initial = false, poll = false) {
   try {
-    const next = await getJson("firmware");
+    const asked = poll ? pollFirmware() : fetchFirmware();
+    if (!asked) return;
+    const next = await asked;
     data.value = next;
     if (initial || !file.value) file.value = next.profiles[0]?.file || "";
     // USB stays chosen while the board is replugged; a port that went away falls back to the first one.
@@ -89,7 +92,7 @@ async function runBrowser() {
     toast(e.message);
   }
 }
-onMounted(() => { refreshFirmware(true); timer = window.setInterval(() => refreshFirmware(), 3000); });
+onMounted(() => { refreshFirmware(true); timer = window.setInterval(() => refreshFirmware(false, true), FIRMWARE_POLL_MS); });
 onBeforeUnmount(() => { clearInterval(timer); flash.cancel(); });
 </script>
 

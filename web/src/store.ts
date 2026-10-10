@@ -1661,18 +1661,29 @@ export function whatsNew(screen: Screen): string[] {
   }
   return lines;
 }
-let firmwareFlight = false;
+// ---- The add-on's firmware job (api/firmware), asked for once whoever follows it ----
+// New screen, Firmware & USB, a YAML check and the build log all read the same answer: whoever asks while a request is on
+// its way gets its answer, and a poll (`fresh`: how old an answer may be) takes the last one when another poll has just
+// asked, so the add-on is asked once every few seconds however many follow a build. The job and its log are kept for the
+// build log (BuildLog).
+export const FIRMWARE_POLL_MS = 3000;
+let firmwareFlight: Promise<any> | null = null, firmwareData: any = null, firmwareAt = 0;
+export function fetchFirmware(fresh = 0): Promise<any> {
+  if (fresh && firmwareData && Date.now() - firmwareAt < fresh) return Promise.resolve(firmwareData);
+  if (firmwareFlight) return firmwareFlight;
+  const flight: Promise<any> = getJson("firmware").then((data) => {
+    if (firmwareFlight === flight) {
+      firmwareData = data; firmwareAt = Date.now();
+      state.firmwareJob = { job: data.job, logs: data.logs || [] };
+    }
+    return data;
+  }).finally(() => { if (firmwareFlight === flight) firmwareFlight = null; });
+  return (firmwareFlight = flight);
+}
+// A poll's turn: never while the tab is hidden, and the answer of a poll that has just asked when there is one.
+export const pollFirmware = () => (document.hidden ? null : fetchFirmware(FIRMWARE_POLL_MS - 500));
 export async function loadFirmwareJob() {
-  if (firmwareFlight) return;
-  firmwareFlight = true;
-  try {
-    const data = await getJson("firmware");
-    state.firmwareJob = { job: data.job, logs: data.logs || [] };
-  } catch {
-    // Keep what we have.
-  } finally {
-    firmwareFlight = false;
-  }
+  try { await fetchFirmware(); } catch { /* Keep what we have. */ }
 }
 // ---- Builds: one source for "something is building" ----
 // The add-on says per screen what is being built for it now, whoever asked (inventory.builds, Manager.builds): an update,
@@ -2236,9 +2247,9 @@ export function startStore() {
   every(8000, () => {
     if (!document.hidden && state.layout && state.tab === "layout" && route.value === "") loadStates();
   });
-  every(3000, () => {
+  every(FIRMWARE_POLL_MS, () => {
     // The log of the build that runs; the last one's stays, so a failed build can still be read (BuildLog).
-    if (!document.hidden && anyBuilding()) loadFirmwareJob();
+    if (anyBuilding()) pollFirmware()?.catch(() => { /* Keep what we have. */ });
   });
   // A change still waiting for its short pause goes out when the page closes.
   on("pagehide", () => flushSettings(true));
@@ -2282,7 +2293,7 @@ function resetStore() {
   narrowPhone.value = Boolean(phoneQuery()?.matches);
   previewsSkipped = "";
   askedCapabilities.clear(); askedSubtitles.clear(); askedActions.clear();
-  statesFlight = false; overviewFlight = false; firmwareFlight = false;
+  statesFlight = false; overviewFlight = false; firmwareFlight = null; firmwareData = null; firmwareAt = 0;
   edits = 0; selectionEpoch++;
   committedLayout = null; committedGrid = null; committedUpright = null;
   draftHistory.clear();
