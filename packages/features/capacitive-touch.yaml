@@ -27,7 +27,9 @@ substitutions:
 
   # Code the shared lambdas of packages/core.yaml take from this file (docs/PROFILES.md, "hooks")
   # the first boot step: the touch guard, and what a capacitive panel needs
+  BOOT_TOUCH_HARDWARE: ""
   BOOT_TOUCH: |-
+    ${BOOT_TOUCH_HARDWARE}
     screen_input::touch_guard.configure(${TOUCH_MOVE_LIMIT_PX}, ${TOUCH_MIN_PRESS_MS});
     screen_input::edge_swipe.configure(${EDGE_SWIPE_BAND_PX}, ${EDGE_SWIPE_TRAVEL_PX});
     screen_input::edge_snap_band = ${SLIDER_EDGE_SNAP_PX};

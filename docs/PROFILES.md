@@ -118,8 +118,8 @@ gives it a default (empty, or what most boards do). A hook is for a choice of th
 `features/capacitive-touch.yaml` and `features/resistive-touch.yaml` set `BOOT_TOUCH` and `BOOT_PAGE_GESTURE`;
 `features/backlight.yaml` sets `APPLY_BACKLIGHT` and `OTA_BACKLIGHT`; `features/camera.yaml` sets `BOOT_CAMERA_HOOKS`,
 its code at boot. Every screen reads a touch panel and lights a backlight, so those have no default and a board without
-them does not build. A board file would set a hook only for code no other board has; since app 0.2.129 none does (the CYD
-used to drive its backlight and run its self test its own way).
+them does not build. A board file sets a hook only for code no other board has: the Waveshare LCD 4 sets the otherwise
+empty `BOOT_TOUCH_HARDWARE` to reset its GT911 through the board's I/O expander before the touch driver starts.
 
 Hooks are a stretch of C++ inside a shared lambda because ESPHome cannot merge two lambdas into one, and one
 substitution holds one piece of code: a second package that set the same hook would silently replace the first.

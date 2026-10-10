@@ -83,25 +83,31 @@ class Catalog(unittest.TestCase):
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][0], '6.00 -> 0')
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][-1], '8.40 -> 100')
 
-    def test_waveshare_lcd4_preconditions_the_gt911_address_pins(self):
+    def test_waveshare_lcd4_selects_the_gt911_primary_address_before_setup(self):
         class IncludeLoader(yaml.SafeLoader):
             pass
 
         IncludeLoader.add_constructor('!include', lambda loader, node: loader.construct_scalar(node))
         board = yaml.load((ROOT / 'packages/boards/waveshare-esp32s3-lcd-4.yaml').read_text(),
                           Loader=IncludeLoader)
-        outputs = {output['id']: output for output in board['output']}
         touch = board['touchscreen'][0]
+        boot = board['substitutions']['BOOT_TOUCH_HARDWARE']
 
-        for output_id, pin_name, number in (
-            ('gt911_reset_low', 'reset_pin', 1),
-            ('gt911_address_low', 'interrupt_pin', 2),
+        self.assertEqual(touch['setup_priority'], -200)
+        self.assertNotIn('reset_pin', touch)
+        self.assertEqual((touch['interrupt_pin']['waveshare_io_ch32v003'], touch['interrupt_pin']['number']),
+                         ('expander', 2))
+        for line in (
+            'id(expander)->digital_write(1, false);',
+            'id(expander)->digital_write(2, false);',
+            'delay(100);',
+            'id(expander)->digital_write(1, true);',
+            'delay(5);',
+            'id(expander)->pin_mode(2, esphome::gpio::FLAG_INPUT);',
+            'delay(51);',
         ):
-            pin = outputs[output_id]['pin']
-            self.assertEqual(outputs[output_id]['platform'], 'gpio')
-            self.assertEqual((pin['waveshare_io_ch32v003'], pin['number']), ('expander', number))
-            self.assertTrue(pin['allow_other_uses'])
-            self.assertTrue(touch[pin_name]['allow_other_uses'])
+            self.assertIn(line, boot)
+            self.assertIn(line, profiles.board_values('wavesharelcd4')['BOOT_TOUCH'])
 
 
 class Choices(unittest.TestCase):
