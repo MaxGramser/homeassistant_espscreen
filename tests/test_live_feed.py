@@ -65,6 +65,45 @@ class Sizes(unittest.TestCase):
             self.assertLessEqual(size[1], 728)
 
 
+class LiveTiles(unittest.TestCase):
+    """A camera tile set to Live (pace 0): the pace each screen is sent, and the size its pictures go out at."""
+
+    def message(self, options, features):
+        message = {'v': 1, 'op': 'state', 'i': 0, 'o': {'display': 'live'}}
+        live_feed.live_pace(message, {'entity': 'camera.door', 'options': options}, features)
+        return message['o'].get('refresh')
+
+    def test_live_goes_only_to_a_screen_that_streams(self):
+        streams, older = frozenset({'live', 'plugins'}), frozenset({'plugins'})
+        # Live is the default where the screen streams, and what the tile says.
+        self.assertEqual(self.message({'display': 'live'}, streams), 0)
+        self.assertEqual(self.message({'display': 'live', 'refresh': 0}, streams), 0)
+        # A screen that does not stream refreshes a Live tile at the pace every camera tile has by default.
+        self.assertEqual(self.message({'display': 'live', 'refresh': 0}, older), live_feed.DEFAULT_PACE)
+        self.assertIsNone(self.message({'display': 'live'}, older))
+        # A pace of its own stays, everywhere; the editor's preview (no hello) runs the newest firmware.
+        self.assertIsNone(self.message({'display': 'live', 'refresh': 10}, streams))
+        self.assertEqual(self.message({'display': 'live'}, None), 0)
+        # Only a camera's live picture: an image entity, a camera tile without a picture, are left alone.
+        message = {'o': {}}
+        live_feed.live_pace(message, {'entity': 'image.door', 'options': {'display': 'live'}}, streams)
+        live_feed.live_pace(message, {'entity': 'camera.door', 'options': {}}, streams)
+        self.assertEqual(message, {'o': {}})
+
+    def test_a_tile_that_fills_its_card_gets_as_little_as_covers_it(self):
+        self.assertEqual(live_feed.size_to_cover(1920, 1080, (434, 244)), (434, 246))
+        self.assertEqual(live_feed.size_to_cover(1920, 1080, (434, 434)), (772, 434))
+        # Smaller than the card: as it is, the screen scales it up.
+        self.assertEqual(live_feed.size_to_cover(512, 288, (868, 488)), (512, 288))
+        self.assertEqual(live_feed.size_to_cover(511, 287, (868, 488)), (510, 286))
+
+    def test_a_tile_link_says_whether_its_picture_is_whole(self):
+        feed = live_feed.LiveFeed(None, None, lambda e: True)
+        token = feed.link('camera.door', (434, 244), cover=True)
+        self.assertTrue(feed.links[token].cover)
+        self.assertFalse(feed.links[feed.link('camera.door', (1280, 715))].cover)
+
+
 class Stream(unittest.TestCase):
     """A snapshot camera through LiveFeed on a real socket, read like the screen reads it: HTTP/1.0, then parts."""
 

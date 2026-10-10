@@ -2205,7 +2205,8 @@
       },
       "refresh": {
         "label": "Actualizar",
-        "seconds": "Cada {n} s"
+        "seconds": "Cada {n} s",
+        "live": "En directo"
       },
       "picture": {
         "fit": {

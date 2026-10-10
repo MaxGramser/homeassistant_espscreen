@@ -103,8 +103,12 @@ const favoriteCard = computed(() => display.value === "favorite" && domain.value
 // How the energy card shows power along a line: running dots, or calm lines that grow with it and an arrow each.
 const flowChoices = computed(() => offer("flow", rules.energyFlow.map((value) => [value, t(`editor.tile.energy.flow.${value}`)] as [string, string]), current("flow", rules.energyFlow[0])));
 const pictureChoices = (key: "fit" | "overlay") => offer(key, rules.picture[key].map((value) => [value, t(`editor.tile.picture.${key}.${value}`)] as [string, string]), current(key, rules.picture[key][0]));
-const refresh = computed(() => current("refresh", 15) as number);
-const refreshChoices = computed(() => offer("refresh", rules.refresh.map((seconds) => [seconds, t("editor.tile.refresh.seconds", { n: seconds })] as [number, string]), refresh.value));
+// A screen that streams a camera live (a P4, its hello's `live`): Live, pace 0, is a camera tile's first pace and its
+// default there; anywhere else a tile keeps the paces in seconds, and the app sends such a screen 15 s for Live.
+const liveCamera = computed(() => domain.value === "camera" && Boolean(scr.currentScreen?.live_camera));
+const refresh = computed(() => current("refresh", liveCamera.value ? 0 : 15) as number);
+const refreshChoices = computed(() => offer("refresh", rules.refresh.filter((seconds) => seconds !== 0 || liveCamera.value)
+  .map((seconds) => [seconds, seconds === 0 ? t("editor.tile.refresh.live") : t("editor.tile.refresh.seconds", { n: seconds })] as [number, string]), refresh.value));
 const history = computed(() => current("history_hours", 24) as number);
 const historyChoices = computed(() => offer("history_hours", [1, 6, 24].map((hours) => [hours, t("editor.tile.history.hours", hours)] as [number, string]), history.value));
 const size = computed(() => current("size", "single") as string);

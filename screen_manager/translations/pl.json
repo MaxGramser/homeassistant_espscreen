@@ -2205,7 +2205,8 @@
       },
       "refresh": {
         "label": "Odświeżanie",
-        "seconds": "Co {n} s"
+        "seconds": "Co {n} s",
+        "live": "Na żywo"
       },
       "picture": {
         "fit": {

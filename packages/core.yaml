@@ -667,6 +667,9 @@ api:
                     // with their weekday, the next 48 hours with their hour, and the wind's bearing, the air pressure,
                     // the visibility and the rain's unit.
                     features.add("weather_week");
+                    // live: a P4 that streams (live_view.h): a camera tile set to Live gets pace 0 and streams on the
+                    // glass, and ESP Screens makes Live the default for camera tiles here.
+                    if (live_view::available()) features.add("live");
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
                       if (size.fits(runtime_tiles::grid.columns, runtime_tiles::grid.rows)) sizes.add(size.name);

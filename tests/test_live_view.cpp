@@ -94,11 +94,60 @@ static void placing() {
   assert(box_text(area) == "1280x728");
 }
 
+// A live tile's card: the picture cut to fill it (the middle of it, scaled up only when smaller), or whole on black.
+static void cutting() {
+  // The app sends a filling picture at the card's size or a little more: cut at its own scale, the middle of it.
+  Cut c = cut(434, 260, 434, 244, false);
+  assert(c.ok && c.sixteenths == 16 && c.in_x == 0 && c.in_y == 8 && c.in_w == 434 && c.in_h == 244 && c.covers(434, 244));
+  // A substream smaller than the card is scaled up until it covers it, in sixteenths, and cut to it.
+  c = cut(512, 288, 868, 488, false);
+  assert(c.ok && c.sixteenths == 28 && c.out_x >= 0 && c.out_y >= 0 && c.out_w <= 868 && c.out_h <= 488);
+  assert(868 - c.out_w <= 2 && 488 - c.out_h <= 2);
+  // A larger one is scaled down: the least scale that still covers.
+  c = cut(1920, 1080, 434, 244, false);
+  assert(c.ok && c.sixteenths == 4 && scaled(1920, 4) >= 434 && scaled(1080, 4) >= 244);
+  // Whole: as large as fits, in the middle, the rest of the card black.
+  c = cut(1920, 1080, 434, 434, true);
+  assert(c.ok && c.in_w == 1920 && c.in_h == 1080 && c.out_w <= 434 && c.out_x + c.out_w <= 434 && c.out_y > 0 && !c.covers(434, 434));
+  assert(!cut(0, 10, 100, 100, false).ok && !cut(10, 10, 0, 100, true).ok);
+}
+
+// What a live tile lays over its picture, as tile_art.py does: the shade, the corners, the name.
+static void composing() {
+  const int w = 40, h = 20;
+  std::vector<uint16_t> px(w * h, 0xFFFF);  // white
+  fade(px.data(), w, w, h);
+  // The top of the card is untouched, the bottom row FADE_DEPTH / 255 towards black.
+  assert(px[0] == 0xFFFF && px[(h - 1 - (h * FADE_PERCENT + 50) / 100) * w] == 0xFFFF);
+  const uint16_t bottom = px[(h - 1) * w + 20];
+  assert(bottom != 0xFFFF && ((bottom >> 11) & 31) < 31 && ((bottom >> 11) & 31) > 8);
+  // Corners: the very corner is the ground, the middle of the card is not.
+  std::fill(px.begin(), px.end(), 0xFFFF);
+  round_corners(px.data(), w, w, h, 6, 0x001F);
+  assert(px[0] == 0x001F && px[w - 1] == 0x001F && px[(h - 1) * w] == 0x001F && px[h * w - 1] == 0x001F);
+  assert(px[10 * w + 20] == 0xFFFF && px[6 * w + 6] == 0xFFFF);
+  // The name: opaque pixels replace, transparent ones leave the picture.
+  std::fill(px.begin(), px.end(), 0x0000);
+  const uint32_t name[4] = {0xFFFFFFFF, 0x00FFFFFF, 0x80FF0000, 0xFF00FF00};
+  lay_over(px.data(), w, w, h, name, 2, 3, 4, 2, 2);
+  assert(px[4 * w + 3] == 0xFFFF && px[4 * w + 4] == 0x0000 && px[5 * w + 4] == rgb565(0x00FF00));
+  assert(((px[5 * w + 3] >> 11) & 31) > 10 && ((px[5 * w + 3] >> 11) & 31) < 20);  // half red
+  // Off the card it is cut.
+  lay_over(px.data(), w, w, h, name, 2, w - 1, h - 1, 2, 2);
+  assert(px[h * w - 1] == 0xFFFF);
+  // The full view lays nothing over its picture.
+  std::fill(px.begin(), px.end(), 0x1234);
+  compose(px.data(), w, w, h, Look{});
+  assert(px[0] == 0x1234 && px[h * w - 1] == 0x1234);
+}
+
 int main() {
   framing();
   links();
   panel();
   placing();
+  cutting();
+  composing();
   std::puts("live_view: ok");
   return 0;
 }

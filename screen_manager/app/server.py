@@ -1105,6 +1105,15 @@ class Manager:
         return (said('max_pages') or FIRMWARE_MAX_PAGES, said('max_tiles') or FIRMWARE_MAX_TILES,
                 said('max_bar_items') or FIRMWARE_MAX_BAR_ITEMS)
 
+    def live_camera(self, screen):
+        """Whether this screen streams a camera live (live_feed.py): its hello while it is connected (`live`), else its
+        board (a P4 that draws pictures). The editor offers Live for its camera tiles, as their default."""
+        sender = self.page_senders.get(self.aliases.get(screen.get('id'), screen.get('id')))
+        if sender is not None and getattr(sender, 'protocol', None) is not None:
+            return live_feed.SCREEN_FEATURE in (getattr(sender, 'features', None) or ())
+        shape = core.shape_of(screen) or {}
+        return shape.get('chip') == 'ESP32-P4' and bool(shape.get('camera'))
+
     def has_battery(self, screen):
         """Whether this screen has a battery the top bar can show (core.has_battery): its Screen features or its hello
         while it is connected, else its board."""
@@ -2660,6 +2669,8 @@ class Manager:
             else: message['a']['supported_features']=reported
         else:
             drawn_controls(message, features)
+        # A camera tile set to Live: pace 0 to a screen that streams, the default pace to any other (live_feed.live_pace).
+        live_feed.live_pace(message, tile, features)
         # The speaker, shuffle, repeat, the cover's colours and the library (firmware 0.24.0+): to a screen that draws
         # them, and to the editor's preview, which runs the newest firmware.
         if player and (features is None or media_library.FEATURE in features):
@@ -3133,13 +3144,17 @@ class Manager:
             url = f'{base}/camera/{token}.bmp' if token else ''
         return {'v': 1, 'op': 'camera', 't': 'alert' if view == 'thumb' else 'full', 'e': entity, 'u': url}
 
-    async def live_message(self, entity, box):
-        """The screen message for a camera live (live_feed.py): a link to its stream of pictures."""
+    async def live_message(self, entity, box, view='full', fit=None):
+        """The screen message for a camera live (live_feed.py): a link to its stream of pictures, for the full view or
+        for a live tile (`view` 'live', `fit` the tile's: a picture that fills the card is cut by the screen, a whole one
+        is shown on black, and the link says which)."""
         base = await camera_feed.base_url(self.ha.request)
         if not base:
             LOG.warning('Camera images: no address for this app on the LAN; set SCREEN_CAMERA_URL')
-        url = f'{base}/camera/{self.live.link(entity, box)}.mjpeg' if base else ''
-        return {'v': 1, 'op': 'camera', 't': 'full', 'e': entity, 'u': url}
+        contain = fit == 'contain'
+        token = self.live.link(entity, box, cover=view == 'live' and not contain) if base else ''
+        url = f'{base}/camera/{token}.mjpeg' + ('?fit=contain' if contain else '') if base else ''
+        return {'v': 1, 'op': 'camera', 't': view, 'e': entity, 'u': url}
 
     async def answer_camera(self, request):
         """One screen's request: a camera it may show, on a screen that draws camera images."""
@@ -3242,7 +3257,8 @@ class Manager:
         if any(entity not in tiles for entity in entities):
             LOG.info('Live pictures for %s: not the pictured tiles of %s', ', '.join(entities), screen['name'])
             return
-        paces = [min(option.get('refresh', camera_feed.LIVE_REFRESH_DEFAULT) if option.get('display') == 'live' else 0
+        # A tile set to Live (pace 0) streams where it can; its still keeps the default pace.
+        paces = [min((option.get('refresh') or camera_feed.LIVE_REFRESH_DEFAULT) if option.get('display') == 'live' else 0
                      for option in tiles[entity]) for entity in entities]
         # Each square's own tile (firmware 0.16.0+ names them by index, `idx`): an entity may be on several tiles, each
         # with its own fit and overlay. A screen without it has an entity on one tile at most, so its first is its own.
@@ -3253,6 +3269,15 @@ class Manager:
             return
         options_of = (lambda n, entity: placed_tiles[own[n]].get('options') or {}) if own is not None else \
             (lambda n, entity: next((o for o in tiles[entity] if o.get('display') == 'live'), None))
+        # A live tile on a P4 (firmware dev): its stream at the card's size, which the screen lays out as its card.
+        live_box = live_feed.parse_box(request.get('live'))
+        if live_box and len(entities) == 1 and entities[0].startswith('camera.') and own is not None:
+            options = options_of(0, entities[0]) or {}
+            if options.get('display') == 'live':
+                message = await self.live_message(entities[0], live_box, 'live', options.get('fit'))
+                await self.send_auxiliary(inbox, message, action, request)
+                LOG.info('Live tile %s on %s%s', entities[0], screen['name'], '' if message['u'] else ': no link')
+                return
         # How each picture fills its card (app 0.3.8). A favourite is dimmed whole, as an album cover over a card is: the
         # screen asks for that in its frame.
         modes = camera_feed.picture_modes(screen, options_of, entities) if atlas else None
@@ -3837,6 +3862,7 @@ def create_app(manager, development=False):
                     screen['shape'] = {**screen['shape'], 'width': screen['shape']['height'], 'height': screen['shape']['width']}
             # And whether it has a battery for the top bar (firmware 0.41.0): what its hello said, else its board.
             screen['battery'] = manager.has_battery(screen)
+            screen['live_camera'] = manager.live_camera(screen)
             # Whether the board draws pictures (camera tiles, an alert's snapshot, an album cover): the boards with
             # memory for them say so with their camera sizes (boards.json); the firmware that draws them is a
             # separate question the editor asks by version, so an older screen still learns what an update brings.

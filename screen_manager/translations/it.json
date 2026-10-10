@@ -2205,7 +2205,8 @@
       },
       "refresh": {
         "label": "Aggiorna",
-        "seconds": "Ogni {n} s"
+        "seconds": "Ogni {n} s",
+        "live": "Dal vivo"
       },
       "picture": {
         "fit": {

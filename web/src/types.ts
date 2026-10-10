@@ -206,6 +206,9 @@ export type Screen = {
   firmware_image?: { size: number; slot: number } | null;
   // Whether it has a battery the top bar can show (app 0.4.68, firmware 0.41.0): its hello said so, or its board has one.
   battery?: boolean;
+  /** Streams a camera live (a P4 whose hello says `live`, or such a board while it is offline): Live is a camera tile's
+   * first and default pace there (app dev). */
+  live_camera?: boolean;
 };
 export type ScreenShape = NonNullable<Screen["shape"]>;
 // Language & region of the screens (app 0.2.90): the language setting ("auto" follows Home Assistant), the language that

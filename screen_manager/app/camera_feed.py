@@ -56,7 +56,8 @@ CAMERA_CARD_FIRMWARE = (0, 3, 7)
 # colour (tile_art.bmp), a third of the bytes of 24-bit. Older screens keep 24-bit.
 LIVE_SIZES = (24, 160)   # a square's side, in pixels
 LIVE_MAX_TILES = 6       # one page
-LIVE_REFRESH = (5, 10, 15, 30)  # the paces a tile may choose, in seconds
+# The paces a tile may choose, in seconds, from the catalogue: 0 is Live, a camera that streams on its tile (live_feed.py).
+LIVE_REFRESH = tuple(catalogue.of_type('camera')['picture']['refresh'])
 LIVE_REFRESH_DEFAULT = 15
 LIVE_RADIUS_SHARE = 6    # a rounder corner than a cover's: the square is small
 PORT = 8098

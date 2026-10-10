@@ -8,6 +8,10 @@
   them. A camera without a stream sends its snapshots as fast as it gives them. On a Raspberry Pi, give the tile the
   camera's low-resolution stream: decoding is what costs Home Assistant's host, and it costs what the resolution costs.
   Every other board keeps its stills.
+- **Live camera tiles on the P4 boards.** A camera tile's picture has a new pace there, Live, which is its default: the
+  tile plays the camera on the page, with its rounded corners and its name over the picture, as long as the page is on
+  the glass and nothing lies over it. Opening such a camera full screen shows its first picture at once. Other screens
+  keep their paces in seconds.
 - **P4 boards download faster.** Camera pictures, album covers and maps come about three times as fast on the P4
   boards: their Wi-Fi goes through an ESP32-C6, and a larger network window keeps it busy.
 - **Plugin cards and tiles.** A card a plugin opens shows everything it draws under its top bar, not only the first line

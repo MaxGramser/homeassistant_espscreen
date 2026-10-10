@@ -276,6 +276,21 @@ Measured on the reTerminal D1001 (2026-10-10):
 
 Home Assistant's LL-HLS was 0.6 to 1.2 seconds behind the same camera and came in bursts of a second; its WebRTC 0.12.
 
+**Live tiles.** A camera tile with **Display → Live picture** has one more pace on a P4: **Live**, its first and default
+one, so a camera tile on a P4 is live unless its pace says otherwise. The editor offers it for a screen that streams
+(its hello says `live`, or, while it is offline, a P4 board with pictures); any other screen refreshes such a tile at 15
+seconds, which is also what firmware before it makes of the pace (0). A live tile streams while it is on the glass, the
+pages stand still and nothing lies over them (a card, the camera full screen, an alert, the settings, the screensaver);
+until its first live picture, and whenever it does not stream, it shows its last still as every camera tile does. It
+asks for its stream with its picture's question and `live`, the card's size; the app sends its pictures plain at that
+size (cut to fill it, or whole, as the tile says: the link ends in `?fit=contain` for a whole one), and the screen lays
+over each of them what the app bakes into a still: the card's rounded corners over the page, the shade under the name
+(the bottom 42 %, to 150/255 black) and the name as LVGL draws it. A camera opened full screen from a live tile has its
+first picture in about 0.3 seconds instead of five: the tile's streams stop, and the app's source of the camera, still
+running, has the newest frame ready. Measured on the reTerminal D1001 with the EZVIZ: a 2 x 2 tile of its substream at
+8 pictures a second (decoding 2 ms, laying out 32 ms), a single tile of its main stream at 15 (1 ms, 11 ms), beside each
+other.
+
 **The network of a P4.** Every P4 board reaches its Wi-Fi through an ESP32-C6 over SDIO, where a packet's round trip
 takes long enough that ESP-IDF's default TCP receive window (5,760 bytes) held a download at about 0.7 MB/s. The P4
 boards build with a window of 64 KB (`components/smart_display/__init__.py`, keyed on the chip): about 2.6 MB/s, for the
@@ -356,9 +371,11 @@ through, how much it matters, and how the app is asked for it. One loader decide
   finished download, the `LV_USE_IMAGE` flag, the alert frame, and the diagnostic action `preview_camera` (an entity
   opens it, an empty entity closes it).
 - `tests/test_camera.py`: the app side and the words both sides share.
-- `screen_manager/app/live_feed.py`: a camera live on a P4, its links, the source per camera (WebRTC or snapshots) and
-  the stream (`tests/test_live_feed.py`); `components/smart_display/live_view.h` and `live_view.cpp`: the screen's side
-  (`tests/test_live_view.cpp` checks the stream's framing, where a picture lies on a turned panel and how it is scaled).
+- `screen_manager/app/live_feed.py`: a camera live on a P4, its links, the source per camera (WebRTC or snapshots), the
+  stream and a tile's pace (`live_pace`) (`tests/test_live_feed.py`); `components/smart_display/live_view.h` and
+  `live_view.cpp`: the screen's streams, up to seven at once (`tests/test_live_view.cpp` checks the stream's framing,
+  where a picture lies on a turned panel, how it is scaled, cut into a card and what is laid over it);
+  `runtime_tiles.h` (`live_tiles_round`, `live_tile_answer`, `live_tick`): which tiles stream and when.
 - Every step of every picture is in the screen's log at DEBUG (`logger: level: DEBUG` in a screen's Override YAML),
   under the tag `picture`: who wants which picture, the question and its answer, the download, the store keeping,
   renewing, retiring and freeing each copy (and why), a picture put on its card on the glass or on a kept page, and an

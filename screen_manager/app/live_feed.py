@@ -41,16 +41,21 @@ LOG = logging.getLogger(__name__)
 MAX_SIDE = 1920
 MAX_BYTES = 1024 * 1024
 MIN_SIDE, MAX_BOX = 64, 4096
-MAX_STREAMS = 4           # screens streaming at once
+MAX_STREAMS = 8           # streams at once: a page of live tiles and a camera full screen, of every screen together
 LINK_SECONDS = 60         # a link nobody opened for this long goes; a stream keeps its link while it runs
 FRAME_SECONDS = 15        # nothing new from the camera for this long: the stream ends and the screen asks again
 LINGER_SECONDS = 5        # a camera nobody watches any more stops after this (a screen that asks again at once finds it)
 SNAPSHOT_FPS = 15         # a camera without a stream is asked no more often than this
 WEBRTC_FIRST_SECONDS = 20  # a WebRTC session without a frame by then gives way to the snapshots
+DEFAULT_PACE = 15         # camera_feed.LIVE_REFRESH_DEFAULT: the pace of a camera tile on a screen that does not stream
 QSCALE = 5                # ffmpeg's mjpeg quality (2 best, 31 worst): about 80 KB a 1280 x 720 camera picture
 SEND_BUFFER = 65536       # what may wait in this host's socket for a screen: a picture, not a queue of them
 # A camera with a stream of its own (CameraEntityFeature.STREAM, by its name in Home Assistant's source).
 STREAM_FEATURE = catalogue.bits('camera', 'STREAM')
+# What a screen that streams says in its hello (live_view.h): a camera tile set to Live, pace 0, streams there, and Live
+# is the default pace of its camera tiles.
+SCREEN_FEATURE = 'live'
+LIVE_PACE = 0
 
 
 def parse_box(text):
@@ -70,6 +75,35 @@ def size_for(width, height, box):
         return width - width % 2, height - height % 2
     scale = min(bw / width, bh / height, MAX_SIDE / width, MAX_SIDE / height)
     return max(16, int(width * scale) // 16 * 16), max(16, int(height * scale) // 16 * 16)
+
+
+def size_to_cover(width, height, box):
+    """The size a frame of width x height goes out at for a live tile that fills its card: as small as still covers the
+    card, its proportions kept (the screen cuts the middle of it), and never larger than the frame: a smaller one the
+    screen's PPA scales up."""
+    bw, bh = box
+    if width <= bw or height <= bh:
+        return width - width % 2, height - height % 2
+    scale = max(bw / width, bh / height)
+    even_up = lambda n: min(int(-(-n // 2) * 2), 4096)
+    return min(even_up(width * scale), width - width % 2), min(even_up(height * scale), height - height % 2)
+
+
+def live_pace(message, tile, features):
+    """A camera tile set to Live (pace 0, firmware dev) in a tile's message: a screen whose hello says it streams (or
+    the editor's preview, `features` None) gets pace 0, also for a tile without a pace of its own, where Live is the
+    default; any other screen gets the pace every camera tile has by default, whatever the tile says."""
+    options = tile.get('options') or {}
+    if not tile.get('entity', '').startswith('camera.') or options.get('display') != 'live':
+        return
+    refresh = options.get('refresh')
+    if refresh not in (None, LIVE_PACE):
+        return
+    streams = features is None or SCREEN_FEATURE in features
+    if streams:
+        message.setdefault('o', {})['refresh'] = LIVE_PACE
+    elif refresh == LIVE_PACE:
+        message.setdefault('o', {})['refresh'] = DEFAULT_PACE
 
 
 def jpeg_size(raw):
@@ -108,13 +142,13 @@ def jpeg_size(raw):
     return None
 
 
-def remake(raw, box):
-    """A picture the P4 does not take as it is (a progressive JPEG, a PNG, one too large) as a baseline JPEG that fits:
-    (JPEG, CPU ms this thread spent on it)."""
+def remake(raw, box, cover=False):
+    """A picture the P4 does not take as it is (a progressive JPEG, a PNG, one too large) as a baseline JPEG that fits,
+    or that covers a live tile's card: (JPEG, CPU ms this thread spent on it)."""
     from PIL import Image
     started = time.thread_time()
     image = Image.open(io.BytesIO(raw))
-    width, height = size_for(image.width, image.height, box)
+    width, height = (size_to_cover if cover else size_for)(image.width, image.height, box)
     if image.format == 'JPEG':
         image.draft('RGB', (width, height))  # decoded at a fraction of its size where that is enough
     image = image.convert('RGB')
@@ -191,25 +225,28 @@ class Source:
             return None
         return self.frame
 
-    async def picture(self, frame, box):
-        """The JPEG of `frame` for a screen with room `box`, made once per frame and room."""
+    async def picture(self, frame, box, cover=False):
+        """The JPEG of `frame` for a screen with room `box` (a live tile that fills its card: `cover`), made once per
+        frame and room."""
         async with self.making:
-            made = self.pictures.get(box)
+            made = self.pictures.get((box, cover))
             if made and made[0] == frame.number:
                 return made[1]
-            jpeg = await self.make(frame, box)
-            self.pictures[box] = (frame.number, jpeg)
+            jpeg = await self.make(frame, box, cover)
+            self.pictures[(box, cover)] = (frame.number, jpeg)
             return jpeg
 
-    async def make(self, frame, box):
+    async def make(self, frame, box, cover=False):
         loop = asyncio.get_running_loop()
+        sizing = size_to_cover if cover else size_for
         if frame.jpeg is not None:
             size = jpeg_size(frame.jpeg)
-            # A JPEG the P4 takes as it is goes out untouched: nothing to do here.
-            jpeg, ms = (frame.jpeg, 0.0) if size and size == size_for(*size, box) else \
-                await loop.run_in_executor(None, remake, frame.jpeg, box)
+            # A JPEG the P4 takes as it is goes out untouched, when it is no larger than it needs to be: the screen
+            # scales and cuts it itself.
+            jpeg, ms = (frame.jpeg, 0.0) if size and size == sizing(*size, box) else \
+                await loop.run_in_executor(None, remake, frame.jpeg, box, cover)
         else:
-            size = size_for(frame.video.width, frame.video.height, box)
+            size = sizing(frame.video.width, frame.video.height, box)
             encoder = self.encoders.get(size)
             if encoder is None:
                 encoder = self.encoders[size] = Encoder(*size)
@@ -341,10 +378,10 @@ class Source:
 
 
 class Link:
-    __slots__ = ('entity', 'box', 'used', 'streaming', 'made')
+    __slots__ = ('entity', 'box', 'used', 'streaming', 'made', 'cover')
 
-    def __init__(self, entity, box, now):
-        self.entity, self.box, self.used, self.streaming, self.made = entity, box, now, 0, now
+    def __init__(self, entity, box, now, cover=False):
+        self.entity, self.box, self.used, self.streaming, self.made, self.cover = entity, box, now, 0, now, cover
 
 
 class LiveFeed:
@@ -361,10 +398,12 @@ class LiveFeed:
         for token in [t for t, link in self.links.items() if not link.streaming and now - link.used > LINK_SECONDS]:
             del self.links[token]
 
-    def link(self, entity, box):
+    def link(self, entity, box, cover=False):
+        """A new link's token: the full view's (`box` its room), or a live tile's (`box` its card, `cover` when its
+        picture fills the card rather than showing whole)."""
         self.prune()
         token = secrets.token_urlsafe(18)
-        self.links[token] = Link(entity, box, self.clock())
+        self.links[token] = Link(entity, box, self.clock(), cover)
         return token
 
     def streaming(self):
@@ -403,7 +442,7 @@ class LiveFeed:
                 if frame is None or request.transport is None:
                     break
                 last = frame.number
-                jpeg = await source.picture(frame, link.box)
+                jpeg = await source.picture(frame, link.box, link.cover)
                 if not jpeg:
                     continue
                 await response.write(b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n' % len(jpeg)

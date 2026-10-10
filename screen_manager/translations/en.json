@@ -1855,7 +1855,8 @@
       },
       "refresh": {
         "label": "Refresh",
-        "seconds": "Every {n} s"
+        "seconds": "Every {n} s",
+        "live": "Live"
       },
       "picture": {
         "fit": {

@@ -1855,7 +1855,8 @@
       },
       "refresh": {
         "label": "Verversen",
-        "seconds": "Elke {n} s"
+        "seconds": "Elke {n} s",
+        "live": "Live"
       },
       "picture": {
         "fit": {

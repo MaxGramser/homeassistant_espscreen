@@ -2205,7 +2205,8 @@
       },
       "refresh": {
         "label": "Frissítés",
-        "seconds": "{n} mp-enként"
+        "seconds": "{n} mp-enként",
+        "live": "Élő"
       },
       "picture": {
         "fit": {

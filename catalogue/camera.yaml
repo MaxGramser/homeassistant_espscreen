@@ -11,7 +11,9 @@ displays:
     screen: {pictures: true, firmware: 0.2.77}
 key: false
 # How a live picture sits on its tile: filling it or whole, with the name over it or nothing, and how often it is new.
+# 0 is Live: the camera streams on its tile, on a screen whose hello says `live` (a P4, live_view.h), where it is the
+# default; any other screen refreshes such a tile at 15 seconds (live_feed.live_pace).
 picture:
   fit: [fill, contain]
   overlay: [name, none]
-  refresh: [5, 10, 15, 30]
+  refresh: [0, 5, 10, 15, 30]

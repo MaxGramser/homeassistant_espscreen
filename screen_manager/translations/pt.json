@@ -2205,7 +2205,8 @@
       },
       "refresh": {
         "label": "Atualizar",
-        "seconds": "A cada {n} s"
+        "seconds": "A cada {n} s",
+        "live": "Ao vivo"
       },
       "picture": {
         "fit": {

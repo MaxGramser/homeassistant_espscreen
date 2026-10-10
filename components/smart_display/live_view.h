@@ -19,9 +19,11 @@
 // What a PC can check is here, free of sockets, LVGL and ESP-IDF (tests/test_live_view.cpp): the stream's framing,
 // where a rectangle of the screen lies on the panel, and where a picture goes. live_view.cpp has the task.
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <string>
 
 #include "picture_fetch.h"
@@ -39,6 +41,7 @@ constexpr uint32_t QUIET_MS = 6000;  // no byte for this long: the stream is gon
 constexpr uint32_t REPORT_MS = 10000;
 // A stream that failed this often for one opening of the view gives way to the stills of every board.
 constexpr uint8_t TRIES = 3;
+constexpr size_t TILE_PICTURE = 384 * 1024;  // a tile's picture is smaller (MAX_PICTURE is the full view's)
 
 // A link to a stream rather than to a still: the app serves both on its camera port, a still as .bmp.
 inline bool is_stream(const std::string &url) {
@@ -149,15 +152,145 @@ inline Rect fit(int w, int h, const Rect &area, int &sixteenths) {
   const int fw = scaled(w, s), fh = scaled(h, s);
   return {area.x + (area.w - fw) / 2, area.y + (area.h - fh) / 2, fw, fh};
 }
-// What the screen asks the app for: the room below the top bar, "1280x720".
+// What the screen asks the app for: the room it has, "1280x720".
 inline std::string box_text(const Rect &area) { return std::to_string(area.w) + "x" + std::to_string(area.h); }
 
-// ---- The task, on a P4 (live_view.cpp); elsewhere nothing streams ----
+// ---- A live tile (firmware dev): the picture fills its card, rounded, shaded under its name, the name over it ----
+// A tile's still comes from the app with all of that baked in (tile_art.py); a live tile's pictures come plain, at the
+// card's size, and the screen lays the same over each of them before it reaches the glass, so the app on a Raspberry
+// Pi does nothing per picture a screen can do itself. The shade is tile_art's: the bottom FADE_PERCENT of the card,
+// from clear to FADE_DEPTH / 255 black.
+constexpr int FADE_PERCENT = 42;
+constexpr int FADE_DEPTH = 150;
+struct Look {
+  bool tile = false;     // false: the full view, whose picture fills its room and has nothing over it
+  bool contain = false;  // the whole picture in the middle of the card on black; else it fills the card, cut to it
+  int radius = 0;        // the card's corners, over `ground` (RGB565, the page behind the card)
+  uint16_t ground = 0;
+  bool fade = false;     // the shade under the name
+  // The name as LVGL draws it (ARGB8888, w x h with `stride` pixels a row), at x, y on the card; copied at open().
+  const uint32_t *name = nullptr;
+  int name_x = 0, name_y = 0, name_w = 0, name_h = 0, name_stride = 0;
+};
+// Where a picture of w x h goes in a card of cw x ch: the PPA reads the block in_* of it and writes out_* at
+// `sixteenths` / 16. Filling: the middle of the picture, scaled up only when it is smaller than the card. Whole
+// (contain): all of it, as large as fits, in the middle.
+struct Cut {
+  int in_x = 0, in_y = 0, in_w = 0, in_h = 0;
+  int out_x = 0, out_y = 0, out_w = 0, out_h = 0;
+  int sixteenths = 0;
+  bool ok = false;
+  bool covers(int cw, int ch) const { return ok && out_x == 0 && out_y == 0 && out_w == cw && out_h == ch; }
+};
+inline Cut cut(int w, int h, int cw, int ch, bool contain) {
+  Cut c;
+  if (w <= 0 || h <= 0 || cw <= 0 || ch <= 0 || w > MAX_SIDE || h > MAX_SIDE) return c;
+  if (contain) {
+    const Rect r = fit(w, h, Rect{0, 0, cw, ch}, c.sixteenths);
+    if (r.empty()) return c;
+    c.in_w = w;
+    c.in_h = h;
+    c.out_x = r.x, c.out_y = r.y, c.out_w = r.w, c.out_h = r.h;
+    c.ok = true;
+    return c;
+  }
+  // The least scale at which the picture covers the card: 16 (as it is) for a picture the app sent at the card's size.
+  int s = 16;
+  while (s < MAX_SCALE - 1 && (scaled(w, s) < cw || scaled(h, s) < ch)) ++s;
+  while (s > 1 && scaled(w, s - 1) >= cw && scaled(h, s - 1) >= ch) --s;
+  if (scaled(w, s) < cw || scaled(h, s) < ch) return c;
+  // The largest block of the picture that, scaled, stays within the card.
+  auto block = [s](int n, int room) {
+    int in = std::min(n, (room * 16 + s - 1) / s);
+    while (in > 1 && scaled(in, s) > room) --in;
+    return in;
+  };
+  c.sixteenths = s;
+  c.in_w = block(w, cw);
+  c.in_h = block(h, ch);
+  c.in_x = (w - c.in_w) / 2;
+  c.in_y = (h - c.in_h) / 2;
+  c.out_w = scaled(c.in_w, s);
+  c.out_h = scaled(c.in_h, s);
+  c.out_x = (cw - c.out_w) / 2;
+  c.out_y = (ch - c.out_h) / 2;
+  c.ok = true;
+  return c;
+}
+// RGB565 in the chip's own byte order (as LVGL's and the decoder's), and LVGL's ARGB8888 (0xAARRGGBB).
+inline uint16_t rgb565(uint32_t rgb) {
+  return static_cast<uint16_t>(((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x07E0) | ((rgb >> 3) & 0x001F));
+}
+inline uint16_t blend(uint16_t under, uint16_t over, unsigned alpha) {  // alpha 0..255
+  if (alpha >= 255) return over;
+  if (alpha == 0) return under;
+  const unsigned a = alpha + 1, b = 256 - a;
+  const unsigned r = (((over >> 11) & 31) * a + ((under >> 11) & 31) * b) >> 8;
+  const unsigned g = (((over >> 5) & 63) * a + ((under >> 5) & 63) * b) >> 8;
+  const unsigned bl = ((over & 31) * a + (under & 31) * b) >> 8;
+  return static_cast<uint16_t>(r << 11 | g << 5 | bl);
+}
+// The shade under a name: the bottom FADE_PERCENT of the card darkens row by row to FADE_DEPTH / 255 black.
+inline void fade(uint16_t *px, int stride, int w, int h) {
+  const int rows = std::max(1, (h * FADE_PERCENT + 50) / 100);
+  for (int i = 0; i < rows; ++i) {
+    const unsigned depth = static_cast<unsigned>(FADE_DEPTH * (i + 1) / rows);  // 0 at the top of the shade
+    uint16_t *row = px + static_cast<size_t>(h - rows + i) * stride;
+    for (int x = 0; x < w; ++x) row[x] = blend(row[x], 0, depth);
+  }
+}
+// The card's rounded corners: what lies outside a circle of `radius` in each corner becomes `ground`, its edge
+// smoothed by how much of each pixel lies outside.
+inline void round_corners(uint16_t *px, int stride, int w, int h, int radius, uint16_t ground) {
+  radius = std::min(radius, std::min(w, h) / 2);
+  for (int y = 0; y < radius; ++y) {
+    for (int x = 0; x < radius; ++x) {
+      const float dx = radius - (x + 0.5f), dy = radius - (y + 0.5f);
+      const float outside = std::sqrt(dx * dx + dy * dy) - radius + 0.5f;  // 0: inside, 1: wholly outside
+      if (outside <= 0) continue;
+      const unsigned a = outside >= 1 ? 255 : static_cast<unsigned>(outside * 255);
+      uint16_t *corners[4] = {px + static_cast<size_t>(y) * stride + x, px + static_cast<size_t>(y) * stride + (w - 1 - x),
+                              px + static_cast<size_t>(h - 1 - y) * stride + x,
+                              px + static_cast<size_t>(h - 1 - y) * stride + (w - 1 - x)};
+      for (auto *p : corners) *p = blend(*p, ground, a);
+    }
+  }
+}
+// LVGL's drawing of the name (ARGB8888, sw x sh, `sstride` pixels a row) laid over the picture at x, y.
+inline void lay_over(uint16_t *px, int stride, int w, int h, const uint32_t *argb, int sstride, int x, int y, int sw,
+                     int sh) {
+  for (int j = 0; j < sh; ++j) {
+    const int py = y + j;
+    if (py < 0 || py >= h) continue;
+    for (int i = 0; i < sw; ++i) {
+      const int qx = x + i;
+      if (qx < 0 || qx >= w) continue;
+      const uint32_t c = argb[static_cast<size_t>(j) * sstride + i];
+      const unsigned a = c >> 24;
+      if (a) px[static_cast<size_t>(py) * stride + qx] = blend(px[static_cast<size_t>(py) * stride + qx], rgb565(c), a);
+    }
+  }
+}
+// Everything a live tile lays over its picture, in the order tile_art.py does it: the shade, the corners, the name.
+inline void compose(uint16_t *px, int stride, int w, int h, const Look &look) {
+  if (!look.tile) return;
+  if (look.fade) fade(px, stride, w, h);
+  if (look.radius > 0) round_corners(px, stride, w, h, look.radius, look.ground);
+  if (look.name && look.name_w > 0 && look.name_h > 0)
+    lay_over(px, stride, w, h, look.name, look.name_stride ? look.name_stride : look.name_w, look.name_x, look.name_y,
+             look.name_w, look.name_h);
+}
+
+// ---- The streams, on a P4 (live_view.cpp); elsewhere nothing streams ----
+// The full view and the live tiles of the page on the glass, each in a task of its own.
+constexpr int MAX_STREAMS = 7;
+using Handle = int;  // -1: none
 enum class Event : uint8_t {
   NONE,
-  FIRST,   // the first picture is on the glass
-  FAILED,  // the stream broke, or never came: the view asks again
-  TURNED,  // the glass was turned meanwhile: the view asks again for its new shape
+  FIRST,   // its first picture is on the glass
+  FAILED,  // it broke, or never came: its owner asks again
+  TURNED,  // the glass was turned meanwhile: its owner asks again for its new shape
+  ENDED,   // closed by its owner, and gone
 };
 // A P4 (USE_LIVE_VIEW, smart_display/__init__.py) that shows pictures at all (SCREEN_PICTURES, features/camera.yaml).
 #if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
@@ -168,22 +301,21 @@ class LvglComponent;
 namespace live_view {
 // LVGL, which says how the glass is turned (smart_display/__init__.py binds it at boot).
 void bind(esphome::lvgl::LvglComponent *lvgl);
-// Whether this screen streams: a P4 whose panel ESP-IDF made with an RGB565 frame buffer, and LVGL bound to say how
-// the glass is turned (smart_display/__init__.py binds it).
+// Whether this screen streams: a P4 whose panel ESP-IDF made with an RGB565 frame buffer, and LVGL bound.
 bool available();
-// Streams `url` into `area`, the screen as LVGL lays it out. False when it cannot start.
-bool start(const std::string &url, const Rect &area);
-// Ends the stream. Returns once nothing of it writes the glass any more, so LVGL may draw there again at once.
-void stop();
-bool running();
-// The main loop, every 50 ms: frees what a finished task left and says what happened.
-Event tick();
+// Streams `url` into `area`, the screen as LVGL lays it out, looking as `look` says. -1 when it cannot start (no room
+// for another stream, no memory): its owner shows its stills.
+Handle open(const std::string &url, const Rect &area, const Look &look = Look{});
+// Ends a stream. Returns once nothing of it writes the glass any more, so LVGL may draw there again at once; its ENDED
+// comes with the next tick.
+void close(Handle handle);
+// The main loop, every 50 ms: frees what finished tasks left and tells each stream's owner what happened.
+void tick(const std::function<void(Handle, Event)> &tell);
 #else
 inline bool available() { return false; }
-inline bool start(const std::string &, const Rect &) { return false; }
-inline void stop() {}
-inline bool running() { return false; }
-inline Event tick() { return Event::NONE; }
+inline Handle open(const std::string &, const Rect &, const Look & = Look{}) { return -1; }
+inline void close(Handle) {}
+inline void tick(const std::function<void(Handle, Event)> &) {}
 #endif
 
 }  // namespace live_view
