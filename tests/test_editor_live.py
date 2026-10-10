@@ -460,7 +460,7 @@ class Editor(unittest.TestCase):
         import editor_sources
         self.assertIn('getJson(`states?${query(entities.slice(i, i + 60))}`)', editor_sources.source('stores/entities.ts'))
         self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(layout.value) && ui.tab === "layout" && ui.route === "" });', self.store)
-        for marker in ('liveOf(props.tile.entity)', 'lit: isOn', ':style="sliderStyle"', "class=\"tog\" :class=\"{ off: !on }\""):
+        for marker in ('liveOf(props.tile.entity)', 'lit: card.lit', ':style="card.sliderStyle"', "class=\"tog\" :class=\"{ off: !card.on }\""):
             self.assertIn(marker, self.page, marker)
 
     def test_identify_and_the_test_alert_have_their_buttons(self):
@@ -509,7 +509,7 @@ class Editor(unittest.TestCase):
         # A tile's size, the whole page too, is set with its handles on the tile itself (app 0.4.32).
         self.assertIn('export function resizeChoices(', editor_sources.source('editor/tiles.ts'))
         self.assertEqual(editor_sources.text('tile.goes_to.label'), 'Goes to page')
-        self.assertIn(':class="{ wide, full, tall,', editor_sources.component('TileCard'))
+        self.assertIn('return { wide: face.wide, full: face.full, tall: face.tall,', editor_sources.component('TileCard'))
         self.assertIn('"timer", "screen",', editor_sources.component('Library'))
         self.assertEqual(editor_sources.text('library.filters.screen'), 'Screen')
 

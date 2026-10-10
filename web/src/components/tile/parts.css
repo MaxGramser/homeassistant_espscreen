@@ -1,0 +1,4 @@
+/* What several faces of a card draw alike (components/tile/), styled once and taken by each face's own scoped styles:
+   the icon in its circle and a switch that is on. */
+.tile .ic:not(.thumb) { color: var(--tile-icon); background: var(--tile-circle); border-radius: 50%; padding: 5px; }
+.tile .tog:not(.off) { background: var(--tile-accent); }

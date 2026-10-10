@@ -7,6 +7,7 @@ import { defineStore } from "pinia";
 import { computed, effectScope, onScopeDispose, watch } from "vue";
 import { send } from "../api";
 import { languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "../i18n";
+import { unitSuffix as unitText } from "../model/tile-text";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
@@ -40,12 +41,9 @@ export const useRegionStore = defineStore("region", () => {
     const language = inv.inventory.language;
     return { ...(STYLE_MARKS[language?.numbers_auto || "point"] || STYLE_MARKS.point), from: (language?.group_min_auto || 1) >= 2 ? 5 : 4 };
   });
-  /** What follows a number for its unit, as Home Assistant spaces it: "°", "%" or " %" by the language, " kWh". */
-  function unitSuffix(unit: string | undefined | null) {
-    if (!unit || unit === "°") return unit || "";
-    if (unit === "%") return inv.inventory.language?.percent_space ? " %" : "%";
-    return ` ${unit}`;
-  }
+  /** What follows a number for its unit, as Home Assistant spaces it: "°", "%" or " %" by the language, " kWh"
+   * (model/tile-text.ts unitSuffix). */
+  const unitSuffix = (unit: string | undefined | null) => unitText(unit, Boolean(inv.inventory.language?.percent_space));
 
   /** Saves any of the screen language, the time format and the number format. */
   async function saveLanguage(changes: LanguageChanges) {

@@ -65,7 +65,7 @@ class Startup(unittest.TestCase):
         # Names come from the inventory at render time, so they appear as soon as the full inventory does.
         self.assertIn('return inv.entityOf(id)?.name ||', editor_sources.source('stores/entities.ts'))
         self.assertIn('for (const entity of inventory.value.entities) if (!index.has(entity.id)) index.set(entity.id, entity);', inventory)
-        self.assertIn('entityName(props.tile.entity)', editor_sources.component('TileCard'))
+        self.assertIn('entityName(props.tile.entity)', editor_sources.source('composables/useTileCard.ts'))
 
 
 if __name__ == '__main__':
