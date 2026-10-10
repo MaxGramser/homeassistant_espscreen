@@ -1,7 +1,7 @@
 // The editor's searches (model/search.ts): the library, ⌘K, the pickers, New screen's boards and the plugins compare
 // what is typed the same way.
 import { describe, expect, it } from "vitest";
-import { matchesQuery, matchesWords, prefixRank, queryWords, rankedValues } from "../src/model/search";
+import { matchesQuery, matchesWords, prefixRank, queryWords, rankedValues, iconGroupsMatching } from "../src/model/search";
 
 describe("a search", () => {
   it("finds what is typed in any field, without case, and across the space between two fields", () => {
@@ -31,5 +31,18 @@ describe("a search", () => {
     expect(rankedValues(commands, "volumeup")).toEqual(["VOLUME_UP"]);
     expect(rankedValues(commands, "dia")).toEqual(["MEDIA_VOLUME"]);
     expect(rankedValues(commands, "")).toEqual(commands);
+  });
+});
+
+describe("the icon search (the icon picker and Alerts)", () => {
+  const groups = [{ label: "Lights", icons: [{ name: "ceiling-light", label: "Ceiling light" }, { name: "alarm-light", label: "Warning light" }] },
+    { label: "Doors", icons: [{ name: "doorbell", label: "Doorbell" }] }];
+  it("finds an icon by its label, its name with or without its dashes, and its group, and drops a group left empty", () => {
+    expect(iconGroupsMatching(groups, "alarm-light").map((g) => g.icons.map((i) => i.name))).toEqual([["alarm-light"]]);
+    expect(iconGroupsMatching(groups, "alarm light").map((g) => g.icons.map((i) => i.name))).toEqual([["alarm-light"]]);
+    expect(iconGroupsMatching(groups, "warning").map((g) => g.label)).toEqual(["Lights"]);
+    expect(iconGroupsMatching(groups, "doors").map((g) => g.icons.length)).toEqual([1]);
+    expect(iconGroupsMatching(groups, "").map((g) => g.icons.length)).toEqual([2, 1]);
+    expect(iconGroupsMatching(groups, "nothing")).toEqual([]);
   });
 });

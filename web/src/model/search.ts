@@ -37,3 +37,10 @@ export function rankedValues(values: readonly string[], typed: string) {
   const first = values.filter((value) => fold(value).startsWith(wanted) || nameWords(value).some((word) => word.startsWith(wanted)));
   return [...first, ...values.filter((value) => !first.includes(value) && fold(value).includes(wanted))];
 }
+/** The icons of each group that match what is typed (the tile's icon picker, Alerts' list): by their label, their name
+ * with or without its dashes ("alarm-light", "alarm light") and their group's label. Groups left empty go. */
+export function iconGroupsMatching<I extends { name: string; label?: string }>(groups: readonly { label: string; icons: readonly I[] }[], query: string) {
+  return groups.map((group) => ({ label: group.label,
+    icons: group.icons.filter((icon) => matchesQuery(query, icon.label, icon.name, icon.name.replaceAll("-", " "), group.label)) }))
+    .filter((group) => group.icons.length);
+}

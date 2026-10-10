@@ -5,7 +5,7 @@
 import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { matchesQuery } from "../model/search";
+import { iconGroupsMatching } from "../model/search";
 import Icon from "./ui/Icon.vue";
 import PropRow from "./ui/PropRow.vue";
 import type { Tile } from "../types";
@@ -29,12 +29,7 @@ function show(name: string | null) {
   else if (insp.optionPreview?.key === "icon") insp.optionPreview = null;
 }
 function pick(name: string) { show(null); emit("pick", name); }
-const groups = computed(() => {
-  return (inv.inventory.icons?.groups || []).map((group) => ({
-    label: group.label,
-    icons: group.icons.filter((i) => matchesQuery(query.value, i.label, i.name.replaceAll("-", " "), group.label)),
-  })).filter((g) => g.icons.length);
-});
+const groups = computed(() => iconGroupsMatching(inv.inventory.icons?.groups || [], query.value));
 </script>
 
 <template>
