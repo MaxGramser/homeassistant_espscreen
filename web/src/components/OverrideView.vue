@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Per-screen local YAML override: a small file of the owner's, loaded after the shared screen package.
 import { computed, onMounted, ref } from "vue";
+import { useBusy } from "../composables/useBusy";
 import { getJson, send } from "../api";
 import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { t } from "../i18n";
@@ -25,7 +26,7 @@ const file = ref("");
 const attached = ref(false);
 const status = ref(t("editor.common.loading"));
 const kind = ref("");
-const busy = ref(false);
+const { busy, runOnce } = useBusy();
 const editor = ref<HTMLTextAreaElement | null>(null);
 const gutter = ref<HTMLDivElement | null>(null);
 const lines = computed(() => content.value.split("\n").length);
@@ -45,9 +46,8 @@ async function load() {
     setStatus(error.message, "error");
   }
 }
-async function saveOverride(runCheck = false) {
-  if (!profile.value || busy.value) return;
-  busy.value = true;
+const saveOverride = (runCheck = false) => runOnce(async () => {
+  if (!profile.value) return;
   setStatus(t("editor.override.saving"));
   try {
     const data = await send(`firmware/profiles/${encodeURIComponent(profile.value)}/override`, "PUT", { content: content.value });
@@ -63,10 +63,8 @@ async function saveOverride(runCheck = false) {
     pollCheck();
   } catch (error: any) {
     setStatus(error.message, "error");
-  } finally {
-    busy.value = false;
   }
-}
+});
 // The check of a profile, followed while it runs (composables/useFirmwareJob.ts): every 1.2 seconds while the page is in
 // sight, until it ends, the page shows another screen or two hours have gone by. A hidden tab asks nothing until it is
 // shown again, and an answer another view has had is this one's too.

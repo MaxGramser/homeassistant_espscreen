@@ -2,6 +2,7 @@
 // Screen settings: the same groups and rows as the settings page on the screen itself. Every change applies at
 // once, like on the screen; no Save needed.
 import { computed } from "vue";
+import { usePressRepeat } from "../composables/usePressRepeat";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
 import FeedbackPanel from "./FeedbackPanel.vue";
@@ -50,34 +51,17 @@ const stepDisabled = (row: SettingRow, direction: number) => {
   if (unavailable(row) || !needs(row) || value === null || value === undefined) return true;
   return row.kind !== "moment" && steppedSetting(row, value, direction, false, values.value) === value;
 };
-// A key held down steps again and again, faster after a moment, like the -/+ keys on the screen.
-const holds = new WeakMap<HTMLElement, { timer: number; held: boolean }>();
+// A key held down steps again and again, faster after five steps, like the -/+ keys on the screen.
+const hold = usePressRepeat({ delay: 450, interval: 180 });
 function step(row: SettingRow, direction: number, held: boolean) {
   const v = settingValues();
   const next = steppedSetting(row, v[row.key], direction, held, v);
   if (next !== v[row.key]) setSetting(row.key, next, 600);
 }
-function down(e: PointerEvent, row: SettingRow, direction: number) {
-  const button = e.currentTarget as HTMLButtonElement;
-  if (button.disabled || e.button !== 0) return;
-  const hold = { timer: 0, held: false };
-  holds.set(button, hold);
-  let repeats = 0;
-  hold.timer = window.setTimeout(function repeat() {
-    hold.held = true;
-    repeats += 1;
-    step(row, direction, repeats > 5);
-    hold.timer = window.setTimeout(repeat, 180);
-  }, 450);
-}
-function up(e: PointerEvent) {
-  const hold = holds.get(e.currentTarget as HTMLElement);
-  if (hold) clearTimeout(hold.timer);
-}
+const down = (e: PointerEvent, row: SettingRow, direction: number) => hold.down(e, (repeats) => step(row, direction, repeats > 5));
+const up = () => hold.up();
 function click(e: MouseEvent, row: SettingRow, direction: number) {
-  const hold = holds.get(e.currentTarget as HTMLElement);
-  if (hold?.held) { hold.held = false; return; }
-  step(row, direction, false);
+  if (!hold.click(e)) step(row, direction, false);
 }
 // Calibrate touch (app 0.2.117): the screen has to be there to show the crosses, whoever owns its settings.
 const calibrateReady = computed(() => Boolean(currentScreen.value?.online));

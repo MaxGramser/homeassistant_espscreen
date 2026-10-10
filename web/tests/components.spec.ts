@@ -927,6 +927,27 @@ describe("HomeView: every screen with its home page (app 0.4.0)", () => {
   });
 });
 
+describe("Screen settings: a key held down", () => {
+  const view = (extra: Record<string, unknown> = {}) => {
+    Object.assign(state.inventory.screens[0], {
+      settings: { owner: "screen", keys: [], values: {}, unavailable: [], rotations: [0, 180], switches: [], ...extra },
+    });
+    return mount(SettingsTab);
+  };
+  it("steps a number again and again while its key is held, and the click that ends the hold is no step more", async () => {
+    vi.useFakeTimers();
+    const panel = view({ keys: ["brightness"], values: { brightness: 50 } });
+    const higher = panel.find('[data-setting="brightness"] button[aria-label$="higher"]');
+    higher.element.dispatchEvent(Object.assign(new Event("pointerdown", { bubbles: true }), { button: 0, pointerId: 1 }));
+    await vi.advanceTimersByTimeAsync(450 + 180);
+    higher.element.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    await higher.trigger("click");
+    expect(state.settingEdits.brightness.value).toBe(60);
+    await higher.trigger("click");
+    expect(state.settingEdits.brightness.value).toBe(65);
+  });
+});
+
 describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
   const view = (extra: Record<string, unknown> = {}) => {
     Object.assign(state.inventory.screens[0], {

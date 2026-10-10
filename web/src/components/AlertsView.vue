@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Alerts: the cheatsheet for esphome.<node>_show_alert, built from the inventory.
 import { computed, reactive, ref } from "vue";
+import { useBusy } from "../composables/useBusy";
 import { andList, t } from "../i18n";
 import { versionAtLeast } from "../model/layout";
 import { matchesQuery } from "../model/search";
@@ -24,12 +25,11 @@ const tryForm = reactive({
   screen: "all", title: t("editor.alerts.example.title"), subtitle: t("editor.alerts.example.subtitle"), icon: "doorbell", color: "orange",
   button_text: t("editor.alerts.example.button"), timeout: 30, flash: true,
 });
-const trying = ref(false);
+const { busy: trying, run: whileTrying } = useBusy();
 const tryResult = ref("");
 const physicalScreens = computed(() => state.inventory.screens.filter(s => !s.virtual));
 const readyScreens = computed(() => physicalScreens.value.filter((s) => canAlert(s) && s.online));
-async function tryAlert() {
-  trying.value = true;
+const tryAlert = () => whileTrying(async () => {
   tryResult.value = "";
   try {
     const { screen, ...data } = tryForm;
@@ -44,10 +44,8 @@ async function tryAlert() {
       : t("editor.alerts.try.nothing", { version: alerts.value?.min_firmware || "0.2.31" });
   } catch (e: any) {
     tryResult.value = e.message;
-  } finally {
-    trying.value = false;
   }
-}
+});
 const icons = computed(() => state.inventory.icons);
 const exampleAction = ref("");
 const iconQuery = ref("");

@@ -3,13 +3,13 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { t } from "../i18n";
 import { domainInfo } from "../model/layout";
+import { useListNavigation } from "../composables/useListNavigation";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
 import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, go, identify, repeatable, save, select, state, tileLimit } from "../store";
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
-const active = ref(0);
 const input = ref<HTMLInputElement | null>(null);
 const items = computed<Item[]>(() => {
   const q = query.value.trim().toLocaleLowerCase();
@@ -58,13 +58,12 @@ const grouped = computed(() => {
 });
 function close() { state.palette = false; }
 function run(item: Item) { close(); item.run(); }
+// The arrows walk the results and stop at the ends, Enter runs the one in focus, a new search starts at the first.
+const { active, onKey: walk } = useListNavigation(items, { onPick: run, resetOn: query });
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") { e.preventDefault(); close(); }
-  else if (e.key === "ArrowDown") { e.preventDefault(); active.value = Math.min(items.value.length - 1, active.value + 1); }
-  else if (e.key === "ArrowUp") { e.preventDefault(); active.value = Math.max(0, active.value - 1); }
-  else if (e.key === "Enter") { e.preventDefault(); const item = items.value[active.value]; if (item) run(item); }
+  else walk(e);
 }
-watch(query, () => (active.value = 0));
 watch(() => state.palette, async (open) => { if (open) { query.value = ""; active.value = 0; await nextTick(); input.value?.focus(); } });
 </script>
 

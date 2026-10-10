@@ -17,6 +17,8 @@ import { pluginsEnabled, tilesOn } from "../plugin-state";
 import { currentScreen } from "../store";
 import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
+import { useListNavigation } from "../composables/useListNavigation";
+import { isEditableTarget } from "../composables/isEditableTarget";
 import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, phone, pictures, repeatable, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
@@ -145,24 +147,22 @@ const short = (e: Entry) => {
 const detail = (e: Entry) => isPluginTile(e.id) ? pluginOf(e.id) : builtin(e.id) ? "" : [short(e) !== e.name ? e.device : domainInfo(e.id)[0], grouped.value ? "" : e.area].filter(Boolean).join(" · ");
 
 // ---- Keyboard: type anywhere to search, arrows to walk, Enter to add ----
-const active = ref(0);
 const search = ref<HTMLInputElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 const searching = ref(false);
-watch(() => [state.search, state.filter, state.room], () => { active.value = 0; });
 const addable = (e: Entry) => !placed(e.id) && !full.value;
-function walk(step: number) {
-  const n = flat.value.length;
-  if (!n) return;
-  active.value = (active.value + step + n) % n;
-  nextTick(() => (list.value?.querySelector(".ent.active") as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" }));
-}
+// The arrows walk the results round, the one in focus scrolled into view; Enter adds it; a new search starts at the first.
+const results = useListNavigation(flat, {
+  wrap: true,
+  onPick: (entity) => (addable(entity) ? (addTile(entity.id), true) : false),
+  resetOn: () => [state.search, state.filter, state.room],
+  onMove: () => nextTick(() => (list.value?.querySelector(".ent.active") as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })),
+});
+const active = results.active;
 function onSearchKey(e: KeyboardEvent) {
-  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); open.value = true; walk(e.key === "ArrowDown" ? 1 : -1); }
-  else if (e.key === "Enter") {
-    const entity = flat.value[active.value];
-    if (entity && addable(entity)) { e.preventDefault(); addTile(entity.id); }
-  } else if (e.key === "Escape") {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") open.value = true;
+  if (results.onKey(e)) return;
+  if (e.key === "Escape") {
     // First Escape clears the search, the next one folds the drawer and hands the keys back to the page.
     e.stopPropagation();
     if (state.search) state.search = "";
@@ -174,7 +174,7 @@ function onSearchKey(e: KeyboardEvent) {
 function onPageKey(e: KeyboardEvent) {
   if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || state.tab !== "layout" || state.palette) return;
   const target = e.target as HTMLElement | null;
-  if (target?.closest?.("input, textarea, select, [contenteditable], dialog, [role='dialog'], [role='menu'], [role='listbox']")) return;
+  if (isEditableTarget(target) || target?.closest?.("select, dialog, [role='dialog'], [role='menu'], [role='listbox']")) return;
   if (document.querySelector("dialog[open], [role='dialog'], [role='menu']")) return;
   if (e.key === "/") { e.preventDefault(); openSearch(); return; }
   if (e.key.length !== 1 || !/\S/.test(e.key)) return;

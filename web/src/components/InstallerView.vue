@@ -5,7 +5,9 @@
 // form, what it sends and when, is the one it always was.
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { send } from "../api";
+import { useBusy } from "../composables/useBusy";
 import { useClock } from "../composables/useClock";
+import { useStickToBottom } from "../composables/useStickToBottom";
 import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
 import { t } from "../i18n";
@@ -41,7 +43,7 @@ const job = ref<any>(null);
 const logs = ref<string[]>([]);
 const note = ref("");
 const status = ref("");
-const submitting = ref(false);
+const { busy: submitting, run: whileSubmitting } = useBusy();
 const logOpen = ref(false);
 const keyBox = ref<HTMLElement | null>(null);
 
@@ -232,15 +234,14 @@ async function submit(event: Event) {
     return;
   }
   if (!installer.nodeEdited) form.name = nodeName(form.friendly_name);
-  submitting.value = true;
+  await whileSubmitting(install);
+}
+async function install() {
   status.value = "";
   const browser = form.target === "browser";
   // The port picker opens only from this click, so it comes before anything else waits; nothing is written or built
   // when no port is chosen, or the board on it has another chip than the chosen board (ESPHome's order).
-  if (browser && !(await flash.connect(chosen.value?.chip))) {
-    submitting.value = false;
-    return;
-  }
+  if (browser && !(await flash.connect(chosen.value?.chip))) return;
   try {
     const payload: Record<string, unknown> = { board: form.board, orientation: form.orientation, friendly_name: form.friendly_name, name: form.name, target: browser ? "download" : form.target };
     // Only a choice that differs from the board file's own goes along: the add-on writes nothing for that one anyway.
@@ -258,8 +259,6 @@ async function submit(event: Event) {
   } catch (err: any) {
     status.value = err.message;
     if (browser) flash.cancel();
-  } finally {
-    submitting.value = false;
   }
 }
 async function retry() {
@@ -394,17 +393,17 @@ const arrival = computed(() => {
 });
 // While it waits for the screen, the inventory is asked again every five seconds the page is in sight.
 useVisibleInterval(() => refresh(false), 5000, { when: () => Boolean(arrival.value) && arrival.value !== "paired" });
-const fixing = ref(false);
+const { busy: fixing, run: whileFixing } = useBusy();
 // The right network, then the same installation again: over the same cable, or from this computer after its click.
 async function fixWifi(event: Event) {
   if (!(event.target as HTMLFormElement).reportValidity()) return;
-  fixing.value = true;
-  try {
-    await saveWifi();
-    doneAt.value = 0;
-    await retry();
-  } catch (err: any) { toast(err.message); }
-  finally { fixing.value = false; }
+  await whileFixing(async () => {
+    try {
+      await saveWifi();
+      doneAt.value = 0;
+      await retry();
+    } catch (err: any) { toast(err.message); }
+  });
 }
 
 // ---- The installation, step by step ----
@@ -422,11 +421,7 @@ const artState = computed(() => running.value ? "working" : ok.value ? "done" : 
 const stepLabel = (key: string) => t(key === "done" && download.value ? "editor.installer.steps_done.download" : `editor.installer.steps_done.${key}`);
 const logBox = ref<HTMLElement | null>(null);
 // The log follows its last line while someone reads the bottom, and stays put once they scroll up.
-watch(() => logs.value.length, () => {
-  const box = logBox.value;
-  if (!box || box.scrollHeight - box.scrollTop - box.clientHeight > 40) return;
-  requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
-});
+useStickToBottom(logBox, () => logs.value.length, { near: 40 });
 // The first look at the job; from there it is followed (useFirmwareJob), and a hidden tab asks the add-on nothing.
 onMounted(installerRefresh);
 onBeforeUnmount(() => flash.cancel());

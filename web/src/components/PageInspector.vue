@@ -8,7 +8,7 @@ import { connections, titleOf } from "../model/pages";
 import { beginFieldEdit, endFieldEdit } from '../store';
 import { currentScreen, duplicateEditorPage, pageCopyable, homeKeyShown, pageTitleShown, movePage, moveWorkspacePage, openBar, openTile, pageReady, pageTitle, removePage, screenTitle,
   setHomePage, setPageExcluded, setPageHomeControl, setPageTitle, state, topbarItems, topbarMax, workspacePositions } from "../store";
-import { textDraft } from '../model/text-draft';
+import { useTextDraft } from '../composables/useTextDraft';
 import { noTitle, setScreenTitle } from '../store';
 import TopbarSvg from "./TopbarSvg.vue";
 import Segmented from "./Segmented.vue";
@@ -32,9 +32,9 @@ function editRoute(tileId: string) { const tile = state.layout?.tiles.find((item
 // row keeps its own field, so nothing is set that nobody can see.
 const ownTitle = computed(() => count.value > 1 || !!pageTitle(index.value));
 // Firmware 0.17.0+ takes a screen without a title: an empty field leaves the home key alone in the top bar.
-const titleDraft = textDraft(screenTitle, setScreenTitle, () => !noTitle.value);
+const titleDraft = useTextDraft(screenTitle, setScreenTitle, () => !noTitle.value);
 // A page's own title keeps the spaces you type while you type, and is saved without the ones at its ends (app 0.4.2).
-const pageTitleDraft = textDraft(() => page.value?.topbar.title.source === 'text' ? page.value.topbar.title.text : '', (value) => setPageTitle(index.value, value));
+const pageTitleDraft = useTextDraft(() => page.value?.topbar.title.source === 'text' ? page.value.topbar.title.text : '', (value) => setPageTitle(index.value, value));
 const screenTitleOpen = ref(false);
 const orders = computed(() => (state.document?.pages || []).map((_, at) => [at, String(at + 1)] as [number, string]));
 const barItems = computed(() => topbarItems(index.value));

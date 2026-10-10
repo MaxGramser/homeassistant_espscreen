@@ -30,7 +30,7 @@ import UiSelect from "./ui/UiSelect.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
-import { textDraft } from '../model/text-draft';
+import { useTextDraft } from '../composables/useTextDraft';
 import rules from "../model/page-rules.json";
 import { choiceOffered, offeredChoices } from "../model/tile-options";
 import { isTallSize } from "../model/sizes";
@@ -47,7 +47,7 @@ function moveTile(page: number) {
 }
 const otherPages = computed(() => (state.document?.pages || []).map((page, index) => ({ index, name: titleOf(state.document!, page) || t("editor.page.label", { page: index + 1 }) }))
   .filter((page) => page.index !== pageOf(props.tile.slot)));
-const nameDraft = textDraft(() => props.tile.name, value => setTileName(props.tile, value));
+const nameDraft = useTextDraft(() => props.tile.name, value => setTileName(props.tile, value));
 const domain = computed(() => props.tile.entity.split(".")[0]);
 // A plugin's tile (design) has an inspector of its own, built from the plugin's manifest.
 const pluginTile = computed(() => Boolean(pluginTileOf(props.tile.entity)));

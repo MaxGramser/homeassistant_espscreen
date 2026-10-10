@@ -3,6 +3,7 @@
 // same question for good under Settings. Only a click on an answer sends anything; the add-on keeps the board's key,
 // numbers the revisions and retries, so this page only says what the owner chose.
 import { computed, ref } from "vue";
+import { useBusy } from "../composables/useBusy";
 import { t } from "../i18n";
 import { feedbackAction, state } from "../store";
 import type { FeedbackAnswer, FeedbackIssue, Screen } from "../types";
@@ -23,7 +24,7 @@ const step = ref<"summary" | "ask" | "details" | "report" | "thanks" | "done">(p
 const outcome = ref<FeedbackAnswer["outcome"] | null>(null);
 const issues = ref<FeedbackIssue[]>([]);
 const comment = ref("");
-const busy = ref(false);
+const { busy, runOnce } = useBusy();
 const note = ref("");
 const uid = `feedback-${props.mode}`;
 
@@ -72,15 +73,9 @@ function startDetails(chosen: FeedbackAnswer["outcome"]) {
   comment.value = before?.outcome === chosen ? before.comment || "" : "";
 }
 
+// One request at a time: a second press while one is on its way does nothing.
 async function run(body: Record<string, unknown>) {
-  if (busy.value) return false;
-  busy.value = true;
-  note.value = "";
-  try {
-    return await feedbackAction(props.screen, body);
-  } finally {
-    busy.value = false;
-  }
+  return (await runOnce(() => { note.value = ""; return feedbackAction(props.screen, body); })) ?? false;
 }
 
 // Yes and Not quite send at once, so an answer without details counts too; details are a new revision of it.

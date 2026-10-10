@@ -7,6 +7,7 @@ import {
   buildOf, canAlert, closeInspector, copyLayoutFrom, currentScreen, currentTile, removeTile, exportLayout, go, goHome, identify, importLayout, narrowPhone, openBar,
   phone, redo, renameScreen, save, setFullEditor, startUpdate, state, tileLimit, undo,
 } from "../store";
+import { isEditableTarget } from "../composables/isEditableTarget";
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
 import ScreenPluginsTab from "./ScreenPluginsTab.vue";
@@ -85,14 +86,14 @@ function onKey(e: KeyboardEvent) {
     else if (state.palette) return;
     else if (state.inspector && !(e.target as HTMLElement)?.closest?.(".picker")) closeInspector();
   } else if ((e.key === "Delete" || e.key === "Backspace") && !e.defaultPrevented && state.inspector?.kind === "tile" && currentTile.value
-    && !(e.target as HTMLElement)?.closest?.("input, textarea, select, [contenteditable], [role='menu'], dialog")) {
+    && !isEditableTarget(e.target) && !(e.target as HTMLElement)?.closest?.("select, [role='menu'], dialog")) {
     // The selected tile goes, as a selected object does in Keynote (app 0.4.32); Undo brings it back.
     e.preventDefault();
     removeTile(currentTile.value);
   } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
     e.preventDefault();
     if (state.dirty) save();
-  } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !(e.target as HTMLElement)?.closest('input, textarea, [contenteditable]')) {
+  } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !isEditableTarget(e.target)) {
     e.preventDefault();
     if (e.shiftKey) redo(); else undo();
   }

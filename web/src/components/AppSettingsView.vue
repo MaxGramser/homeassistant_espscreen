@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Everything around the screens: firmware updates, language and region, alerts, Claude.
 import { computed, ref } from "vue";
+import { useBusy } from "../composables/useBusy";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
 import { anyBuilding, autoMarks, buildingScreens, go, installClaudeSkill, runUpdateAll, saveLanguage, setAutoUpdate, state } from "../store";
 import BuildLog from "./BuildLog.vue";
@@ -65,20 +66,14 @@ const different = computed(() => {
 });
 const profileText = computed(() => [different.value.clock && clockName(different.value.clock), different.value.numbers && example(STYLE_MARKS[different.value.numbers])]
   .filter(Boolean).join(" · "));
-const saving = ref(false);
+const { busy: saving, run: whileSaving } = useBusy();
 async function choose(field: "setting" | "clock" | "numbers", event: Event) {
   const select = event.target as HTMLSelectElement;
-  saving.value = true;
-  const saved = await saveLanguage({ [field]: select.value });
-  saving.value = false;
+  const saved = await whileSaving(() => saveLanguage({ [field]: select.value }));
   // A refused change shows the stored choice again.
   if (!saved) select.value = String(lang.value?.[field] ?? "auto");
 }
-async function useProfile() {
-  saving.value = true;
-  await saveLanguage(different.value);
-  saving.value = false;
-}
+const useProfile = () => whileSaving(() => saveLanguage(different.value));
 </script>
 
 <template>
