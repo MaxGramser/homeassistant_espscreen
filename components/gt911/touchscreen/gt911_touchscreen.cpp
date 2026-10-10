@@ -38,8 +38,10 @@ void GT911Touchscreen::setup() {
       return;
     }
     uint8_t switches;
-    if (this->configuration_valid_(&switches)) {
-      this->setup_internal_(switches);
+    uint16_t x_res;
+    uint16_t y_res;
+    if (this->configuration_valid_(&switches, &x_res, &y_res)) {
+      this->setup_internal_(switches, x_res, y_res);
       return;
     }
     ESP_LOGW(TAG, "Invalid GT911 configuration after power cycle %u", attempt);
@@ -92,7 +94,7 @@ bool GT911Touchscreen::init_sequence_() {
   return true;
 }
 
-bool GT911Touchscreen::configuration_valid_(uint8_t *switches) {
+bool GT911Touchscreen::configuration_valid_(uint8_t *switches, uint16_t *x_res, uint16_t *y_res) {
   uint8_t data[4];
   i2c::ErrorCode err = this->probe_address_(PRIMARY_ADDRESS, switches);
   if (err != i2c::ERROR_OK)
@@ -107,16 +109,13 @@ bool GT911Touchscreen::configuration_valid_(uint8_t *switches) {
   if (err != i2c::ERROR_OK)
     return false;
 
-  const uint16_t x_res = encode_uint16(data[1], data[0]);
-  const uint16_t y_res = encode_uint16(data[3], data[2]);
-  ESP_LOGI(TAG, "GT911 geometry after power cycle: %u x %u at 0x%02X", x_res, y_res, this->address_);
-  return x_res != 0 && y_res != 0;
+  *x_res = encode_uint16(data[1], data[0]);
+  *y_res = encode_uint16(data[3], data[2]);
+  ESP_LOGI(TAG, "GT911 geometry after power cycle: %u x %u at 0x%02X", *x_res, *y_res, this->address_);
+  return *x_res != 0 && *y_res != 0;
 }
 
-void GT911Touchscreen::setup_internal_(uint8_t switches) {
-  uint8_t data[4];
-  i2c::ErrorCode err = i2c::ERROR_OK;
-
+void GT911Touchscreen::setup_internal_(uint8_t switches, uint16_t x_res, uint16_t y_res) {
   // switches & 1 == 1  =>  controller uses falling edge  =>  active-low
   // switches & 1 == 0  =>  controller uses rising  edge  =>  active-high
   bool active_high = !(switches & 1);
@@ -135,29 +134,12 @@ void GT911Touchscreen::setup_internal_(uint8_t switches) {
   }
 
   if (this->x_raw_max_ == 0 || this->y_raw_max_ == 0) {
-    // no calibration? Attempt to read the max values from the touchscreen.
-    if (err == i2c::ERROR_OK) {
-      err = this->write(GET_MAX_VALUES, sizeof(GET_MAX_VALUES));
-      if (err == i2c::ERROR_OK) {
-        err = this->read(data, sizeof(data));
-        if (err == i2c::ERROR_OK) {
-          this->x_raw_max_ = encode_uint16(data[1], data[0]);
-          this->y_raw_max_ = encode_uint16(data[3], data[2]);
-          if (this->swap_x_y_)
-            std::swap(this->x_raw_max_, this->y_raw_max_);
-        }
-      }
-    }
-    if (err != i2c::ERROR_OK) {
-      this->mark_failed(LOG_STR("Calibration error"));
-      return;
-    }
+    this->x_raw_max_ = x_res;
+    this->y_raw_max_ = y_res;
+    if (this->swap_x_y_)
+      std::swap(this->x_raw_max_, this->y_raw_max_);
   }
 
-  if (err != i2c::ERROR_OK) {
-    this->mark_failed(LOG_STR(ESP_LOG_MSG_COMM_FAIL));
-    return;
-  }
   this->setup_done_ = true;
 }
 
