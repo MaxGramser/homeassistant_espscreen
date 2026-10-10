@@ -4,10 +4,11 @@ import { computed } from "vue";
 import { t } from "./i18n";
 import { moved } from "./model/reorder";
 import { clockSample } from "./model/clock";
-import { currentScreen, entityName, liveOf, openSaverStep, saverItems, setScreensaver, settingValues, state, topbarLabel } from "./store";
+import { currentScreen, openSaverStep, saverItems, setScreensaver, settingValues, state, topbarLabel } from "./store";
 import type { SaverKind, ScreensaverChoice } from "./types";
 import { useUiStore } from "./stores/ui";
 import { useRegionStore } from "./stores/region";
+import { useEntitiesStore } from "./stores/entities";
 
 export const SAVER_MIN_FIRMWARE = "0.29.0";
 export const SAVER_ICONS: Record<SaverKind, string> = { media: "F075A", camera: "F07AE", clock: "F0150" };
@@ -72,16 +73,17 @@ export const weatherChoices = computed(() => [
 
 // One line that says what a step will show, so the list reads without opening a step.
 export function summary(kind: SaverKind): { text: string; missing?: boolean } {
+  const entities = useEntitiesStore();
   if (kind === "media") {
     if (!players.value.length) return { text: t(key("summary.media_none")), missing: true };
-    return { text: players.value.map(entityName).join(", ") };
+    return { text: players.value.map((id) => entities.entityName(id)).join(", ") };
   }
   if (kind === "camera") {
     if (!saver.value?.camera) return { text: t(key("summary.camera_none")), missing: true };
-    return { text: entityName(saver.value.camera) };
+    return { text: entities.entityName(saver.value.camera) };
   }
   const weather = saver.value?.weather ?? "auto";
-  const first = weather === "auto" ? t(key("summary.temperature")) : weather ? entityName(weather) : t(key("summary.time_date"));
+  const first = weather === "auto" ? t(key("summary.temperature")) : weather ? entities.entityName(weather) : t(key("summary.time_date"));
   return { text: [first, ...saverItems().map(topbarLabel)].join(", ") };
 }
 
@@ -98,7 +100,7 @@ export const glassRatio = computed(() => {
 });
 export const clockPreview = computed(() => {
   const clock = clockSample(useUiStore().now, useRegionStore().clock24, useRegionStore().screenLanguage);
-  const degrees = weatherSource.value ? liveOf(weatherSource.value)?.a?.temperature : undefined;
+  const degrees = weatherSource.value ? useEntitiesStore().liveOf(weatherSource.value)?.a?.temperature : undefined;
   return {
     time: clock.time,
     date: clock.date,

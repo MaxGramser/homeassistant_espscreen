@@ -6,8 +6,10 @@ import { barLayout, dotted, inkOf, type BarMetrics, type BarPart } from "../mode
 import { barMetrics, state, topbarView } from "../store";
 import TesseraMark from "./TesseraMark.vue";
 import { useUiStore } from "../stores/ui";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
+const entities = useEntitiesStore();
 
 // `metrics`: another screen's bar, for that screen's home page on the overview (app 0.4.0).
 const props = defineProps<{ items: any[]; nameText?: string; single?: boolean; home?: boolean; back?: boolean; metrics?: BarMetrics }>();
@@ -15,7 +17,7 @@ const props = defineProps<{ items: any[]; nameText?: string; single?: boolean; h
 const lay = computed(() => {
   void ui.fontsVersion;
   void ui.now;
-  void state.topbarPreviews;
+  void entities.topbarPreviews;
   return barLayout(props.items, props.metrics ?? barMetrics.value, props.nameText ?? '', topbarView,
                    Boolean(props.home) && !props.single, Boolean(props.back) && !props.single);
 });

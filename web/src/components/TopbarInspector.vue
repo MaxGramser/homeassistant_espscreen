@@ -12,9 +12,8 @@ import { entriesOf } from "../model/layout";
 import { clockSample } from "../model/clock";
 import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
 import {
-  automaticIcon, barMetrics, entityName, homeKeyShown, iconNamed, moveTopbarItem, openBar, openBarAdd, openPage,
-  removeTopbarItem, setTopbarItems, state, supportsVersion, topbarItems, topbarLabel, topbarMax, topbarView,
-  pageTitleShown, pageReady,
+  barMetrics, homeKeyShown, moveTopbarItem, openBar, openBarAdd, openPage, removeTopbarItem, setTopbarItems, state,
+  supportsVersion, topbarItems, topbarLabel, topbarMax, topbarView, pageTitleShown, pageReady,
 } from "../store";
 import type { HeaderItem } from "../types";
 import IconPicker from "./IconPicker.vue";
@@ -28,15 +27,17 @@ import Section from './ui/Section.vue';
 import HelpTip from './HelpTip.vue';
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
 const region = useRegionStore();
+const entities = useEntitiesStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => sort.live.value || topbarItems());
 const item = computed<HeaderItem | undefined>(() => items.value[props.index]);
 const lay = computed(() => {
-  void ui.fontsVersion; void ui.now; void state.topbarPreviews;
+  void ui.fontsVersion; void ui.now; void entities.topbarPreviews;
   return barLayout(items.value, barMetrics.value, pageTitleShown(page.value), topbarView);
 });
 const overflow = computed(() => lay.value.dropped);
@@ -56,7 +57,7 @@ const detail = (it: HeaderItem, i: number) => {
 const iconOf = (it: HeaderItem) => {
   const view = topbarView(it);
   if (STATUS_CODES[it.type]) return view.icon || STATUS_CODES[it.type];
-  return view.analog || it.type !== "entity" ? iconNamed(BUILTIN_ICONS[it.type])?.cp : view.icon;
+  return view.analog || it.type !== "entity" ? entities.iconNamed(BUILTIN_ICONS[it.type])?.cp : view.icon;
 };
 // The screen's own items need firmware 0.38.0; an older screen leaves them out of its bar.
 const statusNeeded = computed(() => state.inventory.header?.status_min_firmware || "0.38.0");
@@ -108,7 +109,7 @@ function onKey(e: KeyboardEvent, i: number) {
 </script>
 
 <template>
-  <InspectorHead kind="bar" :title="item ? (item.type === 'entity' ? entityName(item.entity!) : topbarLabel(item)) : t('editor.topbar.title')"
+  <InspectorHead kind="bar" :title="item ? (item.type === 'entity' ? entities.entityName(item.entity!) : topbarLabel(item)) : t('editor.topbar.title')"
     :code="item ? iconOf(item) || 'F0150' : undefined" :icon="item ? undefined : 'page-layout-header'" :crumbs="crumbs" />
   <div class="dr-body">
     <div v-if="!pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
@@ -148,7 +149,7 @@ function onKey(e: KeyboardEvent, i: number) {
           <Segmented :choices="(state.inventory.header?.contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content" @pick="(v) => update(v === 'icon' && item!.icon === 'none' ? { content: v, icon: 'auto' } : { content: v })" />
         </div>
         <!-- An item that shows its icon alone (GitHub #144) needs one, so it offers no "No icon". -->
-        <IconPicker :selected="item.icon || 'auto'" :automatic="state.topbarPreviews[itemKey(item)]?.auto_icon || automaticIcon(item.entity!)" :auto-label="t('editor.topbar.auto_icon')" :allow-none="item.content !== 'icon'" @pick="(n) => update({ icon: n })" />
+        <IconPicker :selected="item.icon || 'auto'" :automatic="entities.topbarPreviews[itemKey(item)]?.auto_icon || entities.automaticIcon(item.entity!)" :auto-label="t('editor.topbar.auto_icon')" :allow-none="item.content !== 'icon'" @pick="(n) => update({ icon: n })" />
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.show.label") }}<HelpTip :text="t('editor.topbar.show.hint')" /></span>
           <Segmented :choices="(state.inventory.header?.shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show" @pick="(v) => update({ show: v })" />

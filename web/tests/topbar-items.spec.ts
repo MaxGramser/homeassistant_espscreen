@@ -18,8 +18,6 @@ beforeEach(() => {
   state.documentGrid = { columns: 2, rows: 3 };
   state.selected = "living";
   seedLayout({ title: "Home", pages: 2, tiles: [], header: { items: [{ type: "entity", entity: "sensor.out", content: "last_changed" }, { type: "clock" }] } });
-  state.topbarPreviews = {};
-  useUiStore().notice = null;
 });
 
 describe("the items of the top bar", () => {

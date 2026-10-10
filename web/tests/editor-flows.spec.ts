@@ -11,7 +11,7 @@ import { validatePages } from "../src/model/pages";
 import { tileCost } from "../src/model/memory";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
-import { useUiStore } from "../src/stores/ui";
+import { useEntitiesStore } from "../src/stores/entities";
 
 let yes = true, asked: Question[] = [];
 beforeEach(() => {
@@ -19,7 +19,7 @@ beforeEach(() => {
   // Every question of the editor's is answered yes, unless a test answers otherwise.
   yes = true;
   asked = answerDialogs(() => yes);
-  state.dirty = false; state.selected = null; useUiStore().notice = null;
+  state.dirty = false; state.selected = null;
   state.inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
     layout: { title: "Home", tiles: [{ entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 }] } } as any)],
     entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} } } as any;
@@ -64,7 +64,7 @@ describe("the editor", () => {
   });
 
   it("draws the second line the tile panel chose on the mockup: nothing, own words or a value", () => {
-    state.liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
+    useEntitiesStore().liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
     const card = (sub?: string) => mount(TileCard, { props: { tile: { ...state.layout!.tiles[0], options: sub ? { sub } : {} }, slot: 0 } }).find(".st");
     expect(card().text()).toBe("On");
     expect(card("none").exists()).toBe(false);

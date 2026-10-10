@@ -4,16 +4,18 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { addTopbarItem, closeInspector, currentScreen, iconNamed, openBar, state, topbarItems, topbarMax } from "../store";
+import { addTopbarItem, closeInspector, currentScreen, openBar, state, topbarItems, topbarMax } from "../store";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
 import { barItemsFor, pluginsEnabled } from "../plugin-state";
 import InspectorHead from "./ui/InspectorHead.vue";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
 const region = useRegionStore();
+const entities = useEntitiesStore();
 
 const taken = computed(() => new Set(topbarItems().map(itemKey)));
 const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
@@ -42,7 +44,7 @@ const builtins = computed(() => (state.inventory.header?.builtin || []).filter((
       <span class="f-label">{{ t("editor.topbar.add.builtin") }}</span>
       <div class="options">
         <button v-for="b in builtins" :key="b.type" type="button" class="option" :disabled="taken.has(itemKey(builtinItem(b.type)))" @click="addTopbarItem(builtinItem(b.type))">
-          <span class="mdi">{{ glyph(STATUS_CODES[b.type] || iconNamed(BUILTIN_ICONS[b.type])?.cp || "F0150") }}</span>
+          <span class="mdi">{{ glyph(STATUS_CODES[b.type] || entities.iconNamed(BUILTIN_ICONS[b.type])?.cp || "F0150") }}</span>
           <span class="tx"><strong>{{ b.label }}</strong><small>{{ taken.has(itemKey(builtinItem(b.type))) ? t("editor.topbar.add.added") : samples[b.type] }}</small></span>
         </button>
       </div>

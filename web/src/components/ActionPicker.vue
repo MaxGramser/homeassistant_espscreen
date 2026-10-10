@@ -4,22 +4,25 @@
 import { computed } from "vue";
 import { matchesQuery } from "../model/search";
 import { t } from "../i18n";
-import { beginFieldEdit, endFieldEdit, loadEntityActions, setTileAction, state, supports } from "../store";
+import { beginFieldEdit, endFieldEdit, setTileAction, state, supports } from "../store";
 import type { EntityAction, Tile } from "../types";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import UiSuggest from "./ui/UiSuggest.vue";
+import { useEntitiesStore } from "../stores/entities";
+
+const entities = useEntitiesStore();
 
 const props = defineProps<{ tile: Tile }>();
-const list = computed(() => state.entityActions[props.tile.entity]);
+const list = computed(() => entities.entityActions[props.tile.entity]);
 const chosen = computed(() => props.tile.options?.action);
 const entry = computed(() => list.value?.find((a) => a.action === chosen.value?.action));
 const open = computed(() => state.actionPickerOpen || !chosen.value);
 const rows = computed(() => {
   return (list.value || []).filter((a) => matchesQuery(state.actionSearch, a.name, a.action, a.description));
 });
-if (list.value === undefined) loadEntityActions(props.tile.entity);
+if (list.value === undefined) entities.loadEntityActions(props.tile.entity);
 
 // Choosing an action stores Perform action with it (app 0.4.0): until then the tile keeps the tap choice it had, so a
 // half-made choice never reaches the document (GitHub #47). The chosen action is the tile's own, from the document.

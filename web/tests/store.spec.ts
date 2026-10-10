@@ -2,7 +2,7 @@ import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixtur
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  addTile, canAlert, copyLayoutFrom, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage,
+  addTile, canAlert, copyLayoutFrom, deviceStyle, fullPage, importLayout, isCompact, layoutJson, movePage,
   moveTileToPage, pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select,
   setTileOption, state, supports, supportsVersion, tileLimit, topbarItems, topbarView, refresh, createVirtualScreen,
   removeScreen, chooseGrid, tileSizeChoices, setEditorMode,
@@ -16,6 +16,7 @@ import renderer from "../src/wasm/renderer.json";
 import type { Inventory, Screen } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useBuildsStore } from "../src/stores/builds";
+import { useEntitiesStore } from "../src/stores/entities";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -61,7 +62,6 @@ beforeEach(() => {
   state.selected = null;
   seedLayout(null);
   state.dirty = false;
-  state.liveStates = {};
 });
 
 describe("selecting and editing", () => {
@@ -260,10 +260,10 @@ describe("live values", () => {
     expect(state.selected).toBe(virtual.id);
   });
   it("falls back to what the inventory knew", () => {
-    expect(liveOf("light.a")).toEqual({ state: "on", word: null, a: {} });
-    state.liveStates["light.a"] = { state: "off", word: "Off", a: { brightness: 0 } };
-    expect(liveOf("light.a")!.word).toBe("Off");
-    expect(liveOf("light.nope")).toBeNull();
+    expect(useEntitiesStore().liveOf("light.a")).toEqual({ state: "on", word: null, a: {} });
+    useEntitiesStore().liveStates["light.a"] = { state: "off", word: "Off", a: { brightness: 0 } };
+    expect(useEntitiesStore().liveOf("light.a")!.word).toBe("Off");
+    expect(useEntitiesStore().liveOf("light.nope")).toBeNull();
   });
 });
 

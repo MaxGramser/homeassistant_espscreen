@@ -6,10 +6,12 @@ import { domainInfo } from "../model/layout";
 import { useListNavigation } from "../composables/useListNavigation";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
-import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, identify, repeatable, save, select, state, tileLimit } from "../store";
+import { addTile, canAlert, currentScreen, exportLayout, identify, repeatable, save, select, state, tileLimit } from "../store";
 import { useUiStore } from "../stores/ui";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
+const entities = useEntitiesStore();
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
@@ -44,7 +46,7 @@ const items = computed<Item[]>(() => {
       // One on the screen comes again when the firmware takes an entity on several tiles (0.16.0+).
       if (e.tile === false || (chosen.has(e.id) && !repeatable(e.id))) continue;
       if (!matchesQuery(q, e.name, e.id, e.area, e.device)) continue;
-      list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: state.inventory.icons ? automaticIcon(e.id) : undefined,
+      list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: state.inventory.icons ? entities.automaticIcon(e.id) : undefined,
         run: () => { if (!full) addTile(e.id); } });
       if (list.length > 60) break;
     }

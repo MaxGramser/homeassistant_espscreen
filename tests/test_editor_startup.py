@@ -59,7 +59,7 @@ class Startup(unittest.TestCase):
         self.assertIn('state.inventory = full ? data : { ...state.inventory, ...data };', STORE)
         self.assertIn('inventory?light=1', STORE)
         # Names come from the inventory at render time, so they appear as soon as the full inventory does.
-        self.assertIn('state.inventory.entities.find((e) => e.id === id)?.name', STORE)
+        self.assertIn('state.inventory.entities.find((e) => e.id === id)?.name', editor_sources.source('stores/entities.ts'))
         self.assertIn('entityName(props.tile.entity)', editor_sources.component('TileCard'))
 
 

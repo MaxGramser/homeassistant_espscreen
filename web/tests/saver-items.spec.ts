@@ -12,7 +12,6 @@ beforeEach(() => {
     entities: [], builtin: [], header: { max_items: 6, builtin: [] } } as unknown as Inventory;
   state.selected = "living";
   state.inspector = null;
-  useUiStore().notice = null;
 });
 
 describe("the clock's entities", () => {

@@ -5,7 +5,7 @@
 import { computed, watch } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { closeInspector, entityName, loadLibraryStates, openSaverAdd, openSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, topbarLabel, topbarView } from "../store";
+import { closeInspector, openSaverAdd, openSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, topbarLabel, topbarView, stillSelected } from "../store";
 import {
   addPlayer, cameraChoices, changeSaver, entitiesOf, entityPlace, isOn, MAX_PLAYERS, moveStep, players, removePlayer, SAVER_ICONS, savedOrder, saver,
   saverLabel, saverReady, setPlayers, toggleStep, weatherChoices, weatherSource,
@@ -20,6 +20,9 @@ import SwitchRow from "./ui/SwitchRow.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiSelect from "./ui/UiSelect.vue";
+import { useEntitiesStore } from "../stores/entities";
+
+const entities = useEntitiesStore();
 
 const props = defineProps<{ step: SaverKind }>();
 const T = (name: string, values?: Record<string, unknown>) => t(`editor.screen_settings.screensaver.${name}`, values || {});
@@ -32,7 +35,7 @@ const shown = computed(() => playerSort.live.value || players.value);
 const free = computed(() => entitiesOf("media", players.value));
 const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", items: () => players.value, commit: setPlayers, skip: "button", grip: ".grip",
   enabled: () => saverReady.value && players.value.length > 1 });
-watch(weatherSource, (id) => id && loadLibraryStates([id]), { immediate: true });
+watch(weatherSource, (id) => id && entities.loadLibraryStates([id], stillSelected()), { immediate: true });
 </script>
 
 <template>
@@ -51,9 +54,9 @@ watch(weatherSource, (id) => id && loadLibraryStates([id]), { immediate: true })
             :class="{ 'dragging-chip': playerSort.drag.value.active && playerSort.drag.value.index === row, single: shown.length < 2 }"
             @pointerdown="playerSort.down($event, row)" @keydown="playerSort.key($event, row)">
             <span class="saver-rank">{{ row + 1 }}</span>
-            <span class="tx"><b>{{ entityName(id) }}</b><small v-if="entityPlace(id)">{{ entityPlace(id) }}</small></span>
+            <span class="tx"><b>{{ entities.entityName(id) }}</b><small v-if="entityPlace(id)">{{ entityPlace(id) }}</small></span>
             <Icon v-if="shown.length > 1" name="drag-vertical" class="grip" />
-            <button type="button" class="x" :aria-label="T('remove_player', { name: entityName(id) })" @click="removePlayer(id)"><Icon name="close" /></button>
+            <button type="button" class="x" :aria-label="T('remove_player', { name: entities.entityName(id) })" @click="removePlayer(id)"><Icon name="close" /></button>
           </div>
         </div>
         <UiMenu v-if="players.length < MAX_PLAYERS" align="start" width="260px">

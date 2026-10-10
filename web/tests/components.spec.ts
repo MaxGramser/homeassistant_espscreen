@@ -24,6 +24,7 @@ import { answerDialogs } from "./helpers/dialogs";
 import { currentTile, openBar, previewed, removePage, repeatable, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
+import { useEntitiesStore } from "../src/stores/entities";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
 // screen's shape carries, and what New screen gets for each board (firmware.BOARD_CHOICES), made the same way here.
@@ -61,9 +62,6 @@ beforeEach(() => {
   state.inventory.screens = state.inventory.screens.map(screenFixture);
   state.selected = "living";
   seedLayout({ title: "Living room", tiles: [] });
-  state.liveStates = {};
-  useUiStore().search = ""; useUiStore().filter = ""; useUiStore().room = ""; useUiStore().hidePlaced = false;
-  useUiStore().palette = false;
   state.selectedTileId = null; state.inspector = null;
   state.dirty = false; state.tab = "layout";
 });
@@ -111,8 +109,8 @@ describe("TileCard", () => {
       { key: 'buttons', label: 'Open, stop, close' }, { key: 'position', label: 'Position' },
       { key: 'tilt', label: 'Tilt' }, { key: 'position_tilt', label: 'Position and tilt' }, { key: 'none', label: 'None' },
     ] };
-    state.capabilities['cover.c'] = { controls: ['buttons', 'position', 'tilt', 'position_tilt', 'buttons_tilt'], toggle: true, inline: true, displays: ['standard'] };
-    state.liveStates['cover.c'] = { state: 'open', word: 'Open', a: { supported_features: 255, current_position: 45, current_tilt_position: 65 } };
+    useEntitiesStore().capabilities['cover.c'] = { controls: ['buttons', 'position', 'tilt', 'position_tilt', 'buttons_tilt'], toggle: true, inline: true, displays: ['standard'] };
+    useEntitiesStore().liveStates['cover.c'] = { state: 'open', word: 'Open', a: { supported_features: 255, current_position: 45, current_tilt_position: 65 } };
     const tile: Tile = { entity: 'cover.c', name: '', slot: 0, options: { size: 'square', controls: 'position' } };
     appendTiles(tile);
     const settings = inspector(tile);
@@ -134,14 +132,14 @@ describe("TileCard", () => {
 
   it("extends only taller tiles and waits for actual artwork before using white text", async () => {
     state.inventory.controls!.media_player = { default: 'playback', choices: [] };
-    state.liveStates['media_player.a'] = { state: 'playing', word: 'Playing', a: { media_title: 'A track', media_artist: 'An artist', artwork_mark: 'first', supported_features: 49 } };
+    useEntitiesStore().liveStates['media_player.a'] = { state: 'playing', word: 'Playing', a: { media_title: 'A track', media_artist: 'An artist', artwork_mark: 'first', supported_features: 49 } };
     // A screen that draws pictures (app 0.4.42: a CYD's mockup draws no cover it will never show).
     Object.assign(state.inventory.screens[0], { pictures: true });
     const card = placed({ entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'tall', display: 'cover', controls: 'playback' } });
     expect(card.classes()).toContain('tall');
     expect(card.find('.track-title').text()).toBe('A track');
     expect(card.findAll('.ctl .key')).toHaveLength(3);
-    state.liveStates['media_player.a'].a.supported_features = 1;
+    useEntitiesStore().liveStates['media_player.a'].a.supported_features = 1;
     await nextTick();
     expect(card.findAll('.ctl .key')).toHaveLength(1);
     expect(card.find('.ctl .key').classes()).toContain('primary');
@@ -149,7 +147,7 @@ describe("TileCard", () => {
     expect(card.classes()).not.toContain('photo');
     await card.find('img').trigger('load');
     expect(card.classes()).toContain('photo');
-    state.liveStates['media_player.a'].a.artwork_mark = 'second';
+    useEntitiesStore().liveStates['media_player.a'].a.artwork_mark = 'second';
     await nextTick();
     expect(card.classes()).not.toContain('photo');
     await card.find('img').trigger('error');
@@ -164,14 +162,14 @@ describe("TileCard", () => {
   });
   it("shows the selected climate target or modes, and adds no controls to an unconfigured tall tile", () => {
     state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
-    state.liveStates['climate.a'] = { state: 'cool', word: 'Cooling', a: { supported_features: 1, current_temperature: 24, temperature: 21, hvac_modes: ['off', 'cool'] } };
+    useEntitiesStore().liveStates['climate.a'] = { state: 'cool', word: 'Cooling', a: { supported_features: 1, current_temperature: 24, temperature: 21, hvac_modes: ['off', 'cool'] } };
     const plain = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'tall' } });
     expect(plain.find('.ctl').exists()).toBe(false);
     expect(plain.find('.tall-setpoint').exists()).toBe(false);
     const target = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
     expect(target.find('.target b').text()).toBe('21°');
     expect(target.find('.tall-setpoint .st').text()).toBe('Now 24°');
-    state.liveStates['climate.a'].a.hvac_modes = ['off', 'heat', 'cool', 'dry'];
+    useEntitiesStore().liveStates['climate.a'].a.hvac_modes = ['off', 'heat', 'cool', 'dry'];
     const modes = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'square', controls: 'mode' } });
     // "Mode" on a taller card is the same bar as under the -/+ of "Temperature and mode".
     expect(modes.findAll('.ctl .mode-bar .seg').map((s) => s.classes('on'))).toEqual([false, true, false]);
@@ -183,20 +181,20 @@ describe("TileCard", () => {
     state.inventory.controls!.humidifier = { default: 'setpoint', choices: [] };
     const a = { supported_features: 1, current_humidity: 68, humidity: 55, min_humidity: 30, max_humidity: 80, action: 'drying',
       device_class: 'dehumidifier', available_modes: ['normal', 'eco', 'boost'], mode: 'eco' };
-    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
+    useEntitiesStore().liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
     // Home Assistant's word for what it is doing and the humidity now; Off while it is off; On without an action.
     expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Drying · 68%');
-    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: 'humidifying', current_humidity: 38 } };
+    useEntitiesStore().liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: 'humidifying', current_humidity: 38 } };
     expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Humidifying · 38%');
-    state.liveStates['humidifier.h'] = { state: 'off', word: 'Off', a: { ...a, action: 'off', current_humidity: 52 } };
+    useEntitiesStore().liveStates['humidifier.h'] = { state: 'off', word: 'Off', a: { ...a, action: 'off', current_humidity: 52 } };
     const off = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 });
     expect(off.find('.st').text()).toBe('Off · 52%');
     expect(off.attributes('style')).toContain('--tile-accent: #9e9e9e');
-    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: undefined, current_humidity: undefined } };
+    useEntitiesStore().liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, action: undefined, current_humidity: undefined } };
     expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('On');
-    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, current_humidity: 45.5 } };
+    useEntitiesStore().liveStates['humidifier.h'] = { state: 'on', word: 'On', a: { ...a, current_humidity: 45.5 } };
     expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).find('.st').text()).toBe('Drying · 45.5%');
-    state.liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
+    useEntitiesStore().liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
     // On it is Home Assistant's blue.
     expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0 }).attributes('style')).toContain('--tile-accent: #2196f3');
     // The humidity it is set to between - and +, on a wide card and a tall one with the humidity now under it.
@@ -220,30 +218,30 @@ describe("TileCard", () => {
 
   it("writes a thermostat set to a range as Home Assistant does, with the chip for its end between - and + (firmware 0.19.0)", () => {
     state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
-    state.liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75, target_temp_step: 1 } };
+    useEntitiesStore().liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75, target_temp_step: 1 } };
     expect(placed({ entity: 'climate.r', name: 'Range', slot: 0 }).find('.st').text()).toBe('Heat/Cool · 73°');
     // The wide tile's -/+ with the chip between them: the low end, heat, first.
     const wide = placed({ entity: 'climate.r', name: 'Range', slot: 0, options: { size: 'wide', controls: 'setpoint' } });
     expect(wide.find('.stp .range-chip b').text()).toBe('70°');
     expect(wide.findAll('.stp > .mdi')).toHaveLength(2);
     // Both features: the range only while it reports no single temperature.
-    state.liveStates['climate.b'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 3, current_temperature: 21, target_temp_low: 19, target_temp_high: 23.5, temperature: null } };
+    useEntitiesStore().liveStates['climate.b'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 3, current_temperature: 21, target_temp_low: 19, target_temp_high: 23.5, temperature: null } };
     expect(placed({ entity: 'climate.b', name: 'Both', slot: 0, options: { size: 'tall', controls: 'setpoint' } }).find('.range-chip b').text()).toBe('19.0°');
-    state.liveStates['climate.b'].a.temperature = 20;
+    useEntitiesStore().liveStates['climate.b'].a.temperature = 20;
     const single = placed({ entity: 'climate.b', name: 'Both', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
     expect(single.find('.range-chip').exists()).toBe(false);
     expect(single.find('.target b').text()).toBe('20°');
     // One set to a single temperature says it as Home Assistant sends it: 68°, 21.5°, never 68.0°.
-    state.liveStates['climate.s'] = { state: 'heat', word: 'Heat', a: { supported_features: 385, temperature: 68, current_temperature: 77 } };
+    useEntitiesStore().liveStates['climate.s'] = { state: 'heat', word: 'Heat', a: { supported_features: 385, temperature: 68, current_temperature: 77 } };
     expect(placed({ entity: 'climate.s', name: 'Single', slot: 0 }).find('.st').text()).toBe('68°');
-    state.liveStates['climate.s'].a.temperature = 21.5;
+    useEntitiesStore().liveStates['climate.s'].a.temperature = 21.5;
     expect(placed({ entity: 'climate.s', name: 'Single', slot: 0 }).find('.st').text()).toBe('21.5°');
-    state.liveStates['climate.d'] = { state: 'dry', word: 'Dry', a: { supported_features: 1, current_temperature: 21.5 } };
+    useEntitiesStore().liveStates['climate.d'] = { state: 'dry', word: 'Dry', a: { supported_features: 1, current_temperature: 21.5 } };
     expect(placed({ entity: 'climate.d', name: 'Dry', slot: 0 }).find('.st').text()).toBe('Dry · 21.5°');
   });
   it("draws a range thermostat without its -/+ for a screen before firmware 0.19.0, as that screen gets it", () => {
     state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
-    state.liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75 } };
+    useEntitiesStore().liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75 } };
     const screen = state.inventory.screens[0];
     const before = screen.climate_range;
     screen.climate_range = false;
@@ -256,23 +254,23 @@ describe("TileCard", () => {
 
   it("draws a wide card's keys as the screen does for that entity, not a fixed set (app 0.4.32)", () => {
     state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
-    state.liveStates['climate.m'] = { state: 'heat', word: 'Heat', a: { supported_features: 1, hvac_modes: ['off', 'heat', 'cool'], temperature: 20 } };
+    useEntitiesStore().liveStates['climate.m'] = { state: 'heat', word: 'Heat', a: { supported_features: 1, hvac_modes: ['off', 'heat', 'cool'], temperature: 20 } };
     const modes = placed({ entity: 'climate.m', name: 'Modes', slot: 0, options: { size: 'wide', controls: 'mode' } });
     // Its mode bar, as the screen draws it: heat and cool, its own modes; off is the tile's circle.
     expect(modes.findAll('.ctl .mode-bar .seg')).toHaveLength(2);
     expect(modes.find('.mode-bar .seg.on').exists()).toBe(true);
-    state.liveStates['climate.m'].a.hvac_modes = ['off', 'heat'];
+    useEntitiesStore().liveStates['climate.m'].a.hvac_modes = ['off', 'heat'];
     // One mode besides off makes no bar.
     expect(placed({ entity: 'climate.m', name: 'Modes', slot: 0, options: { size: 'wide', controls: 'mode' } }).findAll('.mode-bar .seg')).toHaveLength(0);
     state.inventory.controls!.vacuum = { default: 'buttons', choices: [] };
-    state.liveStates['vacuum.v'] = { state: 'docked', word: 'Docked', a: { supported_features: 8192 | 8 } };
+    useEntitiesStore().liveStates['vacuum.v'] = { state: 'docked', word: 'Docked', a: { supported_features: 8192 | 8 } };
     const vacuum = placed({ entity: 'vacuum.v', name: 'Robot', slot: 0, options: { size: 'wide', controls: 'buttons' } });
     expect(vacuum.findAll('.ctl .key')).toHaveLength(2);   // start and stop: it cannot go back to its base
   });
 
   it("shows a sensor's value with its unit and a light that is on as lit", () => {
-    state.liveStates["sensor.t"] = { state: "21.4", word: null, a: { unit_of_measurement: "°C" } };
-    state.liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
+    useEntitiesStore().liveStates["sensor.t"] = { state: "21.4", word: null, a: { unit_of_measurement: "°C" } };
+    useEntitiesStore().liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
     const sensor = placed({ entity: "sensor.t", name: "Temp", slot: 0 });
     expect(sensor.text()).toContain("21.4 °C");
     const lamp = placed({ entity: "light.a", name: "", slot: 1, options: { inline: "slider" } });
@@ -281,17 +279,17 @@ describe("TileCard", () => {
     expect(lamp.find(".mini-slider").attributes("style")).toContain("50%");
   });
   it("fills a blind's bar with its closed part, like the screen and its card", () => {
-    state.liveStates["cover.c"] = { state: "open", word: "Open", a: { current_position: 30 } };
+    useEntitiesStore().liveStates["cover.c"] = { state: "open", word: "Open", a: { current_position: 30 } };
     const blind = placed({ entity: "cover.c", name: "", slot: 2, options: { inline: "slider" } });
     expect(blind.find(".mini-slider").attributes("style")).toContain("70%");
   });
   it("draws the large value, the wide card's toggle and an unavailable entity in grey", () => {
-    state.liveStates["sensor.t"] = { state: "1249", word: null, a: { unit_of_measurement: "W" } };
+    useEntitiesStore().liveStates["sensor.t"] = { state: "1249", word: null, a: { unit_of_measurement: "W" } };
     const big = placed({ entity: "sensor.t", name: "Power", slot: 0, options: { display: "watch" } });
     // Numbers as the screens write them (app 0.2.90): "1,234.5" until the add-on names another format.
     expect(big.find(".watch .big").text()).toBe("1,249");
     expect(big.find(".watch .unit").text()).toBe("W");
-    state.liveStates["light.a"] = { state: "off", word: "Off", a: {} };
+    useEntitiesStore().liveStates["light.a"] = { state: "off", word: "Off", a: {} };
     const wide = placed({ entity: "light.a", name: "", slot: 2, options: { size: "wide" } });
     expect(wide.classes()).toContain("wide");
     expect(wide.find(".tog").classes()).toContain("off");
@@ -301,7 +299,7 @@ describe("TileCard", () => {
     expect(gone.find(".st").classes()).toContain("off");
   });
   it("draws a single tile as the screen does: the icon left, the name and value beside it", () => {
-    state.liveStates["sensor.t"] = { state: "1249", word: null, a: { unit_of_measurement: "W" } };
+    useEntitiesStore().liveStates["sensor.t"] = { state: "1249", word: null, a: { unit_of_measurement: "W" } };
     const plain = placed({ entity: "sensor.t", name: "Power", slot: 0 });
     expect(plain.find(".head > .ic").exists()).toBe(true);
     expect(plain.find(".head > .tx > .nm").text()).toBe("Power");
@@ -316,14 +314,14 @@ describe("TileCard", () => {
     expect(watch.find(".watch > .big").text()).toBe("1,249");
     expect(Number.parseFloat(watch.find(".watch > .big").attributes("style")!.match(/top: ([\d.]+)px/)![1]))
       .toBeGreaterThan(Number.parseFloat(watch.find(".watch > .nm").attributes("style")!.match(/top: ([\d.]+)px/)![1]));
-    state.liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 255 } };
+    useEntitiesStore().liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 255 } };
     const lamp = placed({ entity: "light.a", name: "", slot: 2, options: { inline: "slider" } });
     expect(lamp.find(".head + .mini-slider").exists()).toBe(true);
   });
   it("shows the display name when Home Assistant has no value, and nothing for a scene", () => {
     const graph = placed({ entity: "sensor.x", name: "Unknown sensor", slot: 0, options: { display: "graph" } });
     expect(graph.find(".st").text()).toBe("graph");
-    state.liveStates["scene.movie"] = { state: "2026-09-14T19:15:00+00:00", word: null, a: {} };
+    useEntitiesStore().liveStates["scene.movie"] = { state: "2026-09-14T19:15:00+00:00", word: null, a: {} };
     const scene = placed({ entity: "scene.movie", name: "Movie", slot: 1 });
     expect(scene.find(".st").exists()).toBe(false);
   });
@@ -548,7 +546,7 @@ describe("CommandPalette", () => {
 
 describe("full-page and navigation tiles on the mockup", () => {
   it("draws a full tile as one big card and a navigation tile with its page", () => {
-    state.liveStates["light.a"] = { state: "on", word: "On", a: {} };
+    useEntitiesStore().liveStates["light.a"] = { state: "on", word: "On", a: {} };
     const full = placed({ entity: "light.a", name: "", slot: 0, options: { size: "full" } });
     expect(full.classes()).toContain("full");
     expect(full.classes()).not.toContain("wide");
@@ -1618,7 +1616,7 @@ describe("a favourite's own shuffle and repeat (app 0.4.84)", () => {
     state.inventory.entities.push({ id: "media_player.spotify", name: "Spotify", state: "idle", area: "" } as any);
     const tile: Tile = { entity: "media_player.spotify", name: "", slot: 0, options: { display: "favorite", play: favorite } };
     appendTiles(tile);
-    state.capabilities["media_player.spotify"] = { toggle: false, inline: false, controls: [], displays: ["standard", "favorite"], favorite: ["shuffle", "repeat"] };
+    useEntitiesStore().capabilities["media_player.spotify"] = { toggle: false, inline: false, controls: [], displays: ["standard", "favorite"], favorite: ["shuffle", "repeat"] };
     const drawer = inspector(tile);
     await flushPromises();
     expect(row(drawer, "Shuffle")!.findAll(".seg button").map((b) => b.text())).toEqual(["As it is", "On", "Off"]);
@@ -1628,7 +1626,7 @@ describe("a favourite's own shuffle and repeat (app 0.4.84)", () => {
     expect(current(tile).options).not.toHaveProperty("shuffle");
     expect(row(drawer, "Repeat")).toBeTruthy();
     // A player without repeat_set: no repeat row.
-    state.capabilities["media_player.spotify"] = { ...state.capabilities["media_player.spotify"]!, favorite: ["shuffle"] };
+    useEntitiesStore().capabilities["media_player.spotify"] = { ...useEntitiesStore().capabilities["media_player.spotify"]!, favorite: ["shuffle"] };
     await drawer.vm.$nextTick();
     expect(row(drawer, "Repeat")).toBeUndefined();
   });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { t } from '../i18n';
-import { addPage, automaticIcon, liveOf, pageReady, state, topbarMax } from '../store';
+import { addPage, pageReady, state, topbarMax } from '../store';
 import { clone, emptyPage, instanceId } from '../model/pages';
 import { matchesQuery } from '../model/search';
 import { tilePalette } from '../model/tile-palette';
@@ -12,6 +12,9 @@ import rules from '../model/page-rules.json';
 import Icon from './ui/Icon.vue';
 import SwitchRow from './ui/SwitchRow.vue';
 import TesseraMark from './TesseraMark.vue';
+import { useEntitiesStore } from '../stores/entities';
+
+const entities = useEntitiesStore();
 
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
@@ -69,7 +72,7 @@ onMounted(() => dialog.value?.showModal());
         <div class="entity-options check-list">
           <CheckRow v-for="entity in matches.slice(0, 40)" :key="entity.id" class="entity-option" :checked="chosen.includes(entity.id)"
             :disabled="!chosen.includes(entity.id) && count >= topbarMax()" @toggle="toggle(entity.id)">
-            <span class="mdi entity-icon" :style="{ color: tilePalette(entity.id, liveOf(entity.id)).icon, background: tilePalette(entity.id, liveOf(entity.id)).circle }">{{ glyph(automaticIcon(entity.id)) }}</span>
+            <span class="mdi entity-icon" :style="{ color: tilePalette(entity.id, entities.liveOf(entity.id)).icon, background: tilePalette(entity.id, entities.liveOf(entity.id)).circle }">{{ glyph(entities.automaticIcon(entity.id)) }}</span>
             <span class="entity-text"><b>{{ entity.name }}</b><small>{{ [entity.area, entity.id].filter(Boolean).join(' · ') }}</small></span>
           </CheckRow>
           <small v-if="!matches.length" class="help">{{ t('editor.topbar.add.none_found') }}</small>

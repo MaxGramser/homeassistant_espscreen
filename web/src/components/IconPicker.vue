@@ -6,15 +6,18 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
 import { matchesQuery } from "../model/search";
-import { iconNamed, state } from "../store";
+import { state } from "../store";
 import Icon from "./ui/Icon.vue";
 import PropRow from "./ui/PropRow.vue";
 import type { Tile } from "../types";
+import { useEntitiesStore } from "../stores/entities";
+
+const entities = useEntitiesStore();
 
 const props = defineProps<{ selected: string; automatic: string; autoLabel: string; allowNone?: boolean; note?: string; tile?: Tile }>();
 const emit = defineEmits<{ (e: "pick", name: string): void }>();
 const query = ref("");
-const chosen = computed(() => iconNamed(props.selected));
+const chosen = computed(() => entities.iconNamed(props.selected));
 const currentGlyph = computed(() => (props.selected === "none" ? "" : glyph(chosen.value?.cp || props.automatic)));
 const currentText = computed(() => (props.selected === "none" ? t("editor.icon.none") : chosen.value?.label || props.autoLabel));
 function show(name: string | null) {

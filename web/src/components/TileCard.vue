@@ -13,7 +13,7 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clockSample } from "../model/clock";
-import { currentScreen, deviceStyle, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, openTile, placeTile, removeTile, state, tileIconCp } from "../store";
+import { currentScreen, deviceStyle, pageBarShown, screenShape, isCompact, supports, pictures, isSelected, openTile, placeTile, removeTile, state } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -28,9 +28,11 @@ import SensorHistory from './SensorHistory.vue';
 import rules from "../model/page-rules.json";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
 const region = useRegionStore();
+const entities = useEntitiesStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -49,7 +51,7 @@ function activate() {
 // A built-in card is named as the screens name it, in their language (app 0.2.90).
 // A favourite (app 0.4.42) is named after what it plays until it has a name of its own.
 const favoritePlay = computed(() => display.value === 'favorite' && domain.value === 'media_player' ? (props.tile.options?.play as Record<string, string> | undefined) : undefined);
-const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && region.screenBuiltinName(props.tile.entity)) || entityName(props.tile.entity));
+const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && region.screenBuiltinName(props.tile.entity)) || entities.entityName(props.tile.entity));
 const shape = computed(() => dimensions(sizeOf(props.tile), grid.value));
 // A thermostat: a climate, or a humidifier drawn with its parts in percent (firmware 0.42.0+, tile_controls::thermostat).
 const thermostat = computed(() => domain.value === 'climate' || domain.value === 'humidifier');
@@ -207,7 +209,7 @@ const label = computed(() => t("editor.tile_card.label", { name: name.value, slo
 const face = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
 
 // ---- Live values ----
-const current = computed(() => (domain.value === "screen" ? null : liveOf(props.tile.entity)));
+const current = computed(() => (domain.value === "screen" ? null : entities.liveOf(props.tile.entity)));
 // An automation set to run on a tap looks like a script's button (firmware 0.7.0+, Tile::runs): coloured while it runs.
 const runs = computed(() => domain.value === "automation" && props.tile.options?.tap === "run");
 const palette = computed(() => tilePalette(props.tile.entity, current.value, runs.value));
@@ -360,7 +362,7 @@ const favoritePicture = computed(() => favoriteCard.value && pictures.value && f
 const favoriteLoaded = ref(false);
 watch(favoritePicture, () => { favoriteLoaded.value = false; });
 const FAVORITE_ICONS: Record<string, string> = { album: 'F0025', playlist: 'F0CB8', artist: 'F0803', track: 'F0387', podcast: 'F0994', episode: 'F0994', channel: 'F0439' };
-const favoriteIcon = computed(() => props.tile.options?.icon && props.tile.options.icon !== 'auto' ? tileIconCp(props.tile) : FAVORITE_ICONS[favoritePlay.value?.class || ''] || 'F024B');
+const favoriteIcon = computed(() => props.tile.options?.icon && props.tile.options.icon !== 'auto' ? entities.tileIconCp(props.tile) : FAVORITE_ICONS[favoritePlay.value?.class || ''] || 'F024B');
 const favoriteLine = computed(() => {
   const kind = favoritePlay.value?.class, speaker = props.tile.options?.speaker as string | undefined;
   const word = kind && te(`addon.screen.media.${kind}`) ? region.screenText(`addon.screen.media.${kind}`) : '';
@@ -412,7 +414,7 @@ async function onKey(e: KeyboardEvent) {
     :style="{ '--tile-icon': palette.icon, '--tile-circle': palette.circle }">
     <button type="button" class="round-key" :aria-label="name" :disabled="preview && !live"
       v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click.stop="activate">
-      <span class="disc" :class="{ lit: isOn }"><span v-if="roundValue" class="value">{{ roundValue }}</span><span v-else class="mdi">{{ glyph(tileIconCp(tile)) }}</span></span>
+      <span class="disc" :class="{ lit: isOn }"><span v-if="roundValue" class="value">{{ roundValue }}</span><span v-else class="mdi">{{ glyph(entities.tileIconCp(tile)) }}</span></span>
       <span v-if="tile.options?.overlay !== 'none' && !isCompact" class="kn">{{ name }}</span>
     </button>
     <!-- The same remove key as on a tile, at the circle's corner. -->
@@ -507,7 +509,7 @@ async function onKey(e: KeyboardEvent) {
       <span class="digital-clock"><span class="big">{{ face.digits }}</span><span class="st">{{ face.longDate }}</span></span>
     </template>
     <template v-else-if="display === 'graph' && domain === 'sensor'">
-      <span class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ line }}</span></span></span>
+      <span class="head"><span class="ic mdi">{{ glyph(entities.tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ line }}</span></span></span>
       <SensorHistory :entity="tile.entity" :hours="Number(tile.options?.history_hours || 24)" />
     </template>
     <template v-else-if="favoriteCard">
@@ -520,11 +522,11 @@ async function onKey(e: KeyboardEvent) {
     </template>
     <template v-else-if="cameraCard">
       <img v-if="cameraPicture" :key="cameraPicture" class="camera-art" :class="tile.options?.fit === 'contain' ? 'contain' : 'fill'" :src="cameraPicture" alt="" @load="cameraLoaded = true" @error="cameraLoaded = false" />
-      <span v-if="!cameraLoaded" class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span v-if="line" class="st" :class="{ off: gone }">{{ line }}</span></span></span>
+      <span v-if="!cameraLoaded" class="head"><span class="ic mdi">{{ glyph(entities.tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span v-if="line" class="st" :class="{ off: gone }">{{ line }}</span></span></span>
       <span v-else-if="tile.options?.overlay !== 'none'" class="camera-name"><span>{{ name }}</span></span>
     </template>
     <span v-else-if="watchFace && watchStyle" class="watch" :class="{ stacked: watchFace.stacked }">
-      <span v-if="watchFace.stacked" class="ic mdi" :class="{ lit: isOn }" :style="watchStyle.circle">{{ glyph(tileIconCp(tile)) }}</span>
+      <span v-if="watchFace.stacked" class="ic mdi" :class="{ lit: isOn }" :style="watchStyle.circle">{{ glyph(entities.tileIconCp(tile)) }}</span>
       <span class="nm" :style="watchStyle.title">{{ name }}</span>
       <template v-if="watchFace.stacked">
         <span class="big" :style="watchStyle.value">{{ bigValue }}</span>
@@ -536,7 +538,7 @@ async function onKey(e: KeyboardEvent) {
       </span>
     </span>
     <template v-else-if="full && !tall">
-      <span class="ic mdi" :class="{ lit: isOn, thumb: display === 'live' || display === 'cover' }">{{ glyph(tileIconCp(tile)) }}</span>
+      <span class="ic mdi" :class="{ lit: isOn, thumb: display === 'live' || display === 'cover' }">{{ glyph(entities.tileIconCp(tile)) }}</span>
       <span class="lead">
         <span class="nm">{{ name }}</span>
         <span v-if="goesTo" class="goto">{{ pageLink }}</span>
@@ -554,14 +556,14 @@ async function onKey(e: KeyboardEvent) {
       </span>
     </template>
     <template v-else-if="bigKey">
-      <span class="ic mdi" :class="{ lit: isOn }">{{ glyph(tileIconCp(tile)) }}</span>
+      <span class="ic mdi" :class="{ lit: isOn }">{{ glyph(entities.tileIconCp(tile)) }}</span>
       <span class="nm">{{ name }}</span>
       <span v-if="bigKeyLine" class="st" :class="{ off: gone }">{{ bigKeyLine }}</span>
     </template>
     <template v-else-if="tall">
       <img v-if="artwork" :key="artwork" class="tall-art" :src="artwork" alt="" @load="artworkLoaded = true" @error="artworkLoaded = false" />
       <span class="head">
-        <span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span>
+        <span class="ic mdi">{{ glyph(entities.tileIconCp(tile)) }}</span>
         <span class="tx"><span class="nm">{{ name }}</span><span v-if="headStatus" class="st" :class="{ off: gone }">{{ headStatus }}</span></span>
       </span>
       <CoverTilePreview v-if="coverExtended" :primary="tallControls" :entity-state="current?.state || ''" :attributes="current?.a || {}" />
@@ -594,7 +596,7 @@ async function onKey(e: KeyboardEvent) {
     </template>
     <template v-else-if="wide">
       <span class="lead">
-        <span class="ic mdi" :class="{ lit: isOn, thumb: display === 'live' || display === 'cover' }">{{ glyph(tileIconCp(tile)) }}</span>
+        <span class="ic mdi" :class="{ lit: isOn, thumb: display === 'live' || display === 'cover' }">{{ glyph(entities.tileIconCp(tile)) }}</span>
         <span class="tx">
           <span class="nm">{{ name }}</span>
           <span v-if="goesTo" class="goto">{{ pageLink }}</span>
@@ -618,7 +620,7 @@ async function onKey(e: KeyboardEvent) {
       <!-- As the screen draws it: the icon on the left, the name and the value beside it. A watch
            card puts the name on top and the big value under it; the small slider runs underneath. -->
       <span class="head" :class="{ top: display === 'watch' }">
-        <span class="ic mdi" :class="{ lit: isOn, thumb: display === 'live' || display === 'cover' }">{{ glyph(tileIconCp(tile)) }}</span>
+        <span class="ic mdi" :class="{ lit: isOn, thumb: display === 'live' || display === 'cover' }">{{ glyph(entities.tileIconCp(tile)) }}</span>
         <span class="tx">
           <span class="nm">{{ name }}</span>
           <span v-if="goesTo" class="goto">{{ pageLink }}</span>

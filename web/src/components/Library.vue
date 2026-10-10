@@ -15,18 +15,20 @@ import { matchesQuery, prefixRank } from "../model/search";
 import { tilePalette } from "../model/tile-palette";
 import { isPluginTile } from "../model/plugins";
 import { pluginsEnabled, tilesOn } from "../plugin-state";
-import { currentScreen } from "../store";
+import { currentScreen, stillSelected } from "../store";
 import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useListNavigation } from "../composables/useListNavigation";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { question } from "../composables/useConfirm";
-import { addTile, automaticIcon, editorLayout, liveOf, loadLibraryStates, memory, pageTitleShown, pictures, repeatable, state, tileLimit } from "../store";
+import { addTile, editorLayout, memory, pageTitleShown, pictures, repeatable, state, tileLimit } from "../store";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
 import { useUiStore } from "../stores/ui";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
+const entities = useEntitiesStore();
 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
 const FILTERS = [
@@ -112,7 +114,7 @@ const groups = computed(() => {
 const flat = computed(() => groups.value.flatMap((group) => group.entities));
 // The states of what is shown, asked once the list has stood still a moment (180 ms), again every minute, and never for a
 // folded drawer; the wait goes with the drawer.
-const loadSoon = useTimeoutFn(() => loadLibraryStates(shownList.value.map((entity) => entity.id)), 180, { immediate: false });
+const loadSoon = useTimeoutFn(() => entities.loadLibraryStates(shownList.value.map((entity) => entity.id), stillSelected()), 180, { immediate: false });
 watch(() => [open.value, shownList.value.map((entity) => entity.id).join('|'), Math.floor(ui.now / 60000)],
   () => (open.value ? loadSoon.start() : loadSoon.stop()), { immediate: true });
 // The kinds and rooms the results hold, each with its count, so searching narrows the column the way it narrows the
@@ -263,7 +265,7 @@ function onResizeKey(e: KeyboardEvent) {
       <div class="lib-rail">
         <nav class="lib-domains" id="filters" :aria-label="t('editor.library.filter_label')">
           <button v-for="[value, n] in offered" :key="value" type="button" :aria-pressed="ui.filter === value ? 'true' : 'false'" @click="ui.filter = value">
-            <span v-if="value" class="domain-icon mdi" :style="{ color: domainInfo(value + '.')[2], background: domainInfo(value + '.')[3] }" aria-hidden="true">{{ glyph(automaticIcon(value + ".")) }}</span>
+            <span v-if="value" class="domain-icon mdi" :style="{ color: domainInfo(value + '.')[2], background: domainInfo(value + '.')[3] }" aria-hidden="true">{{ glyph(entities.automaticIcon(value + ".")) }}</span>
             <span v-else class="domain-icon all" aria-hidden="true"><Icon name="view-dashboard-outline" /></span>
             <span class="dn">{{ t(`editor.library.filters.${value || "all"}`) }}</span>
             <small>{{ n }}</small>
@@ -289,7 +291,7 @@ function onResizeKey(e: KeyboardEvent) {
               :class="{ active: ui.search && flat[active]?.id === entity.id }" :aria-selected="ui.search && flat[active]?.id === entity.id ? 'true' : 'false'"
               :title="onScreen(entity.id) && !placed(entity.id) ? `${entity.id} · ${t('editor.library.again')}` : entity.id"
               :disabled="placed(entity.id) || full" v-drag="{ kind: 'entity', id: entity.id }" @click="addTile(entity.id)">
-              <span class="av mdi" :class="tone(entity)" :style="{ color: tilePalette(entity.id, liveOf(entity.id)).icon, background: tilePalette(entity.id, liveOf(entity.id)).circle }">{{ glyph(automaticIcon(entity.id)) }}</span>
+              <span class="av mdi" :class="tone(entity)" :style="{ color: tilePalette(entity.id, entities.liveOf(entity.id)).icon, background: tilePalette(entity.id, entities.liveOf(entity.id)).circle }">{{ glyph(entities.automaticIcon(entity.id)) }}</span>
               <span class="tx">
                 <b>{{ short(entity) }}</b>
                 <small v-if="detail(entity)">{{ detail(entity) }}</small>

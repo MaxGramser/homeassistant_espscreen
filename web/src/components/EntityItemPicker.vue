@@ -5,10 +5,13 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { entityItem, glyph, itemKey } from "../model/topbar";
 import { matchesQuery } from "../model/search";
-import { automaticIcon, state } from "../store";
+import { state } from "../store";
 import type { HeaderItem } from "../types";
 import Icon from "./ui/Icon.vue";
 import rules from "../model/page-rules.json";
+import { useEntitiesStore } from "../stores/entities";
+
+const entities = useEntitiesStore();
 
 const props = defineProps<{ id: string; taken: (item: HeaderItem) => boolean; accepts?: (item: HeaderItem) => boolean }>();
 const emit = defineEmits<{ pick: [item: HeaderItem] }>();
@@ -25,7 +28,7 @@ const matches = computed(() => {
     <span class="f-label">{{ t("editor.topbar.add.suggestions") }}</span>
     <div class="options">
       <button v-for="s in suggested" :key="itemKey(s.item)" type="button" class="option" :disabled="taken(s.item)" @click="emit('pick', s.item)">
-        <span class="mdi">{{ glyph(s.icon || automaticIcon(s.item.entity!)) }}</span>
+        <span class="mdi">{{ glyph(s.icon || entities.automaticIcon(s.item.entity!)) }}</span>
         <span class="tx"><strong>{{ s.label }}</strong><small>{{ taken(s.item) ? t("editor.topbar.add.added") : [s.name, s.area].filter(Boolean).join(" · ") }}</small></span>
       </button>
     </div>
@@ -35,7 +38,7 @@ const matches = computed(() => {
     <label class="search-field"><Icon name="magnify" /><input :id="id" v-model="query" type="search" :placeholder="t('editor.topbar.add.search')" :aria-label="t('editor.topbar.add.search_label')" /></label>
     <div class="options">
       <button v-for="e in matches.slice(0, 40)" :key="e.id" type="button" class="option" :disabled="taken(entityItem(e.id))" @click="emit('pick', entityItem(e.id))">
-        <span class="mdi">{{ glyph(automaticIcon(e.id)) }}</span>
+        <span class="mdi">{{ glyph(entities.automaticIcon(e.id)) }}</span>
         <span class="tx"><strong>{{ e.name }}</strong><small>{{ [e.area, e.id].filter(Boolean).join(" · ") }}</small></span>
       </button>
       <p v-if="!matches.length" class="hint">{{ t("editor.topbar.add.none_found") }}</p>

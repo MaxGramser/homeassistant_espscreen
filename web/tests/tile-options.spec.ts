@@ -14,6 +14,7 @@ import { validatePages } from "../src/model/pages";
 import { isSelected, openTile, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
+import { useEntitiesStore } from "../src/stores/entities";
 
 function inventory(): Inventory {
   return {
@@ -44,9 +45,6 @@ beforeEach(() => {
   state.selected = "living";
   state.documentGrid = { columns: 2, rows: 3 };
   seedLayout({ title: "Living room", tiles: [] });
-  state.subtitleValues = {};
-  state.entityActions = {};
-  useUiStore().notice = null;
   state.selectedTileId = null; state.inspector = null; state.actionPickerOpen = false;
 });
 
@@ -95,7 +93,7 @@ describe("the tile panel", () => {
   });
 
   it("stores Perform action once an action is chosen, and keeps it (GitHub #47)", async () => {
-    state.entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [
+    useEntitiesStore().entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [
       { key: "brightness_pct", name: "Brightness", required: false, selector: { number: { min: 0, max: 100 } } },
     ] }] as any;
     const tile: Tile = { entity: "light.a", name: "", slot: 0 };
@@ -126,7 +124,7 @@ describe("the tile panel", () => {
   });
 
   it("starts another tile's settings with its choosers closed (the drawer keys the panel by the tile)", async () => {
-    state.entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [] }] as any;
+    useEntitiesStore().entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [] }] as any;
     const lamp: Tile = { entity: "light.a", name: "", slot: 0 }, fan: Tile = { entity: "switch.s", name: "", slot: 1 };
     appendTiles(lamp, fan);
     openTile(current(lamp)!);

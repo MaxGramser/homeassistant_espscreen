@@ -6,7 +6,7 @@ import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
 import { homeView } from "../model/overview";
-import { drawsPictures, loadOverview, screenLight, screenSubline, select, state } from "../store";
+import { drawsPictures, screenLight, screenSubline, select, state } from "../store";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
@@ -18,8 +18,10 @@ import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
+const entities = useEntitiesStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
@@ -38,7 +40,7 @@ const scale = (style: Record<string, string>, shape: { width: number; height: nu
   return Math.min(1, STAGE / height);
 };
 const place = (screen: Screen) => [screen.area, screen.board && screen.shape?.catalog?.name ? boardTitle(screen.shape.catalog) : ""].filter(Boolean).join(" · ");
-onMounted(loadOverview);
+onMounted(entities.loadOverview);
 </script>
 
 <template>

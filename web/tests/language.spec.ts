@@ -42,7 +42,6 @@ beforeAll(() => loadLanguage("nl"));
 beforeEach(() => {
   vi.unstubAllGlobals();
   state.inventory = { screens: [], entities: [], updates: { target: "0.2.80", pending: 0 }, language: language() } as any;
-  useUiStore().notice = null;
 });
 
 describe("the Language & region card", () => {

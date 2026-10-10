@@ -1,7 +1,7 @@
 // One reactive state for the whole editor. The Python API (server.py) is unchanged: this file is the
 // former app.js state and its calls, with the DOM work moved into the components.
 import { useEventListener, useTimeoutFn } from "@vueuse/core";
-import { computed, effectScope, onScopeDispose, reactive, shallowRef, toRaw, toRef, watch } from "vue";
+import { computed, effectScope, onScopeDispose, reactive, toRaw, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, t } from "./i18n";
@@ -11,9 +11,9 @@ import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
 import { measuring, memoryCrossing, memoryUse } from "./model/memory";
 import { previewGrids, usablePreview, validPreviewShape, type PreviewProfile } from "./model/preview";
-import { barItemOf, pluginTileOf, text as pluginText } from "./model/plugins";
+import { barItemOf, pluginTileOf } from "./model/plugins";
 import renderer from "./wasm/renderer.json";
-import type { BoardChoice, Build, Capability, ChildTile, FeedbackView, EntityAction, HeaderItem, Inventory, Layout, SaverKind, Screen, ScreensaverChoice, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
+import type { BoardChoice, ChildTile, FeedbackView, HeaderItem, Inventory, Layout, SaverKind, Screen, ScreensaverChoice, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
 
 import * as pages from "./model/pages";
 import { DraftHistory, type HistoryScope } from './model/draft-history';
@@ -25,7 +25,7 @@ import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
 import { rowText, type SettingRow } from "./model/settings";
 import * as status from "./model/screen-status";
-import { homeView, SMALLEST, type HomeView } from "./model/overview";
+import { SMALLEST } from "./model/overview";
 import { firmwareVersion } from "./model/screen-status";
 import { slug } from "./model/slug";
 import { clockSample } from "./model/clock";
@@ -36,6 +36,7 @@ import { useClock } from "./composables/useClock";
 import { askConfirm } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
 import { useBuildsStore } from "./stores/builds";
+import { useEntitiesStore } from "./stores/entities";
 import { useRegionStore } from "./stores/region";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
 
@@ -54,8 +55,6 @@ export type PageDrag = { from: number; to: number; order: number[] };
 // `key`: the key place under a bedside clock the pointer is on (app 0.4.12), where a drop puts the tile.
 export type DragState = { active: boolean; moving: Tile | null; preview: { tile: Tile; slot: number }[] | null; page: PageDrag | null;
   key?: { holder: string; key: number } | null; refused?: number | null };
-// What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
-export type Live = { state: string; word?: string | null; a: Record<string, any> };
 
 // The editor's state as it starts, before the add-on has said anything: the page begins with it, and every test again
 // (resetStore).
@@ -97,11 +96,6 @@ const fresh = () => ({
   justAdded: null as string | null,
   // A choice the pointer rests on in the inspector, drawn on its tile before it is picked (app 0.4.32).
   optionPreview: null as null | { tileId: string; key: string; value: unknown },
-  capabilities: {} as Record<string, Capability | null>,
-  entityActions: {} as Record<string, EntityAction[] | null | undefined>,
-  // Per entity, the values its second line may say: Home Assistant's own named attributes (app 0.2.105).
-  subtitleValues: {} as Record<string, { key: string; name: string }[] | undefined>,
-  topbarPreviews: {} as Record<string, any>,
   topbarAdded: null as null | { key: string; time: number },
   settingEdits: {} as Record<string, { value: any; at: number }>,
   settingPending: false,
@@ -110,7 +104,6 @@ const fresh = () => ({
   // The screen whose actions are being allowed (app 0.4.73).
   allowing: null as string | null,
   drag: { active: false, moving: null, preview: null, page: null } as DragState,
-  liveStates: {} as Record<string, Live>,
 });
 export const state = reactive({
   ...fresh(),
@@ -338,139 +331,17 @@ export const pageReady = computed(() => currentScreen.value?.page_capability ===
   (currentScreen.value?.page_capability === "offline" && currentScreen.value?.page_last_capability === "ready"));
 export const pageAt = (index: number) => state.document?.pages[state.drag.page?.order[index] ?? index];
 
-// ---- Names and icons ----
-export function entityName(id: string) {
-  const plugin = pluginTileOf(id);
-  if (plugin) return pluginText(plugin.tile.name);
-  return state.inventory.entities.find((e) => e.id === id)?.name || state.inventory.builtin?.find((e) => e.id === id)?.name ||
-    state.inventory.trackers?.find((e) => e.id === id)?.name || id;
+// ---- What Home Assistant says of the open layout's entities (stores/entities.ts) ----
+// An answer asked for one screen is dropped once another is open, or this one was read again (selectionEpoch).
+export function stillSelected() {
+  const epoch = selectionEpoch;
+  return () => epoch === selectionEpoch;
 }
-let iconIndex: { source: unknown; byName: Record<string, { name: string; cp: string; label: string }> } = { source: null, byName: {} };
-export function iconNamed(name: string | undefined) {
-  if (iconIndex.source !== state.inventory.icons)
-    iconIndex = { source: state.inventory.icons, byName: Object.fromEntries((state.inventory.icons?.groups || []).flatMap((g) => g.icons.map((i) => [i.name, i]))) };
-  return name ? iconIndex.byName[name] : undefined;
-}
-// What the firmware draws without a choice: Home Assistant's own icon, else the domain icon.
-export function automaticIcon(id: string): string {
-  const plugin = pluginTileOf(id);
-  if (plugin) return plugin.tile.icon || plugin.plugin.icon;
-  const icons = state.inventory.icons;
-  if (!icons) return "F0335";
-  const entity = state.inventory.entities.find((e) => e.id === id), domain = id.split(".")[0];
-  if (icons.builtin?.[id]) return icons.builtin[id];
-  if (entity?.icon) return entity.icon;
-  if (domain === "weather") return icons.weather[entity?.state || ""] || icons.weather.partlycloudy;
-  if (domain === "sun") return icons.sun[entity?.state || ""] || icons.sun.below_horizon;
-  return icons.defaults[domain] || icons.fallback;
-}
-export const tileIconCp = (tile: Tile) => iconNamed(tile.options?.icon)?.cp || automaticIcon(tile.entity);
-
-// ---- Capabilities and actions from Home Assistant ----
-const askedCapabilities = new Set<string>();
-export async function loadCapabilities(entities: string[]) {
-  const wanted = [...new Set(entities)].filter((id) => !askedCapabilities.has(id) && !id.startsWith("screen."));
-  if (!wanted.length) return;
-  wanted.forEach((id) => askedCapabilities.add(id));
-  try {
-    for (let i = 0; i < wanted.length; i += 40) {
-      const query = wanted.slice(i, i + 40).map((id) => `entity=${encodeURIComponent(id)}`).join("&");
-      Object.assign(state.capabilities, (await getJson(`capabilities?${query}`)).capabilities || {});
-    }
-  } catch {
-    wanted.forEach((id) => askedCapabilities.delete(id));
-  }
-}
-// The values one entity's second line may say (app 0.2.105). The list is Home Assistant's own - the attributes its
-// frontend translations name - so nothing here is a list we keep, and an entity it names none of answers empty.
-const askedSubtitles = new Set<string>();
-export async function loadSubtitleValues(entity: string) {
-  if (askedSubtitles.has(entity)) return;
-  askedSubtitles.add(entity);
-  try {
-    state.subtitleValues[entity] = (await getJson(`entity-subtitle?entity=${encodeURIComponent(entity)}`)).values ?? [];
-  } catch {
-    askedSubtitles.delete(entity);
-  }
-}
-const askedActions = new Set<string>();
-export async function loadEntityActions(entity: string) {
-  if (askedActions.has(entity)) return;
-  askedActions.add(entity);
-  try {
-    state.entityActions[entity] = (await getJson(`entity-actions?entity=${encodeURIComponent(entity)}`)).actions;
-  } catch {
-    askedActions.delete(entity);
-  }
-}
-
-// ---- Live values on the mockup (app 0.2.73): what the screen shows right now ----
-let statesFlight = false;
-export async function loadStates() {
-  const selection = selectionEpoch;
-  const entities = [...new Set((state.layout?.tiles || []).map((t) => t.entity).filter((id) => !id.startsWith("screen.")))];
-  if (!entities.length || statesFlight) return;
-  statesFlight = true;
-  try {
-    for (let i = 0; i < entities.length; i += 60) {
-      const query = entities.slice(i, i + 60).map((id) => `entity=${encodeURIComponent(id)}`).join("&");
-      const values = await getJson(`states?${query}`);
-      if (selection !== selectionEpoch) return;
-      Object.assign(state.liveStates, values.states || {});
-    }
-  } catch {
-    // The next tick tries again; the mockup keeps the last values.
-  } finally {
-    statesFlight = false;
-  }
-}
-export async function loadLibraryStates(ids: string[]) {
-  const selection = selectionEpoch;
-  const entities = [...new Set(ids.filter((id) => !id.startsWith('screen.')))].slice(0, 80);
-  try {
-    for (let i = 0; i < entities.length; i += 60) {
-      const values = await getJson(`states?${entities.slice(i, i + 60).map((id) => `entity=${encodeURIComponent(id)}`).join('&')}`);
-      if (selection !== selectionEpoch) return;
-      Object.assign(state.liveStates, values.states || {});
-    }
-  } catch { /* Inventory state remains visible until the next refresh. */ }
-}
-// The live value, else what the inventory knew when it was fetched, else nothing.
-export function liveOf(entity: string): Live | null {
-  const live = state.liveStates[entity];
-  if (live) return live;
-  const known = state.inventory.entities.find((e) => e.id === entity);
-  return known?.state ? { state: known.state, word: null, a: {} } : null;
-}
-
-// ---- The overview (app 0.4.0): every screen of the home with its home page, as its mockup draws it (model/overview.ts) ----
-// What the overview draws with: the states of every home page's tiles and the values in their top bars.
-let overviewFlight = false;
-export async function loadOverview() {
-  if (overviewFlight) return;
-  overviewFlight = true;
-  try {
-    const views = state.inventory.screens.map(homeView).filter((view): view is HomeView => Boolean(view));
-    const entities = [...new Set(views.flatMap((view) => [...view.tiles.map(({ tile }) => tile.entity), ...view.keys.map((tile) => tile.entity)]).filter((id) => !id.startsWith("screen.")))];
-    for (let i = 0; i < entities.length; i += 60) {
-      const values = await getJson(`states?${entities.slice(i, i + 60).map((id) => `entity=${encodeURIComponent(id)}`).join("&")}`);
-      Object.assign(state.liveStates, values.states || {});
-    }
-    // One bar at a time: each home page's bar is one the add-on already accepted, which a mix of several bars is not
-    // (the same entity twice with another content is refused as a double).
-    const asked = new Set<string>();
-    for (const view of views) {
-      const batch = view.items.filter((item) => item.type === "entity" && !asked.has(itemKey(item)));
-      if (!batch.length) continue;
-      batch.forEach((item) => asked.add(itemKey(item)));
-      const data = await send("header-preview", "POST", { header: { items: batch.map(({ id: _id, ...item }) => item) } });
-      batch.forEach((item, i) => { state.topbarPreviews[itemKey(item)] = data.items[i]; });
-    }
-  } catch {
-    // The overview keeps what it has; the next visit asks again.
-  } finally {
-    overviewFlight = false;
-  }
+const entityName = (id: string) => useEntitiesStore().entityName(id);
+const loadCapabilities = (entities: string[]) => useEntitiesStore().loadCapabilities(entities);
+// The states of the open layout's entities, for the mockup.
+function loadStates() {
+  return useEntitiesStore().loadStates((state.layout?.tiles || []).map((tile) => tile.entity), stillSelected());
 }
 // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
 export function goHome(): void | Promise<void> {
@@ -669,7 +540,7 @@ export function placeTile(tile: Tile, target: number) {
   loadCapabilities([tile.entity]);
   const result = arrange(state.layout.tiles, currentView(tile) || tile, target);
   const placed = result ? commitArrangement(result) : false;
-  if (placed && !state.liveStates[tile.entity]) loadStates();
+  if (placed && !useEntitiesStore().liveStates[tile.entity]) loadStates();
   return placed;
 }
 // A click in the picker: the marked empty cell, else the selected page's first
@@ -922,7 +793,7 @@ export function setTileOption(tile: Tile, key: string, value: unknown, field?: s
   if (!state.layout) return;
   const layout = pages.clone(state.layout);
   tile = currentView(tile, layout) || tile;
-  const domain = tile.entity.split(".")[0], caps = state.capabilities[tile.entity], wasSize = sizeOf(tile);
+  const domain = tile.entity.split(".")[0], caps = useEntitiesStore().capabilities[tile.entity], wasSize = sizeOf(tile);
   // Beyond single, wide and the whole page, a size is one the screen said it takes (tall and square 0.3.1, spans 0.19.0).
   if (key === "size" && !["single", "wide", "full"].includes(String(value)) && ((isTallSize(value) && !tallerTilesEnabled.value) || !screenSizes().includes(String(value)))) return;
   if (key === "size" && isTallSize(value) && sizeColumns(value) === 1 && ["forecast", "sunpath"].includes(String(tile.options?.display))) return;
@@ -1534,7 +1405,8 @@ export function loadTopbarPreview(delay = 150) {
         const batch = entities.slice(at, at + 6), data = await send("header-preview", "POST", { header: { items: batch.map(({ id: _id, ...item }) => item) } });
         if (state.selected !== screen) return;
         const stillUsed = new Set([...(state.document?.pages.flatMap((page) => page.topbar.trailing) || []), ...saverItems()].map(itemKey));
-        batch.forEach((item, i) => { if (stillUsed.has(itemKey(item))) state.topbarPreviews[itemKey(item)] = data.items[i]; });
+        const previews = useEntitiesStore().topbarPreviews;
+        batch.forEach((item, i) => { if (stillUsed.has(itemKey(item))) previews[itemKey(item)] = data.items[i]; });
       }
     } catch {
       // Keep the last preview; the next edit or refresh tries again.
@@ -1562,8 +1434,8 @@ export function topbarView(item: HeaderItem): ItemView {
   if (item.type === "battery") return batteryView(item, SAMPLE_BATTERY, false, percent);
   // A plugin's item (docs/PLUGINS.md): the screen asks the plugin what it shows; the mockup shows its example.
   if (item.type === "plugin") { const known = barItemOf(item.item); return { icon: known?.icon || "F0A66", text: known?.example || "", shown: true }; }
-  const p = state.topbarPreviews[itemKey(item)];
-  if (!p) return { icon: item.icon === "none" ? null : iconNamed(item.icon)?.cp || automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
+  const entities = useEntitiesStore(), p = entities.topbarPreviews[itemKey(item)];
+  if (!p) return { icon: item.icon === "none" ? null : entities.iconNamed(item.icon)?.cp || entities.automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
   return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(useUiStore().now / 1000), useRegionStore().screenLanguage) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
 }
 // One ordered list of bar items with the editor's add, update, move and remove (undo included): a page's top bar and the
@@ -1898,8 +1770,6 @@ function resetStore() {
   addedExpiry.stop(); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
   mapSaver.cancel();
   previewsSkipped = "";
-  askedCapabilities.clear(); askedSubtitles.clear(); askedActions.clear();
-  statesFlight = false; overviewFlight = false;
   edits = 0; selectionEpoch++;
   committedLayout = null; committedGrid = null; committedUpright = null;
   draftHistory.clear();

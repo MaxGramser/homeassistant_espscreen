@@ -4,13 +4,16 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { glyph, itemKey } from "../model/topbar";
-import { automaticIcon, entityName, moveSaverItem, openSaverItem, removeSaverItem, saverItems, state, topbarView, updateSaverItem } from "../store";
+import { moveSaverItem, openSaverItem, removeSaverItem, saverItems, state, topbarView, updateSaverItem } from "../store";
 import { clockCrumb } from "../saver";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
 import Section from "./ui/Section.vue";
+import { useEntitiesStore } from "../stores/entities";
+
+const entities = useEntitiesStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => saverItems());
@@ -28,7 +31,7 @@ const crumbs = computed(() => [clockCrumb()]);
 </script>
 
 <template>
-  <InspectorHead v-if="item" kind="bar" :title="entityName(item.entity!)" :code="view?.icon || automaticIcon(item.entity!)" :crumbs="crumbs" />
+  <InspectorHead v-if="item" kind="bar" :title="entities.entityName(item.entity!)" :code="view?.icon || entities.automaticIcon(item.entity!)" :crumbs="crumbs" />
   <div v-if="item" class="dr-body">
     <Section :title="t('editor.screen_settings.screensaver.item_look')" icon="tune-variant">
       <div class="live saver-live" id="saver-item-live">
@@ -36,7 +39,7 @@ const crumbs = computed(() => [clockCrumb()]);
         <span v-if="look !== 'icon'">{{ view?.text }}</span>
       </div>
       <Segmented :choices="choices" :value="look" @pick="pick" />
-      <IconPicker v-if="look !== 'text'" :selected="item.icon || 'auto'" :automatic="state.topbarPreviews[itemKey(item)]?.auto_icon || automaticIcon(item.entity!)"
+      <IconPicker v-if="look !== 'text'" :selected="item.icon || 'auto'" :automatic="entities.topbarPreviews[itemKey(item)]?.auto_icon || entities.automaticIcon(item.entity!)"
         :auto-label="t('editor.topbar.auto_icon')" :allow-none="false" @pick="(n) => updateSaverItem(index, { icon: n })" />
       <small class="help">{{ t("editor.screen_settings.screensaver.item_hint") }}</small>
     </Section>

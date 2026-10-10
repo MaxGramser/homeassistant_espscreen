@@ -10,7 +10,7 @@ import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pag
 import { glyph } from "../model/topbar";
 import { controlOption, drawable, fits, ofType } from "../model/catalogue";
 import { pluginsEnabled, tapActionsFor } from "../plugin-state";
-import { currentScreen, automaticIcon, entityName, liveOf, moveTileToPage, openPage, openTile, fullPage, loadSubtitleValues, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
+import { currentScreen, moveTileToPage, openPage, openTile, fullPage, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports } from "../store";
 import { titleOf } from "../model/pages";
 import { pluginTileOf } from "../model/plugins";
 import PluginTileInspector from "./PluginTileInspector.vue";
@@ -36,9 +36,11 @@ import { choiceOffered, offeredChoices } from "../model/tile-options";
 import { isTallSize } from "../model/sizes";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
+import { useEntitiesStore } from "../stores/entities";
 
 const ui = useUiStore();
 const region = useRegionStore();
+const entities = useEntitiesStore();
 
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
@@ -56,7 +58,7 @@ const nameDraft = useTextDraft(() => props.tile.name, value => setTileName(props
 const domain = computed(() => props.tile.entity.split(".")[0]);
 // A plugin's tile (design) has an inspector of its own, built from the plugin's manifest.
 const pluginTile = computed(() => Boolean(pluginTileOf(props.tile.entity)));
-const name = computed(() => entityName(props.tile.entity));
+const name = computed(() => entities.entityName(props.tile.entity));
 // A navigation tile (screen.page_<n>): the page it opens, its size, icon and colour; nothing else applies.
 const goesTo = computed(() => pageTarget(props.tile.entity));
 // Pages counted from 1. "Goes to page" offers the pages the screen has and the empty one after them, where a sub-page
@@ -76,7 +78,7 @@ const goesToHint = computed(() => !fullPage.value
   : goesTo.value > pageTotal.value
     ? { text: t("editor.tile.goes_to.no_page", { page: goesTo.value }), warn: true }
     : { text: t("editor.tile.goes_to.hint"), warn: false });
-const caps = computed(() => state.capabilities[props.tile.entity]);
+const caps = computed(() => entities.capabilities[props.tile.entity]);
 const current = (key: string, fallback: unknown) => props.tile.options?.[key] ?? fallback;
 const clock = computed(() => props.tile.entity === "screen.clock");
 // The bedside clock (app 0.4.12): always the whole page, with no face to pick. Its keys are tiles of their own, set here
@@ -138,7 +140,7 @@ const favoritePlay = computed(() => props.tile.options?.play as FavoritePlay | u
 const choosing = ref(false);
 const speakers = computed(() => {
   // The rows of the player's speaker menu (app speakers.py), or its sources from an app before them.
-  const live = liveOf(props.tile.entity)?.a;
+  const live = entities.liveOf(props.tile.entity)?.a;
   const listed = ((live?.speakers ?? live?.source_list) as string[] | undefined) ?? [];
   const chosen = props.tile.options?.speaker as string | undefined;
   const names = chosen && !listed.includes(chosen) ? [...listed, chosen] : listed;
@@ -201,7 +203,7 @@ const controlChoices = computed(() => {
     // The tile catalogue decides the rest (model/catalogue.ts): room for it on a card of this size (the mode keys and
     // the slats ask a second row), and a screen that draws it for this entity (a range: firmware 0.19.0+).
     .filter(ch => ch.key === "none" || fits(controlOption(domain.value, ch.key), size.value, grid.columns))
-    .filter(ch => ch.key === "none" || drawable(domain.value, ch.key, liveOf(props.tile.entity)?.a || {},
+    .filter(ch => ch.key === "none" || drawable(domain.value, ch.key, entities.liveOf(props.tile.entity)?.a || {},
       currentScreen.value?.climate_range === false ? new Set<string>() : null) === ch.key)
     .filter((ch) => !c || ch.key === "none" || ch.key === primaryControl.value || c.controls.includes(ch.key)).map((ch) => [ch.key, ch.label] as [string, string]);
   return offer("controls", choices, primaryControl.value, (key) => domain.value === "cover" ? withCoverTilt(key, tiltSelected.value) : key);
@@ -263,8 +265,8 @@ const tapHint = computed(() => {
 // Assistant names no attribute of - a scene, a switch, a Go to page tile - simply offers the other three.
 const sub = computed(() => current("sub", "auto") as string);
 const subKind = computed(() => (sub.value.startsWith("attr:") ? "attr" : sub.value.startsWith("text:") || typing.value ? "text" : sub.value));
-const subValues = computed(() => state.subtitleValues[props.tile.entity] ?? []);
-if (state.subtitleValues[props.tile.entity] === undefined) loadSubtitleValues(props.tile.entity);
+const subValues = computed(() => entities.subtitleValues[props.tile.entity] ?? []);
+if (entities.subtitleValues[props.tile.entity] === undefined) entities.loadSubtitleValues(props.tile.entity);
 const subChoices = computed(() => {
   const keys = ["auto", "none"];
   if (subValues.value.length || subKind.value === "attr") keys.push("attr");
@@ -305,7 +307,7 @@ function inspect() {
 const pageId = computed(() => state.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => openPage(pageId.value!) : undefined },
-  ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entityName(holder.value.entity), open: () => openTile(holder.value!) }] : []),
+  ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entities.entityName(holder.value.entity), open: () => openTile(holder.value!) }] : []),
   { text: props.tile.entity, mono: true },
 ]);
 const lookShown = computed(() => !goesTo.value && !bedside.value && !key.value && (props.tile.entity !== "screen.settings" || display.value === "live" || domain.value === "sensor"));
@@ -323,7 +325,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
 <template>
   <PluginTileInspector v-if="pluginTile" :tile="tile" />
   <template v-else>
-  <InspectorHead :title="tile.name || name" :code="tileIconCp(tile)" :tone="{ color: domainInfo(tile.entity)[2], background: domainInfo(tile.entity)[3] }" :crumbs="crumbs" kind="tile">
+  <InspectorHead :title="tile.name || name" :code="entities.tileIconCp(tile)" :tone="{ color: domainInfo(tile.entity)[2], background: domainInfo(tile.entity)[3] }" :crumbs="crumbs" kind="tile">
     <!-- The name is edited where it stands, as a title: empty is the name Home Assistant gives it. -->
     <template #title>
       <input id="tile-name" class="dr-title" :value="nameDraft.value.value" :placeholder="name" maxlength="60" :aria-label="t('editor.tile.name')" :title="t('editor.tile.name')"
@@ -420,8 +422,8 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
         :hint="t(mapTile ? 'editor.tile.map.chosen.hint' : 'editor.tile.map.with.hint')">
         <div class="map-with">
           <span v-for="item in mapWith" :key="item" class="map-person">
-            {{ entityName(item) }}
-            <button type="button" class="map-remove" :aria-label="t('editor.tile.map.with.remove', { name: entityName(item) })" @click="removeMapEntity(item)"><Icon name="close" /></button>
+            {{ entities.entityName(item) }}
+            <button type="button" class="map-remove" :aria-label="t('editor.tile.map.with.remove', { name: entities.entityName(item) })" @click="removeMapEntity(item)"><Icon name="close" /></button>
           </span>
           <UiSelect v-if="!mapFull && mapOffered.length" class="map-add" :model-value="''" :options="mapOffered"
             :placeholder="t('editor.tile.map.with.add')" :aria-label="t('editor.tile.map.with.add')" @update:model-value="addMapEntity" />
@@ -484,7 +486,7 @@ const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.o
     </template>
 
     <Section :title="t('editor.tile.sections.style')" class="style-section">
-      <IconPicker v-if="showIcon" :tile="tile" :selected="tile.options?.icon || 'auto'" :automatic="automaticIcon(tile.entity)"
+      <IconPicker v-if="showIcon" :tile="tile" :selected="tile.options?.icon || 'auto'" :automatic="entities.automaticIcon(tile.entity)"
         :auto-label="t(fromHA ? 'editor.tile.icon.auto_ha' : 'editor.tile.icon.auto_default')"
         :note="supports(0, 2, 18) ? '' : t('editor.tile.icon.needs_firmware')"
         @pick="(n) => setTileOption(tile, 'icon', n)" />

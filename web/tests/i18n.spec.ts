@@ -15,6 +15,7 @@ import {
 import { agoText, dateText } from "../src/model/topbar";
 import { state } from "../src/store";
 import { pageTexts, TRANSLATIONS } from "../translations";
+import { useEntitiesStore } from "../src/stores/entities";
 
 const meta = (plural: string) => ({ name: "Test", english: "Test", script: "latin", plural, checked: false });
 // Every text of a part as [key, text]; a list's items get .0, .1, ... as in tools/i18n.py.
@@ -189,7 +190,7 @@ describe("the mockup speaks the screens' language", () => {
       controls: { script: { default: "run", choices: [{ key: "run", label: "Run" }, { key: "none", label: "None" }] } },
     } as any;
     seedLayout({ title: "Living room", tiles: [] });
-    state.liveStates = {
+    useEntitiesStore().liveStates = {
       "light.c": { state: "on", word: null, a: {} },
       "weather.home": { state: "windy-variant", word: null, a: { temperature: 12.5 } },
       "binary_sensor.door": { state: "on", word: null, a: { device_class: "door" } },
