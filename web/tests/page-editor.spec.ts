@@ -180,7 +180,7 @@ describe("one draft in both editor modes", () => {
   });
   it('previews navigation locally without modifying the draft, selection, or calling HA', async () => {
     vi.spyOn(HTMLDialogElement.prototype, 'showModal').mockImplementation(() => {});
-    const document = JSON.stringify(state.document), selected = state.selectedTile;
+    const document = JSON.stringify(state.document), selected = state.selectedTileId;
     const view = mount(NavigationPreview);
     await nextTick();
     vi.mocked(fetch).mockClear();
@@ -190,7 +190,7 @@ describe("one draft in both editor modes", () => {
     expect(view.find('.page-navigation span').text()).toBe('2 / 2');
     await view.find('.preview-home').trigger('click');
     expect(view.find('.page-navigation span').text()).toBe('1 / 2');
-    expect(state.selectedTile).toBe(selected);
+    expect(state.selectedTileId).toBe(selected);
     expect(JSON.stringify(state.document)).toBe(document);
     expect(state.dirty).toBe(false);
     expect(fetch).not.toHaveBeenCalled();

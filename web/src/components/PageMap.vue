@@ -18,7 +18,7 @@ const name = (id: string) => { const page = state.document?.pages.find((page) =>
 type Edge = { tileId: string; from: string; to: string; sx: number; sy: number; path: string };
 const edges = ref<Edge[]>([]), pointer = ref<{ x: number; y: number } | null>(null);
 const visibleEdges = computed(() => allConnections.value ? edges.value : edges.value.filter((edge) =>
-  state.selectedTile ? edge.tileId === state.selectedTile.id : edge.from === state.selectedPageId || edge.to === state.selectedPageId));
+  state.selectedTileId ? edge.tileId === state.selectedTileId : edge.from === state.selectedPageId || edge.to === state.selectedPageId));
 const placement = ref<{ id: string; x: number; y: number; blocked: boolean } | null>(null);
 function curve(sx: number, sy: number, tx: number, ty: number) {
   const bend = Math.max(50, Math.abs(tx - sx) / 2);
@@ -123,7 +123,7 @@ onBeforeUnmount(() => { cleanGesture(); observer?.disconnect(); state.connecting
       <div ref="world" class="map-world" :style="{ width: `${extent.width}px`, height: `${extent.height}px`, transform: `scale(${zoom})` }">
         <svg class="map-links" :width="extent.width" :height="extent.height" :aria-label="t('editor.pages.routes')">
           <defs><marker id="page-link-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" /></marker></defs>
-          <g v-for="edge in visibleEdges" :key="edge.tileId" :class="{ chosen: state.selectedTile?.id === edge.tileId }">
+          <g v-for="edge in visibleEdges" :key="edge.tileId" :class="{ chosen: state.selectedTileId === edge.tileId }">
             <path class="edge" :d="edge.path" marker-end="url(#page-link-arrow)" />
             <path class="edge-hit" :d="edge.path" role="button" tabindex="0" :aria-label="`${name(edge.from)} → ${name(edge.to)}`"
               @click.stop="selectRoute(edge.tileId)" @keydown.enter.prevent="selectRoute(edge.tileId)" />

@@ -39,7 +39,7 @@ function openOverride() {
 }
 function inspectAll() {
   closeMenu();
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.inspector = { kind: "inspect" };
 }
 function copyFrom(id: string) {

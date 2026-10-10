@@ -73,8 +73,9 @@ const fresh = () => ({
   busy: false,
   saved: 0,
   tab: "layout" as "layout" | "settings" | "plugins",
-  // The tile itself, not its entity: several tiles can go to the same page (firmware 0.2.65).
-  selectedTile: null as Tile | null,
+  // The tile by its id, not its entity: several tiles can go to the same page (firmware 0.2.65). currentTile is the
+  // tile as the draft has it now.
+  selectedTileId: null as string | null,
   inspector: null as Inspector | null,
   iconPickerOpen: false,
   actionPickerOpen: false,
@@ -102,7 +103,6 @@ const fresh = () => ({
   subtitleValues: {} as Record<string, { key: string; name: string }[] | undefined>,
   topbarPreviews: {} as Record<string, any>,
   topbarAdded: null as null | { key: string; time: number },
-  topbarOverflow: [] as number[],
   settingEdits: {} as Record<string, { value: any; at: number }>,
   settingPending: false,
   updating: [] as string[],
@@ -343,14 +343,14 @@ export const roomyNames = computed(() => {
 export const editorLayout = createLayout(() => state.documentGrid ?? screenShape.value, () => currentScreen.value?.page_limit);
 export const grid = editorLayout.grid;
 const { arrange, cellsOf, firstFree, fits, nearestFree, normalize, occupied, pageCount, pageOf, reorderPages, rowStart, startOf, strandedPages, tileLimit: limitFor } = editorLayout;
-export const currentTile = computed<Tile | undefined>(() => state.selectedTile?.id
-  ? state.layout?.tiles.find((tile) => tile.id === state.selectedTile!.id) : undefined);
-export const isSelected = (tile: Tile) => Boolean(tile.id) && state.selectedTile?.id === tile.id;
+export const currentTile = computed<Tile | undefined>(() => state.selectedTileId
+  ? state.layout?.tiles.find((tile) => tile.id === state.selectedTileId) : undefined);
+export const isSelected = (tile: Tile) => Boolean(tile.id) && state.selectedTileId === tile.id;
 // The tile as the mockup draws it: with the choice the pointer rests on in the inspector, when that is this tile's.
 export function previewed(tile: Tile): Tile {
   const hover = state.optionPreview;
   // Only while that tile's own settings are open and nothing is being dragged: the drawn copy never reaches an edit.
-  if (!hover || !tile.id || hover.tileId !== tile.id || state.selectedTile?.id !== tile.id || state.drag.active) return tile;
+  if (!hover || !tile.id || hover.tileId !== tile.id || state.selectedTileId !== tile.id || state.drag.active) return tile;
   return { ...tile, options: { ...(tile.options || {}), [hover.key]: hover.value } } as Tile;
 }
 const currentView = (tile: Tile, layout = state.layout) => tile.id ? layout?.tiles.find((item) => item.id === tile.id) : tile;
@@ -592,7 +592,7 @@ export function markDirty() {
 type DraftSnapshot = { layout: PageLayout; grid: PageGrid; upright: boolean | null; positions: PageWorkspace["positions"]; page: string | null; tile: string | null };
 const draftHistory = new DraftHistory<DraftSnapshot>();
 const snapshot = (): DraftSnapshot => ({ layout: pages.clone(state.document!), grid: pages.clone(state.documentGrid!), upright: state.documentUpright, positions: pages.clone(state.workspace.positions),
-  page: state.selectedPageId, tile: state.selectedTile?.id || null });
+  page: state.selectedPageId, tile: state.selectedTileId });
 function historyCounts() {
   // A removal toast only belongs to the latest history entry. Once another
   // edit, map move, undo or screen selection changes history, retire it.
@@ -623,8 +623,9 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   if (state.selectedPageId && !ids.has(state.selectedPageId)) state.selectedPageId = next.homePageId;
   if (state.focusedPageId && !ids.has(state.focusedPageId)) state.focusedPageId = null;
   // A key under a bedside clock is a child of its clock: a change to it keeps it open like any tile.
-  if (state.selectedTile?.id && !next.pages.some((page) => page.tiles.some((tile) => tile.id === state.selectedTile!.id
-    || tile.children?.some((child) => child.id === state.selectedTile!.id)))) closeInspector();
+  const selected = state.selectedTileId;
+  if (selected && !next.pages.some((page) => page.tiles.some((tile) => tile.id === selected || tile.children?.some((child) => child.id === selected))))
+    closeInspector();
   markDirty();
   loadTopbarPreview();
   return true;
@@ -655,7 +656,7 @@ function restoreSnapshot(value: DraftSnapshot, scope: HistoryScope) {
       return point ? [[page.id, point]] : [];
     }));
     state.selectedPageId = value.page;
-    state.selectedTile = state.layout?.tiles.find((tile) => tile.id === value.tile) || null;
+    state.selectedTileId = state.layout?.tiles.some((tile) => tile.id === value.tile) ? value.tile : null;
   } else {
     const ids = new Set(state.document!.pages.map((page) => page.id));
     state.workspace.positions = Object.fromEntries(Object.entries(value.positions).filter(([id]) => ids.has(id)));
@@ -712,7 +713,7 @@ export function select(id: string | null) {
   }
   if (id !== state.selected && state.dirty && !confirm(t("editor.screen_view.confirm.switch"))) return;
   if (id !== state.selected) { flushSettings(); state.settingEdits = {}; }
-  state.selected = id; state.selectedTile = null; state.inspector = null;
+  state.selected = id; state.selectedTileId = null; state.inspector = null;
   state.tab = "layout"; state.menuOpen = false; state.addSheet = false; state.pagesSheet = false; state.previewOpen = false; state.pageWizardOpen = false;
   const screen = state.inventory.screens.find((item) => item.id === id);
   // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
@@ -851,7 +852,7 @@ export function removePage(page: number) {
 }
 export function setHomePage(id: string) { return editDocument((draft) => { draft.homePageId = id; }); }
 export function openPage(id: string) {
-  state.selectedPageId = id; state.selectedTile = null;
+  state.selectedPageId = id; state.selectedTileId = null;
   state.inspector = { kind: "page", id };
 }
 export function connectTile(tileId: string, target: string | "home") {
@@ -1129,7 +1130,7 @@ export function placeKey(tile: Tile, holder: Tile, key: number) {
 // ---- Inspector (the drawer) ----
 export function openTile(tile: Tile) {
   if (!isSelected(tile)) { state.iconPickerOpen = false; state.actionPickerOpen = false; state.actionSearch = ""; }
-  state.selectedTile = tile;
+  state.selectedTileId = tile.id || null;
   state.selectedPageId = state.document?.pages.find((page) => page.tiles.some((item) => item.id === tile.id ||
     item.children?.some((child) => child.id === tile.id)))?.id || state.selectedPageId;
   state.inspector = { kind: "tile" };
@@ -1161,12 +1162,12 @@ export function setPageTitle(page: number, value: string) {
 // which is where you look for it after clicking the bar.
 export function openBar(index: number, page = state.barPage) {
   if (!(state.inspector?.kind === "bar" && state.inspector.index === index)) state.iconPickerOpen = false;
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.selectedPageId = state.document?.pages[page]?.id || null;
   state.inspector = { kind: "bar", index };
 }
 export function openBarAdd() {
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.inspector = { kind: "bar-add" };
 }
 // The clock's row of entities on the screensaver (app 0.4.81): the top bar's entity items, shown by their state, their icon
@@ -1181,17 +1182,17 @@ export function setSaverItems(items: HeaderItem[]) {
 }
 export function openSaverItem(index: number) {
   if (!(state.inspector?.kind === "saver-item" && state.inspector.index === index)) state.iconPickerOpen = false;
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.inspector = { kind: "saver-item", index };
 }
 // One step of the screensaver in the drawer: its players, its camera or its clock.
 export function openSaverStep(step: SaverKind) {
   state.iconPickerOpen = false;
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.inspector = { kind: "saver", step };
 }
 export function openSaverAdd() {
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.inspector = { kind: "saver-add" };
 }
 const saverList = itemList({
@@ -1207,7 +1208,7 @@ const saverList = itemList({
 export const { add: addSaverItem, update: updateSaverItem, move: moveSaverItem, remove: removeSaverItem } = saverList;
 export function closeInspector() {
   state.inspector = null;
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.optionPreview = null;
 }
 
@@ -1449,7 +1450,7 @@ function forgetOpenScreen() {
   state.documentGrid = null;
   state.documentUpright = null;
   state.gridReview = null;
-  state.selectedTile = null;
+  state.selectedTileId = null;
   state.inspector = null;
   state.menuOpen = false;
 }
@@ -1962,11 +1963,11 @@ function reconcileDocument() {
   if (!screen || state.busy) return;
   if (record?.format === "pages-v2" && record.revision !== state.documentRevision) {
     if (state.dirty || state.workspaceDirty) { state.conflict = true; return; }
-    const selected = state.selectedPageId, focused = state.focusedPageId, tile = state.selectedTile?.id;
+    const selected = state.selectedPageId, focused = state.focusedPageId, tile = state.selectedTileId;
     loadDocument(screen);
     if (state.document?.pages.some((page) => page.id === selected)) state.selectedPageId = selected;
     if (state.document?.pages.some((page) => page.id === focused)) state.focusedPageId = focused;
-    state.selectedTile = state.layout?.tiles.find((item) => item.id === tile) || null;
+    state.selectedTileId = tile && state.layout?.tiles.some((item) => item.id === tile) ? tile : null;
   } else if (record?.format === "pages-v2" && record.workspace && !state.workspaceDirty) {
     state.workspace = pages.clone(record.workspace);
   } else if (!state.documentGrid && screen.source_grid && !state.dirty) loadDocument(screen);

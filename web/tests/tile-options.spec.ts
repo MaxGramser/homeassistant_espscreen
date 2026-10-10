@@ -45,7 +45,7 @@ beforeEach(() => {
   state.subtitleValues = {};
   state.entityActions = {};
   state.toast = null;
-  state.selectedTile = null; state.inspector = null; state.actionPickerOpen = false;
+  state.selectedTileId = null; state.inspector = null; state.actionPickerOpen = false;
 });
 
 describe("the canonical options (tile-options.ts)", () => {

@@ -20,7 +20,7 @@ import TileInspector from "../src/components/TileInspector.vue";
 import TopbarInspector from "../src/components/TopbarInspector.vue";
 import PageInspector from "../src/components/PageInspector.vue";
 import { t } from "../src/i18n";
-import { openBar, previewed, removePage, repeatable, setTileOption, state } from "../src/store";
+import { currentTile, openBar, previewed, removePage, repeatable, setTileOption, state } from "../src/store";
 import type { Inventory, Tile } from "../src/types";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
@@ -62,7 +62,7 @@ beforeEach(() => {
   state.liveStates = {};
   state.search = ""; state.filter = ""; state.room = ""; state.hidePlaced = false;
   state.palette = false;
-  state.selectedTile = null; state.inspector = null;
+  state.selectedTileId = null; state.inspector = null;
   state.dirty = false; state.tab = "layout";
 });
 
@@ -328,7 +328,7 @@ describe("TileCard", () => {
   it("opens the tile's settings on a click", async () => {
     const lamp = placed({ entity: "light.a", name: "", slot: 0 });
     await lamp.trigger("click");
-    expect(state.selectedTile?.entity).toBe("light.a");
+    expect(currentTile.value?.entity).toBe("light.a");
     expect(state.inspector).toEqual({ kind: "tile" });
     expect(lamp.classes()).toContain("chosen");
   });
@@ -1556,7 +1556,7 @@ describe("ChoiceField: the choice under the pointer is drawn on its tile first (
     expect(state.optionPreview).toEqual({ tileId: placed.id, key: "display", value: "big" });
     // The preview is drawn only while that tile's own settings are open, and never during a drag.
     expect(previewed(placed)).toBe(placed);
-    state.selectedTile = placed;
+    state.selectedTileId = placed.id!;
     expect(previewed(placed).options?.display).toBe("big");
     state.drag.active = true;
     expect(previewed(placed)).toBe(placed);
