@@ -63,7 +63,9 @@ The volume runs evenly in decibels from -45 dB to the ES8388's full scale.
 
 The 2 MP camera on the MIPI-CSI port answers on the system I2C bus and takes its 24 MHz clock from GPIO36, as M5Stack's
 own firmware drives it. The camera's driver makes that clock with LEDC timer 0 and channel 0, so the backlight's PWM
-stands on channel 2 (timer 1): on one timer, the backlight and the camera would undo each other. The board states both (`CAMERA_I2C`, `CAMERA_XCLK_PIN`, the feature `camera_sensor`), and the
+stands on channel 2 (timer 1): on one timer, the backlight and the camera would undo each other. The board takes the
+sensor out of reset at start (CAM_RST, pin 6 of the first I/O expander, active low); with that pin loose, the sensor
+does not answer on its bus and the USB log says "Get sensor ID failed". The board states both (`CAMERA_I2C`, `CAMERA_XCLK_PIN`, the feature `camera_sensor`), and the
 Screen camera plugin makes it a camera of the screen's device in Home Assistant.
 
 ## Built, not yet heard or seen

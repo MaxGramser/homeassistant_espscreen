@@ -48,8 +48,8 @@ substitutions:
   AUDIO_AMPLIFIER: board_speaker_amp
 
   # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the SC2356 on the MIPI-CSI port answers on the
-  # system I2C bus, and takes its 24 MHz clock from GPIO36, as M5Stack's BSP drives it. A camera plugin drives it
-  # (screen_camera).
+  # system I2C bus, and takes its 24 MHz clock from GPIO36, as M5Stack's BSP drives it; the board takes it out of reset
+  # (switch below). A camera plugin drives it (screen_camera).
   CAMERA_I2C: tab5_bus
   CAMERA_XCLK_PIN: "36"
 
@@ -114,6 +114,16 @@ audio_dac:
     i2c_id: tab5_bus
 
 switch:
+  # The camera's reset (CAM_RST, pin 6 of the first I/O expander, active low), released at start as M5Stack's own
+  # firmware and Espressif's Tab5 BSP do. ESPHome starts the expander with every pin loose, and a sensor whose reset
+  # floats does not answer on its bus ("Get sensor ID failed").
+  - platform: gpio
+    id: board_camera_run
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin:
+      pi4ioe5v6408: tab5_ioe
+      number: 6
   - platform: gpio
     id: board_speaker_amp
     internal: true
