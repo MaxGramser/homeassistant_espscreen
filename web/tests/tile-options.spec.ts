@@ -3,6 +3,7 @@ import { appendTiles, current, loadLayout } from "./helpers/fixtures";
 // could: Automatic for the second line once another was chosen ("Tile options need normalization"), and Perform action
 // ("Invalid or unsupported page configuration fields"). The walk below clicks every choice of every field for tiles of
 // many kinds and sizes, so an option added later that the add-on refuses fails here, not on someone's screen.
+import { readFileSync } from "node:fs";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +12,7 @@ import Drawer from "../src/components/Drawer.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
 import { validatePages } from "../src/model/pages";
+import { PLUGIN_TILE_OPTIONS } from "../src/model/plugins";
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
@@ -330,5 +332,18 @@ describe("the map tile (app 0.4.36)", () => {
     expect(saved.content).toEqual({ kind: "builtin", name: "map" });
     expect(saved.appearance).toMatchObject({ display: "map", mapFollow: "chosen", mapEntities: ["person.q"] });
     panel.unmount();
+  });
+});
+
+describe("a plugin's tile (GitHub #224)", () => {
+  it("keeps only what the add-on takes for one, so it grows to a tall size and saves", () => {
+    const tile = "plugin:waste_collection.next";
+    expect(canonicalOptions(tile, { size: "square", controls: "none", inline: "none", icon: "mdi:trash-can" }))
+      .toEqual({ size: "square", icon: "mdi:trash-can" });
+  });
+  it("names the options core.py's PLUGIN_TILE_OPTIONS names", () => {
+    const core = readFileSync("../screen_manager/app/core.py", "utf8");
+    const listed = /^PLUGIN_TILE_OPTIONS = \{([^}]*)\}/m.exec(core)![1].match(/'([a-z_]+)'/g)!.map((word) => word.slice(1, -1));
+    expect([...PLUGIN_TILE_OPTIONS].sort()).toEqual(listed.sort());
   });
 });
