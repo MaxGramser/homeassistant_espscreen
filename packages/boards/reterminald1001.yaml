@@ -21,6 +21,8 @@ packages:
   # The battery: its voltage on GPIO18 through a divider of two, and Seeed's own discharge curve (docs/BATTERY.md).
   battery_voltage: !include ../features/battery-voltage.yaml
   battery_adc: !include ../features/battery-adc.yaml
+  # The RGB LED beside the camera, as a light in Home Assistant (outputs below).
+  rgb_led: !include ../features/rgb-led.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -126,6 +128,20 @@ switch:
     pin: {xl9535: board_expander, number: 12}
 
 binary_sensor:
+  # The button on top (GPIO3, high while pressed): the same as Home Assistant's Wake and Sleep buttons, so a press puts
+  # the screen in standby or wakes it the way the core does it.
+  - platform: gpio
+    id: board_button
+    name: "Button"
+    pin: GPIO3
+    on_press:
+      - if:
+          condition:
+            lambda: 'return id(display_dimmed);'
+          then:
+            - button.press: wake_button
+          else:
+            - button.press: sleep_button
   # Low while the charger charges the battery (GPIO15, pulled up).
   - platform: gpio
     id: board_battery_charging
@@ -136,12 +152,57 @@ binary_sensor:
       inverted: true
       mode: {input: true, pullup: true}
 
-# The backlight, a PWM pin; 1220 Hz, where this panel does not flicker at low levels (HA community thread).
+# The backlight, a PWM pin; 1220 Hz, where this panel does not flicker at low levels (HA community thread). The RGB
+# LED's three lines light when low (Seeed's BSP drives them at 100 % minus the level).
 output:
   - platform: ledc
     pin: GPIO14
     frequency: 1220Hz
     id: gpio_backlight_pwm
+  - platform: ledc
+    pin: GPIO22
+    id: output_red
+    inverted: true
+  - platform: ledc
+    pin: GPIO36
+    id: output_green
+    inverted: true
+  - platform: ledc
+    pin: GPIO23
+    id: output_blue
+    inverted: true
+
+# The LSM6DS3TR-C motion sensor, read once a minute for the temperature it measures on its own chip (warmer than the
+# room the board stands in: it shows how warm the board runs).
+motion:
+  - platform: lsm6ds
+    id: board_motion
+    i2c_id: board_bus
+    update_interval: 60s
+
+sensor:
+  - platform: lsm6ds
+    lsm6ds_id: board_motion
+    type: temperature
+    name: "Board Temperature"
+    entity_category: diagnostic
+    accuracy_decimals: 1
+
+# The PCF8563 clock keeps the time while the board is off or Home Assistant away: read at the start, so a clock shows
+# the time before Home Assistant has given it, and written once an hour from Home Assistant's time.
+time:
+  - platform: pcf8563
+    id: board_rtc
+    i2c_id: board_bus
+
+interval:
+  - interval: 1h
+    then:
+      - if:
+          condition:
+            lambda: 'return id(homeassistant_time).now().is_valid();'
+          then:
+            - pcf8563.write_time: board_rtc
 
 # ESPHome's gsl3670 preset for this panel brings the range it reports, its firmware table and its reset (the XL9535's
 # pin 14) and interrupt (GPIO16) lines.
