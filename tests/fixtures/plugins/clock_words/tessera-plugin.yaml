@@ -1,7 +1,7 @@
 # A plugin for the app's tests: a tile without data, the smallest manifest that adds one.
 id: clock_words
 version: 1.0.0
-api: "0.1"
+api: "0.4"
 icon: clock-outline
 topics: [time]
 maintainer: someone

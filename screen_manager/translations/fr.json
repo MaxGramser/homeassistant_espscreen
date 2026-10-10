@@ -865,7 +865,8 @@
         "like_consent": "Acceptez d'abord que votre j'aime compte dans un nombre public.",
         "like_off": "Les j'aime sont désactivés : une version plus récente de l'app les gère.",
         "like_failed": "Le j'aime n'est pas parti. Réessayez dans un instant.",
-        "misfit_built_in": "{name} apporte ce que cette carte a déjà."
+        "misfit_built_in": "{name} apporte ce que cette carte a déjà.",
+        "offline": "L'application ne sait pas encore où se trouve {screen} sur le réseau. Allumez-le, attendez qu'il soit en ligne, puis réessayez."
       },
       "extras": {
         "request": "Ce changement d’un extra n’est pas possible sur cet écran."
@@ -1848,7 +1849,6 @@
       },
       "source_code": "Code source",
       "issues": "Signaler un problème",
-      "removed": "{name} retiré de {screens}. L'écran le perd à sa prochaine compilation.",
       "add_link": "Ajouter avec un lien",
       "link": {
         "title": "Ajouter avec un lien",
@@ -1908,7 +1908,7 @@
         "title": "Lisez-moi"
       },
       "english_only": "En anglais uniquement",
-      "build_note": "Vous compilez avec ESPHome Device Builder ou sur un autre ordinateur ? Le plugin est dans le YAML de l'écran ; compilez-le là-bas comme d'habitude.",
+      "build_note": "L'installation recompile le firmware de cet écran et l'envoie par Wi-Fi, quelques minutes par écran. Le plugin est dans le YAML de l'écran, donc une compilation dans ESPHome Device Builder l'inclut aussi.",
       "attach": {
         "row": "À relier une fois, dans l'onglet de l'écran",
         "text": "{screen} est compilé depuis son propre YAML. Ajoutez-y cette ligne une fois ; ensuite Tessera garde ses plugins dans un fichier à part, et ESPHome Device Builder les compile comme d'habitude, même après une mise à jour.",
@@ -1943,7 +1943,16 @@
         "stage": "Ajouter à {screen}",
         "in_tray": "Prêt à installer",
         "in_tray_note": "Installez-le depuis la carte dans le coin, seul ou avec d’autres.",
-        "along": "vient avec {names}"
+        "along": "vient avec {names}",
+        "title_changes": "Prêt à compiler",
+        "changes": "{n} modification | {n} modifications",
+        "build": "Compiler {n} modification | Compiler {n} modifications",
+        "off": "quitte cet écran",
+        "off_note": "Prévu pour être retiré. Cela se fait à la prochaine compilation depuis la carte dans le coin, avec le reste pour cet écran.",
+        "keep": "Le garder",
+        "keep_named": "Garder {name}",
+        "minutes": "Chaque compilation prend quelques minutes.",
+        "off_set": "Prévu pour être retiré"
       },
       "maker": {
         "title": "Créer votre propre plugin",
@@ -2072,7 +2081,9 @@
         "title": "Nouveautés de {version}",
         "none": "Le créateur n'a pas écrit de notes pour cette mise à jour.",
         "history": "Toutes les versions"
-      }
+      },
+      "failed_update": "La version {version} n'a pas pu être compilée pour {screen}, qui est donc revenu à {current}, celle qu'il exécute. Son journal se trouve dans Firmware et USB.",
+      "interrupted": "L'application a redémarré pendant la compilation."
     },
     "plugin_tile": {
       "from": "Une tuile du plugin {plugin}",

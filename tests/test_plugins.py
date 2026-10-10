@@ -24,7 +24,7 @@ ENGLISH = {'app': {'name': 'Bus', 'summary': 'Next bus.', 'tile': 'Next', 'stop'
 
 def manifest(**changes):
     data = {
-        'id': 'bus', 'version': '1.0.0', 'api': '0.1', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT', 'topics': ['travel'],
+        'id': 'bus', 'version': '1.0.0', 'api': '0.4', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT', 'topics': ['travel'],
         'permissions': {'network': ['api.example.org']}, 'attributes': ['cloud'], 'privacy': 'https://example.org/p',
         'tiles': [{'id': 'next', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 900,
                    'data': 'departures', 'options': [
@@ -133,6 +133,12 @@ class Manifest(unittest.TestCase):
         self.assertTrue(pm.api_fits('1.1', (1, 3)))
         self.assertFalse(pm.api_fits('1.4', (1, 3)))
         self.assertFalse(pm.api_fits('2.0', (1, 3)))
+        # While the major is 0 a minor may change a name: a plugin written before it does not fit what comes after.
+        self.assertFalse(pm.api_fits('0.3', (0, 8)))
+        self.assertTrue(pm.api_fits('0.4', (0, 8)))
+        self.assertTrue(pm.api_fits('0.7', (0, 8)))
+        self.assertFalse(pm.api_fits('0.2', (0, 5), {0: (3,)}))
+        self.assertTrue(pm.api_fits('0.2', (0, 2), {0: (3,)}))
 
     def test_one_plugin_api_everywhere(self):
         header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
@@ -140,6 +146,7 @@ class Manifest(unittest.TestCase):
         component = (ROOT / 'components/smart_display/__init__.py').read_text()
         self.assertIn(f'PLUGIN_API = ({major}, {minor})', component)
         self.assertEqual(pm.PLUGIN_API, (int(major), int(minor)))
+        self.assertIn(f'PLUGIN_API_BREAKS = {pm.PLUGIN_API_BREAKS!r}', component)
         # The docs name the same number, once, and the host probe is written for it: it uses the newest moments.
         doc = (ROOT / 'docs/PLUGINS.md').read_text()
         self.assertEqual(re.findall(r'the plugin API is (\d+\.\d+) now', doc), [f'{major}.{minor}'])
@@ -165,7 +172,7 @@ class Boards(unittest.TestCase):
 
     def test_a_board_plugin_fits_its_board_only(self):
         import plugins as plugin_service
-        entry = type('Entry', (), {'manifest': pm.check(manifest(boards=['wavesharep4'], api='0.3',
+        entry = type('Entry', (), {'manifest': pm.check(manifest(boards=['wavesharep4'], api='0.4',
                                                                  requires={'psram': True}), ENGLISH)})()
         service = type('Service', (), {'blocked': lambda self, entry: False})()
         fits = lambda screen: plugin_service.Plugins.fits(service, entry, screen)  # noqa: E731
@@ -715,6 +722,135 @@ class Queue(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"CITY": "Utrecht"', text)
         self.assertIn('extra.yaml', text)
         self.assertIn('clock_words/plugin.yaml', text)
+
+
+class BuildOutcome(unittest.IsolatedAsyncioTestCase):
+    """What a build's end and a change during a build do to a screen's plugins (plugins.py apply, _build_queue,
+    _settle_build): nothing asked is lost, and a failed build leaves a plugins file that builds."""
+
+    def make(self, results=None, host='10.0.0.1', refuse=False):
+        import shutil
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+        folders = Path(tmp.name) / 'tessera-plugins'
+        for name in ('clock_words', 'calendar_peek'):
+            shutil.copytree(ROOT / 'tests' / 'fixtures' / 'plugins' / name, folders / name)
+        outcomes = list(results or [])
+        started = []
+
+        class FakeFirmware:
+            task = None
+            job = None
+            gate = None
+            logs = []
+
+            def save_plugins(self, profile, text):
+                if refuse:
+                    raise ValueError('another include')
+                (config / profile.replace('.yaml', '.plugins.yaml')).write_text(text)
+
+            def start(self, data):
+                assert not (self.task and not self.task.done()), 'two builds at once'
+                started.append((config / 'hall.plugins.yaml').read_text())
+                state = outcomes.pop(0) if outcomes else 'success'
+
+                async def build():
+                    if self.gate:
+                        await self.gate.wait()
+                    self.job = {'state': state}
+                    self.logs = ['ESPHome: compile'] + ([] if state == 'success' else ['compile failed'])
+                self.task = asyncio.get_running_loop().create_task(build())
+
+        class FakeManager:
+            firmware = FakeFirmware()
+            ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
+            page_senders = {}
+
+            def screen(self, inbox):
+                return {'id': inbox, 'node': inbox, 'name': inbox.title(), 'board': 'guition'}
+
+            def notify(self):
+                pass
+        FakeManager.updates = type('U', (), {'resolve': lambda self, screen: (screen['id'] + '.yaml', host)})()
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', config)
+        return service, config, started
+
+    async def test_a_change_while_the_screen_builds_gets_a_build_of_its_own(self):
+        service, config, started = self.make()
+        service.manager.firmware.gate = asyncio.Event()
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        while service.jobs.get('hall', {}).get('state') != 'building':
+            await asyncio.sleep(0)
+        await service.apply('hall', {'add': [{'id': 'calendar_peek', 'source': 'folder'}]})
+        service.manager.firmware.gate.set()
+        await service.worker
+        self.assertEqual(len(started), 2)
+        self.assertIn('calendar_peek', started[1])
+        self.assertEqual({p: service.store.get('hall', p)['state'] for p in ('clock_words', 'calendar_peek')},
+                         {'clock_words': 'active', 'calendar_peek': 'active'})
+        self.assertNotIn('hall', service.jobs)
+
+    async def test_a_new_plugin_that_fails_leaves_the_file(self):
+        service, config, _ = self.make(['failed'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.worker
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual((record['state'], record['reason']), ('failed', 'compile failed'))
+        self.assertNotIn('clock_words', (config / 'hall.plugins.yaml').read_text())
+        # Trying again puts it back in the file and builds.
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.worker
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'active')
+        self.assertNotIn('reason', service.store.get('hall', 'clock_words'))
+        self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
+
+    async def test_an_update_that_fails_goes_back_to_what_worked(self):
+        service, config, _ = self.make(['success', 'failed'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder', 'parts': []}]})
+        await service.worker
+        before = service.store.get('hall', 'clock_words')
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder', 'parts': ['missing']}]})
+        self.assertEqual(service.store.get('hall', 'clock_words')['previous']['version'], before['version'])
+        await service.worker
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual(record['state'], 'active')
+        self.assertEqual(record['failed_update']['reason'], 'compile failed')
+        self.assertNotIn('previous', record)
+        self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
+
+    async def test_a_file_that_cannot_be_written_changes_nothing(self):
+        service, config, started = self.make(refuse=True)
+        with self.assertRaises(ValueError):
+            await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        self.assertIsNone(service.store.get('hall', 'clock_words'))
+        self.assertEqual(started, [])
+
+    async def test_a_screen_without_an_address_is_not_changed(self):
+        service, config, started = self.make(host=None)
+        with self.assertRaises(ValueError) as caught:
+            await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        self.assertIn('Hall', str(caught.exception))
+        self.assertIsNone(service.store.get('hall', 'clock_words'))
+        self.assertFalse((config / 'hall.plugins.yaml').exists())
+
+    def test_a_failed_build_says_why_in_one_line(self):
+        from plugins import build_reason
+        self.assertEqual(build_reason(['INFO x', 'src/a.cpp:3:1: error: foo', 'ninja: build stopped: subcommand failed.',
+                                       'ESPHome compile failed; see the log.']), 'src/a.cpp:3:1: error: foo')
+        self.assertEqual(build_reason(['ninja failed with exit code 1', 'The compiler ran out of memory: more is needed.']),
+                         'The compiler ran out of memory: more is needed.')
+        self.assertEqual(build_reason(None), 'build')
+
+    def test_a_screen_that_goes_forgets_its_own_secrets(self):
+        from plugin_store import PluginSecrets
+        secrets = PluginSecrets(Path(tempfile.mkdtemp()) / 'secrets.json')
+        secrets.set('bus', 'key', 'one', 'hall')
+        secrets.set('bus', 'key', 'all', 'all')
+        secrets.drop_scope('bus', 'hall')
+        self.assertEqual(secrets.of('bus', 'hall'), {'key': 'all'})
 
 
 class Builds(unittest.TestCase):

@@ -865,7 +865,8 @@
         "like_consent": "Najpierw zgódź się, aby polubienie liczyło się w publicznej liczbie.",
         "like_off": "Polubienia są wyłączone: obsługuje je nowsza wersja aplikacji.",
         "like_failed": "Polubienie nie zostało wysłane. Spróbuj za chwilę.",
-        "misfit_built_in": "{name} daje to, co ta płytka ma już sama."
+        "misfit_built_in": "{name} daje to, co ta płytka ma już sama.",
+        "offline": "Aplikacja nie wie jeszcze, gdzie w sieci jest {screen}. Włącz go, poczekaj, aż będzie online, i spróbuj ponownie."
       },
       "extras": {
         "request": "Tej zmiany dodatku nie można wprowadzić na tym ekranie."
@@ -1848,7 +1849,6 @@
       },
       "source_code": "Kod źródłowy",
       "issues": "Zgłoś problem",
-      "removed": "Usunięto {name} z {screens}. Ekran straci ją przy następnej kompilacji.",
       "add_link": "Dodaj przez link",
       "link": {
         "title": "Dodaj przez link",
@@ -1908,7 +1908,7 @@
         "title": "Przeczytaj"
       },
       "english_only": "Tylko po angielsku",
-      "build_note": "Kompilujesz w ESPHome Device Builder albo na innym komputerze? Wtyczka jest w YAML ekranu; skompiluj go tam jak zawsze.",
+      "build_note": "Instalacja ponownie kompiluje firmware tego ekranu i wysyła go przez Wi-Fi, kilka minut na ekran. Wtyczka jest w YAML ekranu, więc kompilacja w ESPHome Device Builder też ją zawiera.",
       "attach": {
         "row": "Podłącz raz, w karcie ekranu",
         "text": "{screen} jest kompilowany z własnego YAML. Dodaj do niego tę linię jeden raz; potem Tessera trzyma jego wtyczki we własnym pliku, a ESPHome Device Builder kompiluje je jak zawsze, także po aktualizacji.",
@@ -1943,7 +1943,16 @@
         "stage": "Dodaj do {screen}",
         "in_tray": "Gotowe do instalacji",
         "in_tray_note": "Zainstaluj ją z karty w rogu, samą lub razem z innymi.",
-        "along": "dochodzi z {names}"
+        "along": "dochodzi z {names}",
+        "title_changes": "Gotowe do kompilacji",
+        "changes": "{n} zmiana | {n} zmiany | {n} zmian",
+        "build": "Skompiluj {n} zmianę | Skompiluj {n} zmiany | Skompiluj {n} zmian",
+        "off": "zostanie usunięta z tego ekranu",
+        "off_note": "Przygotowana do usunięcia. Stanie się to przy następnej kompilacji z karty w rogu, razem z resztą dla tego ekranu.",
+        "keep": "Zostaw",
+        "keep_named": "Zostaw {name}",
+        "minutes": "Każda kompilacja trwa kilka minut.",
+        "off_set": "Przygotowana do usunięcia"
       },
       "maker": {
         "title": "Stwórz własną wtyczkę",
@@ -2072,7 +2081,9 @@
         "title": "Nowości w {version}",
         "none": "Autor nie napisał notatek do tej aktualizacji.",
         "history": "Wszystkie wersje"
-      }
+      },
+      "failed_update": "Wersja {version} nie skompilowała się dla {screen}, więc wrócił do {current}, którą uruchamia. Log znajdziesz w sekcji „Firmware i USB”.",
+      "interrupted": "Aplikacja uruchomiła się ponownie podczas kompilacji."
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",

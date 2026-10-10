@@ -162,6 +162,17 @@ class PluginSecrets:
                 out[input_id] = value
         return out
 
+    def drop_scope(self, plugin, scope):
+        """Forget a plugin's secrets for one screen (scope: its inbox), when it leaves that screen."""
+        with self.lock:
+            key = f'{plugin}/'
+            gone = [k for k in self.values if k.startswith(key) and k.split('/', 2)[2] == scope]
+            for k in gone:
+                self.values.pop(k, None)
+                self.origins.pop(k, None)
+            if gone:
+                self._save()
+
     def drop_plugin(self, plugin, origin=None):
         """Forget a plugin's secrets: those of one origin, or all of them."""
         with self.lock:

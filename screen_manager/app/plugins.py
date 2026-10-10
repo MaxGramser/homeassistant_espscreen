@@ -88,6 +88,19 @@ def record_origin(record):
     return 'folder' if record.get('source') == 'folder' else origin_of(record.get('repo'), record.get('path'))
 
 
+def build_reason(logs):
+    """Why a build failed, in one line of its log. The app's own last line says it in words (memory that ran short, a
+    screen that did not answer); only when that line points to the log, the last error the compiler or ESPHome named.
+    The whole log stays under Firmware & USB until the next build."""
+    lines = [str(line).strip() for line in list(logs or [])[-60:] if str(line).strip()]
+    if not lines:
+        return 'build'
+    if 'see the log' not in lines[-1]:
+        return lines[-1][:200]
+    errors = [line for line in lines if re.search(r'\berror\b|ERROR', line) and 'see the log' not in line]
+    return (errors or lines)[-1][:200]
+
+
 def version_tuple(text):
     return tuple(int(n) for n in re.findall(r'\d+', str(text or ''))[:3])
 
@@ -715,9 +728,9 @@ class Plugins:
             for record in records:
                 state = record.get('state', 'active')
                 if state in ('building', 'failed') and reported.get(record['id']) == record.get('version'):
-                    self.store.set_state(inbox, record['id'], 'active')
+                    self._settle_build(inbox, [record['id']], True, None)
                 elif state == 'building':
-                    self.store.set_state(inbox, record['id'], 'failed', 'interrupted')
+                    self._settle_build(inbox, [record['id']], False, 'interrupted')
 
     def payload(self, language='en'):
         self.settle()
@@ -737,7 +750,14 @@ class Plugins:
                                          'blocked': self.blocked_record(record),
                                          'parts': record.get('parts', []), 'values': record.get('values', {}),
                                          'consent': (record.get('consent') or {}).get('permissions'),
-                                         'state': record.get('state', 'active'), 'reason': record.get('reason')})
+                                         'state': record.get('state', 'active'), 'reason': record.get('reason'),
+                                         **({'failed_update': record['failed_update']} if record.get('failed_update') else {}),
+                                         # Which of its secrets for this screen alone are set (never their values).
+                                         'secrets': {item['id']: self.secrets.has(
+                                             record['id'], item['id'], inbox, None if record.get('source') == 'folder'
+                                             else record_origin(record))
+                                             for item in (entry.manifest['inputs'] if entry else [])
+                                             if item['kind'] == 'secret' and item['scope'] == 'screen'}})
         secrets = {}
         for entry in listed.values():
             for item in entry.manifest['inputs']:
@@ -772,10 +792,11 @@ class Plugins:
 
     # ---- A screen's plugins file ----
 
-    def sidecar(self, inbox):
-        """The text of `<name>.plugins.yaml` for this screen's records."""
+    def sidecar(self, inbox, records=None):
+        """The text of `<name>.plugins.yaml` for this screen's records (or the ones it is about to have). A plugin whose
+        first build failed is left out, so the screen's next build (an update of the core) does not fail on it."""
         packages, components = [], []
-        records = self.store.of(inbox)
+        records = [r for r in (self.store.of(inbox) if records is None else records) if r.get('state') != 'failed']
         have = self.features_on(self.manager.screen(inbox) or {'id': inbox}, records)
         for record in records:
             entry = self.entry_for(record)
@@ -1027,7 +1048,13 @@ class Plugins:
             raise ValueError(t('addon.errors.plugins.choose', feature=t(f'editor.plugins.features.{first["feature"]}'),
                                name=self.listed()[first['for']].text('name') if first['for'] in self.listed() else first['for']))
         given = {item['id']: item for item in body.get('add') or [] if isinstance(item, dict)}
-        changes = []
+        # A screen the app has a profile for but no address of cannot be built now: say so before anything changes, so the
+        # person tries again once it is on (the editor keeps what was set aside).
+        if profile and not host:
+            raise ValueError(t('addon.errors.plugins.offline', screen=screen.get('name') or screen.get('node') or inbox))
+        # Everything is checked first and nothing is kept until the plugins file is written: a request that is refused
+        # halfway, or a file the app cannot write, leaves the records, the secrets and the file as they were.
+        changes, secret_sets = [], []
         for step in plan['add']:
             entry = step['entry']
             item = given.get(entry.id) or {'id': entry.id}
@@ -1049,8 +1076,8 @@ class Plugins:
                     raise ValueError(t('addon.errors.plugins.request'))
                 if spec['kind'] == 'secret':
                     if given_value:
-                        self.secrets.set(entry.id, spec['id'], given_value, 'all' if spec['scope'] == 'all' else inbox,
-                                         None if entry.source == 'folder' else entry.origin)
+                        secret_sets.append((entry.id, spec['id'], given_value, 'all' if spec['scope'] == 'all' else inbox,
+                                            None if entry.source == 'folder' else entry.origin))
                 elif given_value:
                     kept[spec['id']] = given_value.strip()
                 elif given_value is None and same and (same.get('values') or {}).get(spec['id']):
@@ -1064,20 +1091,34 @@ class Plugins:
             agreed = (same or {}).get('consent', {}).get('permissions') if same else None
             if same and agreed and agreed != pm.permission_hash(entry.manifest) and item.get('consent') is not True:
                 raise ValueError(t('addon.errors.plugins.consent', name=entry.text('name')))
-            if entry.source in ('index', 'link', 'branch'):
-                self.keep_snapshot(entry)
             # Came along: added for another plugin, and not asked for by name before or now.
             came = step['auto'] and (had is None or bool(had.get('auto')))
-            changes.append({'id': entry.id, 'source': entry.source, 'repo': entry.repo, 'path': entry.path,
-                            'ref': entry.ref, 'version': entry.version, 'parts': parts, 'values': kept,
-                            **({'repo_id': entry.repo_id} if entry.repo_id else {}),
-                            **({'branch': entry.branch} if entry.branch else {}),
-                            **({'auto': True} if came else {}),
-                            'consent': {'permissions': pm.permission_hash(entry.manifest), 'at': int(time.time())},
-                            'state': 'building' if profile else 'active'})
-        for record in changes:
-            self.store.put(inbox, record)
+            # What the screen ran before, built and working: a build that fails puts it back (_settle_build), so a failed
+            # update never leaves a screen whose plugins file no longer builds.
+            previous = had.get('previous') or (had if had.get('state', 'active') == 'active' else None) if had else None
+            changes.append({'entry': entry, 'record': {
+                'id': entry.id, 'source': entry.source, 'repo': entry.repo, 'path': entry.path,
+                'ref': entry.ref, 'version': entry.version, 'parts': parts, 'values': kept,
+                **({'repo_id': entry.repo_id} if entry.repo_id else {}),
+                **({'branch': entry.branch} if entry.branch else {}),
+                **({'auto': True} if came else {}),
+                **({'previous': {k: v for k, v in previous.items() if k not in ('previous', 'failed_update')}}
+                   if previous and profile else {}),
+                'consent': {'permissions': pm.permission_hash(entry.manifest), 'at': int(time.time())},
+                'state': 'building' if profile else 'active'}})
         removes = plan['remove']
+        records = [r for r in self.store.of(inbox) if r['id'] not in removes and r['id'] not in {c['record']['id'] for c in changes}]
+        records += [dict(c['record'], changed=int(time.time())) for c in changes]
+        text = self.sidecar(inbox, records)
+        if profile:
+            firmware.save_plugins(profile, text)
+        # Written: now the records and the secrets follow.
+        for change in changes:
+            if change['entry'].source in ('index', 'link', 'branch'):
+                self.keep_snapshot(change['entry'])
+            self.store.put(inbox, change['record'])
+        for args in secret_sets:
+            self.secrets.set(*args)
         for plugin in removes:
             gone = self.store.get(inbox, plugin)
             self.store.remove(inbox, plugin)
@@ -1085,20 +1126,24 @@ class Plugins:
             if gone and not any(record_origin(r) == origin for screen_records in self.store.everywhere().values()
                                 for r in screen_records if r['id'] == plugin):
                 self.secrets.drop_plugin(plugin, None if origin == 'folder' else origin)
+            self.secrets.drop_scope(plugin, inbox)
         self._know_tiles()
-        text = self.sidecar(inbox)
         if not profile:
             # A screen built from its own YAML: the app cannot build it, so the page shows the file and the line.
             return {'own_yaml': True, 'file': f'{screen.get("node") or "screen"}.plugins.yaml', 'content': text,
                     'line': self.attach_line(f'{screen.get("node") or "screen"}.yaml')}
-        firmware.save_plugins(profile, text)
-        if not host:
-            return {'written': True, 'built': False}
         # One build at a time, in the order asked: ticking three screens on the Plugins page builds them one after the
-        # other. A screen asked again while it waits builds once, with everything asked for it.
-        job = self.jobs.get(inbox) if self.jobs.get(inbox, {}).get('state') == 'queued' else None
-        added = [c['id'] for c in changes]
-        if job:
+        # other. A screen asked again while it waits builds once, with everything asked for it; one asked while its build
+        # runs builds once more after it (`next`), since that build may have read its YAML before this change.
+        added = [c['record']['id'] for c in changes]
+        job = self.jobs.get(inbox)
+        if job and job['state'] == 'building':
+            later = job.setdefault('next', {'add': [], 'remove': []})
+            later['add'] = sorted(set(later['add']) | set(added))
+            later['remove'] = sorted(set(later['remove']) | set(removes))
+            if inbox not in self.queue:
+                self.queue.append(inbox)
+        elif job:
             job['add'] = sorted(set(job['add']) | set(added))
             job['remove'] = sorted(set(job['remove']) | set(removes))
         else:
@@ -1120,21 +1165,58 @@ class Plugins:
             job = self.jobs.get(inbox)
             if not job:
                 continue
+            if job['state'] == 'building':   # asked again while it built: its next build waits behind the others
+                self.queue.append(inbox)
+                await asyncio.sleep(0)
+                continue
             job.update(state='building', started=int(time.time()))
             self.manager.notify()
             try:
                 firmware.start({'file': job['profile'], 'action': 'install', 'target': job['host']})
                 await firmware.task
                 ok = (firmware.job or {}).get('state') == 'success'
-                reason = None if ok else ((firmware.job or {}).get('error') or 'build')
+                reason = None if ok else build_reason(getattr(firmware, 'logs', None))
             except Exception as error:   # refused before it started (a file that went, an address that is wrong)
                 ok, reason = False, str(error)[:200]
-            for plugin in job['add']:
-                if self.store.get(inbox, plugin):
-                    self.store.set_state(inbox, plugin, 'active' if ok else 'failed', reason)
-            self.jobs.pop(inbox, None)
+            later = job.get('next')
+            # A plugin asked for again while this build ran is settled by the build after it, not by this one.
+            self._settle_build(inbox, [p for p in job['add'] if not later or p not in later['add']], ok, reason)
+            if later:
+                self.jobs[inbox] = {'add': later['add'], 'remove': later['remove'], 'state': 'queued', 'profile': job['profile'],
+                                    'host': job['host'], 'asked': int(time.time())}
+                if inbox not in self.queue:
+                    self.queue.append(inbox)
+            else:
+                self.jobs.pop(inbox, None)
             self.manager.notify()
             self.manager.ha.changed.set()
+
+    def _settle_build(self, inbox, added, ok, reason):
+        """What a build's end means for the plugins it added. Built: they are active and what came before is forgotten.
+        Failed: the screen still runs what it ran, so the plugins file goes back to that, and the next build of this screen
+        (an update of the core, Device Builder) does not fail on the same plugin. A new plugin stays listed as failed,
+        out of the file, until the person tries again or removes it; an update goes back to the version that worked and
+        remembers which one failed, so the editor can say so and offer it again."""
+        rewrite = False
+        for plugin in added:
+            record = self.store.get(inbox, plugin)
+            if not record:
+                continue
+            if ok:
+                for key in ('previous', 'failed_update', 'reason'):
+                    record.pop(key, None)
+                self.store.put(inbox, dict(record, state='active'))
+            elif record.get('previous'):
+                back = dict(record['previous'], state='active',
+                            failed_update={'version': record.get('version'), 'ref': record.get('ref'), 'reason': reason})
+                self.store.put(inbox, back)
+                rewrite = True
+            else:
+                self.store.set_state(inbox, plugin, 'failed', reason)
+                rewrite = True
+        if rewrite:
+            self._know_tiles()
+            self.rewrite_sidecar(inbox)
 
     def file_for(self, inbox):
         screen = self.manager.screen(inbox)
@@ -1148,6 +1230,7 @@ class Plugins:
     def forget_screen(self, inbox):
         for record in self.store.of(inbox):
             self.store.remove(inbox, record['id'])
+            self.secrets.drop_scope(record['id'], inbox)
             if not self.store.in_use(record['id']):
                 self.secrets.drop_plugin(record['id'])
 

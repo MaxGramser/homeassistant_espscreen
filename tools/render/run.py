@@ -638,6 +638,10 @@ class Run:
         # Boot came before the harness listened: the probe repeats what it heard then with every tile it makes.
         status = await self.until(lambda l: probe(l, 'status ready='), 10, 'the probe status', start)
         assert 'ready=1 settings=5 interval=1' in status, f'the moments of boot: {status}'
+        # The probe sets up LATE, as a plugin with hardware does, the priority of the screen's on_boot: no moment of the
+        # plugin (on_ready, settings, on_interval) came before its setup().
+        if 'early=0' not in status:
+            self.failures.append(f'a moment of the plugin came before its setup: {status}')
         # No update was shown (the plugin round skips the starting steps, whose 'updating' would call ota_status::wake).
         updates = int(re.search(r'updates=(\d+)', status).group(1))
         if updates:
@@ -725,6 +729,78 @@ class Run:
             await self.until(lambda l: probe(l, 'standby dark=0'), 10, 'on_standby(false)', start)
         await self.call('render_page', page=0)
         await self.page_done(0)
+        # A card that closes itself, or opens another in its place, from inside one of its own calls (the probe's
+        # closer, asked for by a message): the host goes on with a card only while it is still the one shown, and
+        # deletes a card that closed only once the call it closed in returned, so its "gone" follows that call's "end".
+        async def closer(mode, end, tile=-1, action=None):
+            start = len(self.lines)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': mode, 'tile': tile}})
+            await self.until(lambda l: probe(l, f'do {mode}'), 10, f'the closer {mode} asked', start)
+            if action:
+                await action(start)
+            await self.until(lambda l: probe(l, f'closer gone mode={mode}'), 10, f'the closer {mode} closed', start)
+            await asyncio.sleep(1.5)   # a tick and more: nothing reaches a card that closed
+            said = [l[l.index('closer '):] for l in self.lines[start:] if probe(l, 'closer ')]
+            gone = next(i for i, l in enumerate(said) if l.startswith('closer gone'))
+            assert gone > 0 and said[gone - 1].startswith(f'closer {end} end alive=1'), \
+                f'the closer {mode} was deleted inside its own call: {said}'
+            assert len(said) == gone + 1, f'the closer {mode} was called after it closed: {said[gone + 1:]}'
+            return start
+        await closer('close_in_open', 'open')
+        await closer('close_in_state', 'state')
+        await closer('close_in_tick', 'tick')
+        async def new_data(start):
+            await self.until(lambda l: probe(l, 'closer tick end'), 10, 'the closer ticked', start)
+            await self.sender.synchronize(self.inbox.object_id, record, region, values(5), bars)
+        await closer('close_on_change', 'state', tile=0, action=new_data)
+        async def dark(start):
+            await self.until(lambda l: probe(l, 'closer tick end'), 10, 'the closer ticked', start)
+            self.client.switch_command(self.dark_switch.key, True)
+        start = await closer('close_in_theme', 'theme', action=dark)
+        self.client.switch_command(self.dark_switch.key, False)
+        await self.until(lambda l: probe(l, 'tile=0 theme dark=0'), 10, 'light after the closer', start)
+        async def back(start):
+            line = await self.until(lambda l: probe(l, 'closer back_key'), 10, 'the closer back key', start)
+            await self.tap(*(int(v) for v in re.search(r'x=(-?\d+) y=(-?\d+)', line).groups()))
+            await self.until(lambda l: probe(l, 'card open') and 'entity=[back]' in l, 10, 'on_back opened the card', start)
+        start = await closer('back_opens', 'back', action=back)
+        # The card on_back opened stays: Back closed neither it nor the closer a second time.
+        assert said(start, 'card destroy') == 0, 'Back closed the card on_back opened'
+        await self.until(lambda l: probe(l, 'card tick'), 10, 'the card on_back opened ticks', start)
+        start = len(self.lines)
+        await self.call('render_close_cards')
+        await self.until(lambda l: probe(l, 'card destroy'), 10, 'the card on_back opened closed', start)
+        self.warnings.append('closer: closed in open, on_state, on_tick, new data, the look, and Back that opens a card')
+        # A slot that goes from the plugin tile to a plain card lets the plugin's object go at once (plugin_api.h), not
+        # when the slot next draws a custom card; page 2 and back still show their plugin tiles, kept or made anew.
+        start = len(self.lines)
+        tiles = [dict(entity='sensor.hall', name='Hall', slot=0),
+                 dict(entity='plugin:host_probe.probe', name='Moved', slot=1, options={'plugin': {'word': 'Moved'}}),
+                 dict(entity='plugin:host_probe.probe', name='Second', slot=grid.slots, options={'plugin': {'word': 'Two'}})]
+        record = send_layout.migrate_legacy(dict(title='Plugins', tiles=tiles), grid)
+        compiled = send_layout.compile_tiles(record['layout'], grid)
+        moved = next(i for i, tile in enumerate(compiled) if tile['name'] == 'Moved')
+        second = next(i for i, tile in enumerate(compiled) if tile['name'] == 'Second')
+        assert moved != 0, 'the plain card takes the first tile of the new layout'
+        bars = [[{'k': 'plugin', 't': 'plugin:host_probe.mark'}, {'k': 'clock'}] for _ in record['layout']['pages']]
+        await self.sender.synchronize(self.inbox.object_id, record, region, [
+            {'v': 1, 'op': 'state', 'i': i, 'entity': tile['entity'], 'name': tile['name'], 'state': 'ok', 'a': {},
+             'o': {'plugin': (tile.get('options') or {}).get('plugin') or {}}, 'x': {'n': 6}}
+            if plugin_tile(tile['entity']) else send_layout.state_message(i, tile, states)
+            for i, tile in enumerate(compiled)], bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        await self.until(lambda l: probe(l, f'tile={moved} create') and 'word=[Moved]' in l, 10, 'the moved tile made', start)
+        await self.until(lambda l: probe(l, 'tile=0 destroy'), 10, 'the plugin tile let go when its slot shows a plain card', start)
+        start = len(self.lines)
+        await self.call('render_page', page=1)
+        await self.page_done(1)
+        await self.until(lambda l: probe(l, f'tile={second} tick'), 10, 'the tile on page 2 after the new layout', start)
+        start = len(self.lines)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        await self.until(lambda l: probe(l, f'tile={moved} tick'), 10, 'the moved tile ticked after page 2', start)
+        assert said(start, 'tile=0 ') == 0, 'the plugin tile that went still hears its moments'
         return await self.self_test()
 
     async def rectangular_tiles(self, grid):

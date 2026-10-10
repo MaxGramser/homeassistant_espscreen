@@ -19,6 +19,8 @@ tiles:
       - { id: word, kind: text, label: word, default: "Probe" }
 cards:
   - { id: detail, name: card }
+  # A card that closes itself (or opens another) from its own calls, as the message from the harness says.
+  - { id: closer, name: closer }
 tap_actions:
   - { id: open, label: open, domains: [sensor] }
 bar_items:

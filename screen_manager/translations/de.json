@@ -865,7 +865,8 @@
         "like_consent": "Stimme zuerst zu, dass dein Gefällt mir in einer öffentlichen Zahl zählt.",
         "like_off": "Gefällt mir ist aus: eine neuere Version der App verwaltet es.",
         "like_failed": "Das Gefällt mir wurde nicht gesendet. Versuch es gleich noch einmal.",
-        "misfit_built_in": "{name} bringt mit, was dieses Board selbst hat."
+        "misfit_built_in": "{name} bringt mit, was dieses Board selbst hat.",
+        "offline": "Die App weiß noch nicht, wo {screen} im Netzwerk ist. Schalte ihn ein, warte, bis er online ist, und versuche es dann erneut."
       },
       "extras": {
         "request": "Diese Änderung eines Extras ist auf diesem Bildschirm nicht möglich."
@@ -1848,7 +1849,6 @@
       },
       "source_code": "Quellcode",
       "issues": "Problem melden",
-      "removed": "{name} von {screens} entfernt. Der Bildschirm verliert es mit der nächsten Erstellung.",
       "add_link": "Mit Link hinzufügen",
       "link": {
         "title": "Mit einem Link hinzufügen",
@@ -1908,7 +1908,7 @@
         "title": "Lies mich"
       },
       "english_only": "Nur auf Englisch",
-      "build_note": "Erstellst du mit ESPHome Device Builder oder auf einem anderen Computer? Das Plugin steht in der YAML des Bildschirms; erstelle ihn dort wie immer.",
+      "build_note": "Beim Installieren wird die Firmware dieses Bildschirms neu erstellt und per WLAN übertragen, ein paar Minuten pro Bildschirm. Das Plugin steht in der YAML des Bildschirms, also hat es auch ein Build in ESPHome Device Builder.",
       "attach": {
         "row": "Einmal verknüpfen, im Tab des Bildschirms",
         "text": "{screen} wird aus seiner eigenen YAML erstellt. Füge diese Zeile einmal hinzu; danach führt Tessera seine Plugins in einer eigenen Datei, und ESPHome Device Builder erstellt sie wie immer, auch nach einem Update.",
@@ -1943,7 +1943,16 @@
         "stage": "Zu {screen} hinzufügen",
         "in_tray": "Bereit zur Installation",
         "in_tray_note": "Installiere es mit der Karte in der Ecke, allein oder zusammen mit anderen.",
-        "along": "kommt mit {names}"
+        "along": "kommt mit {names}",
+        "title_changes": "Bereit zum Erstellen",
+        "changes": "{n} Änderung | {n} Änderungen",
+        "build": "{n} Änderung erstellen | {n} Änderungen erstellen",
+        "off": "wird von diesem Bildschirm entfernt",
+        "off_note": "Zum Entfernen vorgemerkt. Das geschieht beim nächsten Erstellen über die Karte in der Ecke, zusammen mit allem anderen für diesen Bildschirm.",
+        "keep": "Behalten",
+        "keep_named": "{name} behalten",
+        "minutes": "Jedes Erstellen dauert ein paar Minuten.",
+        "off_set": "Zum Entfernen vorgemerkt"
       },
       "maker": {
         "title": "Eigenes Plugin erstellen",
@@ -2072,7 +2081,9 @@
         "title": "Neu in {version}",
         "none": "Der Macher hat zu diesem Update nichts notiert.",
         "history": "Alle Versionen"
-      }
+      },
+      "failed_update": "Version {version} ließ sich für {screen} nicht erstellen, daher bleibt {current}, die Version, die er ausführt. Das Protokoll findest du unter Firmware & USB.",
+      "interrupted": "Die App wurde während des Erstellens neu gestartet."
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",

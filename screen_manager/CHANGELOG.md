@@ -22,6 +22,14 @@
   boards: their Wi-Fi goes through an ESP32-C6, and a larger network window keeps it busy.
 - **Plugin cards and tiles.** A card a plugin opens shows everything it draws under its top bar, not only the first line
   (#226), and a plugin's tile grows to a tall size in Layout and saves (#224).
+- **Plugins: one build for every change, and a failed build changes nothing.** Taking a plugin off goes into the same
+  card in the corner as adding one, with what goes along with it, so a screen that gains one plugin and loses another
+  builds once. A build that fails leaves the screen as it was: a new plugin stays listed as failed with the reason, out of
+  the screen's YAML, and a failed update goes back to the version that worked and says which one did not build, so the
+  screen's next update never fails on it. A change made while the screen builds is no longer lost, a screen the app
+  cannot reach yet says so before anything changes, Build again on a test branch takes its newest commit at once, and a
+  key a plugin asks for per screen is hidden as you type and shows when it is set. A plugin written for an older plugin
+  API than the core's last change of a name now says so when it builds, instead of failing in the compiler.
 - **The editor asks in its own look.** Before something that can't be taken back (leaving unsaved changes, replacing a
   layout, starting the calibration, clearing an override), for a new name on a phone, and for a text to copy by hand,
   the editor now asks in a dialog of its own, light or dark and at the bottom of a phone, instead of the browser's, in

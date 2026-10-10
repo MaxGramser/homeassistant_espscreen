@@ -6,10 +6,13 @@
 #include "esphome/core/defines.h"
 #endif
 #ifdef USE_TESSERA_PLUGINS
+#include "esphome/core/application.h"
 #include "runtime_tiles.h"
 #include "plugin_host.h"
+#include <algorithm>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace rt = runtime_tiles;
 // ---- The register (plugin_api.h) ----
@@ -430,7 +433,37 @@ struct OpenCard {
   lv_obj_t *backdrop = nullptr, *root = nullptr;
 };
 static OpenCard *shown = nullptr;
-static bool closing = false;
+// A card may close itself, or open another in its place, from any call the host makes into it (tessera::close_card,
+// tessera::open_card in its open, on_state, on_tick, on_theme or on_back). A card that closes while such a call is under
+// way leaves the glass at once and waits here until the outermost call returns, so neither the card's own code nor
+// the host's after it runs on in freed memory.
+static std::vector<OpenCard *> retired;
+static int calling = 0;
+
+static void destroy(OpenCard *open) {
+  ++calling;           // a card's destructor is a call into it too: what it closes waits as well
+  open->card.reset();  // its parts are the root's children: deleted with it, never by the card
+  --calling;
+  if (open->root) lv_obj_delete(open->root);
+  if (open->backdrop) lv_obj_delete(open->backdrop);
+  delete open;
+}
+static void bury() {
+  while (!retired.empty() && !calling) {
+    OpenCard *open = retired.back();
+    retired.pop_back();
+    destroy(open);
+  }
+}
+// One call into the card `open`: true when it is still the card shown afterwards, so the caller may go on with it.
+template<typename Run> static bool call(OpenCard *open, Run &&run) {
+  ++calling;
+  run(*open->card);
+  --calling;
+  const bool still = shown == open;  // `open` is not deleted yet: the card waits in `retired` until this point
+  bury();
+  return still;
+}
 
 // What the tile a card was opened from says now: a plugin tile's data, or an entity's state and name.
 static std::string card_data(int tile) {
@@ -458,26 +491,32 @@ static void card_state(OpenCard &open, bool force) {
 bool card_open() { return shown != nullptr; }
 
 void close_card() {
-  if (!shown || closing) return;
-  closing = true;
+  if (!shown) return;
   OpenCard *open = shown;
-  shown = nullptr;
-  open->card.reset();  // its parts are the root's children: deleted with it, never by the card
-  if (open->root) lv_obj_delete(open->root);
-  if (open->backdrop) lv_obj_delete(open->backdrop);
-  delete open;
-  closing = false;
+  shown = nullptr;  // first: a card that closes or opens a card from its destructor finds nothing open
+  if (!calling) return destroy(open);
+  if (open->backdrop) lv_obj_add_flag(open->backdrop, LV_OBJ_FLAG_HIDDEN);
+  if (open->root) lv_obj_add_flag(open->root, LV_OBJ_FLAG_HIDDEN);
+  retired.push_back(open);
 }
 
 bool open_card(const std::string &key, const std::string &entity, int tile, const std::string &title) {
-  const tessera::CardType *type = nullptr;
+  // A copy of what makes it: a plugin may register while the cards close (on_cards_closed), which moves the list.
+  std::function<tessera::Card *()> make;
+  bool wide = false;
   for (const auto &t : tessera::card_types())
-    if (t.key == key) type = &t;
-  if (!type || !type->make) return false;
+    if (t.key == key) { make = t.make; wide = t.wide; }
+  if (!make) return false;
   // One card at a time, as Tessera's own: the one open now, and a detail card of a tile, go first.
   close_card();
   if (rt::dismiss) rt::dismiss();
-  std::unique_ptr<tessera::Card> card(type->make());
+  ++calling;
+  std::unique_ptr<tessera::Card> card(make());
+  --calling;
+  // A plugin that opened a card while the others closed (on_cards_closed), or from this card's constructor: this one
+  // takes its place, as the card asked last.
+  close_card();
+  bury();
   if (!card) return false;
   auto *open = new OpenCard();
   open->card = std::move(card);
@@ -500,7 +539,7 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   // The whole glass high, as every card's root (detail_root): overlay_card::frame gives the width only, and a root of
   // LVGL's default height cut off what the card draws under its top bar (GitHub #226).
   lv_obj_set_height(open->root, lv_pct(100));
-  const auto kind = type->wide ? overlay_card::picture : overlay_card::controls;
+  const auto kind = wide ? overlay_card::picture : overlay_card::controls;
   overlay_card::frame(open->root, kind, 1);
   const int width = overlay_card::content_width(kind, 1), height = overlay_card::screen_height();
   // The top bar of every page a tap opens (detail_bar): the back key, which a card may take for a step back of its own
@@ -509,7 +548,10 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   if (words.empty() && tile >= 0 && static_cast<size_t>(tile) < rt::model.count) words = rt::model.tiles[tile].name;
   detail_bar::make(open->root, words, {detail_bar::BACK, [](lv_event_t *) {
     if (!shown || !rt::allowed(esphome::millis(), 14, "plugin card back")) return;
-    if (!shown->card->on_back()) close_card();
+    // on_back may close the card or open another: only the card still shown closes when it lets go.
+    OpenCard *open = shown;
+    bool keep = false;
+    if (call(open, [&](tessera::Card &card) { keep = card.on_back(); }) && !keep) close_card();
   }});
   // The card's own room, under the bar, with the card's padding at the sides and the foot.
   const int pad = overlay_card::pad(), top = detail_bar::bottom() + ::ui::px(large ? 12 : 6);
@@ -521,20 +563,23 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   shown = open;
   tessera::CardContext context{area, std::max(1, width - 2 * pad), std::max(1, height - top - pad), open->entity.c_str(),
                                tile};
-  open->card->open(context);
-  card_state(*open, true);
-  open->card->on_tick(rt::now_epoch());
+  // Each step goes to the card only while it is still the one shown: it may have closed itself in the step before.
+  if (!call(open, [&](tessera::Card &card) { card.open(context); })) return true;
+  if (!call(open, [&](tessera::Card &) { card_state(*open, true); })) return true;
+  call(open, [](tessera::Card &card) { card.on_tick(rt::now_epoch()); });
   return true;
 }
 
 static void tick_card(uint32_t epoch) {
-  if (!shown) return;
-  card_state(*shown, false);
-  if (shown->dark != theme::dark) {
-    shown->dark = theme::dark;
-    shown->card->on_theme();
+  OpenCard *open = shown;
+  if (!open) return;
+  // As in open_card: the card may close itself (or open another) in on_state or on_theme.
+  if (!call(open, [&](tessera::Card &) { card_state(*open, false); })) return;
+  if (open->dark != theme::dark) {
+    open->dark = theme::dark;
+    if (!call(open, [](tessera::Card &card) { card.on_theme(); })) return;
   }
-  shown->card->on_tick(epoch);
+  call(open, [&](tessera::Card &card) { card.on_tick(epoch); });
 }
 
 bool tap_action(size_t index) {
@@ -542,8 +587,12 @@ bool tap_action(size_t index) {
   const auto &t = rt::model.tiles[index];
   for (const auto &action : tessera::tap_actions())
     if (action.key == t.tap && action.run) {
-      tessera::TapContext context{t.entity.c_str(), t.name.c_str(), static_cast<int>(index)};
-      action.run(context);
+      // The action and the tile's words are copies: what the action does (a layout it asks for, an action it adds)
+      // may move the list it came from, or the tile.
+      const auto run = action.run;
+      const std::string entity = t.entity, name = t.name;
+      tessera::TapContext context{entity.c_str(), name.c_str(), static_cast<int>(index)};
+      run(context);
       return true;
     }
   return false;
@@ -656,13 +705,19 @@ static void build_settings() {
 
 static header_bar::Shown bar_item(const std::string &key) {
   header_bar::Shown shown;
-  for (const auto &item : tessera::bar_items())
-    if (item.key == key && item.read) {
-      const tessera::BarItem now = item.read();
+  auto &items = tessera::bar_items();
+  for (size_t i = 0; i < items.size(); ++i)
+    if (items[i].key == key && items[i].read) {
+      const auto read = items[i].read;  // a copy: a plugin that adds an item while it reads moves the list
+      const tessera::BarItem now = read();
       shown.shown = now.shown && (now.icon || !now.text.empty());
       shown.icon = now.icon && rt::has_icon_glyph(now.icon) ? now.icon : 0;
-      shown.text = now.text.substr(0, header_bar::TEXT_BYTES);
+      // At most the bar's bytes and never half a character, as runtime_tiles::string cuts what the app sends.
+      size_t size = std::min(now.text.size(), header_bar::TEXT_BYTES);
+      while (size > 0 && size < now.text.size() && (static_cast<unsigned char>(now.text[size]) & 0xC0) == 0x80) --size;
+      shown.text = now.text.substr(0, size);
       shown.has_color = tessera::tone_color(now.tone, shown.color);
+      break;
     }
   return shown;
 }
@@ -672,7 +727,16 @@ void message(const std::string &plugin, JsonObjectConst body) {
     if (plugin == p->plugin_id()) p->on_message(body);
 }
 
-void ready() {
+// The plugins' moments start once ESPHome has set up every component, not at on_boot. packages/core.yaml calls ready()
+// in on_boot at priority -100, the setup priority LATE that a plugin with hardware of its own takes as well (a sound, a
+// camera, a microphone), and ESPHome sets up the components of one priority in the order they were registered: the
+// on_boot automation is registered before any plugin's component (ESPHome generates automations before components), so
+// on_ready() and settings() ran before such a plugin's setup(), where it adds its tiles, cards and items. The first
+// tick after setup (every 250 ms) starts them instead; until then no moment reaches a plugin, on_interval included,
+// which a slow component could otherwise call during setup.
+static bool asked = false, started = false;
+static void start() {
+  started = true;
   header_bar::plugin_item = bar_item;
   // The plugins in the screen's moments (screen_hooks.h), beside the board's own features: a card of a plugin counts as
   // away from page 1, as a camera full screen does, so Back to page 1 closes it in time.
@@ -683,7 +747,16 @@ void ready() {
   build_settings();
   for (auto *p : tessera::plugins()) p->on_ready();
 }
+static bool set_up() {
+  if (!started && asked && esphome::App.is_setup_complete()) start();
+  return started;
+}
+void ready() {
+  asked = true;
+  set_up();
+}
 void tick(uint32_t now_ms, bool dimmed) {
+  if (!set_up()) return;
   static bool was_dimmed = false;
   if (dimmed != was_dimmed) {
     was_dimmed = dimmed;

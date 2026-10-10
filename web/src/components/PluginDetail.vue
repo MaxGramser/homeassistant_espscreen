@@ -52,18 +52,19 @@ const byId = (id: string) => plugins.index.find((p) => p.id === id);
 const nameOf = (id: string) => (byId(id) ? text(byId(id)!.name) : id);
 const feature = (name: string) => (te(`editor.plugins.features.${name}`) ? t(`editor.plugins.features.${name}`) : name);
 // Taking it off: a plugin that needs it goes with it, and one that only came along with it may go too; the person says.
+// It is set aside in the tray, as adding is, so a screen builds once with all of its changes.
 const confirming = ref<null | { screens: Screen[]; with: string[]; orphans: string[] }>(null);
 const alsoOrphans = ref(true);
 function askRemove(screens: Screen[]) {
   const plan = plugins.removalPlan(screens, props.plugin);
-  if (!plan.with.length && !plan.orphans.length) return plugins.removePlugin(screens, props.plugin);
+  if (!plan.with.length && !plan.orphans.length) return plugins.setAsideRemoval(screens, props.plugin);
   alsoOrphans.value = true;
   confirming.value = { screens, ...plan };
 }
 function confirmRemove() {
   const ask = confirming.value!;
   confirming.value = null;
-  plugins.removePlugin(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
+  plugins.setAsideRemoval(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
 }
 // A like: the first one asks once whether it may count in a public number (plugin_likes.py).
 const askingLike = ref(false);

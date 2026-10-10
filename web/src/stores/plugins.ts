@@ -27,8 +27,8 @@ export type Plan = {
 export type PreviewRow = { badge?: string; title?: string; value?: string; at?: number };
 // ---- One line of state: for one screen (its tab), or over all screens (the page) ----
 export type Status = { kind: "installed" | "update" | "building" | "test" | "misfit" | "failed" | ""; label: string };
-// A screen's plugins set aside together, one build (the tray).
-export type TrayGroup = { screen: Screen; plugins: Plugin[] };
+// A screen's changes set aside together, one build (the tray): the plugins to add and the ones to take off.
+export type TrayGroup = { screen: Screen; plugins: Plugin[]; removes: Plugin[] };
 type Payload = {
   plugins: Plugin[]; installed: Record<string, Installed[]>; secrets: Record<string, Record<string, boolean>>;
   folders: { path: string; errors: Record<string, string> }; entities?: { id: string; name: string }[];
@@ -233,10 +233,13 @@ export const usePluginsStore = defineStore("plugins", () => {
     const chosen = parts.value[node]?.[plugin.id];
     return changed || (chosen !== undefined && [...chosen].sort().join() !== [...(have.parts || [])].sort().join());
   }
+  // Whether a secret is kept by the add-on: for every screen, or for this screen alone (never its value).
+  const secretSet = (screen: Screen, plugin: Plugin, input: { id: string; scope?: string }) => Boolean(input.scope === "screen"
+    ? installedOn(screen, plugin.id)?.secrets?.[input.id] : secrets.value[plugin.id]?.[input.id]);
   // Whether everything a plugin asks for is filled in on these screens: the button waits until it is.
   const setupReady = (plugin: Plugin, screens: Screen[]) =>
     screens.every((screen) => (plugin.inputs || []).every((input) => valueOf(screen, plugin, input.id).trim() !== ""
-      || (input.kind === "secret" && secrets.value[plugin.id]?.[input.id])));
+      || (input.kind === "secret" && secretSet(screen, plugin, input))));
   // The room the chosen optional parts add.
   const partsKb = (screen: Screen, plugin: Plugin) =>
     partsOn(screen, plugin).reduce((sum, id) => sum + (plugin.parts?.find((part) => part.id === id)?.flash_kb || 0), 0);
@@ -367,6 +370,14 @@ export const usePluginsStore = defineStore("plugins", () => {
     }
     await reloadPlugins();
   }
+  // Build a test again: a folder as it is now, a branch from its newest commit (the add-on asks GitHub at once instead of
+  // within the hour, refresh_links), so what a maker just pushed is what the screen gets.
+  async function rebuildTest(screen: Screen, plugin: Plugin) {
+    if (installedOn(screen, plugin.id)?.source === "branch") {
+      try { await reloadPlugins(true); } catch (error: any) { ui.toast(error.message); return; }
+    }
+    await addPlugin([screen], pluginById(plugin.id) || plugin);
+  }
   // Every update of one screen in one build (the add-on takes several plugins in one request and builds the screen once).
   // An update that asks for other rights goes only with the person's yes (consented), as it does one by one.
   async function updateAll(screen: Screen, list: Plugin[]) {
@@ -382,21 +393,36 @@ export const usePluginsStore = defineStore("plugins", () => {
     await reloadPlugins();
   }
 
-  // ---- Ready to install: plugins set aside per screen, installed together in one build per screen ----
-  // Adding a plugin no longer builds at once: it goes into the tray (PluginTray), where a person can set aside more, on
-  // this screen or another, and press Install once. Each screen then builds once with all of its plugins, the request
-  // updateAll already makes. What a plugin asks for (its inputs, trust in a community maker) is filled in its details.
-  const tray = ref({ items: [] as { screen: string; plugin: string }[], open: true, sending: false });
-  const isSetAside = (screen: Screen, id: string) => tray.value.items.some((item) => item.screen === screen.id && item.plugin === id);
+  // ---- Ready to install: changes set aside per screen, built together in one build per screen ----
+  // Adding a plugin does not build at once: it goes into the tray (PluginTray), where a person can set aside more, on
+  // this screen or another, and press Install once. Taking one off goes there too, with what goes along with it, so a
+  // screen that gets one plugin and loses another builds once. Each screen then builds once with all of its changes, in
+  // one request. What a plugin asks for (its inputs, trust in a community maker) is filled in its details.
+  const tray = ref({ items: [] as { screen: string; plugin: string; remove?: boolean }[], open: true, sending: false });
+  const trayItem = (screen: Screen, id: string) => tray.value.items.find((item) => item.screen === screen.id && item.plugin === id);
+  const isSetAside = (screen: Screen, id: string) => Boolean(trayItem(screen, id) && !trayItem(screen, id)!.remove);
+  const isTakingOff = (screen: Screen, id: string) => Boolean(trayItem(screen, id)?.remove);
+  function takeOut(screen: Screen, id: string) {
+    tray.value.items = tray.value.items.filter((item) => !(item.screen === screen.id && item.plugin === id));
+  }
   function setAside(screen: Screen, plugin: Plugin) {
-    if (!isSetAside(screen, plugin.id)) tray.value.items.push({ screen: screen.id, plugin: plugin.id });
+    if (isSetAside(screen, plugin.id)) return;
+    takeOut(screen, plugin.id);   // set aside to go: changing one's mind keeps it
+    if (!installedOn(screen, plugin.id) || hasUpdate(screen, plugin)) tray.value.items.push({ screen: screen.id, plugin: plugin.id });
     tray.value.open = true;
   }
-  function takeOut(screen: Screen, id: string) {
-    const at = tray.value.items.findIndex((item) => item.screen === screen.id && item.plugin === id);
-    if (at >= 0) tray.value.items.splice(at, 1);
-  }
   const toggleSetAside = (screen: Screen, plugin: Plugin) => (isSetAside(screen, plugin.id) ? takeOut(screen, plugin.id) : setAside(screen, plugin));
+  /** Set aside taking a plugin off these screens, with `also` (the ids that go with it, as the person agreed in its
+   * details): built with whatever else is set aside for each screen. */
+  function setAsideRemoval(screens: Screen[], plugin: Plugin, also: string[] = []) {
+    for (const screen of screens) {
+      for (const id of [plugin.id, ...also.filter((other) => installedOn(screen, other))]) {
+        takeOut(screen, id);
+        tray.value.items.push({ screen: screen.id, plugin: id, remove: true });
+      }
+    }
+    tray.value.open = true;
+  }
   const pluginById = (id: string) => [...index.value, ...realScreens().flatMap(testsOn)].find((p) => p.id === id);
   // The tray by screen, in the order the screens were first chosen: one group, one build.
   const trayGroups = computed(() => {
@@ -404,13 +430,13 @@ export const usePluginsStore = defineStore("plugins", () => {
     for (const item of tray.value.items) {
       const screen = realScreens().find((s) => s.id === item.screen), plugin = pluginById(item.plugin);
       if (!screen || !plugin) continue;
-      const group = groups.find((g) => g.screen.id === screen.id) || (groups.push({ screen, plugins: [] }), groups[groups.length - 1]);
-      group.plugins.push(plugin);
+      const group = groups.find((g) => g.screen.id === screen.id) || (groups.push({ screen, plugins: [], removes: [] }), groups[groups.length - 1]);
+      (item.remove ? group.removes : group.plugins).push(plugin);
     }
     return groups;
   });
   // What a tray group comes to (the add-on's plan): what comes along with it, a feature to choose for, or why it cannot go.
-  const trayPlan = (group: TrayGroup) => planOn(group.screen, group.plugins.map((p) => p.id));
+  const trayPlan = (group: TrayGroup) => planOn(group.screen, group.plugins.map((p) => p.id), group.removes.map((p) => p.id));
   const trayAlong = (group: TrayGroup) => comesAlong(trayPlan(group), group.plugins.map((p) => p.id));
   // Whether a group can be built: its plan is known, says no, and asks no choice.
   const trayReady = (group: TrayGroup) => {
@@ -429,7 +455,9 @@ export const usePluginsStore = defineStore("plugins", () => {
         try {
           // What comes along goes in the same request, with what was filled in for it, so the screen builds once.
           await change(group.screen, { add: [...group.plugins.map((plugin) => addition(group.screen, plugin)),
-            ...trayAlong(group).map((row) => addition(group.screen, row.plugin, true))], providers: providers.value[group.screen.id] || {} });
+            ...trayAlong(group).map((row) => addition(group.screen, row.plugin, true))],
+            remove: group.removes.map((plugin) => plugin.id), providers: providers.value[group.screen.id] || {} });
+          for (const plugin of group.plugins) forgetDrafts(group.screen, plugin);
           tray.value.items = tray.value.items.filter((item) => item.screen !== group.screen.id);
         } finally {
           delete sending[group.screen.id];
@@ -441,19 +469,6 @@ export const usePluginsStore = defineStore("plugins", () => {
       tray.value.sending = false;
     }
     await reloadPlugins();
-  }
-  // Take plugins off screens. `also`: the ids that go with it on each screen (a plugin that needs it, one that only came
-  // along with it), as the person agreed in its details.
-  async function removePlugin(screens: Screen[], plugin: Plugin, also: string[] = []) {
-    if (!screens.length) return;
-    for (const screen of screens) {
-      const here = [plugin.id, ...also.filter((id) => installedOn(screen, id))];
-      try { await change(screen, { remove: here }); }
-      catch (error: any) { ui.toast(error.message); return; }
-    }
-    await reloadPlugins();
-    ui.toast(t("editor.plugins.removed", { name: [plugin, ...also.map(pluginById).filter(Boolean) as Plugin[]].map((p) => text(p.name)).join(", "),
-      screens: screens.map((s) => s.name).join(", ") }));
   }
   // Switch a screen to this plugin from another plugin of the same id it runs (a fork, a folder being made): the person
   // asked in its details, so the add-on replaces it (`switch`).
@@ -514,6 +529,8 @@ export const usePluginsStore = defineStore("plugins", () => {
   function screenLine(plugin: Plugin, screen: Screen, wanted: boolean) {
     const have = installedOn(screen, plugin.id);
     if (buildingOn(screen, plugin.id)) return t("editor.plugins.state.building");
+    if (wanted && isSetAside(screen, plugin.id)) return t("editor.plugins.tray.in_tray");
+    if (!wanted && isTakingOff(screen, plugin.id)) return t("editor.plugins.tray.off_set");
     if (wanted && !have) return t("editor.plugins.pending.add");
     if (!wanted && have) return t("editor.plugins.pending.remove");
     if (isTest(have)) return t(`editor.plugins.source.${have!.source}`);
@@ -532,11 +549,11 @@ export const usePluginsStore = defineStore("plugins", () => {
     // planOn answer at once and ask the add-on for what they do not have yet.
     ...lookups({
       pluginTileOf, barItemOf, fits, choicesFor, previewFor, tapActionsFor, barItemsFor, entitiesIn, needsConsent, realScreens,
-      otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, partsKb,
+      otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, secretSet, partsKb,
       installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike,
-      isSetAside, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
+      isSetAside, isTakingOff, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
     }),
     reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, forgetDrafts,
-    addPlugin, updateAll, setAside, takeOut, toggleSetAside, installTray, removePlugin, switchPlugin, setSecret, start,
+    addPlugin, rebuildTest, updateAll, setAside, takeOut, toggleSetAside, installTray, setAsideRemoval, switchPlugin, setSecret, start,
   };
 });

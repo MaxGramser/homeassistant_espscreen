@@ -1518,6 +1518,7 @@ section.advanced code { font-size: 11.5px; }
 .pd-note .ui-icon { font-size: 17px; color: var(--good); }
 .pd-misfit { display: flex; align-items: flex-start; gap: 8px; color: var(--ink-2); font-size: 12.5px; line-height: 1.45; }
 .pd-misfit .ui-icon { font-size: 17px; color: var(--muted); margin-top: 1px; }
+.pd-reason { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
 .pd-trust { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); cursor: pointer; }
 .pd-trust input { margin-top: 3px; }
 .pd-trust b { display: block; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
@@ -1808,6 +1809,9 @@ section.advanced code { font-size: 11.5px; }
 .pt-along .pt-row.along { opacity: 0.85; }
 .pt-along .pt-words small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .pt-choose { margin: 4px 0 2px; }
+.pt-off .pt-words small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.pt-off .pt-row.off .plugin-icon { opacity: 0.55; }
+.pt-off .pt-row.off b { text-decoration: line-through; text-decoration-color: var(--muted); }
 
 /* The plugin bar: one surface for finding a plugin. The search takes the room, what narrows the list sits in it as
    pills (Backspace takes the last one away), then the tabs, Filter with a count of what is on, and the order. Menus

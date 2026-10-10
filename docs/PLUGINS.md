@@ -12,7 +12,10 @@ page, no routes and no loop.
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
 promise: a minor only adds, only a break raises the major. Major 0 is the time before the promise: a minor may still
 change a name or a signature while the API settles (0.4 renamed `Plugin::on_tick` to `on_interval`), and Tessera's own
-plugins move with it in the same release. A test keeps the number equal in `plugin_api.h`, `__init__.py`,
+plugins move with it in the same release. Such a minor goes into `PLUGIN_API_BREAKS` (`plugin_manifest.py` and
+`__init__.py`, a test keeps them equal): a plugin written before it does not fit a core after it, and its build says so in
+one sentence instead of a compiler error (`api_fits`; the plugins repository's check uses the same rule). A minor that only
+adds is not listed, so a 0.7 plugin builds on 0.8. A test keeps the number equal in `plugin_api.h`, `__init__.py`,
 `plugin_manifest.py`, this page and the host probe's manifest.
 
 ## The pieces
@@ -57,7 +60,7 @@ plugins move with it in the same release. A test keeps the number equal in `plug
    `plugin_state`). `render_slot` hands a plugin tile the card's extra layer (`plugin_host::render`): a new
    `tessera::Tile` when the card shows another tile, size or options, `on_state` when the data changed, `on_theme` when
    the look did. The once-a-second gate in `tick()` calls `on_tick` for every plugin card on the glass, and a short tap
-   goes to `on_tap` through the same guard as every tile's. `end_extra` and `release_kept` delete the object.
+   goes to `on_tap` through the same guard as every tile's. `hide_extra` (the card shows something else), `end_extra` and `release_kept` delete the object.
 7. **In the editor** a plugin tile is drawn from its data when its manifest has a `preview`: the add-on fills in the
    first rows (`GET api/plugins/<id>/preview/<tile>`, `Plugins.preview`) and the mockup counts down to a moment on the
    editor's clock, so a page in the editor looks like the glass. Without a preview it shows the icon, the name and the
@@ -76,15 +79,29 @@ plugins move with it in the same release. A test keeps the number equal in `plug
   `refresh: never`. A plugin from a test folder (`tessera-plugins/<id>/` beside the ESPHome folder) is an `!include` and
   a local external component, by a path relative to the ESPHome folder, so the app, Device Builder and a shared folder
   build the same.
-- Adding or removing writes `plugins.json` and the plugins file, and puts the screen in the queue for its own build and
-  update (`firmware.start`, action install). A plugin update is a build of the whole screen, so it shows as every build
+- In the editor, adding and taking off are both set aside in the tray (`PluginTray.vue`, `setAside`,
+  `setAsideRemoval`), with what comes along and what goes along (the add-on's plan), and Install sends each screen's
+  changes in one request: one build per screen, whatever it gains and loses. Taking one off asks first when another
+  plugin needs it, or one only came along with it (`removalPlan`).
+- Adding or removing (`Plugins.apply`) checks everything first, then writes the plugins file, and only then keeps the
+  records and the secrets: a request that is refused, or a file that cannot be written, changes nothing. A screen with a
+  profile whose address the app does not know is refused before anything changes (`offline`). Then the screen goes into
+  the queue for its own build and update (`firmware.start`, action install). A plugin update is a build of the whole screen, so it shows as every build
   does: `Manager.builds` says per screen what is being built for it, whoever asked (`by`: update, plugins or install;
   `state`; ESPHome's `stage`), in the light inventory the editor gets live; the editor's store (`buildOf`,
   `buildProgress`) is the one place every part reads it from, and `BuildLog.vue` shows the progress and the log in the
   screen's Plugins tab, on the Plugins page and in Settings, Updates. Never track a build in a part of its own. The queue builds one screen at a time, in the order asked, each when the
-  app's build slot is free, so ticking three screens on the Plugins page builds them one after the other. A screen
-  without a profile in the app gets the file and the line to paste.
-- Removing a screen removes its plugins and, when no screen uses a plugin any more, its secrets.
+  app's build slot is free, so ticking three screens on the Plugins page builds them one after the other. A change asked
+  while the screen's own build runs gets a build of its own after it (`next`): that build may have read the YAML before.
+  A screen without a profile in the app gets the file and the line to paste.
+- A build that fails leaves the screen as it was (`_settle_build`): it still runs its last firmware, so its plugins file
+  goes back to that. A plugin added in it stays listed as failed (with the build's reason) and out of the file until the
+  person tries again or takes it off; an update goes back to the version that built (`previous`) and keeps which one
+  failed (`failed_update`), which the editor says, offering the update again. So a failed plugin never makes the
+  screen's next build fail, an update of the core or a build in Device Builder. A build the app lost (a restart during
+  it) counts as failed (`settle`).
+- Removing a screen removes its plugins and its secrets for that screen alone, and, when no screen uses a plugin any
+  more, all of its secrets.
 
 ## The fetch loop
 
@@ -171,7 +188,7 @@ beside it, read again a few times after a press, so a test can say how it went. 
   branch, so pushing is enough to try a plugin; or a folder in `tessera-plugins/` beside the ESPHome folder (Test).
   Every one but a folder is pinned to the commit it was read at, so what is built is what the editor showed.
   `Plugins.refresh_links` asks for the newest release, or the newest commit of a test's branch, at most every hour and
-  offers it as an update. It finds the repository again by GitHub's number of it, so a rename is followed and a new
+  offers it as an update; Build again on a branch asks at once (`rebuildTest`, `plugins?refresh=1`). It finds the repository again by GitHub's number of it, so a rename is followed and a new
   repository that takes the old name is never built.
 - **An update** is a newer version in the index or of a linked repository (for a test: a newer commit), from the same
   origin: the screen's Plugins tab and the Plugins page offer it, and the build queue takes the screens one by one. A

@@ -120,16 +120,24 @@ describe("the tray", () => {
 });
 
 describe("taking a plugin off, and switching to another of its id", () => {
-  it("takes what goes with it off each screen that has it, and names all of them", async () => {
-    const { api, plugins } = await loaded([plugin("voice"), plugin("wake")],
+  it("sets taking it off aside with what goes with it, and builds each screen once with whatever else is set aside", async () => {
+    const { api, plugins } = await loaded([plugin("voice"), plugin("wake"), plugin("bus")],
       { hall: [installed("voice"), installed("wake")], desk: [installed("voice")] });
-    await plugins.removePlugin([hall, desk], plugins.index[0], ["wake", "gone"]);
-    expect(api.asked("POST screens/:id/plugins").map((r) => [r.params.id, r.body.remove])).toEqual([["hall", ["voice", "wake"]], ["desk", ["voice"]]]);
-    expect(useUiStore().notice?.message).toBe(t("editor.plugins.removed", { name: "Voice, Wake", screens: "Hall, Desk" }));
-    api.on("POST screens/:id/plugins", failure(500, "Could not write"));
-    await plugins.removePlugin([hall, desk], plugins.index[0]);
-    expect(api.count("POST screens/:id/plugins")).toBe(3);
-    expect(useUiStore().notice?.message).toBe("Could not write");
+    plugins.setAsideRemoval([hall, desk], plugins.index[0], ["wake", "gone"]);
+    plugins.setAside(hall, plugins.index[2]);
+    expect([plugins.isTakingOff(hall, "voice"), plugins.isTakingOff(hall, "wake"), plugins.isTakingOff(desk, "wake")]).toEqual([true, true, false]);
+    expect(plugins.trayGroups.map((g) => [g.screen.id, g.plugins.map((p) => p.id), g.removes.map((p) => p.id)]))
+      .toEqual([["hall", ["bus"], ["voice", "wake"]], ["desk", [], ["voice"]]]);
+    expect(plugins.screenLine(plugins.index[0], hall, false)).toBe(t("editor.plugins.tray.off_set"));
+    // Changing one's mind: adding it again only keeps it.
+    plugins.setAside(desk, plugins.index[0]);
+    expect(plugins.isTakingOff(desk, "voice")).toBe(false);
+    expect(plugins.isSetAside(desk, "voice")).toBe(false);
+    await flushPromises();
+    await plugins.installTray();
+    expect(api.asked("POST screens/:id/plugins").map((r) => [r.params.id, r.body.add.map((a: any) => a.id), r.body.remove]))
+      .toEqual([["hall", ["bus"], ["voice", "wake"]]]);
+    expect(plugins.tray.items).toEqual([]);
   });
 
   it("switches a screen to this plugin, building it meanwhile", async () => {

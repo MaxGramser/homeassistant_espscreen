@@ -29,7 +29,8 @@ namespace tessera {
 // of a compiler error. A plugin builds on every core with the same major and at least its minor.
 // From 1.0 on that is a promise: a minor only adds, and only a break raises the major. Major 0 is the time before
 // the API is promised to anyone: a minor may still change a name or a signature while the API settles, and Tessera's
-// own plugins move with it in the same release (the plugins repository, docs/FIRMWARE_API.md "Versions").
+// own plugins move with it in the same release (the plugins repository, docs/FIRMWARE_API.md "Versions"). Such a minor
+// is listed in PLUGIN_API_BREAKS (__init__.py, plugin_manifest.py): a plugin written before it is refused in one sentence.
 // 0.1: tiles and the moments. 0.2: tiles of an entity, cards, tap actions, top bar items, settings rows, questions to
 // the app, date words. 0.3: on_touch, a settings action that says how it is going. 0.4: Plugin::on_tick (every 250 ms,
 // with millis()) became on_interval, so that on_tick everywhere means once a second with the clock. 0.5: the app's side
@@ -57,7 +58,7 @@ struct TileContext {
   int width, height;         // that area in pixels (the card's own padding is already off)
   uint8_t columns, rows;     // the cells of the grid the tile covers
   const char *name;          // the name given to the tile in the editor, "" for none (copy it)
-  const char *entity;        // the Home Assistant entity it belongs to (manifest `entity`), "" for none (copy it)
+  const char *entity;        // its Home Assistant entity (plugin_entity), "" for none (copy it)
   int tile;                  // its index in the layout, for tessera::open_card from on_tap
   JsonObjectConst options;   // the tile's options as the editor set them (the manifest's `options`); gone after create()
 };
@@ -93,7 +94,9 @@ struct CardContext {
 };
 
 // A card of a plugin: opened by a tap action, a plugin tile (tessera::open_card in its on_tap) or a settings row.
-// One is open at a time; it closes with Back, standby, Back to page 1 or another card, as every card does.
+// One is open at a time; it closes with Back, standby, Back to page 1 or another card, as every card does. A card may
+// close itself (tessera::close_card) or open another (tessera::open_card) from any of its own calls: it leaves the
+// glass at once, gets no call after that one, and is deleted only once that call has returned.
 class Card {
  public:
   virtual ~Card() = default;
@@ -196,7 +199,8 @@ class Plugin {
   // The plugin's id and version, from its manifest (set by smart_display.register_plugin() in its __init__.py).
   const char *plugin_id() const { return id_; }
   const char *plugin_version() const { return version_; }
-  // The screen's interface is up and its first page is on the glass.
+  // The screen's interface is up and its first page is on the glass. It comes after every component's setup(), also
+  // one of priority LATE; so do settings() and the first on_interval.
   virtual void on_ready() {}
   // Every 250 ms, the screen's own interval, with millis() (0.4; on_tick before it). Keep it short: the screen draws
   // and takes taps in the same loop. A tile's or a card's on_tick is another thing: once a second, with the clock.

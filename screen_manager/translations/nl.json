@@ -865,7 +865,8 @@
         "like_consent": "Ga eerst akkoord dat je like meetelt in een openbaar aantal.",
         "like_off": "Likes staan uit: een nieuwere versie van de app houdt ze bij.",
         "like_failed": "De like is niet verstuurd. Probeer het zo nog eens.",
-        "misfit_built_in": "{name} brengt iets wat dit bord zelf al heeft."
+        "misfit_built_in": "{name} brengt iets wat dit bord zelf al heeft.",
+        "offline": "De app weet nog niet waar {screen} op het netwerk zit. Zet hem aan, wacht tot hij online is en probeer het dan opnieuw."
       },
       "extras": {
         "request": "Deze extra kan op dit scherm niet zo worden gewijzigd."
@@ -3198,7 +3199,6 @@
       },
       "source_code": "Broncode",
       "issues": "Probleem melden",
-      "removed": "{name} verwijderd van {screens}. Het scherm verliest hem bij de volgende build.",
       "add_link": "Toevoegen met link",
       "link": {
         "title": "Toevoegen met een link",
@@ -3258,7 +3258,7 @@
         "title": "Lees mij"
       },
       "english_only": "Alleen in het Engels",
-      "build_note": "Bouw je met ESPHome Device Builder of op een andere computer? De plugin staat in de YAML van het scherm; bouw hem daar zoals altijd.",
+      "build_note": "Installeren bouwt de firmware van dit scherm opnieuw en stuurt die via wifi, een paar minuten per scherm. De plugin staat in de YAML van het scherm, dus een build in ESPHome Device Builder heeft hem ook.",
       "attach": {
         "row": "Eenmalig koppelen, in de tab van het scherm",
         "text": "{screen} wordt gebouwd uit eigen YAML. Zet deze regel er één keer in; daarna houdt Tessera de plugins bij in een eigen bestand, en bouwt ESPHome Device Builder ze zoals altijd, ook na een update.",
@@ -3293,7 +3293,16 @@
         "stage": "Toevoegen aan {screen}",
         "in_tray": "Klaar om te installeren",
         "in_tray_note": "Installeer hem met de kaart in de hoek, alleen of samen met andere.",
-        "along": "komt mee met {names}"
+        "along": "komt mee met {names}",
+        "title_changes": "Klaar om te bouwen",
+        "changes": "{n} wijziging | {n} wijzigingen",
+        "build": "{n} wijziging bouwen | {n} wijzigingen bouwen",
+        "off": "gaat van dit scherm af",
+        "off_note": "Klaargezet om eraf te gaan. Dat gebeurt bij de volgende build vanuit de kaart in de hoek, samen met de rest voor dit scherm.",
+        "keep": "Toch houden",
+        "keep_named": "{name} toch houden",
+        "minutes": "Elke build duurt een paar minuten.",
+        "off_set": "Klaargezet om eraf te gaan"
       },
       "maker": {
         "title": "Zelf een plugin maken",
@@ -3422,7 +3431,9 @@
         "title": "Nieuw in {version}",
         "none": "De maker schreef geen notities bij deze update.",
         "history": "Alle versies"
-      }
+      },
+      "failed_update": "Versie {version} bouwde niet voor {screen}, dus die ging terug naar {current}, de versie die hij draait. Het log staat onder Firmware & USB.",
+      "interrupted": "De app startte opnieuw tijdens de build."
     },
     "plugin_tile": {
       "from": "Een tegel van de plugin {plugin}",

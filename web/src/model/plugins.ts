@@ -106,6 +106,10 @@ export type Installed = {
   id: string; version: string; source: PluginSource; ref?: string | null; parts?: string[]; values?: Record<string, string>;
   origin?: string; branch?: string | null; auto?: boolean; blocked?: string | null;
   state?: "building" | "active" | "failed"; reason?: string | null;
+  // An update whose build failed: the screen went back to this record's version, and this is the one that did not build.
+  failed_update?: { version: string; ref?: string | null; reason?: string | null };
+  // Which of its secrets for this screen alone are set (never their values).
+  secrets?: Record<string, boolean>;
   // The fingerprint of the rights the person agreed to when it went on (Plugin.permission_hash then).
   consent?: string | null;
 };

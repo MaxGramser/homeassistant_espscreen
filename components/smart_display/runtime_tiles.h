@@ -6080,6 +6080,10 @@ inline void hide_extra(Widgets &w) {
   if(!w.extra)return;
   if(!lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN))lv_obj_add_flag(w.extra,LV_OBJ_FLAG_HIDDEN);
   w.fill_points=nullptr;w.fill_count=0;
+  // A plugin's tile goes as soon as its card shows something else (plugin_api.h), not when the slot next draws a custom
+  // card: its object first, then its parts, as end_extra does. Its layer holds nothing of Tessera's worth keeping. A
+  // kept card set off the glass keeps its plugin tiles: keep_page hides a kept card's tile, never its extra layer.
+  if(w.plugin){plugin_host::release(w);lv_obj_clean(w.extra);w.extra_mode.clear();delete[] w.points;w.points=nullptr;}
 }
 inline void end_extra(Widgets &w) {
   if(!w.extra)return;
