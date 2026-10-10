@@ -2886,6 +2886,12 @@ def discover_screens(registry, states, devices, areas):
                         'status': state.get('state', english('screen.settings.not_connected'))})
     return screens
 
+def unavailable_since(state):
+    """Since when Home Assistant has had no word from an unavailable entity (its last_changed, in seconds), for the editor
+    to tell a moment away from a tile that has shown nothing for a while; nothing for any other state."""
+    since = epoch(state.get('last_changed')) if state.get('state') == 'unavailable' else None
+    return {'unavailable_since': since} if since is not None else {}
+
 def discover(registry, states, devices, areas):
     """(screens, entities): the paired screens and every entity a tile or the top bar can show."""
     device_map = {d['id']: d for d in devices}
@@ -2905,7 +2911,7 @@ def discover(registry, states, devices, areas):
                          'state': state.get('state', 'unavailable'),
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
-                         **({} if tile else {'tile': False})})
+                         **({} if tile else {'tile': False}), **unavailable_since(state)})
     # YAML entities may not have an entity-registry entry.
     registered = {e['id'] for e in entities}
     in_registry = {r['entity_id'] for r in registry}
@@ -2913,7 +2919,7 @@ def discover(registry, states, devices, areas):
         tile = entity_id(eid)
         if (tile or header_entity(eid)) and eid not in registered and eid not in in_registry:
             entities.append({'id': eid, 'name': state.get('attributes', {}).get('friendly_name', eid), 'device': '', 'area': '', 'state': state['state'],
-                             'icon': tile_icons.ha_icon(state.get('attributes')), **({} if tile else {'tile': False})})
+                             'icon': tile_icons.ha_icon(state.get('attributes')), **({} if tile else {'tile': False}), **unavailable_since(state)})
     return screens, sorted(entities, key=lambda e: e['name'].casefold())
 
 def hotspot_name(friendly):

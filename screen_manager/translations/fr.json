@@ -1553,6 +1553,31 @@
       "no_layout": "Pas encore de disposition",
       "in_tessera": "Mettez d'abord à jour dans Tessera"
     },
+    "broken": {
+      "screens": "1 écran | {n} écrans",
+      "summary": {
+        "missing": "1 tuile sur {screens} affiche une entité qui n'existe plus | {n} tuiles sur {screens} affichent une entité qui n'existe plus",
+        "unavailable": "1 tuile sur {screens} affiche une entité indisponible depuis un moment | {n} tuiles sur {screens} affichent une entité indisponible depuis un moment",
+        "mixed": "1 tuile sur {screens} affiche une entité absente ou indisponible | {n} tuiles sur {screens} affichent une entité absente ou indisponible"
+      },
+      "short": "1 tuile à vérifier | {n} tuiles à vérifier",
+      "review": "Voir",
+      "hide": "Masquer",
+      "missing": "N'est plus dans Home Assistant",
+      "unavailable_minutes": "Indisponible depuis 1 minute | Indisponible depuis {n} minutes",
+      "unavailable_hours": "Indisponible depuis 1 heure | Indisponible depuis {n} heures",
+      "unavailable_days": "Indisponible depuis 1 jour | Indisponible depuis {n} jours",
+      "change": "Afficher une autre entité",
+      "on_screen": "Cette entité est déjà sur cet écran.",
+      "replaced": "Affiche maintenant {name}",
+      "fix": {
+        "choose": "Choisir une autre entité",
+        "missing": "Home Assistant n'a plus cette entité",
+        "missing_hint": "Elle a été supprimée ou renommée. Choisissez ce que cette tuile affiche maintenant.",
+        "unavailable_hint": "Home Assistant n'a plus de nouvelles d'elle. Choisissez une autre entité ou attendez son retour.",
+        "search": "Rechercher des entités"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "Vous avez des modifications non enregistrées. Ouvrir quand même un autre écran ?",

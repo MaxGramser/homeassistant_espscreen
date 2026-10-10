@@ -6,10 +6,13 @@ import "floating-vue/dist/style.css";
 import { t } from "../i18n";
 import { explainsItself, languageOnly, pendingText, rowStatus, screenBoardName, screenIcon, updateNotes } from "../model/screen-status";
 import { glyph } from "../model/topbar";
+import { summaryText } from "../model/broken-tiles";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
 import BuildIndicator from "./BuildIndicator.vue";
+import BrokenList from "./BrokenList.vue";
+import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import ProgressRing from "./ui/ProgressRing.vue";
 import { SIDE_MAX, SIDE_MIN, useSidebarStore } from "../stores/sidebar";
 import { useResizeHandle } from "../composables/useResizeHandle";
@@ -20,6 +23,7 @@ import { useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
 import { useInventoryStore } from "../stores/inventory";
 import { useDocumentStore } from "../stores/document";
+import { useBrokenStore } from "../stores/broken";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
@@ -29,6 +33,7 @@ const scr = useScreenStore();
 const session = useSessionStore();
 const inv = useInventoryStore();
 const doc = useDocumentStore();
+const broken = useBrokenStore();
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
@@ -123,6 +128,10 @@ function resizeKey(event: KeyboardEvent) {
   else return;
   event.preventDefault();
 }
+// Tiles whose entity is gone or away for a while (stores/broken.ts): a quiet dot on a screen's row when it has nothing
+// else to say, the tiles in its details, and one row under the screens for all of them, opening their list.
+const brokenOn = (screen: Screen) => broken.onScreen(screen);
+const brokenOpen = ref(false);
 // A plugin build on the way on any screen: the Plugins entry turns.
 const pluginBuilds = () => builds.buildingScreens.some((screen) => builds.buildOf(screen)?.by === "plugins");
 const lastLog = () => {
@@ -169,6 +178,7 @@ const lastLog = () => {
           <ProgressRing v-if="status(screen) === 'running'" class="row-ring" :percent="builds.buildProgress(screen)?.percent ?? 0" :label="subline(screen)?.text || ''" />
           <Icon v-else-if="status(screen) === 'failed'" name="alert-circle-outline" class="sub-icon failed" />
           <small v-else-if="['down', 'virtual', 'waiting'].includes(status(screen))" class="sub" :class="subline(screen)?.kind">{{ status(screen) === 'waiting' ? t("editor.sidebar.update.short") : subline(screen)?.text }}</small>
+          <span v-else-if="brokenOn(screen).length" class="broken-dot" role="img" :aria-label="t('editor.broken.short', brokenOn(screen).length)" :title="t('editor.broken.short', brokenOn(screen).length)"></span>
         </button>
         <span class="row-end">
           <!-- The one button an update needs, always in the list: an icon, so the name keeps its room; its words in the tooltip. -->
@@ -232,6 +242,10 @@ const lastLog = () => {
             </template>
             <small v-else-if="scr.updateState(screen)!.kind !== 'running'" :class="{ failed: scr.updateState(screen)!.kind === 'failed' }">{{ scr.updateState(screen)!.text }}</small>
           </div>
+          <div v-if="brokenOn(screen).length" class="screen-broken">
+            <small class="screen-broken-head">{{ t("editor.broken.short", brokenOn(screen).length) }}</small>
+            <BrokenList :tiles="brokenOn(screen)" :with-screen="false" />
+          </div>
           <form v-if="renameFor === screen.id" class="rename-screen" @submit.prevent="saveName(screen)">
             <input v-model="newName" :placeholder="screen.ha_name" maxlength="40" :aria-label="t('editor.sidebar.rename.label')" autofocus @keydown.esc="renameFor = null" />
             <div class="screen-actions">
@@ -283,6 +297,20 @@ const lastLog = () => {
         <a class="btn link mini screen-files" :href="`api/firmware/profiles/${encodeURIComponent(p.file)}/files`" download :title="t('editor.sidebar.files_hint')">{{ t("editor.sidebar.files") }}</a>
       </div>
     </div>
+    <PopoverRoot v-if="broken.summary" v-model:open="brokenOpen">
+      <PopoverTrigger as-child>
+        <button type="button" id="broken-tiles-open" class="nav-item broken-nav" data-tip="broken" v-tooltip="tip('broken', t('editor.broken.short', broken.summary.tiles))"
+          :aria-label="t('editor.broken.short', broken.summary.tiles)">
+          <Icon name="alert-circle-outline" /><span class="txt">{{ t("editor.broken.short", broken.summary.tiles) }}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverPortal>
+        <PopoverContent class="ui-popover broken-pop" side="right" align="start" :side-offset="8" :collision-padding="12">
+          <h4>{{ summaryText(broken.summary) }}</h4>
+          <BrokenList :tiles="broken.tiles" @done="brokenOpen = false" />
+        </PopoverContent>
+      </PopoverPortal>
+    </PopoverRoot>
     <div class="spacer"></div>
     <div class="more">
       <!-- The firmware tool (build, USB, OTA, download) is for repairs, not for adding a screen, so it lives in Settings,

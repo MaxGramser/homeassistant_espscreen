@@ -37,6 +37,8 @@ export const useInspectorStore = defineStore("inspector", () => {
   const iconPickerOpen = ref(false);
   const actionPickerOpen = ref(false);
   const actionSearch = ref("");
+  // A tile's entity picker (TileEntityFix): open for a tile whose entity is gone, or when its menu asks for another.
+  const entityPickerOpen = ref(false);
   const insert = ref<InsertTarget>(null);
   // The marked cell (-1 for none) and the marked key place, as the mockup and the library read them.
   const insertAt = computed(() => insert.value?.kind === "cell" ? insert.value.slot : -1);
@@ -55,7 +57,7 @@ export const useInspectorStore = defineStore("inspector", () => {
 
   // ---- What the drawer shows ----
   function openTile(tile: Tile) {
-    if (!doc.isSelected(tile)) { iconPickerOpen.value = false; actionPickerOpen.value = false; actionSearch.value = ""; }
+    if (!doc.isSelected(tile)) { iconPickerOpen.value = false; actionPickerOpen.value = false; actionSearch.value = ""; entityPickerOpen.value = false; }
     doc.selectedTileId = tile.id || null;
     doc.selectedPageId = doc.document?.pages.find((page) => page.tiles.some((item) => item.id === tile.id ||
       item.children?.some((child) => child.id === tile.id)))?.id || doc.selectedPageId;
@@ -113,7 +115,7 @@ export const useInspectorStore = defineStore("inspector", () => {
   }));
 
   return {
-    inspector, iconPickerOpen, actionPickerOpen, actionSearch, insert, insertAt, insertKey, optionPreview,
+    inspector, iconPickerOpen, actionPickerOpen, actionSearch, entityPickerOpen, insert, insertAt, insertKey, optionPreview,
     // What the mockup reads as it draws (stores/lookup.ts).
     ...lookups({ previewed }),
     forgetCell, openTile, openPage, openBar, openBarAdd, openSaverItem, openSaverStep, openSaverAdd, closeInspector,

@@ -1553,6 +1553,31 @@
       "no_layout": "Noch kein Layout",
       "in_tessera": "Zuerst in Tessera aktualisieren"
     },
+    "broken": {
+      "screens": "1 Bildschirm | {n} Bildschirmen",
+      "summary": {
+        "missing": "1 Kachel auf {screens} zeigt eine Entität, die es nicht mehr gibt | {n} Kacheln auf {screens} zeigen eine Entität, die es nicht mehr gibt",
+        "unavailable": "1 Kachel auf {screens} zeigt eine Entität, die seit einer Weile nicht verfügbar ist | {n} Kacheln auf {screens} zeigen eine Entität, die seit einer Weile nicht verfügbar ist",
+        "mixed": "1 Kachel auf {screens} zeigt eine Entität, die fehlt oder nicht verfügbar ist | {n} Kacheln auf {screens} zeigen eine Entität, die fehlt oder nicht verfügbar ist"
+      },
+      "short": "1 Kachel prüfen | {n} Kacheln prüfen",
+      "review": "Ansehen",
+      "hide": "Ausblenden",
+      "missing": "Nicht mehr in Home Assistant",
+      "unavailable_minutes": "Seit 1 Minute nicht verfügbar | Seit {n} Minuten nicht verfügbar",
+      "unavailable_hours": "Seit 1 Stunde nicht verfügbar | Seit {n} Stunden nicht verfügbar",
+      "unavailable_days": "Seit 1 Tag nicht verfügbar | Seit {n} Tagen nicht verfügbar",
+      "change": "Andere Entität zeigen",
+      "on_screen": "Diese Entität ist schon auf diesem Bildschirm.",
+      "replaced": "Zeigt jetzt {name}",
+      "fix": {
+        "choose": "Andere Entität wählen",
+        "missing": "Home Assistant hat diese Entität nicht mehr",
+        "missing_hint": "Sie wurde entfernt oder umbenannt. Wähle, was diese Kachel jetzt zeigt.",
+        "unavailable_hint": "Home Assistant hört schon länger nichts von ihr. Wähle eine andere Entität oder warte, bis sie zurück ist.",
+        "search": "Entitäten suchen"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "Du hast nicht gespeicherte Änderungen. Trotzdem einen anderen Bildschirm öffnen?",

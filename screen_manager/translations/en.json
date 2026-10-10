@@ -1553,6 +1553,31 @@
       "no_layout": "No layout yet",
       "in_tessera": "Update in Tessera first"
     },
+    "broken": {
+      "screens": "1 screen | {n} screens",
+      "summary": {
+        "missing": "1 tile on {screens} shows an entity that no longer exists | {n} tiles on {screens} show an entity that no longer exists",
+        "unavailable": "1 tile on {screens} shows an entity that has been unavailable for a while | {n} tiles on {screens} show an entity that has been unavailable for a while",
+        "mixed": "1 tile on {screens} shows an entity that is gone or unavailable | {n} tiles on {screens} show an entity that is gone or unavailable"
+      },
+      "short": "1 tile to check | {n} tiles to check",
+      "review": "Review",
+      "hide": "Hide",
+      "missing": "No longer in Home Assistant",
+      "unavailable_minutes": "Unavailable for 1 minute | Unavailable for {n} minutes",
+      "unavailable_hours": "Unavailable for 1 hour | Unavailable for {n} hours",
+      "unavailable_days": "Unavailable for 1 day | Unavailable for {n} days",
+      "change": "Show another entity",
+      "on_screen": "That entity is on this screen already.",
+      "replaced": "Now shows {name}",
+      "fix": {
+        "choose": "Choose another entity",
+        "missing": "Home Assistant no longer has this entity",
+        "missing_hint": "It was removed or renamed. Choose what this tile shows now.",
+        "unavailable_hint": "Home Assistant has had no word from it. Choose another entity, or wait for it to come back.",
+        "search": "Search entities"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "You have unsaved changes. Open a different screen anyway?",

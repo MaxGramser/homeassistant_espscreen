@@ -77,6 +77,10 @@
   in the overview that fills as it goes, and one ring at the top of the sidebar lists every build on its way with its
   step. When a build the page saw ends, whatever page is open says "Living room is ready", or that it failed, with the
   way to its log.
+- **Tiles whose entity is gone are found.** The overview says calmly how many tiles show an entity Home Assistant no
+  longer has, or one it has had no word from for more than a few minutes, and on which screens; the sidebar marks each
+  screen and lists them. A click opens that tile with a list of entities ready to choose another, those of the same
+  kind and with the closest names first. A tile's menu offers Show another entity for any tile.
 
 ## 0.4.85 (firmware 0.53.0)
 

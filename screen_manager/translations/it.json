@@ -1553,6 +1553,31 @@
       "no_layout": "Nessun layout ancora",
       "in_tessera": "Aggiorna prima in Tessera"
     },
+    "broken": {
+      "screens": "1 schermo | {n} schermi",
+      "summary": {
+        "missing": "1 riquadro su {screens} mostra un'entità che non esiste più | {n} riquadri su {screens} mostrano un'entità che non esiste più",
+        "unavailable": "1 riquadro su {screens} mostra un'entità non disponibile da un po' | {n} riquadri su {screens} mostrano un'entità non disponibile da un po'",
+        "mixed": "1 riquadro su {screens} mostra un'entità mancante o non disponibile | {n} riquadri su {screens} mostrano un'entità mancante o non disponibile"
+      },
+      "short": "1 riquadro da controllare | {n} riquadri da controllare",
+      "review": "Vedi",
+      "hide": "Nascondi",
+      "missing": "Non più in Home Assistant",
+      "unavailable_minutes": "Non disponibile da 1 minuto | Non disponibile da {n} minuti",
+      "unavailable_hours": "Non disponibile da 1 ora | Non disponibile da {n} ore",
+      "unavailable_days": "Non disponibile da 1 giorno | Non disponibile da {n} giorni",
+      "change": "Mostra un'altra entità",
+      "on_screen": "Quell'entità è già su questo schermo.",
+      "replaced": "Ora mostra {name}",
+      "fix": {
+        "choose": "Scegli un'altra entità",
+        "missing": "Home Assistant non ha più questa entità",
+        "missing_hint": "È stata rimossa o rinominata. Scegli cosa mostra ora questo riquadro.",
+        "unavailable_hint": "Home Assistant non ne ha notizie da un po'. Scegli un'altra entità o aspetta che torni.",
+        "search": "Cerca entità"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "Hai modifiche non salvate. Aprire comunque un altro schermo?",

@@ -18,8 +18,10 @@ import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
 import ProgressRing from "./ui/ProgressRing.vue";
 import BuildIndicator from "./BuildIndicator.vue";
+import BrokenNotice from "./BrokenNotice.vue";
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
+import { useBrokenStore } from "../stores/broken";
 import { useEntitiesStore } from "../stores/entities";
 import { drawsPictures, useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
@@ -31,6 +33,7 @@ const scr = useScreenStore();
 const session = useSessionStore();
 const inv = useInventoryStore();
 const builds = useBuildsStore();
+const broken = useBrokenStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
@@ -71,6 +74,7 @@ onMounted(entities.loadOverview);
       <BuildIndicator v-if="ui.phone" />
       <p>{{ t("editor.home.summary", { online, count: inv.inventory.screens.length }) }}</p>
     </header>
+    <BrokenNotice />
     <div class="home-grid">
       <div v-for="{ screen, view, live, layout } in views" :key="screen.id" role="button" tabindex="0" class="home-card" :class="{ away: !screen.online }"
         :aria-label="t('editor.home.open', { name: screen.name })" @click="session.select(screen.id)" @keydown.enter.prevent="session.select(screen.id)" @keydown.space.prevent="session.select(screen.id)">
@@ -101,6 +105,7 @@ onMounted(entities.loadOverview);
           <span class="home-name">
             <strong>{{ screen.name }}</strong>
             <small v-if="building(screen)" class="building">{{ builds.buildProgress(screen) ? `${builds.buildProgress(screen)!.percent} % · ${builds.buildProgress(screen)!.text}` : t("editor.build.waiting") }}</small>
+            <small v-else-if="!scr.screenSubline(screen) && broken.onScreen(screen).length" class="broken">{{ t("editor.broken.short", broken.onScreen(screen).length) }}</small>
             <small v-else-if="scr.screenSubline(screen)" :class="scr.screenSubline(screen)!.kind">{{ scr.screenSubline(screen)!.text }}</small>
             <small v-else-if="place(screen)">{{ place(screen) }}</small>
           </span>
@@ -144,6 +149,7 @@ onMounted(entities.loadOverview);
 .home-name strong { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-name small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-name small.down, .home-name small.failed { color: var(--danger); }
+.home-name small.broken { color: var(--warn); }
 .home-name small.building { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .home-name small.update, .home-name small.available, .home-name small.running, .home-name small.queued { color: var(--warn); }
 .home-badge { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px;

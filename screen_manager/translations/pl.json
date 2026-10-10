@@ -1553,6 +1553,31 @@
       "no_layout": "Jeszcze bez układu",
       "in_tessera": "Najpierw zaktualizuj w Tessera"
     },
+    "broken": {
+      "screens": "1 ekranie | {n} ekranach | {n} ekranach",
+      "summary": {
+        "missing": "1 kafelek na {screens} pokazuje encję, która już nie istnieje | {n} kafelki na {screens} pokazują encję, która już nie istnieje | {n} kafelków na {screens} pokazuje encję, która już nie istnieje",
+        "unavailable": "1 kafelek na {screens} pokazuje encję niedostępną od dłuższego czasu | {n} kafelki na {screens} pokazują encję niedostępną od dłuższego czasu | {n} kafelków na {screens} pokazuje encję niedostępną od dłuższego czasu",
+        "mixed": "1 kafelek na {screens} pokazuje encję, której brak lub jest niedostępna | {n} kafelki na {screens} pokazują encję, której brak lub jest niedostępna | {n} kafelków na {screens} pokazuje encję, której brak lub jest niedostępna"
+      },
+      "short": "1 kafelek do sprawdzenia | {n} kafelki do sprawdzenia | {n} kafelków do sprawdzenia",
+      "review": "Pokaż",
+      "hide": "Ukryj",
+      "missing": "Nie ma jej już w Home Assistant",
+      "unavailable_minutes": "Niedostępna od 1 minuty | Niedostępna od {n} minut | Niedostępna od {n} minut",
+      "unavailable_hours": "Niedostępna od 1 godziny | Niedostępna od {n} godzin | Niedostępna od {n} godzin",
+      "unavailable_days": "Niedostępna od 1 dnia | Niedostępna od {n} dni | Niedostępna od {n} dni",
+      "change": "Pokaż inną encję",
+      "on_screen": "Ta encja jest już na tym ekranie.",
+      "replaced": "Teraz pokazuje {name}",
+      "fix": {
+        "choose": "Wybierz inną encję",
+        "missing": "Home Assistant nie ma już tej encji",
+        "missing_hint": "Została usunięta lub przemianowana. Wybierz, co ten kafelek ma teraz pokazywać.",
+        "unavailable_hint": "Home Assistant od dłuższego czasu nie ma z nią kontaktu. Wybierz inną encję albo poczekaj, aż wróci.",
+        "search": "Szukaj encji"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "Masz niezapisane zmiany. Mimo to otworzyć inny ekran?",

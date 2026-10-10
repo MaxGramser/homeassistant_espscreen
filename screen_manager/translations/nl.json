@@ -1553,6 +1553,31 @@
       "no_layout": "Nog geen indeling",
       "in_tessera": "Update eerst via Tessera"
     },
+    "broken": {
+      "screens": "1 scherm | {n} schermen",
+      "summary": {
+        "missing": "1 tegel op {screens} toont een entiteit die niet meer bestaat | {n} tegels op {screens} tonen een entiteit die niet meer bestaat",
+        "unavailable": "1 tegel op {screens} toont een entiteit die al een tijd onbeschikbaar is | {n} tegels op {screens} tonen een entiteit die al een tijd onbeschikbaar is",
+        "mixed": "1 tegel op {screens} toont een entiteit die weg of onbeschikbaar is | {n} tegels op {screens} tonen een entiteit die weg of onbeschikbaar is"
+      },
+      "short": "1 tegel om na te kijken | {n} tegels om na te kijken",
+      "review": "Bekijken",
+      "hide": "Verbergen",
+      "missing": "Niet meer in Home Assistant",
+      "unavailable_minutes": "1 minuut onbeschikbaar | {n} minuten onbeschikbaar",
+      "unavailable_hours": "1 uur onbeschikbaar | {n} uur onbeschikbaar",
+      "unavailable_days": "1 dag onbeschikbaar | {n} dagen onbeschikbaar",
+      "change": "Andere entiteit tonen",
+      "on_screen": "Die entiteit staat al op dit scherm.",
+      "replaced": "Toont nu {name}",
+      "fix": {
+        "choose": "Kies een andere entiteit",
+        "missing": "Home Assistant heeft deze entiteit niet meer",
+        "missing_hint": "Ze is verwijderd of hernoemd. Kies wat deze tegel nu toont.",
+        "unavailable_hint": "Home Assistant hoort er al een tijd niets van. Kies een andere entiteit, of wacht tot ze terug is.",
+        "search": "Entiteiten zoeken"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "Je hebt niet-opgeslagen wijzigingen. Toch een ander scherm openen?",

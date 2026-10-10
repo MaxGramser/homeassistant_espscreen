@@ -1553,6 +1553,31 @@
       "no_layout": "Ainda sem disposição",
       "in_tessera": "Atualize primeiro no Tessera"
     },
+    "broken": {
+      "screens": "1 ecrã | {n} ecrãs",
+      "summary": {
+        "missing": "1 mosaico em {screens} mostra uma entidade que já não existe | {n} mosaicos em {screens} mostram uma entidade que já não existe",
+        "unavailable": "1 mosaico em {screens} mostra uma entidade indisponível há algum tempo | {n} mosaicos em {screens} mostram uma entidade indisponível há algum tempo",
+        "mixed": "1 mosaico em {screens} mostra uma entidade em falta ou indisponível | {n} mosaicos em {screens} mostram uma entidade em falta ou indisponível"
+      },
+      "short": "1 mosaico a verificar | {n} mosaicos a verificar",
+      "review": "Ver",
+      "hide": "Ocultar",
+      "missing": "Já não está no Home Assistant",
+      "unavailable_minutes": "Indisponível há 1 minuto | Indisponível há {n} minutos",
+      "unavailable_hours": "Indisponível há 1 hora | Indisponível há {n} horas",
+      "unavailable_days": "Indisponível há 1 dia | Indisponível há {n} dias",
+      "change": "Mostrar outra entidade",
+      "on_screen": "Essa entidade já está neste ecrã.",
+      "replaced": "Agora mostra {name}",
+      "fix": {
+        "choose": "Escolher outra entidade",
+        "missing": "O Home Assistant já não tem esta entidade",
+        "missing_hint": "Foi removida ou mudou de nome. Escolha o que este mosaico mostra agora.",
+        "unavailable_hint": "O Home Assistant não tem notícias dela há algum tempo. Escolha outra entidade ou espere que volte.",
+        "search": "Procurar entidades"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "Tem alterações não guardadas. Abrir outro ecrã mesmo assim?",

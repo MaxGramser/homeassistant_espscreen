@@ -80,7 +80,7 @@ a:hover { text-decoration: underline; }
   .side-folded .brand { justify-content: center; padding: 0; flex: none; width: 100%; }
   .side-folded .brand .txt, .side-folded .conn-text, .side-folded .search-btn .txt, .side-folded .search-btn kbd,
   .side-folded .label-row > span, .side-folded .label-row #refresh, .side-folded .screen-item .name, .side-folded .screen-item .sub,
-  .side-folded .screen-item .unsaved, .side-folded .row-end, .side-folded .side .more .nav-item .txt { display: none; }
+  .side-folded .screen-item .unsaved, .side-folded .row-end, .side-folded .side .more .nav-item .txt, .side-folded .broken-nav .txt, .side-folded .screen-item .broken-dot { display: none; }
   .side-folded .side-fold { width: 100%; }
   .side-folded .conn { justify-content: center; padding: 4px 0; }
   .side-folded .search-btn, .side-folded .nav-item { justify-content: center; padding: 0; gap: 0; }
@@ -254,6 +254,36 @@ a:hover { text-decoration: underline; }
 .screen-item .row-ring { margin-right: 2px; }
 .home-ring { flex: none; }
 .app.phone .home-head .builds-btn { position: absolute; top: 0; right: 42px; width: 34px; height: 34px; border-radius: 50%; background: var(--seg); }
+/* Broken tiles (stores/broken.ts): calm, in the warning colour only where it says what is wrong. The overview's line
+   opens their list; the sidebar has a dot on a screen's row, the tiles in its details and one row for all of them. */
+.broken-note { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.broken-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; text-align: left; font-size: 13px; color: var(--ink-2); }
+.broken-head:hover { background: var(--surface-2); }
+.broken-icon { color: var(--warn); font-size: 17px; flex: none; }
+.broken-text { flex: 1; min-width: 0; }
+.broken-toggle { flex: none; display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-weight: 500; font-size: 12.5px; }
+.broken-toggle .ui-icon { font-size: 16px; transition: transform 0.16s ease; }
+.broken-note.open .broken-toggle .ui-icon { transform: rotate(180deg); }
+.broken-note .broken-list { border-top: 1px solid var(--line); padding: 6px; }
+.broken-list { display: grid; gap: 1px; }
+.broken-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; padding: 7px 8px; border-radius: 7px; text-align: left; min-width: 0; }
+.broken-row:hover, .broken-row:focus-visible { background: var(--surface-2); outline: none; }
+.broken-row .mdi { font-size: 17px; width: 22px; text-align: center; color: var(--muted); flex: none; }
+.broken-row .tx { display: grid; min-width: 0; }
+.broken-row .tx strong { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.broken-row .tx small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.broken-pop { width: 360px; max-width: calc(100vw - 24px); padding: 6px; display: grid; gap: 2px; align-content: start; }
+.broken-pop h4 { font-size: 12px; font-weight: 500; color: var(--ink-2); padding: 6px 8px 6px; line-height: 1.4; }
+.broken-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-right: 4px; }
+.broken-nav { color: var(--ink-2); }
+.broken-nav .ui-icon { color: var(--warn); font-size: 16px; width: 18px; text-align: center; }
+.broken-nav .txt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.screen-broken { display: grid; gap: 2px; }
+.screen-broken-head { font-size: 11.5px; color: var(--warn); }
+.screen-broken .broken-list { margin: 0 -8px; }
+.screen-broken .broken-row { padding: 5px 8px; }
+.screen-broken .broken-row .tx strong { font-size: 12px; }
+.screen-broken .broken-row .tx small { font-size: 11px; }
 .switch { width: 36px; height: 21px; border-radius: 11px; background: var(--line-strong); position: relative; flex: none; padding: 0; transition: background 0.15s; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22); transition: left 0.15s; }
 .switch[aria-checked="true"] { background: var(--accent); }
@@ -656,6 +686,22 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .sw button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
 .picker { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .picker input { background: var(--surface); }
+/* A tile's entity chosen again (TileEntityFix.vue): why, when it is gone or away, then a search and the entities of its
+   kind, the closest first. Escape closes it and not the inspector (the .picker it is). */
+.entity-fix { gap: 8px; }
+.fix-head { display: flex; align-items: flex-start; gap: 9px; }
+.fix-icon { color: var(--warn); font-size: 18px; margin-top: 1px; }
+.fix-words { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.fix-words strong { font-size: 13px; font-weight: 600; }
+.fix-words small { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.fix-close { width: 24px; height: 24px; margin: -3px -3px 0 0; font-size: 15px; color: var(--muted); }
+.fix-list { display: grid; gap: 1px; max-height: 248px; overflow: auto; margin: 0 -4px; }
+.fix-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; padding: 6px 8px; border-radius: 7px; text-align: left; }
+.fix-row.active { background: var(--accent-soft); }
+.fix-row .mdi { font-size: 18px; width: 22px; text-align: center; color: var(--ink-2); flex: none; }
+.fix-row .tx { display: grid; min-width: 0; }
+.fix-row .tx strong { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fix-row .tx small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icon-list { display: grid; gap: 12px; max-height: 300px; overflow: auto; padding-right: 2px; }
 .icon-list small { margin-bottom: 6px; }
 .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
@@ -1350,6 +1396,8 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .dr-head { padding: 14px 12px 14px 16px; }
 .app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
 .app.phone .dr-body .style-section { order: -1; border-top: 0; }
+/* A tile whose entity is gone: the way to another one comes before its look, on a phone too. */
+.app.phone .dr-body .entity-fix { order: -2; }
 .phone-more { display: flex; align-items: center; gap: 10px; margin: 6px 16px 0; padding: 12px 12px 12px 14px; border-radius: 12px; background: var(--surface-2); text-align: left; color: var(--muted); }
 .phone-more span { flex: 1; display: grid; gap: 2px; }
 .phone-more b { color: var(--accent); font-size: 15px; font-weight: 550; }

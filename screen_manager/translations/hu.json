@@ -1553,6 +1553,31 @@
       "no_layout": "Még nincs elrendezés",
       "in_tessera": "Előbb frissítsd a Tesserában"
     },
+    "broken": {
+      "screens": "1 kijelzőn | {n} kijelzőn",
+      "summary": {
+        "missing": "{screens} 1 csempe olyan entitást mutat, amely már nem létezik | {screens} {n} csempe olyan entitást mutat, amely már nem létezik",
+        "unavailable": "{screens} 1 csempe olyan entitást mutat, amely egy ideje nem elérhető | {screens} {n} csempe olyan entitást mutat, amely egy ideje nem elérhető",
+        "mixed": "{screens} 1 csempe hiányzó vagy nem elérhető entitást mutat | {screens} {n} csempe hiányzó vagy nem elérhető entitást mutat"
+      },
+      "short": "1 csempét ellenőrizni kell | {n} csempét ellenőrizni kell",
+      "review": "Megnézem",
+      "hide": "Elrejtés",
+      "missing": "Már nincs a Home Assistantben",
+      "unavailable_minutes": "1 perce nem elérhető | {n} perce nem elérhető",
+      "unavailable_hours": "1 órája nem elérhető | {n} órája nem elérhető",
+      "unavailable_days": "1 napja nem elérhető | {n} napja nem elérhető",
+      "change": "Másik entitás mutatása",
+      "on_screen": "Ez az entitás már szerepel ezen a kijelzőn.",
+      "replaced": "Most ezt mutatja: {name}",
+      "fix": {
+        "choose": "Válassz másik entitást",
+        "missing": "A Home Assistantben már nincs meg ez az entitás",
+        "missing_hint": "Törölték vagy átnevezték. Válaszd ki, mit mutasson most ez a csempe.",
+        "unavailable_hint": "A Home Assistant egy ideje nem hall felőle. Válassz másik entitást, vagy várd meg, amíg visszatér.",
+        "search": "Entitások keresése"
+      }
+    },
     "screen_view": {
       "confirm": {
         "switch": "Nem mentett módosításaid vannak. Mégis megnyitsz egy másik kijelzőt?",
