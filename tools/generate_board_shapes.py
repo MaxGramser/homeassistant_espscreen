@@ -94,13 +94,22 @@ def catalog_of(board, values, lying):
     chain = profiles.chain(profiles.BOARDS[board])
     text = '\n'.join(path.read_text() for path in chain)
     touch = re.search(r'(?m)^touchscreen:\n\s*- platform: (\w+)', text)
+    # A board's extras (docs/SETTINGS.md, "A board's own settings"): the entities of its files, by the name ESPHome gives
+    # them in an id ("Wake when moved" is wake_when_moved), that the app shows under Screen settings. One the board's files
+    # do not have stops the build of this file.
+    named = {re.sub(r'[^a-z0-9_-]', '_', name.replace(' ', '_').lower())
+             for name in re.findall(r'(?m)^[ \t]+name:[ \t]*"([^"]+)"', text)}
+    settings = [str(key) for key in entry.get('settings') or []]
+    for key in settings:
+        if not re.fullmatch(r'[a-z0-9_]+', key) or key not in named:
+            raise SystemExit(f'boards.yaml: {board} lists the setting {key}, which no entity of its files is named')
     return {'order': list(profiles.CATALOG).index(board), 'name': entry['name'].strip(), 'model': entry['model'].strip(),
             'status': entry['status'],
             'inch': round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1),
             # A controller can use a driver's protocol under another platform name (ST7121 on st7123).
             'touch': values.get('TOUCH_CONTROLLER', touch[1].split('_')[0].upper() if touch else '').strip('"'),
             'calibrate': any(path.name == 'resistive-touch.yaml' for path in chain),
-            'choices': choices}
+            'choices': choices, 'settings': settings}
 
 
 def chip_of(board):
@@ -205,6 +214,9 @@ def shapes():
                  # Whether it has a battery (firmware 0.41.0, profiles.battery): the editor offers the top bar's battery
                  # item on a screen of this board before it ever connected; a screen's hello says `battery` itself.
                  'battery': profiles.battery(board),
+                 # What it brings that a plugin may need (plugin API 0.7, profiles.features): speaker, microphone, media
+                 # player, each a promise about one ESPHome id (plugins.Plugins reads it as the board's own).
+                 'features': profiles.features(board),
                  # The most tiles and pages a screen of this board takes (firmware 0.34.0+, SCREEN_MAX_TILES and
                  # SCREEN_MAX_PAGES in its board file, page_protocol.h): what New screen and the docs say a board holds.
                  # A screen says its own in its hello, which is what a save is held to (docs/TILE_MEMORY.md).

@@ -3,6 +3,8 @@
 // the ESPHome entities its manifest names, drawn with the rows of the screen's own settings and changed through Home
 // Assistant at once. The same rows stand on the screen's own settings page under Plugins. A switch, a number, a choice
 // (a dropdown from six options on), a text, and a button with the text sensor that says how it went (plugin API 0.6).
+// With `extras` it draws the board's extras instead (docs/SETTINGS.md, "A board's own settings"), under Screen
+// settings: the same rows, the entities the board lists in boards.yaml, for every screen with or without plugins.
 import { onBeforeUnmount, ref, watch } from "vue";
 import { getJson, send } from "../api";
 import { editorNumber, t } from "../i18n";
@@ -12,7 +14,8 @@ import { nodeOf, plugins, pluginsEnabled } from "../plugin-state";
 import { currentScreen, toast } from "../store";
 import UiSelect from "./ui/UiSelect.vue";
 
-const props = defineProps<{ plugin: string }>();
+const props = defineProps<{ plugin?: string; extras?: boolean }>();
+const route = (screenId: string) => `screens/${encodeURIComponent(screenId)}/${props.extras ? "extras" : "plugins/settings"}`;
 type Row = { key: string; entity: string | null; kind: "switch" | "number" | "select" | "text" | "button" | null; label: Texts;
   hint?: Texts | null; available: boolean; value?: boolean | number | string | null; min?: number; max?: number; step?: number;
   unit?: string; options?: string[]; password?: boolean; status?: string | null };
@@ -20,9 +23,14 @@ type Group = { plugin: string; name: Texts; rows: Row[] };
 const rows = ref<Row[]>([]);
 async function load() {
   const screen = currentScreen.value;
-  if (!pluginsEnabled.value || !screen || screen.virtual || !plugins.installed[nodeOf(screen)]?.length) { rows.value = []; return; }
+  if (!screen || screen.virtual) { rows.value = []; return; }
+  if (props.extras) {
+    try { rows.value = await getJson<Row[]>(route(screen.id)); } catch { rows.value = []; }
+    return;
+  }
+  if (!pluginsEnabled.value || !plugins.installed[nodeOf(screen)]?.length) { rows.value = []; return; }
   try {
-    const groups = await getJson<Group[]>(`screens/${encodeURIComponent(screen.id)}/plugins/settings`);
+    const groups = await getJson<Group[]>(route(screen.id));
     rows.value = groups.find((group) => group.plugin === props.plugin)?.rows || [];
   } catch { rows.value = []; }
 }
@@ -39,7 +47,7 @@ async function set(row: Row, value: boolean | number | string) {
   if (!screen || !row.entity) return;
   if (row.kind !== "button") row.value = value;   // as the screen's own rows: the change shows at once, Home Assistant squares it
   try {
-    await send(`screens/${encodeURIComponent(screen.id)}/plugins/settings`, "POST", { entity: row.entity, value });
+    await send(route(screen.id), "POST", { entity: row.entity, value });
     if (row.kind === "button") follow();
   } catch (error: any) { toast(error.message); load(); }
 }
@@ -59,7 +67,7 @@ const rowClass = (row: Row) => `setting-${({ switch: "toggle", select: "choice",
 </script>
 
 <template>
-  <div v-if="rows.length" class="plugin-settings" :data-plugin="plugin">
+  <div v-if="rows.length" class="plugin-settings" :data-plugin="plugin" :data-extras="extras ? '' : undefined">
     <div v-for="row in rows" :key="row.key" class="srow" :class="[rowClass(row), { inactive: !row.available }]" :data-setting="row.key"
       :title="row.available ? '' : t('editor.screen_settings.unavailable')">
       <span class="s-label">{{ text(row.label) }}<small v-if="row.hint" class="help">{{ text(row.hint) }}</small></span>

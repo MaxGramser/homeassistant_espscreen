@@ -155,6 +155,9 @@
       "night": "Night",
       "screen": "Screen",
       "this_screen": "This screen",
+      "extras": "Extras",
+      "microphone": "Microphone",
+      "wake_when_moved": "Wake when moved",
       "dark_mode": "Dark mode",
       "auto_standby": "Auto standby",
       "standby_after": "Standby after",
@@ -860,7 +863,11 @@
         "like_not_installed": "Put the plugin on one of your screens first, then you can like it.",
         "like_consent": "Agree first that your like counts in a public number.",
         "like_off": "Likes are off: a newer version of the app keeps them.",
-        "like_failed": "The like did not go out. Try again in a moment."
+        "like_failed": "The like did not go out. Try again in a moment.",
+        "misfit_built_in": "{name} brings what this board has itself."
+      },
+      "extras": {
+        "request": "This change of an extra is not possible on this screen."
       }
     },
     "status": {
@@ -1033,6 +1040,16 @@
         "battery_shows": {
           "always": "Always",
           "low": "Only when low"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microphone",
+          "hint": "Off mutes the microphone for everything that listens. The screen keeps it after a restart."
+        },
+        "wake_when_moved": {
+          "label": "Wake when moved",
+          "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
         }
       }
     },
@@ -2191,6 +2208,10 @@
       "plugins": {
         "title": "Plugins",
         "note": "Each plugin's settings are in its details on the Plugins tab."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Settings only this screen has, from its board. The same switches are on the screen's own settings page and in Home Assistant."
       }
     },
     "update": {
@@ -2965,7 +2986,8 @@
         "blocked": "Blocked",
         "esphome": "Needs newer ESPHome",
         "feature": "Needs hardware this screen lacks",
-        "needs": "Needs a plugin that does not fit"
+        "needs": "Needs a plugin that does not fit",
+        "built_in": "Built into this board"
       },
       "misfit": {
         "board": "This plugin is made for other boards than {screen}'s.",
@@ -2975,7 +2997,8 @@
         "blocked": "This version of the plugin is blocked: it is known to be harmful or broken.",
         "esphome": "This plugin needs a newer ESPHome than this app builds with.",
         "feature": "{screen} has nothing that brings what this plugin needs, and no plugin that brings it fits.",
-        "needs": "This plugin needs another plugin that does not fit {screen}."
+        "needs": "This plugin needs another plugin that does not fit {screen}.",
+        "built_in": "{screen}'s board brings this itself, so the plugin is not needed there."
       },
       "none_installed": "No plugins on this screen yet.",
       "none_found": "No plugin matches “{query}”.",

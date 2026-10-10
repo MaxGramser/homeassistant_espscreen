@@ -155,6 +155,9 @@
       "night": "Notte",
       "screen": "Schermo",
       "this_screen": "Questo schermo",
+      "extras": "Extra",
+      "microphone": "Microfono",
+      "wake_when_moved": "Riattiva se mosso",
       "dark_mode": "Modalità scura",
       "auto_standby": "Standby automatico",
       "standby_after": "Standby dopo",
@@ -860,7 +863,11 @@
         "like_not_installed": "Metti prima il plugin su uno dei tuoi schermi, poi potrai mettere mi piace.",
         "like_consent": "Accetta prima che il tuo mi piace conti in un numero pubblico.",
         "like_off": "I mi piace sono disattivati: li gestisce una versione più recente dell'app.",
-        "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo."
+        "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo.",
+        "misfit_built_in": "{name} porta ciò che questa scheda ha già."
+      },
+      "extras": {
+        "request": "Questa modifica di un extra non è possibile su questo schermo."
       }
     },
     "status": {
@@ -1033,6 +1040,16 @@
         "battery_shows": {
           "always": "Sempre",
           "low": "Solo se scarica"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microfono",
+          "hint": "Spento silenzia il microfono per tutto ciò che ascolta. Lo schermo lo ricorda dopo un riavvio."
+        },
+        "wake_when_moved": {
+          "label": "Riattiva se mosso",
+          "hint": "Lo schermo esce dallo standby quando qualcuno lo prende, lo sposta o lo urta. Sente lo schermo stesso, non chi passa."
         }
       }
     },
@@ -1693,7 +1710,8 @@
         "blocked": "Bloccato",
         "esphome": "Serve ESPHome più recente",
         "feature": "Manca hardware qui",
-        "needs": "Serve un plugin non adatto"
+        "needs": "Serve un plugin non adatto",
+        "built_in": "Già integrato nella scheda"
       },
       "misfit": {
         "board": "Questo plugin è fatto per schede diverse da quella di {screen}.",
@@ -1703,7 +1721,8 @@
         "blocked": "Questa versione del plugin è bloccata: è nota per essere dannosa o non funzionante.",
         "esphome": "Questo plugin richiede un ESPHome più recente di quello con cui compila questa app.",
         "feature": "{screen} non ha nulla che fornisca ciò che serve a questo plugin, e nessun plugin che lo fornisce va bene.",
-        "needs": "Questo plugin richiede un altro plugin che non va bene per {screen}."
+        "needs": "Questo plugin richiede un altro plugin che non va bene per {screen}.",
+        "built_in": "La scheda di {screen} lo porta già con sé, quindi lì il plugin non serve."
       },
       "none_installed": "Ancora nessun plugin su questo schermo.",
       "none_found": "Nessun plugin corrisponde a «{query}».",
@@ -2537,6 +2556,10 @@
       "plugins": {
         "title": "Plugin",
         "note": "Le impostazioni di ogni plugin sono nei suoi dettagli, nella scheda Plugin."
+      },
+      "extras": {
+        "title": "Extra",
+        "note": "Impostazioni che ha solo questo schermo, dalla sua scheda. Gli stessi interruttori sono nella pagina impostazioni dello schermo e in Home Assistant."
       }
     },
     "update": {

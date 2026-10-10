@@ -155,6 +155,9 @@
       "night": "Nuit",
       "screen": "Écran",
       "this_screen": "Cet écran",
+      "extras": "Extras",
+      "microphone": "Microphone",
+      "wake_when_moved": "Réveil au mouvement",
       "dark_mode": "Mode sombre",
       "auto_standby": "Veille auto",
       "standby_after": "Veille après",
@@ -860,7 +863,11 @@
         "like_not_installed": "Installez d'abord le plugin sur un de vos écrans, ensuite vous pourrez l'aimer.",
         "like_consent": "Acceptez d'abord que votre j'aime compte dans un nombre public.",
         "like_off": "Les j'aime sont désactivés : une version plus récente de l'app les gère.",
-        "like_failed": "Le j'aime n'est pas parti. Réessayez dans un instant."
+        "like_failed": "Le j'aime n'est pas parti. Réessayez dans un instant.",
+        "misfit_built_in": "{name} apporte ce que cette carte a déjà."
+      },
+      "extras": {
+        "request": "Ce changement d’un extra n’est pas possible sur cet écran."
       }
     },
     "status": {
@@ -1033,6 +1040,16 @@
         "battery_shows": {
           "always": "Toujours",
           "low": "Seulement si faible"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microphone",
+          "hint": "Désactivé, le micro est coupé pour tout ce qui écoute. L’écran le garde après un redémarrage."
+        },
+        "wake_when_moved": {
+          "label": "Réveil au mouvement",
+          "hint": "L’écran sort de veille quand quelqu’un le prend, le déplace ou le heurte. Il sent l’écran lui-même, pas quelqu’un qui passe."
         }
       }
     },
@@ -1693,7 +1710,8 @@
         "blocked": "Bloqué",
         "esphome": "ESPHome plus récent requis",
         "feature": "Matériel absent ici",
-        "needs": "Requiert un plugin incompatible"
+        "needs": "Requiert un plugin incompatible",
+        "built_in": "Intégré à cette carte"
       },
       "misfit": {
         "board": "Ce plugin est fait pour d'autres cartes que celle de {screen}.",
@@ -1703,7 +1721,8 @@
         "blocked": "Cette version du plugin est bloquée : elle est connue pour être nuisible ou défectueuse.",
         "esphome": "Ce plugin nécessite un ESPHome plus récent que celui avec lequel cette app compile.",
         "feature": "{screen} n'a rien qui apporte ce dont ce plugin a besoin, et aucun plugin qui l'apporte ne convient.",
-        "needs": "Ce plugin a besoin d'un autre plugin qui ne convient pas à {screen}."
+        "needs": "Ce plugin a besoin d'un autre plugin qui ne convient pas à {screen}.",
+        "built_in": "La carte de {screen} l’apporte elle-même, le plugin n’y est donc pas nécessaire."
       },
       "none_installed": "Aucun plugin sur cet écran pour l'instant.",
       "none_found": "Aucun plugin ne correspond à « {query} ».",
@@ -2537,6 +2556,10 @@
       "plugins": {
         "title": "Plugins",
         "note": "Les réglages de chaque plugin sont dans ses détails, dans l’onglet Plugins."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Des réglages que seul cet écran possède, venant de sa carte. Les mêmes interrupteurs sont sur la page de réglages de l’écran et dans Home Assistant."
       }
     },
     "update": {

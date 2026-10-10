@@ -155,6 +155,9 @@
       "night": "Nacht",
       "screen": "Bildschirm",
       "this_screen": "Dieser Bildschirm",
+      "extras": "Extras",
+      "microphone": "Mikrofon",
+      "wake_when_moved": "Bei Bewegung aufwecken",
       "dark_mode": "Dunkler Modus",
       "auto_standby": "Auto-Standby",
       "standby_after": "Standby nach",
@@ -860,7 +863,11 @@
         "like_not_installed": "Bring das Plugin zuerst auf einen deiner Bildschirme, dann kannst du es mögen.",
         "like_consent": "Stimme zuerst zu, dass dein Gefällt mir in einer öffentlichen Zahl zählt.",
         "like_off": "Gefällt mir ist aus: eine neuere Version der App verwaltet es.",
-        "like_failed": "Das Gefällt mir wurde nicht gesendet. Versuch es gleich noch einmal."
+        "like_failed": "Das Gefällt mir wurde nicht gesendet. Versuch es gleich noch einmal.",
+        "misfit_built_in": "{name} bringt mit, was dieses Board selbst hat."
+      },
+      "extras": {
+        "request": "Diese Änderung eines Extras ist auf diesem Bildschirm nicht möglich."
       }
     },
     "status": {
@@ -1033,6 +1040,16 @@
         "battery_shows": {
           "always": "Immer",
           "low": "Nur wenn niedrig"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Mikrofon",
+          "hint": "Aus schaltet das Mikrofon für alles stumm, was zuhört. Der Bildschirm behält es nach einem Neustart."
+        },
+        "wake_when_moved": {
+          "label": "Bei Bewegung aufwecken",
+          "hint": "Der Bildschirm wacht aus dem Standby auf, wenn jemand ihn hochnimmt, bewegt oder anstößt. Er spürt sich selbst, nicht jemanden, der vorbeigeht."
         }
       }
     },
@@ -1693,7 +1710,8 @@
         "blocked": "Gesperrt",
         "esphome": "Braucht neueres ESPHome",
         "feature": "Hardware fehlt hier",
-        "needs": "Braucht ein Plugin, das nicht passt"
+        "needs": "Braucht ein Plugin, das nicht passt",
+        "built_in": "In dieses Board eingebaut"
       },
       "misfit": {
         "board": "Dieses Plugin ist für andere Boards gemacht als das von {screen}.",
@@ -1703,7 +1721,8 @@
         "blocked": "Diese Version des Plugins ist gesperrt: Sie ist bekanntermaßen schädlich oder defekt.",
         "esphome": "Dieses Plugin braucht ein neueres ESPHome als das, mit dem diese App baut.",
         "feature": "{screen} hat nichts, was dieses Plugin braucht, und kein Plugin, das es bringt, passt.",
-        "needs": "Dieses Plugin braucht ein anderes Plugin, das nicht auf {screen} passt."
+        "needs": "Dieses Plugin braucht ein anderes Plugin, das nicht auf {screen} passt.",
+        "built_in": "Das Board von {screen} bringt das selbst mit, das Plugin wird dort nicht gebraucht."
       },
       "none_installed": "Noch keine Plugins auf diesem Bildschirm.",
       "none_found": "Kein Plugin passt zu „{query}“.",
@@ -2537,6 +2556,10 @@
       "plugins": {
         "title": "Plugins",
         "note": "Die Einstellungen jedes Plugins stehen in seinen Details im Tab Plugins."
+      },
+      "extras": {
+        "title": "Extras",
+        "note": "Einstellungen, die nur dieser Bildschirm hat, von seinem Board. Dieselben Schalter stehen auf der Einstellungsseite des Bildschirms und in Home Assistant."
       }
     },
     "update": {

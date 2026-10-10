@@ -24,6 +24,7 @@ import yaml
 
 import build_cache
 import core
+import entity_settings
 import plugin_fetch
 import plugin_likes
 import plugin_manifest as pm
@@ -739,7 +740,7 @@ class Plugins:
         for screen in self.screens():
             features[screen['id']] = sorted(self.features_on(screen))
             reasons = {entry.id: reason for entry in listed.values()
-                       if (reason := self.fits(entry, screen)) in ('esphome', 'feature', 'needs')}
+                       if (reason := self.fits(entry, screen)) in ('esphome', 'feature', 'needs', 'built_in')}
             if reasons:
                 fit[screen['id']] = reasons
         return {'api': api_text(), 'plugins': [self.editor_plugin(entry, language) for entry in listed.values()],
@@ -759,8 +760,10 @@ class Plugins:
         have = self.features_on(self.manager.screen(inbox) or {'id': inbox}, records)
         for record in records:
             entry = self.entry_for(record)
-            # A release the index blocks is left out of the next build (drop_blocked); the editor says why.
-            if not entry or self.blocked_record(record):
+            # A release the index blocks is left out of the next build (drop_blocked); the editor says why. So is one that
+            # brings what the screen's board now brings itself: two of one ESPHome id would stop the build.
+            screen = self.manager.screen(inbox) or {'id': inbox}
+            if not entry or self.blocked_record(record) or self.fits(entry, screen, deep=False) == 'built_in':
                 continue
             values = record.get('values') or {}
             variables = {item['id'].upper(): str(values.get(item['id'], '')) for item in entry.manifest['inputs']
@@ -823,6 +826,10 @@ class Plugins:
             return 'api'
         if manifest['boards'] != 'any' and core.board_of(screen) not in manifest['boards']:
             return 'board'
+        # What the board brings itself (boards.json `features`): a plugin that brings it too would define its id twice.
+        # A screen that had such a plugin before its board brought the feature leaves it out of its build (sidecar).
+        if set(manifest['provides']) & set(core.SHAPES.get(core.board_of(screen), {}).get('features') or []):
+            return 'built_in'
         # PSRAM: a board that draws camera pictures has it (features/camera.yaml is for PSRAM boards only).
         if manifest['requires']['psram'] and not screen.get('pictures') and not core.SHAPES.get(core.board_of(screen), {}).get('camera'):
             return 'psram'
@@ -955,6 +962,7 @@ class Plugins:
                  'board': lambda: t('addon.errors.plugins.misfit_board', name=name),
                  'psram': lambda: t('addon.errors.plugins.misfit_psram', name=name),
                  'blocked': lambda: t('addon.errors.plugins.misfit_blocked', name=name),
+                 'built_in': lambda: t('addon.errors.plugins.misfit_built_in', name=name),
                  'esphome': lambda: t('addon.errors.plugins.misfit_esphome', name=name,
                                       version=entry.manifest['requires'].get('esphome', ''))}
         return {'error': texts[reason]()}
@@ -1289,71 +1297,19 @@ class Plugins:
 
     # ---- A plugin's settings, in its details on the screen's Plugins tab ----
 
-    SETTING_DOMAINS = ('switch', 'number', 'select', 'text', 'button')
-    STATUS_DOMAINS = ('sensor',)       # an ESPHome text sensor is a sensor in Home Assistant
-
-    @staticmethod
-    def object_id(name):
-        """An entity's name as ESPHome writes it in an id ("Tap sound" is tap_sound): its snake_case and sanitize."""
-        return re.sub(r'[^a-zA-Z0-9_-]', '_', str(name).replace(' ', '_').lower())
+    # The rows and their Home Assistant calls are a board's extras' too: entity_settings.py is the one way both go.
+    SETTING_DOMAINS = entity_settings.SETTING_DOMAINS
+    STATUS_DOMAINS = entity_settings.STATUS_DOMAINS
+    object_id = staticmethod(entity_settings.object_id)
 
     def _setting_entities(self, screen, entry):
-        """{key: entity_id} of a plugin's settings and their status sensors on this screen. Found in Home Assistant's
-        entity registry by the name the entity has in plugin.yaml (`original_name`, which a rename in Home Assistant
-        leaves alone) on the screen's own device; an entity without one is found by the end of its entity id, as before
-        plugin API 0.6. Never by `unique_id`, whose shape changes with the ESPHome integration's versions."""
-        device = (screen or {}).get('device_id')
-        registry = [item for item in getattr(self.manager.ha, 'registry', None) or []
-                    if isinstance(item, dict) and isinstance(item.get('entity_id'), str) and device
-                    and item.get('device_id') == device]
-        wanted = {}
-        for setting in entry.manifest['settings']:
-            wanted[setting['key']] = self.SETTING_DOMAINS
-            if setting.get('status'):
-                wanted[setting['status']] = self.STATUS_DOMAINS
-        found = {}
-        for key, domains in wanted.items():
-            ours = [item for item in registry if item['entity_id'].split('.')[0] in domains]
-            by_name = [item['entity_id'] for item in ours
-                       if item.get('platform') == 'esphome' and item.get('original_name')
-                       and self.object_id(item['original_name']) == key]
-            by_end = [item['entity_id'] for item in ours if item['entity_id'].endswith('_' + key)]
-            if by_name or by_end:
-                found[key] = (by_name or by_end)[0]
-        return found
+        """{key: entity_id} of a plugin's settings and their status sensors on this screen (entity_settings.entities)."""
+        return entity_settings.entities(self.manager, screen, entry.manifest['settings'])
 
     def setting_row(self, setting, entities, states, entry, online):
-        """One row as the editor draws it: {key, entity, kind, label, hint, value, available} and what its kind needs."""
-        eid = entities.get(setting['key'])
-        state = states.get(eid) or {} if eid else {}
-        attrs = state.get('attributes') or {}
-        kind = eid.split('.')[0] if eid else None
-        value = state.get('state')
-        # A button's state is when it was last pressed: it is there when it is not unavailable.
-        available = bool(eid) and value not in (None, 'unavailable') and (kind == 'button' or value != 'unknown') and online
-        row = {'key': setting['key'], 'entity': eid, 'kind': kind,
-               'label': entry.texts.get(setting['label']) or {'en': setting['label']},
-               'hint': entry.texts.get(setting['hint']) if setting['hint'] else None, 'available': bool(available)}
-        if kind == 'switch':
-            row['value'] = value == 'on'
-        elif kind == 'number':
-            try:
-                row['value'] = float(value)
-            except (TypeError, ValueError):
-                row['value'] = None
-            row.update(min=attrs.get('min'), max=attrs.get('max'), step=attrs.get('step') or 1,
-                       unit=attrs.get('unit_of_measurement') or '')
-        elif kind == 'select':
-            row.update(value=value, options=[o for o in attrs.get('options') or [] if isinstance(o, str)][:48])
-        elif kind == 'text':
-            row.update(value=value if value not in (None, 'unknown', 'unavailable') else '',
-                       min=attrs.get('min') or 0, max=min(int(attrs.get('max') or 255), 255),
-                       password=attrs.get('mode') == 'password')
-        elif kind == 'button' and setting.get('status'):
-            status = states.get(entities.get(setting['status'])) or {}
-            words = status.get('state')
-            row['status'] = core.short(words, 64) if words not in (None, '', 'unknown', 'unavailable') else None
-        return row
+        """One row as the editor draws it, with the plugin's own words (entity_settings.row)."""
+        return entity_settings.row(setting, entities, states, entry.texts.get(setting['label']) or {'en': setting['label']},
+                                   entry.texts.get(setting['hint']) if setting['hint'] else None, online)
 
     def settings_for(self, inbox, language='en'):
         """The plugins' settings of one screen, as the editor draws them: [{plugin, name, rows: [{key, entity, kind,
@@ -1387,22 +1343,7 @@ class Plugins:
                 allowed |= {eid for key, eid in self._setting_entities(screen, entry).items() if key in keys}
         if entity not in allowed:
             raise ValueError(t('addon.errors.plugins.request'))
-        domain = entity.split('.')[0]
-        attrs = ((getattr(self.manager.ha, 'states', {}) or {}).get(entity) or {}).get('attributes') or {}
-        if domain == 'switch' and isinstance(value, bool):
-            await self.manager.ha.call_service('switch', 'turn_on' if value else 'turn_off', {'entity_id': entity})
-        elif domain == 'number' and isinstance(value, (int, float)) and not isinstance(value, bool):
-            await self.manager.ha.call_service('number', 'set_value', {'entity_id': entity, 'value': value})
-        elif domain == 'select' and isinstance(value, str) and len(value) <= 64:
-            await self.manager.ha.call_service('select', 'select_option', {'entity_id': entity, 'option': value})
-        elif domain == 'text' and isinstance(value, str) and \
-                int(attrs.get('min') or 0) <= len(value) <= min(int(attrs.get('max') or 255), 255):
-            await self.manager.ha.call_service('text', 'set_value', {'entity_id': entity, 'value': value})
-        elif domain == 'button' and value is True:
-            await self.manager.ha.call_service('button', 'press', {'entity_id': entity})
-        else:
-            raise ValueError(t('addon.errors.plugins.request'))
-        return {'ok': True}
+        return await entity_settings.change(self.manager, entity, value, t('addon.errors.plugins.request'))
 
     # ---- A plugin's question (tessera::send) ----
 

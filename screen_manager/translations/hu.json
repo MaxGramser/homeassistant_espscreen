@@ -155,6 +155,9 @@
       "night": "Éjszaka",
       "screen": "Kijelző",
       "this_screen": "Ez a kijelző",
+      "extras": "Extrák",
+      "microphone": "Mikrofon",
+      "wake_when_moved": "Ébresztés mozgatásra",
       "dark_mode": "Sötét mód",
       "auto_standby": "Auto készenlét",
       "standby_after": "Készenlét ennyi után",
@@ -860,7 +863,11 @@
         "like_not_installed": "Előbb tedd fel a bővítményt egy kijelződre, utána kedvelheted.",
         "like_consent": "Előbb fogadd el, hogy a kedvelésed nyilvános számba számít.",
         "like_off": "A kedvelés ki van kapcsolva: az alkalmazás újabb verziója kezeli.",
-        "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később."
+        "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később.",
+        "misfit_built_in": "{name} azt hozza, ami ennek a lapkának már megvan."
+      },
+      "extras": {
+        "request": "Ez a módosítás ezen a kijelzőn nem lehetséges."
       }
     },
     "status": {
@@ -1033,6 +1040,16 @@
         "battery_shows": {
           "always": "Mindig",
           "low": "Csak ha alacsony"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Mikrofon",
+          "hint": "Kikapcsolva elnémítja a mikrofont mindenki számára, aki figyel. A kijelző újraindítás után is megjegyzi."
+        },
+        "wake_when_moved": {
+          "label": "Ébresztés mozgatásra",
+          "hint": "A kijelző felébred készenlétből, ha valaki felveszi, elmozdítja vagy megkocogtatja. Magát a kijelzőt érzékeli, nem az arra járókat."
         }
       }
     },
@@ -1693,7 +1710,8 @@
         "blocked": "Letiltva",
         "esphome": "Újabb ESPHome kell",
         "feature": "Hiányzó hardver",
-        "needs": "Nem illő bővítmény kell"
+        "needs": "Nem illő bővítmény kell",
+        "built_in": "Ebben a lapkában már benne van"
       },
       "misfit": {
         "board": "Ez a bővítmény más lapkákhoz készült, mint ami a(z) {screen} kijelzőben van.",
@@ -1703,7 +1721,8 @@
         "blocked": "A bővítmény ezen verziója le van tiltva: ismerten ártalmas vagy hibás.",
         "esphome": "Ennek a bővítménynek újabb ESPHome kell, mint amivel ez az alkalmazás fordít.",
         "feature": "A(z) {screen} kijelzőn nincs meg, ami ennek a bővítménynek kell, és nincs hozzá illő bővítmény, amely biztosítaná.",
-        "needs": "Ennek a bővítménynek egy másik bővítmény kell, amely nem jó ehhez: {screen}."
+        "needs": "Ennek a bővítménynek egy másik bővítmény kell, amely nem jó ehhez: {screen}.",
+        "built_in": "{screen} lapkája ezt már magától tudja, ezért ott nincs szükség a bővítményre."
       },
       "none_installed": "Ezen a kijelzőn még nincs bővítmény.",
       "none_found": "Egy bővítmény sem felel meg ennek: „{query}”.",
@@ -2537,6 +2556,10 @@
       "plugins": {
         "title": "Bővítmények",
         "note": "Minden bővítmény beállításai a Bővítmények lapon, a részleteiben vannak."
+      },
+      "extras": {
+        "title": "Extrák",
+        "note": "Beállítások, amelyek csak ennek a kijelzőnek vannak, a lapkájától. Ugyanezek a kapcsolók a kijelző saját beállításoldalán és a Home Assistantben is ott vannak."
       }
     },
     "update": {

@@ -35,6 +35,7 @@ import map_tiles
 import tile_icons
 from updates import Updater
 import core
+import entity_settings
 import plugins
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
@@ -4545,6 +4546,18 @@ def create_app(manager, development=False):
             return web.json_response(result)
         app.router.add_get('/api/screens/{inbox}/plugins/settings', plugins_settings)
         app.router.add_post('/api/screens/{inbox}/plugins/settings', plugins_setting)
+    # A board's extras under Screen settings (docs/SETTINGS.md, "A board's own settings"): for every screen, plugins or not.
+    async def extras(request):
+        return web.json_response(entity_settings.extras_for(manager, request.match_info['inbox'], REQUEST_LANGUAGE.get()))
+
+    async def extra(request):
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError(t('addon.errors.extras.request'))
+        return web.json_response(await entity_settings.set_extra(manager, request.match_info['inbox'], data.get('entity'),
+                                                                 data.get('value')))
+    app.router.add_get('/api/screens/{inbox}/extras', extras)
+    app.router.add_post('/api/screens/{inbox}/extras', extra)
     app.router.add_get('/', index)
     app.router.add_get('/api/inventory', inventory)
     app.router.add_get('/api/capabilities', capabilities)

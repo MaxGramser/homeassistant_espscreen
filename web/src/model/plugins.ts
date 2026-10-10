@@ -165,7 +165,7 @@ export function changesBetween(markdown: string, from?: string | null, to?: stri
 
 // ---- Does it fit this screen ----
 // The reasons a plugin is not offered for a screen, in the order a person can do something about them.
-export type Misfit = "board" | "psram" | "firmware" | "flash" | "blocked" | "esphome" | "feature" | "needs";
+export type Misfit = "board" | "psram" | "firmware" | "flash" | "blocked" | "esphome" | "feature" | "needs" | "built_in";
 export type Fit = { ok: true } | { ok: false; reason: Misfit };
 // What only the add-on knows about a screen and a plugin (its payload's `fit`, by screen and plugin): a feature nothing
 // brings there, a plugin it needs that does not fit, an ESPHome too old to build it. The page keeps it here, as the tile
