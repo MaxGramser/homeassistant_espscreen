@@ -4,17 +4,18 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ScreenView from "../src/components/ScreenView.vue";
-import { select, setTileOption, state } from "../src/store";
+import { setTileOption, state } from "../src/store";
 import type { Inventory, Screen } from "../src/types";
 import { answerDialogs } from "./helpers/dialogs";
 import { fakeApi } from "./helpers/fake-api";
 import { screenFixture } from "./page-fixtures";
+import { useSessionStore } from "../src/stores/session";
 
 beforeEach(() => {
   state.inventory = { csrf: "t", connected: true, entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} },
     screens: [screenFixture({ id: "hall", name: "Hall", firmware: "0.4.0", online: true, in_sync: true,
       layout: { title: "Hall", tiles: [{ entity: "light.a", name: "A", slot: 0 }] } } as unknown as Screen)] } as unknown as Inventory;
-  select("hall");
+  useSessionStore().select("hall");
 });
 type Head = { pickFile: () => void; phoneRename: () => Promise<void> };
 

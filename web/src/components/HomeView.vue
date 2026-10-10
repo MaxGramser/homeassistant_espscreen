@@ -6,7 +6,7 @@ import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
 import { homeView } from "../model/overview";
-import { select, state } from "../store";
+import { state } from "../store";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
@@ -20,10 +20,12 @@ import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
 import { drawsPictures, useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const scr = useScreenStore();
+const session = useSessionStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
@@ -63,7 +65,7 @@ onMounted(entities.loadOverview);
     </header>
     <div class="home-grid">
       <div v-for="{ screen, view, live, layout } in views" :key="screen.id" role="button" tabindex="0" class="home-card" :class="{ away: !screen.online }"
-        :aria-label="t('editor.home.open', { name: screen.name })" @click="select(screen.id)" @keydown.enter.prevent="select(screen.id)" @keydown.space.prevent="select(screen.id)">
+        :aria-label="t('editor.home.open', { name: screen.name })" @click="session.select(screen.id)" @keydown.enter.prevent="session.select(screen.id)" @keydown.space.prevent="session.select(screen.id)">
         <span class="home-stage">
           <span v-if="live && layout && !failed.has(screen.id)" class="home-live" :style="{ width: liveWidth(live) }" aria-hidden="true">
             <FirmwarePreview :key="`${screen.id}:${JSON.stringify(live)}`" :width="live.width" :height="live.height" :dpi="live.dpi"

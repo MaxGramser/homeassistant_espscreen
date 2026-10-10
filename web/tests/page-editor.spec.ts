@@ -8,14 +8,14 @@ import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
 import TopbarInspector from '../src/components/TopbarInspector.vue';
 import { placeTile, dismissMigrationNote, removeTile, resolveLayoutConflict, addPage, movePage } from "../src/store";
-import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo,
-  acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, select, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
+import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo, acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
 import { answerDialogs } from "./helpers/dialogs";
 import { setMedia } from "./helpers/browser";
 import type { PageDocument, Screen } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
+import { useSessionStore } from "../src/stores/session";
 
 const record = () => state.inventory.screens[0].page_document as PageDocument;
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
@@ -31,7 +31,7 @@ beforeEach(() => {
   } as Screen)], entities: [], icons: { groups: [], defaults: {}, weather: {}, sun: {}, controls: {}, fallback: "F0335" } } as any;
   useScreenStore().selected = null;
   vi.stubGlobal("fetch", vi.fn(async () => reply({ states: {}, previews: [], capabilities: {} })));
-  select("test");
+  useSessionStore().select("test");
 });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
@@ -477,7 +477,7 @@ describe("revisions and portable layouts", () => {
     vi.stubGlobal("fetch", vi.fn((url: string) => url.endsWith("/import") ? new Promise<Response>((done) => { resolve = done; }) : Promise.resolve(reply({}))));
     const pending = importLayout(JSON.stringify({ esp_screens_layout: 2, sourceGrid: imported.sourceGrid, layout: imported.layout }));
     state.inventory.screens.push(screenFixture({ ...state.inventory.screens[0], id: "other", name: "Other" }));
-    select("other"); const before = JSON.stringify(state.document);
+    useSessionStore().select("other"); const before = JSON.stringify(state.document);
     resolve(reply(imported)); await pending;
     expect(JSON.stringify(state.document)).toBe(before); expect(state.dirty).toBe(false);
   });

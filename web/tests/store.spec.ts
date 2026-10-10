@@ -1,7 +1,7 @@
 import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, tileLimit, topbarItems, topbarView, refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
+import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, setTileOption, state, tileLimit, topbarItems, topbarView, refresh, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
@@ -13,6 +13,7 @@ import { useUiStore } from "../src/stores/ui";
 import { useBuildsStore } from "../src/stores/builds";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
+import { useSessionStore } from "../src/stores/session";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -63,7 +64,7 @@ beforeEach(() => {
 describe("selecting and editing", () => {
   it("gates taller sizes and resizes without taking a neighbor's cells", () => {
     state.inventory.editor_features = { tall_tiles: true };
-    select('living');
+    useSessionStore().select('living');
     const lamp = state.layout!.tiles[0];
     setTileOption(lamp, 'size', 'tall');
     expect(current(lamp).options?.size).toBeUndefined();
@@ -76,7 +77,7 @@ describe("selecting and editing", () => {
     expect(state.layout!.tiles.find((tile) => tile.entity === 'sensor.t')!.slot).toBe(1);
   });
   it("copies the stored layout so edits never touch the inventory until saved", () => {
-    select("living");
+    useSessionStore().select("living");
     expect(state.layout).not.toBe(state.inventory.screens[0].layout);
     expect(state.layout!.tiles.map((t) => t.slot)).toEqual([0, 1]);
     expect(state.dirty).toBe(false);
@@ -84,7 +85,7 @@ describe("selecting and editing", () => {
     expect(state.inventory.screens[0].layout.tiles[0].name).toBe("");
   });
   it("adds a tile to the first free cell once, within the firmware's limit", () => {
-    select("living");
+    useSessionStore().select("living");
     addTile("light.b");
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t", "light.b"]);
     expect(state.layout!.tiles[2].slot).toBe(2);
@@ -94,7 +95,7 @@ describe("selecting and editing", () => {
     expect(tileLimit.value).toBe(20);
   });
   it("keeps a wide tile at the start of a row and lets a display change fix the controls", () => {
-    select("living");
+    useSessionStore().select("living");
     const sensor = state.layout!.tiles[1];
     setTileOption(sensor, "size", "wide");
     expect(current(sensor).slot).toBe(2);
@@ -106,7 +107,7 @@ describe("selecting and editing", () => {
     expect(current(lamp).options).toMatchObject({ size: "wide", display: "watch", controls: "none", inline: "none" });
   });
   it("removes a tile and offers to undo", () => {
-    select("living");
+    useSessionStore().select("living");
     removeTile(state.layout!.tiles[0]);
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["sensor.t"]);
     expect(useUiStore().notice?.action?.label).toBe("Undo");
@@ -114,7 +115,7 @@ describe("selecting and editing", () => {
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t"]);
   });
   it("shows the clock of the stored setting when there is no top bar yet", () => {
-    select("living");
+    useSessionStore().select("living");
     expect(topbarItems()).toEqual([expect.objectContaining({ type: "clock" })]);
     useUiStore().now = new Date(2026, 8, 15, 10, 8).getTime();
     expect(topbarView({ type: "clock" }).text).toBe("10:08");
@@ -125,11 +126,11 @@ describe("selecting and editing", () => {
 
 describe("what this browser remembers of the editor", () => {
   it("keeps the editor chosen per screen, the library open or folded and the whole editor, in the values it always had", () => {
-    select("living");
+    useSessionStore().select("living");
     setEditorMode("advanced");
-    select("kitchen");
+    useSessionStore().select("kitchen");
     expect(state.editorMode).toBe("simple");
-    select("living");
+    useSessionStore().select("living");
     expect(state.editorMode).toBe("advanced");
     expect([localStorage.getItem("esp-screens-mode:living"), localStorage.getItem("esp-screens-mode:kitchen")]).toEqual(["advanced", null]);
     useUiStore().libraryOpen = false;
@@ -142,7 +143,7 @@ describe("what this browser remembers of the editor", () => {
 
 describe("live values", () => {
   it("saves an overridden virtual grid and layout locally without writing to Home Assistant", async () => {
-    const virtual = createVirtualScreen("Custom panel", { ...customPreview, shape: { ...customPreview.shape, width: 800, columns: 3, rows: 4 } });
+    const virtual = useSessionStore().createVirtualScreen("Custom panel", { ...customPreview, shape: { ...customPreview.shape, width: 800, columns: 3, rows: 4 } });
     addTile("light.b");
     await save();
     expect(state.dirty).toBe(false);
@@ -154,7 +155,7 @@ describe("live values", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ screens: [] }), { status: 200 })));
     await refresh(false);
     expect(state.inventory.screens[0].shape).toEqual(saved.shape);
-    expect(await removeScreen(state.inventory.screens[0])).toBe(true);
+    expect(await useSessionStore().removeScreen(state.inventory.screens[0])).toBe(true);
     expect(JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!)).toEqual([]);
     expect(useScreenStore().selected).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -162,7 +163,7 @@ describe("live values", () => {
   it("gives a preview screen the grids of its board, and keeps the one chosen", async () => {
     // App 0.4.85: the Grid button works on a preview screen too, within what its board's glass holds (boards.json).
     const way = { width: 480, height: 480, columns: 2, rows: 3, rotation: 0, min: [1, 1] as [number, number], max: [3, 5] as [number, number] };
-    const virtual = createVirtualScreen("Hall", { ...customPreview, key: "guition-landscape", board: "guition",
+    const virtual = useSessionStore().createVirtualScreen("Hall", { ...customPreview, key: "guition-landscape", board: "guition",
       shape: { width: 480, height: 480, columns: 2, rows: 3, dpi: 170, look: "standard", catalog: { orientations: { landscape: way, portrait: way } } as any } });
     expect(virtual.grids).toMatchObject({ upright: false, landscape: { min: [1, 1], max: [3, 5] } });
     addTile("light.b");
@@ -178,10 +179,10 @@ describe("live values", () => {
     const saved = JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!)[0];
     expect(saved.page_document.sourceGrid).toEqual({ columns: 3, rows: 3 });
     // A preview without its board's catalogue (the custom glass) keeps the grid it was made with.
-    expect(createVirtualScreen("Custom", customPreview).grids).toBeNull();
+    expect(useSessionStore().createVirtualScreen("Custom", customPreview).grids).toBeNull();
   });
   it("keeps edits unsaved when local storage is full", async () => {
-    const virtual = createVirtualScreen("Panel preview", customPreview);
+    const virtual = useSessionStore().createVirtualScreen("Panel preview", customPreview);
     addTile("light.b");
     vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("Storage full"); });
     await save();
@@ -194,16 +195,16 @@ describe("live values", () => {
     // what happened instead, wherever a preview screen is written: made, saved, renamed or removed.
     const blocked = () => { throw new DOMException("The operation is insecure.", "SecurityError"); };
     vi.spyOn(localStorage, "setItem").mockImplementation(blocked);
-    expect(() => createVirtualScreen("Hall", customPreview)).toThrow(t("editor.preview.not_kept"));
+    expect(() => useSessionStore().createVirtualScreen("Hall", customPreview)).toThrow(t("editor.preview.not_kept"));
     expect(state.inventory.screens.some((screen) => screen.virtual)).toBe(false);
     vi.mocked(localStorage.setItem).mockRestore();
-    const virtual = createVirtualScreen("Hall", customPreview);
+    const virtual = useSessionStore().createVirtualScreen("Hall", customPreview);
     addTile("light.b");
     vi.spyOn(localStorage, "setItem").mockImplementation(blocked);
     await save();
     expect(state.dirty).toBe(true);
     expect(useUiStore().notice?.message).toBe(t("editor.preview.not_kept"));
-    expect(await removeScreen(virtual)).toBe(false);
+    expect(await useSessionStore().removeScreen(virtual)).toBe(false);
     expect(state.inventory.screens.map((screen) => screen.id)).toContain(virtual.id);
   });
   it.each([true, false])("migrates stored virtual layouts without losing them on failure (success=%s)", async (success) => {
@@ -223,7 +224,7 @@ describe("live values", () => {
     expect(stored.layout).toEqual(legacy.layout);
     if (success) {
       expect(stored.page_document.layout).toEqual(migrated.layout);
-      select(legacy.id);
+      useSessionStore().select(legacy.id);
       expect(state.document?.pages).toHaveLength(2);
       expect(state.layout?.tiles[0]).toMatchObject({ entity: "light.b", slot: 6 });
       await refresh(false);
@@ -231,7 +232,7 @@ describe("live values", () => {
     } else expect(stored.page_document).toBeUndefined();
   });
   it("leaves out a stored preview screen it cannot read, says so, and loads the rest (app 0.4.32)", async () => {
-    const good = createVirtualScreen("Good preview", customPreview);
+    const good = useSessionStore().createVirtualScreen("Good preview", customPreview);
     const stored = JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!);
     const broken = { ...structuredClone(stored[0]), id: "virtual.broken", name: "Broken preview" };
     broken.page_document.layout.pages[0].tiles = [{ id: "a".repeat(16), content: { kind: "entity", entityId: "light.b" },
@@ -245,7 +246,7 @@ describe("live values", () => {
     expect(useUiStore().notice?.message).toContain("Broken preview");
   });
   it("keeps the virtual screen and catalogue through a light inventory poll", async () => {
-    const virtual = createVirtualScreen("Panel preview", customPreview);
+    const virtual = useSessionStore().createVirtualScreen("Panel preview", customPreview);
     const entities = state.inventory.entities;
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ screens: [] }), { status: 200 })));
     await refresh(false);
@@ -265,7 +266,7 @@ describe("live values", () => {
 
 describe("copy, export and import", () => {
   it("copies a layout with fresh identities and keeps this screen's title", () => {
-    select("living");
+    useSessionStore().select("living");
     copyLayoutFrom("kitchen");
     expect(state.layout!.title).toBe("Living room");
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["switch.c"]);
@@ -277,7 +278,7 @@ describe("copy, export and import", () => {
     if (source.format === "pages-v2") expect(state.document!.pages[0].id).not.toBe(source.layout.pages[0].id);
   });
   it("refuses garbage or a rejected import without changing or trimming the draft", async () => {
-    select("kitchen"); // firmware 0.2.6: ten tiles
+    useSessionStore().select("kitchen"); // firmware 0.2.6: ten tiles
     await importLayout("not json");
     expect(useUiStore().notice?.message).toMatch(/isn't JSON/);
     const before = JSON.stringify(state.document);
@@ -362,7 +363,7 @@ describe("updates with content", () => {
 
 describe("full-page and navigation tiles", () => {
   it("moves the other tiles of the page behind a tile that grows to the whole page", () => {
-    select("living");
+    useSessionStore().select("living");
     const [lamp, sensor] = state.layout!.tiles;
     setTileOption(lamp, "size", "full");
     expect(current(lamp).slot).toBe(0);
@@ -371,7 +372,7 @@ describe("full-page and navigation tiles", () => {
     expect(useUiStore().notice).toBeNull();
   });
   it("takes the first empty page when the others cannot move, and gives up with a toast when none is free", () => {
-    select("living");
+    useSessionStore().select("living");
     seedTiles(Array.from({ length: 48 }, (_, i) => ({ entity: `light.l${i}`, name: "", slot: i })));
     const first = state.layout!.tiles[0];
     setTileOption(first, "size", "full");
@@ -379,7 +380,7 @@ describe("full-page and navigation tiles", () => {
     expect(useUiStore().notice?.message).toMatch(/No page is free/);
   });
   it("lets a navigation tile point at another page, once per page", () => {
-    select("living");
+    useSessionStore().select("living");
     addTile("screen.page_2");
     const nav = state.layout!.tiles.find((t) => t.entity === "screen.page_2")!;
     expect(current(nav).options).toBeUndefined();
@@ -394,11 +395,11 @@ describe("full-page and navigation tiles", () => {
 
 describe("the open screen chosen again (app 0.2.78)", () => {
   it("keeps unsaved edits and only brings the layout back into view", () => {
-    select("living");
+    useSessionStore().select("living");
     addTile("light.b");
     state.tab = "settings";
     useUiStore().hash = "#firmware";
-    select("living");
+    useSessionStore().select("living");
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t", "light.b"]);
     expect(state.dirty).toBe(true);
     expect(state.tab).toBe("layout");
@@ -407,10 +408,10 @@ describe("the open screen chosen again (app 0.2.78)", () => {
     expect(asked).toEqual([]);
   });
   it("reads the stored layout again when nothing is unsaved, so a change from Claude or another tab shows up", () => {
-    select("living");
+    useSessionStore().select("living");
     state.inventory.screens[0].layout.tiles.push({ entity: "light.b", name: "", slot: 2 });
     state.inventory.screens[0].page_document = documentFixture(state.inventory.screens[0].layout);
-    select("living");
+    useSessionStore().select("living");
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t", "light.b"]);
     expect(state.dirty).toBe(false);
   });
@@ -431,7 +432,7 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     return { control, fetchMock };
   }
   it("marks the layout saved when nothing changed while the request was on its way", async () => {
-    select("living");
+    useSessionStore().select("living");
     addTile("light.b");
     const { control } = slowServer();
     const saving = save();
@@ -442,7 +443,7 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     expect(useUiStore().notice?.message).toBe("Saved. Your screen is being updated.");
   });
   it("keeps a change made during the save unsaved and says so", async () => {
-    select("living");
+    useSessionStore().select("living");
     addTile("light.b");
     const { control, fetchMock } = slowServer();
     const saving = save();
@@ -458,12 +459,12 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     expect(body.layout.pages[0].tiles[0].appearance.background).toBeUndefined();
   });
   it("leaves the unsaved flag of a screen opened meanwhile alone", async () => {
-    select("living");
+    useSessionStore().select("living");
     addTile("light.b");
     const { control } = slowServer();
     const saving = save();
     // The unsaved edit of the first screen is confirmed away (ConfirmDialog) before the other opens.
-    await select("kitchen");
+    await useSessionStore().select("kitchen");
     addTile("light.b");
     control.answer();
     await saving;
@@ -475,7 +476,7 @@ describe("saving while you keep editing (app 0.2.78)", () => {
 
 describe("moving a tile to another page without dragging (app 0.2.78)", () => {
   it("takes the first free cell of that page, or a new page after the last one", () => {
-    select("living");
+    useSessionStore().select("living");
     const [lamp, sensor] = state.layout!.tiles;
     seedPages(2);
     expect(moveTileToPage(sensor, 1)).toBe(true);
@@ -490,7 +491,7 @@ describe("moving a tile to another page without dragging (app 0.2.78)", () => {
     expect(moveTileToPage(lamp, 8)).toBe(false);
   });
   it("swaps with the first tile of a full page, as a drop there does", () => {
-    select("living");
+    useSessionStore().select("living");
     seedTiles([
       ...Array.from({ length: 6 }, (_, i) => ({ entity: `light.l${i}`, name: "", slot: i })),
       { entity: "light.b", name: "", slot: 6 },
@@ -501,7 +502,7 @@ describe("moving a tile to another page without dragging (app 0.2.78)", () => {
     expect(state.layout!.tiles.find((t) => t.entity === "light.l0")!.slot).toBe(6);
   });
   it("moves a full-page tile to a page of its own and says so when a tile finds no room", () => {
-    select("living");
+    useSessionStore().select("living");
     seedTiles([
       { entity: "light.big", name: "", slot: 0, options: { size: "full" } },
       { entity: "light.w", name: "", slot: 6, options: { size: "wide" } },
@@ -524,7 +525,7 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
   it("takes the tile limit and the features from the screen entry", async () => {
     const living = state.inventory.screens[0];
     Object.assign(living, { firmware: "unknown", firmware_known: null, tile_limit: 48, full_page: true, page_tiles_repeat: true });
-    select("living");
+    useSessionStore().select("living");
     expect(tileLimit.value).toBe(48);
     expect(useScreenStore().fullPage).toBe(true);
     expect(useScreenStore().pageTilesRepeat).toBe(true);
@@ -539,7 +540,7 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
   it("goes by firmware_known for the version and the notes", () => {
     const living = state.inventory.screens[0];
     Object.assign(living, { firmware: "unknown", firmware_known: "0.2.60" });
-    select("living");
+    useSessionStore().select("living");
     expect(useScreenStore().supports(0, 2, 60)).toBe(true);
     expect(useScreenStore().supports(0, 2, 61)).toBe(false);
     // A version as the add-on names one ("0.38.0"), as the top bar's items need it.
@@ -551,7 +552,7 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     expect(useScreenStore().canAlert(living)).toBe(false);
   });
   it("keeps today's rule, with a strict X.Y.Z, for a screen entry without the fields", () => {
-    select("living");
+    useSessionStore().select("living");
     expect(tileLimit.value).toBe(20);
     expect(useScreenStore().fullPage).toBe(false);
     expect(useScreenStore().pageTilesRepeat).toBe(false);
@@ -582,7 +583,7 @@ describe("the changelog from the full inventory (app 0.2.78)", () => {
 describe("several tiles that go to the same page (firmware 0.2.65)", () => {
   it("adds, retargets and imports another copy when the screen takes them", async () => {
     Object.assign(state.inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true });
-    select("living");
+    useSessionStore().select("living");
     addTile("screen.page_1");
     addTile("screen.page_1");
     expect(state.layout!.tiles.filter((t) => t.entity === "screen.page_1")).toHaveLength(2);
@@ -602,7 +603,7 @@ describe("several tiles that go to the same page (firmware 0.2.65)", () => {
   });
   it("keeps one tile per page when the screen doesn't", () => {
     Object.assign(state.inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: false });
-    select("living");
+    useSessionStore().select("living");
     addTile("screen.page_1");
     addTile("screen.page_1");
     expect(state.layout!.tiles.filter((t) => t.entity === "screen.page_1")).toHaveLength(1);
@@ -611,7 +612,7 @@ describe("several tiles that go to the same page (firmware 0.2.65)", () => {
     expect(useUiStore().notice?.message).toMatch(/already has a tile that goes to page 1/);
   });
   it("starts the empty page after the last one when a tile goes there", () => {
-    select("living");
+    useSessionStore().select("living");
     addTile("screen.page_1");
     const nav = state.layout!.tiles.find((t) => t.entity === "screen.page_1")!;
     expect(state.layout!.pages).toBe(1);
@@ -628,7 +629,7 @@ describe("page buttons and swiping both off (firmware 0.2.69)", () => {
   const tiles = (list: [string, number][]) => { seedTiles(list.map(([entity, slot]) => ({ entity, name: "", slot, options: {} }))); seedPages(1); };
   it("says which pages the Go to page tiles lead to, and which one they leave out", () => {
     settings({ page_buttons: false, swipe_pages: false });
-    select("living");
+    useSessionStore().select("living");
     tiles([["screen.page_2", 0], ["screen.page_3", 1], ["screen.page_1", 6], ["screen.page_1", 12], ["light.a", 18]]);
     expect(pageReachWarning()).toBe("From Home there is no route to page 4. Add a navigation tile or include the page in page navigation.");
     tiles([["light.a", 0], ["light.b", 6], ["switch.c", 12]]);
@@ -637,7 +638,7 @@ describe("page buttons and swiping both off (firmware 0.2.69)", () => {
     expect(pageReachWarning()).toBe("From page 2 there is no route back to Home. Add a return tile or enable the Home control.");
   });
   it("stays quiet while either way of paging is on, the values are unknown, or every page can be reached and left", () => {
-    select("living");
+    useSessionStore().select("living");
     tiles([["light.a", 0], ["light.b", 6]]);
     for (const values of [{ page_buttons: true, swipe_pages: false }, { page_buttons: false, swipe_pages: true }, { page_buttons: null, swipe_pages: false }, {}]) {
       settings(values);
@@ -658,7 +659,7 @@ describe("page buttons and swiping both off (firmware 0.2.69)", () => {
 describe("the mockup of a screen, whichever way it hangs", () => {
   const shaped = (shape: Record<string, unknown>) => {
     state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], shape, layout: { title: 'Screen', tiles: [] } } as any);
-    select("living");
+    useSessionStore().select("living");
   };
   const px = (style: Record<string, string>) => Number(style["--mockup-width"].replace("px", ""));
   const height = (style: Record<string, string>) => {
@@ -718,7 +719,7 @@ describe("the mockup of a screen, whichever way it hangs", () => {
 describe("moving a whole page", () => {
   // Three pages: page 1 leads to the other two, page 2 has a title of its own, page 3 leads back.
   function threePages() {
-    select("living");
+    useSessionStore().select("living");
     seedTiles([
       { entity: "screen.page_2", name: "", slot: 0 }, { entity: "screen.page_3", name: "", slot: 1 },
       { entity: "light.a", name: "", slot: 6 }, { entity: "light.w", name: "", slot: 8, options: { size: "wide" } },
@@ -766,7 +767,7 @@ describe("moving a whole page", () => {
     expect(state.layout!.page_titles).toEqual(["", "", "Kitchen"]);
   });
   it("takes the pages after a removed one up with their titles and the tiles that lead to them", () => {
-    select("living");
+    useSessionStore().select("living");
     seedTiles([{ entity: "screen.page_3", name: "", slot: 0 }, { entity: "light.a", name: "", slot: 12 }]);
     seedPages(3);
     seedTitles(["", "Kitchen", "Bedroom"]);

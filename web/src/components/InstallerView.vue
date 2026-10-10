@@ -12,7 +12,7 @@ import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
 import { t } from "../i18n";
 import { afterBrowserBuild, errorLine, ESPHOME_WEB, firmwareImage, memoryText, usbTarget } from "../model/firmware-job";
-import { createVirtualScreen, refresh, state } from "../store";
+import { refresh, state } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import { matchesWords, queryWords } from "../model/search";
@@ -25,8 +25,10 @@ import { installProgress } from "../model/install-progress";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
 import { useUiStore } from "../stores/ui";
+import { useSessionStore } from "../stores/session";
 
 const ui = useUiStore();
+const session = useSessionStore();
 
 // Download: ESP Screens builds, the owner flashes the file from their own computer with ESPHome Web (ESPHOME_WEB).
 const form = reactive({ board: "", orientation: "landscape" as Orientation, grid: { columns: 2, rows: 3 }, choices: {} as Record<string, string>, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
@@ -229,7 +231,7 @@ async function submit(event: Event) {
   if (mode.value === "virtual") {
     try {
       const { width, height, columns, rows } = previewForm;
-      createVirtualScreen(form.friendly_name, { ...previewProfile.value,
+      session.createVirtualScreen(form.friendly_name, { ...previewProfile.value,
         shape: { ...previewProfile.value.shape, width, height, columns, rows } });
       ui.toast(t("editor.preview.created", { name: form.friendly_name.trim() }));
       ui.go("");

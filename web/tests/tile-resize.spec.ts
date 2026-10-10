@@ -1,11 +1,12 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { screenFixture } from './page-fixtures';
-import { resizeChoices, resizeTile, select, setTileOption, state, tileSizeChoices, undo } from '../src/store';
+import { resizeChoices, resizeTile, setTileOption, state, tileSizeChoices, undo } from "../src/store";
 import TileResize from '../src/components/TileResize.vue';
 import TileInspector from '../src/components/TileInspector.vue';
 import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
+import { useSessionStore } from "../src/stores/session";
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ states: {}, previews: [], capabilities: {} }))));
@@ -14,7 +15,7 @@ beforeEach(() => {
     tile_sizes: ['single', 'wide', 'full', 'tall', 'square'],
     layout: { title: 'Home', tiles: [{ entity: 'light.test', name: 'Test', slot: 0 }] },
   })], entities: [] };
-  select('test');
+  useSessionStore().select('test');
 });
 const tile = () => state.layout!.tiles[0];
 it('defaults to stable sizes even when firmware advertises larger rectangles', () => {
@@ -116,7 +117,7 @@ it('keeps already chosen controls when a wide tile gains height', () => {
 it('resizes a Go to page tile by its edge without giving it controls (app 0.4.1)', () => {
   state.inventory.editor_features = { tall_tiles: true };
   state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: 'Home', pages: 2, tiles: [{ entity: 'screen.page_2', name: 'More', slot: 0 }] } });
-  select(null); select('test');
+  useSessionStore().select(null); useSessionStore().select('test');
   expect(resizeChoices(tile(), 'rows')).toContain('tall');
   expect(useUiStore().notice).toBeNull();
   expect(resizeTile(tile(), 'tall', 'rows')).toBe(true);

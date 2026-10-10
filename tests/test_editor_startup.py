@@ -26,16 +26,17 @@ class Startup(unittest.TestCase):
     def test_no_screen_opens_by_itself(self):
         self.assertNotIn('inventory.screens[0]', SCRIPT)
         # The ways into a screen are its button in the list and its row in the ⌘K search; both pass the chosen screen.
-        # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen.
-        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )select\(([^)]*)\)', SCRIPT)), {'screen.id', 'id', 'null'})
-        self.assertIn('const asking = scr().selected ? select(null) : undefined;', STORE)
+        # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen. A new preview screen opens
+        # itself (the session's createVirtualScreen). Choosing is the session's (stores/session.ts).
+        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )(?:session\.)?select\(([^)]*)\)', SCRIPT)), {'screen.id', 'null'})
+        self.assertIn('const asking = scr.selected ? select(null) : undefined;', editor_sources.source('stores/session.ts'))
         # In the list a click chooses the screen (app 0.2.108; its details fold behind a chevron since app 0.4.0); the
         # choosing is still select's. The overview's cards choose a screen the same way.
         sidebar = editor_sources.component('Sidebar')
         self.assertIn('@click="choose(screen)"', sidebar)
-        self.assertIn('  select(screen.id);\n}', sidebar)
-        self.assertIn('@click="select(screen.id)"', editor_sources.component('HomeView'))
-        self.assertIn('run: () => select(screen.id)', editor_sources.component('CommandPalette'))
+        self.assertIn('  session.select(screen.id);\n}', sidebar)
+        self.assertIn('@click="session.select(screen.id)"', editor_sources.component('HomeView'))
+        self.assertIn('run: () => session.select(screen.id)', editor_sources.component('CommandPalette'))
         for name in ('refresh', 'applyLive'):
             body = STORE[STORE.index(f'function {name}('):]
             self.assertNotRegex(body[:body.index('\n}\n')], r'(?<![\w.])select\(', name)

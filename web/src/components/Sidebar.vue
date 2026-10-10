@@ -7,7 +7,7 @@ import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { languageOnly } from "../model/screen-status";
 import { glyph } from "../model/topbar";
-import { goHome, refresh, removeScreen, select, state } from "../store";
+import { refresh, state } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
@@ -17,19 +17,21 @@ import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
 const builds = useBuildsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const session = useSessionStore();
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
 // The screen that asked to be removed: its details make room for what goes, until it is confirmed or dropped.
 const removeFor = ref<string | null>(null);
 async function remove(screen: Screen) {
-  if (await removeScreen(screen)) removeFor.value = null;
+  if (await session.removeScreen(screen)) removeFor.value = null;
 }
 // Rename (app 0.4.2): a label in this app only, so it takes effect at once, without a flash.
 const renameFor = ref<string | null>(null);
@@ -68,7 +70,7 @@ const chevronShown = (screen: Screen) => isSelected(screen) || isOpen(screen);
 function choose(screen: Screen) {
   if (!isSelected(screen)) folded.value = null;
   removeFor.value = null;
-  select(screen.id);
+  session.select(screen.id);
 }
 function toggleDetails(screen: Screen) {
   folded.value = { id: screen.id, open: !isOpen(screen) };
@@ -159,7 +161,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
   <aside ref="aside" class="side">
     <div class="side-top">
       <button type="button" class="brand" :aria-label="t('editor.sidebar.home')" :title="sidebar.folded ? undefined : t('editor.sidebar.home')"
-        v-tooltip="tip('brand', t('editor.sidebar.home'))" :aria-current="!scr.selected && ui.route === '' ? 'page' : undefined" @click="goHome">
+        v-tooltip="tip('brand', t('editor.sidebar.home'))" :aria-current="!scr.selected && ui.route === '' ? 'page' : undefined" @click="session.goHome">
         <TesseraMark class="mark" />
         <span class="txt">Tessera</span>
       </button>

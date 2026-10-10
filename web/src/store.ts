@@ -36,6 +36,7 @@ import { useEntitiesStore } from "./stores/entities";
 import { usePluginsStore } from "./stores/plugins";
 import { useRegionStore } from "./stores/region";
 import { useScreenStore } from "./stores/screen";
+import { useSessionStore } from "./stores/session";
 import { useSettingsStore } from "./stores/settings";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
 
@@ -149,6 +150,7 @@ async function migrateVirtualScreens() {
   }
   return virtualScreens();
 }
+// A new preview screen, kept in this browser; the session opens it (stores/session.ts createVirtualScreen).
 export function createVirtualScreen(name: string, profile: PreviewProfile) {
   if (!name.trim() || !validPreviewShape(profile.shape)) throw new Error(t("editor.preview.invalid_shape"));
   const { board, orientation } = profile;
@@ -166,7 +168,6 @@ export function createVirtualScreen(name: string, profile: PreviewProfile) {
   };
   persistVirtualScreens([...state.inventory.screens, screen]);
   state.inventory.screens.push(screen);
-  select(id);
   return screen;
 }
 
@@ -303,14 +304,6 @@ const loadCapabilities = (entities: string[]) => useEntitiesStore().loadCapabili
 function loadStates() {
   return useEntitiesStore().loadStates((state.layout?.tiles || []).map((tile) => tile.entity), stillSelected());
 }
-// The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
-export function goHome(): void | Promise<void> {
-  const home = () => { if (!scr().selected) go(""); };
-  const asking = scr().selected ? select(null) : undefined;
-  if (asking) return asking.then(home);
-  home();
-}
-
 // ---- Selecting a screen and editing its layout ----
 // Every edit counts, so a save only clears the edits it sent (app 0.2.78).
 let edits = 0;
@@ -449,30 +442,31 @@ export function loadDocument(screen: Screen) {
   state.conflict = false;
   draftHistory.clear(); historyCounts();
 }
-// Another screen, or none (the overview). With unsaved changes the editor asks first, and the switch waits for the answer
-// (the promise returned then); otherwise it happens at once.
-export function select(id: string | null): void | Promise<void> {
-  if (id === scr().selected && state.document && state.dirty) {
-    state.tab = "layout"; useUiStore().menuOpen = false; closeInspector(); go(""); return;
-  }
-  if (id !== scr().selected && state.dirty) return askConfirm(t("editor.screen_view.confirm.switch")).then((yes) => { if (yes) openScreen(id); });
-  openScreen(id);
-}
-function openScreen(id: string | null) {
-  if (id !== scr().selected) useSettingsStore().leaveScreen();
-  scr().selected = id; state.selectedTileId = null; state.inspector = null;
+// The draft of the screen the session opens (stores/session.ts select), or none: what the editor shows of the screen
+// before starts again. True when there is a screen.
+export function openDocument(screen: Screen | undefined) {
+  state.selectedTileId = null; state.inspector = null;
   state.tab = "layout";
-  useUiStore().$patch({ menuOpen: false, addSheet: false, pagesSheet: false, previewOpen: false, pageWizardOpen: false });
-  const screen = state.inventory.screens.find((item) => item.id === id);
   // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
-  if (!screen) { state.document = null; state.documentGrid = null; state.dirty = false; return; }
+  if (!screen) { state.document = null; state.documentGrid = null; state.dirty = false; return false; }
   loadDocument(screen);
   state.editorMode = kept().mode.value;
   if (state.editorMode === "advanced") initializeWorkspace();
   state.insertAt = -1; state.dirty = false; state.saved = 0;
   loadTopbarPreview(0);
   loadCapabilities(state.layout?.tiles.map((tile) => tile.entity) || []);
-  loadStates(); go("");
+  loadStates();
+  return true;
+}
+// The open screen's draft gone without a question (stores/session.ts forgetOpenScreen): nothing of it is left to save.
+export function closeDocument() {
+  state.dirty = false;
+  state.document = null;
+  state.documentGrid = null;
+  state.documentUpright = null;
+  state.gridReview = null;
+  state.selectedTileId = null;
+  state.inspector = null;
 }
 export const liveEntries = () => (state.layout ? entriesOf(state.layout) : []);
 // Apply an arrangement; a new tile joins the layout. True when anything changed.
@@ -1044,53 +1038,6 @@ const mapSaver = workspaceSaver(state, {
 function scheduleWorkspaceSave() { mapSaver.schedule(); }
 export async function saveWorkspace() { await mapSaver.save(); }
 
-// ---- Removing a screen (app 0.2.112): the mirror of New screen ----
-// Home Assistant, the ESPHome profile and everything kept here, in one request. The sidebar says what goes
-// before it asks; here only what came back is shown.
-export async function removeScreen(screen: Screen) {
-  if (scr().removing) return false;
-  if (screen.virtual) {
-    const remaining = state.inventory.screens.filter((s) => s.id !== screen.id);
-    try { persistVirtualScreens(remaining); } catch (e: any) { toast(e.message); return false; }
-    if (scr().selected === screen.id) forgetOpenScreen();
-    state.inventory.screens = remaining;
-    toast(t("editor.sidebar.remove.done", { name: screen.name }));
-    return true;
-  }
-  scr().removing = screen.id;
-  try {
-    const result = await send<{ name?: string; kept?: string[] }>(`screens/${encodeURIComponent(screen.id)}`, "DELETE");
-    const name = result?.name || screen.name;
-    // The screen that was open closes without asking about its edits: its layout went with it.
-    if (scr().selected === screen.id) forgetOpenScreen();
-    useBuildsStore().forget(screen.id);
-    state.inventory.screens = state.inventory.screens.filter((s) => s.id !== screen.id);
-    toast(result?.kept?.length
-      ? t("editor.sidebar.remove.kept", { name, file: result.kept[0] })
-      : t("editor.sidebar.remove.done", { name }));
-    await refresh(false);
-    return true;
-  } catch (e: any) {
-    toast(e.message);
-    return false;
-  } finally {
-    scr().removing = null;
-  }
-}
-// The open screen, without the questions `select` asks: nothing of it is left to save or to send.
-function forgetOpenScreen() {
-  useSettingsStore().forget();
-  state.dirty = false;
-  scr().selected = null;
-  state.document = null;
-  state.documentGrid = null;
-  state.documentUpright = null;
-  state.gridReview = null;
-  state.selectedTileId = null;
-  state.inspector = null;
-  useUiStore().menuOpen = false;
-}
-
 // ---- Copying and sharing a layout (app 0.2.73) ----
 function adopt(record: PageDocument, message: string) {
   if (!state.documentGrid) return;
@@ -1392,7 +1339,9 @@ export async function resolveLayoutConflict(choice: 'reload' | 'keep') {
   });
 }
 
-function reconcileDocument() {
+// A new inventory for the open screen (stores/session.ts arrived): its draft read again when the add-on has a newer one, a
+// conflict said when this page has unsaved changes.
+export function reconcileDocument() {
   const screen = scr().currentScreen, record = screen?.page_document;
   if (!screen || state.busy) return;
   if (record?.format === "pages-v2" && record.revision !== state.documentRevision) {
@@ -1419,8 +1368,7 @@ export async function refresh(full = true) {
     if (data.csrf) setCsrf(data.csrf);
     state.connected = Boolean(state.inventory.connected);
     state.reachable = true;
-    useBuildsStore().prune();
-    if (scr().selected) { useSettingsStore().settleSettings(); reconcileDocument(); }
+    useSessionStore().arrived();
   } catch {
     state.reachable = false;
   }
@@ -1429,8 +1377,7 @@ function applyLive(data: Partial<Inventory>) {
   state.inventory = { ...state.inventory, ...data } as Inventory;
   state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtualScreens()];
   state.connected = Boolean(state.inventory.connected);
-  useBuildsStore().prune();
-  if (scr().selected) { useSettingsStore().settleSettings(); reconcileDocument(); }
+  useSessionStore().arrived();
 }
 let pollTimer = 0, lastFull = Date.now(), live = false, following = false, stream: EventSource | null = null;
 // The browser opens a broken stream again by itself, but one it gave up on (CLOSED: ingress answered 502 while the add-on
@@ -1469,7 +1416,7 @@ function poll() {
     poll();
   }, wait);
 }
-// ---- Started once the page is on the screen (boot.ts) ----
+// ---- Started once the page is on the screen (stores/session.ts start, from boot.ts) ----
 // What the store does by itself while the page is open: the live stream and its polls, the clocks of the mockup, the
 // reactions to a change elsewhere, and what the page does when it is hidden, shown again or closed. Nothing of it starts
 // when the module loads, so a test imports the store and starts only what it tests. All of it lives in one scope, and

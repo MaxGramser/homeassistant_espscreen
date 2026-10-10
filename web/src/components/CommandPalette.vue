@@ -6,14 +6,16 @@ import { domainInfo } from "../model/layout";
 import { useListNavigation } from "../composables/useListNavigation";
 import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
-import { addTile, exportLayout, save, select, state, tileLimit } from "../store";
+import { addTile, exportLayout, save, state, tileLimit } from "../store";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const scr = useScreenStore();
+const session = useSessionStore();
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
@@ -23,7 +25,7 @@ const items = computed<Item[]>(() => {
   const list: Item[] = [];
   const screens = t("editor.palette.groups.screens"), actionsGroup = t("editor.palette.groups.actions");
   for (const screen of state.inventory.screens)
-    list.push({ group: screens, label: screen.name, detail: `${screen.online ? t("editor.common.online") : t("editor.common.offline")} · ${screen.firmware || t("editor.common.unknown")}`, glyphText: "▦", run: () => select(screen.id) });
+    list.push({ group: screens, label: screen.name, detail: `${screen.online ? t("editor.common.online") : t("editor.common.offline")} · ${screen.firmware || t("editor.common.unknown")}`, glyphText: "▦", run: () => session.select(screen.id) });
   const screen = scr.currentScreen;
   const actions: Item[] = [
     { group: actionsGroup, label: t("editor.nav.new_screen"), detail: t("editor.nav.new_screen_detail"), glyphText: "+", run: () => ui.go("#new-screen") },

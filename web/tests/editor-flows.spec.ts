@@ -6,13 +6,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import DevicePage from "../src/components/DevicePage.vue";
 import TileCard from "../src/components/TileCard.vue";
 import PageInspector from "../src/components/PageInspector.vue";
-import { addPage, addTile, beginFieldEdit, endFieldEdit, goHome, liveEntries, placeTile, retargetPageTile, select, setTileOption, state } from "../src/store";
+import { addPage, addTile, beginFieldEdit, endFieldEdit, liveEntries, placeTile, retargetPageTile, setTileOption, state } from "../src/store";
 import { validatePages } from "../src/model/pages";
 import { tileCost } from "../src/model/memory";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
+import { useSessionStore } from "../src/stores/session";
 
 let yes = true, asked: Question[] = [];
 beforeEach(() => {
@@ -24,7 +25,7 @@ beforeEach(() => {
   state.inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
     layout: { title: "Home", tiles: [{ entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 }] } } as any)],
     entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} } } as any;
-  select("test");
+  useSessionStore().select("test");
 });
 
 describe("the editor", () => {
@@ -45,19 +46,19 @@ describe("the editor", () => {
   it("leaves nothing unsaved after going home from the logo past a confirmed discard", async () => {
     setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
     expect(state.dirty).toBe(true);
-    await goHome();
+    await useSessionStore().goHome();
     expect(useScreenStore().selected).toBeNull();
     expect(state.dirty).toBe(false);
   });
 
   it("calls a change that changes nothing no change, whatever order the add-on wrote the fields in", () => {
     // A tile as the add-on writes it after a migration: placement before appearance.
-    select(null);
+    useSessionStore().select(null);
     const layout = state.inventory.screens[0].page_document!.layout as any;
     const tile = layout.pages[0].tiles[0];
     tile.appearance.icon = "lightbulb";
     layout.pages[0].tiles[0] = { id: tile.id, content: tile.content, placement: tile.placement, interaction: tile.interaction, appearance: tile.appearance };
-    select("test");
+    useSessionStore().select("test");
     // Picking the icon the tile already has.
     setTileOption(state.layout!.tiles[0], "icon", "lightbulb");
     expect(state.undoCount).toBe(0);
@@ -81,7 +82,7 @@ describe("the editor", () => {
       { entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 },
       { entity: "light.w", name: "W", slot: 2, options: { size: "wide" } },
       { entity: "light.c", name: "C", slot: 4 }, { entity: "light.e", name: "E", slot: 5 }] } } as any);
-    select(null); select("test");
+    useSessionStore().select(null); useSessionStore().select("test");
     const pagesBefore = state.document!.pages.length;
     // E onto W: W does not fit in the one cell E leaves, and page 1 has no other room, so nothing moves.
     expect(placeTile(state.layout!.tiles.find((t) => t.name === "E")!, 2)).toBe(false);
@@ -156,7 +157,7 @@ describe("the editor", () => {
     state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: "Home", pages: 2, tiles: [{ entity: "screen.page_1", name: "", slot: 6 }] } } as any);
     const record = state.inventory.screens[0].page_document as any;
     record.layout.pages[1].tiles[0].content.target = { kind: "home" };
-    select(null); select("test");
+    useSessionStore().select(null); useSessionStore().select("test");
     const link = state.layout!.tiles[0];
     retargetPageTile(link, 1);
     expect(state.document!.pages[1].tiles[0].content).toEqual({ kind: "navigation", target: { kind: "home" } });

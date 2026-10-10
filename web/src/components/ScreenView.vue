@@ -4,7 +4,7 @@ import { useEventListener, useFileDialog } from "@vueuse/core";
 import { computed } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
-import { closeInspector, copyLayoutFrom, currentTile, removeTile, exportLayout, goHome, importLayout, openBar, redo, save, state, tileLimit, undo } from "../store";
+import { closeInspector, copyLayoutFrom, currentTile, removeTile, exportLayout, importLayout, openBar, redo, save, state, tileLimit, undo } from "../store";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
 import LayoutView from "./LayoutView.vue";
@@ -22,11 +22,13 @@ import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const session = useSessionStore();
 
 const screen = computed(() => scr.currentScreen!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
@@ -67,7 +69,7 @@ function pickFile() { closeMenu(); chooser.open(); }
 // The phone's menu (app 0.4.40) holds what the toolbar and the tabs hold on a wider page.
 function phoneBack() {
   if (state.tab !== "layout") { state.tab = "layout"; return; }
-  goHome();
+  session.goHome();
 }
 const phoneStatus = computed(() => !screen.value.online ? t("editor.common.offline")
   : state.dirty ? t("editor.phone.not_sent") : screen.value.in_sync ? t("editor.phone.on_screen") : t("editor.screen_view.sending"));
