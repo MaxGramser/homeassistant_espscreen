@@ -80,6 +80,13 @@ struct Stream {
   // LVGL is kept out of the stream's room from its first picture on (set by the task just before it copies one): until
   // then LVGL draws as ever, a spinner turning while the camera comes.
   std::atomic<bool> armed{false};
+  // Where its last picture lies on the glass (LVGL's coordinates): a tile's whole card, a full view's picture as large
+  // as fits its room, which leaves room beside it when the camera's shape is not the room's. Written by the task as it
+  // copies a picture, read by the main loop: only that is kept from LVGL, which draws the rest of the room itself, and
+  // when it moves (a camera's still, then its stream at another size) LVGL draws where it lay again (tick).
+  portMUX_TYPE spot_lock = portMUX_INITIALIZER_UNLOCKED;
+  Rect spot;
+  Rect spot_told;  // the main loop's: the spot it last saw
   std::atomic<uint32_t> shown{0}, bytes{0}, decode_us{0}, copy_us{0}, skipped{0};
   // When the way to the first picture went by (ms after start, written once by the task, read after `shown`).
   uint32_t started_at = 0, connected_ms = 0, answered_ms = 0, first_bytes_ms = 0;
@@ -106,8 +113,8 @@ static void *frame_buffer = nullptr;
 // ---- LVGL stays out of a live picture's room ----
 // A card on the page behind the view that changes (a sensor's new value), or a page's own redraw around a live tile,
 // has LVGL draw that area again, and what LVGL has there (the view's black, a tile's still with its spinner and name)
-// would cover the live picture until its next one. So what LVGL is about to draw is cut against the room of every stream
-// that streams, once, as it starts drawing (LV_EVENT_RENDER_START: its areas joined, nothing drawn yet): what lies
+// would cover the live picture until its next one. So what LVGL is about to draw is cut against where the picture of
+// every stream that streams lies (its spot: a full view's picture may leave room beside it, which stays LVGL's), once, as it starts drawing (LV_EVENT_RENDER_START: its areas joined, nothing drawn yet): what lies
 // outside a room stays, in pieces, what lies inside goes. That one place sees every way LVGL comes to draw there: an
 // area as it comes, one it had before a stream's first picture, two it joined into one, and the whole glass, which LVGL
 // draws when more areas come in one frame than its list holds. A filter of each area as it came missed the last three
@@ -115,8 +122,22 @@ static void *frame_buffer = nullptr;
 // piece goes through the display's own rounding (ESPHome's draw_rounding), as LVGL's own areas do. Once a stream ends
 // nothing is cut for it, and LVGL draws its room again.
 static bool filtering = false;
-static lv_area_t room_of(const Stream &s) {
-  return {s.area.x, s.area.y, s.area.x + s.area.w - 1, s.area.y + s.area.h - 1};
+static lv_area_t lv_rect(const Rect &r) { return {r.x, r.y, r.x + r.w - 1, r.y + r.h - 1}; }
+static Rect spot_of(Stream &s) {
+  taskENTER_CRITICAL(&s.spot_lock);
+  const Rect spot = s.spot;
+  taskEXIT_CRITICAL(&s.spot_lock);
+  return spot;
+}
+static void set_spot(Stream &s, const Rect &spot) {
+  taskENTER_CRITICAL(&s.spot_lock);
+  s.spot = spot;
+  taskEXIT_CRITICAL(&s.spot_lock);
+}
+// What LVGL keeps out of: where the stream's last picture lies.
+static lv_area_t room_of(Stream &s) {
+  const Rect spot = spot_of(s);
+  return lv_rect(spot.empty() ? s.area : spot);
 }
 static void invalidate(const lv_area_t &part) { lv_inv_area(lv_display_get_default(), &part); }
 static bool covered(const lv_area_t &a) {
@@ -329,6 +350,7 @@ static void show(Stream &s, size_t length) {
       const Rect target = on_panel(s.area, s.turn, panel_w, panel_h);
       xSemaphoreTake(glass, portMAX_DELAY);
       if (!s.stopping) {
+        set_spot(s, s.area);
         s.armed = true;  // from now on LVGL draws nothing here
         err = copy(s, s.canvas, cw, ch, 0, 0, cw, ch, frame_buffer, glass_size, panel_w, panel_h, target.x, target.y, 16,
                    s.turn);
@@ -340,6 +362,7 @@ static void show(Stream &s, size_t length) {
     const Rect target = on_panel(where, s.turn, panel_w, panel_h);
     xSemaphoreTake(glass, portMAX_DELAY);
     if (!s.stopping) {
+      set_spot(s, where);
       s.armed = true;
       err = copy(s, s.picture, stride_w, rows, 0, 0, w, h, frame_buffer, glass_size, panel_w, panel_h, target.x,
                  target.y, sixteenths, s.turn);
@@ -542,7 +565,7 @@ void close(Handle handle) {
   xSemaphoreTake(glass, portMAX_DELAY);
   const bool was_armed = s.armed.exchange(false);
   xSemaphoreGive(glass);
-  if (was_armed) invalidate(room_of(s));
+  if (was_armed) invalidate(lv_rect(s.area));
 }
 
 static void report(int slot, Stream &s, uint32_t now, bool last) {
@@ -573,11 +596,19 @@ void tick(const std::function<void(Handle, Event)> &tell) {
       const bool turned = s->turn != turn, ended = s->stopping && !s->failed;
       const bool was_armed = s->armed.exchange(false);
       streams[slot] = nullptr;
-      if (was_armed) invalidate(room_of(*s));
+      if (was_armed) invalidate(lv_rect(s->area));
       free_stream(s);
       unwatch_lvgl_when_alone();
       tell(slot, turned ? Event::TURNED : ended ? Event::ENDED : Event::FAILED);
       continue;
+    }
+    // Its picture lies elsewhere now, or at another size: LVGL draws where it lay again (but where it lies now).
+    if (s->armed) {
+      const Rect spot = spot_of(*s);
+      if (!(spot == s->spot_told)) {
+        if (!s->spot_told.empty()) invalidate(lv_rect(s->spot_told));
+        s->spot_told = spot;
+      }
     }
     // The glass turned (a setting): this stream's place is gone; its owner asks again for its new shape.
     if (s->turn != turn && !s->stopping) close(slot);

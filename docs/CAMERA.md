@@ -312,11 +312,14 @@ one that comes later is covered by the same rule.
 
 **Nothing of LVGL's over a live picture.** While a picture streams, LVGL must not draw its room: what it has there (the
 full view's black, a tile's still with its spinner and name) would cover the live picture until its next one. So the
-list of what LVGL is about to draw is cut against the room of every stream that has its first picture on the glass, once,
+list of what LVGL is about to draw is cut against where the picture of every stream lies (a tile's whole card, a full
+view's picture as large as fits its room; beside a picture of another shape LVGL draws the room's black itself), once,
 as LVGL starts drawing (`LV_EVENT_RENDER_START`, `keep_out` in `live_view.cpp`). That one place catches every way LVGL
 comes to draw there: a card that changes beside a tile, an area queued before a stream's first picture, two areas LVGL
 joined into one, and the whole glass, which LVGL draws when more areas come in one frame than its list holds. Each piece
-goes through the display's own rounding, as LVGL's own areas do. When a stream ends, LVGL draws its room again.
+goes through the display's own rounding, as LVGL's own areas do. When a picture lies elsewhere or at another size (a
+doorbell's 16:9 snapshot first, then its 4:3 stream), LVGL draws where the last one lay again, so nothing of it stays
+beside the new one. When a stream ends, LVGL draws its room again.
 
 **The network of a P4.** Every P4 board reaches its Wi-Fi through an ESP32-C6 over SDIO, where a packet's round trip
 takes long enough that ESP-IDF's default TCP receive window (5,760 bytes) held a download at about 0.7 MB/s. The P4
