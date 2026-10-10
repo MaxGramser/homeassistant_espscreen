@@ -1,6 +1,7 @@
 // The sidebar's width and whether it is folded to its icons (app 0.4.85): dragged by its edge, folded with its button.
 // Kept per browser, as the library's state is: a convenience of this computer, not a setting of the screens.
-import { reactive, watch } from "vue";
+import { reactive } from "vue";
+import { onReset } from "./resets";
 
 export const SIDE_MIN = 200, SIDE_MAX = 420, SIDE_DEFAULT = 248;
 // The icons alone: the board icon, the dot beside it and the room around them.
@@ -13,20 +14,23 @@ const read = (key: string) => { try { return localStorage.getItem(key); } catch 
 const write = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* private window: this visit only */ } };
 export const clampWidth = (px: number) => Math.round(Math.min(SIDE_MAX, Math.max(SIDE_MIN, px)));
 
-export const sidebar = reactive({
-  width: clampWidth(Number(read(WIDTH_KEY)) || SIDE_DEFAULT),
-  folded: read(FOLDED_KEY) === "1",
-  resizing: false,
-});
-watch(() => sidebar.width, (width) => write(WIDTH_KEY, String(width)));
-watch(() => sidebar.folded, (folded) => write(FOLDED_KEY, folded ? "1" : "0"));
+const fresh = () => ({ width: clampWidth(Number(read(WIDTH_KEY)) || SIDE_DEFAULT), folded: read(FOLDED_KEY) === "1", resizing: false });
+export const sidebar = reactive(fresh());
+onReset(() => Object.assign(sidebar, fresh()));
+// A change is written as it is made, and only a change: the three below are the only ones that make one.
+function setFolded(folded: boolean) {
+  if (sidebar.folded !== folded) { sidebar.folded = folded; write(FOLDED_KEY, folded ? "1" : "0"); }
+}
+function setWidth(width: number) {
+  if (sidebar.width !== width) { sidebar.width = width; write(WIDTH_KEY, String(width)); }
+}
 
 export const sideWidth = () => (sidebar.folded ? SIDE_FOLDED : sidebar.width);
-export function toggleSidebar() { sidebar.folded = !sidebar.folded; }
+export function toggleSidebar() { setFolded(!sidebar.folded); }
 /** The edge dragged to `px` from the window's left: a width between the bounds, or folded below FOLD_AT. */
 export function dragSidebar(px: number) {
-  if (px < FOLD_AT) { sidebar.folded = true; return; }
-  sidebar.folded = false;
-  sidebar.width = clampWidth(px);
+  if (px < FOLD_AT) { setFolded(true); return; }
+  setFolded(false);
+  setWidth(clampWidth(px));
 }
-export function resetSidebar() { sidebar.folded = false; sidebar.width = SIDE_DEFAULT; }
+export function resetSidebar() { setFolded(false); setWidth(SIDE_DEFAULT); }

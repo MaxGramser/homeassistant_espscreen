@@ -56,18 +56,13 @@ export type Plan = {
 // Plugins are on in the dev app (editor_features.plugins, docs/PLUGINS.md) and in `npm run dev`: a person with a
 // released add-on never sees the page or the tab.
 export const pluginsEnabled = computed(() => import.meta.env.DEV || state.inventory.editor_features?.plugins === true);
-// The layout model, the memory price and the tile card ask the model's register for a plugin tile; it follows the index.
-watch(() => plugins.index, (index) => knowTileTypes(index), { immediate: true });
-// The plugins load as soon as they are on, not when the Plugins page opens: a page with a plugin tile needs its type.
-watch(pluginsEnabled, (on) => { pluginTiles.enabled = on; if (on) loadPlugins(); }, { immediate: true });
 
 type Payload = {
   plugins: Plugin[]; installed: Record<string, Installed[]>; secrets: typeof plugins.secrets;
   folders: typeof plugins.folders; entities?: typeof plugins.entities;
   features?: Record<string, string[]>; fit?: Record<string, Record<string, Misfit>>; likes?: { consented?: boolean };
 };
-// The add-on's plugins (api/plugins). Asked again when a plugin build of some screen starts or ends (the store's builds,
-// live from the add-on), so a record's state and version follow the build without a poll of its own.
+// The add-on's plugins (api/plugins). Asked again when a plugin build of some screen starts or ends (startPlugins).
 export function reloadPlugins(refresh = false) {
   return getJson<Payload>(refresh ? "plugins?refresh=1" : "plugins").then((data) => {
     plugins.index = data.plugins;
@@ -81,8 +76,6 @@ export function reloadPlugins(refresh = false) {
     plugins.plans = {};
   }).catch(() => undefined);
 }
-watch(() => Object.entries(state.inventory.builds || {}).filter(([, build]) => build.by === "plugins")
-  .map(([screen, build]) => `${screen}:${build.state}`).join(), (now, before) => { if (plugins.loaded && now !== before) reloadPlugins(); });
 export function loadPlugins() {
   if (plugins.loaded) return;
   plugins.loaded = true;
@@ -471,6 +464,21 @@ export async function switchPlugin(screen: Screen, plugin: Plugin) {
 export async function setSecret(plugin: Plugin, input: string, value: string) {
   await send(`plugins/${plugin.id}/secrets/${input}`, "PUT", { value });
   await reloadPlugins();
+}
+
+// ---- Started once the page is on the screen (boot.ts); the returned function stops it ----
+export function startPlugins() {
+  const stops = [
+    // The layout model, the memory price and the tile card ask the model's register for a plugin tile; it follows the index.
+    watch(() => plugins.index, (index) => knowTileTypes(index), { immediate: true }),
+    // The plugins load as soon as they are on, not when the Plugins page opens: a page with a plugin tile needs its type.
+    watch(pluginsEnabled, (on) => { pluginTiles.enabled = on; if (on) loadPlugins(); }, { immediate: true }),
+    // A plugin build of some screen that starts or ends (the store's builds, live from the add-on): a record's state and
+    // version follow the build without a poll of its own.
+    watch(() => Object.entries(state.inventory.builds || {}).filter(([, build]) => build.by === "plugins")
+      .map(([screen, build]) => `${screen}:${build.state}`).join(), (now, before) => { if (plugins.loaded && now !== before) reloadPlugins(); }),
+  ];
+  return () => stops.forEach((stop) => stop());
 }
 
 // Every list and cache back to how it starts, the model's registers of plugin tiles and fits too (tests/setup.ts).

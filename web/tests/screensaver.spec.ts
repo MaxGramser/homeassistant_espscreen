@@ -5,7 +5,7 @@ import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SaverInspector from "../src/components/SaverInspector.vue";
 import ScreensaverCard from "../src/components/ScreensaverCard.vue";
-import { currentScreen, openSaverStep, state } from "../src/store";
+import { currentScreen, openSaverStep, startStore, state } from "../src/store";
 import { summary } from "../src/saver";
 import type { Inventory, ScreensaverView } from "../src/types";
 
@@ -102,9 +102,12 @@ describe("a step in the drawer", () => {
   });
 
   it("closes when the layout comes back", async () => {
+    // The store's reactions run once the page has started it (boot.ts).
+    const stop = startStore();
     openSaverStep("clock");
     state.tab = "layout";
     await nextTick();
     expect(state.inspector).toBeNull();
+    stop();
   });
 });

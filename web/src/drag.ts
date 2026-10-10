@@ -1,5 +1,3 @@
-import { editorLayout } from "./store";
-const { grid, arrange, pageOf, reorderPages } = editorLayout;
 // Pointer-based drag & drop, mouse and touch, from the library into the mockup, between
 // cells, and a whole page to another place in the row (app 0.2.121). Touch starts after a
 // short hold so the page still scrolls. While dragging, the
@@ -7,10 +5,11 @@ const { grid, arrange, pageOf, reorderPages } = editorLayout;
 // drop off the grid changes nothing. A finished drag never doubles as a click.
 import type { Directive } from "vue";
 import { entriesOf, pageOrder } from "./model/layout";
-import { commitArrangement, confirmMemory, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, startTile, state, toast } from "./store";
+import { commitArrangement, confirmMemory, editorLayout, keyToCell, loadCapabilities, movePage, pagesShown, placeKey, placeTile, startTile, state, toast } from "./store";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
 import { t } from "./i18n";
+import { onReset } from "./resets";
 
 export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string } | { kind: "page"; page: number };
 type Drag = {
@@ -167,7 +166,7 @@ export function slotAt(x: number, y: number) {
   const columns = Number(best.cell.dataset.columns || 1), rows = Number(best.cell.dataset.rows || 1);
   const column = Math.max(0, Math.min(columns - 1, Math.floor((x - best.r.left) / best.r.width * columns)));
   const row = Math.max(0, Math.min(rows - 1, Math.floor((y - best.r.top) / best.r.height * rows)));
-  slot += row * grid.columns + column;
+  slot += row * editorLayout.grid.columns + column;
   return slot;
 }
 // The place in the row under the pointer, by the mockups as they stand right now: the page nearest to it, which
@@ -192,7 +191,7 @@ function setPageTarget(place: number) {
   if (to === page.to) return;
   page.to = to;
   page.order = pageOrder(pagesShown(), page.from, to);
-  state.drag.preview = reorderPages(entriesOf(state.layout), page.order);
+  state.drag.preview = editorLayout.reorderPages(entriesOf(state.layout), page.order);
 }
 function setTarget(slot: number) {
   if (drag.target === slot || !state.layout || !state.drag.moving) return;
@@ -200,10 +199,10 @@ function setTarget(slot: number) {
   // A key leaves its clock for an empty cell only: the drop shows nothing moving aside.
   if (state.drag.moving.in !== undefined) { state.drag.preview = null; return; }
   // Off the grid: a tile from the grid shows where it came from; a new one shows nowhere yet.
-  state.drag.preview = slot >= 0 ? arrange(state.layout.tiles, state.drag.moving, slot) : null;
+  state.drag.preview = slot >= 0 ? editorLayout.arrange(state.layout.tiles, state.drag.moving, slot) : null;
   // A page the tile can't land on says so as a whole, instead of showing nothing: a page-filling tile over a page
   // that has tiles, a large one where the tiles around it have nowhere to go.
-  state.drag.refused = slot >= 0 && !state.drag.preview ? pageOf(slot) : null;
+  state.drag.refused = slot >= 0 && !state.drag.preview ? editorLayout.pageOf(slot) : null;
 }
 function endDrag(drop: boolean) {
   const preview = state.drag.preview, moving = state.drag.moving, page = state.drag.page, key = state.drag.key, refused = state.drag.refused;
@@ -243,5 +242,16 @@ function endDrag(drop: boolean) {
     if (commitArrangement(preview)) loadCapabilities([moving.entity]);
   } else if (drop && moving && refused !== null && refused !== undefined) toast(t("editor.layout.no_room", { page: refused + 1 }));
 }
-window.addEventListener("click", (e) => { if (Date.now() < drag.suppressUntil) { e.stopPropagation(); e.preventDefault(); } }, true);
+// A finished drag is no click (startDrag, from boot.ts): the click the browser sends after it stops before anything sees it.
+function swallowClick(e: MouseEvent) { if (Date.now() < drag.suppressUntil) { e.stopPropagation(); e.preventDefault(); } }
+export function startDrag() {
+  window.addEventListener("click", swallowClick, true);
+  return () => window.removeEventListener("click", swallowClick, true);
+}
 export const dragSuppressed = () => Date.now() < drag.suppressUntil;
+// A drag still under way when a test ends lets go of the page, as a cancelled one does.
+onReset(() => {
+  clearTimeout(drag.timer);
+  if (drag.ghost) endDrag(false);
+  Object.assign(drag, { source: null, element: null, ghost: null, start: null, pointerId: null, suppressUntil: 0, last: null, target: null, lastSlot: null });
+});

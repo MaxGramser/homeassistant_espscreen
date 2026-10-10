@@ -130,9 +130,9 @@ export const state = reactive({
 // A page as narrow as a phone gets the editor of everyday changes: the screen itself, one button to add a tile, a tile's
 // name, icon and colour, and everything else under the screen's menu. Wider pages, and a phone that chose the whole
 // editor, keep the editor as it was. The width is the browser's, so a desktop never sees any of it.
-const PHONE = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(max-width: 640px)") : null;
-export const narrowPhone = ref(Boolean(PHONE?.matches));
-PHONE?.addEventListener?.("change", (event) => { narrowPhone.value = event.matches; });
+// The width is read when the page loads; startStore follows it from then on.
+const phoneQuery = () => (typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(max-width: 640px)") : null);
+export const narrowPhone = ref(Boolean(phoneQuery()?.matches));
 export const phone = computed(() => narrowPhone.value && !state.fullEditor);
 export function setFullEditor(on: boolean) {
   state.fullEditor = on;
@@ -450,7 +450,8 @@ export function go(target: Route) {
   if (location.hash === target) { state.route = target; return; }
   location.hash = target;
 }
-window.addEventListener("hashchange", () => { state.route = location.hash; window.scrollTo(0, 0); });
+// The address bar's back and forward, and go() above: startStore follows the hash.
+function followHash() { state.route = location.hash; window.scrollTo(0, 0); }
 
 // ---- Names and icons ----
 export function entityName(id: string) {
@@ -2016,10 +2017,6 @@ export async function installClaudeSkill() {
 // of them, Home Assistant's unless the setting says another; the mockup draws their words in it, and in English until
 // the add-on tells which one it is.
 export const screenLanguage = computed(() => pickLanguage(state.inventory.language?.effective));
-watch(screenLanguage, (code) => loadLanguage(code), { immediate: true });
-// The screensaver's drawers belong to the settings: they close when the layout comes back.
-watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); });
-watch(() => state.libraryOpen, (open) => { try { localStorage.setItem("esp-screens.library-open", open ? "1" : "0"); } catch {} });
 /** A text as the screens show it: in their language, not the editor's. */
 export const screenText = (key: string, named: Record<string, unknown> = {}) => t(key, named, { locale: screenLanguage.value });
 /** A language by its own name ("Nederlands"), as the add-on lists it. */
@@ -2173,7 +2170,7 @@ function applyLive(data: Partial<Inventory>) {
   for (const screen of state.inventory.screens) if (buildOf(screen)) state.updating = state.updating.filter((id) => id !== screen.id);
   if (state.selected) { settleSettings(); reconcileDocument(); }
 }
-let pollTimer = 0, lastFull = Date.now(), live = false, stream: EventSource | null = null;
+let pollTimer = 0, lastFull = Date.now(), live = false, polling = false, stream: EventSource | null = null;
 function listen() {
   if (stream || typeof EventSource === "undefined") return;
   // An EventSource sends no headers of its own: the editor's language goes along in the address (app 0.2.90).
@@ -2187,6 +2184,7 @@ function listen() {
 // plus a full catalogue refresh every 5 minutes.
 function poll() {
   clearTimeout(pollTimer);
+  if (!polling) return;
   const wait = live ? 60000 : anyBuilding() || state.inventory.updates?.busy ? 3000 : 10000;
   pollTimer = window.setTimeout(async () => {
     if (!document.hidden) {
@@ -2197,40 +2195,75 @@ function poll() {
     poll();
   }, wait);
 }
-let booted = false;
-export function boot() {
-  if (booted) return;
-  booted = true;
-  refresh();
-  listen();
-  poll();
-  whenBarFontsLoad(() => state.fontsVersion++);
+// ---- Started once the page is on the screen (boot.ts) ----
+// What the store does by itself while the page is open: the live stream and its polls, the clocks of the mockup, the
+// reactions to a change elsewhere, and what the page does when it is hidden, shown again or closed. Nothing of it starts
+// when the module loads, so a test imports the store and starts only what it tests. The returned function stops it all.
+let started: (() => void) | null = null;
+export function startStore() {
+  if (started) return started;
+  const stops: (() => void)[] = [];
+  const on = <K extends keyof WindowEventMap>(name: K, run: (event: WindowEventMap[K]) => void) => {
+    window.addEventListener(name, run);
+    stops.push(() => window.removeEventListener(name, run));
+  };
+  const every = (ms: number, run: () => void) => { const timer = window.setInterval(run, ms); stops.push(() => clearInterval(timer)); };
+  // The language the screens speak loads as soon as the add-on names it, for the mockup's words.
+  stops.push(watch(screenLanguage, (code) => loadLanguage(code), { immediate: true }));
+  // The screensaver's drawers belong to the settings: they close when the layout comes back.
+  stops.push(watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); }));
+  stops.push(watch(() => state.libraryOpen, (open) => { try { localStorage.setItem("esp-screens.library-open", open ? "1" : "0"); } catch {} }));
+  const phoneWidth = phoneQuery(), toPhone = (event: MediaQueryListEvent) => { narrowPhone.value = event.matches; };
+  phoneWidth?.addEventListener?.("change", toPhone);
+  stops.push(() => phoneWidth?.removeEventListener?.("change", toPhone));
+  state.route = location.hash;
+  on("hashchange", followHash);
+  stops.push(startLive());
+  let fonts = true;
+  whenBarFontsLoad(() => { if (fonts) state.fontsVersion++; });
+  stops.push(() => { fonts = false; });
   // The mockup's clocks tick and entity values in the top bar follow Home Assistant while the page is open.
-  setInterval(() => {
+  every(30000, () => {
     if (!state.layout || document.hidden || state.drag.active) return;
     state.now = Date.now();
     loadTopbarPreview(0);
-  }, 30000);
+  });
   // The mockup follows Home Assistant while it is on screen; a running update reports its stage every few seconds.
-  setInterval(() => {
+  every(8000, () => {
     if (!document.hidden && state.layout && state.tab === "layout" && route.value === "") loadStates();
-  }, 8000);
-  setInterval(() => {
+  });
+  every(3000, () => {
     // The log of the build that runs; the last one's stays, so a failed build can still be read (BuildLog).
     if (!document.hidden && anyBuilding()) loadFirmwareJob();
-  }, 3000);
-  document.addEventListener("visibilitychange", async () => {
+  });
+  // A change still waiting for its short pause goes out when the page closes.
+  on("pagehide", () => flushSettings(true));
+  on("beforeunload", (e) => {
+    if (state.dirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+  started = () => { started = null; for (const stop of stops.splice(0).reverse()) stop(); };
+  return started;
+}
+// The inventory, the live stream and the polls that stand in for it, and a full refresh when the tab is shown again.
+function startLive() {
+  const shown = async () => {
     if (document.hidden) return;
     lastFull = Date.now();
     state.now = Date.now();
     await refresh();
     poll();
-  });
-  // A change still waiting for its short pause goes out when the page closes.
-  window.addEventListener("pagehide", () => flushSettings(true));
-  window.addEventListener("beforeunload", (e) => {
-    if (state.dirty) { e.preventDefault(); e.returnValue = ""; }
-  });
+  };
+  polling = true;
+  refresh();
+  listen();
+  poll();
+  document.addEventListener("visibilitychange", shown);
+  return () => {
+    document.removeEventListener("visibilitychange", shown);
+    polling = false;
+    clearTimeout(pollTimer);
+    stream?.close(); stream = null; live = false;
+  };
 }
 
 // ---- A fresh start (tests/setup.ts, between tests) ----
@@ -2238,10 +2271,11 @@ export function boot() {
 // undo, the caches of what was asked, the timers still waiting. A request still on its way finds another selection and
 // keeps its answer to itself.
 function resetStore() {
+  started?.();
   Object.assign(state, fresh());
   clearTimeout(toastTimer); clearTimeout(addedTimer); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
   mapSaver.cancel();
-  narrowPhone.value = Boolean(PHONE?.matches);
+  narrowPhone.value = Boolean(phoneQuery()?.matches);
   previewsSkipped = "";
   askedCapabilities.clear(); askedSubtitles.clear(); askedActions.clear();
   statesFlight = false; overviewFlight = false; firmwareFlight = false;
