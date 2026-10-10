@@ -37,8 +37,9 @@ void GT911Touchscreen::setup() {
       this->mark_failed(LOG_STR("Power/reset sequence failed"));
       return;
     }
-    if (this->configuration_valid_()) {
-      this->setup_internal_();
+    uint8_t switches;
+    if (this->configuration_valid_(&switches)) {
+      this->setup_internal_(switches);
       return;
     }
     ESP_LOGW(TAG, "Invalid GT911 configuration after power cycle %u", attempt);
@@ -91,11 +92,11 @@ bool GT911Touchscreen::init_sequence_() {
   return true;
 }
 
-bool GT911Touchscreen::configuration_valid_() {
+bool GT911Touchscreen::configuration_valid_(uint8_t *switches) {
   uint8_t data[4];
-  i2c::ErrorCode err = this->probe_address_(PRIMARY_ADDRESS, data);
+  i2c::ErrorCode err = this->probe_address_(PRIMARY_ADDRESS, switches);
   if (err != i2c::ERROR_OK)
-    err = this->probe_address_(SECONDARY_ADDRESS, data);
+    err = this->probe_address_(SECONDARY_ADDRESS, switches);
   if (err != i2c::ERROR_OK)
     return false;
 
@@ -112,28 +113,24 @@ bool GT911Touchscreen::configuration_valid_() {
   return x_res != 0 && y_res != 0;
 }
 
-void GT911Touchscreen::setup_internal_() {
+void GT911Touchscreen::setup_internal_(uint8_t switches) {
   uint8_t data[4];
+  i2c::ErrorCode err = i2c::ERROR_OK;
 
-  i2c::ErrorCode err = this->probe_address_(PRIMARY_ADDRESS, data);
-  if (err != i2c::ERROR_OK)
-    err = this->probe_address_(SECONDARY_ADDRESS, data);
-  if (err == i2c::ERROR_OK) {
-    // data[0] & 1 == 1  =>  controller uses falling edge  =>  active-low
-    // data[0] & 1 == 0  =>  controller uses rising  edge  =>  active-high
-    bool active_high = !(data[0] & 1);
+  // switches & 1 == 1  =>  controller uses falling edge  =>  active-low
+  // switches & 1 == 0  =>  controller uses rising  edge  =>  active-high
+  bool active_high = !(switches & 1);
 
-    if (this->interrupt_pin_ != nullptr) {
-      ESP_LOGD(TAG, "Interrupt pin is not null!");
-      if (this->interrupt_pin_->is_internal()) {
-        // Direct MCU pin: attach a hardware interrupt, no polling needed.
-        this->attach_interrupt_(static_cast<InternalGPIOPin *>(this->interrupt_pin_),
-                                active_high ? gpio::INTERRUPT_RISING_EDGE : gpio::INTERRUPT_FALLING_EDGE);
-        ESP_LOGD(TAG, "Interrupt pin: hardware interrupt, active %s", active_high ? "HIGH" : "LOW");
-      } else {
-        // IO expander pin: leave as output for configuration only.
-        ESP_LOGD(TAG, "Interrupt pin: IO expander polling mode, active %s", active_high ? "HIGH" : "LOW");
-      }
+  if (this->interrupt_pin_ != nullptr) {
+    ESP_LOGD(TAG, "Interrupt pin is not null!");
+    if (this->interrupt_pin_->is_internal()) {
+      // Direct MCU pin: attach a hardware interrupt, no polling needed.
+      this->attach_interrupt_(static_cast<InternalGPIOPin *>(this->interrupt_pin_),
+                              active_high ? gpio::INTERRUPT_RISING_EDGE : gpio::INTERRUPT_FALLING_EDGE);
+      ESP_LOGD(TAG, "Interrupt pin: hardware interrupt, active %s", active_high ? "HIGH" : "LOW");
+    } else {
+      // IO expander pin: leave as output for configuration only.
+      ESP_LOGD(TAG, "Interrupt pin: IO expander polling mode, active %s", active_high ? "HIGH" : "LOW");
     }
   }
 

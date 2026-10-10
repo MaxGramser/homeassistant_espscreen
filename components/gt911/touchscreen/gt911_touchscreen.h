@@ -29,7 +29,7 @@ class GT911Touchscreen final : public touchscreen::Touchscreen, public i2c::I2CD
   void update_touches() override;
 
   bool init_sequence_();
-  bool configuration_valid_();
+  bool configuration_valid_(uint8_t *switches);
   /// @brief Perform the internal setup routine for the GT911 touchscreen.
   ///
   /// This function checks the I2C address, configures the interrupt pin (if available),
@@ -38,7 +38,7 @@ class GT911Touchscreen final : public touchscreen::Touchscreen, public i2c::I2CD
   ///
   /// On success, sets @ref setup_done_ to true.
   /// On failure, calls @ref mark_failed() with an appropriate error message.
-  void setup_internal_();
+  void setup_internal_(uint8_t switches);
   i2c::ErrorCode probe_address_(uint8_t address, uint8_t *switches);
   /// @brief True if the touchscreen setup has completed successfully.
   bool setup_done_{false};

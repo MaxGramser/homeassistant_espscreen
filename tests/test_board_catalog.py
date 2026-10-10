@@ -116,8 +116,10 @@ class Catalog(unittest.TestCase):
         self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
         self.assertIn('GT911_INIT_ATTEMPTS = 3', driver)
         self.assertIn('for (uint8_t attempt = 1; attempt <= GT911_INIT_ATTEMPTS; attempt++)', setup)
-        self.assertIn('configuration_valid_()', setup)
-        self.assertLess(setup.index('init_sequence_'), setup.index('configuration_valid_()'))
+        self.assertIn('configuration_valid_(&switches)', setup)
+        self.assertIn('setup_internal_(switches)', setup)
+        self.assertLess(setup.index('init_sequence_'), setup.index('configuration_valid_(&switches)'))
+        self.assertLess(setup.index('configuration_valid_(&switches)'), setup.index('setup_internal_(switches)'))
         self.assertIn('Invalid GT911 configuration after power cycle', setup)
         sequence = driver[driver.index('bool GT911Touchscreen::init_sequence_'):
                           driver.index('void GT911Touchscreen::setup_internal_')]
@@ -136,7 +138,7 @@ class Catalog(unittest.TestCase):
         self.assertLess(reset_high, second_wait)
         self.assertNotIn('this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);', sequence)
         self.assertIn('probe_address_(SECONDARY_ADDRESS', driver)
-        validation = driver[driver.index('bool GT911Touchscreen::configuration_valid_()'):
+        validation = driver[driver.index('bool GT911Touchscreen::configuration_valid_(uint8_t *switches)'):
                             driver.index('void GT911Touchscreen::setup_internal_')]
         self.assertIn('GET_MAX_VALUES', validation)
         self.assertIn('x_res != 0 && y_res != 0', validation)
