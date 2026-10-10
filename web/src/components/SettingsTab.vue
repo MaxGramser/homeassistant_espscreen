@@ -31,6 +31,11 @@ const pluginsWithSettings = computed(() => {
     .filter((plugin, i, all) => all.findIndex((other) => other.id === plugin.id) === i)
     .filter((plugin) => plugin.settings?.length || (plugin.inputs || []).length || (plugin.parts || []).length);
 });
+// A plugin's details on the screen's Plugins tab, opened from here, where its settings used to be.
+function openPlugin(id: string) {
+  plugins.focus = id;
+  state.tab = "plugins";
+}
 // The choices of a row: the rotation offers the angles this screen's glass allows (the manager says which, app
 // 0.2.94); an add-on from before said nothing, and then the four of the Guition stand.
 const optionsOf = (row: SettingRow) => (row.key === "rotation" && view.value?.rotations?.length ? view.value.rotations : row.options!);
@@ -121,7 +126,7 @@ const startCalibration = () => scr.currentScreen && scr.calibrateTouch(scr.curre
         <h4><span class="mdi">{{ glyph("F0A66") }}</span>{{ t("editor.screen_settings.plugins.title") }}</h4>
         <p class="hint">{{ t("editor.screen_settings.plugins.note") }}</p>
         <div class="s-action plugin-links">
-          <button v-for="plugin in pluginsWithSettings" :key="plugin.id" type="button" class="btn quiet" :data-plugin="plugin.id" @click="plugins.openPluginOn(plugin.id)">
+          <button v-for="plugin in pluginsWithSettings" :key="plugin.id" type="button" class="btn quiet" :data-plugin="plugin.id" @click="openPlugin(plugin.id)">
             {{ text(plugin.name) }}<Icon name="arrow-right" />
           </button>
         </div>

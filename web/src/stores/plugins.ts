@@ -9,7 +9,6 @@ import { getJson, send } from "../api";
 import { t } from "../i18n";
 import { attachLine, barItemView, barTypesOf, choiceKey, fit, isTest, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
   text, tileTypesOf, type AppFit, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
-import { state } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useScreenStore } from "./screen";
@@ -233,8 +232,6 @@ export const usePluginsStore = defineStore("plugins", () => {
     const chosen = parts.value[node]?.[plugin.id];
     return changed || (chosen !== undefined && [...chosen].sort().join() !== [...(have.parts || [])].sort().join());
   }
-  // Open a plugin's details on the screen's Plugins tab: from Screen settings, where its settings used to be.
-  function openPluginOn(id: string) { focus.value = id; state.tab = "plugins"; }
   // Whether everything a plugin asks for is filled in on these screens: the button waits until it is.
   const setupReady = (plugin: Plugin, screens: Screen[]) =>
     screens.every((screen) => (plugin.inputs || []).every((input) => valueOf(screen, plugin, input.id).trim() !== ""
@@ -501,7 +498,7 @@ export const usePluginsStore = defineStore("plugins", () => {
       installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike,
       isSetAside, trayPlan, trayAlong, trayReady, setAsideKb,
     }),
-    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, openPluginOn, chooseProvider, like, forgetDrafts,
+    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, forgetDrafts,
     addPlugin, updateAll, setAside, takeOut, toggleSetAside, installTray, removePlugin, switchPlugin, setSecret, start,
   };
 });

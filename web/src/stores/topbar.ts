@@ -124,7 +124,7 @@ export const useTopbarStore = defineStore("topbar", () => {
   const topbarAdded = ref<null | { key: string; time: number }>(null);
   const topbarList = itemList({
     items: () => topbarItems(), set: (items) => setTopbarItems(items), max: () => scr.topbarMax, open: (index) => openBar(index), inspector: "bar",
-    same: (a, b) => itemKey(a) === itemKey(b), label: topbarLabel, toast: ui.toast,
+    same: (a, b) => itemKey(a) === itemKey(b), label: topbarLabel, toast: (message, action) => ui.toast(message, action),
     full: () => t("editor.topbar.full", scr.topbarMax), already: () => t("editor.topbar.already"),
     removed: (name) => t("editor.topbar.removed", { name }),
     added: (item) => { topbarAdded.value = { key: itemKey(item), time: Date.now() }; },

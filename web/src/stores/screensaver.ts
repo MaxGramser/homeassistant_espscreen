@@ -101,7 +101,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
   }
   const saverList = itemList({
     items: () => saverItems.value, set: setSaverItems, max: () => SAVER_ITEMS_MAX, open: openSaverItem, inspector: "saver-item",
-    label: topbar.topbarLabel, toast: ui.toast,
+    label: (item) => topbar.topbarLabel(item), toast: (message, action) => ui.toast(message, action),
     // One entity once: the clock has no room for the same one twice, whatever it shows of it.
     same: (a, b) => a.entity === b.entity,
     full: () => t("editor.screen_settings.screensaver.items_full", { n: SAVER_ITEMS_MAX }),
@@ -123,7 +123,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
     }
     const weather = saver.value?.weather ?? "auto";
     const first = weather === "auto" ? t(key("summary.temperature")) : weather ? entities.entityName(weather) : t(key("summary.time_date"));
-    return { text: [first, ...saverItems.value.map(topbar.topbarLabel)].join(", ") };
+    return { text: [first, ...saverItems.value.map((item) => topbar.topbarLabel(item))].join(", ") };
   }
 
   // The clock as the glass draws it, for the small preview: the time, the date and the bottom line.
