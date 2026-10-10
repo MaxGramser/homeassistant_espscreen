@@ -716,7 +716,7 @@ class Editor(unittest.TestCase):
         self.assertNotIn('settings', ''.join(page_layout), 'device settings are not part of the page document')
         # The top bar's clock follows the one clock of Settings → Language & region (app 0.2.90).
         import editor_sources
-        self.assertIn('state.inventory.language?.clock_effective !== "12"', self.script)
+        self.assertIn('inv.inventory.language?.clock_effective !== "12"', editor_sources.source('stores/region.ts'))
         self.assertNotIn("setSetting('clock_24h'", self.script)
         self.assertIn('<a href="#settings">', editor_sources.component('TopbarInspector'))
 
