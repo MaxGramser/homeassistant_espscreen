@@ -10657,7 +10657,12 @@ inline void pictures_round();
 // (card_picture_wants). Until its next picture is here, a card keeps the one it shows of the same place.
 inline tile_picture::Questions tile_questions;
 inline bool tile_pictures_supported() { return static_cast<bool>(camera_live.load); }
-inline bool card_open() { return detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN); }
+// The detail card a tap opens (detail_root) is up.
+inline bool detail_shown() { return detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN); }
+// Any card over the page: the detail card, a lamp's colour card, and the effects or lamps page a card opens. One notion
+// for all of them, which the pictures, the pages prepared ahead, a page turn and the live tiles all ask: the colour card
+// in C++ was none of them at first, and the live tiles streamed on over it (2026-10-10, the D1001).
+inline bool card_open() { return detail_shown() || colour_shown() || effects_page::visible() || group_page::visible(); }
 // What a card's picture is: its place measured on the card as LVGL laid it out, how the app paints it, and its pace.
 // False when the tile shows no picture, or the card has no size yet.
 inline bool tile_ask(const Widgets &w, const Tile &t, tile_picture::Ask &a) {
@@ -10831,36 +10836,51 @@ inline void tile_pictures_letgo() {
 
 // ---- The camera live, full screen, on a P4 (live_view.h) ----
 inline void camera_note_text(const char *text);
-// Whether anything LVGL draws above `owner` overlaps `room` (live_view::Rect, the screen as LVGL lays it out): a visible
-// object on the system layer, or on the top layer above `owner`'s own place there (a tile's card is on the page, under
-// the whole top layer; the camera's view is on the top layer, under what came after it), or, for a card on a page, the
-// page itself no longer on the glass. A live picture writes past LVGL, so it may only write where nothing of LVGL's lies
-// over it: the update's progress, an alert, a card, the screensaver and whatever comes later, without a list of them.
+// Whether anything LVGL draws after `owner` overlaps its room (x, y, w, h: the screen as LVGL lays it out), in LVGL's own
+// order of drawing: on the way from `owner` up to its screen or layer, every sibling that comes after it; then, for
+// something on a screen, the screen no longer on the glass or anything on the top layer; and anything on the system
+// layer. A live picture writes past LVGL, so it may only write where nothing of LVGL's lies over it, without a list of
+// what may: the update's progress, an alert, the camera full screen, the screensaver, and a card opened on the page
+// itself, as a lamp's colour card is, which an earlier rule of the two layers alone missed (2026-10-10, the D1001).
+// An object without a look of its own (a plain, clear container) is not in the way by itself; what it holds may be.
 inline const char *drawn_over_by = nullptr;  // what lay over a live picture last, for the log
+inline bool drawn_over_covers(lv_obj_t *o, int x, int y, int w, int h, int depth = 0) {
+  if (!o || lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_style_opa(o, LV_PART_MAIN) == LV_OPA_TRANSP) return false;
+  lv_area_t a;
+  lv_obj_get_coords(o, &a);
+  if (!(a.x1 < x + w && a.x2 >= x && a.y1 < y + h && a.y2 >= y && a.x2 >= a.x1 && a.y2 >= a.y1)) return false;
+  const bool plain = lv_obj_check_type(o, &lv_obj_class) && lv_obj_get_style_bg_opa(o, LV_PART_MAIN) <= LV_OPA_MIN &&
+                     lv_obj_get_style_border_width(o, LV_PART_MAIN) == 0 && lv_obj_get_style_outline_width(o, LV_PART_MAIN) == 0 &&
+                     lv_obj_get_style_shadow_width(o, LV_PART_MAIN) == 0;
+  if (!plain) return true;
+  if (depth >= 6) return true;
+  for (uint32_t i = 0; i < lv_obj_get_child_count(o); ++i)
+    if (drawn_over_covers(lv_obj_get_child(o, i), x, y, w, h, depth + 1)) return true;
+  return false;
+}
 inline bool drawn_over(lv_obj_t *owner, int x, int y, int w, int h) {
   drawn_over_by = nullptr;
   if (!owner) return true;
-  auto over = [&](lv_obj_t *o) {
-    if (!o || o == owner || lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_style_opa(o, LV_PART_MAIN) == LV_OPA_TRANSP)
-      return false;
-    lv_area_t a;
-    lv_obj_get_coords(o, &a);
-    return a.x1 < x + w && a.x2 >= x && a.y1 < y + h && a.y2 >= y && a.x2 >= a.x1 && a.y2 >= a.y1;
-  };
   lv_obj_t *sys = lv_layer_sys(), *top = lv_layer_top();
-  for (uint32_t i = 0; sys && i < lv_obj_get_child_count(sys); ++i)
-    if (over(lv_obj_get_child(sys, i))) { drawn_over_by = "the system layer"; return true; }
-  // `owner`'s own place on the top layer, if it is there: only what came after it lies over it.
-  lv_obj_t *place = owner;
-  while (place && lv_obj_get_parent(place) && lv_obj_get_parent(place) != top) place = lv_obj_get_parent(place);
-  const bool on_top = place && lv_obj_get_parent(place) == top;
-  bool above = !on_top;
-  for (uint32_t i = 0; top && i < lv_obj_get_child_count(top); ++i) {
-    lv_obj_t *child = lv_obj_get_child(top, i);
-    if (!above) { above = child == place; continue; }
-    if (over(child)) { drawn_over_by = "the top layer"; return true; }
+  lv_obj_t *at = owner;
+  while (lv_obj_t *parent = lv_obj_get_parent(at)) {
+    const uint32_t count = lv_obj_get_child_count(parent);
+    for (uint32_t i = static_cast<uint32_t>(lv_obj_get_index(at)) + 1; i < count; ++i)
+      if (drawn_over_covers(lv_obj_get_child(parent, i), x, y, w, h)) {
+        drawn_over_by = parent == top ? "the top layer" : parent == sys ? "the system layer" : "something on the page";
+        return true;
+      }
+    at = parent;
   }
-  if (!on_top && lv_obj_get_screen(owner) != lv_screen_active()) { drawn_over_by = "another screen"; return true; }
+  // `at` is the screen or the layer `owner` is on.
+  if (at != top && at != sys) {
+    if (at != lv_screen_active()) { drawn_over_by = "another screen"; return true; }
+    for (uint32_t i = 0; top && i < lv_obj_get_child_count(top); ++i)
+      if (drawn_over_covers(lv_obj_get_child(top, i), x, y, w, h)) { drawn_over_by = "the top layer"; return true; }
+  }
+  if (at != sys)
+    for (uint32_t i = 0; sys && i < lv_obj_get_child_count(sys); ++i)
+      if (drawn_over_covers(lv_obj_get_child(sys, i), x, y, w, h)) { drawn_over_by = "the system layer"; return true; }
   return false;
 }
 // The room below the top bar: the back key and the name stay LVGL's, on the view's black, never over the picture.
@@ -11768,10 +11788,10 @@ inline void alert_want() {
 }
 // The open media card's cover, while its tiles are seen (firmware 0.40.0+): the card paints it in with its colour.
 inline void card_cover_want() {
-  if (!media_card_cover.valid() || !card_open() || !tiles_seen() || detail_index >= model.count ||
+  if (!media_card_cover.valid() || !detail_shown() || !tiles_seen() || detail_index >= model.count ||
       model.tiles[detail_index].entity != media_card_cover.entity) return;
   loader.want(owners::CARD, cover_picture(media_card_cover, picture_loader::Rank::CARD, [](picture_loader::Outcome o) {
-    if (shows(o) && card_open() && detail_index < model.count) refresh_detail(detail_index);
+    if (shows(o) && detail_shown() && detail_index < model.count) refresh_detail(detail_index);
   }));
 }
 // A tile's own picture (tile_picture.h): the card records what it wants (art_key), draws it from the store at once when

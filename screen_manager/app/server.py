@@ -3095,8 +3095,11 @@ class Manager:
         keys = screen_saver.KEYS_FEATURE in (getattr(sender, 'features', None) or ())
         # The player it shows keeps the glass for a while after a pause (screen_saver.HELD_SECONDS).
         row = screen_saver.ITEMS_FEATURE in (getattr(sender, 'features', None) or ())
+        # A player whose cover could not be fetched gives way to the next step (GitHub #229).
+        broken = {entity for entity in screen_saver.players(choice) if self.camera.cover_broken(entity)}
         return screen_saver.message(choice, self.ha.states, pictures, short, media_extras, self.player_ground, keys,
-                                    held=self.saver_shown.get(screen.get('id'), ''), bar=self.saver_item if row else None)
+                                    held=self.saver_shown.get(screen.get('id'), ''), bar=self.saver_item if row else None,
+                                    broken=broken)
 
     def saver_item(self, item):
         """One of the clock's entity items as the top bar sends it (header_bar.entity_item)."""
@@ -3119,7 +3122,10 @@ class Manager:
         try:
             delivered = await sender.auxiliary(message, session=sender.session, revision=sender.confirmed)
         except Exception as error:
-            # Tried again on the next pass; the tiles' own delivery is no business of the screensaver.
+            # Tried again on the next pass; the tiles' own delivery is no business of the screensaver. A message whose
+            # answer did not come may have reached the screen all the same, so the next pass sends what is right then,
+            # also when that is the word sent before it (GitHub #229): the screen keeps a word it already has.
+            self.saver_sent.pop(inbox, None)
             LOG.info('Screensaver for %s not delivered (%s)', screen.get('name', inbox), type(error).__name__)
             return
         if delivered:
@@ -3222,8 +3228,16 @@ class Manager:
         base = await camera_feed.base_url(self.ha.request)
         if base and await self.camera.saver(entity, box, kind, ground):
             url = f'{base}/camera/{self.camera.link(entity, box, saver=(kind, ground))}.bmp'
+        if not url and kind == 'media' and self.camera.cover_pending(entity):
+            # The cover is still on its way: no answer, so the screen asks again (camera_view::ASK_AGAIN_MS) and gets it
+            # then. A screen told there is none keeps a black glass until the next track.
+            LOG.info('Screensaver picture of %s on %s: still on its way', entity, screen['name'])
+            return
         await self.send_auxiliary(inbox, {'v': 1, 'op': 'camera', 't': 'saver', 'e': entity, 'u': url}, action, request)
         LOG.info('Screensaver picture of %s on %s%s', entity, screen['name'], '' if url else ': none')
+        if not url and kind == 'media':
+            # The cover did not come: a pass right away, which gives the glass to the next step (cover_broken).
+            self.ha.changed.set()
 
     async def answer_live(self, inbox, screen, request):
         """The strip for a page's live camera tiles: every tile the screen names must be a camera tile of its layout

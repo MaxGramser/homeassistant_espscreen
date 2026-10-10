@@ -26,7 +26,8 @@ For example, with the order Music playing, Camera, Clock:
 
 - music plays on that player and Home Assistant has a cover for it: the screen shows the cover with the title and the
   artist;
-- nothing plays, or the player shows no cover (a radio station, a paused player): the screen shows the camera;
+- nothing plays, or the player shows no cover (a radio station, a paused player, a cover that can't be loaded): the
+  screen shows the camera;
 - the camera is unavailable: the screen shows the clock.
 
 With every step off or unavailable, standby shows the dimmed tiles as it did before.
@@ -115,9 +116,13 @@ has.
 - **The pick.** The app follows the chosen players and camera like a tile's entities (`watched_entities`). After every
   pass of a screen it works out the first step that is on and available (`screen_saver.pick`): the first player of the
   list (`media`, then `more`, `screen_saver.player`) whose state is `playing` with an `entity_picture`, a camera whose state is not `unavailable` or `unknown`, the clock always. A
-  board without pictures has only the clock.
+  board without pictures has only the clock. A player whose cover could not be fetched for its current picture
+  (`camera_feed.cover_broken`) counts as one without a cover: a screen told there is no picture keeps a black glass until
+  the next track, so the app answers that once and moves on to the next step at once. It fetches the cover again by
+  itself every `COVER_RETRY_SECONDS`, and a cover still on its way gets no answer, so the screen asks again.
 - **On the wire** the answer is one message in the screen's session, sent when it changes and once in every new
-  session: `{"op": "saver", "k": "media" | "camera" | "clock" | ""}`. A player adds its entity (`e`), its name
+  session: `{"op": "saver", "k": "media" | "camera" | "clock" | ""}`. One whose answer did not come is sent again on the
+  next pass, also when the step went back to the one before it: it may have reached the screen. A player adds its entity (`e`), its name
   (`n`), the title (`t`) and `x`: the artist, the album, the picture's mark and the cover's colour, the things its
   picture and words are made from. Where the track is goes along with none of it, so a player that reports its
   position sends nothing new. With several players the message names the one that shows, so the screen needs nothing

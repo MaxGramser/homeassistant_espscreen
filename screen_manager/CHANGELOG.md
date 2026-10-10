@@ -1,5 +1,10 @@
 ## Unreleased
 
+- **The screensaver no longer stands black over a cover that doesn't come.** When a player plays but its cover can't
+  be fetched (an error from the address, or a picture of `none`), the screensaver shows its next step, the camera or
+  the clock, instead of a black glass, and the music comes back as soon as the cover does or the next track starts. A
+  change that the screen may have missed in a slow moment is sent again, so the clock no longer stays away after one
+  (#229).
 - **M5Stack Tab5: the speaker and the voice assistant.** The Tab5 turns on the output its speaker is connected to,
   so spoken answers, announcements and sounds can be heard; its microphones are amplified before the converter and
   read on the channel that working Tab5 voice setups use, and its speaker buffers half a second, so an answer plays

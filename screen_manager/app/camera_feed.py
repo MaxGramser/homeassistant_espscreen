@@ -69,6 +69,9 @@ LINK_SECONDS = 120
 STILL_SECONDS = 1800
 FIRST_FRAME_SECONDS = 8
 FETCH_SECONDS = 15
+# A player's cover that could not be fetched is fetched again by the app itself this long after, while the screensaver
+# shows its next step (cover_broken).
+COVER_RETRY_SECONDS = 60
 # A screen loads a camera's next picture at its own pace: a tile's 5 to 30 s, the full view's (camera_view::REFRESH_MS),
 # each from the end of the last load. The next fetch starts that long after a load, less the time the camera took to
 # answer and this margin, so the next load finds a snapshot a fraction of a second old (GitHub #183). Before, a load got
@@ -478,6 +481,7 @@ class Watch:
         self.size, self.size_of = None, ''  # the last picture's (width, height), and the digest it was measured for
         self.failures = 0
         self.retry_at = 0.0
+        self.failed = None  # a media player's picture address whose last fetch failed, until one of it comes
         self.fetched_at = 0.0
         self.task = None
         self.took = None            # how long the camera took to answer, smoothed: the lead of the next fetch ahead
@@ -725,13 +729,39 @@ class CameraFeed:
             watch.picture = picture
             if watch.failures:
                 LOG.info('The cover of %s comes again', entity)
-            watch.failures = 0
+            watch.failures, watch.failed = 0, None
         except asyncio.CancelledError:
             raise
         except Exception as error:
             watch.failures += 1
+            watch.failed, watch.retry_at = picture, self.clock() + COVER_RETRY_SECONDS
             if watch.failures in (1, 30):
                 LOG.info('No cover from %s (%s)', entity, type(error).__name__)
+
+    def cover_broken(self, entity):
+        """Whether the player's picture of this moment could not be fetched: the last fetch of this very address failed
+        (an HTTP error, or an `entity_picture` that leads nowhere). The screensaver then shows its next step rather than
+        a black glass where a cover never comes. The app fetches it again by itself every COVER_RETRY_SECONDS, and once
+        it comes the player counts again; a new track is another address and counts at once."""
+        watch = self.watches.get(entity)
+        if watch is None or watch.failed is None or not self.picture or self.picture(entity) != watch.failed:
+            return False
+        picture = watch.failed
+        watch.used = self.clock()
+        if (watch.task is None or watch.task.done()) and self.clock() >= watch.retry_at:
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return True
+            watch.fetching = picture
+            watch.task = asyncio.ensure_future(self.fetch_cover_one(entity, watch, picture))
+        return True
+
+    def cover_pending(self, entity):
+        """Whether the player's picture of this moment is still on its way, longer than a screen's load waits."""
+        watch = self.watches.get(entity)
+        picture = self.picture(entity) if self.picture else None
+        return bool(watch and picture and watch.fetching == picture and watch.task is not None and not watch.task.done())
 
     async def cover_raw(self, entity, wait=FIRST_FRAME_SECONDS):
         """The player's picture as Home Assistant hands it out, fetched again only when its address changed; None when
