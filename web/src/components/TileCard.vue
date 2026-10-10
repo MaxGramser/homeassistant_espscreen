@@ -36,6 +36,15 @@ function activate() {
   if (props.preview) { if (card.goesTo && props.tile.id) emit("navigate", props.tile.id); }
   else if (card.live) insp.openTile(props.tile);
 }
+// A double click on the name on the card goes to its Name field, as renaming a file in the Finder starts on its name.
+// The first click draws the card as chosen, which may draw its name anew: what is under the pointer now says where it was.
+const NAMES = ".nm, .camera-name, .plugin-live-title, .plugin-face-words b";
+function renameFrom(e: MouseEvent) {
+  const under = (e.target as HTMLElement | null)?.closest?.(NAMES) || document.elementFromPoint?.(e.clientX, e.clientY)?.closest(NAMES);
+  if (props.preview || !card.live || !under) return;
+  e.preventDefault();
+  insp.renameTile(props.tile);
+}
 const label = computed(() => t("editor.tile_card.label", { name: card.texts.name, slot: (props.slot % card.grid.slots) + 1, page: Math.floor(props.slot / card.grid.slots) + 1 }));
 // The remove key's words, said again only when the name changes, not each time the card is drawn.
 const removeText = computed(() => t("editor.tile_card.remove"));
@@ -84,7 +93,7 @@ async function onKey(e: KeyboardEvent) {
   <TileRoundKey v-if="round" :card="card" @activate="activate" />
   <div v-else class="tile" :class="classes" :data-slot="slot" :data-tile-id="tile.id" :data-columns="card.shape.columns" :data-rows="card.shape.rows" :style="style"
     :tabindex="reachable ? 0 : -1" :role="reachable ? 'button' : undefined" :aria-label="card.live ? label : undefined"
-    v-drag="preview || card.foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="card.live && onKey($event)">
+    v-drag="preview || card.foreign ? null : { kind: 'tile', tile }" @click="activate" @dblclick="renameFrom" @keydown="card.live && onKey($event)">
     <TileBedside v-if="kind === 'bedside'" :card="card" />
     <TilePlugin v-else-if="kind === 'plugin-live' || kind === 'plugin'" :card="card" />
     <TileEnergy v-else-if="kind === 'energy'" :card="card" />

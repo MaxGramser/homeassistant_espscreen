@@ -14,6 +14,8 @@ import { coverPrimary, hasCoverTilt, withCoverTilt } from "../model/tall-control
 import ChoiceField from "./ChoiceField.vue";
 import FavoriteSection from "./inspector/FavoriteSection.vue";
 import MapSection from "./inspector/MapSection.vue";
+import NameField from "./inspector/NameField.vue";
+import TitleButton from "./inspector/TitleButton.vue";
 import PropRow from "./ui/PropRow.vue";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
@@ -23,7 +25,6 @@ import UiSelect from "./ui/UiSelect.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
-import { useTextDraft } from '../composables/useTextDraft';
 import rules from "../model/page-rules.json";
 import { controlChoices, controlHint, displayChoices, displayHint, goesToChoices, goesToHint, offeredChoices, sliderOffered, subChoices,
   tapChoices, tapHint, tileControls, tileDisplay, tiltOffered, type TilePanel } from "../model/tile-options";
@@ -33,7 +34,7 @@ import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
-import { moveTileToPage, setTileName, removeTile, retargetPageTile, setTileOption } from "../editor/tiles";
+import { moveTileToPage, removeTile, retargetPageTile, setTileOption } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 
@@ -59,7 +60,6 @@ function moveTile(page: number) {
 }
 const otherPages = computed(() => (doc.document?.pages || []).map((page, index) => ({ index, name: titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }))
   .filter((page) => page.index !== pageOf(props.tile.slot)));
-const nameDraft = useTextDraft(() => props.tile.name, value => setTileName(props.tile, value));
 const domain = computed(() => props.tile.entity.split(".")[0]);
 // A plugin's tile (design) has an inspector of its own, built from the plugin's manifest.
 const pluginTile = computed(() => Boolean(plugins.pluginTileOf(props.tile.entity)));
@@ -191,15 +191,12 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
   <PluginTileInspector v-if="pluginTile" :tile="tile" />
   <template v-else>
   <InspectorHead :title="tile.name || name" :code="entities.tileIconCp(tile)" :tone="{ color: domainInfo(tile.entity)[2], background: domainInfo(tile.entity)[3] }" :crumbs="crumbs" kind="tile">
-    <!-- The name is edited where it stands, as a title: empty is the name Home Assistant gives it. -->
-    <template #title>
-      <input id="tile-name" class="dr-title" :value="nameDraft.value.value" :placeholder="name" maxlength="60" :aria-label="t('editor.tile.name')" :title="t('editor.tile.name')"
-        @focus="doc.beginFieldEdit(`tile:${tile.id}`); nameDraft.focus()" @blur="doc.endFieldEdit(); nameDraft.blur()" @keydown.enter="($event.target as HTMLInputElement).blur()"
-        @input="nameDraft.input(($event.target as HTMLInputElement).value)" />
-    </template>
+    <!-- The title says the name; a click on it, like Rename in the menu, goes to the Name field under it. -->
+    <template #title><TitleButton :text="tile.name || name" @rename="insp.renameTile(tile)" /></template>
     <template #actions>
       <UiMenu width="220px">
         <template #trigger><button type="button" class="icon-btn" id="tile-more" :aria-label="t('editor.screen_view.more')"><Icon name="dots-horizontal" /></button></template>
+        <UiMenuItem id="tile-rename" icon="pencil-outline" @select="insp.renameTile(tile)">{{ t("editor.naming.rename") }}</UiMenuItem>
         <UiMenuItem v-if="domain !== 'screen'" icon="database-search-outline" @select="inspect">{{ t("editor.common.read_current_data") }}</UiMenuItem>
         <UiMenuSeparator v-if="domain !== 'screen'" />
         <UiMenuItem icon="delete-outline" danger hint="⌫" @select="removeTile(tile)">{{ t("editor.common.remove") }}</UiMenuItem>
@@ -207,6 +204,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
     </template>
   </InspectorHead>
   <div class="dr-body">
+    <NameField :tile="tile" :fallback="name" />
     <p v-if="bedside" class="hint">{{ t("editor.tile.keys.hint") }}</p>
     <p v-if="key" class="hint">{{ t("editor.tile.keys.under") }}</p>
     <!-- A key's name under its circle (firmware 0.17.0+): off leaves the circle alone, as a picture can drop its name. -->

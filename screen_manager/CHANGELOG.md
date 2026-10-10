@@ -18,6 +18,9 @@
 - **The connection is visible.** While ESP Screen Manager can't be reached (it restarts or updates), a calm line over
   the page says so and that your changes stay; when it is back the line says "Connection restored" and goes. The editor
   follows it again at once, and nothing is asked while the tab is hidden, the screen preview included.
+- **A tile's name is easy to find.** A tile's settings start with "Name on the screen", Home Assistant's name in grey
+  and a key back to it once you typed another. Click the tile's title in its settings, choose Rename in its menu, or
+  double-click its name on the mockup to get there; a page's menu has Rename too, as does a double click on its title.
 - **Undo says what it does.** Undo and Redo in Layout name the step they take back or do again ("Undo: Kitchen light
   moved to page 2"), and after an undo a short note says what came back, with Redo beside it, so a change on a page out
   of sight never goes unnoticed.

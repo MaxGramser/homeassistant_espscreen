@@ -31,6 +31,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
       <button type="button" class="icon-btn page-menu" :aria-label="t('editor.pages.page_menu', { page: index + 1 })"><Icon name="dots-horizontal" /></button>
     </template>
     <UiMenuItem icon="cog-outline" @select="insp.openPage(id)">{{ t("editor.pages.page_settings") }}</UiMenuItem>
+    <UiMenuItem class="page-rename" icon="pencil-outline" @select="insp.renamePage(id)">{{ t("editor.naming.rename") }}</UiMenuItem>
     <UiMenuItem icon="page-layout-header" @select="insp.openBar(0, index)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
     <UiMenuSeparator />
     <UiMenuItem icon="home-outline" :disabled="home || !scr.pageReady" @select="setHomePage(id)">{{ t(home ? "editor.pages.is_home" : "editor.pages.set_home") }}</UiMenuItem>

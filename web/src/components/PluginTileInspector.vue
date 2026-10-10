@@ -9,12 +9,14 @@ import { glyph } from "../model/topbar";
 import type { Tile } from "../types";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
+import NameField from "./inspector/NameField.vue";
+import TitleButton from "./inspector/TitleButton.vue";
 import PropRow from "./ui/PropRow.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import { usePluginsStore } from "../stores/plugins";
-import { removeTile, setTileName, setTileOption } from "../editor/tiles";
+import { removeTile, setTileOption } from "../editor/tiles";
 import { useUiStore } from "../stores/ui";
 import { useInspectorStore } from "../stores/inspector";
 
@@ -47,12 +49,10 @@ function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
 <template>
   <InspectorHead :title="tile.name || text(kind.tile.name)" :code="kind.tile.icon || kind.plugin.icon" :tone="{ color: 'var(--accent)', background: 'var(--accent-soft)' }"
     :crumbs="[{ text: text(kind.plugin.name) }, { text: tile.entity, mono: true }]" kind="tile">
-    <template #title>
-      <input id="tile-name" class="dr-title" :value="tile.name" :placeholder="text(kind.tile.name)" maxlength="60" :aria-label="t('editor.tile.name')"
-        @change="setTileName(tile, ($event.target as HTMLInputElement).value)" />
-    </template>
+    <template #title><TitleButton :text="tile.name || text(kind.tile.name)" @rename="insp.renameTile(tile)" /></template>
   </InspectorHead>
   <div class="dr-body" id="plugin-tile-inspector">
+    <NameField :tile="tile" :fallback="text(kind.tile.name)" />
     <p class="plugin-tile-from"><span class="mdi">{{ glyph("F0A66") }}</span>{{ t("editor.plugin_tile.from", { plugin: text(kind.plugin.name) }) }}
       <button type="button" class="btn link mini" @click="openPlugin">{{ t("editor.plugin_tile.details") }}</button></p>
 

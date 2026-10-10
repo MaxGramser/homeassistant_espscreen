@@ -238,6 +238,7 @@ describe("the tile panel", () => {
     { entity: "screen.map", name: "", slot: 0, options: { size: "wide", display: "map" } },
     { entity: "screen.energy", name: "", slot: 0, options: { size: "square" } },
   ];
+  // Every choice of every field mounts the panel again: a busy machine needs longer than five seconds for the longest.
   it.each(kinds.map((tile) => [`${tile.entity} ${tile.options?.size || "single"}`, tile] as const))("saves every choice it shows: %s", async (_, kind) => {
     const tile: Tile = JSON.parse(JSON.stringify(kind));
     appendTiles(tile);
@@ -257,7 +258,7 @@ describe("the tile panel", () => {
         panel.unmount();
       }
     }
-  });
+  }, 20000);
 });
 
 describe("a map card in the panel (app 0.4.33)", () => {

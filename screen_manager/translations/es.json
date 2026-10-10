@@ -3349,6 +3349,10 @@
       "lost_hint": "Tus cambios se quedan aquí. Reintentando…",
       "restored": "Conexión restablecida"
     },
+    "naming": {
+      "rename": "Cambiar nombre",
+      "reset": "Volver a {name}"
+    },
     "phone": {
       "screens": "Pantallas",
       "add_tile": "Añadir mosaico",

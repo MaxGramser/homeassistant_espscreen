@@ -42,6 +42,10 @@ export const useInspectorStore = defineStore("inspector", () => {
   const insertAt = computed(() => insert.value?.kind === "cell" ? insert.value.slot : -1);
   const insertKey = computed(() => insert.value?.kind === "key" ? { holder: insert.value.holder, key: insert.value.key } : null);
   const optionPreview = ref<OptionPreview | null>(null);
+  // A name asked to be changed (app 0.4.x): the drawer of that tile or page puts the focus in its name field. Counted, so
+  // asking again for the same one focuses it again.
+  const naming = ref<{ kind: "tile" | "page"; id: string; asked: number } | null>(null);
+  let asked = 0;
   // A marked cell forgotten (another page, the library closed), a marked key place kept.
   function forgetCell() { if (insert.value?.kind === "cell") insert.value = null; }
 
@@ -94,6 +98,17 @@ export const useInspectorStore = defineStore("inspector", () => {
     doc.selectedTileId = null;
     inspector.value = { kind: "saver-add" };
   }
+  /** Opens a tile's drawer with its name ready to be typed. */
+  function renameTile(tile: Tile) {
+    if (!tile.id) return;
+    openTile(tile);
+    naming.value = { kind: "tile", id: tile.id, asked: ++asked };
+  }
+  /** Opens a page's settings with its title ready to be typed. */
+  function renamePage(id: string) {
+    openPage(id);
+    naming.value = { kind: "page", id, asked: ++asked };
+  }
   function closeInspector() {
     inspector.value = null;
     doc.selectedTileId = null;
@@ -113,7 +128,7 @@ export const useInspectorStore = defineStore("inspector", () => {
   }));
 
   return {
-    inspector, iconPickerOpen, actionPickerOpen, actionSearch, insert, insertAt, insertKey, optionPreview,
+    inspector, iconPickerOpen, actionPickerOpen, actionSearch, insert, insertAt, insertKey, optionPreview, naming, renameTile, renamePage,
     // What the mockup reads as it draws (stores/lookup.ts).
     ...lookups({ previewed }),
     forgetCell, openTile, openPage, openBar, openBarAdd, openSaverItem, openSaverStep, openSaverAdd, closeInspector,

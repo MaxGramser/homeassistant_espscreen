@@ -3349,6 +3349,10 @@
       "lost_hint": "Twoje zmiany zostają tutaj. Ponawianie…",
       "restored": "Połączenie przywrócone"
     },
+    "naming": {
+      "rename": "Zmień nazwę",
+      "reset": "Wróć do: {name}"
+    },
     "phone": {
       "screens": "Ekrany",
       "add_tile": "Dodaj kafelek",

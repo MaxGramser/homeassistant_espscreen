@@ -3349,6 +3349,10 @@
       "lost_hint": "Deine Änderungen bleiben hier. Neuer Versuch…",
       "restored": "Verbindung wiederhergestellt"
     },
+    "naming": {
+      "rename": "Umbenennen",
+      "reset": "Zurück zu {name}"
+    },
     "phone": {
       "screens": "Bildschirme",
       "add_tile": "Kachel hinzufügen",

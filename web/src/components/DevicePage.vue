@@ -104,7 +104,7 @@ async function onKey(e: KeyboardEvent) {
         <Icon name="drag-vertical" class="grip" />{{ t("editor.page.label", { page: page + 1 }) }}
       </button>
       <slot v-else name="handle"><span class="page-name">{{ t("editor.page.label", { page: page + 1 }) }}</span></slot>
-      <span v-if="owned" class="page-title" :title="pageTitleShown(page)">{{ pageTitleShown(page) }}</span>
+      <span v-if="owned" class="page-title" :title="pageTitleShown(page)" @dblclick.stop="insp.renamePage(owned.id)">{{ pageTitleShown(page) }}</span>
       <span v-if="isHome" class="home-chip" :class="{ movable: scr.pageReady }" role="img" :aria-label="t('editor.pages.drag_home')" :title="t('editor.pages.drag_home')"
         @pointerdown.stop="dragHome"><Icon name="home" />{{ t('editor.pages.home_chip') }}</span>
       <span v-if="owned?.navigation.excludeFromPagination" class="detail-chip" :title="t('editor.pages.include_navigation_hint')"><Icon name="link-variant" />{{ t('editor.pages.detail_chip') }}</span>

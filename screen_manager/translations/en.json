@@ -2999,6 +2999,10 @@
       "lost_hint": "Your changes stay here. Trying again…",
       "restored": "Connection restored"
     },
+    "naming": {
+      "rename": "Rename",
+      "reset": "Back to {name}"
+    },
     "phone": {
       "screens": "Screens",
       "add_tile": "Add tile",

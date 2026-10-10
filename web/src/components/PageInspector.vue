@@ -2,7 +2,7 @@
 // A page's settings (app 0.3.19): what stands above it, how you get to it, its top bar, and on the map where it
 // stands and which tiles lead to it. The title of a page lives here and only here; the screen's own title, which every
 // page without one says, waits behind a link under it.
-import { computed, ref } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
 import { useTextDraft } from '../composables/useTextDraft';
@@ -42,6 +42,15 @@ const titleDraft = useTextDraft(screenTitle, setScreenTitle, () => !scr.noTitle)
 // A page's own title keeps the spaces you type while you type, and is saved without the ones at its ends (app 0.4.2).
 const pageTitleDraft = useTextDraft(() => page.value?.topbar.title.source === 'text' ? page.value.topbar.title.text : '', (value) => setPageTitle(index.value, value));
 const screenTitleOpen = ref(false);
+// Asked to rename this page (its menu, a double click on its title): the title field takes the focus, selected.
+watch(() => insp.naming, async (asked) => {
+  if (!asked || asked.kind !== "page" || asked.id !== props.id) return;
+  insp.naming = null;
+  await nextTick();
+  const field = document.querySelector<HTMLInputElement>("#owned-page-title, #screen-title");
+  field?.focus();
+  field?.select();
+}, { immediate: true });
 const orders = computed(() => (doc.document?.pages || []).map((_, at) => [at, String(at + 1)] as [number, string]));
 const barItems = computed(() => topbar.topbarItems(index.value));
 const tiles = computed(() => page.value?.tiles.length || 0);

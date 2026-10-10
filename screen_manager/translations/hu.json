@@ -3349,6 +3349,10 @@
       "lost_hint": "A módosításaid itt maradnak. Újrapróbálkozás…",
       "restored": "A kapcsolat helyreállt"
     },
+    "naming": {
+      "rename": "Átnevezés",
+      "reset": "Vissza erre: {name}"
+    },
     "phone": {
       "screens": "Képernyők",
       "add_tile": "Csempe hozzáadása",

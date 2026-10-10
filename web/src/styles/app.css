@@ -491,11 +491,6 @@ a:hover { text-decoration: underline; }
 .drawer-enter-from, .drawer-leave-to { width: 0; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .drawer-enter-active, .drawer-leave-active { transition: none; } }
 /* The name of what is open, edited where it stands. */
-.dr-title { width: 100%; height: 26px; margin-left: -6px; padding: 0 6px; border: 0; border-radius: 5px; background: transparent; font-size: 14px; font-weight: 600; color: var(--ink); }
-.dr-title:hover { background: var(--surface-2); }
-.dr-title:focus-visible { background: var(--surface); box-shadow: 0 0 0 1px var(--accent), var(--focus); }
-.dr-title::placeholder { color: var(--ink); }
-.dr-title:focus::placeholder { color: var(--muted); }
 .dr-head { display: flex; align-items: center; gap: 11px; padding: 12px 10px 12px 14px; border-bottom: 1px solid var(--line); }
 .dr-head .av { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 20px; flex: none; background: var(--seg); color: var(--ink-2); }
 .dr-head .av .ui-icon { font-size: 20px; }
@@ -1189,10 +1184,7 @@ section.advanced code { font-size: 11.5px; }
 .dr-head.kind-tile { --kind: var(--kind-tile); }
 .dr-head.kind-page { --kind: var(--kind-page); }
 .dr-head.kind-bar { --kind: var(--surface); --head-ink: var(--ink); --head-soft: var(--muted); border-bottom-color: var(--line); }
-.dr-head[class*="kind-"] .tx b, .dr-head[class*="kind-"] .dr-title { color: var(--head-ink); }
-.dr-head[class*="kind-"] .dr-title::placeholder { color: var(--head-ink); }
-.dr-head[class*="kind-"] .dr-title:hover { background: color-mix(in srgb, var(--head-ink) 12%, transparent); }
-.dr-head[class*="kind-"] .dr-title:focus-visible { background: var(--surface); color: var(--ink); }
+.dr-head[class*="kind-"] .tx b { color: var(--head-ink); }
 .dr-head[class*="kind-"] .crumbs, .dr-head[class*="kind-"] .crumb, .dr-head[class*="kind-"] button.crumb { color: var(--head-soft); }
 .dr-head[class*="kind-"] button.crumb:hover { color: var(--head-ink); }
 .dr-head[class*="kind-"] .icon-btn { color: var(--head-soft); }
@@ -1324,7 +1316,9 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .drawer-enter-active, .app.phone .drawer-leave-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .app.phone .dr-head { padding: 14px 12px 14px 16px; }
 .app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
-.app.phone .dr-body .style-section { order: -1; border-top: 0; }
+/* On a phone the sheet starts with what a tile is changed for most: its name, then its icon and colour. */
+.app.phone .dr-body .name-sec { order: -2; }
+.app.phone .dr-body .style-section { order: -1; }
 .phone-more { display: flex; align-items: center; gap: 10px; margin: 6px 16px 0; padding: 12px 12px 12px 14px; border-radius: 12px; background: var(--surface-2); text-align: left; color: var(--muted); }
 .phone-more span { flex: 1; display: grid; gap: 2px; }
 .phone-more b { color: var(--accent); font-size: 15px; font-weight: 550; }

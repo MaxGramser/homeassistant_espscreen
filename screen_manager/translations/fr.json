@@ -3349,6 +3349,10 @@
       "lost_hint": "Vos modifications restent ici. Nouvelle tentative…",
       "restored": "Connexion rétablie"
     },
+    "naming": {
+      "rename": "Renommer",
+      "reset": "Revenir à {name}"
+    },
     "phone": {
       "screens": "Écrans",
       "add_tile": "Ajouter une tuile",

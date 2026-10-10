@@ -2999,6 +2999,10 @@
       "lost_hint": "Je wijzigingen blijven hier. Opnieuw proberen…",
       "restored": "Verbinding hersteld"
     },
+    "naming": {
+      "rename": "Naam wijzigen",
+      "reset": "Terug naar {name}"
+    },
     "phone": {
       "screens": "Schermen",
       "add_tile": "Tegel toevoegen",
