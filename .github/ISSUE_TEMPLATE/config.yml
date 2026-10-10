@@ -1,5 +1,14 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Documentation
-    url: https://github.com/MaxGramser/homeassistant_espscreen#readme
-    about: Read the setup and troubleshooting guides before opening an issue.
+  - name: Feature or improvement request
+    url: https://tessera-maxgramser.on-forge.com/wishlist
+    about: Search existing wishes and upvote one you would use, or add a new wish. Sign in with GitHub.
+  - name: New board or display request
+    url: https://tessera-maxgramser.on-forge.com/wishlist?category=board
+    about: Search for your exact ESP board or display and upvote it. Demand helps decide which boards get support.
+  - name: Questions and community discussions
+    url: https://tessera-maxgramser.on-forge.com/community
+    about: Ask questions, share examples and continue discussions on the Tessera website.
+  - name: Tessera manual
+    url: https://tessera-maxgramser.on-forge.com/docs/
+    about: Read setup, supported boards and troubleshooting before reporting a bug.

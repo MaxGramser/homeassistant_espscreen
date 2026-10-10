@@ -1,5 +1,7 @@
 # Adding a board
 
+To request a board, search [New boards on the wishlist](https://tessera-maxgramser.on-forge.com/wishlist?category=board) and upvote an existing request or add one. This guide is for implementing board support. Link that wish in your pull request to `dev`.
+
 The recipe, in the order the work actually goes: the hardware is looked up, the layout is computed, and only the
 grid is a choice. `docs/RESPONSIVE.md` says why the layout works the way it does.
 
