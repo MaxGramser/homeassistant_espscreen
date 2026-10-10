@@ -25,6 +25,7 @@ packages:
   # (features/audio-amplifier.yaml): its hardware below.
   audio: !include ../features/audio.yaml
   audio_amplifier: !include ../features/audio-amplifier.yaml
+  audio_half_duplex: !include ../features/audio-half-duplex.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.

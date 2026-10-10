@@ -46,6 +46,23 @@ class TheBoards(unittest.TestCase):
         # The M5Stack Tab5 too, on one bus, and its camera clocked from a pin (CAMERA_XCLK_PIN).
         self.assertEqual(SHAPES['tab5']['features'], ['speaker', 'microphone', 'media_player', 'camera_sensor'])
 
+    def test_a_camera_clocked_from_a_pin_has_ledc_timer_0_to_itself(self):
+        # The camera driver (esp_video_camera) makes a sensor's clock with LEDC timer 0 and channel 0, which ESPHome gives
+        # the first PWM output when it names no channel (timer = channel / 2): on one timer the two undo each other.
+        for board, shape in SHAPES.items():
+            if board.startswith(('checkout/', 'packages/')) or 'camera_sensor' not in (shape.get('features') or []):
+                continue
+            text = profiles.resolved(f'packages/{board}.yaml')
+            clock = re.search(r'(?m)^\s+CAMERA_XCLK_PIN:\s*"?(-?\d+)"?', text)
+            self.assertIsNotNone(clock, f'{board} names the pin that clocks its camera (-1: its own clock)')
+            if int(clock.group(1)) < 0:
+                continue
+            for output in re.findall(r'(?ms)^  - platform: ledc\n(.*?)(?=^  - |^\S|\Z)', text):
+                with self.subTest(board=board, output=output.split()[1] if output.split() else output):
+                    channel = re.search(r'(?m)^\s+channel:\s*(\d+)', output)
+                    self.assertTrue(channel and int(channel.group(1)) >= 2,
+                                    'a PWM output beside a camera clock stands on channel 2 or higher')
+
     def test_a_board_without_extras_has_no_page_and_no_row(self):
         # The core's hooks are empty: a screen whose files add nothing has no Extras page (settings_screen.h).
         core_yaml = (ROOT / 'packages/core.yaml').read_text()

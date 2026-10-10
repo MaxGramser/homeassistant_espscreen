@@ -497,6 +497,9 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   open->root = lv_obj_create(lv_screen_active());
   lv_obj_remove_style_all(open->root);
   lv_obj_remove_flag(open->root, LV_OBJ_FLAG_SCROLLABLE);
+  // The whole glass high, as every card's root (detail_root): overlay_card::frame gives the width only, and a root of
+  // LVGL's default height cut off what the card draws under its top bar (GitHub #226).
+  lv_obj_set_height(open->root, lv_pct(100));
   const auto kind = type->wide ? overlay_card::picture : overlay_card::controls;
   overlay_card::frame(open->root, kind, 1);
   const int width = overlay_card::content_width(kind, 1), height = overlay_card::screen_height();

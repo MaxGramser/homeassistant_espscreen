@@ -84,10 +84,9 @@ Both codecs share one I2S bus, which ESPHome lets them take in turns, so the boa
 - the bus runs at 16 kHz for both;
 - the speaker lets go of the bus half a second after a sound, and the amplifier follows the sound,
   on while it plays and off just before the bus stops, so the DAC's clock is not heard;
-- the microphone pauses while the media player plays (an announcement, an answer, music) and
-  listens again after, so a wake word does not hear during that time;
-- a short sound a plugin plays while the microphone listens (a voice assistant's wake sound) does
-  not play.
+- the microphone lets go of the bus whenever the speaker wants it, for any sound (an
+  announcement, an answer, music, a plugin's tick), and listens again after; a wake word does not
+  hear during that time (`features/audio-half-duplex.yaml`).
 
 This replaces the `p4_audio` plugin, which brought the codecs to this board before. The audio has
 been built for this board but not yet heard on one.

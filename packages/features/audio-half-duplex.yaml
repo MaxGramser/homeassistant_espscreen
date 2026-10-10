@@ -1,0 +1,25 @@
+# ESP Screens - a microphone and a speaker that take turns on one I2S bus, for a board file that includes this beside
+# features/audio.yaml and sets AUDIO_HALF_DUPLEX (the Waveshare P4 86 panel, the M5Stack Tab5).
+#
+# ESPHome lets a microphone and a speaker on one bus take it in turns, never both at once, and a speaker that finds the
+# bus taken tries again every second for as long as it is. Whatever reads the microphone (a wake word) holds it all the
+# time, so without this nothing would ever play. Whenever the speaker wants the bus, for any sound (an answer, music,
+# a plugin's tick), the microphone lets go of it, and it listens again once the speaker has stopped (half a second after
+# its last sound). Whatever reads the microphone waits for its data meanwhile and goes on after.
+globals:
+  - id: ts_audio_microphone_paused
+    type: bool
+    initial_value: "false"
+
+interval:
+  - interval: 50ms
+    then:
+      - lambda: |-
+          const bool speaking = !id(ts_speaker_out).is_stopped();
+          if (speaking && id(ts_microphone)->is_running()) {
+            id(ts_audio_microphone_paused) = true;
+            id(ts_microphone)->stop();
+          } else if (!speaking && id(ts_audio_microphone_paused)) {
+            id(ts_audio_microphone_paused) = false;
+            id(ts_microphone)->start();
+          }

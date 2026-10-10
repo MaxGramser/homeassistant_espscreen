@@ -14,7 +14,7 @@ import { ACTS_ON_TAP, holdHintKey, SLIDER_DOMAINS, SWITCHES_ON_TAP, TOGGLE_BEFOR
 import { coverPrimary, hasCoverTilt, withCoverTilt } from "./tall-controls";
 import type { Capability, PageTile, Tile, TileOptions } from "../types";
 import { BUILTIN_CARDS, type BuiltinName } from "../types";
-import { PLUGIN_TILE } from "./plugins";
+import { PLUGIN_TILE, PLUGIN_TILE_OPTIONS } from "./plugins";
 
 const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
@@ -66,6 +66,8 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
   // A Go to page tile has a name, an icon, a colour and a width, nothing else.
   if (pageTile(entity)) for (const key of ["display", "inline", "controls", "history_hours"]) delete out[key];
   if (rules.wideOnly.includes(String(out.display)) && !isWideSize(out.size ?? "single")) out.size = "wide";
+  // A plugin's tile keeps only what the add-on takes for one (GitHub #224: growing to a tall size gave it `controls`).
+  if (PLUGIN_TILE.test(entity)) for (const key of Object.keys(out)) if (!PLUGIN_TILE_OPTIONS.includes(key)) delete out[key];
   return out;
 }
 
