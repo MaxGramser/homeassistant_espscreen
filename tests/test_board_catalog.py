@@ -94,7 +94,7 @@ class Catalog(unittest.TestCase):
         external = board['external_components'][0]
 
         self.assertEqual(external['source'],
-                         'github://leonardospina/homeassistant_espscreen@acf450ea474a031cf8958309ede063ce8ecaa17c')
+                         'github://leonardospina/homeassistant_espscreen@03a3206b97944c29482662f3c76cade7a76a8b37')
         self.assertEqual(external['components'], ['gt911'])
         self.assertTrue(touch['use_primary_i2c_addr'])
         self.assertNotIn('setup_priority', touch)

@@ -15,8 +15,8 @@ packages:
 
 external_components:
   # ESPHome's bundled GT911 driver can select 0x14 nondeterministically through this board's I2C expander
-  # (esphome/esphome#15019). This pins the pending upstream fix plus Waveshare's required post-INT settle delay.
-  - source: github://leonardospina/homeassistant_espscreen@acf450ea474a031cf8958309ede063ce8ecaa17c
+  # (esphome/esphome#15019). This pins the pending fix with post-INT settling, bounded retries and address diagnostics.
+  - source: github://leonardospina/homeassistant_espscreen@03a3206b97944c29482662f3c76cade7a76a8b37
     components: [gt911]
 
 substitutions:

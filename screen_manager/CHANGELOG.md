@@ -109,7 +109,8 @@
   same: two columns of three tiles at 170 dpi, with a dimmable backlight, standby, night mode and camera pictures.
   A screen built from it has started, drawn the interface and joined a network; the rest of the hardware acceptance
   is still open. Its profile tests the pending ESPHome fix for GT911 reset and address selection: the bundled driver
-  sometimes left the controller at 0x14, where touch failed. It needs ESPHome 2026.7.0 or later.
+  sometimes left the controller at 0x14, where touch failed. The experimental driver retries the requested 0x5D
+  reset sequence and reports whether either address actually answers. It needs ESPHome 2026.7.0 or later.
 
 ## 0.4.84 (firmware 0.52.0)
 
