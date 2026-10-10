@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "A compilar com os seus plugins",
       "install": "A instalar",
-      "failed": "A última compilação de {screen} falhou. O registo diz porquê."
+      "failed": "A última compilação de {screen} falhou. O registo diz porquê.",
+      "title": "A compilar agora",
+      "count": "1 compilação em curso | {n} compilações em curso",
+      "waiting": "À espera da sua vez",
+      "ready": "{name} está pronto",
+      "ready_several": "{names} estão prontos",
+      "update_failed": "A atualização de {name} falhou",
+      "build_failed": "A compilação de {name} falhou",
+      "show_log": "Ver registo"
     },
     "grid": {
       "title": "Grelha",

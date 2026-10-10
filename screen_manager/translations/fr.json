@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Compilation avec ses plugins",
       "install": "Installation",
-      "failed": "La dernière compilation de {screen} a échoué. Le journal dit pourquoi."
+      "failed": "La dernière compilation de {screen} a échoué. Le journal dit pourquoi.",
+      "title": "Compilation en cours",
+      "count": "1 compilation en cours | {n} compilations en cours",
+      "waiting": "Attend son tour",
+      "ready": "{name} est prêt",
+      "ready_several": "{names} sont prêts",
+      "update_failed": "La mise à jour de {name} a échoué",
+      "build_failed": "La compilation de {name} a échoué",
+      "show_log": "Voir le journal"
     },
     "grid": {
       "title": "Grille",

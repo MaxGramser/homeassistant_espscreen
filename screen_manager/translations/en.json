@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Building with its plugins",
       "install": "Installing",
-      "failed": "The last build of {screen} failed. The log says why."
+      "failed": "The last build of {screen} failed. The log says why.",
+      "title": "Building now",
+      "count": "1 build on its way | {n} builds on their way",
+      "waiting": "Waiting its turn",
+      "ready": "{name} is ready",
+      "ready_several": "{names} are ready",
+      "update_failed": "Updating {name} failed",
+      "build_failed": "Building {name} failed",
+      "show_log": "Show log"
     },
     "grid": {
       "title": "Grid",

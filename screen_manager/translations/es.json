@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Compilando con sus plugins",
       "install": "Instalando",
-      "failed": "La última compilación de {screen} falló. El registro dice por qué."
+      "failed": "La última compilación de {screen} falló. El registro dice por qué.",
+      "title": "Compilando ahora",
+      "count": "1 compilación en curso | {n} compilaciones en curso",
+      "waiting": "Esperando su turno",
+      "ready": "{name} está listo",
+      "ready_several": "{names} están listos",
+      "update_failed": "No se pudo actualizar {name}",
+      "build_failed": "No se pudo compilar {name}",
+      "show_log": "Ver registro"
     },
     "grid": {
       "title": "Cuadrícula",

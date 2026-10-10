@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Kompiluje z wtyczkami",
       "install": "Instaluje",
-      "failed": "Ostatnia kompilacja {screen} się nie powiodła. Dziennik mówi dlaczego."
+      "failed": "Ostatnia kompilacja {screen} się nie powiodła. Dziennik mówi dlaczego.",
+      "title": "Trwa budowanie",
+      "count": "1 kompilacja w toku | {n} kompilacje w toku | {n} kompilacji w toku",
+      "waiting": "Czeka na swoją kolej",
+      "ready": "{name} jest gotowy",
+      "ready_several": "{names} są gotowe",
+      "update_failed": "Aktualizacja {name} nie powiodła się",
+      "build_failed": "Kompilacja {name} nie powiodła się",
+      "show_log": "Pokaż log"
     },
     "grid": {
       "title": "Siatka",

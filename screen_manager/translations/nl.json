@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Bouwt met zijn plugins",
       "install": "Installeert",
-      "failed": "De laatste build van {screen} is mislukt. De log zegt waarom."
+      "failed": "De laatste build van {screen} is mislukt. De log zegt waarom.",
+      "title": "Nu aan het bouwen",
+      "count": "1 build onderweg | {n} builds onderweg",
+      "waiting": "Wacht op zijn beurt",
+      "ready": "{name} is klaar",
+      "ready_several": "{names} zijn klaar",
+      "update_failed": "Bijwerken van {name} is mislukt",
+      "build_failed": "Bouwen van {name} is mislukt",
+      "show_log": "Log tonen"
     },
     "grid": {
       "title": "Raster",

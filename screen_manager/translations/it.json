@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Compila con i suoi plugin",
       "install": "Installazione",
-      "failed": "L'ultima compilazione di {screen} non è riuscita. Il log dice perché."
+      "failed": "L'ultima compilazione di {screen} non è riuscita. Il log dice perché.",
+      "title": "In compilazione",
+      "count": "1 compilazione in corso | {n} compilazioni in corso",
+      "waiting": "In attesa del suo turno",
+      "ready": "{name} è pronto",
+      "ready_several": "{names} sono pronti",
+      "update_failed": "Aggiornamento di {name} non riuscito",
+      "build_failed": "Compilazione di {name} non riuscita",
+      "show_log": "Mostra log"
     },
     "grid": {
       "title": "Griglia",

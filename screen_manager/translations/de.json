@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Baut mit seinen Plugins",
       "install": "Installiert",
-      "failed": "Der letzte Build von {screen} ist fehlgeschlagen. Das Protokoll sagt, warum."
+      "failed": "Der letzte Build von {screen} ist fehlgeschlagen. Das Protokoll sagt, warum.",
+      "title": "Wird gerade gebaut",
+      "count": "1 Build unterwegs | {n} Builds unterwegs",
+      "waiting": "Wartet, bis es dran ist",
+      "ready": "{name} ist fertig",
+      "ready_several": "{names} sind fertig",
+      "update_failed": "Update von {name} fehlgeschlagen",
+      "build_failed": "Build von {name} fehlgeschlagen",
+      "show_log": "Log anzeigen"
     },
     "grid": {
       "title": "Raster",

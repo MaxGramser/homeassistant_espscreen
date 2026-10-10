@@ -127,3 +127,42 @@ describe("a screen's row in the sidebar (screen-status.ts)", () => {
     expect(pendingText({ file: "a.yaml", seen: true, pairing: "failed" })).toBe(t("editor.sidebar.pending.failed"));
   });
 });
+
+describe("a build that ends while the page is open", () => {
+  const job = (file: string, state: string, started: number) => ({ file, state, started });
+  it("is read from what changed since it was watched: a new update result, another firmware job", async () => {
+    const { watchOf, buildOutcome } = await import("../src/model/screen-status");
+    const before = screen({ update: { profile: "hall.yaml", result: { state: "success", message: "", time: 100 } } });
+    const watched = watchOf(before, { by: "update", state: "running", file: "hall.yaml" }, null);
+    expect(watched).toEqual({ by: "update", file: "hall.yaml", result: 100, job: null });
+    // The result it had is not this build's; a new one is, whatever the clocks say.
+    expect(buildOutcome(before, watched, null)).toBeNull();
+    expect(buildOutcome(screen({ update: { profile: "hall.yaml", result: { state: "success", message: "", time: 90 } } }), watched, null)).toBe("ready");
+    expect(buildOutcome(screen({ update: { profile: "hall.yaml", result: { state: "failed", message: "", time: 200 } } }), watched, null)).toBe("failed");
+    // A screen a round passed by has nothing to say.
+    expect(buildOutcome(screen({ update: { profile: "hall.yaml", result: { state: "skipped", message: "", time: 200 } } }), watched, null)).toBeNull();
+
+    // A plugin build: its firmware job, one that started after the page began to watch.
+    const plugins = watchOf(before, { by: "plugins", state: "queued", file: "hall.yaml" }, job("hall.yaml", "success", 5));
+    expect(plugins.job).toBe(5);
+    expect(buildOutcome(before, plugins, job("hall.yaml", "success", 5))).toBeNull();
+    expect(buildOutcome(before, plugins, job("hall.yaml", "failed", 9))).toBe("failed");
+    expect(buildOutcome(before, plugins, job("desk.yaml", "success", 9))).toBeNull();
+    // The job that runs as the page begins to watch is this build: its end counts.
+    const running = watchOf(before, { by: "install", state: "running", file: "hall.yaml" }, job("hall.yaml", "running", 7));
+    expect(running.job).toBeNull();
+    expect(buildOutcome(before, running, job("hall.yaml", "success", 7))).toBe("ready");
+  });
+
+  it("says one thing for the builds that ended together: the first that failed, else who is ready", async () => {
+    const { buildEndText } = await import("../src/model/screen-status");
+    const hall = screen(), desk = screen({ id: "desk", name: "Desk" });
+    expect(buildEndText([])).toBeNull();
+    expect(buildEndText([{ screen: hall, by: "update", outcome: "ready" }])).toEqual({ text: t("editor.build.ready", { name: "Hall" }), failed: false });
+    expect(buildEndText([{ screen: hall, by: "update", outcome: "ready" }, { screen: desk, by: "plugins", outcome: "ready" }])!.text)
+      .toBe(t("editor.build.ready_several", { names: "Hall, Desk" }));
+    expect(buildEndText([{ screen: hall, by: "update", outcome: "ready" }, { screen: desk, by: "plugins", outcome: "failed" }]))
+      .toEqual({ text: t("editor.build.build_failed", { name: "Desk" }), failed: true });
+    expect(buildEndText([{ screen: hall, by: "update", outcome: "failed" }])!.text).toBe(t("editor.build.update_failed", { name: "Hall" }));
+  });
+});

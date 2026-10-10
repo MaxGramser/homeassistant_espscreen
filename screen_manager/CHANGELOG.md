@@ -73,6 +73,10 @@
   an action (Nord Pool, EnergyZero, easyEnergy, Tibber, a weather forecast), and can ask that the entity list in the
   editor shows only the entities that have the attributes it needs, the price sensor instead of every sensor in the
   house. Plugin API 0.5.
+- **Builds you can follow from anywhere.** A screen that builds shows a ring on its row in the sidebar and on its card
+  in the overview that fills as it goes, and one ring at the top of the sidebar lists every build on its way with its
+  step. When a build the page saw ends, whatever page is open says "Living room is ready", or that it failed, with the
+  way to its log.
 
 ## 0.4.85 (firmware 0.53.0)
 

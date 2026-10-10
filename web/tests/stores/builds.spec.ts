@@ -1,6 +1,6 @@
 // Updates and the firmware job (stores/builds.ts): one screen, every screen and the automatic updates, each with the
 // inventory read again or the add-on's refusal said, and the firmware job asked for once by whoever follows it.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { i18n } from "../../src/i18n";
 import { useBuildsStore } from "../../src/stores/builds";
 import { useUiStore } from "../../src/stores/ui";
@@ -10,7 +10,7 @@ import { useInventoryStore } from "../../src/stores/inventory";
 
 const screen = (id: string) => ({ id: `text.${id}`, name: id, online: true, layout: {}, update: { profile: `${id}.yaml`, host: "10.0.0.1" } }) as unknown as Screen;
 const hall = screen("hall"), desk = screen("desk");
-const t = (key: string) => i18n.global.t(key);
+const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 
 describe("updates", () => {
   it("builds one screen: asked for at once, until the add-on names its build; a refusal forgets it and says why", async () => {
@@ -85,5 +85,68 @@ describe("the firmware job", () => {
     await builds.loadFirmwareJob();
     expect(builds.firmwareJob?.logs).toEqual(["INFO Compiling"]);
     await expect(builds.fetchFirmware()).rejects.toThrow("Bad gateway");
+  });
+});
+
+describe("a build that ends while the page is open", () => {
+  const living = (result?: { state: string; time: number }) =>
+    ({ id: "text.living", name: "Living room", online: true, layout: {}, update: { profile: "living.yaml", host: "10.0.0.2", ...(result ? { result: { message: "", ...result } } : {}) } }) as unknown as Screen;
+  const arrive = (screen: Screen, builds: Record<string, any> = {}) => {
+    useInventoryStore().inventory = { screens: [screen], entities: [], builds } as any;
+    useBuildsStore().prune();
+  };
+
+  it("says a watched update is ready, on whatever is open, and says nothing of one that ended before the page was opened", async () => {
+    // Opened after a build that went well: nothing to say.
+    arrive(living({ state: "success", time: 10 }));
+    expect(useUiStore().notice).toBeNull();
+    // An update the page sees on its way, then its new result.
+    arrive(living({ state: "success", time: 10 }), { "text.living": { by: "update", state: "running", file: "living.yaml", phase: "install" } });
+    expect(useBuildsStore().watched["text.living"]).toMatchObject({ by: "update", result: 10 });
+    arrive(living({ state: "success", time: 20 }));
+    await Promise.resolve();
+    expect(useUiStore().notice).toEqual({ message: t("editor.build.ready", { name: "Living room" }), action: undefined });
+    expect(useBuildsStore().watched).toEqual({});
+  });
+
+  it("says a failed one with the way to its log, and watches an update from the moment it is asked for", async () => {
+    const screen = living({ state: "success", time: 10 });
+    useInventoryStore().inventory = { screens: [screen], entities: [], builds: {} } as any;
+    fakeApi({ "POST screens/:id/update": {}, "GET inventory": { screens: [screen], entities: [], builds: {} } });
+    await useBuildsStore().startUpdate(screen);
+    expect(useBuildsStore().watched["text.living"]).toBeDefined();
+    // Asked for, it stays on its way until the add-on names it, and ends when the add-on no longer does.
+    arrive(living({ state: "success", time: 10 }));
+    expect(useUiStore().notice).toBeNull();
+    arrive(living({ state: "success", time: 10 }), { "text.living": { by: "update", state: "running", file: "living.yaml" } });
+    arrive(living({ state: "failed", time: 30 }));
+    await Promise.resolve();
+    const notice = useUiStore().notice!;
+    expect(notice.message).toBe(t("editor.build.update_failed", { name: "Living room" }));
+    expect(notice.action!.label).toBe(t("editor.build.show_log"));
+    notice.action!.run();
+    expect(location.hash).toBe("#firmware");
+  });
+
+  it("reads a plugin build's outcome from its firmware job, asked for once more as it ends", async () => {
+    const api = fakeApi({ "GET firmware": { job: { file: "living.yaml", state: "failed", started: 2 }, logs: [] } });
+    arrive(living(), { "text.living": { by: "plugins", state: "queued", file: "living.yaml" } });
+    arrive(living(), { "text.living": { by: "plugins", state: "running", file: "living.yaml" } });
+    arrive(living());
+    await vi.waitFor(() => expect(useUiStore().notice?.message).toBe(t("editor.build.build_failed", { name: "Living room" })));
+    expect(api.count("GET firmware")).toBe(1);
+  });
+
+  it("forgets a build whose screen went or whose request was refused", async () => {
+    arrive(living(), { "text.living": { by: "update", state: "queued", file: "living.yaml" } });
+    useBuildsStore().forget("text.living");
+    arrive(living({ state: "success", time: 40 }));
+    await Promise.resolve();
+    expect(useUiStore().notice).toBeNull();
+    // A queued screen a round left without a result of its own says nothing either.
+    arrive(living(), { "text.living": { by: "update", state: "queued", file: "living.yaml" } });
+    arrive(living());
+    await Promise.resolve();
+    expect(useUiStore().notice).toBeNull();
   });
 });

@@ -3306,7 +3306,15 @@
     "build": {
       "plugins": "Fordítás a bővítményeivel",
       "install": "Telepítés",
-      "failed": "{screen} legutóbbi fordítása nem sikerült. A napló megmondja, miért."
+      "failed": "{screen} legutóbbi fordítása nem sikerült. A napló megmondja, miért.",
+      "title": "Fordítás folyamatban",
+      "count": "1 fordítás folyamatban | {n} fordítás folyamatban",
+      "waiting": "Sorára vár",
+      "ready": "{name} kész",
+      "ready_several": "{names} kész",
+      "update_failed": "{name} frissítése nem sikerült",
+      "build_failed": "{name} fordítása nem sikerült",
+      "show_log": "Napló megnyitása"
     },
     "grid": {
       "title": "Rács",

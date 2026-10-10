@@ -16,7 +16,10 @@ import DonateCard from "./DonateCard.vue";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
+import ProgressRing from "./ui/ProgressRing.vue";
+import BuildIndicator from "./BuildIndicator.vue";
 import { useUiStore } from "../stores/ui";
+import { useBuildsStore } from "../stores/builds";
 import { useEntitiesStore } from "../stores/entities";
 import { drawsPictures, useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
@@ -27,6 +30,7 @@ const entities = useEntitiesStore();
 const scr = useScreenStore();
 const session = useSessionStore();
 const inv = useInventoryStore();
+const builds = useBuildsStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
@@ -44,6 +48,8 @@ const scale = (style: Record<string, string>, shape: { width: number; height: nu
   const width = parseFloat(style["--mockup-width"]), height = width * shape.height / shape.width + 20;
   return Math.min(1, STAGE / height);
 };
+// A build on its way (queued or running): its ring stands where the light is, and its step is the line under the name.
+const building = (screen: Screen) => Boolean(builds.buildOf(screen) || builds.isBuilding(screen));
 const place = (screen: Screen) => [screen.area, screen.board && screen.shape?.catalog?.name ? boardTitle(screen.shape.catalog) : ""].filter(Boolean).join(" · ");
 onMounted(entities.loadOverview);
 </script>
@@ -62,6 +68,7 @@ onMounted(entities.loadOverview);
         <UiMenuItem icon="monitor-dashboard" @select="ui.setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
       </UiMenu>
       <h1>{{ t("editor.home.title") }}</h1>
+      <BuildIndicator v-if="ui.phone" />
       <p>{{ t("editor.home.summary", { online, count: inv.inventory.screens.length }) }}</p>
     </header>
     <div class="home-grid">
@@ -88,10 +95,13 @@ onMounted(entities.loadOverview);
           <span v-else class="home-empty"><Icon name="view-dashboard-outline" />{{ t("editor.home.no_layout") }}</span>
         </span>
         <span class="home-foot">
-          <span class="led" :class="scr.screenLight(screen)"></span>
+          <ProgressRing v-if="building(screen)" class="home-ring" :size="16" :percent="builds.buildProgress(screen)?.percent ?? 0"
+            :label="builds.buildProgress(screen)?.text || t('editor.build.waiting')" />
+          <span v-else class="led" :class="scr.screenLight(screen)"></span>
           <span class="home-name">
             <strong>{{ screen.name }}</strong>
-            <small v-if="scr.screenSubline(screen)" :class="scr.screenSubline(screen)!.kind">{{ scr.screenSubline(screen)!.text }}</small>
+            <small v-if="building(screen)" class="building">{{ builds.buildProgress(screen) ? `${builds.buildProgress(screen)!.percent} % · ${builds.buildProgress(screen)!.text}` : t("editor.build.waiting") }}</small>
+            <small v-else-if="scr.screenSubline(screen)" :class="scr.screenSubline(screen)!.kind">{{ scr.screenSubline(screen)!.text }}</small>
             <small v-else-if="place(screen)">{{ place(screen) }}</small>
           </span>
           <!-- A screen with 4 MB of flash on ESPHome's partition table (app 0.4.82): its next update comes from Tessera. -->
@@ -134,6 +144,7 @@ onMounted(entities.loadOverview);
 .home-name strong { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-name small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-name small.down, .home-name small.failed { color: var(--danger); }
+.home-name small.building { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .home-name small.update, .home-name small.available, .home-name small.running, .home-name small.queued { color: var(--warn); }
 .home-badge { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px;
   font-weight: 500; color: var(--accent); background: var(--accent-soft); white-space: nowrap; }

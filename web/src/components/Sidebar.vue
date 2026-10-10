@@ -9,6 +9,8 @@ import { glyph } from "../model/topbar";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
+import BuildIndicator from "./BuildIndicator.vue";
+import ProgressRing from "./ui/ProgressRing.vue";
 import { SIDE_MAX, SIDE_MIN, useSidebarStore } from "../stores/sidebar";
 import { useResizeHandle } from "../composables/useResizeHandle";
 import { useUiStore } from "../stores/ui";
@@ -137,6 +139,7 @@ const lastLog = () => {
         <TesseraMark class="mark" />
         <span class="txt">Tessera</span>
       </button>
+      <BuildIndicator />
       <button type="button" id="side-fold" class="icon-btn side-fold" :aria-pressed="sidebar.folded ? 'true' : 'false'"
         :aria-label="t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold')" v-tooltip="tip('fold', t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold'), true)"
         @click="sidebar.toggle()"><Icon name="dock-left" /></button>
@@ -163,7 +166,7 @@ const lastLog = () => {
           <span v-if="sidebar.folded && ['update', 'waiting'].includes(status(screen))" class="fold-badge" :class="status(screen)" aria-hidden="true"></span>
           <span class="name">{{ screen.name }}</span>
           <span v-if="screen.id === scr.selected && doc.dirty" class="unsaved" role="img" :aria-label="t('editor.common.unsaved')" :title="t('editor.common.unsaved')"></span>
-          <span v-if="status(screen) === 'running'" class="spin small" role="img" :aria-label="subline(screen)?.text"></span>
+          <ProgressRing v-if="status(screen) === 'running'" class="row-ring" :percent="builds.buildProgress(screen)?.percent ?? 0" :label="subline(screen)?.text || ''" />
           <Icon v-else-if="status(screen) === 'failed'" name="alert-circle-outline" class="sub-icon failed" />
           <small v-else-if="['down', 'virtual', 'waiting'].includes(status(screen))" class="sub" :class="subline(screen)?.kind">{{ status(screen) === 'waiting' ? t("editor.sidebar.update.short") : subline(screen)?.text }}</small>
         </button>
