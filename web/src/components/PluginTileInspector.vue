@@ -3,7 +3,7 @@
 // with the inspector's own rows, and the sizes it takes. A choice can come from one of the plugin's fetches (the lines of
 // a stop): the add-on asks the plugin's service with the tile's other options and hands back only the choices.
 import { computed } from "vue";
-import { editorLanguage, languageMarks, numberText, t } from "../i18n";
+import { editorNumber, t } from "../i18n";
 import { offeredEntities, pluginDefaults, pluginTileOf, text, type PluginTileOption } from "../model/plugins";
 import { choicesFor, entitiesIn } from "../plugin-state";
 import { glyph } from "../model/topbar";
@@ -29,7 +29,7 @@ const entityChoices = computed(() => offeredEntities(entitiesIn(kind.value.tile.
 const choices = (option: PluginTileOption) => choicesFor(kind.value.plugin, option, values.value).map((choice) => [choice.value, text(choice.label)] as [string, string]);
 const fromFetch = (option: PluginTileOption) => Boolean(option.options_from);
 const size = (value: string) => value.replace("x", "×");
-const number = (value: number) => numberText(value, languageMarks(editorLanguage()));
+const number = (value: number) => editorNumber(value);
 function step(option: PluginTileOption, by: number) {
   const now = Number(values.value[option.id] ?? option.min ?? 0);
   set(option, Math.min(option.max ?? Infinity, Math.max(option.min ?? -Infinity, now + by * (option.step ?? 1))));

@@ -3,7 +3,7 @@
 // Plugins tab. Adding a plugin puts it here instead of building at once, so a person can pick several and build each
 // screen once. A plugin that still needs something (a stop code, trust in its maker) says so and opens its details.
 import { computed, ref } from "vue";
-import { editorLanguage, languageMarks, numberText, t } from "../i18n";
+import { editorNumber, t } from "../i18n";
 import { headroomKb, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import { chooseProvider, installTray, labelOf, plugins, setupReady, setAsideKb, tray, trayAlong, trayGroups, trayPlan, trayReady, takeOut } from "../plugin-state";
@@ -15,7 +15,7 @@ defineEmits<{ open: [plugin: Plugin, screen: Screen] }>();
 const groups = trayGroups;
 const count = computed(() => groups.value.reduce((sum, g) => sum + g.plugins.length, 0));
 const stack = computed(() => groups.value.flatMap((g) => g.plugins).slice(-3));
-const kb = (value: number) => numberText(value, languageMarks(editorLanguage()));
+const kb = (value: number) => editorNumber(value);
 // A 4 MB screen's slot: what is set aside together has to fit under the line, not each plugin alone.
 const small = (screen: Screen) => Boolean(screen.firmware_image ? screen.firmware_image.slot <= 2_100_000 : ["cyd", "cyd9342", "hosyond40"].includes(screen.board || ""));
 const over = (screen: Screen, list: Plugin[]) => small(screen) && setAsideKb(screen, list) > headroomKb(screen);

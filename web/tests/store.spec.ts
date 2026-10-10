@@ -3,7 +3,7 @@ import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixtur
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addTile, canAlert, copyLayoutFrom, copyText, deviceStyle, fullPage, importLayout, isCompact, layoutJson, liveOf, movePage, moveTileToPage,
-  pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports,
+  pageReachWarning, pageTilesRepeat, removePage, removeTile, retargetPageTile, save, select, setTileOption, state, supports, supportsVersion,
   tileLimit, topbarItems, topbarView, buildProgress, whatsNew, refresh, createVirtualScreen, removeScreen, chooseGrid, tileSizeChoices,
 } from "../src/store";
 import { t } from "../src/i18n";
@@ -525,6 +525,8 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     select("living");
     expect(supports(0, 2, 60)).toBe(true);
     expect(supports(0, 2, 61)).toBe(false);
+    // A version as the add-on names one ("0.38.0"), as the top bar's items need it.
+    expect([supportsVersion("0.2.60"), supportsVersion("0.2.61"), supportsVersion("0.2")]).toEqual([true, false, false]);
     expect(whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
     expect(canAlert(living)).toBe(true);
     Object.assign(living, { firmware: "0.2.63", firmware_known: null });

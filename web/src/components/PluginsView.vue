@@ -6,6 +6,7 @@
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { fit, PLUGIN_TOPICS, PLUGIN_TYPES, text, type Plugin } from "../model/plugins";
+import { matchesWords, queryWords } from "../model/search";
 import { allTests, installedOn, isSetAside, loadPlugins, plugins, realScreens, statusOverall, toggleSetAside, tray } from "../plugin-state";
 // The folder as Home Assistant shows it (config/...), not as the app's container mounts it (/homeassistant/...).
 const folderShown = (path: string) => path.replace(/^\/(homeassistant|config)\//, "config/");
@@ -43,10 +44,9 @@ const everything = computed(() => [...plugins.index, ...allTests()]);
 const inUse = (plugin: Plugin) => realScreens().some((screen) => installedOn(screen, plugin.id));
 const inTab = (plugin: Plugin, key: Tab) => (key === "in_use" ? inUse(plugin) : (plugin.type || "functions") === key);
 const matches = (plugin: Plugin) => {
-  const words = query.value.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const words = queryWords(query.value);
   const topics = (plugin.topics || []).map((name) => t(`editor.plugins.topics.${name}`)).join(" ");
-  return words.every((word) => `${text(plugin.name)} ${text(plugin.summary)} ${plugin.maintainer} ${plugin.id} ${topics}`
-    .toLocaleLowerCase().includes(word));
+  return matchesWords(words, text(plugin.name), text(plugin.summary), plugin.maintainer, plugin.id, topics);
 };
 const found = computed(() => everything.value.filter(matches));
 const count = (key: Tab) => found.value.filter((plugin) => inTab(plugin, key)).length;
@@ -198,7 +198,7 @@ const pluginBuilds = computed(() => buildingScreens().filter((screen) => buildOf
       <Transition name="drawer">
         <aside v-if="panel" class="plugin-detail" id="plugin-detail" @click.stop>
           <div class="plugin-detail-inner">
-            <PluginDetail v-if="panel === 'plugin' && open" :plugin="open" @close="close" />
+            <PluginDetail v-if="panel === 'plugin' && open" :key="open.id" :plugin="open" @close="close" />
             <PluginLink v-else-if="panel === 'link'" @close="close" @found="show" />
           </div>
         </aside>

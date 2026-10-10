@@ -3,6 +3,7 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { t } from "../i18n";
 import { domainInfo } from "../model/layout";
+import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
 import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, go, identify, repeatable, save, select, state, tileLimit } from "../store";
 
@@ -39,13 +40,13 @@ const items = computed<Item[]>(() => {
     for (const e of state.inventory.entities) {
       // One on the screen comes again when the firmware takes an entity on several tiles (0.16.0+).
       if (e.tile === false || (chosen.has(e.id) && !repeatable(e.id))) continue;
-      if (!`${e.name} ${e.id} ${e.area || ""} ${e.device || ""}`.toLocaleLowerCase().includes(q)) continue;
+      if (!matchesQuery(q, e.name, e.id, e.area, e.device)) continue;
       list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: state.inventory.icons ? automaticIcon(e.id) : undefined,
         run: () => { if (!full) addTile(e.id); } });
       if (list.length > 60) break;
     }
   }
-  return q ? list.filter((i) => `${i.label} ${i.detail || ""}`.toLocaleLowerCase().includes(q)) : list;
+  return q ? list.filter((i) => matchesQuery(q, i.label, i.detail)) : list;
 });
 const grouped = computed(() => {
   const out: { group: string; items: { item: Item; index: number }[] }[] = [];

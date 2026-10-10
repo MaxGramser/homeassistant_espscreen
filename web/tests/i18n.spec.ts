@@ -9,7 +9,7 @@ import en from "../../screen_manager/translations/en.json";
 import { send } from "../src/api";
 import TileCard from "../src/components/TileCard.vue";
 import {
-  addLanguage, andList, haProfile, i18n, languageMarks, languageMeta, languages, loadLanguage, matchLanguage, numberText, pickLanguage,
+  addLanguage, andList, editorNumber, haProfile, i18n, languageMarks, languageMeta, languages, loadLanguage, matchLanguage, numberText, pickLanguage,
   PLURAL_RULES, requestedLanguage, setEditorLanguage, STYLE_MARKS, t,
 } from "../src/i18n";
 import { agoText, dateText } from "../src/model/topbar";
@@ -233,6 +233,10 @@ describe("numbers, lists and the profile", () => {
     expect(numberText("1234.5", languageMarks("en"))).toBe("1,234.5");
     addLanguage("ti", { screen: { number: { decimal: ",", group: ".", group_min: "2" } } }, meta("one_other"));
     expect(["1234.5", "12345.5"].map((n) => numberText(n, languageMarks("ti")))).toEqual(["1234,5", "12.345,5"]);
+    // The editor's own numbers (a plugin's kilobytes, a board's inches) in the editor's language.
+    expect(editorNumber("1234.5")).toBe("1,234.5");
+    i18n.global.locale.value = "ti";
+    expect([editorNumber(12345.5), editorNumber(4.3)]).toEqual(["12.345,5", "4,3"]);
   });
   it("writes a list the way the language does, the English one without a comma before and", () => {
     expect(andList([1, 2, 3])).toBe("1, 2 and 3");

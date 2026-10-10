@@ -2,7 +2,8 @@
 // Adding to the top bar: the screen's own items, then an entity (EntityItemPicker).
 import { computed } from "vue";
 import { t } from "../i18n";
-import { BUILTIN_ICONS, clockText, dateText, glyph, itemKey, STATUS_CODES } from "../model/topbar";
+import { clockSample } from "../model/clock";
+import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
 import { addTopbarItem, clock24, closeInspector, currentScreen, iconNamed, openBar, screenLanguage, state, topbarItems, topbarMax } from "../store";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
@@ -10,10 +11,11 @@ import { barItemsFor, pluginsEnabled } from "../plugin-state";
 import InspectorHead from "./ui/InspectorHead.vue";
 
 const taken = computed(() => new Set(topbarItems().map(itemKey)));
+const clock = computed(() => clockSample(state.now, clock24.value, screenLanguage.value));
 const samples = computed(() => ({
-  clock: clockText(clock24.value, new Date(state.now), screenLanguage.value),
+  clock: clock.value.time,
   analog: t("editor.topbar.analog_sample"),
-  date: dateText(new Date(state.now), screenLanguage.value),
+  date: clock.value.date,
   wifi: t("editor.topbar.wifi_sample"),
   link: t("editor.topbar.link_sample"),
   battery: t("editor.topbar.battery_sample"),

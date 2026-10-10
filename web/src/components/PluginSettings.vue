@@ -5,7 +5,7 @@
 // (a dropdown from six options on), a text, and a button with the text sensor that says how it went (plugin API 0.6).
 import { onBeforeUnmount, ref, watch } from "vue";
 import { getJson, send } from "../api";
-import { editorLanguage, languageMarks, numberText, t } from "../i18n";
+import { editorNumber, t } from "../i18n";
 import { text, type Texts } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import { nodeOf, plugins, pluginsEnabled } from "../plugin-state";
@@ -48,7 +48,7 @@ function setText(row: Row, input: HTMLInputElement) {
   if (input.value.length < (row.min ?? 0)) { input.value = String(row.value ?? ""); toast(t("editor.plugins.settings.too_short", { n: row.min ?? 0 })); return; }
   set(row, input.value);
 }
-const number = (value: unknown, unit = "") => `${numberText(Number(value), languageMarks(editorLanguage()))}${unit ? ` ${unit}` : ""}`;
+const number = (value: unknown, unit = "") => `${editorNumber(Number(value))}${unit ? ` ${unit}` : ""}`;
 function step(row: Row, direction: number) {
   const now = Number(row.value ?? row.min ?? 0), by = row.step || 1;
   const next = Math.min(row.max ?? Infinity, Math.max(row.min ?? -Infinity, now + direction * by));

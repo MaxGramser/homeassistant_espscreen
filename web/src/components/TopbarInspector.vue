@@ -8,10 +8,11 @@ import { computed, onBeforeUnmount, ref } from "vue";
 import { t } from "../i18n";
 import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
-import { barLayout, BUILTIN_ICONS, clockText, dateText, glyph, itemKey, STATUS_CODES } from "../model/topbar";
+import { clockSample } from "../model/clock";
+import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
 import {
   automaticIcon, barMetrics, clock24, entityName, homeKeyShown, iconNamed, moveTopbarItem, openBar, openBarAdd, openPage,
-  removeTopbarItem, screenLanguage, screenText, setTopbarItems, state, supports, topbarItems, topbarLabel, topbarMax, topbarView,
+  removeTopbarItem, screenLanguage, screenText, setTopbarItems, state, supportsVersion, topbarItems, topbarLabel, topbarMax, topbarView,
   pageTitleShown, pageReady,
 } from "../store";
 import type { HeaderItem } from "../types";
@@ -35,7 +36,7 @@ const lay = computed(() => {
 });
 const overflow = computed(() => lay.value.dropped);
 const needed = computed(() => state.inventory.header?.min_firmware || "0.2.32");
-const supported = computed(() => { const [a, b, c] = needed.value.split(".").map(Number); return supports(a, b, c); });
+const supported = computed(() => supportsVersion(needed.value));
 const hint = computed(() => supported.value
   ? t(overflow.value.size ? "editor.topbar.hint.overflow" : "editor.topbar.hint.reorder")
   : t("editor.topbar.hint.needs_firmware", { version: needed.value }));
@@ -54,10 +55,10 @@ const iconOf = (it: HeaderItem) => {
 };
 // The screen's own items need firmware 0.38.0; an older screen leaves them out of its bar.
 const statusNeeded = computed(() => state.inventory.header?.status_min_firmware || "0.38.0");
-const statusSupported = computed(() => { const [a, b, c] = statusNeeded.value.split(".").map(Number); return supports(a, b, c); });
+const statusSupported = computed(() => supportsVersion(statusNeeded.value));
 // The battery item needs firmware 0.41.0 (docs/BATTERY.md); an older screen leaves it out of its bar.
 const batteryNeeded = computed(() => state.inventory.header?.battery_min_firmware || "0.41.0");
-const batterySupported = computed(() => { const [a, b, c] = batteryNeeded.value.split(".").map(Number); return supports(a, b, c); });
+const batterySupported = computed(() => supportsVersion(batteryNeeded.value));
 const justAdded = (it: HeaderItem) => state.topbarAdded?.key === itemKey(it) && Date.now() - state.topbarAdded.time < 1200;
 // The page whose bar you clicked (app 0.2.105). Its left side, the title and the Home key, belongs to the page and is
 // set in the page's own settings (app 0.3.19); this inspector is about what stands on the right.
@@ -79,11 +80,10 @@ const liveNote = computed(() => {
   const view = topbarView(item.value);
   return !view.shown ? (item.value.type === "entity" ? t("editor.topbar.live.hidden") : hiddenText(item.value)) : overflow.value.has(props.index) ? t("editor.topbar.live.overflow") : t("editor.topbar.live.looks");
 });
-const samples = computed(() => ({
-  clock: clockText(clock24.value, new Date(state.now), screenLanguage.value),
-  analog: t("editor.topbar.analog_sample"),
-  date: dateText(new Date(state.now), screenLanguage.value),
-} as Record<string, string>));
+const samples = computed(() => {
+  const clock = clockSample(state.now, clock24.value, screenLanguage.value);
+  return { clock: clock.time, analog: t("editor.topbar.analog_sample"), date: clock.date } as Record<string, string>;
+});
 
 // Pointer drag between the rows, mouse and touch (touch after a short hold, so the list still scrolls). The order
 // updates while dragging, the mockup follows, and a finished drag is not a click.

@@ -2,6 +2,7 @@
 // Perform action (app 0.2.67): the actions Home Assistant offers for a tile's entity, under its own names,
 // and one field per value Home Assistant asks for (its selector). An empty field is left out.
 import { computed } from "vue";
+import { matchesQuery } from "../model/search";
 import { t } from "../i18n";
 import { beginFieldEdit, endFieldEdit, loadEntityActions, setTileAction, state, supports } from "../store";
 import type { EntityAction, Tile } from "../types";
@@ -16,8 +17,7 @@ const chosen = computed(() => props.tile.options?.action);
 const entry = computed(() => list.value?.find((a) => a.action === chosen.value?.action));
 const open = computed(() => state.actionPickerOpen || !chosen.value);
 const rows = computed(() => {
-  const q = state.actionSearch.trim().toLocaleLowerCase();
-  return (list.value || []).filter((a) => `${a.name} ${a.action} ${a.description}`.toLocaleLowerCase().includes(q));
+  return (list.value || []).filter((a) => matchesQuery(state.actionSearch, a.name, a.action, a.description));
 });
 if (list.value === undefined) loadEntityActions(props.tile.entity);
 

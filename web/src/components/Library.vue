@@ -10,6 +10,7 @@ import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { domainInfo, pageTarget } from "../model/layout";
 import { glyph } from "../model/topbar";
+import { matchesQuery, prefixRank } from "../model/search";
 import { tilePalette } from "../model/tile-palette";
 import { isPluginTile } from "../model/plugins";
 import { pluginsEnabled, tilesOn } from "../plugin-state";
@@ -72,16 +73,13 @@ const base = computed<Entry[]>(() => {
     e.tile !== false && pageTarget(e.id) <= pagesOffered.value &&
     (pictures.value || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
     (!state.hidePlaced || !onScreen(e.id)) &&
-    `${e.name} ${e.id} ${e.device || ""} ${e.area || ""}`.toLocaleLowerCase().includes(q));
+    matchesQuery(q, e.name, e.id, e.device, e.area));
 });
 const pool = computed(() => base.value.filter((e) => !state.room || e.area === state.room));
 const inDomain = (id: string, filter: string) => !filter || id.startsWith(filter + ".") || ALIAS[filter] === id.split(".")[0];
 // A search ranks what it finds, the way Spotlight does: a name that starts with the words first, then one with a word
 // that does, then the rest. Without one the list keeps Home Assistant's order.
-const rank = (e: Entry) => {
-  const name = e.name.toLocaleLowerCase(), q = query.value;
-  return name.startsWith(q) ? 0 : name.split(/[\s_-]+/).some((word) => word.startsWith(q)) ? 1 : 2;
-};
+const rank = (e: Entry) => prefixRank(e.name, query.value);
 const matches = computed(() => {
   const found = pool.value.filter((e) => inDomain(e.id, state.filter));
   return query.value ? [...found].sort((a, b) => rank(a) - rank(b)) : found;

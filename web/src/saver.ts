@@ -3,7 +3,7 @@
 import { computed, getCurrentScope, onScopeDispose, ref, type Ref } from "vue";
 import { t } from "./i18n";
 import { dropIndex, moved } from "./model/reorder";
-import { clockText, dateText } from "./model/topbar";
+import { clockSample } from "./model/clock";
 import { clock24, currentScreen, entityName, liveOf, openSaverStep, saverItems, screenLanguage, setScreensaver, settingValues, state, topbarLabel } from "./store";
 import type { SaverKind, ScreensaverChoice } from "./types";
 
@@ -95,11 +95,11 @@ export const glassRatio = computed(() => {
   return shape?.width && shape?.height ? `${shape.width} / ${shape.height}` : "16 / 10";
 });
 export const clockPreview = computed(() => {
-  const now = new Date(state.now);
+  const clock = clockSample(state.now, clock24.value, screenLanguage.value);
   const degrees = weatherSource.value ? liveOf(weatherSource.value)?.a?.temperature : undefined;
   return {
-    time: clockText(clock24.value, now, screenLanguage.value),
-    date: dateText(now, screenLanguage.value),
+    time: clock.time,
+    date: clock.date,
     temperature: degrees !== undefined && degrees !== null && degrees !== "" ? `${Math.round(Number(degrees))}°` : null,
   };
 });

@@ -3,6 +3,7 @@
 import { computed, reactive, ref } from "vue";
 import { andList, t } from "../i18n";
 import { versionAtLeast } from "../model/layout";
+import { matchesQuery } from "../model/search";
 import { glyph } from "../model/topbar";
 import { firmwareVersion } from "../model/screen-status";
 import { canAlert, copyText, go, sendTestAlert, state } from "../store";
@@ -124,9 +125,9 @@ const choiceYaml = computed(() => {
 });
 const iconGroups = computed(() => {
   if (!alerts.value || !icons.value) return [];
-  const query = iconQuery.value.trim().toLowerCase();
+  const query = iconQuery.value;
   const all = [...icons.value.groups, { label: t("editor.alerts.icons.extra"), icons: alerts.value.extra_icons }];
-  return all.map((group) => ({ label: group.label, icons: group.icons.filter((i: any) => !query || i.name.includes(query) || (i.label || "").toLowerCase().includes(query)) })).filter((g) => g.icons.length);
+  return all.map((group) => ({ label: group.label, icons: group.icons.filter((i: any) => matchesQuery(query, i.name) || matchesQuery(query, i.label)) })).filter((g) => g.icons.length);
 });
 const doorbell = computed(() => alerts.value?.suggested_icons?.find((i: any) => i.name === "doorbell"));
 const orange = computed(() => alerts.value?.colors?.find((c: any) => c.name === "orange"));

@@ -92,7 +92,7 @@ watch(() => plugins.focus, (id) => {
     <Transition name="drawer">
       <aside v-if="panel" class="plugin-detail" id="plugin-detail" @click.stop>
         <div class="plugin-detail-inner">
-          <PluginDetail v-if="panel === 'plugin' && open" :plugin="open" :screen="screen" @close="close" />
+          <PluginDetail v-if="panel === 'plugin' && open" :key="open.id" :plugin="open" :screen="screen" @close="close" />
           <PluginLink v-else-if="panel === 'link'" :screen="screen" @close="close" @found="show" />
         </div>
       </aside>

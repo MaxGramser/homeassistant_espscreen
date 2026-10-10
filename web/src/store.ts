@@ -4,8 +4,8 @@ import { computed, reactive, ref, toRaw, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "./i18n";
-import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware as supportsVersion } from "./model/layout";
-import { agoText, barMetricsFor, batteryView, clockText, dateText, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, whenBarFontsLoad, wifiView } from "./model/topbar";
+import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware } from "./model/layout";
+import { agoText, barMetricsFor, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, whenBarFontsLoad, wifiView } from "./model/topbar";
 import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size, versionAtLeast } from "./model/layout";
 import { measuring, memoryCrossing, memoryUse } from "./model/memory";
@@ -26,6 +26,8 @@ import { rowText, type SettingRow } from "./model/settings";
 import * as status from "./model/screen-status";
 import { homeView, SMALLEST, type HomeView } from "./model/overview";
 import { firmwareVersion } from "./model/screen-status";
+import { slug } from "./model/slug";
+import { clockSample } from "./model/clock";
 import { onReset } from "./resets";
 import { readStored, writeStored } from "./storage";
 
@@ -189,8 +191,7 @@ export function createVirtualScreen(name: string, profile: PreviewProfile) {
   if (!name.trim() || !validPreviewShape(profile.shape)) throw new Error(t("editor.preview.invalid_shape"));
   const { board, orientation } = profile;
   const shape = JSON.parse(JSON.stringify(profile.shape));
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "preview";
-  const id = `virtual.${slug}-${Date.now().toString(36)}`;
+  const id = `virtual.${slug(name) || "preview"}-${Date.now().toString(36)}`;
   const sourceGrid = { columns: shape.columns, rows: shape.rows };
   const document: PageDocument = { format: 'pages-v2', revision: pages.instanceId(), sourceGrid,
     layout: pages.emptyLayout(name.trim()), workspace: { revision: pages.instanceId(), positions: {} } };
@@ -209,7 +210,9 @@ export function createVirtualScreen(name: string, profile: PreviewProfile) {
 
 export const currentScreen = computed<Screen | undefined>(() => state.inventory.screens.find((s) => s.id === state.selected));
 export const firmwareOf = computed(() => firmwareVersion(currentScreen.value));
-export const supports = (major: number, minor: number, patch: number) => supportsVersion(firmwareOf.value, major, minor, patch);
+export const supports = (major: number, minor: number, patch: number) => supportsFirmware(firmwareOf.value, major, minor, patch);
+/** Whether the open screen's firmware is this version or newer, the version as the add-on names one ("0.38.0"). */
+export const supportsVersion = (version: string) => versionAtLeast(firmwareOf.value, version);
 // A new media tile starts with its album cover where the screen draws one (app 0.4.42): a board with pictures, firmware 0.2.78+.
 export const coversByDefault = () => pictures.value && supports(0, 2, 78);
 // What the screen holds and draws, as the add-on says (app 0.2.78), so a screen whose version Home Assistant can't
@@ -1567,7 +1570,7 @@ export function layoutJson() {
 export function exportLayout() {
   const text = layoutJson();
   if (!text) return;
-  const name = `${(currentScreen.value?.name || "screen").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.layout.json`;
+  const name = `${slug(currentScreen.value?.name || "screen", { trim: false })}.layout.json`;
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   const a = document.createElement("a");
   a.href = url; a.download = name; a.click();
@@ -1676,9 +1679,10 @@ export function topbarLabel(item: HeaderItem) {
 }
 // What the item shows right now: { icon, text, color, shown }. Entities wait for the add-on's preview.
 export function topbarView(item: HeaderItem): ItemView {
-  const now = new Date(state.now);
-  if (item.type === "clock") return { text: clockText(clock24.value, now, screenLanguage.value), shown: true };
-  if (item.type === "date") return { text: dateText(now, screenLanguage.value), shown: true };
+  if (item.type === "clock" || item.type === "date") {
+    const clock = clockSample(state.now, clock24.value, screenLanguage.value);
+    return { text: item.type === "clock" ? clock.time : clock.date, shown: true };
+  }
   if (item.type === "analog") return { analog: true, shown: true };
   // The screen's own items (firmware 0.38.0): a good signal, and every link there, so the link mark hides.
   if (item.type === "wifi") return wifiView(item, SAMPLE_RSSI, (n) => `${n}${t("screen.number.percent", {}, { locale: screenLanguage.value })}`);

@@ -4,6 +4,7 @@
 // still goes, so a learned code or a hub's own name keeps working. The list stays in the panel (no popover), as the
 // library's results do, and only while the field has the cursor.
 import { computed, ref, watch } from "vue";
+import { rankedValues } from "../../model/search";
 
 const props = defineProps<{ modelValue: string; suggestions: readonly string[]; placeholder?: string; ariaLabel?: string; max?: number }>();
 const emit = defineEmits<{ "update:modelValue": [value: string]; pick: [value: string]; focus: []; blur: [] }>();
@@ -12,15 +13,7 @@ const active = ref(0);
 const id = `suggest-${Math.random().toString(36).slice(2, 8)}`;
 // What is typed narrows the list from the start of a word first, then anywhere: "vol" finds VOLUME_UP before
 // MEDIA_VOLUME; case and _ / - / space don't matter, as the integrations that fold case take it either way.
-const fold = (text: string) => text.toLocaleLowerCase().replace(/[\s_-]+/g, "");
-const shown = computed(() => {
-  const typed = fold(props.modelValue || "");
-  if (!typed) return props.suggestions.slice(0, props.max ?? 60);
-  const words = (value: string) => value.toLocaleLowerCase().split(/[\s_-]+/);
-  const first = props.suggestions.filter((value) => fold(value).startsWith(typed) || words(value).some((word) => word.startsWith(typed)));
-  const rest = props.suggestions.filter((value) => !first.includes(value) && fold(value).includes(typed));
-  return [...first, ...rest].slice(0, props.max ?? 60);
-});
+const shown = computed(() => rankedValues(props.suggestions, props.modelValue || "").slice(0, props.max ?? 60));
 // The list hides once the field holds exactly one of its values: there is nothing left to choose.
 const visible = computed(() => open.value && shown.value.length > 0 && !(shown.value.length === 1 && shown.value[0] === props.modelValue));
 watch(() => props.modelValue, () => { active.value = 0; });

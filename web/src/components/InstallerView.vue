@@ -9,6 +9,8 @@ import { editorLanguage, languageMarks, numberText, t } from "../i18n";
 import { copyText, createVirtualScreen, fetchFirmware, FIRMWARE_POLL_MS, go, openIntegrations, pollFirmware, refresh, state, toast } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
+import { matchesWords, queryWords } from "../model/search";
+import { entitySlug, nodeName } from "../model/slug";
 import type { BoardChoice, BoardOrientation, Orientation } from "../types";
 import BrowserFlash from "./BrowserFlash.vue";
 import DeviceArt from "./DeviceArt.vue";
@@ -42,17 +44,11 @@ const logOpen = ref(false);
 const keyBox = ref<HTMLElement | null>(null);
 let poll = 0;
 
-// ESPHome's node-name rule: lowercase ASCII, digits and dashes, starting with a letter.
-function slug(text: string) {
-  const clean = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^[^a-z]+/, "").slice(0, 30).replace(/-+$/, "");
-  return clean || "screen";
-}
 function portLabel(port: string) {
   const id = port.replace(/^\/dev\/serial\/by-id\/usb-/, "").replace(/-if\d+(-port\d+)?$/, "").replace(/_/g, " ");
   return `USB · ${id === port ? port.replace(/^\/dev\//, "") : id}`;
 }
-watch(() => form.friendly_name, () => { if (!installer.nodeEdited) form.name = slug(form.friendly_name); });
+watch(() => form.friendly_name, () => { if (!installer.nodeEdited) form.name = nodeName(form.friendly_name); });
 // The boards and everything said about them come from the add-on (boards.yaml and the board files, through
 // boards.json): the list, each board's glass drawn to one scale, its abilities, its choices. Nothing here names a board.
 const boards = computed<Record<string, BoardChoice>>(() => data.value?.boards || {});
@@ -107,9 +103,8 @@ watch(() => form.orientation, bestGrid);
 const nodePreview = computed(() => form.name || "…");
 // Names the screens this app knows already carry (app 0.2.123): their ESPHome device names and the starts Home
 // Assistant gave their entity ids. The server refuses a clash, and saying it here means nothing is built first.
-// The same slug the add-on makes of a name (core.entity_slug), so both sides read a name the same way.
+// The same slug the add-on makes of a name (core.entity_slug, model/slug.ts), so both sides read a name the same way.
 const taken = computed(() => data.value?.taken || { nodes: [], prefixes: [] });
-const entitySlug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 const nodeTaken = computed(() => !!form.name && taken.value.nodes.includes(form.name.trim().toLowerCase()));
 const nameTaken = computed(() => {
   const prefix = entitySlug(form.friendly_name.trim());
@@ -245,7 +240,7 @@ async function submit(event: Event) {
     } catch (err: any) { status.value = err.message; }
     return;
   }
-  if (!installer.nodeEdited) form.name = slug(form.friendly_name);
+  if (!installer.nodeEdited) form.name = nodeName(form.friendly_name);
   submitting.value = true;
   status.value = "";
   const browser = form.target === "browser";
@@ -321,9 +316,9 @@ const SIZES = ["", "small", "medium", "large"] as const;
 const sizeOf = (inch: number) => inch < 4 ? "small" : inch < 6 ? "medium" : "large";
 // Search reads what someone knows of their screen: the brand, the size ("4", "4.3 inch"), what is printed on it, the chip.
 const shownBoards = computed(() => {
-  const words = query.value.trim().toLocaleLowerCase().replace(/[",]/g, ".").split(/\s+/).filter(Boolean);
-  return boardRows.value.filter((board) => (!size.value || sizeOf(board.inch) === size.value) && words.every((word) =>
-    `${boardTitle(board)} ${board.name} ${board.model} ${board.inch} ${board.touch} ${board.chip || ""} ${board.key}`.toLocaleLowerCase().includes(word.replace(/inch$/, ""))));
+  const words = queryWords(query.value.replace(/[",]/g, ".")).map((word) => word.replace(/inch$/, ""));
+  return boardRows.value.filter((board) => (!size.value || sizeOf(board.inch) === size.value) &&
+    matchesWords(words, boardTitle(board), board.name, board.model, board.inch, board.touch, board.chip, board.key));
 });
 // Keep variants together only when brand, glass size, chip and resolution match. A board with a different chip or
 // resolution gets its own card and specifications; display-controller variants and board revisions stay in Model.
@@ -396,12 +391,12 @@ async function saveWifi() {
 // to Home Assistant itself (app 0.4.73): `failed` when Home Assistant asked something only the person can answer.
 const ARRIVE_MS = 3 * 60 * 1000;
 const doneAt = ref(0);
-const nodeName = computed(() => (installer.file || "").replace(/\.yaml$/, ""));
+const builtNode = computed(() => (installer.file || "").replace(/\.yaml$/, ""));
 const waitsForWifi = computed(() => ok.value && !download.value && installer.view === "progress");
 watch(waitsForWifi, (waits) => { if (waits && !doneAt.value) doneAt.value = Date.now(); });
 const arrival = computed(() => {
   if (!waitsForWifi.value) return null;
-  if (state.inventory.screens.some((screen: any) => screen.node === nodeName.value)) return "paired";
+  if (state.inventory.screens.some((screen: any) => screen.node === builtNode.value)) return "paired";
   const found = state.inventory.pending?.find((entry) => entry.file === installer.file && entry.seen);
   if (found) return found.pairing === "failed" ? "failed" : "seen";
   return now.value - doneAt.value > ARRIVE_MS ? "missing" : "waiting";

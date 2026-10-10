@@ -5,6 +5,7 @@
 import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
+import { matchesQuery } from "../model/search";
 import { iconNamed, state } from "../store";
 import Icon from "./ui/Icon.vue";
 import PropRow from "./ui/PropRow.vue";
@@ -23,10 +24,9 @@ function show(name: string | null) {
 }
 function pick(name: string) { show(null); emit("pick", name); }
 const groups = computed(() => {
-  const q = query.value.trim().toLocaleLowerCase();
   return (state.inventory.icons?.groups || []).map((group) => ({
     label: group.label,
-    icons: group.icons.filter((i) => !q || `${i.label} ${i.name.replaceAll("-", " ")} ${group.label}`.toLocaleLowerCase().includes(q)),
+    icons: group.icons.filter((i) => matchesQuery(query.value, i.label, i.name.replaceAll("-", " "), group.label)),
   })).filter((g) => g.icons.length);
 });
 </script>

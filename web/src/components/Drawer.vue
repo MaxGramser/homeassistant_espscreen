@@ -22,7 +22,8 @@ const open = computed(() => Boolean(state.inspector && (state.inspector.kind !==
   <Transition name="drawer">
   <aside v-if="open" class="drawer open" id="tile-sheet" @click.stop>
     <div v-if="state.inspector" class="drawer-inner">
-      <TileInspector v-if="state.inspector.kind === 'tile' && currentTile" :tile="currentTile" />
+      <!-- Keyed by the tile: another tile's settings start as a tile's settings start, with More settings and every chooser closed. -->
+      <TileInspector v-if="state.inspector.kind === 'tile' && currentTile" :key="currentTile.id" :tile="currentTile" />
       <TopbarInspector v-else-if="state.inspector.kind === 'bar'" :index="state.inspector.index" />
       <TopbarAdd v-else-if="state.inspector.kind === 'bar-add'" />
       <SaverItemInspector v-else-if="state.inspector.kind === 'saver-item'" :index="state.inspector.index" />

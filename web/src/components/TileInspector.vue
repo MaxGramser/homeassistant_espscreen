@@ -38,8 +38,8 @@ import { isTallSize } from "../model/sizes";
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
 // to move it or take it off. Everything else stands behind More settings, the same rows as on a wider page.
+// Another tile opens its own inspector (Drawer keys it by the tile), so these start closed for every tile.
 const more = ref(false);
-watch(() => props.tile.id, () => { more.value = false; });
 // The tile goes to the first free cell of another page, and the sheet follows it there.
 function moveTile(page: number) {
   const id = state.document?.pages[page]?.id;
@@ -131,7 +131,6 @@ const mapChoices = (key: MapChoice) => offer(key, (MAP?.[key] ?? [])
 const favoriteCard = computed(() => display.value === "favorite" && domain.value === "media_player");
 const favoritePlay = computed(() => props.tile.options?.play as FavoritePlay | undefined);
 const choosing = ref(false);
-watch(() => props.tile.id, () => { choosing.value = false; });
 const speakers = computed(() => {
   // The rows of the player's speaker menu (app speakers.py), or its sources from an app before them.
   const live = liveOf(props.tile.entity)?.a;
@@ -212,7 +211,6 @@ const controlHint = computed(() => {
 // Perform action has a second step, the action: picking it opens the list, and only an action chosen there stores it
 // (app 0.4.0, GitHub #47). Until then the tile keeps the tap choice it had.
 const choosingAction = ref(false);
-watch(() => props.tile.id, () => { choosingAction.value = false; });
 const tap = computed(() => choosingAction.value ? "action" : current("tap", "auto") as string);
 watch(() => props.tile.options?.tap, (stored) => { if (stored === "action") choosingAction.value = false; });
 const taps = computed(() => {

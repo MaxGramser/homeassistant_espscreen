@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // What a plugin asks for before it goes on a screen: its inputs (a key, a pin, a name) and its optional parts. A key
 // is asked once for all chosen screens; a pin or a name per screen, because each board has its own free pins.
-import { editorLanguage, languageMarks, numberText, t, te } from "../i18n";
+import { editorNumber, t, te } from "../i18n";
 import { freePins, text, type Plugin } from "../model/plugins";
 import { entitiesIn, partsOn, plugins, setParts, setValue, valueOf } from "../plugin-state";
 import type { Screen } from "../types";
@@ -11,7 +11,7 @@ import type { Screen } from "../types";
 const props = defineProps<{ plugin: Plugin; screens: Screen[]; only?: "shared" | "screen" }>();
 const showShared = () => props.only !== "screen";
 const showScreen = () => props.only !== "shared";
-const kb = (value: number) => numberText(value, languageMarks(editorLanguage()));
+const kb = (value: number) => editorNumber(value);
 const shared = () => (props.plugin.inputs || []).filter((input) => input.scope === "all");
 const perScreen = () => (props.plugin.inputs || []).filter((input) => input.scope === "screen");
 // The entities an input of kind entity takes: those of its domains in Home Assistant.

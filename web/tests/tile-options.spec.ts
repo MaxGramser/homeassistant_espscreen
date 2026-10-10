@@ -7,6 +7,7 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ActionPicker from "../src/components/ActionPicker.vue";
+import Drawer from "../src/components/Drawer.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
 import { validatePages } from "../src/model/pages";
@@ -121,6 +122,22 @@ describe("the tile panel", () => {
     await panel.findAll("button").find((b) => b.text() === "Open control")!.trigger("click");
     expect(current(tile)!.options?.tap).toBe("detail");
     expect(current(tile)!.options?.action).toBeUndefined();
+  });
+
+  it("starts another tile's settings with its choosers closed (the drawer keys the panel by the tile)", async () => {
+    state.entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [] }] as any;
+    const lamp: Tile = { entity: "light.a", name: "", slot: 0 }, fan: Tile = { entity: "switch.s", name: "", slot: 1 };
+    appendTiles(lamp, fan);
+    openTile(current(lamp)!);
+    const drawer = mount(Drawer);
+    await drawer.findAll("button").find((b) => b.text() === "Perform action")!.trigger("click");
+    expect(drawer.findComponent(ActionPicker).exists()).toBe(true);
+    openTile(current(fan)!);
+    await nextTick();
+    expect(drawer.findComponent(ActionPicker).exists()).toBe(false);
+    openTile(current(lamp)!);
+    await nextTick();
+    expect(drawer.findAll("button").find((b) => b.text() === "Perform action")!.attributes("aria-pressed")).toBe("false");
   });
 
   it("offers an automation On / off or Run automation actions, and says what holding it does (GitHub #62)", async () => {

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { t } from '../i18n';
 import { addPage, automaticIcon, liveOf, pageReady, state, topbarMax } from '../store';
 import { clone, emptyPage, instanceId } from '../model/pages';
+import { matchesQuery } from '../model/search';
 import { tilePalette } from '../model/tile-palette';
 import { glyph } from '../model/topbar';
 import type { HeaderItem } from '../types';
@@ -18,9 +19,8 @@ const title = ref(''), home = ref(true), clock = ref(true), query = ref('');
 const chosen = ref<string[]>([]);
 const count = computed(() => chosen.value.length + Number(clock.value));
 const matches = computed(() => {
-  const search = query.value.trim().toLocaleLowerCase();
   // Only what the top bar can show (app 0.4.1): the add-on's header domains, so Create never fails on a camera.
-  return state.inventory.entities.filter(entity => rules.headerDomains.includes(entity.id.split('.')[0]) && `${entity.name} ${entity.id} ${entity.area || ''}`.toLocaleLowerCase().includes(search));
+  return state.inventory.entities.filter(entity => rules.headerDomains.includes(entity.id.split('.')[0]) && matchesQuery(query.value, entity.name, entity.id, entity.area));
 });
 const toggle = (id: string) => { chosen.value = chosen.value.includes(id) ? chosen.value.filter((item) => item !== id) : [...chosen.value, id]; };
 const invalidTitle = computed(() => new TextEncoder().encode(title.value.trim()).length > 96);

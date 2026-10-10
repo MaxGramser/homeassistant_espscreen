@@ -4,7 +4,7 @@
 // where it is on and greyed out with its reason where it does not fit; in a screen's Plugins tab it is the one button
 // for that screen. A screen with its own YAML gets the lines to paste instead of a button.
 import { computed, reactive, ref, watch } from "vue";
-import { editorLanguage, languageMarks, numberText, t, te } from "../i18n";
+import { editorLanguage, editorNumber, t, te } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { changesBetween, fit, flashShare, headroomKb, inEditorLanguage, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
@@ -25,17 +25,16 @@ defineEmits<{ close: [] }>();
 
 const label = computed(() => labelOf(props.plugin));
 const stage = computed(() => stageOf(props.plugin));
-const marks = () => languageMarks(editorLanguage());
-const kb = (value: number) => numberText(value, marks());
-const percent = (share: number) => `${numberText((share * 100).toFixed(1), marks())} %`;
+const kb = (value: number) => editorNumber(value);
+const percent = (share: number) => `${editorNumber((share * 100).toFixed(1))} %`;
 const works = computed(() => props.plugin.boards === "any"
   ? t(props.plugin.requires.psram ? "editor.plugins.works.any_psram" : "editor.plugins.works.any")
   : (props.plugin.board_names || props.plugin.boards).join(", "));
 const domainName = (domain: string) => (te(`editor.domains.${domain}`) ? t(`editor.domains.${domain}`) : domain);
 // A plugin whose own words are not in the editor's language shows them in English and says so, once.
 const englishOnly = computed(() => !editorLanguage().startsWith("en") && !inEditorLanguage(props.plugin.readme));
+// Another plugin opens its own details (keyed by the plugin), so what was asked of this one goes with it.
 const trust = ref(false);
-watch(() => props.plugin.id, () => { trust.value = false; });
 
 // ---- One screen (its Plugins tab) ----
 const here = computed(() => props.screen || null);
@@ -84,7 +83,6 @@ function confirmRemove() {
   confirming.value = null;
   removePlugin(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
 }
-watch(() => props.plugin.id, () => { confirming.value = null; });
 // A like: the first one asks once whether it may count in a public number (plugin_likes.py).
 const askingLike = ref(false);
 async function toggleLike(consent = false) {

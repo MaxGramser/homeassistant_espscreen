@@ -11,7 +11,8 @@ import { vDrag } from "../drag";
 import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
-import { clock24, currentScreen, deviceStyle, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
+import { clockSample } from "../model/clock";
+import { clock24, currentScreen, deviceStyle, screenLanguage, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, toast, unitSuffix } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -160,8 +161,7 @@ const bigKey = computed(() => tall.value && !full.value && supports(0, 17, 0) &&
 // width and the day and AM or PM stand on one line under them.
 const flipWide = computed(() => (full.value || (shape.value.columns > 1 && shape.value.rows > 1)) && supports(0, 17, 0));
 // The day under the wide flip clock, as the screen writes it: "Tuesday 29 Sep".
-const flipDay = computed(() => `${screenText(`screen.date.weekdays.${now.value.getDay()}`)} ${screenText("screen.date.day_month", {
-  day: now.value.getDate(), month: screenText(`screen.date.months_short.${now.value.getMonth()}`) })}`);
+const flipDay = computed(() => face.value.flipDate);
 // The line under a big key's name, as the screen draws it: a lamp that is on says how bright, a script or scene when it
 // last ran, anything else its state.
 const bigKeyLine = computed(() => {
@@ -196,18 +196,9 @@ const key = (n: string) => (cp.value[n] ? glyph(cp.value[n]) : "");
 const chosen = computed(() => isSelected(props.tile) && state.inspector?.kind === "tile");
 const live = computed(() => !props.placeholder && state.layout?.tiles.some((tile) => tile.id === props.tile.id));
 const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.value.slots) + 1, page: Math.floor(props.slot / grid.value.slots) + 1 }));
-const now = computed(() => new Date(state.now));
-const hourAngle = computed(() => (now.value.getHours() % 12 + now.value.getMinutes() / 60) * 30);
-const minuteAngle = computed(() => now.value.getMinutes() * 6);
-// The flip clock's two blocks, as the screen draws them: "07" "12" on 24 hours, "7" "12" with AM or PM on 12.
-const flipHours = computed(() => clock24.value ? String(now.value.getHours()).padStart(2, "0") : String(now.value.getHours() % 12 || 12));
-const flipMinutes = computed(() => String(now.value.getMinutes()).padStart(2, "0"));
-const amPm = computed(() => screenText(`screen.time.${now.value.getHours() < 12 ? "am" : "pm"}`));
-const clockDate = computed(() => screenText('screen.date.full', {
-  weekday: screenText(`screen.date.weekdays.${now.value.getDay()}`),
-  day: now.value.getDate(),
-  month: screenText(`screen.date.months.${now.value.getMonth()}`),
-}));
+// The clock faces at the editor's one clock, as the screen draws them (model/clock.ts): the digital time, the analog
+// hands, the flip clock's two blocks ("07" "12" on 24 hours, "7" "12" with AM or PM on 12) and the dates.
+const face = computed(() => clockSample(state.now, clock24.value, screenLanguage.value));
 
 // ---- Live values ----
 const current = computed(() => (domain.value === "screen" ? null : liveOf(props.tile.entity)));
@@ -427,7 +418,7 @@ async function onKey(e: KeyboardEvent) {
     v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
     <template v-if="bedside">
       <span class="bedside-clock" :class="{ compact: isCompact }">
-        <span class="time"><span class="bedside-time">{{ clockText(clock24, now) }}</span><small v-if="!clock24 && supports(0, 17, 0)" class="am-pm">{{ amPm }}</small></span>
+        <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!clock24 && supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
         <span v-if="keyPlaces.length" class="keys">
           <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview || placeholder ? undefined : place.key" :data-holder="preview || placeholder ? undefined : tile.id"
             :class="{ 'insert-here': state.insertKey?.holder === tile.id && state.insertKey?.key === place.key, over: state.drag.key?.holder === tile.id && state.drag.key?.key === place.key }">
@@ -475,8 +466,8 @@ async function onKey(e: KeyboardEvent) {
       <svg class="clockface" viewBox="0 0 60 60" aria-hidden="true">
         <circle cx="30" cy="30" r="27" fill="#fff" stroke="#c9ccd1" />
         <line v-for="a in [0, 90, 180, 270]" :key="a" x1="30" y1="5" x2="30" y2="9" stroke="#1b1b1b" stroke-width="1.5" :transform="`rotate(${a} 30 30)`" />
-        <line x1="30" y1="30" x2="30" y2="16" stroke="#1b1b1b" stroke-width="2.4" stroke-linecap="round" :transform="`rotate(${hourAngle} 30 30)`" />
-        <line x1="30" y1="30" x2="30" y2="11" stroke="#1b1b1b" stroke-width="1.6" stroke-linecap="round" :transform="`rotate(${minuteAngle} 30 30)`" />
+        <line x1="30" y1="30" x2="30" y2="16" stroke="#1b1b1b" stroke-width="2.4" stroke-linecap="round" :transform="`rotate(${face.hourAngle} 30 30)`" />
+        <line x1="30" y1="30" x2="30" y2="11" stroke="#1b1b1b" stroke-width="1.6" stroke-linecap="round" :transform="`rotate(${face.minuteAngle} 30 30)`" />
         <circle cx="30" cy="30" r="1.8" fill="#1b1b1b" />
       </svg>
       <span v-if="wide" class="lead"><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ note }}</span></span></span>
@@ -487,27 +478,27 @@ async function onKey(e: KeyboardEvent) {
           <circle cx="30" cy="30" r="29" fill="#1b1b1b" />
           <line v-for="a in [0, 90, 180, 270]" :key="a" x1="30" y1="4" x2="30" y2="11" stroke="#fff" stroke-width="3" stroke-linecap="round" :transform="`rotate(${a} 30 30)`" />
           <circle v-for="a in [30, 60, 120, 150, 210, 240, 300, 330]" :key="a" cx="30" cy="6" r="1.6" fill="#9e9e9e" :transform="`rotate(${a} 30 30)`" />
-          <line x1="30" y1="30" x2="30" y2="15" stroke="#fff" stroke-width="4.5" stroke-linecap="round" :transform="`rotate(${hourAngle} 30 30)`" />
-          <line x1="30" y1="30" x2="30" y2="8" stroke="#2196f3" stroke-width="3" stroke-linecap="round" :transform="`rotate(${minuteAngle} 30 30)`" />
+          <line x1="30" y1="30" x2="30" y2="15" stroke="#fff" stroke-width="4.5" stroke-linecap="round" :transform="`rotate(${face.hourAngle} 30 30)`" />
+          <line x1="30" y1="30" x2="30" y2="8" stroke="#2196f3" stroke-width="3" stroke-linecap="round" :transform="`rotate(${face.minuteAngle} 30 30)`" />
           <circle cx="30" cy="30" r="3.6" fill="#2196f3" />
         </svg>
-        <span v-if="wide || tall || full" class="face-text"><span class="big">{{ clockText(clock24, now) }}</span><span class="st">{{ clockDate }}</span></span>
+        <span v-if="wide || tall || full" class="face-text"><span class="big">{{ face.digits }}</span><span class="st">{{ face.longDate }}</span></span>
       </span>
     </template>
     <template v-else-if="display === 'flip' && domain === 'screen' && flipWide">
       <span class="flip-wide">
-        <span class="blocks"><span class="block">{{ flipHours }}</span><span class="block">{{ flipMinutes }}</span></span>
-        <span class="under"><span>{{ flipDay }}</span><span v-if="!clock24">{{ amPm }}</span></span>
+        <span class="blocks"><span class="block">{{ face.hours }}</span><span class="block">{{ face.minutes }}</span></span>
+        <span class="under"><span>{{ flipDay }}</span><span v-if="!clock24">{{ face.amPm }}</span></span>
       </span>
     </template>
     <template v-else-if="display === 'flip' && domain === 'screen'">
       <span class="face-clock flip">
-        <span class="blocks"><span class="block">{{ flipHours }}</span><span class="block">{{ flipMinutes }}</span><small v-if="!clock24">{{ amPm }}</small></span>
-        <span v-if="wide && !tall && !full" class="face-text"><span class="st">{{ clockDate }}</span></span>
+        <span class="blocks"><span class="block">{{ face.hours }}</span><span class="block">{{ face.minutes }}</span><small v-if="!clock24">{{ face.amPm }}</small></span>
+        <span v-if="wide && !tall && !full" class="face-text"><span class="st">{{ face.longDate }}</span></span>
       </span>
     </template>
     <template v-else-if="display === 'digital' && domain === 'screen'">
-      <span class="digital-clock"><span class="big">{{ clockText(clock24, now) }}</span><span class="st">{{ clockDate }}</span></span>
+      <span class="digital-clock"><span class="big">{{ face.digits }}</span><span class="st">{{ face.longDate }}</span></span>
     </template>
     <template v-else-if="display === 'graph' && domain === 'sensor'">
       <span class="head"><span class="ic mdi">{{ glyph(tileIconCp(tile)) }}</span><span class="tx"><span class="nm">{{ name }}</span><span class="st">{{ line }}</span></span></span>

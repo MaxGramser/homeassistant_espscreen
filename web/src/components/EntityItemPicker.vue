@@ -4,6 +4,7 @@
 import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { entityItem, glyph, itemKey } from "../model/topbar";
+import { matchesQuery } from "../model/search";
 import { automaticIcon, state } from "../store";
 import type { HeaderItem } from "../types";
 import Icon from "./ui/Icon.vue";
@@ -14,9 +15,8 @@ const emit = defineEmits<{ pick: [item: HeaderItem] }>();
 const query = ref("");
 const suggested = computed(() => (state.inventory.header?.suggestions?.[state.selected || ""] || []).filter((s) => !props.accepts || props.accepts(s.item)));
 const matches = computed(() => {
-  const q = query.value.trim().toLocaleLowerCase();
   // Only what the top bar can show (the add-on's header domains, app 0.4.1): a camera or an image is a tile, not a value.
-  return state.inventory.entities.filter((e) => rules.headerDomains.includes(e.id.split(".")[0]) && `${e.name} ${e.id} ${e.area || ""} ${e.device || ""}`.toLocaleLowerCase().includes(q));
+  return state.inventory.entities.filter((e) => rules.headerDomains.includes(e.id.split(".")[0]) && matchesQuery(query.value, e.name, e.id, e.area, e.device));
 });
 </script>
 
