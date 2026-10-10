@@ -1,11 +1,11 @@
 #pragma once
 
 #include "esphome/components/binary_sensor/binary_sensor.h"
-#include "esphome/components/gt911/touchscreen/gt911_touchscreen.h"
+#include "esphome/components/gt911_wavesharelcd4/touchscreen/gt911_touchscreen.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 
-namespace esphome::gt911 {
+namespace esphome::gt911_wavesharelcd4 {
 
 class GT911Button final : public binary_sensor::BinarySensor,
                           public Component,
@@ -23,4 +23,4 @@ class GT911Button final : public binary_sensor::BinarySensor,
   uint8_t index_;
 };
 
-}  // namespace esphome::gt911
+}  // namespace esphome::gt911_wavesharelcd4

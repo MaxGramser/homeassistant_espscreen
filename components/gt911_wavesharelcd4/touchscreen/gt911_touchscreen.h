@@ -5,7 +5,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 
-namespace esphome::gt911 {
+namespace esphome::gt911_wavesharelcd4 {
 
 class GT911ButtonListener {
  public:
@@ -51,4 +51,4 @@ class GT911Touchscreen final : public touchscreen::Touchscreen, public i2c::I2CD
   uint8_t button_state_{0xFF};  // last button state. Initial FF guarantees first update.
 };
 
-}  // namespace esphome::gt911
+}  // namespace esphome::gt911_wavesharelcd4

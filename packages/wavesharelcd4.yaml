@@ -23,4 +23,4 @@ external_components:
       ref: ${GITHUB_REF}
       path: components
     refresh: 0s
-    components: [smart_display]
+    components: [gt911_wavesharelcd4, smart_display]

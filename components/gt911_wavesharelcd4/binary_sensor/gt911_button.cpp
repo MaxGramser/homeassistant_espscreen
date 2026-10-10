@@ -1,7 +1,7 @@
 #include "gt911_button.h"
 #include "esphome/core/log.h"
 
-namespace esphome::gt911 {
+namespace esphome::gt911_wavesharelcd4 {
 
 static const char *const TAG = "GT911.binary_sensor";
 
@@ -22,4 +22,4 @@ void GT911Button::update_button(uint8_t index, bool state) {
   this->publish_state(state);
 }
 
-}  // namespace esphome::gt911
+}  // namespace esphome::gt911_wavesharelcd4

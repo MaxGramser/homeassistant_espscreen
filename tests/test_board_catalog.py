@@ -91,11 +91,11 @@ class Catalog(unittest.TestCase):
         board = yaml.load((ROOT / 'packages/boards/waveshare-esp32s3-lcd-4.yaml').read_text(),
                           Loader=IncludeLoader)
         touch = board['touchscreen'][0]
-        external = board['external_components'][0]
 
-        self.assertEqual(external['source'],
-                         'github://leonardospina/homeassistant_espscreen@22b5462b4c3cac7520a87011e8c8d5577ba42c9e')
-        self.assertEqual(external['components'], ['gt911'])
+        # The driver lives in this repository under a name of its own, so the board file pins no commit and names no
+        # fork, and the other GT911 boards keep ESPHome's own platform.
+        self.assertNotIn('external_components', board)
+        self.assertEqual(touch['platform'], 'gt911_wavesharelcd4')
         self.assertNotIn('use_primary_i2c_addr', touch)
         self.assertNotIn('setup_priority', touch)
         self.assertEqual((touch['reset_pin']['waveshare_io_ch32v003'], touch['reset_pin']['number']),
@@ -109,9 +109,9 @@ class Catalog(unittest.TestCase):
         self.assertNotIn('power_supply', board['output'][0])
 
         for entry in (ROOT / 'packages/wavesharelcd4.yaml', ROOT / 'checkout/wavesharelcd4.yaml'):
-            self.assertNotIn('components: [gt911, smart_display]', entry.read_text())
+            self.assertIn('components: [gt911_wavesharelcd4, smart_display]', entry.read_text())
 
-        driver = (ROOT / 'components/gt911/touchscreen/gt911_touchscreen.cpp').read_text()
+        driver = (ROOT / 'components/gt911_wavesharelcd4/touchscreen/gt911_touchscreen.cpp').read_text()
         setup = driver[driver.index('void GT911Touchscreen::setup()'):driver.index('bool GT911Touchscreen::init_sequence_')]
         self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
         self.assertIn('GT911_INIT_ATTEMPTS = 3', driver)
@@ -144,6 +144,33 @@ class Catalog(unittest.TestCase):
                             driver.index('void GT911Touchscreen::setup_internal_')]
         self.assertIn('GET_MAX_VALUES', validation)
         self.assertIn('*x_res != 0 && *y_res != 0', validation)
+
+    def test_every_repository_reference_is_the_project_itself(self):
+        """No file points a build at a fork: the components and the fonts come from this project alone."""
+        skip = {'.git', '.esphome', 'node_modules', '__pycache__', 'dist', '.venv'}
+        offenders = []
+        for path in ROOT.rglob('*'):
+            if not path.is_file() or any(part in skip for part in path.relative_to(ROOT).parts):
+                continue
+            if path.suffix.lower() not in ('.yaml', '.yml', '.py', '.md', '.json', '.h', '.cpp', '.sh'):
+                continue
+            text = path.read_text(encoding='utf-8', errors='ignore')
+            for owner in re.findall(r'github(?:://|\.com[:/])([A-Za-z0-9-]+)/homeassistant_espscreen', text):
+                if owner != 'MaxGramser':
+                    offenders.append(f'{path.relative_to(ROOT)}: {owner}')
+        self.assertEqual(offenders, [], 'these files build from a fork instead of the project')
+
+    def test_the_other_gt911_boards_keep_esphomes_own_driver(self):
+        """Only the Waveshare LCD 4 needs the board-specific power sequence; the rest stay on ESPHome's platform."""
+        mine = {'waveshare-esp32s3-lcd-4.yaml', 'wavesharelcd4.yaml'}
+        for path in (ROOT / 'packages').rglob('*.yaml'):
+            if path.name in mine:
+                continue
+            self.assertNotIn('gt911_wavesharelcd4', path.read_text(), path.name)
+        for path in (ROOT / 'checkout').glob('*.yaml'):
+            if path.name in mine:
+                continue
+            self.assertNotIn('gt911_wavesharelcd4', path.read_text(), path.name)
 
 
 class Choices(unittest.TestCase):

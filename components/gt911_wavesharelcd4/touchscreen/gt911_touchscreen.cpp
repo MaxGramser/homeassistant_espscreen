@@ -4,7 +4,7 @@
 #include "esphome/core/log.h"
 #include "esphome/core/gpio.h"
 
-namespace esphome::gt911 {
+namespace esphome::gt911_wavesharelcd4 {
 
 static const char *const TAG = "gt911.touchscreen";
 
@@ -232,4 +232,4 @@ void GT911Touchscreen::dump_config() {
   this->read_device_info_();
 }
 
-}  // namespace esphome::gt911
+}  // namespace esphome::gt911_wavesharelcd4

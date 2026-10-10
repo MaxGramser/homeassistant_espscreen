@@ -32,6 +32,13 @@ This board needs ESPHome 2026.7.0 or later, which is where the `waveshare_io_ch3
   implementation.
 - GT911 reports pixel coordinates, so there is no touch calibration on the first start. The shared touch filter and
   action guard stay in use.
+- Touch needs this board's own startup sequence. Waveshare's factory firmware drives the expander's touch
+  address-select, supply and reset lines low, waits 200 ms, raises the supply and the reset while address-select
+  stays low, and waits another 200 ms before it talks to the controller. Without it the GT911 answers at its
+  secondary address and reports no usable size, so touch stays dead while the rest of the screen looks healthy.
+  `components/gt911_wavesharelcd4` is a copy of ESPHome's `gt911` that performs that sequence, checks the size the
+  controller reports and repeats the power cycle up to three times. It carries a name of its own so that only this
+  board loads it: every other GT911 board keeps the platform ESPHome ships.
 - The battery charger, the audio chips, the microphone, the speaker connector and the clock chip on the board stay
   unused. The screen runs from USB; a battery on the connector is neither read nor managed.
 

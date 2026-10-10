@@ -33,8 +33,6 @@ def components(board):
     found)."""
     text = '\n'.join(path.read_text() for path in profiles.chain(profiles.BOARDS[board]))
     own = {path.name for path in (ROOT / 'components').iterdir() if path.is_dir() and path.name != 'smart_display'}
-    # The experimental Waveshare LCD 4 pins this temporary ESPHome override in its board file; no entry loads it.
-    own.discard('gt911')
     named = re.findall(r'(?m)^\s*-?\s*platform: ([a-z0-9_]+)\s*$', text) + re.findall(r'(?m)^([a-z0-9_]+):', text)
     found = [name for name in dict.fromkeys(named) if name in own]
     return found + ['smart_display']

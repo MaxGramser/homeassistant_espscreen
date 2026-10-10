@@ -13,12 +13,6 @@ packages:
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
 
-external_components:
-  # Waveshare powers the non-B board down for 200 ms, then raises system power and touch reset for another 200 ms
-  # before probing the GT911. This temporary component preserves that board-specific factory sequence.
-  - source: github://leonardospina/homeassistant_espscreen@22b5462b4c3cac7520a87011e8c8d5577ba42c9e
-    components: [gt911]
-
 substitutions:
   BOARD_ID: "wavesharelcd4"
   DEVICE_NAME: "wavesharelcd4-new"
@@ -91,8 +85,11 @@ output:
 
 # Waveshare's factory initialization drives all expander outputs low, including GT911 address-select (EXIO2), system
 # power (EXIO5) and touch reset (EXIO1). After 200 ms it raises power and reset, leaves EXIO2 low and waits 200 ms.
+# Without that sequence the controller answers at its secondary address with no usable geometry, so this board uses
+# components/gt911_wavesharelcd4, a copy of ESPHome's gt911 that performs it; every other GT911 board keeps the
+# platform ESPHome ships. docs/WAVESHARELCD4.md says why.
 touchscreen:
-  - platform: gt911
+  - platform: gt911_wavesharelcd4
     id: ts_touch
     i2c_id: touch_bus
     display: my_display
