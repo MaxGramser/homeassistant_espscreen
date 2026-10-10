@@ -1,13 +1,16 @@
-// Every mounted component gets the editor's texts, as main.ts gives the page (app 0.2.90).
+// Every mounted component gets the editor's texts and the stores, as main.ts gives the page (app 0.2.90).
 import { config, enableAutoUnmount } from "@vue/test-utils";
-import { afterEach, vi } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 import { defineComponent, h } from "vue";
 import { i18n } from "../src/i18n";
 import { resetAll } from "../src/resets";
 import { installBrowser, resetBrowser } from "./helpers/browser";
+import { freshPinia } from "./helpers/pinia";
 
 config.global.plugins = [i18n];
 installBrowser();
+// A pinia of its own for every test: the active one, and the one a mounted component gets (tests/helpers/pinia.ts).
+beforeEach(() => { freshPinia(); });
 // Every test starts where the page starts, whatever ran before it (npm run test:shuffle runs them in another order each
 // time): real timers, nothing stubbed, an empty storage, page and address, and every module's state as it loaded
 // (src/resets.ts). Registered before the unmount below, so it runs after it: hooks after a test run last first.

@@ -21,15 +21,19 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@vue/devtools-api": "^8.2.1",
+    "@vueuse/core": "^14.4.0",
     "esptool-js": "^0.7.0",
     "floating-vue": "^5.4.0",
     "markdown-it": "^14.3.2",
+    "pinia": "^4.0.3",
     "reka-ui": "^2.10.5",
     "vue": "^3.5.18",
     "vue-i18n": "^11.4.12"
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^11.2.5",
+    "@pinia/testing": "^2.0.1",
     "@types/markdown-it": "^14.2.0",
     "@types/w3c-web-serial": "^1.0.8",
     "@vitejs/plugin-vue": "^6.0.1",
