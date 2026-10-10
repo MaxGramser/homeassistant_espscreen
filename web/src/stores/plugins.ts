@@ -11,9 +11,9 @@ import { attachLine, barItemView, barTypesOf, choiceKey, fit, isTest, nodeOf, ow
   text, tileTypesOf, type AppFit, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
-import { useScreenStore } from "./screen";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
+import { useScreenStore } from "./screen";
 import { useUiStore } from "./ui";
 
 export type PlanStep = { id: string; source: string; auto: boolean; for: string[]; flash_kb: number; permission_hash: string };

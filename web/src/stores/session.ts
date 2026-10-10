@@ -14,13 +14,13 @@ import type { PreviewProfile } from "../model/preview";
 import { closeDocument, closeInspector, openDocument, reconcileDocument, startStore, state } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
+import { useInventoryStore } from "./inventory";
 import { usePluginsStore } from "./plugins";
 import { useRegionStore } from "./region";
 import { useScreenStore } from "./screen";
 import { useSettingsStore } from "./settings";
 import { useTopbarStore } from "./topbar";
 import { useUiStore } from "./ui";
-import { useInventoryStore } from "./inventory";
 
 export const useSessionStore = defineStore("session", () => {
   const inv = useInventoryStore();
