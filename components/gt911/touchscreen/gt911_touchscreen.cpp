@@ -17,7 +17,6 @@ static const uint8_t GET_SWITCHES[2] = {0x80, 0x4D};
 static const uint8_t GET_MAX_VALUES[2] = {0x80, 0x48};
 static const size_t MAX_TOUCHES = 5;  // max number of possible touches reported
 static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
-static constexpr uint8_t GT911_INIT_ATTEMPTS = 3;
 
 static constexpr uint8_t REG_CONFIG[2] = {0x80, 0x47};   // config version register
 static constexpr uint8_t REG_PRODUCT[2] = {0x81, 0x40};  // product name register
@@ -31,46 +30,9 @@ static constexpr uint8_t REG_TP_RES[2] = {0x80, 0x48};   // touch resolution reg
   }
 
 void GT911Touchscreen::setup() {
-  if (this->interrupt_pin_ != nullptr) {
-    const uint8_t desired_address = this->use_primary_i2c_addr_ ? PRIMARY_ADDRESS : SECONDARY_ADDRESS;
-    const uint8_t alternate_address = this->use_primary_i2c_addr_ ? SECONDARY_ADDRESS : PRIMARY_ADDRESS;
-    bool desired_address_ready = false;
-
-    for (uint8_t attempt = 1; attempt <= GT911_INIT_ATTEMPTS; attempt++) {
-      ESP_LOGI(TAG, "GT911 reset attempt %u/%u for address 0x%02X", attempt, GT911_INIT_ATTEMPTS, desired_address);
-      if (!this->init_sequence_(this->use_primary_i2c_addr_)) {
-        this->mark_failed(LOG_STR("Reset sequence failed"));
-        return;
-      }
-
-      uint8_t switches;
-      if (this->probe_address_(desired_address, &switches) == i2c::ERROR_OK) {
-        desired_address_ready = true;
-        break;
-      }
-
-      if (this->probe_address_(alternate_address, &switches) == i2c::ERROR_OK) {
-        ESP_LOGW(TAG, "GT911 responded at alternate address 0x%02X after selecting 0x%02X", alternate_address,
-                 desired_address);
-      } else {
-        ESP_LOGW(TAG, "GT911 did not respond at either address after reset attempt %u", attempt);
-      }
-      this->address_ = desired_address;
-
-      if (attempt < GT911_INIT_ATTEMPTS)
-        delay(100);  // NOLINT
-    }
-
-    if (!desired_address_ready) {
-      this->mark_failed(LOG_STR("Communication failed after reset retries"));
-      return;
-    }
-  } else {
-    ESP_LOGE(TAG, "Interrupt pin not initialized.");
-    // No return!
-    // GPIO 34,35,36 and 39 are used in some configurations
-    // These GPIO cannot be confiured as OUPUT pin.
-    // However, it seems that GT911 might work by skipping the init sequence.
+  if (!this->init_sequence_()) {
+    this->mark_failed(LOG_STR("Power/reset sequence failed"));
+    return;
   }
   this->setup_internal_();
 }
@@ -93,52 +55,26 @@ i2c::ErrorCode GT911Touchscreen::probe_address_(uint8_t address, uint8_t *switch
   return i2c::ERROR_OK;
 }
 
-/// @brief Perform GT911 reset/init sequence and configure INT pin for I2C address.
-/// @param use_primary_address true = primary (0x5D), false = secondary (0x14)
-/// @return true on success, false on error
-bool GT911Touchscreen::init_sequence_(bool use_primary_i2c_address) {
-  // Init sequence according to Goodix GT911 (Rev.10, 2017-07-26)
-  ESP_LOGD(TAG, "Start GT911 Init sequence");
-
-  // STEP 1: Reset pin -> output, drive low
-  if (this->reset_pin_ == nullptr) {
-    ESP_LOGE(TAG, "Reset pin not initialized.");
+bool GT911Touchscreen::init_sequence_() {
+  if (this->reset_pin_ == nullptr || this->power_pin_ == nullptr) {
+    ESP_LOGE(TAG, "Power and reset pins are required.");
     return false;
   }
+
+  this->power_pin_->setup();
+  this->power_pin_->pin_mode(gpio::FLAG_OUTPUT);
   this->reset_pin_->setup();
   this->reset_pin_->pin_mode(gpio::FLAG_OUTPUT);
+
+  ESP_LOGI(TAG, "Holding system power and touch reset low for 200 ms");
+  this->power_pin_->digital_write(false);
   this->reset_pin_->digital_write(false);
+  delay(200);  // NOLINT
 
-  // STEP 2: INT pin -> output, set level depending on desired I2C address
-  this->interrupt_pin_->setup();
-  this->interrupt_pin_->pin_mode(gpio::FLAG_OUTPUT);
-
-  // For primary address (0x5D) keep INT low during reset
-  if (use_primary_i2c_address) {
-    this->interrupt_pin_->digital_write(false);
-  }
-  // For secondary address (0x14) keep INT high during reset
-  else {
-    this->interrupt_pin_->digital_write(true);
-  }
-
-  // STEP 3: Wait for 100ms, then release reset
-  delay(100);  // NOLINT
+  ESP_LOGI(TAG, "Enabling system power and releasing touch reset for 200 ms");
+  this->power_pin_->digital_write(true);
   this->reset_pin_->digital_write(true);
-
-  // STEP 4: Wait T3 (>=5 ms)
-  delay(5);
-
-  // For secondary address, toggle INT after T3 (5ms)
-  if (!use_primary_i2c_address) {
-    this->interrupt_pin_->digital_write(false);
-  }
-
-  // STEP 5: Wait T4 (>=50 ms) then set INT to input (floating)
-  delay(51);  // NOLINT
-  this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);
-  // Waveshare's expander-backed GT911 driver waits after releasing INT before the first I2C transaction.
-  delay(20);
+  delay(200);  // NOLINT
 
   return true;
 }
@@ -146,8 +82,9 @@ bool GT911Touchscreen::init_sequence_(bool use_primary_i2c_address) {
 void GT911Touchscreen::setup_internal_() {
   uint8_t data[4];
 
-  const uint8_t desired_address = this->use_primary_i2c_addr_ ? PRIMARY_ADDRESS : SECONDARY_ADDRESS;
-  i2c::ErrorCode err = this->probe_address_(desired_address, data);
+  i2c::ErrorCode err = this->probe_address_(PRIMARY_ADDRESS, data);
+  if (err != i2c::ERROR_OK)
+    err = this->probe_address_(SECONDARY_ADDRESS, data);
   if (err == i2c::ERROR_OK) {
     // data[0] & 1 == 1  =>  controller uses falling edge  =>  active-low
     // data[0] & 1 == 0  =>  controller uses rising  edge  =>  active-high
