@@ -25,6 +25,12 @@ export type ClockSample = {
   minuteAngle: number;
 };
 
+/** The hands of an analog clock at a moment, in degrees from twelve: the clock card's and the top bar's clock item. */
+export function handAngles(at: number | Date) {
+  const now = new Date(at), hour = now.getHours(), minute = now.getMinutes();
+  return { hour: (hour % 12 + minute / 60) * 30, minute: minute * 6 };
+}
+
 export function clockSample(at: number | Date, clock24: boolean, locale = "en"): ClockSample {
   const now = new Date(at), hour = now.getHours(), minute = now.getMinutes();
   const say = (key: string, named: Record<string, unknown> = {}) => t(key, named, { locale });
@@ -37,7 +43,7 @@ export function clockSample(at: number | Date, clock24: boolean, locale = "en"):
     hours: clock24 ? String(hour).padStart(2, "0") : String(hour % 12 || 12),
     minutes: String(minute).padStart(2, "0"),
     amPm: say(`screen.time.${hour < 12 ? "am" : "pm"}`),
-    hourAngle: (hour % 12 + minute / 60) * 30,
-    minuteAngle: minute * 6,
+    hourAngle: handAngles(now).hour,
+    minuteAngle: handAngles(now).minute,
   };
 }

@@ -1,7 +1,7 @@
 // The editor's clocks at one moment (model/clock.ts): the top bar, the screensaver and a clock card's faces read the same
 // sample, in the screens' language.
 import { describe, expect, it } from "vitest";
-import { clockSample } from "../src/model/clock";
+import { clockSample, handAngles } from "../src/model/clock";
 
 const evening = new Date(2026, 9, 10, 19, 5);
 
@@ -15,5 +15,7 @@ describe("a clock sample", () => {
   it("turns an analog clock's hands", () => {
     expect(clockSample(evening, true)).toMatchObject({ hourAngle: 7 * 30 + 2.5, minuteAngle: 30 });
     expect(clockSample(new Date(2026, 9, 10, 0, 0), false)).toMatchObject({ hours: "12", amPm: "AM", hourAngle: 0 });
+    // The top bar's clock item turns the same hands.
+    expect(handAngles(evening)).toEqual({ hour: 7 * 30 + 2.5, minute: 30 });
   });
 });

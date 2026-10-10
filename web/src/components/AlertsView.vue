@@ -3,11 +3,9 @@
 // is model/alert-yaml.ts.
 import { computed, ref } from "vue";
 import { t } from "../i18n";
-import { versionAtLeast } from "../model/layout";
 import { actionYaml, allScreensYaml, choiceYaml, limitText, oneScreenYaml, screenValue, waitYaml, type AlertReference } from "../model/alert-yaml";
 import { iconGroupsMatching } from "../model/search";
 import { glyph } from "../model/topbar";
-import { firmwareVersion } from "../model/screen-status";
 import type { IconInfo } from "../types";
 import AlertTry from "./alerts/AlertTry.vue";
 import { useUiStore } from "../stores/ui";
@@ -90,8 +88,8 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
           <div v-for="screen in physicalScreens" :key="screen.id" class="alert-screen">
             <div class="alert-screen-head">
               <strong>{{ screen.name }}</strong>
-              <span class="chip" :class="versionAtLeast(firmwareVersion(screen), alerts.min_firmware) && screen.alert_action ? 'good' : 'update'">
-                {{ versionAtLeast(firmwareVersion(screen), alerts.min_firmware) && screen.alert_action
+              <span class="chip" :class="scr.canAlert(screen) ? 'good' : 'update'">
+                {{ scr.canAlert(screen)
                   ? t("editor.alerts.screens.ready", { version: screen.firmware })
                   : screen.alert_action ? t("editor.alerts.screens.update", { version: screen.firmware || t("editor.common.unknown") }) : t("editor.alerts.screens.unknown") }}
               </span>

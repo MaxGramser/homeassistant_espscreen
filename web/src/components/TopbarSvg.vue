@@ -2,6 +2,7 @@
 // The bar at the top of a mockup page, drawn as the screen draws it: name left, items right.
 import { computed } from "vue";
 import { t } from "../i18n";
+import { handAngles } from "../model/clock";
 import { barLayout, dotted, inkOf, type BarMetrics, type BarPart } from "../model/topbar";
 import TesseraMark from "./TesseraMark.vue";
 import { useUiStore } from "../stores/ui";
@@ -44,10 +45,10 @@ const markY = computed(() => baseline.value + nameCap.value.bottom - lay.value.k
 const backY = computed(() => baseline.value + nameCap.value.bottom - lay.value.key!.ink.bottom);
 const backX = computed(() => (lay.value.key!.size - (lay.value.key!.ink.right - lay.value.key!.ink.left)) / 2 - lay.value.key!.ink.left);
 const name = computed(() => dotted(lay.value.nameText, lay.value.fonts.name, Math.min(lay.value.natural, lay.value.nameRoom)));
-const now = computed(() => new Date(ui.now));
+// The clock item's hands at the editor's one clock (model/clock.ts), as long as the screen draws them.
 function hands(d: number) {
-  const n = now.value;
-  return [[(n.getHours() % 12 + n.getMinutes() / 60) * 30, d * 0.24], [n.getMinutes() * 6, d * 0.34]].map(([angle, length]) => {
+  const angles = handAngles(ui.now);
+  return [[angles.hour, d * 0.24], [angles.minute, d * 0.34]].map(([angle, length]) => {
     const rad = (angle * Math.PI) / 180;
     return { x2: length * Math.sin(rad), y2: -length * Math.cos(rad) };
   });
