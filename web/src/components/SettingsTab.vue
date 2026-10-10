@@ -12,9 +12,12 @@ import PluginSettings from "./PluginSettings.vue";
 import { installedOn, openPluginOn, plugins, testsOn } from "../plugin-state";
 import { text } from "../model/plugins";
 import { choiceText, SETTING_GROUPS, settingLabel, steppedSetting, type SettingRow } from "../model/settings";
-import { calibrateTouch, currentScreen, pageReachWarning, setSetting, settingText, settingValues, settingsView, state } from "../store";
+import { calibrateTouch, currentScreen, pageReachWarning, state } from "../store";
+import { useSettingsStore } from "../stores/settings";
 
-const view = computed(() => settingsView());
+const settings = useSettingsStore();
+
+const view = computed(() => settings.settingsView());
 // The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).
 // The settings the screen's board lists (boards.yaml `settings`, in its shape's catalog): its Extras card.
 const boardExtras = computed(() => Boolean(currentScreen.value?.shape?.catalog?.settings?.length));
@@ -28,7 +31,7 @@ const pluginsWithSettings = computed(() => {
 // The choices of a row: the rotation offers the angles this screen's glass allows (the manager says which, app
 // 0.2.94); an add-on from before said nothing, and then the four of the Guition stand.
 const optionsOf = (row: SettingRow) => (row.key === "rotation" && view.value?.rotations?.length ? view.value.rotations : row.options!);
-const values = computed(() => settingValues());
+const values = computed(() => settings.settingValues());
 const offline = computed(() => view.value?.owner === "screen" && !currentScreen.value?.online);
 // A screen whose backlight is lit or dark has no percentage for standby and night: the manager names those keys
 // and they are drawn as the switch the screen draws (app 0.2.105). The row stays the number it is - one number
@@ -44,7 +47,7 @@ const unavailable = (row: SettingRow) => offline.value || Boolean(view.value?.un
 const needs = (row: SettingRow) => (row.needs ? Boolean(values.value[row.needs]) : true);
 const status = computed(() => offline.value
   ? t("editor.screen_settings.status.offline")
-  : state.settingPending
+  : settings.settingPending
     ? t("editor.common.saving")
     : view.value?.owner === "screen"
       ? t("editor.screen_settings.status.screen")
@@ -57,9 +60,9 @@ const stepDisabled = (row: SettingRow, direction: number) => {
 // A key held down steps again and again, faster after five steps, like the -/+ keys on the screen.
 const hold = usePressRepeat({ delay: 450, interval: 180 });
 function step(row: SettingRow, direction: number, held: boolean) {
-  const v = settingValues();
+  const v = settings.settingValues();
   const next = steppedSetting(row, v[row.key], direction, held, v);
-  if (next !== v[row.key]) setSetting(row.key, next, 600);
+  if (next !== v[row.key]) settings.setSetting(row.key, next, 600);
 }
 const down = (e: PointerEvent, row: SettingRow, direction: number) => hold.down(e, (repeats) => step(row, direction, repeats > 5));
 const up = () => hold.up();
@@ -80,18 +83,18 @@ const startCalibration = () => currentScreen.value && calibrateTouch(currentScre
         <h4><span class="mdi">{{ glyph(group.icon) }}</span>{{ t(`editor.screen_settings.groups.${group.group}`) }}</h4>
         <div v-for="row in group.rows" :key="row.key" class="srow" :class="[`setting-${isSwitch(row) ? 'toggle' : row.kind}`, { inactive: !needs(row) || unavailable(row) }]" :data-setting="row.key"
           :title="unavailable(row) && !offline ? t('editor.screen_settings.unavailable') : ''"
-          @click="isSwitch(row) && ($event.target as HTMLElement).closest('.srow') === $event.currentTarget && !($event.target as HTMLElement).closest('button') && !unavailable(row) && setSetting(row.key, flip(row), 150)">
+          @click="isSwitch(row) && ($event.target as HTMLElement).closest('.srow') === $event.currentTarget && !($event.target as HTMLElement).closest('button') && !unavailable(row) && settings.setSetting(row.key, flip(row), 150)">
           <span class="s-label" :id="`setting-label-${row.key}`">{{ settingLabel(row) }}</span>
           <div class="s-control">
             <button v-if="isSwitch(row)" type="button" class="switch" :class="{ unknown: values[row.key] === null || values[row.key] === undefined }" role="switch"
               :id="`setting-${row.key}`" :aria-checked="Boolean(values[row.key]) ? 'true' : 'false'" :aria-labelledby="`setting-label-${row.key}`"
-              :disabled="unavailable(row)" @click.stop="setSetting(row.key, flip(row), 150)"></button>
+              :disabled="unavailable(row)" @click.stop="settings.setSetting(row.key, flip(row), 150)"></button>
             <div v-else-if="row.kind === 'choice'" class="seg" role="group" :aria-labelledby="`setting-label-${row.key}`">
-              <button v-for="value in optionsOf(row)" :key="String(value)" type="button" :aria-pressed="values[row.key] === value ? 'true' : 'false'" :disabled="unavailable(row)" @click="setSetting(row.key, value, 150)">{{ choiceText(row, value) }}</button>
+              <button v-for="value in optionsOf(row)" :key="String(value)" type="button" :aria-pressed="values[row.key] === value ? 'true' : 'false'" :disabled="unavailable(row)" @click="settings.setSetting(row.key, value, 150)">{{ choiceText(row, value) }}</button>
             </div>
             <div v-else class="step">
               <button type="button" :aria-label="t('editor.screen_settings.lower', { name: settingLabel(row) })" :disabled="stepDisabled(row, -1)" @pointerdown="down($event, row, -1)" @pointerup="up" @pointercancel="up" @pointerleave="up" @click="click($event, row, -1)"><span class="mdi">{{ glyph("F0374") }}</span></button>
-              <output :id="`setting-${row.key}`" :aria-labelledby="`setting-label-${row.key}`">{{ settingText(row, values) }}</output>
+              <output :id="`setting-${row.key}`" :aria-labelledby="`setting-label-${row.key}`">{{ settings.settingText(row, values) }}</output>
               <button type="button" :aria-label="t('editor.screen_settings.higher', { name: settingLabel(row) })" :disabled="stepDisabled(row, 1)" @pointerdown="down($event, row, 1)" @pointerup="up" @pointercancel="up" @pointerleave="up" @click="click($event, row, 1)"><span class="mdi">{{ glyph("F0415") }}</span></button>
             </div>
           </div>

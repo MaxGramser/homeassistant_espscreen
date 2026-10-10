@@ -9,7 +9,7 @@ import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { closeInspector, deviceStyle, homeKeyShown, isCompact, movePage, navigationSettings, openBar, openPage, pageAt, pageReady, pageTitleShown, previewed, roomyNames, setHomePage, state, topbarItems } from "../store";
+import { closeInspector, deviceStyle, homeKeyShown, isCompact, movePage, openBar, openPage, pageAt, pageReady, pageTitleShown, previewed, roomyNames, setHomePage, state, topbarItems } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -19,9 +19,11 @@ import Icon from './ui/Icon.vue';
 import type { NavigationIntent } from '../model/pages';
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
+import { useSettingsStore } from "../stores/settings";
 
 const ui = useUiStore();
 const region = useRegionStore();
+const settings = useSettingsStore();
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [intent: NavigationIntent] }>();
@@ -35,7 +37,7 @@ function pageClick(event: MouseEvent) {
   openPage(owned.value.id);
 }
 const isHome = computed(() => owned.value?.id === state.document?.homePageId);
-const backInHeader = computed(() => !navigationSettings().pageButtons && Boolean(owned.value?.navigation.excludeFromPagination));
+const backInHeader = computed(() => !settings.navigationSettings().pageButtons && Boolean(owned.value?.navigation.excludeFromPagination));
 const bySlot = computed(() => new Map(props.entries.map((e) => [e.slot, e])));
 const covered = computed(() => new Set(props.entries.flatMap((e) => cellsOf(e.slot, sizeOf(e.tile)).slice(1))));
 const cells = computed(() => Array.from({ length: grid.slots }, (_, cell) => props.page * grid.slots + cell).filter((slot) => !covered.value.has(slot)));

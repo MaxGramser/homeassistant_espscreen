@@ -3,7 +3,7 @@
 import { useEventListener, useTimeoutFn } from "@vueuse/core";
 import { computed, effectScope, onScopeDispose, reactive, toRaw, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
-import { api, getJson, send, setCsrf } from "./api";
+import { getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware } from "./model/layout";
 import { agoText, barMetricsFor, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, wifiView } from "./model/topbar";
@@ -23,7 +23,6 @@ import pageRules from './model/page-rules.json';
 import { canonicalOptions, coupledOptions } from './model/tile-options';
 import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
-import { rowText, type SettingRow } from "./model/settings";
 import * as status from "./model/screen-status";
 import { SMALLEST } from "./model/overview";
 import { firmwareVersion } from "./model/screen-status";
@@ -38,6 +37,7 @@ import { useVisibleInterval } from "./composables/useVisibleInterval";
 import { useBuildsStore } from "./stores/builds";
 import { useEntitiesStore } from "./stores/entities";
 import { useRegionStore } from "./stores/region";
+import { useSettingsStore } from "./stores/settings";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
 
 export type Inspector =
@@ -97,8 +97,6 @@ const fresh = () => ({
   // A choice the pointer rests on in the inspector, drawn on its tile before it is picked (app 0.4.32).
   optionPreview: null as null | { tileId: string; key: string; value: unknown },
   topbarAdded: null as null | { key: string; time: number },
-  settingEdits: {} as Record<string, { value: any; at: number }>,
-  settingPending: false,
   // The screen whose removal is running, so its button waits instead of being pressed twice (app 0.2.112).
   removing: null as string | null,
   // The screen whose actions are being allowed (app 0.4.73).
@@ -255,7 +253,7 @@ export const barMetrics = computed(() => barMetricsFor(screenShape.value));
 const MOCKUP_SIDE = 300;
 // Whether the screen keeps room for its page bar under the tiles: on every page, once the layout has more than one
 // (page_protocol.h footer), so a card is lower on all of them.
-export const pageBarShown = computed(() => Boolean(state.document && pages.navigationFooter(state.document, navigationSettings())));
+export const pageBarShown = computed(() => Boolean(state.document && pages.navigationFooter(state.document, useSettingsStore().navigationSettings())));
 export const deviceStyle = computed(() => {
   const shape = screenShape.value;
   // To a tenth of a pixel, not a whole one: on a 1280 x 800 screen the nearest whole pixel of width would make
@@ -495,7 +493,7 @@ export function select(id: string | null): void | Promise<void> {
   openScreen(id);
 }
 function openScreen(id: string | null) {
-  if (id !== state.selected) { flushSettings(); state.settingEdits = {}; }
+  if (id !== state.selected) useSettingsStore().leaveScreen();
   state.selected = id; state.selectedTileId = null; state.inspector = null;
   state.tab = "layout";
   useUiStore().$patch({ menuOpen: false, addSheet: false, pagesSheet: false, previewOpen: false, pageWizardOpen: false });
@@ -1225,11 +1223,7 @@ export async function removeScreen(screen: Screen) {
 }
 // The open screen, without the questions `select` asks: nothing of it is left to save or to send.
 function forgetOpenScreen() {
-  clearTimeout(settingTimer);
-  settingQueue = {};
-  settingTarget = null;
-  state.settingEdits = {};
-  state.settingPending = false;
+  useSettingsStore().forget();
   state.dirty = false;
   state.selected = null;
   state.document = null;
@@ -1490,17 +1484,10 @@ const topbarList = itemList({
 });
 export const { add: addTopbarItem, move: moveTopbarItem, remove: removeTopbarItem } = topbarList;
 
-// ---- Screen settings: the same groups and rows as the settings page on the screen itself (model/settings.ts) ----
-// Device navigation settings are separate from the page document. Unknown
-// settings remain permissive for warnings, avoiding a false unreachable report.
-export function navigationSettings(): pages.NavigationSettings {
-  const values = settingValues();
-  return { pageButtons: values.page_buttons !== false, swipe: values.swipe_pages !== false,
-    homeButton: supports(0, 2, 100) && values.home_button !== false };
-}
+// ---- What the screen's settings mean for its pages (stores/settings.ts) ----
 export function pageReachWarning() {
   if (!state.document) return "";
-  const result = pages.reachability(state.document, navigationSettings());
+  const result = pages.reachability(state.document, useSettingsStore().navigationSettings());
   const named = (ids: string[]) => t("editor.screen_settings.reach.pages", {
     list: andList(ids.map((id) => state.document!.pages.findIndex((page) => page.id === id) + 1)),
   }, ids.length);
@@ -1509,80 +1496,10 @@ export function pageReachWarning() {
   if (result.noWayHome.length) messages.push(t("editor.pages.no_way_home", { pages: named(result.noWayHome) }));
   return messages.join(" ");
 }
-// Changes made here that the screen has not reported back yet win over what Home Assistant still shows for a
-// few seconds, so a value never flicks back while it travels.
-const SETTING_EDIT_MS = 4000;
-let settingQueue: Record<string, any> = {}, settingTarget: string | null = null, settingTimer = 0, settingFlight: Promise<Response> | null = null;
-export const settingsView = () => currentScreen.value?.settings;
-export function settingValues(): Record<string, any> {
-  const view = settingsView(), values = { ...(view?.values || {}) };
-  for (const [key, edit] of Object.entries(state.settingEdits)) values[key] = edit.value;
-  return values;
-}
 // The home key in the top bar of the mockup (app 0.2.122, firmware 0.2.100+), the Tessera mark since firmware 0.10.0:
 // on every page, as on the screen, unless
 // the screen's Show home button is off. A screen whose value nobody can read right now (offline) is drawn as set.
-export const homeKeyShown = (page = state.barPage) => supports(0, 2, 100) && settingValues().home_button !== false && Boolean(pageAt(page)?.topbar.leading.length);
-// What a row says: its value with its unit, a duration, a moment in the clock the screens use (Language & region).
-export const settingText = (row: SettingRow, values: Record<string, any>) => rowText(row, values, useRegionStore().clock24);
-export function setSetting(key: string, value: any, delay: number) {
-  // One screen's changes at a time: the ones for the screen shown before go out first.
-  if (settingTarget && settingTarget !== state.selected && Object.keys(settingQueue).length) {
-    flushSettings();
-    toast(t("editor.screen_settings.other_screen_busy"));
-    return;
-  }
-  settingTarget = state.selected;
-  const values = settingValues();
-  state.settingEdits[key] = { value, at: Date.now() };
-  settingQueue[key] = value;
-  // A lower brightness pulls both dim levels down with it, as on the screen.
-  if (key === "brightness")
-    for (const dim of ["standby_brightness", "night_brightness"])
-      if (values[dim] > value) state.settingEdits[dim] = { value, at: Date.now() };
-  state.settingPending = true;
-  clearTimeout(settingTimer);
-  settingTimer = window.setTimeout(() => flushSettings(), delay);
-}
-export async function flushSettings(unloading = false) {
-  clearTimeout(settingTimer);
-  if (settingFlight || !Object.keys(settingQueue).length || !settingTarget) return;
-  const screen = settingTarget, changes = settingQueue;
-  settingQueue = {};
-  const request = api(`screens/${encodeURIComponent(screen)}/settings`, {
-    method: "PUT",
-    body: JSON.stringify({ settings: changes }),
-    keepalive: unloading,
-  });
-  settingFlight = request;
-  try {
-    const view = await (await request).json();
-    const current = state.inventory.screens.find((s) => s.id === screen);
-    if (current) current.settings = view;
-  } catch (e: any) {
-    toast(e.message);
-    // What did not arrive is not kept: the panel shows the screen's own values again.
-    if (screen === state.selected) for (const key of Object.keys(changes)) delete state.settingEdits[key];
-    if (screen === state.selected && changes.brightness !== undefined) for (const dim of ["standby_brightness", "night_brightness"]) delete state.settingEdits[dim];
-  } finally {
-    settingFlight = null;
-    if (Object.keys(settingQueue).length) settingTimer = window.setTimeout(() => flushSettings(), 150);
-    else settingTarget = null;
-    state.settingPending = Boolean(Object.keys(settingQueue).length);
-    if (screen === state.selected) settleSettings();
-    // A value the screen refused or clamped comes back without a live update: look again once edits expire.
-    setTimeout(() => { if (screen === state.selected) settleSettings(); }, SETTING_EDIT_MS + 100);
-  }
-}
-// Values Home Assistant reports take over again once they match a change made here, or after a few seconds
-// (the screen refused or clamped it).
-export function settleSettings() {
-  const view = settingsView();
-  for (const [key, edit] of Object.entries(state.settingEdits)) {
-    if (settingQueue[key] !== undefined || settingFlight) continue;
-    if ((view && view.values[key] === edit.value) || Date.now() - edit.at > SETTING_EDIT_MS) delete state.settingEdits[key];
-  }
-}
+export const homeKeyShown = (page = state.barPage) => supports(0, 2, 100) && useSettingsStore().settingValues().home_button !== false && Boolean(pageAt(page)?.topbar.leading.length);
 
 // ---- The Tessera skill for Claude Code in Home Assistant (Settings), which the add-on writes ----
 export async function installClaudeSkill() {
@@ -1660,7 +1577,7 @@ export async function refresh(full = true) {
     state.connected = Boolean(state.inventory.connected);
     state.reachable = true;
     useBuildsStore().prune();
-    if (state.selected) { settleSettings(); reconcileDocument(); }
+    if (state.selected) { useSettingsStore().settleSettings(); reconcileDocument(); }
   } catch {
     state.reachable = false;
   }
@@ -1670,7 +1587,7 @@ function applyLive(data: Partial<Inventory>) {
   state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtualScreens()];
   state.connected = Boolean(state.inventory.connected);
   useBuildsStore().prune();
-  if (state.selected) { settleSettings(); reconcileDocument(); }
+  if (state.selected) { useSettingsStore().settleSettings(); reconcileDocument(); }
 }
 let pollTimer = 0, lastFull = Date.now(), live = false, following = false, stream: EventSource | null = null;
 // The browser opens a broken stream again by itself, but one it gave up on (CLOSED: ingress answered 502 while the add-on
@@ -1730,8 +1647,6 @@ export function startStore() {
     useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: editing });
     // The mockup follows Home Assistant while it is on screen.
     useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && ui.route === "" });
-    // A change still waiting for its short pause goes out when the page closes.
-    useEventListener(window, "pagehide", () => flushSettings(true));
     useEventListener(window, "beforeunload", (e: BeforeUnloadEvent) => {
       if (state.dirty) { e.preventDefault(); e.returnValue = ""; }
     });
@@ -1767,7 +1682,7 @@ function resetStore() {
   started?.();
   Object.assign(state, fresh());
   screenKept = screenPreferences();
-  addedExpiry.stop(); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
+  addedExpiry.stop(); clearTimeout(topbarTimer); clearTimeout(pollTimer);
   mapSaver.cancel();
   previewsSkipped = "";
   edits = 0; selectionEpoch++;
@@ -1775,6 +1690,5 @@ function resetStore() {
   draftHistory.clear();
   focusedField = null; groupedEdit = -1;
   saverEdits = 0;
-  settingQueue = {}; settingTarget = null; settingFlight = null;
 }
 onReset(resetStore);

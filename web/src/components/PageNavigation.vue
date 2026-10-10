@@ -2,17 +2,19 @@
 import { computed } from 'vue';
 import { t } from '../i18n';
 import { navigationFooter, pagination } from '../model/pages';
-import { navigationSettings, state } from '../store';
+import { state } from '../store';
 import { useRegionStore } from '../stores/region';
+import { useSettingsStore } from '../stores/settings';
 
 const region = useRegionStore();
+const settings = useSettingsStore();
 const props = defineProps<{ pageId: string; interactive?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [direction: 'previous' | 'next' | 'back'] }>();
 const sequence = computed(() => state.document ? pagination(state.document) : []);
 const index = computed(() => sequence.value.indexOf(props.pageId));
-const visible = computed(() => state.document && navigationFooter(state.document, navigationSettings()));
+const visible = computed(() => state.document && navigationFooter(state.document, settings.navigationSettings()));
 const detail = computed(() => state.document?.pages.find((page) => page.id === props.pageId)?.navigation.excludeFromPagination);
-const sequential = computed(() => !detail.value && navigationSettings().pageButtons && sequence.value.length > 1);
+const sequential = computed(() => !detail.value && settings.navigationSettings().pageButtons && sequence.value.length > 1);
 defineExpose({ visible });
 </script>
 <template>

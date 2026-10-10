@@ -25,6 +25,7 @@ import { currentTile, openBar, previewed, removePage, repeatable, setTileOption,
 import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
+import { useSettingsStore } from "../src/stores/settings";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
 // screen's shape carries, and what New screen gets for each board (firmware.BOARD_CHOICES), made the same way here.
@@ -942,9 +943,9 @@ describe("Screen settings: a key held down", () => {
     await vi.advanceTimersByTimeAsync(450 + 180);
     higher.element.dispatchEvent(new Event("pointerup", { bubbles: true }));
     await higher.trigger("click");
-    expect(state.settingEdits.brightness.value).toBe(60);
+    expect(useSettingsStore().settingEdits.brightness.value).toBe(60);
     await higher.trigger("click");
-    expect(state.settingEdits.brightness.value).toBe(65);
+    expect(useSettingsStore().settingEdits.brightness.value).toBe(65);
   });
 });
 

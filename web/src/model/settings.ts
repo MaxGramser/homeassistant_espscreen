@@ -1,8 +1,8 @@
 // ---- Screen settings: the same groups and rows as the settings page on the screen itself ----
 // Every change applies at once, like on the screen; no Save needed. A screen with firmware 0.2.49+ owns its
 // settings and ESP Screens changes them through its entities in Home Assistant. A group's title and a row's label
-// are the texts editor.screen_settings.groups.<group> and editor.screen_settings.rows.<key> (app 0.2.90). The store
-// keeps what is being changed and sends it (setSetting); this is the table and its arithmetic.
+// are the texts editor.screen_settings.groups.<group> and editor.screen_settings.rows.<key> (app 0.2.90). The settings
+// store keeps what is being changed and sends it (stores/settings.ts setSetting); this is the table and its arithmetic.
 import { t } from "../i18n";
 
 export const SETTING_GROUPS = [

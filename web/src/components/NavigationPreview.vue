@@ -6,11 +6,14 @@ import { t } from '../i18n';
 import { entriesOf } from '../model/layout';
 import { navigationStep, titleOf, type NavigationIntent } from '../model/pages';
 import { previewShapeOf } from '../model/preview';
-import { currentScreen, drawsPictures, navigationSettings, screenShape, state } from '../store';
+import { currentScreen, drawsPictures, screenShape, state } from '../store';
 import DevicePage from './DevicePage.vue';
 import FirmwarePreview from './FirmwarePreview.vue';
 import Icon from './ui/Icon.vue';
 import SwitchRow from './ui/SwitchRow.vue';
+import { useSettingsStore } from '../stores/settings';
+
+const settings = useSettingsStore();
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
 // The draft's way and grid (app 0.4.85): a screen stood up in the editor shows standing, before it turned.
@@ -24,9 +27,9 @@ const current = ref(state.document!.homePageId);
 const page = computed(() => Math.max(0, state.document!.pages.findIndex((page) => page.id === current.value)));
 const visited = ref([current.value]);
 const history = ref<string[]>([]);
-const canGoBack = computed(() => navigationStep(state.document!, current.value, history.value, { kind: 'back' }, navigationSettings()).current !== current.value);
+const canGoBack = computed(() => navigationStep(state.document!, current.value, history.value, { kind: 'back' }, settings.navigationSettings()).current !== current.value);
 function navigate(intent: NavigationIntent) {
-  const step = navigationStep(state.document!, current.value, history.value, intent, navigationSettings());
+  const step = navigationStep(state.document!, current.value, history.value, intent, settings.navigationSettings());
   const target = step.current; history.value = step.history;
   if (target !== current.value) { current.value = target; visited.value = [...visited.value.slice(-15), target]; }
 }
@@ -63,7 +66,7 @@ onBeforeUnmount(() => previouslyFocused?.focus());
       <div class="preview-screen" @pointerdown="suppressClick = false; start($event)" @pointerup="finish" @pointercancel="origin = null" @click.capture="click">
         <DevicePage :page="page" :entries="entriesOf(state.layout!)" :pages="state.document!.pages.length" :moving="null" preview :can-go-back="canGoBack" @navigate="navigate" />
       </div>
-      <div v-if="navigationSettings().swipe" class="preview-swipes">
+      <div v-if="settings.navigationSettings().swipe" class="preview-swipes">
         <button class="btn quiet mini" @click="navigate({ kind: 'swipe-previous' })"><Icon name="arrow-left" />{{ t('editor.pages.swipe_previous') }}</button>
         <button class="btn quiet mini" @click="navigate({ kind: 'swipe-next' })">{{ t('editor.pages.swipe_next') }}<Icon name="arrow-right" /></button>
       </div>

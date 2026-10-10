@@ -4,11 +4,12 @@ import { computed } from "vue";
 import { t } from "./i18n";
 import { moved } from "./model/reorder";
 import { clockSample } from "./model/clock";
-import { currentScreen, openSaverStep, saverItems, setScreensaver, settingValues, state, topbarLabel } from "./store";
+import { currentScreen, openSaverStep, saverItems, setScreensaver, state, topbarLabel } from "./store";
 import type { SaverKind, ScreensaverChoice } from "./types";
 import { useUiStore } from "./stores/ui";
 import { useRegionStore } from "./stores/region";
 import { useEntitiesStore } from "./stores/entities";
+import { useSettingsStore } from "./stores/settings";
 
 export const SAVER_MIN_FIRMWARE = "0.29.0";
 export const SAVER_ICONS: Record<SaverKind, string> = { media: "F075A", camera: "F07AE", clock: "F0150" };
@@ -18,7 +19,10 @@ const key = (name: string) => `editor.screen_settings.screensaver.${name}`;
 
 export const saver = computed(() => currentScreen.value?.screensaver);
 export const saverReady = computed(() => Boolean(saver.value?.ready));
-export const standbyOn = computed(() => settingValues().standby_enabled !== false && settingValues().standby_enabled !== 0);
+export const standbyOn = computed(() => {
+  const standby = useSettingsStore().settingValues().standby_enabled;
+  return standby !== false && standby !== 0;
+});
 export const saverLabel = (kind: SaverKind) => t(key(`kinds.${kind}`));
 export const isOn = (kind: SaverKind) => !saver.value?.off.includes(kind);
 
