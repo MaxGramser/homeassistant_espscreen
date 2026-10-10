@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "esphome/core/defines.h"
+// ESPHome's esphome.h includes every header of smart_display, also on a board without a speaker: there this is empty.
+#ifdef USE_SPEAKER
 #include "esphome/components/audio/audio.h"
 #include "esphome/components/speaker/speaker.h"
 #include "esphome/core/hal.h"
@@ -58,3 +61,5 @@ class SoundPlayer {
 };
 
 }  // namespace tessera
+
+#endif  // USE_SPEAKER
