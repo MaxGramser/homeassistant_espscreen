@@ -83,6 +83,26 @@ class Catalog(unittest.TestCase):
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][0], '6.00 -> 0')
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][-1], '8.40 -> 100')
 
+    def test_waveshare_lcd4_preconditions_the_gt911_address_pins(self):
+        class IncludeLoader(yaml.SafeLoader):
+            pass
+
+        IncludeLoader.add_constructor('!include', lambda loader, node: loader.construct_scalar(node))
+        board = yaml.load((ROOT / 'packages/boards/waveshare-esp32s3-lcd-4.yaml').read_text(),
+                          Loader=IncludeLoader)
+        outputs = {output['id']: output for output in board['output']}
+        touch = board['touchscreen'][0]
+
+        for output_id, pin_name, number in (
+            ('gt911_reset_low', 'reset_pin', 1),
+            ('gt911_address_low', 'interrupt_pin', 2),
+        ):
+            pin = outputs[output_id]['pin']
+            self.assertEqual(outputs[output_id]['platform'], 'gpio')
+            self.assertEqual((pin['waveshare_io_ch32v003'], pin['number']), ('expander', number))
+            self.assertTrue(pin['allow_other_uses'])
+            self.assertTrue(touch[pin_name]['allow_other_uses'])
+
 
 class Choices(unittest.TestCase):
     def profile(self, **extra):

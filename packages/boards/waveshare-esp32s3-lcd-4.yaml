@@ -94,10 +94,24 @@ output:
       number: 6
       mode:
         output: true
+  # The expander starts every line high. Park reset and the interrupt/address-select line low before the GT911 starts:
+  # it then releases reset with EXIO2 already stable low, so the controller consistently selects address 0x5D.
+  - platform: gpio
+    id: gt911_reset_low
+    pin:
+      waveshare_io_ch32v003: expander
+      number: 1
+      allow_other_uses: true
+  - platform: gpio
+    id: gt911_address_low
+    pin:
+      waveshare_io_ch32v003: expander
+      number: 2
+      allow_other_uses: true
 
 # The GT911's reset line is EXIO1 and its interrupt line EXIO2, both on the expander, so ESPHome polls the panel
-# instead of taking a real interrupt. The address is left to the driver: the chip latches it from the interrupt line
-# while it resets, so naming one here makes the driver talk to an address the panel may not answer on.
+# instead of taking a real interrupt. The chip latches its address from EXIO2 while reset rises; the outputs above
+# make that state deterministic before the driver performs its reset sequence.
 touchscreen:
   - platform: gt911
     id: ts_touch
@@ -112,9 +126,11 @@ touchscreen:
     reset_pin:
       waveshare_io_ch32v003: expander
       number: 1
+      allow_other_uses: true
     interrupt_pin:
       waveshare_io_ch32v003: expander
       number: 2
+      allow_other_uses: true
 
 display:
   - platform: mipi_rgb
