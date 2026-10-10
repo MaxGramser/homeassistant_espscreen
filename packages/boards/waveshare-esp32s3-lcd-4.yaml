@@ -15,9 +15,8 @@ packages:
 
 external_components:
   # ESPHome's bundled GT911 driver can select 0x14 nondeterministically through this board's I2C expander
-  # (esphome/esphome#15019). Test the pinned head of esphome/esphome#15021 until it is part of a release.
-  - source: github://t2bottom/esphome@7b3dcd301d4548f6164c883511280703f16abaf1
-    refresh: 0s
+  # (esphome/esphome#15019). This pins the pending upstream fix plus Waveshare's required post-INT settle delay.
+  - source: github://leonardospina/homeassistant_espscreen@acf450ea474a031cf8958309ede063ce8ecaa17c
     components: [gt911]
 
 substitutions:
@@ -103,8 +102,8 @@ output:
         output: true
 
 # The GT911's reset line is EXIO1 and its interrupt line EXIO2, both on the expander, so ESPHome polls the panel
-# instead of taking a real interrupt. The upstream fix selected above drives EXIO2 low through the complete reset
-# sequence, selecting the primary 0x5D address.
+# instead of taking a real interrupt. This board's temporary GT911 component drives EXIO2 low through the complete
+# reset sequence, selects the primary 0x5D address and waits for the expander-backed line to settle before probing.
 touchscreen:
   - platform: gt911
     id: ts_touch

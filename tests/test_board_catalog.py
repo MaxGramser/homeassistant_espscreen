@@ -83,7 +83,7 @@ class Catalog(unittest.TestCase):
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][0], '6.00 -> 0')
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][-1], '8.40 -> 100')
 
-    def test_waveshare_lcd4_uses_the_upstream_gt911_address_fix(self):
+    def test_waveshare_lcd4_uses_its_settled_gt911_driver(self):
         class IncludeLoader(yaml.SafeLoader):
             pass
 
@@ -94,7 +94,7 @@ class Catalog(unittest.TestCase):
         external = board['external_components'][0]
 
         self.assertEqual(external['source'],
-                         'github://t2bottom/esphome@7b3dcd301d4548f6164c883511280703f16abaf1')
+                         'github://leonardospina/homeassistant_espscreen@acf450ea474a031cf8958309ede063ce8ecaa17c')
         self.assertEqual(external['components'], ['gt911'])
         self.assertTrue(touch['use_primary_i2c_addr'])
         self.assertNotIn('setup_priority', touch)
@@ -102,6 +102,18 @@ class Catalog(unittest.TestCase):
                          ('expander', 1))
         self.assertEqual((touch['interrupt_pin']['waveshare_io_ch32v003'], touch['interrupt_pin']['number']),
                          ('expander', 2))
+
+        for entry in (ROOT / 'packages/wavesharelcd4.yaml', ROOT / 'checkout/wavesharelcd4.yaml'):
+            self.assertNotIn('components: [gt911, smart_display]', entry.read_text())
+
+        driver = (ROOT / 'components/gt911/touchscreen/gt911_touchscreen.cpp').read_text()
+        released = driver.index('this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);')
+        settled = driver.index('delay(20);', released)
+        returned = driver.index('return true;', settled)
+        setup = driver[driver.index('void GT911Touchscreen::setup()'):driver.index('bool GT911Touchscreen::init_sequence_')]
+        self.assertLess(released, settled)
+        self.assertLess(settled, returned)
+        self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
 
 
 class Choices(unittest.TestCase):
