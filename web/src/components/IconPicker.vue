@@ -11,8 +11,10 @@ import Icon from "./ui/Icon.vue";
 import PropRow from "./ui/PropRow.vue";
 import type { Tile } from "../types";
 import { useEntitiesStore } from "../stores/entities";
+import { useInventoryStore } from "../stores/inventory";
 
 const entities = useEntitiesStore();
+const inv = useInventoryStore();
 
 const props = defineProps<{ selected: string; automatic: string; autoLabel: string; allowNone?: boolean; note?: string; tile?: Tile }>();
 const emit = defineEmits<{ (e: "pick", name: string): void }>();
@@ -27,7 +29,7 @@ function show(name: string | null) {
 }
 function pick(name: string) { show(null); emit("pick", name); }
 const groups = computed(() => {
-  return (state.inventory.icons?.groups || []).map((group) => ({
+  return (inv.inventory.icons?.groups || []).map((group) => ({
     label: group.label,
     icons: group.icons.filter((i) => matchesQuery(query.value, i.label, i.name.replaceAll("-", " "), group.label)),
   })).filter((g) => g.icons.length);

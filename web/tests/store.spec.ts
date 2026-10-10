@@ -1,7 +1,7 @@
 import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, setTileOption, state, tileLimit, refresh, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
+import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, setTileOption, state, tileLimit, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
@@ -15,6 +15,7 @@ import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
 import { useSessionStore } from "../src/stores/session";
 import { useTopbarStore } from "../src/stores/topbar";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -56,7 +57,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
   // Every question of the editor's is answered yes (ConfirmDialog), and kept to look at.
   asked = answerDialogs(true);
-  state.inventory = inventory();
+  useInventoryStore().inventory = inventory();
   useScreenStore().selected = null;
   seedLayout(null);
   state.dirty = false;
@@ -64,12 +65,12 @@ beforeEach(() => {
 
 describe("selecting and editing", () => {
   it("gates taller sizes and resizes without taking a neighbor's cells", () => {
-    state.inventory.editor_features = { tall_tiles: true };
+    useInventoryStore().inventory.editor_features = { tall_tiles: true };
     useSessionStore().select('living');
     const lamp = state.layout!.tiles[0];
     setTileOption(lamp, 'size', 'tall');
     expect(current(lamp).options?.size).toBeUndefined();
-    state.inventory.screens[0].tile_sizes = ['single', 'wide', 'full', 'tall', 'square'];
+    useInventoryStore().inventory.screens[0].tile_sizes = ['single', 'wide', 'full', 'tall', 'square'];
     setTileOption(lamp, 'size', 'tall');
     expect(current(lamp)).toMatchObject({ slot: 0, options: { size: 'tall' } });
     expect(state.layout!.tiles.find((tile) => tile.entity === 'sensor.t')!.slot).toBe(1);
@@ -79,11 +80,11 @@ describe("selecting and editing", () => {
   });
   it("copies the stored layout so edits never touch the inventory until saved", () => {
     useSessionStore().select("living");
-    expect(state.layout).not.toBe(state.inventory.screens[0].layout);
+    expect(state.layout).not.toBe(useInventoryStore().inventory.screens[0].layout);
     expect(state.layout!.tiles.map((t) => t.slot)).toEqual([0, 1]);
     expect(state.dirty).toBe(false);
     state.layout!.tiles[0].name = "Changed";
-    expect(state.inventory.screens[0].layout.tiles[0].name).toBe("");
+    expect(useInventoryStore().inventory.screens[0].layout.tiles[0].name).toBe("");
   });
   it("adds a tile to the first free cell once, within the firmware's limit", () => {
     useSessionStore().select("living");
@@ -154,9 +155,9 @@ describe("live values", () => {
     expect(virtual.firmware_known).toBe(renderer.firmware);
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => ["PUT", "DELETE"].includes(init?.method || ""))).toBe(false);
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ screens: [] }), { status: 200 })));
-    await refresh(false);
-    expect(state.inventory.screens[0].shape).toEqual(saved.shape);
-    expect(await useSessionStore().removeScreen(state.inventory.screens[0])).toBe(true);
+    await useInventoryStore().refresh(false);
+    expect(useInventoryStore().inventory.screens[0].shape).toEqual(saved.shape);
+    expect(await useSessionStore().removeScreen(useInventoryStore().inventory.screens[0])).toBe(true);
     expect(JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!)).toEqual([]);
     expect(useScreenStore().selected).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -197,7 +198,7 @@ describe("live values", () => {
     const blocked = () => { throw new DOMException("The operation is insecure.", "SecurityError"); };
     vi.spyOn(localStorage, "setItem").mockImplementation(blocked);
     expect(() => useSessionStore().createVirtualScreen("Hall", customPreview)).toThrow(t("editor.preview.not_kept"));
-    expect(state.inventory.screens.some((screen) => screen.virtual)).toBe(false);
+    expect(useInventoryStore().inventory.screens.some((screen) => screen.virtual)).toBe(false);
     vi.mocked(localStorage.setItem).mockRestore();
     const virtual = useSessionStore().createVirtualScreen("Hall", customPreview);
     addTile("light.b");
@@ -206,7 +207,7 @@ describe("live values", () => {
     expect(state.dirty).toBe(true);
     expect(useUiStore().notice?.message).toBe(t("editor.preview.not_kept"));
     expect(await useSessionStore().removeScreen(virtual)).toBe(false);
-    expect(state.inventory.screens.map((screen) => screen.id)).toContain(virtual.id);
+    expect(useInventoryStore().inventory.screens.map((screen) => screen.id)).toContain(virtual.id);
   });
   it.each([true, false])("migrates stored virtual layouts without losing them on failure (success=%s)", async (success) => {
     const legacy = { id: "virtual.old", name: "Old preview", virtual: true, shape: customPreview.shape,
@@ -220,7 +221,7 @@ describe("live values", () => {
       }
       return new Response(JSON.stringify({ screens: [] }), { status: 200 });
     }));
-    await refresh(false);
+    await useInventoryStore().refresh(false);
     const stored = JSON.parse(localStorage.getItem("esp-screens.virtual-screens")!)[0];
     expect(stored.layout).toEqual(legacy.layout);
     if (success) {
@@ -228,7 +229,7 @@ describe("live values", () => {
       useSessionStore().select(legacy.id);
       expect(state.document?.pages).toHaveLength(2);
       expect(state.layout?.tiles[0]).toMatchObject({ entity: "light.b", slot: 6 });
-      await refresh(false);
+      await useInventoryStore().refresh(false);
       expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith("firmware-preview/import"))).toHaveLength(1);
     } else expect(stored.page_document).toBeUndefined();
   });
@@ -240,21 +241,21 @@ describe("live values", () => {
       placement: { row: 0, column: 0, columns: 9, rows: 9 }, appearance: { label: "" }, interaction: {} }];
     localStorage.setItem("esp-screens.virtual-screens", JSON.stringify([...stored, broken, { nonsense: true }]));
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ screens: [] }), { status: 200 })));
-    await refresh(false);
+    await useInventoryStore().refresh(false);
     await new Promise((done) => setTimeout(done, 0));
-    expect(state.inventory.screens.map((screen) => screen.id)).toContain(good.id);
-    expect(state.inventory.screens.map((screen) => screen.id)).not.toContain("virtual.broken");
+    expect(useInventoryStore().inventory.screens.map((screen) => screen.id)).toContain(good.id);
+    expect(useInventoryStore().inventory.screens.map((screen) => screen.id)).not.toContain("virtual.broken");
     expect(useUiStore().notice?.message).toContain("Broken preview");
   });
   it("keeps the virtual screen and catalogue through a light inventory poll", async () => {
     const virtual = useSessionStore().createVirtualScreen("Panel preview", customPreview);
-    const entities = state.inventory.entities;
+    const entities = useInventoryStore().inventory.entities;
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ screens: [] }), { status: 200 })));
-    await refresh(false);
-    expect(state.inventory.entities).toEqual(entities);
-    expect(state.inventory.screens.map((screen) => screen.id)).toEqual([virtual.id]);
-    await refresh(false);
-    expect(state.inventory.screens).toHaveLength(1);
+    await useInventoryStore().refresh(false);
+    expect(useInventoryStore().inventory.entities).toEqual(entities);
+    expect(useInventoryStore().inventory.screens.map((screen) => screen.id)).toEqual([virtual.id]);
+    await useInventoryStore().refresh(false);
+    expect(useInventoryStore().inventory.screens).toHaveLength(1);
     expect(useScreenStore().selected).toBe(virtual.id);
   });
   it("falls back to what the inventory knew", () => {
@@ -275,7 +276,7 @@ describe("copy, export and import", () => {
     expect(state.dirty).toBe(true);
     expect(JSON.parse(layoutJson())).toMatchObject({ esp_screens_layout: 2, sourceGrid: { columns: 2, rows: 3 },
       layout: { title: "Living room", pages: [{ tiles: [{ content: { kind: "entity", entityId: "switch.c" } }] }] } });
-    const source = state.inventory.screens[1].page_document!;
+    const source = useInventoryStore().inventory.screens[1].page_document!;
     if (source.format === "pages-v2") expect(state.document!.pages[0].id).not.toBe(source.layout.pages[0].id);
   });
   it("refuses garbage or a rejected import without changing or trimming the draft", async () => {
@@ -317,14 +318,14 @@ describe("copy, export and import", () => {
 
 describe("updates with content", () => {
   it("lists what a screen gets, and nothing it already has", () => {
-    const [living, kitchen] = state.inventory.screens;
+    const [living, kitchen] = useInventoryStore().inventory.screens;
     expect(useBuildsStore().whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
     expect(useBuildsStore().whatsNew(kitchen)).toEqual(["Full-page tiles.", "Live values.", "Slider stays put.", "English."]);
     expect(useBuildsStore().whatsNew({ ...living, firmware: "0.2.62" })).toEqual([]);
   });
   it("goes by the screen's own target and leaves out a fix for another board (app 0.3.20)", () => {
-    const [living] = state.inventory.screens;
-    state.inventory.changelog = [
+    const [living] = useInventoryStore().inventory.screens;
+    useInventoryStore().inventory.changelog = [
       { app: "0.2.76", firmware: "0.2.64", lines: ["Shared."] },
       { app: "0.2.75", firmware: "0.2.63", boards: ["cyd"], lines: ["CYD fix."] },
       { app: "0.2.74", firmware: "0.2.62", lines: ["Full-page tiles."] },
@@ -335,12 +336,12 @@ describe("updates with content", () => {
     expect(useBuildsStore().whatsNew({ ...living, board: "cyd", update: { available: true, target: "0.2.63" } })).toEqual(["CYD fix.", "Full-page tiles."]);
   });
   it("turns the phase and the ESPHome stage into a progress bar", () => {
-    const living = state.inventory.screens[0];
-    state.inventory.builds = {};
+    const living = useInventoryStore().inventory.screens[0];
+    useInventoryStore().inventory.builds = {};
     expect(useBuildsStore().buildProgress(living)).toBeNull();
     // What the add-on says is being built for this screen (Manager.builds): an update, its phase, ESPHome's stage.
     const build = (phase: string, stage: string | null = null) =>
-      (state.inventory.builds = { [living.id]: { by: "update", state: "running", phase, stage } });
+      (useInventoryStore().inventory.builds = { [living.id]: { by: "update", state: "running", phase, stage } });
     build("install");
     expect(useBuildsStore().buildProgress(living)).toEqual({ percent: 12, text: phaseText("install") });
     expect(phaseText("install")).toBe("Building and installing…");
@@ -352,10 +353,10 @@ describe("updates with content", () => {
     expect(useBuildsStore().buildProgress(living)!.percent).toBe(78);
     build("settle");
     expect(useBuildsStore().buildProgress(living)!.percent).toBe(92);
-    state.inventory.builds = {};
+    useInventoryStore().inventory.builds = {};
   });
   it("knows which screen can show an alert", () => {
-    const [living, kitchen] = state.inventory.screens;
+    const [living, kitchen] = useInventoryStore().inventory.screens;
     expect(useScreenStore().canAlert(living)).toBe(true);
     expect(useScreenStore().canAlert(kitchen)).toBe(false);
     expect(useScreenStore().canAlert(undefined)).toBe(false);
@@ -410,8 +411,8 @@ describe("the open screen chosen again (app 0.2.78)", () => {
   });
   it("reads the stored layout again when nothing is unsaved, so a change from Claude or another tab shows up", () => {
     useSessionStore().select("living");
-    state.inventory.screens[0].layout.tiles.push({ entity: "light.b", name: "", slot: 2 });
-    state.inventory.screens[0].page_document = documentFixture(state.inventory.screens[0].layout);
+    useInventoryStore().inventory.screens[0].layout.tiles.push({ entity: "light.b", name: "", slot: 2 });
+    useInventoryStore().inventory.screens[0].page_document = documentFixture(useInventoryStore().inventory.screens[0].layout);
     useSessionStore().select("living");
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t", "light.b"]);
     expect(state.dirty).toBe(false);
@@ -524,7 +525,7 @@ describe("moving a tile to another page without dragging (app 0.2.78)", () => {
 
 describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
   it("takes the tile limit and the features from the screen entry", async () => {
-    const living = state.inventory.screens[0];
+    const living = useInventoryStore().inventory.screens[0];
     Object.assign(living, { firmware: "unknown", firmware_known: null, tile_limit: 48, full_page: true, page_tiles_repeat: true });
     useSessionStore().select("living");
     expect(tileLimit.value).toBe(48);
@@ -539,7 +540,7 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     expect(useUiStore().notice?.message).toBe("Layout imported. Save & send when it looks right.");
   });
   it("goes by firmware_known for the version and the notes", () => {
-    const living = state.inventory.screens[0];
+    const living = useInventoryStore().inventory.screens[0];
     Object.assign(living, { firmware: "unknown", firmware_known: "0.2.60" });
     useSessionStore().select("living");
     expect(useScreenStore().supports(0, 2, 60)).toBe(true);
@@ -557,33 +558,33 @@ describe("what the add-on says about a screen's firmware (app 0.2.78)", () => {
     expect(tileLimit.value).toBe(20);
     expect(useScreenStore().fullPage).toBe(false);
     expect(useScreenStore().pageTilesRepeat).toBe(false);
-    state.inventory.screens[0].firmware = "0.2.65";
+    useInventoryStore().inventory.screens[0].firmware = "0.2.65";
     expect(tileLimit.value).toBe(48);
     expect(useScreenStore().fullPage).toBe(true);
     expect(useScreenStore().pageTilesRepeat).toBe(true);
-    state.inventory.screens[0].firmware = "0.2.65 (ESPHome 2026.6.2)";
+    useInventoryStore().inventory.screens[0].firmware = "0.2.65 (ESPHome 2026.6.2)";
     expect(tileLimit.value).toBe(10);
     expect(useScreenStore().fullPage).toBe(false);
-    state.inventory.screens[0].firmware = "unknown";
+    useInventoryStore().inventory.screens[0].firmware = "unknown";
     expect(tileLimit.value).toBe(10);
   });
 });
 
 describe("the changelog from the full inventory (app 0.2.78)", () => {
   it("reads the notes next to the screens and ignores an update summary that still has them", () => {
-    const living = state.inventory.screens[0];
-    state.inventory.updates = { target: "0.2.62", changelog: [{ app: "0.2.1", firmware: "0.2.62", lines: ["Old place."] }] } as any;
+    const living = useInventoryStore().inventory.screens[0];
+    useInventoryStore().inventory.updates = { target: "0.2.62", changelog: [{ app: "0.2.1", firmware: "0.2.62", lines: ["Old place."] }] } as any;
     expect(useBuildsStore().whatsNew(living)).toEqual(["Full-page tiles.", "Live values."]);
   });
   it("shows nothing without a changelog", () => {
-    delete state.inventory.changelog;
-    expect(useBuildsStore().whatsNew(state.inventory.screens[1])).toEqual([]);
+    delete useInventoryStore().inventory.changelog;
+    expect(useBuildsStore().whatsNew(useInventoryStore().inventory.screens[1])).toEqual([]);
   });
 });
 
 describe("several tiles that go to the same page (firmware 0.2.65)", () => {
   it("adds, retargets and imports another copy when the screen takes them", async () => {
-    Object.assign(state.inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true });
     useSessionStore().select("living");
     addTile("screen.page_1");
     addTile("screen.page_1");
@@ -603,7 +604,7 @@ describe("several tiles that go to the same page (firmware 0.2.65)", () => {
     expect(state.layout!.tiles.map((t) => t.entity)).toEqual(["screen.page_1", "light.a", "screen.page_1"]);
   });
   it("keeps one tile per page when the screen doesn't", () => {
-    Object.assign(state.inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: false });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: false });
     useSessionStore().select("living");
     addTile("screen.page_1");
     addTile("screen.page_1");
@@ -626,7 +627,7 @@ describe("several tiles that go to the same page (firmware 0.2.65)", () => {
 
 describe("page buttons and swiping both off (firmware 0.2.69)", () => {
   const settings = (values: Record<string, unknown>) =>
-    Object.assign(state.inventory.screens[0], { settings: { owner: "screen", values, keys: Object.keys(values), unavailable: [] } });
+    Object.assign(useInventoryStore().inventory.screens[0], { settings: { owner: "screen", values, keys: Object.keys(values), unavailable: [] } });
   const tiles = (list: [string, number][]) => { seedTiles(list.map(([entity, slot]) => ({ entity, name: "", slot, options: {} }))); seedPages(1); };
   it("says which pages the Go to page tiles lead to, and which one they leave out", () => {
     settings({ page_buttons: false, swipe_pages: false });
@@ -659,7 +660,7 @@ describe("page buttons and swiping both off (firmware 0.2.69)", () => {
 // square screen with less glass).
 describe("the mockup of a screen, whichever way it hangs", () => {
   const shaped = (shape: Record<string, unknown>) => {
-    state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], shape, layout: { title: 'Screen', tiles: [] } } as any);
+    useInventoryStore().inventory.screens[0] = screenFixture({ ...useInventoryStore().inventory.screens[0], shape, layout: { title: 'Screen', tiles: [] } } as any);
     useSessionStore().select("living");
   };
   const px = (style: Record<string, string>) => Number(style["--mockup-width"].replace("px", ""));

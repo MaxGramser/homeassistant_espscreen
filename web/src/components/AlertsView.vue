@@ -10,11 +10,13 @@ import { firmwareVersion } from "../model/screen-status";
 import { state } from "../store";
 import { useUiStore } from "../stores/ui";
 import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 
-const alerts = computed(() => state.inventory.alerts);
+const alerts = computed(() => inv.inventory.alerts);
 // The bytes a field holds on each look, with the boards that have it ("CYD 48 · Guition and Waveshare 64 bytes"): the
 // add-on names the boards from its catalog, so a new board shows up here without a word of this page changing.
 function limitText(field: string) {
@@ -32,7 +34,7 @@ const tryForm = reactive({
 });
 const { busy: trying, run: whileTrying } = useBusy();
 const tryResult = ref("");
-const physicalScreens = computed(() => state.inventory.screens.filter(s => !s.virtual));
+const physicalScreens = computed(() => inv.inventory.screens.filter(s => !s.virtual));
 const readyScreens = computed(() => physicalScreens.value.filter((s) => scr.canAlert(s) && s.online));
 const tryAlert = () => whileTrying(async () => {
   tryResult.value = "";
@@ -51,7 +53,7 @@ const tryAlert = () => whileTrying(async () => {
     tryResult.value = e.message;
   }
 });
-const icons = computed(() => state.inventory.icons);
+const icons = computed(() => inv.inventory.icons);
 const exampleAction = ref("");
 const iconQuery = ref("");
 const yamlString = (text: unknown) => `"${String(text).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;

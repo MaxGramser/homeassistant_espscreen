@@ -11,8 +11,7 @@ import { askConfirm } from "../composables/useConfirm";
 import { followBuilds } from "../composables/useFirmwareJob";
 import { startDrag } from "../drag";
 import type { PreviewProfile } from "../model/preview";
-import { closeDocument, closeInspector, createVirtualScreen as addVirtualScreen, openDocument, persistVirtualScreens, reconcileDocument,
-  refresh, startStore, state } from "../store";
+import { closeDocument, closeInspector, openDocument, reconcileDocument, startStore, state } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { usePluginsStore } from "./plugins";
@@ -21,8 +20,10 @@ import { useScreenStore } from "./screen";
 import { useSettingsStore } from "./settings";
 import { useTopbarStore } from "./topbar";
 import { useUiStore } from "./ui";
+import { useInventoryStore } from "./inventory";
 
 export const useSessionStore = defineStore("session", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
   const scr = useScreenStore();
   const builds = useBuildsStore();
@@ -48,7 +49,7 @@ export const useSessionStore = defineStore("session", () => {
     scr.selected = id;
     ui.$patch({ menuOpen: false, addSheet: false, pagesSheet: false, previewOpen: false, pageWizardOpen: false });
     // Nothing chosen (the overview, app 0.4.0): the draft that was confirmed away is gone, so nothing is unsaved.
-    if (openDocument(state.inventory.screens.find((item) => item.id === id))) ui.go("");
+    if (openDocument(inv.inventory.screens.find((item) => item.id === id))) ui.go("");
   }
   // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
   function goHome(): void | Promise<void> {
@@ -67,7 +68,7 @@ export const useSessionStore = defineStore("session", () => {
 
   // ---- A new preview screen (New screen's preview, app 0.4.32): kept in this browser, and opened ----
   function createVirtualScreen(name: string, profile: PreviewProfile) {
-    const screen = addVirtualScreen(name, profile);
+    const screen = inv.createVirtualScreen(name, profile);
     select(screen.id);
     return screen;
   }
@@ -79,10 +80,10 @@ export const useSessionStore = defineStore("session", () => {
   async function removeScreen(screen: Screen) {
     if (scr.removing) return false;
     if (screen.virtual) {
-      const remaining = state.inventory.screens.filter((s) => s.id !== screen.id);
-      try { persistVirtualScreens(remaining); } catch (e: any) { ui.toast(e.message); return false; }
+      const remaining = inv.inventory.screens.filter((s) => s.id !== screen.id);
+      try { inv.persistVirtualScreens(remaining); } catch (e: any) { ui.toast(e.message); return false; }
       if (scr.selected === screen.id) forgetOpenScreen();
-      state.inventory.screens = remaining;
+      inv.inventory.screens = remaining;
       ui.toast(t("editor.sidebar.remove.done", { name: screen.name }));
       return true;
     }
@@ -92,11 +93,11 @@ export const useSessionStore = defineStore("session", () => {
       const name = result?.name || screen.name;
       if (scr.selected === screen.id) forgetOpenScreen();
       builds.forget(screen.id);
-      state.inventory.screens = state.inventory.screens.filter((s) => s.id !== screen.id);
+      inv.inventory.screens = inv.inventory.screens.filter((s) => s.id !== screen.id);
       ui.toast(result?.kept?.length
         ? t("editor.sidebar.remove.kept", { name, file: result.kept[0] })
         : t("editor.sidebar.remove.done", { name }));
-      await refresh(false);
+      await inv.refresh(false);
       return true;
     } catch (e: any) {
       ui.toast(e.message);
@@ -114,15 +115,20 @@ export const useSessionStore = defineStore("session", () => {
     builds.prune();
     if (scr.selected) { settings.settleSettings(); reconcileDocument(); }
   }
+  // Followed from the moment the session is made (the page makes it as it boots): it is no listener of the page, and a test
+  // that makes the session has what follows from a new inventory as the page has it.
+  onScopeDispose(inv.onArrival(arrived));
 
   // ---- Started once the page is on the screen (boot.ts); the returned function stops all of it ----
   // The page around the screens (the address, the width of a phone), the screens' language, a screen setting still
-  // waiting when the page closes, the plugins' reactions, the click a finished drag swallows, the store's live stream,
-  // polls, clocks and page events, the top bar's previews, and the firmware job while something builds (its log).
+  // waiting when the page closes, the plugins' reactions, the click a finished drag swallows, the inventory with its live
+  // stream and polls (closer while something builds), the draft's clocks and page events, the top bar's previews, and
+  // the firmware job while something builds (its log).
   let running: (() => void) | null = null;
   function start() {
     if (running) return running;
-    const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(), startStore(), topbar.start(), followBuilds()];
+    const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(),
+      inv.start({ busy: () => builds.anyBuilding }), startStore(), topbar.start(), followBuilds()];
     running = () => { running = null; for (const stop of stops.reverse()) stop(); };
     return running;
   }

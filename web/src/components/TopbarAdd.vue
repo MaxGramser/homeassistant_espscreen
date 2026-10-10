@@ -14,6 +14,7 @@ import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -21,6 +22,7 @@ const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const topbar = useTopbarStore();
+const inv = useInventoryStore();
 
 const taken = computed(() => new Set(topbar.topbarItems().map(itemKey)));
 const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
@@ -38,7 +40,7 @@ const builtinItem = (type: string): HeaderItem => (type === "wifi" || type === "
 // The items of the plugins this screen runs (docs/PLUGINS.md).
 const fromPlugins = computed(() => (plugins.pluginsEnabled ? plugins.barItemsFor(scr.currentScreen) : []));
 const pluginItem = (item: string): HeaderItem => ({ type: "plugin", item });
-const builtins = computed(() => (state.inventory.header?.builtin || []).filter((b) => b.type !== "battery" || scr.currentScreen?.battery));
+const builtins = computed(() => (inv.inventory.header?.builtin || []).filter((b) => b.type !== "battery" || scr.currentScreen?.battery));
 </script>
 
 <template>

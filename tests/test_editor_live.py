@@ -494,7 +494,7 @@ class Editor(unittest.TestCase):
         # Manager.builds).
         self.assertIn('export function buildProgress', status)
         self.assertIn('const buildProgress = (screen: Screen) => status.buildProgress(', builds)
-        self.assertIn('const buildOf = (screen: Screen): Build | null => state.inventory.builds?.[screen.id]', builds)
+        self.assertIn('const buildOf = (screen: Screen): Build | null => inv.inventory.builds?.[screen.id]', builds)
         for marker in ('class="whatsnew"', 'role="progressbar"', "go('#firmware')"):
             self.assertIn(marker, self.page, marker)
 

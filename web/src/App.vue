@@ -20,11 +20,13 @@ import { useSidebarStore } from "./stores/sidebar";
 import { useUiStore } from "./stores/ui";
 import { usePluginsStore } from "./stores/plugins";
 import { useScreenStore } from "./stores/screen";
+import { useInventoryStore } from "./stores/inventory";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 const view = computed(() => {
   if (ui.route === "#settings") return AppSettingsView;
   if (ui.route === "#new-screen") return InstallerView;
@@ -34,7 +36,7 @@ const view = computed(() => {
   if (ui.route === "#plugins" && plugins.pluginsEnabled) return PluginsView;
   // Nothing chosen is the overview of every screen (app 0.4.0); a house without screens starts with the first.
   if (scr.currentScreen && state.layout) return ScreenView;
-  return scr.selected || !state.inventory.screens.length ? EmptyState : HomeView;
+  return scr.selected || !inv.inventory.screens.length ? EmptyState : HomeView;
 });
 // ⌘K (Ctrl+K) opens the search from anywhere, unless a question of the editor's is open.
 onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !question.value,

@@ -10,6 +10,9 @@ import { state } from "../store";
 import { t } from "../i18n";
 import { api, send } from "../api";
 import type { PageLayout } from "../types";
+import { useInventoryStore } from "../stores/inventory";
+
+const inv = useInventoryStore();
 
 const props = withDefaults(defineProps<{
   width: number; height: number; dpi?: number; columns: number; rows: number;
@@ -47,7 +50,7 @@ const layoutPause = useTimeoutFn(() => receive(), LAYOUT_PAUSE, { immediate: fal
 const frames = useRafFn(draw, { immediate: false });
 const visible = useElementVisibility(canvas, { initialValue: true });
 // The screens' language, in which ESP Screens builds them and writes the words it sends (Settings -> Language & region).
-const language = () => state.inventory.language?.effective || "en";
+const language = () => inv.inventory.language?.effective || "en";
 
 // The language and the look of the screen, as its own firmware draws them (a build from before has neither export).
 // Each only when it changes: a new language draws every card again.

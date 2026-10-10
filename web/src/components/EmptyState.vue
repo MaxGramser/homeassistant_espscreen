@@ -2,12 +2,14 @@
 import { t } from "../i18n";
 import { state } from "../store";
 import { useUiStore } from "../stores/ui";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
+const inv = useInventoryStore();
 </script>
 
 <template>
-  <section v-if="state.inventory.screens.length" id="choose" class="empty">
+  <section v-if="inv.inventory.screens.length" id="choose" class="empty">
     <span class="empty-icon">▦</span>
     <h2>{{ t("editor.empty.choose.title") }}</h2>
     <p>{{ t("editor.empty.choose.text") }}</p>

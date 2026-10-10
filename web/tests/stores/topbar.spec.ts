@@ -13,6 +13,7 @@ import type { HeaderItem, Inventory, Screen } from "../../src/types";
 import { useFakeClock } from "../helpers/clock";
 import { fakeApi } from "../helpers/fake-api";
 import { screenFixture } from "../page-fixtures";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 const entity = (id: string): HeaderItem => ({ type: "entity", entity: id, content: "state", icon: "auto", show: "always" });
@@ -30,7 +31,7 @@ describe("the entity items' previews", () => {
   it("follow the items once started, and stop with the store's stop", async () => {
     const clock = useFakeClock();
     const api = addOn();
-    state.inventory = inventory(screen("hall", [entity("sensor.out")]), screen("desk"));
+    useInventoryStore().inventory = inventory(screen("hall", [entity("sensor.out")]), screen("desk"));
     const topbar = useTopbarStore(), session = useSessionStore();
     const stop = topbar.start();
     expect(topbar.start()).toBe(stop);
@@ -70,7 +71,7 @@ describe("the entity items' previews", () => {
     const clock = useFakeClock();
     const api = addOn();
     const answer = api.defer("POST header-preview");
-    state.inventory = inventory(screen("hall", [entity("sensor.out")]), screen("desk"));
+    useInventoryStore().inventory = inventory(screen("hall", [entity("sensor.out")]), screen("desk"));
     useSessionStore().select("hall");
     useTopbarStore().loadTopbarPreview(0);
     await clock.tick(0);
@@ -84,7 +85,7 @@ describe("the entity items' previews", () => {
 describe("a page's top bar", () => {
   it("adds an item once and as many as the screen holds, and takes one off with undo", () => {
     addOn();
-    state.inventory = inventory(screen("hall", [{ type: "clock" }]));
+    useInventoryStore().inventory = inventory(screen("hall", [{ type: "clock" }]));
     useSessionStore().select("hall");
     const topbar = useTopbarStore(), ui = useUiStore();
     topbar.addTopbarItem({ type: "clock" });
@@ -106,7 +107,7 @@ describe("a page's top bar", () => {
 
   it("copies a page's bar onto others on a screen whose pages are ready, and shows its home key as the screen does", () => {
     addOn();
-    state.inventory = inventory(screen("hall", [entity("sensor.out")]));
+    useInventoryStore().inventory = inventory(screen("hall", [entity("sensor.out")]));
     useSessionStore().select("hall");
     addPage();
     const topbar = useTopbarStore(), [first, second] = state.document!.pages;

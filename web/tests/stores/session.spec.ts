@@ -3,7 +3,7 @@
 // and its start, which starts everything once and stops it again.
 import { describe, expect, it } from "vitest";
 import { i18n } from "../../src/i18n";
-import { addTile, openSaverStep, refresh, state } from "../../src/store";
+import { addTile, openSaverStep, state } from "../../src/store";
 import { customPreview } from "../../src/model/preview";
 import { useBuildsStore } from "../../src/stores/builds";
 import { useScreenStore } from "../../src/stores/screen";
@@ -14,6 +14,7 @@ import type { Inventory, Screen } from "../../src/types";
 import { answerDialogs } from "../helpers/dialogs";
 import { failure, fakeApi } from "../helpers/fake-api";
 import { screenFixture } from "../page-fixtures";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 const screen = (id: string, tiles: { entity: string; name: string; slot: number }[] = []) =>
@@ -25,7 +26,7 @@ const api = (extra = {}) => fakeApi({ states: { states: {} }, capabilities: { ca
 describe("opening a screen", () => {
   it("opens one with its draft, the editor's sheets and drawers closed, and the layout in view", () => {
     api();
-    state.inventory = inventory(screen("hall", [{ entity: "light.a", name: "", slot: 0 }]), screen("desk"));
+    useInventoryStore().inventory = inventory(screen("hall", [{ entity: "light.a", name: "", slot: 0 }]), screen("desk"));
     const ui = useUiStore(), session = useSessionStore();
     ui.$patch({ menuOpen: true, addSheet: true, pagesSheet: true });
     state.tab = "settings";
@@ -41,7 +42,7 @@ describe("opening a screen", () => {
 
   it("asks before leaving unsaved edits, stays on no, and on yes leaves the settings changes of the screen it leaves", async () => {
     api({ "PUT screens/:id/settings": ({ body }) => ({ owner: "screen", values: body.settings, keys: [], unavailable: [] }) });
-    state.inventory = inventory(screen("hall"), screen("desk"));
+    useInventoryStore().inventory = inventory(screen("hall"), screen("desk"));
     const session = useSessionStore(), settings = useSettingsStore();
     session.select("hall");
     addTile("light.b");
@@ -61,7 +62,7 @@ describe("opening a screen", () => {
 
   it("brings the open screen with unsaved edits back to its layout, without a question", async () => {
     api();
-    state.inventory = inventory(screen("hall"));
+    useInventoryStore().inventory = inventory(screen("hall"));
     const session = useSessionStore();
     session.select("hall");
     addTile("light.b");
@@ -74,7 +75,7 @@ describe("opening a screen", () => {
 
   it("goes home from the logo: the overview, after asking about unsaved edits", async () => {
     api();
-    state.inventory = inventory(screen("hall"));
+    useInventoryStore().inventory = inventory(screen("hall"));
     const session = useSessionStore(), ui = useUiStore();
     ui.go("#settings");
     await session.goHome();
@@ -92,7 +93,7 @@ describe("opening a screen", () => {
 
   it("opens a new preview screen at once", () => {
     api();
-    state.inventory = inventory(screen("hall"));
+    useInventoryStore().inventory = inventory(screen("hall"));
     const preview = useSessionStore().createVirtualScreen("Desk preview", customPreview);
     expect(useScreenStore().selected).toBe(preview.id);
     expect(state.document?.title).toBe("Desk preview");
@@ -103,7 +104,7 @@ describe("removing a screen", () => {
   it("closes the open screen without asking, forgets its build and reads the inventory again", async () => {
     const add = api({ "DELETE screens/:id": { name: "Hall screen", kept: [] }, "GET inventory": { connected: true, screens: [], entities: [] } });
     const hall = screen("hall");
-    state.inventory = inventory(hall, screen("desk"));
+    useInventoryStore().inventory = inventory(hall, screen("desk"));
     const session = useSessionStore(), builds = useBuildsStore();
     session.select("hall");
     addTile("light.b");
@@ -113,7 +114,7 @@ describe("removing a screen", () => {
     const removing = session.removeScreen(hall);
     expect(useScreenStore().removing).toBe("hall");
     // Once at a time: another removal waits for this one.
-    expect(await session.removeScreen(state.inventory.screens[1])).toBe(false);
+    expect(await session.removeScreen(useInventoryStore().inventory.screens[1])).toBe(false);
     deleting.resolve();
     expect(await removing).toBe(true);
     expect(asked).toEqual([]);
@@ -126,18 +127,18 @@ describe("removing a screen", () => {
   it("keeps a screen the add-on refused to remove, open as it was", async () => {
     api({ "DELETE screens/:id": failure(409, "The screen is building") });
     const hall = screen("hall");
-    state.inventory = inventory(hall);
+    useInventoryStore().inventory = inventory(hall);
     const session = useSessionStore();
     session.select("hall");
     expect(await session.removeScreen(hall)).toBe(false);
-    expect([useScreenStore().selected, state.inventory.screens.length, useUiStore().notice?.message]).toEqual(["hall", 1, "The screen is building"]);
+    expect([useScreenStore().selected, useInventoryStore().inventory.screens.length, useUiStore().notice?.message]).toEqual(["hall", 1, "The screen is building"]);
   });
 });
 
 describe("a new inventory", () => {
   it("prunes the builds, settles the settings and reads the open draft again, in that order", async () => {
     const hall = screen("hall");
-    state.inventory = inventory(hall);
+    useInventoryStore().inventory = inventory(hall);
     api();
     const session = useSessionStore(), builds = useBuildsStore(), settings = useSettingsStore();
     session.select("hall");
@@ -147,7 +148,7 @@ describe("a new inventory", () => {
     const newer = { ...structuredClone(hall), page_document: { ...structuredClone(hall.page_document!), revision: "newer" } };
     api({ "GET inventory": inventory(newer) });
     addTile("light.b");
-    await refresh(false);
+    await useInventoryStore().refresh(false);
     expect(heard).toEqual(["prune", "settleSettings"]);
     // This page has unsaved edits and the add-on a newer draft: a conflict, said and not overwritten.
     expect([state.conflict, state.layout?.tiles.length]).toEqual([true, 1]);
@@ -155,7 +156,7 @@ describe("a new inventory", () => {
     answerDialogs(true);
     await session.select(null);
     heard.length = 0;
-    await refresh(false);
+    await useInventoryStore().refresh(false);
     expect(heard).toEqual(["prune"]);
   });
 });

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { state } from "../../src/store";
 import { useEntitiesStore } from "../../src/stores/entities";
 import { failure, fakeApi } from "../helpers/fake-api";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 afterEach(() => vi.useRealTimers());
 
@@ -64,7 +65,7 @@ describe("live values", () => {
 
   it("asks for the first eighty of what the library shows, and falls back on what the inventory knew", async () => {
     const api = fakeApi({ "GET states": { states: { "sensor.t": { state: "21", a: { unit_of_measurement: "°C" } } } } });
-    state.inventory = { screens: [], entities: [{ id: "light.k", name: "Kitchen", state: "off", area: "" }] } as any;
+    useInventoryStore().inventory = { screens: [], entities: [{ id: "light.k", name: "Kitchen", state: "off", area: "" }] } as any;
     const entities = useEntitiesStore();
     await entities.loadLibraryStates(Array.from({ length: 100 }, (_, i) => `sensor.s${i}`));
     expect(api.asked("states").map((r) => r.query.getAll("entity").length)).toEqual([60, 20]);
@@ -80,7 +81,7 @@ describe("live values", () => {
         placement: { row: 0, column: i, columns: 1, rows: 1 } })) });
     const screen = (id: string, tiles: string[], bar: string[]) => ({ id, name: id, layout: { title: id, tiles: [], pages: 1 }, shape: { columns: 2, rows: 2, width: 480, height: 480 },
       page_document: { format: "pages-v2", revision: "r", sourceGrid: { columns: 2, rows: 2 }, layout: { title: id, homePageId: `${id}p`, pages: [page(`${id}p`, tiles, bar)] } } });
-    state.inventory = { screens: [screen("hall", ["light.a"], ["sensor.out"]), screen("desk", ["light.b"], ["sensor.out", "sensor.in"])], entities: [] } as any;
+    useInventoryStore().inventory = { screens: [screen("hall", ["light.a"], ["sensor.out"]), screen("desk", ["light.b"], ["sensor.out", "sensor.in"])], entities: [] } as any;
     const api = fakeApi({
       "GET states": { states: { "light.a": { state: "on", a: {} } } },
       "POST header-preview": (request) => ({ items: request.body.header.items.map((item: any) => ({ t: item.entity })) }),
@@ -127,7 +128,7 @@ describe("a sensor's history", () => {
 
 describe("names and icons", () => {
   it("names an entity as Home Assistant does, and draws Home Assistant's icon, else its domain's", () => {
-    state.inventory = {
+    useInventoryStore().inventory = {
       screens: [], entities: [{ id: "light.k", name: "Kitchen", icon: "F0335", area: "" }, { id: "weather.home", name: "Home", state: "rainy", area: "" }, { id: "fan.f", name: "Fan", area: "" }],
       builtin: [{ id: "screen.clock", name: "Clock" }],
       icons: { groups: [{ name: "Home", icons: [{ name: "mdi:sofa", cp: "F04B9", label: "Sofa" }] }], weather: { rainy: "F0597", partlycloudy: "F0595" }, sun: {},
@@ -140,7 +141,7 @@ describe("names and icons", () => {
       .toEqual(["F0335", "F0597", "F0210", "F0B49"]);
     expect(entities.tileIconCp({ entity: "fan.f", name: "", slot: 0, options: { icon: "mdi:sofa" } })).toBe("F04B9");
     // Another list of icons from the add-on is read again.
-    state.inventory.icons = { ...state.inventory.icons!, groups: [{ name: "Home", icons: [{ name: "mdi:sofa", cp: "F0001", label: "Sofa" }] }] } as any;
+    useInventoryStore().inventory.icons = { ...useInventoryStore().inventory.icons!, groups: [{ name: "Home", icons: [{ name: "mdi:sofa", cp: "F0001", label: "Sofa" }] }] } as any;
     expect(entities.iconNamed("mdi:sofa")?.cp).toBe("F0001");
   });
 });

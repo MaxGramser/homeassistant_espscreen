@@ -8,7 +8,7 @@ import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
 import TopbarInspector from '../src/components/TopbarInspector.vue';
 import { placeTile, dismissMigrationNote, removeTile, resolveLayoutConflict, addPage, movePage } from "../src/store";
-import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo, acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, setEditorMode, setHomePage, setPageExcluded, setPageTitle, state, undo, workspacePositions } from "../src/store";
+import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo, acceptGridReview, gridChanged, reviewScreenGrid, save, saveWorkspace, setEditorMode, setHomePage, setPageExcluded, setPageTitle, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
 import { answerDialogs } from "./helpers/dialogs";
 import { setMedia } from "./helpers/browser";
@@ -17,8 +17,9 @@ import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
 import { useSessionStore } from "../src/stores/session";
 import { useTopbarStore } from "../src/stores/topbar";
+import { useInventoryStore } from "../src/stores/inventory";
 
-const record = () => state.inventory.screens[0].page_document as PageDocument;
+const record = () => useInventoryStore().inventory.screens[0].page_document as PageDocument;
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 beforeEach(() => {
   vi.useFakeTimers();
@@ -26,7 +27,7 @@ beforeEach(() => {
   const preferences = new Map<string, string>();
   vi.stubGlobal("localStorage", { getItem: (key: string) => preferences.get(key) ?? null, setItem: (key: string, value: string) => preferences.set(key, value) });
   state.dirty = false; state.busy = false; state.workspaceDirty = false;
-  state.inventory = { connected: true, screens: [screenFixture({ id: "test", name: "Test", firmware: "0.3.0", online: true,
+  useInventoryStore().inventory = { connected: true, screens: [screenFixture({ id: "test", name: "Test", firmware: "0.3.0", online: true,
     board: "guition", shape: { columns: 2, rows: 3, width: 480, height: 480 },
     layout: { title: "Home", pages: 2, tiles: [{ entity: "screen.page_2", name: "Controls", slot: 0 }] },
   } as Screen)], entities: [], icons: { groups: [], defaults: {}, weather: {}, sun: {}, controls: {}, fallback: "F0335" } } as any;
@@ -91,7 +92,7 @@ describe("one draft in both editor modes", () => {
     redo(); expect(state.document!.pages[0].topbar.title).toEqual({ source: 'text', text: 'Kitchen' });
   });
   it('keeps verified page editing available offline without asking for an update', () => {
-    Object.assign(state.inventory.screens[0], { online: false, page_capability: 'offline', page_last_capability: 'ready' });
+    Object.assign(useInventoryStore().inventory.screens[0], { online: false, page_capability: 'offline', page_last_capability: 'ready' });
     const view = mount(LayoutView);
     expect(useScreenStore().pageReady).toBe(true);
     expect(view.text()).not.toContain('Update screen to use the new titlebar and layout');
@@ -99,7 +100,7 @@ describe("one draft in both editor modes", () => {
   });
   it('lets a screen whose taps Home Assistant ignored perform actions with one click', async () => {
     // Home Assistant refused a tap (its repair issue, app 0.4.63); the notice offers its Configure switch (app 0.4.73).
-    Object.assign(state.inventory.screens[0], { actions_blocked: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { actions_blocked: true });
     const fetch = vi.fn(async () => reply({ allowed: true, name: 'Test' }));
     vi.stubGlobal('fetch', fetch);
     const view = mount(LayoutView);
@@ -111,7 +112,7 @@ describe("one draft in both editor modes", () => {
     expect(useUiStore().notice?.message).toBe('Test may now control your devices.');
   });
   it('keeps the notice when Home Assistant does not take it, and says why', async () => {
-    Object.assign(state.inventory.screens[0], { actions_blocked: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { actions_blocked: true });
     vi.stubGlobal('fetch', vi.fn(async () => reply({ error: 'Home Assistant didn\'t take it.' }, 400)));
     const view = mount(LayoutView);
     await view.find('#allow-actions').trigger('click');
@@ -187,7 +188,7 @@ describe("one draft in both editor modes", () => {
   });
   it('reviews a changed grid before applying it, and undo restores the source geometry', () => {
     const original = JSON.stringify(state.document), revision = state.documentRevision;
-    Object.assign(state.inventory.screens[0].shape!, { columns: 1, rows: 4 });
+    Object.assign(useInventoryStore().inventory.screens[0].shape!, { columns: 1, rows: 4 });
     expect(gridChanged.value).toBe(true);
     reviewScreenGrid();
     expect(state.gridReview?.target).toEqual({ columns: 1, rows: 4 });
@@ -241,7 +242,7 @@ describe("one draft in both editor modes", () => {
   });
   it('replaces Home with Back when the footer is hidden, even if Home was disabled', async () => {
     state.document!.pages[1].navigation.excludeFromPagination = true;
-    state.inventory.screens[0].settings = { values: { page_buttons: false, home_button: false } } as any;
+    useInventoryStore().inventory.screens[0].settings = { values: { page_buttons: false, home_button: false } } as any;
     const view = mount(NavigationPreview);
     expect(view.find('.page-navigation').exists()).toBe(false);
     expect(view.find('.preview-home').exists()).toBe(false);
@@ -292,18 +293,18 @@ describe("one draft in both editor modes", () => {
     undo(); expect(JSON.stringify(state.document)).toBe(before);
   });
   it("keeps the saved old-screen notice until the actual capability arrives", async () => {
-    state.inventory.screens[0].page_capability = "update_screen";
+    useInventoryStore().inventory.screens[0].page_capability = "update_screen";
     const view = mount(LayoutView);
     expect(view.text()).toContain("Update screen to use the new titlebar and layout");
     const before = JSON.stringify(state.document);
-    state.inventory.screens[0].page_capability = "ready"; await nextTick();
+    useInventoryStore().inventory.screens[0].page_capability = "ready"; await nextTick();
     expect(view.text()).not.toContain("Update screen to use the new titlebar and layout");
     expect(JSON.stringify(state.document)).toBe(before);
     expect(state.dirty).toBe(false);
   });
   it('preserves an unsaved draft when one of two screens upgrades a week later', async () => {
-    const original = JSON.parse(JSON.stringify(state.inventory.screens[0]));
-    state.inventory.screens[0].page_capability = 'update_screen';
+    const original = JSON.parse(JSON.stringify(useInventoryStore().inventory.screens[0]));
+    useInventoryStore().inventory.screens[0].page_capability = 'update_screen';
     setPageTitle(1, 'Unsent title');
     setEditorMode('advanced');
     const selected = state.document!.pages[1].id;
@@ -316,13 +317,13 @@ describe("one draft in both editor modes", () => {
       { ...original, id: 'other', firmware: '0.2.104', page_capability: 'update_screen' },
     ] }));
     vi.stubGlobal('fetch', fetch);
-    await refresh(false);
+    await useInventoryStore().refresh(false);
     expect(JSON.stringify(state.document)).toBe(draft);
     expect(JSON.stringify(state.workspace)).toBe(workspace);
     expect(state.selectedPageId).toBe(selected);
     expect(state.dirty).toBe(true);
     expect(state.workspaceDirty).toBe(true);
-    expect(state.inventory.screens.map((screen) => screen.page_capability)).toEqual(['ready', 'update_screen']);
+    expect(useInventoryStore().inventory.screens.map((screen) => screen.page_capability)).toEqual(['ready', 'update_screen']);
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0]?.[0]).toBe('api/inventory?light=1');
   });
@@ -378,7 +379,7 @@ describe("revisions and portable layouts", () => {
         expect(JSON.parse(String(options.body))).toEqual({ revision: record().revision });
         return reply(acknowledged);
       }
-      return reply({ screens: [{ ...state.inventory.screens[0], page_document: acknowledged }] });
+      return reply({ screens: [{ ...useInventoryStore().inventory.screens[0], page_document: acknowledged }] });
     });
     vi.stubGlobal('fetch', fetch);
     await dismissMigrationNote(); await nextTick();
@@ -389,7 +390,7 @@ describe("revisions and portable layouts", () => {
   it('reloads the competing saved document only when explicitly chosen', async () => {
     addPage(); state.conflict = true;
     const other = { ...record(), revision: 'newer' };
-    vi.stubGlobal('fetch', vi.fn(async () => reply({ screens: [{ ...state.inventory.screens[0], page_document: other }] })));
+    vi.stubGlobal('fetch', vi.fn(async () => reply({ screens: [{ ...useInventoryStore().inventory.screens[0], page_document: other }] })));
     await resolveLayoutConflict('reload');
     expect(state.document).toEqual(other.layout);
     expect(state.dirty).toBe(false);
@@ -407,7 +408,7 @@ describe("revisions and portable layouts", () => {
         other = { ...other, revision: 'saved', layout: body.layout };
         return reply({ saved: true, document: other });
       }
-      return reply({ screens: [{ ...state.inventory.screens[0], page_document: other }] });
+      return reply({ screens: [{ ...useInventoryStore().inventory.screens[0], page_document: other }] });
     });
     vi.stubGlobal('fetch', fetch);
     await resolveLayoutConflict('keep');
@@ -418,9 +419,9 @@ describe("revisions and portable layouts", () => {
   });
   it('preserves the destination screen title when copying another layout', () => {
     state.document!.title = 'Destination';
-    const source = screenFixture({ ...state.inventory.screens[0], id: 'source', name: 'Source' });
+    const source = screenFixture({ ...useInventoryStore().inventory.screens[0], id: 'source', name: 'Source' });
     (source.page_document as PageDocument).layout.title = 'Source title';
-    state.inventory.screens.push(source);
+    useInventoryStore().inventory.screens.push(source);
     copyLayoutFrom('source');
     expect(state.document!.title).toBe('Destination');
     expect((source.page_document as PageDocument).layout.title).toBe('Source title');
@@ -429,7 +430,7 @@ describe("revisions and portable layouts", () => {
     addPage(); const draft = JSON.stringify(state.document);
     const other = { ...record(), revision: "changed-elsewhere" };
     vi.stubGlobal("fetch", vi.fn(async (_url: string, options?: RequestInit) => options?.method === "PUT"
-      ? reply({ error: "Layout changed" }, 409) : reply({ screens: [{ ...state.inventory.screens[0], page_document: other }] })));
+      ? reply({ error: "Layout changed" }, 409) : reply({ screens: [{ ...useInventoryStore().inventory.screens[0], page_document: other }] })));
     await save();
     expect(JSON.stringify(state.document)).toBe(draft);
     expect(state.dirty).toBe(true); expect(state.conflict).toBe(true);
@@ -440,7 +441,7 @@ describe("revisions and portable layouts", () => {
     const server = { ...record(), revision: "committed", layout: draft };
     const fetch = vi.fn(async (_url: string, options?: RequestInit) => {
       if (options?.method === "PUT") throw new Error("Connection lost");
-      return reply({ screens: [{ ...state.inventory.screens[0], page_document: server }] });
+      return reply({ screens: [{ ...useInventoryStore().inventory.screens[0], page_document: server }] });
     });
     vi.stubGlobal("fetch", fetch); await save();
     expect(state.dirty).toBe(false); expect(state.documentRevision).toBe("committed");
@@ -455,16 +456,16 @@ describe("revisions and portable layouts", () => {
     const server = { ...record(), revision: "committed", layout: reversed(draft), workspace: reversed({ revision: "w2", positions: state.workspace.positions }) };
     vi.stubGlobal("fetch", vi.fn(async (_url: string, options?: RequestInit) => {
       if (options?.method === "PUT") throw new Error("Connection lost");
-      return reply({ screens: [{ ...state.inventory.screens[0], page_document: server }] });
+      return reply({ screens: [{ ...useInventoryStore().inventory.screens[0], page_document: server }] });
     }));
     await save();
     expect(state.conflict).toBe(false);
     expect(state.dirty).toBe(false); expect(state.documentRevision).toBe("committed");
   });
   it("exports only portable layout and editor placement, and copies with fresh IDs", () => {
-    (state.inventory.screens[0] as any).api_key = "private-key-never-export";
-    state.inventory.screens.push(screenFixture({ ...state.inventory.screens[0], id: "source", name: "Source" }));
-    const source = state.inventory.screens[1].page_document as PageDocument;
+    (useInventoryStore().inventory.screens[0] as any).api_key = "private-key-never-export";
+    useInventoryStore().inventory.screens.push(screenFixture({ ...useInventoryStore().inventory.screens[0], id: "source", name: "Source" }));
+    const source = useInventoryStore().inventory.screens[1].page_document as PageDocument;
     copyLayoutFrom("source");
     const exported = JSON.parse(layoutJson());
     expect(Object.keys(exported).sort()).toEqual(["editor", "esp_screens_layout", "layout", "sourceGrid"]);
@@ -477,7 +478,7 @@ describe("revisions and portable layouts", () => {
     const imported = documentFixture({ title: "Imported", tiles: [] });
     vi.stubGlobal("fetch", vi.fn((url: string) => url.endsWith("/import") ? new Promise<Response>((done) => { resolve = done; }) : Promise.resolve(reply({}))));
     const pending = importLayout(JSON.stringify({ esp_screens_layout: 2, sourceGrid: imported.sourceGrid, layout: imported.layout }));
-    state.inventory.screens.push(screenFixture({ ...state.inventory.screens[0], id: "other", name: "Other" }));
+    useInventoryStore().inventory.screens.push(screenFixture({ ...useInventoryStore().inventory.screens[0], id: "other", name: "Other" }));
     useSessionStore().select("other"); const before = JSON.stringify(state.document);
     resolve(reply(imported)); await pending;
     expect(JSON.stringify(state.document)).toBe(before); expect(state.dirty).toBe(false);
@@ -496,7 +497,7 @@ describe('creating a page', () => {
     expect(state.undoCount).toBe(0);
   });
   it('creates a configured independent bar and undoes the whole creation in one step', async () => {
-    state.inventory.entities = [{ id: 'sensor.room', name: 'Temperature', area: 'Study' }];
+    useInventoryStore().inventory.entities = [{ id: 'sensor.room', name: 'Temperature', area: 'Study' }];
     const before = JSON.stringify(state.document);
     const view = mount(PageWizard);
     await view.find('#new-page-title').setValue('Study');
@@ -512,12 +513,12 @@ describe('creating a page', () => {
     undo(); expect(JSON.stringify(state.document)).toBe(before);
   });
   it('offers only what a top bar can show: never a camera (app 0.4.1)', async () => {
-    state.inventory.entities = [{ id: 'sensor.room', name: 'Temperature', area: '' }, { id: 'camera.door', name: 'Door', area: '' }];
+    useInventoryStore().inventory.entities = [{ id: 'sensor.room', name: 'Temperature', area: '' }, { id: 'camera.door', name: 'Door', area: '' }];
     const view = mount(PageWizard);
     expect(view.findAll('.entity-option').map((row) => row.text())).toEqual([expect.stringContaining('Temperature')]);
   });
   it('gives a new page the shared bar on a screen whose firmware still shares one (app 0.4.1)', async () => {
-    state.inventory.screens[0].page_capability = 'update_screen';
+    useInventoryStore().inventory.screens[0].page_capability = 'update_screen';
     const first = state.document!.pages[0].topbar;
     const view = mount(PageWizard);
     expect(view.find('.home-choice').exists()).toBe(false);
@@ -530,7 +531,7 @@ describe('creating a page', () => {
     expect(view.emitted('close')).toHaveLength(1);
   });
   it('keeps the home page first on a screen whose firmware starts on page 1 (app 0.4.1)', () => {
-    state.inventory.screens[0].page_capability = 'update_screen';
+    useInventoryStore().inventory.screens[0].page_capability = 'update_screen';
     while (state.document!.pages.length < 3) addPage();
     const order = state.document!.pages.map((page) => page.id);
     expect(movePage(0, 1)).toBe(false);
@@ -540,7 +541,7 @@ describe('creating a page', () => {
     expect(state.document!.pages[0].id).toBe(order[0]);
   });
   it('names a drop-created page once and preserves it when more entities are added', () => {
-    state.inventory.entities = [{ id: 'light.study', name: 'Desk', area: 'Study' }];
+    useInventoryStore().inventory.entities = [{ id: 'light.study', name: 'Desk', area: 'Study' }];
     const count = state.document!.pages.length;
     expect(placeTile({ entity: 'light.study', name: '', slot: -1 }, count * 6)).toBe(true);
     expect(state.document!.pages.at(-1)!.topbar.title).toEqual({ source: 'text', text: 'Study' });

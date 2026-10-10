@@ -14,9 +14,11 @@ import SwitchRow from './ui/SwitchRow.vue';
 import TesseraMark from './TesseraMark.vue';
 import { useEntitiesStore } from '../stores/entities';
 import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
 const entities = useEntitiesStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
@@ -25,7 +27,7 @@ const chosen = ref<string[]>([]);
 const count = computed(() => chosen.value.length + Number(clock.value));
 const matches = computed(() => {
   // Only what the top bar can show (app 0.4.1): the add-on's header domains, so Create never fails on a camera.
-  return state.inventory.entities.filter(entity => rules.headerDomains.includes(entity.id.split('.')[0]) && matchesQuery(query.value, entity.name, entity.id, entity.area));
+  return inv.inventory.entities.filter(entity => rules.headerDomains.includes(entity.id.split('.')[0]) && matchesQuery(query.value, entity.name, entity.id, entity.area));
 });
 const toggle = (id: string) => { chosen.value = chosen.value.includes(id) ? chosen.value.filter((item) => item !== id) : [...chosen.value, id]; };
 const invalidTitle = computed(() => new TextEncoder().encode(title.value.trim()).length > 96);

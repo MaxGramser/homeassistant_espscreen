@@ -62,13 +62,14 @@ describe("boot", () => {
     const { boot } = await import("../src/boot");
     const store = await import("../src/store");
     const ui = (await import("../src/stores/ui")).useUiStore();
+    const inventory = (await import("../src/stores/inventory")).useInventoryStore();
     const stop = boot();
     expect(boot()).toBe(stop);
     await vi.advanceTimersByTimeAsync(0);
     // The inventory, and the stream that keeps it current, in the editor's language.
     expect(fetch.mock.calls.filter(([url]) => String(url).startsWith("api/inventory")).map(([url]) => url)).toEqual(["api/inventory"]);
     expect(lastStream()?.url).toBe("api/events?language=en");
-    expect(store.state.connected).toBe(true);
+    expect(inventory.connected).toBe(true);
     // The plugins load where they are on (import.meta.env.DEV in the tests, editor_features.plugins in the app).
     expect(fetch.mock.calls.some(([url]) => url === "api/plugins")).toBe(true);
     // The address and the width of the window are followed.

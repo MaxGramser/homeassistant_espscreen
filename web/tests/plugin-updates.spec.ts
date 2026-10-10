@@ -10,6 +10,7 @@ import { state } from "../src/store";
 import ScreenPluginsTab from "../src/components/ScreenPluginsTab.vue";
 import type { Screen } from "../src/types";
 import { useScreenStore } from "../src/stores/screen";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const plugin = (id: string, version: string, more: Partial<Plugin> = {}): Plugin => ({
   id, name: { en: id === "bus" ? "Public transport" : "Waste collection" }, summary: { en: "" }, icon: "F00E7", maintainer: "x",
@@ -34,10 +35,10 @@ beforeEach(() => {
       : { written: true, built: true, queued: 0 };
     return new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } });
   }));
-  state.inventory.screens = [hall];
+  useInventoryStore().inventory.screens = [hall];
   useScreenStore().selected = hall.id;
   plugins.loaded = true;
-  state.inventory.builds = {};
+  useInventoryStore().inventory.builds = {};
   plugins.index = [
     plugin("bus", "1.2.0"),
     plugin("waste", "1.0.2", { inputs: [{ id: "calendar", kind: "entity", scope: "screen", label: { en: "Calendar" }, domains: ["calendar"] }] }),

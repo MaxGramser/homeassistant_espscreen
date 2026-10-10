@@ -23,12 +23,14 @@ import { useBuildsStore } from "../stores/builds";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const session = useSessionStore();
+const inv = useInventoryStore();
 
 const screen = computed(() => scr.currentScreen!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
@@ -38,7 +40,7 @@ const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtu
 const statusKind = computed(() => !screen.value.online ? "off" : screen.value.in_sync ? "good" : "update");
 const statusWord = computed(() => !screen.value.online ? t("editor.common.offline") : screen.value.in_sync ? t("editor.common.online") : t("editor.screen_view.sending"));
 const updateReady = computed(() => needsUpdate(screen.value) && screen.value.online && screen.value.update?.profile && screen.value.update?.host);
-const others = computed(() => state.inventory.screens.filter((s) => s.id !== screen.value.id && s.layout?.tiles?.length));
+const others = computed(() => inv.inventory.screens.filter((s) => s.id !== screen.value.id && s.layout?.tiles?.length));
 function closeMenu() { ui.menuOpen = false; }
 function openOverride() {
   closeMenu();

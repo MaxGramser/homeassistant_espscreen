@@ -21,15 +21,17 @@ import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
 import { drawsPictures, useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const scr = useScreenStore();
 const session = useSessionStore();
+const inv = useInventoryStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
-const views = computed(() => state.inventory.screens.map((screen) => {
+const views = computed(() => inv.inventory.screens.map((screen) => {
   const view = homeView(screen), record = screen.page_document;
   // The screen's own firmware draws its saved home page when the preview knows its board; the mockup stays until then.
   const live = view && record?.format === "pages-v2" ? previewShapeOf(screen, record.sourceGrid) : null;
@@ -38,7 +40,7 @@ const views = computed(() => state.inventory.screens.map((screen) => {
 const drawn = reactive(new Set<string>());
 const failed = reactive(new Set<string>());
 const liveWidth = (shape: { width: number; height: number }) => `min(100%, ${Math.round(STAGE * shape.width / shape.height)}px)`;
-const online = computed(() => state.inventory.screens.filter((screen) => screen.online).length);
+const online = computed(() => inv.inventory.screens.filter((screen) => screen.online).length);
 const scale = (style: Record<string, string>, shape: { width: number; height: number }) => {
   const width = parseFloat(style["--mockup-width"]), height = width * shape.height / shape.width + 20;
   return Math.min(1, STAGE / height);
@@ -61,7 +63,7 @@ onMounted(entities.loadOverview);
         <UiMenuItem icon="monitor-dashboard" @select="ui.setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
       </UiMenu>
       <h1>{{ t("editor.home.title") }}</h1>
-      <p>{{ t("editor.home.summary", { online, count: state.inventory.screens.length }) }}</p>
+      <p>{{ t("editor.home.summary", { online, count: inv.inventory.screens.length }) }}</p>
     </header>
     <div class="home-grid">
       <div v-for="{ screen, view, live, layout } in views" :key="screen.id" role="button" tabindex="0" class="home-card" :class="{ away: !screen.online }"

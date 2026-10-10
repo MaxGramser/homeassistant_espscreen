@@ -7,42 +7,43 @@ import { defineStore } from "pinia";
 import { computed, effectScope, onScopeDispose, watch } from "vue";
 import { send } from "../api";
 import { languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "../i18n";
-import { refresh, state } from "../store";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
 
 export type LanguageChanges = { setting?: string; clock?: string; numbers?: string };
 
 export const useRegionStore = defineStore("region", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
 
-  const screenLanguage = computed(() => pickLanguage(state.inventory.language?.effective));
+  const screenLanguage = computed(() => pickLanguage(inv.inventory.language?.effective));
   /** A text as the screens show it: in their language, not the editor's. */
   const screenText = (key: string, named: Record<string, unknown> = {}) => t(key, named, { locale: screenLanguage.value });
   /** A language by its own name ("Nederlands"), as the add-on lists it. */
   const languageName = (code: string | null | undefined) =>
-    state.inventory.language?.languages?.find((l) => l.code === code)?.name || languageMeta(code || "")?.name || code || "";
+    inv.inventory.language?.languages?.find((l) => l.code === code)?.name || languageMeta(code || "")?.name || code || "";
   /** A built-in card's name as the screens show it (Settings, Clock, Go to page 2), in their language. */
-  const screenBuiltinName = (id: string) => state.inventory.builtin?.find((e) => e.id === id)?.screen_name;
+  const screenBuiltinName = (id: string) => inv.inventory.builtin?.find((e) => e.id === id)?.screen_name;
 
   // A 24-hour clock and "1,234.5" until the add-on says otherwise. The mockup's clocks and numbers follow what the add-on
   // sends the screens: the style, from how many digits a number is grouped, and the space before "%" (Home Assistant's
   // language decides "auto").
-  const clock24 = computed(() => state.inventory.language?.clock_effective !== "12");
+  const clock24 = computed(() => inv.inventory.language?.clock_effective !== "12");
   const numberMarks = computed<NumberMarks>(() => {
-    const language = state.inventory.language;
+    const language = inv.inventory.language;
     const marks = STYLE_MARKS[language?.numbers_effective || "point"] || STYLE_MARKS.point;
     return { ...marks, from: (language?.group_min || 1) >= 2 ? 5 : 4 };
   });
   /** How Automatic writes numbers: the marks of the language that decides, for the label of that choice. */
   const autoMarks = computed<NumberMarks>(() => {
-    const language = state.inventory.language;
+    const language = inv.inventory.language;
     return { ...(STYLE_MARKS[language?.numbers_auto || "point"] || STYLE_MARKS.point), from: (language?.group_min_auto || 1) >= 2 ? 5 : 4 };
   });
   /** What follows a number for its unit, as Home Assistant spaces it: "°", "%" or " %" by the language, " kWh". */
   function unitSuffix(unit: string | undefined | null) {
     if (!unit || unit === "°") return unit || "";
-    if (unit === "%") return state.inventory.language?.percent_space ? " %" : "%";
+    if (unit === "%") return inv.inventory.language?.percent_space ? " %" : "%";
     return ` ${unit}`;
   }
 
@@ -50,11 +51,11 @@ export const useRegionStore = defineStore("region", () => {
   async function saveLanguage(changes: LanguageChanges) {
     try {
       const answer = await send("language", "PUT", changes);
-      if (answer?.language) state.inventory.language = answer.language;
+      if (answer?.language) inv.inventory.language = answer.language;
       // A language is built into the firmware; the time and number format are not.
       ui.toast(t(changes.setting === undefined ? "editor.settings.language.saved" : "editor.settings.language.saved_language"));
       // Every screen now wants an update, which the inventory reports.
-      await refresh();
+      await inv.refresh();
       return true;
     } catch (e: any) {
       ui.toast(e.message);

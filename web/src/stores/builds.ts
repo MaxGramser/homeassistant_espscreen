@@ -9,8 +9,8 @@ import { computed, onScopeDispose, ref, shallowRef } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
 import * as status from "../model/screen-status";
-import { refresh, state } from "../store";
 import type { Build, Screen } from "../types";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
 
@@ -19,27 +19,28 @@ export const FIRMWARE_POLL_MS = 3000;
 export type FirmwareJob = { job: any; logs: string[] };
 
 export const useBuildsStore = defineStore("builds", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
 
   const updating = ref<string[]>([]);
-  const buildOf = (screen: Screen): Build | null => state.inventory.builds?.[screen.id] ?? null;
+  const buildOf = (screen: Screen): Build | null => inv.inventory.builds?.[screen.id] ?? null;
   const asked = (screen: Screen) => updating.value.includes(screen.id);
   /** What the page knows of a screen's build (model/screen-status.ts): the add-on's, and whether the page just asked. */
   const building = (screen: Screen): status.Building => ({ build: buildOf(screen), asked: asked(screen) });
   const isBuilding = (screen: Screen) => status.isBuilding(building(screen));
-  const anyBuilding = computed(() => Object.values(state.inventory.builds || {}).some((build) => build.state === "running") || updating.value.length > 0);
+  const anyBuilding = computed(() => Object.values(inv.inventory.builds || {}).some((build) => build.state === "running") || updating.value.length > 0);
   // The screens with a build on the way, running first.
-  const buildingScreens = computed(() => state.inventory.screens.filter((screen) => buildOf(screen) || asked(screen))
+  const buildingScreens = computed(() => inv.inventory.screens.filter((screen) => buildOf(screen) || asked(screen))
     .sort((a, b) => Number(isBuilding(b)) - Number(isBuilding(a))));
   // What a running build is doing in words, and how far it is (model/screen-status.ts).
   const buildText = (screen: Screen) => status.buildText(screen, buildOf(screen));
   const buildProgress = (screen: Screen) => status.buildProgress(screen, building(screen));
   // ---- Updates with content (app 0.2.73): what a screen gets ----
-  const whatsNew = (screen: Screen) => status.whatsNew(screen, state.inventory.changelog, state.inventory.updates?.target);
+  const whatsNew = (screen: Screen) => status.whatsNew(screen, inv.inventory.changelog, inv.inventory.updates?.target);
 
   /** A new inventory: a screen the add-on names a build for is no longer only asked for. */
   function prune() {
-    for (const screen of state.inventory.screens) if (buildOf(screen)) forget(screen.id);
+    for (const screen of inv.inventory.screens) if (buildOf(screen)) forget(screen.id);
   }
   /** A screen that went (removed) or whose build could not start. */
   function forget(id: string) {
@@ -52,7 +53,7 @@ export const useBuildsStore = defineStore("builds", () => {
     updating.value.push(screen.id);
     try {
       await send(`screens/${encodeURIComponent(screen.id)}/update`, "POST", { ...(host ? { host } : {}), ...(reinstall ? { reinstall } : {}) });
-      await refresh();
+      await inv.refresh();
     } catch (e: any) {
       forget(screen.id);
       ui.toast(e.message);
@@ -61,7 +62,7 @@ export const useBuildsStore = defineStore("builds", () => {
   async function runUpdateAll() {
     try {
       await send("updates/run", "POST");
-      await refresh();
+      await inv.refresh();
     } catch (e: any) {
       ui.toast(e.message);
     }
@@ -69,7 +70,7 @@ export const useBuildsStore = defineStore("builds", () => {
   async function setAutoUpdate(auto: boolean) {
     try {
       await send("updates", "PUT", { auto });
-      if (state.inventory.updates) state.inventory.updates.auto = auto;
+      if (inv.inventory.updates) inv.inventory.updates.auto = auto;
       ui.toast(t(auto ? "editor.settings.updates.auto_on" : "editor.settings.updates.auto_off"));
     } catch (e: any) {
       ui.toast(e.message);

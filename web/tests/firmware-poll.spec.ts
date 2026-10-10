@@ -7,9 +7,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import FirmwareView from "../src/components/FirmwareView.vue";
 import InstallerView from "../src/components/InstallerView.vue";
 import { followBuilds } from "../src/composables/useFirmwareJob";
-import { startStore, state } from "../src/store";
 import { setHidden } from "./helpers/browser";
 import { useBuildsStore } from "../src/stores/builds";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const SHAPES = JSON.parse(readFileSync("../screen_manager/app/boards.json", "utf8"));
 const BOARDS = Object.fromEntries(Object.entries(SHAPES).filter(([key, shape]: [string, any]) => shape.board === key)
@@ -57,9 +57,10 @@ describe("the firmware job", () => {
   });
 
   it("is asked for once, not twice, while a view follows it during a build the store follows too", async () => {
-    const stop = startStore(), stopBuilds = followBuilds();
+    const builds = useBuildsStore();
+    const stop = useInventoryStore().start({ busy: () => builds.anyBuilding }), stopBuilds = followBuilds();
     await vi.advanceTimersByTimeAsync(0);
-    expect(Object.keys(state.inventory.builds || {})).toEqual(["hall"]);
+    expect(Object.keys(useInventoryStore().inventory.builds || {})).toEqual(["hall"]);
     // The store alone: its build poll asks every three seconds for the build log.
     await vi.advanceTimersByTimeAsync(9000);
     expect(firmwareAsks()).toBe(3);

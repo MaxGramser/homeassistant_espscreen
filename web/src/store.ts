@@ -1,17 +1,18 @@
-// One reactive state for the whole editor. The Python API (server.py) is unchanged: this file is the
-// former app.js state and its calls, with the DOM work moved into the components.
+// The draft of the open screen and what edits it: its pages and tiles, undo, saving, the map of pages, a grid or way of
+// hanging chosen, copying and importing a layout; the inspector that opens beside it; the mockup's sizes (the canvas);
+// and a drag. What the add-on says, the open screen, the session, the top bar and the screensaver are stores of their own
+// (stores/), and so will this be: until then the functions here read those stores, and none of them reaches back in
+// here but the session, the top bar and the screensaver, which are on top of the draft.
 import { useEventListener, useTimeoutFn } from "@vueuse/core";
 import { computed, effectScope, onScopeDispose, reactive, shallowRef, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
-import { getJson, send, setCsrf } from "./api";
-import { andList, editorLanguage, t } from "./i18n";
+import { getJson, send } from "./api";
+import { andList, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware } from "./model/layout";
 import { barMetricsFor } from "./model/topbar";
 import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size } from "./model/layout";
 import { memoryCrossing, memoryUse } from "./model/memory";
-import { previewGrids, usablePreview, validPreviewShape, type PreviewProfile } from "./model/preview";
-import renderer from "./wasm/renderer.json";
 import type { ChildTile, HeaderItem, Inventory, Layout, SaverKind, Screen, Tile, PageLayout, PageTile, PageDocument, PageGrid, PageWorkspace } from "./types";
 
 import * as pages from "./model/pages";
@@ -25,19 +26,16 @@ import { resolveConflict, savedDraft } from './model/page-conflict';
 import { SMALLEST } from "./model/overview";
 import { slug } from "./model/slug";
 import { onReset } from "./resets";
-import { readStored, writeStored } from "./storage";
 import { renewable, usePreference } from "./composables/usePreference";
 import { useClock } from "./composables/useClock";
 import { askConfirm } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
-import { useBuildsStore } from "./stores/builds";
 import { useEntitiesStore } from "./stores/entities";
 import { usePluginsStore } from "./stores/plugins";
-import { useRegionStore } from "./stores/region";
+import { useInventoryStore } from "./stores/inventory";
 import { useScreenStore } from "./stores/screen";
-import { useSessionStore } from "./stores/session";
 import { useSettingsStore } from "./stores/settings";
-import { useUiStore, type Route, type Toast } from "./stores/ui";
+import { useUiStore, type Toast } from "./stores/ui";
 
 export type Inspector =
   | { kind: "tile" }
@@ -58,9 +56,6 @@ export type DragState = { active: boolean; moving: Tile | null; preview: { tile:
 // The editor's state as it starts, before the add-on has said anything: the page begins with it, and every test again
 // (resetStore).
 const fresh = () => ({
-  inventory: { screens: [], entities: [] } as Inventory,
-  connected: false,
-  reachable: true,
   document: null as PageLayout | null,
   gridReview: null as { record: PageDocument; layout: PageLayout; target: PageGrid; copy: boolean; message: string } | null,
   documentRevision: null as string | null,
@@ -103,78 +98,21 @@ export const state = reactive({
   get barPage(): number { return Math.max(0, state.document?.pages.findIndex(page => page.id === state.selectedPageId) ?? 0); },
 });
 
-// The page around the screens (stores/ui.ts): its toast and where it goes, for the functions below.
+// The page around the screens (stores/ui.ts): its toast, for the functions below.
 const toast = (message: string, action?: Toast["action"]) => useUiStore().toast(message, action);
-const go = (target: Route) => useUiStore().go(target);
 
 // This is a cached render projection of the one canonical draft. Mutations go
 // through document operations below, never through this flattened view.
 const renderedLayout = computed<Layout | null>(() => state.document && state.documentGrid
   ? pages.projectLayout(state.document, state.documentGrid) : null);
-const VIRTUAL_SCREENS_KEY = "esp-screens.virtual-screens";
-// What a preview screen's firmware says it takes, as a screen of that grid says it (the five names and its spans).
-// Preview screens live in this browser's storage; one that no longer reads is left out with a word about it
-// (model/preview.ts usablePreview), the word said once for the same names.
-let previewsSkipped = "";
-function virtualScreens(): Screen[] {
-  let value: any[];
-  try {
-    const stored = JSON.parse(readStored(VIRTUAL_SCREENS_KEY) || "[]");
-    value = Array.isArray(stored) ? stored : [];
-  } catch { value = []; }
-  const plugins = usePluginsStore().pluginsEnabled;
-  const usable = value.filter((s) => usablePreview(s, plugins));
-  const skipped = value.filter((s) => !usable.includes(s)).map((s) => (typeof s?.name === "string" && s.name) || "?").join(", ");
-  if (skipped && skipped !== previewsSkipped) { previewsSkipped = skipped; setTimeout(() => toast(t("editor.preview.skipped", { names: skipped })), 0); }
-  return usable.map((s) => ({ ...s, firmware: renderer.firmware, firmware_known: renderer.firmware,
-    tile_sizes: sizesOn(s.shape), grids: previewGrids(s.shape, s.orientation), page_capability: 'ready' }));
-}
-// A storage that keeps nothing (a private window, full or blocked) is said in the page's words, not the browser's, to
-// whoever wrote: a new preview screen, a save, a rename, a removal. Each writes here first, so what was not kept is not
-// changed either.
-export function persistVirtualScreens(screens = state.inventory.screens) {
-  if (!writeStored(VIRTUAL_SCREENS_KEY, JSON.stringify(screens.filter((s) => s.virtual)))) throw new Error(t("editor.preview.not_kept"));
-}
-async function migrateVirtualScreens() {
-  for (const screen of virtualScreens()) {
-    if (screen.page_document?.format === 'pages-v2') continue;
-    const sourceGrid = { columns: screen.shape!.columns, rows: screen.shape!.rows };
-    try {
-      const record = await send<PageDocument>('firmware-preview/import', 'POST', { document: screen.layout, sourceGrid });
-      record.revision = pages.instanceId();
-      persistVirtualScreens(virtualScreens().map(current => current.id === screen.id && !current.page_document
-        ? { ...current, page_document: record, source_grid: record.sourceGrid } : current));
-    } catch (error: any) { toast(error.message); } // Keep the original stored layout if migration fails.
-  }
-  return virtualScreens();
-}
-// A new preview screen, kept in this browser; the session opens it (stores/session.ts createVirtualScreen).
-export function createVirtualScreen(name: string, profile: PreviewProfile) {
-  if (!name.trim() || !validPreviewShape(profile.shape)) throw new Error(t("editor.preview.invalid_shape"));
-  const { board, orientation } = profile;
-  const shape = JSON.parse(JSON.stringify(profile.shape));
-  const id = `virtual.${slug(name) || "preview"}-${Date.now().toString(36)}`;
-  const sourceGrid = { columns: shape.columns, rows: shape.rows };
-  const document: PageDocument = { format: 'pages-v2', revision: pages.instanceId(), sourceGrid,
-    layout: pages.emptyLayout(name.trim()), workspace: { revision: pages.instanceId(), positions: {} } };
-  const screen: Screen = {
-    id, name: name.trim(), online: false, virtual: true, board, orientation,
-    firmware: renderer.firmware, firmware_known: renderer.firmware, tile_limit: 64, full_page: true,
-    page_tiles_repeat: true, entity_tiles_repeat: true, no_title: true, climate_range: true, in_sync: true, shape, layout: { title: name.trim(), tiles: [], pages: 1 },
-    source_grid: sourceGrid, page_document: document, page_capability: 'ready',
-    tile_sizes: sizesOn(shape), grids: previewGrids(shape, orientation),
-  };
-  persistVirtualScreens([...state.inventory.screens, screen]);
-  state.inventory.screens.push(screen);
-  return screen;
-}
-
 // The open screen and what its firmware takes are the screen store's (stores/screen.ts). This file's computeds outlive a
 // test's pinia (tests/setup.ts makes one for every test), so one that reads a store is worked out again once resetStore has
 // counted `generation` up; the page has one pinia and never resets.
 const generation = shallowRef(0);
 const storeComputed = <T>(get: () => T) => computed<T>(() => { generation.value; return get(); });
 const scr = () => useScreenStore();
+// What the add-on says (stores/inventory.ts).
+const inv = () => useInventoryStore();
 // What the screen holds and draws, as the add-on says (app 0.2.78), so a screen whose version Home Assistant can't
 // report for a moment keeps its 48 tiles instead of dropping to ten, and a copied or imported layout isn't cut to ten.
 export const tileLimit = storeComputed(() => {
@@ -481,7 +419,7 @@ export function commitArrangement(result: { tile: Tile; slot: number }[], field?
     const arranged = pages.arrangeTiles(draft, screenGridOf(state.documentGrid), result);
     const existing = new Set(state.document.pages.map(page => page.id));
     for (const page of arranged.pages) if (!existing.has(page.id)) {
-      const title = suggestedPageTitle(page, state.inventory.entities);
+      const title = suggestedPageTitle(page, inv().inventory.entities);
       page.topbar.title = title ? { source: 'text', text: title } : { source: 'screen' };
     }
     const grouped = field !== undefined && focusedField === field;
@@ -675,8 +613,6 @@ export function pagesShown() {
   // in the row it is already in, so the row stays as long as it is.
   return state.drag.active && !state.drag.page && pages < grid.pages ? pages + 1 : pages;
 }
-/** UI experiments are opt-in; saved documents and device support stay independent. */
-export const tallerTilesEnabled = computed(() => state.inventory.editor_features?.tall_tiles === true);
 /** The sizes the screen takes on the draft's grid: one given its grid with the layout (firmware 0.53.0+) every size of
  * that grid, an older one those it named for the grid it was built with. */
 function screenSizes(): string[] {
@@ -687,7 +623,7 @@ export function tileSizeChoices(tile: Tile): Size[] {
   const said = screenSizes();
   // A forecast or the sun's path needs width: nothing one column wide and taller than a row.
   const narrow = ['forecast', 'sunpath'].includes(String(tile.options?.display));
-  if (tallerTilesEnabled.value) for (const size of ['tall', 'square'] as const) {
+  if (inv().tallerTilesEnabled) for (const size of ['tall', 'square'] as const) {
     if (!said.includes(size) || grid.rows < 2 || (size === 'square' && grid.columns < 2)) continue;
     if (size === 'tall' && narrow) continue;
     choices.push(size);
@@ -695,7 +631,7 @@ export function tileSizeChoices(tile: Tile): Size[] {
   // Every other rectangle the screen said its grid takes (firmware 0.19.0, app 0.4.32): 3 x 2, 2 x 3 and the rest.
   for (const size of said) {
     const span = spanOf(size);
-    if (!span || !spanOffered(span.columns, span.rows, grid) || (span.rows > 1 && !tallerTilesEnabled.value) || (span.columns === 1 && narrow)) continue;
+    if (!span || !spanOffered(span.columns, span.rows, grid) || (span.rows > 1 && !inv().tallerTilesEnabled) || (span.columns === 1 && narrow)) continue;
     choices.push(size as Size);
   }
   // A plugin's tile takes the sizes between its manifest's smallest and largest (design, docs: the plugins proposal).
@@ -716,7 +652,7 @@ export function tileSizeChoices(tile: Tile): Size[] {
 /** Edge resizing keeps the anchor and every neighbouring tile in place. */
 export function resizeChoices(tile: Tile, axis: 'columns' | 'rows'): Size[] {
   const current = currentView(tile);
-  if (!current || !state.layout || (axis === 'rows' && !tallerTilesEnabled.value)) return [];
+  if (!current || !state.layout || (axis === 'rows' && !inv().tallerTilesEnabled)) return [];
   const before = dimensions(sizeOf(current), grid), other = axis === 'columns' ? 'rows' : 'columns';
   const taken = occupied(entriesOf(state.layout).filter(entry => entry.tile.id !== current.id));
   const owned = state.document?.pages.flatMap(page => page.tiles).find(item => item.id === current.id);
@@ -737,7 +673,7 @@ export function resizeTile(tile: Tile, size: Size, axis: 'columns' | 'rows') {
     // Gaining height exposes choices, it never opts into a default control.
     // A Go to page tile has no controls at all (app 0.4.1): writing 'none' there made the add-on refuse the resize.
     if (owned.placement.rows === 1 && dimensions(size, grid).rows > 1 && owned.interaction.controls === undefined && owned.content.kind !== "navigation")
-      owned.interaction.controls = effectiveControls(current, state.inventory) || 'none';
+      owned.interaction.controls = effectiveControls(current, inv().inventory) || 'none';
     Object.assign(owned.placement, dimensions(size, grid));
     if (size === 'single') delete owned.appearance.presentation;
     else owned.appearance.presentation = size;
@@ -751,19 +687,19 @@ export function setTileOption(tile: Tile, key: string, value: unknown, field?: s
   tile = currentView(tile, layout) || tile;
   const domain = tile.entity.split(".")[0], caps = useEntitiesStore().capabilities[tile.entity], wasSize = sizeOf(tile);
   // Beyond single, wide and the whole page, a size is one the screen said it takes (tall and square 0.3.1, spans 0.19.0).
-  if (key === "size" && !["single", "wide", "full"].includes(String(value)) && ((isTallSize(value) && !tallerTilesEnabled.value) || !screenSizes().includes(String(value)))) return;
+  if (key === "size" && !["single", "wide", "full"].includes(String(value)) && ((isTallSize(value) && !inv().tallerTilesEnabled) || !screenSizes().includes(String(value)))) return;
   if (key === "size" && isTallSize(value) && sizeColumns(value) === 1 && ["forecast", "sunpath"].includes(String(tile.options?.display))) return;
   // Perform action is a choice with a second step (app 0.4.0, GitHub #47): nothing is stored until an action is
   // chosen, which comes here as `action` and brings the tap choice with it.
   if (key === "tap" && value === "action" && !tile.options?.action) return;
-  const previousControls = effectiveControls(tile, state.inventory);
+  const previousControls = effectiveControls(tile, inv().inventory);
   // Direct controls need the standard layout without a mini slider, and vice versa (tile-options.ts).
-  tile.options = coupledOptions(tile.options, key, value, Boolean(state.inventory.controls?.[domain]));
+  tile.options = coupledOptions(tile.options, key, value, Boolean(inv().inventory.controls?.[domain]));
   if (key === 'size' && isTallSize(value) && dimensions(wasSize, grid).rows === 1 && !('controls' in tile.options))
     tile.options.controls = previousControls || 'none';
   if (key === "display" && ["forecast", "sunpath"].includes(value as string) && !isWide(tile)) tile.options.size = "wide";
   // A card that becomes wide gets the first direct control Home Assistant offers when the usual one isn't there.
-  const catalogue = state.inventory.controls?.[domain];
+  const catalogue = inv().inventory.controls?.[domain];
   if (key === "size" && value !== "full" && sizeColumns(value) > 1 && caps && catalogue && !("controls" in tile.options) && !caps.controls.includes(catalogue.default))
     tile.options.controls = catalogue.choices.find((c) => c.key !== "none" && caps.controls.includes(c.key))?.key || "none";
   // A card that grows to the whole page keeps its page: the other tiles there move to the first free
@@ -960,7 +896,7 @@ export async function save() {
         sourceGrid: pages.clone(state.documentGrid), workspace: { ...pages.clone(state.workspace), revision: pages.instanceId() } };
       const updated = { ...open, page_document: record, source_grid: record.sourceGrid,
         layout: pages.projectLayout(layout, record.sourceGrid) };
-      persistVirtualScreens(state.inventory.screens.map(item => item.id === open.id ? updated : item));
+      inv().persistVirtualScreens(inv().inventory.screens.map(item => item.id === open.id ? updated : item));
       Object.assign(open, updated);
       acceptSave(record, layout, record.workspace, edits);
       toast(t('editor.preview.saved'));
@@ -978,8 +914,8 @@ export async function save() {
   try {
     const result = await send<{ saved: boolean; document: PageDocument }>(`screens/${encodeURIComponent(screen)}`, "PUT", request);
     if (scr().selected === screen && selection === selectionEpoch) { committedUpright = submittedUpright; acceptSave(result.document, submitted, workspace, sent); }
-    else toast(t("editor.screen_view.saved.other", { name: state.inventory.screens.find((s) => s.id === screen)?.name || screen }));
-    await refresh(false);
+    else toast(t("editor.screen_view.saved.other", { name: inv().inventory.screens.find((s) => s.id === screen)?.name || screen }));
+    await inv().refresh(false);
   } catch (error: any) {
     // A lost HTTP answer does not prove the save failed. Read the authoritative
     // revision before another attempt; edits made meanwhile remain the draft.
@@ -1001,11 +937,11 @@ export async function save() {
 const mapSaver = workspaceSaver(state, {
   epoch: () => selectionEpoch, selected: () => scr().selected, committed: () => committedLayout,
   put: async (id, revision, workspace) => {
-    const screen = state.inventory.screens.find(item => item.id === id);
+    const screen = inv().inventory.screens.find(item => item.id === id);
     if (screen?.virtual && screen.page_document?.format === 'pages-v2') {
       const saved = { ...pages.clone(workspace), revision: pages.instanceId() };
       const updated = { ...screen, page_document: { ...screen.page_document, workspace: saved } };
-      persistVirtualScreens(state.inventory.screens.map(item => item.id === id ? updated : item));
+      inv().persistVirtualScreens(inv().inventory.screens.map(item => item.id === id ? updated : item));
       Object.assign(screen, updated);
       return saved;
     }
@@ -1113,7 +1049,7 @@ export function acceptGridReview() {
   else applyDocument(review.layout, true, review.target);
 }
 export function copyLayoutFrom(id: string) {
-  const other = state.inventory.screens.find((screen) => screen.id === id);
+  const other = inv().inventory.screens.find((screen) => screen.id === id);
   if (other?.page_document?.format !== "pages-v2") { toast(t("editor.layout.copy_needs_migration")); return; }
   const copy = pages.clone(other.page_document);
   copy.layout.title = state.document?.title || copy.layout.title;
@@ -1164,8 +1100,8 @@ export function pageReachWarning() {
 // ---- The Tessera skill for Claude Code in Home Assistant (Settings), which the add-on writes ----
 export async function installClaudeSkill() {
   try {
-    state.inventory.claude_skill = await send("claude-skill", "POST");
-    toast(t(state.inventory.claude_skill?.restart ? "editor.settings.claude.installed_restart" : "editor.settings.claude.installed"));
+    inv().inventory.claude_skill = await send("claude-skill", "POST");
+    toast(t(inv().inventory.claude_skill?.restart ? "editor.settings.claude.installed_restart" : "editor.settings.claude.installed"));
   } catch (e: any) {
     toast(e.message);
   }
@@ -1177,7 +1113,7 @@ export async function dismissMigrationNote() {
   if (!screen || record?.format !== 'pages-v2') return;
   try {
     await send(`screens/${encodeURIComponent(screen.id)}/migration/dismiss`, 'POST', { revision: record.revision });
-    await refresh(false);
+    await inv().refresh(false);
   } catch (error: any) { toast(error.message); }
 }
 
@@ -1186,13 +1122,14 @@ export async function startFreshLayout() {
   if (!screen || record?.format !== 'legacy-v1' || !(await askConfirm(t('editor.pages.start_fresh_confirm')))) return;
   try {
     await send(`screens/${encodeURIComponent(screen.id)}/migration/reset`, 'POST', { revision: record.migrationRevision });
-    await refresh(false);
+    await inv().refresh(false);
   } catch (error: any) { toast(error.message); }
 }
 
 export async function resolveLayoutConflict(choice: 'reload' | 'keep') {
   await resolveConflict(choice, state, {
-    epoch: () => selectionEpoch, selected: () => scr().selected, refresh: () => refresh(false), screen: () => scr().currentScreen,
+    epoch: () => selectionEpoch, selected: () => scr().selected, reachable: () => inv().reachable, refresh: () => inv().refresh(false),
+    screen: () => scr().currentScreen,
     load: screen => { closeInspector(); loadDocument(screen); },
     acceptBase: record => { committedLayout = pages.clone(record.layout); committedGrid = pages.clone(record.sourceGrid); },
     save,
@@ -1216,69 +1153,9 @@ export function reconcileDocument() {
   } else if (!state.documentGrid && screen.source_grid && !state.dirty) loadDocument(screen);
 }
 
-// ---- Inventory: full catalogue, light polls, and the live stream ----
-export async function refresh(full = true) {
-  try {
-    const data = await getJson(full ? "inventory" : "inventory?light=1");
-    if (data.csrf) setCsrf(data.csrf);
-    const virtual = await migrateVirtualScreens();
-    // A light poll carries only screens and update status; keep the catalogues we have.
-    state.inventory = full ? data : { ...state.inventory, ...data };
-    state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtual];
-    if (data.csrf) setCsrf(data.csrf);
-    state.connected = Boolean(state.inventory.connected);
-    state.reachable = true;
-    useSessionStore().arrived();
-  } catch {
-    state.reachable = false;
-  }
-}
-function applyLive(data: Partial<Inventory>) {
-  state.inventory = { ...state.inventory, ...data } as Inventory;
-  state.inventory.screens = [...state.inventory.screens.filter((screen) => !screen.virtual), ...virtualScreens()];
-  state.connected = Boolean(state.inventory.connected);
-  useSessionStore().arrived();
-}
-let pollTimer = 0, lastFull = Date.now(), live = false, following = false, stream: EventSource | null = null;
-// The browser opens a broken stream again by itself, but one it gave up on (CLOSED: ingress answered 502 while the add-on
-// restarted) stays closed, and the page polled every ten seconds until it was reloaded. A new stream is opened instead,
-// a little later each time, and the polls stand in meanwhile; a stream that opens starts the count again.
-const RECONNECT_MS = [1000, 2000, 5000, 10000, 30000];
-let reconnects = 0, reconnectTimer = 0;
-function listen() {
-  if (stream || !following || typeof EventSource === "undefined") return;
-  // An EventSource sends no headers of its own: the editor's language goes along in the address (app 0.2.90).
-  const source = (stream = new EventSource(`api/events?language=${encodeURIComponent(editorLanguage())}`));
-  source.onopen = () => { live = true; reconnects = 0; poll(); };
-  source.onmessage = (e) => { if (!document.hidden) applyLive(JSON.parse(e.data)); };
-  source.onerror = () => {
-    live = false;
-    poll();
-    if (stream !== source || source.readyState !== EventSource.CLOSED) return;
-    stream = null;
-    clearTimeout(reconnectTimer);
-    reconnectTimer = window.setTimeout(listen, RECONNECT_MS[Math.min(reconnects++, RECONNECT_MS.length - 1)]);
-  };
-}
-// Poll only while the tab is visible; a hidden tab would otherwise keep the add-on busy.
-// Live updates arrive over server-sent events; polling is the fallback while the stream is down,
-// plus a full catalogue refresh every 5 minutes.
-function poll() {
-  clearTimeout(pollTimer);
-  if (!following) return;
-  const wait = live ? 60000 : useBuildsStore().anyBuilding || state.inventory.updates?.busy ? 3000 : 10000;
-  pollTimer = window.setTimeout(async () => {
-    if (!document.hidden) {
-      const full = Date.now() - lastFull >= 300000;
-      if (full) lastFull = Date.now();
-      if (full || !live) await refresh(full);
-    }
-    poll();
-  }, wait);
-}
 // ---- Started once the page is on the screen (stores/session.ts start, from boot.ts) ----
-// What the store does by itself while the page is open: the live stream and its polls, the clocks of the mockup, the
-// reactions to a change elsewhere, and what the page does when it is hidden, shown again or closed. Nothing of it starts
+// What the draft does by itself while the page is open: the clocks of the mockup, the live values of its entities, the
+// reactions to a change elsewhere, and what the page does when it is closed. Nothing of it starts
 // when the module loads, so a test imports the store and starts only what it tests. All of it lives in one scope, and
 // the returned function stops it.
 let started: (() => void) | null = null;
@@ -1289,7 +1166,6 @@ export function startStore() {
     // The screensaver's drawers belong to the settings: they close when the layout comes back.
     watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); });
     const ui = useUiStore();
-    startLive();
     // The mockup's clocks tick while a screen is open and the page in sight, and hold still while a tile is dragged; the
     // entity values in its top bar follow Home Assistant as they tick.
     const editing = () => Boolean(state.layout) && !state.drag.active;
@@ -1303,38 +1179,17 @@ export function startStore() {
   started = () => { started = null; scope.stop(); };
   return started;
 }
-// The inventory, the live stream and the polls that stand in for it, and a full refresh when the tab is shown again (the
-// clock reads the time again by itself, useClock).
-function startLive() {
-  following = true;
-  refresh();
-  listen();
-  poll();
-  useEventListener(document, "visibilitychange", async () => {
-    if (document.hidden) return;
-    lastFull = Date.now();
-    await refresh();
-    poll();
-  });
-  onScopeDispose(() => {
-    following = false;
-    clearTimeout(pollTimer); clearTimeout(reconnectTimer);
-    stream?.close(); stream = null; live = false; reconnects = 0;
-  });
-}
-
 // ---- A fresh start (tests/setup.ts, between tests) ----
 // Every field back to how it starts, and what the module keeps outside the state forgotten: the committed draft and its
-// undo, the preview screens already reported, the timers still waiting. A request still on its way finds another
+// undo, the timers still waiting. A request still on its way finds another
 // selection and keeps its answer to itself. What the stores keep (stores/) goes with each test's pinia.
 function resetStore() {
   started?.();
   Object.assign(state, fresh());
   screenKept = null;
   generation.value++;
-  addedExpiry.stop(); clearTimeout(pollTimer);
+  addedExpiry.stop();
   mapSaver.cancel();
-  previewsSkipped = "";
   edits = 0; selectionEpoch++;
   committedLayout = null; committedGrid = null; committedUpright = null;
   draftHistory.clear();

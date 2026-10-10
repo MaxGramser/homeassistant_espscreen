@@ -9,16 +9,16 @@ export function savedDraft(record: Screen['page_document'], submitted: PageLayou
     (!workspace || sameValue(record.workspace?.positions, workspace.positions));
 }
 
-type State = { busy: boolean; conflict: boolean; reachable: boolean; dirty: boolean; documentRevision: string | null; workspace: PageWorkspace };
-// `selected`: the screen that is open now; `screen`: its record.
-type Services = { epoch: () => number; selected: () => string | null; refresh: () => Promise<void>; screen: () => Screen | undefined;
+type State = { busy: boolean; conflict: boolean; dirty: boolean; documentRevision: string | null; workspace: PageWorkspace };
+// `selected`: the screen that is open now; `screen`: its record; `reachable`: whether the add-on answered the last refresh.
+type Services = { epoch: () => number; selected: () => string | null; reachable: () => boolean; refresh: () => Promise<void>; screen: () => Screen | undefined;
   load: (screen: Screen) => void; acceptBase: (record: PageDocument) => void; save: () => Promise<void> };
 
 export async function resolveConflict(choice: 'reload' | 'keep', state: State, services: Services) {
   if (state.busy || !state.conflict) return;
   const selected = services.selected(), epoch = services.epoch();
   await services.refresh();
-  if (!state.reachable || services.selected() !== selected || services.epoch() !== epoch) return;
+  if (!services.reachable() || services.selected() !== selected || services.epoch() !== epoch) return;
   const screen = services.screen(), record = screen?.page_document;
   if (!screen || record?.format !== 'pages-v2') return;
   if (choice === 'reload') {

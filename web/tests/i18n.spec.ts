@@ -16,6 +16,7 @@ import { agoText, dateText } from "../src/model/topbar";
 import { state } from "../src/store";
 import { pageTexts, TRANSLATIONS } from "../translations";
 import { useEntitiesStore } from "../src/stores/entities";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const meta = (plural: string) => ({ name: "Test", english: "Test", script: "latin", plural, checked: false });
 // Every text of a part as [key, text]; a list's items get .0, .1, ... as in tools/i18n.py.
@@ -183,7 +184,7 @@ describe("the mockup speaks the screens' language", () => {
         number: { decimal: ",", group: ".", group_min: "2" },
       },
     }, meta("one_other"));
-    state.inventory = {
+    useInventoryStore().inventory = {
       screens: [], entities: [{ id: "light.b", name: "Lamp B", state: "unavailable" }],
       // The add-on says how the screens write numbers: Automatic, worked out for their language (1.234,5).
       language: { setting: "td", effective: "td", ha: "en", languages: [], numbers: "auto", numbers_effective: "comma", group_min: 2 },

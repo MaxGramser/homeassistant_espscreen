@@ -9,8 +9,8 @@ import type { HistoryPreview } from "../model/history-preview";
 import { homeView, type HomeView } from "../model/overview";
 import { text as pluginText } from "../model/plugins";
 import { itemKey } from "../model/topbar";
-import { state } from "../store";
 import type { Capability, EntityAction, Tile } from "../types";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { usePluginsStore } from "./plugins";
 
@@ -24,6 +24,7 @@ const query = (ids: string[]) => ids.map((id) => `entity=${encodeURIComponent(id
 const own = (ids: string[]) => [...new Set(ids)].filter((id) => !id.startsWith("screen."));
 
 export const useEntitiesStore = defineStore("entities", () => {
+  const inv = useInventoryStore();
   const plugins = usePluginsStore();
 
   // ---- Names and icons ----
@@ -31,21 +32,21 @@ export const useEntitiesStore = defineStore("entities", () => {
   function entityName(id: string) {
     const plugin = plugins.pluginTileOf(id);
     if (plugin) return pluginText(plugin.tile.name);
-    return state.inventory.entities.find((e) => e.id === id)?.name || state.inventory.builtin?.find((e) => e.id === id)?.name ||
-      state.inventory.trackers?.find((e) => e.id === id)?.name || id;
+    return inv.entityOf(id)?.name || inv.inventory.builtin?.find((e) => e.id === id)?.name ||
+      inv.inventory.trackers?.find((e) => e.id === id)?.name || id;
   }
   // The icons the add-on offers, by name: worked out again only when it sends others (its list as a whole, not each icon
   // followed on its own).
   const iconsByName = computed<Record<string, { name: string; cp: string; label: string }>>(() =>
-    Object.fromEntries((toRaw(state.inventory.icons)?.groups || []).flatMap((g) => g.icons.map((i) => [i.name, i]))));
+    Object.fromEntries((toRaw(inv.inventory.icons)?.groups || []).flatMap((g) => g.icons.map((i) => [i.name, i]))));
   const iconNamed = (name: string | undefined) => (name ? iconsByName.value[name] : undefined);
   // What the firmware draws without a choice: Home Assistant's own icon, else the domain icon.
   function automaticIcon(id: string): string {
     const plugin = plugins.pluginTileOf(id);
     if (plugin) return plugin.tile.icon || plugin.plugin.icon;
-    const icons = state.inventory.icons;
+    const icons = inv.inventory.icons;
     if (!icons) return "F0335";
-    const entity = state.inventory.entities.find((e) => e.id === id), domain = id.split(".")[0];
+    const entity = inv.entityOf(id), domain = id.split(".")[0];
     if (icons.builtin?.[id]) return icons.builtin[id];
     if (entity?.icon) return entity.icon;
     if (domain === "weather") return icons.weather[entity?.state || ""] || icons.weather.partlycloudy;
@@ -128,7 +129,7 @@ export const useEntitiesStore = defineStore("entities", () => {
   function liveOf(entity: string): Live | null {
     const live = liveStates.value[entity];
     if (live) return live;
-    const known = state.inventory.entities.find((e) => e.id === entity);
+    const known = inv.entityOf(entity);
     return known?.state ? { state: known.state, word: null, a: {} } : null;
   }
 
@@ -142,7 +143,7 @@ export const useEntitiesStore = defineStore("entities", () => {
     if (overviewFlight) return;
     overviewFlight = true;
     try {
-      const views = state.inventory.screens.map(homeView).filter((view): view is HomeView => Boolean(view));
+      const views = inv.inventory.screens.map(homeView).filter((view): view is HomeView => Boolean(view));
       const entities = own(views.flatMap((view) => [...view.tiles.map(({ tile }) => tile.entity), ...view.keys.map((tile) => tile.entity)]));
       for (let i = 0; i < entities.length; i += 60) {
         const values = await getJson(`states?${query(entities.slice(i, i + 60))}`);

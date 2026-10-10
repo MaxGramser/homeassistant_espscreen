@@ -27,11 +27,13 @@ import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "all" for no filter.
 const FILTERS = [
@@ -82,7 +84,7 @@ const base = computed<Entry[]>(() => {
   const q = query.value;
   // The picker offers what a tile can show; camera and image tiles need a board that draws pictures (app 0.2.66).
   // The screen's own cards and plugin tiles first: the list shows the first 80, and these are few.
-  return [...pluginEntries.value, ...(state.inventory.builtin || []), ...state.inventory.entities].filter((e) =>
+  return [...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities].filter((e) =>
     e.tile !== false && pageTarget(e.id) <= pagesOffered.value &&
     (scr.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
     (!ui.hidePlaced || !onScreen(e.id)) &&
@@ -136,7 +138,7 @@ const rooms = computed(() => {
 });
 const full = computed(() => (state.layout?.tiles.length || 0) >= tileLimit.value);
 const memoryFull = computed(() => memory.value?.level === "full" || memory.value?.level === "over");
-const count = computed(() => state.inventory.entities.length);
+const count = computed(() => inv.inventory.entities.length);
 // The avatar shows the state at a glance: lit for on, grey for an entity Home Assistant can't reach.
 const tone = (e: { id: string; state?: string }) => {
   const domain = e.id.split(".")[0];

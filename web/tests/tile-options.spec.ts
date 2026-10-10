@@ -16,6 +16,7 @@ import type { Inventory, Tile } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
+import { useInventoryStore } from "../src/stores/inventory";
 
 function inventory(): Inventory {
   return {
@@ -42,7 +43,7 @@ function inventory(): Inventory {
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
-  state.inventory = inventory();
+  useInventoryStore().inventory = inventory();
   useScreenStore().selected = "living";
   state.documentGrid = { columns: 2, rows: 3 };
   seedLayout({ title: "Living room", tiles: [] });
@@ -143,7 +144,7 @@ describe("the tile panel", () => {
   it("offers an automation On / off or Run automation actions, and says what holding it does (GitHub #62)", async () => {
     const tile: Tile = { entity: "automation.a", name: "", slot: 0 };
     appendTiles(tile);
-    state.inventory.screens[0].firmware = "0.7.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.7.0";
     let panel = mount(TileInspector, { props: { tile: current(tile)! } });
     const tap = () => panel.findAll(".prop").find((f) => f.text().replace(/^[^\p{L}\d]+/u, "").startsWith("On tap"))!;
     expect(tap().findAll(".seg button").map((b) => b.text())).toEqual(["On / off", "Run automation actions", "View only", "Perform action"]);
@@ -157,7 +158,7 @@ describe("the tile panel", () => {
     expect(tap().find(".seg button[aria-pressed='true']").text()).toBe("Run automation actions");
     expect(panel.find(".warn").exists()).toBe(false);
     // Older firmware refuses the domain: the panel says so before a save would.
-    state.inventory.screens[0].firmware = "0.6.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.6.0";
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(tap().find(".warn").text()).toContain("0.7.0");
@@ -188,7 +189,7 @@ describe("the tile panel", () => {
     const clock: Tile = { entity: "screen.nightstand", name: "", slot: 0, options: { size: "full" } };
     const key: Tile = { entity: "light.a", name: "Bed", slot: -1, in: "screen.nightstand", key: 0 };
     appendTiles(clock, key);
-    state.inventory.screens[0].firmware = "0.17.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.17.0";
     const panel = mount(TileInspector, { props: { tile: current(key)! } });
     const choice = panel.find(".key-name-choice");
     expect(choice.exists()).toBe(true);
@@ -247,7 +248,7 @@ describe("a map card in the panel (app 0.4.33)", () => {
   it("offers a map on a board with pictures and saves who rides along", async () => {
     const tile: Tile = { entity: "person.p", name: "", slot: 0 };
     appendTiles(tile);
-    Object.assign(state.inventory.screens[0], { firmware: "0.20.0", pictures: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.20.0", pictures: true });
     let panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.text()).not.toContain("Also on the map");
     const map = panel.findAll(".seg button").find((b) => b.text() === "Map");
@@ -264,7 +265,7 @@ describe("a map card in the panel (app 0.4.33)", () => {
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.text()).toContain("Distance");
     // Device trackers with a place come in their own list (app 0.4.35): a car rides along like a person.
-    state.inventory.trackers = [{ id: "device_tracker.car", name: "Car" }];
+    useInventoryStore().inventory.trackers = [{ id: "device_tracker.car", name: "Car" }];
     expect((panel.vm as any).mapOffered.map(([id]: [string]) => id)).toEqual(["person.q", "device_tracker.car"]);
     (panel.vm as any).addMapEntity("person.q");
     await nextTick();
@@ -286,7 +287,7 @@ describe("a map card in the panel (app 0.4.33)", () => {
   it("offers no map where the board draws no pictures", () => {
     const tile: Tile = { entity: "person.p", name: "", slot: 0 };
     appendTiles(tile);
-    Object.assign(state.inventory.screens[0], { board: "cyd", pictures: false, firmware: "0.20.0" });
+    Object.assign(useInventoryStore().inventory.screens[0], { board: "cyd", pictures: false, firmware: "0.20.0" });
     const panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.findAll(".seg button").some((b) => b.text() === "Map")).toBe(false);
     panel.unmount();
@@ -297,7 +298,7 @@ describe("the map tile (app 0.4.36)", () => {
   it("follows everyone or whom it lists, and keeps its look", async () => {
     const tile: Tile = { entity: "screen.map", name: "", slot: 0, options: { display: "map", size: "wide" } };
     appendTiles(tile);
-    Object.assign(state.inventory.screens[0], { firmware: "0.21.0", pictures: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.21.0", pictures: true });
     let panel = mount(TileInspector, { props: { tile: current(tile)! } });
     // A map and nothing else: no display to pick, no second line; following everyone needs no list.
     expect(panel.text()).toContain("Follow");

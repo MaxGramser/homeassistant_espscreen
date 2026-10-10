@@ -11,11 +11,13 @@ import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const entities = useEntitiesStore();
 const scr = useScreenStore();
 const session = useSessionStore();
+const inv = useInventoryStore();
 
 type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
 const query = ref("");
@@ -24,7 +26,7 @@ const items = computed<Item[]>(() => {
   const q = query.value.trim().toLocaleLowerCase();
   const list: Item[] = [];
   const screens = t("editor.palette.groups.screens"), actionsGroup = t("editor.palette.groups.actions");
-  for (const screen of state.inventory.screens)
+  for (const screen of inv.inventory.screens)
     list.push({ group: screens, label: screen.name, detail: `${screen.online ? t("editor.common.online") : t("editor.common.offline")} · ${screen.firmware || t("editor.common.unknown")}`, glyphText: "▦", run: () => session.select(screen.id) });
   const screen = scr.currentScreen;
   const actions: Item[] = [
@@ -46,11 +48,11 @@ const items = computed<Item[]>(() => {
   if (screen && state.layout && q) {
     const chosen = new Set(state.layout.tiles.map((t) => t.entity));
     const full = state.layout.tiles.length >= tileLimit.value;
-    for (const e of state.inventory.entities) {
+    for (const e of inv.inventory.entities) {
       // One on the screen comes again when the firmware takes an entity on several tiles (0.16.0+).
       if (e.tile === false || (chosen.has(e.id) && !scr.repeatable(e.id))) continue;
       if (!matchesQuery(q, e.name, e.id, e.area, e.device)) continue;
-      list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: state.inventory.icons ? entities.automaticIcon(e.id) : undefined,
+      list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: inv.inventory.icons ? entities.automaticIcon(e.id) : undefined,
         run: () => { if (!full) addTile(e.id); } });
       if (list.length > 60) break;
     }

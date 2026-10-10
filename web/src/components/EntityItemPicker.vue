@@ -11,17 +11,19 @@ import Icon from "./ui/Icon.vue";
 import rules from "../model/page-rules.json";
 import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
 const entities = useEntitiesStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 
 const props = defineProps<{ id: string; taken: (item: HeaderItem) => boolean; accepts?: (item: HeaderItem) => boolean }>();
 const emit = defineEmits<{ pick: [item: HeaderItem] }>();
 const query = ref("");
-const suggested = computed(() => (state.inventory.header?.suggestions?.[scr.selected || ""] || []).filter((s) => !props.accepts || props.accepts(s.item)));
+const suggested = computed(() => (inv.inventory.header?.suggestions?.[scr.selected || ""] || []).filter((s) => !props.accepts || props.accepts(s.item)));
 const matches = computed(() => {
   // Only what the top bar can show (the add-on's header domains, app 0.4.1): a camera or an image is a tile, not a value.
-  return state.inventory.entities.filter((e) => rules.headerDomains.includes(e.id.split(".")[0]) && matchesQuery(query.value, e.name, e.id, e.area, e.device));
+  return inv.inventory.entities.filter((e) => rules.headerDomains.includes(e.id.split(".")[0]) && matchesQuery(query.value, e.name, e.id, e.area, e.device));
 });
 </script>
 

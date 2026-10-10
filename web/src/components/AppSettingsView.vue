@@ -8,22 +8,24 @@ import BuildLog from "./BuildLog.vue";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const builds = useBuildsStore();
+const inv = useInventoryStore();
 
-const u = computed(() => state.inventory.updates);
-const outdated = computed(() => state.inventory.screens.filter((s) => s.update?.available).length);
-const running = computed(() => state.inventory.screens.find((s) => s.id === state.inventory.updates?.busy));
+const u = computed(() => inv.inventory.updates);
+const outdated = computed(() => inv.inventory.screens.filter((s) => s.update?.available).length);
+const running = computed(() => inv.inventory.screens.find((s) => s.id === inv.inventory.updates?.busy));
 // Each screen is offered its own board's firmware (app 0.3.21): one number only when those screens share it.
-const oneTarget = (screens: typeof state.inventory.screens) => {
+const oneTarget = (screens: typeof inv.inventory.screens) => {
   const targets = new Set(screens.map((s) => s.update?.target || u.value?.target));
   return targets.size === 1 ? [...targets][0] : null;
 };
 const updatesHint = computed(() => {
   if (!u.value) return "";
-  const screens = state.inventory.screens;
+  const screens = inv.inventory.screens;
   if (u.value.busy) return t("editor.settings.updates.busy", { version: running.value?.update?.target || u.value.target });
   if (!screens.length) return t("editor.settings.updates.no_screens", { version: u.value.target });
   if (outdated.value) {
@@ -36,11 +38,11 @@ const updatesHint = computed(() => {
 });
 // What the current firmware brings: the changelog sections that mention it.
 const targetNotes = computed(() => {
-  const sections = state.inventory.changelog, target = u.value?.target;
+  const sections = inv.inventory.changelog, target = u.value?.target;
   if (!Array.isArray(sections) || !target) return [];
   return sections.filter((s) => s.firmware === target).flatMap((s) => s.lines).slice(0, 10);
 });
-const skill = computed(() => state.inventory.claude_skill);
+const skill = computed(() => inv.inventory.claude_skill);
 const installing = ref(false);
 async function install() {
   installing.value = true;
@@ -52,7 +54,7 @@ async function install() {
 // shows no card.
 const GUIDE = "https://github.com/MaxGramser/homeassistant_espscreen/blob/main/docs/TRANSLATING.md";
 const STYLES: NumberStyle[] = ["point", "comma", "space"];
-const lang = computed(() => state.inventory.language);
+const lang = computed(() => inv.inventory.language);
 // Home Assistant's language as the list has it: the same one, else its base language.
 const haName = computed(() => {
   const l = lang.value, code = l?.ha ? matchLanguage(l.ha, l.languages.map((own) => own.code)) : undefined;

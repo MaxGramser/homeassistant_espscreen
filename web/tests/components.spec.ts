@@ -27,6 +27,7 @@ import { useUiStore } from "../src/stores/ui";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useSettingsStore } from "../src/stores/settings";
 import { useScreenStore } from "../src/stores/screen";
+import { useInventoryStore } from "../src/stores/inventory";
 
 // The add-on's boards (screen_manager/app/boards.json, written from boards.yaml and the board files): the catalog a
 // screen's shape carries, and what New screen gets for each board (firmware.BOARD_CHOICES), made the same way here.
@@ -60,8 +61,8 @@ function inventory(): Inventory {
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
-  state.inventory = inventory();
-  state.inventory.screens = state.inventory.screens.map(screenFixture);
+  useInventoryStore().inventory = inventory();
+  useInventoryStore().inventory.screens = useInventoryStore().inventory.screens.map(screenFixture);
   useScreenStore().selected = "living";
   seedLayout({ title: "Living room", tiles: [] });
   state.selectedTileId = null; state.inspector = null;
@@ -100,14 +101,14 @@ describe("TileCard", () => {
   it("draws a cover's keys and their gaps at the glass's own sizes (runtime_tiles render_tall)", () => {
     // A 4.3-inch Waveshare at 217 dpi: 61 and 10 pixels of glass, the mockup 500 px wide for its 800.
     const way = SHAPES.waveshare43.orientations.landscape;
-    state.inventory.screens = [{ id: "living", name: "Living room", online: true, layout: { title: "Living room", tiles: [] },
+    useInventoryStore().inventory.screens = [{ id: "living", name: "Living room", online: true, layout: { title: "Living room", tiles: [] },
       shape: { width: way.width, height: way.height, columns: way.columns, rows: way.rows, dpi: SHAPES.waveshare43.dpi, look: SHAPES.waveshare43.look } } as any];
     const keys = mount(CoverTilePreview, { props: { primary: "position", entityState: "open", attributes: { current_position: 40 } } });
     expect(keys.attributes("style")).toContain("--cover-touch: 38.125px");
     expect(keys.attributes("style")).toContain("--cover-gap: 6.25px");
   });
   it('keeps the cover primary control when slats are selected or the tile shrinks', async () => {
-    state.inventory.controls!.cover = { default: 'buttons', choices: [
+    useInventoryStore().inventory.controls!.cover = { default: 'buttons', choices: [
       { key: 'buttons', label: 'Open, stop, close' }, { key: 'position', label: 'Position' },
       { key: 'tilt', label: 'Tilt' }, { key: 'position_tilt', label: 'Position and tilt' }, { key: 'none', label: 'None' },
     ] };
@@ -133,10 +134,10 @@ describe("TileCard", () => {
   });
 
   it("extends only taller tiles and waits for actual artwork before using white text", async () => {
-    state.inventory.controls!.media_player = { default: 'playback', choices: [] };
+    useInventoryStore().inventory.controls!.media_player = { default: 'playback', choices: [] };
     useEntitiesStore().liveStates['media_player.a'] = { state: 'playing', word: 'Playing', a: { media_title: 'A track', media_artist: 'An artist', artwork_mark: 'first', supported_features: 49 } };
     // A screen that draws pictures (app 0.4.42: a CYD's mockup draws no cover it will never show).
-    Object.assign(state.inventory.screens[0], { pictures: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { pictures: true });
     const card = placed({ entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'tall', display: 'cover', controls: 'playback' } });
     expect(card.classes()).toContain('tall');
     expect(card.find('.track-title').text()).toBe('A track');
@@ -158,12 +159,12 @@ describe("TileCard", () => {
     expect(card.classes()).not.toContain('tall');
     expect(card.find('.tall-body').exists()).toBe(false);
     expect(card.find('img').exists()).toBe(false);
-    Object.assign(state.inventory.screens[0], { pictures: false });
+    Object.assign(useInventoryStore().inventory.screens[0], { pictures: false });
     await card.setProps({ tile: { entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'tall', display: 'cover', controls: 'playback' } } });
     expect(card.find('img').exists()).toBe(false);
   });
   it("shows the selected climate target or modes, and adds no controls to an unconfigured tall tile", () => {
-    state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
+    useInventoryStore().inventory.controls!.climate = { default: 'setpoint', choices: [] };
     useEntitiesStore().liveStates['climate.a'] = { state: 'cool', word: 'Cooling', a: { supported_features: 1, current_temperature: 24, temperature: 21, hvac_modes: ['off', 'cool'] } };
     const plain = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'tall' } });
     expect(plain.find('.ctl').exists()).toBe(false);
@@ -180,7 +181,7 @@ describe("TileCard", () => {
   });
 
   it("draws a humidifier as a thermostat in percent, with its action, its own modes in blue and its slider (firmware 0.42.0)", () => {
-    state.inventory.controls!.humidifier = { default: 'setpoint', choices: [] };
+    useInventoryStore().inventory.controls!.humidifier = { default: 'setpoint', choices: [] };
     const a = { supported_features: 1, current_humidity: 68, humidity: 55, min_humidity: 30, max_humidity: 80, action: 'drying',
       device_class: 'dehumidifier', available_modes: ['normal', 'eco', 'boost'], mode: 'eco' };
     useEntitiesStore().liveStates['humidifier.h'] = { state: 'on', word: 'On', a };
@@ -219,7 +220,7 @@ describe("TileCard", () => {
   });
 
   it("writes a thermostat set to a range as Home Assistant does, with the chip for its end between - and + (firmware 0.19.0)", () => {
-    state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
+    useInventoryStore().inventory.controls!.climate = { default: 'setpoint', choices: [] };
     useEntitiesStore().liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75, target_temp_step: 1 } };
     expect(placed({ entity: 'climate.r', name: 'Range', slot: 0 }).find('.st').text()).toBe('Heat/Cool · 73°');
     // The wide tile's -/+ with the chip between them: the low end, heat, first.
@@ -242,9 +243,9 @@ describe("TileCard", () => {
     expect(placed({ entity: 'climate.d', name: 'Dry', slot: 0 }).find('.st').text()).toBe('Dry · 21.5°');
   });
   it("draws a range thermostat without its -/+ for a screen before firmware 0.19.0, as that screen gets it", () => {
-    state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
+    useInventoryStore().inventory.controls!.climate = { default: 'setpoint', choices: [] };
     useEntitiesStore().liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75 } };
-    const screen = state.inventory.screens[0];
+    const screen = useInventoryStore().inventory.screens[0];
     const before = screen.climate_range;
     screen.climate_range = false;
     try {
@@ -255,7 +256,7 @@ describe("TileCard", () => {
   });
 
   it("draws a wide card's keys as the screen does for that entity, not a fixed set (app 0.4.32)", () => {
-    state.inventory.controls!.climate = { default: 'setpoint', choices: [] };
+    useInventoryStore().inventory.controls!.climate = { default: 'setpoint', choices: [] };
     useEntitiesStore().liveStates['climate.m'] = { state: 'heat', word: 'Heat', a: { supported_features: 1, hvac_modes: ['off', 'heat', 'cool'], temperature: 20 } };
     const modes = placed({ entity: 'climate.m', name: 'Modes', slot: 0, options: { size: 'wide', controls: 'mode' } });
     // Its mode bar, as the screen draws it: heat and cool, its own modes; off is the tile's circle.
@@ -264,7 +265,7 @@ describe("TileCard", () => {
     useEntitiesStore().liveStates['climate.m'].a.hvac_modes = ['off', 'heat'];
     // One mode besides off makes no bar.
     expect(placed({ entity: 'climate.m', name: 'Modes', slot: 0, options: { size: 'wide', controls: 'mode' } }).findAll('.mode-bar .seg')).toHaveLength(0);
-    state.inventory.controls!.vacuum = { default: 'buttons', choices: [] };
+    useInventoryStore().inventory.controls!.vacuum = { default: 'buttons', choices: [] };
     useEntitiesStore().liveStates['vacuum.v'] = { state: 'docked', word: 'Docked', a: { supported_features: 8192 | 8 } };
     const vacuum = placed({ entity: 'vacuum.v', name: 'Robot', slot: 0, options: { size: 'wide', controls: 'buttons' } });
     expect(vacuum.findAll('.ctl .key')).toHaveLength(2);   // start and stop: it cannot go back to its base
@@ -374,7 +375,7 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   const chip = (library: ReturnType<typeof mount>, name: string) =>
     library.findAll("#filters button").find((b) => label(b) === name)!;
   // One entity in each of nine domains, more than the old strip of chips could hold.
-  const manyDomains = () => state.inventory.entities.push(
+  const manyDomains = () => useInventoryStore().inventory.entities.push(
     { id: "climate.c", name: "Heating", state: "heat" }, { id: "switch.s", name: "Plug", state: "on" },
     { id: "binary_sensor.b", name: "Door", state: "off" }, { id: "script.r", name: "Run", state: "off" },
     { id: "fan.f", name: "Fan", state: "off" }, { id: "scene.n", name: "Night", state: "on" },
@@ -512,7 +513,7 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   });
 
   it("names an entity without its device's name in front, and puts the device under it", async () => {
-    state.inventory.entities.push({ id: "switch.n", name: "Bedroom screen night mode", state: "off", area: "Bedroom", device: "Bedroom screen" } as any);
+    useInventoryStore().inventory.entities.push({ id: "switch.n", name: "Bedroom screen night mode", state: "off", area: "Bedroom", device: "Bedroom screen" } as any);
     const library = mount(Library);
     const row = library.find('.ent[title="switch.n"]');
     expect(row.find(".tx b").text()).toBe("Night mode");
@@ -561,7 +562,7 @@ describe("full-page and navigation tiles on the mockup", () => {
 
 describe("several tiles of one entity in the library (firmware 0.2.65 for a page tile, 0.16.0 for any)", () => {
   it("keeps offering a placed navigation tile when the screen takes several, and adds another copy", async () => {
-    Object.assign(state.inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true, entity_tiles_repeat: false });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true, entity_tiles_repeat: false });
     appendTiles({ entity: "screen.page_1", name: "", slot: 0 }, { entity: "light.a", name: "", slot: 1 });
     const library = mount(Library);
     const row = () => library.find('.ent[title^="screen.page_1 "]');
@@ -577,7 +578,7 @@ describe("several tiles of one entity in the library (firmware 0.2.65 for a page
     expect(row().exists()).toBe(false);
   });
   it("offers any placed entity again from firmware 0.16.0 and says how often it is there, but one bedside clock", async () => {
-    Object.assign(state.inventory.screens[0], { firmware: "0.16.0", page_tiles_repeat: true, entity_tiles_repeat: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.16.0", page_tiles_repeat: true, entity_tiles_repeat: true });
     appendTiles({ entity: "light.a", name: "", slot: 0 });
     const library = mount(Library);
     const row = () => library.find('.ent[title^="light.a "]');
@@ -590,7 +591,7 @@ describe("several tiles of one entity in the library (firmware 0.2.65 for a page
     expect(useScreenStore().repeatable("light.b")).toBe(true);
   });
   it("marks it placed when the screen takes one per page", () => {
-    Object.assign(state.inventory.screens[0], { page_tiles_repeat: false });
+    Object.assign(useInventoryStore().inventory.screens[0], { page_tiles_repeat: false });
     appendTiles({ entity: "screen.page_1", name: "", slot: 0 });
     const library = mount(Library);
     expect(library.find('.ent[title="screen.page_1"]').attributes("disabled")).toBeDefined();
@@ -603,7 +604,7 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     wrapper.findAll(".prop").find((f) => f.find(".prop-label").text().replace(/^[^\p{L}\d]+/u, "").trim() === label)!;
   const choices = (wrapper: ReturnType<typeof mount>, label: string) => row(wrapper, label).findAll(".seg button").map((b) => b.text());
   it("offers the live picture for a camera, with its pace once chosen, and says which firmware it needs", async () => {
-    state.inventory.entities.push({ id: "camera.front", name: "Front", state: "idle", area: "Hall" } as any);
+    useInventoryStore().inventory.entities.push({ id: "camera.front", name: "Front", state: "idle", area: "Hall" } as any);
     const tile: Tile = { entity: "camera.front", name: "", slot: 0 };
     appendTiles(tile);
     const drawer = inspector(tile);
@@ -621,11 +622,11 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     await row(drawer, "Refresh").findAll(".seg button")[1].trigger("click");
     expect(current(tile).options).toEqual({ display: "live", refresh: 10 });
     // Firmware that draws the small square in the icon's place is told what fills the tile (app 0.3.13).
-    Object.assign(state.inventory.screens[0], { firmware: "0.2.77" });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.77" });
     await drawer.vm.$nextTick();
     expect(hint(row(drawer, "Display")).text).toMatch(/firmware 0\.3\.7/);
     expect(hint(row(drawer, "Display")).warn).toBe(true);
-    Object.assign(state.inventory.screens[0], { firmware: "0.3.7" });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.3.7" });
     await drawer.vm.$nextTick();
     expect(hint(row(drawer, "Display")).text).toMatch(/fills the tile/);
     expect(hint(row(drawer, "Display")).warn).toBe(false);
@@ -637,9 +638,9 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(card.find("img.camera-art").attributes("src")).toBe("api/camera-preview?entity=camera.front");
   });
   it("lets a live camera fill its tile, whole or cut, with its name or without, and keeps no defaults (app 0.3.8, every size 0.3.13)", async () => {
-    Object.assign(state.inventory, { editor_features: { tall_tiles: true } });
-    Object.assign(state.inventory.screens[0], { firmware: "0.3.1", tile_sizes: ["single", "wide", "tall", "square", "full"] });
-    state.inventory.entities.push({ id: "camera.garden", name: "Garden", state: "idle", area: "Garden" } as any);
+    Object.assign(useInventoryStore().inventory, { editor_features: { tall_tiles: true } });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.3.1", tile_sizes: ["single", "wide", "tall", "square", "full"] });
+    useInventoryStore().inventory.entities.push({ id: "camera.garden", name: "Garden", state: "idle", area: "Garden" } as any);
     const tile: Tile = { entity: "camera.garden", name: "", slot: 0, options: { display: "live" } };
     appendTiles(tile);
     const drawer = inspector(tile);
@@ -661,7 +662,7 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     setTileOption(current(tile), "display", "standard");
     expect(current(tile).options).not.toHaveProperty("overlay");
     expect(current(tile).options).not.toHaveProperty("refresh");
-    Object.assign(state.inventory.screens[0], { firmware: "0.3.3" });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.3.3" });
     setTileOption(current(tile), "display", "live");
     await drawer.vm.$nextTick();
     // Firmware 0.3.3 fills a 1x2 or 2x2 tile, but a single one only from 0.3.7.
@@ -680,9 +681,9 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(card.find(".camera-name").text()).toBe("Garden");
   });
   it("offers the album cover for a media player on a Guition, not on a full-page tile, and keeps its controls", async () => {
-    Object.assign(state.inventory.screens[0], { firmware: "0.2.78", pictures: true });  // as the add-on says of a Guition
-    state.inventory.entities.push({ id: "media_player.sonos", name: "Sonos", state: "playing", area: "Hall" } as any);
-    (state.inventory as any).controls.media_player = { default: "volume", choices: [{ key: "volume", label: "Volume" }, { key: "none", label: "None" }] };
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.78", pictures: true });  // as the add-on says of a Guition
+    useInventoryStore().inventory.entities.push({ id: "media_player.sonos", name: "Sonos", state: "playing", area: "Hall" } as any);
+    (useInventoryStore().inventory as any).controls.media_player = { default: "volume", choices: [{ key: "volume", label: "Volume" }, { key: "none", label: "None" }] };
     const tile: Tile = { entity: "media_player.sonos", name: "", slot: 0, options: { size: "wide" } };
     appendTiles(tile);
     const drawer = inspector(tile);
@@ -696,12 +697,12 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(card.find(".ic").classes()).toContain("thumb");
     expect(card.find(".range").exists()).toBe(true);
     // A board without memory for pictures (a CYD) gets no such choice; a tile over the whole page keeps the card's big cover.
-    Object.assign(state.inventory.screens[0], { board: "cyd", pictures: false });
+    Object.assign(useInventoryStore().inventory.screens[0], { board: "cyd", pictures: false });
     seedTiles([{ ...current(tile), options: { size: "single" } }]);
     await drawer.vm.$nextTick();
     // A favourite plays there all the same, as an ordinary tile.
     expect(choices(inspector(tile), "Display")).toEqual(["Name and status", "Large value", "Favourite"]);
-    Object.assign(state.inventory.screens[0], { board: "guition", pictures: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { board: "guition", pictures: true });
     seedTiles([{ ...current(tile), options: { size: "full" } }]);
     expect(choices(inspector(tile), "Display")).toEqual(["Name and status", "Large value"]);
   });
@@ -718,7 +719,7 @@ describe("TileInspector: pages (app 0.2.78)", () => {
     return { tile, drawer: inspector(tile) };
   }
   it("offers existing page destinations and creates the next empty page as one edit", async () => {
-    Object.assign(state.inventory.screens[0], { firmware: "0.2.63", full_page: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.63", full_page: true });
     const { tile, drawer } = open([
       { entity: "light.a", name: "", slot: 0 }, { entity: "screen.page_2", name: "", slot: 1 }, { entity: "sensor.t", name: "", slot: 6 },
     ], 1);
@@ -764,7 +765,7 @@ describe("Sidebar", () => {
     await item.find(".details-toggle").trigger("click");
     expect(item.classes()).not.toContain("open");
     // A screen that is off says so on its row, and keeps its details folded: there is nothing more to say there.
-    Object.assign(state.inventory.screens[0], { online: false });
+    Object.assign(useInventoryStore().inventory.screens[0], { online: false });
     useScreenStore().selected = null;
     await nextTick();
     expect(item.classes()).toContain("down");
@@ -773,8 +774,8 @@ describe("Sidebar", () => {
     expect(item.classes()).not.toContain("open");
   });
   it("downloads a screen's files, to build it with ESPHome on your own computer", async () => {
-    Object.assign(state.inventory.screens[0], { update: { profile: "living room.yaml" } });
-    state.inventory.pending = [{ file: "hall.yaml", friendly: "Hall", api_key: "key" } as any];
+    Object.assign(useInventoryStore().inventory.screens[0], { update: { profile: "living room.yaml" } });
+    useInventoryStore().inventory.pending = [{ file: "hall.yaml", friendly: "Hall", api_key: "key" } as any];
     const sidebar = mount(Sidebar);
     const item = sidebar.find("#screens .screen-item");
     await item.find(".nav-item").trigger("click");
@@ -787,32 +788,32 @@ describe("Sidebar", () => {
     expect(pending.attributes("href")).toBe("api/firmware/profiles/hall.yaml/files");
     expect(pending.element.closest("details")).toBeNull();
     // Without a profile the add-on has no files to give.
-    Object.assign(state.inventory.screens[0], { update: { profile: null } });
+    Object.assign(useInventoryStore().inventory.screens[0], { update: { profile: null } });
     await nextTick();
     expect(item.find("a.screen-files").exists()).toBe(false);
-    state.inventory.pending = [];
+    useInventoryStore().inventory.pending = [];
   });
   it("puts the update's one button on the row, and keeps the details folded (app 0.4.32)", async () => {
-    Object.assign(state.inventory.screens[0], { update: { available: true, target: "0.4.0", profile: "living.yaml" } });
+    Object.assign(useInventoryStore().inventory.screens[0], { update: { available: true, target: "0.4.0", profile: "living.yaml" } });
     const sidebar = mount(Sidebar);
     const item = sidebar.find("#screens .screen-item");
     expect(item.classes()).not.toContain("open");
     expect(item.find(".update-pill").attributes("aria-label")).toBe("Update: Living room");
     expect(item.find(".update-pill").attributes("title")).toContain("0.4.0");
     // Without a profile nothing here can build it: the row says Update, the details say why.
-    Object.assign(state.inventory.screens[0], { update: { available: true, target: "0.4.0", profile: null } });
+    Object.assign(useInventoryStore().inventory.screens[0], { update: { available: true, target: "0.4.0", profile: null } });
     await nextTick();
     expect(item.find(".update-pill").exists()).toBe(false);
     expect(item.find(".sub").text()).toBe("Update");
   });
   it("offers Reinstall from dev on the dev channel only, and asks for a reinstall", async () => {
-    Object.assign(state.inventory.screens[0], { online: true, update: { available: false, target: "0.51.0", profile: "living.yaml", host: "10.0.0.5" } });
-    state.inventory.updates = { target: "0.51.0", auto: false, channel: "main" };
+    Object.assign(useInventoryStore().inventory.screens[0], { online: true, update: { available: false, target: "0.51.0", profile: "living.yaml", host: "10.0.0.5" } });
+    useInventoryStore().inventory.updates = { target: "0.51.0", auto: false, channel: "main" };
     const calls: [string, RequestInit][] = [];
     vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit) => {
       calls.push([path, options]);
       // The refresh after the update reads the screens again, as the add-on gives them.
-      const body = String(path).includes("inventory") ? JSON.parse(JSON.stringify(state.inventory)) : {};
+      const body = String(path).includes("inventory") ? JSON.parse(JSON.stringify(useInventoryStore().inventory)) : {};
       return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
     }));
     const sidebar = mount(Sidebar);
@@ -821,17 +822,17 @@ describe("Sidebar", () => {
     if (!item.classes().includes("open")) await item.find(".details-toggle").trigger("click");
     expect(item.find(".reinstall-dev").exists()).toBe(false);
     // An app with no channel (a local copy) has no such button either.
-    state.inventory.updates = { target: "0.51.0", auto: false, channel: null };
+    useInventoryStore().inventory.updates = { target: "0.51.0", auto: false, channel: null };
     await nextTick();
     expect(item.find(".reinstall-dev").exists()).toBe(false);
-    state.inventory.updates = { target: "0.51.0", auto: false, channel: "dev" };
+    useInventoryStore().inventory.updates = { target: "0.51.0", auto: false, channel: "dev" };
     await nextTick();
     expect(item.find(".reinstall-dev").text()).toContain("Reinstall from dev");
     // Not while another update runs.
-    state.inventory.updates = { target: "0.51.0", auto: false, channel: "dev", busy: "other" };
+    useInventoryStore().inventory.updates = { target: "0.51.0", auto: false, channel: "dev", busy: "other" };
     await nextTick();
     expect(item.find(".reinstall-dev").exists()).toBe(false);
-    state.inventory.updates = { target: "0.51.0", auto: false, channel: "dev" };
+    useInventoryStore().inventory.updates = { target: "0.51.0", auto: false, channel: "dev" };
     await nextTick();
     await item.find(".reinstall-dev").trigger("click");
     await flushPromises();
@@ -845,7 +846,7 @@ describe("Sidebar", () => {
     expect(state.layout).toBeNull();
   });
   it("removes a screen that never got its firmware, after asking (GitHub #114)", async () => {
-    state.inventory.pending = [{ file: "hall.yaml", friendly: "Hall", node: "hall" } as any];
+    useInventoryStore().inventory.pending = [{ file: "hall.yaml", friendly: "Hall", node: "hall" } as any];
     const calls: [string, RequestInit][] = [];
     vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit) => {
       calls.push([path, options]);
@@ -858,11 +859,11 @@ describe("Sidebar", () => {
     await sidebar.find("#pending .forget-pending").trigger("click");
     await flushPromises();
     expect(calls.some(([path, options]) => path.endsWith("api/firmware/profiles/hall.yaml") && options.method === "DELETE")).toBe(true);
-    expect(state.inventory.pending).toEqual([]);
+    expect(useInventoryStore().inventory.pending).toEqual([]);
     expect(sidebar.find("#pending .pending").exists()).toBe(false);
   });
   it("asks what goes before it removes a screen, and then removes it (app 0.2.112)", async () => {
-    Object.assign(state.inventory.screens[0], { online: false, update: { profile: "living.yaml" } });
+    Object.assign(useInventoryStore().inventory.screens[0], { online: false, update: { profile: "living.yaml" } });
     const calls: [string, RequestInit][] = [];
     vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit) => {
       calls.push([path, options]);
@@ -902,8 +903,8 @@ describe("Sidebar", () => {
 
 describe("HomeView: every screen with its home page (app 0.4.0)", () => {
   it("draws each screen's home page on its own grid, and opens a screen on a click", async () => {
-    state.inventory.screens = [
-      screenFixture({ ...state.inventory.screens[0], layout: { title: "Living room", tiles: [
+    useInventoryStore().inventory.screens = [
+      screenFixture({ ...useInventoryStore().inventory.screens[0], layout: { title: "Living room", tiles: [
         { entity: "light.a", name: "Reading", slot: 0 }, { entity: "sensor.t", name: "", slot: 7 }] } }),
       screenFixture({ id: "hall", name: "Hall", online: false, firmware: "0.3.9", board: "waveshare43",
         shape: { width: 800, height: 480, columns: 3, rows: 3 }, layout: { title: "Hall", tiles: [{ entity: "cover.c", name: "", slot: 4 }] } } as any),
@@ -931,7 +932,7 @@ describe("HomeView: every screen with its home page (app 0.4.0)", () => {
 
 describe("Screen settings: a key held down", () => {
   const view = (extra: Record<string, unknown> = {}) => {
-    Object.assign(state.inventory.screens[0], {
+    Object.assign(useInventoryStore().inventory.screens[0], {
       settings: { owner: "screen", keys: [], values: {}, unavailable: [], rotations: [0, 180], switches: [], ...extra },
     });
     return mount(SettingsTab);
@@ -952,7 +953,7 @@ describe("Screen settings: a key held down", () => {
 
 describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
   const view = (extra: Record<string, unknown> = {}) => {
-    Object.assign(state.inventory.screens[0], {
+    Object.assign(useInventoryStore().inventory.screens[0], {
       settings: { owner: "screen", keys: [], values: {}, unavailable: [], rotations: [0, 180], switches: [], ...extra },
     });
     return mount(SettingsTab);
@@ -982,40 +983,40 @@ describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
     expect(useUiStore().notice?.message).toBe("Living room is showing the crosses.");
   });
   it("waits for a screen that is off: the crosses need glass that is on", () => {
-    state.inventory.screens[0].online = false;
+    useInventoryStore().inventory.screens[0].online = false;
     expect(view({ calibrate: true }).find<HTMLButtonElement>("#setting-calibrate").element.disabled).toBe(true);
   });
 });
 
 describe("AppSettingsView", () => {
   it("shows what the current firmware brings from the changelog of the full inventory (app 0.2.78)", () => {
-    state.inventory.updates = { target: "0.2.65", pending: 0 };
-    state.inventory.changelog = [
+    useInventoryStore().inventory.updates = { target: "0.2.65", pending: 0 };
+    useInventoryStore().inventory.changelog = [
       { app: "0.2.78", firmware: "0.2.65", lines: ["Several tiles go to the same page."] },
       { app: "0.2.76", firmware: "0.2.63", lines: ["Older."] },
     ];
     const view = mount(AppSettingsView);
     expect(view.find(".whatsnew summary").text()).toBe("What's new in firmware 0.2.65");
     expect(view.findAll(".whatsnew li").map((li) => li.text())).toEqual(["Several tiles go to the same page."]);
-    delete state.inventory.changelog;
+    delete useInventoryStore().inventory.changelog;
     expect(mount(AppSettingsView).find(".whatsnew").exists()).toBe(false);
   });
   it("names one firmware only when the screens share it (app 0.3.20, a firmware per board)", () => {
-    const [living] = state.inventory.screens;
+    const [living] = useInventoryStore().inventory.screens;
     const kitchen = { ...living, id: "kitchen", name: "Kitchen", board: "waveshare4b" } as any;
     const hint = () => mount(AppSettingsView).find("#updates-hint").text();
-    state.inventory.updates = { target: "0.4.0", pending: 1 };
-    state.inventory.screens = [{ ...living, update: { available: true, target: "0.4.0" } }, { ...kitchen, update: { available: false, target: "0.4.1" } }];
+    useInventoryStore().inventory.updates = { target: "0.4.0", pending: 1 };
+    useInventoryStore().inventory.screens = [{ ...living, update: { available: true, target: "0.4.0" } }, { ...kitchen, update: { available: false, target: "0.4.1" } }];
     expect(hint()).toBe("Firmware 0.4.0 is available for 1 screen.");
-    state.inventory.screens[1].update = { available: true, target: "0.4.1" };
+    useInventoryStore().inventory.screens[1].update = { available: true, target: "0.4.1" };
     expect(hint()).toBe("An update is available for 2 screens.");
-    state.inventory.screens.forEach((s) => (s.update!.available = false));
+    useInventoryStore().inventory.screens.forEach((s) => (s.update!.available = false));
     expect(hint()).toBe("All screens are up to date.");
-    state.inventory.screens[1].update!.target = "0.4.0";
+    useInventoryStore().inventory.screens[1].update!.target = "0.4.0";
     expect(hint()).toBe("All screens have firmware 0.4.0.");
     // A running update names the firmware of the screen it is updating.
-    state.inventory.updates = { target: "0.4.0", pending: 1, busy: "kitchen" };
-    state.inventory.screens[1].update = { available: true, target: "0.4.1", state: "running" };
+    useInventoryStore().inventory.updates = { target: "0.4.0", pending: 1, busy: "kitchen" };
+    useInventoryStore().inventory.screens[1].update = { available: true, target: "0.4.1", state: "running" };
     expect(hint()).toBe("Updating to firmware 0.4.1…");
   });
 });
@@ -1104,7 +1105,7 @@ describe("New screen and the Wi-Fi", () => {
       const method = options.method || "GET";
       calls.push({ url: String(url), method, body: options.body ? JSON.parse(options.body) : undefined });
       if (String(url).endsWith("api/firmware")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ available: true, ports: ["/dev/ttyUSB0"], profiles: [], logs: [], wifi: { state: "ready", missing: [] }, boards: BOARD_CHOICES, taken: { nodes: [], prefixes: [] }, job: calls.some((c) => c.url.endsWith("firmware/profiles")) ? job : null }) });
-      if (String(url).includes("inventory")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ ...state.inventory, ...inventory }) });
+      if (String(url).includes("inventory")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ ...useInventoryStore().inventory, ...inventory }) });
       const answer = String(url).endsWith("firmware/profiles") ? { file: "hall.yaml", api_key: "k", job } : String(url).endsWith("firmware/jobs") ? job : { state: "ready" };
       return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify(answer)), json: () => Promise.resolve(answer) });
     }));
@@ -1141,7 +1142,7 @@ describe("New screen and the Wi-Fi", () => {
       await flush();
       expect(view.find("#arrive").classes()).toContain("waiting");
       // Home Assistant found it: the page says so.
-      state.inventory.pending = [{ ...inventory.pending[0], seen: true }];
+      useInventoryStore().inventory.pending = [{ ...inventory.pending[0], seen: true }];
       await flush();
       expect(view.find("#arrive").classes()).toContain("seen");
       // Tessera adds it itself (app 0.4.73): nothing about Home Assistant on the page, only the tiles that come next.
@@ -1149,14 +1150,14 @@ describe("New screen and the Wi-Fi", () => {
       expect(view.find("#install-steps").text()).not.toContain("Home Assistant →");
       expect(view.find("#key-more").exists()).toBe(false);
       // Home Assistant asked something only the person can answer: the page says so and opens those steps.
-      state.inventory.pending = [{ ...inventory.pending[0], seen: true, pairing: "failed" }];
+      useInventoryStore().inventory.pending = [{ ...inventory.pending[0], seen: true, pairing: "failed" }];
       await flush();
       expect(view.find("#arrive").classes()).toContain("failed");
       expect((view.find("#key-more").element as HTMLDetailsElement).open).toBe(true);
-      state.inventory.pending = [{ ...inventory.pending[0], seen: true }];
+      useInventoryStore().inventory.pending = [{ ...inventory.pending[0], seen: true }];
       await flush();
       // Not found for three minutes: what fixes it, with the right network and the installation again.
-      state.inventory.pending = [{ ...inventory.pending[0], seen: false }];
+      useInventoryStore().inventory.pending = [{ ...inventory.pending[0], seen: false }];
       await vi.advanceTimersByTimeAsync(181000);
       await flush();
       expect(view.find("#arrive").classes()).toContain("missing");
@@ -1169,7 +1170,7 @@ describe("New screen and the Wi-Fi", () => {
       const writes = calls.filter((c) => c.method !== "GET").map((c) => c.url);
       expect(writes.slice(-2)).toEqual(["api/firmware/wifi", "api/firmware/jobs"]);
       // Paired: nothing left to wait for.
-      state.inventory.screens = [{ ...state.inventory.screens[0], node: "hall" } as any];
+      useInventoryStore().inventory.screens = [{ ...useInventoryStore().inventory.screens[0], node: "hall" } as any];
       await flush();
     } finally { vi.useRealTimers(); }
   });
@@ -1490,9 +1491,9 @@ describe("the home key on the mockup", () => {
   const bar = (page: number) => mount(DevicePage, { props: props(page) }).find(".bar-wrap").html();
   beforeEach(() => {
     seedLayout({ title: "Living room", pages: 3, tiles: [] });
-    (state.inventory.screens[0] as any).firmware = "0.2.100";
-    (state.inventory.screens[0] as any).firmware_known = "0.2.100";
-    (state.inventory.screens[0] as any).settings = { owner: "screen", keys: ["home_button"], values: { home_button: true }, unavailable: [] };
+    (useInventoryStore().inventory.screens[0] as any).firmware = "0.2.100";
+    (useInventoryStore().inventory.screens[0] as any).firmware_known = "0.2.100";
+    (useInventoryStore().inventory.screens[0] as any).settings = { owner: "screen", keys: ["home_button"], values: { home_button: true }, unavailable: [] };
   });
   it("draws it on every page, as the screens do", () => {
     expect(bar(0)).toContain(mark);
@@ -1500,15 +1501,15 @@ describe("the home key on the mockup", () => {
     expect(bar(2)).toContain(mark);
   });
   it("leaves it out when the screen's setting is off, and on firmware that has no key", () => {
-    (state.inventory.screens[0] as any).settings.values.home_button = false;
+    (useInventoryStore().inventory.screens[0] as any).settings.values.home_button = false;
     expect(bar(1)).not.toContain(mark);
-    (state.inventory.screens[0] as any).settings.values.home_button = true;
-    (state.inventory.screens[0] as any).firmware_known = "0.2.99";
+    (useInventoryStore().inventory.screens[0] as any).settings.values.home_button = true;
+    (useInventoryStore().inventory.screens[0] as any).firmware_known = "0.2.99";
     expect(bar(1)).not.toContain(mark);
   });
   it("gives the name the room the key takes, with the margin of the glass between them", () => {
     const withKey = mount(DevicePage, { props: props(1) }).findComponent({ name: "TopbarSvg" }).vm as any;
-    (state.inventory.screens[0] as any).settings.values.home_button = false;
+    (useInventoryStore().inventory.screens[0] as any).settings.values.home_button = false;
     const without = mount(DevicePage, { props: props(1) }).findComponent({ name: "TopbarSvg" }).vm as any;
     expect(without.lay.homeShift).toBe(0);
     // The key is the Tessera mark (firmware 0.10.0+), with the same air as between the edge of the glass and the key.
@@ -1520,7 +1521,7 @@ describe("the home key on the mockup", () => {
 
 describe("Alerts: one screen through the event (app 0.2.133)", () => {
   function alertsInventory() {
-    const inv = state.inventory as any;
+    const inv = useInventoryStore().inventory as any;
     inv.screens = [
       { ...inv.screens[0], node: "living-screen", area: "Living room", pictures: true },
       { id: "desk", name: "Desk CYD", online: true, firmware: "0.2.60", board: "cyd", node: "desk", pictures: false,
@@ -1615,7 +1616,7 @@ describe("a favourite's own shuffle and repeat (app 0.4.84)", () => {
   const favorite = { id: "spotify:album:0000000000000000000000", type: "spotify://album", title: "An album", class: "album" };
   it("offers them where the player has the actions, and stores nothing for the player's own", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ title: "", folder: 0, items: [] })))));
-    state.inventory.entities.push({ id: "media_player.spotify", name: "Spotify", state: "idle", area: "" } as any);
+    useInventoryStore().inventory.entities.push({ id: "media_player.spotify", name: "Spotify", state: "idle", area: "" } as any);
     const tile: Tile = { entity: "media_player.spotify", name: "", slot: 0, options: { display: "favorite", play: favorite } };
     appendTiles(tile);
     useEntitiesStore().capabilities["media_player.spotify"] = { toggle: false, inline: false, controls: [], displays: ["standard", "favorite"], favorite: ["shuffle", "repeat"] };

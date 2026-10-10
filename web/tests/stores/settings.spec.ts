@@ -10,6 +10,7 @@ import type { Screen, SettingsView } from "../../src/types";
 import { useFakeClock } from "../helpers/clock";
 import { failure, fakeApi, type ApiRequest } from "../helpers/fake-api";
 import { useScreenStore } from "../../src/stores/screen";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const view = (values: Record<string, any>): SettingsView => ({ owner: "screen", keys: Object.keys(values), values, unavailable: [] });
 const screen = (id: string, values: Record<string, any>) => ({ id, name: id, online: true, layout: {}, settings: view(values) }) as unknown as Screen;
@@ -20,13 +21,13 @@ const VALUES = { brightness: 80, standby_brightness: 50, night_brightness: 20, d
 function addOn(echo = true) {
   return fakeApi({
     "PUT screens/:id/settings": (request: ApiRequest) => {
-      const before = state.inventory.screens.find((s) => s.id === request.params.id)!.settings!.values;
+      const before = useInventoryStore().inventory.screens.find((s) => s.id === request.params.id)!.settings!.values;
       return view(echo ? { ...before, ...request.body.settings } : before);
     },
   });
 }
 function open(selected = "living") {
-  state.inventory = { screens: [screen("living", VALUES), screen("kitchen", VALUES)], entities: [] } as any;
+  useInventoryStore().inventory = { screens: [screen("living", VALUES), screen("kitchen", VALUES)], entities: [] } as any;
   useScreenStore().selected = selected;
 }
 const t = (key: string) => i18n.global.t(key);
@@ -47,7 +48,7 @@ describe("a screen setting changed here", () => {
     expect(api.asked("PUT screens/:id/settings").map((r) => [r.params.id, r.body.settings, r.init.keepalive])).toEqual([["living", { dark_mode: true, brightness: 90 }, false]]);
     expect(settings.settingPending).toBe(false);
     // The answer is the screen's settings now, and a change that matches it is no longer kept apart.
-    expect(state.inventory.screens[0].settings!.values).toMatchObject({ dark_mode: true, brightness: 90 });
+    expect(useInventoryStore().inventory.screens[0].settings!.values).toMatchObject({ dark_mode: true, brightness: 90 });
     expect(settings.settingEdits).toEqual({});
   });
 

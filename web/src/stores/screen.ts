@@ -12,9 +12,9 @@ import { measuring } from "../model/memory";
 import pageRules from "../model/page-rules.json";
 import * as status from "../model/screen-status";
 import { askConfirm } from "../composables/useConfirm";
-import { persistVirtualScreens, state } from "../store";
 import type { BoardChoice, FeedbackView, Screen, ScreensaverChoice } from "../types";
 import { useBuildsStore } from "./builds";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useRegionStore } from "./region";
 import { useUiStore } from "./ui";
@@ -25,13 +25,14 @@ export const drawsPictures = (screen?: Screen) =>
   screen?.pictures ?? (screen?.shape?.catalog as Partial<BoardChoice> | undefined)?.camera ?? true;
 
 export const useScreenStore = defineStore("screen", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
   const builds = useBuildsStore();
   const region = useRegionStore();
 
   // ---- Which screen is open, and what its firmware says it takes ----
   const selected = ref<string | null>(null);
-  const currentScreen = computed<Screen | undefined>(() => state.inventory.screens.find((s) => s.id === selected.value));
+  const currentScreen = computed<Screen | undefined>(() => inv.inventory.screens.find((s) => s.id === selected.value));
   const firmwareOf = computed(() => status.firmwareVersion(currentScreen.value));
   const supports = (major: number, minor: number, patch: number) => supportsFirmware(firmwareOf.value, major, minor, patch);
   /** Whether the open screen's firmware is this version or newer, the version as the add-on names one ("0.38.0"). */
@@ -69,11 +70,11 @@ export const useScreenStore = defineStore("screen", () => {
   const pageReady = computed(() => currentScreen.value?.page_capability === "ready" ||
     (currentScreen.value?.page_capability === "offline" && currentScreen.value?.page_last_capability === "ready"));
   // The items one page's top bar takes on this screen: its own (firmware 0.34.0+), else the add-on's six.
-  const topbarMax = computed(() => currentScreen.value?.bar_limit || state.inventory.header?.max_items || 6);
+  const topbarMax = computed(() => currentScreen.value?.bar_limit || inv.inventory.header?.max_items || 6);
 
   // ---- Identify and the test alert (app 0.2.73): a screen's own show_alert action ----
   const canAlert = (screen: Screen | undefined) =>
-    Boolean(screen && screen.alert_action && versionAtLeast(status.firmwareVersion(screen), state.inventory.alerts?.min_firmware || "0.2.31"));
+    Boolean(screen && screen.alert_action && versionAtLeast(status.firmwareVersion(screen), inv.inventory.alerts?.min_firmware || "0.2.31"));
   async function identify(screen: Screen) {
     try {
       await send(`screens/${encodeURIComponent(screen.id)}/identify`, "POST");
@@ -104,7 +105,7 @@ export const useScreenStore = defineStore("screen", () => {
   async function feedbackAction(screen: Screen, body: Record<string, unknown>): Promise<boolean> {
     try {
       const result = await send<{ feedback: Partial<FeedbackView> }>(`screens/${encodeURIComponent(screen.id)}/feedback`, "POST", body);
-      const live = state.inventory.screens.find((s) => s.id === screen.id) || screen;
+      const live = inv.inventory.screens.find((s) => s.id === screen.id) || screen;
       if (live.feedback && result?.feedback) live.feedback = { ...live.feedback, ...result.feedback };
       return true;
     } catch (e: any) {
@@ -138,12 +139,12 @@ export const useScreenStore = defineStore("screen", () => {
     try {
       if (screen.virtual) {
         const updated = { ...screen, name: name.trim() || screen.name };
-        persistVirtualScreens(state.inventory.screens.map(item => item.id === screen.id ? updated : item));
+        inv.persistVirtualScreens(inv.inventory.screens.map(item => item.id === screen.id ? updated : item));
         Object.assign(screen, updated);
         return true;
       }
       const result = await send<{ name: string }>(`screens/${encodeURIComponent(screen.id)}/name`, "PUT", { name });
-      const live = state.inventory.screens.find((s) => s.id === screen.id);
+      const live = inv.inventory.screens.find((s) => s.id === screen.id);
       if (live && result?.name) live.name = result.name;
       return true;
     } catch (e: any) {
@@ -162,7 +163,7 @@ export const useScreenStore = defineStore("screen", () => {
     removing.value = `pending:${file}`;
     try {
       await send(`firmware/profiles/${encodeURIComponent(file)}`, "DELETE");
-      state.inventory.pending = (state.inventory.pending || []).filter((p) => p.file !== file);
+      inv.inventory.pending = (inv.inventory.pending || []).filter((p) => p.file !== file);
       ui.toast(t("editor.sidebar.remove.done", { name }));
       return true;
     } catch (e: any) {
@@ -191,7 +192,7 @@ export const useScreenStore = defineStore("screen", () => {
 
   // ---- A screen's status, as the sidebar and the overview show it (model/screen-status.ts) ----
   // The screens' language by its own name (stores/region.ts), for what an update brings.
-  const screensLanguage = () => region.languageName(state.inventory.language?.effective);
+  const screensLanguage = () => region.languageName(inv.inventory.language?.effective);
   const facts = (screen: Screen): status.StatusFacts => ({ ...builds.building(screen), language: screensLanguage(), now: Date.now() });
   const newLanguageText = computed(() => status.newLanguageText(screensLanguage()));
   const updateState = (screen: Screen) => status.updateState(screen, facts(screen));

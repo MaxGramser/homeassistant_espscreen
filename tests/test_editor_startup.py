@@ -37,13 +37,16 @@ class Startup(unittest.TestCase):
         self.assertIn('  session.select(screen.id);\n}', sidebar)
         self.assertIn('@click="session.select(screen.id)"', editor_sources.component('HomeView'))
         self.assertIn('run: () => session.select(screen.id)', editor_sources.component('CommandPalette'))
+        # A new inventory opens nothing either: the inventory store knows no screen to open (stores/inventory.ts).
+        inventory = editor_sources.source('stores/inventory.ts')
         for name in ('refresh', 'applyLive'):
-            body = STORE[STORE.index(f'function {name}('):]
-            self.assertNotRegex(body[:body.index('\n}\n')], r'(?<![\w.])select\(', name)
+            body = inventory[inventory.index(f'function {name}('):]
+            self.assertNotRegex(body[:body.index('\n  }\n')], r'(?<![\w.])select\(', name)
+        self.assertNotIn('select(', inventory)
 
     def test_the_right_side_asks_for_a_screen_until_one_is_chosen(self):
         empty = editor_sources.component('EmptyState')
-        choose = re.search(r'<section v-if="state.inventory.screens.length" id="choose" class="empty">(.*?)</section>', empty, re.S)
+        choose = re.search(r'<section v-if="inv.inventory.screens.length" id="choose" class="empty">(.*?)</section>', empty, re.S)
         self.assertTrue(choose, 'the card asks for a screen while there are screens')
         self.assertIn('<h2>{{ t("editor.empty.choose.title") }}</h2>', choose[1])
         self.assertEqual(editor_sources.text('empty.choose.title'), 'Choose a screen')
@@ -54,13 +57,15 @@ class Startup(unittest.TestCase):
         # for a screen stays for a chosen screen whose layout is still on its way.
         app = editor_sources.source('App.vue')
         self.assertIn('if (scr.currentScreen && state.layout) return ScreenView;', app)
-        self.assertIn('return scr.selected || !state.inventory.screens.length ? EmptyState : HomeView;', app)
+        self.assertIn('return scr.selected || !inv.inventory.screens.length ? EmptyState : HomeView;', app)
 
     def test_a_light_poll_keeps_the_catalogue_and_names_follow_the_inventory(self):
-        self.assertIn('state.inventory = full ? data : { ...state.inventory, ...data };', STORE)
-        self.assertIn('inventory?light=1', STORE)
+        inventory = editor_sources.source('stores/inventory.ts')
+        self.assertIn('inventory.value = full ? data : { ...inventory.value, ...data };', inventory)
+        self.assertIn('inventory?light=1', inventory)
         # Names come from the inventory at render time, so they appear as soon as the full inventory does.
-        self.assertIn('state.inventory.entities.find((e) => e.id === id)?.name', editor_sources.source('stores/entities.ts'))
+        self.assertIn('return inv.entityOf(id)?.name ||', editor_sources.source('stores/entities.ts'))
+        self.assertIn('for (const entity of inventory.value.entities) if (!index.has(entity.id)) index.set(entity.id, entity);', inventory)
         self.assertIn('entityName(props.tile.entity)', editor_sources.component('TileCard'))
 
 

@@ -7,7 +7,7 @@ import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { languageOnly } from "../model/screen-status";
 import { glyph } from "../model/topbar";
-import { refresh, state } from "../store";
+import { state } from "../store";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
@@ -18,6 +18,7 @@ import { useBuildsStore } from "../stores/builds";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useSessionStore } from "../stores/session";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const sidebar = useSidebarStore();
@@ -25,6 +26,7 @@ const builds = useBuildsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const session = useSessionStore();
+const inv = useInventoryStore();
 
 const hostFor = ref<string | null>(null);
 const host = ref("");
@@ -95,8 +97,8 @@ function update(screen: Screen) {
 }
 // The dev channel's own button (docs/RELEASING.md, "Testing dev"): the newest dev keeps the firmware number, so it is
 // never an update by itself; this builds and installs it anyway, the way an update does.
-const reinstallable = (screen: Screen) => state.inventory.updates?.channel === "dev" && screen.online
-  && Boolean(screen.update?.profile && screen.update?.host) && !state.inventory.updates?.busy;
+const reinstallable = (screen: Screen) => inv.inventory.updates?.channel === "dev" && screen.online
+  && Boolean(screen.update?.profile && screen.update?.host) && !inv.inventory.updates?.busy;
 function startWithHost(screen: Screen) {
   const address = host.value.trim();
   if (!address) return;
@@ -116,7 +118,7 @@ function measure() {
   cut.value = found;
 }
 const remeasure = () => nextTick(measure);
-watch(() => [sidebar.width, sidebar.folded, state.inventory.screens.map((screen) => screen.name).join("\n")], remeasure);
+watch(() => [sidebar.width, sidebar.folded, inv.inventory.screens.map((screen) => screen.name).join("\n")], remeasure);
 onMounted(remeasure);
 // And whenever the sidebar itself changes size (the window, a phone turned).
 useResizeObserver(aside, remeasure);
@@ -169,20 +171,20 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
         :aria-label="t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold')" v-tooltip="tip('fold', t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold'), true)"
         @click="sidebar.toggle()"><Icon name="dock-left" /></button>
     </div>
-    <span v-if="!state.reachable || !state.connected" id="connection" class="conn" role="status"
-      v-tooltip="tip('conn', !state.reachable ? t('editor.sidebar.connection.unreachable') : t('editor.sidebar.connection.reconnecting'))">
-      <Icon name="wifi-off" class="conn-icon" /><span class="conn-text">{{ !state.reachable ? t("editor.sidebar.connection.unreachable") : t("editor.sidebar.connection.reconnecting") }}</span>
+    <span v-if="!inv.reachable || !inv.connected" id="connection" class="conn" role="status"
+      v-tooltip="tip('conn', !inv.reachable ? t('editor.sidebar.connection.unreachable') : t('editor.sidebar.connection.reconnecting'))">
+      <Icon name="wifi-off" class="conn-icon" /><span class="conn-text">{{ !inv.reachable ? t("editor.sidebar.connection.unreachable") : t("editor.sidebar.connection.reconnecting") }}</span>
     </span>
     <button type="button" class="search-btn" id="open-palette" data-tip="search" v-tooltip="tip('search', `${t('editor.sidebar.search')} ⌘K`)" :aria-label="t('editor.sidebar.search')"
       @click="ui.palette = true"><Icon name="magnify" /><span class="txt">{{ t("editor.sidebar.search") }}</span><kbd>⌘K</kbd></button>
     <div class="label label-row">
       <span>{{ t("editor.sidebar.screens") }}</span>
-      <button id="refresh" type="button" class="icon-btn" :aria-label="t('editor.sidebar.refresh')" :title="t('editor.sidebar.refresh')" @click="refresh()"><Icon name="refresh" /></button>
+      <button id="refresh" type="button" class="icon-btn" :aria-label="t('editor.sidebar.refresh')" :title="t('editor.sidebar.refresh')" @click="inv.refresh()"><Icon name="refresh" /></button>
       <button id="new-screen" type="button" class="icon-btn" :aria-current="ui.route === '#new-screen' ? 'true' : 'false'" :aria-label="t('editor.nav.new_screen')"
         :title="sidebar.folded ? undefined : t('editor.nav.new_screen')" v-tooltip="tip('new', t('editor.nav.new_screen'))" @click="ui.go('#new-screen')"><Icon name="plus" /></button>
     </div>
     <div id="screens">
-      <div v-for="screen in state.inventory.screens" :key="screen.id" class="screen-item" :class="[{ selected: isSelected(screen), open: isOpen(screen) }, status(screen)]">
+      <div v-for="screen in inv.inventory.screens" :key="screen.id" class="screen-item" :class="[{ selected: isSelected(screen), open: isOpen(screen) }, status(screen)]">
         <button type="button" class="nav-item" :data-tip="`screen:${screen.id}`" :aria-current="isSelected(screen) ? 'true' : 'false'"
           :aria-label="screenTip(screen)" :title="tip(`screen:${screen.id}`, screenTip(screen)) ? undefined : subline(screen)?.text"
           v-tooltip="tip(`screen:${screen.id}`, screenTip(screen))" @click="choose(screen)">
@@ -279,11 +281,11 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     </div>
     <div id="pending">
       <!-- Folded, a screen on its way in is its icon; a click opens the sidebar for what can be done with it. -->
-      <button v-for="p in sidebar.folded ? state.inventory.pending || [] : []" :key="`folded:${p.file}`" type="button" class="nav-item pending-folded"
+      <button v-for="p in sidebar.folded ? inv.inventory.pending || [] : []" :key="`folded:${p.file}`" type="button" class="nav-item pending-folded"
         :aria-label="`${p.friendly} · ${pendingText(p)}`" v-tooltip="tip('pending', `${p.friendly} · ${pendingText(p)}`)" @click="sidebar.toggle()">
         <span v-if="p.seen && p.pairing !== 'failed'" class="spin small"></span><span v-else class="mdi board-icon">{{ glyph("F0ECE") }}</span>
       </button>
-      <div v-for="p in sidebar.folded ? [] : state.inventory.pending || []" :key="p.file" class="pending">
+      <div v-for="p in sidebar.folded ? [] : inv.inventory.pending || []" :key="p.file" class="pending">
         <strong>{{ p.friendly }}</strong>
         <small><span v-if="p.seen && p.pairing !== 'failed'" class="spin small"></span>{{ pendingText(p) }}</small>
         <div v-if="removeFor === `pending:${p.file}`" class="screen-remove">

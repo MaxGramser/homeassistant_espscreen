@@ -10,6 +10,7 @@ import type { Screen } from "../src/types";
 import { useFakeClock } from "./helpers/clock";
 import { failure, fakeApi } from "./helpers/fake-api";
 import { useScreenStore } from "../src/stores/screen";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const hall = { id: "hall", name: "Hall", node: "hall", online: true, board: "guition", firmware: "0.52.0", layout: {}, update: { profile: "hall.yaml" } } as unknown as Screen;
 let status = "Listening";
@@ -20,7 +21,7 @@ const groups = () => [{ plugin: "voice", name: { en: "Voice" }, rows: [
 ] }];
 
 async function open() {
-  state.inventory = { screens: [hall], entities: [] } as any;
+  useInventoryStore().inventory = { screens: [hall], entities: [] } as any;
   useScreenStore().selected = hall.id;
   usePluginsStore().installed = { hall: [{ id: "voice", version: "1.0.0", source: "index" }] };
   const api = fakeApi({ "GET screens/:id/plugins/settings": () => groups(), "POST screens/:id/plugins/settings": {} });

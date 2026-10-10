@@ -6,9 +6,10 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { moved } from "../model/reorder";
-import { openSaverItem, openSaverStep, state } from "../store";
+import { openSaverItem, openSaverStep } from "../store";
 import type { HeaderItem, SaverKind, ScreensaverChoice } from "../types";
 import { useEntitiesStore } from "./entities";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useRegionStore } from "./region";
 import { useScreenStore } from "./screen";
@@ -28,6 +29,7 @@ const key = (name: string) => `editor.screen_settings.screensaver.${name}`;
 export const saverLabel = (kind: SaverKind) => t(key(`kinds.${kind}`));
 
 export const useScreensaverStore = defineStore("screensaver", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
   const scr = useScreenStore();
   const settings = useSettingsStore();
@@ -69,10 +71,10 @@ export const useScreensaverStore = defineStore("screensaver", () => {
   const addPlayer = (id: string) => players.value.length < MAX_PLAYERS && !players.value.includes(id) && setPlayers([...players.value, id]);
   const removePlayer = (id: string) => setPlayers(players.value.filter((p) => p !== id));
 
-  const entityPlace = (id: string) => state.inventory.entities.find((e) => e.id === id)?.area || "";
+  const entityPlace = (id: string) => inv.entityOf(id)?.area || "";
   // What one can choose for a step, by name and the area it is in.
   function entitiesOf(kind: "media" | "camera", taken: string[] = []) {
-    return state.inventory.entities
+    return inv.inventory.entities
       .filter((e) => DOMAINS[kind].includes(e.id.split(".")[0]) && !taken.includes(e.id))
       .map((e) => ({ id: e.id, name: e.name, area: e.area || "" }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -85,7 +87,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
   const weatherChoices = computed(() => [
     ["auto", t(key("weather_auto"))] as const,
     ["", t(key("weather_none"))] as const,
-    ...state.inventory.entities
+    ...inv.inventory.entities
       .filter((e) => e.id.startsWith("weather."))
       .map((e) => [e.id, e.area ? `${e.name} · ${e.area}` : e.name] as const)
       .sort((a, b) => a[1].localeCompare(b[1])),
@@ -128,7 +130,7 @@ export const useScreensaverStore = defineStore("screensaver", () => {
   // The temperature's entity: the one chosen, else (automatic) Home Assistant's first weather entity, as the add-on picks.
   const weatherSource = computed(() => {
     const weather = saver.value?.weather ?? "auto";
-    return weather === "auto" ? state.inventory.entities.find((e) => e.id.startsWith("weather."))?.id || "" : weather;
+    return weather === "auto" ? inv.inventory.entities.find((e) => e.id.startsWith("weather."))?.id || "" : weather;
   });
   // The glass's proportions, so the preview is the screen's own shape (a square Guition, a wide 7-inch).
   const glassRatio = computed(() => {

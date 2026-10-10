@@ -1,7 +1,8 @@
 // How long the mockup takes to draw again when the add-on sends a new inventory: one page of 64 tiles (an 8 x 8 grid) of
 // lights, sensors, switches, climates and covers, each card reading its name, icon, live value and the screen's facts
-// through the stores. Run by hand, not by `npm test`: `npx vitest bench --run tests/perf`. The stores' lookups on this path
-// are getters, not actions (stores/lookup.ts): an action costs Pinia's bookkeeping on every call.
+// through the stores, and those lookups alone. Run by hand, not by `npm test`: `npx vitest bench --run tests/perf`. The
+// stores' lookups on this path are getters, not actions (stores/lookup.ts), and an entity is found by its id in an index
+// (stores/inventory.ts entityOf), not by a walk through the list.
 import { mount, type VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { bench, describe } from "vitest";
@@ -10,9 +11,10 @@ import DevicePage from "../../src/components/DevicePage.vue";
 import { entriesOf } from "../../src/model/layout";
 import { loadDocument, state } from "../../src/store";
 import { useEntitiesStore } from "../../src/stores/entities";
+import { useInventoryStore } from "../../src/stores/inventory";
+import { useScreenStore } from "../../src/stores/screen";
 import type { Inventory, Screen, Tile } from "../../src/types";
 import { documentFixture } from "../page-fixtures";
-import { useScreenStore } from "../../src/stores/screen";
 
 const DOMAINS = ["light", "sensor", "switch", "climate", "cover", "binary_sensor", "fan", "media_player"];
 const grid = { columns: 8, rows: 8 };
@@ -29,13 +31,13 @@ const inventory = (): Inventory => ({
     fallback: "F0335", builtin: {}, controls: {} },
 } as unknown as Inventory);
 
-// ---- What differs between the store's shape before and after phase 2b: the inventory's place and the open screen ----
+// The screen open with its draft, and the add-on's next inventory: the same entities, sent again.
 function open() {
-  state.inventory = inventory();
+  useInventoryStore().inventory = inventory();
   useScreenStore().selected = "bench";
-  loadDocument(state.inventory.screens[0]);
+  loadDocument(useInventoryStore().inventory.screens[0]);
 }
-const arrive = () => { state.inventory = { ...state.inventory, entities: entities.map((e) => ({ ...e })) }; };
+const arrive = () => { useInventoryStore().inventory = { ...useInventoryStore().inventory, entities: entities.map((e) => ({ ...e })) }; };
 
 let page: VueWrapper | null = null;
 function draw() {

@@ -10,6 +10,7 @@ import { useFakeClock } from "../helpers/clock";
 import { failure, fakeApi } from "../helpers/fake-api";
 import { inScope } from "../helpers/with-setup";
 import { useBuildsStore } from "../../src/stores/builds";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const job = (n: number) => ({ job: { file: "hall.yaml", state: "running", stage: `step ${n}` }, logs: [`line ${n}`] });
 
@@ -79,7 +80,7 @@ describe("the firmware job", () => {
   it("is followed by the store only while something builds, for the build log", async () => {
     const clock = useFakeClock();
     const api = fakeApi({ "GET firmware": job(1) });
-    state.inventory = { screens: [], entities: [], builds: {} } as unknown as Inventory;
+    useInventoryStore().inventory = { screens: [], entities: [], builds: {} } as unknown as Inventory;
     const stop = followBuilds();
     await clock.tick(30000);
     expect(api.count("firmware")).toBe(0);

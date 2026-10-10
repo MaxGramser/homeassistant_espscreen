@@ -14,6 +14,7 @@ import { answerDialogs } from "./helpers/dialogs";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
 import { useSessionStore } from "../src/stores/session";
+import { useInventoryStore } from "../src/stores/inventory";
 
 let yes = true, asked: Question[] = [];
 beforeEach(() => {
@@ -22,7 +23,7 @@ beforeEach(() => {
   yes = true;
   asked = answerDialogs(() => yes);
   state.dirty = false; useScreenStore().selected = null;
-  state.inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
+  useInventoryStore().inventory = { screens: [screenFixture({ id: "test", name: "Test", firmware: "0.4.0", online: true,
     layout: { title: "Home", tiles: [{ entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 }] } } as any)],
     entities: [], icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} } } as any;
   useSessionStore().select("test");
@@ -54,7 +55,7 @@ describe("the editor", () => {
   it("calls a change that changes nothing no change, whatever order the add-on wrote the fields in", () => {
     // A tile as the add-on writes it after a migration: placement before appearance.
     useSessionStore().select(null);
-    const layout = state.inventory.screens[0].page_document!.layout as any;
+    const layout = useInventoryStore().inventory.screens[0].page_document!.layout as any;
     const tile = layout.pages[0].tiles[0];
     tile.appearance.icon = "lightbulb";
     layout.pages[0].tiles[0] = { id: tile.id, content: tile.content, placement: tile.placement, interaction: tile.interaction, appearance: tile.appearance };
@@ -78,7 +79,7 @@ describe("the editor", () => {
 
   it("never pushes a wide tile onto a new page to make room for a single one (app 0.4.2)", () => {
     // Page 1 is full: A B / W W / C E.
-    state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: "Home", tiles: [
+    useInventoryStore().inventory.screens[0] = screenFixture({ ...useInventoryStore().inventory.screens[0], layout: { title: "Home", tiles: [
       { entity: "light.a", name: "A", slot: 0 }, { entity: "light.b", name: "B", slot: 1 },
       { entity: "light.w", name: "W", slot: 2, options: { size: "wide" } },
       { entity: "light.c", name: "C", slot: 4 }, { entity: "light.e", name: "E", slot: 5 }] } } as any);
@@ -118,7 +119,7 @@ describe("the editor", () => {
     const square = { entity: "light.a", options: { size: "square" } };
     // Firmware 0.4.0 keeps the switch.
     expect(card(square).classes()).not.toContain("big-key");
-    state.inventory.screens[0].firmware = "0.17.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.17.0";
     for (const tile of [square, { entity: "light.a", options: { size: "tall" } }, { entity: "script.night", options: { size: "square" } }]) {
       const view = card(tile);
       expect(view.classes(), tile.entity).toContain("big-key");
@@ -147,15 +148,15 @@ describe("the editor", () => {
     const before = title();
     expect(await type("")).toBe(false);
     expect(title()).toBe(before);
-    state.inventory.screens[0].no_title = true;
+    useInventoryStore().inventory.screens[0].no_title = true;
     expect(await type("")).toBe(true);
     expect(title()).toBe("");
     expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
   });
 
   it("keeps a link that follows Home one when it is sent to the home page (app 0.4.2)", () => {
-    state.inventory.screens[0] = screenFixture({ ...state.inventory.screens[0], layout: { title: "Home", pages: 2, tiles: [{ entity: "screen.page_1", name: "", slot: 6 }] } } as any);
-    const record = state.inventory.screens[0].page_document as any;
+    useInventoryStore().inventory.screens[0] = screenFixture({ ...useInventoryStore().inventory.screens[0], layout: { title: "Home", pages: 2, tiles: [{ entity: "screen.page_1", name: "", slot: 6 }] } } as any);
+    const record = useInventoryStore().inventory.screens[0].page_document as any;
     record.layout.pages[1].tiles[0].content.target = { kind: "home" };
     useSessionStore().select(null); useSessionStore().select("test");
     const link = state.layout!.tiles[0];
@@ -169,7 +170,7 @@ describe("the editor", () => {
     // A screen without PSRAM that measured room for about two and a half lights, as one CYD did.
     const memory = { room: 0, used: 0, psram: false, tile: 524, extra: 1056, page: 336, short: false, live: true };
     memory.room = Math.round(2.5 * tileCost({ entity: "light.x" }, memory));
-    (state.inventory.screens[0] as any).memory = memory;
+    (useInventoryStore().inventory.screens[0] as any).memory = memory;
     yes = false;
     await addTile("light.c");
     expect(asked).toHaveLength(1);

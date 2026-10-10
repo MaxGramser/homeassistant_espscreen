@@ -13,6 +13,7 @@ import { useVisibleInterval } from "../composables/useVisibleInterval";
 import { applyDocument, closeInspector, heldTo, openBar, pageAt, state } from "../store";
 import type { HeaderItem } from "../types";
 import { useEntitiesStore } from "./entities";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { usePluginsStore } from "./plugins";
 import { useRegionStore } from "./region";
@@ -65,6 +66,7 @@ export function itemList(o: {
 }
 
 export const useTopbarStore = defineStore("topbar", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
   const scr = useScreenStore();
   const entities = useEntitiesStore();
@@ -95,7 +97,7 @@ export const useTopbarStore = defineStore("topbar", () => {
   function topbarLabel(item: HeaderItem) {
     if (item.type === "entity") return entities.entityName(item.entity!);
     if (item.type === "plugin") return plugins.barItemOf(item.item)?.label || item.item || "";
-    return state.inventory.header?.builtin.find((b) => b.type === item.type)?.label || item.type;
+    return inv.inventory.header?.builtin.find((b) => b.type === item.type)?.label || item.type;
   }
   // What the item shows right now: { icon, text, color, shown }. Entities wait for the add-on's preview.
   function topbarView(item: HeaderItem): ItemView {

@@ -7,8 +7,10 @@ import { glyph } from '../model/topbar';
 import { tallKeys } from '../model/ui-scale';
 import { controlKeys, coverTiltKeys, coverTiltKind } from '../model/tall-controls';
 import { useRegionStore } from '../stores/region';
+import { useInventoryStore } from "../stores/inventory";
 
 const region = useRegionStore();
+const inv = useInventoryStore();
 const props = defineProps<{ primary: string; entityState: string; attributes: Record<string, any> }>();
 const root = ref<HTMLElement>();
 // The card's own size, as it is drawn.
@@ -35,7 +37,7 @@ const fits = computed(() => {
     && width.value >= groups.value.reduce((sum, g) => sum + groupWidth(g), 0) + (count - 1) * 2 * gap.value
     && groups.value.every(g => groupWidth(g) >= touch.value && (g.kind !== 'position' || controlHeight.value >= 2 * touch.value));
 });
-const icon = (name: string) => glyph(state.inventory.icons?.controls?.[name] || '');
+const icon = (name: string) => glyph(inv.inventory.icons?.controls?.[name] || '');
 const percent = (value: unknown) => typeof value === 'number' ? `${Math.round(value)}%` : '—';
 </script>
 <template>

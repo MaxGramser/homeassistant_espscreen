@@ -37,12 +37,14 @@ import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
@@ -127,7 +129,7 @@ const energyTile = computed(() => props.tile.entity === "screen.energy");
 const mapFollow = computed(() => current("follow", MAP?.follow[0]) as string);
 const mapListed = computed(() => !mapTile.value || mapFollow.value === "chosen");
 const mapFull = computed(() => mapWith.value.length >= (MAP?.max ?? 8) - (mapTile.value ? 0 : 1));
-const mapOffered = computed(() => [...(state.inventory.entities || []), ...(state.inventory.trackers || [])]
+const mapOffered = computed(() => [...(inv.inventory.entities || []), ...(inv.inventory.trackers || [])]
   .filter((item) => (MAP?.with ?? []).includes(item.id.split(".")[0]) && item.id !== props.tile.entity && !mapWith.value.includes(item.id))
   .map((item) => [item.id, item.name || item.id] as [string, string]));
 const mapFraming = computed(() => current("framing", MAP?.framing[0]) as string);
@@ -183,7 +185,7 @@ const displayHint = computed(() => {
 const refresh = computed(() => current("refresh", 15) as number);
 const size = computed(() => current("size", "single") as string);
 const taller = computed(() => isTallSize(size.value));
-const catalogue = computed(() => state.inventory.controls?.[domain.value]);
+const catalogue = computed(() => inv.inventory.controls?.[domain.value]);
 // Every choice the panel shows is one the add-on saves (app 0.4.0, GitHub #47): tried the way the panel applies it,
 // against the same card check the save runs (model/tile-options.ts). The tile's own choice always stays in sight.
 const controlled = computed(() => Boolean(catalogue.value));
@@ -298,9 +300,9 @@ const showSlider = computed(() => !taller.value && display.value !== "favorite" 
   ((!caps.value || caps.value.inline) && choiceOffered(props.tile, "inline", "slider", controlled.value))));
 const sliderWarn = computed(() => inline.value === "slider" && caps.value && !caps.value.inline);
 const history = computed(() => current("history_hours", 24) as number);
-const backgrounds = computed(() => Object.entries(state.inventory.backgrounds || {}));
-const fromHA = computed(() => Boolean(state.inventory.entities.find((e) => e.id === props.tile.entity)?.icon));
-const showIcon = computed(() => Boolean(state.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
+const backgrounds = computed(() => Object.entries(inv.inventory.backgrounds || {}));
+const fromHA = computed(() => Boolean(inv.entityOf(props.tile.entity)?.icon));
+const showIcon = computed(() => Boolean(inv.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
 function inspect() {
   // This tile's own data: its entity may be on several tiles (firmware 0.16.0+).
   state.inspector = { kind: "inspect", entity: props.tile.entity, slot: props.tile.slot, key: props.tile.key };
@@ -321,7 +323,7 @@ function previewBackground(key: string | null) {
   if (key && props.tile.id && key !== (props.tile.options?.background || "auto")) state.optionPreview = { tileId: props.tile.id, key: "background", value: key };
   else if (state.optionPreview?.key === "background") state.optionPreview = null;
 }
-const backgroundName = computed(() => state.inventory.backgrounds?.[props.tile.options?.background || "auto"]?.label || "");
+const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.options?.background || "auto"]?.label || "");
 </script>
 
 <template>

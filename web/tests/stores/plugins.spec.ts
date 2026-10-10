@@ -11,6 +11,7 @@ import { usePluginsStore } from "../../src/stores/plugins";
 import { useUiStore } from "../../src/stores/ui";
 import type { Screen } from "../../src/types";
 import { failure, fakeApi, type ApiRequest } from "../helpers/fake-api";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const plugin = (id: string, more: Partial<Plugin> = {}): Plugin => ({
   id, name: { en: id[0].toUpperCase() + id.slice(1) }, summary: { en: "" }, icon: "F00E7", maintainer: "someone", tessera: true,
@@ -35,7 +36,7 @@ function addOn(index: Plugin[], have: Record<string, Installed[]> = {}, along: R
   });
 }
 async function loaded(index: Plugin[], have: Record<string, Installed[]> = {}, along: Record<string, string[]> = {}) {
-  state.inventory = { screens: [hall, desk], entities: [], builds: {} } as any;
+  useInventoryStore().inventory = { screens: [hall, desk], entities: [], builds: {} } as any;
   const api = addOn(index, have, along);
   const plugins = usePluginsStore();
   await plugins.reloadPlugins();
@@ -155,9 +156,9 @@ describe("a plugin's state", () => {
     const status = (id: string, on = hall) => plugins.statusOn(plugins.index.find((p) => p.id === id) || plugins.testsOn(on).find((p) => p.id === id)!, on).kind;
     expect([status("bus"), status("clock"), status("lab")]).toEqual(["update", "failed", "test"]);
     expect(status("big", screen("cyd", { pictures: false }))).toBe("misfit");
-    state.inventory.builds = { hall: { by: "plugins", state: "queued", plugins: ["bus"], file: "hall.yaml" } };
+    useInventoryStore().inventory.builds = { hall: { by: "plugins", state: "queued", plugins: ["bus"], file: "hall.yaml" } };
     expect(plugins.statusOn(plugins.index[0], hall)).toEqual({ kind: "building", label: t("editor.plugins.state.queued") });
-    state.inventory.builds = {};
+    useInventoryStore().inventory.builds = {};
     plugins.installed.hall[0].version = "1.1.0";
     expect(status("bus")).toBe("installed");
     expect(status("bus", desk)).toBe("");
@@ -172,9 +173,9 @@ describe("a plugin's state", () => {
     const lab = plugins.allTests()[0];
     expect(plugins.statusOverall(lab)).toEqual({ kind: "test", label: t("editor.plugins.state.test_on", { name: "Hall" }) });
     expect(plugins.statusOverall(plugins.index[2]).kind).toBe("");
-    state.inventory.screens = [screen("cyd", { pictures: false })];
+    useInventoryStore().inventory.screens = [screen("cyd", { pictures: false })];
     expect(plugins.statusOverall(plugins.index[1])).toEqual({ kind: "misfit", label: t("editor.plugins.state.fits_none") });
-    state.inventory.builds = { cyd: { by: "plugins", state: "running", plugins: ["new"], file: "cyd.yaml" } };
+    useInventoryStore().inventory.builds = { cyd: { by: "plugins", state: "running", plugins: ["new"], file: "cyd.yaml" } };
     expect(plugins.statusOverall(plugins.index[2]).kind).toBe("building");
   });
 });
@@ -194,19 +195,19 @@ describe("what the index brings", () => {
 
 describe("what its start follows", () => {
   it("loads the plugins where they are on, and again when a plugin build starts or ends, until it is stopped", async () => {
-    state.inventory = { screens: [hall], entities: [], builds: {} } as any;
+    useInventoryStore().inventory = { screens: [hall], entities: [], builds: {} } as any;
     const api = addOn([plugin("bus")]);
     const plugins = usePluginsStore();
     const stop = plugins.start();
     await flushPromises();
     expect([api.count("GET plugins"), plugins.loaded, plugins.index.length]).toEqual([1, true, 1]);
-    state.inventory.builds = { hall: { by: "update", state: "running", file: "hall.yaml" } };
+    useInventoryStore().inventory.builds = { hall: { by: "update", state: "running", file: "hall.yaml" } };
     await nextTick();
     expect(api.count("GET plugins")).toBe(1);
-    state.inventory.builds = { hall: { by: "plugins", state: "running", plugins: ["bus"], file: "hall.yaml" } };
+    useInventoryStore().inventory.builds = { hall: { by: "plugins", state: "running", plugins: ["bus"], file: "hall.yaml" } };
     await vi.waitFor(() => expect(api.count("GET plugins")).toBe(2));
     stop();
-    state.inventory.builds = {};
+    useInventoryStore().inventory.builds = {};
     await flushPromises();
     expect(api.count("GET plugins")).toBe(2);
   });

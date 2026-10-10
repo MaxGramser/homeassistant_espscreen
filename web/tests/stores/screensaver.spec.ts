@@ -9,13 +9,14 @@ import { useScreenStore } from "../../src/stores/screen";
 import { useUiStore } from "../../src/stores/ui";
 import type { HeaderItem, Screen, ScreensaverChoice } from "../../src/types";
 import { fakeApi } from "../helpers/fake-api";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 const entity = (id: string): HeaderItem => ({ type: "entity", entity: id, content: "state", icon: "auto", show: "always" });
 function open(patch: Partial<ScreensaverChoice> = {}) {
   const screensaver = { show: true, media: "", camera: "", order: ["media", "camera", "clock"], off: [], weather: "auto", more: [], items: [],
     ready: true, pictures: true, ...patch } as ScreensaverChoice;
-  state.inventory = { screens: [{ id: "hall", name: "Hall", online: true, layout: { title: "Hall", tiles: [] }, screensaver } as unknown as Screen],
+  useInventoryStore().inventory = { screens: [{ id: "hall", name: "Hall", online: true, layout: { title: "Hall", tiles: [] }, screensaver } as unknown as Screen],
     entities: ["media_player.kitchen", "media_player.study", "media_player.hall", "media_player.attic", "media_player.porch", "camera.door", "weather.home"]
       .map((id) => ({ id, name: id.split(".")[1], state: "", area: "" })) } as any;
   useScreenStore().selected = "hall";

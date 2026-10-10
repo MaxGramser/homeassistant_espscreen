@@ -10,7 +10,7 @@ import { api } from "../api";
 import { t } from "../i18n";
 import type { NavigationSettings } from "../model/pages";
 import { rowText, type SettingRow } from "../model/settings";
-import { state } from "../store";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useRegionStore } from "./region";
 import { useScreenStore } from "./screen";
@@ -23,6 +23,7 @@ const DIM_LEVELS = ["standby_brightness", "night_brightness"];
 export type SettingEdit = { value: any; at: number };
 
 export const useSettingsStore = defineStore("settings", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
   const region = useRegionStore();
   const scr = useScreenStore();
@@ -85,7 +86,7 @@ export const useSettingsStore = defineStore("settings", () => {
     flight.value = request;
     try {
       const view = await (await request).json();
-      const current = state.inventory.screens.find((s) => s.id === screen);
+      const current = inv.inventory.screens.find((s) => s.id === screen);
       if (current) current.settings = view;
     } catch (e: any) {
       ui.toast(e.message);

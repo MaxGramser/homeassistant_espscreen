@@ -12,7 +12,7 @@ import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { useVisibleInterval } from "../composables/useVisibleInterval";
 import { t } from "../i18n";
 import { afterBrowserBuild, errorLine, ESPHOME_WEB, firmwareImage, memoryText, usbTarget } from "../model/firmware-job";
-import { refresh, state } from "../store";
+import { state } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import { matchesWords, queryWords } from "../model/search";
@@ -26,9 +26,11 @@ import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
 import { useUiStore } from "../stores/ui";
 import { useSessionStore } from "../stores/session";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const session = useSessionStore();
+const inv = useInventoryStore();
 
 // Download: ESP Screens builds, the owner flashes the file from their own computer with ESPHome Web (ESPHOME_WEB).
 const form = reactive({ board: "", orientation: "landscape" as Orientation, grid: { columns: 2, rows: 3 }, choices: {} as Record<string, string>, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
@@ -391,13 +393,13 @@ const waitsForWifi = computed(() => ok.value && !download.value && installer.vie
 watch(waitsForWifi, (waits) => { if (waits && !doneAt.value) doneAt.value = Date.now(); });
 const arrival = computed(() => {
   if (!waitsForWifi.value) return null;
-  if (state.inventory.screens.some((screen: any) => screen.node === builtNode.value)) return "paired";
-  const found = state.inventory.pending?.find((entry) => entry.file === installer.file && entry.seen);
+  if (inv.inventory.screens.some((screen: any) => screen.node === builtNode.value)) return "paired";
+  const found = inv.inventory.pending?.find((entry) => entry.file === installer.file && entry.seen);
   if (found) return found.pairing === "failed" ? "failed" : "seen";
   return now.value - doneAt.value > ARRIVE_MS ? "missing" : "waiting";
 });
 // While it waits for the screen, the inventory is asked again every five seconds the page is in sight.
-useVisibleInterval(() => refresh(false), 5000, { when: () => Boolean(arrival.value) && arrival.value !== "paired" });
+useVisibleInterval(() => inv.refresh(false), 5000, { when: () => Boolean(arrival.value) && arrival.value !== "paired" });
 const { busy: fixing, run: whileFixing } = useBusy();
 // The right network, then the same installation again: over the same cable, or from this computer after its click.
 async function fixWifi(event: Event) {

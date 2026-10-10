@@ -30,12 +30,14 @@ import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -58,13 +60,13 @@ const name = computed(() => props.tile.name || favoritePlay.value?.title || (dom
 const shape = computed(() => dimensions(sizeOf(props.tile), grid.value));
 // A thermostat: a climate, or a humidifier drawn with its parts in percent (firmware 0.42.0+, tile_controls::thermostat).
 const thermostat = computed(() => domain.value === 'climate' || domain.value === 'humidifier');
-const climateModes = computed(() => thermostat.value && effectiveControls(props.tile, state.inventory) === 'setpoint_mode' && shape.value.rows > 1);
+const climateModes = computed(() => thermostat.value && effectiveControls(props.tile, inv.inventory) === 'setpoint_mode' && shape.value.rows > 1);
 const tall = computed(() => shape.value.rows > 1 && (!full.value || coverExtended.value || climateModes.value) && ["standard", "cover"].includes(display.value));
 const full = computed(() => isFull(props.tile));
 const wide = computed(() => isWide(props.tile) && !full.value);
 const tallAction = computed(() => tall.value && (props.tile.entity === "screen.settings" || !!goesTo.value));
 const goesTo = computed(() => pageTarget(props.tile.entity));
-const background = computed(() => state.inventory.backgrounds?.[props.tile.options?.background || ""]?.color);
+const background = computed(() => inv.inventory.backgrounds?.[props.tile.options?.background || ""]?.color);
 const bare = computed(() => props.tile.options?.background === "none");
 // A settings card stays a plain card, as the screen draws it, even when an older layout gave it a clock face (GitHub #47).
 // The bedside clock (app 0.4.12): big digits over its three key places, as the screen draws it.
@@ -113,7 +115,7 @@ const rangeReady = computed(() => scr.currentScreen?.climate_range !== false);
 const controls = computed(() => {
   // What the screen draws for this entity (model/catalogue.ts drawable, as the add-on sends it): an older screen gets a
   // thermostat with only a range without its -/+, one without a temperature to set never has them.
-  const chosen = effectiveControls(props.tile, state.inventory);
+  const chosen = effectiveControls(props.tile, inv.inventory);
   const drawn = chosen ? drawable(domain.value, chosen, current.value?.a || {}, rangeReady.value ? null : new Set<string>()) : null;
   const selected = drawn === 'none' ? null : drawn;
   // A card one row high draws the setpoint alone, as the screen does (resolve_controls).
@@ -122,7 +124,7 @@ const controls = computed(() => {
   const primary = coverPrimary(selected);
   return primary === 'none' ? null : primary;
 });
-const coverExtended = computed(() => domain.value === 'cover' && hasCoverTilt(effectiveControls(props.tile, state.inventory)) && shape.value.rows > 1);
+const coverExtended = computed(() => domain.value === 'cover' && hasCoverTilt(effectiveControls(props.tile, inv.inventory)) && shape.value.rows > 1);
 const tallControls = computed(() => availableControl(domain.value,
   props.tile.options?.inline === 'slider' ? inlineControlKind(domain.value) : controls.value,
   current.value?.state || '', current.value?.a || {}, rangeReady.value));
@@ -202,7 +204,7 @@ const line = computed(() => {
 });
 const headStatus = computed(() => bodyText.value && (line.value === bodyText.value || line.value.startsWith(bodyText.value + ' ')) ? '' : line.value);
 const domain = computed(() => props.tile.entity.split(".")[0]);
-const cp = computed(() => state.inventory.icons?.controls || {});
+const cp = computed(() => inv.inventory.icons?.controls || {});
 const key = (n: string) => (cp.value[n] ? glyph(cp.value[n]) : "");
 const chosen = computed(() => isSelected(props.tile) && state.inspector?.kind === "tile");
 const live = computed(() => !props.placeholder && state.layout?.tiles.some((tile) => tile.id === props.tile.id));

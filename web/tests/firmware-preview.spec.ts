@@ -4,6 +4,7 @@ import FirmwarePreview from "../src/components/FirmwarePreview.vue";
 import createModule from "../src/wasm/firmware_preview.js";
 import { api, send } from "../src/api";
 import { state } from "../src/store";
+import { useInventoryStore } from "../src/stores/inventory";
 
 vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
 vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn() }));
@@ -33,7 +34,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   firmware.ccall.mockImplementation(response);
   state.document = { title: "Test panel", pages: [] } as any;
-  state.inventory = { screens: [], entities: [] } as any;
+  useInventoryStore().inventory = { screens: [], entities: [] } as any;
   vi.mocked(createModule).mockResolvedValue(firmware as any);
   vi.mocked(send).mockResolvedValue(bundle());
   vi.spyOn(window, "requestAnimationFrame").mockReturnValue(100);
@@ -225,7 +226,7 @@ describe("Firmware preview transport", () => {
   });
 
   it("draws the screen in the screens' language and its Dark mode, before the first layout and when they change", async () => {
-    state.inventory = { screens: [], entities: [], language: { setting: "auto", effective: "nl", ha: "nl", languages: [] } } as any;
+    useInventoryStore().inventory = { screens: [], entities: [], language: { setting: "auto", effective: "nl", ha: "nl", languages: [] } } as any;
     const editor = await preview(480, 480, { dark: true });
     const calls = firmware.ccall.mock.calls.map(([name, , , args]) => name === "preview_language" ? `language ${args?.[0]}` : name);
     expect(calls.indexOf("language nl")).toBeGreaterThanOrEqual(0);
@@ -233,13 +234,13 @@ describe("Firmware preview transport", () => {
     expect(firmware._preview_dark).toHaveBeenLastCalledWith(1);
     await editor.setProps({ dark: false });
     expect(firmware._preview_dark).toHaveBeenLastCalledWith(0);
-    state.inventory = { ...state.inventory, language: { setting: "de", effective: "de", ha: "nl", languages: [] } } as any;
+    useInventoryStore().inventory = { ...useInventoryStore().inventory, language: { setting: "de", effective: "de", ha: "nl", languages: [] } } as any;
     await flushPromises();
     expect(firmware.ccall).toHaveBeenLastCalledWith("preview_language", "number", ["string"], ["de"]);
     // A new inventory in the same language (every few seconds) draws nothing again.
     const spoken = () => firmware.ccall.mock.calls.filter(([name]) => name === "preview_language").length;
     const before = spoken();
-    state.inventory = { ...state.inventory, screens: [] } as any;
+    useInventoryStore().inventory = { ...useInventoryStore().inventory, screens: [] } as any;
     await flushPromises();
     expect(spoken()).toBe(before);
   });

@@ -11,10 +11,11 @@ import type { Inventory } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
 import { useTopbarStore } from "../src/stores/topbar";
+import { useInventoryStore } from "../src/stores/inventory";
 
 beforeEach(() => {
   vi.useRealTimers();
-  state.inventory = { screens: [], entities: [{ id: "sensor.out", name: "Outside", state: "12", area: "" }], builtin: [],
+  useInventoryStore().inventory = { screens: [], entities: [{ id: "sensor.out", name: "Outside", state: "12", area: "" }], builtin: [],
     icons: { groups: [], weather: {}, sun: {}, defaults: {}, fallback: "F0335", builtin: {}, controls: {} },
     header: { max_items: 6, builtin: [{ type: "clock", label: "Clock" }, { type: "date", label: "Date" }] } } as unknown as Inventory;
   state.documentGrid = { columns: 2, rows: 3 };

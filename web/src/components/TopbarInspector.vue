@@ -27,12 +27,14 @@ import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const scr = useScreenStore();
 const topbar = useTopbarStore();
+const inv = useInventoryStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => sort.live.value || topbar.topbarItems());
@@ -42,7 +44,7 @@ const lay = computed(() => {
   return barLayout(items.value, barMetrics.value, pageTitleShown(page.value), topbar.topbarView);
 });
 const overflow = computed(() => lay.value.dropped);
-const needed = computed(() => state.inventory.header?.min_firmware || "0.2.32");
+const needed = computed(() => inv.inventory.header?.min_firmware || "0.2.32");
 const supported = computed(() => scr.supportsVersion(needed.value));
 const hint = computed(() => supported.value
   ? t(overflow.value.size ? "editor.topbar.hint.overflow" : "editor.topbar.hint.reorder")
@@ -61,10 +63,10 @@ const iconOf = (it: HeaderItem) => {
   return view.analog || it.type !== "entity" ? entities.iconNamed(BUILTIN_ICONS[it.type])?.cp : view.icon;
 };
 // The screen's own items need firmware 0.38.0; an older screen leaves them out of its bar.
-const statusNeeded = computed(() => state.inventory.header?.status_min_firmware || "0.38.0");
+const statusNeeded = computed(() => inv.inventory.header?.status_min_firmware || "0.38.0");
 const statusSupported = computed(() => scr.supportsVersion(statusNeeded.value));
 // The battery item needs firmware 0.41.0 (docs/BATTERY.md); an older screen leaves it out of its bar.
-const batteryNeeded = computed(() => state.inventory.header?.battery_min_firmware || "0.41.0");
+const batteryNeeded = computed(() => inv.inventory.header?.battery_min_firmware || "0.41.0");
 const batterySupported = computed(() => scr.supportsVersion(batteryNeeded.value));
 const justAdded = (it: HeaderItem) => topbar.topbarAdded?.key === itemKey(it) && Date.now() - topbar.topbarAdded.time < 1200;
 // The page whose bar you clicked (app 0.2.105). Its left side, the title and the Home key, belongs to the page and is
@@ -147,24 +149,24 @@ function onKey(e: KeyboardEvent, i: number) {
       <template v-if="item.type === 'entity'">
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.content.label") }}<HelpTip :text="t('editor.topbar.content.hint')" /></span>
-          <Segmented :choices="(state.inventory.header?.contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content" @pick="(v) => update(v === 'icon' && item!.icon === 'none' ? { content: v, icon: 'auto' } : { content: v })" />
+          <Segmented :choices="(inv.inventory.header?.contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content" @pick="(v) => update(v === 'icon' && item!.icon === 'none' ? { content: v, icon: 'auto' } : { content: v })" />
         </div>
         <!-- An item that shows its icon alone (GitHub #144) needs one, so it offers no "No icon". -->
         <IconPicker :selected="item.icon || 'auto'" :automatic="entities.topbarPreviews[itemKey(item)]?.auto_icon || entities.automaticIcon(item.entity!)" :auto-label="t('editor.topbar.auto_icon')" :allow-none="item.content !== 'icon'" @pick="(n) => update({ icon: n })" />
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.show.label") }}<HelpTip :text="t('editor.topbar.show.hint')" /></span>
-          <Segmented :choices="(state.inventory.header?.shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show" @pick="(v) => update({ show: v })" />
+          <Segmented :choices="(inv.inventory.header?.shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show" @pick="(v) => update({ show: v })" />
         </div>
       </template>
       <!-- The screen's own Wi-Fi signal (firmware 0.38.0): what stands beside the bars, and when it shows. -->
       <template v-else-if="item.type === 'wifi'">
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.content.label") }}</span>
-          <Segmented :choices="(state.inventory.header?.wifi_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'icon'" @pick="(v) => update({ content: v })" />
+          <Segmented :choices="(inv.inventory.header?.wifi_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'icon'" @pick="(v) => update({ content: v })" />
         </div>
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.show.label") }}<HelpTip :text="t('editor.topbar.wifi_show_hint')" /></span>
-          <Segmented :choices="(state.inventory.header?.wifi_shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show || 'always'" @pick="(v) => update({ show: v })" />
+          <Segmented :choices="(inv.inventory.header?.wifi_shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show || 'always'" @pick="(v) => update({ show: v })" />
         </div>
         <small class="help">{{ t("editor.topbar.wifi_hint") }}</small>
         <small v-if="!statusSupported" class="help warn">{{ t("editor.topbar.status_firmware", { version: statusNeeded }) }}</small>
@@ -173,11 +175,11 @@ function onKey(e: KeyboardEvent, i: number) {
       <template v-else-if="item.type === 'battery'">
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.content.label") }}</span>
-          <Segmented :choices="(state.inventory.header?.battery_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'icon'" @pick="(v) => update({ content: v })" />
+          <Segmented :choices="(inv.inventory.header?.battery_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'icon'" @pick="(v) => update({ content: v })" />
         </div>
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.show.label") }}<HelpTip :text="t('editor.topbar.battery_show_hint')" /></span>
-          <Segmented :choices="(state.inventory.header?.battery_shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show || 'always'" @pick="(v) => update({ show: v })" />
+          <Segmented :choices="(inv.inventory.header?.battery_shows || []).map((s) => [s.key, s.label] as [string, string])" :value="item.show || 'always'" @pick="(v) => update({ show: v })" />
         </div>
         <small class="help">{{ t("editor.topbar.battery_hint") }}</small>
         <small v-if="!batterySupported" class="help warn">{{ t("editor.topbar.status_firmware", { version: batteryNeeded }) }}</small>
@@ -186,7 +188,7 @@ function onKey(e: KeyboardEvent, i: number) {
         <!-- Its icon and the words its plugin gives, or its icon alone (plugin API 0.8). -->
         <div class="f">
           <span class="f-label">{{ t("editor.topbar.content.label") }}</span>
-          <Segmented id="topbar-plugin-content" :choices="(state.inventory.header?.plugin_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'all'" @pick="(v) => update({ content: v })" />
+          <Segmented id="topbar-plugin-content" :choices="(inv.inventory.header?.plugin_contents || []).map((c) => [c.key, c.label] as [string, string])" :value="item.content || 'all'" @pick="(v) => update({ content: v })" />
         </div>
         <p class="help" id="topbar-plugin">{{ t("editor.topbar.plugin_item") }}</p>
       </template>

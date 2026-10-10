@@ -9,6 +9,7 @@ import { openSaverStep, startStore, state } from "../src/store";
 import type { Inventory, ScreensaverView } from "../src/types";
 import { useScreenStore } from "../src/stores/screen";
 import { useScreensaverStore } from "../src/stores/screensaver";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const saver = (patch: Partial<ScreensaverView> = {}): ScreensaverView => ({
   show: true, media: "media_player.tv", more: ["media_player.speaker"], camera: "", order: ["media", "camera", "clock"], off: ["camera"],
@@ -17,7 +18,7 @@ const saver = (patch: Partial<ScreensaverView> = {}): ScreensaverView => ({
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
-  state.inventory = {
+  useInventoryStore().inventory = {
     screens: [{ id: "living", name: "Living", virtual: true, shape: { width: 480, height: 480 }, screensaver: saver() }],
     entities: [
       { id: "media_player.tv", name: "Apple TV", area: "Living room" }, { id: "media_player.speaker", name: "Speaker", area: "Living room" },

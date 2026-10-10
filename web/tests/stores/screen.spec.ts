@@ -10,6 +10,7 @@ import { useScreenStore } from "../../src/stores/screen";
 import { useUiStore } from "../../src/stores/ui";
 import type { Screen, ScreensaverChoice } from "../../src/types";
 import { failure, fakeApi } from "../helpers/fake-api";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 const saver = (patch: Partial<ScreensaverChoice> = {}) => ({ show: true, media: "", camera: "", order: ["media", "camera", "clock"], off: [],
@@ -18,7 +19,7 @@ const screen = (id: string, patch: Partial<Screen> = {}) => ({ id, name: id, onl
   screensaver: saver(), ...patch }) as unknown as Screen;
 
 function open(...screens: Screen[]) {
-  state.inventory = { screens, entities: [], header: { max_items: 6, builtin: [] }, pending: [] } as any;
+  useInventoryStore().inventory = { screens, entities: [], header: { max_items: 6, builtin: [] }, pending: [] } as any;
   useScreenStore().selected = screens[0]?.id ?? null;
   return useScreenStore();
 }
@@ -109,7 +110,7 @@ describe("what can be done to a screen", () => {
 
   it("forgets a screen New screen wrote, one at a time, and keeps it when the add-on refuses", async () => {
     const scr = open(screen("hall"));
-    state.inventory.pending = [{ file: "desk.yaml", friendly: "Desk" }, { file: "attic.yaml", friendly: "Attic" }] as any;
+    useInventoryStore().inventory.pending = [{ file: "desk.yaml", friendly: "Desk" }, { file: "attic.yaml", friendly: "Attic" }] as any;
     const api = fakeApi({ "DELETE firmware/profiles/:file": {} });
     const asked = api.defer("DELETE firmware/profiles/:file");
     const forgetting = scr.forgetPending("desk.yaml", "Desk");
@@ -119,11 +120,11 @@ describe("what can be done to a screen", () => {
     asked.resolve();
     expect(await forgetting).toBe(true);
     expect(api.asked("DELETE firmware/profiles/:file").map((r) => r.params.file)).toEqual(["desk.yaml"]);
-    expect([state.inventory.pending!.map((p) => p.file), scr.removing]).toEqual([["attic.yaml"], null]);
+    expect([useInventoryStore().inventory.pending!.map((p) => p.file), scr.removing]).toEqual([["attic.yaml"], null]);
     expect(useUiStore().notice?.message).toBe(t("editor.sidebar.remove.done", { name: "Desk" }));
     api.on("DELETE firmware/profiles/:file", failure(409, "A paired screen builds from it"));
     expect(await scr.forgetPending("attic.yaml", "Attic")).toBe(false);
-    expect([state.inventory.pending!.length, scr.removing, useUiStore().notice?.message]).toEqual([1, null, "A paired screen builds from it"]);
+    expect([useInventoryStore().inventory.pending!.length, scr.removing, useUiStore().notice?.message]).toEqual([1, null, "A paired screen builds from it"]);
   });
 
   it("lets a screen perform actions once at a time, and says the add-on's refusal", async () => {
@@ -149,7 +150,7 @@ describe("what can be done to a screen", () => {
 describe("a screen's status", () => {
   it("says what its build does, from the builds store", () => {
     const scr = open(screen("hall"), screen("desk", { online: false }));
-    const [hall, desk] = state.inventory.screens;
+    const [hall, desk] = useInventoryStore().inventory.screens;
     expect([scr.screenLight(hall), scr.screenSubline(hall), scr.needsAttention(hall)]).toEqual(["ok", null, false]);
     expect([scr.screenLight(desk), scr.needsAttention(desk)]).toEqual(["down", true]);
     useBuildsStore().updating = ["hall"];

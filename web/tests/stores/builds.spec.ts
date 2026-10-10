@@ -7,6 +7,7 @@ import { useBuildsStore } from "../../src/stores/builds";
 import { useUiStore } from "../../src/stores/ui";
 import type { Screen } from "../../src/types";
 import { failure, fakeApi } from "../helpers/fake-api";
+import { useInventoryStore } from "../../src/stores/inventory";
 
 const screen = (id: string) => ({ id: `text.${id}`, name: id, online: true, layout: {}, update: { profile: `${id}.yaml`, host: "10.0.0.1" } }) as unknown as Screen;
 const hall = screen("hall"), desk = screen("desk");
@@ -14,7 +15,7 @@ const t = (key: string) => i18n.global.t(key);
 
 describe("updates", () => {
   it("builds one screen: asked for at once, until the add-on names its build; a refusal forgets it and says why", async () => {
-    state.inventory = { screens: [hall, desk], entities: [], builds: {} } as any;
+    useInventoryStore().inventory = { screens: [hall, desk], entities: [], builds: {} } as any;
     const api = fakeApi({ "POST screens/:id/update": {}, "GET inventory": { screens: [hall, desk], entities: [], builds: {} } });
     const update = api.defer("POST screens/:id/update");
     const builds = useBuildsStore();
@@ -27,7 +28,7 @@ describe("updates", () => {
     expect(api.count("GET inventory")).toBe(1);
     // The add-on's inventory does not name the build yet: the page keeps it as asked for.
     expect(builds.updating).toEqual([hall.id]);
-    state.inventory.builds = { [hall.id]: { by: "update", state: "running", file: "hall.yaml" } };
+    useInventoryStore().inventory.builds = { [hall.id]: { by: "update", state: "running", file: "hall.yaml" } };
     builds.prune();
     expect([builds.updating, builds.isBuilding(hall)]).toEqual([[], true]);
 
@@ -38,12 +39,12 @@ describe("updates", () => {
   });
 
   it("updates every screen that waits: the inventory read again, or the refusal said", async () => {
-    state.inventory = { screens: [hall], entities: [], updates: { pending: 2, auto: false } } as any;
+    useInventoryStore().inventory = { screens: [hall], entities: [], updates: { pending: 2, auto: false } } as any;
     const api = fakeApi({ "POST updates/run": {}, "GET inventory": { screens: [hall], entities: [], updates: { pending: 2, busy: true } } });
     const builds = useBuildsStore();
     await builds.runUpdateAll();
     expect(api.calls.map((r) => `${r.method} ${r.path}`)).toEqual(["POST updates/run", "GET inventory"]);
-    expect(state.inventory.updates?.busy).toBe(true);
+    expect(useInventoryStore().inventory.updates?.busy).toBe(true);
     api.on("POST updates/run", failure(503, "The add-on is busy"));
     await builds.runUpdateAll();
     expect(api.count("GET inventory")).toBe(1);
@@ -51,16 +52,16 @@ describe("updates", () => {
   });
 
   it("turns automatic updates on and off as the add-on takes it, and keeps them as they were when it refuses", async () => {
-    state.inventory = { screens: [], entities: [], updates: { pending: 0, auto: false } } as any;
+    useInventoryStore().inventory = { screens: [], entities: [], updates: { pending: 0, auto: false } } as any;
     const api = fakeApi({ "PUT updates": {} });
     const builds = useBuildsStore();
     await builds.setAutoUpdate(true);
     expect(api.asked("PUT updates")[0].body).toEqual({ auto: true });
-    expect(state.inventory.updates?.auto).toBe(true);
+    expect(useInventoryStore().inventory.updates?.auto).toBe(true);
     expect(useUiStore().notice?.message).toBe(t("editor.settings.updates.auto_on"));
     api.on("PUT updates", failure(500, "Could not save"));
     await builds.setAutoUpdate(false);
-    expect(state.inventory.updates?.auto).toBe(true);
+    expect(useInventoryStore().inventory.updates?.auto).toBe(true);
     expect(useUiStore().notice?.message).toBe("Could not save");
   });
 });

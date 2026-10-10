@@ -13,6 +13,7 @@ import { state } from "../store";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useScreenStore } from "./screen";
+import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
 
@@ -35,6 +36,7 @@ type Payload = {
 };
 
 export const usePluginsStore = defineStore("plugins", () => {
+  const inv = useInventoryStore();
   const ui = useUiStore();
   const builds = useBuildsStore();
   const scr = useScreenStore();
@@ -78,9 +80,9 @@ export const usePluginsStore = defineStore("plugins", () => {
   const asking = new Set<string>(), drawing = new Set<string>(), planning = new Set<string>();
   const sending = reactive<Record<string, string[]>>({});
 
-  // Plugins are on in the dev app (editor_features.plugins, docs/PLUGINS.md) and in `npm run dev`: a person with a
-  // released add-on never sees the page or the tab. The add-on takes plugin tiles and items only then.
-  const pluginsEnabled = computed(() => import.meta.env.DEV || state.inventory.editor_features?.plugins === true);
+  // Plugins are on in the dev app and in `npm run dev` (the inventory store's pluginsEnabled, an editor feature the add-on
+  // turns on): a person with a released add-on never sees the page or the tab.
+  const pluginsEnabled = computed(() => inv.pluginsEnabled);
 
   // ---- The tile types and bar items of the plugins the editor knows, from its index ----
   const tileTypes = computed(() => tileTypesOf(index.value));
@@ -113,7 +115,7 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
 
   // `_screen`: the screen shown, whose own plugin of this id answers (two screens may run two plugins of one id).
-  const shownScreen = () => (scr.selected && !state.inventory.screens.find((s) => s.id === scr.selected)?.virtual ? scr.selected : "");
+  const shownScreen = () => (scr.selected && !inv.inventory.screens.find((s) => s.id === scr.selected)?.virtual ? scr.selected : "");
   // The choices of an option: its own, or those of one of the plugin's fetches (a stop's lines), asked of the add-on with
   // the tile's other options.
   function choicesFor(plugin: Plugin, option: PluginTileOption, given: Record<string, unknown>) {
@@ -165,7 +167,7 @@ export const usePluginsStore = defineStore("plugins", () => {
   // Every entity of these domains: the editor's own and those the add-on sent for plugins, each once.
   function entitiesIn(domains: string[] = []) {
     const seen = new Set<string>();
-    return [...state.inventory.entities, ...entities.value].filter((e) => domains.includes(e.id.split(".")[0]) && !seen.has(e.id) && seen.add(e.id))
+    return [...inv.inventory.entities, ...entities.value].filter((e) => domains.includes(e.id.split(".")[0]) && !seen.has(e.id) && seen.add(e.id))
       .map((e) => ({ id: e.id, name: e.name || e.id }));
   }
   // An update of a plugin on this screen that asks for other rights than the person agreed to: the details ask again.
@@ -174,7 +176,7 @@ export const usePluginsStore = defineStore("plugins", () => {
     return Boolean(have && have.consent && plugin.permission_hash && have.consent !== plugin.permission_hash);
   }
 
-  const realScreens = () => state.inventory.screens.filter((screen) => !screen.virtual);
+  const realScreens = () => inv.inventory.screens.filter((screen) => !screen.virtual);
   // Whether this screen runs another plugin of the same id than the one on offer (a fork, a folder being made): no update
   // moves it there by itself; its details offer to switch.
   function otherOrigin(screen: Screen, plugin: Plugin) {
@@ -480,7 +482,7 @@ export const usePluginsStore = defineStore("plugins", () => {
       watch(pluginsEnabled, (on) => { if (on) loadPlugins(); }, { immediate: true });
       // A plugin build of some screen that starts or ends (the builds store's, live from the add-on): a record's state and
       // version follow the build without a poll of its own.
-      watch(() => Object.entries(state.inventory.builds || {}).filter(([, build]) => build.by === "plugins")
+      watch(() => Object.entries(inv.inventory.builds || {}).filter(([, build]) => build.by === "plugins")
         .map(([screen, build]) => `${screen}:${build.state}`).join(), (now, before) => { if (loaded.value && now !== before) reloadPlugins(); });
     });
     running = () => { running = null; scope.stop(); };

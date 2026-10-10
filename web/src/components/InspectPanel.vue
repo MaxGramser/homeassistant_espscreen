@@ -9,9 +9,11 @@ import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
 import { useUiStore } from "../stores/ui";
 import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
 const scr = useScreenStore();
+const inv = useInventoryStore();
 
 // One tile (an entity may be on several, firmware 0.16.0+): its entity, its slot and, for a key, its place.
 const props = defineProps<{ entity?: string; slot?: number; tileKey?: number }>();
@@ -41,8 +43,8 @@ const optionsText = (entity: string, own?: Record<string, any>) => {
     slider: t(options.inline === "slider" ? "editor.inspect.yes" : "editor.inspect.no"),
     display: displayName(options.display || "standard"),
     size: sizeName(options.size as string),
-    control: controlsLabel({ entity, name: "", slot: 0, options }, state.inventory),
-    background: state.inventory.backgrounds?.[options.background || "auto"]?.label || t("editor.inspect.background_default"),
+    control: controlsLabel({ entity, name: "", slot: 0, options }, inv.inventory),
+    background: inv.inventory.backgrounds?.[options.background || "auto"]?.label || t("editor.inspect.background_default"),
   });
 };
 onMounted(load);

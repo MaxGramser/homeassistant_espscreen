@@ -10,6 +10,7 @@ import type { Inventory } from "../src/types";
 import { seedLayout } from "./page-fixtures";
 import { liveListeners } from "./helpers/browser";
 import { useScreenStore } from "../src/stores/screen";
+import { useInventoryStore } from "../src/stores/inventory";
 
 // The pointer and touch listeners on the document (jsdom adds some of its own the first time a selector runs).
 const following = (live: () => string[]) => live().filter((name) => /^(pointer|touch)/.test(name));
@@ -19,7 +20,7 @@ const press = (target: Element, pointerType: string) => target.dispatchEvent(Obj
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
-  state.inventory = { screens: [{ id: "living", name: "Living", virtual: true, shape: { width: 480, height: 480 }, screensaver: {
+  useInventoryStore().inventory = { screens: [{ id: "living", name: "Living", virtual: true, shape: { width: 480, height: 480 }, screensaver: {
     show: true, media: "", more: [], camera: "", order: ["media", "camera", "clock"], off: [], weather: "auto", items: [], ready: true,
     pictures: true, standby: true } }], entities: [], builtin: [], header: { max_items: 6, builtin: [] } } as unknown as Inventory;
   useScreenStore().selected = "living";

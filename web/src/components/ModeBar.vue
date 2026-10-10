@@ -13,8 +13,10 @@ import { thermostatModeColor } from "../model/tile-palette";
 import { cardContent, cellContent, modeBar, uiScale } from "../model/ui-scale";
 import { deviceStyle, screenShape, state } from "../store";
 import { useRegionStore } from "../stores/region";
+import { useInventoryStore } from "../stores/inventory";
 
 const region = useRegionStore();
+const inv = useInventoryStore();
 
 // `columns`: how many of the page's columns the card spans. `mode`: the entity's state; `domain`: climate or humidifier.
 const props = withDefaults(defineProps<{ a: Record<string, any>; mode: string; place: "row" | "tall" | "full"; columns: number; domain?: string }>(), { domain: "climate" });
@@ -44,7 +46,7 @@ const words = computed(() => {
   const text = fonts.sublabel ?? (large ? 16 : 11);
   return keys.value.every((k) => !k.mode || segment >= icon + px(large ? 26 : 14) + word(k.mode).length * 0.55 * text);
 });
-const icons = computed(() => state.inventory.icons?.controls || {});
+const icons = computed(() => inv.inventory.icons?.controls || {});
 const icon = (k: { icon: string; cp?: string }) => (k.cp ? glyph(k.cp) : icons.value[k.icon] ? glyph(icons.value[k.icon]) : "");
 // The board's sizes in the mockup's pixels: the bar, its inset, its icons and its words.
 const style = computed(() => {
