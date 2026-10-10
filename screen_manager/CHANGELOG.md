@@ -1,5 +1,9 @@
 ## Unreleased
 
+- **M5Stack Tab5: the speaker and the voice assistant.** The Tab5 turns on the output its speaker is connected to,
+  so spoken answers, announcements and sounds can be heard; its microphones are amplified before the converter and
+  read on the channel that working Tab5 voice setups use, and its speaker buffers half a second, so an answer plays
+  without gaps.
 - **A camera live, full screen, on the P4 boards.** On the reTerminal D1001, the M5Stack Tab5, the Waveshare ESP32-P4
   panel and the Guition P4 boards, a camera tapped open full screen plays live at the camera's own pace, instead of a
   new still every four seconds: 8 pictures a second from a camera's low-resolution stream, 15 from a 1080p one, about a

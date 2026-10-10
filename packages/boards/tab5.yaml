@@ -46,6 +46,10 @@ substitutions:
   AUDIO_DAC_DB_AT_0: "-96"
   AUDIO_DAC_DB_AT_1: "0"
   AUDIO_AMPLIFIER: board_speaker_amp
+  # ESPHome's es8388 leaves the DAC's outputs as the chip starts, off; the Tab5's speaker hangs on LINE1 (ESPHome's own
+  # Tab5 configuration turns that output on by hand). This board's own step at start, after every component is set up.
+  BOOT_BOARD_SETTINGS: |-
+    id(ts_audio_dac)->set_dac_output(es8388::DAC_OUTPUT_LINE1);
 
   # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the SC2356 on the MIPI-CSI port answers on the
   # system I2C bus, and takes its 24 MHz clock from GPIO36, as M5Stack's BSP drives it; the board takes it out of reset
@@ -107,11 +111,27 @@ audio_adc:
     i2c_id: tab5_bus
     sample_rate: 16000
     bits_per_sample: 16bit
+    # The microphones' gain in the ES7210's analogue stage, before the converter: 30 dB rather than ESPHome's 24, which
+    # raises the voice above the converter's own noise, where a digital gain raises both and clips the peaks.
+    mic_gain: 30dB
 
 audio_dac:
   - platform: es8388
     id: ts_audio_dac
     i2c_id: tab5_bus
+
+# The Tab5's own choices on top of features/audio.yaml (ESPHome's !extend). The microphone on the right
+# channel of the ES7210, as ESPHome's Tab5 configuration and the Tab5 voice configurations that work read it, with its
+# DC offset taken out. The speaker with ESPHome's default buffer of 500 ms instead of 100: an answer comes over the
+# C6's Wi-Fi while Home Assistant still makes it, and a buffer that runs dry plays silence, a gap in the voice.
+microphone:
+  - id: !extend ts_microphone
+    channel: right
+    correct_dc_offset: true
+
+speaker:
+  - id: !extend ts_speaker_out
+    buffer_duration: 500ms
 
 switch:
   # The camera's reset (CAM_RST, pin 6 of the first I/O expander, active low), released at start as M5Stack's own

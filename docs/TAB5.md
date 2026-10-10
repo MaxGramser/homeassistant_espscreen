@@ -59,6 +59,12 @@ them take in turns, so the board sets `AUDIO_HALF_DUPLEX`: the speaker lets go o
 speaker wants it, for any sound, and listens again after.
 The volume runs evenly in decibels from -45 dB to the ES8388's full scale.
 
+Four choices are the Tab5's own, in its board file. At start the board turns on the ES8388's LINE1 output, where the
+speaker is connected: ESPHome's es8388 leaves the outputs off, and ESPHome's own Tab5 configuration turns them on by
+hand. The microphones take their gain in the ES7210's analogue stage (30 dB), before the converter, and are read on
+the right channel with their DC offset removed, as the working Tab5 voice configurations do. The speaker keeps half a
+second of sound in its buffer, so a spoken answer that arrives over the C6's Wi-Fi in bursts plays without gaps.
+
 ## Camera
 
 The 2 MP camera on the MIPI-CSI port answers on the system I2C bus and takes its 24 MHz clock from GPIO36, as M5Stack's
