@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import boardShapes from "../../screen_manager/app/boards.json";
-import { energyFits, pillMetrics, textEms, uiScale, widestSetpoint, cardContent, cardHeight, cellContent, modeBar, watchCard, watchPadding, wideChip } from "../src/model/ui-scale";
+import { energyFits, pillMetrics, tallKeys, textEms, touchMin, uiScale, widestSetpoint, cardContent, cardHeight, cellContent, modeBar, watchCard, watchPadding, wideChip } from "../src/model/ui-scale";
 
 describe("the firmware's sizes in the mockup (app 0.4.32)", () => {
   it("scales as ui::px does, from the board's density and look", () => {
@@ -9,6 +9,16 @@ describe("the firmware's sizes in the mockup (app 0.4.32)", () => {
     // A 7-inch at 133 dpi draws the standard look at 78 %: (46 x 78 + 50) / 100.
     expect(uiScale({ dpi: 133, look: "standard" }).px(46)).toBe(36);
     expect(pillMetrics({ dpi: 170, look: "standard", fonts: { watch_value: 38, sublabel_big: 21 } })).toEqual({ height: 48, inset: 4, key: 40, faces: [38, 21] });
+  });
+  it("gives a finger 7 mm of glass, and a taller card's keys that or the look's key (runtime_tiles render_tall)", () => {
+    expect(touchMin({ dpi: 143, look: "compact" })).toBe(40);
+    expect(touchMin({ dpi: 170, look: "standard" })).toBe(48);
+    expect(touchMin({ dpi: 217, look: "standard" })).toBe(61);
+    expect(tallKeys({ dpi: 143, look: "compact" })).toEqual({ touch: 40, gap: 4 });
+    expect(tallKeys({ dpi: 170, look: "standard" })).toEqual({ touch: 48, gap: 8 });
+    // A 4.3-inch Waveshare: whole pixels as on the glass, not 61.3 and 10.2.
+    expect(tallKeys({ dpi: 217, look: "standard" })).toEqual({ touch: 61, gap: 10 });
+    expect(tallKeys({ dpi: 294, look: "standard" })).toEqual({ touch: 83, gap: 14 });
   });
   it("measures a thermostat's -/+ by the widest temperature it can show, as tile_controls::widest_setpoint", () => {
     expect(widestSetpoint({ min_temp: 7, max_temp: 35, target_temp_step: 0.5 })).toBe("88.8°");

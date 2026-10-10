@@ -94,15 +94,20 @@ def cut(pattern, text, what):
 
 def panel_source():
     """The panel's sizes from runtime_tiles.h (LVGL around them, plain arithmetic inside): PanelMetrics, panel_metrics,
-    panel_metrics_full, bar_metrics, the inset of a stepper's keys and the finger of a taller card."""
+    panel_metrics_full, bar_metrics, the inset of a stepper's keys, the finger of a taller card, and render_tall's keys and
+    their gap."""
     parts = [cut(r'struct PanelMetrics \{[^}]*\};', TILES, 'struct PanelMetrics'),
              cut(r'inline climate_tile::Metrics bar_metrics\(.*?\n\}', TILES, 'bar_metrics'),
              cut(r'inline PanelMetrics panel_metrics\(bool large\) \{.*?\n\}', TILES, 'panel_metrics'),
              cut(r'inline PanelMetrics panel_metrics_full\(bool big\) \{.*?\n\}', TILES, 'panel_metrics_full')]
     inset = cut(r'inline void stepper_keys\(.*?\)\{\s*const int in=(.*?),d=std::max', TILES, "stepper_keys' inset")
     taller = cut(r'if\(taller\)\{\s*m\.key_h=(.*?);m\.key_w=m\.key_h;', TILES, "a taller card's key")
+    # The keys of a card two rows high or more and their gap (render_tall: a cover's keys and slats among them).
+    tall_gap = cut(r'inline bool render_tall\(.*?const int gap=(.*?);', TILES, "render_tall's gap")
+    tall_touch = cut(r'inline bool render_tall\(.*?const int touch=(.*?);', TILES, "render_tall's touch")
     return ('namespace runtime_tiles {\n' + '\n'.join(parts) +
-            f'\ninline int stepper_inset() {{ return {inset}; }}\ninline int taller_key(bool large) {{ return {taller}; }}\n}}\n')
+            f'\ninline int stepper_inset() {{ return {inset}; }}\ninline int taller_key(bool large) {{ return {taller}; }}\n'
+            f'inline int tall_gap(bool large) {{ return {tall_gap}; }}\ninline int tall_touch(bool large) {{ return {tall_touch}; }}\n}}\n')
 
 
 def build_and_run(source, tmp):
@@ -120,7 +125,7 @@ def run_ts(body, data, tmp):
     (Path(tmp) / 'data.json').write_text(json.dumps(data))
     script = Path(tmp) / 'parity.ts'
     script.write_text(f'''import {{ readFileSync }} from "node:fs";
-import {{ cardContent, cardHeight, cellContent, modeBar, pillMetrics, uiScale, watchCard, watchPadding, widestSetpoint }} from "{model / 'ui-scale'}";
+import {{ cardContent, cardHeight, cellContent, modeBar, pillMetrics, tallKeys, uiScale, watchCard, watchPadding, widestSetpoint }} from "{model / 'ui-scale'}";
 import {{ barGaps, barLayout, barMetricsFor }} from "{model / 'topbar'}";
 import {{ sizeColumns, sizeFor, sizeRows, sizesOn, spanOf, spanOffered }} from "{model / 'sizes'}";
 import {{ accent, tileActive }} from "{model / 'tile-palette'}";
@@ -150,7 +155,7 @@ const out = DATA.shapes.map((shape: any) => {
   const bars: Record<string, any> = {};
   for (const place of ["row", "tall", "full"] as const)
     bars[place] = DATA.reaches.map((reach: number) => DATA.modes.map((modes: number) => modeBar(shape, place, reach, modes)));
-  return { px: DATA.px.map(px), large, pill: pillMetrics(shape), bars };
+  return { px: DATA.px.map(px), large, pill: pillMetrics(shape), tall: tallKeys(shape), bars };
 });
 console.log(JSON.stringify(out));''', {'shapes': [s for _, _, s in SHAPES], 'px': PX, 'reaches': REACHES, 'modes': list(MODES)}, tmp)
             looks = ',\n'.join(f'  {{{shape["dpi"]}, "{shape["look"]}"}}' for _, _, shape in SHAPES)
@@ -178,6 +183,7 @@ int main() {{
     // The pill of a wide card's -/+ (layout_panel: m.key_h + 2) and its round keys (stepper_keys).
     const int height = panel_metrics(ui::large()).key_h + 2, in = stepper_inset();
     std::printf("\\npill %d %d %d\\n", height, in, std::max(1, height - 2 * in));
+    std::printf("tall %d %d\\n", tall_touch(ui::large()), tall_gap(ui::large()));
     // The mode bar's finger: the panel's key on a card of one row, a taller card's key, the full card's (by its cell).
     PanelMetrics row = panel_metrics(ui::large()), tall = row;
     tall.key_h = taller_key(ui::large());
@@ -209,6 +215,8 @@ int main() {{
                 out[-1]['px'] = [int(v) for v in rest]
             elif tag == 'pill':
                 out[-1]['pill'] = [int(v) for v in rest]
+            elif tag == 'tall':
+                out[-1]['tall'] = [int(v) for v in rest]
             elif tag == 'bar':
                 name, finger, inset, *cells = rest
                 out[-1]['bar'][name] = (int(finger), int(inset), [tuple(int(v) for v in cell.split(':')) for cell in cells])
@@ -224,6 +232,11 @@ int main() {{
         for (key, _, shape), fw, ts in zip(SHAPES, self.firmware(), self.ts):
             pill = ts['pill']
             self.assertEqual([pill['height'], pill['inset'], pill['key']], fw['pill'], f'{key}: pillMetrics')
+
+    def test_a_taller_cards_keys_are_render_talls(self):
+        # A cover's keys and slats on a card two rows high or more (CoverTilePreview), and their gap.
+        for (key, _, shape), fw, ts in zip(SHAPES, self.firmware(), self.ts):
+            self.assertEqual([ts['tall']['touch'], ts['tall']['gap']], fw['tall'], f'{key}: tallKeys')
 
     def test_the_mode_bar_fits_as_many_modes_as_climate_tile(self):
         for (key, _, shape), fw, ts in zip(SHAPES, self.firmware(), self.ts):

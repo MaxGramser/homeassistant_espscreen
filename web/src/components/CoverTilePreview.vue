@@ -3,6 +3,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { deviceStyle, isCompact, screenShape, screenText, state } from '../store';
 import { glyph } from '../model/topbar';
+import { tallKeys } from '../model/ui-scale';
 import { controlKeys, coverTiltKeys, coverTiltKind } from '../model/tall-controls';
 const props = defineProps<{ primary: string; entityState: string; attributes: Record<string, any> }>();
 const root = ref<HTMLElement>();
@@ -16,9 +17,10 @@ watch(root, element => {
 });
 onBeforeUnmount(() => observer?.disconnect());
 const scale = computed(() => parseFloat(deviceStyle.value['--mockup-width']) / screenShape.value.width);
-const dpi = computed(() => screenShape.value.dpi || (isCompact.value ? 143 : 170));
-const touch = computed(() => Math.max(dpi.value * 7 / 25, (isCompact.value ? 34 : 48) * dpi.value / (isCompact.value ? 143 : 170)) * scale.value);
-const gap = computed(() => (isCompact.value ? 4 : 8) * dpi.value / (isCompact.value ? 143 : 170) * scale.value);
+// The keys and their gap as the glass draws them (ui-scale tallKeys), in the mockup's pixels.
+const keys = computed(() => tallKeys({ ...screenShape.value, look: isCompact.value ? 'compact' : 'standard' }));
+const touch = computed(() => keys.value.touch * scale.value);
+const gap = computed(() => keys.value.gap * scale.value);
 const mainKeys = computed(() => controlKeys('cover', props.primary, props.entityState, props.attributes));
 const tilt = computed(() => coverTiltKind(props.entityState, props.attributes));
 const tiltKeys = computed(() => tilt.value === 'buttons' ? coverTiltKeys(props.attributes) : []);

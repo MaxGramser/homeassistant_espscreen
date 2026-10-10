@@ -6,6 +6,7 @@ import { defineComponent, h, nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AppSettingsView from "../src/components/AppSettingsView.vue";
 import CommandPalette from "../src/components/CommandPalette.vue";
+import CoverTilePreview from "../src/components/CoverTilePreview.vue";
 import Library from "../src/components/Library.vue";
 import ChoiceField from "../src/components/ChoiceField.vue";
 import FavoritePicker from "../src/components/FavoritePicker.vue";
@@ -93,6 +94,15 @@ describe("TileCard", () => {
     await card.findAll(".round-tile .remove")[0].trigger("click");
     expect(state.layout!.tiles.map((tile) => tile.entity)).toEqual(["screen.nightstand", "lock.front"]);
     expect(state.document!.pages[0].tiles[0].children?.map((child) => child.content.entityId)).toEqual(["lock.front"]);
+  });
+  it("draws a cover's keys and their gaps at the glass's own sizes (runtime_tiles render_tall)", () => {
+    // A 4.3-inch Waveshare at 217 dpi: 61 and 10 pixels of glass, the mockup 500 px wide for its 800.
+    const way = SHAPES.waveshare43.orientations.landscape;
+    state.inventory.screens = [{ id: "living", name: "Living room", online: true, layout: { title: "Living room", tiles: [] },
+      shape: { width: way.width, height: way.height, columns: way.columns, rows: way.rows, dpi: SHAPES.waveshare43.dpi, look: SHAPES.waveshare43.look } } as any];
+    const keys = mount(CoverTilePreview, { props: { primary: "position", entityState: "open", attributes: { current_position: 40 } } });
+    expect(keys.attributes("style")).toContain("--cover-touch: 38.125px");
+    expect(keys.attributes("style")).toContain("--cover-gap: 6.25px");
   });
   it('keeps the cover primary control when slats are selected or the tile shrinks', async () => {
     state.inventory.controls!.cover = { default: 'buttons', choices: [
