@@ -1,4 +1,4 @@
-name: Bug report
+name: Bug report (bugs only)
 description: Report a reproducible problem in an existing screen, app or editor feature.
 title: "[Bug]: "
 labels: ["bug"]
@@ -6,6 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
+        **Only bug reports are reviewed on GitHub.** Feature requests, improvements and new board requests posted here will not be reviewed. They must go on the website. Questions and general discussions also belong on the website, not in GitHub Issues or Discussions.
+
         Use this form when existing functionality is broken. Please include the steps to reproduce it.
 
         **Want a feature or improvement?** Search the [wishlist](https://tessera-maxgramser.on-forge.com/wishlist) and upvote an existing wish before adding another.

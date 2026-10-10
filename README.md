@@ -70,6 +70,8 @@ also be changed on the screen or by an automation, and your own YAML for one scr
 
 ## Requests, questions and bugs
 
+> **GitHub Issues are for bugs only.** Feature requests, improvements and new board requests posted on GitHub will not be reviewed. Submit and discuss them on the [Tessera wishlist](https://tessera-maxgramser.on-forge.com/wishlist). Questions and general discussions are handled in [Community](https://tessera-maxgramser.on-forge.com/community), not GitHub Discussions.
+
 - **Features and improvements:** search the [wishlist](https://tessera-maxgramser.on-forge.com/wishlist). Upvote an existing wish or add your own.
 - **New ESP boards and displays:** use the [New boards category](https://tessera-maxgramser.on-forge.com/wishlist?category=board). Include the exact model, a product link and whether you can test it. Votes show how many people would use it and help set priorities. They do not guarantee support or a release date.
 - **Questions and examples:** post in [Community](https://tessera-maxgramser.on-forge.com/community), where the earlier GitHub conversations and replies have moved.
