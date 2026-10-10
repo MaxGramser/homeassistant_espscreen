@@ -635,7 +635,7 @@ let committedGrid: PageGrid | null = null;
 let committedUpright: boolean | null = null;
 let selectionEpoch = 0;
 export function markDirty() {
-  state.dirty = !sameValue(state.document, committedLayout) || !sameValue(state.documentGrid, committedGrid) || state.documentUpright !== committedUpright;
+  state.dirty = !pages.sameValue(state.document, committedLayout) || !pages.sameValue(state.documentGrid, committedGrid) || state.documentUpright !== committedUpright;
   state.saved = 0;
   edits++;
 }
@@ -657,7 +657,7 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   if (!state.document || !state.documentGrid) return false;
   if (!nextGrid) return false;
   pages.validatePages(next, screenGridOf(nextGrid));
-  if (sameValue(next, state.document) && pages.sameGrid(nextGrid, state.documentGrid)) return false;
+  if (pages.sameValue(next, state.document) && pages.sameGrid(nextGrid, state.documentGrid)) return false;
   if (remember) {
     draftHistory.remember(snapshot());
     historyCounts();
@@ -679,11 +679,6 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   loadTopbarPreview();
   return true;
 }
-// The same document whatever the order of its keys (app 0.4.1): a tile the add-on wrote keeps its fields in another order
-// than one the editor rebuilt, and comparing the text of the two marked a change that changed nothing as unsaved.
-const ordered = (value: unknown): unknown => Array.isArray(value) ? value.map(ordered)
-  : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, ordered((value as Record<string, unknown>)[key])])) : value;
-export const sameValue = (a: unknown, b: unknown) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
 let focusedField: string | null = null, groupedEdit = -1;
 export function beginFieldEdit(key: string) { focusedField = key; groupedEdit = -1; }
 export function endFieldEdit() { focusedField = null; groupedEdit = -1; }
@@ -1277,7 +1272,7 @@ function acceptSave(record: PageDocument, submitted: PageLayout, submittedWorksp
       state.workspace.positions = pages.clone(record.workspace.positions); state.workspaceDirty = false;
     }
   }
-  state.dirty = !sameValue(state.document, committedLayout) || !sameValue(state.documentGrid, committedGrid) || state.documentUpright !== committedUpright;
+  state.dirty = !pages.sameValue(state.document, committedLayout) || !pages.sameValue(state.documentGrid, committedGrid) || state.documentUpright !== committedUpright;
   state.conflict = false;
   if (edits === sent) { state.saved = Date.now(); toast(t("editor.screen_view.saved.current")); }
   else toast(t("editor.screen_view.saved.newer_edit"));

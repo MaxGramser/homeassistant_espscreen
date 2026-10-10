@@ -1,11 +1,12 @@
 /** Conflict recovery never changes the draft before an authoritative response. */
 import type { PageDocument, PageGrid, PageLayout, PageWorkspace, Screen } from '../types';
-import { sameGrid } from './pages';
+import { sameGrid, sameValue } from './pages';
 
+// Whether the add-on holds what a save sent, after its answer was lost: the same layout and map, whatever the order the
+// add-on wrote their keys in (sameValue), so a save that went through is never taken for a conflict.
 export function savedDraft(record: Screen['page_document'], submitted: PageLayout, grid: PageGrid, workspace?: PageWorkspace): record is PageDocument {
-  return record?.format === 'pages-v2' && sameGrid(record.sourceGrid, grid) &&
-    JSON.stringify(record.layout) === JSON.stringify(submitted) &&
-    (!workspace || JSON.stringify(record.workspace?.positions) === JSON.stringify(workspace.positions));
+  return record?.format === 'pages-v2' && sameGrid(record.sourceGrid, grid) && sameValue(record.layout, submitted) &&
+    (!workspace || sameValue(record.workspace?.positions, workspace.positions));
 }
 
 type State = { busy: boolean; conflict: boolean; reachable: boolean; selected: string | null;

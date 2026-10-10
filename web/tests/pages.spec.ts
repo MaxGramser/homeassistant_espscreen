@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { i18n, loadLanguage } from '../src/i18n';
 import type { Page, PageGrid, PageLayout, PageTile } from "../src/types";
 import { arrangeTiles, changePages, clone, connections, deletePage, duplicatePage, emptyLayout, emptyPage,
-  adaptGrid, initialPositions, instanceId, navigationFooter, navigationStep, navigationTarget, pagination, projectLayout, reachability, remapLayout, reorderPage, replaceBar, sequentialTarget, setBarItems, validatePages } from "../src/model/pages";
+  adaptGrid, initialPositions, instanceId, navigationFooter, navigationStep, navigationTarget, pagination, projectLayout, reachability, remapLayout, reorderPage, replaceBar, sameValue, sequentialTarget, setBarItems, validatePages } from "../src/model/pages";
+import { savedDraft } from "../src/model/page-conflict";
 
 const grid: PageGrid = { columns: 2, rows: 3 };
 it('renders draft validation errors in the selected editor language', async () => {
@@ -11,6 +12,21 @@ it('renders draft validation errors in the selected editor language', async () =
   try {
     expect(() => validatePages({ ...emptyLayout('Test'), homePageId: 'missing' }, grid)).toThrow('Home moet een bestaande pagina zijn');
   } finally { i18n.global.locale.value = 'en'; }
+});
+it("takes two documents for the same whatever the order of their keys, and a save for kept when the add-on holds it", () => {
+  expect(sameValue({ a: 1, b: { c: [1, { d: 2, e: 3 }] } }, { b: { c: [1, { e: 3, d: 2 }] }, a: 1 })).toBe(true);
+  expect(sameValue({ a: [1, 2] }, { a: [2, 1] })).toBe(false);
+  expect(sameValue({ a: 1 }, { a: 2 })).toBe(false);
+  // What the add-on wrote: the same layout and map, every object's keys the other way round.
+  const reversed = (value: any): any => Array.isArray(value) ? value.map(reversed)
+    : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reversed(item)])) : value;
+  const layout = emptyLayout("House"), positions = { [layout.pages[0].id]: { x: 1, y: 2 } }, written = reversed(layout) as PageLayout;
+  const record = (more: object) => ({ format: "pages-v2" as const, revision: "r2", sourceGrid: grid, layout: written,
+    workspace: reversed({ revision: "w2", positions }), ...more });
+  expect(savedDraft(record({}), layout, grid, { revision: "w1", positions })).toBe(true);
+  expect(savedDraft(record({ sourceGrid: { columns: 3, rows: 3 } }), layout, grid)).toBe(false);
+  expect(savedDraft(record({ layout: { ...written, title: "Flat" } }), layout, grid)).toBe(false);
+  expect(savedDraft(record({}), layout, grid, { revision: "w1", positions: { [layout.pages[0].id]: { x: 2, y: 2 } } })).toBe(false);
 });
 function fixture() {
   const layout = emptyLayout("House");

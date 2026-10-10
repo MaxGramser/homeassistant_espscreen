@@ -420,6 +420,21 @@ describe("revisions and portable layouts", () => {
     expect(state.dirty).toBe(false); expect(state.documentRevision).toBe("committed");
     expect(fetch.mock.calls.filter(([, options]) => options?.method === "PUT")).toHaveLength(1);
   });
+  it("recovers a committed save whose answer was lost when the add-on wrote its keys in another order", async () => {
+    // The add-on keeps a tile's fields in an order of its own (app 0.4.1): the same layout, not another one.
+    const reversed = (value: unknown): unknown => Array.isArray(value) ? value.map(reversed)
+      : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reversed(item)])) : value;
+    addPage(); moveWorkspacePage(state.document!.pages[0].id, 3, 4);
+    const draft = JSON.parse(JSON.stringify(state.document));
+    const server = { ...record(), revision: "committed", layout: reversed(draft), workspace: reversed({ revision: "w2", positions: state.workspace.positions }) };
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, options?: RequestInit) => {
+      if (options?.method === "PUT") throw new Error("Connection lost");
+      return reply({ screens: [{ ...state.inventory.screens[0], page_document: server }] });
+    }));
+    await save();
+    expect(state.conflict).toBe(false);
+    expect(state.dirty).toBe(false); expect(state.documentRevision).toBe("committed");
+  });
   it("exports only portable layout and editor placement, and copies with fresh IDs", () => {
     (state.inventory.screens[0] as any).api_key = "private-key-never-export";
     state.inventory.screens.push(screenFixture({ ...state.inventory.screens[0], id: "source", name: "Source" }));
