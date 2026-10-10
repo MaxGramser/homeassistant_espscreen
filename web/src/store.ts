@@ -1679,8 +1679,8 @@ function startLive() {
 
 // ---- A fresh start (tests/setup.ts, between tests) ----
 // Every field back to how it starts, and what the module keeps outside the state forgotten: the committed draft and its
-// undo, the caches of what was asked, the timers still waiting. A request still on its way finds another selection and
-// keeps its answer to itself.
+// undo, the preview screens already reported, the timers still waiting. A request still on its way finds another
+// selection and keeps its answer to itself. What the stores keep (stores/) goes with each test's pinia.
 function resetStore() {
   started?.();
   Object.assign(state, fresh());

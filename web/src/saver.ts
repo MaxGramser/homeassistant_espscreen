@@ -103,7 +103,8 @@ export const glassRatio = computed(() => {
   return shape?.width && shape?.height ? `${shape.width} / ${shape.height}` : "16 / 10";
 });
 export const clockPreview = computed(() => {
-  const clock = clockSample(useUiStore().now, useRegionStore().clock24, useRegionStore().screenLanguage);
+  const region = useRegionStore();
+  const clock = clockSample(useUiStore().now, region.clock24, region.screenLanguage);
   const degrees = weatherSource.value ? useEntitiesStore().liveOf(weatherSource.value)?.a?.temperature : undefined;
   return {
     time: clock.time,
