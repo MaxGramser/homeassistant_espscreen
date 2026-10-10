@@ -2,6 +2,7 @@
 // media queries, the observers, a stream from the add-on, the clipboard, and a tab that can be hidden. Each is inert
 // until a test moves it (setMedia, a stream's open or fail, setHidden), and tests/setup.ts puts every one back after
 // each test. A test that needs another one still stubs it (vi.stubGlobal), which vitest undoes before the next.
+import { vi } from "vitest";
 
 /** A stream from the add-on (api/events) that a test opens, feeds and breaks by hand. */
 export class FakeEventSource {
@@ -104,4 +105,22 @@ export function resetBrowser() {
   copied = "";
   delete (document as unknown as Record<string, unknown>).hidden;
   delete (document as unknown as Record<string, unknown>).visibilityState;
+}
+
+/** The listeners on a target that are still on it, by event: what was added and not taken off again since the call.
+ * Spies on the target for the rest of the test (vitest restores them before the next). */
+export function liveListeners(target: EventTarget) {
+  const live = new Map<string, Set<unknown>>();
+  const add = target.addEventListener.bind(target), remove = target.removeEventListener.bind(target);
+  const key = (name: string, options: unknown) => `${name}${(typeof options === "boolean" ? options : (options as AddEventListenerOptions | undefined)?.capture) ? ":capture" : ""}`;
+  vi.spyOn(target, "addEventListener").mockImplementation((name: string, listener: any, options?: any) => {
+    const set = live.get(key(name, options)) ?? live.set(key(name, options), new Set()).get(key(name, options))!;
+    set.add(listener);
+    return add(name, listener, options);
+  });
+  vi.spyOn(target, "removeEventListener").mockImplementation((name: string, listener: any, options?: any) => {
+    live.get(key(name, options))?.delete(listener);
+    return remove(name, listener, options);
+  });
+  return () => [...live.entries()].filter(([, set]) => set.size).map(([name]) => name).sort();
 }

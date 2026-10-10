@@ -1,6 +1,6 @@
 // The screensaver of the open screen as the editor shows it (app 0.4.48): what it shows in standby, in the order the
 // screen tries it. The card in the settings and the drawer of one step both read and change it through here.
-import { computed, ref, type Ref } from "vue";
+import { computed, getCurrentScope, onScopeDispose, ref, type Ref } from "vue";
 import { t } from "./i18n";
 import { dropIndex, moved } from "./model/reorder";
 import { clockText, dateText } from "./model/topbar";
@@ -133,13 +133,16 @@ export function sorter<T>(rows: string, items: () => readonly T[], commit: (list
       drag.value.index = to;
     }
   }
-  function end(e: PointerEvent) {
-    if (e.pointerId !== pointerId) return;
+  function release() {
     clearTimeout(timer);
     document.removeEventListener("pointermove", track);
     document.removeEventListener("pointerup", end);
     document.removeEventListener("pointercancel", end);
     document.removeEventListener("touchmove", block);
+  }
+  function end(e: PointerEvent) {
+    if (e.pointerId !== pointerId) return;
+    release();
     dragged = drag.value.active;
     if (drag.value.active && e.type !== "pointercancel" && live.value && live.value.join() !== items().join()) commit(live.value);
     live.value = null;
@@ -180,6 +183,13 @@ export function sorter<T>(rows: string, items: () => readonly T[], commit: (list
     commit(moved(list, i, i + step));
     requestAnimationFrame(() => all()[i + step]?.focus());
   }
+  // A list that goes while a row is held (its drawer closes) lets go of the page, and keeps the order it had.
+  if (getCurrentScope()) onScopeDispose(() => {
+    release();
+    live.value = null;
+    drag.value = { index: -1, active: false };
+    start = null; pointerId = null;
+  });
   return { drag, live, down, key, click };
 }
 

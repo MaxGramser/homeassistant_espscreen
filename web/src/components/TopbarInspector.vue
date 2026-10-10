@@ -4,7 +4,7 @@ const { pageCount } = editorLayout;
 
 // The top bar: the name on the left; on the right up to six items: the time, an analog clock, the date, or an
 // entity's state or last change. Edits belong to the selected page.
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { t } from "../i18n";
 import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
@@ -132,13 +132,16 @@ function move(e: PointerEvent) {
     if (selectedMoved) openBar(target);
   }
 }
-function end(e: PointerEvent) {
-  if (e.pointerId !== pointerId) return;
+function release() {
   clearTimeout(timer);
   document.removeEventListener("pointermove", move);
   document.removeEventListener("pointerup", end);
   document.removeEventListener("pointercancel", end);
   document.removeEventListener("touchmove", block);
+}
+function end(e: PointerEvent) {
+  if (e.pointerId !== pointerId) return;
+  release();
   if (drag.value.active) {
     suppressUntil = Date.now() + 400;
     if (drag.value.moved && e.type !== "pointercancel" && draggedItems.value) setTopbarItems(draggedItems.value);
@@ -147,6 +150,8 @@ function end(e: PointerEvent) {
   drag.value = { index: -1, active: false, moved: false };
   start = null; pointerId = null;
 }
+// The drawer that closes while an item is held (another tile chosen, Escape) lets go of the page, without a change.
+onBeforeUnmount(release);
 function pick(i: number) {
   if (Date.now() < suppressUntil) return;
   openBar(i);
