@@ -132,6 +132,10 @@ describe("the values a card stands large", () => {
     expect(pageLink(2, en)).toBe("Page 2 ›");
     expect(favoriteLine(undefined, "Kitchen", en)).toBe("Kitchen");
     expect(favoriteLine(undefined, undefined, en)).toBe("");
+    // The kind of thing it plays, in the add-on's words for the screens, which come with the page.
+    expect(favoriteLine("playlist", "Kitchen", en)).toBe("Playlist · Kitchen");
+    expect(favoriteLine("track", undefined, en)).toBe("Song");
+    expect(favoriteLine("unheard_of", "Kitchen", en)).toBe("Kitchen");
   });
 
   it("knows a report that says the same", () => {

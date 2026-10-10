@@ -38,6 +38,10 @@ describe("English", () => {
     // Only shared validation errors from the add-on accompany the editor and screen mockup texts.
     expect(Object.keys(en).sort()).toEqual(["addon", "editor", "screen"]);
     expect(Object.keys((en as any).addon.errors).sort()).toEqual(['layout', 'pages', 'top_bar']);
+    // Of the add-on's words for the screens only what a favourite plays, which its card on the mockup names (Playlist).
+    expect(Object.keys((en as any).addon).sort()).toEqual(["errors", "screen"]);
+    expect(Object.keys((en as any).addon.screen)).toEqual(["media"]);
+    expect(t("addon.screen.media.playlist")).toBe("Playlist");
     expect(Object.keys((en as any).screen).sort()).toEqual(["climate", "cover", "date", "ha", "navigation", "number", "script", "tile", "time"]);
     expect(Object.keys((en as any).screen.tile)).toEqual(["page"]);
     expect(languageMeta("en")?.plural).toBe("one_other");
@@ -53,6 +57,9 @@ describe("English", () => {
       editor: { common: { close: "Sluiten", cancel: "" }, empty: {} },
     });
     expect(part).toEqual({ editor: { common: { close: "Sluiten" } }, screen: { number: { decimal: ",", group: " " }, tile: { page: "Pagina {n}" } } });
+    // What a favourite plays comes along, and nothing else of the add-on's words for the screens.
+    expect(pageTexts({ addon: { screen: { media: { playlist: "Afspeellijst", album: "" }, states: { error: "Fout" } } } }))
+      .toEqual({ addon: { screen: { media: { playlist: "Afspeellijst" } } } });
   });
   it("has a readable text for every key, and no text vue-i18n reads as something else", () => {
     for (const [key, text] of texts) {

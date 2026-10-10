@@ -6,6 +6,8 @@
   layout, starting the calibration, clearing an override), for a new name on a phone, and for a text to copy by hand,
   the editor now asks in a dialog of its own, light or dark and at the bottom of a phone, instead of the browser's, in
   the same words. Cancel has the focus at first, so Enter alone never throws work away, and Escape cancels.
+- **A favourite says what it plays in Layout.** Its card on the mockup names the kind of thing again (Playlist, Album,
+  Podcast) before the speaker, as the screen does.
 - **Seeed reTerminal D1001 (experimental).** The 8-inch ESP32-P4 panel with a battery, as a new board in New screen:
   touch, a dimmable backlight, Wi-Fi through its ESP32-C6, the battery in the top bar, the button on top for standby,
   the RGB LED, a clock that keeps the time while Home Assistant is away, its speaker and microphones, and its camera
