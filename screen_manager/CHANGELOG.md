@@ -1,5 +1,16 @@
 ## Unreleased
 
+- **Seeed reTerminal D1001 (experimental).** The 8-inch ESP32-P4 panel with a battery, as a new board in New screen:
+  touch, a dimmable backlight, Wi-Fi through its ESP32-C6, the battery in the top bar, the button on top for standby,
+  the RGB LED, a clock that keeps the time while Home Assistant is away, and its speaker and microphones. Its camera,
+  SD card and LTE are not configured yet.
+- **A screen with a speaker is a media player in Home Assistant.** On a board whose speaker Tessera configures (the
+  reTerminal D1001 first), Home Assistant's text to speech and announcements play on the screen, without a voice
+  assistant.
+- **Extras: settings a board has of its own.** A screen whose board has something the others do not shows it under
+  Screen settings in an Extras card, on the screen's own settings page under Extras, and in Home Assistant, all the same
+  switch. On the reTerminal D1001: Microphone, and Wake when moved, which wakes the screen from standby when someone picks
+  it up or moves it.
 - **Find plugins by what they are.** The Plugins page has tabs for tiles, functions for the whole screen, and hardware,
   with topics such as Time, Weather or On the move under them, and what fits none of your screens folded away. Give a
   plugin you use a heart, and see which plugins others like. A plugin that needs another one, or needs a speaker or a
