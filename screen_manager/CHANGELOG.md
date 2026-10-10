@@ -12,6 +12,8 @@
   tile plays the camera on the page, with its rounded corners and its name over the picture, as long as the page is on
   the glass and nothing lies over it. Opening such a camera full screen shows its first picture at once. Other screens
   keep their paces in seconds.
+- **Camera sound on the P4 boards with a speaker.** The camera full screen plays the camera's sound, through the
+  screen's speaker at the volume under Extras, with a key in its top bar that mutes it.
 - **P4 boards download faster.** Camera pictures, album covers and maps come about three times as fast on the P4
   boards: their Wi-Fi goes through an ESP32-C6, and a larger network window keeps it busy.
 - **Plugin cards and tiles.** A card a plugin opens shows everything it draws under its top bar, not only the first line

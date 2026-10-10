@@ -49,6 +49,8 @@ SNAPSHOT_FPS = 15         # a camera without a stream is asked no more often tha
 WEBRTC_FIRST_SECONDS = 20  # a WebRTC session without a frame by then gives way to the snapshots
 DEFAULT_PACE = 15         # camera_feed.LIVE_REFRESH_DEFAULT: the pace of a camera tile on a screen that does not stream
 QSCALE = 5                # ffmpeg's mjpeg quality (2 best, 31 worst): about 80 KB a 1280 x 720 camera picture
+SOUND_RATE = 16000        # a full view's sound: 16-bit mono at this rate (the board's resampler makes it its bus's)
+SOUND_QUEUE = 50          # parts of sound that may wait for a screen (about a second); older ones go
 SEND_BUFFER = 65536       # what may wait in this host's socket for a screen: a picture, not a queue of them
 # A camera with a stream of its own (CameraEntityFeature.STREAM, by its name in Home Assistant's source).
 STREAM_FEATURE = catalogue.bits('camera', 'STREAM')
@@ -206,6 +208,11 @@ class Source:
         self.made = self.made_ms = 0
         # When the way to the first picture went by, in seconds after the source started (the log of the first picture).
         self.started, self.marks = time.monotonic(), {}
+        # The screens that listen to the camera's sound (a queue each), its WebRTC session of its own, and whether the
+        # pictures' session brings it along (a screen with a speaker watches: `wants_sound`).
+        self.listeners, self.sound, self.quiet_since = set(), None, None
+        self.wants_sound = self.sound_along = False
+        self.resampler = None
 
     def mark(self, what):
         self.marks.setdefault(what, time.monotonic() - self.started)
@@ -295,34 +302,61 @@ class Source:
             await asyncio.sleep(max(0.0, 1 / SNAPSHOT_FPS - (time.monotonic() - started)))
 
     async def webrtc(self):
-        """Home Assistant's WebRTC of the camera until nobody watches; False when it gave no frame (no WebRTC here, no
-        aiortc in this install, a camera go2rtc cannot relay): the snapshots take over."""
+        """Home Assistant's WebRTC of the camera's pictures until nobody watches; False when it gave no frame (no WebRTC
+        here, no aiortc in this install, a camera go2rtc cannot relay): the snapshots take over. The camera's still goes
+        first: WebRTC waits for the camera's next key frame."""
+        first = asyncio.Event()
+        still = asyncio.create_task(self.still_until(first))
+
+        async def take(kind, frame):
+            if kind == 'audio':
+                self.heard(frame)
+                return
+            self.mark('first WebRTC frame')
+            first.set()
+            await self.publish(video=frame)
+        try:
+            self.route = 'webrtc'
+            # The sound along in the same session when a screen with a speaker watches: the full view has it at once.
+            self.sound_along = self.wants_sound
+            return await self.rtc(('video', 'audio') if self.sound_along else ('video',), take, self.watched)
+        finally:
+            self.sound_along = False
+            still.cancel()
+
+    async def rtc(self, kinds, take, keep):
+        """One WebRTC session of Home Assistant's for the camera's `kinds` ('video', 'audio'): `take(kind, frame)` for
+        each frame while `keep()`. False when no frame of the first kind came within WEBRTC_FIRST_SECONDS or the session
+        could not start."""
         try:
             from aiortc import RTCPeerConnection, RTCSessionDescription
             from aiortc.sdp import candidate_from_sdp
         except ImportError:
             return False
-        self.route = 'webrtc'
+        kind = kinds[0]
         first = asyncio.Event()
         connection = RTCPeerConnection()
-        connection.addTransceiver('video', direction='recvonly')
+        for each in kinds:
+            connection.addTransceiver(each, direction='recvonly')
         pulls = []
 
         @connection.on('track')
         def on_track(track):
+            if track.kind not in kinds:
+                return
+
             async def pull():
                 while True:
                     frame = await track.recv()
-                    self.mark('first WebRTC frame')
-                    first.set()
-                    await self.publish(video=frame)
+                    if track.kind == kind:
+                        first.set()
+                    await take(track.kind, frame)
             pulls.append(asyncio.create_task(pull()))
 
-        # The camera's still until its first frame: WebRTC waits for the camera's next key frame.
-        still = asyncio.create_task(self.still_until(first))
         try:
             await connection.setLocalDescription(await connection.createOffer())
-            self.mark('offer')
+            if kind == 'video':
+                self.mark('offer')
             async with self.feed.websocket() as ws:
                 await ws.send_json({'id': 1, 'type': 'camera/webrtc/offer', 'entity_id': self.entity,
                                     'offer': connection.localDescription.sdp})
@@ -334,7 +368,8 @@ class Source:
                             raise ConnectionError((data.get('error') or {}).get('message') or 'refused')
                         event = data.get('event') or {}
                         if event.get('type') == 'answer':
-                            self.mark('answer')
+                            if kind == 'video':
+                                self.mark('answer')
                             await connection.setRemoteDescription(RTCSessionDescription(event['answer'], 'answer'))
                         elif event.get('type') == 'candidate' and (event.get('candidate') or {}).get('candidate'):
                             found = event['candidate']
@@ -348,22 +383,64 @@ class Source:
                 try:
                     await asyncio.wait_for(first.wait(), WEBRTC_FIRST_SECONDS)
                 except asyncio.TimeoutError:
-                    LOG.info('Live %s: no WebRTC frame in %d s; snapshots instead', self.entity, WEBRTC_FIRST_SECONDS)
+                    LOG.info('Live %s: no WebRTC %s in %d s', self.entity, kind, WEBRTC_FIRST_SECONDS)
                     return False
-                while self.watched() and not listening.done() and all(not p.done() for p in pulls):
+                while keep() and not listening.done() and all(not p.done() for p in pulls):
                     await asyncio.sleep(1)
                 if listening.done() and listening.exception():
-                    LOG.info('Live %s: WebRTC ended (%s)', self.entity, listening.exception())
+                    LOG.info('Live %s: WebRTC %s ended (%s)', self.entity, kind, listening.exception())
                 listening.cancel()
                 return True
         except (ConnectionError, OSError, asyncio.TimeoutError) as error:
-            LOG.info('Live %s: no WebRTC (%s); snapshots instead', self.entity, error)
+            LOG.info('Live %s: no WebRTC %s (%s)', self.entity, kind, error)
             return False
         finally:
-            still.cancel()
             for task in pulls:
                 task.cancel()
             await connection.close()
+
+    # ---- The camera's sound, for a full view with a speaker: 16-bit mono at SOUND_RATE, in parts as it comes ----
+    def listening(self):
+        return bool(self.listeners) or (self.quiet_since and time.monotonic() - self.quiet_since < LINGER_SECONDS)
+
+    def listen(self, queue):
+        self.listeners.add(queue)
+        self.quiet_since = None
+        # Sound that comes along with the pictures already needs no session of its own.
+        if self.streams and not self.sound_along and (self.sound is None or self.sound.done()):
+            self.sound = asyncio.create_task(self.hear())
+
+    def heard(self, frame):
+        """A frame of the camera's sound, made 16-bit mono at SOUND_RATE and handed to every listener; a listener that
+        falls behind loses its oldest part. Nobody listening: dropped."""
+        if not self.listeners:
+            return
+        if self.resampler is None:
+            import av
+            self.resampler = av.AudioResampler(format='s16', layout='mono', rate=SOUND_RATE)
+        for out in self.resampler.resample(frame):
+            data = bytes(out.planes[0])[:out.samples * 2]
+            for queue in list(self.listeners):
+                if queue.full():
+                    queue.get_nowait()
+                queue.put_nowait(data)
+
+    def unlisten(self, queue):
+        self.listeners.discard(queue)
+        if not self.listeners:
+            self.quiet_since = time.monotonic()
+
+    async def hear(self):
+        """The camera's sound through Home Assistant's WebRTC (a session of its own, only while someone listens),
+        made 16-bit mono at SOUND_RATE and handed to every listener; a listener that falls behind loses its oldest."""
+        async def take(kind, frame):
+            self.heard(frame)
+        try:
+            await self.rtc(('audio',), take, self.listening)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:  # noqa: BLE001 - no sound, the pictures go on
+            LOG.info('Live %s: no sound (%s)', self.entity, error)
 
     async def still_until(self, first):
         try:
@@ -378,10 +455,11 @@ class Source:
 
 
 class Link:
-    __slots__ = ('entity', 'box', 'used', 'streaming', 'made', 'cover')
+    __slots__ = ('entity', 'box', 'used', 'streaming', 'made', 'cover', 'sound', 'warm', 'screen', 'tile')
 
-    def __init__(self, entity, box, now, cover=False):
-        self.entity, self.box, self.used, self.streaming, self.made, self.cover = entity, box, now, 0, now, cover
+    def __init__(self, entity, box, now, cover=False, sound=False, warm=False, screen=None, tile=False):
+        self.entity, self.box, self.used, self.streaming, self.made = entity, box, now, 0, now
+        self.cover, self.sound, self.warm, self.screen, self.tile = cover, sound, warm, screen, tile
 
 
 class LiveFeed:
@@ -398,13 +476,43 @@ class LiveFeed:
         for token in [t for t, link in self.links.items() if not link.streaming and now - link.used > LINK_SECONDS]:
             del self.links[token]
 
-    def link(self, entity, box, cover=False):
-        """A new link's token: the full view's (`box` its room), or a live tile's (`box` its card, `cover` when its
-        picture fills the card rather than showing whole)."""
+    def link(self, entity, box, cover=False, sound=False, warm=False, screen=None, tile=False):
+        """A new link's token: the full view's (`box` its room, `sound` with the camera's sound for a screen with a
+        speaker), or a live `tile`'s (`box` its card, `cover` when its picture fills the card rather than showing whole,
+        `warm` when its screen has a speaker: the camera's sound comes along in the source, for the full view). `screen`
+        is the inbox of the screen that asked."""
         self.prune()
         token = secrets.token_urlsafe(18)
-        self.links[token] = Link(entity, box, self.clock(), cover)
+        self.links[token] = Link(entity, box, self.clock(), cover, sound, warm, screen, tile)
         return token
+
+    def hold(self, link):
+        """The cameras the live tiles of `link`'s screen showed until a moment ago, kept running while its full view
+        streams: a screen stops its tiles' streams under a camera full screen, and they are back at once when it closes,
+        rather than after the seconds a WebRTC session takes to start (2026-10-10, the D1001). For as long as the full
+        view streams, as the tiles cost while they were on the glass; then the usual LINGER_SECONDS."""
+        now, held = self.clock(), []
+        if link.tile or link.screen is None:
+            return held
+        for other in self.links.values():
+            if not other.tile or other.screen != link.screen or other.entity == link.entity:
+                continue
+            if not other.streaming and now - other.used >= LINGER_SECONDS:
+                continue
+            source = self.sources.get(other.entity)
+            if source is None or source in held or source.task is None or source.task.done():
+                continue
+            source.viewers += 1
+            source.idle_since = None
+            held.append(source)
+        return held
+
+    @staticmethod
+    def let_go(held):
+        for source in held:
+            source.viewers -= 1
+            if not source.viewers:
+                source.idle_since = time.monotonic()
 
     def streaming(self):
         return sum(link.streaming for link in self.links.values())
@@ -424,29 +532,34 @@ class LiveFeed:
             return web.Response(status=503, text='Too many live cameras')
         link.streaming += 1
         source = self.source(link.entity)
+        source.wants_sound = source.wants_sound or link.sound or link.warm
         source.viewers += 1
         source.idle_since = None
         source.start()
+        held = self.hold(link)
         response = web.StreamResponse(headers={'Content-Type': 'multipart/x-mixed-replace;boundary=frame',
                                                'Cache-Control': 'no-cache'})
         sent = size = 0
         began = self.clock()
-        try:
-            await response.prepare(request)
-            sock = request.transport.get_extra_info('socket') if request.transport else None
-            if sock is not None:
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SEND_BUFFER)
+        writing = asyncio.Lock()
+        sound = asyncio.Queue(maxsize=SOUND_QUEUE) if link.sound else None
+
+        async def write(head, body):
+            async with writing:
+                await response.write(head + body + b'\r\n')
+
+        async def pictures():
+            nonlocal sent, size
             last = 0
             while True:
                 frame = await source.next(last, FRAME_SECONDS)
                 if frame is None or request.transport is None:
-                    break
+                    return
                 last = frame.number
                 jpeg = await source.picture(frame, link.box, link.cover)
                 if not jpeg:
                     continue
-                await response.write(b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n' % len(jpeg)
-                                     + jpeg + b'\r\n')
+                await write(b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n' % len(jpeg), jpeg)
                 if not sent:
                     LOG.info('Live %s: first picture %.1f s after the link went out (the screen came %.1f s after it); '
                              'its source: %s', link.entity, self.clock() - link.made, began - link.made,
@@ -457,11 +570,35 @@ class LiveFeed:
                 # The next picture is made once this one has left this host: the newest, never a queue of old ones.
                 while request.transport is not None and request.transport.get_write_buffer_size():
                     await asyncio.sleep(0.005)
+
+        async def sounds():
+            # As it comes, a few parts at once: the sound never waits for a picture's turn.
+            while True:
+                data = await sound.get()
+                while not sound.empty() and len(data) < 3200:
+                    data += sound.get_nowait()
+                await write(b'--frame\r\nContent-Type: audio/x-s16le;rate=%d\r\nContent-Length: %d\r\n\r\n'
+                            % (SOUND_RATE, len(data)), data)
+
+        listening = None
+        try:
+            await response.prepare(request)
+            sock = request.transport.get_extra_info('socket') if request.transport else None
+            if sock is not None:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SEND_BUFFER)
+            if sound is not None:
+                source.listen(sound)
+                listening = asyncio.create_task(sounds())
+            await pictures()
         except (ConnectionResetError, ConnectionError, asyncio.CancelledError):
             pass
         finally:
+            if listening is not None:
+                listening.cancel()
+                source.unlisten(sound)
             link.streaming -= 1
             link.used = self.clock()
+            self.let_go(held)
             source.viewers -= 1
             if not source.viewers:
                 source.idle_since = time.monotonic()

@@ -3144,15 +3144,17 @@ class Manager:
             url = f'{base}/camera/{token}.bmp' if token else ''
         return {'v': 1, 'op': 'camera', 't': 'alert' if view == 'thumb' else 'full', 'e': entity, 'u': url}
 
-    async def live_message(self, entity, box, view='full', fit=None):
+    async def live_message(self, entity, box, view='full', fit=None, sound=False, screen=None):
         """The screen message for a camera live (live_feed.py): a link to its stream of pictures, for the full view or
         for a live tile (`view` 'live', `fit` the tile's: a picture that fills the card is cut by the screen, a whole one
-        is shown on black, and the link says which)."""
+        is shown on black, and the link says which). `screen` is the inbox that asked."""
         base = await camera_feed.base_url(self.ha.request)
         if not base:
             LOG.warning('Camera images: no address for this app on the LAN; set SCREEN_CAMERA_URL')
         contain = fit == 'contain'
-        token = self.live.link(entity, box, cover=view == 'live' and not contain) if base else ''
+        tile = view == 'live'
+        token = self.live.link(entity, box, cover=tile and not contain, sound=sound and not tile, warm=sound and tile,
+                               screen=screen, tile=tile) if base else ''
         url = f'{base}/camera/{token}.mjpeg' + ('?fit=contain' if contain else '') if base else ''
         return {'v': 1, 'op': 'camera', 't': view, 'e': entity, 'u': url}
 
@@ -3192,7 +3194,8 @@ class Manager:
         # A P4 takes a camera live (firmware dev): it names the room below its top bar, and gets a stream of pictures.
         live_box = live_feed.parse_box(request.get('live')) if not cover and entity.startswith('camera.') else None
         if live_box:
-            message = await self.live_message(entity, live_box)
+            # With the camera's sound for a screen with a speaker (firmware dev).
+            message = await self.live_message(entity, live_box, sound=request.get('sound') == '1', screen=inbox)
         else:
             message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
                 entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
@@ -3274,7 +3277,8 @@ class Manager:
         if live_box and len(entities) == 1 and entities[0].startswith('camera.') and own is not None:
             options = options_of(0, entities[0]) or {}
             if options.get('display') == 'live':
-                message = await self.live_message(entities[0], live_box, 'live', options.get('fit'))
+                message = await self.live_message(entities[0], live_box, 'live', options.get('fit'), request.get('sound') == '1',
+                                                  screen=inbox)
                 await self.send_auxiliary(inbox, message, action, request)
                 LOG.info('Live tile %s on %s%s', entities[0], screen['name'], '' if message['u'] else ': no link')
                 return

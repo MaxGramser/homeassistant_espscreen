@@ -42,6 +42,11 @@ constexpr uint32_t REPORT_MS = 10000;
 // A stream that failed this often for one opening of the view gives way to the stills of every board.
 constexpr uint8_t TRIES = 3;
 constexpr size_t TILE_PICTURE = 384 * 1024;  // a tile's picture is smaller (MAX_PICTURE is the full view's)
+// A full view's sound: 16-bit mono at this rate (the board's resampler makes it its bus's), in parts of at most
+// SOUND_PART bytes, and SOUND_BUFFER of it held between the stream and the speaker (half a second).
+constexpr uint32_t SOUND_RATE = 16000;
+constexpr size_t SOUND_PART = 4096;
+constexpr size_t SOUND_BUFFER = 16384;
 
 // A link to a stream rather than to a still: the app serves both on its camera port, a still as .bmp.
 inline bool is_stream(const std::string &url) {
@@ -51,9 +56,11 @@ inline bool is_stream(const std::string &url) {
 }
 
 // ---- The stream: plain HTTP/1.0 (no chunks), then parts, each with a head that names its Content-Length ----
-// feed() takes the bytes as they come, in any pieces. A part's bytes go where `room(length)` says (nullptr: skip that
-// part, a picture the task cannot take now) and `done(length)` follows once they are all there. It returns false once
-// the stream is no good: an answer other than 200, a head without its length or too long, a part over MAX_PICTURE.
+// feed() takes the bytes as they come, in any pieces. A part is a picture (image/jpeg) or, for a full view with sound,
+// a piece of the camera's sound (audio/L16, 16-bit mono at SOUND_RATE). Its bytes go where `room(length, audio)` says
+// (nullptr: skip that part, one the task cannot take now) and `done(length, audio)` follows once they are all there.
+// It returns false once the stream is no good: an answer other than 200, a head without its length or too long, a part
+// over MAX_PICTURE.
 class Reader {
  public:
   template<typename Room, typename Done> bool feed(const uint8_t *data, size_t size, Room room, Done done) {
@@ -85,7 +92,8 @@ class Reader {
         }
         this->need_ = h.content_length;
         this->got_ = 0;
-        this->room_ = room(this->need_);
+        this->audio_ = h.audio;
+        this->room_ = room(this->need_, this->audio_);
         this->in_body_ = true;
       } else {
         const size_t take = std::min(size, this->need_ - this->got_);
@@ -95,7 +103,7 @@ class Reader {
         size -= take;
         if (this->got_ == this->need_) {
           this->in_body_ = false;
-          if (this->room_) done(this->need_);
+          if (this->room_) done(this->need_, this->audio_);
           this->room_ = nullptr;
           ++this->parts_;
         }
@@ -108,7 +116,7 @@ class Reader {
 
  private:
   std::string head_;
-  bool answered_ = false, in_body_ = false, broken_ = false;
+  bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false;
   int status_ = 0;
   size_t need_ = 0, got_ = 0;
   uint8_t *room_ = nullptr;
@@ -291,6 +299,7 @@ enum class Event : uint8_t {
   FAILED,  // it broke, or never came: its owner asks again
   TURNED,  // the glass was turned meanwhile: its owner asks again for its new shape
   ENDED,   // closed by its owner, and gone
+  SOUND,   // its first sound came (a full view with sound): its owner shows the mute key
 };
 // A P4 (USE_LIVE_VIEW, smart_display/__init__.py) that shows pictures at all (SCREEN_PICTURES, features/camera.yaml).
 #if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
@@ -304,8 +313,13 @@ void bind(esphome::lvgl::LvglComponent *lvgl);
 // Whether this screen streams: a P4 whose panel ESP-IDF made with an RGB565 frame buffer, and LVGL bound.
 bool available();
 // Streams `url` into `area`, the screen as LVGL lays it out, looking as `look` says. -1 when it cannot start (no room
-// for another stream, no memory): its owner shows its stills.
-Handle open(const std::string &url, const Rect &area, const Look &look = Look{});
+// for another stream, no memory): its owner shows its stills. `sound`: the stream may carry the camera's sound, which
+// goes to the board's speaker (bind_speaker) unless muted.
+Handle open(const std::string &url, const Rect &area, const Look &look = Look{}, bool sound = false);
+// Whether this board plays a live camera's sound: a speaker is bound (features/audio.yaml).
+bool has_speaker();
+// A stream's sound off or on again.
+void mute(Handle handle, bool muted);
 // Ends a stream. Returns once nothing of it writes the glass any more, so LVGL may draw there again at once; its ENDED
 // comes with the next tick.
 void close(Handle handle);
@@ -313,9 +327,26 @@ void close(Handle handle);
 void tick(const std::function<void(Handle, Event)> &tell);
 #else
 inline bool available() { return false; }
-inline Handle open(const std::string &, const Rect &, const Look & = Look{}) { return -1; }
+inline Handle open(const std::string &, const Rect &, const Look & = Look{}, bool = false) { return -1; }
+inline bool has_speaker() { return false; }
+inline void mute(Handle, bool) {}
 inline void close(Handle) {}
 inline void tick(const std::function<void(Handle, Event)> &) {}
 #endif
 
 }  // namespace live_view
+
+// The speaker a live camera's sound plays on (features/audio.yaml binds the board's ts_speaker at boot); a board
+// without the live view takes it and does nothing with it.
+#ifdef USE_SPEAKER
+namespace esphome::speaker {
+class Speaker;
+}
+namespace live_view {
+#if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
+void bind_speaker(esphome::speaker::Speaker *speaker);
+#else
+inline void bind_speaker(esphome::speaker::Speaker *) {}
+#endif
+}  // namespace live_view
+#endif

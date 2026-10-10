@@ -287,9 +287,36 @@ size (cut to fill it, or whole, as the tile says: the link ends in `?fit=contain
 over each of them what the app bakes into a still: the card's rounded corners over the page, the shade under the name
 (the bottom 42 %, to 150/255 black) and the name as LVGL draws it. A camera opened full screen from a live tile has its
 first picture in about 0.3 seconds instead of five: the tile's streams stop, and the app's source of the camera, still
-running, has the newest frame ready. Measured on the reTerminal D1001 with the EZVIZ: a 2 x 2 tile of its substream at
+running, has the newest frame ready. The other way round, the cameras of a screen's live tiles keep running in the app
+for as long as that screen's full view streams (`LiveFeed.hold`), so its tiles are live again within a tenth of a second
+when it closes, rather than after the seconds a WebRTC session takes to start. Measured on the reTerminal D1001 with the EZVIZ: a 2 x 2 tile of its substream at
 8 pictures a second (decoding 2 ms, laying out 32 ms), a single tile of its main stream at 15 (1 ms, 11 ms), beside each
 other.
+
+**The camera's sound.** On a P4 with a speaker (a board that includes `features/audio.yaml`) the full view plays the
+camera's sound, with a key at the right of its top bar that mutes it; muted stays muted for every camera until the
+screen starts again. The screen asks with `sound`; the app takes the sound through Home Assistant's WebRTC too, makes it
+16-bit mono at 16 kHz and sends it in the same stream as parts of their own (`audio/x-s16le`), as it comes, never
+waiting for a picture's turn. On the screen the sound goes to the board's media speaker (`ts_media_speaker`), whose
+resampler makes it the bus's rate, whatever the board's: nothing in a board file is needed for it, the volume under
+Extras holds for it, an announcement plays over it, and on a board whose microphone and speaker share one bus the
+microphone pauses while it plays, as for any sound. A live tile on a board with a speaker asks with `sound` too: the app
+then takes the sound along in the tile's own WebRTC session (and drops it while nobody listens), so the full view opened
+from that tile has its sound at once.
+
+**Nothing of LVGL's under a live picture.** A live picture writes past LVGL, so it stops the moment anything LVGL draws
+lies over its room, and starts again once nothing does: a visible object on LVGL's system layer, one on the top layer
+above it (for a tile, anything on the top layer: the update's progress, an alert, the camera full screen, the
+screensaver), or, for a tile, its page no longer on the glass (`drawn_over` in `runtime_tiles.h`). No list of overlays:
+one that comes later is covered by the same rule.
+
+**Nothing of LVGL's over a live picture.** While a picture streams, LVGL must not draw its room: what it has there (the
+full view's black, a tile's still with its spinner and name) would cover the live picture until its next one. So the
+list of what LVGL is about to draw is cut against the room of every stream that has its first picture on the glass, once,
+as LVGL starts drawing (`LV_EVENT_RENDER_START`, `keep_out` in `live_view.cpp`). That one place catches every way LVGL
+comes to draw there: a card that changes beside a tile, an area queued before a stream's first picture, two areas LVGL
+joined into one, and the whole glass, which LVGL draws when more areas come in one frame than its list holds. Each piece
+goes through the display's own rounding, as LVGL's own areas do. When a stream ends, LVGL draws its room again.
 
 **The network of a P4.** Every P4 board reaches its Wi-Fi through an ESP32-C6 over SDIO, where a packet's round trip
 takes long enough that ESP-IDF's default TCP receive window (5,760 bytes) held a download at about 0.7 MB/s. The P4

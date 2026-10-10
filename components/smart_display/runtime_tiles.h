@@ -10827,6 +10827,38 @@ inline void tile_pictures_letgo() {
 
 // ---- The camera live, full screen, on a P4 (live_view.h) ----
 inline void camera_note_text(const char *text);
+// Whether anything LVGL draws above `owner` overlaps `room` (live_view::Rect, the screen as LVGL lays it out): a visible
+// object on the system layer, or on the top layer above `owner`'s own place there (a tile's card is on the page, under
+// the whole top layer; the camera's view is on the top layer, under what came after it), or, for a card on a page, the
+// page itself no longer on the glass. A live picture writes past LVGL, so it may only write where nothing of LVGL's lies
+// over it: the update's progress, an alert, a card, the screensaver and whatever comes later, without a list of them.
+inline const char *drawn_over_by = nullptr;  // what lay over a live picture last, for the log
+inline bool drawn_over(lv_obj_t *owner, int x, int y, int w, int h) {
+  drawn_over_by = nullptr;
+  if (!owner) return true;
+  auto over = [&](lv_obj_t *o) {
+    if (!o || o == owner || lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_style_opa(o, LV_PART_MAIN) == LV_OPA_TRANSP)
+      return false;
+    lv_area_t a;
+    lv_obj_get_coords(o, &a);
+    return a.x1 < x + w && a.x2 >= x && a.y1 < y + h && a.y2 >= y && a.x2 >= a.x1 && a.y2 >= a.y1;
+  };
+  lv_obj_t *sys = lv_layer_sys(), *top = lv_layer_top();
+  for (uint32_t i = 0; sys && i < lv_obj_get_child_count(sys); ++i)
+    if (over(lv_obj_get_child(sys, i))) { drawn_over_by = "the system layer"; return true; }
+  // `owner`'s own place on the top layer, if it is there: only what came after it lies over it.
+  lv_obj_t *place = owner;
+  while (place && lv_obj_get_parent(place) && lv_obj_get_parent(place) != top) place = lv_obj_get_parent(place);
+  const bool on_top = place && lv_obj_get_parent(place) == top;
+  bool above = !on_top;
+  for (uint32_t i = 0; top && i < lv_obj_get_child_count(top); ++i) {
+    lv_obj_t *child = lv_obj_get_child(top, i);
+    if (!above) { above = child == place; continue; }
+    if (over(child)) { drawn_over_by = "the top layer"; return true; }
+  }
+  if (!on_top && lv_obj_get_screen(owner) != lv_screen_active()) { drawn_over_by = "another screen"; return true; }
+  return false;
+}
 // The room below the top bar: the back key and the name stay LVGL's, on the view's black, never over the picture.
 inline live_view::Rect live_area() {
   const int top = detail_bar::bottom();
@@ -10835,15 +10867,41 @@ inline live_view::Rect live_area() {
 // A camera opened by itself (not a map, an image or the screensaver), on a board that streams, until its streams
 // failed TRIES times for this opening.
 inline bool live_wanted() {
-  return live_view::available() && camera.open() && camera.entity.rfind("camera.", 0) == 0 && camera_map_index < 0 &&
-         !saver_camera && camera.live_failures < live_view::TRIES;
+  if (!live_view::available() || !camera.open() || camera.entity.rfind("camera.", 0) != 0 || camera_map_index >= 0 ||
+      saver_camera || camera.live_failures >= live_view::TRIES)
+    return false;
+  const auto area = live_area();
+  return !drawn_over(camera_root, area.x, area.y, area.w, area.h);
 }
 inline uint32_t camera_opened_at = 0;  // when the view opened, for the log of a live camera's first picture
+// The camera's sound: on, until someone mutes it; muted stays muted for every camera until the screen starts again.
+inline bool camera_muted = false;
+inline lv_obj_t *camera_sound_key = nullptr;
+inline lv_obj_t *view_key(lv_obj_t *parent, int size, const char *glyph, bool over_map);
+inline void camera_sound_glyph() {
+  if (!camera_sound_key) return;
+  lv_label_set_text(lv_obj_get_child(camera_sound_key, 0), camera_muted ? "\U000F0581" : "\U000F057E");  // volume-off, -high
+}
+// The key at the right of the view's top bar, once the camera's sound comes (Event::SOUND): a tap mutes it or lets it in.
+inline void camera_sound_show() {
+  if (!camera_root || camera_sound_key) return;
+  const auto slot = detail_bar::right_slot(camera_root);
+  camera_sound_key = view_key(camera_root, slot.h, camera_muted ? "\U000F0581" : "\U000F057E", false);
+  lv_obj_set_pos(camera_sound_key, slot.x, slot.y);
+  lv_obj_add_event_cb(camera_sound_key, [](lv_event_t *) {
+    camera_muted = !camera_muted;
+    live_view::mute(camera.live_handle, camera_muted);
+    camera_sound_glyph();
+  }, LV_EVENT_SHORT_CLICKED, nullptr);
+}
 inline void live_begin(const std::string &url) {
   ESP_LOGI("camera", "live link %u ms after the camera opened", (unsigned) (esphome::millis() - camera_opened_at));
   camera.live = true;
-  camera.live_handle = live_view::open(url, live_area());
-  if (camera.live_handle >= 0) return;
+  camera.live_handle = live_view::open(url, live_area(), live_view::Look{}, live_view::has_speaker());
+  if (camera.live_handle >= 0) {
+    if (camera_muted) live_view::mute(camera.live_handle, true);
+    return;
+  }
   // No room for another stream, or no memory: the view takes the stills of every board.
   camera.live = false;
   camera.live_failures = live_view::TRIES;
@@ -10883,8 +10941,11 @@ inline bool page_clear() {
   return live_view::available() && tiles_seen() && !camera_visible() && !card_open() && !settings_screen::visible() &&
          !(alert_parts.card && lv_obj_is_visible(alert_parts.card)) && camera_view::settled(esphome::millis(), last_turn_ms);
 }
+inline live_view::Rect card_room(const Widgets &w);
 inline bool live_tile_wanted(const Widgets &w, const Tile &t) {
-  return w.tile && t.live() && t.refresh == 0 && t.domain() == "camera" && card_art(t) && on_glass(w);
+  if (!w.tile || !t.live() || t.refresh != 0 || t.domain() != "camera" || !card_art(t) || !on_glass(w)) return false;
+  const auto room = card_room(w);
+  return !drawn_over(w.tile, room.x, room.y, room.w, room.h);
 }
 inline live_view::Rect card_room(const Widgets &w) {
   lv_obj_update_layout(w.tile);
@@ -10905,6 +10966,8 @@ inline void live_tile_ask(LiveTile &l, const Widgets &w, const Tile &t) {
   fields.insert(fields.begin(), {{"inbox", inbox}, {"session", protocol_key(transfer.lease)}, {"rev", layout_rev},
                                  {"view", std::to_string(tile_questions.ask(l.index))}});
   fields.emplace_back("live", live_view::box_text(l.room));
+  // A board with a speaker: the app takes the camera's sound along already, so the full view has it at once.
+  if (live_view::has_speaker()) fields.emplace_back("sound", "1");
   request.data.init(fields.size());
   for (const auto &field : fields) {
     esphome::api::HomeassistantServiceMap entry;
@@ -11005,12 +11068,35 @@ inline void live_tile_answer(size_t index, const std::string &url) {
 // stopped the moment something lies over their page (a card, the camera full screen, an alert, the settings).
 inline void live_tick() {
   if (!live_tiles.empty() && !page_clear()) live_tiles_halt();
+  // Something came over a live picture (the update's progress, a toast, a sheet): it stops at once, and starts again
+  // once nothing lies over it.
+  for (auto &l : live_tiles) {
+    if (l.handle < 0) continue;
+    Widgets *card = nullptr;
+    each_card([&](Widgets &w) { if (w.index == l.index && w.tile) card = &w; });
+    if (!card || drawn_over(card->tile, l.room.x, l.room.y, l.room.w, l.room.h)) {
+      ESP_LOGI("camera", "tile %u stops streaming: %s over it", (unsigned) l.index, drawn_over_by ? drawn_over_by : "nothing");
+      live_tile_stop(l);
+      l.asked_at = esphome::millis();
+    }
+  }
+  if (camera_root && camera.live && camera.live_handle >= 0) {
+    const auto area = live_area();
+    if (drawn_over(camera_root, area.x, area.y, area.w, area.h)) {
+      ESP_LOGI("camera", "the camera stops streaming: %s over it", drawn_over_by ? drawn_over_by : "nothing");
+      live_view::close(camera.live_handle);
+      camera.live = false;
+      camera.live_handle = -1;
+    }
+  }
   live_view::tick([](live_view::Handle handle, live_view::Event event) {
     if (camera_root && camera.live && handle == camera.live_handle) {
       if (event == live_view::Event::FIRST) {
         ESP_LOGI("camera", "live: first picture %u ms after the camera opened", (unsigned) (esphome::millis() - camera_opened_at));
         camera.shown = true;
         camera_note_text("");  // the spinner goes; LVGL no longer draws there while the camera streams
+      } else if (event == live_view::Event::SOUND) {
+        camera_sound_show();
       } else if (event == live_view::Event::FAILED || event == live_view::Event::TURNED) {
         // Asked again: a new stream for the glass as it is now, or after TRIES failures the stills.
         if (event == live_view::Event::FAILED) ++camera.live_failures;
@@ -11062,7 +11148,9 @@ inline void camera_request(const std::string &entity, int size, uint32_t backgro
   // without streams reads the keys it knows and answers with a still.
   const bool live = size <= 0 && live_wanted();
   const std::string live_text = live ? live_view::box_text(live_area()) : std::string();
-  request.data.init(count + (saver ? 1 : 0) + (larger ? 1 : 0) + (live ? 1 : 0));
+  // With the camera's sound where the board has a speaker (features/audio.yaml binds it).
+  const bool sound = live && live_view::has_speaker();
+  request.data.init(count + (saver ? 1 : 0) + (larger ? 1 : 0) + (live ? 1 : 0) + (sound ? 1 : 0));
   if (saver) {
     esphome::api::HomeassistantServiceMap entry;
     entry.key = esphome::StringRef("saver");
@@ -11079,6 +11167,12 @@ inline void camera_request(const std::string &entity, int size, uint32_t backgro
     esphome::api::HomeassistantServiceMap entry;
     entry.key = esphome::StringRef("live");
     entry.value = esphome::StringRef(live_text);
+    request.data.push_back(entry);
+  }
+  if (sound) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = esphome::StringRef("sound");
+    entry.value = esphome::StringRef("1");
     request.data.push_back(entry);
   }
   for (int i = 0; i < count; ++i) {
@@ -11111,6 +11205,7 @@ inline void camera_close() {
   live_view::close(camera.live_handle);
   lv_obj_delete(camera_root);
   camera_root = camera_picture = camera_note = camera_back = camera_title = camera_spinner = map_card_obj = nullptr;
+  camera_sound_key = nullptr;  // it went with the view
   map_zoom_keys = map_pad = map_waiting = nullptr;
   saver_first = saver_second = nullptr;  // they went with the view
   saver_keys = {};

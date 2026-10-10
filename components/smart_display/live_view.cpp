@@ -29,7 +29,12 @@
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <freertos/stream_buffer.h>
 #include <freertos/task.h>
+#ifdef USE_SPEAKER
+#include "esphome/components/audio/audio.h"
+#include "esphome/components/speaker/speaker.h"
+#endif
 
 namespace live_view {
 
@@ -55,6 +60,15 @@ static int turn_now() { return lvgl ? static_cast<int>(lvgl->get_rotation()) : 0
 
 bool available() { return panel != nullptr && panel_rgb565 && lvgl != nullptr; }
 
+// ---- The camera's sound: the board's speaker (features/audio.yaml binds it) ----
+#ifdef USE_SPEAKER
+static esphome::speaker::Speaker *speaker = nullptr;
+void bind_speaker(esphome::speaker::Speaker *s) { speaker = s; }
+bool has_speaker() { return speaker != nullptr; }
+#else
+bool has_speaker() { return false; }
+#endif
+
 // ---- One stream ----
 struct Stream {
   std::string url;
@@ -73,8 +87,15 @@ struct Stream {
   uint8_t *input = nullptr, *picture = nullptr;
   uint16_t *canvas = nullptr;
   size_t input_size = 0, picture_size = 0, canvas_size = 0;
-  // The main loop's own: the report of the last REPORT_MS, the first picture told.
-  bool told_first = false;
+  // The camera's sound (a full view on a board with a speaker): parts the task puts in `sound`, which the main loop
+  // hands to the speaker unless `muted`.
+  StreamBufferHandle_t sound = nullptr;
+  uint8_t *sound_part = nullptr;
+  uint8_t *sound_piece = nullptr;  // what the speaker took part of, the rest of it next tick
+  size_t piece_left = 0, piece_at = 0;
+  std::atomic<bool> muted{false}, heard{false};
+  // The main loop's own: the report of the last REPORT_MS, the first picture and sound told, the speaker started.
+  bool told_first = false, told_sound = false, speaking = false;
   uint32_t reported_at = 0, reported_shown = 0, reported_bytes = 0, reported_decode = 0, reported_copy = 0;
 };
 static Stream *streams[MAX_STREAMS] = {};
@@ -84,17 +105,16 @@ static void *frame_buffer = nullptr;
 
 // ---- LVGL stays out of a live picture's room ----
 // A card on the page behind the view that changes (a sensor's new value), or a page's own redraw around a live tile,
-// has LVGL draw that area again, and what LVGL has there (the view's black, a tile's still) would cover the live
-// picture until its next frame. So every area LVGL is asked to draw again is cut against the room of every stream that
-// streams: what lies outside is handed to LVGL as pieces, what lies inside is not. The pieces are cut in one go, in a
-// list of this file's own, and handed over with the filter out of the way: no recursion, whose frames on the main loop's
-// stack (a few KB to spare) overflowed it the moment a camera full screen opened over two live tiles (2026-10-10, the
-// D1001). LVGL 9.5 cannot be told to drop an area, so a stand-in takes its place: the last area in LVGL's list (which
-// LVGL then skips), else a corner of the glass no stream covers. LVGL also sends this event while it draws, to have an
-// area rounded (get_max_row, and ESPHome's rounder listens to it for that): those are left alone, since asking LVGL to
-// draw again while it draws trips its assert, which spins the main loop until the watchdog restarts the screen.
-// Once a stream ends nothing is cut for it, and LVGL draws its room again.
-static bool filtering = false, handing_over = false;
+// has LVGL draw that area again, and what LVGL has there (the view's black, a tile's still with its spinner and name)
+// would cover the live picture until its next one. So what LVGL is about to draw is cut against the room of every stream
+// that streams, once, as it starts drawing (LV_EVENT_RENDER_START: its areas joined, nothing drawn yet): what lies
+// outside a room stays, in pieces, what lies inside goes. That one place sees every way LVGL comes to draw there: an
+// area as it comes, one it had before a stream's first picture, two it joined into one, and the whole glass, which LVGL
+// draws when more areas come in one frame than its list holds. A filter of each area as it came missed the last three
+// (2026-10-10, the D1001: a tile's spinner and name over its live picture after the camera full screen closed). Each
+// piece goes through the display's own rounding (ESPHome's draw_rounding), as LVGL's own areas do. Once a stream ends
+// nothing is cut for it, and LVGL draws its room again.
+static bool filtering = false;
 static lv_area_t room_of(const Stream &s) {
   return {s.area.x, s.area.y, s.area.x + s.area.w - 1, s.area.y + s.area.h - 1};
 }
@@ -108,10 +128,9 @@ static bool covered(const lv_area_t &a) {
   }
   return false;
 }
-// `area` less every streaming room, as up to MAX_PIECES rectangles; false when that takes more (then the whole area is
-// drawn, and a live picture shows LVGL's for a frame).
-constexpr int MAX_PIECES = 24;
-static lv_area_t pieces[MAX_PIECES], next_pieces[MAX_PIECES];
+// `area` less every streaming room, as up to MAX_PIECES rectangles; -1 when that takes more.
+constexpr int MAX_PIECES = LV_INV_BUF_SIZE;
+static lv_area_t pieces[MAX_PIECES], next_pieces[MAX_PIECES], kept[LV_INV_BUF_SIZE];
 static int cut_out(const lv_area_t &area) {
   int count = 1;
   pieces[0] = area;
@@ -141,33 +160,44 @@ static int cut_out(const lv_area_t &area) {
   }
   return count;
 }
-static void keep_out(lv_event_t *e) {
-  auto *area = static_cast<lv_area_t *>(lv_event_get_param(e));
+static void keep_out(lv_event_t *) {
   lv_display_t *display = lv_display_get_default();
-  if (!area || handing_over || display->rendering_in_progress || !covered(*area)) return;
-  const int count = cut_out(*area);
-  if (count < 0) return;  // too many pieces: drawn whole, a frame of LVGL's over the live pictures
-  handing_over = true;
-  for (int i = 0; i < count; ++i) invalidate(pieces[i]);
-  handing_over = false;
-  if (display->inv_p > 0) {
-    *area = display->inv_areas[display->inv_p - 1];
-    return;
-  }
-  // A corner of the glass no live room covers: drawn again, harmlessly.
-  const int32_t w = lv_display_get_horizontal_resolution(display), h = lv_display_get_vertical_resolution(display);
-  const lv_area_t corners[4] = {{0, 0, 15, 15}, {w - 16, 0, w - 1, 15}, {0, h - 16, 15, h - 1}, {w - 16, h - 16, w - 1, h - 1}};
-  *area = corners[0];
-  for (const auto &c : corners) {
-    if (!covered(c)) {
-      *area = c;
+  int count = 0;
+  bool whole = false;  // more pieces than LVGL's list holds
+  for (uint32_t i = 0; i < display->inv_p && !whole; ++i) {
+    if (display->inv_area_joined[i]) continue;
+    const lv_area_t &area = display->inv_areas[i];
+    if (!covered(area)) {
+      kept[count++] = area;  // as LVGL had it, rounded on its way in
+      continue;
+    }
+    const int made = cut_out(area);
+    if (made < 0 || count + made > LV_INV_BUF_SIZE) {
+      whole = true;
       break;
     }
+    for (int k = 0; k < made; ++k) kept[count++] = pieces[k];
   }
+  if (whole) {
+    // Then the whole glass less the rooms; should even that take too many, LVGL draws what it has, a frame of its own
+    // over the live pictures.
+    const lv_area_t glass = {0, 0, lv_display_get_horizontal_resolution(display) - 1,
+                             lv_display_get_vertical_resolution(display) - 1};
+    const int made = cut_out(glass);
+    if (made < 0) return;
+    count = 0;
+    for (int k = 0; k < made; ++k) kept[count++] = pieces[k];
+  }
+  for (int i = 0; i < count; ++i) {
+    lv_display_send_event(display, LV_EVENT_INVALIDATE_AREA, &kept[i]);  // rounding twice changes nothing
+    display->inv_areas[i] = kept[i];
+    display->inv_area_joined[i] = 0;
+  }
+  display->inv_p = count;
 }
 static void watch_lvgl() {
   if (filtering) return;
-  lv_display_add_event_cb(lv_display_get_default(), keep_out, LV_EVENT_INVALIDATE_AREA, nullptr);
+  lv_display_add_event_cb(lv_display_get_default(), keep_out, LV_EVENT_RENDER_START, nullptr);
   filtering = true;
 }
 static void unwatch_lvgl_when_alone() {
@@ -179,6 +209,9 @@ static void unwatch_lvgl_when_alone() {
 }
 
 static void free_stream(Stream *s) {
+  if (s->sound) vStreamBufferDelete(s->sound);
+  if (s->sound_part) free(s->sound_part);
+  if (s->sound_piece) free(s->sound_piece);
   if (s->input) free(s->input);
   if (s->picture) free(s->picture);
   if (s->canvas) free(s->canvas);
@@ -364,8 +397,20 @@ static void stream(Stream &s) {
     if (s.bytes == 0) s.first_bytes_ms = heard - s.started_at;
     s.bytes += n;
     const bool ok = reader.feed(
-        chunk, n, [&s](size_t length) -> uint8_t * { return length <= s.input_size ? s.input : nullptr; },
-        [&s](size_t length) { show(s, length); });
+        chunk, n,
+        [&s](size_t length, bool audio) -> uint8_t * {
+          if (audio) return s.sound && length <= SOUND_PART ? s.sound_part : nullptr;
+          return length <= s.input_size ? s.input : nullptr;
+        },
+        [&s](size_t length, bool audio) {
+          if (!audio) {
+            show(s, length);
+            return;
+          }
+          // Sound: into the buffer the main loop plays from; none of it while muted, and none when it is full.
+          s.heard = true;
+          if (!s.muted) xStreamBufferSend(s.sound, s.sound_part, length, 0);
+        });
     if (!ok) {
       ESP_LOGW(TAG, "not a stream of pictures (answer %d)", reader.status());
       s.failed = true;
@@ -384,7 +429,7 @@ static void task_main(void *arg) {
   vTaskDelete(nullptr);
 }
 
-Handle open(const std::string &url, const Rect &area, const Look &look) {
+Handle open(const std::string &url, const Rect &area, const Look &look, bool sound) {
   if (!available() || area.empty()) return -1;
   int slot = -1;
   for (int i = 0; i < MAX_STREAMS && slot < 0; ++i)
@@ -413,6 +458,12 @@ Handle open(const std::string &url, const Rect &area, const Look &look) {
   jpeg_decode_memory_alloc_cfg_t in{.buffer_direction = JPEG_DEC_ALLOC_INPUT_BUFFER};
   s->input = static_cast<uint8_t *>(jpeg_alloc_decoder_mem(look.tile ? TILE_PICTURE : MAX_PICTURE, &in, &s->input_size));
   bool ok = s->input && ppa_register_client(&client, &s->ppa) == ESP_OK;
+  if (ok && sound && has_speaker()) {
+    s->sound = xStreamBufferCreate(SOUND_BUFFER, 1);
+    s->sound_part = static_cast<uint8_t *>(heap_caps_malloc(SOUND_PART, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    s->sound_piece = static_cast<uint8_t *>(heap_caps_malloc(SOUND_PART, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    ok = s->sound && s->sound_part && s->sound_piece;
+  }
   // The name as LVGL drew it, the stream's own copy: its owner may draw the card again meanwhile.
   if (ok && look.tile && look.name && look.name_w > 0 && look.name_h > 0) {
     s->name = static_cast<uint32_t *>(heap_caps_malloc(static_cast<size_t>(look.name_w) * look.name_h * 4, MALLOC_CAP_SPIRAM));
@@ -441,6 +492,46 @@ Handle open(const std::string &url, const Rect &area, const Look &look) {
   ESP_LOGI(TAG, "stream %d into %dx%d at %d,%d%s, turned %d", slot, area.w, area.h, area.x, area.y,
            look.tile ? (look.contain ? " (a tile, whole picture)" : " (a tile)") : "", s->turn);
   return slot;
+}
+
+void mute(Handle handle, bool muted) {
+  if (handle < 0 || handle >= MAX_STREAMS || !streams[handle]) return;
+  streams[handle]->muted = muted;
+  if (muted && streams[handle]->sound) xStreamBufferReset(streams[handle]->sound);
+}
+
+// The main loop hands a stream's sound to the speaker: it starts once a part of a second waits (so it does not stutter
+// at its first gap) and stops with the stream or when muted.
+static void speak(Stream &s, bool on) {
+#ifdef USE_SPEAKER
+  if (!speaker || !s.sound) return;
+  if (!on) {
+    if (s.speaking) speaker->stop();
+    s.speaking = false;
+    s.piece_left = 0;
+    return;
+  }
+  if (!s.speaking) {
+    if (xStreamBufferBytesAvailable(s.sound) < SOUND_RATE * 2 * 150 / 1000) return;
+    speaker->set_audio_stream_info(esphome::audio::AudioStreamInfo(16, 1, SOUND_RATE));
+    speaker->start();
+    s.speaking = true;
+  }
+  for (int rounds = 0; rounds < 8; ++rounds) {
+    if (s.piece_left == 0) {
+      s.piece_left = xStreamBufferReceive(s.sound, s.sound_piece, SOUND_PART, 0);
+      s.piece_at = 0;
+      if (s.piece_left == 0) return;
+    }
+    const size_t taken = speaker->play(s.sound_piece + s.piece_at, s.piece_left, 0);
+    s.piece_at += taken;
+    s.piece_left -= taken;
+    if (taken == 0) return;  // the speaker's own buffer is full: the rest next tick
+  }
+#else
+  (void) s;
+  (void) on;
+#endif
 }
 
 void close(Handle handle) {
@@ -477,6 +568,7 @@ void tick(const std::function<void(Handle, Event)> &tell) {
     Stream *s = streams[slot];
     if (!s) continue;
     if (s->done.load(std::memory_order_acquire)) {
+      speak(*s, false);
       report(slot, *s, now, true);
       const bool turned = s->turn != turn, ended = s->stopping && !s->failed;
       const bool was_armed = s->armed.exchange(false);
@@ -489,6 +581,11 @@ void tick(const std::function<void(Handle, Event)> &tell) {
     }
     // The glass turned (a setting): this stream's place is gone; its owner asks again for its new shape.
     if (s->turn != turn && !s->stopping) close(slot);
+    speak(*s, !s->stopping && !s->muted);
+    if (!s->told_sound && s->heard) {
+      s->told_sound = true;
+      tell(slot, Event::SOUND);
+    }
     if (now - s->reported_at >= REPORT_MS) report(slot, *s, now, false);
     if (!s->told_first && s->shown > 0) {
       s->told_first = true;

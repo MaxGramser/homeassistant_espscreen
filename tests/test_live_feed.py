@@ -104,6 +104,33 @@ class LiveTiles(unittest.TestCase):
         self.assertFalse(feed.links[feed.link('camera.door', (1280, 715))].cover)
 
 
+class Held(unittest.TestCase):
+    def test_a_full_view_keeps_the_cameras_of_its_screens_tiles_running(self):
+        async def main():
+            feed = live_feed.LiveFeed(None, None, lambda e: True)
+            feed.link('camera.yard', (434, 244), cover=True, screen='a', tile=True)
+            feed.link('camera.door', (240, 135), cover=True, screen='a', tile=True)
+            feed.link('camera.shed', (434, 244), cover=True, screen='b', tile=True)
+            for entity in ('camera.yard', 'camera.door', 'camera.shed'):
+                feed.source(entity).task = asyncio.create_task(asyncio.sleep(5))
+            # The full view of camera.door on screen a: its own camera runs anyway, and screen b's tiles are not its own.
+            held = feed.hold(feed.links[feed.link('camera.door', (1280, 715), screen='a')])
+            self.assertEqual([source.entity for source in held], ['camera.yard'])
+            self.assertEqual(held[0].viewers, 1)
+            # A tile holds nothing; a tile that streamed long ago is not held either.
+            self.assertEqual(feed.hold(feed.links[feed.link('camera.door', (240, 135), screen='a', tile=True)]), [])
+            for link in feed.links.values():
+                link.used -= live_feed.LINGER_SECONDS
+            self.assertEqual(feed.hold(feed.links[feed.link('camera.door', (1280, 715), screen='a')]), [])
+            feed.let_go(held)
+            self.assertEqual(held[0].viewers, 0)
+            self.assertTrue(held[0].watched())  # and then the usual linger
+            for source in feed.sources.values():
+                source.task.cancel()
+
+        asyncio.run(main())
+
+
 class Stream(unittest.TestCase):
     """A snapshot camera through LiveFeed on a real socket, read like the screen reads it: HTTP/1.0, then parts."""
 
