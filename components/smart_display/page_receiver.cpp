@@ -22,6 +22,7 @@ static bool parse_bar_item(JsonVariant value, header_bar::Item &item) {
     // while it runs low (firmware 0.41.0).
     item.only_weak = (item.kind == header_bar::Kind::wifi || item.kind == header_bar::Kind::battery) &&
                      value["a"].is<unsigned>() && value["a"].as<unsigned>() == 1;
+    item.icon_only = item.kind == header_bar::Kind::plugin && value["o"].is<unsigned>() && value["o"].as<unsigned>() == 1;
     if (item.kind == header_bar::Kind::ago && item.epoch == 0) return false;
     // A plugin's item names itself: plugin:<plugin>.<item> (docs/PLUGINS.md).
     if (item.kind == header_bar::Kind::plugin && !plugin_key(item.text)) return false;
@@ -241,7 +242,7 @@ std::string receive(const std::string &payload) {
         tile.background = tile_palette::color(background);
         tile.transparent = tile_palette::transparent(background);
         refresh_tile(index);
-        if (active_index == static_cast<int>(index) && detail_update) detail_update(tile);
+        if (active_index == static_cast<int>(index)) detail_update(tile);
         refresh_detail(index);
       }
       last_received = esphome::millis();
@@ -658,9 +659,11 @@ std::string receive(const std::string &payload) {
     tile.display = string(options["display"]); if (tile.display.empty()) tile.display="standard";
     // How far a lock's tile may go (firmware 0.5.0+): "confirm" unlocks after a second tap, "lock_only" never unlocks.
     tile.guard = string(options["guard"], 16); if (tile.guard.empty()) tile.guard="confirm";
-    // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the default.
-    const int refresh = options["refresh"].is<int>() ? options["refresh"].as<int>() : 0;
-    tile.refresh = refresh >= 5 && refresh <= 3600 ? refresh : 15;
+    // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the
+    // default. 0 is Live (firmware dev, live_view.h): a camera that streams on its tile, which only a screen whose hello
+    // says `live` is sent. Firmware before it read 0 as 15.
+    const int refresh = options["refresh"].is<int>() ? options["refresh"].as<int>() : 15;
+    tile.refresh = refresh == 0 || (refresh >= 5 && refresh <= 3600) ? refresh : 15;
     tile.overlay = string(options["overlay"], 8) != "none";
     tile.energy_lines = string(options["flow"], 8) == "lines";
     tile.inline_control = string(options["inline"]); if (tile.inline_control.empty()) tile.inline_control="none";
@@ -734,15 +737,17 @@ std::string receive(const std::string &payload) {
     }
 #endif
     if (extra["days"].is<JsonArray>()) for (JsonVariant day : extra["days"].as<JsonArray>()) {
-      if (next.forecast.size() == 5) break;
+      if (next.forecast.size() == weather_week::DAYS) break;
       next.forecast.emplace_back(); auto &f = next.forecast.back();
       f.day = string(day["d"], 8); f.condition = string(day["c"], 20); f.high = number(day["h"]); f.low = number(day["l"]);
       f.rain = number(day["p"]); f.mm = number(day["r"]);
+      if (day["w"].is<int>()) f.weekday = (int8_t) std::clamp(day["w"].as<int>(), 0, 6);
     }
     if (extra["hours"].is<JsonArray>()) for (JsonVariant hour : extra["hours"].as<JsonArray>()) {
-      if (next.hours.size() == 8) break;
+      if (next.hours.size() == weather_week::HOURS) break;
       next.hours.emplace_back(); auto &h = next.hours.back();
       h.time = string(hour["t"], 5); h.condition = string(hour["c"], 20); h.temp = number(hour["h"]); h.rain = number(hour["p"]); h.mm = number(hour["r"]);
+      if (hour["o"].is<int>()) h.at = (int16_t) std::clamp(hour["o"].as<int>(), 0, 24 * 8);
     }
     tile.last_run = extra["last"].is<unsigned>() ? extra["last"].as<uint32_t>() : 0;
     // An automation whose actions run right now (firmware 0.7.0+).
@@ -848,6 +853,10 @@ std::string receive(const std::string &payload) {
     if(tile.domain()=="weather") {
       tile.current=number(a["temperature"]);tile.unit=string(a["temperature_unit"],12);
       tile.humidity=number(a["humidity"]);next.wind=number(a["wind_speed"]);next.wind_unit=string(a["wind_speed_unit"],8);next.feels=number(a["apparent_temperature"]);
+      // What Home Assistant's more-info dialog shows beside them (the weather card's week): the wind's bearing, the air
+      // pressure, the visibility, and the unit the rain comes in.
+      next.bearing=number(a["wind_bearing"]);next.pressure=number(a["pressure"]);next.visibility=number(a["visibility"]);
+      next.pressure_unit=string(a["pressure_unit"],8);next.visibility_unit=string(a["visibility_unit"],8);next.rain_unit=string(a["precipitation_unit"],8);
     }
     tile.modes = list(a["supported_color_modes"]);
     next.hvac_modes = list(a["hvac_modes"]);
@@ -1023,7 +1032,7 @@ std::string receive(const std::string &payload) {
       return true;
     }
     refresh_tile(index);
-    if (active_index == static_cast<int>(index) && detail_update) detail_update(tile);
+    if (active_index == static_cast<int>(index)) detail_update(tile);
     if (tile.domain() == "alarm_control_panel") alarm_state_arrived(index, before);
     if (tile.domain() == "lock") lock_state_arrived(index, before);
     refresh_detail(index);

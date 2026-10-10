@@ -200,6 +200,13 @@ ATTRS = frozenset('brightness percentage current_position current_tilt_position 
 # and what it is doing. Other domains use the same names for other things (an automation's `mode`), so only a humidifier
 # sends them.
 HUMIDIFIER_ATTRS = frozenset('min_humidity max_humidity target_humidity_step available_modes mode action'.split())
+# What the weather card of a screen that draws the week shows beside the temperature, as Home Assistant's more-info
+# dialog does (its hello says weather_week): the wind's bearing, the air pressure, the visibility, and the unit of the
+# rain. Only to such a screen; an older one keeps its message as it was.
+WEATHER_WEEK_ATTRS = frozenset(('wind_bearing', 'pressure', 'pressure_unit', 'visibility', 'visibility_unit', 'precipitation_unit'))
+# The hello flag of a screen that draws the weather card's week (weather_week.h): seven days with their weekday, the
+# next 48 hours with their hour, and WEATHER_WEEK_ATTRS.
+WEATHER_WEEK = 'weather_week'
 # Attributes whose boolean value the screen needs; every other bool stays behind.
 BOOL_ATTRS = frozenset(['is_volume_muted', 'code_arm_required', 'assumed_state'])
 
@@ -571,6 +578,12 @@ SHAPES = _board_shapes()
 BOARD_KEYS = tuple(sorted((board for board, shape in SHAPES.items() if shape.get('board') == board),
                           key=lambda board: SHAPES[board].get('catalog', {}).get('order', len(SHAPES))))
 DEFAULT_SHAPE = SHAPES.get('cyd', {'width': 320, 'height': 240, 'columns': 2, 'rows': 3})
+# The most pages, tiles and top bar items any board takes (its SCREEN_MAX_* through boards.json): the editor's firmware
+# preview is built with these (web/wasm/build.py) and its endpoint takes a draft up to them, so a screen with more than
+# the eight pages every screen once had is previewed too.
+PREVIEW_CEILINGS = tuple(max([shape.get(key, low) for shape in SHAPES.values()] + [low])
+                         for key, low in (('max_pages', FIRMWARE_MAX_PAGES), ('max_tiles', FIRMWARE_MAX_TILES),
+                                          ('max_bar_items', FIRMWARE_MAX_BAR_ITEMS)))
 
 def firmware_target(board):
     """The firmware a screen of this board is offered (app 0.3.21): what a build of the board makes today, boards.json's
@@ -1151,6 +1164,8 @@ BATTERY_FEATURE = 'battery'
 BATTERY_MIN_FIRMWARE = (0, 41, 0)
 BATTERY_CONTENTS = ('icon', 'percent')
 BATTERY_SHOWS = ('always', 'low')
+# A plugin's item (plugin API 0.8): its icon and the words its plugin gives, or its icon alone, as a person chooses.
+PLUGIN_ITEM_CONTENTS = ('all', 'icon')
 # Only shown, never controlled: the top bar takes these besides every tile domain.
 HEADER_ONLY_DOMAINS = frozenset('device_tracker zone counter event input_datetime input_text water_heater humidifier'.split())
 # What an entity item shows: its status, when it last changed, or its icon alone (GitHub #144, any firmware with a top bar:
@@ -1190,11 +1205,11 @@ def validate_header(data, most=HEADER_MAX_ITEMS):
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
         elif kind == 'plugin':
             # A plugin's item (docs/PLUGINS.md): it says itself what it shows, and shows nothing on a screen without it.
-            if set(item) != {'type', 'item'}:
+            if set(item) - {'type', 'item', 'content'} or 'item' not in item:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))
-            if not plugin_tile(item.get('item')):
+            if not plugin_tile(item.get('item')) or item.get('content', 'all') not in PLUGIN_ITEM_CONTENTS:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
-            clean = {'type': 'plugin', 'item': item['item']}
+            clean = {'type': 'plugin', 'item': item['item'], 'content': item.get('content', 'all')}
         elif kind == 'entity':
             if set(item) - {'type', 'entity', 'content', 'icon', 'show'}:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))
@@ -2300,7 +2315,7 @@ def media_extras(attrs):
 
 
 def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=None, entries=None, words=None, icon_of=None, device_name=None,
-           energy=None, home_name=''):
+           energy=None, home_name='', week=False):
     """Small, pre-computed values the firmware cannot derive itself (time zones, forecasts, a vacuum's device, the rows of
     a light's effects page, the house's power split for the energy card from `energy`, Home Assistant's Energy settings)."""
     if tile['entity'] == ENERGY_TILE:
@@ -2328,14 +2343,19 @@ def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=N
     if domain == 'weather' and (forecast or hourly):
         result = {}
         days = []
+        # A screen that draws the week (week) takes seven days, each with its weekday (w, Sunday 0), and the next 48
+        # hours, each with its hour since today's midnight (o) in place of its time and chance; an older one five days
+        # and eight hours, as before.
         for entry in forecast or []:
-            if not isinstance(entry, dict) or len(days) == 5:
+            if not isinstance(entry, dict) or len(days) == (7 if week else 5):
                 continue
             day = forecast_time(entry, tz)
             if day is None:
                 continue
             # The day's short name in the screens' language (app 0.2.90); the list starts on Sunday, Python's week on Monday.
             item = {'d': screen_t(f'screen.date.weekdays_min.{(day.weekday() + 1) % 7}'), 'c': short(entry.get('condition') or '', 20)}
+            if week:
+                item['w'] = (day.weekday() + 1) % 7
             # h/l: high and low; p: chance of rain in %; r: rain in the entity's unit (mm).
             for key, name in (('h', 'temperature'), ('l', 'templow'), ('p', 'precipitation_probability'), ('r', 'precipitation')):
                 value = forecast_number(entry, name)
@@ -2348,11 +2368,22 @@ def extras(tile, states, forecast=None, tz=None, hourly=None, now=None, device=N
         hours = []
         # The running hour still counts: an entry stays until its hour has passed.
         start = (now or datetime.now(timezone.utc)) - timedelta(minutes=59)
+        midnight = None
         for entry in hourly or []:
-            if not isinstance(entry, dict) or len(hours) == 8:
+            if not isinstance(entry, dict) or len(hours) == (48 if week else 8):
                 continue
             moment = forecast_time(entry, tz)
             if moment is None or moment < start:
+                continue
+            if week:
+                if midnight is None:
+                    midnight = (now or datetime.now(timezone.utc)).astimezone(moment.tzinfo).replace(hour=0, minute=0, second=0, microsecond=0)
+                item = {'o': int((moment - midnight).total_seconds() // 3600), 'c': short(entry.get('condition') or '', 20)}
+                for key, name in (('h', 'temperature'), ('r', 'precipitation')):
+                    value = forecast_number(entry, name)
+                    if value is not None:
+                        item[key] = value
+                hours.append(item)
                 continue
             item = {'t': moment.strftime('%H:%M'), 'c': short(entry.get('condition') or '', 20)}
             for key, name in (('h', 'temperature'), ('p', 'precipitation_probability'), ('r', 'precipitation')):
@@ -2463,7 +2494,7 @@ def attribute_word(entity_id, attribute, value, attributes, entry, words):
         return None
     return ha_word(entity_id, f'state_attributes.{attribute}.state.{value}', attributes, entry, words)
 
-def state_message(index, tile, states, extra=None, precision=None, entry=None, units=None):
+def state_message(index, tile, states, extra=None, precision=None, entry=None, units=None, week=False):
     if tile['entity'] in BUILTIN:
         message = {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'],
                    'name': short(tile['name'] or builtin_name(tile['entity']), 80), 'state': 'ok', 'a': {}}
@@ -2478,7 +2509,10 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None, u
     state = states.get(tile['entity'], {})
     attrs = state.get('attributes', {})
     bounded = {}
-    for key in ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS:
+    keys = ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS
+    if week and tile['entity'].startswith('weather.'):
+        keys = keys | WEATHER_WEEK_ATTRS
+    for key in keys:
         value = attrs.get(key)
         if isinstance(value, bool):
             # assumed_state only matters to a lock's keys (firmware 0.5.0+) and a player's power keys (firmware
@@ -2852,6 +2886,12 @@ def discover_screens(registry, states, devices, areas):
                         'status': state.get('state', english('screen.settings.not_connected'))})
     return screens
 
+def unavailable_since(state):
+    """Since when Home Assistant has had no word from an unavailable entity (its last_changed, in seconds), for the editor
+    to tell a moment away from a tile that has shown nothing for a while; nothing for any other state."""
+    since = epoch(state.get('last_changed')) if state.get('state') == 'unavailable' else None
+    return {'unavailable_since': since} if since is not None else {}
+
 def discover(registry, states, devices, areas):
     """(screens, entities): the paired screens and every entity a tile or the top bar can show."""
     device_map = {d['id']: d for d in devices}
@@ -2871,7 +2911,7 @@ def discover(registry, states, devices, areas):
                          'state': state.get('state', 'unavailable'),
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
-                         **({} if tile else {'tile': False})})
+                         **({} if tile else {'tile': False}), **unavailable_since(state)})
     # YAML entities may not have an entity-registry entry.
     registered = {e['id'] for e in entities}
     in_registry = {r['entity_id'] for r in registry}
@@ -2879,7 +2919,7 @@ def discover(registry, states, devices, areas):
         tile = entity_id(eid)
         if (tile or header_entity(eid)) and eid not in registered and eid not in in_registry:
             entities.append({'id': eid, 'name': state.get('attributes', {}).get('friendly_name', eid), 'device': '', 'area': '', 'state': state['state'],
-                             'icon': tile_icons.ha_icon(state.get('attributes')), **({} if tile else {'tile': False})})
+                             'icon': tile_icons.ha_icon(state.get('attributes')), **({} if tile else {'tile': False}), **unavailable_since(state)})
     return screens, sorted(entities, key=lambda e: e['name'].casefold())
 
 def hotspot_name(friendly):

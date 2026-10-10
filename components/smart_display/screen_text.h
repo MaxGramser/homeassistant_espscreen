@@ -12,9 +12,18 @@
 
 namespace screen_text {
 
+#ifdef SCREEN_TEXT_LANGUAGES
+// The browser preview (web/wasm, app 0.4.86) carries every language and picks the one ESP Screens builds the screens
+// in with choose() (screen_text_gen.host_definitions); a screen carries its own alone.
+extern const char *const *TABLE;
+extern const char *LANGUAGE;
+extern int (*plural_index)(int n);
+bool choose(const char *code);
+#else
 extern const char *const TABLE[];     // this build's language, one text per key
 extern const char *const LANGUAGE;    // its code, such as "nl"; the "Screen language" sensor reports it
 int plural_index(int n);              // which form of a plural text fits n in this language
+#endif
 
 inline const char *tr(uint16_t id) { return id < KEY_COUNT ? TABLE[id] : ""; }
 

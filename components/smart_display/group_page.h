@@ -76,6 +76,7 @@ inline Layout layout(int count, const Room &r) {
 #include "effects_page.h"
 #include "light_controls.h"
 #include "overlay_card.h"
+#include "page_bar.h"
 #include "screen_text.h"
 #include "settings_screen.h"
 #include "theme.h"
@@ -117,11 +118,11 @@ inline bool offered(const std::string &group) {
 inline bool visible() { return root != nullptr; }
 inline Room room() {
   const auto em = effects_page::screen_metrics();
-  const auto sm = settings_screen::metrics();
   Room r;
   r.width = em.width; r.height = em.height; r.pad = em.pad; r.large = ui::large();
   r.top = em.bar_y + em.bar + ui::px(r.large ? 14 : 6);
-  r.pager = sm.pager; r.pager_bottom = sm.bottom;
+  // The pager every page shares (page_bar.h): the band on the glass's foot.
+  r.pager = page_bar::height(); r.pager_bottom = 0;
   return r;
 }
 inline void emit(const char *service, const std::string &lamp, const char *key, const std::string &value, bool rendered = false) {
@@ -429,35 +430,12 @@ inline void member_card(lv_obj_t *parent, int x, int y, int w, int h, const Lamp
 
 // ---- the page ----
 inline void draw();
-inline void pager_event(lv_event_t *e) {
-  page += static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(e)));
+inline void pager_step(int step) {
+  page += step;
   draw();
 }
-// The same pager as the tile pages and the settings page (settings_screen::draw): a chevron in each half, the page dots
-// between them; a half that leads nowhere is dimmed and takes no touches.
-inline void pager(const Layout &l) {
-  const auto em = effects_page::screen_metrics();
-  const auto sm = settings_screen::metrics();
-  const int half = (em.width - 2 * em.pad) / 2 - 20;
-  const lv_font_t *chevrons = effects_page::icon_font ? effects_page::icon_font : effects_page::row_font;
-  const int chevron_h = lv_font_get_line_height(chevrons);
-  auto *dots = effects_page::plain(root, 0, l.pager_y, em.width, sm.pager);
-  settings_screen::page_dots(dots, page, l.pages, sm.large);
-  for (int side = 0; side < 2; ++side) {
-    const bool enabled = side ? page + 1 < l.pages : page > 0;
-    auto *bar = effects_page::plain(root, side ? em.width - em.pad - half : em.pad, l.pager_y, half, sm.pager);
-    auto *glyph = effects_page::text(bar, side ? "\U000F0142" : "\U000F0141", chevrons, theme::INK,
-                                     side ? LV_TEXT_ALIGN_RIGHT : LV_TEXT_ALIGN_LEFT);
-    lv_obj_set_width(glyph, half - 12);
-    lv_obj_set_pos(glyph, 6, (sm.pager - chevron_h) / 2);
-    if (!enabled) { lv_obj_set_style_opa(glyph, LV_OPA_30, 0); continue; }
-    lv_obj_add_flag(bar, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_STATE_PRESSED);
-    lv_obj_set_style_bg_color(bar, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
-    lv_obj_set_style_radius(bar, sm.radius, 0);
-    lv_obj_add_event_cb(bar, pager_event, LV_EVENT_CLICKED, reinterpret_cast<void *>(static_cast<intptr_t>(side ? 1 : -1)));
-  }
-}
+// The pager every page shares (page_bar.h): the tile pages' own, on the foot of the glass.
+inline void pager(const Layout &l) { page_bar::show(page_bar::make(root, pager_step), page, l.pages); }
 inline void close() {
   close_panel();
   cards.clear();
@@ -472,7 +450,7 @@ inline void draw() {
   cards.clear();
   const Tile *t = tile();
   const auto em = effects_page::screen_metrics();
-  effects_page::top_bar(root, em, t ? (t->name.empty() ? t->entity : t->name) : entity, back_event);
+  detail_bar::make(root, t ? (t->name.empty() ? t->entity : t->name) : entity, {detail_bar::BACK, back_event});
   if (!t) return;
   const auto &lamps = t->extra().lamps;
   const Layout l = layout(static_cast<int>(lamps.size()), room());
@@ -531,34 +509,5 @@ inline void restyle() {
   draw();
 }
 
-// The colour card's top bar with the lamps key: the keys on the right stand together at the card's corner (the sparkles
-// key outermost, the lamps key beside it), and the title keeps one line: in the middle with the same room on both sides
-// when it fits there, else in all the room between the back key and the keys on the right, ending in dots. `text` is
-// the title as it is meant, never read back from the label (LVGL writes its dots into the label's own text).
-inline void place_card_keys(lv_obj_t *card, lv_obj_t *back, lv_obj_t *effects, lv_obj_t *group, lv_obj_t *title,
-                            const std::string &text) {
-  lv_obj_update_layout(card);
-  const int card_w = lv_obj_get_width(card), key = lv_obj_get_width(back), edge = lv_obj_get_x(back);
-  const int gap = ui::px(ui::large() ? 8 : 5);
-  const bool fx = !lv_obj_has_flag(effects, LV_OBJ_FLAG_HIDDEN), lamps = !lv_obj_has_flag(group, LV_OBJ_FLAG_HIDDEN);
-  if (lamps) lv_obj_align(group, LV_ALIGN_TOP_RIGHT, -(edge + (fx ? key + gap : 0)), lv_obj_get_y(back));
-  const int right = (fx ? 1 : 0) + (lamps ? 1 : 0);
-  const int right_side = edge + std::max(1, right) * key + std::max(0, right - 1) * gap + gap, left_side = edge + key + gap;
-  const lv_font_t *font = lv_obj_get_style_text_font(title, LV_PART_MAIN);
-  lv_label_set_long_mode(title, LV_LABEL_LONG_DOT);
-  lv_obj_set_height(title, lv_font_get_line_height(font));
-  lv_point_t size;
-  lv_text_get_size(&size, text.c_str(), font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
-  const int y = lv_obj_get_y(back) + (key - lv_font_get_line_height(font)) / 2;
-  const int centred = card_w - 2 * std::max(left_side, right_side);
-  if (size.x <= centred) {
-    lv_obj_set_width(title, centred);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, y);
-  } else {
-    lv_obj_set_width(title, std::max(key, card_w - left_side - right_side));
-    lv_obj_align(title, LV_ALIGN_TOP_LEFT, left_side, y);
-  }
-  lv_label_set_text(title, text.c_str());
-}
 }  // namespace group_page
 #endif

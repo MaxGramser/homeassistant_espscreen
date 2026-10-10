@@ -24,7 +24,7 @@ ENGLISH = {'app': {'name': 'Bus', 'summary': 'Next bus.', 'tile': 'Next', 'stop'
 
 def manifest(**changes):
     data = {
-        'id': 'bus', 'version': '1.0.0', 'api': '0.1', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT',
+        'id': 'bus', 'version': '1.0.0', 'api': '0.1', 'icon': 'bus', 'maintainer': 'someone', 'license': 'MIT', 'topics': ['travel'],
         'permissions': {'network': ['api.example.org']}, 'attributes': ['cloud'], 'privacy': 'https://example.org/p',
         'tiles': [{'id': 'next', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 900,
                    'data': 'departures', 'options': [
@@ -754,3 +754,306 @@ class Builds(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# ---- A day of prices or a forecast (plugin API 0.5) ----
+# Real day-ahead prices (two days of 96 quarters) in the shapes the integrations give them, as their source builds
+# them: an attribute list of numbers or of objects, or an action's answer, with every way of writing a moment seen.
+
+PRICES = json.loads((ROOT / 'tests/fixtures/plugins/prices/nordpool_nl.json').read_text())
+
+
+def moments(day, step=None, offset='+02:00', space=False, utc=False):
+    """The start of every slot of a day of PRICES as Home Assistant writes it: ISO with an offset (a datetime the
+    websocket serialises), str(datetime) with a space (energyzero, easyenergy, ENTSO-e), or UTC."""
+    from datetime import datetime, timedelta, timezone
+    start = datetime.fromisoformat(day['start'])
+    zone = timezone.utc if utc else timezone(timedelta(hours=int(offset[:3]), minutes=int(offset[4:])))
+    out = []
+    for i in range(len(day['prices'])):
+        moment = (start + timedelta(minutes=(step or day['minutes']) * i)).astimezone(zone)
+        out.append(str(moment) if space else moment.isoformat())
+    return out
+
+
+def series_sources():
+    """{source: (where, data, fields)}: where 'attributes' (the entity's) or 'answer' (an action's response), and the
+    fields a plugin maps to get the day as one list of numbers plus its first moment."""
+    today, tomorrow = PRICES['days'][1], PRICES['days'][0]
+    kwh = [round(p / 1000, 3) for p in today['prices']]
+    at = moments(today)
+    half = lambda values: values[::2]          # 48 slots of half an hour
+    price_fields = lambda path, first: {'prices': {'path': path, 'as': 'numbers'}, 'start': {'path': first, 'as': 'epoch'}}
+    return {
+        'nordpool (HACS), raw_today': ('attributes', {
+            'today': kwh, 'tomorrow': [round(p / 1000, 3) for p in tomorrow['prices']], 'unit_of_measurement': 'EUR/kWh',
+            'raw_today': [{'start': s, 'end': s, 'value': v} for s, v in zip(at, kwh)]},
+            price_fields('raw_today[*].value', 'raw_today[0].start')),
+        'entsoe (HACS)': ('attributes', {
+            'prices_today': [{'time': s, 'price': round(p / 1000, 5)} for s, p in zip(moments(today, space=True), today['prices'])]},
+            price_fields('prices_today[*].price', 'prices_today[0].time')),
+        'frank_energie (HACS)': ('attributes', {'prices': [{'from': s, 'till': s, 'price': v} for s, v in zip(at, kwh)]},
+            price_fields('prices[*].price', 'prices[0].from')),
+        'zonneplan_one (HACS)': ('attributes', {'forecast': [
+            {'start_date': s, 'end_date': s, 'price_tax_included': {'amount': int(v * 1e7)}, 'tariff_group': 'normal'}
+            for s, v in zip(at, kwh)]}, price_fields('forecast[*].price_tax_included.amount', 'forecast[0].start_date')),
+        'octopus_energy (HACS), event': ('attributes', {'rates': [
+            {'start': s, 'end': s, 'value_inc_vat': v, 'is_capped': False} for s, v in zip(half(moments(today, offset='+01:00')), half(kwh))]},
+            price_fields('rates[*].value_inc_vat', 'rates[0].start')),
+        'solcast_solar (HACS)': ('attributes', {'detailedForecast': [
+            {'period_start': s, 'pv_estimate': v * 10, 'pv_estimate10': v, 'pv_estimate90': v * 12} for s, v in zip(half(at), half(kwh))]},
+            price_fields('detailedForecast[*].pv_estimate', 'detailedForecast[0].period_start')),
+        'amberelectric': ('attributes', {'forecasts': [
+            {'duration': 30, 'per_kwh': v, 'spot_per_kwh': v, 'start_time': s, 'end_time': s, 'descriptor': 'low'}
+            for s, v in zip(half(moments(today, utc=True)), half(kwh))]},
+            price_fields('forecasts[*].per_kwh', 'forecasts[0].start_time')),
+        'nordpool, get_prices_for_date': ('answer', {'NL': [
+            {'start': s, 'end': s, 'price': p} for s, p in zip(moments(today, utc=True), today['prices'])]},
+            price_fields('[*][*].price', '[*][0].start')),
+        'energyzero, get_energy_prices (quarter)': ('answer', {'prices': [
+            {'price': v, 'timestamp': s, 'start': s, 'end': s} for s, v in zip(moments(today, space=True, utc=True), kwh)]},
+            price_fields('prices[*].price', 'prices[0].start')),
+        'easyenergy, get_energy_usage_prices (quarter)': ('answer', {'prices': [
+            {'timestamp': s, 'price': v} for s, v in zip(moments(today, space=True, utc=True), kwh)]},
+            price_fields('prices[*].price', 'prices[0].timestamp')),
+        'tibber, get_prices': ('answer', {'prices': {'Home': [
+            {'start_time': s.replace('+02:00', '.000+02:00'), 'price': v} for s, v in zip(at, kwh)]}},
+            price_fields('prices[*][*].price', 'prices[*][0].start_time')),
+        'weather, get_forecasts (hourly)': ('answer', {'weather.home': {'forecast': [
+            {'datetime': s, 'condition': 'cloudy', 'temperature': 12 + v * 10, 'precipitation': 0.0} for s, v in zip(at[::4], kwh[::4])]}},
+            price_fields('[*].forecast[*].temperature', '[*].forecast[0].datetime')),
+    }
+
+
+class Series(unittest.IsolatedAsyncioTestCase):
+    """A day of prices or a forecast reaches a plugin whole, from every shape an integration gives it in."""
+
+    def service(self, states, request=None):
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+
+        class FakeHA:
+            changed, dirty, time_zone, registry = asyncio.Event(), set(), 'Europe/Amsterdam', []
+
+            async def request(self, kind, **data):
+                return await request(kind, **data)
+        FakeHA.states = states
+
+        class FakeManager:
+            ha = FakeHA()
+            page_senders, aliases = {}, {}
+        return plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', Path(tmp.name) / 'esphome')
+
+    def test_every_source_gives_its_whole_day_as_numbers(self):
+        from datetime import datetime
+        first_slot = int(datetime.fromisoformat(PRICES['days'][1]['start']).timestamp())
+        for source, (where, data, fields) in series_sources().items():
+            with self.subTest(source):
+                spec = pm.check_fields(fields, 'fields')
+                got = {name: plugin_fetch.field_value(data, {**field, 'tz': 'Europe/Amsterdam'}) for name, field in spec.items()}
+                slots = 24 if source.startswith('weather') else 48 if any(s in source for s in ('octopus', 'solcast', 'amber')) else 96
+                self.assertEqual(len(got['prices']), slots)
+                self.assertTrue(all(isinstance(p, (int, float)) for p in got['prices']))
+                self.assertEqual(got['start'], first_slot)
+                # The day as numbers fits a screen's message with room to spare, an answer and a tile alike.
+                self.assertLess(len(json.dumps(got['prices'], separators=(',', ':'))), 1300)
+
+    def test_a_tile_of_an_entity_gets_two_days_whole(self):
+        _, attrs, _ = series_sources()['nordpool (HACS), raw_today']
+        service = self.service({'sensor.price': {'state': '0.1', 'attributes': attrs}})
+        kind = pm.check(yaml_manifest('price_peek'), None)['tiles'][0]
+        _, part = service.entity_part(kind, {'options': {'plugin_entity': 'sensor.price'}})
+        got = part['attributes']
+        self.assertEqual((len(got['today']), len(got['tomorrow']), len(got['today_raw'])), (96, 96, 96))  # 16 before 0.5
+        self.assertEqual(got['today_raw'], attrs['today'])
+        self.assertEqual(got['unit_of_measurement'], 'EUR/kWh')
+        self.assertIsInstance(got['starts_at'], int)
+        self.assertNotIn('raw_today', got)            # 8 KB of objects never go to the screen
+        self.assertLessEqual(len(json.dumps(part, separators=(',', ':'))), 2600)
+
+    def test_lists_too_large_together_are_shortened_alike_from_the_end(self):
+        effects = [f'Effect number {i}' for i in range(218)]
+        service = self.service({'light.strip': {'state': 'on', 'attributes': {'effect_list': effects, 'options': list(range(300))}}})
+        kind = {'id': 't', 'domains': ['light'], 'attributes': ['effect_list', 'options'], 'fields': {}}
+        _, part = service.entity_part(kind, {'options': {'plugin_entity': 'light.strip'}})
+        got = part['attributes']
+        self.assertEqual(len(got['effect_list']), len(got['options']))
+        self.assertEqual(got['effect_list'], effects[:len(got['effect_list'])])
+        self.assertGreater(len(got['options']), 16)
+        self.assertLessEqual(len(json.dumps(part, separators=(',', ':'))), 2600)
+
+    def test_the_entity_list_keeps_to_the_attributes_a_tile_needs(self):
+        _, attrs, _ = series_sources()['nordpool (HACS), raw_today']
+        service = self.service({'sensor.price': {'attributes': attrs}, 'sensor.temperature': {'attributes': {'unit_of_measurement': 'C'}},
+                                'sensor.average': {'attributes': {'raw_today': []}}, 'light.raw': {'attributes': {'raw_today': []}}})
+        self.assertEqual(service.entities_with(['sensor'], ['raw_today']), ['sensor.average', 'sensor.price'])
+        self.assertEqual(service.entities_with(['sensor'], ['raw_today', 'tomorrow']), ['sensor.price'])
+
+    async def test_an_answer_the_manifest_maps_goes_as_its_fields(self):
+        import shutil
+        _, answer, _ = series_sources()['nordpool, get_prices_for_date']
+        _, quarter, _ = series_sources()['energyzero, get_energy_prices (quarter)']
+        sent = []
+
+        async def request(kind, **data):
+            return {'response': answer if data['domain'] == 'nordpool' else quarter}
+        service = self.service({}, request)
+        service.manager.screen = lambda inbox: {'id': inbox, 'node': inbox, 'name': 'Kitchen', 'online': True}
+        service.manager.transport = lambda inbox, screen=None: 'action'
+
+        async def send_auxiliary(inbox, message, action, request):
+            sent.append(message)
+        service.manager.send_auxiliary = send_auxiliary
+        plugins_dir = service.folder_root()
+        plugins_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(ROOT / 'tests/fixtures/plugins/price_peek', plugins_dir / 'price_peek')
+        service.scan_folders()
+        service.store.put('kitchen', {'id': 'price_peek', 'source': 'folder', 'state': 'active'})
+        ask = lambda n, command: service.answer({'inbox': 'kitchen', 'plugin': 'price_peek', 'body': json.dumps(
+            {'re': n, 'ask': command, 'data': {'config_entry': 'x', 'date': '2026-10-09'}})})
+        await ask(1, 'call_service:nordpool.get_prices_for_date')
+        result = sent[0]['m']['result']
+        self.assertEqual(set(result), {'prices', 'start'})
+        self.assertEqual(result['prices'], PRICES['days'][1]['prices'])        # all 96; 24 objects before 0.5
+        # An answer without a map goes as it came, bounded by bytes: as many whole slots as fit, never cut open.
+        await ask(2, 'call_service:energyzero.get_energy_prices')
+        raw = sent[1]['m']['result']['prices']
+        self.assertTrue(24 <= len(raw) < 96)
+        self.assertEqual(raw[0], quarter['prices'][0])
+        for message in sent:
+            self.assertLessEqual(len(json.dumps(message['m'])), 3400)
+
+
+def yaml_manifest(name):
+    import yaml
+    return yaml.safe_load((ROOT / 'tests/fixtures/plugins' / name / 'tessera-plugin.yaml').read_text())
+
+
+class SeriesManifest(unittest.TestCase):
+    """The manifest's side of plugin API 0.5: fields of an entity and of an answer, has_attributes, the kind numbers."""
+
+    def tile(self, **changes):
+        tile = {'id': 'day', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 900, 'domains': ['sensor']}
+        tile.update(changes)
+        return manifest(tiles=[tile], fetch=[])
+
+    def test_the_price_plugin_passes(self):
+        checked = pm.check(yaml_manifest('price_peek'), json.loads(
+            (ROOT / 'tests/fixtures/plugins/price_peek/translations/en.json').read_text()))
+        self.assertEqual(checked['tiles'][0]['has_attributes'], ['raw_today'])
+        self.assertEqual(checked['answers'][0]['fields']['prices']['as'], 'numbers')
+        self.assertEqual(checked['answers'][0]['fields']['prices']['path'], [('all',), ('all',), ('key', 'price')])
+
+    def test_wrong_ones_are_refused_with_a_reason(self):
+        wrong = {
+            'fields without domains': self.tile(domains=[], fields={'p': 'a[*].b'}),
+            'has_attributes without domains': self.tile(domains=[], has_attributes=['raw_today']),
+            'a field named as an attribute': self.tile(attributes=['today'], fields={'today': {'path': 'raw[*].v', 'as': 'numbers'}}),
+            'a field named state': self.tile(fields={'state': 'a'}),
+            'an unknown kind': self.tile(fields={'p': {'path': 'a', 'as': 'list'}}),
+            'a path with a filter': self.tile(fields={'p': {'path': 'a[?(@.x)]', 'as': 'numbers'}}),
+            'a countdown to numbers': self.tile(fields={'p': {'path': 'a[*].t', 'as': 'numbers'}}, preview={'countdown': 'p'}),
+            'an answer of a command not allowed': manifest(answers=[{'command': 'call_service:nordpool.get_prices_for_date', 'fields': {'p': 'a'}}]),
+            'an answer mapped twice': manifest(permissions={'network': ['api.example.org'], 'ha_commands': ['history/history_during_period']},
+                                               answers=[{'command': 'history/history_during_period', 'fields': {'p': 'a'}}] * 2),
+        }
+        for reason, data in wrong.items():
+            with self.subTest(reason), self.assertRaises(pm.ManifestError):
+                pm.check(data, ENGLISH)
+
+    def test_a_field_path_may_start_with_a_list_step(self):
+        self.assertEqual(pm.parse_path('[*].price', root=False), [('all',), ('key', 'price')])
+        self.assertEqual(pm.parse_path('[0]', root=False), [('at', 0)])
+        for wrong in ('.price', '$.price', ''):
+            with self.subTest(wrong), self.assertRaises(ValueError):
+                pm.parse_path(wrong, root=False)
+
+    def test_numbers_keep_gaps_and_refuse_what_json_cannot_carry(self):
+        field = {'path': pm.parse_path('[*]', root=False), 'as': 'numbers'}
+        self.assertEqual(plugin_fetch.field_value([0.1, None, '0,25', 'x', True, float('nan'), 3], field),
+                         [0.1, None, 0.25, None, 1, None, 3])
+
+
+class PanelSettings(unittest.IsolatedAsyncioTestCase):
+    """A plugin's settings on a screen (plugin API 0.6): found by their name in plugin.yaml through the entity registry,
+    so a rename in Home Assistant keeps them; a text and a button with its status; only the screen's own entities."""
+
+    def service(self, registry, states):
+        import shutil
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+        folder = Path(tmp.name) / 'tessera-plugins' / 'voice_probe'
+        (folder / 'translations').mkdir(parents=True)
+        (folder / 'tessera-plugin.yaml').write_text(
+            'id: voice_probe\nversion: 1.0.0\napi: "0.6"\nicon: microphone\nmaintainer: someone\nlicense: MIT\ntopics: [voice]\n'
+            'settings:\n  - { key: wake_word, label: word }\n  - { key: spotify_market, label: market }\n'
+            '  - { key: test_wake, label: test, status: test_wake_result }\n')
+        (folder / 'translations' / 'en.json').write_text(json.dumps(
+            {'app': {'name': 'Voice', 'summary': 'Voice.', 'word': 'Word', 'market': 'Market', 'test': 'Test'}, 'screen': {}}))
+        calls = []
+
+        class FakeHA:
+            changed, dirty = asyncio.Event(), set()
+
+            async def call_service(self, domain, service, data):
+                calls.append((domain, service, data))
+        FakeHA.registry, FakeHA.states = registry, states
+
+        class FakeManager:
+            ha = FakeHA()
+            page_senders, aliases = {}, {}
+
+            def screen(self, inbox):
+                return {'id': inbox, 'device_id': 'dev1', 'online': True}
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', config)
+        service.scan_folders()
+        service.store.put('kitchen', {'id': 'voice_probe', 'source': 'folder', 'state': 'active'})
+        return service, calls
+
+    def esphome(self, entity_id, name, device='dev1'):
+        return {'entity_id': entity_id, 'device_id': device, 'platform': 'esphome', 'original_name': name}
+
+    async def test_found_by_name_after_a_rename_and_never_on_another_device(self):
+        registry = [self.esphome('select.my_kitchen_word', 'Wake word'),          # renamed in Home Assistant
+                    self.esphome('text.kitchen_spotify_market', 'Spotify market'),
+                    self.esphome('button.kitchen_test_wake', 'Test wake'),
+                    self.esphome('sensor.kitchen_test_wake_result', 'Test wake result'),
+                    self.esphome('select.hall_wake_word', 'Wake word', device='dev2')]
+        states = {'select.my_kitchen_word': {'state': 'Okay Nabu', 'attributes': {'options': ['Okay Nabu', 'Hey Jarvis']}},
+                  'text.kitchen_spotify_market': {'state': 'NL', 'attributes': {'min': 2, 'max': 2, 'mode': 'text'}},
+                  'button.kitchen_test_wake': {'state': 'unknown'},
+                  'sensor.kitchen_test_wake_result': {'state': 'Heard: Okay Nabu'}}
+        service, calls = self.service(registry, states)
+        rows = {row['key']: row for row in service.settings_for('kitchen')[0]['rows']}
+        self.assertEqual(rows['wake_word']['entity'], 'select.my_kitchen_word')
+        self.assertEqual(rows['wake_word']['options'], ['Okay Nabu', 'Hey Jarvis'])
+        self.assertEqual((rows['spotify_market']['kind'], rows['spotify_market']['value'], rows['spotify_market']['max']), ('text', 'NL', 2))
+        self.assertEqual((rows['test_wake']['kind'], rows['test_wake']['status']), ('button', 'Heard: Okay Nabu'))
+        self.assertTrue(rows['test_wake']['available'])            # a button that was never pressed is there
+        await service.set_setting('kitchen', 'button.kitchen_test_wake', True)
+        await service.set_setting('kitchen', 'text.kitchen_spotify_market', 'BE')
+        await service.set_setting('kitchen', 'select.my_kitchen_word', 'Hey Jarvis')
+        self.assertEqual(calls, [('button', 'press', {'entity_id': 'button.kitchen_test_wake'}),
+                                 ('text', 'set_value', {'entity_id': 'text.kitchen_spotify_market', 'value': 'BE'}),
+                                 ('select', 'select_option', {'entity_id': 'select.my_kitchen_word', 'option': 'Hey Jarvis'})])
+        for entity, value in (('text.kitchen_spotify_market', 'NLD'),            # longer than the entity takes
+                              ('button.kitchen_test_wake', 'yes'),
+                              ('sensor.kitchen_test_wake_result', 'x'),          # a status is shown, never set
+                              ('select.hall_wake_word', 'Hey Jarvis')):           # another screen's entity
+            with self.subTest(entity), self.assertRaises(ValueError):
+                await service.set_setting('kitchen', entity, value)
+
+    def test_the_object_id_is_esphomes(self):
+        import plugins as plugin_service
+        for name, key in (('Tap sound', 'tap_sound'), ('Mic gain (dB)', 'mic_gain__db_'), ('AEC', 'aec'), ('Wake-word', 'wake-word')):
+            self.assertEqual(plugin_service.Plugins.object_id(name), key)
+
+    def test_a_status_is_an_id_too(self):
+        good = manifest(settings=[{'key': 'test_wake', 'label': 'tile', 'status': 'test_wake_result'}])
+        self.assertEqual(pm.check(good, ENGLISH)['settings'][0]['status'], 'test_wake_result')
+        with self.assertRaises(pm.ManifestError):
+            pm.check(manifest(settings=[{'key': 'test_wake', 'label': 'tile', 'status': 'Test wake result'}]), ENGLISH)

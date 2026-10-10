@@ -40,11 +40,6 @@ substitutions:
   PAGE_NUMBER_W: ${ (104 * LOOK_SCALE | float) | round | int }     # the dots in the middle
 
   # Cards: the round keys and the brightness card
-  CARD_KEY_X: ${ (10 * LOOK_SCALE | float) | round | int }     # a card's round key from the side
-  CARD_KEY_Y: ${ (8 * LOOK_SCALE | float) | round | int }     # from the top
-  CARD_KEY_SIZE: ${ (40 * LOOK_SCALE | float) | round | int }  # its diameter
-  COLOR_TITLE_W: ${ (210 * LOOK_SCALE | float) | round | int } # the colour card's title
-  COLOR_TITLE_Y: ${ (21 * LOOK_SCALE | float) | round | int }
 
   # The alert (HA action show_alert): its sizes are worked out on the glass (screen_alert::layout, firmware 0.2.103+);
   # what is left here is how much text it takes, which ESP Screens checks before it sends an alert.

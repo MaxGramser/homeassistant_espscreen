@@ -2,18 +2,22 @@
 // The screensaver's clock in miniature, in the glass's own proportions: the time large in the middle, the date under it
 // and the bottom line with the temperature and the entities, white on black as the screen draws it. A line wider than
 // the glass loses its last entities until it fits, as on the screen, so the temperature always stays.
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useResizeObserver } from "@vueuse/core";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { glyph } from "../model/topbar";
-import { saverItems, topbarView } from "../store";
-import { clockPreview, glassRatio, saver } from "../saver";
+import { useTopbarStore } from "../stores/topbar";
+import { useScreensaverStore } from "../stores/screensaver";
+
+const topbar = useTopbarStore();
+const screensaver = useScreensaverStore();
 
 defineProps<{ height: number }>();
 const line = ref<HTMLElement | null>(null);
-const items = computed(() => saverItems().map((it) => {
-  const view = topbarView(it);
+const items = computed(() => screensaver.saverItems.map((it) => {
+  const view = topbar.topbarView(it);
   return { key: it.entity, icon: view.icon && it.icon !== "none" ? glyph(view.icon) : "", text: it.content === "icon" ? "" : view.text };
 }));
-const temperature = computed(() => ((saver.value?.weather ?? "auto") === "" ? null : clockPreview.value.temperature));
+const temperature = computed(() => ((screensaver.saver?.weather ?? "auto") === "" ? null : screensaver.clockPreview.temperature));
 const fit = ref(items.value.length);
 async function measure() {
   fit.value = items.value.length;
@@ -24,18 +28,14 @@ async function measure() {
   }
 }
 watch([items, temperature], measure, { deep: true });
-let observer: ResizeObserver | null = null;
-onMounted(() => {
-  measure();
-  if (line.value && typeof ResizeObserver !== "undefined") (observer = new ResizeObserver(() => measure())).observe(line.value);
-});
-onBeforeUnmount(() => observer?.disconnect());
+onMounted(measure);
+useResizeObserver(line, () => measure());
 </script>
 
 <template>
-  <div class="saver-glass" aria-hidden="true" :style="{ aspectRatio: glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
-    <span class="saver-glass-time">{{ clockPreview.time }}</span>
-    <span class="saver-glass-date">{{ clockPreview.date }}</span>
+  <div class="saver-glass" aria-hidden="true" :style="{ aspectRatio: screensaver.glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
+    <span class="saver-glass-time">{{ screensaver.clockPreview.time }}</span>
+    <span class="saver-glass-date">{{ screensaver.clockPreview.date }}</span>
     <span ref="line" class="saver-glass-line">
       <span v-if="temperature">{{ temperature }}</span>
       <span v-for="it in items.slice(0, fit)" :key="it.key"><span v-if="it.icon" class="mdi">{{ it.icon }}</span>{{ it.text }}</span>

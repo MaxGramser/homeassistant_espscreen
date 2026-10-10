@@ -155,6 +155,10 @@
       "night": "Notte",
       "screen": "Schermo",
       "this_screen": "Questo schermo",
+      "extras": "Extra",
+      "microphone": "Microfono",
+      "media_player": "Volume",
+      "wake_when_moved": "Riattiva se mosso",
       "dark_mode": "Modalità scura",
       "auto_standby": "Standby automatico",
       "standby_after": "Standby dopo",
@@ -537,6 +541,35 @@
         "drying": "Deumidificando",
         "idle": "Inattivo",
         "off": "Spento"
+      },
+      "today": "Oggi",
+      "weather_view": {
+        "daily": "Giornaliero",
+        "hourly": "Ogni ora"
+      },
+      "weather_attribute": {
+        "humidity": "Umidità",
+        "wind_speed": "Velocità del vento",
+        "air_pressure": "Pressione atmosferica",
+        "visibility": "Visibilità"
+      },
+      "wind_direction": {
+        "n": "N",
+        "nne": "NNE",
+        "ne": "NE",
+        "ene": "ENE",
+        "e": "E",
+        "ese": "ESE",
+        "se": "SE",
+        "sse": "SSE",
+        "s": "S",
+        "ssw": "SSO",
+        "sw": "SO",
+        "wsw": "OSO",
+        "w": "O",
+        "wnw": "ONO",
+        "nw": "NO",
+        "nnw": "NNO"
       }
     },
     "navigation": {
@@ -811,7 +844,6 @@
         "misfit_board": "{name} è fatto per altre schede.",
         "misfit_psram": "{name} ha bisogno di una scheda con PSRAM.",
         "misfit_blocked": "{name} è bloccato: questa versione è dannosa o guasta.",
-        "requires": "{name} ha prima bisogno del plugin {other} su questo schermo.",
         "firmware": "Il firmware di questo schermo non conosce ancora i plugin. Aggiornalo e i riquadri del plugin compariranno.",
         "file": "Il file dei plugin non è valido.",
         "other_include": "Lo YAML di questo schermo ha già un altro include tessera_plugins.",
@@ -820,7 +852,23 @@
         "link_rate": "GitHub non risponde ora (troppe richieste in un'ora). Riprova più tardi.",
         "folder": "La cartella {folder} in tessera-plugins non è ancora un plugin: {why}",
         "manifest": "La descrizione del plugin non è valida: {why}",
-        "consent": "{name} chiede permessi diversi da prima. Guarda cosa può fare ora e accetta, poi aggiorna."
+        "consent": "{name} chiede permessi diversi da prima. Guarda cosa può fare ora e accetta, poi aggiorna.",
+        "requires_unknown": "{name} richiede il plugin {other}, che non è nell'elenco dei plugin.",
+        "requires_misfit": "{name} richiede {other}, che non va bene per questo schermo.",
+        "feature_missing": "{name} richiede un {feature}, e niente che lo fornisca va bene per questo schermo.",
+        "feature_conflict": "Uno schermo ha un solo {feature}, e {names} ne fornirebbero uno ciascuno.",
+        "needed_by": "{others} ha bisogno di {name}: rimuovili insieme.",
+        "choose": "Scegli quale plugin fornisce il {feature} per {name}.",
+        "other_origin": "Questo schermo usa un altro plugin chiamato {name}, da {origin}. Passa a questo nei suoi dettagli.",
+        "misfit_esphome": "{name} richiede ESPHome {version} o più recente per compilare.",
+        "like_not_installed": "Metti prima il plugin su uno dei tuoi schermi, poi potrai mettere mi piace.",
+        "like_consent": "Accetta prima che il tuo mi piace conti in un numero pubblico.",
+        "like_off": "I mi piace sono disattivati: li gestisce una versione più recente dell'app.",
+        "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo.",
+        "misfit_built_in": "{name} porta ciò che questa scheda ha già."
+      },
+      "extras": {
+        "request": "Questa modifica di un extra non è possibile su questo schermo."
       }
     },
     "status": {
@@ -990,9 +1038,27 @@
           "icon": "Solo icona",
           "percent": "Percentuale"
         },
+        "plugin_contents": {
+          "all": "Icona e testo",
+          "icon": "Solo icona"
+        },
         "battery_shows": {
           "always": "Sempre",
           "low": "Solo se scarica"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Microfono",
+          "hint": "Spento silenzia il microfono per tutto ciò che ascolta. Lo schermo lo ricorda dopo un riavvio."
+        },
+        "media_player": {
+          "label": "Volume",
+          "hint": "Quanto forte lo schermo parla e suona: risposte, annunci e musica. Lo stesso volume del lettore multimediale dello schermo in Home Assistant."
+        },
+        "wake_when_moved": {
+          "label": "Riattiva se mosso",
+          "hint": "Lo schermo esce dallo standby quando qualcuno lo prende, lo sposta o lo urta. Sente lo schermo stesso, non chi passa."
         }
       }
     },
@@ -1138,6 +1204,7 @@
         "speaker_multiple": "Altoparlanti",
         "soundbar": "Soundbar",
         "headphones": "Cuffie",
+        "microphone": "Microfono",
         "piano": "Pianoforte",
         "guitar_acoustic": "Chitarra",
         "television": "TV",
@@ -1325,6 +1392,7 @@
       "unknown": "sconosciuto",
       "unsaved": "Modifiche non salvate",
       "cancel": "Annulla",
+      "ok": "OK",
       "open_integrations": "Apri Dispositivi e servizi",
       "save_send": "Salva e invia",
       "saving": "Salvataggio…",
@@ -1387,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Pagina di gestione non raggiungibile · nuovo tentativo…",
         "reconnecting": "Riconnessione a Home Assistant…"
       },
       "search": "Cerca",
@@ -1467,6 +1534,38 @@
       "placeholder": "Cerca schermi, entità, azioni…",
       "empty": "Nessun risultato. Scrivi parte del nome di uno schermo, di un'entità o di un'azione."
     },
+    "search": {
+      "groups": {
+        "recent": "Recenti",
+        "settings": "Impostazioni schermo",
+        "tiles": "Sui tuoi schermi",
+        "plugins": "Plugin"
+      },
+      "hint": {
+        "open": "Apri",
+        "run": "Esegui",
+        "show": "Mostra",
+        "add": "Aggiungi"
+      },
+      "keys": {
+        "move": "Sposta",
+        "choose": "Scegli",
+        "close": "Chiudi"
+      },
+      "identify": "Identifica {name}",
+      "update": "Aggiorna {name}",
+      "update_detail": "A {version}",
+      "update_all": "Aggiorna tutti gli schermi",
+      "update_all_detail": "1 schermo in attesa | {n} schermi in attesa",
+      "update_all_confirm": "Aggiornare 1 schermo adesso? Si riavvia appena l'aggiornamento è installato. | Aggiornare {n} schermi adesso? Uno dopo l'altro, ognuno si riavvia appena il suo aggiornamento è installato.",
+      "update_all_go": "Aggiorna ora",
+      "install": "Installa i plugin messi da parte",
+      "install_detail": "1 plugin | {n} plugin",
+      "add_plugin": "Aggiungi {plugin} a {screen}",
+      "add_plugin_detail": "Messo da parte, pronto da installare",
+      "on": "Acceso",
+      "off": "Spento"
+    },
     "empty": {
       "choose": {
         "title": "Scegli uno schermo",
@@ -1484,6 +1583,31 @@
       "open": "Apri {name}",
       "no_layout": "Nessun layout ancora",
       "in_tessera": "Aggiorna prima in Tessera"
+    },
+    "broken": {
+      "screens": "1 schermo | {n} schermi",
+      "summary": {
+        "missing": "1 riquadro su {screens} mostra un'entità che non esiste più | {n} riquadri su {screens} mostrano un'entità che non esiste più",
+        "unavailable": "1 riquadro su {screens} mostra un'entità non disponibile da un po' | {n} riquadri su {screens} mostrano un'entità non disponibile da un po'",
+        "mixed": "1 riquadro su {screens} mostra un'entità mancante o non disponibile | {n} riquadri su {screens} mostrano un'entità mancante o non disponibile"
+      },
+      "short": "1 riquadro da controllare | {n} riquadri da controllare",
+      "review": "Vedi",
+      "hide": "Nascondi",
+      "missing": "Non più in Home Assistant",
+      "unavailable_minutes": "Non disponibile da 1 minuto | Non disponibile da {n} minuti",
+      "unavailable_hours": "Non disponibile da 1 ora | Non disponibile da {n} ore",
+      "unavailable_days": "Non disponibile da 1 giorno | Non disponibile da {n} giorni",
+      "change": "Mostra un'altra entità",
+      "on_screen": "Quell'entità è già su questo schermo.",
+      "replaced": "Ora mostra {name}",
+      "fix": {
+        "choose": "Scegli un'altra entità",
+        "missing": "Home Assistant non ha più questa entità",
+        "missing_hint": "È stata rimossa o rinominata. Scegli cosa mostra ora questo riquadro.",
+        "unavailable_hint": "Home Assistant non ne ha notizie da un po'. Scegli un'altra entità o aspetta che torni.",
+        "search": "Cerca entità"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -1618,15 +1742,9 @@
     },
     "plugins": {
       "title": "Plugin",
-      "intro": "Extra per i tuoi schermi: hardware sulla scheda, o qualcosa in più che uno schermo sa fare. Un plugin viene integrato nel firmware di uno schermo, quindi scegli per ogni schermo quali riceve.",
+      "intro": "Extra per i tuoi schermi: riquadri per una pagina, qualcosa in più che può fare tutto lo schermo, o hardware sulla scheda. Un plugin viene integrato nel firmware di uno schermo, quindi scegli per ogni schermo quali riceve.",
       "search": "Cerca per nome, autore o funzione",
       "filter": "Mostra",
-      "filters": {
-        "all": "Tutti",
-        "tessera": "Da Tessera",
-        "community": "Community",
-        "in_use": "In uso"
-      },
       "from_tessera": "Da Tessera",
       "by": "Di {maker}",
       "label": {
@@ -1655,24 +1773,26 @@
         "psram": "Richiede PSRAM",
         "firmware": "Richiede un firmware più recente",
         "flash": "Troppo grande per questo schermo",
-        "blocked": "Bloccato"
+        "blocked": "Bloccato",
+        "esphome": "Serve ESPHome più recente",
+        "feature": "Manca hardware qui",
+        "needs": "Serve un plugin non adatto",
+        "built_in": "Già integrato nella scheda"
       },
       "misfit": {
         "board": "Questo plugin è fatto per schede diverse da quella di {screen}.",
         "psram": "Questo plugin richiede una scheda con PSRAM, e {screen} non ce l'ha.",
         "firmware": "{screen} ha bisogno di un aggiornamento del firmware prima di poter ricevere questo plugin.",
         "flash": "{screen} ha spazio per circa {kb} KB in più, e questo plugin è più grande.",
-        "blocked": "Questa versione del plugin è bloccata: è nota per essere dannosa o non funzionante."
+        "blocked": "Questa versione del plugin è bloccata: è nota per essere dannosa o non funzionante.",
+        "esphome": "Questo plugin richiede un ESPHome più recente di quello con cui compila questa app.",
+        "feature": "{screen} non ha nulla che fornisca ciò che serve a questo plugin, e nessun plugin che lo fornisce va bene.",
+        "needs": "Questo plugin richiede un altro plugin che non va bene per {screen}.",
+        "built_in": "La scheda di {screen} lo porta già con sé, quindi lì il plugin non serve."
       },
       "none_installed": "Ancora nessun plugin su questo schermo.",
       "none_found": "Nessun plugin corrisponde a «{query}».",
-      "make": "Stai creando un plugin tutto tuo?",
-      "template": "Parti dal modello",
       "version": "versione {version}",
-      "kind": {
-        "hardware": "Hardware",
-        "behaviour": "Funzione"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Esempio"
@@ -1686,16 +1806,14 @@
         "commercial": "Commerciale",
         "ai-developed": "Creato con l'IA"
       },
-      "test_note": "Un test: ogni compilazione prende la versione più recente, e Tessera non offre aggiornamenti per questo plugin.",
+      "test_note": "Un test: lo schermo resta sul commit con cui è stato compilato, e un commit più recente appare qui come aggiornamento. Una cartella viene compilata com'è ora.",
       "remove": "Rimuovi da {screen}",
       "building": "Compilazione del firmware per {screen}…",
       "installed_on": "Su {screen}, versione {version}",
       "update": "Aggiorna a {version}",
       "trust": {
-        "title": "Mi fido di questo autore",
-        "text": "Tessera non ha controllato questo plugin. Gira sul tuo schermo e può fare ciò che lo schermo può fare in Home Assistant."
+        "title": "Mi fido di questo autore"
       },
-      "install": "Aggiungi a {screen}",
       "adds": {
         "title": "Cosa aggiunge",
         "tile": "Riquadro «{name}»",
@@ -1705,7 +1823,7 @@
         "card": "«{name}», una vista tutta sua sullo schermo",
         "bar": "Elemento della barra superiore «{name}»",
         "settings": "Impostazioni",
-        "settings_where": "Nella pagina delle impostazioni dello schermo e in Impostazioni schermo"
+        "settings_where": "Nella pagina impostazioni dello schermo e qui, nei suoi dettagli della scheda Plugin"
       },
       "may": {
         "title": "Cosa può fare",
@@ -1744,8 +1862,8 @@
         "branch": "Branch",
         "folder": "Cartella su questa macchina",
         "hints": {
-          "link": "Tessera prende la release più recente e mantiene lo schermo su quella. Una nuova release appare come aggiornamento.",
-          "branch": "Ogni compilazione prende il commit più recente di questo branch. Per provare, non per tutti i giorni.",
+          "link": "Tessera prende la release più recente (senza release, il commit più recente) e vi tiene lo schermo. Qualcosa di più recente appare come aggiornamento.",
+          "branch": "Tessera prende il commit più recente di questo branch e vi tiene lo schermo; un commit più recente appare come aggiornamento. Per provare.",
           "folder": "Per un plugin che stai creando: salva, e la compilazione successiva lo include. La cartella si trova nella configurazione di Home Assistant."
         },
         "fetch": "Leggi il plugin",
@@ -1783,7 +1901,8 @@
         "on_screen": "{label} su {screen}",
         "choose_pin": "Scegli un pin",
         "part_kb": "{kb} KB in più",
-        "secret_set": "Impostato. Inseriscine uno nuovo per sostituirlo."
+        "secret_set": "Impostato. Inseriscine uno nuovo per sostituirlo.",
+        "part_needs": "Richiede un {what} sullo schermo"
       },
       "readme": {
         "title": "Leggimi"
@@ -1797,7 +1916,6 @@
         "done": "L'ho aggiunta",
         "file": "Cosa scrive Tessera in {file}"
       },
-      "folder_note": "Stai creando un plugin? Metti la sua cartella in {path} e apparirà qui come test.",
       "folder_error": "La cartella {folder} non è ancora un plugin: {why}",
       "rebuild": "Compila di nuovo",
       "failed": "Il firmware per {screen} non si è compilato con questo plugin. Il registro è in Firmware e USB.",
@@ -1808,7 +1926,153 @@
         "agree": "Accetto ciò che può fare ora"
       },
       "settings_missing": "Non ancora su questo schermo: arriva con la prossima build del plugin.",
-      "changes": "Cosa è cambiato"
+      "changes": "Cosa è cambiato",
+      "tray": {
+        "title": "Pronto da installare",
+        "count": "{n} plugin | {n} plugin",
+        "add": "Aggiungi",
+        "added": "Aggiunto",
+        "setup": "Configura",
+        "remove": "Togli {name}",
+        "room": "{kb} KB dei {room} KB liberi su questo schermo",
+        "too_much": "{kb} KB in tutto, liberi {room} KB: togline uno",
+        "trust": "{names} viene dalla community e non è stato verificato da Tessera. | {names} vengono dalla community e non sono stati verificati da Tessera.",
+        "install": "Installa {n} plugin | Installa {n} plugin",
+        "one_build": "{screen} viene compilato una volta, con tutto dentro.",
+        "builds": "{n} schermi vengono compilati uno dopo l’altro.",
+        "stage": "Aggiungi a {screen}",
+        "in_tray": "Pronto da installare",
+        "in_tray_note": "Installalo dalla scheda nell’angolo, da solo o insieme ad altri.",
+        "along": "arriva con {names}"
+      },
+      "maker": {
+        "title": "Crea un plugin tuo",
+        "lead": "Un plugin è una cartella con una descrizione e un po’ di codice ESPHome, in un tuo repository GitHub. Lo crei tu, e pubblichi tu i suoi aggiornamenti.",
+        "guide": "Come creare un plugin",
+        "start": {
+          "title": "Parti dal modello",
+          "text": "Trasformalo in un repository sul tuo GitHub, con un nome e un’icona.",
+          "action": "Apri il modello"
+        },
+        "test": {
+          "title": "Provalo sul tuo schermo",
+          "text": "Aggiungi il tuo repository con un link. Fai push, e ogni nuovo commit o release appare qui come aggiornamento.",
+          "folder": "Oppure metti la sua cartella in {path} per provarlo senza una versione."
+        },
+        "share": {
+          "title": "Condividilo con tutti",
+          "text": "Funziona bene? Iscrivilo alla community e comparirà qui per tutti, direttamente dal tuo repository. Resti tu l’autore.",
+          "action": "Iscrivi"
+        }
+      },
+      "settings": {
+        "title": "Impostazioni",
+        "live": "Su questo schermo",
+        "live_note": "Una modifica vale subito.",
+        "shared": "Per tutti gli schermi",
+        "shared_note": "Compilato una volta, per ogni schermo con questo plugin.",
+        "build": "Durante la compilazione",
+        "build_note": "Una modifica ricompila {screen}.",
+        "save_build": "Salva e compila",
+        "run": "Avvia",
+        "too_short": "Almeno {n} caratteri."
+      },
+      "tabs": {
+        "tiles": "Riquadri",
+        "functions": "Funzioni",
+        "hardware": "Hardware",
+        "in_use": "In uso"
+      },
+      "types": {
+        "tiles": "Riquadri",
+        "functions": "Funzione",
+        "hardware": "Hardware"
+      },
+      "topics": {
+        "time": "Ora e conti alla rovescia",
+        "weather": "Meteo e cielo",
+        "calendar": "Agenda e attività",
+        "home": "Casa",
+        "energy": "Energia",
+        "travel": "In viaggio",
+        "money": "Denaro",
+        "sports": "Sport",
+        "news": "Notizie e curiosità",
+        "media": "Musica e media",
+        "photos": "Foto e arte",
+        "fun": "Giochi e svago",
+        "voice": "Voce e suono",
+        "tech": "Tecnica"
+      },
+      "topic_filter": "Argomenti",
+      "sort": {
+        "label": "Ordina per",
+        "popular": "Più apprezzati",
+        "new": "Più recenti",
+        "name": "Nome"
+      },
+      "none_in_tab": {
+        "tiles": "Ancora nessun plugin con riquadri.",
+        "functions": "Ancora nessun plugin per tutto lo schermo.",
+        "hardware": "Ancora nessun plugin hardware."
+      },
+      "fits_none_group": "{n} plugin non va bene per nessuno dei tuoi schermi | {n} plugin non vanno bene per nessuno dei tuoi schermi",
+      "likes": {
+        "count": "Piace a {n} persona | Piace a {n} persone",
+        "like": "Mi piace",
+        "unlike": "Ritira il tuo mi piace",
+        "install_first": "Mettilo prima su uno schermo, poi potrai mettere mi piace",
+        "ask": "Il tuo mi piace conta in un numero pubblico per plugin. Solo il numero è pubblico: niente su di te, Home Assistant o i tuoi schermi viene inviato."
+      },
+      "along": {
+        "title": "Arriva insieme",
+        "brings": "fornisce il {what}",
+        "needed_by": "serve a {name}",
+        "came_with": "Arrivato con {names}.",
+        "needed_now": "{names} ha bisogno di questo plugin.",
+        "choose": "Quale plugin fornisce il {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} ha bisogno di {name}, quindi viene rimosso anche quello.",
+        "orphans": "Rimuovi anche {names}",
+        "orphans_note": "È arrivato solo con {name}; nient'altro sullo schermo ne ha bisogno.",
+        "both": "Rimuovi insieme",
+        "go": "Rimuovi"
+      },
+      "blocked_now": "Questa versione è bloccata ({why}) e esce alla prossima compilazione. Aggiorna a una più recente.",
+      "other_origin": "Questo schermo usa un altro plugin con questo nome, da {origin}. Non viene aggiornato da qui.",
+      "switch": "Passa a quello di {origin}",
+      "needs": {
+        "title": "Richiede e fornisce",
+        "plugin": "Un altro plugin; arriva insieme quando aggiungi questo.",
+        "feature": "Un {what}",
+        "feature_note": "Dalla scheda dello schermo, o da un plugin che lo fornisce: arriva insieme quando ce n'è uno solo.",
+        "brings": "Fornisce un {what}",
+        "brings_note": "Per altri plugin che ne hanno bisogno, sullo stesso schermo."
+      },
+      "features": {
+        "speaker": "altoparlante",
+        "microphone": "microfono",
+        "media_player": "lettore multimediale",
+        "camera": "flusso della fotocamera per Home Assistant",
+        "camera_sensor": "sensore della fotocamera"
+      },
+      "fitting_only": "Solo ciò che va bene per i miei schermi",
+      "made_by": {
+        "label": "Creato da",
+        "all": "Chiunque",
+        "tessera": "Tessera",
+        "community": "Community"
+      },
+      "filter_button": "Filtra",
+      "filter_remove": "Rimuovi {what}",
+      "filter_clear": "Cancella filtri",
+      "fitting_all": "Anche ciò che non va bene",
+      "news": {
+        "title": "Novità di {version}",
+        "none": "L'autore non ha scritto note per questo aggiornamento.",
+        "history": "Tutte le versioni"
+      }
     },
     "plugin_tile": {
       "from": "Un riquadro del plugin {plugin}",
@@ -1941,7 +2205,8 @@
       },
       "refresh": {
         "label": "Aggiorna",
-        "seconds": "Ogni {n} s"
+        "seconds": "Ogni {n} s",
+        "live": "Dal vivo"
       },
       "picture": {
         "fit": {
@@ -2356,6 +2621,14 @@
         "item_look": "Mostra",
         "item_hint": "In bianco e nero sul salvaschermo, qualunque sia il colore dell'entità.",
         "items_add_title": "Aggiungi all'orologio"
+      },
+      "plugins": {
+        "title": "Plugin",
+        "note": "Le impostazioni di ogni plugin sono nei suoi dettagli, nella scheda Plugin."
+      },
+      "extras": {
+        "title": "Extra",
+        "note": "Impostazioni che ha solo questo schermo, dalla sua scheda. Gli stessi interruttori sono nella pagina impostazioni dello schermo e in Home Assistant."
       }
     },
     "update": {
@@ -2453,13 +2726,6 @@
       "download_how": "Mettilo sullo schermo con {esphome_web} in Chrome o Edge: Connect, scegli la porta USB dello schermo, Install e seleziona questo file. Contiene la tua password Wi-Fi e le chiavi dello schermo: tienilo per te."
     },
     "installer": {
-      "title": {
-        "saved": "Profilo salvato.",
-        "running": "Un attimo…",
-        "ready": "Pronto da scaricare.",
-        "done": "Fatto.",
-        "failed": "Non ha funzionato."
-      },
       "board": "Quale schermo hai?",
       "board_title": "{name} · {inch} pollici",
       "status": {
@@ -3055,7 +3321,8 @@
       "hint": "Il firmware stesso dello schermo, disegnato dal layout che stai modificando. Tocca, tieni premuto e scorri come sullo schermo. Non viene salvato nulla.",
       "control": "I tocchi controllano i dispositivi",
       "control_hint": "Attivo: un tocco su un riquadro esegue la sua azione in Home Assistant, come sullo schermo. Disattivo: l’anteprima mostra solo cosa fa un tocco.",
-      "skipped": "Lo schermo di anteprima {names} non è stato caricato ed è stato escluso."
+      "skipped": "Lo schermo di anteprima {names} non è stato caricato ed è stato escluso.",
+      "not_kept": "Questo browser non ha potuto salvare lo schermo di anteprima: la sua memoria è piena o bloccata."
     },
     "inspector": {
       "kind": {
@@ -3063,6 +3330,86 @@
         "page": "Pagina",
         "bar": "Barra superiore"
       }
+    },
+    "confirm": {
+      "leave_question": "Hai modifiche non salvate. Andare comunque alla panoramica?",
+      "discard_open": "Scarta e apri",
+      "discard_leave": "Scarta ed esci",
+      "replace_layout": "Sostituisci disposizione",
+      "import": "Importa",
+      "start_fresh": "Ricomincia da zero",
+      "calibrate": "Avvia calibrazione",
+      "add_anyway": "Aggiungi comunque",
+      "use_example": "Sostituisci con l'esempio",
+      "clear_override": "Cancella il YAML personalizzato"
+    },
+    "undo": {
+      "undo": "Annulla: {what}",
+      "redo": "Ripristina: {what}",
+      "undone": "Annullato: {what}",
+      "redone": "Ripristinato: {what}",
+      "a_tile": "riquadro",
+      "what": {
+        "grid": "griglia cambiata in {grid}",
+        "page_added": "pagina {page} aggiunta",
+        "page_copied": "pagina {page} aggiunta come copia",
+        "page_removed": "pagina {page} rimossa",
+        "page_moved": "pagina spostata in posizione {page}",
+        "pages_moved": "pagine riordinate",
+        "tile_added": "aggiunta di {name}",
+        "tiles_added": "aggiunta di 1 riquadro | aggiunta di {n} riquadri",
+        "tile_removed": "rimozione di {name}",
+        "tiles_removed": "rimozione di 1 riquadro | rimozione di {n} riquadri",
+        "tile_moved": "spostamento di {name}",
+        "tile_moved_page": "spostamento di {name} a pagina {page}",
+        "tiles_moved": "spostamento di 1 riquadro | spostamento di {n} riquadri",
+        "tile_link": "{name} ora apre la pagina {page}",
+        "tile_renamed": "nuovo nome per {name}",
+        "tile_look": "visualizzazione di {name} cambiata",
+        "tile_resized": "dimensione di {name} cambiata",
+        "tile_icon": "icona di {name} cambiata",
+        "tile_color": "sfondo di {name} cambiato",
+        "tile_tap": "tocco di {name} cambiato",
+        "tile_option": "impostazioni di {name} cambiate",
+        "tiles_changed": "1 riquadro cambiato | {n} riquadri cambiati",
+        "screen_title": "titolo dello schermo cambiato",
+        "page_title": "titolo della pagina {page} cambiato",
+        "home_page": "la pagina {page} è ora la pagina iniziale",
+        "page_buttons": "pulsanti pagina della pagina {page} cambiati",
+        "home_key": "pulsante Home della pagina {page} cambiato",
+        "top_bar": "barra superiore della pagina {page} cambiata",
+        "top_bars": "barre superiori cambiate",
+        "map_moved": "pagina {page} spostata sulla mappa",
+        "map_arranged": "mappa disposta dalla pagina iniziale",
+        "stood_up": "schermo messo in verticale",
+        "laid_down": "schermo messo in orizzontale",
+        "layout_copied": "disposizione copiata da {name}",
+        "layout_imported": "disposizione importata",
+        "changed": "disposizione cambiata",
+        "restored": "modifiche non salvate ripristinate",
+        "taken_over": "modifiche dell'altra scheda riprese qui"
+      }
+    },
+    "draft": {
+      "kept": "Modifiche non salvate ({time})",
+      "kept_hint": "Conservate in questo browser, non ancora sullo schermo.",
+      "restore": "Ripristina",
+      "discard": "Scarta"
+    },
+    "tabs": {
+      "elsewhere": "Questo schermo è in modifica in un'altra scheda",
+      "elsewhere_hint": "Le sue modifiche non sono ancora salvate.",
+      "take_over": "Continua qui",
+      "keep_mine": "Tieni le mie"
+    },
+    "connection": {
+      "lost": "ESP Screen Manager non è raggiungibile.",
+      "lost_hint": "Le tue modifiche restano qui. Nuovo tentativo…",
+      "restored": "Connessione ripristinata"
+    },
+    "naming": {
+      "rename": "Rinomina",
+      "reset": "Torna a {name}"
     },
     "phone": {
       "screens": "Schermi",
@@ -3096,7 +3443,15 @@
     "build": {
       "plugins": "Compila con i suoi plugin",
       "install": "Installazione",
-      "failed": "L'ultima compilazione di {screen} non è riuscita. Il log dice perché."
+      "failed": "L'ultima compilazione di {screen} non è riuscita. Il log dice perché.",
+      "title": "In compilazione",
+      "count": "1 compilazione in corso | {n} compilazioni in corso",
+      "waiting": "In attesa del suo turno",
+      "ready": "{name} è pronto",
+      "ready_several": "{names} sono pronti",
+      "update_failed": "Aggiornamento di {name} non riuscito",
+      "build_failed": "Compilazione di {name} non riuscita",
+      "show_log": "Mostra log"
     },
     "grid": {
       "title": "Griglia",

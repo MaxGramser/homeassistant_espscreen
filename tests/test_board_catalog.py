@@ -83,6 +83,95 @@ class Catalog(unittest.TestCase):
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][0], '6.00 -> 0')
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][-1], '8.40 -> 100')
 
+    def test_waveshare_lcd4_uses_its_settled_gt911_driver(self):
+        class IncludeLoader(yaml.SafeLoader):
+            pass
+
+        IncludeLoader.add_constructor('!include', lambda loader, node: loader.construct_scalar(node))
+        board = yaml.load((ROOT / 'packages/boards/waveshare-esp32s3-lcd-4.yaml').read_text(),
+                          Loader=IncludeLoader)
+        touch = board['touchscreen'][0]
+
+        # The driver lives in this repository under a name of its own, so the board file pins no commit and names no
+        # fork, and the other GT911 boards keep ESPHome's own platform.
+        self.assertNotIn('external_components', board)
+        self.assertEqual(touch['platform'], 'gt911_wavesharelcd4')
+        self.assertNotIn('use_primary_i2c_addr', touch)
+        self.assertNotIn('setup_priority', touch)
+        self.assertEqual((touch['reset_pin']['waveshare_io_ch32v003'], touch['reset_pin']['number']),
+                         ('expander', 1))
+        self.assertEqual((touch['power_pin']['waveshare_io_ch32v003'], touch['power_pin']['number']),
+                         ('expander', 5))
+        self.assertIn('interrupt_pin', touch)
+        self.assertEqual((touch['interrupt_pin']['waveshare_io_ch32v003'], touch['interrupt_pin']['number']),
+                         ('expander', 2))
+        self.assertNotIn('power_supply', board)
+        self.assertNotIn('power_supply', board['output'][0])
+
+        for entry in (ROOT / 'packages/wavesharelcd4.yaml', ROOT / 'checkout/wavesharelcd4.yaml'):
+            self.assertIn('components: [gt911_wavesharelcd4, smart_display]', entry.read_text())
+
+        driver = (ROOT / 'components/gt911_wavesharelcd4/touchscreen/gt911_touchscreen.cpp').read_text()
+        setup = driver[driver.index('void GT911Touchscreen::setup()'):driver.index('bool GT911Touchscreen::init_sequence_')]
+        self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
+        self.assertIn('GT911_INIT_ATTEMPTS = 3', driver)
+        self.assertIn('for (uint8_t attempt = 1; attempt <= GT911_INIT_ATTEMPTS; attempt++)', setup)
+        self.assertIn('configuration_valid_(&switches, &x_res, &y_res)', setup)
+        self.assertIn('setup_internal_(switches, x_res, y_res)', setup)
+        self.assertLess(setup.index('init_sequence_'), setup.index('configuration_valid_(&switches, &x_res, &y_res)'))
+        self.assertLess(setup.index('configuration_valid_(&switches, &x_res, &y_res)'),
+                        setup.index('setup_internal_(switches, x_res, y_res)'))
+        self.assertIn('Invalid GT911 configuration after power cycle', setup)
+        sequence = driver[driver.index('bool GT911Touchscreen::init_sequence_'):
+                          driver.index('void GT911Touchscreen::setup_internal_')]
+        address_low = sequence.index('this->interrupt_pin_->digital_write(false);')
+        power_off = sequence.index('this->power_pin_->digital_write(false);')
+        reset_low = sequence.index('this->reset_pin_->digital_write(false);')
+        first_wait = sequence.index('delay(200);', reset_low)
+        power_on = sequence.index('this->power_pin_->digital_write(true);', first_wait)
+        reset_high = sequence.index('this->reset_pin_->digital_write(true);', power_on)
+        second_wait = sequence.index('delay(200);', reset_high)
+        self.assertLess(address_low, power_off)
+        self.assertLess(power_off, reset_low)
+        self.assertLess(reset_low, first_wait)
+        self.assertLess(first_wait, power_on)
+        self.assertLess(power_on, reset_high)
+        self.assertLess(reset_high, second_wait)
+        self.assertNotIn('this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);', sequence)
+        self.assertIn('probe_address_(SECONDARY_ADDRESS', driver)
+        validation = driver[driver.index(
+            'bool GT911Touchscreen::configuration_valid_(uint8_t *switches, uint16_t *x_res, uint16_t *y_res)'):
+                            driver.index('void GT911Touchscreen::setup_internal_')]
+        self.assertIn('GET_MAX_VALUES', validation)
+        self.assertIn('*x_res != 0 && *y_res != 0', validation)
+
+    def test_every_repository_reference_is_the_project_itself(self):
+        """No file points a build at a fork: the components and the fonts come from this project alone."""
+        skip = {'.git', '.esphome', 'node_modules', '__pycache__', 'dist', '.venv'}
+        offenders = []
+        for path in ROOT.rglob('*'):
+            if not path.is_file() or any(part in skip for part in path.relative_to(ROOT).parts):
+                continue
+            if path.suffix.lower() not in ('.yaml', '.yml', '.py', '.md', '.json', '.h', '.cpp', '.sh'):
+                continue
+            text = path.read_text(encoding='utf-8', errors='ignore')
+            for owner in re.findall(r'github(?:://|\.com[:/])([A-Za-z0-9-]+)/homeassistant_espscreen', text):
+                if owner != 'MaxGramser':
+                    offenders.append(f'{path.relative_to(ROOT)}: {owner}')
+        self.assertEqual(offenders, [], 'these files build from a fork instead of the project')
+
+    def test_the_other_gt911_boards_keep_esphomes_own_driver(self):
+        """Only the Waveshare LCD 4 needs the board-specific power sequence; the rest stay on ESPHome's platform."""
+        mine = {'waveshare-esp32s3-lcd-4.yaml', 'wavesharelcd4.yaml'}
+        for path in (ROOT / 'packages').rglob('*.yaml'):
+            if path.name in mine:
+                continue
+            self.assertNotIn('gt911_wavesharelcd4', path.read_text(), path.name)
+        for path in (ROOT / 'checkout').glob('*.yaml'):
+            if path.name in mine:
+                continue
+            self.assertNotIn('gt911_wavesharelcd4', path.read_text(), path.name)
+
 
 class Choices(unittest.TestCase):
     def profile(self, **extra):
@@ -174,7 +263,9 @@ class ChoiceAndOverride(unittest.TestCase):
 class NoBoardInTheEditor(unittest.TestCase):
     def test_new_screen_and_the_screen_list_name_no_board(self):
         words = [board for board in profiles.CATALOG] + sorted({entry['name'] for entry in profiles.CATALOG.values()})
-        for name in ('components/InstallerView.vue', 'components/Sidebar.vue', 'model/boards.ts'):
+        for name in ('components/InstallerView.vue', 'components/install/BoardStep.vue', 'components/install/NameStep.vue',
+                     'components/install/WayStep.vue', 'components/install/Progress.vue', 'composables/useInstaller.ts',
+                     'components/Sidebar.vue', 'model/boards.ts', 'model/installer.ts'):
             text = (ROOT / 'web/src' / name).read_text()
             for word in words:
                 self.assertIsNone(re.search(rf'["\'`]{re.escape(word)}["\'`]|\b{re.escape(word)}\b(?=\s*[:=])', text, re.I),

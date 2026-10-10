@@ -155,6 +155,10 @@
       "night": "Noc",
       "screen": "Ekran",
       "this_screen": "Ten ekran",
+      "extras": "Dodatki",
+      "microphone": "Mikrofon",
+      "media_player": "Głośność",
+      "wake_when_moved": "Wybudź przy ruchu",
       "dark_mode": "Tryb ciemny",
       "auto_standby": "Auto czuwanie",
       "standby_after": "Czuwanie po",
@@ -537,6 +541,35 @@
         "drying": "Drying",
         "idle": "brak aktywności",
         "off": "wyłączono"
+      },
+      "today": "Dzisiaj",
+      "weather_view": {
+        "daily": "Dzienna",
+        "hourly": "Godzinowa"
+      },
+      "weather_attribute": {
+        "humidity": "Wilgotność powietrza",
+        "wind_speed": "Prędkość wiatru",
+        "air_pressure": "Ciśnienie atmosferyczne",
+        "visibility": "Widzialność"
+      },
+      "wind_direction": {
+        "n": "płn.",
+        "nne": "płn. płn.-wsch.",
+        "ne": "płn.-wsch.",
+        "ene": "wsch. płn.-wsch.",
+        "e": "wsch.",
+        "ese": "wsch. płd.-wsch.",
+        "se": "płd.-wsch.",
+        "sse": "płd. płd.-wsch.",
+        "s": "płd.",
+        "ssw": "płd. płd.-zach.",
+        "sw": "płd.-zach.",
+        "wsw": "zach. płd.-zach.",
+        "w": "zach.",
+        "wnw": "zach. płn.-zach.",
+        "nw": "płn.-zach.",
+        "nnw": "płn. płn.-zach."
       }
     },
     "navigation": {
@@ -811,7 +844,6 @@
         "misfit_board": "{name} jest przeznaczona dla innych płytek.",
         "misfit_psram": "{name} wymaga płytki z PSRAM.",
         "misfit_blocked": "{name} jest zablokowana: ta wersja jest szkodliwa lub uszkodzona.",
-        "requires": "{name} wymaga najpierw wtyczki {other} na tym ekranie.",
         "firmware": "Firmware tego ekranu nie zna jeszcze wtyczek. Zaktualizuj go, a pojawią się kafelki wtyczki.",
         "file": "Plik wtyczek jest nieprawidłowy.",
         "other_include": "YAML tego ekranu ma już inny include tessera_plugins.",
@@ -820,7 +852,23 @@
         "link_rate": "GitHub teraz nie odpowiada (za dużo zapytań w ciągu godziny). Spróbuj później.",
         "folder": "Folder {folder} w tessera-plugins nie jest jeszcze wtyczką: {why}",
         "manifest": "Opis wtyczki jest nieprawidłowy: {why}",
-        "consent": "{name} prosi o inne uprawnienia niż wcześniej. Sprawdź, co może teraz robić, zgódź się, a potem zaktualizuj."
+        "consent": "{name} prosi o inne uprawnienia niż wcześniej. Sprawdź, co może teraz robić, zgódź się, a potem zaktualizuj.",
+        "requires_unknown": "{name} potrzebuje wtyczki {other}, której nie ma na liście wtyczek.",
+        "requires_misfit": "{name} potrzebuje {other}, która nie pasuje do tego ekranu.",
+        "feature_missing": "{name} potrzebuje: {feature}, a nic, co to zapewnia, nie pasuje do tego ekranu.",
+        "feature_conflict": "Ekran ma jeden {feature}, a {names} zapewniłyby każda swój.",
+        "needed_by": "{others} potrzebuje {name}: usuń je razem.",
+        "choose": "Wybierz, która wtyczka zapewnia {feature} dla {name}.",
+        "other_origin": "Ten ekran używa innej wtyczki o nazwie {name}, z {origin}. Przejdź na tę w jej szczegółach.",
+        "misfit_esphome": "{name} do kompilacji potrzebuje ESPHome {version} lub nowszego.",
+        "like_not_installed": "Najpierw dodaj wtyczkę do jednego z ekranów, potem możesz ją polubić.",
+        "like_consent": "Najpierw zgódź się, aby polubienie liczyło się w publicznej liczbie.",
+        "like_off": "Polubienia są wyłączone: obsługuje je nowsza wersja aplikacji.",
+        "like_failed": "Polubienie nie zostało wysłane. Spróbuj za chwilę.",
+        "misfit_built_in": "{name} daje to, co ta płytka ma już sama."
+      },
+      "extras": {
+        "request": "Tej zmiany dodatku nie można wprowadzić na tym ekranie."
       }
     },
     "status": {
@@ -990,9 +1038,27 @@
           "icon": "Tylko ikona",
           "percent": "Procent"
         },
+        "plugin_contents": {
+          "all": "Ikona i tekst",
+          "icon": "Tylko ikona"
+        },
         "battery_shows": {
           "always": "Zawsze",
           "low": "Tylko gdy słaba"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Mikrofon",
+          "hint": "Wyłączony wycisza mikrofon dla wszystkiego, co słucha. Ekran pamięta to po ponownym uruchomieniu."
+        },
+        "media_player": {
+          "label": "Głośność",
+          "hint": "Jak głośno ekran mówi i gra: odpowiedzi, komunikaty i muzyka. Ta sama głośność co odtwarzacz multimediów ekranu w Home Assistant."
+        },
+        "wake_when_moved": {
+          "label": "Wybudź przy ruchu",
+          "hint": "Ekran wybudza się ze stanu czuwania, gdy ktoś go podniesie, przesunie lub w niego stuknie. Czuje sam ekran, nie kogoś, kto przechodzi obok."
         }
       }
     },
@@ -1138,6 +1204,7 @@
         "speaker_multiple": "Głośniki",
         "soundbar": "Soundbar",
         "headphones": "Słuchawki",
+        "microphone": "Mikrofon",
         "piano": "Pianino",
         "guitar_acoustic": "Gitara",
         "television": "Telewizor",
@@ -1325,6 +1392,7 @@
       "unknown": "nieznany",
       "unsaved": "Niezapisane zmiany",
       "cancel": "Anuluj",
+      "ok": "OK",
       "open_integrations": "Otwórz Urządzenia oraz usługi",
       "save_send": "Zapisz i wyślij",
       "saving": "Zapisywanie…",
@@ -1387,7 +1455,6 @@
     },
     "sidebar": {
       "connection": {
-        "unreachable": "Strona zarządzania nieosiągalna · ponawianie…",
         "reconnecting": "Ponowne łączenie z Home Assistant…"
       },
       "search": "Szukaj",
@@ -1467,6 +1534,38 @@
       "placeholder": "Szukaj ekranów, encji, poleceń…",
       "empty": "Brak wyników. Wpisz część nazwy ekranu, encji lub polecenia."
     },
+    "search": {
+      "groups": {
+        "recent": "Ostatnie",
+        "settings": "Ustawienia ekranu",
+        "tiles": "Na twoich ekranach",
+        "plugins": "Wtyczki"
+      },
+      "hint": {
+        "open": "Otwórz",
+        "run": "Uruchom",
+        "show": "Pokaż",
+        "add": "Dodaj"
+      },
+      "keys": {
+        "move": "Przejdź",
+        "choose": "Wybierz",
+        "close": "Zamknij"
+      },
+      "identify": "Zidentyfikuj {name}",
+      "update": "Zaktualizuj {name}",
+      "update_detail": "Do {version}",
+      "update_all": "Zaktualizuj wszystkie ekrany",
+      "update_all_detail": "1 ekran czeka | {n} ekrany czekają | {n} ekranów czeka",
+      "update_all_confirm": "Zaktualizować teraz 1 ekran? Uruchomi się ponownie po instalacji aktualizacji. | Zaktualizować teraz {n} ekrany? Jeden po drugim, każdy uruchomi się ponownie po instalacji aktualizacji. | Zaktualizować teraz {n} ekranów? Jeden po drugim, każdy uruchomi się ponownie po instalacji aktualizacji.",
+      "update_all_go": "Aktualizuj teraz",
+      "install": "Zainstaluj odłożone wtyczki",
+      "install_detail": "1 wtyczka | {n} wtyczki | {n} wtyczek",
+      "add_plugin": "Dodaj {plugin} do {screen}",
+      "add_plugin_detail": "Odłożona, gotowa do instalacji",
+      "on": "Wł.",
+      "off": "Wył."
+    },
     "empty": {
       "choose": {
         "title": "Wybierz ekran",
@@ -1484,6 +1583,31 @@
       "open": "Otwórz {name}",
       "no_layout": "Jeszcze bez układu",
       "in_tessera": "Najpierw zaktualizuj w Tessera"
+    },
+    "broken": {
+      "screens": "1 ekranie | {n} ekranach | {n} ekranach",
+      "summary": {
+        "missing": "1 kafelek na {screens} pokazuje encję, która już nie istnieje | {n} kafelki na {screens} pokazują encję, która już nie istnieje | {n} kafelków na {screens} pokazuje encję, która już nie istnieje",
+        "unavailable": "1 kafelek na {screens} pokazuje encję niedostępną od dłuższego czasu | {n} kafelki na {screens} pokazują encję niedostępną od dłuższego czasu | {n} kafelków na {screens} pokazuje encję niedostępną od dłuższego czasu",
+        "mixed": "1 kafelek na {screens} pokazuje encję, której brak lub jest niedostępna | {n} kafelki na {screens} pokazują encję, której brak lub jest niedostępna | {n} kafelków na {screens} pokazuje encję, której brak lub jest niedostępna"
+      },
+      "short": "1 kafelek do sprawdzenia | {n} kafelki do sprawdzenia | {n} kafelków do sprawdzenia",
+      "review": "Pokaż",
+      "hide": "Ukryj",
+      "missing": "Nie ma jej już w Home Assistant",
+      "unavailable_minutes": "Niedostępna od 1 minuty | Niedostępna od {n} minut | Niedostępna od {n} minut",
+      "unavailable_hours": "Niedostępna od 1 godziny | Niedostępna od {n} godzin | Niedostępna od {n} godzin",
+      "unavailable_days": "Niedostępna od 1 dnia | Niedostępna od {n} dni | Niedostępna od {n} dni",
+      "change": "Pokaż inną encję",
+      "on_screen": "Ta encja jest już na tym ekranie.",
+      "replaced": "Teraz pokazuje {name}",
+      "fix": {
+        "choose": "Wybierz inną encję",
+        "missing": "Home Assistant nie ma już tej encji",
+        "missing_hint": "Została usunięta lub przemianowana. Wybierz, co ten kafelek ma teraz pokazywać.",
+        "unavailable_hint": "Home Assistant od dłuższego czasu nie ma z nią kontaktu. Wybierz inną encję albo poczekaj, aż wróci.",
+        "search": "Szukaj encji"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -1618,15 +1742,9 @@
     },
     "plugins": {
       "title": "Wtyczki",
-      "intro": "Dodatki do Twoich ekranów: sprzęt na płytce albo coś, co ekran może robić dodatkowo. Wtyczka jest wbudowywana w firmware ekranu, więc dla każdego ekranu wybierasz, które dostanie.",
+      "intro": "Dodatki do ekranów: kafelki na stronę, coś więcej dla całego ekranu albo sprzęt na płytce. Wtyczka jest wbudowywana w firmware ekranu, więc dla każdego ekranu wybierasz, które dostaje.",
       "search": "Szukaj po nazwie, autorze lub funkcji",
       "filter": "Pokaż",
-      "filters": {
-        "all": "Wszystkie",
-        "tessera": "Od Tessera",
-        "community": "Społeczność",
-        "in_use": "W użyciu"
-      },
       "from_tessera": "Od Tessera",
       "by": "Autor: {maker}",
       "label": {
@@ -1655,24 +1773,26 @@
         "psram": "Wymaga PSRAM",
         "firmware": "Wymaga nowszego firmware",
         "flash": "Za duża dla tego ekranu",
-        "blocked": "Zablokowana"
+        "blocked": "Zablokowana",
+        "esphome": "Potrzebny nowszy ESPHome",
+        "feature": "Brak sprzętu tutaj",
+        "needs": "Potrzebna niepasująca wtyczka",
+        "built_in": "Wbudowane w tę płytkę"
       },
       "misfit": {
         "board": "Ta wtyczka jest przeznaczona dla innych płytek niż płytka ekranu {screen}.",
         "psram": "Ta wtyczka wymaga płytki z PSRAM, a {screen} jej nie ma.",
         "firmware": "{screen} potrzebuje aktualizacji firmware, zanim przyjmie tę wtyczkę.",
         "flash": "{screen} ma miejsce na około {kb} KB więcej, a ta wtyczka jest większa.",
-        "blocked": "Ta wersja wtyczki jest zablokowana: wiadomo, że jest szkodliwa lub uszkodzona."
+        "blocked": "Ta wersja wtyczki jest zablokowana: wiadomo, że jest szkodliwa lub uszkodzona.",
+        "esphome": "Ta wtyczka potrzebuje nowszego ESPHome niż ten, którym kompiluje ta aplikacja.",
+        "feature": "{screen} nie ma niczego, czego potrzebuje ta wtyczka, i żadna wtyczka, która to zapewnia, nie pasuje.",
+        "needs": "Ta wtyczka potrzebuje innej wtyczki, która nie pasuje do {screen}.",
+        "built_in": "Płytka {screen} ma to już sama, więc wtyczka nie jest tam potrzebna."
       },
       "none_installed": "Na tym ekranie nie ma jeszcze wtyczek.",
       "none_found": "Żadna wtyczka nie pasuje do „{query}”.",
-      "make": "Tworzysz własną wtyczkę?",
-      "template": "Zacznij od szablonu",
       "version": "wersja {version}",
-      "kind": {
-        "hardware": "Sprzęt",
-        "behaviour": "Funkcja"
-      },
       "stage": {
         "beta": "Beta",
         "example": "Przykład"
@@ -1686,16 +1806,14 @@
         "commercial": "Komercyjna",
         "ai-developed": "Stworzona z pomocą AI"
       },
-      "test_note": "Test: każda kompilacja bierze najnowszą wersję, a Tessera nie oferuje dla niej aktualizacji.",
+      "test_note": "Test: ekran zostaje na commicie, z którego go zbudowano, a nowszy commit pojawia się tu jako aktualizacja. Folder jest budowany taki, jaki jest teraz.",
       "remove": "Usuń z {screen}",
       "building": "Kompilowanie firmware dla {screen}…",
       "installed_on": "Na {screen}, wersja {version}",
       "update": "Zaktualizuj do {version}",
       "trust": {
-        "title": "Ufam temu autorowi",
-        "text": "Tessera nie sprawdziła tej wtyczki. Działa ona na Twoim ekranie i może robić to, co ekran może robić w Home Assistant."
+        "title": "Ufam temu autorowi"
       },
-      "install": "Dodaj do {screen}",
       "adds": {
         "title": "Co dodaje",
         "tile": "Kafelek „{name}”",
@@ -1705,7 +1823,7 @@
         "card": "„{name}”, własny widok na ekranie",
         "bar": "Element górnego paska „{name}”",
         "settings": "Ustawienia",
-        "settings_where": "Na stronie ustawień ekranu i w Ustawieniach ekranu"
+        "settings_where": "Na stronie ustawień ekranu i tutaj, w szczegółach na karcie Wtyczki"
       },
       "may": {
         "title": "Co może robić",
@@ -1744,8 +1862,8 @@
         "branch": "Gałąź",
         "folder": "Folder na tym komputerze",
         "hints": {
-          "link": "Tessera bierze najnowsze wydanie i utrzymuje na nim ekran. Nowe wydanie pojawia się jako aktualizacja.",
-          "branch": "Każda kompilacja bierze najnowszy commit tej gałęzi. Do testowania, nie na co dzień.",
+          "link": "Tessera bierze najnowsze wydanie (bez wydania najnowszy commit) i trzyma na nim ekran. Coś nowszego pojawia się jako aktualizacja.",
+          "branch": "Tessera bierze najnowszy commit tej gałęzi i trzyma na nim ekran; nowszy commit pojawia się jako aktualizacja. Do wypróbowania.",
           "folder": "Dla wtyczki, którą tworzysz: zapisz, a następna kompilacja ją uwzględni. Folder znajduje się w konfiguracji Home Assistant."
         },
         "fetch": "Odczytaj wtyczkę",
@@ -1783,7 +1901,8 @@
         "on_screen": "{label} na {screen}",
         "choose_pin": "Wybierz pin",
         "part_kb": "{kb} KB więcej",
-        "secret_set": "Ustawiono. Wpisz nową wartość, aby ją zastąpić."
+        "secret_set": "Ustawiono. Wpisz nową wartość, aby ją zastąpić.",
+        "part_needs": "Potrzebuje na ekranie: {what}"
       },
       "readme": {
         "title": "Przeczytaj"
@@ -1797,7 +1916,6 @@
         "done": "Gotowe, dodano",
         "file": "Co Tessera zapisuje w {file}"
       },
-      "folder_note": "Tworzysz wtyczkę? Umieść jej folder w {path}, a pojawi się tutaj jako test.",
       "folder_error": "Folder {folder} nie jest jeszcze wtyczką: {why}",
       "rebuild": "Skompiluj ponownie",
       "failed": "Firmware dla {screen} nie skompilował się z tą wtyczką. Log znajdziesz w sekcji „Firmware i USB”.",
@@ -1808,7 +1926,153 @@
         "agree": "Zgadzam się na to, co może teraz robić"
       },
       "settings_missing": "Jeszcze nie na tym ekranie: pojawi się z następną kompilacją wtyczki.",
-      "changes": "Co się zmieniło"
+      "changes": "Co się zmieniło",
+      "tray": {
+        "title": "Gotowe do instalacji",
+        "count": "{n} wtyczka | {n} wtyczki | {n} wtyczek",
+        "add": "Dodaj",
+        "added": "Dodano",
+        "setup": "Skonfiguruj",
+        "remove": "Usuń {name} z listy",
+        "room": "{kb} KB z {room} KB wolnych na tym ekranie",
+        "too_much": "Razem {kb} KB, wolne {room} KB: usuń jedną",
+        "trust": "{names} pochodzi od społeczności i nie została sprawdzona przez Tessera. | {names} pochodzą od społeczności i nie zostały sprawdzone przez Tessera. | {names} pochodzą od społeczności i nie zostały sprawdzone przez Tessera.",
+        "install": "Zainstaluj {n} wtyczkę | Zainstaluj {n} wtyczki | Zainstaluj {n} wtyczek",
+        "one_build": "{screen} zostanie zbudowany raz, ze wszystkim.",
+        "builds": "{n} ekrany zostaną zbudowane jeden po drugim.",
+        "stage": "Dodaj do {screen}",
+        "in_tray": "Gotowe do instalacji",
+        "in_tray_note": "Zainstaluj ją z karty w rogu, samą lub razem z innymi.",
+        "along": "dochodzi z {names}"
+      },
+      "maker": {
+        "title": "Stwórz własną wtyczkę",
+        "lead": "Wtyczka to folder z opisem i odrobiną kodu ESPHome, we własnym repozytorium GitHub. Ty ją tworzysz i Ty publikujesz jej aktualizacje.",
+        "guide": "Jak stworzyć wtyczkę",
+        "start": {
+          "title": "Zacznij od szablonu",
+          "text": "Zrób z niego repozytorium na swoim GitHubie, z nazwą i ikoną.",
+          "action": "Otwórz szablon"
+        },
+        "test": {
+          "title": "Wypróbuj na swoim ekranie",
+          "text": "Dodaj swoje repozytorium linkiem. Wypchnij zmiany, a każdy nowy commit lub wydanie pojawi się tu jako aktualizacja.",
+          "folder": "Albo umieść jej folder w {path}, aby testować bez wydania."
+        },
+        "share": {
+          "title": "Udostępnij wszystkim",
+          "text": "Działa dobrze? Zgłoś ją do społeczności, a pojawi się tu u wszystkich, prosto z Twojego repozytorium. Pozostajesz jej autorem.",
+          "action": "Zgłoś"
+        }
+      },
+      "settings": {
+        "title": "Ustawienia",
+        "live": "Na tym ekranie",
+        "live_note": "Zmiana działa od razu.",
+        "shared": "Dla wszystkich ekranów",
+        "shared_note": "Wypełniane raz, dla każdego ekranu z tą wtyczką.",
+        "build": "Przy kompilacji",
+        "build_note": "Zmiana kompiluje {screen} ponownie.",
+        "save_build": "Zapisz i skompiluj",
+        "run": "Uruchom",
+        "too_short": "Co najmniej {n} znaków."
+      },
+      "tabs": {
+        "tiles": "Kafelki",
+        "functions": "Funkcje",
+        "hardware": "Sprzęt",
+        "in_use": "W użyciu"
+      },
+      "types": {
+        "tiles": "Kafelki",
+        "functions": "Funkcja",
+        "hardware": "Sprzęt"
+      },
+      "topics": {
+        "time": "Czas i odliczanie",
+        "weather": "Pogoda i niebo",
+        "calendar": "Kalendarz i zadania",
+        "home": "Dom",
+        "energy": "Energia",
+        "travel": "W drodze",
+        "money": "Pieniądze",
+        "sports": "Sport",
+        "news": "Wiadomości i ciekawostki",
+        "media": "Muzyka i media",
+        "photos": "Zdjęcia i sztuka",
+        "fun": "Gry i zabawa",
+        "voice": "Głos i dźwięk",
+        "tech": "Technika"
+      },
+      "topic_filter": "Tematy",
+      "sort": {
+        "label": "Sortuj według",
+        "popular": "Najbardziej lubiane",
+        "new": "Najnowsze",
+        "name": "Nazwa"
+      },
+      "none_in_tab": {
+        "tiles": "Nie ma jeszcze wtyczek z kafelkami.",
+        "functions": "Nie ma jeszcze wtyczek dla całego ekranu.",
+        "hardware": "Nie ma jeszcze wtyczek sprzętowych."
+      },
+      "fits_none_group": "{n} wtyczka nie pasuje do żadnego ekranu | {n} wtyczki nie pasują do żadnego ekranu | {n} wtyczek nie pasuje do żadnego ekranu",
+      "likes": {
+        "count": "Lubi to {n} osoba | Lubią to {n} osoby | Lubi to {n} osób",
+        "like": "Lubię to",
+        "unlike": "Cofnij polubienie",
+        "install_first": "Najpierw dodaj ją do ekranu, potem możesz ją polubić",
+        "ask": "Twoje polubienie liczy się w publicznej liczbie dla wtyczki. Publiczna jest tylko liczba: nic o tobie, Home Assistant ani twoich ekranach nie jest wysyłane."
+      },
+      "along": {
+        "title": "Dochodzi",
+        "brings": "zapewnia {what}",
+        "needed_by": "potrzebne dla {name}",
+        "came_with": "Doszła z {names}.",
+        "needed_now": "{names} potrzebuje tej wtyczki.",
+        "choose": "Która wtyczka zapewnia {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} potrzebuje {name}, więc też zostanie usunięte.",
+        "orphans": "Usuń też {names}",
+        "orphans_note": "Doszła tylko z {name}; nic innego na ekranie jej nie potrzebuje.",
+        "both": "Usuń razem",
+        "go": "Usuń"
+      },
+      "blocked_now": "Ta wersja jest zablokowana ({why}) i wypadnie przy następnej kompilacji. Zaktualizuj do nowszej.",
+      "other_origin": "Ten ekran używa innej wtyczki o tej nazwie, z {origin}. Nie jest stąd aktualizowana.",
+      "switch": "Przejdź na tę z {origin}",
+      "needs": {
+        "title": "Potrzebuje i zapewnia",
+        "plugin": "Inna wtyczka; dochodzi, gdy dodasz tę.",
+        "feature": "{what}",
+        "feature_note": "Z płytki ekranu albo z wtyczki, która to zapewnia: dochodzi, gdy jest tylko jedna.",
+        "brings": "Zapewnia: {what}",
+        "brings_note": "Dla innych wtyczek, które tego potrzebują, na tym samym ekranie."
+      },
+      "features": {
+        "speaker": "głośnik",
+        "microphone": "mikrofon",
+        "media_player": "odtwarzacz multimediów",
+        "camera": "obraz kamery w Home Assistant",
+        "camera_sensor": "czujnik kamery"
+      },
+      "fitting_only": "Tylko to, co pasuje do moich ekranów",
+      "made_by": {
+        "label": "Autor",
+        "all": "Wszyscy",
+        "tessera": "Tessera",
+        "community": "Społeczność"
+      },
+      "filter_button": "Filtruj",
+      "filter_remove": "Usuń {what}",
+      "filter_clear": "Wyczyść filtry",
+      "fitting_all": "Też to, co nie pasuje",
+      "news": {
+        "title": "Nowości w {version}",
+        "none": "Autor nie napisał notatek do tej aktualizacji.",
+        "history": "Wszystkie wersje"
+      }
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",
@@ -1941,7 +2205,8 @@
       },
       "refresh": {
         "label": "Odświeżanie",
-        "seconds": "Co {n} s"
+        "seconds": "Co {n} s",
+        "live": "Na żywo"
       },
       "picture": {
         "fit": {
@@ -2356,6 +2621,14 @@
         "item_look": "Pokazuje",
         "item_hint": "Czarno-biało na wygaszaczu, niezależnie od koloru encji.",
         "items_add_title": "Dodaj do zegara"
+      },
+      "plugins": {
+        "title": "Wtyczki",
+        "note": "Ustawienia każdej wtyczki są w jej szczegółach na karcie Wtyczki."
+      },
+      "extras": {
+        "title": "Dodatki",
+        "note": "Ustawienia, które ma tylko ten ekran, z jego płytki. Te same przełączniki są na stronie ustawień samego ekranu i w Home Assistant."
       }
     },
     "update": {
@@ -2453,13 +2726,6 @@
       "download_how": "Wgraj go na ekran przez {esphome_web} w Chrome lub Edge: „Connect”, wybierz port USB ekranu, „Install” i wskaż ten plik. Zawiera Twoje hasło Wi-Fi i klucze ekranu: nie udostępniaj go nikomu."
     },
     "installer": {
-      "title": {
-        "saved": "Profil zapisany.",
-        "running": "Chwileczkę…",
-        "ready": "Gotowe do pobrania.",
-        "done": "Gotowe.",
-        "failed": "Nie udało się."
-      },
       "board": "Jaki masz ekran?",
       "board_title": "{name} · {inch} cala",
       "status": {
@@ -3055,7 +3321,8 @@
       "hint": "Własny firmware ekranu, narysowany z układu, który edytujesz. Dotykaj, przytrzymuj i przesuwaj jak na ekranie. Nic nie jest zapisywane.",
       "control": "Dotknięcia sterują urządzeniami",
       "control_hint": "Włączone: dotknięcie kafelka wykonuje jego akcję w Home Assistant, jak na ekranie. Wyłączone: podgląd pokazuje tylko, co robi dotknięcie.",
-      "skipped": "Nie udało się wczytać ekranu podglądu {names}; został pominięty."
+      "skipped": "Nie udało się wczytać ekranu podglądu {names}; został pominięty.",
+      "not_kept": "Ta przeglądarka nie mogła zapisać ekranu podglądu: jej pamięć jest pełna lub zablokowana."
     },
     "inspector": {
       "kind": {
@@ -3063,6 +3330,86 @@
         "page": "Strona",
         "bar": "Górny pasek"
       }
+    },
+    "confirm": {
+      "leave_question": "Masz niezapisane zmiany. Mimo to przejść do przeglądu?",
+      "discard_open": "Odrzuć i otwórz",
+      "discard_leave": "Odrzuć i wyjdź",
+      "replace_layout": "Zastąp układ",
+      "import": "Importuj",
+      "start_fresh": "Zacznij od nowa",
+      "calibrate": "Rozpocznij kalibrację",
+      "add_anyway": "Dodaj mimo to",
+      "use_example": "Zastąp przykładem",
+      "clear_override": "Wyczyść nadpisanie"
+    },
+    "undo": {
+      "undo": "Cofnij: {what}",
+      "redo": "Ponów: {what}",
+      "undone": "Cofnięto: {what}",
+      "redone": "Ponowiono: {what}",
+      "a_tile": "kafelek",
+      "what": {
+        "grid": "zmieniono siatkę na {grid}",
+        "page_added": "dodano stronę {page}",
+        "page_copied": "dodano stronę {page} jako kopię",
+        "page_removed": "usunięto stronę {page}",
+        "page_moved": "przeniesiono stronę na miejsce {page}",
+        "pages_moved": "zmieniono kolejność stron",
+        "tile_added": "dodano: {name}",
+        "tiles_added": "dodano 1 kafelek | dodano {n} kafelki | dodano {n} kafelków",
+        "tile_removed": "usunięto: {name}",
+        "tiles_removed": "usunięto 1 kafelek | usunięto {n} kafelki | usunięto {n} kafelków",
+        "tile_moved": "przeniesiono: {name}",
+        "tile_moved_page": "przeniesiono na stronę {page}: {name}",
+        "tiles_moved": "przeniesiono 1 kafelek | przeniesiono {n} kafelki | przeniesiono {n} kafelków",
+        "tile_link": "{name} otwiera teraz stronę {page}",
+        "tile_renamed": "zmieniono nazwę: {name}",
+        "tile_look": "zmieniono widok: {name}",
+        "tile_resized": "zmieniono rozmiar: {name}",
+        "tile_icon": "zmieniono ikonę: {name}",
+        "tile_color": "zmieniono tło: {name}",
+        "tile_tap": "zmieniono dotknięcie: {name}",
+        "tile_option": "zmieniono ustawienia: {name}",
+        "tiles_changed": "zmieniono 1 kafelek | zmieniono {n} kafelki | zmieniono {n} kafelków",
+        "screen_title": "zmieniono tytuł ekranu",
+        "page_title": "zmieniono tytuł strony {page}",
+        "home_page": "strona {page} jest teraz stroną główną",
+        "page_buttons": "zmieniono przyciski stron dla strony {page}",
+        "home_key": "zmieniono przycisk strony głównej na stronie {page}",
+        "top_bar": "zmieniono górny pasek strony {page}",
+        "top_bars": "zmieniono górne paski",
+        "map_moved": "przeniesiono stronę {page} na mapie",
+        "map_arranged": "ułożono mapę od strony głównej",
+        "stood_up": "ekran ustawiony pionowo",
+        "laid_down": "ekran ustawiony poziomo",
+        "layout_copied": "skopiowano układ z ekranu {name}",
+        "layout_imported": "zaimportowano układ",
+        "changed": "zmieniono układ",
+        "restored": "przywrócono niezapisane zmiany",
+        "taken_over": "przejęto zmiany z innej karty"
+      }
+    },
+    "draft": {
+      "kept": "Niezapisane zmiany z {time}",
+      "kept_hint": "Zachowane w tej przeglądarce, jeszcze nie na ekranie.",
+      "restore": "Przywróć",
+      "discard": "Odrzuć"
+    },
+    "tabs": {
+      "elsewhere": "Ten ekran jest edytowany w innej karcie",
+      "elsewhere_hint": "Jego zmiany nie są jeszcze zapisane.",
+      "take_over": "Przejmij tutaj",
+      "keep_mine": "Zachowaj moje"
+    },
+    "connection": {
+      "lost": "Brak połączenia z ESP Screen Manager.",
+      "lost_hint": "Twoje zmiany zostają tutaj. Ponawianie…",
+      "restored": "Połączenie przywrócone"
+    },
+    "naming": {
+      "rename": "Zmień nazwę",
+      "reset": "Wróć do: {name}"
     },
     "phone": {
       "screens": "Ekrany",
@@ -3096,7 +3443,15 @@
     "build": {
       "plugins": "Kompiluje z wtyczkami",
       "install": "Instaluje",
-      "failed": "Ostatnia kompilacja {screen} się nie powiodła. Dziennik mówi dlaczego."
+      "failed": "Ostatnia kompilacja {screen} się nie powiodła. Dziennik mówi dlaczego.",
+      "title": "Trwa budowanie",
+      "count": "1 kompilacja w toku | {n} kompilacje w toku | {n} kompilacji w toku",
+      "waiting": "Czeka na swoją kolej",
+      "ready": "{name} jest gotowy",
+      "ready_several": "{names} są gotowe",
+      "update_failed": "Aktualizacja {name} nie powiodła się",
+      "build_failed": "Kompilacja {name} nie powiodła się",
+      "show_log": "Pokaż log"
     },
     "grid": {
       "title": "Siatka",

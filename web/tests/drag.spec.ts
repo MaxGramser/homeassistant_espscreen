@@ -2,7 +2,11 @@
 // down, on a wide window the canvas both ways.
 import { beforeEach, describe, expect, it } from "vitest";
 import { dragScrollers, edgeStep, nearestRect, scrollsAlong, slotAt, vDrag } from "../src/drag";
-import { state } from '../src/store';
+import { useDragStore } from '../src/stores/drag';
+import { useDocumentStore } from "../src/stores/document";
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 // jsdom has no layout: give an element the sizes a browser would measure, and the overflow longhands it computes.
 function sized(element: HTMLElement, size: { scrollWidth?: number; clientWidth?: number; scrollHeight?: number; clientHeight?: number }) {
@@ -18,7 +22,7 @@ beforeEach(() => {
 
 describe("the scroller of a drag", () => {
   it('targets each covered cell of a multi-row tile and clamps nearby gaps', () => {
-    state.documentGrid = { columns: 3, rows: 3 };
+    doc.documentGrid = { columns: 3, rows: 3 };
     pages.innerHTML = '<div data-slot="10" data-columns="2" data-rows="2"></div>';
     const tile = pages.firstElementChild as HTMLElement;
     tile.getBoundingClientRect = () => ({ left: 20, top: 40, right: 220, bottom: 240, width: 200, height: 200 } as DOMRect);
@@ -30,7 +34,7 @@ describe("the scroller of a drag", () => {
     expect(slotAt(260, 270)).toBe(-1);
     tile.dataset.columns = '1';
     expect(slotAt(150, 170)).toBe(13);
-    state.documentGrid = { columns: 2, rows: 3 };
+    doc.documentGrid = { columns: 2, rows: 3 };
   });
   it("scrolls the canvas both ways on a wide window", () => {
     // The canvas scrolls (overflow: auto); the row of pages is wider than it but doesn't scroll itself.
@@ -105,13 +109,13 @@ describe("who a press belongs to", () => {
     vDrag.mounted!(round, { value: { kind: "tile", tile: key } } as any, null as any, null as any);
     pointer("pointerdown", round, 0);
     pointer("pointermove", round, 20);
-    expect(state.drag.active).toBe(true);
-    expect(state.drag.moving).toEqual(key);
+    expect(useDragStore().active).toBe(true);
+    expect(useDragStore().moving).toEqual(key);
     pointer("pointerup", document.documentElement, 20);
-    expect(state.drag.active).toBe(false);
+    expect(useDragStore().active).toBe(false);
     // The empty place is a button of its own: pressing it starts no drag of the clock.
     pointer("pointerdown", pages.querySelector(".key-empty")!, 0);
     pointer("pointermove", card, 20);
-    expect(state.drag.active).toBe(false);
+    expect(useDragStore().active).toBe(false);
   });
 });

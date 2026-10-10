@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 4)
+PLUGIN_API = (0, 8)
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
 VERSION = re.compile(r'^\d+\.\d+\.\d+$')
@@ -27,15 +27,36 @@ MDI = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 PLACEHOLDER = re.compile(r'\{([a-z][a-z0-9_]*)\}')
 TEXT_KEY = re.compile(r'^[a-z][a-z0-9_]{0,47}$')
 
-TOP = {'id', 'version', 'api', 'icon', 'maintainer', 'license', 'stage', 'requires', 'boards', 'flash_kb',
-       'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'cards', 'tap_actions', 'bar_items', 'settings'}
+TOP = {'id', 'version', 'api', 'icon', 'maintainer', 'license', 'stage', 'topics', 'requires', 'provides', 'boards',
+       'flash_kb', 'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'answers', 'cards',
+       'tap_actions', 'bar_items', 'settings'}
 ATTRIBUTES = ('cloud', 'commercial', 'ai-developed')
 # How far along a plugin is, in the maker's word: ready for every day, still finding its feet, or there to show what a
 # plugin can do and to learn from. The editor shows a badge for the last two; a manifest without it is beta.
 STAGES = ('stable', 'beta', 'example')
+# What a plugin is about, in the maker's word (0.7): one or two of these, so a person finds a countdown among weather,
+# departures and games. The topics small always-on displays have in common (TRMNL, Tidbyt, LaMetric, AWTRIX,
+# MagicMirror²), without a catch-all: a plugin that fits none asks for a new topic in the plugins repository. What a
+# plugin adds (tiles, something for the whole screen, a board's hardware) is no topic: the app reads it from the
+# manifest (plugin_type).
+TOPICS = ('time', 'weather', 'calendar', 'home', 'energy', 'travel', 'money', 'sports', 'news', 'media', 'photos',
+          'fun', 'voice', 'tech')
+MAX_TOPICS = 2
+# What a screen can have that a plugin may need (0.7), each a promise about one ESPHome component and its id, the way
+# ESPHome's voice_assistant takes whatever speaker there is: a plugin that needs a speaker finds `ts_speaker`, whether a
+# board brings it (boards.yaml) or a plugin (`provides`). One screen has one of each.
+# 0.8: `camera`, the screen's own camera as an ESPHome camera (Home Assistant shows it, another plugin may use it), and
+# `camera_sensor`, a board's own: the sensor a camera plugin drives. A board-only feature (no component) is hardware a
+# plugin cannot bring; its promise is a substitution of the board file that a plugin's ESPHome file uses, here
+# CAMERA_I2C, the I2C bus the sensor answers on. The board powers the sensor itself.
+FEATURES = {'speaker': ('speaker', 'ts_speaker'), 'microphone': ('microphone', 'ts_microphone'),
+            'media_player': ('media_player', 'ts_media_player'), 'camera': ('esp_video_camera', 'ts_camera'),
+            'camera_sensor': (None, 'CAMERA_I2C')}
+BOARD_ONLY = tuple(name for name, (domain, _) in FEATURES.items() if domain is None)
 INPUT_KINDS = ('secret', 'text', 'gpio', 'entity')
 OPTION_KINDS = ('text', 'choice', 'number', 'toggle')
-FIELD_KINDS = ('text', 'number', 'epoch')
+# `numbers` (0.5): every value the path reaches, as one list of numbers (a price per quarter of an hour, a forecast).
+FIELD_KINDS = ('text', 'number', 'epoch', 'numbers')
 UNITS = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
 # Licences that go with AGPL-3.0, the licence the firmware a plugin is built into carries.
 LICENSES = ('MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'MPL-2.0', 'LGPL-2.1-or-later',
@@ -52,6 +73,8 @@ FORBIDDEN_COMMANDS = ('auth', 'config', 'subscribe_events', 'subscribe_trigger',
                       'fire_event', 'render_template', 'supervisor', 'hassio', 'get_config', 'lovelace', 'person', 'backup',
                       'cloud', 'application_credentials', 'repairs', 'blueprint', 'trace', 'validate_config')
 MAX_ATTRIBUTES = 16
+MAX_HAS_ATTRIBUTES = 8      # attributes an entity must have to be offered for a tile
+MAX_ANSWERS = 8             # answers of Home Assistant commands a plugin maps
 MAX_TILES = 8
 MAX_OPTIONS = 12
 MAX_FETCHES = 8
@@ -112,16 +135,18 @@ STEP = re.compile(r'\.([A-Za-z_][A-Za-z0-9_-]*)|\.\{([a-z][a-z0-9_]*)\}|\[\*\]|\
 
 def parse_path(path, root=True):
     """The steps of a path as tuples: ('key', name), ('var', placeholder), ('all',), ('at', n), ('first', n). A field
-    path (root=False) starts without `$` and with a name: `a.b[0]`."""
+    path (root=False) starts without `$`, with a name or a list step: `a.b[0]`, `[*].price` (0.5, for an answer that
+    files its list under a name the plugin cannot know, such as Nord Pool's area)."""
     text = str(path or '')
     if root:
         if not text.startswith('$'):
             raise ValueError('a path starts with $')
         text = text[1:]
     else:
-        if not text or text.startswith(('.', '[', '$')):
-            raise ValueError('a field path starts with the name of a field')
-        text = '.' + text
+        if not text or text.startswith(('.', '$')):
+            raise ValueError('a field path starts with the name of a field or a list step such as [*]')
+        if not text.startswith('['):
+            text = '.' + text
     steps, at = [], 0
     while at < len(text):
         match = STEP.match(text, at)
@@ -162,6 +187,27 @@ def _id(value, where):
     if not isinstance(value, str) or not ID.match(value):
         raise ManifestError(where, 'an id is 1 to 32 of a-z, 0-9 and _, starting with a letter')
     return value
+
+
+def _features(value, where, strict, keep_unknown=False):
+    """A list of features of FEATURES. One this app does not know: refused when `strict`; else kept when a plugin needs
+    it (`keep_unknown`, so it fits no screen) and left out when a plugin brings it."""
+    names = list(dict.fromkeys(_strings(value, where, len(FEATURES) + 4)))
+    for i, name in enumerate(names):
+        if not ID.match(name) or (strict and name not in FEATURES):
+            raise ManifestError(f'{where}[{i}]', f'one of {", ".join(FEATURES)}')
+    return [name for name in names if keep_unknown or name in FEATURES]
+
+
+def plugin_type(manifest):
+    """What a plugin adds, read from its manifest so a maker cannot say it wrong (the editor's tabs): `tiles` for one
+    with tiles to put on a page, `hardware` for one that makes a part of a board work (it brings a feature, asks for a
+    pin, or is made for certain boards), `functions` for the rest (the top bar, tap actions, a voice, a sound)."""
+    if manifest['tiles']:
+        return 'tiles'
+    if manifest['provides'] or manifest['boards'] != 'any' or any(i['kind'] == 'gpio' for i in manifest['inputs']):
+        return 'hardware'
+    return 'functions'
 
 
 def _list(value, where, most):
@@ -271,6 +317,31 @@ def option_value(option, value, where='value'):
     return value
 
 
+def check_fields(fields, where):
+    """The fields of a map, of a tile of an entity or of an answer: {name: {path, as, tz}}."""
+    fields = _object(fields, where, set(fields) if isinstance(fields, dict) else ())
+    if not fields or len(fields) > MAX_FIELDS:
+        raise ManifestError(where, f'1 to {MAX_FIELDS} fields')
+    out = {}
+    for name, field in fields.items():
+        at = f'{where}.{name}'
+        _id(name, at)
+        if isinstance(field, str):
+            field = {'path': field}
+        field = _object(field, at, {'path', 'as', 'tz'}, ('path',))
+        kind = field.get('as', 'text')
+        if kind not in FIELD_KINDS:
+            raise ManifestError(f'{at}.as', f'one of {", ".join(FIELD_KINDS)}')
+        if 'tz' in field and (kind != 'epoch' or not isinstance(field['tz'], str)):
+            raise ManifestError(f'{at}.tz', 'a time zone such as Europe/Amsterdam, only for "as: epoch"')
+        try:
+            path = parse_path(field['path'], root=False)
+        except ValueError as error:
+            raise ManifestError(f'{at}.path', str(error))
+        out[name] = {'path': path, 'as': kind, 'tz': field.get('tz')}
+    return out
+
+
 def check_map(spec, where, has_items):
     spec = _object(spec, where, {'items', 'fields', 'where', 'skip', 'sort', 'limit', 'value', 'label'})
     out = {}
@@ -295,26 +366,7 @@ def check_map(spec, where, has_items):
         return out
     if 'fields' not in spec:
         raise ManifestError(where, '"fields" names what the screen gets')
-    fields = _object(spec['fields'], f'{where}.fields', set(spec['fields']) if isinstance(spec['fields'], dict) else ())
-    if not fields or len(fields) > MAX_FIELDS:
-        raise ManifestError(f'{where}.fields', f'1 to {MAX_FIELDS} fields')
-    out['fields'] = {}
-    for name, field in fields.items():
-        at = f'{where}.fields.{name}'
-        _id(name, at)
-        if isinstance(field, str):
-            field = {'path': field}
-        field = _object(field, at, {'path', 'as', 'tz'}, ('path',))
-        kind = field.get('as', 'text')
-        if kind not in FIELD_KINDS:
-            raise ManifestError(f'{at}.as', f'one of {", ".join(FIELD_KINDS)}')
-        if 'tz' in field and (kind != 'epoch' or not isinstance(field['tz'], str)):
-            raise ManifestError(f'{at}.tz', 'a time zone such as Europe/Amsterdam, only for "as: epoch"')
-        try:
-            path = parse_path(field['path'], root=False)
-        except ValueError as error:
-            raise ManifestError(f'{at}.path', str(error))
-        out['fields'][name] = {'path': path, 'as': kind, 'tz': field.get('tz')}
+    out['fields'] = check_fields(spec['fields'], f'{where}.fields')
     for key in ('where', 'skip'):
         if key in spec:
             rules = _object(spec[key], f'{where}.{key}', set(out['fields']))
@@ -385,9 +437,11 @@ def check_fetch(fetch, where, network, inputs, option_ids, choice_lists):
     return out
 
 
-def check(manifest, english=None):
+def check(manifest, english=None, strict=True):
     """The manifest as the add-on uses it, or ManifestError. `english` is the plugin's translations/en.json; when it is
-    given, every text the manifest names must be in its part "app"."""
+    given, every text the manifest names must be in its part "app". `strict` (a maker's check, a folder being made)
+    refuses a topic or feature this file does not know; the app reading the index (strict=False) leaves an unknown topic
+    out and keeps an unknown feature a plugin needs, which then fits no screen, so a newer index never hides a plugin."""
     if not isinstance(manifest, dict):
         raise ManifestError('', 'the manifest must be a mapping')
     manifest = _object(manifest, '', TOP, ('id', 'version', 'api', 'icon', 'maintainer', 'license'))
@@ -413,10 +467,29 @@ def check(manifest, english=None):
         raise ManifestError('stage', f'one of {", ".join(STAGES)}')
     out['stage'] = stage
 
-    requires = _object(manifest.get('requires') or {}, 'requires', {'esphome', 'psram', 'plugins'})
+    topics = _strings(manifest.get('topics'), 'topics', MAX_TOPICS)
+    if strict and any(topic not in TOPICS for topic in topics) or not all(ID.match(topic) for topic in topics):
+        raise ManifestError('topics', f'one or two of {", ".join(TOPICS)}')
+    # A maker names one or two; the app never leaves a plugin out for a missing word (it shows under no topic).
+    if not topics and strict:
+        raise ManifestError('topics', f'what the plugin is about: one or two of {", ".join(TOPICS)}')
+    # A topic this app does not know yet (a newer plugins repository) is left out, not the plugin.
+    out['topics'] = list(dict.fromkeys(topic for topic in topics if topic in TOPICS))
+
+    requires = _object(manifest.get('requires') or {}, 'requires', {'esphome', 'psram', 'plugins', 'features'})
     out['requires'] = {'psram': bool(requires.get('psram', False)),
                        'plugins': [_id(p, f'requires.plugins[{i}]')
-                                   for i, p in enumerate(_list(requires.get('plugins'), 'requires.plugins', 8))]}
+                                   for i, p in enumerate(_list(requires.get('plugins'), 'requires.plugins', 8))],
+                       'features': _features(requires.get('features'), 'requires.features', strict, keep_unknown=True)}
+    if out['id'] in out['requires']['plugins']:
+        raise ManifestError('requires.plugins', 'a plugin cannot need itself')
+    # What it brings for others (0.7): a feature of FEATURES, as the ESPHome component and id the feature promises.
+    out['provides'] = _features(manifest.get('provides'), 'provides', strict)
+    for i, name in enumerate(out['provides']):
+        if name in BOARD_ONLY:
+            raise ManifestError(f'provides[{i}]', 'a board brings this one itself, never a plugin')
+    if set(out['provides']) & set(out['requires']['features']):
+        raise ManifestError('provides', 'a plugin cannot need a feature it brings itself')
     if 'esphome' in requires:
         if not isinstance(requires['esphome'], str) or not re.match(r'^\d{4}\.\d+\.\d+$', requires['esphome']):
             raise ManifestError('requires.esphome', 'an ESPHome version such as 2026.6.2')
@@ -486,7 +559,8 @@ def check(manifest, english=None):
     parts = []
     for i, item in enumerate(_list(manifest.get('parts'), 'parts', 4)):
         where = f'parts[{i}]'
-        item = _object(item, where, {'id', 'file', 'label', 'hint', 'flash_kb', 'default'}, ('id', 'file', 'label'))
+        item = _object(item, where, {'id', 'file', 'label', 'hint', 'flash_kb', 'default', 'features'},
+                       ('id', 'file', 'label'))
         if not isinstance(item['file'], str) or not re.match(r'^[a-z0-9_/-]+\.yaml$', item['file']) \
                 or '..' in item['file']:
             raise ManifestError(f'{where}.file', 'a .yaml file inside the plugin, such as parts/tests.yaml')
@@ -494,7 +568,10 @@ def check(manifest, english=None):
                       'label': _text_key(item['label'], f'{where}.label', keys),
                       'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None,
                       'flash_kb': _number(item.get('flash_kb', 0), f'{where}.flash_kb', 0, 8192),
-                      'default': bool(item.get('default', False))})
+                      'default': bool(item.get('default', False)),
+                      # A part that uses a feature when the screen has one (0.7): offered, and built, only then. A
+                      # voice plugin answers out loud with a part that needs a speaker, and listens without one.
+                      'features': _features(item.get('features'), f'{where}.features', strict, keep_unknown=True)})
     _unique(parts, 'parts')
     out['parts'] = parts
 
@@ -508,7 +585,8 @@ def check(manifest, english=None):
     for i, item in enumerate(_list(manifest.get('tiles'), 'tiles', MAX_TILES)):
         where = f'tiles[{i}]'
         item = _object(item, where, {'id', 'name', 'icon', 'sizes', 'memory', 'domains', 'data', 'options',
-                                     'example', 'preview', 'attributes'}, ('id', 'name', 'sizes', 'memory'))
+                                     'example', 'preview', 'attributes', 'has_attributes', 'fields'},
+                       ('id', 'name', 'sizes', 'memory'))
         tile = {'id': _id(item['id'], f'{where}.id'), 'name': _text_key(item['name'], f'{where}.name', keys)}
         icon = item.get('icon', out['icon'])
         if not isinstance(icon, str) or not MDI.match(icon):
@@ -538,6 +616,26 @@ def check(manifest, english=None):
         if not all(re.match(r'^[a-z_][a-z0-9_]{0,47}$', a) for a in attributes):
             raise ManifestError(f'{where}.attributes', 'attribute names such as next_date')
         tile['attributes'] = attributes
+        # The attributes an entity must have to be offered for the tile (0.5): `[raw_today]` keeps the inspector's list
+        # to the price sensors among a home's hundreds of sensors. Only the list: a tile keeps its entity when an
+        # attribute is gone for a while (an entity that is unavailable has none).
+        has = _strings(item.get('has_attributes'), f'{where}.has_attributes', MAX_HAS_ATTRIBUTES)
+        if has and not domains:
+            raise ManifestError(f'{where}.has_attributes', 'only a tile with "domains" belongs to an entity')
+        if not all(re.match(r'^[a-z_][a-z0-9_]{0,47}$', a) for a in has):
+            raise ManifestError(f'{where}.has_attributes', 'attribute names such as raw_today')
+        tile['has_attributes'] = has
+        # Fields taken out of the entity's attributes (0.5), with the map's paths and kinds: `raw_today[*].value` as
+        # numbers is one list of prices instead of a list of objects the screen has no room for.
+        if 'fields' in item:
+            if not domains:
+                raise ManifestError(f'{where}.fields', 'only a tile with "domains" belongs to an entity and gets fields')
+            tile['fields'] = check_fields(item['fields'], f'{where}.fields')
+            for name in tile['fields']:
+                if name in attributes or name in ('state', 'name'):
+                    raise ManifestError(f'{where}.fields.{name}', 'a field is named apart from the attributes, state and name')
+        else:
+            tile['fields'] = {}
         if 'data' in item:
             if item['data'] not in fetch_ids:
                 raise ManifestError(f'{where}.data', 'must name a fetch of this plugin')
@@ -590,6 +688,7 @@ def check(manifest, english=None):
             # A tile of an entity: its state, its name, and the attributes it names (a moment as seconds, see below).
             fields = {name: {'as': 'text'} for name in ('state', 'name', *tile['attributes'])}
             fields.update({name: {'as': 'epoch'} for name in tile['attributes'] if name.endswith(('_at', '_time', 'date'))})
+            fields.update(tile['fields'])
         for key, value in tile['preview'].items():
             names = [value] if key == 'countdown' else PLACEHOLDER.findall(value)
             for name in names:
@@ -599,6 +698,20 @@ def check(manifest, english=None):
                 raise ManifestError(f'tiles[{i}].preview.countdown', f'"{value}" must be a field with "as: epoch"')
     for name in sorted(fetch_ids - {f['id'] for f in fetches}):
         raise ManifestError('fetch', f'"{name}" is used but not described')
+
+    # What the screen gets of an answer to a command of `permissions.ha_commands` (0.5): its fields, as a fetch's, so
+    # 96 prices of a quarter of an hour arrive as one list of numbers instead of 8 KB of objects cut to a quarter.
+    # A command without an entry here sends its answer as it is, bounded.
+    answers = []
+    for i, item in enumerate(_list(manifest.get('answers'), 'answers', MAX_ANSWERS)):
+        where = f'answers[{i}]'
+        item = _object(item, where, {'command', 'fields'}, ('command', 'fields'))
+        if item['command'] not in out['permissions']['ha_commands']:
+            raise ManifestError(f'{where}.command', 'must be a command of permissions.ha_commands')
+        if item['command'] in [a['command'] for a in answers]:
+            raise ManifestError(f'{where}.command', f'"{item["command"]}" is mapped twice')
+        answers.append({'command': item['command'], 'fields': check_fields(item['fields'], f'{where}.fields')})
+    out['answers'] = answers
 
     cards = []
     for i, item in enumerate(_list(manifest.get('cards'), 'cards', 8)):
@@ -636,14 +749,20 @@ def check(manifest, english=None):
     out['bar_items'] = bar
     # The plugin's settings as the editor shows them under Screen settings: ESPHome entities of its plugin.yaml (a
     # template switch, number or select), by the end of their entity id on the screen's device ("waste_in_top_bar").
+    # A key is the entity's name in plugin.yaml as ESPHome writes it in an id ("Tap sound" is tap_sound), which is also
+    # the end of its entity id until someone renames it. A switch, number, select, text or button (0.6); `status` (0.6)
+    # names a text sensor the row shows beside a button, live ("Heard: Okay Nabu").
     settings = []
     for i, item in enumerate(_list(manifest.get('settings'), 'settings', 8)):
         where = f'settings[{i}]'
-        item = _object(item, where, {'key', 'label', 'hint'}, ('key', 'label'))
-        if not isinstance(item['key'], str) or not re.match(r'^[a-z0-9_]{1,64}$', item['key']):
-            raise ManifestError(f'{where}.key', 'the end of the entity id of the setting, such as waste_in_top_bar')
+        item = _object(item, where, {'key', 'label', 'hint', 'status'}, ('key', 'label'))
+        for field in ('key', 'status'):
+            if field in item and (not isinstance(item[field], str) or not re.match(r'^[a-z0-9_]{1,64}$', item[field])):
+                raise ManifestError(f'{where}.{field}', 'the name of the entity in plugin.yaml as an id: "Tap sound" is '
+                                                        'tap_sound')
         settings.append({'key': item['key'], 'label': _text_key(item['label'], f'{where}.label', keys),
-                         'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None})
+                         'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None,
+                         'status': item.get('status')})
     out['settings'] = settings
 
     out['text_keys'] = sorted(keys)

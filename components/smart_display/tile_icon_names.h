@@ -62,6 +62,7 @@ inline constexpr Named NAMES[] = {
   {"speaker-multiple", 0xF0D38},
   {"soundbar", 0xF17DB},
   {"headphones", 0xF02CB},
+  {"microphone", 0xF036C},
   {"piano", 0xF067D},
   {"guitar-acoustic", 0xF0771},
   {"television", 0xF0502},

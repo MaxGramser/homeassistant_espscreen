@@ -1,20 +1,21 @@
 <script setup lang="ts">
 // Shared firmware workspace; always a concrete profile and upload target.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { getJson, send } from "../api";
-import { editorLanguage, languageMarks, numberText, t } from "../i18n";
-import { memoryNote } from "../model/install-progress";
-import { go, toast } from "../store";
+import { send } from "../api";
+import { useFirmwareJob } from "../composables/useFirmwareJob";
+import { t } from "../i18n";
+import { afterBrowserBuild, ESPHOME_WEB, firmwareImage, memoryText as memoryOf, usbTarget } from "../model/firmware-job";
 import BrowserFlash from "./BrowserFlash.vue";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
+import { useUiStore } from "../stores/ui";
 
-const ESPHOME_WEB = "https://web.esphome.io/?dashboard_install";
+const ui = useUiStore();
+
 const data = ref<any>(null);
 const file = ref("");
 const target = ref("ota");
 const host = ref("");
-let timer = 0;
 // This computer (browser): reinstall or rescue a screen plugged into the computer this page runs on, for instance one
 // that restarts over and over and so never comes online for Wi-Fi / OTA. The add-on builds, this page writes the image
 // without erasing first, so the screen keeps its touch calibration and settings (as ESPHome's reinstall does).
@@ -22,18 +23,19 @@ const flash = useBrowserFlash();
 const support = flashSupport();
 // The build this page waits for: its profile and when it started, so an earlier job of the same profile never counts.
 const awaited = ref<{ file: string; started: number } | null>(null);
-async function refreshFirmware(initial = false) {
-  try {
-    const next = await getJson("firmware");
-    data.value = next;
-    if (initial || !file.value) file.value = next.profiles[0]?.file || "";
-    // USB stays chosen while the board is replugged; a port that went away falls back to the first one.
-    const ports: string[] = next.ports || [];
-    if (target.value.startsWith("/") && !ports.includes(target.value)) target.value = ports[0] || "usb";
-    if (target.value === "usb" && ports.length) target.value = ports[0];
-  } catch (e: any) {
-    toast(e.message);
-  }
+// The job, followed every few seconds while the page is in sight (composables/useFirmwareJob.ts): every answer, this
+// page's own or another's, lands here. The first one picks the first profile.
+let first = true;
+function take(next: any) {
+  data.value = next;
+  if (first || !file.value) file.value = next.profiles[0]?.file || "";
+  first = false;
+  // USB stays chosen while the board is replugged; a port that went away falls back to the first one.
+  target.value = usbTarget(target.value, next.ports || []);
+}
+const firmware = useFirmwareJob({ onAnswer: take, onError: (e) => ui.toast(e.message) });
+async function refreshFirmware() {
+  try { await firmware.refresh(); } catch (e: any) { ui.toast(e.message); }
 }
 const running = computed(() => data.value?.job?.state === "running");
 const disabled = computed(() => !data.value || running.value || !data.value.available || !data.value.profiles?.length);
@@ -45,7 +47,7 @@ watch(() => [data.value?.job, flash.state.phase] as const, ([job, phase]) => {
   const wanted = awaited.value;
   if (!wanted || !job || job.file !== wanted.file || job.started !== wanted.started || job.state === "running") return;
   awaited.value = null;
-  if (job.state === "success" && phase === "waiting") flash.install(wanted.file, false);
+  if (afterBrowserBuild(job.state, phase) === "write") flash.install(wanted.file, false);
   else flash.cancel();
 });
 const ports = computed<string[]>(() => data.value?.ports || []);
@@ -55,14 +57,9 @@ const statusText = computed(() => !data.value ? t("editor.common.loading") : !da
     ? `${data.value.job.file} · ${data.value.job.action} · ${data.value.job.state}`
     : t("editor.firmware.choose"));
 // What the add-on says about the memory the build has (build_memory.py, app 0.4.65), under the status line.
-const memoryText = computed(() => {
-  const note = memoryNote(data.value?.job);
-  if (!note) return "";
-  const marks = languageMarks(editorLanguage());
-  return t(`editor.installer.memory.${note.reason}`, { free: `${numberText(note.free, marks)} GB`, need: `${numberText(note.need, marks)} GB`, jobs: note.jobs, cores: note.cores });
-});
+const memoryText = computed(() => memoryOf(data.value?.job)?.text || "");
 const downloadReady = computed(() => target.value === "download" && !!file.value && !!data.value?.downloads?.includes(file.value));
-const image = computed(() => ({ href: `api/firmware/profiles/${encodeURIComponent(file.value)}/download`, name: file.value.replace(/\.yaml$/, "") + ".factory.bin" }));
+const image = computed(() => firmwareImage(file.value));
 async function run(action: "validate" | "build" | "install") {
   if (action === "install" && target.value === "browser") return runBrowser();
   try {
@@ -73,7 +70,7 @@ async function run(action: "validate" | "build" | "install") {
     });
     await refreshFirmware();
   } catch (e: any) {
-    toast(e.message);
+    ui.toast(e.message);
   }
 }
 // The port picker first, from this click; then the build, whose image the watch above writes.
@@ -86,11 +83,11 @@ async function runBrowser() {
     await refreshFirmware();
   } catch (e: any) {
     flash.cancel();
-    toast(e.message);
+    ui.toast(e.message);
   }
 }
-onMounted(() => { refreshFirmware(true); timer = window.setInterval(() => refreshFirmware(), 3000); });
-onBeforeUnmount(() => { clearInterval(timer); flash.cancel(); });
+onMounted(refreshFirmware);
+onBeforeUnmount(() => flash.cancel());
 </script>
 
 <template>
@@ -107,7 +104,7 @@ onBeforeUnmount(() => { clearInterval(timer); flash.cancel(); });
           <template #install><b>{{ t("editor.firmware.install") }}</b></template>
         </i18n-t>
       </div>
-      <button type="button" class="btn quiet" id="close-firmware" :disabled="flash.busy()" @click="go('')">{{ t("editor.common.back") }}</button>
+      <button type="button" class="btn quiet" id="close-firmware" :disabled="flash.busy()" @click="ui.go('')">{{ t("editor.common.back") }}</button>
     </div>
     <div class="card">
       <div class="card-grid">

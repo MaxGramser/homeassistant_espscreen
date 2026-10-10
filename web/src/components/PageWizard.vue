@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { t } from '../i18n';
-import { addPage, automaticIcon, liveOf, pageReady, state, topbarMax } from '../store';
 import { clone, emptyPage, instanceId } from '../model/pages';
+import { matchesQuery } from '../model/search';
 import { tilePalette } from '../model/tile-palette';
 import { glyph } from '../model/topbar';
 import type { HeaderItem } from '../types';
@@ -11,6 +11,16 @@ import rules from '../model/page-rules.json';
 import Icon from './ui/Icon.vue';
 import SwitchRow from './ui/SwitchRow.vue';
 import TesseraMark from './TesseraMark.vue';
+import { useEntitiesStore } from '../stores/entities';
+import { useScreenStore } from "../stores/screen";
+import { useInventoryStore } from "../stores/inventory";
+import { addPage } from "../editor/pages";
+import { useDocumentStore } from "../stores/document";
+
+const entities = useEntitiesStore();
+const scr = useScreenStore();
+const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
@@ -18,18 +28,17 @@ const title = ref(''), home = ref(true), clock = ref(true), query = ref('');
 const chosen = ref<string[]>([]);
 const count = computed(() => chosen.value.length + Number(clock.value));
 const matches = computed(() => {
-  const search = query.value.trim().toLocaleLowerCase();
   // Only what the top bar can show (app 0.4.1): the add-on's header domains, so Create never fails on a camera.
-  return state.inventory.entities.filter(entity => rules.headerDomains.includes(entity.id.split('.')[0]) && `${entity.name} ${entity.id} ${entity.area || ''}`.toLocaleLowerCase().includes(search));
+  return inv.inventory.entities.filter(entity => rules.headerDomains.includes(entity.id.split('.')[0]) && matchesQuery(query.value, entity.name, entity.id, entity.area));
 });
 const toggle = (id: string) => { chosen.value = chosen.value.includes(id) ? chosen.value.filter((item) => item !== id) : [...chosen.value, id]; };
 const invalidTitle = computed(() => new TextEncoder().encode(title.value.trim()).length > 96);
 function create() {
-  if (invalidTitle.value || count.value > topbarMax()) return;
+  if (invalidTitle.value || count.value > scr.topbarMax) return;
   // A screen whose firmware still shares one top bar (app 0.4.1): the new page takes that bar and its home key, as
   // every other page does, or the save is refused long after this dialog closed. Only the title is its own.
-  if (!pageReady.value) {
-    const shared = clone(state.document!.pages[0].topbar);
+  if (!scr.pageReady) {
+    const shared = clone(doc.document!.pages[0].topbar);
     shared.title = title.value.trim() ? { source: 'text', text: title.value.trim() } : { source: 'screen' };
     if (addPage(shared)) emit('close');
     return;
@@ -54,22 +63,22 @@ onMounted(() => dialog.value?.showModal());
       </header>
       <div class="f">
         <label class="f-label" for="new-page-title">{{ t('editor.pages.title') }}</label>
-        <input id="new-page-title" v-model="title" :placeholder="state.document?.title" :aria-invalid="invalidTitle" autofocus />
+        <input id="new-page-title" v-model="title" :placeholder="doc.document?.title" :aria-invalid="invalidTitle" autofocus />
         <small v-if="invalidTitle" class="help warn">{{ t('addon.errors.layout.page_title') }}</small>
       </div>
-      <div v-if="!pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
-      <div v-if="pageReady" class="wizard-group">
+      <div v-if="!scr.pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
+      <div v-if="scr.pageReady" class="wizard-group">
         <h3>{{ t('editor.topbar.title') }}</h3>
         <SwitchRow class="bar-choice home-choice" :label="t('editor.pages.home_control')" v-model="home"><template #icon><TesseraMark /></template></SwitchRow>
-        <SwitchRow class="bar-choice clock-choice" icon="clock-outline" :label="t('editor.pages.clock_control')" :disabled="!clock && count >= topbarMax()" v-model="clock" />
+        <SwitchRow class="bar-choice clock-choice" icon="clock-outline" :label="t('editor.pages.clock_control')" :disabled="!clock && count >= scr.topbarMax" v-model="clock" />
       </div>
-      <div v-if="pageReady" class="f">
-        <label class="f-label" for="new-page-entity">{{ t('editor.pages.bar_entities') }} <span class="f-value">{{ count }} / {{ topbarMax() }}</span></label>
+      <div v-if="scr.pageReady" class="f">
+        <label class="f-label" for="new-page-entity">{{ t('editor.pages.bar_entities') }} <span class="f-value">{{ count }} / {{ scr.topbarMax }}</span></label>
         <label class="search-field"><Icon name="magnify" /><input id="new-page-entity" v-model="query" type="search" :placeholder="t('editor.topbar.add.search')" /></label>
         <div class="entity-options check-list">
           <CheckRow v-for="entity in matches.slice(0, 40)" :key="entity.id" class="entity-option" :checked="chosen.includes(entity.id)"
-            :disabled="!chosen.includes(entity.id) && count >= topbarMax()" @toggle="toggle(entity.id)">
-            <span class="mdi entity-icon" :style="{ color: tilePalette(entity.id, liveOf(entity.id)).icon, background: tilePalette(entity.id, liveOf(entity.id)).circle }">{{ glyph(automaticIcon(entity.id)) }}</span>
+            :disabled="!chosen.includes(entity.id) && count >= scr.topbarMax" @toggle="toggle(entity.id)">
+            <span class="mdi entity-icon" :style="{ color: tilePalette(entity.id, entities.liveOf(entity.id)).icon, background: tilePalette(entity.id, entities.liveOf(entity.id)).circle }">{{ glyph(entities.automaticIcon(entity.id)) }}</span>
             <span class="entity-text"><b>{{ entity.name }}</b><small>{{ [entity.area, entity.id].filter(Boolean).join(' · ') }}</small></span>
           </CheckRow>
           <small v-if="!matches.length" class="help">{{ t('editor.topbar.add.none_found') }}</small>
@@ -77,7 +86,7 @@ onMounted(() => dialog.value?.showModal());
         </div>
       </div>
       <footer><button type="button" class="btn quiet" @click="emit('close')">{{ t('editor.common.cancel') }}</button>
-        <button type="submit" class="btn primary" :disabled="invalidTitle || count > topbarMax()"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button></footer>
+        <button type="submit" class="btn primary" :disabled="invalidTitle || count > scr.topbarMax"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button></footer>
     </form>
   </dialog>
 </template>

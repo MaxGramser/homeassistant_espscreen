@@ -15,15 +15,15 @@ export function fields(value: any, allowed: string[], required = allowed) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(k => !allowed.includes(k)) ||
       required.some(k => !(k in value))) fail();
 }
-// Plugin tiles are an experiment: the add-on accepts them only once it serves plugins (docs: the plugins proposal).
-export const pluginTiles = { enabled: false };
 const entity = (value: any, domains: string[]) => typeof value === 'string' && value.length <= 120 &&
   matches(/^[a-z0-9_]+\.[a-z0-9_]+$/, value) && domains.includes(value.split('.')[0]);
 const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value);
 const finite = (value: any): boolean => typeof value === 'number' ? Number.isFinite(value) :
   Array.isArray(value) ? value.every(finite) : value && typeof value === 'object' ? Object.values(value).every(finite) : true;
 
-export function validatePageShape(layout: PageLayout) {
+// Plugin tiles and items are an experiment: the add-on accepts them only once it serves plugins (docs: the plugins
+// proposal), which `plugins` says (the plugins store's pluginsEnabled, handed in with the grid, model/pages.ts).
+export function validatePageShape(layout: PageLayout, plugins = false) {
   fields(layout, ['title', 'homePageId', 'pages']);
   // An empty title is a screen without one (firmware 0.17.0+): the top bar shows its home key alone.
   if (typeof layout.title !== 'string' || layout.title !== layout.title.trim() || bytes(layout.title) > 96)
@@ -41,10 +41,11 @@ export function validatePageShape(layout: PageLayout) {
     for (const item of bar.trailing) {
       fields(item, ['id', 'type', 'entity', 'content', 'icon', 'show', 'item'], ['id', 'type']);
       let key: string;
-      if (item.type === 'plugin' && pluginTiles.enabled) {
-        // A plugin's item (docs/PLUGINS.md): it says itself what it shows.
-        fields(item, ['id', 'type', 'item'], ['id', 'type', 'item']);
+      if (item.type === 'plugin' && plugins) {
+        // A plugin's item (docs/PLUGINS.md): it says itself what it shows, with its words or as its icon alone (0.8).
+        fields(item, ['id', 'type', 'item', 'content'], ['id', 'type', 'item']);
         if (!/^plugin:[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/.test(String(item.item))) fail();
+        if (item.content !== undefined && !rules.pluginContents.includes(String(item.content))) fail();
         key = JSON.stringify(['plugin', item.item]);
       } else if (rules.headerBuiltin.includes(item.type) || item.type === rules.headerLink) {
         fields(item, ['id', 'type']); key = item.type;
@@ -83,7 +84,7 @@ export function validatePageShape(layout: PageLayout) {
         fields(content, ['kind', 'target']);
         fields(content.target, content.target?.kind === 'home' ? ['kind'] : ['kind', 'pageId']);
         if (!['home', 'page'].includes(content.target.kind)) fail();
-      } else if (content.kind === 'plugin' && pluginTiles.enabled) {
+      } else if (content.kind === 'plugin' && plugins) {
         // A plugin's tile type (design): a known plugin and tile, and options of plain values the manifest checks.
         fields(content, ['kind', 'plugin', 'tile', 'entityId', 'options'], ['kind', 'plugin', 'tile']);
         if (!/^[a-z0-9_]+$/.test(String(content.plugin)) || !/^[a-z0-9_]+$/.test(String(content.tile))) fail();

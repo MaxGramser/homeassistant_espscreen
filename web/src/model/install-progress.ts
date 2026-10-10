@@ -3,7 +3,9 @@
 // but both say enough to count: ESP-IDF's ninja numbers every step it builds ("[412/1024] Building C object ..."), and
 // esptool prints how much it has written ("Writing at 0x00010000... (45 %)", ESPHome's "Uploading: [===   ] 45%").
 // This turns that into the few steps a person follows, each with its own share of one bar. Nothing here guesses a
-// time: a step without a count is simply running.
+// time: a step without a count is simply running. What the page says over the steps (the title, the line under it, the
+// time it takes, each step's name) is here too.
+import { t } from "../i18n";
 
 export type StepKey = "prepare" | "build" | "write" | "restart" | "done";
 export type StepState = "waiting" | "running" | "done" | "failed";
@@ -155,3 +157,36 @@ export function installProgress(job: Job, logs: readonly string[], opts: { brows
   const done = at >= keys.length;
   return { steps: [...steps, { key: "done", state: done ? "done" : "waiting", percent: null }], percent: done ? 100 : Math.round(percent * 100), failed: failedAt >= 0, done };
 }
+
+// ---- What the page says while it follows the installation ----
+/** Where the installation stands, as the page says it: `saved` a profile kept without a build, `running` the build or this
+ * browser's writing on its way (`writing` once it writes), `ok` it is done, `download` a file to download is the end,
+ * `browser` this browser writes it, `built` the build succeeded, `stopped` the build stopped for its memory. */
+export type Follow = { saved: boolean; running: boolean; ok: boolean; download: boolean; browser: boolean; writing: boolean;
+  calibrate: boolean; built: boolean; stopped: boolean; name: string; file: string };
+/** The title over the installation. */
+export function followTitle(f: Follow) {
+  if (f.saved) return t("editor.installer.progress.saved", { file: f.file });
+  if (f.running) return f.writing ? t("editor.installer.progress.writing", { name: f.name }) : t("editor.installer.progress.building");
+  if (f.ok) return f.download ? t("editor.installer.progress.ready", { name: f.name }) : t("editor.installer.progress.installed", { name: f.name });
+  return t(f.download ? "editor.installer.progress.build_failed" : "editor.installer.progress.install_failed");
+}
+/** The line under the title; when it failed, the line of the log that says why (`error`), unless a card under it says
+ * what happened (this browser's writing, the build's memory). */
+export function followDetail(f: Follow, error?: string) {
+  if (f.saved) return t("editor.installer.detail.saved");
+  if (f.running) return f.writing ? t("editor.installer.detail.uploading")
+    : t(f.browser ? "editor.webflash.building" : f.download ? "editor.installer.detail.building_download" : "editor.installer.detail.building");
+  if (f.ok) return f.download ? t("editor.installer.detail.downloaded") : t(f.calibrate ? "editor.installer.detail.booted_calibrate" : "editor.installer.detail.booted");
+  if ((f.browser && f.built) || f.stopped) return "";
+  return error || t("editor.installer.detail.see_log");
+}
+/** How long it took or takes so far, "3:07"; nothing before it starts. Times in milliseconds. */
+export function elapsedText(started: number, finished: number | null, now: number) {
+  if (!started) return "";
+  const seconds = Math.max(0, Math.round(((finished || now) - started) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+/** A step's name; the last one says the file is ready where the end is a download. */
+export const stepLabel = (key: StepKey, download: boolean) =>
+  t(key === "done" && download ? "editor.installer.steps_done.download" : `editor.installer.steps_done.${key}`);

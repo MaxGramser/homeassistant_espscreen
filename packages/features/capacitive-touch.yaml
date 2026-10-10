@@ -67,7 +67,7 @@ substitutions:
     // wants speed as well as 50 px of travel, so a firm press that drifts slowly is still a tap. Cards and the
     // settings page keep their drags; in standby the push still wakes the screen, it only switches nothing.
     lv_obj_add_event_cb(id(home_page)->obj, [](lv_event_t *) {
-      if (!runtime_tiles::enabled || id(calibration_active) || !id(active_entity).empty() || settings_screen::visible() ||
+      if (!runtime_tiles::enabled || id(calibration_active) || runtime_tiles::colour_shown() || settings_screen::visible() ||
           (runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root, LV_OBJ_FLAG_HIDDEN))) return;
       // A quick drag on a slider is that slider's: the press stays with it (firmware 0.2.68+).
       if (runtime_tiles::captured_slider) return;

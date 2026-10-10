@@ -39,14 +39,28 @@ const first = info(); console.log(JSON.stringify(first));
 const expectedSource = readFileSync(new URL('generated/firmware_renderer_manifest.h', import.meta.url), 'utf8').match(/SHA256 "([a-f0-9]+)"/)[1];
 assert.equal(first.source, expectedSource, 'the WASM binary must be rebuilt after its source manifest changes');
 assert.equal(first.tiles.length, 2, 'both first-page tiles must be visible');
-assert.equal(first.tiles[0].mode, 'forecast');
+// A wide weather tile shows the week (the weather card of 10-09): the weather now beside the days.
+assert.equal(first.tiles[0].mode, 'week');
 const [a, b] = first.tiles;
 assert.ok(a.y + a.height <= b.y || b.y + b.height <= a.y || a.x + a.width <= b.x || b.x + b.width <= a.x, 'tiles must not overlap');
 assert.ok(a.width > width * 0.6 || columns > 2, 'forecast must span its grid columns');
 const original = frame();
 if (process.env.PREVIEW_OUTPUT) writeFileSync(process.env.PREVIEW_OUTPUT, original);
 const inForecast = first.icons.filter(icon => icon.y >= a.y && icon.y + icon.height <= a.y + a.height);
-assert.ok(inForecast.length >= 4, 'forecast must have current and upcoming-day icons');
+assert.ok(inForecast.length >= 1, 'the week must have the icon of the weather now');
+// The days' icons are drawn in the week's chart, not as labels: their colours (the sun's yellow, the rain's blue) must
+// stand in each of the first three day columns, right of the weather now.
+const days = { x: a.x + Math.floor(a.width * 0.4), w: Math.floor(a.width * 0.6) };
+for (let d = 0; d < 3; ++d) {
+  let colour = 0;
+  for (let y = a.y; y < a.y + a.height; ++y) {
+    for (let x = days.x + Math.floor(d * days.w / 3); x < days.x + Math.floor((d + 1) * days.w / 3); ++x) {
+      const p = (y * width + x) * 4;
+      if (Math.max(original[p], original[p + 1], original[p + 2]) - Math.min(original[p], original[p + 1], original[p + 2]) > 60) colour++;
+    }
+  }
+  assert.ok(colour > 20, `day ${d + 1} of the week must show its coloured icon`);
+}
 for (const icon of inForecast) {
   let ink = 0;
   for (let y = Math.max(0, icon.y); y < Math.min(height, icon.y + icon.height); ++y) {

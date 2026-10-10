@@ -232,8 +232,10 @@ inline uint32_t state_revision(const std::string &state, const std::string &attr
   f.add(attributes);
   return f.value;
 }
-struct Forecast { std::string day, condition; float high = NAN, low = NAN, rain = NAN, mm = NAN; };
-struct Hour { std::string time, condition; float temp = NAN, rain = NAN, mm = NAN; };
+// weekday: Sunday 0, from a screen that draws the week (its hello said weather_week); -1 from an older app.
+struct Forecast { std::string day, condition; float high = NAN, low = NAN, rain = NAN, mm = NAN; int8_t weekday = -1; };
+// at: hours since today's midnight, local time (weather_week), -1 from an older app.
+struct Hour { std::string time, condition; float temp = NAN, rain = NAN, mm = NAN; int16_t at = -1; };
 // One row of choices on a vacuum card (firmware 0.2.39+), found by the manager on the robot's device:
 // kind 'm' a cleaning mode select (Roborock: vacuum, mop or both), 'w' a water or mop intensity
 // select, 's' the suction speeds of the vacuum itself. `values` go to Home Assistant, `labels` are
@@ -287,11 +289,12 @@ struct Extra {
   // left, right, OK, back, home, play, volume up, volume down, mute), empty where the remote has no such key. The add-on
   // sends it for an integration whose commands it read from Home Assistant; a remote without one has none.
   std::vector<std::string> keypad;
-  // Weather: up to five days and eight hours.
+  // Weather: up to seven days and the next hours (weather_week::HOURS), and the attributes its card shows as Home
+  // Assistant's more-info dialog does.
   std::vector<Forecast> forecast;
   std::vector<Hour> hours;
-  float wind = NAN, feels = NAN;
-  std::string wind_unit;
+  float wind = NAN, feels = NAN, bearing = NAN, pressure = NAN, visibility = NAN;
+  std::string wind_unit, pressure_unit, visibility_unit, rain_unit;
   std::string sunrise, sunset, duration, remaining;
   uint32_t timer_end = 0;
   std::string media_title;
@@ -369,7 +372,8 @@ struct Extra {
   bool empty() const {
     return hvac_modes.empty() && fan_modes.empty() && swing_modes.empty() && fan_mode.empty() && swing_mode.empty() &&
            hvac_action.empty() && humidifier_mode.empty() && std::isnan(target_low) && std::isnan(target_high) && options.empty() && forecast.empty() && hours.empty() && std::isnan(wind) &&
-           std::isnan(feels) && wind_unit.empty() && sunrise.empty() && sunset.empty() && duration.empty() &&
+           std::isnan(feels) && wind_unit.empty() && std::isnan(bearing) && std::isnan(pressure) && std::isnan(visibility) &&
+           pressure_unit.empty() && visibility_unit.empty() && rain_unit.empty() && sunrise.empty() && sunset.empty() && duration.empty() &&
            remaining.empty() && !timer_end && media_title.empty() && media_artist.empty() && media_album.empty() &&
            media_picture.empty() && map_mark.empty() && !media_duration && !media_position && !media_position_at && fan_speeds.empty() && fan_speed.empty() &&
            choices.empty() && room.empty() && !charging && std::isnan(tilt) && action.empty() && action_data.empty() &&

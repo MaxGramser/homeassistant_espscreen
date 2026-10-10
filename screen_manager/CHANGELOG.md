@@ -1,3 +1,135 @@
+## Unreleased
+
+- **A camera live, full screen, on the P4 boards.** On the reTerminal D1001, the M5Stack Tab5, the Waveshare ESP32-P4
+  panel and the Guition P4 boards, a camera tapped open full screen plays live at the camera's own pace, instead of a
+  new still every four seconds: 8 pictures a second from a camera's low-resolution stream, 15 from a 1080p one, about a
+  tenth of a second behind the camera, with touch as quick as ever. The app takes the camera through Home Assistant's
+  own WebRTC and sends the screen JPEGs no larger than the camera's own; the screen's hardware decodes, scales and turns
+  them. A camera without a stream sends its snapshots as fast as it gives them. On a Raspberry Pi, give the tile the
+  camera's low-resolution stream: decoding is what costs Home Assistant's host, and it costs what the resolution costs.
+  Every other board keeps its stills.
+- **Live camera tiles on the P4 boards.** A camera tile's picture has a new pace there, Live, which is its default: the
+  tile plays the camera on the page, with its rounded corners and its name over the picture, as long as the page is on
+  the glass and nothing lies over it. Opening such a camera full screen shows its first picture at once. Other screens
+  keep their paces in seconds.
+- **P4 boards download faster.** Camera pictures, album covers and maps come about three times as fast on the P4
+  boards: their Wi-Fi goes through an ESP32-C6, and a larger network window keeps it busy.
+- **Plugin cards and tiles.** A card a plugin opens shows everything it draws under its top bar, not only the first line
+  (#226), and a plugin's tile grows to a tall size in Layout and saves (#224).
+- **The editor asks in its own look.** Before something that can't be taken back (leaving unsaved changes, replacing a
+  layout, starting the calibration, clearing an override), for a new name on a phone, and for a text to copy by hand,
+  the editor now asks in a dialog of its own, light or dark and at the bottom of a phone, instead of the browser's, in
+  the same words. Its button says what it does (Discard and open, Replace layout, Start calibration, Clear override),
+  in red where it throws something away. Cancel has the focus at first, so Enter alone never throws work away, and
+  Escape cancels.
+- **Your work survives a reload.** Unsaved changes in Layout are kept in this browser as you make them. Close the tab,
+  reload or lose the browser, and opening the screen again says "Unsaved changes from 10:42" with Restore and Discard.
+  Changes made before someone else saved the screen come back through the usual question (Reload saved or Keep mine),
+  so a newer save is never written over unasked. Saving or discarding forgets them; preview screens need none of this.
+- **A second tab knows.** When another tab of the same browser has unsaved changes to the screen you have open, Layout
+  says so before anyone saves, with Take over here (its changes come to this tab, and Undo takes them back) and Keep
+  mine. A tab that closes stops counting.
+- **The connection is visible.** While ESP Screen Manager can't be reached (it restarts or updates), a calm line over
+  the page says so and that your changes stay; when it is back the line says "Connection restored" and goes. The editor
+  follows it again at once, and nothing is asked while the tab is hidden, the screen preview included.
+- **A tile's name is easy to find.** A tile's settings start with "Name on the screen", Home Assistant's name in grey
+  and a key back to it once you typed another. Click the tile's title in its settings, choose Rename in its menu, or
+  double-click its name on the mockup to get there; a page's menu has Rename too, as does a double click on its title.
+- **Undo says what it does.** Undo and Redo in Layout name the step they take back or do again ("Undo: Kitchen light
+  moved to page 2"), and after an undo a short note says what came back, with Redo beside it, so a change on a page out
+  of sight never goes unnoticed.
+- **A favourite says what it plays in Layout.** Its card on the mockup names the kind of thing again (Playlist, Album,
+  Podcast) before the speaker, as the screen does.
+- **Seeed reTerminal D1001 (experimental).** The 8-inch ESP32-P4 panel with a battery, as a new board in New screen:
+  touch, a dimmable backlight, Wi-Fi through its ESP32-C6, the battery in the top bar, the button on top for standby,
+  the RGB LED, a clock that keeps the time while Home Assistant is away, its speaker and microphones, and its camera
+  for the Screen camera plugin, which makes it a camera in Home Assistant. Its SD card and LTE are not configured yet.
+- **A screen with a speaker is a media player in Home Assistant.** On a board whose speaker Tessera configures (the
+  reTerminal D1001, the Waveshare ESP32-P4 86 panel and the M5Stack Tab5), Home Assistant's text to speech and
+  announcements play on the screen, without a voice assistant. Its volume is under Extras, on the screen and in Screen
+  settings, and no sound starts with a pop. On the Waveshare panel and the Tab5, whose microphone and speaker share one
+  bus, the microphone pauses while something plays; the P4 audio plugin is no longer needed. The Tab5's camera works
+  with the Screen camera plugin as well. Both are built but still to be tried on those boards.
+- **Extras: settings a board has of its own.** A screen whose board has something the others do not shows it under
+  Screen settings in an Extras card, on the screen's own settings page under Extras, and in Home Assistant, all the same
+  switch. On the reTerminal D1001: Microphone, and Wake when moved, which wakes the screen from standby when someone picks
+  it up or moves it.
+- **Find plugins by what they are.** The Plugins page has tabs for tiles, functions for the whole screen, and hardware,
+  with topics such as Time, Weather or On the move under them, and what fits none of your screens folded away. Give a
+  plugin you use a heart, and see which plugins others like. A plugin that needs another one, or needs a speaker or a
+  microphone, brings what it needs along in the same build, shown before you add it; removing a plugin another one needs
+  asks first. Plugins are pinned to the exact commit they were added at, and a plugin from a fork never gets the key you
+  filled in for the original. Plugin API 0.7.
+- **Plugin items in the top bar in colour.** A plugin's item lights up when it matters: a microphone in blue while a
+  voice assistant listens, amber while it thinks, a camera in red while it streams. Choose Show, Icon only, to keep the
+  top bar to icons. A microphone joins the icons for tiles. Plugin API 0.8, which also knows a screen's camera, and
+  lets a plugin play sounds of its own (Tap sound: a soft tick on every tap).
+
+- **All of a plugin's settings in one place.** Open a plugin in a screen's Plugins tab and its settings are there, in
+  three groups: what takes effect on this screen at once, what is filled in once for every screen, and what builds the
+  screen again, with a "Save and build" key that lights up only when something changed. Plugins can now add a text
+  field and a button that runs a test and shows how it went ("Heard: Okay Nabu"), and a setting keeps working when you
+  rename its entity in Home Assistant. Screen settings links to each plugin's settings. Plugin API 0.6.
+
+- **One top bar and one pager on every page.** Every page a tap opens (a card, a light's effects, a light group, the
+  media library and its folders, the settings page, a plugin's card, a camera) now has the same top bar: the back key
+  stands in the same place on all of them, at the corner of the glass, so it no longer moves a little each time you go a
+  page deeper or back. Every list that takes more than one page (settings, a light group, the media library and its
+  speaker menu, a select's options) now has the pager of the tile pages: a chevron in
+  each half, the dots between them, always across the foot of the glass.
+- **A new weather card.** A weather tile shows the coming week as day columns in a light grid: each day's name, its
+  icon, the high and the low, and on a bigger tile the temperature as a line through the week and the rain as bars with
+  the amount and the chance under them. The bigger the tile, the more it shows; a tile of one row keeps the weather now
+  beside the days. A tap opens the card as Home Assistant's own dialog has it: the weather now with today's high and
+  low and feels like, humidity, wind with its direction, air pressure and visibility, and the forecast with a Daily |
+  Hourly key for the next 48 hours. Up to seven days instead of five; the words are Home Assistant's in every language.
+- **The preview speaks your screens' language and follows Dark mode.** The live preview in the editor, on the home page
+  and under Preview, now shows the firmware's own texts in the language chosen under Settings -> Language & region, and
+  draws a screen that has Dark mode on in its dark look, as its glass does. Before, it was always English and light.
+- **Holding a light with a colour opens its colour card in the preview too** (#201). The colour card was the last card
+  built in the screen's YAML instead of the firmware's shared code, so the editor's preview could not show it: a hold
+  on such a light did nothing there. It is now part of the shared code, with every card's top bar, and the preview opens
+  it, its effects and a group's lamps as the screen does. On the screen it looks and works as before, and the CYD's
+  firmware is 6.7 KB smaller.
+- **The preview shows screens with more than eight pages.** A screen with more pages or tiles than the eight pages and
+  64 tiles every screen once had, which a board with PSRAM takes, showed a drawing instead of its live preview. The
+  preview now takes as many as the largest board.
+- **Pick several plugins, build once.** Adding a plugin no longer builds the screen at once: the round + on a plugin card
+  (or Add in its details) sets it aside in Ready to install, a card in the corner. Add more, on this screen or another,
+  then press Install: each screen builds once with all of them. The card says what a plugin still needs, asks once to
+  trust the makers of community plugins, and on a 4 MB screen shows the room they take together.
+- **Make a plugin of your own.** The Plugins page explains it in three steps: start from the template, try it on your
+  screen with a link to your repository, and list it in the community so it shows up for everyone, straight from your
+  repository.
+- **Plugins get a whole day of prices or a forecast.** A plugin tile of an entity now gets every value of a list, not
+  the first 16: two days of electricity prices per quarter of an hour arrive whole. A plugin can take one list of
+  numbers out of a list of objects (ENTSO-e, Frank Energie, Zonneplan, Octopus, Solcast, Amber) and out of the answer of
+  an action (Nord Pool, EnergyZero, easyEnergy, Tibber, a weather forecast), and can ask that the entity list in the
+  editor shows only the entities that have the attributes it needs, the price sensor instead of every sensor in the
+  house. Plugin API 0.5.
+- **Builds you can follow from anywhere.** A screen that builds shows a ring on its row in the sidebar and on its card
+  in the overview that fills as it goes, and one ring at the top of the sidebar lists every build on its way with its
+  step. When a build the page saw ends, whatever page is open says "Living room is ready", or that it failed, with the
+  way to its log.
+- **Tiles whose entity is gone are found.** The overview says calmly how many tiles show an entity Home Assistant no
+  longer has, or one it has had no word from for more than a few minutes, and on which screens; the sidebar marks each
+  screen and lists them. A click opens that tile with a list of entities ready to choose another, those of the same
+  kind and with the closest names first. A tile's menu offers Show another entity for any tile.
+- **⌘K can do everything.** The search finds a screen's settings on every screen with their value ("brightness" opens
+  it on its screen and marks it), the tiles that show an entity on whichever screen they stand, the plugins (open one,
+  add it to this screen), and identifies or updates a screen by its name; updating every screen asks first. What was
+  chosen last comes first, the arrow keys walk the rows, and the row in focus says what Enter does.
+- **The Waveshare ESP32-S3-Touch-LCD-4 as a board of its own** ([docs/WAVESHARELCD4.md](../docs/WAVESHARELCD4.md)).
+  This is the 4-inch board without the "B": a CH32V003 I/O expander and other pins, so the 4B's profile never fitted
+  it. New screen offers it as Waveshare 4 inch, marked experimental. The glass is the 4B's, so the screen looks the
+  same: two columns of three tiles at 170 dpi, with a dimmable backlight, standby, night mode and camera pictures.
+  A screen built from it has started, drawn the interface, joined a network and answered touch; the rest of the
+  hardware acceptance is still open. Its experimental touch driver follows Waveshare's factory power sequence:
+  address-select, system power and touch reset stay low for 200 ms, then power and reset stay high for 200 ms while
+  address-select remains low before it probes the GT911 at either supported address. It accepts the startup only when
+  the controller reports nonzero panel geometry, and otherwise repeats the full sequence up to three times. It needs
+  ESPHome 2026.7.0 or later.
+
 ## 0.4.86 (firmware 0.54.0)
 
 A hotfix for 0.4.85: two fixes for screens that broke on firmware 0.53.0, nothing else.

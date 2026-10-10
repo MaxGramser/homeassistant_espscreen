@@ -106,9 +106,10 @@ has.
   firmware. The screen draws it with the top bar's own parts (`saver_row_draw`): `page_header::piece` and `item_text`
   measure and word each item, and `header_bar::centre`, beside the bar's `place`, centres the line with the bar's gaps
   (`tests/test_header_bar.cpp`). The editor uses the top bar's entity list (`EntityItemPicker.vue`) and its add, move
-  and remove (`itemList` in `store.ts`), and edits one entity in `SaverItemInspector.vue`.
+  and remove (`itemList` in `stores/topbar.ts`), and edits one entity in `SaverItemInspector.vue`.
 - **The editor** (app 0.4.83): `ScreensaverCard.vue` lists the steps and `SaverInspector.vue` opens one in the drawer;
-  both read and change the choice through `web/src/saver.ts`, which also holds the dragged list both use.
+  both read and change the choice through `web/src/stores/screensaver.ts`, and drag their lists with
+  `web/src/composables/useSortableRows.ts`.
   `SaverGlass.vue` draws the clock in the glass's proportions, and drops the last entities of its line until it fits, as
   the screen does.
 - **The pick.** The app follows the chosen players and camera like a tile's entities (`watched_entities`). After every

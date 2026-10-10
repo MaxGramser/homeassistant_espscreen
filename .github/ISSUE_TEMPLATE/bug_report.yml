@@ -1,5 +1,5 @@
 name: Bug report (bugs only)
-description: Report broken existing functionality. Features, improvements and new boards are handled only on the website.
+description: Report a reproducible problem in an existing screen, app or editor feature.
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -38,6 +38,8 @@ body:
         - M5Stack Tab5 (Tab5 ST7121)
         - Waveshare (ESP32-S3-Touch-LCD-5)
         - Waveshare (ESP32-P4-86-Panel-ETH-2RO)
+        - reTerminal D1001 (reTerminal D1001)
+        - Waveshare (ESP32-S3-Touch-LCD-4)
         - Other / not listed here
         - Not board-specific (add-on, editor, documentation)
     validations:
@@ -98,8 +100,6 @@ body:
       label: Before submitting
       options:
         - label: This reports broken existing functionality, not a feature, improvement or new board request.
-          required: true
-        - label: I understand that feature, improvement and new board requests are handled only on the website and will not be reviewed on GitHub.
           required: true
         - label: I checked the Tessera manual and troubleshooting guide
           required: true

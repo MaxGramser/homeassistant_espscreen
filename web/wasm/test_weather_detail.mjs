@@ -43,8 +43,9 @@ async function detail(shape, first) {
   const tick = (delta = 32) => { ms += delta; m._preview_time(ms, 1789401840, 7200); m._preview_render(); };
   configure(connection(m), 'Home', 1, [{ ...first, slot: 0 }, { ...weather, slot: 1 }]);
   for (let i = 0; i < 12; i++) tick(64);
-  const card = JSON.parse(m.ccall('preview_diagnostics', 'string', [], [])).tiles.find(tile => tile.mode === 'forecast');
-  assert.ok(card, `${shape.key}: the weather tile shows its forecast`);
+  // The weather tile, as the week where it has room for it and as the weather now where it does not.
+  const card = JSON.parse(m.ccall('preview_diagnostics', 'string', [], [])).tiles.find(tile => tile.title === 'Weather');
+  assert.ok(card && ['week', 'forecast'].includes(card.mode), `${shape.key}: the weather tile shows its forecast`);
   const x = card.x + Math.floor(card.width / 2), y = card.y + Math.floor(card.height / 2);
   tick(250); m._preview_touch(x, y, 1); tick(120); m._preview_touch(x, y, 0);
   for (let i = 0; i < 12; i++) tick(64);

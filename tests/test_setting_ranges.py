@@ -3,7 +3,7 @@
 The screen owns its settings: settings_screen::set() clamps every value any writer gives it, and the settings page on
 the glass steps between the same ends (settings_screen.h). Home Assistant changes them through the screen's entities,
 whose min and max are in packages/core.yaml; ESP Screens validates a value with SETTING_RULES (core.py) and its
-editor offers it between the ends of SETTING_GROUPS (web/src/store.ts). This reads all five and checks that every
+editor offers it between the ends of SETTING_GROUPS (web/src/model/settings.ts). This reads all five and checks that every
 setting is the same kind and has the same ends in each, so a range changed in one place shows up here.
 """
 import re
@@ -17,7 +17,8 @@ from core import SETTING_RULES  # noqa: E402
 
 SCREEN = (ROOT / 'components/smart_display/settings_screen.h').read_text()
 CORE_YAML = (ROOT / 'packages/core.yaml').read_text()
-STORE = (ROOT / 'web/src/store.ts').read_text()
+# The editor's table of the settings (SETTING_GROUPS), beside the store in its model.
+SETTINGS_TS = (ROOT / 'web/src/model/settings.ts').read_text()
 CORE_PY = (ROOT / 'screen_manager/app/core.py').read_text()
 # The minutes of a day, the range of a night's start and end: Home Assistant's time entity (hour * 60 + minute) and the
 # settings page's moment row have no ends of their own but these.
@@ -91,8 +92,8 @@ def entities():
 
 
 def editor_rows():
-    """{key: {kind, min, max, step, cap, options}} from SETTING_GROUPS in web/src/store.ts."""
-    block = STORE.split('export const SETTING_GROUPS = [', 1)[1].split('] as const;', 1)[0]
+    """{key: {kind, min, max, step, cap, options}} from SETTING_GROUPS in web/src/model/settings.ts."""
+    block = SETTINGS_TS.split('export const SETTING_GROUPS = [', 1)[1].split('] as const;', 1)[0]
     out = {}
     for row in re.findall(r'\{ key: "[^{}]*\}', block):
         fields = dict(re.findall(r'(\w+): ("[^"]*"|\[[^\]]*\]|-?\d+)', row))

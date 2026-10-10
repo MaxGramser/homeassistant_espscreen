@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "w3c-web-serial", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "env.d.ts", "tests/**/*.ts"]
+}

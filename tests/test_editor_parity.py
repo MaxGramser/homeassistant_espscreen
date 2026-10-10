@@ -4,7 +4,9 @@ The editor (web/) draws an HTML picture of a screen, and the sizes in it are the
 TypeScript: ui::px and the look (ui_scale.h) in web/src/model/ui-scale.ts, the -/+ pill and the thermostat's mode bar
 (runtime_tiles panel_metrics, stepper_keys, climate_tile::bar_room) there too, the top bar (header_bar.h and the look's
 fonts) in topbar.ts, a tile's size (page_protocol.h, core.py) in sizes.ts, a card's colour (Tile::active,
-tile_controls::accent) in tile-palette.ts and a thermostat's modes (tile_controls::climate_bar_keys) in tall-controls.ts.
+tile_controls::accent) in tile-palette.ts, a thermostat's modes (tile_controls::climate_bar_keys) in tall-controls.ts, and
+the words a card writes where the firmware has a rule for them (tile_controls::temperature_text, humidity_text,
+reading_text, status_text, binary_state_text) in tile-text.ts.
 The editor does not read these numbers from the firmware; this test keeps the two the same, the way
 tests/test_alert_layout.py does for the alert: it compiles the C++ (the real headers, and the few lines of
 runtime_tiles.h that hold the panel's sizes, cut out of it as they stand), runs the real TypeScript through vite-node,
@@ -94,15 +96,20 @@ def cut(pattern, text, what):
 
 def panel_source():
     """The panel's sizes from runtime_tiles.h (LVGL around them, plain arithmetic inside): PanelMetrics, panel_metrics,
-    panel_metrics_full, bar_metrics, the inset of a stepper's keys and the finger of a taller card."""
+    panel_metrics_full, bar_metrics, the inset of a stepper's keys, the finger of a taller card, and render_tall's keys and
+    their gap."""
     parts = [cut(r'struct PanelMetrics \{[^}]*\};', TILES, 'struct PanelMetrics'),
              cut(r'inline climate_tile::Metrics bar_metrics\(.*?\n\}', TILES, 'bar_metrics'),
              cut(r'inline PanelMetrics panel_metrics\(bool large\) \{.*?\n\}', TILES, 'panel_metrics'),
              cut(r'inline PanelMetrics panel_metrics_full\(bool big\) \{.*?\n\}', TILES, 'panel_metrics_full')]
     inset = cut(r'inline void stepper_keys\(.*?\)\{\s*const int in=(.*?),d=std::max', TILES, "stepper_keys' inset")
     taller = cut(r'if\(taller\)\{\s*m\.key_h=(.*?);m\.key_w=m\.key_h;', TILES, "a taller card's key")
+    # The keys of a card two rows high or more and their gap (render_tall: a cover's keys and slats among them).
+    tall_gap = cut(r'inline bool render_tall\(.*?const int gap=(.*?);', TILES, "render_tall's gap")
+    tall_touch = cut(r'inline bool render_tall\(.*?const int touch=(.*?);', TILES, "render_tall's touch")
     return ('namespace runtime_tiles {\n' + '\n'.join(parts) +
-            f'\ninline int stepper_inset() {{ return {inset}; }}\ninline int taller_key(bool large) {{ return {taller}; }}\n}}\n')
+            f'\ninline int stepper_inset() {{ return {inset}; }}\ninline int taller_key(bool large) {{ return {taller}; }}\n'
+            f'inline int tall_gap(bool large) {{ return {tall_gap}; }}\ninline int tall_touch(bool large) {{ return {tall_touch}; }}\n}}\n')
 
 
 def build_and_run(source, tmp):
@@ -120,11 +127,12 @@ def run_ts(body, data, tmp):
     (Path(tmp) / 'data.json').write_text(json.dumps(data))
     script = Path(tmp) / 'parity.ts'
     script.write_text(f'''import {{ readFileSync }} from "node:fs";
-import {{ cardContent, cardHeight, cellContent, modeBar, pillMetrics, uiScale, watchCard, watchPadding, widestSetpoint }} from "{model / 'ui-scale'}";
+import {{ cardContent, cardHeight, cellContent, modeBar, pillMetrics, tallKeys, uiScale, watchCard, watchPadding, widestSetpoint }} from "{model / 'ui-scale'}";
 import {{ barGaps, barLayout, barMetricsFor }} from "{model / 'topbar'}";
 import {{ sizeColumns, sizeFor, sizeRows, sizesOn, spanOf, spanOffered }} from "{model / 'sizes'}";
 import {{ accent, tileActive }} from "{model / 'tile-palette'}";
 import {{ barKeys }} from "{model / 'tall-controls'}";
+import {{ humidityText, readingText, stateText, temperatureText }} from "{model / 'tile-text'}";
 const DATA = JSON.parse(readFileSync("{Path(tmp) / 'data.json'}", "utf8"));
 {body}
 ''')
@@ -150,7 +158,7 @@ const out = DATA.shapes.map((shape: any) => {
   const bars: Record<string, any> = {};
   for (const place of ["row", "tall", "full"] as const)
     bars[place] = DATA.reaches.map((reach: number) => DATA.modes.map((modes: number) => modeBar(shape, place, reach, modes)));
-  return { px: DATA.px.map(px), large, pill: pillMetrics(shape), bars };
+  return { px: DATA.px.map(px), large, pill: pillMetrics(shape), tall: tallKeys(shape), bars };
 });
 console.log(JSON.stringify(out));''', {'shapes': [s for _, _, s in SHAPES], 'px': PX, 'reaches': REACHES, 'modes': list(MODES)}, tmp)
             looks = ',\n'.join(f'  {{{shape["dpi"]}, "{shape["look"]}"}}' for _, _, shape in SHAPES)
@@ -178,6 +186,7 @@ int main() {{
     // The pill of a wide card's -/+ (layout_panel: m.key_h + 2) and its round keys (stepper_keys).
     const int height = panel_metrics(ui::large()).key_h + 2, in = stepper_inset();
     std::printf("\\npill %d %d %d\\n", height, in, std::max(1, height - 2 * in));
+    std::printf("tall %d %d\\n", tall_touch(ui::large()), tall_gap(ui::large()));
     // The mode bar's finger: the panel's key on a card of one row, a taller card's key, the full card's (by its cell).
     PanelMetrics row = panel_metrics(ui::large()), tall = row;
     tall.key_h = taller_key(ui::large());
@@ -209,6 +218,8 @@ int main() {{
                 out[-1]['px'] = [int(v) for v in rest]
             elif tag == 'pill':
                 out[-1]['pill'] = [int(v) for v in rest]
+            elif tag == 'tall':
+                out[-1]['tall'] = [int(v) for v in rest]
             elif tag == 'bar':
                 name, finger, inset, *cells = rest
                 out[-1]['bar'][name] = (int(finger), int(inset), [tuple(int(v) for v in cell.split(':')) for cell in cells])
@@ -224,6 +235,11 @@ int main() {{
         for (key, _, shape), fw, ts in zip(SHAPES, self.firmware(), self.ts):
             pill = ts['pill']
             self.assertEqual([pill['height'], pill['inset'], pill['key']], fw['pill'], f'{key}: pillMetrics')
+
+    def test_a_taller_cards_keys_are_render_talls(self):
+        # A cover's keys and slats on a card two rows high or more (CoverTilePreview), and their gap.
+        for (key, _, shape), fw, ts in zip(SHAPES, self.firmware(), self.ts):
+            self.assertEqual([ts['tall']['touch'], ts['tall']['gap']], fw['tall'], f'{key}: tallKeys')
 
     def test_the_mode_bar_fits_as_many_modes_as_climate_tile(self):
         for (key, _, shape), fw, ts in zip(SHAPES, self.firmware(), self.ts):
@@ -751,6 +767,109 @@ int main() {{
         firmware = [line.split(' ', 1)[1] for line in self.cpp.splitlines() if line.startswith('widest ')]
         for setpoint, mine, theirs in zip(self.setpoints, self.ts['setpoints'], firmware):
             self.assertEqual(mine, theirs, setpoint)
+
+
+# Home Assistant's own words for what these report (climate HVACMode and HVACAction, humidifier HumidifierAction,
+# binary_sensor BinarySensorDeviceClass), and one it does not have.
+HVAC_MODES = ('off', 'heat', 'cool', 'heat_cool', 'auto', 'dry', 'fan_only')
+HVAC_ACTIONS = (None, 'heating', 'cooling', 'idle', 'off', 'drying', 'fan', 'preheating', 'defrosting')
+HUMIDIFIER_ACTIONS = (None, 'humidifying', 'drying', 'idle', 'off')
+BINARY_CLASSES = ('', 'battery', 'battery_charging', 'carbon_monoxide', 'cold', 'connectivity', 'door', 'garage_door', 'gas', 'heat',
+                  'light', 'lock', 'moisture', 'motion', 'moving', 'occupancy', 'opening', 'plug', 'power', 'presence', 'problem',
+                  'running', 'safety', 'smoke', 'sound', 'tamper', 'update', 'vibration', 'window', 'made_up')
+TEMPERATURES = (0, 7, 20, 20.25, 20.333, 21.37, 21.5, 21.999, 22.05, -0.5, -3.25, -12.345, 35, 72.8, 99.99, 0.004, 19.95, 100.125)
+HUMIDITIES = (0, 30, 41.5, 41.25, 41.75, 45.04, 45.05, 45.06, 45.95, 46.04, 50, 55.55, 99.96, 100, -2.5)
+
+
+def number(value):
+    return 'NAN' if value is None else f'{float(value)!r}f'
+
+
+class TileText(unittest.TestCase):
+    """The words a card writes where the firmware has a rule for them (tile-text.ts): a temperature (temperature_text), a
+    humidity (humidity_text), what a thermostat measures (reading_text), a thermostat's line beside its controls
+    (status_text, for a humidifier climate_card_status brief) and a binary sensor's state by its class (binary_state_text),
+    in English, on the values Home Assistant sends."""
+
+    @classmethod
+    def setUpClass(cls):
+        compiler(), node()
+        cls.climates = [{'state': state, 'action': action, 'current': current} for state in HVAC_MODES for action in HVAC_ACTIONS
+                        for current in (None, 20.25, 21, 19.5)]
+        cls.humidifiers = [{'state': state, 'action': action, 'current': current} for state in ('on', 'off') for action in HUMIDIFIER_ACTIONS
+                           for current in (None, 41.5, 45, 41.25)]
+        cls.binaries = [{'device_class': dc, 'state': state} for dc in BINARY_CLASSES for state in ('on', 'off')]
+        with tempfile.TemporaryDirectory() as tmp:
+            cls.ts = run_ts('''
+const words = { locale: "en", marks: { decimal: ".", group: ",", from: 4 } };
+const live = (state: string, a: Record<string, any>) => ({ state, a });
+console.log(JSON.stringify({
+  temperatures: DATA.temperatures.map((v: number) => temperatureText(v, words)),
+  humidities: DATA.humidities.map((v: number) => humidityText(v, words)),
+  readings: DATA.temperatures.flatMap((v: number) => [readingText("climate", v, words), readingText("humidifier", v, words)]),
+  climates: DATA.climates.map((c: any) => stateText("climate.x", live(c.state, { ...(c.action ? { hvac_action: c.action } : {}),
+    ...(c.current !== null ? { current_temperature: c.current } : {}) }), { controlled: true }, words)),
+  humidifiers: DATA.humidifiers.map((c: any) => stateText("humidifier.x", live(c.state, { ...(c.action ? { action: c.action } : {}),
+    ...(c.current !== null ? { current_humidity: c.current } : {}) }), { controlled: true }, words)),
+  binaries: DATA.binaries.map((b: any) => stateText("binary_sensor.x", live(b.state, { device_class: b.device_class }), {}, words)),
+}));''', {'temperatures': TEMPERATURES, 'humidities': HUMIDITIES, 'climates': cls.climates, 'humidifiers': cls.humidifiers,
+                 'binaries': cls.binaries}, tmp)
+            thermostats = ',\n'.join(f'  {{{json.dumps(domain)}, {json.dumps(c["state"])}, {json.dumps(c["action"] or "")}, {number(c["current"])}}}'
+                                     for domain, cases in (('climate.x', cls.climates), ('humidifier.x', cls.humidifiers)) for c in cases)
+            binaries = ',\n'.join(f'  {{{json.dumps(b["device_class"])}, {int(b["state"] == "on")}}}' for b in cls.binaries)
+            cls.cpp = build_and_run(f'''#include "screen_text_en.h"
+#define THEME_TEST
+#include "components/smart_display/tile_controls.h"
+#include <cstdio>
+struct Thermostat {{ const char *entity, *state, *action; float current; }};
+static const Thermostat THERMOSTATS[] = {{
+{thermostats}
+}};
+struct Binary {{ const char *device_class; int on; }};
+static const Binary BINARIES[] = {{
+{binaries}
+}};
+static const float TEMPERATURES[] = {{{', '.join(number(v) for v in TEMPERATURES)}}};
+static const float HUMIDITIES[] = {{{', '.join(number(v) for v in HUMIDITIES)}}};
+int main() {{
+  runtime_tiles::Tile climate, humidifier;
+  climate.entity = "climate.x"; humidifier.entity = "humidifier.x";
+  for (float v : TEMPERATURES) std::printf("temperature %s\\n", tile_controls::temperature_text(v).c_str());
+  for (float v : HUMIDITIES) std::printf("humidity %s\\n", tile_controls::humidity_text(v).c_str());
+  for (float v : TEMPERATURES)
+    std::printf("reading %s\\nreading %s\\n", tile_controls::reading_text(climate, v).c_str(), tile_controls::reading_text(humidifier, v).c_str());
+  for (const auto &c : THERMOSTATS) {{
+    runtime_tiles::Tile t; t.entity = c.entity; t.state = c.state; t.received = true; t.current = c.current;
+    t.edit_extra().hvac_action = c.action;
+    std::printf("status %s\\n", tile_controls::status_text(t).c_str());
+  }}
+  for (const auto &b : BINARIES) std::printf("binary %s\\n", tile_controls::binary_state_text(b.device_class, b.on));
+}}
+''', tmp)
+
+    def lines(self, tag):
+        return [line[len(tag) + 1:] for line in self.cpp.splitlines() if line.startswith(tag + ' ')]
+
+    def same(self, cases, mine, theirs, what):
+        self.assertEqual(len(mine), len(theirs), what)
+        wrong = [(case, a, b) for case, a, b in zip(cases, mine, theirs) if a != b]
+        self.assertEqual(wrong[:10], [], f'{what}: {len(wrong)} of {len(cases)} differ (case, tile-text.ts, firmware)')
+
+    def test_a_temperature_and_a_humidity(self):
+        self.same(TEMPERATURES, self.ts['temperatures'], self.lines('temperature'), 'temperatureText is not temperature_text')
+        self.same(HUMIDITIES, self.ts['humidities'], self.lines('humidity'), 'humidityText is not humidity_text')
+
+    def test_what_a_thermostat_measures(self):
+        cases = [(domain, v) for v in TEMPERATURES for domain in ('climate', 'humidifier')]
+        self.same(cases, self.ts['readings'], self.lines('reading'), 'readingText is not reading_text')
+
+    def test_a_thermostats_line_beside_its_controls(self):
+        theirs = self.lines('status')
+        self.same(self.climates, self.ts['climates'], theirs[:len(self.climates)], 'a climate: stateText is not status_text')
+        self.same(self.humidifiers, self.ts['humidifiers'], theirs[len(self.climates):], 'a humidifier: stateText is not status_text')
+
+    def test_a_binary_sensors_state(self):
+        self.same(self.binaries, self.ts['binaries'], self.lines('binary'), 'stateText is not binary_state_text')
 
 
 if __name__ == '__main__':

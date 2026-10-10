@@ -209,7 +209,7 @@ LINT_KEEP = {
     'None', 'Auto', 'Wh',
     # Placeholders of the YAML tree that the runtime tiles replace before a screen shows them, and profile defaults.
     'Lamp', 'Plug', 'Evening', 'All off', 'AC', 'Vacuum', 'Tile 7', 'Tile 8', 'Tile 9', 'Tile 10', 'Light', 'Light Color',
-    'Climate', 'Example lamp', 'My CYD', 'My Guition', 'My Guition 10', 'My Guition 10 V3', 'My Guition 10 V2', 'My Guition 7', 'My Guition 7 V2', 'My Waveshare', 'My Waveshare 5', 'My Waveshare 7', 'My Waveshare 7B', 'My Waveshare 4B', 'My Waveshare P4', 'My Hosyond', 'My Guition 3.5', 'My Sunton 7',
+    'Climate', 'Example lamp', 'My CYD', 'My Guition', 'My Guition 10', 'My Guition 10 V3', 'My Guition 10 V2', 'My Guition 7', 'My Guition 7 V2', 'My Waveshare', 'My Waveshare 5', 'My Waveshare 7', 'My Waveshare 7B', 'My Waveshare 4B', 'My Waveshare P4', 'My Waveshare 4', 'My Hosyond', 'My Guition 3.5', 'My Sunton 7', 'My reTerminal D1001',
 }
 LINT_FILES = ('components/smart_display/*.h', 'packages/core.yaml', 'packages/boards/*.yaml', 'packages/looks/*.yaml',
               'packages/features/*.yaml', 'packages/hardware/*.yaml')
@@ -295,7 +295,14 @@ FRONTEND_SOURCES = {'unavailable': 'state.default.unavailable', 'button.activate
                        for key in ('disarm', 'arm_home', 'arm_away', 'arm_night', 'arm_vacation', 'arm_custom_bypass')},
                     'alarm_action.enter_code': 'ui.dialogs.enter_code.title',
                     # The lock's keys, as its dialog names them (firmware 0.5.0+).
-                    **{f'lock_action.{key}': f'ui.card.lock.{key}' for key in ('lock', 'unlock', 'open', 'open_door', 'open_door_confirm')}}
+                    **{f'lock_action.{key}': f'ui.card.lock.{key}' for key in ('lock', 'unlock', 'open', 'open_door', 'open_door_confirm')},
+                    # The weather card (its week): the day it is, the key between days and hours, the attributes and the wind's
+                    # sixteen directions, as Home Assistant's weather more-info dialog names them.
+                    'today': 'ui.components.calendar.today',
+                    **{f'weather_view.{key}': f'ui.card.weather.{key}' for key in ('daily', 'hourly')},
+                    **{f'weather_attribute.{key}': f'ui.card.weather.attributes.{key}' for key in ('humidity', 'wind_speed', 'air_pressure', 'visibility')},
+                    **{f'wind_direction.{key}': f'ui.card.weather.cardinal_direction.{key}'
+                       for key in ('n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse', 's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw')}}
 
 
 def frontend_words(url, codes):

@@ -5,14 +5,15 @@ import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import type { Installed, Plugin } from "../src/model/plugins";
-import { hasUpdate, plugins, updatesOn } from "../src/plugin-state";
-import { state } from "../src/store";
+import { usePluginsStore } from "../src/stores/plugins";
 import ScreenPluginsTab from "../src/components/ScreenPluginsTab.vue";
 import type { Screen } from "../src/types";
+import { useScreenStore } from "../src/stores/screen";
+import { useInventoryStore } from "../src/stores/inventory";
 
 const plugin = (id: string, version: string, more: Partial<Plugin> = {}): Plugin => ({
   id, name: { en: id === "bus" ? "Public transport" : "Waste collection" }, summary: { en: "" }, icon: "F00E7", maintainer: "x",
-  tessera: true, version, repo: "", license: "MIT", kind: "behaviour", boards: "any", requires: {}, flash_kb: 1,
+  tessera: true, version, repo: "", license: "MIT", type: "functions", boards: "any", requires: {}, flash_kb: 1,
   permissions: { home_assistant: [], network: [] }, readme: { en: "" }, languages: ["en"], attributes: [], source: "index",
   permission_hash: "same", ...more,
 });
@@ -22,8 +23,10 @@ const installed = (id: string, version: string, more: Partial<Installed> = {}): 
   ({ id, version, source: "index", consent: "same", state: "active", ...more });
 
 let calls: { path: string; body: any }[] = [];
+let plugins: ReturnType<typeof usePluginsStore>;
 beforeEach(() => {
   calls = [];
+  plugins = usePluginsStore();
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     const path = String(url);
     if (init?.method === "POST") calls.push({ path, body: JSON.parse(String(init.body)) });
@@ -31,13 +34,10 @@ beforeEach(() => {
       : { written: true, built: true, queued: 0 };
     return new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } });
   }));
-  state.inventory.screens = [hall];
-  state.selected = hall.id;
+  useInventoryStore().inventory.screens = [hall];
+  useScreenStore().selected = hall.id;
   plugins.loaded = true;
-  plugins.consented = {};
-  plugins.values = {};
-  plugins.parts = {};
-  state.inventory.builds = {};
+  useInventoryStore().inventory.builds = {};
   plugins.index = [
     plugin("bus", "1.2.0"),
     plugin("waste", "1.0.2", { inputs: [{ id: "calendar", kind: "entity", scope: "screen", label: { en: "Calendar" }, domains: ["calendar"] }] }),
@@ -48,10 +48,10 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("update all on this screen", () => {
   it("finds every plugin of the screen with an update, and no test", () => {
-    expect(updatesOn(hall).map((p) => p.id)).toEqual(["bus", "waste"]);
+    expect(plugins.updatesOn(hall).map((p) => p.id)).toEqual(["bus", "waste"]);
     plugins.installed[hall.id][0] = installed("bus", "main", { source: "branch" });
-    expect(hasUpdate(hall, plugins.index[0])).toBe(false);
-    expect(updatesOn(hall).map((p) => p.id)).toEqual(["waste"]);
+    expect(plugins.hasUpdate(hall, plugins.index[0])).toBe(false);
+    expect(plugins.updatesOn(hall).map((p) => p.id)).toEqual(["waste"]);
   });
 
   it("sends every update in one request, with what was filled in when the plugin was added", async () => {

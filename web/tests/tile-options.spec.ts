@@ -1,17 +1,38 @@
-import { appendTiles, current, seedLayout } from "./page-fixtures";
+import { appendTiles, current, loadLayout } from "./helpers/fixtures";
 // Every choice the tile panel shows is one the add-on saves (app 0.4.0, GitHub #47). A reporter found two that never
 // could: Automatic for the second line once another was chosen ("Tile options need normalization"), and Perform action
 // ("Invalid or unsupported page configuration fields"). The walk below clicks every choice of every field for tiles of
 // many kinds and sizes, so an option added later that the add-on refuses fails here, not on someone's screen.
+import { readFileSync } from "node:fs";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ActionPicker from "../src/components/ActionPicker.vue";
+import Drawer from "../src/components/Drawer.vue";
 import TileInspector from "../src/components/TileInspector.vue";
-import { canonicalOptions, choiceOffered } from "../src/model/tile-options";
+import MapSection from "../src/components/inspector/MapSection.vue";
+import { canonicalOptions, choiceOffered, controlChoices, controlHint, displayChoices, displayHint, goesToChoices, goesToHint, sliderOffered, subChoices,
+  tapChoices, tapHint, tileControls, tileDisplay, type TilePanel } from "../src/model/tile-options";
+import { supportsFirmware } from "../src/model/layout";
+import { t } from "../src/i18n";
 import { validatePages } from "../src/model/pages";
-import { isSelected, openTile, state } from "../src/store";
+import { PLUGIN_TILE_OPTIONS } from "../src/model/plugins";
 import type { Inventory, Tile } from "../src/types";
+import { useUiStore } from "../src/stores/ui";
+import { useEntitiesStore } from "../src/stores/entities";
+import { useScreenStore } from "../src/stores/screen";
+import { useInventoryStore } from "../src/stores/inventory";
+import { useDocumentStore } from "../src/stores/document";
+import { useInspectorStore } from "../src/stores/inspector";
+
+// A map card's own section of the panel (inspector/MapSection.vue).
+const mapOf = (panel: ReturnType<typeof mount>) => panel.findComponent(MapSection).vm as any;
+
+let insp: ReturnType<typeof useInspectorStore>;
+beforeEach(() => { insp = useInspectorStore(); });
+
+let doc: ReturnType<typeof useDocumentStore>;
+beforeEach(() => { doc = useDocumentStore(); });
 
 function inventory(): Inventory {
   return {
@@ -38,14 +59,11 @@ function inventory(): Inventory {
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
-  state.inventory = inventory();
-  state.selected = "living";
-  state.documentGrid = { columns: 2, rows: 3 };
-  seedLayout({ title: "Living room", tiles: [] });
-  state.subtitleValues = {};
-  state.entityActions = {};
-  state.toast = null;
-  state.selectedTile = null; state.inspector = null; state.actionPickerOpen = false;
+  useInventoryStore().inventory = inventory();
+  useScreenStore().selected = "living";
+  doc.documentGrid = { columns: 2, rows: 3 };
+  loadLayout({ title: "Living room", tiles: [] });
+  doc.selectedTileId = null; insp.inspector = null; insp.actionPickerOpen = false;
 });
 
 describe("the canonical options (tile-options.ts)", () => {
@@ -87,13 +105,13 @@ describe("the tile panel", () => {
     const panel = mount(TileInspector, { props: { tile: current(tile)! } });
     const automatic = panel.findAll("button").find((b) => b.text() === "Automatic")!;
     await automatic.trigger("click");
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.sub).toBeUndefined();
-    expect(state.dirty).toBe(true);
+    expect(doc.dirty).toBe(true);
   });
 
   it("stores Perform action once an action is chosen, and keeps it (GitHub #47)", async () => {
-    state.entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [
+    useEntitiesStore().entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [
       { key: "brightness_pct", name: "Brightness", required: false, selector: { number: { min: 0, max: 100 } } },
     ] }] as any;
     const tile: Tile = { entity: "light.a", name: "", slot: 0 };
@@ -102,13 +120,13 @@ describe("the tile panel", () => {
     const perform = panel.findAll("button").find((b) => b.text() === "Perform action")!;
     await perform.trigger("click");
     // The choice waits for its action: nothing is stored yet, and nothing fails.
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBeUndefined();
     expect(perform.attributes("aria-pressed")).toBe("true");
     const picker = panel.findComponent(ActionPicker);
     expect(picker.exists()).toBe(true);
     await picker.find(".action-choice").trigger("click");
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBe("action");
     expect(current(tile)!.options?.action).toEqual({ action: "light.turn_on" });
     // A field of the action goes into the document too.
@@ -123,24 +141,40 @@ describe("the tile panel", () => {
     expect(current(tile)!.options?.action).toBeUndefined();
   });
 
+  it("starts another tile's settings with its choosers closed (the drawer keys the panel by the tile)", async () => {
+    useEntitiesStore().entityActions["light.a"] = [{ action: "light.turn_on", name: "Turn on", description: "", fields: [] }] as any;
+    const lamp: Tile = { entity: "light.a", name: "", slot: 0 }, fan: Tile = { entity: "switch.s", name: "", slot: 1 };
+    appendTiles(lamp, fan);
+    insp.openTile(current(lamp)!);
+    const drawer = mount(Drawer);
+    await drawer.findAll("button").find((b) => b.text() === "Perform action")!.trigger("click");
+    expect(drawer.findComponent(ActionPicker).exists()).toBe(true);
+    insp.openTile(current(fan)!);
+    await nextTick();
+    expect(drawer.findComponent(ActionPicker).exists()).toBe(false);
+    insp.openTile(current(lamp)!);
+    await nextTick();
+    expect(drawer.findAll("button").find((b) => b.text() === "Perform action")!.attributes("aria-pressed")).toBe("false");
+  });
+
   it("offers an automation On / off or Run automation actions, and says what holding it does (GitHub #62)", async () => {
     const tile: Tile = { entity: "automation.a", name: "", slot: 0 };
     appendTiles(tile);
-    state.inventory.screens[0].firmware = "0.7.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.7.0";
     let panel = mount(TileInspector, { props: { tile: current(tile)! } });
     const tap = () => panel.findAll(".prop").find((f) => f.text().replace(/^[^\p{L}\d]+/u, "").startsWith("On tap"))!;
     expect(tap().findAll(".seg button").map((b) => b.text())).toEqual(["On / off", "Run automation actions", "View only", "Perform action"]);
     expect(tap().find(".seg button[aria-pressed='true']").text()).toBe("On / off");
     await tap().findAll(".seg button").find((b) => b.text() === "Run automation actions")!.trigger("click");
-    expect(state.toast).toBeNull();
+    expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBe("run");
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(tap().find(".seg button[aria-pressed='true']").text()).toBe("Run automation actions");
     expect(panel.find(".warn").exists()).toBe(false);
     // Older firmware refuses the domain: the panel says so before a save would.
-    state.inventory.screens[0].firmware = "0.6.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.6.0";
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(tap().find(".warn").text()).toContain("0.7.0");
@@ -158,10 +192,10 @@ describe("the tile panel", () => {
       expect(panel.find("#tile-name").exists()).toBe(true);
       for (const button of panel.findAll(".seg button")) {
         if (button.attributes("disabled") !== undefined) continue;
-        state.toast = null;
+        useUiStore().notice = null;
         await button.trigger("click");
-        expect(state.toast, `${tile.entity}: "${button.text()}"`).toBeNull();
-        expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+        expect(useUiStore().notice, `${tile.entity}: "${button.text()}"`).toBeNull();
+        expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
       }
       panel.unmount();
     }
@@ -171,20 +205,20 @@ describe("the tile panel", () => {
     const clock: Tile = { entity: "screen.nightstand", name: "", slot: 0, options: { size: "full" } };
     const key: Tile = { entity: "light.a", name: "Bed", slot: -1, in: "screen.nightstand", key: 0 };
     appendTiles(clock, key);
-    state.inventory.screens[0].firmware = "0.17.0";
+    useInventoryStore().inventory.screens[0].firmware = "0.17.0";
     const panel = mount(TileInspector, { props: { tile: current(key)! } });
     const choice = panel.find(".key-name-choice");
     expect(choice.exists()).toBe(true);
-    openTile(current(key)!);
+    insp.openTile(current(key)!);
     const id = current(key)!.id;
     await choice.find("[role=switch]").trigger("click");
     expect(current(key)!.options?.overlay).toBe("none");
     // The key stays open in the panel: the same tile, still chosen.
     expect(current(key)!.id).toBe(id);
-    expect(state.inspector?.kind).toBe("tile");
-    expect(isSelected(current(key)!)).toBe(true);
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
-    const child = state.document!.pages.flatMap((page) => page.tiles).flatMap((tile) => tile.children || [])[0];
+    expect(insp.inspector?.kind).toBe("tile");
+    expect(doc.isSelected(current(key)!)).toBe(true);
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    const child = doc.document!.pages.flatMap((page) => page.tiles).flatMap((tile) => tile.children || [])[0];
     expect(child.appearance).toEqual({ label: "Bed", overlay: "none" });
     panel.unmount();
   });
@@ -204,6 +238,7 @@ describe("the tile panel", () => {
     { entity: "screen.map", name: "", slot: 0, options: { size: "wide", display: "map" } },
     { entity: "screen.energy", name: "", slot: 0, options: { size: "square" } },
   ];
+  // Every choice of every field mounts the panel again: a busy machine needs longer than five seconds for the longest.
   it.each(kinds.map((tile) => [`${tile.entity} ${tile.options?.size || "single"}`, tile] as const))("saves every choice it shows: %s", async (_, kind) => {
     const tile: Tile = JSON.parse(JSON.stringify(kind));
     appendTiles(tile);
@@ -215,22 +250,22 @@ describe("the tile panel", () => {
         const panel = mount(TileInspector, { props: { tile: current(tile)! } });
         const button = panel.findAll(".prop")[f]?.findAll(".seg button").find((b) => b.text() === label);
         if (!button || button.attributes("disabled") !== undefined) continue;
-        state.toast = null;
+        useUiStore().notice = null;
         await button.trigger("click");
         await nextTick();
-        expect(state.toast, `${tile.entity}: "${label}"`).toBeNull();
-        expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
+        expect(useUiStore().notice, `${tile.entity}: "${label}"`).toBeNull();
+        expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
         panel.unmount();
       }
     }
-  });
+  }, 20000);
 });
 
 describe("a map card in the panel (app 0.4.33)", () => {
   it("offers a map on a board with pictures and saves who rides along", async () => {
     const tile: Tile = { entity: "person.p", name: "", slot: 0 };
     appendTiles(tile);
-    Object.assign(state.inventory.screens[0], { firmware: "0.20.0", pictures: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.20.0", pictures: true });
     let panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.text()).not.toContain("Also on the map");
     const map = panel.findAll(".seg button").find((b) => b.text() === "Map");
@@ -247,21 +282,21 @@ describe("a map card in the panel (app 0.4.33)", () => {
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.text()).toContain("Distance");
     // Device trackers with a place come in their own list (app 0.4.35): a car rides along like a person.
-    state.inventory.trackers = [{ id: "device_tracker.car", name: "Car" }];
-    expect((panel.vm as any).mapOffered.map(([id]: [string]) => id)).toEqual(["person.q", "device_tracker.car"]);
-    (panel.vm as any).addMapEntity("person.q");
+    useInventoryStore().inventory.trackers = [{ id: "device_tracker.car", name: "Car" }];
+    expect(mapOf(panel).offered.map(([id]: [string]) => id)).toEqual(["person.q", "device_tracker.car"]);
+    mapOf(panel).add("person.q");
     await nextTick();
     expect(current(tile)!.options).toMatchObject({ display: "map", framing: "home", map: ["person.q"] });
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
-    (panel.vm as any).addMapEntity("device_tracker.car");
+    mapOf(panel).add("device_tracker.car");
     expect(current(tile)!.options?.map).toEqual(["person.q", "device_tracker.car"]);
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
-    (panel.vm as any).removeMapEntity("device_tracker.car");
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
-    const saved = state.document!.pages.flatMap((page) => page.tiles)[0];
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    mapOf(panel).remove("device_tracker.car");
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    const saved = doc.document!.pages.flatMap((page) => page.tiles)[0];
     expect(saved.appearance).toMatchObject({ display: "map", mapFraming: "home", mapEntities: ["person.q"] });
-    (panel.vm as any).removeMapEntity("person.q");
+    mapOf(panel).remove("person.q");
     expect(current(tile)!.options?.map).toBeUndefined();
     panel.unmount();
   });
@@ -269,7 +304,7 @@ describe("a map card in the panel (app 0.4.33)", () => {
   it("offers no map where the board draws no pictures", () => {
     const tile: Tile = { entity: "person.p", name: "", slot: 0 };
     appendTiles(tile);
-    Object.assign(state.inventory.screens[0], { board: "cyd", pictures: false, firmware: "0.20.0" });
+    Object.assign(useInventoryStore().inventory.screens[0], { board: "cyd", pictures: false, firmware: "0.20.0" });
     const panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.findAll(".seg button").some((b) => b.text() === "Map")).toBe(false);
     panel.unmount();
@@ -280,7 +315,7 @@ describe("the map tile (app 0.4.36)", () => {
   it("follows everyone or whom it lists, and keeps its look", async () => {
     const tile: Tile = { entity: "screen.map", name: "", slot: 0, options: { display: "map", size: "wide" } };
     appendTiles(tile);
-    Object.assign(state.inventory.screens[0], { firmware: "0.21.0", pictures: true });
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.21.0", pictures: true });
     let panel = mount(TileInspector, { props: { tile: current(tile)! } });
     // A map and nothing else: no display to pick, no second line; following everyone needs no list.
     expect(panel.text()).toContain("Follow");
@@ -290,7 +325,7 @@ describe("the map tile (app 0.4.36)", () => {
     panel.unmount();
     // Chosen starts with nobody: the list to add someone to.
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
-    (panel.vm as any).addMapEntity("person.q");
+    mapOf(panel).add("person.q");
     panel.unmount();
     panel = mount(TileInspector, { props: { tile: current(tile)! } });
     expect(panel.text()).toContain("On the map");
@@ -300,10 +335,97 @@ describe("the map tile (app 0.4.36)", () => {
       panel.unmount();
       panel = mount(TileInspector, { props: { tile: current(tile)! } });
     }
-    expect(() => validatePages(state.document!, state.documentGrid!)).not.toThrow();
-    const saved = state.document!.pages.flatMap((page) => page.tiles)[0];
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    const saved = doc.document!.pages.flatMap((page) => page.tiles)[0];
     expect(saved.content).toEqual({ kind: "builtin", name: "map" });
     expect(saved.appearance).toMatchObject({ display: "map", mapFollow: "chosen", mapEntities: ["person.q"] });
     panel.unmount();
+  });
+});
+
+describe("what the panel offers, as functions of the tile, Home Assistant and the firmware (tile-options.ts)", () => {
+  const at = (version: string): TilePanel["supports"] => (major, minor, patch) => supportsFirmware(version, major, minor, patch);
+  const panel = (more: Partial<TilePanel> = {}): TilePanel => ({ supports: at("0.53.0"), pictures: true, columns: 2, attributes: {}, rangeless: false, ...more });
+  const tile = (entity: string, options: Tile["options"] = {}): Tile => ({ id: "t", entity, name: "", slot: 0, options });
+  const keys = (choices: [string | number, string][]) => choices.map(([key]) => key);
+  const lights = { default: "toggle", choices: [{ key: "toggle", label: "On/off" }, { key: "brightness", label: "Brightness" }, { key: "none", label: "None" }] };
+
+  it("offers the faces the add-on saves, the board draws and Home Assistant has", () => {
+    expect(keys(displayChoices(tile("camera.door"), panel()))).toContain("live");
+    expect(keys(displayChoices(tile("person.p"), panel({ pictures: false })))).not.toContain("map");
+    expect(keys(displayChoices(tile("person.p", { display: "map" }), panel({ pictures: false })))).toContain("map");
+    const caps = { toggle: false, inline: false, controls: [], displays: ["standard"] };
+    expect(keys(displayChoices(tile("sensor.t"), panel({ caps })))).not.toContain("graph");
+    expect(keys(displayChoices(tile("sensor.t"), panel()))).toContain("graph");
+    expect(keys(displayChoices(tile("media_player.m", { size: "full" }), panel()))).not.toContain("favorite");
+    expect(tileDisplay(tile("screen.clock"))).toBe("digital");
+    expect(tileDisplay(tile("screen.settings", { display: "dial" }))).toBe("standard");
+  });
+
+  it("says what a face needs, a warning until the screen's firmware draws it", () => {
+    expect(displayHint(tile("camera.door", { display: "live" }), panel({ supports: at("0.3.0") }))?.warn).toBe(true);
+    expect(displayHint(tile("camera.door", { display: "live" }), panel())?.warn).toBe(false);
+    expect(displayHint(tile("camera.door", { display: "live", size: "tall" }), panel({ supports: at("0.3.3") }))?.warn).toBe(false);
+    expect(displayHint(tile("person.p", { display: "map" }), panel({ supports: at("0.19.0") }))?.warn).toBe(true);
+    expect(displayHint(tile("screen.clock", { display: "dial" }), panel({ supports: at("0.3.5") }))?.text).toBe(t("editor.tile.display.face_needs_firmware"));
+    expect(displayHint(tile("screen.clock", { display: "dial" }), panel())).toBeNull();
+    expect(displayHint(tile("light.a"), panel())).toBeNull();
+  });
+
+  it("offers the controls that fit the card and that Home Assistant has, and says when one is not offered", () => {
+    const wide = tile("light.a", { size: "wide" });
+    expect(keys(controlChoices(wide, panel({ catalogue: lights }), tileControls(wide, panel({ catalogue: lights }), "brightness")))).toEqual(["toggle", "brightness", "none"]);
+    const caps = { toggle: true, inline: true, controls: ["toggle"], displays: ["standard"] };
+    expect(keys(controlChoices(wide, panel({ catalogue: lights, caps }), "toggle"))).toEqual(["toggle", "none"]);
+    expect(controlHint(tile("light.a", { size: "wide", controls: "brightness" }), panel({ caps }), "brightness")).toEqual({ text: t("editor.tile.controls.not_offered"), warn: true });
+    expect(controlHint(wide, panel({ supports: at("0.2.18") }), "toggle").text).toBe(t("editor.tile.controls.needs_firmware"));
+    // A card two rows high has none until one is chosen; a slider there is the slider's own kind.
+    expect(tileControls(tile("light.a", { size: "tall" }), panel({ catalogue: lights }), "brightness")).toBe("none");
+    expect(tileControls(tile("light.a", { size: "tall", inline: "slider" }), panel({ catalogue: lights }), "brightness")).toBe("brightness");
+  });
+
+  it("offers a tap that switches only where Home Assistant can, an action except on a favourite, and a plugin's own", () => {
+    expect(keys(tapChoices(tile("automation.a"), panel(), "auto", []))).toEqual(["auto", "run", "none", "action"]);
+    expect(keys(tapChoices(tile("light.a"), panel({ caps: { toggle: false, inline: true, controls: [], displays: [] } }), "auto", []))).not.toContain("toggle");
+    expect(keys(tapChoices(tile("light.a"), panel(), "auto", []))).toContain("toggle");
+    expect(keys(tapChoices(tile("media_player.m", { display: "favorite" }), panel(), "auto", []))).not.toContain("action");
+    expect(keys(tapChoices(tile("climate.c"), panel(), "plugin:gone.tap", [["plugin:sched.open", "Schedule"]])).slice(-2)).toEqual(["plugin:sched.open", "plugin:gone.tap"]);
+  });
+
+  it("says what holding a tile does, and what a firmware or Home Assistant lacks for a tap", () => {
+    expect(tapHint(tile("automation.a"), panel({ supports: at("0.6.0") }), "auto")?.warn).toBe(true);
+    expect(tapHint(tile("automation.a"), panel(), "run")?.text).toBe(t("editor.tile.tap.hold_toggle"));
+    expect(tapHint(tile("light.a"), panel({ caps: { toggle: false, inline: true, controls: [], displays: [] } }), "toggle")?.warn).toBe(true);
+    expect(tapHint(tile("cover.c"), panel({ supports: at("0.2.57") }), "toggle")?.text).toBe(t("editor.tile.tap.toggle_needs_firmware"));
+    expect(tapHint(tile("light.a"), panel(), "detail")?.warn).toBe(false);
+    expect(tapHint(tile("sensor.t"), panel(), "auto")).toBeNull();
+  });
+
+  it("offers a value of the entity for the second line where Home Assistant names one, and the small slider on one row", () => {
+    expect(keys(subChoices(tile("light.a"), panel(), "auto", 0, ""))).toEqual(["auto", "none", "text"]);
+    expect(keys(subChoices(tile("light.a"), panel(), "auto", 2, "brightness"))).toEqual(["auto", "none", "attr", "text"]);
+    expect(sliderOffered(tile("light.a"), panel())).toBe(true);
+    expect(sliderOffered(tile("light.a", { size: "tall" }), panel())).toBe(false);
+    expect(sliderOffered(tile("switch.s"), panel())).toBe(false);
+  });
+
+  it("offers the pages there are and the next one for a Go to page tile", () => {
+    expect(goesToChoices(2, 3, 8, (n) => n === 4)).toEqual([[1, "1"], [2, "2"], [3, "3"], [4, t("editor.tile.goes_to.empty", { page: 4 })]]);
+    expect(goesToChoices(7, 2, 8, () => false).map(([n]) => n)).toEqual([1, 2, 3, 7]);
+    expect(goesToHint(5, 3, true)).toEqual({ text: t("editor.tile.goes_to.no_page", { page: 5 }), warn: true });
+    expect(goesToHint(2, 3, false).text).toBe(t("editor.tile.goes_to.needs_firmware"));
+  });
+});
+
+describe("a plugin's tile (GitHub #224)", () => {
+  it("keeps only what the add-on takes for one, so it grows to a tall size and saves", () => {
+    const tile = "plugin:waste_collection.next";
+    expect(canonicalOptions(tile, { size: "square", controls: "none", inline: "none", icon: "mdi:trash-can" }))
+      .toEqual({ size: "square", icon: "mdi:trash-can" });
+  });
+  it("names the options core.py's PLUGIN_TILE_OPTIONS names", () => {
+    const core = readFileSync("../screen_manager/app/core.py", "utf8");
+    const listed = /^PLUGIN_TILE_OPTIONS = \{([^}]*)\}/m.exec(core)![1].match(/'([a-z_]+)'/g)!.map((word) => word.slice(1, -1));
+    expect([...PLUGIN_TILE_OPTIONS].sort()).toEqual(listed.sort());
   });
 });

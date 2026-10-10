@@ -1,5 +1,6 @@
 import { boardList } from "./boards";
-import type { BoardChoice, Orientation, PageGrid, Screen, ScreenShape } from "../types";
+import { validatePages } from "./pages";
+import type { BoardChoice, GridWay, Orientation, PageGrid, Screen, ScreenGrids, ScreenShape } from "../types";
 import renderer from "../wasm/renderer.json";
 
 export type PreviewProfile = { key: string; board: string; name: string; orientation: Orientation; shape: ScreenShape };
@@ -36,4 +37,26 @@ export function previewShapeOf(screen: Pick<Screen, "shape">, grid?: PageGrid | 
   const found: ScreenShape = { width: shape.width, height: shape.height, columns: grid?.columns ?? shape.columns,
     rows: grid?.rows ?? shape.rows, dpi: shape.dpi, look: shape.look || "standard" };
   return validPreviewShape(found) ? found : null;
+}
+
+// Preview screens live in this browser's storage, written by an older app too. Each one is checked on its own (app
+// 0.4.32): one that no longer reads, or whose pages this app refuses, is left out, and never keeps the editor or the
+// other preview screens from loading. `plugins`: whether plugin tiles are taken (model/pages.ts PageGrid).
+export function usablePreview(s: any, plugins = false): boolean {
+  try {
+    if (!(s?.virtual && typeof s.id === "string" && s.id.startsWith("virtual.") && s.shape && validPreviewShape(s.shape) && Array.isArray(s.layout?.tiles))) return false;
+    const document = s.page_document;
+    if (document?.format === "pages-v2") validatePages(document.layout, { ...document.sourceGrid, plugins });
+    return true;
+  } catch { return false; }
+}
+// A preview screen takes the grids its board takes (boards.json, firmware 0.53.0+), the way it was made; null for one
+// without its board's catalogue (the custom glass, or made by an app before 0.4.85).
+export function previewGrids(shape: ScreenShape, orientation?: Orientation): ScreenGrids | null {
+  const way = (side: Orientation): GridWay | null => {
+    const o = (shape.catalog as Partial<BoardChoice> | undefined)?.orientations?.[side];
+    return o?.min && o.max ? { columns: o.columns, rows: o.rows, min: o.min, max: o.max } : null;
+  };
+  const landscape = way("landscape"), portrait = way("portrait");
+  return landscape && portrait ? { upright: orientation === "portrait", landscape, portrait } : null;
 }

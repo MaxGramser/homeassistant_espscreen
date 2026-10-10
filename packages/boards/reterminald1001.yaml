@@ -1,0 +1,348 @@
+# ESP Screens - Seeed reTerminal D1001: an 8-inch 1280 x 800 MIPI-DSI panel with GSL3670 capacitive touch, on an
+# ESP32-P4 (pre-v3, "chip revision: v1.3") with 32 MB of flash and PSRAM and an ESP32-C6 for Wi-Fi, on a battery.
+#
+# Most of the board hangs on an XL9535 IO expander on the second I2C bus: the power hold that keeps the board on when
+# it runs on its battery, the panel's power, reset and backlight supply, the touch reset, the camera, the speaker
+# amplifier and the charger. The pins come from Seeed's BSP (github.com/Seeed-Studio/reTerminal-D1001,
+# esp32_p4_re_terminal_d1001.h); docs/RETERMINALD1001.md says what has been tried on the glass.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added.
+packages:
+  # The ESP32-P4 with its ESP32-C6, on this board's own pins (the substitutions below).
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The battery: its voltage on GPIO18 through a divider of two, and Seeed's own discharge curve (docs/BATTERY.md).
+  battery_voltage: !include ../features/battery-voltage.yaml
+  battery_adc: !include ../features/battery-adc.yaml
+  # The RGB LED beside the camera, as a light in Home Assistant (outputs below).
+  rgb_led: !include ../features/rgb-led.yaml
+  # The two microphones and the loudspeaker as the screen's audio (features/audio.yaml): its hardware below.
+  audio: !include ../features/audio.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "reterminald1001"
+  DEVICE_NAME: "reterminald1001-new"
+  DEVICE_FRIENDLY_NAME: "My reTerminal D1001"
+
+  # The glass: the panel's own pixels and its density, 1509 diagonal pixels over 8.0 inches.
+  PANEL_W: "800"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "188.680"
+  # The LVGL angle that lays this panel out lying down (1280 x 800). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "270"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "5"
+  GRID_ROWS: "5"
+  GRID_COLS_PORTRAIT: "3"
+  GRID_ROWS_PORTRAIT: "8"
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+  # ESPHome's preset for this panel (gsl3670 model SEEED-RETERMINAL-D1001) reads the glass as the panel is built,
+  # turned against the picture; the shared tree reads the transform from these three names.
+  TOUCH_SWAP_XY: "true"
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+).
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"
+
+  # The ESP32-C6's SDIO link and the touch bus, on this board's own pins (hardware/esp32p4-c6.yaml).
+  HOSTED_RESET_PIN: GPIO13
+  HOSTED_CMD_PIN: GPIO6
+  HOSTED_CLK_PIN: GPIO11
+  HOSTED_D0_PIN: GPIO7
+  HOSTED_D1_PIN: GPIO8
+  HOSTED_D2_PIN: GPIO9
+  HOSTED_D3_PIN: GPIO10
+  TOUCH_SDA: GPIO37
+  TOUCH_SCL: GPIO38
+
+  # The battery (docs/BATTERY.md): ADC1 channel 2 through two equal resistors, read only while the XL9535 switches
+  # the divider on (pin 6, below). Seeed's BSP turns the voltage into a level with a curve of 21 points in steps of
+  # 5 %, from 3.262 V (empty) to 4.047 V (full); this is that curve.
+  BATTERY_PIN: GPIO18
+  BATTERY_LEVEL_FORMULA: >-
+    ([](float x) { static const float t[21] = {3.262f, 3.390f, 3.467f, 3.554f, 3.619f, 3.659f, 3.686f, 3.710f,
+    3.731f, 3.752f, 3.774f, 3.797f, 3.827f, 3.855f, 3.880f, 3.901f, 3.915f, 3.934f, 3.958f, 3.978f, 4.047f};
+    if (x < t[0]) return 0.0f; for (int i = 1; i < 21; i++) if (x < t[i]) return (i - 1) * 5.0f + 5.0f * (x - t[i - 1]) / (t[i] - t[i - 1]);
+    return 100.0f; })(v)
+
+  # The audio's data lines (features/audio.yaml); the buses and the two chips are below. The ES8311 turns ESPHome's
+  # volume into its DAC register from 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
+  AUDIO_DOUT_PIN: GPIO30
+  AUDIO_DIN_PIN: GPIO26
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the SC2356 on the MIPI-CSI port answers on the
+  # touch bus, and its clock (CAMERA_XCLK_PIN) is its own. The board powers it (switches below); a camera plugin drives
+  # it (screen_camera).
+  CAMERA_I2C: touch_bus
+  CAMERA_XCLK_PIN: "-1"                        # the sensor has its own clock
+
+  # This board's own row on the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings").
+  BOOT_BOARD_SETTINGS: |-
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_wake_when_moved,
+        []() -> int32_t { return id(board_wake_when_moved).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(board_wake_when_moved).turn_on(); else id(board_wake_when_moved).turn_off(); }));
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # ESPHome knows this panel (mipi_dsi and gsl3670, model SEEED-RETERMINAL-D1001) from 2026.9.0, the add-on's ESPHome.
+  min_version: 2026.9.0
+
+# The log on the USB port. hardware/esp32p4-c6.yaml puts it on UART0, whose pins on the ESP32-P4 are GPIO37 and GPIO38:
+# on this board those carry the touch bus, and UART0 there crashed the first boot in uart_hal_init (interrupt watchdog).
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+esp32:
+  # The chip has 32 MB; ESPHome takes OTA on 32 MB only with ESP-IDF's experimental features, so the firmware uses the
+  # first 16 MB, as the other P4 boards do, which is five times what it needs.
+  flash_size: 16MB
+
+# The second I2C bus: the XL9535 expander, the ES8311 and ES7210 audio chips, the LSM6DS3 motion sensor and the
+# PCF8563 clock. The first one, touch_bus, is the touch panel's, the camera's and the light sensor's.
+i2c:
+  - id: board_bus
+    sda: GPIO20
+    scl: GPIO21
+    frequency: 400kHz
+    scan: true
+
+# Most of the board's power and resets (pins from Seeed's BSP). ESPHome numbers the XL9535's two ports 0-7 and 10-17,
+# Seeed's BSP its sixteen lines 0-15, so the BSP's line 8 is pin 10 here. The panel's own lines (0 power, 7 backlight
+# supply, 2 reset) belong to the mipi_dsi preset and the touch reset (14, the BSP's 12) to the gsl3670 preset.
+xl9535:
+  - id: board_expander
+    i2c_id: board_bus
+
+switch:
+  # Wake when moved: the motion sensor wakes the screen from standby when the board is picked up, moved or knocked.
+  # It feels the board itself, not someone walking past. Off at first, kept over a restart; the same switch in Home
+  # Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
+  - platform: template
+    id: board_wake_when_moved
+    name: "Wake when moved"
+    icon: "mdi:gesture-swipe"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  # Pin 10 (BSP line 8) holds the board's 3.3 V on: on the battery, the board turns itself off without it.
+  - platform: gpio
+    id: board_power_hold
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 10}
+  # Pin 6 connects the battery's divider to the ADC.
+  - platform: gpio
+    id: board_battery_read
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 6}
+  # Pin 13 (BSP line 11) powers the loudspeaker's amplifier.
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 13}
+  # The camera's sensor, powered at start as Seeed's BSP does it: pin 1 (BSP line 1) its supply, pin 3 (BSP line 3) out
+  # of power-down, pin 11 (BSP line 9) out of reset. It takes next to nothing until a camera plugin asks for pictures.
+  - platform: gpio
+    id: board_camera_power
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 1}
+  - platform: gpio
+    id: board_camera_awake
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 3}
+  - platform: gpio
+    id: board_camera_run
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin: {xl9535: board_expander, number: 11}
+  # Pin 12 (BSP line 10) stops the charger when high: low, so the battery charges on USB.
+  - platform: gpio
+    id: board_charge_off
+    internal: true
+    restore_mode: ALWAYS_OFF
+    pin: {xl9535: board_expander, number: 12}
+
+binary_sensor:
+  # The button on top (GPIO3, high while pressed): the same as Home Assistant's Wake and Sleep buttons, so a press puts
+  # the screen in standby or wakes it the way the core does it.
+  - platform: gpio
+    id: board_button
+    name: "Button"
+    pin: GPIO3
+    on_press:
+      - if:
+          condition:
+            lambda: 'return id(display_dimmed);'
+          then:
+            - button.press: wake_button
+          else:
+            - button.press: sleep_button
+  # Low while the charger charges the battery (GPIO15, pulled up).
+  - platform: gpio
+    id: board_battery_charging
+    name: "Battery Charging"
+    device_class: battery_charging
+    pin:
+      number: GPIO15
+      inverted: true
+      mode: {input: true, pullup: true}
+
+# The backlight, a PWM pin; 1220 Hz, where this panel does not flicker at low levels (HA community thread). The RGB
+# LED's three lines light when low (Seeed's BSP drives them at 100 % minus the level).
+output:
+  - platform: ledc
+    pin: GPIO14
+    frequency: 1220Hz
+    id: gpio_backlight_pwm
+  - platform: ledc
+    pin: GPIO22
+    id: output_red
+    inverted: true
+  - platform: ledc
+    pin: GPIO36
+    id: output_green
+    inverted: true
+  - platform: ledc
+    pin: GPIO23
+    id: output_blue
+    inverted: true
+
+# The audio: two I2S buses, one for the ES7210 that reads the two microphones and one for the ES8311 that drives the
+# NS4150B amplifier, so the screen can listen and speak at the same time. Both chips sit on board_bus.
+i2s_audio:
+  - id: ts_mic_bus
+    i2s_mclk_pin: GPIO29
+    i2s_bclk_pin: GPIO28
+    i2s_lrclk_pin: GPIO27
+  - id: ts_speaker_bus
+    i2s_mclk_pin: GPIO33
+    i2s_bclk_pin: GPIO32
+    i2s_lrclk_pin: GPIO31
+
+audio_adc:
+  - platform: es7210
+    id: ts_audio_adc
+    i2c_id: board_bus
+    address: 0x40
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    mic_gain: 30db
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: board_bus
+    address: 0x18
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    use_mclk: true
+
+# The LSM6DS3TR-C motion sensor, four times a second: a change of its acceleration means the board moved (Wake when
+# moved), and the temperature it measures on its own chip, averaged over a minute, is warmer than the room the board
+# stands in: it shows how warm the board runs.
+motion:
+  - platform: lsm6ds
+    id: board_motion
+    i2c_id: board_bus
+    update_interval: 250ms
+
+sensor:
+  - platform: lsm6ds
+    lsm6ds_id: board_motion
+    type: temperature
+    name: "Board Temperature"
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    filters:
+      - throttle_average: 60s
+  # Each axis tells board_moved when it changed by more than about a tenth of gravity since the last reading; none of
+  # them is ever published.
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_x
+    id: board_acceleration_x
+    internal: true
+    filters:
+      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_y
+    id: board_acceleration_y
+    internal: true
+    filters:
+      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_z
+    id: board_acceleration_z
+    internal: true
+    filters:
+      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+
+# The board moved: wake the screen the way Home Assistant's Wake button does, when Wake when moved is on and the screen
+# is in standby; once in two seconds at most.
+script:
+  - id: board_moved
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return id(board_wake_when_moved).state && id(display_dimmed);'
+          then:
+            - lambda: 'ESP_LOGI("board", "moved: waking the screen");'
+            - button.press: wake_button
+      - delay: 2s
+
+# The PCF8563 clock keeps the time while the board is off or Home Assistant away: read at the start, so a clock shows
+# the time before Home Assistant has given it, and written once an hour from Home Assistant's time.
+time:
+  - platform: pcf8563
+    id: board_rtc
+    i2c_id: board_bus
+
+interval:
+  - interval: 1h
+    then:
+      - if:
+          condition:
+            lambda: 'return id(homeassistant_time).now().is_valid();'
+          then:
+            - pcf8563.write_time: board_rtc
+
+# ESPHome's gsl3670 preset for this panel brings the range it reports, its firmware table and its reset (the XL9535's
+# pin 14) and interrupt (GPIO16) lines.
+touchscreen:
+  - platform: gsl3670
+    model: SEEED-RETERMINAL-D1001
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+
+# ESPHome's mipi_dsi preset for this panel: the JD9365's init sequence, its timings, and its power, backlight supply
+# and reset on the XL9535.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: SEEED-RETERMINAL-D1001
+    update_interval: never
+    auto_clear_enabled: false

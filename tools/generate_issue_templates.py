@@ -29,7 +29,7 @@ def board_options(extra_trailing=()):
 
 def bug_report():
     return f'''name: Bug report (bugs only)
-description: Report broken existing functionality. Features, improvements and new boards are handled only on the website.
+description: Report a reproducible problem in an existing screen, app or editor feature.
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -108,8 +108,6 @@ body:
       label: Before submitting
       options:
         - label: This reports broken existing functionality, not a feature, improvement or new board request.
-          required: true
-        - label: I understand that feature, improvement and new board requests are handled only on the website and will not be reviewed on GitHub.
           required: true
         - label: I checked the Tessera manual and troubleshooting guide
           required: true

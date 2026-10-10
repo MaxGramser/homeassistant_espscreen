@@ -1,30 +1,34 @@
 <script setup lang="ts">
 // This preview never sends HA actions. Native cover sliders own interaction.
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { deviceStyle, isCompact, screenShape, screenText, state } from '../store';
+import { useElementSize } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import { glyph } from '../model/topbar';
+import { tallKeys } from '../model/ui-scale';
 import { controlKeys, coverTiltKeys, coverTiltKind } from '../model/tall-controls';
+import { useRegionStore } from '../stores/region';
+import { useInventoryStore } from "../stores/inventory";
+import { useCanvasStore } from "../stores/canvas";
+import { useDocumentStore } from "../stores/document";
+
+const region = useRegionStore();
+const inv = useInventoryStore();
+const canvas = useCanvasStore();
+const doc = useDocumentStore();
 const props = defineProps<{ primary: string; entityState: string; attributes: Record<string, any> }>();
 const root = ref<HTMLElement>();
-const width = ref(0), height = ref(0);
-let observer: ResizeObserver | undefined;
-watch(root, element => {
-  observer?.disconnect();
-  if (!element) return;
-  observer = new ResizeObserver(([entry]) => { width.value = entry!.contentRect.width; height.value = entry!.contentRect.height; });
-  observer.observe(element);
-});
-onBeforeUnmount(() => observer?.disconnect());
-const scale = computed(() => parseFloat(deviceStyle.value['--mockup-width']) / screenShape.value.width);
-const dpi = computed(() => screenShape.value.dpi || (isCompact.value ? 143 : 170));
-const touch = computed(() => Math.max(dpi.value * 7 / 25, (isCompact.value ? 34 : 48) * dpi.value / (isCompact.value ? 143 : 170)) * scale.value);
-const gap = computed(() => (isCompact.value ? 4 : 8) * dpi.value / (isCompact.value ? 143 : 170) * scale.value);
+// The card's own size, as it is drawn.
+const { width, height } = useElementSize(root);
+const scale = computed(() => parseFloat(canvas.deviceStyle['--mockup-width']) / doc.screenShape.width);
+// The keys and their gap as the glass draws them (ui-scale tallKeys), in the mockup's pixels.
+const keys = computed(() => tallKeys({ ...doc.screenShape, look: canvas.isCompact ? 'compact' : 'standard' }));
+const touch = computed(() => keys.value.touch * scale.value);
+const gap = computed(() => keys.value.gap * scale.value);
 const mainKeys = computed(() => controlKeys('cover', props.primary, props.entityState, props.attributes));
 const tilt = computed(() => coverTiltKind(props.entityState, props.attributes));
 const tiltKeys = computed(() => tilt.value === 'buttons' ? coverTiltKeys(props.attributes) : []);
 const groups = computed(() => [
-  ...(props.primary ? [{ kind: props.primary, keys: mainKeys.value, tilt: false, value: props.attributes.current_position, label: screenText('screen.cover.position') }] : []),
-  ...(tilt.value ? [{ kind: tilt.value, keys: tiltKeys.value, tilt: true, value: props.attributes.current_tilt_position, label: screenText('screen.cover.tilt') }] : []),
+  ...(props.primary ? [{ kind: props.primary, keys: mainKeys.value, tilt: false, value: props.attributes.current_position, label: region.screenText('screen.cover.position') }] : []),
+  ...(tilt.value ? [{ kind: tilt.value, keys: tiltKeys.value, tilt: true, value: props.attributes.current_tilt_position, label: region.screenText('screen.cover.tilt') }] : []),
 ]);
 const labelHeight = computed(() => parseFloat(root.value ? getComputedStyle(root.value).fontSize : '12') * 1.3);
 const controlHeight = computed(() => height.value - labelHeight.value - gap.value);
@@ -36,7 +40,7 @@ const fits = computed(() => {
     && width.value >= groups.value.reduce((sum, g) => sum + groupWidth(g), 0) + (count - 1) * 2 * gap.value
     && groups.value.every(g => groupWidth(g) >= touch.value && (g.kind !== 'position' || controlHeight.value >= 2 * touch.value));
 });
-const icon = (name: string) => glyph(state.inventory.icons?.controls?.[name] || '');
+const icon = (name: string) => glyph(inv.inventory.icons?.controls?.[name] || '');
 const percent = (value: unknown) => typeof value === 'number' ? `${Math.round(value)}%` : '—';
 </script>
 <template>

@@ -5,7 +5,7 @@ import { computed, onMounted, reactive } from "vue";
 import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
-import { drawsPictures, go, homeView, loadOverview, phone, screenLight, screenSubline, select, setFullEditor, state } from "../store";
+import { homeView } from "../model/overview";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
@@ -16,10 +16,28 @@ import DonateCard from "./DonateCard.vue";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
+import ProgressRing from "./ui/ProgressRing.vue";
+import BuildIndicator from "./BuildIndicator.vue";
+import BrokenNotice from "./BrokenNotice.vue";
+import { useUiStore } from "../stores/ui";
+import { useBuildsStore } from "../stores/builds";
+import { useBrokenStore } from "../stores/broken";
+import { useEntitiesStore } from "../stores/entities";
+import { drawsPictures, useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
+import { useInventoryStore } from "../stores/inventory";
+
+const ui = useUiStore();
+const entities = useEntitiesStore();
+const scr = useScreenStore();
+const session = useSessionStore();
+const inv = useInventoryStore();
+const builds = useBuildsStore();
+const broken = useBrokenStore();
 
 // The glass stands in a band of one height, whatever its shape, so a row of screens reads as one row.
 const STAGE = 196;
-const views = computed(() => state.inventory.screens.map((screen) => {
+const views = computed(() => inv.inventory.screens.map((screen) => {
   const view = homeView(screen), record = screen.page_document;
   // The screen's own firmware draws its saved home page when the preview knows its board; the mockup stays until then.
   const live = view && record?.format === "pages-v2" ? previewShapeOf(screen, record.sourceGrid) : null;
@@ -28,38 +46,42 @@ const views = computed(() => state.inventory.screens.map((screen) => {
 const drawn = reactive(new Set<string>());
 const failed = reactive(new Set<string>());
 const liveWidth = (shape: { width: number; height: number }) => `min(100%, ${Math.round(STAGE * shape.width / shape.height)}px)`;
-const online = computed(() => state.inventory.screens.filter((screen) => screen.online).length);
+const online = computed(() => inv.inventory.screens.filter((screen) => screen.online).length);
 const scale = (style: Record<string, string>, shape: { width: number; height: number }) => {
   const width = parseFloat(style["--mockup-width"]), height = width * shape.height / shape.width + 20;
   return Math.min(1, STAGE / height);
 };
+// A build on its way (queued or running): its ring stands where the light is, and its step is the line under the name.
+const building = (screen: Screen) => Boolean(builds.buildOf(screen) || builds.isBuilding(screen));
 const place = (screen: Screen) => [screen.area, screen.board && screen.shape?.catalog?.name ? boardTitle(screen.shape.catalog) : ""].filter(Boolean).join(" · ");
-onMounted(loadOverview);
+onMounted(entities.loadOverview);
 </script>
 
 <template>
   <section id="home" class="home">
     <header class="home-head">
       <!-- On a phone the sidebar's row is gone (app 0.4.40): search, alerts, settings and a new screen are in this menu. -->
-      <UiMenu v-if="phone" width="240px">
+      <UiMenu v-if="ui.phone" width="240px">
         <template #trigger><button type="button" class="icon-btn home-more" :aria-label="t('editor.screen_view.more')"><Icon name="dots-horizontal" /></button></template>
-        <UiMenuItem icon="magnify" @select="state.palette = true">{{ t("editor.sidebar.search") }}</UiMenuItem>
-        <UiMenuItem icon="alert-circle-outline" @select="go('#alerts')">{{ t("editor.nav.alerts") }}</UiMenuItem>
-        <UiMenuItem icon="cog-outline" @select="go('#settings')">{{ t("editor.nav.settings") }}</UiMenuItem>
-        <UiMenuItem icon="plus" @select="go('#new-screen')">{{ t("editor.nav.new_screen") }}</UiMenuItem>
+        <UiMenuItem icon="magnify" @select="ui.palette = true">{{ t("editor.sidebar.search") }}</UiMenuItem>
+        <UiMenuItem icon="alert-circle-outline" @select="ui.go('#alerts')">{{ t("editor.nav.alerts") }}</UiMenuItem>
+        <UiMenuItem icon="cog-outline" @select="ui.go('#settings')">{{ t("editor.nav.settings") }}</UiMenuItem>
+        <UiMenuItem icon="plus" @select="ui.go('#new-screen')">{{ t("editor.nav.new_screen") }}</UiMenuItem>
         <UiMenuSeparator />
-        <UiMenuItem icon="monitor-dashboard" @select="setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
+        <UiMenuItem icon="monitor-dashboard" @select="ui.setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
       </UiMenu>
       <h1>{{ t("editor.home.title") }}</h1>
-      <p>{{ t("editor.home.summary", { online, count: state.inventory.screens.length }) }}</p>
+      <BuildIndicator v-if="ui.phone" />
+      <p>{{ t("editor.home.summary", { online, count: inv.inventory.screens.length }) }}</p>
     </header>
+    <BrokenNotice />
     <div class="home-grid">
       <div v-for="{ screen, view, live, layout } in views" :key="screen.id" role="button" tabindex="0" class="home-card" :class="{ away: !screen.online }"
-        :aria-label="t('editor.home.open', { name: screen.name })" @click="select(screen.id)" @keydown.enter.prevent="select(screen.id)" @keydown.space.prevent="select(screen.id)">
+        :aria-label="t('editor.home.open', { name: screen.name })" @click="session.select(screen.id)" @keydown.enter.prevent="session.select(screen.id)" @keydown.space.prevent="session.select(screen.id)">
         <span class="home-stage">
           <span v-if="live && layout && !failed.has(screen.id)" class="home-live" :style="{ width: liveWidth(live) }" aria-hidden="true">
             <FirmwarePreview :key="`${screen.id}:${JSON.stringify(live)}`" :width="live.width" :height="live.height" :dpi="live.dpi"
-              :columns="live.columns" :rows="live.rows" :layout="layout" :pictures="drawsPictures(screen)" still
+              :columns="live.columns" :rows="live.rows" :layout="layout" :pictures="drawsPictures(screen)" :dark="screen.settings?.values?.dark_mode === true" still
               @ready="drawn.add(screen.id)" @failed="failed.add(screen.id)" />
           </span>
           <span v-if="view && !(live && layout && drawn.has(screen.id) && !failed.has(screen.id))" class="home-glass"
@@ -77,10 +99,14 @@ onMounted(loadOverview);
           <span v-else class="home-empty"><Icon name="view-dashboard-outline" />{{ t("editor.home.no_layout") }}</span>
         </span>
         <span class="home-foot">
-          <span class="led" :class="screenLight(screen)"></span>
+          <ProgressRing v-if="building(screen)" class="home-ring" :size="16" :percent="builds.buildProgress(screen)?.percent ?? 0"
+            :label="builds.buildProgress(screen)?.text || t('editor.build.waiting')" />
+          <span v-else class="led" :class="scr.screenLight(screen)"></span>
           <span class="home-name">
             <strong>{{ screen.name }}</strong>
-            <small v-if="screenSubline(screen)" :class="screenSubline(screen)!.kind">{{ screenSubline(screen)!.text }}</small>
+            <small v-if="building(screen)" class="building">{{ builds.buildProgress(screen) ? `${builds.buildProgress(screen)!.percent} % · ${builds.buildProgress(screen)!.text}` : t("editor.build.waiting") }}</small>
+            <small v-else-if="!scr.screenSubline(screen) && broken.onScreen(screen).length" class="broken">{{ t("editor.broken.short", broken.onScreen(screen).length) }}</small>
+            <small v-else-if="scr.screenSubline(screen)" :class="scr.screenSubline(screen)!.kind">{{ scr.screenSubline(screen)!.text }}</small>
             <small v-else-if="place(screen)">{{ place(screen) }}</small>
           </span>
           <!-- A screen with 4 MB of flash on ESPHome's partition table (app 0.4.82): its next update comes from Tessera. -->
@@ -90,7 +116,7 @@ onMounted(loadOverview);
           <Icon name="chevron-right" class="home-go" />
         </span>
       </div>
-      <button type="button" class="home-new" @click="go('#new-screen')"><Icon name="plus" class="home-plus" />{{ t("editor.nav.new_screen") }}</button>
+      <button type="button" class="home-new" @click="ui.go('#new-screen')"><Icon name="plus" class="home-plus" />{{ t("editor.nav.new_screen") }}</button>
     </div>
     <DonateCard />
   </section>
@@ -123,6 +149,8 @@ onMounted(loadOverview);
 .home-name strong { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-name small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-name small.down, .home-name small.failed { color: var(--danger); }
+.home-name small.broken { color: var(--warn); }
+.home-name small.building { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .home-name small.update, .home-name small.available, .home-name small.running, .home-name small.queued { color: var(--warn); }
 .home-badge { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px;
   font-weight: 500; color: var(--accent); background: var(--accent-soft); white-space: nowrap; }

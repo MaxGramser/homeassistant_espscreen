@@ -1,87 +1,168 @@
 <script setup lang="ts">
-// ⌘K: screens, entities for the open screen, and the editor's actions, from one search field.
+// ⌘K: one search for everything the editor has and a way to act on it (model/palette.ts), fed by the stores: the screens and
+// what can be done to them, the editor's actions, every screen's settings, the tiles that show an entity on any screen,
+// the entities to add to this page, and the plugins. Keyboard first: the arrows walk the rows from the field, Enter does
+// what the row in focus says, Escape closes; what was chosen last comes first, kept in this browser. Updating every
+// screen asks first.
 import { computed, nextTick, ref, watch } from "vue";
 import { t } from "../i18n";
-import { domainInfo } from "../model/layout";
+import { useListNavigation } from "../composables/useListNavigation";
+import { askConfirm } from "../composables/useConfirm";
+import { usePreference } from "../composables/usePreference";
+import { tileEntities } from "../model/broken-tiles";
+import { paletteGroups, paletteItems, rememberChoice, type PaletteActions, type PaletteItem, type PaletteSetting, type PaletteTile } from "../model/palette";
+import { text as pluginText } from "../model/plugins";
+import { needsUpdate } from "../model/screen-status";
+import { SETTING_GROUPS, settingLabel, type SettingRow } from "../model/settings";
 import { glyph } from "../model/topbar";
-import { addTile, automaticIcon, canAlert, currentScreen, exportLayout, go, identify, repeatable, save, select, state, tileLimit } from "../store";
+import type { Screen } from "../types";
+import { useUiStore } from "../stores/ui";
+import { useEntitiesStore } from "../stores/entities";
+import { useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
+import { useInventoryStore } from "../stores/inventory";
+import { useBuildsStore } from "../stores/builds";
+import { usePluginsStore } from "../stores/plugins";
+import { useSettingsStore } from "../stores/settings";
+import { useRegionStore } from "../stores/region";
+import { addTile } from "../editor/tiles";
+import { showTile } from "../editor/tile-entity";
+import { useDocumentStore } from "../stores/document";
 
-type Item = { group: string; label: string; detail?: string; icon?: string; glyphText?: string; key?: string; run: () => void };
+const ui = useUiStore();
+const entities = useEntitiesStore();
+const scr = useScreenStore();
+const session = useSessionStore();
+const inv = useInventoryStore();
+const builds = useBuildsStore();
+const plugins = usePluginsStore();
+const settings = useSettingsStore();
+const region = useRegionStore();
+const doc = useDocumentStore();
+
 const query = ref("");
-const active = ref(0);
 const input = ref<HTMLInputElement | null>(null);
-const items = computed<Item[]>(() => {
-  const q = query.value.trim().toLocaleLowerCase();
-  const list: Item[] = [];
-  const screens = t("editor.palette.groups.screens"), actionsGroup = t("editor.palette.groups.actions");
-  for (const screen of state.inventory.screens)
-    list.push({ group: screens, label: screen.name, detail: `${screen.online ? t("editor.common.online") : t("editor.common.offline")} · ${screen.firmware || t("editor.common.unknown")}`, glyphText: "▦", run: () => select(screen.id) });
-  const screen = currentScreen.value;
-  const actions: Item[] = [
-    { group: actionsGroup, label: t("editor.nav.new_screen"), detail: t("editor.nav.new_screen_detail"), glyphText: "+", run: () => go("#new-screen") },
-    { group: actionsGroup, label: t("editor.nav.firmware"), icon: "F0241", run: () => go("#firmware") },
-    { group: actionsGroup, label: t("editor.nav.alerts"), detail: t("editor.palette.alerts_detail"), icon: "F0594", run: () => go("#alerts") },
-    { group: actionsGroup, label: t("editor.nav.settings"), detail: t("editor.palette.settings_detail"), icon: "F0493", run: () => go("#settings") },
-  ];
-  if (screen && state.layout) {
-    actions.unshift(
-      { group: actionsGroup, label: t("editor.common.save_send"), detail: state.dirty ? t("editor.common.unsaved") : t("editor.palette.nothing_to_save"), key: "⌘S", run: () => save() },
-      { group: actionsGroup, label: t("editor.screen_view.tabs.layout"), detail: screen.name, run: () => { go(""); state.tab = "layout"; } },
-      { group: actionsGroup, label: t("editor.screen_view.tabs.settings"), detail: screen.name, run: () => { go(""); state.tab = "settings"; } },
-      { group: actionsGroup, label: t("editor.palette.identify"), detail: canAlert(screen) ? t("editor.palette.identify_detail") : t("editor.palette.identify_needs"), run: () => { if (canAlert(screen)) identify(screen); } },
-      { group: actionsGroup, label: t("editor.palette.export"), detail: t("editor.palette.export_detail"), run: exportLayout },
-    );
-  }
-  list.push(...actions);
-  if (screen && state.layout && q) {
-    const chosen = new Set(state.layout.tiles.map((t) => t.entity));
-    const full = state.layout.tiles.length >= tileLimit.value;
-    for (const e of state.inventory.entities) {
-      // One on the screen comes again when the firmware takes an entity on several tiles (0.16.0+).
-      if (e.tile === false || (chosen.has(e.id) && !repeatable(e.id))) continue;
-      if (!`${e.name} ${e.id} ${e.area || ""} ${e.device || ""}`.toLocaleLowerCase().includes(q)) continue;
-      list.push({ group: t("editor.palette.groups.add"), label: e.name, detail: [domainInfo(e.id)[0], e.area].filter(Boolean).join(" · "), icon: state.inventory.icons ? automaticIcon(e.id) : undefined,
-        run: () => { if (!full) addTile(e.id); } });
-      if (list.length > 60) break;
-    }
-  }
-  return q ? list.filter((i) => `${i.label} ${i.detail || ""}`.toLocaleLowerCase().includes(q)) : list;
+const list = ref<HTMLElement | null>(null);
+// What was chosen last, by the row's id, kept in this browser.
+const recent = usePreference<string[]>("esp-screens.palette-recent", [], {
+  serializer: { read: (raw) => { try { const ids = JSON.parse(raw); return Array.isArray(ids) ? ids.filter((id) => typeof id === "string") : []; } catch { return []; } },
+    write: (ids) => JSON.stringify(ids) },
 });
-const grouped = computed(() => {
-  const out: { group: string; items: { item: Item; index: number }[] }[] = [];
-  items.value.forEach((item, index) => {
-    const g = out.find((o) => o.group === item.group) || (out.push({ group: item.group, items: [] }), out[out.length - 1]);
-    g.items.push({ item, index });
-  });
-  return out;
+
+// A screen opened from here, then what to do on it once it is open (the person may keep the unsaved changes of another).
+async function onScreen(screen: Screen, then: () => void) {
+  if (scr.selected !== screen.id || !doc.document) await session.select(screen.id);
+  if (scr.selected === screen.id) then();
+}
+// What a row does, by what it is.
+const actions: PaletteActions = {
+  openScreen: (screen) => session.select(screen.id),
+  go: (route) => ui.go(route),
+  showTab: (tab) => { ui.go(""); ui.tab = tab; },
+  save: () => doc.save(),
+  identify: (screen) => scr.identify(screen),
+  exportLayout: () => doc.exportLayout(),
+  addTile: (id) => addTile(id),
+  update: (screen) => builds.startUpdate(screen),
+  updateAll: async () => {
+    const waiting = updatable.value.length;
+    if (await askConfirm(t("editor.search.update_all_confirm", waiting), { confirm: t("editor.search.update_all_go") })) builds.runUpdateAll();
+  },
+  installSetAside: () => plugins.installTray(),
+  showTile: (screen, tileId) => { void showTile(screen, tileId); },
+  openSetting: (screen, key) => onScreen(screen, () => { ui.go(""); ui.tab = "settings"; settings.spotlight = key; }),
+  openPlugin: (id) => { plugins.focus = id; ui.go("#plugins"); },
+  addPlugin: (id) => {
+    const screen = scr.currentScreen, plugin = plugins.index.find((p) => p.id === id);
+    if (!screen || !plugin) return;
+    plugins.setAside(screen, plugin);
+    ui.go(""); ui.tab = "plugins"; plugins.focus = id;
+  },
+};
+
+// ---- What the rows are made of ----
+const open = computed(() => (scr.currentScreen && doc.layout ? scr.currentScreen : null));
+// An update that can go now from here: the screen is there and the add-on knows how to reach it.
+const updatable = computed(() => inv.inventory.screens.filter((screen) => !screen.virtual && screen.online && needsUpdate(screen)
+  && screen.update?.profile && screen.update?.host && !builds.isBuilding(screen)));
+// The tiles that show an entity: the open screen as its draft has it, the others as they were saved.
+const tiles = computed<PaletteTile[]>(() => inv.inventory.screens.flatMap((screen) => {
+  const layout = screen.id === scr.selected && doc.document ? doc.document : screen.page_document?.format === "pages-v2" ? screen.page_document.layout : null;
+  return layout ? tileEntities(layout).map((tile) => ({ screen, ...tile })) : [];
+}));
+// Every screen's settings as its settings page lists them, each with its value in words.
+const settingRows = computed<PaletteSetting[]>(() => inv.inventory.screens.flatMap((screen) => {
+  const view = screen.settings;
+  if (screen.virtual || !view) return [];
+  return SETTING_GROUPS.flatMap((group) => (group.rows as readonly SettingRow[]).filter((row) => view.keys.includes(row.key)).map((row) => {
+    const value = view.values[row.key];
+    const words = row.kind === "toggle" ? (value === true ? t("editor.search.on") : value === false ? t("editor.search.off") : "")
+      : row.kind === "choice" ? (value === undefined || value === null ? "" : `${value}°`) : settings.settingText(row, view.values);
+    return { screen, key: row.key, label: settingLabel(row), group: t(`editor.screen_settings.groups.${group.group}`), value: words === "—" ? "" : words };
+  }));
+}));
+const pluginRows = computed(() => !plugins.pluginsEnabled ? [] : plugins.index.map((plugin) => ({
+  id: plugin.id, name: pluginText(plugin.name), summary: pluginText(plugin.summary), icon: plugin.icon,
+  addable: Boolean(open.value && !open.value.virtual && !plugins.installedOn(open.value, plugin.id) && !plugins.isSetAside(open.value, plugin.id)
+    && plugins.fits(plugin, open.value).ok),
+})));
+const items = computed(() => {
+  void region.clock24;
+  const screen = open.value;
+  return paletteItems({ query: query.value, screens: inv.inventory.screens, open: screen, dirty: doc.dirty, alerts: Boolean(screen && scr.canAlert(screen)),
+    entities: inv.inventory.entities, placed: new Set(doc.layout?.tiles.map((tile) => tile.entity) || []), repeatable: scr.repeatable,
+    full: (doc.layout?.tiles.length || 0) >= doc.tileLimit, icon: inv.inventory.icons ? entities.automaticIcon : undefined,
+    recent: recent.value, canIdentify: (each) => each.online && scr.canAlert(each), updateTo: (each) => updatable.value.includes(each) ? each.update?.target || "" : null,
+    updatesWaiting: updatable.value.length, setAside: plugins.tray.items.length, tiles: tiles.value, entityName: entities.entityName,
+    settings: settingRows.value, plugins: pluginRows.value }, actions);
 });
-function close() { state.palette = false; }
-function run(item: Item) { close(); item.run(); }
+const grouped = computed(() => paletteGroups(items.value));
+
+function close() { ui.palette = false; }
+function run(item: PaletteItem) {
+  recent.value = rememberChoice(recent.value, item.id);
+  close();
+  item.run();
+}
+// The arrows walk the results and stop at the ends, Enter runs the one in focus, a new search starts at the first.
+const { active, onKey: walk } = useListNavigation(items, { onPick: run, resetOn: query,
+  onMove: (index) => nextTick(() => document.getElementById(`palette-item-${index}`)?.scrollIntoView?.({ block: "nearest" })) });
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") { e.preventDefault(); close(); }
-  else if (e.key === "ArrowDown") { e.preventDefault(); active.value = Math.min(items.value.length - 1, active.value + 1); }
-  else if (e.key === "ArrowUp") { e.preventDefault(); active.value = Math.max(0, active.value - 1); }
-  else if (e.key === "Enter") { e.preventDefault(); const item = items.value[active.value]; if (item) run(item); }
+  else walk(e);
 }
-watch(query, () => (active.value = 0));
-watch(() => state.palette, async (open) => { if (open) { query.value = ""; active.value = 0; await nextTick(); input.value?.focus(); } });
+watch(() => ui.palette, async (shown) => {
+  if (!shown) return;
+  query.value = ""; active.value = 0;
+  if (plugins.pluginsEnabled) plugins.loadPlugins();
+  await nextTick();
+  input.value?.focus();
+}, { immediate: true });
 </script>
 
 <template>
-  <div v-if="state.palette" class="palette-backdrop" @click="close">
-    <div class="palette" role="dialog" :aria-label="t('editor.sidebar.search')" @click.stop @keydown="onKey">
-      <input ref="input" v-model="query" id="palette-input" :placeholder="t('editor.palette.placeholder')" :aria-label="t('editor.sidebar.search')" autocomplete="off" />
-      <div class="palette-list">
-        <template v-for="g in grouped" :key="g.group">
-          <div class="palette-group">{{ g.group }}</div>
-          <button v-for="{ item, index } in g.items" :key="index" type="button" class="palette-item" :class="{ active: index === active }" @mouseenter="active = index" @click="run(item)">
+  <div v-if="ui.palette" class="palette-backdrop" @click="close">
+    <div class="palette" role="dialog" aria-modal="true" :aria-label="t('editor.sidebar.search')" @click.stop @keydown="onKey">
+      <input ref="input" v-model="query" id="palette-input" :placeholder="t('editor.palette.placeholder')" :aria-label="t('editor.sidebar.search')" autocomplete="off"
+        role="combobox" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" :aria-activedescendant="items.length ? `palette-item-${active}` : undefined" />
+      <div ref="list" id="palette-list" class="palette-list" role="listbox" :aria-label="t('editor.sidebar.search')">
+        <div v-for="g in grouped" :key="g.group" role="group" :aria-label="g.group">
+          <div class="palette-group" aria-hidden="true">{{ g.group }}</div>
+          <button v-for="{ item, index } in g.items" :id="`palette-item-${index}`" :key="item.id" type="button" role="option" class="palette-item"
+            :class="{ active: index === active }" :aria-selected="index === active" :data-id="item.id" tabindex="-1" @mousemove="active = index" @click="run(item)">
             <span v-if="item.icon" class="mdi">{{ glyph(item.icon) }}</span>
             <span v-else class="glyph">{{ item.glyphText || "›" }}</span>
             <span class="tx"><span>{{ item.label }}</span><small v-if="item.detail">{{ item.detail }}</small></span>
             <kbd v-if="item.key" class="hint-key">{{ item.key }}</kbd>
+            <span v-else-if="item.hint && index === active" class="palette-hint" aria-hidden="true">{{ item.hint }} <kbd>↵</kbd></span>
           </button>
-        </template>
+        </div>
         <p v-if="!items.length" class="palette-empty">{{ t("editor.palette.empty") }}</p>
+      </div>
+      <div class="palette-foot" aria-hidden="true">
+        <span><kbd>↑</kbd><kbd>↓</kbd>{{ t("editor.search.keys.move") }}</span>
+        <span><kbd>↵</kbd>{{ t("editor.search.keys.choose") }}</span>
+        <span><kbd>esc</kbd>{{ t("editor.search.keys.close") }}</span>
       </div>
     </div>
   </div>

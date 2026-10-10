@@ -249,6 +249,17 @@ uint32_t send(const Plugin *plugin, JsonObjectConst request) {
   return number;
 }
 
+// A tone as the screen's colours (plugin API 0.8): the accent of the look, Home Assistant's amber and red made readable
+// in it; false for NORMAL, which keeps what the place has.
+static bool tone_color(Tone tone, uint32_t &color) {
+  switch (tone) {
+    case Tone::ACCENT: color = theme::hex(theme::ACCENT); return true;
+    case Tone::BUSY: color = theme::foreground(theme::ha::AMBER); return true;
+    case Tone::ALERT: color = theme::foreground(theme::ha::RED); return true;
+    default: return false;
+  }
+}
+
 void refresh() {
   for (auto &w : rt::widgets)
     if (w.plugin && w.index < rt::model.count) rt::mark_tile(w.index);
@@ -295,6 +306,13 @@ void set_font(lv_obj_t *l, Font f) {
 }
 void set_color(lv_obj_t *l, theme::Role role) {
   if (l) rt::set_color(l, LV_STYLE_TEXT_COLOR, theme::color(role));
+}
+
+void set_tone(lv_obj_t *l, Tone tone, theme::Role normal) {
+  if (!l) return;
+  uint32_t color = 0;
+  if (!tone_color(tone, color)) return set_color(l, normal);
+  rt::set_color(l, LV_STYLE_TEXT_COLOR, lv_color_hex(color));
 }
 
 lv_obj_t *block(lv_obj_t *parent, theme::Role fill) {
@@ -479,43 +497,22 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   open->root = lv_obj_create(lv_screen_active());
   lv_obj_remove_style_all(open->root);
   lv_obj_remove_flag(open->root, LV_OBJ_FLAG_SCROLLABLE);
+  // The whole glass high, as every card's root (detail_root): overlay_card::frame gives the width only, and a root of
+  // LVGL's default height cut off what the card draws under its top bar (GitHub #226).
+  lv_obj_set_height(open->root, lv_pct(100));
   const auto kind = type->wide ? overlay_card::picture : overlay_card::controls;
   overlay_card::frame(open->root, kind, 1);
   const int width = overlay_card::content_width(kind, 1), height = overlay_card::screen_height();
-  // The same top bar as Tessera's cards: a round back key at the left, the title in the middle.
-  const int bar = ::ui::px(large ? 60 : 40), bar_x = ::ui::px(large ? 16 : 10), bar_y = ::ui::px(large ? 16 : 8);
-  auto *back = lv_obj_create(open->root);
-  lv_obj_remove_style_all(back);
-  lv_obj_set_pos(back, bar_x, bar_y);
-  lv_obj_set_size(back, bar, bar);
-  lv_obj_set_style_radius(back, LV_RADIUS_CIRCLE, 0);
-  lv_obj_set_style_bg_opa(back, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(back, theme::color(theme::KEY), 0);
-  lv_obj_set_style_bg_color(back, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
-  lv_obj_add_flag(back, LV_OBJ_FLAG_CLICKABLE);
-  auto *arrow = lv_label_create(back);
-  if (rt::mini_icon_font) lv_obj_set_style_text_font(arrow, rt::mini_icon_font, 0);
-  lv_obj_set_style_text_color(arrow, theme::color(theme::INK), 0);
-  lv_label_set_text(arrow, "\U000F004D");
-  lv_obj_center(arrow);
-  lv_obj_add_event_cb(back, [](lv_event_t *) {
-    if (!shown || !rt::allowed(esphome::millis(), 14, "plugin card back")) return;
-    if (!shown->card->on_back()) close_card();
-  }, LV_EVENT_SHORT_CLICKED, nullptr);
-  const lv_font_t *title_font = rt::watch_font ? rt::watch_font : tessera::ui::font(tessera::Font::TITLE);
+  // The top bar of every page a tap opens (detail_bar): the back key, which a card may take for a step back of its own
+  // (on_back), and the title in the middle.
   std::string words = title;
   if (words.empty() && tile >= 0 && static_cast<size_t>(tile) < rt::model.count) words = rt::model.tiles[tile].name;
-  auto *heading = lv_label_create(open->root);
-  lv_label_set_long_mode(heading, LV_LABEL_LONG_DOT);
-  lv_label_set_text(heading, words.c_str());
-  if (title_font) lv_obj_set_style_text_font(heading, title_font, 0);
-  lv_obj_set_style_text_color(heading, theme::color(theme::INK), 0);
-  lv_obj_set_style_text_align(heading, LV_TEXT_ALIGN_CENTER, 0);
-  const int line = title_font ? lv_font_get_line_height(title_font) : bar;
-  lv_obj_set_pos(heading, bar_x + bar + 8, bar_y + (bar - line) / 2);
-  lv_obj_set_size(heading, std::max(1, width - 2 * (bar_x + bar + 8)), line);
+  detail_bar::make(open->root, words, {detail_bar::BACK, [](lv_event_t *) {
+    if (!shown || !rt::allowed(esphome::millis(), 14, "plugin card back")) return;
+    if (!shown->card->on_back()) close_card();
+  }});
   // The card's own room, under the bar, with the card's padding at the sides and the foot.
-  const int pad = overlay_card::pad(), top = bar_y + bar + ::ui::px(large ? 12 : 6);
+  const int pad = overlay_card::pad(), top = detail_bar::bottom() + ::ui::px(large ? 12 : 6);
   auto *area = lv_obj_create(open->root);
   lv_obj_remove_style_all(area);
   lv_obj_remove_flag(area, LV_OBJ_FLAG_SCROLLABLE);
@@ -665,6 +662,7 @@ static header_bar::Shown bar_item(const std::string &key) {
       shown.shown = now.shown && (now.icon || !now.text.empty());
       shown.icon = now.icon && rt::has_icon_glyph(now.icon) ? now.icon : 0;
       shown.text = now.text.substr(0, header_bar::TEXT_BYTES);
+      shown.has_color = tessera::tone_color(now.tone, shown.color);
     }
   return shown;
 }

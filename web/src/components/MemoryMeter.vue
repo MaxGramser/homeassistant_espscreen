@@ -6,15 +6,19 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { kilobytes, noRoom } from "../model/memory";
-import { memory, memoryMeasuring, screenMemory } from "../store";
+import { useScreenStore } from "../stores/screen";
+import { useDocumentStore } from "../stores/document";
 
-const percent = computed(() => (memory.value ? Math.min(999, Math.round(memory.value.share * 100)) : 0));
-const none = computed(() => !!memory.value && noRoom(memory.value));
-const text = computed(() => (memoryMeasuring.value ? t("editor.memory.measuring") : none.value ? t("editor.memory.none") : t("editor.memory.share", { n: percent.value })));
+const scr = useScreenStore();
+const doc = useDocumentStore();
+
+const percent = computed(() => (doc.memory ? Math.min(999, Math.round(doc.memory.share * 100)) : 0));
+const none = computed(() => !!doc.memory && noRoom(doc.memory));
+const text = computed(() => (scr.memoryMeasuring ? t("editor.memory.measuring") : none.value ? t("editor.memory.none") : t("editor.memory.share", { n: percent.value })));
 const title = computed(() => {
-  const use = memory.value, said = screenMemory.value;
+  const use = doc.memory, said = scr.screenMemory;
   if (!said) return "";
-  if (memoryMeasuring.value) return t("editor.memory.measuring_title");
+  if (scr.memoryMeasuring) return t("editor.memory.measuring_title");
   if (!use) return "";
   const lines = [none.value ? t("editor.memory.none_title") : t("editor.memory.title", { need: kilobytes(use.need, true), room: kilobytes(use.room) })];
   if (use.level === "over" && !none.value) lines.push(t("editor.memory.over"));
@@ -25,10 +29,10 @@ const title = computed(() => {
 </script>
 
 <template>
-  <span v-if="memory || memoryMeasuring" id="memory" class="memory-meter" :class="memory ? memory.level : 'measuring'" :title="title" role="meter"
-    :aria-label="t('editor.memory.label')" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="memory ? percent : undefined" :aria-valuetext="title || text">
-    <span class="memory-bar" aria-hidden="true"><i :style="{ width: (memory ? Math.min(100, percent) : 0) + '%' }"></i></span>
+  <span v-if="doc.memory || scr.memoryMeasuring" id="memory" class="memory-meter" :class="doc.memory ? doc.memory.level : 'measuring'" :title="title" role="meter"
+    :aria-label="t('editor.memory.label')" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="doc.memory ? percent : undefined" :aria-valuetext="title || text">
+    <span class="memory-bar" aria-hidden="true"><i :style="{ width: (doc.memory ? Math.min(100, percent) : 0) + '%' }"></i></span>
     <span class="memory-text">{{ text }}</span>
-    <span v-if="screenMemory?.short" class="memory-short" aria-hidden="true"></span>
+    <span v-if="scr.screenMemory?.short" class="memory-short" aria-hidden="true"></span>
   </span>
 </template>

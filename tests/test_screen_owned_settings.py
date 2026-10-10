@@ -703,20 +703,22 @@ class Editor(unittest.TestCase):
             self.assertRegex(self.script, rf'key: "{key}", [^}}]*step: {step}')
         ladder = re.search(r'if \(seconds < 300\) return 30;\s+if \(seconds < 900\) return 60;\s+if \(seconds < 3600\) return 300;\s+'
                            r'if \(seconds < 7200\) return 900;\s+return 1800;', SCREEN_PAGE)
-        self.assertTrue(ladder, 'the ladder in settings_screen.h changed: change ladderStep in web/src/store.ts with it')
+        self.assertTrue(ladder, 'the ladder in settings_screen.h changed: change ladderStep in web/src/model/settings.ts with it')
         self.assertIn('seconds < 300 ? 30 : seconds < 900 ? 60 : seconds < 3600 ? 300 : seconds < 7200 ? 900 : 1800', self.script)
 
     def test_settings_have_their_own_call_and_save_leaves_them_out(self):
         self.assertIn('api(`screens/${encodeURIComponent(screen)}/settings`', self.script)
-        self.assertIn('submitted = pages.clone(state.document)', self.script)
-        self.assertIn('format: "pages-v2", revision: state.documentRevision, layout: submitted', self.script)
+        # The save sends the page document alone (stores/document.ts).
+        import editor_sources
+        document = editor_sources.source('stores/document.ts')
+        self.assertIn('submitted = pages.clone(document.value)', document)
+        self.assertIn('format: "pages-v2", revision: documentRevision.value, layout: submitted', document)
         from pathlib import Path
         types = (Path(__file__).resolve().parents[1] / 'web/src/types.ts').read_text()
         page_layout = types.split('export type PageLayout = ', 1)[1].split(';', 4)[:4]
         self.assertNotIn('settings', ''.join(page_layout), 'device settings are not part of the page document')
         # The top bar's clock follows the one clock of Settings → Language & region (app 0.2.90).
-        import editor_sources
-        self.assertIn('state.inventory.language?.clock_effective !== "12"', self.script)
+        self.assertIn('inv.inventory.language?.clock_effective !== "12"', editor_sources.source('stores/region.ts'))
         self.assertNotIn("setSetting('clock_24h'", self.script)
         self.assertIn('<a href="#settings">', editor_sources.component('TopbarInspector'))
 

@@ -338,6 +338,10 @@ void release(Slot &slot);
 bool loading(const Slot &slot);
 // Hands finished downloads to their `done`, on the main loop (every 50 ms, packages/features/camera.yaml).
 void tick();
+// The socket of a download, which the live view of the P4 boards opens the same way (live_view.cpp): connected within
+// four seconds with its reads and writes waiting at most `wait_ms`, or -1; and a request sent whole.
+int connect_to(const Address &a, uint32_t wait_ms);
+bool send_all(int fd, const std::string &text);
 }  // namespace picture_fetch
 
 #ifdef SCREEN_PICTURES

@@ -164,10 +164,12 @@ class Profiles(unittest.TestCase):
                     if line.strip() and not line.strip().startswith('#')]
             self.assertEqual(body, ["- lambda: 'if (runtime_tiles::dismiss) runtime_tiles::dismiss();'"], name)
             dismiss = re.search(r'runtime_tiles::dismiss = \[\]\(\) \{(.*?)\};', text, re.S)[1]
-            # hide_detail() closes every computed card, the light and fan card among them since 0.2.80.
-            for step in ('runtime_tiles::hide_detail();', 'id(active_entity).clear();',
-                         'id(color_detail_overlay)'):
-                self.assertIn(step, dismiss, name)
+            # hide_detail() closes every computed card, the light and fan card among them since 0.2.80, and the colour
+            # card since it is one of them (app 0.4.86).
+            self.assertIn('runtime_tiles::hide_detail();', dismiss, name)
+        runtime = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
+        hide = runtime[runtime.index('inline void hide_detail(){'):runtime.index('inline int slider_value(')]
+        self.assertIn('colour_close();', hide)
 
     def test_the_backlight_belongs_to_the_firmware(self):
         for name, text in self.profiles.items():

@@ -88,6 +88,18 @@ export function addLanguage(code: string, texts: Texts, meta: LanguageMeta | und
   LOADED.add(code);
 }
 const loading: Record<string, Promise<boolean>> = {};
+/** Back to the languages of the files, in English (between tests, tests/setup.ts): a language a test made up with
+ * addLanguage goes again. One a file has stays loaded, since loading it again would bring the same texts. */
+export function resetLanguages() {
+  for (const code of Object.keys(META)) {
+    if (code in metas) continue;
+    delete META[code]; delete RULES[code]; delete loading[code];
+    LOADED.delete(code);
+    delete (i18n.global.messages.value as Record<string, unknown>)[code];
+  }
+  Object.assign(META, metas);
+  i18n.global.locale.value = "en";
+}
 /** Loads a language once; true when the editor has it. */
 export function loadLanguage(code: string): Promise<boolean> {
   if (LOADED.has(code)) return Promise.resolve(true);
@@ -126,6 +138,8 @@ export function numberText(value: string | number, marks: NumberMarks) {
   const whole = plain[2].length >= marks.from ? plain[2].replace(/\B(?=(\d{3})+$)/g, marks.group) : plain[2];
   return `${plain[1]}${whole}${plain[3] !== undefined ? marks.decimal + plain[3] : ""}`;
 }
+/** A number in the editor's own words, as its language writes numbers: kilobytes, inches, gigabytes, a share. */
+export const editorNumber = (value: string | number) => numberText(value, languageMarks(editorLanguage()));
 
 // The time and number format of the user's own Home Assistant profile, where it names one: a 12- or 24-hour clock, and
 // "1,234.5" (comma_decimal), "1.234,5" (decimal_comma) or "1 234,5" (space_comma). "Follow the language", "use the

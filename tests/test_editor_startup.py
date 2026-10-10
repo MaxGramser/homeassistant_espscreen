@@ -19,30 +19,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import editor_sources  # noqa: E402
 
 SCRIPT = editor_sources.SCRIPT
-STORE = editor_sources.source('store.ts')
 
 
 class Startup(unittest.TestCase):
     def test_no_screen_opens_by_itself(self):
         self.assertNotIn('inventory.screens[0]', SCRIPT)
         # The ways into a screen are its button in the list and its row in the ⌘K search; both pass the chosen screen.
-        # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen.
-        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )select\(([^)]*)\)', SCRIPT)), {'screen.id', 'id', 'null'})
-        self.assertIn('if (state.selected) select(null);', STORE)
+        # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen. A new preview screen opens
+        # itself (the session's createVirtualScreen). Choosing is the session's (stores/session.ts).
+        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )(?:session\.)?select\(([^)]*)\)', SCRIPT)), {'screen.id', 'null'})
+        self.assertIn('const asking = scr.selected ? select(null) : undefined;', editor_sources.source('stores/session.ts'))
         # In the list a click chooses the screen (app 0.2.108; its details fold behind a chevron since app 0.4.0); the
         # choosing is still select's. The overview's cards choose a screen the same way.
         sidebar = editor_sources.component('Sidebar')
         self.assertIn('@click="choose(screen)"', sidebar)
-        self.assertIn('  select(screen.id);\n}', sidebar)
-        self.assertIn('@click="select(screen.id)"', editor_sources.component('HomeView'))
-        self.assertIn('run: () => select(screen.id)', editor_sources.component('CommandPalette'))
+        self.assertIn('  session.select(screen.id);\n}', sidebar)
+        self.assertIn('@click="session.select(screen.id)"', editor_sources.component('HomeView'))
+        self.assertIn('openScreen: (screen) => session.select(screen.id)', editor_sources.component('CommandPalette'))
+        # A new inventory opens nothing either: the inventory store knows no screen to open (stores/inventory.ts).
+        inventory = editor_sources.source('stores/inventory.ts')
         for name in ('refresh', 'applyLive'):
-            body = STORE[STORE.index(f'function {name}('):]
-            self.assertNotRegex(body[:body.index('\n}\n')], r'(?<![\w.])select\(', name)
+            body = inventory[inventory.index(f'function {name}('):]
+            self.assertNotRegex(body[:body.index('\n  }\n')], r'(?<![\w.])select\(', name)
+        self.assertNotIn('select(', inventory)
 
     def test_the_right_side_asks_for_a_screen_until_one_is_chosen(self):
         empty = editor_sources.component('EmptyState')
-        choose = re.search(r'<section v-if="state.inventory.screens.length" id="choose" class="empty">(.*?)</section>', empty, re.S)
+        choose = re.search(r'<section v-if="inv.inventory.screens.length" id="choose" class="empty">(.*?)</section>', empty, re.S)
         self.assertTrue(choose, 'the card asks for a screen while there are screens')
         self.assertIn('<h2>{{ t("editor.empty.choose.title") }}</h2>', choose[1])
         self.assertEqual(editor_sources.text('empty.choose.title'), 'Choose a screen')
@@ -52,15 +55,17 @@ class Startup(unittest.TestCase):
         # With screens and none chosen, the right side is the overview of every screen (app 0.4.0); the card that asks
         # for a screen stays for a chosen screen whose layout is still on its way.
         app = editor_sources.source('App.vue')
-        self.assertIn('if (currentScreen.value && state.layout) return ScreenView;', app)
-        self.assertIn('return state.selected || !state.inventory.screens.length ? EmptyState : HomeView;', app)
+        self.assertIn('if (scr.currentScreen && doc.layout) return ScreenView;', app)
+        self.assertIn('return scr.selected || !inv.inventory.screens.length ? EmptyState : HomeView;', app)
 
     def test_a_light_poll_keeps_the_catalogue_and_names_follow_the_inventory(self):
-        self.assertIn('state.inventory = full ? data : { ...state.inventory, ...data };', STORE)
-        self.assertIn('inventory?light=1', STORE)
+        inventory = editor_sources.source('stores/inventory.ts')
+        self.assertIn('inventory.value = full ? data : { ...inventory.value, ...data };', inventory)
+        self.assertIn('inventory?light=1', inventory)
         # Names come from the inventory at render time, so they appear as soon as the full inventory does.
-        self.assertIn('state.inventory.entities.find((e) => e.id === id)?.name', STORE)
-        self.assertIn('entityName(props.tile.entity)', editor_sources.component('TileCard'))
+        self.assertIn('return inv.entityOf(id)?.name ||', editor_sources.source('stores/entities.ts'))
+        self.assertIn('for (const entity of inventory.value.entities) if (!index.has(entity.id)) index.set(entity.id, entity);', inventory)
+        self.assertIn('entityName(props.tile.entity)', editor_sources.source('composables/useTileCard.ts'))
 
 
 if __name__ == '__main__':

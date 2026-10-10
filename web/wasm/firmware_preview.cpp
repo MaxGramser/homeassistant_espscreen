@@ -89,6 +89,17 @@ int preview_init(int w, int h, int display_dpi, int columns, int rows) {
   // The virtual device enables the firmware's normal swipe setting. Since
   // protocol 2, this preference is no longer part of a layout packet.
   settings_screen::set("swipe_pages", 1);
+  // The colour card's pages (a light's effects, a group's lamps) are bound in C++, as on the screen.
+  runtime_tiles::bind_pages();
+  // What a change of look draws again, as the shared core binds it (packages/core.yaml, theme::redraw).
+  theme::redraw = [] {
+    runtime_tiles::restyle();
+    runtime_tiles::colour_restyle();
+    effects_page::restyle();
+    group_page::restyle();
+    settings_screen::restyle();
+    dirty = true;
+  };
   runtime_tiles::screen_awake = [] { return true; };
   runtime_tiles::now_time = [] {
     auto now = esphome::ESPTime::from_epoch_local(epoch + (esphome::millis() - epoch_at) / 1000 + utc_offset);
@@ -117,11 +128,26 @@ const char *preview_receive(const char *message) {
   dirty = true;
   return last_result.c_str();
 }
-// The card of tile `index` built anew, as a hold on the tile opens it; 1 when it paints itself (docs/CARD_PARTS.md).
+// The screen's Dark mode (app 0.4.86), through the same setting and theme::set_dark the screen's own switch takes.
+void preview_dark(int on) {
+  settings_screen::set("dark_mode", on ? 1 : 0);
+  theme::set_dark(settings_screen::dark_mode != 0);
+  dirty = true;
+}
+// The language ESP Screens builds the screens in (app 0.4.86): its code ("nl", "pt-BR"), else its base language,
+// else English, as a build of that code would carry. 1 when the code or its base has a table of its own.
+int preview_language(const char *code) {
+  const bool own = screen_text::choose(code);
+  if (runtime_tiles::enabled) theme::redraw();
+  return own ? 1 : 0;
+}
+// What a hold on tile `index` opens (runtime_tiles::hold_card): 2 for a light's colour card, else the runtime card
+// built anew and 1 when it paints itself (docs/CARD_PARTS.md).
 int preview_card(int index) {
   if (index < 0 || index >= (int) runtime_tiles::model.count) return -1;
-  runtime_tiles::show_detail(index);
+  runtime_tiles::hold_card(index);
   dirty = true;
+  if (runtime_tiles::colour_shown()) return 2;
   return runtime_tiles::card_shape_of ? 1 : 0;
 }
 // How many times a card was built: a state that a card paints in place leaves it as it was.

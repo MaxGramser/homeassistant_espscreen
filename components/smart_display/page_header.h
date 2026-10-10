@@ -266,7 +266,8 @@ public:
     // The dial is as large as a round icon (clock-outline) of the icon font.
     int dial = lv_font_get_glyph_dsc(header_icon_font, &dial_glyph, 0xF0150, 0) && dial_glyph.box_h ? dial_glyph.box_h : zero.box_h * 3 / 2;
 
-    struct Part : Piece { size_t item = 0; bool dial = false; };
+    // A part's own colour: a plugin item's tone, which it says each time it is read (plugin API 0.8).
+    struct Part : Piece { size_t item = 0; bool dial = false; uint32_t color = 0; bool has_color = false; };
     std::array<Part, header_bar::MAX_ITEMS> parts;
     std::array<int, header_bar::MAX_ITEMS> widths{};
     size_t count = 0;
@@ -287,6 +288,8 @@ public:
         if (item.kind == Kind::battery && surface.status_font && lv_font_get_glyph_dsc(surface.status_font, &probe, own.icon, 0))
           font = surface.status_font;
         static_cast<Piece &>(p) = piece(own.icon, font, own.text, header_text_font, gaps);
+        p.color = own.color;
+        p.has_color = own.has_color;
       } else {
         static_cast<Piece &>(p) = piece(item.icon, header_icon_font, item_text(item, now, view.epoch, view.clock_24h), header_text_font, gaps);
       }
@@ -387,12 +390,14 @@ public:
         label(slot.icon, tile_icon::utf8(p.icon));
         lv_obj_set_pos(slot.icon, x - p.icon_left, icon_top(p.font, p.icon, middle2));
         const auto &item = bar.items[p.item];
-        // The words, icons and dial of the top bar take the slate paint; an item's own colour sits on top of it.
-        const uint32_t color = item.has_color ? theme::foreground(item.color) : 0;
-        if (slot.own != item.has_color || slot.icon_color != color) {
-          if (item.has_color) lv_obj_set_style_text_color(slot.icon, lv_color_hex(color), 0);
+        // The words, icons and dial of the top bar take the slate paint; an item's own colour sits on top of it: an
+        // entity's state colour, or the tone a plugin's item says now.
+        const bool has_color = p.has_color || item.has_color;
+        const uint32_t color = p.has_color ? p.color : item.has_color ? theme::foreground(item.color) : 0;
+        if (slot.own != has_color || slot.icon_color != color) {
+          if (has_color) lv_obj_set_style_text_color(slot.icon, lv_color_hex(color), 0);
           else lv_obj_remove_local_style_prop(slot.icon, LV_STYLE_TEXT_COLOR, 0);
-          slot.own = item.has_color;
+          slot.own = has_color;
           slot.icon_color = color;
         }
         icon_on[k] = true;

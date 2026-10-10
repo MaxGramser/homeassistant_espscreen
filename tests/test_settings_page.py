@@ -126,16 +126,16 @@ class Firmware(unittest.TestCase):
         # back button and its action at the top right lost their taps to it. (The wake overlay of a dimmed
         # screen was not affected: apply_screen_settings moves it to the foreground.)
         self.assertIn('lv_obj_move_to_index(hold_area, lv_obj_get_index(below));', SCREEN)
-        # The brightness overlay went to the runtime in 0.2.80; the colour card is the first one left.
-        cards = ('color_detail_overlay', 'dim_wake_overlay')
+        # Every card is made in C++ since app 0.4.86 (the colour card was the last one in YAML): each is made the
+        # first time it opens and comes to the front when it does, so the strip made at boot lies under all of them.
+        for root in ('detail_root', 'colour_root'):
+            self.assertIn(f'lv_obj_move_foreground({root});', RUNTIME, root)
         for name, text in self.profiles.items():
-            call = re.search(r'settings_screen::attach_hold\(id\(home_page\)->obj, [^;]*, id\((\w+)\)\);', text)
-            self.assertTrue(call, f'{name}: attach_hold gets no card to stay under')
-            self.assertEqual(call[1], cards[0], name)
+            call = re.search(r'settings_screen::attach_hold\(id\(home_page\)->obj, [^;]*\);', text)
+            self.assertTrue(call, f'{name}: the hold strip is attached')
+            self.assertNotIn('color_detail_overlay', text, name)
             page = text[text.index('- id: home_page'):]
-            positions = [page.index(f'id: {card}\n') for card in cards]
-            self.assertEqual(positions, sorted(positions), f'{name}: {cards[0]} must be the first card on the page')
-            self.assertLess(page.index('id: page_next\n'), positions[0], f'{name}: the page controls stay under the strip')
+            self.assertLess(page.index('id: page_next\n'), page.index('id: dim_wake_overlay\n'), f'{name}: the page controls stay under the wake overlay')
 
 
 if __name__ == '__main__':

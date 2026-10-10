@@ -172,13 +172,6 @@ inline size_t first_of(unsigned page, int per_page) { return static_cast<size_t>
 inline size_t end_of(unsigned page, int per_page, size_t count) {
   return std::min({first_of(page, per_page) + std::max(1, per_page), count, static_cast<size_t>(LIMIT)});
 }
-// The pager: the dots every page bar has up to eight pages, "3 / 12" past that.
-inline bool dots(unsigned pages) { return pages <= 8; }
-inline std::string page_text(unsigned page, unsigned pages) {
-  char b[16];
-  snprintf(b, sizeof(b), "%u / %u", page + 1, pages);
-  return b;
-}
 
 // ---- the speaker menu ----
 // A panel of rows under the pill in the player's top bar, one per speaker (or input); more than the glass holds page,

@@ -17,6 +17,16 @@ export function uiScale(shape: Shape) {
   return { compact, large: !compact, px };
 }
 
+/** ui::touch_min, ui::mm(7): the least a finger must be able to hit, 7 mm of this glass. */
+export const touchMin = (shape: Shape) => Math.floor(((shape.dpi || (shape.look === "compact" ? 143 : 170)) * 7 + 12) / 25);
+
+/** The keys of a card two rows high or more and the gap between them (runtime_tiles render_tall, a cover's keys and
+ * slats among them): a finger's 7 mm or the look's key, whichever is larger, in glass pixels. */
+export function tallKeys(shape: Shape) {
+  const { large, px } = uiScale(shape);
+  return { touch: Math.max(touchMin(shape), px(large ? 48 : 34)), gap: px(large ? 8 : 4) };
+}
+
 /** The pill of a wide card's -/+ in glass pixels: its height (panel_metrics key_h + 2), the inset of its keys and their
  * diameter (stepper_keys), and the faces its number is drawn in (watch_value first, then sublabel_big, then sublabel). */
 export function pillMetrics(shape: Shape) {
@@ -43,8 +53,7 @@ export function widestSetpoint(a: Record<string, any>) {
  * and how wide the bar is. `place`: beside the name on a card of one row, over the card on a taller one or the page. */
 export function modeBar(shape: Shape, place: "row" | "tall" | "full", reach: number, modes: number) {
   const { large, compact, px } = uiScale(shape);
-  const touchMin = Math.floor(((shape.dpi || (compact ? 143 : 170)) * 7 + 12) / 25);
-  const finger = place === "tall" ? Math.max(touchMin, px(large ? 48 : 34)) : place === "full" ? px(large ? 84 : 44) : px(large ? 46 : 34);
+  const finger = place === "tall" ? Math.max(touchMin(shape), px(large ? 48 : 34)) : place === "full" ? px(large ? 84 : 44) : px(large ? 46 : 34);
   const inset = Math.max(2, px(large ? 4 : 3));
   reach = Math.min(reach, px(compact ? 620 : 740));
   const fit = modes >= 2 ? Math.min(modes, Math.floor((reach - 2 * inset) / finger)) : 0;

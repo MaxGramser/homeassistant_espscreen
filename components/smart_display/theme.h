@@ -111,6 +111,10 @@ enum Role : uint8_t {
   ENERGY_DEVICE_3,
   ENERGY_DEVICE_4,
   ENERGY_REST,           // Other and Untracked consumption: Home Assistant's --state-unavailable-color
+  // ---- the weather card's two-tone icons (its week, weather_chart.h): a cloud in front, a second cloud behind it, as Home
+  // Assistant's own weather pictures draw them; a sun, drops and flakes keep their condition colours
+  WEATHER_CLOUD,
+  WEATHER_CLOUD_BACK,
   ROLE_COUNT
 };
 
@@ -198,6 +202,8 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* ENERGY_DEVICE_3 */          {0xB54C9D, 0xB54C9D},
   /* ENERGY_DEVICE_4 */          {0x5BD0CC, 0x5BD0CC},
   /* ENERGY_REST */              {0xBDBDBD, 0x707070},  // dark: #6F6F6F on the panel's grey step
+  /* WEATHER_CLOUD */            {0xB0BEC5, 0xCFD8DC},
+  /* WEATHER_CLOUD_BACK */       {0x90A4AE, 0x78909C},
 };
 
 // The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the

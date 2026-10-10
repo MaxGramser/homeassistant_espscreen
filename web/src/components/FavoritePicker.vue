@@ -6,6 +6,7 @@
 // link (app 0.4.84, `spotify_link`) also takes one: the add-on reads it (api/media/link) and answers an item like the
 // library's, chosen the same way.
 import { computed, ref, watch } from "vue";
+import { useBusy } from "../composables/useBusy";
 import { getJson } from "../api";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
@@ -18,19 +19,18 @@ const emit = defineEmits<{ pick: [play: FavoritePlay] }>();
 
 const trail = ref<{ folder: number; title: string }[]>([]);
 const items = ref<Item[]>([]);
-const loading = ref(false);
+const { busy: loading, run: whileLoading } = useBusy();
 const failed = ref("");
 const linkable = ref(false);
 const link = ref("");
 const linked = ref<Item | null>(null);
 const linkFailed = ref("");
-const linking = ref(false);
+const { busy: linking, runOnce: linkOnce } = useBusy();
 const title = computed(() => trail.value[trail.value.length - 1]?.title || "");
 // The pictures of a folder that has them: a grid of covers; a folder of folders: rows.
 const pictured = computed(() => items.value.some((item) => item.picture));
 
-async function open(folder: number, name: string, back = false) {
-  loading.value = true;
+const open = (folder: number, name: string, back = false) => whileLoading(async () => {
   failed.value = "";
   try {
     const answer = await getJson<{ title: string; folder: number; items: Item[]; spotify_link?: boolean }>(`media/browse?entity=${encodeURIComponent(props.entity)}&folder=${folder}`);
@@ -39,10 +39,8 @@ async function open(folder: number, name: string, back = false) {
     if (!back) trail.value = [...trail.value, { folder, title: answer.title || name }];
   } catch (error) {
     failed.value = error instanceof Error ? error.message : String(error);
-  } finally {
-    loading.value = false;
   }
-}
+});
 function up() {
   if (trail.value.length < 2) return;
   trail.value = trail.value.slice(0, -1);
@@ -53,20 +51,17 @@ function tap(item: Item) {
   if (item.play && item.favorite) emit("pick", item.favorite);
   else if (item.expand) void open(item.item, item.title);
 }
-async function readLink() {
+const readLink = () => linkOnce(async () => {
   const text = link.value.trim();
-  if (!text || linking.value) return;
-  linking.value = true;
+  if (!text) return;
   linkFailed.value = "";
   try {
     linked.value = await getJson<Item>(`media/link?entity=${encodeURIComponent(props.entity)}&link=${encodeURIComponent(text)}`);
   } catch (error) {
     linked.value = null;
     linkFailed.value = error instanceof Error ? error.message : String(error);
-  } finally {
-    linking.value = false;
   }
-}
+});
 const isChosen = (item: Item) => Boolean(props.chosen && item.favorite && item.favorite.id === props.chosen.id && item.favorite.type === props.chosen.type);
 watch(() => props.entity, () => {
   trail.value = []; linkable.value = false; link.value = ""; linked.value = null; linkFailed.value = "";

@@ -2,40 +2,70 @@
 // The shared firmware and LVGL in WebAssembly, fed the same packets a screen gets. `still` shows a layout without
 // touch at a few frames a second (the home page); otherwise it takes taps and swipes, and `controls` decides whether
 // a tap on a tile reaches Home Assistant.
+import { useDocumentVisibility, useElementVisibility, useRafFn, useTimeoutFn } from "@vueuse/core";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { FirmwarePreviewModule } from "../wasm/firmware_preview.js";
 import { loadFirmware } from "../wasm/load";
-import { state } from "../store";
 import { t } from "../i18n";
 import { api, send } from "../api";
 import type { PageLayout } from "../types";
+import { useInventoryStore } from "../stores/inventory";
+import { useDocumentStore } from "../stores/document";
+
+const inv = useInventoryStore();
+const doc = useDocumentStore();
 
 const props = withDefaults(defineProps<{
   width: number; height: number; dpi?: number; columns: number; rows: number;
   layout?: PageLayout | null; still?: boolean; controls?: boolean;
-  // Whether the board draws pictures (store.drawsPictures): a CYD's preview has no square for an album cover.
+  // Whether the board draws pictures (stores/screen.ts drawsPictures): a CYD's preview has no square for an album cover.
   pictures?: boolean;
-}>(), { still: false, controls: true, pictures: true });
+  // The screen's Dark mode (its settings), drawn as the firmware draws it.
+  dark?: boolean;
+}>(), { still: false, controls: true, pictures: true, dark: false });
 const emit = defineEmits<{ ready: []; failed: [message: string] }>();
 const canvas = ref<HTMLCanvasElement | null>(null);
 const error = ref("");
 const actionError = ref("");
 let module: FirmwarePreviewModule | null = null;
-let raf: number | null = null, refreshTimer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false, generation = 0, pointer: number | null = null, synced = false, ready = false;
 let lastLayout = "", lastMessages = new Map<string, string>();
 let session = "", sequence = 0;
 let sendingActions = false;
-let liveRefresh: ReturnType<typeof setTimeout> | undefined;
 let events: EventSource | null = null;
 let fetchingImage = false;
-let visible = true, lastDraw = 0;
-let observer: IntersectionObserver | null = null;
+let lastDraw = 0;
 const downloads = new AbortController();
 // A still screen redraws its clock and the states coming in, not a finger: four frames a second is enough.
 const STILL_FRAME = 250;
+// A draft that changes with every key typed (a tile's name, a title) goes to the add-on once the typing pauses this long.
+const LAYOUT_PAUSE = 200;
 
-const layout = () => props.layout === undefined ? state.document : props.layout;
+const layout = () => props.layout === undefined ? doc.document : props.layout;
+// The states again every ten seconds after the last time (a fallback for the live stream), soon after the stream says
+// something changed, and once typing pauses; every wait goes with the preview.
+// A hidden tab asks nothing: what came due meanwhile is asked for once the tab is shown again.
+const sight = useDocumentVisibility();
+let due = false;
+const whenInSight = () => { if (sight.value === "hidden") due = true; else receive(); };
+watch(sight, (now) => { if (now === "visible" && due) { due = false; receive(); } });
+const refreshLater = useTimeoutFn(whenInSight, 10000, { immediate: false });
+const refreshSoon = useTimeoutFn(whenInSight, 100, { immediate: false });
+const layoutPause = useTimeoutFn(() => receive(), LAYOUT_PAUSE, { immediate: false });
+// One frame each time the browser draws; a still screen only while it is in sight (useElementVisibility).
+const frames = useRafFn(draw, { immediate: false });
+const visible = useElementVisibility(canvas, { initialValue: true });
+// The screens' language, in which ESP Screens builds them and writes the words it sends (Settings -> Language & region).
+const language = () => inv.inventory.language?.effective || "en";
+
+// The language and the look of the screen, as its own firmware draws them (a build from before has neither export).
+// Each only when it changes: a new language draws every card again.
+function speak() {
+  if (module && !disposed && "_preview_language" in module) module.ccall("preview_language", "number", ["string"], [language()]);
+}
+function shade() {
+  if (module && !disposed) module._preview_dark?.(props.dark ? 1 : 0);
+}
 
 function time() {
   const now = new Date();
@@ -51,7 +81,7 @@ async function receive() {
   const document = layout();
   if (!module || disposed || !document) return;
   const revision = ++generation;
-  clearTimeout(refreshTimer);
+  refreshLater.stop();
   try {
     const result = await send<{ revision: string; configuration: Record<string, unknown>[]; values: Record<string, unknown>[] }>("firmware-preview", "POST", {
       shape: { width: props.width, height: props.height, columns: props.columns, rows: props.rows },
@@ -85,16 +115,15 @@ async function receive() {
   } catch (e) {
     if (!disposed && revision === generation) fail(e instanceof Error ? e.message : String(e));
   } finally {
-    if (!disposed && revision === generation) refreshTimer = setTimeout(receive, 10000);
+    if (!disposed && revision === generation) refreshLater.start();
   }
 }
 
 function draw() {
-  raf = null;
   if (!module || disposed || !canvas.value) return;
   try {
     const now = performance.now();
-    if (!props.still || (visible && now - lastDraw >= STILL_FRAME)) {
+    if (!props.still || (visible.value && now - lastDraw >= STILL_FRAME)) {
       lastDraw = now;
       time();
       module._preview_render();
@@ -105,8 +134,8 @@ function draw() {
       canvas.value.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pixels), props.width, props.height), 0, 0);
       if (synced && !ready) { ready = true; emit("ready"); }
     }
-    raf = requestAnimationFrame(draw);
   } catch (e) {
+    frames.pause();
     fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }));
   }
 }
@@ -187,8 +216,7 @@ async function fetchImages() {
 }
 
 function refreshLiveState() {
-  clearTimeout(liveRefresh);
-  liveRefresh = setTimeout(receive, 100);
+  refreshSoon.start();
 }
 
 function entityQuery() {
@@ -230,10 +258,6 @@ function cancel() {
 }
 
 onMounted(async () => {
-  if (props.still && canvas.value && typeof IntersectionObserver !== "undefined") {
-    observer = new IntersectionObserver((entries) => { visible = entries.some((entry) => entry.isIntersecting); });
-    observer.observe(canvas.value);
-  }
   try {
     const loaded = await loadFirmware();
     if (disposed) return;
@@ -243,21 +267,24 @@ onMounted(async () => {
     }
     // A board that draws no pictures (the CYD) has no square for an album cover, as on its glass (firmware 0.46.0).
     module._preview_pictures?.(props.pictures === false ? 0 : 1);
+    speak(); shade();
     await receive();
     listen();
+    // The first frame at once, then one each time the browser draws (a failing frame stops them).
+    frames.resume();
     draw();
   } catch (e) { if (!disposed) fail(e instanceof Error ? e.message : String(e)); }
 });
-watch(layout, receive, { deep: true });
+watch(layout, () => layoutPause.start(), { deep: true });
+watch(language, speak);
+watch(() => props.dark, shade);
 watch(entityQuery, listen);
 onBeforeUnmount(() => {
   disposed = true; generation++;
   events?.close(); events = null;
-  observer?.disconnect();
   downloads.abort();
-  if (raf !== null) cancelAnimationFrame(raf);
-  raf = null;
-  clearTimeout(refreshTimer); clearTimeout(liveRefresh); cancel(); module = null;
+  frames.pause();
+  cancel(); module = null;
 });
 </script>
 

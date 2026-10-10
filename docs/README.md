@@ -25,6 +25,7 @@
 - [TAB5.md](TAB5.md): the M5Stack Tab5, 5 inch, ESP32-P4, for the confirmed ST7121 variant.
 - [WAVESHARE35.md](WAVESHARE35.md): the Waveshare ESP32-S3-Touch-LCD-3.5.
 - [WAVESHARE4B.md](WAVESHARE4B.md): the Waveshare ESP32-S3-Touch-LCD-4B.
+- [WAVESHARELCD4.md](WAVESHARELCD4.md): the Waveshare ESP32-S3-Touch-LCD-4, the board without the "B".
 - [WAVESHARE5.md](WAVESHARE5.md): the Waveshare ESP32-S3-Touch-LCD-5, the 4.3-inch's board with 5-inch glass.
 - [WAVESHAREP4.md](WAVESHAREP4.md): the Waveshare ESP32-P4-86-Panel-ETH-2RO, 4 inch, 720 × 720, using Wi-Fi.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
@@ -40,7 +41,7 @@
 - [BOARD_RELEASES.md](BOARD_RELEASES.md): which boards a change reaches, and the firmware number it gets.
 - [PROFILES.md](PROFILES.md): how a screen's YAML is put together from the core, looks, features and board files.
 - [THEME.md](THEME.md): colours and Dark mode, from one table.
-- [SETTINGS.md](SETTINGS.md): the screen settings, and adding one.
+- [SETTINGS.md](SETTINGS.md): the screen settings, and adding one; a board's own settings (Extras), and adding one.
 - [PAGES.md](PAGES.md): the page model, tile sizes, navigation, storage and the message rules.
 - [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one

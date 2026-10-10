@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from "vue";
+import { onKeyStroke } from "@vueuse/core";
+import { computed } from "vue";
 import Sidebar from "./components/Sidebar.vue";
 import Toast from "./components/Toast.vue";
 import CommandPalette from "./components/CommandPalette.vue";
+import ConfirmDialog from "./components/ConfirmDialog.vue";
+import ConnectionBar from "./components/ConnectionBar.vue";
 import ScreenView from "./components/ScreenView.vue";
 import EmptyState from "./components/EmptyState.vue";
 import HomeView from "./components/HomeView.vue";
@@ -12,38 +15,49 @@ import FirmwareView from "./components/FirmwareView.vue";
 import AlertsView from "./components/AlertsView.vue";
 import OverrideView from "./components/OverrideView.vue";
 import PluginsView from "./components/PluginsView.vue";
-import { pluginsEnabled } from "./plugin-state";
-import { currentScreen, phone, route, state } from "./store";
-import { sideWidth, sidebar } from "./sidebar-state";
+import { question } from "./composables/useConfirm";
+import { useSidebarStore } from "./stores/sidebar";
+import { useUiStore } from "./stores/ui";
+import { usePluginsStore } from "./stores/plugins";
+import { useScreenStore } from "./stores/screen";
+import { useInventoryStore } from "./stores/inventory";
+import { useDragStore } from "./stores/drag";
+import { useDocumentStore } from "./stores/document";
 
+const ui = useUiStore();
+const sidebar = useSidebarStore();
+const plugins = usePluginsStore();
+const scr = useScreenStore();
+const inv = useInventoryStore();
+const dragging = useDragStore();
+const doc = useDocumentStore();
 const view = computed(() => {
-  if (route.value === "#settings") return AppSettingsView;
-  if (route.value === "#new-screen") return InstallerView;
-  if (route.value === "#firmware") return FirmwareView;
-  if (route.value === "#alerts") return AlertsView;
-  if (route.value === "#override") return OverrideView;
-  if (route.value === "#plugins" && pluginsEnabled.value) return PluginsView;
+  if (ui.route === "#settings") return AppSettingsView;
+  if (ui.route === "#new-screen") return InstallerView;
+  if (ui.route === "#firmware") return FirmwareView;
+  if (ui.route === "#alerts") return AlertsView;
+  if (ui.route === "#override") return OverrideView;
+  if (ui.route === "#plugins" && plugins.pluginsEnabled) return PluginsView;
   // Nothing chosen is the overview of every screen (app 0.4.0); a house without screens starts with the first.
-  if (currentScreen.value && state.layout) return ScreenView;
-  return state.selected || !state.inventory.screens.length ? EmptyState : HomeView;
+  if (scr.currentScreen && doc.layout) return ScreenView;
+  return scr.selected || !inv.inventory.screens.length ? EmptyState : HomeView;
 });
-// ⌘K (Ctrl+K) opens the search from anywhere.
-function onKey(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); state.palette = !state.palette; }
-}
-onMounted(() => document.addEventListener("keydown", onKey));
-onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
+// ⌘K (Ctrl+K) opens the search from anywhere, unless a question of the editor's is open.
+onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !question.value,
+  (e) => { e.preventDefault(); ui.palette = !ui.palette; }, { target: document });
 </script>
 
 <template>
-  <div class="app" :class="{ dragging: state.drag.active, phone, 'side-folded': sidebar.folded, 'side-resizing': sidebar.resizing }"
-    :style="{ '--side-w': `${sideWidth()}px` }">
+  <div class="app" :class="{ dragging: dragging.active, phone: ui.phone, 'side-folded': sidebar.folded, 'side-resizing': sidebar.resizing }"
+    :style="{ '--side-w': `${sidebar.shownWidth}px` }">
     <!-- On a phone the overview and a screen carry their own way around (app 0.4.40): the sidebar's row stays for the rest. -->
-    <Sidebar v-if="!(phone && route === '')" />
+    <Sidebar v-if="!(ui.phone && ui.route === '')" />
     <main class="main">
+      <ConnectionBar />
       <component :is="view" />
     </main>
     <Toast />
     <CommandPalette />
+    <ConfirmDialog />
   </div>
 </template>

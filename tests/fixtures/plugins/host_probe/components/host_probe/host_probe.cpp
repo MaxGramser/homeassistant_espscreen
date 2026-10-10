@@ -36,7 +36,10 @@ class ProbeTile : public tessera::Tile {
   }
   void on_state(JsonObjectConst data) override {
     n_ = data["n"] | -1;
-    ESP_LOGI(TAG, "tile=%d state n=%d wait=[%s]", tile_, n_, data["wait"] | "");
+    // A tile of an entity gets its lists whole when they fit (0.5): how many prices of each day arrived.
+    JsonObjectConst attributes = data["attributes"];
+    ESP_LOGI(TAG, "tile=%d state n=%d wait=[%s] today=%u tomorrow=%u", tile_, n_, data["wait"] | "",
+             (unsigned) attributes["today"].size(), (unsigned) attributes["tomorrow"].size());
   }
   void on_tick(uint32_t epoch) override {
     ESP_LOGI(TAG, "tile=%d tick epoch=%u n=%d", tile_, (unsigned) epoch, n_);
@@ -68,6 +71,10 @@ class ProbeCard : public tessera::Card {
     words_ = ui::label(c.parent, Font::BODY_LARGE, theme::INK);
     lv_obj_set_width(words_, c.width);
     ui::set_text(words_, "Probe card");
+    // A word at the foot of the card's room: the render shows the whole room reaches the glass (GitHub #226).
+    foot_ = ui::label(c.parent, Font::BODY_LARGE, theme::INK);
+    ui::set_text(foot_, "Foot");
+    lv_obj_align(foot_, LV_ALIGN_BOTTOM_MID, 0, 0);
   }
   void on_state(JsonObjectConst data) override { ESP_LOGI(TAG, "card state n=%d", data["n"] | -1); }
   void on_tick(uint32_t epoch) override { ESP_LOGI(TAG, "card tick epoch=%u", (unsigned) epoch); }
@@ -75,7 +82,7 @@ class ProbeCard : public tessera::Card {
   bool on_back() override { ESP_LOGI(TAG, "card back"); return false; }
 
  private:
-  lv_obj_t *words_{};
+  lv_obj_t *words_{}, *foot_{};
 };
 
 void HostProbe::setup() {
@@ -138,7 +145,9 @@ void HostProbe::ask_once() {
 void HostProbe::on_message(JsonObjectConst message) {
   std::string result;
   serializeJson(message["result"], result);
-  ESP_LOGI(TAG, "message re=%u ok=%d result=%s", message["re"] | 0u, (int) (message["ok"] | false), result.c_str());
+  // An answer the manifest maps (`answers`, 0.5) comes as its fields: a day of prices as one list of numbers.
+  ESP_LOGI(TAG, "message re=%u ok=%d prices=%u result=%.120s", message["re"] | 0u, (int) (message["ok"] | false),
+           (unsigned) message["result"]["prices"].size(), result.c_str());
 }
 
 }  // namespace esphome::host_probe

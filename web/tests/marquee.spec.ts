@@ -4,13 +4,16 @@ import { nextTick } from 'vue';
 import MarqueeText from '../src/components/MarqueeText.vue';
 
 afterEach(() => vi.unstubAllGlobals());
-it('scrolls only overflowing text, remeasures after resize and cleans up', async () => {
-  let resized = () => {};
-  const disconnect = vi.fn();
+it('scrolls only overflowing text, remeasures after resize, follows a new text and cleans up', async () => {
+  // Every observer the text gets, what it watches and whether it let go.
+  const observers: { callback: () => void; watched: Element[]; done: boolean }[] = [];
   vi.stubGlobal('ResizeObserver', class {
-    constructor(callback: () => void) { resized = callback; }
-    observe() {} disconnect = disconnect;
+    entry: (typeof observers)[number];
+    constructor(callback: () => void) { this.entry = { callback, watched: [], done: false }; observers.push(this.entry); }
+    observe(element: Element) { this.entry.watched.push(element); }
+    disconnect() { this.entry.done = true; }
   });
+  const resized = () => observers.at(-1)!.callback();
   const view = mount(MarqueeText, { props: { text: 'Long track title' } });
   const viewport = view.element;
   const text = view.get('.marquee-text').element;
@@ -26,5 +29,8 @@ it('scrolls only overflowing text, remeasures after resize and cleans up', async
   expect(view.find('.marquee-copy').exists()).toBe(false);
   await view.setProps({ text: 'New track' });
   expect(view.attributes('title')).toBe('New track');
-  view.unmount(); expect(disconnect).toHaveBeenCalledOnce();
+  // The new text is a new element, and it is the one measured from now on.
+  expect(observers.at(-1)!.watched).toContain(view.get('.marquee-text').element);
+  view.unmount();
+  expect(observers.every((observer) => observer.done)).toBe(true);
 });

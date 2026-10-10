@@ -382,6 +382,7 @@ while it keeps your country's clock and numbers.
 | Waveshare ESP32-S3-Touch-LCD-7B (experimental) | 1024 × 600, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE7B.md)) |
 | Sunton ESP32-8048S070, 7 inch (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/SUNTON8048S070.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-4B](https://tessera-maxgramser.on-forge.com/screens/waveshare4b), 4 inch (experimental) | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE4B.md)) |
+| Waveshare ESP32-S3-Touch-LCD-4, 4 inch (experimental) | 480 × 480, 2 × 3 tiles | RGB / capacitive GT911, the board without the "B"; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARELCD4.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-3.5](https://tessera-maxgramser.on-forge.com/screens/waveshare35) (new) | 480 × 320, 2 × 2 tiles | ST7796 SPI / capacitive FT6336; dimmable backlight, no camera pictures ([details](docs/WAVESHARE35.md)) |
 | [Hosyond ESP32-32E](https://tessera-maxgramser.on-forge.com/screens/hosyond40), 4 inch (experimental) | 480 × 320, 2 × 3 tiles | ST7796 SPI / resistive XPT2046; dimmable backlight, no camera pictures, hardware acceptance pending ([details](docs/HOSYOND40.md)) |
 | [Guition JC3248W535](docs/JC3248W535.md), 3.5 inch (new) | 480 × 320, 2 × 2 tiles | AXS15231B QSPI / capacitive AXS15231B; dimmable backlight, camera pictures |

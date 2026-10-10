@@ -5,9 +5,11 @@
 // instead of in words. `previewKey` is the tile option it previews; `sample` turns a choice into that option's value.
 import { computed, onBeforeUnmount, ref } from "vue";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
-import { state } from "../store";
 import type { Tile } from "../types";
 import Icon from "./ui/Icon.vue";
+import { useInspectorStore } from "../stores/inspector";
+
+const insp = useInspectorStore();
 
 const props = defineProps<{
   choices: readonly (readonly [unknown, string])[]; value: unknown; disabled?: boolean; shapes?: Record<string, [number, number]>;
@@ -23,10 +25,10 @@ const open = ref(false);
 const currentText = computed(() => props.choices.find(([key]) => String(key) === String(props.value))?.[1] ?? "");
 function show(key: unknown) {
   if (!props.tile?.id || !props.previewKey || String(key) === String(props.value)) { hide(); return; }
-  state.optionPreview = { tileId: props.tile.id, key: props.previewKey, value: props.sample ? props.sample(key) : key };
+  insp.optionPreview = { tileId: props.tile.id, key: props.previewKey, value: props.sample ? props.sample(key) : key };
 }
 function hide() {
-  if (state.optionPreview && state.optionPreview.tileId === props.tile?.id && state.optionPreview.key === props.previewKey) state.optionPreview = null;
+  if (insp.optionPreview && insp.optionPreview.tileId === props.tile?.id && insp.optionPreview.key === props.previewKey) insp.optionPreview = null;
 }
 function pick(key: unknown) {
   hide();

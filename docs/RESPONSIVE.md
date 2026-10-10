@@ -175,15 +175,16 @@ shows as a box on the screen, so a new one goes into all five lists and `GLYPHS`
   a rule changes nothing there, and why a board whose grid divides its glass differently needs it: on the
   Waveshare's three columns that number was a slider of 251 px on a card of 478, leaving the name 28 % of the
   card where a Guition leaves it 36 %.
-- What does not fit is left out: the forecast shows as many day columns as the width holds (five at
+- What does not fit is left out: the forecast shows as many day columns as the width holds (seven at
   most, none below two), a single clock card drops its date when it has no room beside the dial, a
   wide card gets a control panel only when the panel, the icon and some name fit.
-- The weather tile (`forecast_tile.h`, firmware 0.3.3) takes one of three forms. A card of one row puts the
-  weather now at the left and a column per day beside it; a taller card puts the weather now on top and a row
-  per day under it, the day's range drawn as a bar on one scale for the week; a tall card with no room for four
-  rows keeps the columns under the weather now. A short column gives up its chance of rain first, then the day
-  name on a line of its own. Today's column stands on a pill that keeps its padding: every column is as wide as
-  the pill around the widest text, so a card shows one day fewer rather than a pill that touches its digits.
+- The weather tile and its card draw the week (`weather_week.h` plans it, `weather_chart.h` draws it) as day columns in
+  a light grid, in fixed tiers: a card of one row shows each day's name, icon and high and low on one line beside the
+  weather now; a taller one the high and the low on rows of their own (1), the temperature as a line through the week
+  (2), the rain as flat bars hung from a line with the amount under them (3), and the chance of rain (4). A card takes
+  the highest tier that fits at the smallest face, then the largest face that keeps it, and every day the forecast
+  has comes before either. A wide, low card puts the weather now in a column beside the week. Where the week fits in
+  no tier, the tile keeps the older forms of `forecast_tile.h`.
 - A thermostat tile of more than one row (`climate_tile.h`) has two groups: the number between - and +, and a
   bar with one segment per mode. Off is not on the bar; the tile's circle switches the thermostat on and off.
   With room the number stands large with the bar under it; otherwise the stepper and the bar share one row, or
@@ -268,17 +269,25 @@ keys, a thermostat its status word before its modes, the effects page its rows b
 And the concessions are **states, not a ratchet**: a card that has given up a whole block has room for
 the small things again. So write the states down in the order you would like them, try them in turn and
 take the first that holds everything, instead of giving one thing after another and never taking
-anything back. The weather card's order is the rain under its hours, then its heading, then the hour
-strip; on 800 x 480 the strip buys so much room that the heading comes back with it and every day keeps
-a row (`weather_card::layout`). Write the order down in a comment with the reason. Nothing may ever be drawn past the glass: if the
+anything back. The weather card turns the order around: its arrangements go from the richest (the attributes as tiles)
+to the barest (the Daily | Hourly key in the top card), and it takes the richest whose forecast still reaches
+its rain row. Write the order down in a comment with the reason. Nothing may ever be drawn past the glass: if the
 cascade runs out, the last resort is scrolling or leaving content out, never overflow.
+
+**Every page a tap opens has one top bar.** A tile's card, the effects page, a light group, the media library, the
+settings page, a plugin's card and a camera build their back key, their name and their keys at the right with
+`detail_bar.h` (`detail_bar::make`, or `detail_bar::place` for parts declared in the core). The bar stands on the glass,
+not on the card: a card of controls is only a hand wide on wide glass, but its back key keeps the glass's top left
+corner, so a finger going a page deeper and back finds it where it was. A key of a card's own in the bar (a power key,
+a battery) takes `detail_bar::right_slot`, never a position of its own.
 
 **Does a list not fit? Then it gets a pager, the way the settings page has one.** A stack of items that
 is one too long is not a reason to squeeze the items: a row that falls under the height of its own
 letters is unreadable on every board, and one drawn over the next is worse than one a tap away. So a
-list of items that repeat (settings rows, the coming days, the effects of a light) shows as many as
+list of items that repeat (settings rows, the effects of a light) shows as many as
 fit at their honest minimum and puts the rest on a next page, with the same chevrons-and-dots pager as
-the tile pages (`settings_screen::page_dots`, `settings_screen::fitting_rows`, `weather_card::layout`).
+the tile pages: one component, `page_bar.h`, always across the foot of the glass where the tile pages have it
+(`page_bar::make`, `settings_screen::fitting_rows`).
 Reserve the pager's room only when there is really a second page, so a list that just fits keeps its
 one page. And when a page turns, make only the rows again, not the card around them.
 

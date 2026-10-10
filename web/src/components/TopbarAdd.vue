@@ -2,18 +2,35 @@
 // Adding to the top bar: the screen's own items, then an entity (EntityItemPicker).
 import { computed } from "vue";
 import { t } from "../i18n";
-import { BUILTIN_ICONS, clockText, dateText, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { addTopbarItem, clock24, closeInspector, currentScreen, iconNamed, openBar, screenLanguage, state, topbarItems, topbarMax } from "../store";
+import { clockSample } from "../model/clock";
+import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
-import { barItemsFor, pluginsEnabled } from "../plugin-state";
 import InspectorHead from "./ui/InspectorHead.vue";
+import { useUiStore } from "../stores/ui";
+import { useRegionStore } from "../stores/region";
+import { useEntitiesStore } from "../stores/entities";
+import { usePluginsStore } from "../stores/plugins";
+import { useScreenStore } from "../stores/screen";
+import { useTopbarStore } from "../stores/topbar";
+import { useInventoryStore } from "../stores/inventory";
+import { useInspectorStore } from "../stores/inspector";
 
-const taken = computed(() => new Set(topbarItems().map(itemKey)));
+const ui = useUiStore();
+const region = useRegionStore();
+const entities = useEntitiesStore();
+const plugins = usePluginsStore();
+const scr = useScreenStore();
+const topbar = useTopbarStore();
+const inv = useInventoryStore();
+const insp = useInspectorStore();
+
+const taken = computed(() => new Set(topbar.topbarItems().map(itemKey)));
+const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
 const samples = computed(() => ({
-  clock: clockText(clock24.value, new Date(state.now), screenLanguage.value),
+  clock: clock.value.time,
   analog: t("editor.topbar.analog_sample"),
-  date: dateText(new Date(state.now), screenLanguage.value),
+  date: clock.value.date,
   wifi: t("editor.topbar.wifi_sample"),
   link: t("editor.topbar.link_sample"),
   battery: t("editor.topbar.battery_sample"),
@@ -22,20 +39,20 @@ const samples = computed(() => ({
 const builtinItem = (type: string): HeaderItem => (type === "wifi" || type === "battery" ? { type, content: "icon", show: "always" } : { type });
 // The battery only on a screen that has one (firmware 0.41.0): its hello said so, or its board has one.
 // The items of the plugins this screen runs (docs/PLUGINS.md).
-const fromPlugins = computed(() => (pluginsEnabled.value ? barItemsFor(currentScreen.value) : []));
+const fromPlugins = computed(() => (plugins.pluginsEnabled ? plugins.barItemsFor(scr.currentScreen) : []));
 const pluginItem = (item: string): HeaderItem => ({ type: "plugin", item });
-const builtins = computed(() => (state.inventory.header?.builtin || []).filter((b) => b.type !== "battery" || currentScreen.value?.battery));
+const builtins = computed(() => (inv.inventory.header?.builtin || []).filter((b) => b.type !== "battery" || scr.currentScreen?.battery));
 </script>
 
 <template>
   <InspectorHead kind="bar" :title="t('editor.topbar.add.title')" icon="plus"
-    :crumbs="[{ text: t('editor.topbar.title'), open: () => openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbarItems().length }, topbarMax()) }]" />
+    :crumbs="[{ text: t('editor.topbar.title'), open: () => insp.openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbar.topbarItems().length }, scr.topbarMax) }]" />
   <div class="dr-body">
     <div class="f">
       <span class="f-label">{{ t("editor.topbar.add.builtin") }}</span>
       <div class="options">
-        <button v-for="b in builtins" :key="b.type" type="button" class="option" :disabled="taken.has(itemKey(builtinItem(b.type)))" @click="addTopbarItem(builtinItem(b.type))">
-          <span class="mdi">{{ glyph(STATUS_CODES[b.type] || iconNamed(BUILTIN_ICONS[b.type])?.cp || "F0150") }}</span>
+        <button v-for="b in builtins" :key="b.type" type="button" class="option" :disabled="taken.has(itemKey(builtinItem(b.type)))" @click="topbar.addTopbarItem(builtinItem(b.type))">
+          <span class="mdi">{{ glyph(STATUS_CODES[b.type] || entities.iconNamed(BUILTIN_ICONS[b.type])?.cp || "F0150") }}</span>
           <span class="tx"><strong>{{ b.label }}</strong><small>{{ taken.has(itemKey(builtinItem(b.type))) ? t("editor.topbar.add.added") : samples[b.type] }}</small></span>
         </button>
       </div>
@@ -43,16 +60,16 @@ const builtins = computed(() => (state.inventory.header?.builtin || []).filter((
  <div v-if="fromPlugins.length" class="f">
       <span class="f-label">{{ t("editor.topbar.add.plugins") }}</span>
       <div class="options">
-        <button v-for="p in fromPlugins" :key="p.item" type="button" class="option" :disabled="taken.has(itemKey(pluginItem(p.item)))" @click="addTopbarItem(pluginItem(p.item))">
+        <button v-for="p in fromPlugins" :key="p.item" type="button" class="option" :disabled="taken.has(itemKey(pluginItem(p.item)))" @click="topbar.addTopbarItem(pluginItem(p.item))">
           <span class="mdi">{{ glyph(p.icon) }}</span>
           <span class="tx"><strong>{{ p.label }}</strong><small>{{ taken.has(itemKey(pluginItem(p.item))) ? t("editor.topbar.add.added") : p.example || p.plugin }}</small></span>
         </button>
       </div>
     </div>
-    <EntityItemPicker id="topbar-search" :taken="(item) => taken.has(itemKey(item))" @pick="addTopbarItem" />
+    <EntityItemPicker id="topbar-search" :taken="(item) => taken.has(itemKey(item))" @pick="topbar.addTopbarItem" />
   </div>
   <div class="dr-foot">
     <span class="spacer"></span>
-    <button type="button" class="btn quiet" @click="closeInspector">{{ t("editor.common.cancel") }}</button>
+    <button type="button" class="btn quiet" @click="insp.closeInspector">{{ t("editor.common.cancel") }}</button>
   </div>
 </template>

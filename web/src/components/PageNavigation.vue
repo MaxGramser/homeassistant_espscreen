@@ -2,19 +2,25 @@
 import { computed } from 'vue';
 import { t } from '../i18n';
 import { navigationFooter, pagination } from '../model/pages';
-import { navigationSettings, screenText, state } from '../store';
+import { useRegionStore } from '../stores/region';
+import { useSettingsStore } from '../stores/settings';
+import { useDocumentStore } from "../stores/document";
+
+const region = useRegionStore();
+const settings = useSettingsStore();
+const doc = useDocumentStore();
 const props = defineProps<{ pageId: string; interactive?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [direction: 'previous' | 'next' | 'back'] }>();
-const sequence = computed(() => state.document ? pagination(state.document) : []);
+const sequence = computed(() => doc.document ? pagination(doc.document) : []);
 const index = computed(() => sequence.value.indexOf(props.pageId));
-const visible = computed(() => state.document && navigationFooter(state.document, navigationSettings()));
-const detail = computed(() => state.document?.pages.find((page) => page.id === props.pageId)?.navigation.excludeFromPagination);
-const sequential = computed(() => !detail.value && navigationSettings().pageButtons && sequence.value.length > 1);
+const visible = computed(() => doc.document && navigationFooter(doc.document, settings.navigationSettings()));
+const detail = computed(() => doc.document?.pages.find((page) => page.id === props.pageId)?.navigation.excludeFromPagination);
+const sequential = computed(() => !detail.value && settings.navigationSettings().pageButtons && sequence.value.length > 1);
 defineExpose({ visible });
 </script>
 <template>
   <div v-if="visible" class="page-navigation" :aria-label="t('editor.pages.navigation')">
-    <button v-if="detail" type="button" class="page-back" :disabled="!interactive || canGoBack === false" @click="emit('navigate', 'back')">‹ <span>{{ screenText('screen.navigation.back') }}</span></button>
+    <button v-if="detail" type="button" class="page-back" :disabled="!interactive || canGoBack === false" @click="emit('navigate', 'back')">‹ <span>{{ region.screenText('screen.navigation.back') }}</span></button>
     <template v-else-if="sequential">
       <button type="button" :disabled="!interactive || index === 0" :aria-label="t('editor.pages.previous')" @click="emit('navigate', 'previous')">‹</button>
       <span>{{ index + 1 }} / {{ sequence.length }}</span>

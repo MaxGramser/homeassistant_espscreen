@@ -109,8 +109,9 @@ builds the board with the host probe plugin in it (`tests/fixtures/plugins/host_
 work is a log line at every moment of the plugin API) into a build folder and port of its own (`cyd-plugin`), and runs
 the plugin round alone: a layout with a plugin tile on page 1 and on page 2 and a sensor tile whose tap is the
 plugin's tap action, then every moment in the order the API promises them. The hello names the plugin; create, then
-state, then tick; new data reaches `on_state` without a new object; dark and light reach `on_theme`; the plugin's
-question is answered through the screen's inbox and reaches `on_message`; a finger on the tile reaches `on_tap` and
+state, then tick; new data reaches `on_state` without a new object, and so do two days of 96 prices (a full 2.6 KB
+`x`, as a tile of an entity gets them); dark and light reach `on_theme`; the plugin's question is answered through the
+screen's inbox and reaches `on_message`, also as a mapped answer of 96 prices; a finger on the tile reaches `on_tap` and
 `on_touch` and opens the plugin's card, which closes with the cards; the tap action opens the card with the sensor's
 entity; page 2 and back count the tile objects made and deleted; standby reaches `on_standby` both ways. The self test
 runs on the layout too. Run it twice, after any change to `plugin_host.cpp`, `plugin_api.h` or the receiver's plugin
