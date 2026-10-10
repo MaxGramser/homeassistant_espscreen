@@ -5,7 +5,7 @@
 import { computed, watch } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { closeInspector, openSaverAdd, openSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, topbarLabel, topbarView, stillSelected } from "../store";
+import { closeInspector, openSaverAdd, openSaverItem, removeSaverItem, SAVER_ITEMS_MAX, saverItems, stillSelected } from "../store";
 import {
   addPlayer, cameraChoices, changeSaver, entitiesOf, entityPlace, isOn, MAX_PLAYERS, moveStep, players, removePlayer, SAVER_ICONS, savedOrder, saver,
   saverLabel, saverReady, setPlayers, toggleStep, weatherChoices, weatherSource,
@@ -21,8 +21,10 @@ import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import { useEntitiesStore } from "../stores/entities";
+import { useTopbarStore } from "../stores/topbar";
 
 const entities = useEntitiesStore();
+const topbar = useTopbarStore();
 
 const props = defineProps<{ step: SaverKind }>();
 const T = (name: string, values?: Record<string, unknown>) => t(`editor.screen_settings.screensaver.${name}`, values || {});
@@ -85,9 +87,9 @@ watch(weatherSource, (id) => id && entities.loadLibraryStates([id], stillSelecte
       <Section :title="T('beside')" :aside="`${saverItems().length} / ${SAVER_ITEMS_MAX}`">
         <div v-if="saverItems().length" id="screensaver-items" class="items" role="list" :aria-label="T('items_title')">
           <div v-for="(it, i) in saverItems()" :key="it.entity" class="item" role="listitem" tabindex="0" @click="openSaverItem(i)" @keydown.enter.prevent="openSaverItem(i)">
-            <span class="av mdi">{{ topbarView(it).icon ? glyph(topbarView(it).icon!) : "" }}</span>
-            <span class="tx"><b>{{ topbarLabel(it) }}</b><small>{{ it.content === "icon" ? T("item_icon") : topbarView(it).text }}</small></span>
-            <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbarLabel(it) })" @click.stop="removeSaverItem(i)"><Icon name="close" /></button>
+            <span class="av mdi">{{ topbar.topbarView(it).icon ? glyph(topbar.topbarView(it).icon!) : "" }}</span>
+            <span class="tx"><b>{{ topbar.topbarLabel(it) }}</b><small>{{ it.content === "icon" ? T("item_icon") : topbar.topbarView(it).text }}</small></span>
+            <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbar.topbarLabel(it) })" @click.stop="removeSaverItem(i)"><Icon name="close" /></button>
           </div>
         </div>
         <button v-if="saverItems().length < SAVER_ITEMS_MAX" type="button" class="ghost-btn" id="screensaver-add-item" @click="openSaverAdd"><Icon name="plus" />{{ T("items_add") }}</button>

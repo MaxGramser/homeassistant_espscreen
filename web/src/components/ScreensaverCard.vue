@@ -6,14 +6,17 @@
 import { computed, onMounted } from "vue";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
-import { loadTopbarPreview, openSaverStep, state } from "../store";
+import { openSaverStep, state } from "../store";
 import { useSortableRows } from "../composables/useSortableRows";
 import { changeSaver, isOn, SAVER_ICONS, SAVER_MIN_FIRMWARE, savedOrder, saver, saverLabel, saverReady, standbyOn, stepsShown, summary, toggleStep } from "../saver";
 import type { SaverKind } from "../types";
 import Icon from "./ui/Icon.vue";
 import UiSwitch from "./ui/UiSwitch.vue";
+import { useTopbarStore } from "../stores/topbar";
 
-onMounted(() => loadTopbarPreview(0));
+const topbar = useTopbarStore();
+
+onMounted(() => topbar.loadTopbarPreview(0));
 const pictures = computed(() => Boolean(saver.value?.pictures));
 const steps = useSortableRows<SaverKind>({ rows: "#screensaver-steps > .saver-row", items: () => savedOrder.value,
   commit: (list) => changeSaver({ order: list }), skip: ".ui-switch", grip: ".grip", enabled: () => saverReady.value && pictures.value });

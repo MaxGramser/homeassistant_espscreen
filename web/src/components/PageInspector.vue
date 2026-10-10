@@ -6,7 +6,7 @@ import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
 import { beginFieldEdit, endFieldEdit } from '../store';
-import { duplicateEditorPage, pageCopyable, homeKeyShown, pageTitleShown, movePage, moveWorkspacePage, openBar, openTile, pageTitle, removePage, screenTitle, setHomePage, setPageExcluded, setPageHomeControl, setPageTitle, state, topbarItems, workspacePositions } from "../store";
+import { duplicateEditorPage, pageCopyable, pageTitleShown, movePage, moveWorkspacePage, openBar, openTile, pageTitle, removePage, screenTitle, setHomePage, setPageExcluded, setPageHomeControl, setPageTitle, state, workspacePositions } from "../store";
 import { useTextDraft } from '../composables/useTextDraft';
 import { setScreenTitle } from "../store";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -17,8 +17,10 @@ import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import HelpTip from "./HelpTip.vue";
 import { useScreenStore } from "../stores/screen";
+import { useTopbarStore } from "../stores/topbar";
 
 const scr = useScreenStore();
+const topbar = useTopbarStore();
 
 const props = defineProps<{ id: string }>();
 const page = computed(() => state.document?.pages.find((item) => item.id === props.id));
@@ -39,7 +41,7 @@ const titleDraft = useTextDraft(screenTitle, setScreenTitle, () => !scr.noTitle)
 const pageTitleDraft = useTextDraft(() => page.value?.topbar.title.source === 'text' ? page.value.topbar.title.text : '', (value) => setPageTitle(index.value, value));
 const screenTitleOpen = ref(false);
 const orders = computed(() => (state.document?.pages || []).map((_, at) => [at, String(at + 1)] as [number, string]));
-const barItems = computed(() => topbarItems(index.value));
+const barItems = computed(() => topbar.topbarItems(index.value));
 const tiles = computed(() => page.value?.tiles.length || 0);
 </script>
 
@@ -85,7 +87,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
 
       <Section :title="t('editor.topbar.title')" icon="page-layout-header">
         <button type="button" class="nav-row" :aria-label="t('editor.pages.edit_topbar')" :title="t('editor.pages.edit_topbar')" @click="openBar(0, index)">
-          <span class="bar-preview"><TopbarSvg :items="barItems" :name-text="pageTitleShown(index)" :home="homeKeyShown(index)" /></span>
+          <span class="bar-preview"><TopbarSvg :items="barItems" :name-text="pageTitleShown(index)" :home="topbar.homeKeyShown(index)" /></span>
           <span class="nav-row-end"><small>{{ t('editor.topbar.items', { used: barItems.length }, scr.topbarMax) }}</small><Icon name="chevron-right" /></span>
         </button>
       </Section>

@@ -1,7 +1,7 @@
 import { seedLayout, seedTiles, seedPages, seedTitles, appendTiles, screenFixture, documentFixture, current } from "./page-fixtures";
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, setTileOption, state, tileLimit, topbarItems, topbarView, refresh, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
+import { addTile, copyLayoutFrom, deviceStyle, importLayout, isCompact, layoutJson, movePage, moveTileToPage, pageReachWarning, removePage, removeTile, retargetPageTile, save, setTileOption, state, tileLimit, refresh, chooseGrid, tileSizeChoices, setEditorMode } from "../src/store";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
@@ -14,6 +14,7 @@ import { useBuildsStore } from "../src/stores/builds";
 import { useEntitiesStore } from "../src/stores/entities";
 import { useScreenStore } from "../src/stores/screen";
 import { useSessionStore } from "../src/stores/session";
+import { useTopbarStore } from "../src/stores/topbar";
 
 const screen = (id: string, name: string, firmware: string, tiles: any[]): Screen => screenFixture({
   id, name, online: true, firmware, board: "guition", layout: { title: name, tiles }, update: { available: true, target: "0.2.62" },
@@ -116,11 +117,11 @@ describe("selecting and editing", () => {
   });
   it("shows the clock of the stored setting when there is no top bar yet", () => {
     useSessionStore().select("living");
-    expect(topbarItems()).toEqual([expect.objectContaining({ type: "clock" })]);
+    expect(useTopbarStore().topbarItems()).toEqual([expect.objectContaining({ type: "clock" })]);
     useUiStore().now = new Date(2026, 8, 15, 10, 8).getTime();
-    expect(topbarView({ type: "clock" }).text).toBe("10:08");
-    expect(topbarView({ type: "date" }).text).toBe("Tu 15 Sep");
-    expect(topbarView({ type: "analog" }).analog).toBe(true);
+    expect(useTopbarStore().topbarView({ type: "clock" }).text).toBe("10:08");
+    expect(useTopbarStore().topbarView({ type: "date" }).text).toBe("Tu 15 Sep");
+    expect(useTopbarStore().topbarView({ type: "analog" }).analog).toBe(true);
   });
 });
 

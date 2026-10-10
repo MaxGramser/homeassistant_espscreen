@@ -6,10 +6,11 @@ import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TopbarAdd from "../src/components/TopbarAdd.vue";
 import { itemKey } from "../src/model/topbar";
-import { addTopbarItem, loadTopbarPreview, state, topbarView } from "../src/store";
+import { state } from "../src/store";
 import type { Inventory } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
+import { useTopbarStore } from "../src/stores/topbar";
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -29,7 +30,7 @@ describe("the items of the top bar", () => {
   });
 
   it("refuses an item the bar already has, and Add marks it as added", () => {
-    addTopbarItem({ type: "clock" });
+    useTopbarStore().addTopbarItem({ type: "clock" });
     expect(useUiStore().notice?.message).toBe("This is already in the top bar.");
     expect(state.document!.pages[0].topbar.trailing).toHaveLength(2);
     const add = mount(TopbarAdd);
@@ -48,10 +49,10 @@ describe("the items of the top bar", () => {
       if (new Set(keys).size !== keys.length) return Promise.resolve(new Response(JSON.stringify({ error: "twice" }), { status: 400 }));
       return Promise.resolve(new Response(JSON.stringify({ items: body.header.items.map(() => ({ t: "2 min", shown: true })) }), { status: 200 }));
     }));
-    loadTopbarPreview(0);
+    useTopbarStore().loadTopbarPreview(0);
     await vi.runAllTimersAsync();
     expect(bodies).toHaveLength(1);
     expect(bodies[0].header.items).toHaveLength(1);
-    for (const page of state.document!.pages) expect(topbarView(page.topbar.trailing[0]).text).toBe("2 min");
+    for (const page of state.document!.pages) expect(useTopbarStore().topbarView(page.topbar.trailing[0]).text).toBe("2 min");
   });
 });

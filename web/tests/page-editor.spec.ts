@@ -8,7 +8,7 @@ import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
 import TopbarInspector from '../src/components/TopbarInspector.vue';
 import { placeTile, dismissMigrationNote, removeTile, resolveLayoutConflict, addPage, movePage } from "../src/store";
-import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo, acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
+import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo, acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, setEditorMode, setHomePage, setPageExcluded, setPageTitle, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
 import { answerDialogs } from "./helpers/dialogs";
 import { setMedia } from "./helpers/browser";
@@ -16,6 +16,7 @@ import type { PageDocument, Screen } from "../src/types";
 import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
 import { useSessionStore } from "../src/stores/session";
+import { useTopbarStore } from "../src/stores/topbar";
 
 const record = () => state.inventory.screens[0].page_document as PageDocument;
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
@@ -274,7 +275,7 @@ describe("one draft in both editor modes", () => {
   it("keeps Home, links, exclusions and per-page bars attached through a reorder and undo", () => {
     const [home, controls] = state.document!.pages.map((page) => page.id);
     setHomePage(controls); setPageExcluded(controls, true);
-    state.selectedPageId = state.document!.pages[1].id; setTopbarItems([{ type: "date" }]);
+    state.selectedPageId = state.document!.pages[1].id; useTopbarStore().setTopbarItems([{ type: "date" }]);
     const before = JSON.stringify(state.document);
     movePage(1, 0);
     expect(state.document!.homePageId).toBe(controls);

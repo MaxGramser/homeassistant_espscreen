@@ -11,7 +11,7 @@ import { beginFieldEdit, endFieldEdit } from '../store';
 import { entriesOf } from "../model/layout";
 import { clockSample } from "../model/clock";
 import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { barMetrics, homeKeyShown, moveTopbarItem, openBar, openBarAdd, openPage, removeTopbarItem, setTopbarItems, state, topbarItems, topbarLabel, topbarView, pageTitleShown } from "../store";
+import { barMetrics, openBar, openBarAdd, openPage, state, pageTitleShown } from "../store";
 import type { HeaderItem } from "../types";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
@@ -26,18 +26,20 @@ import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { useScreenStore } from "../stores/screen";
+import { useTopbarStore } from "../stores/topbar";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const scr = useScreenStore();
+const topbar = useTopbarStore();
 
 const props = defineProps<{ index: number }>();
-const items = computed(() => sort.live.value || topbarItems());
+const items = computed(() => sort.live.value || topbar.topbarItems());
 const item = computed<HeaderItem | undefined>(() => items.value[props.index]);
 const lay = computed(() => {
   void ui.fontsVersion; void ui.now; void entities.topbarPreviews;
-  return barLayout(items.value, barMetrics.value, pageTitleShown(page.value), topbarView);
+  return barLayout(items.value, barMetrics.value, pageTitleShown(page.value), topbar.topbarView);
 });
 const overflow = computed(() => lay.value.dropped);
 const needed = computed(() => state.inventory.header?.min_firmware || "0.2.32");
@@ -50,11 +52,11 @@ const hint = computed(() => supported.value
 const hiddenText = (it: HeaderItem) => t(it.type === "wifi" ? "editor.topbar.detail.hidden_signal" : it.type === "link" ? "editor.topbar.detail.hidden_link"
   : it.type === "battery" ? "editor.topbar.detail.hidden_battery" : "editor.topbar.detail.hidden");
 const detail = (it: HeaderItem, i: number) => {
-  const view = topbarView(it);
-  return !view.shown ? hiddenText(it) : overflow.value.has(i) ? t("editor.topbar.detail.overflow") : view.analog ? t("editor.topbar.detail.dial") : view.text || topbarLabel(it);
+  const view = topbar.topbarView(it);
+  return !view.shown ? hiddenText(it) : overflow.value.has(i) ? t("editor.topbar.detail.overflow") : view.analog ? t("editor.topbar.detail.dial") : view.text || topbar.topbarLabel(it);
 };
 const iconOf = (it: HeaderItem) => {
-  const view = topbarView(it);
+  const view = topbar.topbarView(it);
   if (STATUS_CODES[it.type]) return view.icon || STATUS_CODES[it.type];
   return view.analog || it.type !== "entity" ? entities.iconNamed(BUILTIN_ICONS[it.type])?.cp : view.icon;
 };
@@ -64,7 +66,7 @@ const statusSupported = computed(() => scr.supportsVersion(statusNeeded.value));
 // The battery item needs firmware 0.41.0 (docs/BATTERY.md); an older screen leaves it out of its bar.
 const batteryNeeded = computed(() => state.inventory.header?.battery_min_firmware || "0.41.0");
 const batterySupported = computed(() => scr.supportsVersion(batteryNeeded.value));
-const justAdded = (it: HeaderItem) => state.topbarAdded?.key === itemKey(it) && Date.now() - state.topbarAdded.time < 1200;
+const justAdded = (it: HeaderItem) => topbar.topbarAdded?.key === itemKey(it) && Date.now() - topbar.topbarAdded.time < 1200;
 // The page whose bar you clicked (app 0.2.105). Its left side, the title and the Home key, belongs to the page and is
 // set in the page's own settings (app 0.3.19); this inspector is about what stands on the right.
 const page = computed(() => state.barPage ?? 0);
@@ -78,11 +80,11 @@ const crumbs = computed(() => [
 function update(patch: Partial<HeaderItem>) {
   const list = [...items.value];
   list[props.index] = { ...list[props.index], ...patch };
-  setTopbarItems(list);
+  topbar.setTopbarItems(list);
 }
 const liveNote = computed(() => {
   if (!item.value) return "";
-  const view = topbarView(item.value);
+  const view = topbar.topbarView(item.value);
   return !view.shown ? (item.value.type === "entity" ? t("editor.topbar.live.hidden") : hiddenText(item.value)) : overflow.value.has(props.index) ? t("editor.topbar.live.overflow") : t("editor.topbar.live.looks");
 });
 const samples = computed(() => {
@@ -93,7 +95,7 @@ const samples = computed(() => {
 // Pointer drag between the rows, mouse and touch (touch after a short hold, so the list still scrolls). The order
 // updates while dragging, the mockup follows, and a finished drag is not a click (composables/useSortableRows.ts). The
 // drawer that closes while an item is held (another tile chosen, Escape) lets go of the page, without a change.
-const sort = useSortableRows<HeaderItem>({ rows: ".items .item[data-index]", items: () => topbarItems(), commit: (list) => setTopbarItems(list), skip: ".x",
+const sort = useSortableRows<HeaderItem>({ rows: ".items .item[data-index]", items: () => topbar.topbarItems(), commit: (list) => topbar.setTopbarItems(list), skip: ".x",
   onMove: (from, to) => { if (props.index === from) openBar(to); } });
 const drag = sort.drag;
 function pick(e: MouseEvent, i: number) {
@@ -103,19 +105,19 @@ function pick(e: MouseEvent, i: number) {
 function onKey(e: KeyboardEvent, i: number) {
   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openBar(i); return; }
   const step = ({ ArrowUp: -1, ArrowDown: 1 } as Record<string, number>)[e.key];
-  if (step && moveTopbarItem(i, i + step)) { if (props.index === i) openBar(i + step); e.preventDefault(); }
+  if (step && topbar.moveTopbarItem(i, i + step)) { if (props.index === i) openBar(i + step); e.preventDefault(); }
 }
 </script>
 
 <template>
-  <InspectorHead kind="bar" :title="item ? (item.type === 'entity' ? entities.entityName(item.entity!) : topbarLabel(item)) : t('editor.topbar.title')"
+  <InspectorHead kind="bar" :title="item ? (item.type === 'entity' ? entities.entityName(item.entity!) : topbar.topbarLabel(item)) : t('editor.topbar.title')"
     :code="item ? iconOf(item) || 'F0150' : undefined" :icon="item ? undefined : 'page-layout-header'" :crumbs="crumbs" />
   <div class="dr-body">
     <div v-if="!scr.pageReady" class="notice warn"><Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.shared_bar') }}</span></div>
 
     <Section :title="t('editor.topbar.left')" icon="format-title">
       <button type="button" class="nav-row" :disabled="!pageId" @click="toPage">
-        <TesseraMark v-if="homeKeyShown(page)" class="nav-row-lead" />
+        <TesseraMark v-if="topbar.homeKeyShown(page)" class="nav-row-lead" />
         <span class="tx"><b>{{ pageTitleShown(page) || region.screenText("editor.mockup.home") }}</b><small>{{ t('editor.topbar.left_hint') }}</small></span>
         <Icon name="chevron-right" class="nav-row-chevron" />
       </button>
@@ -124,20 +126,20 @@ function onKey(e: KeyboardEvent, i: number) {
     <Section :title="t('editor.topbar.right')" icon="format-list-bulleted" :aside="`${items.length} / ${scr.topbarMax}`" :hint="overflow.size > 0 || !supported ? undefined : hint">
       <div class="items" id="topbar-chips" role="list" :aria-label="t('editor.topbar.right')">
         <div v-for="(it, i) in items" :key="itemKey(it) + i" class="item" role="listitem" tabindex="0" :data-index="i"
-          :class="{ selected: i === index, 'is-hidden': !topbarView(it).shown, 'is-overflow': overflow.has(i), 'just-added': justAdded(it), 'dragging-chip': drag.active && drag.index === i }"
-          :aria-label="t('editor.topbar.item_label', { name: topbarLabel(it), slot: i + 1 })"
+          :class="{ selected: i === index, 'is-hidden': !topbar.topbarView(it).shown, 'is-overflow': overflow.has(i), 'just-added': justAdded(it), 'dragging-chip': drag.active && drag.index === i }"
+          :aria-label="t('editor.topbar.item_label', { name: topbar.topbarLabel(it), slot: i + 1 })"
           @pointerdown="sort.down($event, i)" @click="pick($event, i)" @keydown="onKey($event, i)">
           <Icon name="drag-vertical" class="grip" />
-          <span class="av mdi" :style="topbarView(it).color ? { color: topbarView(it).color! } : undefined">{{ iconOf(it) ? glyph(iconOf(it)!) : "" }}</span>
-          <span class="tx"><b>{{ topbarLabel(it) }}</b><small>{{ detail(it, i) }}</small></span>
-          <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbarLabel(it) })" @click.stop="removeTopbarItem(i)"><Icon name="close" /></button>
+          <span class="av mdi" :style="topbar.topbarView(it).color ? { color: topbar.topbarView(it).color! } : undefined">{{ iconOf(it) ? glyph(iconOf(it)!) : "" }}</span>
+          <span class="tx"><b>{{ topbar.topbarLabel(it) }}</b><small>{{ detail(it, i) }}</small></span>
+          <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbar.topbarLabel(it) })" @click.stop="topbar.removeTopbarItem(i)"><Icon name="close" /></button>
         </div>
         <button type="button" class="ghost-btn" id="topbar-add" :disabled="items.length >= scr.topbarMax" :title="items.length >= scr.topbarMax ? t('editor.topbar.max', scr.topbarMax) : t('editor.topbar.add_title')" @click="openBarAdd"><Icon name="plus" />{{ t("editor.topbar.add_button") }}</button>
       </div>
       <small v-if="overflow.size > 0 || !supported" id="topbar-hint" class="help warn">{{ hint }}</small>
     </Section>
 
-    <Section v-if="item" :title="topbarLabel(item)" icon="tune-variant">
+    <Section v-if="item" :title="topbar.topbarLabel(item)" icon="tune-variant">
       <div class="live" id="topbar-live">
         <small>{{ liveNote }}</small>
         <TopbarSvg :items="[item]" single />
@@ -202,11 +204,11 @@ function onKey(e: KeyboardEvent, i: number) {
     <CopyPageBar v-if="scr.pageReady && state.document && pages > 1" :page-id="state.document.pages[page].id" />
   </div>
   <div v-if="item" class="dr-foot">
-    <button type="button" class="btn danger" @click="removeTopbarItem(index)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>
+    <button type="button" class="btn danger" @click="topbar.removeTopbarItem(index)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>
     <span class="spacer"></span>
     <div class="tool-group" role="group">
-      <button type="button" class="icon-btn" :disabled="index === 0" :aria-label="t('editor.topbar.up')" :title="t('editor.topbar.up')" @click="moveTopbarItem(index, index - 1) && openBar(index - 1)"><Icon name="arrow-up" /></button>
-      <button type="button" class="icon-btn" :disabled="index >= items.length - 1" :aria-label="t('editor.topbar.down')" :title="t('editor.topbar.down')" @click="moveTopbarItem(index, index + 1) && openBar(index + 1)"><Icon name="arrow-down" /></button>
+      <button type="button" class="icon-btn" :disabled="index === 0" :aria-label="t('editor.topbar.up')" :title="t('editor.topbar.up')" @click="topbar.moveTopbarItem(index, index - 1) && openBar(index - 1)"><Icon name="arrow-up" /></button>
+      <button type="button" class="icon-btn" :disabled="index >= items.length - 1" :aria-label="t('editor.topbar.down')" :title="t('editor.topbar.down')" @click="topbar.moveTopbarItem(index, index + 1) && openBar(index + 1)"><Icon name="arrow-down" /></button>
     </div>
   </div>
 </template>

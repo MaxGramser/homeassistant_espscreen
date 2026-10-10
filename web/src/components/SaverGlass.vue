@@ -5,13 +5,16 @@
 import { useResizeObserver } from "@vueuse/core";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { glyph } from "../model/topbar";
-import { saverItems, topbarView } from "../store";
+import { saverItems } from "../store";
 import { clockPreview, glassRatio, saver } from "../saver";
+import { useTopbarStore } from "../stores/topbar";
+
+const topbar = useTopbarStore();
 
 defineProps<{ height: number }>();
 const line = ref<HTMLElement | null>(null);
 const items = computed(() => saverItems().map((it) => {
-  const view = topbarView(it);
+  const view = topbar.topbarView(it);
   return { key: it.entity, icon: view.icon && it.icon !== "none" ? glyph(view.icon) : "", text: it.content === "icon" ? "" : view.text };
 }));
 const temperature = computed(() => ((saver.value?.weather ?? "auto") === "" ? null : clockPreview.value.temperature));

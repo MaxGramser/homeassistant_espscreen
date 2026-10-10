@@ -4,7 +4,7 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { addTopbarItem, closeInspector, openBar, state, topbarItems } from "../store";
+import { closeInspector, openBar, state } from "../store";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
@@ -13,14 +13,16 @@ import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
+import { useTopbarStore } from "../stores/topbar";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
+const topbar = useTopbarStore();
 
-const taken = computed(() => new Set(topbarItems().map(itemKey)));
+const taken = computed(() => new Set(topbar.topbarItems().map(itemKey)));
 const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
 const samples = computed(() => ({
   clock: clock.value.time,
@@ -41,12 +43,12 @@ const builtins = computed(() => (state.inventory.header?.builtin || []).filter((
 
 <template>
   <InspectorHead kind="bar" :title="t('editor.topbar.add.title')" icon="plus"
-    :crumbs="[{ text: t('editor.topbar.title'), open: () => openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbarItems().length }, scr.topbarMax) }]" />
+    :crumbs="[{ text: t('editor.topbar.title'), open: () => openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbar.topbarItems().length }, scr.topbarMax) }]" />
   <div class="dr-body">
     <div class="f">
       <span class="f-label">{{ t("editor.topbar.add.builtin") }}</span>
       <div class="options">
-        <button v-for="b in builtins" :key="b.type" type="button" class="option" :disabled="taken.has(itemKey(builtinItem(b.type)))" @click="addTopbarItem(builtinItem(b.type))">
+        <button v-for="b in builtins" :key="b.type" type="button" class="option" :disabled="taken.has(itemKey(builtinItem(b.type)))" @click="topbar.addTopbarItem(builtinItem(b.type))">
           <span class="mdi">{{ glyph(STATUS_CODES[b.type] || entities.iconNamed(BUILTIN_ICONS[b.type])?.cp || "F0150") }}</span>
           <span class="tx"><strong>{{ b.label }}</strong><small>{{ taken.has(itemKey(builtinItem(b.type))) ? t("editor.topbar.add.added") : samples[b.type] }}</small></span>
         </button>
@@ -55,13 +57,13 @@ const builtins = computed(() => (state.inventory.header?.builtin || []).filter((
  <div v-if="fromPlugins.length" class="f">
       <span class="f-label">{{ t("editor.topbar.add.plugins") }}</span>
       <div class="options">
-        <button v-for="p in fromPlugins" :key="p.item" type="button" class="option" :disabled="taken.has(itemKey(pluginItem(p.item)))" @click="addTopbarItem(pluginItem(p.item))">
+        <button v-for="p in fromPlugins" :key="p.item" type="button" class="option" :disabled="taken.has(itemKey(pluginItem(p.item)))" @click="topbar.addTopbarItem(pluginItem(p.item))">
           <span class="mdi">{{ glyph(p.icon) }}</span>
           <span class="tx"><strong>{{ p.label }}</strong><small>{{ taken.has(itemKey(pluginItem(p.item))) ? t("editor.topbar.add.added") : p.example || p.plugin }}</small></span>
         </button>
       </div>
     </div>
-    <EntityItemPicker id="topbar-search" :taken="(item) => taken.has(itemKey(item))" @pick="addTopbarItem" />
+    <EntityItemPicker id="topbar-search" :taken="(item) => taken.has(itemKey(item))" @pick="topbar.addTopbarItem" />
   </div>
   <div class="dr-foot">
     <span class="spacer"></span>

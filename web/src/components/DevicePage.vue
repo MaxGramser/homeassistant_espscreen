@@ -9,7 +9,7 @@ import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
-import { closeInspector, deviceStyle, homeKeyShown, isCompact, movePage, openBar, openPage, pageAt, pageTitleShown, previewed, roomyNames, setHomePage, state, topbarItems } from "../store";
+import { closeInspector, deviceStyle, isCompact, movePage, openBar, openPage, pageAt, pageTitleShown, previewed, roomyNames, setHomePage, state } from "../store";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -21,11 +21,13 @@ import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useSettingsStore } from "../stores/settings";
 import { useScreenStore } from "../stores/screen";
+import { useTopbarStore } from "../stores/topbar";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const settings = useSettingsStore();
 const scr = useScreenStore();
+const topbar = useTopbarStore();
 
 const props = defineProps<{ page: number; entries: { tile: Tile; slot: number }[]; pages: number; moving: Tile | null; map?: boolean; preview?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [intent: NavigationIntent] }>();
@@ -108,8 +110,8 @@ async function onKey(e: KeyboardEvent) {
     <div class="device" :class="{ compact: isCompact, roomy: roomyNames }">
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
         @click="!preview && openBar(0, page)" @keydown.enter.prevent="!preview && openBar(0, page)">
-        <TopbarSvg :items="topbarItems(page)" :name-text="pageTitleShown(page)" :home="homeKeyShown(page)" :back="backInHeader" />
-        <button v-if="preview && (backInHeader || homeKeyShown(page))" type="button" class="preview-home" :aria-label="backInHeader ? region.screenText('screen.navigation.back') : t('editor.pages.go_home')" @click.stop="emit('navigate', { kind: backInHeader ? 'back' : 'home' })"></button>
+        <TopbarSvg :items="topbar.topbarItems(page)" :name-text="pageTitleShown(page)" :home="topbar.homeKeyShown(page)" :back="backInHeader" />
+        <button v-if="preview && (backInHeader || topbar.homeKeyShown(page))" type="button" class="preview-home" :aria-label="backInHeader ? region.screenText('screen.navigation.back') : t('editor.pages.go_home')" @click.stop="emit('navigate', { kind: backInHeader ? 'back' : 'home' })"></button>
       </div>
       <div class="tiles">
         <template v-for="slot in cells" :key="slot">

@@ -19,6 +19,7 @@ import { usePluginsStore } from "./plugins";
 import { useRegionStore } from "./region";
 import { useScreenStore } from "./screen";
 import { useSettingsStore } from "./settings";
+import { useTopbarStore } from "./topbar";
 import { useUiStore } from "./ui";
 
 export const useSessionStore = defineStore("session", () => {
@@ -28,6 +29,7 @@ export const useSessionStore = defineStore("session", () => {
   const settings = useSettingsStore();
   const region = useRegionStore();
   const plugins = usePluginsStore();
+  const topbar = useTopbarStore();
 
   // ---- Opening a screen ----
   // Another screen, or none (the overview). With unsaved changes the editor asks first, and the switch waits for the answer
@@ -116,11 +118,11 @@ export const useSessionStore = defineStore("session", () => {
   // ---- Started once the page is on the screen (boot.ts); the returned function stops all of it ----
   // The page around the screens (the address, the width of a phone), the screens' language, a screen setting still
   // waiting when the page closes, the plugins' reactions, the click a finished drag swallows, the store's live stream,
-  // polls, clocks and page events, and the firmware job while something builds (its log).
+  // polls, clocks and page events, the top bar's previews, and the firmware job while something builds (its log).
   let running: (() => void) | null = null;
   function start() {
     if (running) return running;
-    const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(), startStore(), followBuilds()];
+    const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(), startStore(), topbar.start(), followBuilds()];
     running = () => { running = null; for (const stop of stops.reverse()) stop(); };
     return running;
   }

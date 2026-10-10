@@ -6,7 +6,7 @@ import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/s
 import { getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware } from "./model/layout";
-import { agoText, barMetricsFor, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, wifiView } from "./model/topbar";
+import { barMetricsFor } from "./model/topbar";
 import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
 import { createLayout, dimensions, type Size } from "./model/layout";
 import { memoryCrossing, memoryUse } from "./model/memory";
@@ -24,7 +24,6 @@ import { completePositions, workspaceSaver } from './model/page-workspace';
 import { resolveConflict, savedDraft } from './model/page-conflict';
 import { SMALLEST } from "./model/overview";
 import { slug } from "./model/slug";
-import { clockSample } from "./model/clock";
 import { onReset } from "./resets";
 import { readStored, writeStored } from "./storage";
 import { renewable, usePreference } from "./composables/usePreference";
@@ -38,6 +37,7 @@ import { useRegionStore } from "./stores/region";
 import { useScreenStore } from "./stores/screen";
 import { useSessionStore } from "./stores/session";
 import { useSettingsStore } from "./stores/settings";
+import { itemList, useTopbarStore } from "./stores/topbar";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
 
 export type Inspector =
@@ -95,7 +95,6 @@ const fresh = () => ({
   justAdded: null as string | null,
   // A choice the pointer rests on in the inspector, drawn on its tile before it is picked (app 0.4.32).
   optionPreview: null as null | { tileId: string; key: string; value: unknown },
-  topbarAdded: null as null | { key: string; time: number },
   drag: { active: false, moving: null, preview: null, page: null } as DragState,
 });
 export const state = reactive({
@@ -331,9 +330,11 @@ function historyCounts() {
 // A document's grid with the pages this screen takes (page_limit): what every edit is held to, where a stored document is
 // held to the most any board takes (model/pages.ts pageLimit). Plugin tiles and items are taken where the add-on serves
 // plugins (stores/plugins.ts pluginsEnabled), on the grid of every change (heldTo) as on the screen's.
-const heldTo = (grid: PageGrid): PageGrid => ({ ...grid, plugins: usePluginsStore().pluginsEnabled });
+export const heldTo = (grid: PageGrid): PageGrid => ({ ...grid, plugins: usePluginsStore().pluginsEnabled });
 const screenGridOf = (grid: PageGrid): PageGrid => heldTo({ columns: grid.columns, rows: grid.rows, pages: editorLayout.grid.pages, barItems: scr().topbarMax });
-function applyDocument(next: PageLayout, remember = true, nextGrid = state.documentGrid) {
+// The draft becomes `next` (and its grid `nextGrid`), checked against what the screen takes, remembered for undo unless
+// `remember` is false. True when anything changed. A change of a page's top bar is the top bar store's (stores/topbar.ts).
+export function applyDocument(next: PageLayout, remember = true, nextGrid = state.documentGrid) {
   if (!state.document || !state.documentGrid) return false;
   if (!nextGrid) return false;
   pages.validatePages(next, screenGridOf(nextGrid));
@@ -357,7 +358,6 @@ function applyDocument(next: PageLayout, remember = true, nextGrid = state.docum
   if (selected && !next.pages.some((page) => page.tiles.some((tile) => tile.id === selected || tile.children?.some((child) => child.id === selected))))
     closeInspector();
   markDirty();
-  loadTopbarPreview();
   return true;
 }
 let focusedField: string | null = null, groupedEdit = -1;
@@ -453,7 +453,6 @@ export function openDocument(screen: Screen | undefined) {
   state.editorMode = kept().mode.value;
   if (state.editorMode === "advanced") initializeWorkspace();
   state.insertAt = -1; state.dirty = false; state.saved = 0;
-  loadTopbarPreview(0);
   loadCapabilities(state.layout?.tiles.map((tile) => tile.entity) || []);
   loadStates();
   return true;
@@ -922,7 +921,6 @@ export function setSaverItems(items: HeaderItem[]) {
   const screen = scr().currentScreen;
   if (!screen) return;
   scr().setScreensaver(screen, { items });
-  loadTopbarPreview(0);
 }
 export function openSaverItem(index: number) {
   if (!(state.inspector?.kind === "saver-item" && state.inspector.index === index)) state.iconPickerOpen = false;
@@ -941,6 +939,7 @@ export function openSaverAdd() {
 }
 const saverList = itemList({
   items: saverItems, set: setSaverItems, max: () => SAVER_ITEMS_MAX, open: openSaverItem, inspector: "saver-item",
+  label: (item) => useTopbarStore().topbarLabel(item), toast,
   // One entity once: the clock has no room for the same one twice, whatever it shows of it.
   same: (a, b) => a.entity === b.entity,
   full: () => t("editor.screen_settings.screensaver.items_full", { n: SAVER_ITEMS_MAX }),
@@ -1171,119 +1170,6 @@ export async function importLayout(text: string) {
   } catch (error: any) { toast(error.message); }
 }
 
-// ---- Top bar ----
-// Without a stored top bar the screen shows what it always did: the clock of show_clock.
-export const topbarItems = (page = state.barPage): HeaderItem[] => pageAt(page)?.topbar.trailing || [];
-export function setTopbarItems(items: HeaderItem[], page = state.barPage) {
-  if (!state.document || !state.documentGrid || !state.document.pages[page]) return;
-  try { applyDocument(pages.setBarItems(state.document, heldTo(state.documentGrid), state.document.pages[page].id, items, !scr().pageReady)); }
-  catch (error: any) { toast(error.message); }
-}
-export function copyPageBars(source: string, targets: string[], whole: boolean) {
-  if (!scr().pageReady || !state.document || !state.documentGrid || !targets.length) return false;
-  try { return applyDocument(pages.replaceBar(state.document, heldTo(state.documentGrid), source, targets, whole)); }
-  catch (error: any) { toast(error.message); return false; }
-}
-let topbarTimer = 0;
-// Entity text as the screen will show it, for the items not previewed yet.
-export function loadTopbarPreview(delay = 150) {
-  clearTimeout(topbarTimer);
-  topbarTimer = window.setTimeout(async () => {
-    const screen = scr().selected;
-    const items = [...new Map([...(state.document?.pages.flatMap((page) => page.topbar.trailing) || []), ...saverItems()].map((item) => [itemKey(item), item])).values()];
-    const entities = items.filter((item) => item.type === "entity");
-    if (!entities.length) return;
-    try {
-      // Each request stays within the actual six-item header bound.
-      for (let at = 0; at < entities.length; at += 6) {
-        const batch = entities.slice(at, at + 6), data = await send("header-preview", "POST", { header: { items: batch.map(({ id: _id, ...item }) => item) } });
-        if (scr().selected !== screen) return;
-        const stillUsed = new Set([...(state.document?.pages.flatMap((page) => page.topbar.trailing) || []), ...saverItems()].map(itemKey));
-        const previews = useEntitiesStore().topbarPreviews;
-        batch.forEach((item, i) => { if (stillUsed.has(itemKey(item))) previews[itemKey(item)] = data.items[i]; });
-      }
-    } catch {
-      // Keep the last preview; the next edit or refresh tries again.
-    }
-  }, delay);
-}
-export function topbarLabel(item: HeaderItem) {
-  if (item.type === "entity") return entityName(item.entity!);
-  if (item.type === "plugin") return usePluginsStore().barItemOf(item.item)?.label || item.item || "";
-  return state.inventory.header?.builtin.find((b) => b.type === item.type)?.label || item.type;
-}
-// What the item shows right now: { icon, text, color, shown }. Entities wait for the add-on's preview.
-export function topbarView(item: HeaderItem): ItemView {
-  if (item.type === "clock" || item.type === "date") {
-    const region = useRegionStore();
-    const clock = clockSample(useUiStore().now, region.clock24, region.screenLanguage);
-    return { text: item.type === "clock" ? clock.time : clock.date, shown: true };
-  }
-  if (item.type === "analog") return { analog: true, shown: true };
-  // The screen's own items (firmware 0.38.0): a good signal, and every link there, so the link mark hides.
-  const percent = (n: number) => `${n}${useRegionStore().screenText("screen.number.percent")}`;
-  if (item.type === "wifi") return wifiView(item, SAMPLE_RSSI, percent);
-  if (item.type === "link") return { icon: LINK_GLYPH, text: "", shown: false };
-  // The battery (firmware 0.41.0): three quarters and not charging, as the firmware's preview draws it.
-  if (item.type === "battery") return batteryView(item, SAMPLE_BATTERY, false, percent);
-  // A plugin's item shows its example, or its icon alone when a person chose so (plugin API 0.8).
-  if (item.type === "plugin") { const known = usePluginsStore().barItemOf(item.item); return { icon: known?.icon || "F0A66", text: item.content === "icon" ? "" : known?.example || "", shown: true }; }
-  const entities = useEntitiesStore(), p = entities.topbarPreviews[itemKey(item)];
-  if (!p) return { icon: item.icon === "none" ? null : entities.iconNamed(item.icon)?.cp || entities.automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
-  return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(useUiStore().now / 1000), useRegionStore().screenLanguage) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
-}
-// One ordered list of bar items with the editor's add, update, move and remove (undo included): a page's top bar and the
-// screensaver clock's row are both one.
-function itemList(o: {
-  items: () => HeaderItem[]; set: (items: HeaderItem[]) => void; max: () => number; open: (index: number) => void;
-  inspector: string; same: (a: HeaderItem, b: HeaderItem) => boolean;
-  full: () => string; already: () => string; removed: (name: string) => string; added?: (item: HeaderItem) => void; back?: () => void;
-}) {
-  return {
-    add(item: HeaderItem) {
-      const items = o.items();
-      if (items.length >= o.max()) return toast(o.full());
-      if (items.some((other) => o.same(other, item))) return toast(o.already());
-      o.added?.(item);
-      o.set([...items, item]);
-      o.open(items.length);
-    },
-    update(index: number, patch: Partial<HeaderItem>) {
-      const items = [...o.items()];
-      if (!items[index]) return;
-      items[index] = { ...items[index], ...patch };
-      o.set(items);
-    },
-    move(from: number, to: number) {
-      const items = [...o.items()];
-      if (to < 0 || to >= items.length || from === to) return false;
-      items.splice(to, 0, ...items.splice(from, 1));
-      o.set(items);
-      return true;
-    },
-    remove(index: number) {
-      const items = [...o.items()];
-      const [item] = items.splice(index, 1);
-      if (!item) return;
-      if (state.inspector?.kind === o.inspector) (o.back || closeInspector)();
-      o.set(items);
-      toast(o.removed(topbarLabel(item)), {
-        label: t("editor.common.undo"),
-        run: () => { const back = [...o.items()]; back.splice(Math.min(index, back.length), 0, item); o.set(back); },
-      });
-    },
-  };
-}
-const topbarList = itemList({
-  items: () => topbarItems(), set: (items) => setTopbarItems(items), max: () => scr().topbarMax, open: (index) => openBar(index), inspector: "bar",
-  same: (a, b) => itemKey(a) === itemKey(b),
-  full: () => t("editor.topbar.full", scr().topbarMax), already: () => t("editor.topbar.already"),
-  removed: (name) => t("editor.topbar.removed", { name }),
-  // The new chip lights up briefly so the eye finds it.
-  added: (item) => { state.topbarAdded = { key: itemKey(item), time: Date.now() }; },
-});
-export const { add: addTopbarItem, move: moveTopbarItem, remove: removeTopbarItem } = topbarList;
-
 // ---- What the screen's settings mean for its pages (stores/settings.ts) ----
 export function pageReachWarning() {
   if (!state.document) return "";
@@ -1296,11 +1182,6 @@ export function pageReachWarning() {
   if (result.noWayHome.length) messages.push(t("editor.pages.no_way_home", { pages: named(result.noWayHome) }));
   return messages.join(" ");
 }
-// The home key in the top bar of the mockup (app 0.2.122, firmware 0.2.100+), the Tessera mark since firmware 0.10.0:
-// on every page, as on the screen, unless
-// the screen's Show home button is off. A screen whose value nobody can read right now (offline) is drawn as set.
-export const homeKeyShown = (page = state.barPage) => scr().supports(0, 2, 100) && useSettingsStore().settingValues().home_button !== false && Boolean(pageAt(page)?.topbar.leading.length);
-
 // ---- The Tessera skill for Claude Code in Home Assistant (Settings), which the add-on writes ----
 export async function installClaudeSkill() {
   try {
@@ -1434,7 +1315,6 @@ export function startStore() {
     // entity values in its top bar follow Home Assistant as they tick.
     const editing = () => Boolean(state.layout) && !state.drag.active;
     useClock(30000, { now: toRef(ui, "now"), when: editing });
-    useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: editing });
     // The mockup follows Home Assistant while it is on screen.
     useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && ui.route === "" });
     useEventListener(window, "beforeunload", (e: BeforeUnloadEvent) => {
@@ -1473,7 +1353,7 @@ function resetStore() {
   Object.assign(state, fresh());
   screenKept = null;
   generation.value++;
-  addedExpiry.stop(); clearTimeout(topbarTimer); clearTimeout(pollTimer);
+  addedExpiry.stop(); clearTimeout(pollTimer);
   mapSaver.cancel();
   previewsSkipped = "";
   edits = 0; selectionEpoch++;

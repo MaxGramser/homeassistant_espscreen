@@ -4,13 +4,14 @@ import { computed } from "vue";
 import { t } from "./i18n";
 import { moved } from "./model/reorder";
 import { clockSample } from "./model/clock";
-import { openSaverStep, saverItems, state, topbarLabel } from "./store";
+import { openSaverStep, saverItems, state } from "./store";
 import type { SaverKind, ScreensaverChoice } from "./types";
 import { useUiStore } from "./stores/ui";
 import { useRegionStore } from "./stores/region";
 import { useEntitiesStore } from "./stores/entities";
 import { useScreenStore } from "./stores/screen";
 import { useSettingsStore } from "./stores/settings";
+import { useTopbarStore } from "./stores/topbar";
 
 export const SAVER_MIN_FIRMWARE = "0.29.0";
 export const SAVER_ICONS: Record<SaverKind, string> = { media: "F075A", camera: "F07AE", clock: "F0150" };
@@ -90,7 +91,7 @@ export function summary(kind: SaverKind): { text: string; missing?: boolean } {
   }
   const weather = saver.value?.weather ?? "auto";
   const first = weather === "auto" ? t(key("summary.temperature")) : weather ? entities.entityName(weather) : t(key("summary.time_date"));
-  return { text: [first, ...saverItems().map(topbarLabel)].join(", ") };
+  return { text: [first, ...saverItems().map(useTopbarStore().topbarLabel)].join(", ") };
 }
 
 // The clock as the glass draws it, for the small preview: the time, the date and the bottom line.

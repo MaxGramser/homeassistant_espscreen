@@ -4,7 +4,7 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { glyph, itemKey } from "../model/topbar";
-import { moveSaverItem, openSaverItem, removeSaverItem, saverItems, state, topbarView, updateSaverItem } from "../store";
+import { moveSaverItem, openSaverItem, removeSaverItem, saverItems, state, updateSaverItem } from "../store";
 import { clockCrumb } from "../saver";
 import IconPicker from "./IconPicker.vue";
 import Segmented from "./Segmented.vue";
@@ -12,13 +12,15 @@ import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
 import Section from "./ui/Section.vue";
 import { useEntitiesStore } from "../stores/entities";
+import { useTopbarStore } from "../stores/topbar";
 
 const entities = useEntitiesStore();
+const topbar = useTopbarStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => saverItems());
 const item = computed(() => items.value[props.index]);
-const view = computed(() => (item.value ? topbarView(item.value) : null));
+const view = computed(() => (item.value ? topbar.topbarView(item.value) : null));
 // Three looks of one item: its text alone, its icon alone, or the icon and the text.
 const look = computed(() => (!item.value ? "both" : item.value.content === "icon" ? "icon" : item.value.icon === "none" ? "text" : "both"));
 const choices: [string, string][] = [["text", t("editor.screen_settings.screensaver.item_text")], ["icon", t("editor.screen_settings.screensaver.item_icon")], ["both", t("editor.screen_settings.screensaver.item_both")]];
