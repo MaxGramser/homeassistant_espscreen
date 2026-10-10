@@ -3329,7 +3329,8 @@
         "layout_copied": "diseño copiado de {name}",
         "layout_imported": "diseño importado",
         "changed": "diseño cambiado",
-        "restored": "cambios sin guardar restaurados"
+        "restored": "cambios sin guardar restaurados",
+        "taken_over": "cambios de la otra pestaña traídos aquí"
       }
     },
     "draft": {
@@ -3337,6 +3338,12 @@
       "kept_hint": "Guardados en este navegador, aún no en la pantalla.",
       "restore": "Restaurar",
       "discard": "Descartar"
+    },
+    "tabs": {
+      "elsewhere": "Esta pantalla se está editando en otra pestaña",
+      "elsewhere_hint": "Sus cambios aún no se han guardado.",
+      "take_over": "Continuar aquí",
+      "keep_mine": "Conservar los míos"
     },
     "phone": {
       "screens": "Pantallas",

@@ -2979,7 +2979,8 @@
         "layout_copied": "indeling gekopieerd van {name}",
         "layout_imported": "indeling geïmporteerd",
         "changed": "indeling gewijzigd",
-        "restored": "niet-opgeslagen wijzigingen hersteld"
+        "restored": "niet-opgeslagen wijzigingen hersteld",
+        "taken_over": "wijzigingen uit het andere tabblad overgenomen"
       }
     },
     "draft": {
@@ -2987,6 +2988,12 @@
       "kept_hint": "Bewaard in deze browser, nog niet op het scherm.",
       "restore": "Herstellen",
       "discard": "Weggooien"
+    },
+    "tabs": {
+      "elsewhere": "Dit scherm wordt in een ander tabblad bewerkt",
+      "elsewhere_hint": "De wijzigingen daar zijn nog niet opgeslagen.",
+      "take_over": "Hier overnemen",
+      "keep_mine": "Mijne houden"
     },
     "phone": {
       "screens": "Schermen",

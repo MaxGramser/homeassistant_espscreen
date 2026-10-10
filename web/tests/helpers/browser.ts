@@ -44,6 +44,24 @@ export class FakeEventSource {
 /** The newest stream, or none. */
 export const lastStream = () => FakeEventSource.streams.at(-1);
 
+/** A channel between the tabs of one browser (BroadcastChannel): a message reaches every other open channel of the same
+ * name, a copy of it, a moment later, as a browser delivers it. A test plays another tab with a channel of its own. */
+export class FakeBroadcastChannel {
+  static channels: FakeBroadcastChannel[] = [];
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  closed = false;
+  constructor(public name: string) { FakeBroadcastChannel.channels.push(this); }
+  postMessage(data: unknown) {
+    if (this.closed) throw new DOMException("closed", "InvalidStateError");
+    const copy = structuredClone(data);
+    for (const other of FakeBroadcastChannel.channels)
+      if (other !== this && other.name === this.name && !other.closed) queueMicrotask(() => { if (!other.closed) other.onmessage?.(new MessageEvent("message", { data: copy })); });
+  }
+  close() { this.closed = true; }
+  addEventListener() {}
+  removeEventListener() {}
+}
+
 class InertObserver {
   observe() {}
   unobserve() {}
@@ -91,6 +109,8 @@ const global = globalThis as Record<string, unknown>;
 /** Puts what jsdom lacks in place, once per test file (tests/setup.ts). */
 export function installBrowser() {
   global.EventSource ??= FakeEventSource;
+  // Node has a BroadcastChannel of its own, between threads: the tests take the one above, which they can see into.
+  global.BroadcastChannel = FakeBroadcastChannel;
   global.ResizeObserver ??= class extends InertObserver {};
   global.IntersectionObserver ??= class extends InertObserver {};
   if (!window.matchMedia) Object.defineProperty(window, "matchMedia", { configurable: true, writable: true, value: (query: string) => mediaList(query) });
@@ -101,6 +121,8 @@ export function installBrowser() {
 /** Everything a test moved, back as it was (tests/setup.ts, after each test). */
 export function resetBrowser() {
   FakeEventSource.streams = [];
+  for (const channel of FakeBroadcastChannel.channels) channel.close();
+  FakeBroadcastChannel.channels = [];
   for (const list of media.values()) { list.matches = false; list.listeners.clear(); list.onchange = null; }
   copied = "";
   delete (document as unknown as Record<string, unknown>).hidden;

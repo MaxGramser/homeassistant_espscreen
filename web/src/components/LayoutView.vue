@@ -153,6 +153,12 @@ function onCanvasClick(e: MouseEvent) {
       <Icon name="update" /><span class="notice-text">{{ t('editor.pages.update_notice') }}</span>
       <button v-if="scr.currentScreen?.online && scr.currentScreen.update?.profile" type="button" class="btn primary mini" @click="builds.startUpdate(scr.currentScreen)">{{ t('editor.screen_view.menu.update') }}</button>
     </div>
+    <!-- Another tab of this browser changes this screen too (app 0.4.x): said before either saves. -->
+    <div v-if="drafts.elsewhere" id="other-tab" class="notice choice" role="status">
+      <Icon name="content-duplicate" /><span class="notice-text"><strong>{{ t('editor.tabs.elsewhere') }}</strong>{{ t('editor.tabs.elsewhere_hint') }}</span>
+      <button type="button" id="keep-mine" class="btn quiet mini" @click="drafts.keepMine()">{{ t('editor.tabs.keep_mine') }}</button>
+      <button type="button" id="take-over" class="btn primary mini" @click="drafts.takeOver()">{{ t('editor.tabs.take_over') }}</button>
+    </div>
     <!-- Unsaved changes this browser kept when the page closed (app 0.4.x): the work comes back with one click. -->
     <div v-if="drafts.offer" id="kept-draft" class="notice choice" role="status">
       <Icon name="clock-outline" /><span class="notice-text"><strong>{{ drafts.offerText }}</strong>{{ t('editor.draft.kept_hint') }}</span>

@@ -3329,7 +3329,8 @@
         "layout_copied": "skopiowano układ z ekranu {name}",
         "layout_imported": "zaimportowano układ",
         "changed": "zmieniono układ",
-        "restored": "przywrócono niezapisane zmiany"
+        "restored": "przywrócono niezapisane zmiany",
+        "taken_over": "przejęto zmiany z innej karty"
       }
     },
     "draft": {
@@ -3337,6 +3338,12 @@
       "kept_hint": "Zachowane w tej przeglądarce, jeszcze nie na ekranie.",
       "restore": "Przywróć",
       "discard": "Odrzuć"
+    },
+    "tabs": {
+      "elsewhere": "Ten ekran jest edytowany w innej karcie",
+      "elsewhere_hint": "Jego zmiany nie są jeszcze zapisane.",
+      "take_over": "Przejmij tutaj",
+      "keep_mine": "Zachowaj moje"
     },
     "phone": {
       "screens": "Ekrany",

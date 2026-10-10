@@ -3329,7 +3329,8 @@
         "layout_copied": "layout copiado de {name}",
         "layout_imported": "layout importado",
         "changed": "layout alterado",
-        "restored": "alterações não guardadas restauradas"
+        "restored": "alterações não guardadas restauradas",
+        "taken_over": "alterações do outro separador trazidas para aqui"
       }
     },
     "draft": {
@@ -3337,6 +3338,12 @@
       "kept_hint": "Guardadas neste navegador, ainda não no ecrã.",
       "restore": "Restaurar",
       "discard": "Descartar"
+    },
+    "tabs": {
+      "elsewhere": "Este ecrã está a ser editado noutro separador",
+      "elsewhere_hint": "As alterações ainda não foram guardadas.",
+      "take_over": "Continuar aqui",
+      "keep_mine": "Manter as minhas"
     },
     "phone": {
       "screens": "Ecrãs",

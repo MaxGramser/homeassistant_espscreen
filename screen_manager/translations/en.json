@@ -2979,7 +2979,8 @@
         "layout_copied": "layout copied from {name}",
         "layout_imported": "layout imported",
         "changed": "layout changed",
-        "restored": "unsaved changes restored"
+        "restored": "unsaved changes restored",
+        "taken_over": "changes from the other tab taken over"
       }
     },
     "draft": {
@@ -2987,6 +2988,12 @@
       "kept_hint": "Kept in this browser, not on the screen yet.",
       "restore": "Restore",
       "discard": "Discard"
+    },
+    "tabs": {
+      "elsewhere": "This screen is being edited in another tab",
+      "elsewhere_hint": "Its changes are not saved yet.",
+      "take_over": "Take over here",
+      "keep_mine": "Keep mine"
     },
     "phone": {
       "screens": "Screens",

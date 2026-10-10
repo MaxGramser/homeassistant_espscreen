@@ -3329,7 +3329,8 @@
         "layout_copied": "elrendezés másolva innen: {name}",
         "layout_imported": "elrendezés importálva",
         "changed": "elrendezés módosítva",
-        "restored": "nem mentett módosítások visszaállítva"
+        "restored": "nem mentett módosítások visszaállítva",
+        "taken_over": "a másik lap módosításai átvéve"
       }
     },
     "draft": {
@@ -3337,6 +3338,12 @@
       "kept_hint": "Ebben a böngészőben megőrizve, még nincsenek a kijelzőn.",
       "restore": "Visszaállítás",
       "discard": "Elvetés"
+    },
+    "tabs": {
+      "elsewhere": "Ezt a kijelzőt egy másik lapon szerkesztik",
+      "elsewhere_hint": "A módosítások ott még nincsenek mentve.",
+      "take_over": "Átvétel ide",
+      "keep_mine": "Az enyém marad"
     },
     "phone": {
       "screens": "Képernyők",

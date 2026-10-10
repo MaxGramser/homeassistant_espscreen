@@ -12,6 +12,9 @@
   reload or lose the browser, and opening the screen again says "Unsaved changes from 10:42" with Restore and Discard.
   Changes made before someone else saved the screen come back through the usual question (Reload saved or Keep mine),
   so a newer save is never written over unasked. Saving or discarding forgets them; preview screens need none of this.
+- **A second tab knows.** When another tab of the same browser has unsaved changes to the screen you have open, Layout
+  says so before anyone saves, with Take over here (its changes come to this tab, and Undo takes them back) and Keep
+  mine. A tab that closes stops counting.
 - **Undo says what it does.** Undo and Redo in Layout name the step they take back or do again ("Undo: Kitchen light
   moved to page 2"), and after an undo a short note says what came back, with Redo beside it, so a change on a page out
   of sight never goes unnoticed.

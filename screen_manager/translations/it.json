@@ -3329,7 +3329,8 @@
         "layout_copied": "disposizione copiata da {name}",
         "layout_imported": "disposizione importata",
         "changed": "disposizione cambiata",
-        "restored": "modifiche non salvate ripristinate"
+        "restored": "modifiche non salvate ripristinate",
+        "taken_over": "modifiche dell'altra scheda riprese qui"
       }
     },
     "draft": {
@@ -3337,6 +3338,12 @@
       "kept_hint": "Conservate in questo browser, non ancora sullo schermo.",
       "restore": "Ripristina",
       "discard": "Scarta"
+    },
+    "tabs": {
+      "elsewhere": "Questo schermo è in modifica in un'altra scheda",
+      "elsewhere_hint": "Le sue modifiche non sono ancora salvate.",
+      "take_over": "Continua qui",
+      "keep_mine": "Tieni le mie"
     },
     "phone": {
       "screens": "Schermi",

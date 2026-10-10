@@ -3329,7 +3329,8 @@
         "layout_copied": "Layout von {name} kopiert",
         "layout_imported": "Layout importiert",
         "changed": "Layout geändert",
-        "restored": "nicht gespeicherte Änderungen wiederhergestellt"
+        "restored": "nicht gespeicherte Änderungen wiederhergestellt",
+        "taken_over": "Änderungen aus dem anderen Tab übernommen"
       }
     },
     "draft": {
@@ -3337,6 +3338,12 @@
       "kept_hint": "In diesem Browser aufbewahrt, noch nicht auf dem Bildschirm.",
       "restore": "Wiederherstellen",
       "discard": "Verwerfen"
+    },
+    "tabs": {
+      "elsewhere": "Dieser Bildschirm wird in einem anderen Tab bearbeitet",
+      "elsewhere_hint": "Die Änderungen dort sind noch nicht gespeichert.",
+      "take_over": "Hier übernehmen",
+      "keep_mine": "Meine behalten"
     },
     "phone": {
       "screens": "Bildschirme",

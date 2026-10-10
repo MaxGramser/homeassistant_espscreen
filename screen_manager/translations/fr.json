@@ -3329,7 +3329,8 @@
         "layout_copied": "mise en page copiée depuis {name}",
         "layout_imported": "mise en page importée",
         "changed": "mise en page modifiée",
-        "restored": "modifications non enregistrées restaurées"
+        "restored": "modifications non enregistrées restaurées",
+        "taken_over": "reprise des modifications de l'autre onglet"
       }
     },
     "draft": {
@@ -3337,6 +3338,12 @@
       "kept_hint": "Conservées dans ce navigateur, pas encore sur l'écran.",
       "restore": "Restaurer",
       "discard": "Abandonner"
+    },
+    "tabs": {
+      "elsewhere": "Cet écran est en cours de modification dans un autre onglet",
+      "elsewhere_hint": "Ses modifications ne sont pas encore enregistrées.",
+      "take_over": "Reprendre ici",
+      "keep_mine": "Garder les miennes"
     },
     "phone": {
       "screens": "Écrans",

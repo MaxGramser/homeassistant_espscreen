@@ -2,7 +2,7 @@
 // page's boot starts what it always did, and its stop takes all of it away again.
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FakeEventSource, lastStream, mediaListeners, setMedia } from "./helpers/browser";
+import { FakeEventSource, lastStream, mediaListeners, setMedia, FakeBroadcastChannel } from "./helpers/browser";
 
 const PHONE = "(max-width: 640px)";
 const answer = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -76,12 +76,14 @@ describe("boot", () => {
     expect(ui.route).toBe("#settings");
     setMedia(PHONE, true);
     expect(ui.narrowPhone).toBe(true);
-    expect(ours.added()).toEqual(["document:visibilitychange", "window:beforeunload", "window:click", "window:hashchange", "window:pagehide"]);
+    expect(ours.added()).toEqual(["document:visibilitychange", "window:beforeunload", "window:click", "window:hashchange", "window:pagehide", "window:pageshow"]);
 
     stop();
     expect(ours.added()).toEqual([]);
     expect(mediaListeners(PHONE)).toBe(0);
     expect(lastStream()?.readyState).toBe(FakeEventSource.CLOSED);
+    // The channel to the other tabs of this browser is closed too.
+    expect(FakeBroadcastChannel.channels.map((channel) => channel.closed)).toEqual([true]);
     expect(vi.getTimerCount()).toBe(0);
     const asked = fetch.mock.calls.length;
     await vi.advanceTimersByTimeAsync(600000);
