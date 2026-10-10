@@ -1,6 +1,6 @@
 // One reactive state for the whole editor. The Python API (server.py) is unchanged: this file is the
 // former app.js state and its calls, with the DOM work moved into the components.
-import { syncRef, useEventListener } from "@vueuse/core";
+import { syncRef, useEventListener, useTimeoutFn } from "@vueuse/core";
 import { computed, effectScope, onScopeDispose, reactive, ref, shallowRef, toRaw, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
@@ -372,11 +372,13 @@ export const pageReady = computed(() => currentScreen.value?.page_capability ===
 export const pageAt = (index: number) => state.document?.pages[state.drag.page?.order[index] ?? index];
 
 // ---- Toasts ----
-let toastTimer = 0;
+// A toast goes by itself after five seconds, eight when it offers something to do (Undo); a new one starts the count again.
+let toastMs = 5000;
+const toastExpiry = useTimeoutFn(() => { state.toast = null; }, () => toastMs, { immediate: false });
 export function toast(message: string, action?: { label: string; run: () => void }) {
   state.toast = { message, action };
-  clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => (state.toast = null), action ? 8000 : 5000);
+  toastMs = action ? 8000 : 5000;
+  toastExpiry.start();
 }
 export function dismissToast() {
   state.toast = null;
@@ -826,12 +828,11 @@ export async function addTile(id: string) {
 }
 // On a phone the sheet goes and the screen shows the new tile, lit for a moment, with Undo at hand: one tile is the
 // usual errand there, and its settings are one tap away.
-let addedTimer = 0;
+const addedExpiry = useTimeoutFn(() => { state.justAdded = null; }, 2400, { immediate: false });
 function markAdded(tile: Tile) {
   state.addSheet = false;
   state.justAdded = tile.id || null;
-  clearTimeout(addedTimer);
-  addedTimer = window.setTimeout(() => (state.justAdded = null), 2400);
+  addedExpiry.start();
   toast(t("editor.phone.added", { name: tile.name || entityName(tile.entity) }), { label: t("editor.common.undo"), run: undo });
 }
 export function removeTile(tile: Tile) {
@@ -2129,7 +2130,7 @@ function resetStore() {
   started?.();
   Object.assign(state, fresh());
   screenKept = screenPreferences();
-  clearTimeout(toastTimer); clearTimeout(addedTimer); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
+  toastExpiry.stop(); addedExpiry.stop(); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
   mapSaver.cancel();
   narrowPhone.value = atMost("phone");
   previewsSkipped = "";

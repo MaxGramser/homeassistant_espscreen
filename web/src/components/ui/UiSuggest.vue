@@ -3,14 +3,14 @@
 // Home Assistant and the library it pins. Typing narrows the list, the arrows and Enter pick, and anything else typed
 // still goes, so a learned code or a hub's own name keeps working. The list stays in the panel (no popover), as the
 // library's results do, and only while the field has the cursor.
-import { computed, ref, watch } from "vue";
+import { computed, ref, useId } from "vue";
 import { useListNavigation } from "../../composables/useListNavigation";
 import { rankedValues } from "../../model/search";
 
 const props = defineProps<{ modelValue: string; suggestions: readonly string[]; placeholder?: string; ariaLabel?: string; max?: number }>();
 const emit = defineEmits<{ "update:modelValue": [value: string]; pick: [value: string]; focus: []; blur: [] }>();
 const open = ref(false);
-const id = `suggest-${Math.random().toString(36).slice(2, 8)}`;
+const id = `suggest-${useId()}`;
 // What is typed narrows the list from the start of a word first, then anywhere: "vol" finds VOLUME_UP before
 // MEDIA_VOLUME; case and _ / - / space don't matter, as the integrations that fold case take it either way.
 const shown = computed(() => rankedValues(props.suggestions, props.modelValue || "").slice(0, props.max ?? 60));

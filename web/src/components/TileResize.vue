@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useEventListener } from '@vueuse/core';
+import { computed, ref, watch } from 'vue';
+import { useGesture } from '../composables/useGesture';
 import { t } from '../i18n';
 import { dimensions, sizeOf, type Size } from '../model/layout';
 import { grid, resizeChoices, resizeTile, state } from '../store';
@@ -8,6 +10,7 @@ import type { Tile } from '../types';
 const props = defineProps<{ tile: Tile }>();
 type Axis = 'columns' | 'rows';
 const axes: Axis[] = ['columns', 'rows'];
+const following = useGesture();
 const available = computed(() => axes.filter(axis => resizeChoices(props.tile, axis).some(size => size !== sizeOf(props.tile))));
 const gesture = ref<{ axis: Axis; pointer: number; start: number; pitch: number; gap: number;
   left: number; top: number; width: number; height: number; original: number; size: Size; choices: Size[] }>();
@@ -33,11 +36,14 @@ function start(event: PointerEvent, axis: Axis) {
     left: rect.left, top: rect.top, width: rect.width, height: rect.height,
     original: shape[axis], size: sizeOf(props.tile), choices };
   event.preventDefault();
-  window.addEventListener('pointermove', move);
-  window.addEventListener('pointerup', finish);
-  window.addEventListener('pointercancel', cancel);
-  window.addEventListener('keydown', escape, true);
-  window.addEventListener('scroll', cancel, true);
+  // The pointer is followed on the whole window while the edge is held; Escape or a scroll lets go of it.
+  following.begin(() => {
+    useEventListener(window, 'pointermove', move);
+    useEventListener(window, 'pointerup', finish);
+    useEventListener(window, 'pointercancel', cancel);
+    useEventListener(window, 'keydown', escape, { capture: true });
+    useEventListener(window, 'scroll', cancel, { capture: true });
+  });
 }
 function move(event: PointerEvent) {
   const g = gesture.value;
@@ -48,11 +54,7 @@ function move(event: PointerEvent) {
 }
 function cancel() {
   gesture.value = undefined;
-  window.removeEventListener('pointermove', move);
-  window.removeEventListener('pointerup', finish);
-  window.removeEventListener('pointercancel', cancel);
-  window.removeEventListener('keydown', escape, true);
-  window.removeEventListener('scroll', cancel, true);
+  following.end();
 }
 function finish(event: PointerEvent) {
   const g = gesture.value;
@@ -75,7 +77,6 @@ function keyboard(event: KeyboardEvent, axis: Axis) {
   if (target) resizeTile(props.tile, target, axis);
 }
 watch(() => state.selected, cancel);
-onBeforeUnmount(cancel);
 </script>
 
 <template>

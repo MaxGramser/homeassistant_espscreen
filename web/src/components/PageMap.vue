@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useEventListener, useResizeObserver } from "@vueuse/core";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useGesture } from "../composables/useGesture";
 import { t } from "../i18n";
 import { connections, titleOf } from "../model/pages";
 import { arrangeFromHome, connectTile, deviceStyle, liveEntries, moveWorkspacePage, openPage, openTile, screenShape, state, workspacePositions } from "../store";
@@ -39,25 +41,25 @@ async function measure() {
   if (JSON.stringify(next) !== JSON.stringify(edges.value)) edges.value = next;
 }
 watch([() => state.document, positions, zoom, pitch, () => state.fontsVersion], measure, { immediate: true });
-let observer: ResizeObserver | undefined;
-onMounted(() => {
-  if (typeof ResizeObserver !== 'undefined' && world.value) {
-    observer = new ResizeObserver(measure); observer.observe(world.value);
-  }
-});
+// The links follow the cards wherever the map's size changes them.
+useResizeObserver(world, measure);
 function selectRoute(tileId: string) { const tile = state.layout?.tiles.find((tile) => tile.id === tileId); if (tile) openTile(tile); }
 function destinationClick(event: MouseEvent, id: string) {
   if (!state.connectingTileId) return;
   event.preventDefault(); event.stopPropagation();
   connectTile(state.connectingTileId, id); state.connectingTileId = null;
 }
-let cleanGesture = () => {};
+// A page carried or a link drawn: the pointer is followed on the whole window until it is let go or cancelled.
+const gesture = useGesture();
+function cleanGesture() { gesture.end(); pointer.value = null; placement.value = null; }
 function drag(event: PointerEvent, move: (event: PointerEvent) => void, finish: (event: PointerEvent) => void) {
   if (event.button !== 0) return;
   event.preventDefault(); cleanGesture();
   const stop = (end: PointerEvent) => { cleanGesture(); if (end.type === 'pointerup') finish(end); else state.connectingTileId = null; };
-  cleanGesture = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop); window.removeEventListener('pointercancel', stop); pointer.value = null; placement.value = null; };
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', stop); window.addEventListener('pointercancel', stop);
+  gesture.begin(() => {
+    useEventListener(window, 'pointermove', move);
+    useEventListener(window, ['pointerup', 'pointercancel'], stop);
+  });
 }
 function movePage(event: PointerEvent, id: string) {
   const start = { x: event.clientX, y: event.clientY }, from = positions.value[id];
@@ -84,7 +86,7 @@ const pending = computed(() => {
   const edge = edges.value.find((edge) => edge.tileId === state.connectingTileId);
   return edge && pointer.value ? curve(edge.sx, edge.sy, pointer.value.x, pointer.value.y) : '';
 });
-onBeforeUnmount(() => { cleanGesture(); observer?.disconnect(); state.connectingTileId = null; });
+onBeforeUnmount(() => { state.connectingTileId = null; });
 </script>
 
 <template>

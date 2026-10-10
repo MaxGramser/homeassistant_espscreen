@@ -6,7 +6,8 @@ const { grid: editorGrid } = editorLayout;
 
 // A card on the mockup, drawn with what Home Assistant reports right now. A placeholder is the tile being
 // dragged, drawn where it will land.
-import { computed, nextTick, ref, watch } from "vue";
+import { useResizeObserver } from "@vueuse/core";
+import { computed, effectScope, nextTick, ref, watch, type EffectScope } from "vue";
 import { vDrag } from "../drag";
 import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
@@ -124,7 +125,7 @@ const panelKeys = computed(() => controls.value && !['toggle', 'setpoint', 'volu
 // A range's chip as the screen draws it (runtime_tiles range_chip, firmware 0.19.0): its number as large as the widest
 // temperature allows on its own, and its heat or cool icon beside it only where that fits at the same size; otherwise
 // the number alone in its end's colour. Measured whenever the chip changes size or text.
-const chipObservers = new WeakMap<HTMLElement, ResizeObserver>();
+const chipScopes = new WeakMap<HTMLElement, EffectScope>();
 function fitChip(el: HTMLElement) {
   const number = el.querySelector("b");
   if (!number || !el.clientWidth) return;
@@ -133,16 +134,16 @@ function fitChip(el: HTMLElement) {
   const pad = parseFloat(style.getPropertyValue("--chip-pad")) || 0, ems = parseFloat(el.style.getPropertyValue("--chip-ems")) || 2;
   el.classList.toggle("lone", icon + 1.5 * pad + ems * parseFloat(getComputedStyle(number).fontSize) > el.clientWidth);
 }
+// A directive has no scope of its own: each chip's observer lives in one, stopped when the chip goes.
 const vChipFit = {
   mounted(el: HTMLElement) {
     fitChip(el);
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => fitChip(el));
-    observer.observe(el);
-    chipObservers.set(el, observer);
+    const scope = effectScope(true);
+    scope.run(() => useResizeObserver(el, () => fitChip(el)));
+    chipScopes.set(el, scope);
   },
   updated: fitChip,
-  unmounted(el: HTMLElement) { chipObservers.get(el)?.disconnect(); },
+  unmounted(el: HTMLElement) { chipScopes.get(el)?.stop(); chipScopes.delete(el); },
 };
 // A wide card's chip as the glass works it out (ui-scale wideChip): its face and whether its icon fits.
 const glassScale = computed(() => Number(deviceStyle.value["--glass"]) || 1);

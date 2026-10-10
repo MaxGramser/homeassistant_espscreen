@@ -3,7 +3,9 @@ import { editorLayout } from "../store";
 const { cellsOf, grid, pageOf, spanOf } = editorLayout;
 
 // One page of the screen as the mockup draws it: the top bar and the screen's own grid of cells.
-import { computed, nextTick, onBeforeUnmount } from "vue";
+import { useEventListener } from "@vueuse/core";
+import { computed, nextTick } from "vue";
+import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
@@ -46,21 +48,20 @@ function pickCell(slot: number) {
 // A whole page moves by its label (app 0.2.121) and leaves by the button beside its cell count (app 0.2.123). One
 // page has nowhere to go and cannot leave either, and the page a tile can start behind the last one isn't a page yet.
 const movable = computed(() => !props.preview && !props.map && props.pages > 1 && props.page < props.pages);
-let cancelHome = () => {};
-onBeforeUnmount(() => cancelHome());
+// The home mark carried to another page: where the pointer is let go names the new home page.
+const homeDrag = useGesture();
 function dragHome(event: PointerEvent) {
   if (!isHome.value || !pageReady.value || event.button !== 0) return;
-  cancelHome();
   const start = { x: event.clientX, y: event.clientY };
-  const finish = (end: PointerEvent) => {
-    window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', cancel);
-    if (Math.hypot(end.clientX - start.x, end.clientY - start.y) < 8) return;
-    const id = document.elementFromPoint(end.clientX, end.clientY)?.closest<HTMLElement>('[data-page-id]')?.dataset.pageId;
-    if (id) setHomePage(id);
-  };
-  const cancel = () => { window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', cancel); };
-  cancelHome = cancel;
-  window.addEventListener('pointerup', finish); window.addEventListener('pointercancel', cancel);
+  homeDrag.begin(() => {
+    useEventListener(window, 'pointerup', (end: PointerEvent) => {
+      homeDrag.end();
+      if (Math.hypot(end.clientX - start.x, end.clientY - start.y) < 8) return;
+      const id = document.elementFromPoint(end.clientX, end.clientY)?.closest<HTMLElement>('[data-page-id]')?.dataset.pageId;
+      if (id) setHomePage(id);
+    });
+    useEventListener(window, 'pointercancel', () => homeDrag.end());
+  });
 }
 // This is the page being carried, drawn in the place it would land.
 const carried = computed(() => state.drag.page?.to === props.page);

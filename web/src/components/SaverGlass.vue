@@ -2,7 +2,8 @@
 // The screensaver's clock in miniature, in the glass's own proportions: the time large in the middle, the date under it
 // and the bottom line with the temperature and the entities, white on black as the screen draws it. A line wider than
 // the glass loses its last entities until it fits, as on the screen, so the temperature always stays.
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useResizeObserver } from "@vueuse/core";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { glyph } from "../model/topbar";
 import { saverItems, topbarView } from "../store";
 import { clockPreview, glassRatio, saver } from "../saver";
@@ -24,12 +25,8 @@ async function measure() {
   }
 }
 watch([items, temperature], measure, { deep: true });
-let observer: ResizeObserver | null = null;
-onMounted(() => {
-  measure();
-  if (line.value && typeof ResizeObserver !== "undefined") (observer = new ResizeObserver(() => measure())).observe(line.value);
-});
-onBeforeUnmount(() => observer?.disconnect());
+onMounted(measure);
+useResizeObserver(line, () => measure());
 </script>
 
 <template>

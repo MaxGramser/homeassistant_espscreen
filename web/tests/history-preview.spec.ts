@@ -13,3 +13,25 @@ describe('recorder graph geometry', () => {
     expect(result.points).toEqual([{ x: 148.5, y: 3 }, { x: 51.5, y: 47 }]);
   });
 });
+
+describe('the history on a card (SensorHistory)', () => {
+  it('says it is loading, draws the answer, and draws only the newest when the entity changes meanwhile', async () => {
+    const { mount, flushPromises } = await import('@vue/test-utils');
+    const { default: SensorHistory } = await import('../src/components/SensorHistory.vue');
+    const { fakeApi, failure } = await import('./helpers/fake-api');
+    const graph = (low: number) => ({ history: { start: 0, end: 400, values: [low, low + 2, low + 4, low + 6], unit: '°C' } });
+    const api = fakeApi({ 'GET history-preview': ({ query }) => query.get('entity') === 'sensor.gone' ? failure(404, 'No recorder') : graph(1) });
+    const slow = api.defer('GET history-preview');
+    const card = mount(SensorHistory, { props: { entity: 'sensor.history_slow', hours: 6 } });
+    expect(card.text()).toBe('Loading history…');
+    await card.setProps({ entity: 'sensor.history_fast' });
+    await flushPromises();
+    expect(card.findAll('path')).toHaveLength(1);
+    slow.resolve(graph(10));
+    await flushPromises();
+    expect(card.find('path').attributes('d')).toBe(historyGeometry(graph(1).history)!.paths[0]);
+    await card.setProps({ entity: 'sensor.gone' });
+    await flushPromises();
+    expect(card.text()).toBe('No recorded history');
+  });
+});

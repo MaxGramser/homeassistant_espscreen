@@ -2,7 +2,8 @@
 // captures the pointer, so the drag goes on wherever the pointer goes, and it ends when the pointer is let go or
 // cancelled, or when the edge goes with its component. `selectNothing` keeps the page from selecting text it passes over.
 import { tryOnScopeDispose, useEventListener } from "@vueuse/core";
-import { effectScope, getCurrentScope, shallowRef, type EffectScope } from "vue";
+import { shallowRef } from "vue";
+import { useGesture } from "./useGesture";
 
 export type ResizeHandleOptions = {
   onStart?: (event: PointerEvent) => void;
@@ -13,26 +14,23 @@ export type ResizeHandleOptions = {
 
 export function useResizeHandle(options: ResizeHandleOptions) {
   const resizing = shallowRef(false);
-  const owner = getCurrentScope();
-  let gesture: EffectScope | null = null;
+  const gesture = useGesture();
   function start(event: PointerEvent) {
-    if (gesture) return;
+    if (resizing.value) return;
     const handle = event.currentTarget as HTMLElement;
     event.preventDefault();
     if (options.selectNothing) document.body.style.userSelect = "none";
     try { handle.setPointerCapture(event.pointerId); } catch { /* A pointer the browser no longer has: the drag ends with its up. */ }
     resizing.value = true;
     options.onStart?.(event);
-    gesture = (owner ? owner.run(() => effectScope()) : effectScope())!;
-    gesture.run(() => {
+    gesture.begin(() => {
       useEventListener(handle, "pointermove", options.onMove);
       useEventListener(handle, ["pointerup", "pointercancel"], end);
     });
   }
   function end() {
-    if (!gesture) return;
-    gesture.stop();
-    gesture = null;
+    if (!resizing.value) return;
+    gesture.end();
     resizing.value = false;
     if (options.selectNothing) document.body.style.userSelect = "";
     options.onEnd?.();

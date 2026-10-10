@@ -4,7 +4,9 @@ const { grid, hasGaps, pageCount } = editorLayout;
 
 // The pages side by side, like swiping on the screen, or as a map of where the page tiles lead; the library on the
 // right. One toolbar above both views: the view, undo and redo, the preview, a new page, and the how-to in one place.
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useSwipe } from "@vueuse/core";
+import { computed, ref } from "vue";
+import { useAtMost } from "../composables/useWidths";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
@@ -28,10 +30,8 @@ const adjustedFields = computed(() => currentScreen.value?.page_document?.format
   ? currentScreen.value.page_document.migration?.adjustedFields || [] : []);
 const recoveryField = (field: string) => t(({ title: 'editor.topbar.screen_name', pages: 'editor.pages.choose_page',
   page_titles: 'editor.pages.title', header: 'editor.topbar.title', settings: 'editor.screen_view.tabs.settings' } as Record<string, string>)[field] || 'editor.common.unknown');
-const narrow = ref(window.innerWidth <= 700);
-const resize = () => { narrow.value = window.innerWidth <= 700; };
-onMounted(() => window.addEventListener('resize', resize));
-onBeforeUnmount(() => window.removeEventListener('resize', resize));
+// From 700 px down the pages stand one at a time (composables/useWidths.ts).
+const narrow = useAtMost('narrow');
 const simplePages = computed(() => narrow.value
   ? [Math.max(0, state.document?.pages.findIndex((page) => page.id === state.selectedPageId) ?? 0) + 1]
   : Array.from({ length: shown.value }, (_, index) => index + 1));
@@ -45,18 +45,18 @@ function stepPage(step: number) {
   const next = list[selectedIndex.value + step];
   if (next) { state.selectedPageId = next.id; state.insertAt = -1; }
 }
-let swipe: { x: number; y: number; at: number } | null = null;
-function swipeStart(e: TouchEvent) {
-  const touch = e.touches[0];
-  swipe = e.touches.length === 1 && touch ? { x: touch.clientX, y: touch.clientY, at: Date.now() } : null;
-}
-function swipeEnd(e: TouchEvent) {
-  const touch = e.changedTouches[0], from = swipe;
-  swipe = null;
-  if (!from || !touch || state.drag.active) return;
-  const dx = touch.clientX - from.x, dy = touch.clientY - from.y;
-  if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - from.at < 700) stepPage(dx < 0 ? 1 : -1);
-}
+// A swipe is a finger that went more than 48 px sideways, half again as far as up or down, within 700 ms.
+const pagesView = ref<HTMLElement | null>(null);
+let swipeAt = 0;
+const swipe = useSwipe(pagesView, {
+  threshold: 1,
+  onSwipeStart: () => { swipeAt = Date.now(); },
+  onSwipeEnd: () => {
+    const dx = -swipe.lengthX.value, dy = -swipe.lengthY.value;
+    if (!phone.value || state.drag.active) return;
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - swipeAt < 700) stepPage(dx < 0 ? 1 : -1);
+  },
+});
 
 const layout = computed(() => state.layout!);
 const entries = computed(() => state.drag.preview || entriesOf(layout.value));
@@ -149,8 +149,7 @@ function onCanvasClick(e: MouseEvent) {
       <div class="pages focused-page"><DevicePage :page="focused" :entries="entries" :pages="pages" :moving="state.drag.moving" map /></div>
     </template>
     <PageMap v-else-if="mode === 'advanced'" :key="String(narrow)" :compact="narrow" />
-    <div v-else class="pages" id="layout-preview" :aria-label="t('editor.layout.aria')"
-      @touchstart.passive="phone && swipeStart($event)" @touchend.passive="phone && swipeEnd($event)">
+    <div v-else ref="pagesView" class="pages" id="layout-preview" :aria-label="t('editor.layout.aria')">
       <div v-if="narrow && !phone" class="page-pills" role="group" :aria-label="t('editor.pages.choose_page')">
         <button v-for="(page, index) in state.document!.pages" :key="page.id" type="button" :aria-pressed="state.selectedPageId === page.id ? 'true' : 'false'"
           @click="state.selectedPageId = page.id"><b>{{ index + 1 }}</b> {{ titleOf(state.document!, page) }}</button>

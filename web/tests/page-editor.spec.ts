@@ -8,10 +8,12 @@ import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
 import TopbarInspector from '../src/components/TopbarInspector.vue';
 import { placeTile, dismissMigrationNote, pageReady, removeTile, resolveLayoutConflict, addPage, movePage } from '../src/store';
+import { narrowPhone } from "../src/store";
 import { addPage, addTile, connectTile, copyLayoutFrom, importLayout, layoutJson, movePage, moveWorkspacePage, redo,
   acceptGridReview, gridChanged, refresh, reviewScreenGrid, save, saveWorkspace, select, setEditorMode, setHomePage, setPageExcluded, setPageTitle, setTopbarItems, state, undo, workspacePositions } from "../src/store";
 import { documentFixture, screenFixture } from "./page-fixtures";
 import { answerDialogs } from "./helpers/dialogs";
+import { setMedia } from "./helpers/browser";
 import type { PageDocument, Screen } from "../src/types";
 
 const record = () => state.inventory.screens[0].page_document as PageDocument;
@@ -146,8 +148,7 @@ describe("one draft in both editor modes", () => {
     expect(JSON.stringify(state.document)).toBe(before);
   });
   it('uses a page picker and named routes at phone widths without shrinking the map', async () => {
-    const width = window.innerWidth;
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    setMedia('(max-width: 700px)', true);
     const view = mount(LayoutView);
     try {
       expect(view.findAll('#layout-preview .device')).toHaveLength(1);
@@ -158,7 +159,29 @@ describe("one draft in both editor modes", () => {
       expect(view.find('.map-scroll').exists()).toBe(false);
       expect(view.findAll('.map-list-route')).toHaveLength(2);
       expect(view.find('#library').exists()).toBe(true);
-    } finally { Object.defineProperty(window, 'innerWidth', { configurable: true, value: width }); view.unmount(); }
+    } finally { view.unmount(); }
+  });
+  it('goes to the next page with a finger swiped sideways on a phone, and not with a slow one or a scroll', async () => {
+    narrowPhone.value = true;
+    const view = mount(LayoutView);
+    await nextTick();
+    const pagesView = view.find('#layout-preview').element;
+    const touch = (type: string, x: number, y: number) => pagesView.dispatchEvent(Object.assign(new Event(type, { bubbles: true }),
+      { touches: type === 'touchend' ? [] : [{ clientX: x, clientY: y }], changedTouches: [{ clientX: x, clientY: y }] }));
+    const swipe = async (dx: number, dy: number, ms = 100) => {
+      touch('touchstart', 200, 300); touch('touchmove', 200 + dx, 300 + dy);
+      await vi.advanceTimersByTimeAsync(ms);
+      touch('touchend', 200 + dx, 300 + dy);
+    };
+    const [first, second] = state.document!.pages.map((page) => page.id);
+    await swipe(-80, 10);
+    expect(state.selectedPageId).toBe(second);
+    await swipe(80, 70);
+    await swipe(80, 0, 800);
+    expect(state.selectedPageId).toBe(second);
+    await swipe(80, 0);
+    expect(state.selectedPageId).toBe(first);
+    view.unmount();
   });
   it('reviews a changed grid before applying it, and undo restores the source geometry', () => {
     const original = JSON.stringify(state.document), revision = state.documentRevision;

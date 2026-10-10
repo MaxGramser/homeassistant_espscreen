@@ -5,7 +5,8 @@
 // entity stand in a column on the left and the entities beside them, grouped by room until a search ranks them.
 // Its top edge drags it taller or lower, and both are remembered.
 // A click adds the entity to the marked empty cell or the first free one; a drag puts it exactly where it lands.
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useEventListener, useTimeoutFn } from "@vueuse/core";
+import { computed, nextTick, ref, watch } from "vue";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { domainInfo, pageTarget } from "../model/layout";
@@ -106,11 +107,11 @@ const groups = computed(() => {
 });
 // The order the arrow keys walk: the groups as they stand.
 const flat = computed(() => groups.value.flatMap((group) => group.entities));
-watch(() => [open.value, shownList.value.map((entity) => entity.id).join('|'), Math.floor(state.now / 60000)], (_, __, cleanup) => {
-  if (!open.value) return;
-  const timer = window.setTimeout(() => loadLibraryStates(shownList.value.map((entity) => entity.id)), 180);
-  cleanup(() => clearTimeout(timer));
-}, { immediate: true });
+// The states of what is shown, asked once the list has stood still a moment (180 ms), again every minute, and never for a
+// folded drawer; the wait goes with the drawer.
+const loadSoon = useTimeoutFn(() => loadLibraryStates(shownList.value.map((entity) => entity.id)), 180, { immediate: false });
+watch(() => [open.value, shownList.value.map((entity) => entity.id).join('|'), Math.floor(state.now / 60000)],
+  () => (open.value ? loadSoon.start() : loadSoon.stop()), { immediate: true });
 // The kinds and rooms the results hold, each with its count, so searching narrows the column the way it narrows the
 // entities. The chosen one stays even when nothing matches it any more, otherwise an empty list would have nothing to
 // explain it.
@@ -189,8 +190,7 @@ function openSearch() {
   if (phone.value) return;
   nextTick(() => { const input = search.value; if (!input) return; input.focus(); input.setSelectionRange(input.value.length, input.value.length); });
 }
-onMounted(() => document.addEventListener("keydown", onPageKey));
-onBeforeUnmount(() => document.removeEventListener("keydown", onPageKey));
+useEventListener(document, "keydown", onPageKey);
 
 // ---- Open or folded, and how tall, remembered in this browser ----
 const MIN = 180;

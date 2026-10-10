@@ -1,21 +1,15 @@
 <script setup lang="ts">
 // This preview never sends HA actions. Native cover sliders own interaction.
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useElementSize } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import { deviceStyle, isCompact, screenShape, screenText, state } from '../store';
 import { glyph } from '../model/topbar';
 import { tallKeys } from '../model/ui-scale';
 import { controlKeys, coverTiltKeys, coverTiltKind } from '../model/tall-controls';
 const props = defineProps<{ primary: string; entityState: string; attributes: Record<string, any> }>();
 const root = ref<HTMLElement>();
-const width = ref(0), height = ref(0);
-let observer: ResizeObserver | undefined;
-watch(root, element => {
-  observer?.disconnect();
-  if (!element) return;
-  observer = new ResizeObserver(([entry]) => { width.value = entry!.contentRect.width; height.value = entry!.contentRect.height; });
-  observer.observe(element);
-});
-onBeforeUnmount(() => observer?.disconnect());
+// The card's own size, as it is drawn.
+const { width, height } = useElementSize(root);
 const scale = computed(() => parseFloat(deviceStyle.value['--mockup-width']) / screenShape.value.width);
 // The keys and their gap as the glass draws them (ui-scale tallKeys), in the mockup's pixels.
 const keys = computed(() => tallKeys({ ...screenShape.value, look: isCompact.value ? 'compact' : 'standard' }));

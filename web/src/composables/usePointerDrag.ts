@@ -6,7 +6,8 @@
 // the component or scope that made it, so a drawer that closes while a row is held lets go of the page.
 // The mockup's own drag (drag.ts) takes the same numbers; it captures the pointer on the card, which a directive does.
 import { tryOnScopeDispose, useEventListener, useTimeoutFn } from "@vueuse/core";
-import { effectScope, getCurrentScope, shallowRef, type EffectScope } from "vue";
+import { shallowRef } from "vue";
+import { useGesture } from "./useGesture";
 
 export const HOLD_MS = 260;
 export const SLOP_PX = 10;
@@ -33,14 +34,14 @@ export type PointerDragOptions = {
 
 export function usePointerDrag(options: PointerDragOptions = {}) {
   const dragging = shallowRef(false);
-  const owner = getCurrentScope();
-  let press: { event: PointerEvent; scope: EffectScope; holding: boolean } | null = null;
+  const gesture = useGesture();
+  let press: { event: PointerEvent; holding: boolean } | null = null;
   let suppressUntil = 0;
 
   function begin() {
     if (!press || dragging.value) return;
     dragging.value = true;
-    press.scope.run(() => useEventListener(document, "touchmove", (e: TouchEvent) => { if (dragging.value) e.preventDefault(); }, { passive: false }));
+    gesture.add(() => useEventListener(document, "touchmove", (e: TouchEvent) => { if (dragging.value) e.preventDefault(); }, { passive: false }));
     options.onStart?.(press.event);
   }
   function move(e: PointerEvent) {
@@ -59,7 +60,7 @@ export function usePointerDrag(options: PointerDragOptions = {}) {
   function finish(event: PointerEvent | null) {
     if (!press) return;
     const dragged = dragging.value;
-    press.scope.stop();
+    gesture.end();
     press = null; hold = null;
     dragging.value = false;
     if (dragged) suppressUntil = Date.now() + CLICK_AFTER_DRAG_MS;
@@ -69,9 +70,8 @@ export function usePointerDrag(options: PointerDragOptions = {}) {
   function start(e: PointerEvent, { now = false } = {}) {
     if (press) return false;
     // The press's listeners belong to the component or scope that made the drag, and go with it.
-    const scope = (owner ? owner.run(() => effectScope()) : effectScope())!;
-    press = { event: e, scope, holding: true };
-    scope.run(() => {
+    press = { event: e, holding: true };
+    gesture.begin(() => {
       useEventListener(document, "pointermove", move);
       useEventListener(document, ["pointerup", "pointercancel"], (end: PointerEvent) => { if (end.pointerId === press?.event.pointerId) finish(end); });
       if (!now && e.pointerType === "touch") hold = useTimeoutFn(begin, HOLD_MS);

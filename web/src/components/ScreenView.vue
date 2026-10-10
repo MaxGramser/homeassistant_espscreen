@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // One screen: the head with its status, the Layout and Settings tabs, and the inspector in a column on the right.
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useEventListener, useFileDialog } from "@vueuse/core";
+import { computed } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
 import {
@@ -31,7 +32,6 @@ const statusKind = computed(() => !screen.value.online ? "off" : screen.value.in
 const statusWord = computed(() => !screen.value.online ? t("editor.common.offline") : screen.value.in_sync ? t("editor.common.online") : t("editor.screen_view.sending"));
 const updateReady = computed(() => needsUpdate(screen.value) && screen.value.online && screen.value.update?.profile && screen.value.update?.host);
 const others = computed(() => state.inventory.screens.filter((s) => s.id !== screen.value.id && s.layout?.tiles?.length));
-const fileInput = ref<HTMLInputElement | null>(null);
 function closeMenu() { state.menuOpen = false; }
 function openOverride() {
   closeMenu();
@@ -50,7 +50,15 @@ async function copyFrom(id: string) {
   if (state.dirty && !(await confirm(t("editor.screen_view.confirm.copy")))) return;
   copyLayoutFrom(id);
 }
-function pickFile() { closeMenu(); fileInput.value?.click(); }
+// Import: the browser's file chooser for a layout file, the same file again as often as it is chosen.
+const chooser = useFileDialog({ accept: "application/json,.json", multiple: false, reset: true });
+chooser.onChange(async (files) => {
+  const file = files?.[0];
+  if (!file) return;
+  if (state.dirty && !(await confirm(t("editor.screen_view.confirm.import")))) return;
+  importLayout(await file.text());
+});
+function pickFile() { closeMenu(); chooser.open(); }
 // The phone's menu (app 0.4.40) holds what the toolbar and the tabs hold on a wider page.
 function phoneBack() {
   if (state.tab !== "layout") { state.tab = "layout"; return; }
@@ -66,14 +74,6 @@ async function phoneRename() {
 }
 const full = computed(() => (state.layout?.tiles.length || 0) >= tileLimit.value);
 function phoneAdd() { state.insertAt = -1; closeInspector(); state.addSheet = true; }
-async function onFile(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-  if (state.dirty && !(await confirm(t("editor.screen_view.confirm.import")))) return;
-  importLayout(await file.text());
-}
 // Escape belongs to the innermost thing open (app 0.4.32): a list of choices or a menu closes and the inspector under it
 // stays. Whether one was open is read before it closes, in the capture phase, since it is gone by the time the key
 // reaches this handler.
@@ -102,8 +102,8 @@ function onKey(e: KeyboardEvent) {
     if (e.shiftKey) redo(); else undo();
   }
 }
-onMounted(() => { document.addEventListener("keydown", beforeKey, true); document.addEventListener("keydown", onKey); });
-onBeforeUnmount(() => { document.removeEventListener("keydown", beforeKey, true); document.removeEventListener("keydown", onKey); });
+useEventListener(document, "keydown", beforeKey, { capture: true });
+useEventListener(document, "keydown", onKey);
 </script>
 
 <template>
@@ -178,7 +178,6 @@ onBeforeUnmount(() => { document.removeEventListener("keydown", beforeKey, true)
           <UiMenuItem v-else icon="cellphone" @select="setFullEditor(false)">{{ t("editor.phone.simple_editor") }}</UiMenuItem>
         </template>
       </UiMenu>
-      <input ref="fileInput" type="file" accept="application/json,.json" hidden @change="onFile" />
     </div>
   </header>
   <FeedbackPanel v-if="screen.feedback?.available" :key="`card-${screen.id}`" :screen="screen" mode="card" />

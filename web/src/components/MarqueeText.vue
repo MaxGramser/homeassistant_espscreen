@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 // Measure the actual rendered text and viewport, including font and tile changes.
 // A fitting title stays still. The duplicate is visual only, never read twice.
@@ -7,7 +8,6 @@ const props = defineProps<{ text: string }>();
 const viewport = ref<HTMLElement>();
 const content = ref<HTMLElement>();
 const distance = ref(0);
-let observer: ResizeObserver | undefined;
 function measure() {
   const width = content.value?.scrollWidth || 0;
   const available = viewport.value?.clientWidth || 0;
@@ -18,15 +18,8 @@ const style = computed(() => ({
   '--marquee-duration': `${Math.max(6, distance.value / 24 / .85)}s`,
 }));
 watch(() => props.text, async () => { await nextTick(); measure(); });
-onMounted(() => {
-  if (typeof ResizeObserver !== 'undefined') {
-    observer = new ResizeObserver(measure);
-    if (viewport.value) observer.observe(viewport.value);
-    if (content.value) observer.observe(content.value);
-  }
-  measure();
-});
-onBeforeUnmount(() => observer?.disconnect());
+useResizeObserver([viewport, content], measure);
+onMounted(measure);
 </script>
 
 <template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useResizeObserver } from "@vueuse/core";
+import { nextTick, onMounted, ref, watch } from "vue";
 import { vTooltip } from "floating-vue";
 import "floating-vue/dist/style.css";
 import { t } from "../i18n";
@@ -108,8 +109,9 @@ function measure() {
 }
 const remeasure = () => nextTick(measure);
 watch(() => [sidebar.width, sidebar.folded, state.inventory.screens.map((screen) => screen.name).join("\n")], remeasure);
-onMounted(() => { remeasure(); window.addEventListener("resize", remeasure); });
-onBeforeUnmount(() => window.removeEventListener("resize", remeasure));
+onMounted(remeasure);
+// And whenever the sidebar itself changes size (the window, a phone turned).
+useResizeObserver(aside, remeasure);
 const tip = (key: string, text: string | undefined, always = false) =>
   text && (sidebar.folded || always || cut.value[key]) ? { content: text, placement: "right", distance: 10, delay: { show: 200, hide: 0 } } : null;
 const screenTip = (screen: Screen) => [screen.name, subline(screen)?.text].filter(Boolean).join(" · ");

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from "vue";
+import { onKeyStroke } from "@vueuse/core";
+import { computed } from "vue";
 import Sidebar from "./components/Sidebar.vue";
 import Toast from "./components/Toast.vue";
 import CommandPalette from "./components/CommandPalette.vue";
@@ -29,12 +30,9 @@ const view = computed(() => {
   if (currentScreen.value && state.layout) return ScreenView;
   return state.selected || !state.inventory.screens.length ? EmptyState : HomeView;
 });
-// ⌘K (Ctrl+K) opens the search from anywhere.
-function onKey(e: KeyboardEvent) {
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !question.value) { e.preventDefault(); state.palette = !state.palette; }
-}
-onMounted(() => document.addEventListener("keydown", onKey));
-onBeforeUnmount(() => document.removeEventListener("keydown", onKey));
+// ⌘K (Ctrl+K) opens the search from anywhere, unless a question of the editor's is open.
+onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !question.value,
+  (e) => { e.preventDefault(); state.palette = !state.palette; }, { target: document });
 </script>
 
 <template>

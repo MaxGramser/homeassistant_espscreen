@@ -472,7 +472,7 @@ class Editor(unittest.TestCase):
     def test_layouts_can_be_copied_exported_and_imported(self):
         for name in ('export function copyLayoutFrom', 'export function exportLayout', 'export async function importLayout'):
             self.assertIn(name, self.store)
-        for marker in ('id="copy-layout"', 'id="export-layout"', 'id="import-layout"', 'accept="application/json,.json"'):
+        for marker in ('id="copy-layout"', 'id="export-layout"', 'id="import-layout"', 'accept: "application/json,.json"'):
             self.assertIn(marker, self.page, marker)
         self.assertIn('pages.remapLayout(record.layout, state.documentGrid)', self.store)
         self.assertNotIn('.slice(0, tileLimit.value)', self.store, 'an incompatible import must be reviewed, never silently truncated')
