@@ -130,3 +130,27 @@ it('resizes a Go to page tile by its edge without giving it controls (app 0.4.1)
   expect(tile().options?.size).toBe('tall');
   expect(tile().options?.controls).toBeUndefined();
 });
+
+const pluginTile = async () => {
+  const { usePluginsStore } = await import("../src/stores/plugins");
+  usePluginsStore().index = [{ id: 'waste_collection', tiles: [{ id: 'next', min: '1x1', max: '2x2' }] }] as never;
+  useInventoryStore().inventory.editor_features = { tall_tiles: true, plugins: true };
+  doc.document!.pages[0].tiles[0].content = { kind: 'plugin', plugin: 'waste_collection', tile: 'next' } as never;
+  expect(tile().entity).toBe('plugin:waste_collection.next');
+};
+
+it("resizes a plugin's tile by its edge without giving it controls (GitHub #224)", async () => {
+  await pluginTile();
+  expect(resizeTile(tile(), 'wide', 'columns')).toBe(true);
+  expect(resizeTile(tile(), 'square', 'rows')).toBe(true);
+  expect(tile().options?.size).toBe('square');
+  expect(tile().options?.controls).toBeUndefined();
+});
+
+it("frees a plugin's tile that got controls before when it is resized (GitHub #224)", async () => {
+  await pluginTile();
+  doc.document!.pages[0].tiles[0].interaction = { controls: 'none' } as never;
+  expect(resizeTile(tile(), 'wide', 'columns')).toBe(true);
+  expect(tile().options?.size).toBe('wide');
+  expect(tile().options?.controls).toBeUndefined();
+});

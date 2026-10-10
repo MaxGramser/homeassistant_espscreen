@@ -11,6 +11,7 @@ import { validateCardOptions } from "../model/page-validation";
 import * as pages from "../model/pages";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "../model/sizes";
 import { canonicalOptions, coupledOptions } from "../model/tile-options";
+import { PLUGIN_TILE_OPTIONS } from "../model/plugins";
 import { energyFits } from "../model/ui-scale";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
@@ -208,8 +209,11 @@ export function resizeTile(tile: Tile, size: Size, axis: "columns" | "rows") {
   return doc.editDocument((draft) => {
     const owned = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === current.id)!;
     // Gaining height exposes choices, it never opts into a default control.
-    // A Go to page tile has no controls at all (app 0.4.1): writing 'none' there made the add-on refuse the resize.
-    if (owned.placement.rows === 1 && dimensions(size, grid).rows > 1 && owned.interaction.controls === undefined && owned.content.kind !== "navigation")
+    // A Go to page tile has no controls at all (app 0.4.1): writing 'none' there made the add-on refuse the resize. Nor
+    // has a plugin's tile (GitHub #224): it keeps only PLUGIN_TILE_OPTIONS, so a tile that got one before saves again.
+    if (owned.content.kind === "plugin")
+      for (const key of Object.keys(owned.interaction)) { if (!PLUGIN_TILE_OPTIONS.includes(key)) delete owned.interaction[key as keyof typeof owned.interaction]; }
+    else if (owned.placement.rows === 1 && dimensions(size, grid).rows > 1 && owned.interaction.controls === undefined && owned.content.kind !== "navigation")
       owned.interaction.controls = effectiveControls(current, inventory) || "none";
     Object.assign(owned.placement, dimensions(size, grid));
     if (size === "single") delete owned.appearance.presentation;
