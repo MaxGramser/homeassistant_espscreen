@@ -1,6 +1,6 @@
 // Plugins (docs/PLUGINS.md): what the add-on says about a plugin (plugins.editor_plugin, from the index, a link or a
 // test folder), and whether it fits a screen. Pure functions only, so the Plugins page and its tests share one rule.
-import { editorLanguage } from "../i18n";
+import { editorLanguage, t } from "../i18n";
 import type { Screen } from "../types";
 
 // A plugin's own words per language, "en" always present. In its repo they live in translations/<language>.json, in two
@@ -182,6 +182,20 @@ export function changesBetween(markdown: string, from?: string | null, to?: stri
     if (keep) out.push(line);
   }
   return out.join("\n").trim();
+}
+
+/** GitHub's comparison of the commit a screen runs with the one on offer, as the full story of an update; none unless
+ * both are commits and differ. */
+export function compareUrl(repo: string | undefined, have: string | null | undefined, next: string | null | undefined) {
+  const sha = /^[0-9a-f]{40}$/;
+  return repo && have && next && have !== next && sha.test(have) && sha.test(next) ? `${repo.replace(/\/tree\/.*$/, "")}/compare/${have}...${next}` : null;
+}
+/** The words on the Plugins page's key that applies the boxes: adding to so many screens, taking off so many, both. */
+export function applyText(add: number, drop: number) {
+  if (add && drop) return t("editor.plugins.apply.both", { n: add + drop }, add + drop);
+  if (drop) return t("editor.plugins.apply.remove", { n: drop }, drop);
+  if (!add) return t("editor.plugins.apply.none");
+  return t("editor.plugins.apply.add", { n: add }, add);
 }
 
 // ---- Does it fit this screen ----

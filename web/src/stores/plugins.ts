@@ -7,7 +7,8 @@ import { defineStore } from "pinia";
 import { computed, effectScope, onScopeDispose, reactive, ref, watch } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
-import { attachLine, barItemView, barTypesOf, choiceKey, fit, isTest, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
+import { boardTitle } from "../model/boards";
+import { attachLine, barItemView, barTypesOf, choiceKey, compareUrl, fit, isTest, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
   text, tileTypesOf, type AppFit, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
 import type { Screen } from "../types";
 import { useBuildsStore } from "./builds";
@@ -487,6 +488,43 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
   onScopeDispose(() => running?.());
 
+  // ---- A plugin's details (PluginDetail): taking it off, what an update brings, a screen's row ----
+  /** What taking a plugin off these screens takes with it: the plugins that need it (they go with it), and the ones that
+   * only came along with it or with those (they may go too; the person says). */
+  function removalPlan(screens: Screen[], plugin: Plugin) {
+    const needing = [...new Set(screens.flatMap((screen) => neededBy(screen, plugin.id).map((p) => p.id)))];
+    const orphans = [...new Set(screens.flatMap((screen) => (installed.value[nodeOf(screen)] || []).filter((item) => item.auto
+      && item.id !== plugin.id && neededBy(screen, item.id).every((p) => p.id === plugin.id || needing.includes(p.id)))
+      .map((item) => item.id)))];
+    return { with: needing, orphans };
+  }
+  /** The version an update's changelog starts after: the one this screen runs when it has the update; on the Plugins page
+   * (no screen) the oldest of the screens with the update. None without an update. */
+  function newsFrom(plugin: Plugin, screen: Screen | null) {
+    if (screen) return statusOn(plugin, screen).kind === "update" ? installedOn(screen, plugin.id)?.version ?? null : null;
+    return realScreens().filter((s) => hasUpdate(s, plugin)).map((s) => installedOn(s, plugin.id)?.version || "").sort()[0] || null;
+  }
+  /** GitHub's comparison of the commit this screen (else the first with the update) runs with the one on offer. */
+  function compareFor(plugin: Plugin, screen: Screen | null) {
+    const shown = screen || realScreens().find((s) => hasUpdate(s, plugin));
+    return compareUrl(plugin.repo, shown ? installedOn(shown, plugin.id)?.ref : null, plugin.ref);
+  }
+  /** A screen's line on the Plugins page: building, a change the box asks for, a test's source, an update, the version it
+   * runs, why it does not fit, that its YAML needs the plugins file, or the board it is. `wanted`: its box is ticked. */
+  function screenLine(plugin: Plugin, screen: Screen, wanted: boolean) {
+    const have = installedOn(screen, plugin.id);
+    if (buildingOn(screen, plugin.id)) return t("editor.plugins.state.building");
+    if (wanted && !have) return t("editor.plugins.pending.add");
+    if (!wanted && have) return t("editor.plugins.pending.remove");
+    if (isTest(have)) return t(`editor.plugins.source.${have!.source}`);
+    if (hasUpdate(screen, plugin)) return t("editor.plugins.screen_update", { from: have!.version, to: plugin.version });
+    if (have) return t("editor.plugins.screen_version", { version: have.version });
+    const result = fits(plugin, screen);
+    if (!result.ok) return t(`editor.plugins.misfit_short.${result.reason}`);
+    if (needsAttach(screen)) return t("editor.plugins.attach.row");
+    return screen.shape?.catalog ? boardTitle(screen.shape.catalog) : "";
+  }
+
   return {
     index, installed, loaded, secrets, files, choices, previews, entities, folders, features, likeConsent, appFit,
     values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups,
@@ -496,7 +534,7 @@ export const usePluginsStore = defineStore("plugins", () => {
       pluginTileOf, barItemOf, fits, choicesFor, previewFor, tapActionsFor, barItemsFor, entitiesIn, needsConsent, realScreens,
       otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, partsKb,
       installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike,
-      isSetAside, trayPlan, trayAlong, trayReady, setAsideKb,
+      isSetAside, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
     }),
     reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, forgetDrafts,
     addPlugin, updateAll, setAside, takeOut, toggleSetAside, installTray, removePlugin, switchPlugin, setSecret, start,

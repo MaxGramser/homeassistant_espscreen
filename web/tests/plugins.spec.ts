@@ -1,6 +1,8 @@
 // Plugins (docs/PLUGINS.md): whether a plugin fits a screen, the one rule the Plugins page and its details share.
 import { describe, expect, it } from "vitest";
-import { changesBetween, fit, flashShare, headroomKb, offeredEntities, type Plugin } from "../src/model/plugins";
+import { applyText, changesBetween, compareUrl, fit, flashShare, headroomKb, offeredEntities, type Plugin } from "../src/model/plugins";
+import { t } from "../src/i18n";
+import { useInventoryStore } from "../src/stores/inventory";
 import { usePluginsStore } from "../src/stores/plugins";
 import type { Screen } from "../src/types";
 
@@ -136,5 +138,57 @@ describe("saving a plugin's settings on a screen", () => {
     forgetDrafts(hall, voice);
     expect(setupChanged(hall, voice)).toBe(false);
     expect(valueOf(hall, voice, "key")).toBe("");
+  });
+});
+
+describe("a plugin's details (the plugins store, model/plugins.ts)", () => {
+  const origin = "github.com/a/b";
+  it("takes a plugin off with the ones that need it, and offers to take what only came along with them", () => {
+    const s = screen("guition"), plugins = usePluginsStore();
+    // The voice plugin needs the speaker, which came along with it; the helper came along with the speaker; the other
+    // plugin stands on its own.
+    plugins.index = [plugin({ id: "voice", requires: { plugins: ["speaker"] } }), plugin({ id: "speaker", requires: { plugins: ["helper"] } }),
+      plugin({ id: "helper" }), plugin({ id: "other" })];
+    plugins.installed = { [s.id]: [
+      { id: "voice", version: "1.0.0", source: "index" }, { id: "speaker", version: "1.0.0", source: "index", auto: true },
+      { id: "helper", version: "1.0.0", source: "index", auto: true }, { id: "other", version: "1.0.0", source: "index" },
+    ] };
+    expect(plugins.removalPlan([s], plugins.index[1])).toEqual({ with: ["voice"], orphans: ["helper"] });
+    expect(plugins.removalPlan([s], plugins.index[3])).toEqual({ with: [], orphans: [] });
+  });
+
+  it("brings an update's changelog from the version a screen runs, the oldest on the Plugins page, with GitHub's comparison", () => {
+    const a = screen("guition"), b = screen("cyd"), plugins = usePluginsStore();
+    useInventoryStore().inventory = { screens: [a, b], entities: [] } as any;
+    const bus = plugin({ version: "1.2.0", origin, ref: "b".repeat(40), repo: "https://github.com/a/b/tree/main/plugins/bus" });
+    plugins.index = [bus];
+    plugins.installed = { [a.id]: [{ id: "bus", version: "1.1.0", source: "index", origin, ref: "a".repeat(40) }],
+      [b.id]: [{ id: "bus", version: "1.0.0", source: "index", origin, ref: "c".repeat(40) }] };
+    expect(plugins.newsFrom(bus, a)).toBe("1.1.0");
+    expect(plugins.newsFrom(bus, null)).toBe("1.0.0");
+    expect(plugins.compareFor(bus, a)).toBe(`https://github.com/a/b/compare/${"a".repeat(40)}...${"b".repeat(40)}`);
+    expect(plugins.compareFor(bus, null)).toBe(`https://github.com/a/b/compare/${"a".repeat(40)}...${"b".repeat(40)}`);
+    expect(compareUrl("https://github.com/a/b", "v1", "b".repeat(40))).toBeNull();
+    expect(compareUrl("https://github.com/a/b", "a".repeat(40), "a".repeat(40))).toBeNull();
+    plugins.installed = {};
+    expect(plugins.newsFrom(bus, a)).toBeNull();
+    expect(plugins.newsFrom(bus, null)).toBeNull();
+  });
+
+  it("says on a screen's row what its box asks, what it runs, or why it does not fit", () => {
+    const a = screen("guition", { update: { profile: "a.yaml" } as any }), plugins = usePluginsStore();
+    const bus = plugin({ version: "1.2.0", origin });
+    plugins.installed = { [a.id]: [{ id: "bus", version: "1.1.0", source: "index", origin }] };
+    expect(plugins.screenLine(bus, a, false)).toBe(t("editor.plugins.pending.remove"));
+    expect(plugins.screenLine(bus, a, true)).toBe(t("editor.plugins.screen_update", { from: "1.1.0", to: "1.2.0" }));
+    plugins.installed = {};
+    expect(plugins.screenLine(bus, a, true)).toBe(t("editor.plugins.pending.add"));
+    expect(plugins.screenLine(plugin({ requires: { psram: true } }), screen("cyd", { update: { profile: "c.yaml" } as any }), false))
+      .toBe(t("editor.plugins.misfit_short.psram"));
+  });
+
+  it("says what applying the boxes does", () => {
+    expect([applyText(0, 0), applyText(2, 0), applyText(0, 1), applyText(1, 1)])
+      .toEqual([t("editor.plugins.apply.none"), t("editor.plugins.apply.add", { n: 2 }, 2), t("editor.plugins.apply.remove", { n: 1 }, 1), t("editor.plugins.apply.both", { n: 2 }, 2)]);
   });
 });
