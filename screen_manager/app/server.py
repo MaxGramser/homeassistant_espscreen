@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 import math
 from urllib.parse import urlsplit
 import camera_feed
+import live_feed
 import claude_skill
 import screen_hang
 import screen_labels
@@ -487,9 +488,31 @@ class HomeAssistant:
         state = self.states.get(entity_id)
         return ha_catalogue.capabilities(entity_id, actions, self.widen(entity_id, state) if self.widen else state, self.services)
 
+    def ws_url(self):
+        return ('ws://supervisor/core/websocket' if self.base == 'http://supervisor/core/api'
+                else self.base.replace('http://', 'ws://').replace('https://', 'wss://') + '/websocket')
+
+    @contextlib.asynccontextmanager
+    async def websocket(self):
+        """A websocket of its own, authenticated, for a conversation that has many answers (a live camera's WebRTC,
+        live_feed.py): it ends with the conversation, and Home Assistant ends the session with it."""
+        async with self.session.ws_connect(self.ws_url(), heartbeat=30, max_msg_size=4*1024*1024) as ws:
+            await ws.receive_json(timeout=15)
+            await ws.send_json({'type': 'auth', 'access_token': self.token})
+            if (await ws.receive_json(timeout=15)).get('type') != 'auth_ok':
+                raise ConnectionError('Home Assistant authentication failed.')
+            yield ws
+
+    def camera_streams(self, entity):
+        """Whether a camera has a stream of its own (CameraEntityFeature.STREAM): an RTSP camera, not a snapshot one."""
+        features = ((self.states.get(entity) or {}).get('attributes') or {}).get('supported_features') or 0
+        try:
+            return bool(int(features) & live_feed.STREAM_FEATURE)
+        except (TypeError, ValueError):
+            return False
+
     async def run(self):
-        url = ('ws://supervisor/core/websocket' if self.base == 'http://supervisor/core/api'
-               else self.base.replace('http://', 'ws://').replace('https://', 'wss://') + '/websocket')
+        url = self.ws_url()
         while True:
             reader, connected = None, None
             try:
@@ -922,6 +945,9 @@ class Manager:
                                              fetch_cover=lambda entity: self.ha.media_image(self.followed(entity)),
                                              picture=lambda entity: self.ha.media_picture(self.followed(entity)))
         self.alert_cameras = {}
+        # A camera live, full screen, on a P4 (live_feed.py): its links and the sources behind them, on the camera port.
+        self.live = live_feed.LiveFeed(lambda entity: self.ha.camera_image(entity), lambda: self.ha.websocket(),
+                                       lambda entity: self.ha.camera_streams(entity))
         # The streets of the map cards (app 0.4.33): one tile source for every screen, through Home Assistant. And the
         # last maps drawn, by their mark, frame and look: a screen in dark mode and one in light mode each have their
         # own, and a page that loads again for its camera does not draw its map again.
@@ -3107,6 +3133,14 @@ class Manager:
             url = f'{base}/camera/{token}.bmp' if token else ''
         return {'v': 1, 'op': 'camera', 't': 'alert' if view == 'thumb' else 'full', 'e': entity, 'u': url}
 
+    async def live_message(self, entity, box):
+        """The screen message for a camera live (live_feed.py): a link to its stream of pictures."""
+        base = await camera_feed.base_url(self.ha.request)
+        if not base:
+            LOG.warning('Camera images: no address for this app on the LAN; set SCREEN_CAMERA_URL')
+        url = f'{base}/camera/{self.live.link(entity, box)}.mjpeg' if base else ''
+        return {'v': 1, 'op': 'camera', 't': 'full', 'e': entity, 'u': url}
+
     async def answer_camera(self, request):
         """One screen's request: a camera it may show, on a screen that draws camera images."""
         if not isinstance(request, dict):
@@ -3140,8 +3174,13 @@ class Manager:
         action = self.transport(inbox, screen)
         if not action or not self.camera_allowed(inbox, entity):
             return
-        message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
-            entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
+        # A P4 takes a camera live (firmware dev): it names the room below its top bar, and gets a stream of pictures.
+        live_box = live_feed.parse_box(request.get('live')) if not cover and entity.startswith('camera.') else None
+        if live_box:
+            message = await self.live_message(entity, live_box)
+        else:
+            message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
+                entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
         await self.send_auxiliary(inbox, message, action, request)
         LOG.info('%s %s on %s%s', 'Cover of' if cover else 'Camera', entity, screen['name'], '' if message['u'] else ': no image')
 
@@ -4642,7 +4681,7 @@ async def main():
         await runner.setup()
         await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
-        cameras = web.AppRunner(camera_feed.web_app(manager.camera), access_log=None)
+        cameras = web.AppRunner(camera_feed.web_app(manager.camera, manager.live), access_log=None)
         await cameras.setup()
         try:
             await web.TCPSite(cameras, '0.0.0.0', camera_feed.port()).start()

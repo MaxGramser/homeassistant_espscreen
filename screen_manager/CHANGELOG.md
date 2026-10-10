@@ -1,5 +1,15 @@
 ## Unreleased
 
+- **A camera live, full screen, on the P4 boards.** On the reTerminal D1001, the M5Stack Tab5, the Waveshare ESP32-P4
+  panel and the Guition P4 boards, a camera tapped open full screen plays live at the camera's own pace, instead of a
+  new still every four seconds: 8 pictures a second from a camera's low-resolution stream, 15 from a 1080p one, about a
+  tenth of a second behind the camera, with touch as quick as ever. The app takes the camera through Home Assistant's
+  own WebRTC and sends the screen JPEGs no larger than the camera's own; the screen's hardware decodes, scales and turns
+  them. A camera without a stream sends its snapshots as fast as it gives them. On a Raspberry Pi, give the tile the
+  camera's low-resolution stream: decoding is what costs Home Assistant's host, and it costs what the resolution costs.
+  Every other board keeps its stills.
+- **P4 boards download faster.** Camera pictures, album covers and maps come about three times as fast on the P4
+  boards: their Wi-Fi goes through an ESP32-C6, and a larger network window keeps it busy.
 - **Plugin cards and tiles.** A card a plugin opens shows everything it draws under its top bar, not only the first line
   (#226), and a plugin's tile grows to a tall size in Layout and saves (#224).
 - **The editor asks in its own look.** Before something that can't be taken back (leaving unsaved changes, replacing a

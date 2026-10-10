@@ -9,7 +9,8 @@ The CYD, the Waveshare 3.5-inch and the Hosyond 4-inch cannot (see below). Which
 - **A camera tile.** Add a `camera.*` or `image.*` entity as a tile. A tap opens the image full
   screen, with the round back key at the top left like every card, and a spinner until the first
   image is there (firmware 0.2.73). The image is refreshed every four seconds while it is open. It
-  is not video: ESPHome has no video decoder.
+  is not video: ESPHome has no video decoder. A P4 board plays the camera live instead (see
+  [Live on the P4 boards](#live-on-the-p4-boards)).
 - **An alert with a picture.** Add `camera: camera.front_door` to the `esp_screens_show_alert`
   event, and `screen: hallway_screen` for one screen only (app 0.2.133). The screen's own actions
   `esphome.<screen>_show_alert` and `_show_alert_choice` have no `camera`: Home Assistant makes every
@@ -220,6 +221,67 @@ loop since firmware 0.2.73, 4 KB before). A JPEG of the full screen took 0.6 s i
 Guition, during which the screen missed taps. A full-screen BMP is about 390 KB; on the bench
 Guition it comes in about 1.8 s (2.8 s with 4 KB).
 
+## Live on the P4 boards
+
+A camera opened full screen on a board with an ESP32-P4 (the reTerminal D1001, the M5Stack Tab5, the Waveshare
+ESP32-P4 panel and the Guition P4 boards) plays live, at the camera's own pace, about a tenth of a second behind the
+camera. Every other board keeps the still of every four seconds above. A map, an image entity and the screensaver stay
+stills on a P4 too.
+
+**How it travels.** The screen asks for the camera as for a still, with one key more: `live`, the room below its top
+bar in pixels (`1280x715`). An app that knows streams answers with a link on its camera port that ends in `.mjpeg`; an
+older app answers with a still, and the screen shows stills. The link serves `multipart/x-mixed-replace`: one baseline
+JPEG a part, each with its Content-Length, over plain HTTP/1.0. The app makes the next picture once the last one has
+left its host, always of the newest frame the camera gave, so a slow Wi-Fi gets fewer pictures and never older ones.
+At most four screens stream at once.
+
+**Where the pictures come from** (`screen_manager/app/live_feed.py`). Most of the work lands on Home Assistant's host,
+often a Raspberry Pi, so each kind of camera takes the cheapest road:
+
+- A camera with a stream of its own (an RTSP camera through Generic Camera, ONVIF, Reolink, UniFi Protect and others)
+  comes through Home Assistant's WebRTC: its built-in go2rtc relays the camera's H.264 as it is, and the app receives
+  it with aiortc and decodes it with PyAV. The P4 cannot decode H.264 (its hardware encodes it, and Espressif's
+  software decoder takes only the baseline profile most cameras do not send), so Home Assistant's host does, once per
+  camera however many screens watch it. The JPEG is made straight from the decoder's YUV with FFmpeg's encoder, at the
+  camera's own size where that fits the room, or scaled down to it. Until the first frame (WebRTC waits for the
+  camera's next key frame, a few seconds on some cameras) the screen gets the camera's still.
+- Any other camera (a snapshot camera, an ESPHome camera, a picture an integration draws) gives its snapshot, asked again
+  as soon as the last one came, at most 15 a second. A JPEG the P4 decodes as it is (baseline, at most 1920 pixels a
+  side) goes out untouched, which costs the app nothing; anything else is made into one.
+- A camera whose WebRTC does not start within 20 seconds sends its snapshots instead.
+
+**What it costs Home Assistant's host.** Decoding costs what the camera's resolution costs, so give a camera's tile the
+camera's low-resolution stream where the integration offers one (most do, as a second camera entity). Measured on a PC
+(2026-10-10, an EZVIZ camera): its 512 x 288 stream at 8 frames a second took 2% of one core for everything (receiving,
+decoding, JPEGs, sending), its 1920 x 1080 stream at 15 frames a second about 15%. A Raspberry Pi 4 core is several times
+slower, so on a Pi the low-resolution stream is the one to take. A JPEG from YUV took 1 ms for 512 x 288 and 7 ms for
+1080p scaled to 720p, where Pillow from RGB took 3 and 19.
+
+**On the screen** (`components/smart_display/live_view.h`). A task of its own reads the stream, decodes each picture with
+the P4's hardware JPEG decoder and has the PPA scale it to fill the room and turn it the way LVGL turns its own drawing,
+straight into the panel's frame buffer. LVGL would take 200 ms to draw such a picture, with touch waiting meanwhile;
+past LVGL the main loop is not involved at all. The back key and the name stay LVGL's, on the view's black above the
+picture, and while the camera streams LVGL draws nothing in the picture's room (a card on the page behind it that
+changes would otherwise paint the view's black over the picture until its next frame). A stream that breaks is asked
+for again; after three breaks the view shows the stills of every board. The panel's frame buffer is found as ESP-IDF
+makes the panel for ESPHome's display (a linker wrap of `esp_lcd_new_panel_dpi`), so every display platform on a P4
+serves.
+
+Measured on the reTerminal D1001 (2026-10-10):
+
+| The camera's stream | Pictures | Decoding | Scaling and turning |
+|---|---|---|---|
+| 512 x 288, scaled 2.4 times by the screen | 8 a second, the camera's pace | 2 ms | 15 ms |
+| 1920 x 1080, sent as 1264 x 704 | 15 a second, the camera's pace | 10 ms | 48 ms |
+
+Home Assistant's LL-HLS was 0.6 to 1.2 seconds behind the same camera and came in bursts of a second; its WebRTC 0.12.
+
+**The network of a P4.** Every P4 board reaches its Wi-Fi through an ESP32-C6 over SDIO, where a packet's round trip
+takes long enough that ESP-IDF's default TCP receive window (5,760 bytes) held a download at about 0.7 MB/s. The P4
+boards build with a window of 64 KB (`components/smart_display/__init__.py`, keyed on the chip): about 2.6 MB/s, for the
+live camera and for every picture. The other boards keep the default: the window holds for every connection, and a
+board without PSRAM has no room for it.
+
 ## Network
 
 - **Home Assistant OS:** the app publishes port 8098 on the Home Assistant host. When another app
@@ -294,6 +356,9 @@ through, how much it matters, and how the app is asked for it. One loader decide
   finished download, the `LV_USE_IMAGE` flag, the alert frame, and the diagnostic action `preview_camera` (an entity
   opens it, an empty entity closes it).
 - `tests/test_camera.py`: the app side and the words both sides share.
+- `screen_manager/app/live_feed.py`: a camera live on a P4, its links, the source per camera (WebRTC or snapshots) and
+  the stream (`tests/test_live_feed.py`); `components/smart_display/live_view.h` and `live_view.cpp`: the screen's side
+  (`tests/test_live_view.cpp` checks the stream's framing, where a picture lies on a turned panel and how it is scaled).
 - Every step of every picture is in the screen's log at DEBUG (`logger: level: DEBUG` in a screen's Override YAML),
   under the tag `picture`: who wants which picture, the question and its answer, the download, the store keeping,
   renewing, retiring and freeing each copy (and why), a picture put on its card on the glass or on a kept page, and an

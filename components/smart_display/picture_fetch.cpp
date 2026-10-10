@@ -99,7 +99,7 @@ static void release_memory(void *p) {
 }
 
 // ---- the task ----
-static int connect_to(const Address &a) {
+int connect_to(const Address &a, uint32_t wait_ms) {
   addrinfo hints{};
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
@@ -124,12 +124,12 @@ static int connect_to(const Address &a) {
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0) { close(fd); return -1; }
   }
   fcntl(fd, F_SETFL, flags);
-  timeval chunk{static_cast<time_t>(RECV_MS / 1000), static_cast<suseconds_t>((RECV_MS % 1000) * 1000)};
+  timeval chunk{static_cast<time_t>(wait_ms / 1000), static_cast<suseconds_t>((wait_ms % 1000) * 1000)};
   setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &chunk, sizeof(chunk));
   setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &chunk, sizeof(chunk));
   return fd;
 }
-static bool send_all(int fd, const std::string &text) {
+bool send_all(int fd, const std::string &text) {
   size_t sent = 0;
   while (sent < text.size()) {
     const auto n = send(fd, text.data() + sent, text.size() - sent, 0);
@@ -143,7 +143,7 @@ static bool send_all(int fd, const std::string &text) {
 static void download(Slot &slot) {
   const Address a = split(slot.task_url);
   if (!a.ok) { ESP_LOGW(TAG, "%s: not a link: %s", slot.name, slot.task_url.c_str()); return; }
-  const int fd = connect_to(a);
+  const int fd = connect_to(a, RECV_MS);
   if (fd < 0) { ESP_LOGW(TAG, "%s: no connection to %s:%u", slot.name, a.host.c_str(), a.port); return; }
   std::string request = "GET " + a.path + " HTTP/1.1\r\nHost: " + a.host + ":" + std::to_string(a.port) +
                         "\r\nAccept: image/bmp,*/*;q=0.8\r\nConnection: close\r\n";

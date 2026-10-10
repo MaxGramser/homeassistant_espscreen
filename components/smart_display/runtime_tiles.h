@@ -46,6 +46,7 @@
 #include "history_view.h"
 #include "camera_view.h"
 #include "picture_fetch.h"
+#include "live_view.h"
 #include "kept_pages.h"
 #include "tile_memory.h"
 #include "wifi_status.h"
@@ -10262,6 +10263,11 @@ struct ViewPicture {
   uint32_t every = camera_view::REFRESH_MS;
   bool once = false;   // the screensaver's cover: one picture, and a new track is another
   bool shown = false;  // a picture of it is on the glass
+  // Live on a P4 (live_view.h): a stream runs or is about to, its link waiting while the last stream ends, and the
+  // streams that failed for this opening (TRIES of them, and the view takes the stills of every board).
+  bool live = false;
+  std::string live_url;
+  uint8_t live_failures = 0;
   void open(const std::string &e) { *this = ViewPicture{}; entity = e; }
   bool open() const { return !entity.empty(); }
 };
@@ -10813,6 +10819,54 @@ inline void tile_pictures_letgo() {
 #endif
 }
 
+// ---- The camera live, full screen, on a P4 (live_view.h) ----
+inline void camera_note_text(const char *text);
+// The room below the top bar: the back key and the name stay LVGL's, on the view's black, never over the picture.
+inline live_view::Rect live_area() {
+  const int top = detail_bar::bottom();
+  return {0, top, overlay_card::screen_width(), overlay_card::screen_height() - top};
+}
+// A camera opened by itself (not a map, an image or the screensaver), on a board that streams, until its streams
+// failed TRIES times for this opening.
+inline bool live_wanted() {
+  return live_view::available() && camera.open() && camera.entity.rfind("camera.", 0) == 0 && camera_map_index < 0 &&
+         !saver_camera && camera.live_failures < live_view::TRIES;
+}
+// The stream starts once the last one has ended (a camera closed and another opened at once).
+inline void live_try() {
+  if (camera.live_url.empty() || live_view::running()) return;
+  if (live_view::start(camera.live_url, live_area())) {
+    camera.live_url.clear();
+    return;
+  }
+  // This panel cannot stream after all: the view takes the stills of every board.
+  camera.live = false;
+  camera.live_url.clear();
+  camera.live_failures = live_view::TRIES;
+  pictures_round();
+}
+inline void live_begin(const std::string &url) {
+  camera.live = true;
+  camera.live_url = url;
+  live_try();
+}
+// The board's 50 ms interval (features/camera.yaml), beside the downloads' hand-off.
+inline void live_tick() {
+  const auto event = live_view::tick();
+  if (!camera_root || !camera.live) return;
+  live_try();
+  if (event == live_view::Event::FIRST) {
+    camera.shown = true;
+    camera_note_text("");  // the spinner goes; LVGL no longer draws there while the camera streams
+  } else if (event == live_view::Event::FAILED || event == live_view::Event::TURNED) {
+    // Asked again: a new stream for the glass as it is now, or after TRIES failures the stills.
+    if (event == live_view::Event::FAILED) ++camera.live_failures;
+    ESP_LOGI("camera", "live %s for %s", event == live_view::Event::FAILED ? "failed" : "turned", camera.entity.c_str());
+    camera.live = false;
+    pictures_round();
+  }
+}
+
 // Asks ESP Screen Manager for a link (app 0.2.66+ answers with op "camera"). An event, like history_request.
 // A cover (firmware 0.2.64+) adds the size it wants and the colour behind its rounded corners; the app bakes both in.
 inline void camera_request(const std::string &entity, int size, uint32_t background) {
@@ -10835,7 +10889,11 @@ inline void camera_request(const std::string &entity, int size, uint32_t backgro
   const auto cap = picture_cap();
   const std::string cap_text = std::to_string(cap.bytes);
   const bool larger = size <= 0 && cap.bytes > picture_store::MAX_BYTES;
-  request.data.init(count + (saver ? 1 : 0) + (larger ? 1 : 0));
+  // A P4 takes the camera live (live_view.h): it asks for a stream of pictures for the room below the top bar. An app
+  // without streams reads the keys it knows and answers with a still.
+  const bool live = size <= 0 && live_wanted();
+  const std::string live_text = live ? live_view::box_text(live_area()) : std::string();
+  request.data.init(count + (saver ? 1 : 0) + (larger ? 1 : 0) + (live ? 1 : 0));
   if (saver) {
     esphome::api::HomeassistantServiceMap entry;
     entry.key = esphome::StringRef("saver");
@@ -10846,6 +10904,12 @@ inline void camera_request(const std::string &entity, int size, uint32_t backgro
     esphome::api::HomeassistantServiceMap entry;
     entry.key = esphome::StringRef("cap");
     entry.value = esphome::StringRef(cap_text);
+    request.data.push_back(entry);
+  }
+  if (live) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = esphome::StringRef("live");
+    entry.value = esphome::StringRef(live_text);
     request.data.push_back(entry);
   }
   for (int i = 0; i < count; ++i) {
@@ -10874,6 +10938,8 @@ inline void camera_release() {
 
 inline void camera_close() {
   if (!camera_root) return;
+  // A live picture stops first: nothing of it writes the glass once LVGL draws the page there again.
+  live_view::stop();
   lv_obj_delete(camera_root);
   camera_root = camera_picture = camera_note = camera_back = camera_title = camera_spinner = map_card_obj = nullptr;
   map_zoom_keys = map_pad = map_waiting = nullptr;
@@ -11214,6 +11280,11 @@ inline void camera_answer(const std::string &view, const std::string &entity, co
   if (view == "full" || view == "saver") {
     // "saver" (firmware 0.29.0+): the screensaver's picture, into the full view it opened without its keys.
     if (!camera_root || camera.entity != entity || (view == "saver") != saver_camera) return;
+    // A stream of pictures (live_view.h), for the view that asked for one; a still goes the way every picture goes.
+    if (view == "full" && live_view::is_stream(url)) {
+      if (live_wanted() && !camera.live) live_begin(url);
+      return;
+    }
     loader.answer(camera_tag(), url, now);
   } else if (view == "cover") {  // a media card's or tile's album cover (firmware 0.2.64+)
     if (url.empty()) ESP_LOGI("camera", "no cover for %s", entity.c_str());
@@ -11386,6 +11457,7 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
 // ---- What every picture wants, each round ----
 inline void camera_want() {
   if (!camera_root || !camera.open() || !pictures_awake()) return;
+  if (camera.live) return;  // its pictures stream (live_view.h); the loader has nothing to fetch
   picture_loader::Want w;
   w.key = camera_key();
   w.tag = camera_tag();

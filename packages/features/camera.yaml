@@ -86,10 +86,11 @@ esphome:
       - -DSCREEN_PICTURES=1
 
 interval:
-  # A finished download is handed to its card here, on the main loop.
+  # A finished download is handed to its card here, on the main loop, and so is what a live camera did (a P4,
+  # live_view.h; nothing on the other boards).
   - interval: 50ms
     then:
-      - lambda: 'picture_fetch::tick();'
+      - lambda: 'picture_fetch::tick(); runtime_tiles::live_tick();'
 
 lvgl:
   style_definitions:

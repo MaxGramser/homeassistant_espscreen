@@ -180,7 +180,7 @@ class Rules(unittest.TestCase):
                        'runtime_tiles::picture_done(picture_loader::Slot::THUMB, ok, cached);',
                        'runtime_tiles::picture_done(picture_loader::Slot::LIVE, ok, cached);',
                        'runtime_tiles::camera_full.load = ', 'runtime_tiles::camera_thumb.load = ', 'runtime_tiles::camera_live.load = ',
-                       "- lambda: 'picture_fetch::tick();'", 'runtime_tiles::camera_tick();', 'runtime_tiles::alert_prepare();',
+                       "- lambda: 'picture_fetch::tick(); runtime_tiles::live_tick();'", 'runtime_tiles::camera_tick();', 'runtime_tiles::alert_prepare();',
                        'runtime_tiles::alert_clear();', 'runtime_tiles::camera_close();', 'id: alert_image_frame'):
             self.assertIn(needle, PROFILE, needle)
         # Nothing of ESPHome's online_image is left: it downloaded in the main loop, a chunk a turn, each waiting for the

@@ -854,8 +854,9 @@ class CameraFeed:
         return (304, None, tag) if etag == tag else (200, image, tag)
 
 
-def web_app(feed):
-    """The camera port: GET /camera/<token>.bmp and nothing else, open to the LAN like the screens are."""
+def web_app(feed, live=None):
+    """The camera port: GET /camera/<token>.bmp, and /camera/<token>.mjpeg for a camera live on a P4 (live_feed.py),
+    open to the LAN like the screens are."""
     from aiohttp import web
 
     async def image(request):
@@ -871,6 +872,10 @@ def web_app(feed):
 
     app = web.Application(client_max_size=1024)
     app.router.add_get(r'/camera/{token:[A-Za-z0-9_-]{16,64}}.bmp', image)
+    if live is not None:
+        async def stream(request):
+            return await live.serve(request, request.match_info['token'])
+        app.router.add_get(r'/camera/{token:[A-Za-z0-9_-]{16,64}}.mjpeg', stream)
     return app
 
 

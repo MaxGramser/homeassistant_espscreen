@@ -49,6 +49,58 @@ async def to_code(config):
         from esphome.components import ota
 
         ota.request_ota_state_listeners()
+    if _esp32_p4():
+        await _p4(config)
+
+
+# ---- The ESP32-P4 boards (docs/CAMERA.md, "Live on the P4 boards") ----
+# Keyed on the chip, never on a board: a new P4 board has all of this without a line in its file, and the boards
+# with less memory never do.
+#
+# Every P4 board reaches its Wi-Fi through an ESP32-C6 over SDIO (esp_hosted), where a packet's round trip takes long
+# enough that ESP-IDF's default TCP receive window of four segments (5,760 bytes) held a download at about 0.7 MB/s.
+# A window of 64 KB, as Espressif's own esp_hosted throughput settings have it, gave 2.6 MB/s on the reTerminal D1001
+# (2026-10-10). The window applies to every connection, which is why it is the P4's alone: a CYD has 45 KB in one
+# piece. A screen's own `sdkconfig_options` keep the last word.
+P4_NETWORK = {
+    "CONFIG_LWIP_TCP_WND_DEFAULT": 65534,
+    "CONFIG_LWIP_TCP_RECVMBOX_SIZE": 64,
+    "CONFIG_LWIP_TCPIP_RECVMBOX_SIZE": 64,
+}
+
+
+def _esp32_p4():
+    if not CORE.is_esp32:
+        return False
+    from esphome.components.esp32 import get_esp32_variant
+    from esphome.components.esp32.const import VARIANT_ESP32P4
+
+    return get_esp32_variant() == VARIANT_ESP32P4
+
+
+def p4_network_options(own):
+    """The options a P4 gets, less those the screen's own sdkconfig_options set (tests/test_live_view.py)."""
+    return {name: value for name, value in P4_NETWORK.items() if name not in own}
+
+
+async def _p4(config):
+    from esphome.components.esp32 import add_idf_sdkconfig_option
+
+    own = ((CORE.config.get("esp32") or {}).get("framework") or {}).get("sdkconfig_options") or {}
+    for name, value in p4_network_options(own).items():
+        add_idf_sdkconfig_option(name, value)
+    # The camera live, full screen (live_view.h): the decoded pictures go into the panel's frame buffer past LVGL. The
+    # panel's handle is picked up as ESP-IDF makes it for ESPHome's display, whichever display platform that is.
+    lvgl = CORE.config.get("lvgl")
+    lvgl = lvgl[0] if isinstance(lvgl, list) else lvgl
+    if not lvgl:
+        return
+    cg.add_define("USE_LIVE_VIEW")
+    cg.add_build_flag("-Wl,--wrap=esp_lcd_new_panel_dpi")
+    from esphome.const import CONF_ID
+
+    component = await cg.get_variable(lvgl[CONF_ID])
+    cg.add(cg.RawExpression(f"live_view::bind({component})"))
 
 
 # ---- Plugins (docs/PLUGINS.md) ----
