@@ -45,7 +45,7 @@ a:hover { text-decoration: underline; }
 [hidden] { display: none !important; }
 
 /* ---- Shell ---- */
-/* The sidebar's width is the page's (sidebar-state.ts, app 0.4.85): dragged by its edge, or folded to its icons. */
+/* The sidebar's width is the page's (stores/sidebar.ts, app 0.4.85): dragged by its edge, or folded to its icons. */
 .app { display: grid; grid-template-columns: var(--side-w, 248px) minmax(0, 1fr); height: 100%; min-height: 100vh; transition: grid-template-columns 0.16s ease; }
 .app.side-resizing { transition: none; cursor: col-resize; user-select: none; -webkit-user-select: none; }
 .app.dragging { user-select: none; -webkit-user-select: none; cursor: grabbing; }

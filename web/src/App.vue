@@ -17,8 +17,9 @@ import PluginsView from "./components/PluginsView.vue";
 import { pluginsEnabled } from "./plugin-state";
 import { question } from "./composables/useConfirm";
 import { currentScreen, phone, route, state } from "./store";
-import { sideWidth, sidebar } from "./sidebar-state";
+import { useSidebarStore } from "./stores/sidebar";
 
+const sidebar = useSidebarStore();
 const view = computed(() => {
   if (route.value === "#settings") return AppSettingsView;
   if (route.value === "#new-screen") return InstallerView;
@@ -37,7 +38,7 @@ onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !q
 
 <template>
   <div class="app" :class="{ dragging: state.drag.active, phone, 'side-folded': sidebar.folded, 'side-resizing': sidebar.resizing }"
-    :style="{ '--side-w': `${sideWidth()}px` }">
+    :style="{ '--side-w': `${sidebar.shownWidth}px` }">
     <!-- On a phone the overview and a screen carry their own way around (app 0.4.40): the sidebar's row stays for the rest. -->
     <Sidebar v-if="!(phone && route === '')" />
     <main class="main">

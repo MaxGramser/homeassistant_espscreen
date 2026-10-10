@@ -15,9 +15,10 @@ import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
 import { pluginsEnabled } from "../plugin-state";
-import { SIDE_MAX, SIDE_MIN, dragSidebar, resetSidebar, sideWidth, sidebar, toggleSidebar } from "../sidebar-state";
+import { SIDE_MAX, SIDE_MIN, useSidebarStore } from "../stores/sidebar";
 import { useResizeHandle } from "../composables/useResizeHandle";
 
+const sidebar = useSidebarStore();
 const hostFor = ref<string | null>(null);
 const host = ref("");
 // The screen that asked to be removed: its details make room for what goes, until it is confirmed or dropped.
@@ -115,18 +116,18 @@ useResizeObserver(aside, remeasure);
 const tip = (key: string, text: string | undefined, always = false) =>
   text && (sidebar.folded || always || cut.value[key]) ? { content: text, placement: "right", distance: 10, delay: { show: 200, hide: 0 } } : null;
 const screenTip = (screen: Screen) => [screen.name, subline(screen)?.text].filter(Boolean).join(" · ");
-// The edge: dragged, by the arrow keys (Shift for bigger steps) or reset with a double click (sidebar-state.ts).
+// The edge: dragged, by the arrow keys (Shift for bigger steps) or reset with a double click (stores/sidebar.ts).
 let left = 0;
 const edge = useResizeHandle({
   onStart: () => { left = aside.value?.getBoundingClientRect().left || 0; sidebar.resizing = true; },
-  onMove: (e) => dragSidebar(e.clientX - left),
+  onMove: (e) => sidebar.drag(e.clientX - left),
   onEnd: () => { sidebar.resizing = false; },
 });
 function resizeKey(event: KeyboardEvent) {
   const by = event.shiftKey ? 48 : 16;
-  if (event.key === "ArrowLeft") dragSidebar(sideWidth() - by);
-  else if (event.key === "ArrowRight") dragSidebar(sidebar.folded ? SIDE_MIN : sideWidth() + by);
-  else if (event.key === "Home") resetSidebar();
+  if (event.key === "ArrowLeft") sidebar.drag(sidebar.shownWidth - by);
+  else if (event.key === "ArrowRight") sidebar.drag(sidebar.folded ? SIDE_MIN : sidebar.shownWidth + by);
+  else if (event.key === "Home") sidebar.reset();
   else return;
   event.preventDefault();
 }
@@ -159,7 +160,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
       </button>
       <button type="button" id="side-fold" class="icon-btn side-fold" :aria-pressed="sidebar.folded ? 'true' : 'false'"
         :aria-label="t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold')" v-tooltip="tip('fold', t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold'), true)"
-        @click="toggleSidebar"><Icon name="dock-left" /></button>
+        @click="sidebar.toggle()"><Icon name="dock-left" /></button>
     </div>
     <span v-if="!state.reachable || !state.connected" id="connection" class="conn" role="status"
       v-tooltip="tip('conn', !state.reachable ? t('editor.sidebar.connection.unreachable') : t('editor.sidebar.connection.reconnecting'))">
@@ -272,7 +273,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     <div id="pending">
       <!-- Folded, a screen on its way in is its icon; a click opens the sidebar for what can be done with it. -->
       <button v-for="p in sidebar.folded ? state.inventory.pending || [] : []" :key="`folded:${p.file}`" type="button" class="nav-item pending-folded"
-        :aria-label="`${p.friendly} · ${pendingText(p)}`" v-tooltip="tip('pending', `${p.friendly} · ${pendingText(p)}`)" @click="toggleSidebar">
+        :aria-label="`${p.friendly} · ${pendingText(p)}`" v-tooltip="tip('pending', `${p.friendly} · ${pendingText(p)}`)" @click="sidebar.toggle()">
         <span v-if="p.seen && p.pairing !== 'failed'" class="spin small"></span><span v-else class="mdi board-icon">{{ glyph("F0ECE") }}</span>
       </button>
       <div v-for="p in sidebar.folded ? [] : state.inventory.pending || []" :key="p.file" class="pending">
@@ -310,7 +311,7 @@ const pendingText = (p: { installed?: boolean; downloaded?: boolean; file: strin
     </div>
     <!-- The edge (app 0.4.85): drag it wider or narrower, past the narrowest it folds to the icons; a double click resets it. -->
     <div class="side-resize" role="separator" aria-orientation="vertical" tabindex="0" :aria-label="t('editor.sidebar.resize')"
-      :aria-valuenow="sideWidth()" :aria-valuemin="SIDE_MIN" :aria-valuemax="SIDE_MAX" :title="t('editor.sidebar.resize')"
-      @pointerdown="edge.start" @dblclick="resetSidebar" @keydown="resizeKey"></div>
+      :aria-valuenow="sidebar.shownWidth" :aria-valuemin="SIDE_MIN" :aria-valuemax="SIDE_MAX" :title="t('editor.sidebar.resize')"
+      @pointerdown="edge.start" @dblclick="sidebar.reset()" @keydown="resizeKey"></div>
   </aside>
 </template>

@@ -3,7 +3,7 @@
 // each is a vi.fn spy, and by default it still runs, since the editor's tests follow a whole flow through its stores.
 import { createTestingPinia, type TestingOptions, type TestingPinia } from "@pinia/testing";
 import { config } from "@vue/test-utils";
-import { createPinia, setActivePinia, type Pinia } from "pinia";
+import { createPinia, getActivePinia, setActivePinia, type Pinia, type StoreGeneric } from "pinia";
 import { vi } from "vitest";
 
 /** A new, empty pinia: the active one, and the one every component a test mounts gets. */
@@ -12,6 +12,13 @@ export function freshPinia(): Pinia {
   setActivePinia(pinia);
   usePiniaInMounts(pinia);
   return pinia;
+}
+
+/** Stops what the stores of the active pinia keep running (a timer still waiting, what their start began), as closing the
+ * page would, so a test's stores never reach into the next one (tests/setup.ts, after each test). */
+export function disposePinia() {
+  const pinia = getActivePinia() as (Pinia & { _s: Map<string, StoreGeneric> }) | undefined;
+  for (const store of [...(pinia?._s.values() || [])]) store.$dispose();
 }
 
 /** A pinia whose actions are spies (vi.fn). `stubActions: true` (or a list of names) replaces them instead of running them. */

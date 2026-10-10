@@ -5,7 +5,7 @@ import { defineComponent, h } from "vue";
 import { i18n } from "../src/i18n";
 import { resetAll } from "../src/resets";
 import { installBrowser, resetBrowser } from "./helpers/browser";
-import { freshPinia } from "./helpers/pinia";
+import { disposePinia, freshPinia } from "./helpers/pinia";
 import { stopScopes } from "./helpers/with-setup";
 
 config.global.plugins = [i18n];
@@ -13,8 +13,10 @@ installBrowser();
 // A pinia of its own for every test: the active one, and the one a mounted component gets (tests/helpers/pinia.ts).
 beforeEach(() => { freshPinia(); });
 // Every test starts where the page starts, whatever ran before it (npm run test:shuffle runs them in another order each
-// time): no composable a test left running, real timers, nothing stubbed, an empty storage, page and address, and every
-// module's state as it loaded (src/resets.ts). Registered before the unmount below, so it runs after it: hooks after a test run last first.
+// time): no composable a test left running, real timers, nothing stubbed, an empty storage, page and address, every
+// module's state as it loaded (src/resets.ts), and the stores of the test stopped (their timers, what their start
+// began), the next test getting a pinia of its own. Registered before the unmount below, so it runs after it: hooks
+// after a test run last first.
 afterEach(() => {
   stopScopes();
   vi.useRealTimers();
@@ -27,6 +29,7 @@ afterEach(() => {
   document.documentElement.removeAttribute("lang");
   resetBrowser();
   resetAll();
+  disposePinia();
 });
 enableAutoUnmount(afterEach);
 // jsdom does not draw glyphs or implement modal dialogs. Geometry is verified
