@@ -2,7 +2,10 @@
 import { computed } from 'vue';
 import { t } from '../i18n';
 import { navigationFooter, pagination } from '../model/pages';
-import { navigationSettings, screenText, state } from '../store';
+import { navigationSettings, state } from '../store';
+import { useRegionStore } from '../stores/region';
+
+const region = useRegionStore();
 const props = defineProps<{ pageId: string; interactive?: boolean; canGoBack?: boolean }>();
 const emit = defineEmits<{ navigate: [direction: 'previous' | 'next' | 'back'] }>();
 const sequence = computed(() => state.document ? pagination(state.document) : []);
@@ -14,7 +17,7 @@ defineExpose({ visible });
 </script>
 <template>
   <div v-if="visible" class="page-navigation" :aria-label="t('editor.pages.navigation')">
-    <button v-if="detail" type="button" class="page-back" :disabled="!interactive || canGoBack === false" @click="emit('navigate', 'back')">‹ <span>{{ screenText('screen.navigation.back') }}</span></button>
+    <button v-if="detail" type="button" class="page-back" :disabled="!interactive || canGoBack === false" @click="emit('navigate', 'back')">‹ <span>{{ region.screenText('screen.navigation.back') }}</span></button>
     <template v-else-if="sequential">
       <button type="button" :disabled="!interactive || index === 0" :aria-label="t('editor.pages.previous')" @click="emit('navigate', 'previous')">‹</button>
       <span>{{ index + 1 }} / {{ sequence.length }}</span>

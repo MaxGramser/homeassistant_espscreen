@@ -11,7 +11,10 @@ import { glyph } from "../model/topbar";
 import { barKeys, thermostatMode } from "../model/tall-controls";
 import { thermostatModeColor } from "../model/tile-palette";
 import { cardContent, cellContent, modeBar, uiScale } from "../model/ui-scale";
-import { deviceStyle, screenShape, screenText, state } from "../store";
+import { deviceStyle, screenShape, state } from "../store";
+import { useRegionStore } from "../stores/region";
+
+const region = useRegionStore();
 
 // `columns`: how many of the page's columns the card spans. `mode`: the entity's state; `domain`: climate or humidifier.
 const props = withDefaults(defineProps<{ a: Record<string, any>; mode: string; place: "row" | "tall" | "full"; columns: number; domain?: string }>(), { domain: "climate" });
@@ -29,7 +32,7 @@ const current = computed(() => thermostatMode(props.domain, props.mode, props.a)
 const word = (mode?: string) => {
   if (!mode) return "";
   const key = `screen.ha.${props.domain === "humidifier" ? "humidifier_mode" : "climate"}.${mode}`;
-  return te(key) ? screenText(key) : props.domain === "humidifier" ? mode : "";
+  return te(key) ? region.screenText(key) : props.domain === "humidifier" ? mode : "";
 };
 // Words where every segment has room for its icon, a gap and its word (runtime_tiles draw_mode_bar), measured with
 // the board's own sizes: its key icons and the card's value line.

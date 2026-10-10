@@ -3,11 +3,13 @@
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
-import { anyBuilding, autoMarks, buildingScreens, installClaudeSkill, runUpdateAll, saveLanguage, setAutoUpdate, state } from "../store";
+import { anyBuilding, buildingScreens, installClaudeSkill, runUpdateAll, setAutoUpdate, state } from "../store";
 import BuildLog from "./BuildLog.vue";
 import { useUiStore } from "../stores/ui";
+import { useRegionStore } from "../stores/region";
 
 const ui = useUiStore();
+const region = useRegionStore();
 
 const u = computed(() => state.inventory.updates);
 const outdated = computed(() => state.inventory.screens.filter((s) => s.update?.available).length);
@@ -72,11 +74,11 @@ const profileText = computed(() => [different.value.clock && clockName(different
 const { busy: saving, run: whileSaving } = useBusy();
 async function choose(field: "setting" | "clock" | "numbers", event: Event) {
   const select = event.target as HTMLSelectElement;
-  const saved = await whileSaving(() => saveLanguage({ [field]: select.value }));
+  const saved = await whileSaving(() => region.saveLanguage({ [field]: select.value }));
   // A refused change shows the stored choice again.
   if (!saved) select.value = String(lang.value?.[field] ?? "auto");
 }
-const useProfile = () => whileSaving(() => saveLanguage(different.value));
+const useProfile = () => whileSaving(() => region.saveLanguage(different.value));
 </script>
 
 <template>
@@ -138,7 +140,7 @@ const useProfile = () => whileSaving(() => saveLanguage(different.value));
         <div class="field">
           <label class="f-label" for="number-format">{{ t("editor.settings.language.numbers") }}</label>
           <select id="number-format" :value="lang.numbers || 'auto'" :disabled="saving" @change="choose('numbers', $event)">
-            <option value="auto">{{ t("editor.settings.language.numbers_auto", { example: example(autoMarks) }) }}</option>
+            <option value="auto">{{ t("editor.settings.language.numbers_auto", { example: example(region.autoMarks) }) }}</option>
             <option v-for="style in STYLES" :key="style" :value="style">{{ example(STYLE_MARKS[style]) }}</option>
           </select>
         </div>

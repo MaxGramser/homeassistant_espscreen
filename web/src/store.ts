@@ -4,7 +4,7 @@ import { useEventListener, useTimeoutFn } from "@vueuse/core";
 import { computed, effectScope, onScopeDispose, reactive, shallowRef, toRaw, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
-import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "./i18n";
+import { andList, editorLanguage, t } from "./i18n";
 import { entriesOf, effectiveControls, isFull, isWide, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, supportsFirmware } from "./model/layout";
 import { agoText, barMetricsFor, batteryView, itemKey, LINK_GLYPH, SAMPLE_BATTERY, SAMPLE_RSSI, type ItemView, wifiView } from "./model/topbar";
 import { energyFits, frameOf, pillMetrics, uiScale } from "./model/ui-scale";
@@ -35,6 +35,7 @@ import { renewable, usePreference } from "./composables/usePreference";
 import { useClock } from "./composables/useClock";
 import { askConfirm } from "./composables/useConfirm";
 import { useVisibleInterval } from "./composables/useVisibleInterval";
+import { useRegionStore } from "./stores/region";
 import { useUiStore, type Route, type Toast } from "./stores/ui";
 
 export type Inspector =
@@ -1593,20 +1594,22 @@ export function topbarLabel(item: HeaderItem) {
 // What the item shows right now: { icon, text, color, shown }. Entities wait for the add-on's preview.
 export function topbarView(item: HeaderItem): ItemView {
   if (item.type === "clock" || item.type === "date") {
-    const clock = clockSample(useUiStore().now, clock24.value, screenLanguage.value);
+    const region = useRegionStore();
+    const clock = clockSample(useUiStore().now, region.clock24, region.screenLanguage);
     return { text: item.type === "clock" ? clock.time : clock.date, shown: true };
   }
   if (item.type === "analog") return { analog: true, shown: true };
   // The screen's own items (firmware 0.38.0): a good signal, and every link there, so the link mark hides.
-  if (item.type === "wifi") return wifiView(item, SAMPLE_RSSI, (n) => `${n}${t("screen.number.percent", {}, { locale: screenLanguage.value })}`);
+  const percent = (n: number) => `${n}${useRegionStore().screenText("screen.number.percent")}`;
+  if (item.type === "wifi") return wifiView(item, SAMPLE_RSSI, percent);
   if (item.type === "link") return { icon: LINK_GLYPH, text: "", shown: false };
   // The battery (firmware 0.41.0): three quarters and not charging, as the firmware's preview draws it.
-  if (item.type === "battery") return batteryView(item, SAMPLE_BATTERY, false, (n) => `${n}${t("screen.number.percent", {}, { locale: screenLanguage.value })}`);
+  if (item.type === "battery") return batteryView(item, SAMPLE_BATTERY, false, percent);
   // A plugin's item (docs/PLUGINS.md): the screen asks the plugin what it shows; the mockup shows its example.
   if (item.type === "plugin") { const known = barItemOf(item.item); return { icon: known?.icon || "F0A66", text: known?.example || "", shown: true }; }
   const p = state.topbarPreviews[itemKey(item)];
   if (!p) return { icon: item.icon === "none" ? null : iconNamed(item.icon)?.cp || automaticIcon(item.entity!), text: item.content === "icon" ? "" : "…", shown: true, loading: true };
-  return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(useUiStore().now / 1000), screenLanguage.value) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
+  return { icon: p.i || null, text: p.k === "ago" ? agoText(p.e, Math.floor(useUiStore().now / 1000), useRegionStore().screenLanguage) : p.t, color: p.c ? `#${p.c}` : null, shown: p.shown };
 }
 // One ordered list of bar items with the editor's add, update, move and remove (undo included): a page's top bar and the
 // screensaver clock's row are both one.
@@ -1694,7 +1697,7 @@ export function settingValues(): Record<string, any> {
 // the screen's Show home button is off. A screen whose value nobody can read right now (offline) is drawn as set.
 export const homeKeyShown = (page = state.barPage) => supports(0, 2, 100) && settingValues().home_button !== false && Boolean(pageAt(page)?.topbar.leading.length);
 // What a row says: its value with its unit, a duration, a moment in the clock the screens use (Language & region).
-export const settingText = (row: SettingRow, values: Record<string, any>) => rowText(row, values, clock24.value);
+export const settingText = (row: SettingRow, values: Record<string, any>) => rowText(row, values, useRegionStore().clock24);
 export function setSetting(key: string, value: any, delay: number) {
   // One screen's changes at a time: the ones for the screen shown before go out first.
   if (settingTarget && settingTarget !== state.selected && Object.keys(settingQueue).length) {
@@ -1792,60 +1795,15 @@ export async function installClaudeSkill() {
   }
 }
 
-// ---- Languages (app 0.2.90) ----
-// The editor speaks the language of the user's Home Assistant profile (i18n.ts). The screens have one language for all
-// of them, Home Assistant's unless the setting says another; the mockup draws their words in it, and in English until
-// the add-on tells which one it is.
-export const screenLanguage = computed(() => pickLanguage(state.inventory.language?.effective));
-/** A text as the screens show it: in their language, not the editor's. */
-export const screenText = (key: string, named: Record<string, unknown> = {}) => t(key, named, { locale: screenLanguage.value });
-/** A language by its own name ("Nederlands"), as the add-on lists it. */
-export const languageName = (code: string | null | undefined) =>
-  state.inventory.language?.languages?.find((l) => l.code === code)?.name || languageMeta(code || "")?.name || code || "";
 // ---- A screen's status, as the sidebar and the overview show it (model/screen-status.ts) ----
-const facts = (screen: Screen): status.StatusFacts => ({ ...building(screen), language: languageName(state.inventory.language?.effective), now: Date.now() });
-export const newLanguageText = () => status.newLanguageText(languageName(state.inventory.language?.effective));
+// The screens' language by its own name (stores/region.ts), for what an update brings.
+const screensLanguage = () => useRegionStore().languageName(state.inventory.language?.effective);
+const facts = (screen: Screen): status.StatusFacts => ({ ...building(screen), language: screensLanguage(), now: Date.now() });
+export const newLanguageText = () => status.newLanguageText(screensLanguage());
 export const updateState = (screen: Screen) => status.updateState(screen, facts(screen));
 export const screenLight = (screen: Screen) => status.screenLight(screen, facts(screen));
 export const screenSubline = (screen: Screen) => status.screenSubline(screen, facts(screen));
 export const needsAttention = (screen: Screen) => status.needsAttention(screen, facts(screen));
-// Time and number format, for every screen at once under Settings → Language & region: a 24-hour clock and "1,234.5"
-// until the add-on says otherwise. The mockup's clocks and numbers follow what the add-on sends the screens: the style,
-// from how many digits a number is grouped, and the space before "%" (Home Assistant's language decides "auto").
-export const clock24 = computed(() => state.inventory.language?.clock_effective !== "12");
-export const numberMarks = computed<NumberMarks>(() => {
-  const language = state.inventory.language;
-  const marks = STYLE_MARKS[language?.numbers_effective || "point"] || STYLE_MARKS.point;
-  return { ...marks, from: (language?.group_min || 1) >= 2 ? 5 : 4 };
-});
-/** How Automatic writes numbers: the marks of the language that decides, for the label of that choice. */
-export const autoMarks = computed<NumberMarks>(() => {
-  const language = state.inventory.language;
-  return { ...(STYLE_MARKS[language?.numbers_auto || "point"] || STYLE_MARKS.point), from: (language?.group_min_auto || 1) >= 2 ? 5 : 4 };
-});
-/** What follows a number for its unit, as Home Assistant spaces it: "°", "%" or " %" by the language, " kWh". */
-export function unitSuffix(unit: string | undefined | null) {
-  if (!unit || unit === "°") return unit || "";
-  if (unit === "%") return state.inventory.language?.percent_space ? " %" : "%";
-  return ` ${unit}`;
-}
-/** A built-in card's name as the screens show it (Settings, Clock, Go to page 2), in their language. */
-export const screenBuiltinName = (id: string) => state.inventory.builtin?.find((e) => e.id === id)?.screen_name;
-/** Saves any of the screen language, the time format and the number format. */
-export async function saveLanguage(changes: { setting?: string; clock?: string; numbers?: string }) {
-  try {
-    const answer = await send("language", "PUT", changes);
-    if (answer?.language) state.inventory.language = answer.language;
-    // A language is built into the firmware; the time and number format are not.
-    toast(t(changes.setting === undefined ? "editor.settings.language.saved" : "editor.settings.language.saved_language"));
-    // Every screen now wants an update, which the inventory reports.
-    await refresh();
-    return true;
-  } catch (e: any) {
-    toast(e.message);
-    return false;
-  }
-}
 
 /** Resolve against a fresh server revision; failed requests always retain the draft. */
 export async function dismissMigrationNote() {
@@ -1962,13 +1920,9 @@ export function startStore() {
   if (started) return started;
   const scope = effectScope(true);
   scope.run(() => {
-    // The language the screens speak loads as soon as the add-on names it, for the mockup's words.
-    watch(screenLanguage, (code) => loadLanguage(code), { immediate: true });
     // The screensaver's drawers belong to the settings: they close when the layout comes back.
     watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); });
-    // The page around the screens: the width of a phone, the address, the top bar's fonts (stores/ui.ts).
     const ui = useUiStore();
-    onScopeDispose(ui.start());
     startLive();
     // The mockup's clocks tick while a screen is open and the page in sight, and hold still while a tile is dragged; the
     // entity values in its top bar follow Home Assistant as they tick.

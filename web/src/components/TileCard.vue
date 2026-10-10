@@ -13,7 +13,7 @@ import { numberText, t, te } from "../i18n";
 import { dimensions, sizeOf, inlineControlKind, displayName, effectiveControls, isFull, isWide, keysOf, pageTarget } from "../model/layout";
 import { clockText, glyph } from "../model/topbar";
 import { clockSample } from "../model/clock";
-import { clock24, currentScreen, deviceStyle, screenLanguage, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, numberMarks, openTile, placeTile, removeTile, screenBuiltinName, screenText, state, tileIconCp, unitSuffix } from "../store";
+import { currentScreen, deviceStyle, pageBarShown, screenShape, isCompact, supports, pictures, entityName, isSelected, liveOf, openTile, placeTile, removeTile, state, tileIconCp } from "../store";
 import { energyPaints, modeColor, tilePalette, tileActive } from "../model/tile-palette";
 import { cardContent, cardHeight, textEms, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { bits, drawable } from "../model/catalogue";
@@ -27,8 +27,10 @@ import MarqueeText from "./MarqueeText.vue";
 import SensorHistory from './SensorHistory.vue';
 import rules from "../model/page-rules.json";
 import { useUiStore } from "../stores/ui";
+import { useRegionStore } from "../stores/region";
 
 const ui = useUiStore();
+const region = useRegionStore();
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise.
@@ -47,7 +49,7 @@ function activate() {
 // A built-in card is named as the screens name it, in their language (app 0.2.90).
 // A favourite (app 0.4.42) is named after what it plays until it has a name of its own.
 const favoritePlay = computed(() => display.value === 'favorite' && domain.value === 'media_player' ? (props.tile.options?.play as Record<string, string> | undefined) : undefined);
-const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && screenBuiltinName(props.tile.entity)) || entityName(props.tile.entity));
+const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && region.screenBuiltinName(props.tile.entity)) || entityName(props.tile.entity));
 const shape = computed(() => dimensions(sizeOf(props.tile), grid.value));
 // A thermostat: a climate, or a humidifier drawn with its parts in percent (firmware 0.42.0+, tile_controls::thermostat).
 const thermostat = computed(() => domain.value === 'climate' || domain.value === 'humidifier');
@@ -79,7 +81,7 @@ const pluginRow = computed(() => {
 function countdown(at: number) {
   const left = at - ui.now / 1000;
   if (left < 60) return t("editor.plugin_tile.now");
-  if (left >= 3600) return clockText(clock24.value, new Date(at * 1000));
+  if (left >= 3600) return clockText(region.clock24, new Date(at * 1000));
   return t("editor.plugin_tile.minutes", { n: Math.floor(left / 60) });
 }
 const pluginValue = computed(() => {
@@ -170,7 +172,7 @@ const flipDay = computed(() => face.value.flipDate);
 // last ran, anything else its state.
 const bigKeyLine = computed(() => {
   if (domain.value === "light" && isOn.value && !gone.value) return `${fill.value}%`;
-  if (NO_STATUS.includes(domain.value)) return current.value && !current.value.a?.last_triggered && ["script", "automation"].includes(domain.value) ? screenText("screen.script.never_run") : line.value;
+  if (NO_STATUS.includes(domain.value)) return current.value && !current.value.a?.last_triggered && ["script", "automation"].includes(domain.value) ? region.screenText("screen.script.never_run") : line.value;
   return line.value;
 });
 // The value the body shows large; the same words are not repeated under the name (a second line of your own stays).
@@ -202,7 +204,7 @@ const live = computed(() => !props.placeholder && state.layout?.tiles.some((tile
 const label = computed(() => t("editor.tile_card.label", { name: name.value, slot: (props.slot % grid.value.slots) + 1, page: Math.floor(props.slot / grid.value.slots) + 1 }));
 // The clock faces at the editor's one clock, as the screen draws them (model/clock.ts): the digital time, the analog
 // hands, the flip clock's two blocks ("07" "12" on 24 hours, "7" "12" with AM or PM on 12) and the dates.
-const face = computed(() => clockSample(ui.now, clock24.value, screenLanguage.value));
+const face = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
 
 // ---- Live values ----
 const current = computed(() => (domain.value === "screen" ? null : liveOf(props.tile.entity)));
@@ -216,15 +218,15 @@ const unit = computed(() => current.value?.a?.unit_of_measurement as string | un
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).replace(/_/g, " ");
 // Numbers as the screens write them, "1,234.5" or "1.234,5" (app 0.2.90): a state only with a unit, or of an entity
 // that is a number itself, as the firmware does (value_text); an id-like "1234" without a unit stays as it is.
-const num = (value: unknown) => numberText(value as string | number, numberMarks.value);
+const num = (value: unknown) => numberText(value as string | number, region.numberMarks);
 const NUMERIC = ["number", "input_number", "counter"];
-const value = (state: string) => (unit.value || NUMERIC.includes(domain.value) ? `${num(state)}${unitSuffix(unit.value)}` : state);
+const value = (state: string) => (unit.value || NUMERIC.includes(domain.value) ? `${num(state)}${region.unitSuffix(unit.value)}` : state);
 // The screens' own words for a state where Home Assistant hands us none (screen.ha, Home Assistant's words in the
 // screens' language, app 0.2.90): a binary sensor's by its device class, on and off, and the states of the domains
 // the screen names itself. A weather's windy-variant is windy there too.
 const HA_WORDS: Record<string, string> = { climate: "climate", cover: "cover", media_player: "media", person: "person", sun: "sun", vacuum: "vacuum", weather: "weather", alarm_control_panel: "alarm", lock: "lock" };
 function haWord(c: { state: string; a: Record<string, any> }) {
-  const key = (path: string) => (te(`screen.ha.${path}`) ? screenText(`screen.ha.${path}`) : "");
+  const key = (path: string) => (te(`screen.ha.${path}`) ? region.screenText(`screen.ha.${path}`) : "");
   const value = c.state === "windy-variant" ? "windy" : c.state.replace(/-/g, "_");
   if (domain.value === "binary_sensor" && ["on", "off"].includes(value)) return key(`binary.${c.a?.device_class}_${value}`) || key(value);
   if (HA_WORDS[domain.value]) return key(`${HA_WORDS[domain.value]}.${value}`) || (["on", "off"].includes(value) ? key(value) : "");
@@ -245,7 +247,7 @@ const rangeChip = computed(() => {
 function climateLine(c: { state: string; a?: Record<string, any> }, word: string) {
   const a = c.a || {};
   const now = a.current_temperature != null ? ` · ${num(String(a.current_temperature))}°` : "";
-  const doing = te(`screen.ha.hvac_action.${a.hvac_action}`) ? screenText(`screen.ha.hvac_action.${a.hvac_action}`) : "";
+  const doing = te(`screen.ha.hvac_action.${a.hvac_action}`) ? region.screenText(`screen.ha.hvac_action.${a.hvac_action}`) : "";
   if (controls.value && controls.value !== "none") return `${doing || word}${now}`;
   if (c.state !== "off" && a.temperature != null) return `${num(String(a.temperature))}°`;
   return `${word}${now}`;
@@ -254,7 +256,7 @@ function climateLine(c: { state: string; a?: Record<string, any> }, word: string
 // sensor sends (45.5%).
 const humidityText = (value: unknown) => {
   const v = Number(value);
-  return `${num(Math.abs(v - Math.round(v)) < 0.05 ? Math.round(v) : Math.round(v * 10) / 10)}${unitSuffix("%")}`;
+  return `${num(Math.abs(v - Math.round(v)) < 0.05 ? Math.round(v) : Math.round(v * 10) / 10)}${region.unitSuffix("%")}`;
 };
 // What a thermostat measures, in its own unit: degrees, or a humidifier's humidity (tile_controls::reading_text).
 const reading = (value: unknown) => (domain.value === "humidifier" ? humidityText(value) : `${num(value)}°`);
@@ -264,7 +266,7 @@ const measured = computed(() => current.value?.a?.[domain.value === "humidifier"
 function humidifierLine(c: { state: string; a?: Record<string, any> }) {
   const a = c.a || {}, off = c.state !== "on", action = off ? "off" : String(a.action ?? "");
   const key = `screen.ha.humidifier_action.${action}`;
-  const word = action && te(key) ? screenText(key) : screenText(off ? "screen.ha.off" : "screen.ha.on");
+  const word = action && te(key) ? region.screenText(key) : region.screenText(off ? "screen.ha.off" : "screen.ha.on");
   return a.current_humidity != null ? `${word} · ${humidityText(a.current_humidity)}` : word;
 }
 // A scene, script or button has no state worth a word: its state is the moment it last ran.
@@ -274,14 +276,14 @@ const status = computed(() => {
   const c = current.value;
   if (!c || NO_STATUS.includes(domain.value)) return note.value;
   // A run button says Running while its actions run and Off while nothing starts it on its own, as on the screen.
-  if (runs.value && !gone.value) return Number(c.a?.current) > 0 ? screenText("screen.script.running") : c.state === "off" ? screenText("screen.ha.off") : note.value;
-  if (gone.value) return screenText(c.state === "unknown" ? "editor.mockup.unknown" : "screen.ha.unavailable");
+  if (runs.value && !gone.value) return Number(c.a?.current) > 0 ? region.screenText("screen.script.running") : c.state === "off" ? region.screenText("screen.ha.off") : note.value;
+  if (gone.value) return region.screenText(c.state === "unknown" ? "editor.mockup.unknown" : "screen.ha.unavailable");
   const a = c.a || {};
   const word = c.word || haWord(c) || capital(c.state);
   if (domain.value === "climate") return climateLine(c, word);
   if (domain.value === "humidifier") return humidifierLine(c);
   if (domain.value === "weather") return `${word}${a.temperature !== undefined ? ` · ${num(a.temperature)}°` : ""}`;
-  if (domain.value === "cover" && a.current_position !== undefined && a.current_position > 0 && a.current_position < 100) return `${word} · ${a.current_position}${unitSuffix("%")}`;
+  if (domain.value === "cover" && a.current_position !== undefined && a.current_position > 0 && a.current_position < 100) return `${word} · ${a.current_position}${region.unitSuffix("%")}`;
   if (domain.value === "media_player" && a.media_title) return `${word} · ${a.media_title}`;
   // A remote that runs an activity names it (firmware 0.22.0+), as the screen does.
   if (domain.value === "remote" && c.state === "on" && a.current_activity) return String(a.current_activity);
@@ -338,8 +340,8 @@ const fill = computed(() => {
   return 0;
 });
 // The key on a scene, script or button, and the page a navigation tile opens, as the screen labels them.
-const runText = computed(() => screenText(`screen.ha.button.${({ scene: "activate", script: "run", automation: "run" } as Record<string, string>)[domain.value] || "press"}`));
-const pageLink = computed(() => `${screenText("screen.tile.page", { n: goesTo.value })} ›`);
+const runText = computed(() => region.screenText(`screen.ha.button.${({ scene: "activate", script: "run", automation: "run" } as Record<string, string>)[domain.value] || "press"}`));
+const pageLink = computed(() => `${region.screenText("screen.tile.page", { n: goesTo.value })} ›`);
 const sliderStyle = computed(() => ({ background: `linear-gradient(to right, ${palette.value.accent} ${fill.value}%, ${palette.value.track} ${fill.value}%)` }));
 const volumeStyle = sliderStyle;
 // The add-on prepares artwork; source URLs and HA credentials stay server-side.
@@ -361,7 +363,7 @@ const FAVORITE_ICONS: Record<string, string> = { album: 'F0025', playlist: 'F0CB
 const favoriteIcon = computed(() => props.tile.options?.icon && props.tile.options.icon !== 'auto' ? tileIconCp(props.tile) : FAVORITE_ICONS[favoritePlay.value?.class || ''] || 'F024B');
 const favoriteLine = computed(() => {
   const kind = favoritePlay.value?.class, speaker = props.tile.options?.speaker as string | undefined;
-  const word = kind && te(`addon.screen.media.${kind}`) ? screenText(`addon.screen.media.${kind}`) : '';
+  const word = kind && te(`addon.screen.media.${kind}`) ? region.screenText(`addon.screen.media.${kind}`) : '';
   return [word, speaker].filter(Boolean).join(' · ');
 });
 const cameraPicture = computed(() => cameraCard.value ? `api/camera-preview?entity=${encodeURIComponent(props.tile.entity)}` : '');
@@ -377,7 +379,7 @@ const fillsCell = computed(() => FILLS_CELL.includes(controls.value || "") || (c
 const setpoint = computed(() => {
   if (rangeChip.value) return rangeChip.value.text;
   // A humidifier's number is the humidity it is set to, in percent (tile_controls::setpoint_suffix).
-  if (domain.value === "humidifier") return current.value?.a?.humidity != null ? `${num(current.value.a.humidity)}${unitSuffix("%")}` : "—";
+  if (domain.value === "humidifier") return current.value?.a?.humidity != null ? `${num(current.value.a.humidity)}${region.unitSuffix("%")}` : "—";
   const temperature = current.value?.a?.temperature;
   return temperature !== undefined && temperature !== null ? `${num(temperature)}°` : "—";
 });
@@ -422,7 +424,7 @@ async function onKey(e: KeyboardEvent) {
     v-drag="preview || foreign ? null : { kind: 'tile', tile }" @click="activate" @keydown="live && onKey($event)">
     <template v-if="bedside">
       <span class="bedside-clock" :class="{ compact: isCompact }">
-        <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!clock24 && supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
+        <span class="time"><span class="bedside-time">{{ face.digits }}</span><small v-if="!region.clock24 && supports(0, 17, 0)" class="am-pm">{{ face.amPm }}</small></span>
         <span v-if="keyPlaces.length" class="keys">
           <span v-for="place in keyPlaces" :key="place.key" class="key-place" :data-key="preview || placeholder ? undefined : place.key" :data-holder="preview || placeholder ? undefined : tile.id"
             :class="{ 'insert-here': state.insertKey?.holder === tile.id && state.insertKey?.key === place.key, over: state.drag.key?.holder === tile.id && state.drag.key?.key === place.key }">
@@ -492,12 +494,12 @@ async function onKey(e: KeyboardEvent) {
     <template v-else-if="display === 'flip' && domain === 'screen' && flipWide">
       <span class="flip-wide">
         <span class="blocks"><span class="block">{{ face.hours }}</span><span class="block">{{ face.minutes }}</span></span>
-        <span class="under"><span>{{ flipDay }}</span><span v-if="!clock24">{{ face.amPm }}</span></span>
+        <span class="under"><span>{{ flipDay }}</span><span v-if="!region.clock24">{{ face.amPm }}</span></span>
       </span>
     </template>
     <template v-else-if="display === 'flip' && domain === 'screen'">
       <span class="face-clock flip">
-        <span class="blocks"><span class="block">{{ face.hours }}</span><span class="block">{{ face.minutes }}</span><small v-if="!clock24">{{ face.amPm }}</small></span>
+        <span class="blocks"><span class="block">{{ face.hours }}</span><span class="block">{{ face.minutes }}</span><small v-if="!region.clock24">{{ face.amPm }}</small></span>
         <span v-if="wide && !tall && !full" class="face-text"><span class="st">{{ face.longDate }}</span></span>
       </span>
     </template>
@@ -565,7 +567,7 @@ async function onKey(e: KeyboardEvent) {
       <CoverTilePreview v-if="coverExtended" :primary="tallControls" :entity-state="current?.state || ''" :attributes="current?.a || {}" />
       <span v-else-if="thermostat && (tallControls === 'setpoint' || tallControls === 'setpoint_mode')" class="tall-setpoint">
         <span class="target"><span class="key mdi">{{ key('minus') || '−' }}</span><span v-if="rangeChip" v-chip-fit class="range-chip" :style="{ '--end': rangeChip.color, '--chip-ems': rangeChip.ems }"><span class="mdi end-icon">{{ key(rangeChip.icon) }}</span><b>{{ rangeChip.text }}</b></span><b v-else>{{ setpoint }}</b><span class="key mdi">{{ key('plus') || '+' }}</span></span>
-        <span class="st">{{ measured != null ? screenText('screen.climate.now', { value: reading(measured) }) : status }}</span>
+        <span class="st">{{ measured != null ? region.screenText('screen.climate.now', { value: reading(measured) }) : status }}</span>
         <ModeBar v-if="tallControls === 'setpoint_mode'" class="ctl modes" :a="current?.a || {}" :mode="current?.state || ''" :domain="domain" place="tall" :columns="shape.columns" />
       </span>
       <template v-else>

@@ -4,17 +4,19 @@ import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
-import { addTopbarItem, clock24, closeInspector, currentScreen, iconNamed, openBar, screenLanguage, state, topbarItems, topbarMax } from "../store";
+import { addTopbarItem, closeInspector, currentScreen, iconNamed, openBar, state, topbarItems, topbarMax } from "../store";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
 import { barItemsFor, pluginsEnabled } from "../plugin-state";
 import InspectorHead from "./ui/InspectorHead.vue";
 import { useUiStore } from "../stores/ui";
+import { useRegionStore } from "../stores/region";
 
 const ui = useUiStore();
+const region = useRegionStore();
 
 const taken = computed(() => new Set(topbarItems().map(itemKey)));
-const clock = computed(() => clockSample(ui.now, clock24.value, screenLanguage.value));
+const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
 const samples = computed(() => ({
   clock: clock.value.time,
   analog: t("editor.topbar.analog_sample"),

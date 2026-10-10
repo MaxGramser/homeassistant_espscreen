@@ -2,10 +2,13 @@
 // This preview never sends HA actions. Native cover sliders own interaction.
 import { useElementSize } from '@vueuse/core';
 import { computed, ref } from 'vue';
-import { deviceStyle, isCompact, screenShape, screenText, state } from '../store';
+import { deviceStyle, isCompact, screenShape, state } from '../store';
 import { glyph } from '../model/topbar';
 import { tallKeys } from '../model/ui-scale';
 import { controlKeys, coverTiltKeys, coverTiltKind } from '../model/tall-controls';
+import { useRegionStore } from '../stores/region';
+
+const region = useRegionStore();
 const props = defineProps<{ primary: string; entityState: string; attributes: Record<string, any> }>();
 const root = ref<HTMLElement>();
 // The card's own size, as it is drawn.
@@ -19,8 +22,8 @@ const mainKeys = computed(() => controlKeys('cover', props.primary, props.entity
 const tilt = computed(() => coverTiltKind(props.entityState, props.attributes));
 const tiltKeys = computed(() => tilt.value === 'buttons' ? coverTiltKeys(props.attributes) : []);
 const groups = computed(() => [
-  ...(props.primary ? [{ kind: props.primary, keys: mainKeys.value, tilt: false, value: props.attributes.current_position, label: screenText('screen.cover.position') }] : []),
-  ...(tilt.value ? [{ kind: tilt.value, keys: tiltKeys.value, tilt: true, value: props.attributes.current_tilt_position, label: screenText('screen.cover.tilt') }] : []),
+  ...(props.primary ? [{ kind: props.primary, keys: mainKeys.value, tilt: false, value: props.attributes.current_position, label: region.screenText('screen.cover.position') }] : []),
+  ...(tilt.value ? [{ kind: tilt.value, keys: tiltKeys.value, tilt: true, value: props.attributes.current_tilt_position, label: region.screenText('screen.cover.tilt') }] : []),
 ]);
 const labelHeight = computed(() => parseFloat(root.value ? getComputedStyle(root.value).fontSize : '12') * 1.3);
 const controlHeight = computed(() => height.value - labelHeight.value - gap.value);

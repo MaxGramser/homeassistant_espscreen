@@ -10,7 +10,7 @@ import { ACTS_ON_TAP, domainInfo, entriesOf, holdHintKey, inlineControlKind, pag
 import { glyph } from "../model/topbar";
 import { controlOption, drawable, fits, ofType } from "../model/catalogue";
 import { pluginsEnabled, tapActionsFor } from "../plugin-state";
-import { currentScreen, automaticIcon, entityName, liveOf, moveTileToPage, openPage, openTile, screenBuiltinName, fullPage, loadSubtitleValues, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
+import { currentScreen, automaticIcon, entityName, liveOf, moveTileToPage, openPage, openTile, fullPage, loadSubtitleValues, setTileName, pictures, removeTile, retargetPageTile, setTileOption, state, supports, tileIconCp } from "../store";
 import { titleOf } from "../model/pages";
 import { pluginTileOf } from "../model/plugins";
 import PluginTileInspector from "./PluginTileInspector.vue";
@@ -35,8 +35,10 @@ import rules from "../model/page-rules.json";
 import { choiceOffered, offeredChoices } from "../model/tile-options";
 import { isTallSize } from "../model/sizes";
 import { useUiStore } from "../stores/ui";
+import { useRegionStore } from "../stores/region";
 
 const ui = useUiStore();
+const region = useRegionStore();
 
 const props = defineProps<{ tile: Tile }>();
 // On a phone (app 0.4.40) the sheet starts with what a tile is changed for most: its name, icon and colour, then a way
@@ -303,7 +305,7 @@ function inspect() {
 const pageId = computed(() => state.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => openPage(pageId.value!) : undefined },
-  ...(holder.value ? [{ text: holder.value.name || screenBuiltinName(holder.value.entity) || entityName(holder.value.entity), open: () => openTile(holder.value!) }] : []),
+  ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entityName(holder.value.entity), open: () => openTile(holder.value!) }] : []),
   { text: props.tile.entity, mono: true },
 ]);
 const lookShown = computed(() => !goesTo.value && !bedside.value && !key.value && (props.tile.entity !== "screen.settings" || display.value === "live" || domain.value === "sensor"));

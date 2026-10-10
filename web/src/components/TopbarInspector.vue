@@ -12,8 +12,8 @@ import { entriesOf } from "../model/layout";
 import { clockSample } from "../model/clock";
 import { barLayout, BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
 import {
-  automaticIcon, barMetrics, clock24, entityName, homeKeyShown, iconNamed, moveTopbarItem, openBar, openBarAdd, openPage,
-  removeTopbarItem, screenLanguage, screenText, setTopbarItems, state, supportsVersion, topbarItems, topbarLabel, topbarMax, topbarView,
+  automaticIcon, barMetrics, entityName, homeKeyShown, iconNamed, moveTopbarItem, openBar, openBarAdd, openPage,
+  removeTopbarItem, setTopbarItems, state, supportsVersion, topbarItems, topbarLabel, topbarMax, topbarView,
   pageTitleShown, pageReady,
 } from "../store";
 import type { HeaderItem } from "../types";
@@ -27,8 +27,10 @@ import InspectorHead from './ui/InspectorHead.vue';
 import Section from './ui/Section.vue';
 import HelpTip from './HelpTip.vue';
 import { useUiStore } from "../stores/ui";
+import { useRegionStore } from "../stores/region";
 
 const ui = useUiStore();
+const region = useRegionStore();
 
 const props = defineProps<{ index: number }>();
 const items = computed(() => sort.live.value || topbarItems());
@@ -84,7 +86,7 @@ const liveNote = computed(() => {
   return !view.shown ? (item.value.type === "entity" ? t("editor.topbar.live.hidden") : hiddenText(item.value)) : overflow.value.has(props.index) ? t("editor.topbar.live.overflow") : t("editor.topbar.live.looks");
 });
 const samples = computed(() => {
-  const clock = clockSample(ui.now, clock24.value, screenLanguage.value);
+  const clock = clockSample(ui.now, region.clock24, region.screenLanguage);
   return { clock: clock.time, analog: t("editor.topbar.analog_sample"), date: clock.date } as Record<string, string>;
 });
 
@@ -114,7 +116,7 @@ function onKey(e: KeyboardEvent, i: number) {
     <Section :title="t('editor.topbar.left')" icon="format-title">
       <button type="button" class="nav-row" :disabled="!pageId" @click="toPage">
         <TesseraMark v-if="homeKeyShown(page)" class="nav-row-lead" />
-        <span class="tx"><b>{{ pageTitleShown(page) || screenText("editor.mockup.home") }}</b><small>{{ t('editor.topbar.left_hint') }}</small></span>
+        <span class="tx"><b>{{ pageTitleShown(page) || region.screenText("editor.mockup.home") }}</b><small>{{ t('editor.topbar.left_hint') }}</small></span>
         <Icon name="chevron-right" class="nav-row-chevron" />
       </button>
     </Section>
@@ -186,7 +188,7 @@ function onKey(e: KeyboardEvent, i: number) {
         <small v-if="!statusSupported" class="help warn">{{ t("editor.topbar.status_firmware", { version: statusNeeded }) }}</small>
       </template>
       <!-- The clock's format is one choice for every screen, under Settings → Language & region (app 0.2.90). -->
-      <i18n-t v-else-if="item.type !== 'date'" :keypath="clock24 ? 'editor.topbar.clock_24' : 'editor.topbar.clock_12'" tag="small" id="topbar-clock" class="help" scope="global">
+      <i18n-t v-else-if="item.type !== 'date'" :keypath="region.clock24 ? 'editor.topbar.clock_24' : 'editor.topbar.clock_12'" tag="small" id="topbar-clock" class="help" scope="global">
         <template #settings><a href="#settings">{{ t("editor.topbar.clock_settings") }}</a></template>
       </i18n-t>
       <small v-else class="help">{{ t("editor.topbar.date_hint", { date: samples.date }) }}</small>
