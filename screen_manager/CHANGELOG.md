@@ -93,6 +93,18 @@
   an action (Nord Pool, EnergyZero, easyEnergy, Tibber, a weather forecast), and can ask that the entity list in the
   editor shows only the entities that have the attributes it needs, the price sensor instead of every sensor in the
   house. Plugin API 0.5.
+- **Builds you can follow from anywhere.** A screen that builds shows a ring on its row in the sidebar and on its card
+  in the overview that fills as it goes, and one ring at the top of the sidebar lists every build on its way with its
+  step. When a build the page saw ends, whatever page is open says "Living room is ready", or that it failed, with the
+  way to its log.
+- **Tiles whose entity is gone are found.** The overview says calmly how many tiles show an entity Home Assistant no
+  longer has, or one it has had no word from for more than a few minutes, and on which screens; the sidebar marks each
+  screen and lists them. A click opens that tile with a list of entities ready to choose another, those of the same
+  kind and with the closest names first. A tile's menu offers Show another entity for any tile.
+- **⌘K can do everything.** The search finds a screen's settings on every screen with their value ("brightness" opens
+  it on its screen and marks it), the tiles that show an entity on whichever screen they stand, the plugins (open one,
+  add it to this screen), and identifies or updates a screen by its name; updating every screen asks first. What was
+  chosen last comes first, the arrow keys walk the rows, and the row in focus says what Enter does.
 
 ## 0.4.85 (firmware 0.53.0)
 

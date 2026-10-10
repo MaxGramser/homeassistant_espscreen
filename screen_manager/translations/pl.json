@@ -1534,6 +1534,38 @@
       "placeholder": "Szukaj ekranów, encji, poleceń…",
       "empty": "Brak wyników. Wpisz część nazwy ekranu, encji lub polecenia."
     },
+    "search": {
+      "groups": {
+        "recent": "Ostatnie",
+        "settings": "Ustawienia ekranu",
+        "tiles": "Na twoich ekranach",
+        "plugins": "Wtyczki"
+      },
+      "hint": {
+        "open": "Otwórz",
+        "run": "Uruchom",
+        "show": "Pokaż",
+        "add": "Dodaj"
+      },
+      "keys": {
+        "move": "Przejdź",
+        "choose": "Wybierz",
+        "close": "Zamknij"
+      },
+      "identify": "Zidentyfikuj {name}",
+      "update": "Zaktualizuj {name}",
+      "update_detail": "Do {version}",
+      "update_all": "Zaktualizuj wszystkie ekrany",
+      "update_all_detail": "1 ekran czeka | {n} ekrany czekają | {n} ekranów czeka",
+      "update_all_confirm": "Zaktualizować teraz 1 ekran? Uruchomi się ponownie po instalacji aktualizacji. | Zaktualizować teraz {n} ekrany? Jeden po drugim, każdy uruchomi się ponownie po instalacji aktualizacji. | Zaktualizować teraz {n} ekranów? Jeden po drugim, każdy uruchomi się ponownie po instalacji aktualizacji.",
+      "update_all_go": "Aktualizuj teraz",
+      "install": "Zainstaluj odłożone wtyczki",
+      "install_detail": "1 wtyczka | {n} wtyczki | {n} wtyczek",
+      "add_plugin": "Dodaj {plugin} do {screen}",
+      "add_plugin_detail": "Odłożona, gotowa do instalacji",
+      "on": "Wł.",
+      "off": "Wył."
+    },
     "empty": {
       "choose": {
         "title": "Wybierz ekran",
@@ -1551,6 +1583,31 @@
       "open": "Otwórz {name}",
       "no_layout": "Jeszcze bez układu",
       "in_tessera": "Najpierw zaktualizuj w Tessera"
+    },
+    "broken": {
+      "screens": "1 ekranie | {n} ekranach | {n} ekranach",
+      "summary": {
+        "missing": "1 kafelek na {screens} pokazuje encję, która już nie istnieje | {n} kafelki na {screens} pokazują encję, która już nie istnieje | {n} kafelków na {screens} pokazuje encję, która już nie istnieje",
+        "unavailable": "1 kafelek na {screens} pokazuje encję niedostępną od dłuższego czasu | {n} kafelki na {screens} pokazują encję niedostępną od dłuższego czasu | {n} kafelków na {screens} pokazuje encję niedostępną od dłuższego czasu",
+        "mixed": "1 kafelek na {screens} pokazuje encję, której brak lub jest niedostępna | {n} kafelki na {screens} pokazują encję, której brak lub jest niedostępna | {n} kafelków na {screens} pokazuje encję, której brak lub jest niedostępna"
+      },
+      "short": "1 kafelek do sprawdzenia | {n} kafelki do sprawdzenia | {n} kafelków do sprawdzenia",
+      "review": "Pokaż",
+      "hide": "Ukryj",
+      "missing": "Nie ma jej już w Home Assistant",
+      "unavailable_minutes": "Niedostępna od 1 minuty | Niedostępna od {n} minut | Niedostępna od {n} minut",
+      "unavailable_hours": "Niedostępna od 1 godziny | Niedostępna od {n} godzin | Niedostępna od {n} godzin",
+      "unavailable_days": "Niedostępna od 1 dnia | Niedostępna od {n} dni | Niedostępna od {n} dni",
+      "change": "Pokaż inną encję",
+      "on_screen": "Ta encja jest już na tym ekranie.",
+      "replaced": "Teraz pokazuje {name}",
+      "fix": {
+        "choose": "Wybierz inną encję",
+        "missing": "Home Assistant nie ma już tej encji",
+        "missing_hint": "Została usunięta lub przemianowana. Wybierz, co ten kafelek ma teraz pokazywać.",
+        "unavailable_hint": "Home Assistant od dłuższego czasu nie ma z nią kontaktu. Wybierz inną encję albo poczekaj, aż wróci.",
+        "search": "Szukaj encji"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -3385,7 +3442,15 @@
     "build": {
       "plugins": "Kompiluje z wtyczkami",
       "install": "Instaluje",
-      "failed": "Ostatnia kompilacja {screen} się nie powiodła. Dziennik mówi dlaczego."
+      "failed": "Ostatnia kompilacja {screen} się nie powiodła. Dziennik mówi dlaczego.",
+      "title": "Trwa budowanie",
+      "count": "1 kompilacja w toku | {n} kompilacje w toku | {n} kompilacji w toku",
+      "waiting": "Czeka na swoją kolej",
+      "ready": "{name} jest gotowy",
+      "ready_several": "{names} są gotowe",
+      "update_failed": "Aktualizacja {name} nie powiodła się",
+      "build_failed": "Kompilacja {name} nie powiodła się",
+      "show_log": "Pokaż log"
     },
     "grid": {
       "title": "Siatka",

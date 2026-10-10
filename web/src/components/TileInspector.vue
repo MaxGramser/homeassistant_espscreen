@@ -7,6 +7,7 @@ import { t } from "../i18n";
 import { domainInfo, entriesOf, inlineControlKind, pageTarget } from "../model/layout";
 import { titleOf } from "../model/pages";
 import PluginTileInspector from "./PluginTileInspector.vue";
+import TileEntityFix from "./TileEntityFix.vue";
 import type { Tile } from "../types";
 import ActionPicker from "./ActionPicker.vue";
 import IconPicker from "./IconPicker.vue";
@@ -198,12 +199,15 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
         <template #trigger><button type="button" class="icon-btn" id="tile-more" :aria-label="t('editor.screen_view.more')"><Icon name="dots-horizontal" /></button></template>
         <UiMenuItem id="tile-rename" icon="pencil-outline" @select="insp.renameTile(tile)">{{ t("editor.naming.rename") }}</UiMenuItem>
         <UiMenuItem v-if="domain !== 'screen'" icon="database-search-outline" @select="inspect">{{ t("editor.common.read_current_data") }}</UiMenuItem>
+        <UiMenuItem v-if="domain !== 'screen'" icon="pencil-outline" @select="insp.entityPickerOpen = true">{{ t("editor.broken.change") }}</UiMenuItem>
         <UiMenuSeparator v-if="domain !== 'screen'" />
         <UiMenuItem icon="delete-outline" danger hint="⌫" @select="removeTile(tile)">{{ t("editor.common.remove") }}</UiMenuItem>
       </UiMenu>
     </template>
   </InspectorHead>
   <div class="dr-body">
+    <!-- Its entity gone or away for a while, or another one asked for from the menu: the picker comes first. -->
+    <TileEntityFix v-if="domain !== 'screen'" :tile="tile" />
     <NameField :tile="tile" :fallback="name" />
     <p v-if="bedside" class="hint">{{ t("editor.tile.keys.hint") }}</p>
     <p v-if="key" class="hint">{{ t("editor.tile.keys.under") }}</p>

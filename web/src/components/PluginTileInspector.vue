@@ -4,6 +4,7 @@
 // a stop): the add-on asks the plugin's service with the tile's other options and hands back only the choices.
 import { computed } from "vue";
 import { editorNumber, t } from "../i18n";
+import { healthText } from "../model/broken-tiles";
 import { offeredEntities, pluginDefaults, text, type PluginTileOption } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import type { Tile } from "../types";
@@ -19,6 +20,7 @@ import { usePluginsStore } from "../stores/plugins";
 import { removeTile, setTileOption } from "../editor/tiles";
 import { useUiStore } from "../stores/ui";
 import { useInspectorStore } from "../stores/inspector";
+import { useBrokenStore } from "../stores/broken";
 
 const plugins = usePluginsStore();
 const ui = useUiStore();
@@ -42,6 +44,9 @@ function step(option: PluginTileOption, by: number) {
   const now = Number(values.value[option.id] ?? option.min ?? 0);
   set(option, Math.min(option.max ?? Infinity, Math.max(option.min ?? -Infinity, now + by * (option.step ?? 1))));
 }
+// Its entity gone from Home Assistant, or away for a while (stores/broken.ts): said under the choice of another.
+const broken = useBrokenStore();
+const entityHealth = computed(() => props.tile.options?.plugin_entity ? broken.tileHealth(props.tile.options.plugin_entity) : null);
 // The plugin's details, in the screen's Plugins tab: the README says what the options mean.
 function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
 </script>
@@ -60,6 +65,7 @@ function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
       <PropRow :label="t('editor.plugin_tile.entity')" icon="link-variant" for="plugin-entity">
         <UiSelect id="plugin-entity" :model-value="tile.options?.plugin_entity || ''" :options="entityChoices"
           :placeholder="t('editor.plugin_tile.choose')" @update:model-value="(value: string) => setTileOption(tile, 'plugin_entity', value)" />
+        <template v-if="entityHealth" #note><small class="help warn" id="plugin-entity-broken">{{ healthText(entityHealth, ui.now) }}</small></template>
       </PropRow>
     </Section>
     <Section v-if="kind.tile.options?.length" :title="t('editor.plugin_tile.options')">

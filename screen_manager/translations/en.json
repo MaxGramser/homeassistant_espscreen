@@ -1534,6 +1534,38 @@
       "placeholder": "Search screens, entities, actions…",
       "empty": "Nothing matches. Type part of a screen, entity or action."
     },
+    "search": {
+      "groups": {
+        "recent": "Recent",
+        "settings": "Screen settings",
+        "tiles": "On your screens",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Open",
+        "run": "Run",
+        "show": "Show",
+        "add": "Add"
+      },
+      "keys": {
+        "move": "Move",
+        "choose": "Choose",
+        "close": "Close"
+      },
+      "identify": "Identify {name}",
+      "update": "Update {name}",
+      "update_detail": "To {version}",
+      "update_all": "Update all screens",
+      "update_all_detail": "1 screen is waiting | {n} screens are waiting",
+      "update_all_confirm": "Update 1 screen now? It restarts once its update is in. | Update {n} screens now? One after the other, each restarts once its update is in.",
+      "update_all_go": "Update now",
+      "install": "Install the plugins set aside",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Add {plugin} to {screen}",
+      "add_plugin_detail": "Set aside, ready to install",
+      "on": "On",
+      "off": "Off"
+    },
     "empty": {
       "choose": {
         "title": "Choose a screen",
@@ -1551,6 +1583,31 @@
       "open": "Open {name}",
       "no_layout": "No layout yet",
       "in_tessera": "Update in Tessera first"
+    },
+    "broken": {
+      "screens": "1 screen | {n} screens",
+      "summary": {
+        "missing": "1 tile on {screens} shows an entity that no longer exists | {n} tiles on {screens} show an entity that no longer exists",
+        "unavailable": "1 tile on {screens} shows an entity that has been unavailable for a while | {n} tiles on {screens} show an entity that has been unavailable for a while",
+        "mixed": "1 tile on {screens} shows an entity that is gone or unavailable | {n} tiles on {screens} show an entity that is gone or unavailable"
+      },
+      "short": "1 tile to check | {n} tiles to check",
+      "review": "Review",
+      "hide": "Hide",
+      "missing": "No longer in Home Assistant",
+      "unavailable_minutes": "Unavailable for 1 minute | Unavailable for {n} minutes",
+      "unavailable_hours": "Unavailable for 1 hour | Unavailable for {n} hours",
+      "unavailable_days": "Unavailable for 1 day | Unavailable for {n} days",
+      "change": "Show another entity",
+      "on_screen": "That entity is on this screen already.",
+      "replaced": "Now shows {name}",
+      "fix": {
+        "choose": "Choose another entity",
+        "missing": "Home Assistant no longer has this entity",
+        "missing_hint": "It was removed or renamed. Choose what this tile shows now.",
+        "unavailable_hint": "Home Assistant has had no word from it. Choose another entity, or wait for it to come back.",
+        "search": "Search entities"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -3385,7 +3442,15 @@
     "build": {
       "plugins": "Building with its plugins",
       "install": "Installing",
-      "failed": "The last build of {screen} failed. The log says why."
+      "failed": "The last build of {screen} failed. The log says why.",
+      "title": "Building now",
+      "count": "1 build on its way | {n} builds on their way",
+      "waiting": "Waiting its turn",
+      "ready": "{name} is ready",
+      "ready_several": "{names} are ready",
+      "update_failed": "Updating {name} failed",
+      "build_failed": "Building {name} failed",
+      "show_log": "Show log"
     },
     "grid": {
       "title": "Grid",

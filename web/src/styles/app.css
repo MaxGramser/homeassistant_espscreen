@@ -80,13 +80,15 @@ a:hover { text-decoration: underline; }
   .side-folded .brand { justify-content: center; padding: 0; flex: none; width: 100%; }
   .side-folded .brand .txt, .side-folded .conn-text, .side-folded .search-btn .txt, .side-folded .search-btn kbd,
   .side-folded .label-row > span, .side-folded .label-row #refresh, .side-folded .screen-item .name, .side-folded .screen-item .sub,
-  .side-folded .screen-item .unsaved, .side-folded .row-end, .side-folded .side .more .nav-item .txt { display: none; }
+  .side-folded .screen-item .unsaved, .side-folded .row-end, .side-folded .side .more .nav-item .txt, .side-folded .broken-nav .txt, .side-folded .screen-item .broken-dot { display: none; }
   .side-folded .side-fold { width: 100%; }
   .side-folded .conn { justify-content: center; padding: 4px 0; }
   .side-folded .search-btn, .side-folded .nav-item { justify-content: center; padding: 0; gap: 0; }
   .side-folded .label-row { justify-content: center; padding: 10px 0 4px; }
   .side-folded .screen-item .nav-item, .side-folded .screen-item.update .nav-item { padding: 0; position: relative; }
-  .side-folded .screen-item .spin, .side-folded .screen-item .sub-icon { position: absolute; top: 3px; right: 6px; }
+  .side-folded .screen-item .spin, .side-folded .screen-item .sub-icon, .side-folded .screen-item .row-ring { position: absolute; top: 3px; right: 6px; }
+  .side-folded .builds-btn { width: 100%; }
+  .side-folded .screen-item .row-ring { width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--surface); }
   .side-folded .screen-item .sub-icon { font-size: 12px; }
   .side-folded .screen-item .spin.small { width: 9px; height: 9px; }
   .side-folded .fold-badge { position: absolute; top: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px var(--surface); }
@@ -223,6 +225,66 @@ a:hover { text-decoration: underline; }
 .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex: none; }
 .spin.small { width: 11px; height: 11px; border-width: 1.5px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* A build's ring (ui/ProgressRing.vue): the arc in the accent fills as it goes, an empty ring waits its turn, a ring
+   without a number turns as the spinner does. */
+.ring { flex: none; display: block; transform: rotate(-90deg); overflow: visible; }
+.ring circle { fill: none; stroke-width: 2; }
+.ring-track { stroke: var(--line-strong); }
+.ring-arc { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s; }
+.ring-waiting .ring-arc { opacity: 0; }
+.ring-turning { animation: ring-turn 0.9s linear infinite; }
+@keyframes ring-turn { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
+@media (prefers-reduced-motion: reduce) { .ring-turning { animation: none; } .ring-arc { transition: none; } }
+/* The builds in the head (BuildIndicator.vue): one ring while anything builds, how many beside it, each one's step in its
+   list. */
+.builds-btn { position: relative; flex: none; width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; }
+.builds-btn:hover { background: var(--surface-2); }
+.builds-count { position: absolute; right: 0; bottom: 1px; min-width: 13px; height: 13px; padding: 0 3px; border-radius: 7px; background: var(--accent);
+  color: var(--accent-ink); font-size: 9px; font-weight: 700; line-height: 13px; text-align: center; box-shadow: 0 0 0 2px var(--surface); }
+.builds-pop { width: 280px; padding: 6px; display: grid; gap: 1px; align-content: start; }
+.builds-pop h4 { font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 6px 8px 4px; }
+.builds-row { display: flex; align-items: center; justify-content: flex-start; width: 100%; gap: 10px; padding: 7px 8px; border-radius: 7px; text-align: left; min-width: 0; }
+.builds-row:hover, .builds-row:focus-visible { background: var(--surface-2); outline: none; }
+.builds-name { display: grid; flex: 1; min-width: 0; }
+.builds-name strong { font-size: 13px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.builds-name small, .builds-percent { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.builds-percent { flex: none; font-variant-numeric: tabular-nums; }
+.builds-log { display: flex; align-items: center; gap: 8px; margin-top: 3px; padding: 8px; border-top: 1px solid var(--line); border-radius: 0 0 7px 7px; font-size: 12.5px; color: var(--accent); font-weight: 500; }
+.builds-log:hover { background: var(--accent-soft); }
+.builds-log .ui-icon { font-size: 15px; }
+.screen-item .row-ring { margin-right: 2px; }
+.home-ring { flex: none; }
+.app.phone .home-head .builds-btn { position: absolute; top: 0; right: 42px; width: 34px; height: 34px; border-radius: 50%; background: var(--seg); }
+/* Broken tiles (stores/broken.ts): calm, in the warning colour only where it says what is wrong. The overview's line
+   opens their list; the sidebar has a dot on a screen's row, the tiles in its details and one row for all of them. */
+.broken-note { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.broken-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; text-align: left; font-size: 13px; color: var(--ink-2); }
+.broken-head:hover { background: var(--surface-2); }
+.broken-icon { color: var(--warn); font-size: 17px; flex: none; }
+.broken-text { flex: 1; min-width: 0; }
+.broken-toggle { flex: none; display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-weight: 500; font-size: 12.5px; }
+.broken-toggle .ui-icon { font-size: 16px; transition: transform 0.16s ease; }
+.broken-note.open .broken-toggle .ui-icon { transform: rotate(180deg); }
+.broken-note .broken-list { border-top: 1px solid var(--line); padding: 6px; }
+.broken-list { display: grid; gap: 1px; }
+.broken-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; padding: 7px 8px; border-radius: 7px; text-align: left; min-width: 0; }
+.broken-row:hover, .broken-row:focus-visible { background: var(--surface-2); outline: none; }
+.broken-row .mdi { font-size: 17px; width: 22px; text-align: center; color: var(--muted); flex: none; }
+.broken-row .tx { display: grid; min-width: 0; }
+.broken-row .tx strong { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.broken-row .tx small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.broken-pop { width: 360px; max-width: calc(100vw - 24px); padding: 6px; display: grid; gap: 2px; align-content: start; }
+.broken-pop h4 { font-size: 12px; font-weight: 500; color: var(--ink-2); padding: 6px 8px 6px; line-height: 1.4; }
+.broken-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-right: 4px; }
+.broken-nav { color: var(--ink-2); }
+.broken-nav .ui-icon { color: var(--warn); font-size: 16px; width: 18px; text-align: center; }
+.broken-nav .txt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.screen-broken { display: grid; gap: 2px; }
+.screen-broken-head { font-size: 11.5px; color: var(--warn); }
+.screen-broken .broken-list { margin: 0 -8px; }
+.screen-broken .broken-row { padding: 5px 8px; }
+.screen-broken .broken-row .tx strong { font-size: 12px; }
+.screen-broken .broken-row .tx small { font-size: 11px; }
 .switch { width: 36px; height: 21px; border-radius: 11px; background: var(--line-strong); position: relative; flex: none; padding: 0; transition: background 0.15s; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22); transition: left 0.15s; }
 .switch[aria-checked="true"] { background: var(--accent); }
@@ -620,6 +682,22 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .sw button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
 .picker { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .picker input { background: var(--surface); }
+/* A tile's entity chosen again (TileEntityFix.vue): why, when it is gone or away, then a search and the entities of its
+   kind, the closest first. Escape closes it and not the inspector (the .picker it is). */
+.entity-fix { gap: 8px; }
+.fix-head { display: flex; align-items: flex-start; gap: 9px; }
+.fix-icon { color: var(--warn); font-size: 18px; margin-top: 1px; }
+.fix-words { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.fix-words strong { font-size: 13px; font-weight: 600; }
+.fix-words small { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.fix-close { width: 24px; height: 24px; margin: -3px -3px 0 0; font-size: 15px; color: var(--muted); }
+.fix-list { display: grid; gap: 1px; max-height: 248px; overflow: auto; margin: 0 -4px; }
+.fix-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; padding: 6px 8px; border-radius: 7px; text-align: left; }
+.fix-row.active { background: var(--accent-soft); }
+.fix-row .mdi { font-size: 18px; width: 22px; text-align: center; color: var(--ink-2); flex: none; }
+.fix-row .tx { display: grid; min-width: 0; }
+.fix-row .tx strong { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fix-row .tx small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icon-list { display: grid; gap: 12px; max-height: 300px; overflow: auto; padding-right: 2px; }
 .icon-list small { margin-bottom: 6px; }
 .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
@@ -684,6 +762,10 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
 .srow > .s-label { color: var(--ink-2); }
 .srow.inactive .s-label, .srow.inactive .s-control { opacity: 0.45; }
+/* The row ⌘K found: a soft wash that fades, so the eye lands on it. */
+.srow.spotlit { animation: spotlit 1.6s ease-out; border-radius: 8px; }
+@keyframes spotlit { 0%, 35% { background: var(--accent-soft); box-shadow: 0 0 0 6px var(--accent-soft); } 100% { background: transparent; box-shadow: 0 0 0 6px transparent; } }
+@media (prefers-reduced-motion: reduce) { .srow.spotlit { animation: none; background: var(--accent-soft); } }
 .settings.offline .set-grid { opacity: 0.6; }
 .step { display: inline-flex; align-items: center; gap: 2px; }
 .step button { width: 26px; height: 26px; border-radius: 6px; color: var(--ink-2); background: var(--seg); display: grid; place-items: center; }
@@ -843,7 +925,7 @@ td code { white-space: nowrap; }
 
 /* Toast */
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--ink); color: var(--surface); border-radius: 10px; box-shadow: var(--shadow); font-size: 13px; z-index: 60; max-width: min(92vw, 560px); }
-.toast button { color: #9fc4ff; font-weight: 650; }
+.toast button { color: var(--accent-soft); font-weight: 650; }
 
 /* Responsive */
 @media (max-width: 960px) {
@@ -895,8 +977,10 @@ td code { white-space: nowrap; }
 
 /* Command palette */
 .palette-backdrop { position: fixed; inset: 0; background: rgba(10, 12, 18, 0.28); z-index: 70; display: grid; align-items: start; justify-items: center; padding: 12vh 16px 16px; }
-.palette { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; }
+.palette { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; animation: pop-in 0.14s ease-out; }
 .palette input { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; font-size: 15px; background: transparent; }
+/* The open palette is the focus itself: its field needs no ring of its own. */
+.palette input:focus-visible { box-shadow: none; border-color: var(--line); }
 .palette-list { overflow: auto; padding: 6px; display: grid; gap: 2px; }
 .palette-group { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
 .palette-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; width: 100%; text-align: left; color: var(--ink); }
@@ -906,6 +990,13 @@ td code { white-space: nowrap; }
 .palette-item .hint-key { font-size: 10.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
 .palette-item.active, .palette-item:hover { background: var(--accent-soft); }
 .palette-empty { padding: 18px; color: var(--muted); font-size: 12.5px; text-align: center; }
+/* What Enter does, on the row in focus only; the keys along the foot, quiet. */
+.palette-hint { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+.palette kbd { font: 500 10.5px var(--ui-font); color: var(--muted); border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; min-width: 16px; text-align: center; line-height: 15px; }
+.palette-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); background: var(--surface-2); }
+.palette-foot span { display: inline-flex; align-items: center; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { .palette { animation: none; } }
+@media (max-width: 640px) { .palette-foot { display: none; } }
 /* Search is a row like the others, as in Notion and the Finder: an icon, the word, the shortcut faint at its end. */
 .side .search-btn { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; margin: 2px 0 0; padding: 0 8px; border-radius: 7px; background: transparent; color: var(--ink-2); font-size: 13px; text-align: left; }
 .side .search-btn .ui-icon { font-size: 17px; width: 20px; color: var(--muted); }
@@ -1316,7 +1407,9 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .drawer-enter-active, .app.phone .drawer-leave-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .app.phone .dr-head { padding: 14px 12px 14px 16px; }
 .app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
-/* On a phone the sheet starts with what a tile is changed for most: its name, then its icon and colour. */
+/* On a phone the sheet starts with what a tile is changed for most: a way to another entity when its own is gone, then
+   its name, then its icon and colour. */
+.app.phone .dr-body .entity-fix { order: -3; }
 .app.phone .dr-body .name-sec { order: -2; }
 .app.phone .dr-body .style-section { order: -1; }
 .phone-more { display: flex; align-items: center; gap: 10px; margin: 6px 16px 0; padding: 12px 12px 12px 14px; border-radius: 12px; background: var(--surface-2); text-align: left; color: var(--muted); }

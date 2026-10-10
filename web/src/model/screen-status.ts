@@ -144,3 +144,39 @@ export const pendingText = (p: Pending) => p.pairing === "failed" ? t("editor.si
   : p.installed ? t("editor.sidebar.pending.installed")
   : p.downloaded ? t("editor.sidebar.pending.downloaded")
   : t("editor.sidebar.pending.not_flashed", { file: p.file });
+
+// ---- A build that ends while the page is open ----
+// The page tells whoever is on any of its views when a build it saw ends: "Living room is ready", or that it failed,
+// with the way to its log. It says so only for a build this page started or saw on its way, never for one that ended
+// before the page was opened. What the page knew when it began to watch is kept (Watched), so how it ended is read
+// from what changed since, not from the clocks of the browser and the add-on, which need not agree: an update's
+// result is a new one (its time differs), a plugin build's or an install's firmware job is another one than before.
+export type FirmwareJobFacts = { file?: string | null; state?: string | null; started?: number | null } | null | undefined;
+export type Watched = { by: Build["by"]; file: string | null; result: number | null; job: number | null };
+/** What is kept of a screen's build as the page begins to watch it. */
+export function watchOf(screen: Screen, build: Build | null, job: FirmwareJobFacts): Watched {
+  const file = build?.file ?? screen.update?.profile ?? null;
+  // A job of this screen that still runs is this build: its end is the outcome, so nothing of it counts as before.
+  const before = job && file && job.file === file && job.state !== "running" ? job.started ?? null : null;
+  return { by: build?.by ?? "update", file, result: screen.update?.result?.time ?? null, job: before };
+}
+export type BuildOutcome = "ready" | "failed" | null;
+/** How a watched build ended: ready, failed, or nothing to say (an update a round passed by, a job not found). */
+export function buildOutcome(screen: Screen, watched: Watched, job: FirmwareJobFacts): BuildOutcome {
+  if (watched.by === "update") {
+    const result = screen.update?.result;
+    if (!result || result.time === watched.result) return null;
+    return result.state === "success" ? "ready" : result.state === "failed" ? "failed" : null;
+  }
+  if (!job || !watched.file || job.file !== watched.file || (job.started ?? null) === watched.job) return null;
+  return job.state === "success" ? "ready" : job.state === "failed" ? "failed" : null;
+}
+export type BuildEnd = { screen: Screen; by: Build["by"]; outcome: Exclude<BuildOutcome, null> };
+/** The one word for the builds that ended together: the first that failed, else the screens that are ready. */
+export function buildEndText(ends: readonly BuildEnd[]): { text: string; failed: boolean } | null {
+  const failed = ends.find((end) => end.outcome === "failed");
+  if (failed) return { text: t(failed.by === "update" ? "editor.build.update_failed" : "editor.build.build_failed", { name: failed.screen.name }), failed: true };
+  const names = ends.map((end) => end.screen.name);
+  if (!names.length) return null;
+  return { text: names.length === 1 ? t("editor.build.ready", { name: names[0] }) : t("editor.build.ready_several", { names: names.join(", ") }), failed: false };
+}

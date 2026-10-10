@@ -223,7 +223,8 @@ export type Languages = {
 };
 // `boards`: the boards a firmware for some boards alone is for (app 0.3.21); empty or absent for the shared firmware.
 export type ChangelogSection = { app: string; firmware: string; boards?: string[]; lines: string[] };
-export type Entity = { id: string; name: string; area?: string; device?: string; icon?: string; state?: string; tile?: boolean; screen_name?: string };
+// `unavailable_since`: when an unavailable entity last changed in Home Assistant, in seconds; only on an unavailable one.
+export type Entity = { id: string; name: string; area?: string; device?: string; icon?: string; state?: string; tile?: boolean; screen_name?: string; unavailable_since?: number };
 export type IconInfo = { name: string; cp: string; label: string };
 // What is being built for one screen right now, whoever asked (Manager.builds in the add-on): the firmware update, the
 // plugin build queue, or Install over Wi-Fi from Firmware & USB. The editor's one source for "something is building".

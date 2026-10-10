@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Screen settings: the same groups and rows as the settings page on the screen itself. Every change applies at
 // once, like on the screen; no Save needed.
-import { computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { usePressRepeat } from "../composables/usePressRepeat";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
@@ -79,6 +79,21 @@ const up = () => hold.up();
 function click(e: MouseEvent, row: SettingRow, direction: number) {
   if (!hold.click(e)) step(row, direction, false);
 }
+// A setting ⌘K found: its row comes into sight, takes the focus on its control and is marked for a moment.
+const marked = ref<string | null>(null);
+let unmark = 0;
+watch(() => settings.spotlight, async (key) => {
+  if (!key) return;
+  settings.spotlight = null;
+  await nextTick();
+  const row = document.querySelector<HTMLElement>(`[data-setting="${key}"]`);
+  if (!row) return;
+  row.scrollIntoView?.({ block: "center", behavior: matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  row.querySelector<HTMLElement>(`#setting-${key}, button:not(:disabled)`)?.focus({ preventScroll: true });
+  marked.value = key;
+  clearTimeout(unmark);
+  unmark = window.setTimeout(() => { marked.value = null; }, 1600);
+}, { immediate: true });
 // Calibrate touch (app 0.2.117): the screen has to be there to show the crosses, whoever owns its settings.
 const calibrateReady = computed(() => Boolean(scr.currentScreen?.online));
 const startCalibration = () => scr.currentScreen && scr.calibrateTouch(scr.currentScreen);
@@ -91,7 +106,7 @@ const startCalibration = () => scr.currentScreen && scr.calibrateTouch(scr.curre
       <template v-for="group in groups" :key="group.group">
       <section class="set-card">
         <h4><span class="mdi">{{ glyph(group.icon) }}</span>{{ t(`editor.screen_settings.groups.${group.group}`) }}</h4>
-        <div v-for="row in group.rows" :key="row.key" class="srow" :class="[`setting-${isSwitch(row) ? 'toggle' : row.kind}`, { inactive: !needs(row) || unavailable(row) }]" :data-setting="row.key"
+        <div v-for="row in group.rows" :key="row.key" class="srow" :class="[`setting-${isSwitch(row) ? 'toggle' : row.kind}`, { inactive: !needs(row) || unavailable(row), spotlit: marked === row.key }]" :data-setting="row.key"
           :title="unavailable(row) && !offline ? t('editor.screen_settings.unavailable') : ''"
           @click="isSwitch(row) && ($event.target as HTMLElement).closest('.srow') === $event.currentTarget && !($event.target as HTMLElement).closest('button') && !unavailable(row) && settings.setSetting(row.key, flip(row), 150)">
           <span class="s-label" :id="`setting-label-${row.key}`">{{ settingLabel(row) }}</span>

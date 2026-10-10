@@ -1534,6 +1534,38 @@
       "placeholder": "Rechercher des écrans, entités, actions…",
       "empty": "Aucun résultat. Saisissez une partie du nom d'un écran, d'une entité ou d'une action."
     },
+    "search": {
+      "groups": {
+        "recent": "Récents",
+        "settings": "Réglages de l'écran",
+        "tiles": "Sur vos écrans",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Ouvrir",
+        "run": "Lancer",
+        "show": "Afficher",
+        "add": "Ajouter"
+      },
+      "keys": {
+        "move": "Naviguer",
+        "choose": "Choisir",
+        "close": "Fermer"
+      },
+      "identify": "Identifier {name}",
+      "update": "Mettre à jour {name}",
+      "update_detail": "Vers {version}",
+      "update_all": "Mettre à jour tous les écrans",
+      "update_all_detail": "1 écran attend | {n} écrans attendent",
+      "update_all_confirm": "Mettre à jour 1 écran maintenant ? Il redémarre dès que la mise à jour est installée. | Mettre à jour {n} écrans maintenant ? L'un après l'autre, chacun redémarre dès que sa mise à jour est installée.",
+      "update_all_go": "Mettre à jour",
+      "install": "Installer les plugins mis de côté",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Ajouter {plugin} à {screen}",
+      "add_plugin_detail": "Mis de côté, prêt à installer",
+      "on": "Activé",
+      "off": "Désactivé"
+    },
     "empty": {
       "choose": {
         "title": "Choisissez un écran",
@@ -1551,6 +1583,31 @@
       "open": "Ouvrir {name}",
       "no_layout": "Pas encore de disposition",
       "in_tessera": "Mettez d'abord à jour dans Tessera"
+    },
+    "broken": {
+      "screens": "1 écran | {n} écrans",
+      "summary": {
+        "missing": "1 tuile sur {screens} affiche une entité qui n'existe plus | {n} tuiles sur {screens} affichent une entité qui n'existe plus",
+        "unavailable": "1 tuile sur {screens} affiche une entité indisponible depuis un moment | {n} tuiles sur {screens} affichent une entité indisponible depuis un moment",
+        "mixed": "1 tuile sur {screens} affiche une entité absente ou indisponible | {n} tuiles sur {screens} affichent une entité absente ou indisponible"
+      },
+      "short": "1 tuile à vérifier | {n} tuiles à vérifier",
+      "review": "Voir",
+      "hide": "Masquer",
+      "missing": "N'est plus dans Home Assistant",
+      "unavailable_minutes": "Indisponible depuis 1 minute | Indisponible depuis {n} minutes",
+      "unavailable_hours": "Indisponible depuis 1 heure | Indisponible depuis {n} heures",
+      "unavailable_days": "Indisponible depuis 1 jour | Indisponible depuis {n} jours",
+      "change": "Afficher une autre entité",
+      "on_screen": "Cette entité est déjà sur cet écran.",
+      "replaced": "Affiche maintenant {name}",
+      "fix": {
+        "choose": "Choisir une autre entité",
+        "missing": "Home Assistant n'a plus cette entité",
+        "missing_hint": "Elle a été supprimée ou renommée. Choisissez ce que cette tuile affiche maintenant.",
+        "unavailable_hint": "Home Assistant n'a plus de nouvelles d'elle. Choisissez une autre entité ou attendez son retour.",
+        "search": "Rechercher des entités"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -3385,7 +3442,15 @@
     "build": {
       "plugins": "Compilation avec ses plugins",
       "install": "Installation",
-      "failed": "La dernière compilation de {screen} a échoué. Le journal dit pourquoi."
+      "failed": "La dernière compilation de {screen} a échoué. Le journal dit pourquoi.",
+      "title": "Compilation en cours",
+      "count": "1 compilation en cours | {n} compilations en cours",
+      "waiting": "Attend son tour",
+      "ready": "{name} est prêt",
+      "ready_several": "{names} sont prêts",
+      "update_failed": "La mise à jour de {name} a échoué",
+      "build_failed": "La compilation de {name} a échoué",
+      "show_log": "Voir le journal"
     },
     "grid": {
       "title": "Grille",

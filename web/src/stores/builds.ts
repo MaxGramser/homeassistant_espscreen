@@ -38,19 +38,59 @@ export const useBuildsStore = defineStore("builds", () => {
   // ---- Updates with content (app 0.2.73): what a screen gets ----
   const whatsNew = (screen: Screen) => status.whatsNew(screen, inv.inventory.changelog, inv.inventory.updates?.target);
 
-  /** A new inventory: a screen the add-on names a build for is no longer only asked for. */
+  /** A new inventory: a screen the add-on names a build for is no longer only asked for, and a build the page watched
+   * that no longer runs has ended (watchEnds). */
   function prune() {
-    for (const screen of inv.inventory.screens) if (buildOf(screen)) forget(screen.id);
+    for (const screen of inv.inventory.screens) if (buildOf(screen)) forget(screen.id, false);
+    watchEnds();
   }
-  /** A screen that went (removed) or whose build could not start. */
-  function forget(id: string) {
+  /** A screen that went (removed) or whose build could not start: nothing of it is watched any more either. */
+  function forget(id: string, unwatch = true) {
     if (updating.value.includes(id)) updating.value = updating.value.filter((other) => other !== id);
+    if (unwatch && watched.value[id]) delete watched.value[id];
+  }
+
+  // ---- A build that ends while the page is open (model/screen-status.ts watchOf, buildOutcome) ----
+  // Every build this page asked for or saw on its way, by screen, with what the page knew when it began to watch it.
+  // One that ended says so on whatever view is open: ready, or failed with the way to its log. What ended before the
+  // page was opened is never said: the page did not watch it.
+  const watched = ref<Record<string, status.Watched>>({});
+  function begin(screen: Screen) {
+    watched.value[screen.id] = status.watchOf(screen, buildOf(screen), answer.value?.job);
+  }
+  function watchEnds() {
+    const ended: { screen: Screen; watch: status.Watched }[] = [];
+    const ids = new Set(inv.inventory.screens.map((screen) => screen.id));
+    for (const id of Object.keys(watched.value)) if (!ids.has(id)) delete watched.value[id];
+    for (const screen of inv.inventory.screens) {
+      const build = buildOf(screen), seen = watched.value[screen.id];
+      if ((build || asked(screen)) && !seen) begin(screen);
+      // An update the page asked for may come back as another kind of build (the add-on's own name for it).
+      else if (build && seen && (seen.by !== build.by || (build.file && seen.file !== build.file))) Object.assign(seen, { by: build.by, file: build.file ?? seen.file });
+      else if (!build && !asked(screen) && seen) { ended.push({ screen, watch: seen }); delete watched.value[screen.id]; }
+    }
+    if (ended.length) void told(ended);
+  }
+  // A plugin build's or an install's outcome is its firmware job, asked for once more: the poll that followed it stopped
+  // with the build.
+  async function told(ended: { screen: Screen; watch: status.Watched }[]) {
+    const job = ended.some(({ watch: seen }) => seen.by !== "update") ? (await fetchFirmware().catch(() => null))?.job : null;
+    const ends: status.BuildEnd[] = [];
+    for (const { screen, watch: seen } of ended) {
+      const outcome = status.buildOutcome(screen, seen, job);
+      if (outcome) ends.push({ screen, by: seen.by, outcome });
+    }
+    const said = status.buildEndText(ends);
+    if (!said) return;
+    if (said.failed) ui.toast(said.text, { label: t("editor.build.show_log"), run: () => ui.go("#firmware") });
+    else ui.toast(said.text);
   }
 
   // ---- Updates ----
   // `reinstall` builds the screen again although it runs this firmware: the dev channel's newest dev keeps its number.
   async function startUpdate(screen: Screen, host?: string, reinstall = false) {
     updating.value.push(screen.id);
+    if (!watched.value[screen.id]) begin(screen);
     try {
       await send(`screens/${encodeURIComponent(screen.id)}/update`, "POST", { ...(host ? { host } : {}), ...(reinstall ? { reinstall } : {}) });
       await inv.refresh();
@@ -104,7 +144,7 @@ export const useBuildsStore = defineStore("builds", () => {
   onScopeDispose(() => { flight = null; });
 
   return {
-    updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew }), anyBuilding, buildingScreens, prune, forget,
+    updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew }), anyBuilding, buildingScreens, prune, forget, watched,
     startUpdate, runUpdateAll, setAutoUpdate, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
   };
 });

@@ -1534,6 +1534,38 @@
       "placeholder": "Kijelzők, entitások, műveletek keresése…",
       "empty": "Nincs találat. Írd be egy kijelző, entitás vagy művelet nevének egy részét."
     },
+    "search": {
+      "groups": {
+        "recent": "Legutóbbi",
+        "settings": "Kijelzőbeállítások",
+        "tiles": "A kijelzőiden",
+        "plugins": "Bővítmények"
+      },
+      "hint": {
+        "open": "Megnyitás",
+        "run": "Futtatás",
+        "show": "Mutatás",
+        "add": "Hozzáadás"
+      },
+      "keys": {
+        "move": "Mozgás",
+        "choose": "Választás",
+        "close": "Bezárás"
+      },
+      "identify": "{name} azonosítása",
+      "update": "{name} frissítése",
+      "update_detail": "Erre: {version}",
+      "update_all": "Minden kijelző frissítése",
+      "update_all_detail": "1 kijelző vár | {n} kijelző vár",
+      "update_all_confirm": "Frissíted most az 1 kijelzőt? Újraindul, amint a frissítés felkerült. | Frissítesz most {n} kijelzőt? Egymás után, mindegyik újraindul, amint a frissítése felkerült.",
+      "update_all_go": "Frissítés most",
+      "install": "A félretett bővítmények telepítése",
+      "install_detail": "1 bővítmény | {n} bővítmény",
+      "add_plugin": "{plugin} hozzáadása ide: {screen}",
+      "add_plugin_detail": "Félretéve, telepítésre kész",
+      "on": "Be",
+      "off": "Ki"
+    },
     "empty": {
       "choose": {
         "title": "Válassz kijelzőt",
@@ -1551,6 +1583,31 @@
       "open": "{name} megnyitása",
       "no_layout": "Még nincs elrendezés",
       "in_tessera": "Előbb frissítsd a Tesserában"
+    },
+    "broken": {
+      "screens": "1 kijelzőn | {n} kijelzőn",
+      "summary": {
+        "missing": "{screens} 1 csempe olyan entitást mutat, amely már nem létezik | {screens} {n} csempe olyan entitást mutat, amely már nem létezik",
+        "unavailable": "{screens} 1 csempe olyan entitást mutat, amely egy ideje nem elérhető | {screens} {n} csempe olyan entitást mutat, amely egy ideje nem elérhető",
+        "mixed": "{screens} 1 csempe hiányzó vagy nem elérhető entitást mutat | {screens} {n} csempe hiányzó vagy nem elérhető entitást mutat"
+      },
+      "short": "1 csempét ellenőrizni kell | {n} csempét ellenőrizni kell",
+      "review": "Megnézem",
+      "hide": "Elrejtés",
+      "missing": "Már nincs a Home Assistantben",
+      "unavailable_minutes": "1 perce nem elérhető | {n} perce nem elérhető",
+      "unavailable_hours": "1 órája nem elérhető | {n} órája nem elérhető",
+      "unavailable_days": "1 napja nem elérhető | {n} napja nem elérhető",
+      "change": "Másik entitás mutatása",
+      "on_screen": "Ez az entitás már szerepel ezen a kijelzőn.",
+      "replaced": "Most ezt mutatja: {name}",
+      "fix": {
+        "choose": "Válassz másik entitást",
+        "missing": "A Home Assistantben már nincs meg ez az entitás",
+        "missing_hint": "Törölték vagy átnevezték. Válaszd ki, mit mutasson most ez a csempe.",
+        "unavailable_hint": "A Home Assistant egy ideje nem hall felőle. Válassz másik entitást, vagy várd meg, amíg visszatér.",
+        "search": "Entitások keresése"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -3385,7 +3442,15 @@
     "build": {
       "plugins": "Fordítás a bővítményeivel",
       "install": "Telepítés",
-      "failed": "{screen} legutóbbi fordítása nem sikerült. A napló megmondja, miért."
+      "failed": "{screen} legutóbbi fordítása nem sikerült. A napló megmondja, miért.",
+      "title": "Fordítás folyamatban",
+      "count": "1 fordítás folyamatban | {n} fordítás folyamatban",
+      "waiting": "Sorára vár",
+      "ready": "{name} kész",
+      "ready_several": "{names} kész",
+      "update_failed": "{name} frissítése nem sikerült",
+      "build_failed": "{name} fordítása nem sikerült",
+      "show_log": "Napló megnyitása"
     },
     "grid": {
       "title": "Rács",

@@ -1534,6 +1534,38 @@
       "placeholder": "Procurar ecrãs, entidades, ações…",
       "empty": "Sem resultados. Escreva parte do nome de um ecrã, entidade ou ação."
     },
+    "search": {
+      "groups": {
+        "recent": "Recentes",
+        "settings": "Definições do ecrã",
+        "tiles": "Nos seus ecrãs",
+        "plugins": "Plugins"
+      },
+      "hint": {
+        "open": "Abrir",
+        "run": "Executar",
+        "show": "Mostrar",
+        "add": "Adicionar"
+      },
+      "keys": {
+        "move": "Mover",
+        "choose": "Escolher",
+        "close": "Fechar"
+      },
+      "identify": "Identificar {name}",
+      "update": "Atualizar {name}",
+      "update_detail": "Para {version}",
+      "update_all": "Atualizar todos os ecrãs",
+      "update_all_detail": "1 ecrã à espera | {n} ecrãs à espera",
+      "update_all_confirm": "Atualizar 1 ecrã agora? Reinicia quando a atualização estiver instalada. | Atualizar {n} ecrãs agora? Um após outro, cada um reinicia quando a sua atualização estiver instalada.",
+      "update_all_go": "Atualizar agora",
+      "install": "Instalar os plugins postos de lado",
+      "install_detail": "1 plugin | {n} plugins",
+      "add_plugin": "Adicionar {plugin} a {screen}",
+      "add_plugin_detail": "Posto de lado, pronto a instalar",
+      "on": "Ligado",
+      "off": "Desligado"
+    },
     "empty": {
       "choose": {
         "title": "Escolha um ecrã",
@@ -1551,6 +1583,31 @@
       "open": "Abrir {name}",
       "no_layout": "Ainda sem disposição",
       "in_tessera": "Atualize primeiro no Tessera"
+    },
+    "broken": {
+      "screens": "1 ecrã | {n} ecrãs",
+      "summary": {
+        "missing": "1 mosaico em {screens} mostra uma entidade que já não existe | {n} mosaicos em {screens} mostram uma entidade que já não existe",
+        "unavailable": "1 mosaico em {screens} mostra uma entidade indisponível há algum tempo | {n} mosaicos em {screens} mostram uma entidade indisponível há algum tempo",
+        "mixed": "1 mosaico em {screens} mostra uma entidade em falta ou indisponível | {n} mosaicos em {screens} mostram uma entidade em falta ou indisponível"
+      },
+      "short": "1 mosaico a verificar | {n} mosaicos a verificar",
+      "review": "Ver",
+      "hide": "Ocultar",
+      "missing": "Já não está no Home Assistant",
+      "unavailable_minutes": "Indisponível há 1 minuto | Indisponível há {n} minutos",
+      "unavailable_hours": "Indisponível há 1 hora | Indisponível há {n} horas",
+      "unavailable_days": "Indisponível há 1 dia | Indisponível há {n} dias",
+      "change": "Mostrar outra entidade",
+      "on_screen": "Essa entidade já está neste ecrã.",
+      "replaced": "Agora mostra {name}",
+      "fix": {
+        "choose": "Escolher outra entidade",
+        "missing": "O Home Assistant já não tem esta entidade",
+        "missing_hint": "Foi removida ou mudou de nome. Escolha o que este mosaico mostra agora.",
+        "unavailable_hint": "O Home Assistant não tem notícias dela há algum tempo. Escolha outra entidade ou espere que volte.",
+        "search": "Procurar entidades"
+      }
     },
     "screen_view": {
       "confirm": {
@@ -3385,7 +3442,15 @@
     "build": {
       "plugins": "A compilar com os seus plugins",
       "install": "A instalar",
-      "failed": "A última compilação de {screen} falhou. O registo diz porquê."
+      "failed": "A última compilação de {screen} falhou. O registo diz porquê.",
+      "title": "A compilar agora",
+      "count": "1 compilação em curso | {n} compilações em curso",
+      "waiting": "À espera da sua vez",
+      "ready": "{name} está pronto",
+      "ready_several": "{names} estão prontos",
+      "update_failed": "A atualização de {name} falhou",
+      "build_failed": "A compilação de {name} falhou",
+      "show_log": "Ver registo"
     },
     "grid": {
       "title": "Grelha",
