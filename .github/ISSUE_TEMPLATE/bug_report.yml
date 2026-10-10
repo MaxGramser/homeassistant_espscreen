@@ -37,6 +37,7 @@ body:
         - Guition (JC8012P4A1 V2)
         - M5Stack Tab5 (Tab5 ST7121)
         - Waveshare (ESP32-S3-Touch-LCD-5)
+        - Guition (JC8048W550C_I)
         - Waveshare (ESP32-P4-86-Panel-ETH-2RO)
         - reTerminal D1001 (reTerminal D1001)
         - Other / not listed here

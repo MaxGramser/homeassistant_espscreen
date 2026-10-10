@@ -1,0 +1,112 @@
+# ESP Screens - Guition JC8048W550C_I: 5-inch ST7262 RGB panel, 800 x 480, with GT911 capacitive touch.
+# The manufacturer's JC8048W550N_I has no touch and JC8048W550R_I has resistive touch; this file is only for C_I.
+# ESP32-S3-WROOM-1 N16R8, 16 MB flash and 8 MB octal PSRAM (JC8048W550 specification and Arduino demo).
+# RGB bus mapping follows https://github.com/baget/JC8048W550-ESPHome; picture and touch tested on JC8048W550.
+# The companion entry files are packages/jc8048w550ci.yaml and checkout/jc8048w550ci.yaml.
+packages:
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  BOARD_ID: "jc8048w550ci"
+  DEVICE_NAME: "jc8048w550ci-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 5"
+
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "186.590"                      # 933 diagonal pixels over 5 inches
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "5"
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  LVGL_BUFFER_SIZE: "12%"                     # one-eighth draw buffer, as on other 800 x 480 S3 boards
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  hardware_uart: UART0
+
+i2c:
+  id: touch_bus
+  sda: GPIO19
+  scl: GPIO20
+  scan: true
+
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO2
+    frequency: 5000Hz
+    min_power: 0.01
+    zero_means_zero: true
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    reset_pin: GPIO38
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: ${PANEL_W}
+      y_min: 0
+      y_max: ${PANEL_H}
+
+# The ST7262 is driven directly as an RGB panel; no SPI init sequence.
+# mipi_rgb does not swap the red/blue GPIO groups for BGR as rpi_dpi_rgb does;
+# these groups are exchanged to preserve the JC8048W550's working physical bus mapping.
+display:
+  - platform: mipi_rgb
+    model: RPI
+    id: my_display
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    color_order: BGR
+    # LVGL's RGB565 bytes otherwise make neutral grays green and purple on this RGB bus.
+    byte_order: little_endian
+    pclk_frequency: 16MHz
+    pclk_inverted: true
+    de_pin: GPIO40
+    pclk_pin: GPIO42
+    hsync_pin: GPIO39
+    vsync_pin: GPIO41
+    hsync_pulse_width: 4
+    hsync_back_porch: 8
+    hsync_front_porch: 8
+    vsync_pulse_width: 4
+    vsync_back_porch: 8
+    vsync_front_porch: 8
+    data_pins:
+      red: [GPIO21, GPIO14, GPIO5, GPIO6, GPIO7]
+      green:
+        - number: GPIO46
+          ignore_strapping_warning: true
+        - GPIO9
+        - GPIO1
+        - number: GPIO45
+          ignore_strapping_warning: true
+        - GPIO48
+        - GPIO47
+      blue:
+        - GPIO15
+        - GPIO16
+        - GPIO4
+        - GPIO8
+        - GPIO3
+    update_interval: never
+    auto_clear_enabled: false

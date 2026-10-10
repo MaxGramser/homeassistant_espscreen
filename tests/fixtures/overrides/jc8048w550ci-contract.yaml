@@ -1,0 +1,4 @@
+# This board's light follows the Override YAML contract for a dimmable screen.
+light:
+  - id: !extend back_light
+    default_transition_length: 200ms
