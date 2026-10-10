@@ -9,12 +9,19 @@ const PHONE = "(max-width: 640px)";
 const answer = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
 
 // The listeners the editor's own code adds and removes, by target and event: what a library does from its start
-// (floating-vue listens for a click outside its popper) is its own business.
+// (floating-vue listens for a click outside its popper) is its own business. One the editor adds through VueUse or Vue
+// (useEventListener, a watch) is the editor's: the first caller that is neither of them decides.
+// The whole stack: through VueUse and Vue it is deeper than the ten frames an Error keeps by default.
+function deepStack() {
+  const limit = Error.stackTraceLimit;
+  Error.stackTraceLimit = 100;
+  try { return new Error().stack!; } finally { Error.stackTraceLimit = limit; }
+}
 function listeners() {
   const count = new Map<string, number>();
   const src = `${join(__dirname, "..", "src")}/`;
-  const fromSrc = () => new Error().stack!.split("\n")
-    .find((line) => (line.includes(src) || line.includes("/node_modules/")) && !/node_modules\/(@vitest|tinyspy|vitest)\//.test(line))?.includes(src);
+  const fromSrc = () => deepStack().split("\n")
+    .find((line) => (line.includes(src) || line.includes("/node_modules/")) && !/node_modules\/(@vitest|tinyspy|vitest|@vueuse|@vue|vue)\//.test(line))?.includes(src);
   for (const [target, label] of [[window, "window"], [document, "document"]] as const) {
     const add = target.addEventListener.bind(target), remove = target.removeEventListener.bind(target);
     const step = (name: string, by: number) => { if (fromSrc()) count.set(`${label}:${name}`, (count.get(`${label}:${name}`) || 0) + by); };

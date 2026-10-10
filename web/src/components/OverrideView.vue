@@ -1,10 +1,12 @@
 <script setup lang="ts">
 // Per-screen local YAML override: a small file of the owner's, loaded after the shared screen package.
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { getJson, send } from "../api";
+import { useFirmwareJob } from "../composables/useFirmwareJob";
 import { t } from "../i18n";
+import { errorLine } from "../model/firmware-job";
 import { glyph } from "../model/topbar";
-import { fetchFirmware, go, state, toast } from "../store";
+import { go, state, toast } from "../store";
 
 const OVERRIDE_EXAMPLE = `# Hardware-specific changes for this screen.
 # This file is kept when the shared firmware package updates.
@@ -29,7 +31,6 @@ const gutter = ref<HTMLDivElement | null>(null);
 const lines = computed(() => content.value.split("\n").length);
 const gutterText = computed(() => Array.from({ length: lines.value }, (_, i) => i + 1).join("\n"));
 const count = computed(() => `${t("editor.override.characters", content.value.length)} · ${t("editor.override.lines", lines.value)}`);
-let alive = true;
 function setStatus(message: string, k = "") { status.value = message; kind.value = k; }
 async function load() {
   if (!profile.value) { setStatus(t("editor.override.no_profile"), "error"); return; }
@@ -66,31 +67,35 @@ async function saveOverride(runCheck = false) {
     busy.value = false;
   }
 }
+// The check of a profile, followed while it runs (composables/useFirmwareJob.ts): every 1.2 seconds while the page is in
+// sight, until it ends, the page shows another screen or two hours have gone by. A hidden tab asks nothing until it is
+// shown again, and an answer another view has had is this one's too.
+const checking = ref<{ profile: string; started: number } | null>(null);
+const CHECK_MS = 7200000;
+const firmware = useFirmwareJob({ interval: 1200, active: () => checking.value !== null, onAnswer: followCheck, onError: (error) => {
+  if (!checking.value) return;
+  checking.value = null;
+  setStatus(error.message, "error");
+} });
 function pollCheck() {
-  const started = Date.now(), checked = profile.value;
-  const poll = async () => {
-    if (!alive || profile.value !== checked) return;  // the page closed or shows another screen
-    // A hidden tab asks nothing until it is shown again; an answer another view has just had is this one's too.
-    if (document.hidden) { if (Date.now() - started < 7200000) setTimeout(poll, 1200); return; }
-    try {
-      const data = await fetchFirmware(1000);
-      const current = data.job;
-      if (current && current.file === checked && current.state === "running") {
-        setStatus(current.stage ? t("editor.override.checking_stage", { stage: current.stage }) : t("editor.override.checking_profile"));
-      } else if (current && current.file === checked && current.state === "success") {
-        setStatus(t("editor.override.valid"), "ok");
-        return;
-      } else if (current && current.file === checked && current.state === "failed") {
-        const error = (data.logs || []).filter((line: string) => /error|failed/i.test(line)).pop();
-        setStatus(error || t("editor.override.rejected"), "error");
-        return;
-      }
-      if (Date.now() - started < 7200000) setTimeout(poll, 1200);
-    } catch (error: any) {
-      setStatus(error.message, "error");
-    }
-  };
-  poll();
+  checking.value = { profile: profile.value!, started: Date.now() };
+  firmware.refresh().catch((error: Error) => { if (checking.value) { checking.value = null; setStatus(error.message, "error"); } });
+}
+function followCheck(data: any) {
+  const check = checking.value;
+  if (!check) return;
+  if (profile.value !== check.profile || Date.now() - check.started >= CHECK_MS) { checking.value = null; return; }
+  const current = data.job;
+  if (!current || current.file !== check.profile) return;
+  if (current.state === "running") {
+    setStatus(current.stage ? t("editor.override.checking_stage", { stage: current.stage }) : t("editor.override.checking_profile"));
+  } else if (current.state === "success") {
+    checking.value = null;
+    setStatus(t("editor.override.valid"), "ok");
+  } else if (current.state === "failed") {
+    checking.value = null;
+    setStatus(errorLine(data.logs || []) || t("editor.override.rejected"), "error");
+  }
 }
 function useExample() {
   if (!content.value.trim() || confirm(t("editor.override.confirm_example"))) {
@@ -120,7 +125,6 @@ function onKey(event: KeyboardEvent) {
 }
 function syncScroll() { if (gutter.value && editor.value) gutter.value.scrollTop = editor.value.scrollTop; }
 onMounted(load);
-onBeforeUnmount(() => { alive = false; });
 </script>
 
 <template>

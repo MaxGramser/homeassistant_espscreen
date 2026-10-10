@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import FirmwareView from "../src/components/FirmwareView.vue";
 import InstallerView from "../src/components/InstallerView.vue";
+import { followBuilds } from "../src/composables/useFirmwareJob";
 import { startStore, state } from "../src/store";
 import { setHidden } from "./helpers/browser";
 
@@ -55,7 +56,7 @@ describe("the firmware job", () => {
   });
 
   it("is asked for once, not twice, while a view follows it during a build the store follows too", async () => {
-    const stop = startStore();
+    const stop = startStore(), stopBuilds = followBuilds();
     await vi.advanceTimersByTimeAsync(0);
     expect(Object.keys(state.inventory.builds || {})).toEqual(["hall"]);
     // The store alone: its build poll asks every three seconds for the build log.
@@ -74,6 +75,6 @@ describe("the firmware job", () => {
     const hidden = firmwareAsks();
     await vi.advanceTimersByTimeAsync(30000);
     expect(firmwareAsks()).toBe(hidden);
-    stop();
+    stopBuilds(); stop();
   });
 });

@@ -1,6 +1,7 @@
 // One reactive state for the whole editor. The Python API (server.py) is unchanged: this file is the
 // former app.js state and its calls, with the DOM work moved into the components.
-import { computed, reactive, ref, toRaw, watch } from "vue";
+import { syncRef, useEventListener } from "@vueuse/core";
+import { computed, effectScope, onScopeDispose, reactive, ref, shallowRef, toRaw, toRef, watch } from "vue";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "./model/sizes";
 import { api, getJson, send, setCsrf } from "./api";
 import { andList, editorLanguage, languageMeta, loadLanguage, type NumberMarks, pickLanguage, STYLE_MARKS, t } from "./i18n";
@@ -31,6 +32,9 @@ import { clockSample } from "./model/clock";
 import { onReset } from "./resets";
 import { readStored, writeStored } from "./storage";
 import { flagSerializer, renewable, usePreference } from "./composables/usePreference";
+import { useClock } from "./composables/useClock";
+import { useVisibleInterval } from "./composables/useVisibleInterval";
+import { atMost, useAtMost } from "./composables/useWidths";
 
 export type Inspector =
   | { kind: "tile" }
@@ -143,9 +147,8 @@ export const state = reactive({
 // A page as narrow as a phone gets the editor of everyday changes: the screen itself, one button to add a tile, a tile's
 // name, icon and colour, and everything else under the screen's menu. Wider pages, and a phone that chose the whole
 // editor, keep the editor as it was. The width is the browser's, so a desktop never sees any of it.
-// The width is read when the page loads; startStore follows it from then on.
-const phoneQuery = () => (typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(max-width: 640px)") : null);
-export const narrowPhone = ref(Boolean(phoneQuery()?.matches));
+// The width is read when the page loads; startStore follows it from then on (composables/useWidths.ts).
+export const narrowPhone = ref(atMost("phone"));
 export const phone = computed(() => narrowPhone.value && !state.fullEditor);
 export function setFullEditor(on: boolean) {
   state.fullEditor = on;
@@ -1604,25 +1607,26 @@ export async function importLayout(text: string) {
 export const whatsNew = (screen: Screen) => status.whatsNew(screen, state.inventory.changelog, state.inventory.updates?.target);
 // ---- The add-on's firmware job (api/firmware), asked for once whoever follows it ----
 // New screen, Firmware & USB, a YAML check and the build log all read the same answer: whoever asks while a request is on
-// its way gets its answer, and a poll (`fresh`: how old an answer may be) takes the last one when another poll has just
-// asked, so the add-on is asked once every few seconds however many follow a build. The job and its log are kept for the
-// build log (BuildLog).
+// its way gets its answer, and one asking with `fresh` (how old an answer may be) takes the last one when it is that
+// young. The one poll they all follow is composables/useFirmwareJob.ts. The newest answer is firmwareAnswer, and the job
+// and its log are kept for the build log (BuildLog).
 export const FIRMWARE_POLL_MS = 3000;
-let firmwareFlight: Promise<any> | null = null, firmwareData: any = null, firmwareAt = 0;
+const answer = shallowRef<any>(null);
+/** The add-on's newest answer about its firmware job, whoever asked for it. */
+export const firmwareAnswer = () => answer.value;
+let firmwareFlight: Promise<any> | null = null, firmwareAt = 0;
 export function fetchFirmware(fresh = 0): Promise<any> {
-  if (fresh && firmwareData && Date.now() - firmwareAt < fresh) return Promise.resolve(firmwareData);
+  if (fresh && answer.value && Date.now() - firmwareAt < fresh) return Promise.resolve(answer.value);
   if (firmwareFlight) return firmwareFlight;
   const flight: Promise<any> = getJson("firmware").then((data) => {
     if (firmwareFlight === flight) {
-      firmwareData = data; firmwareAt = Date.now();
+      answer.value = data; firmwareAt = Date.now();
       state.firmwareJob = { job: data.job, logs: data.logs || [] };
     }
     return data;
   }).finally(() => { if (firmwareFlight === flight) firmwareFlight = null; });
   return (firmwareFlight = flight);
 }
-// A poll's turn: never while the tab is hidden, and the answer of a poll that has just asked when there is one.
-export const pollFirmware = () => (document.hidden ? null : fetchFirmware(FIRMWARE_POLL_MS - 500));
 export async function loadFirmwareJob() {
   try { await fetchFirmware(); } catch { /* Keep what we have. */ }
 }
@@ -2050,71 +2054,59 @@ function poll() {
 // ---- Started once the page is on the screen (boot.ts) ----
 // What the store does by itself while the page is open: the live stream and its polls, the clocks of the mockup, the
 // reactions to a change elsewhere, and what the page does when it is hidden, shown again or closed. Nothing of it starts
-// when the module loads, so a test imports the store and starts only what it tests. The returned function stops it all.
+// when the module loads, so a test imports the store and starts only what it tests. All of it lives in one scope, and
+// the returned function stops it.
 let started: (() => void) | null = null;
 export function startStore() {
   if (started) return started;
-  const stops: (() => void)[] = [];
-  const on = <K extends keyof WindowEventMap>(name: K, run: (event: WindowEventMap[K]) => void) => {
-    window.addEventListener(name, run);
-    stops.push(() => window.removeEventListener(name, run));
-  };
-  const every = (ms: number, run: () => void) => { const timer = window.setInterval(run, ms); stops.push(() => clearInterval(timer)); };
-  // The language the screens speak loads as soon as the add-on names it, for the mockup's words.
-  stops.push(watch(screenLanguage, (code) => loadLanguage(code), { immediate: true }));
-  // The screensaver's drawers belong to the settings: they close when the layout comes back.
-  stops.push(watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); }));
-  const phoneWidth = phoneQuery(), toPhone = (event: MediaQueryListEvent) => { narrowPhone.value = event.matches; };
-  phoneWidth?.addEventListener?.("change", toPhone);
-  stops.push(() => phoneWidth?.removeEventListener?.("change", toPhone));
-  state.route = location.hash;
-  on("hashchange", followHash);
-  stops.push(startLive());
-  let fonts = true;
-  whenBarFontsLoad(() => { if (fonts) state.fontsVersion++; });
-  stops.push(() => { fonts = false; });
-  // The mockup's clocks tick and entity values in the top bar follow Home Assistant while the page is open.
-  every(30000, () => {
-    if (!state.layout || document.hidden || state.drag.active) return;
-    state.now = Date.now();
-    loadTopbarPreview(0);
+  const scope = effectScope(true);
+  scope.run(() => {
+    // The language the screens speak loads as soon as the add-on names it, for the mockup's words.
+    watch(screenLanguage, (code) => loadLanguage(code), { immediate: true });
+    // The screensaver's drawers belong to the settings: they close when the layout comes back.
+    watch(() => state.tab, (tab) => { if (tab !== "settings" && state.inspector?.kind.startsWith("saver")) closeInspector(); });
+    // The width of a phone, read when the page loads and followed from here on.
+    syncRef(useAtMost("phone"), narrowPhone, { direction: "ltr" });
+    state.route = location.hash;
+    useEventListener(window, "hashchange", followHash);
+    startLive();
+    let fonts = true;
+    whenBarFontsLoad(() => { if (fonts) state.fontsVersion++; });
+    onScopeDispose(() => { fonts = false; });
+    // The mockup's clocks tick while a screen is open and the page in sight, and hold still while a tile is dragged; the
+    // entity values in its top bar follow Home Assistant as they tick.
+    const editing = () => Boolean(state.layout) && !state.drag.active;
+    useClock(30000, { now: toRef(state, "now"), when: editing });
+    useVisibleInterval(() => loadTopbarPreview(0), 30000, { when: editing });
+    // The mockup follows Home Assistant while it is on screen.
+    useVisibleInterval(loadStates, 8000, { when: () => Boolean(state.layout) && state.tab === "layout" && route.value === "" });
+    // A change still waiting for its short pause goes out when the page closes.
+    useEventListener(window, "pagehide", () => flushSettings(true));
+    useEventListener(window, "beforeunload", (e: BeforeUnloadEvent) => {
+      if (state.dirty) { e.preventDefault(); e.returnValue = ""; }
+    });
   });
-  // The mockup follows Home Assistant while it is on screen; a running update reports its stage every few seconds.
-  every(8000, () => {
-    if (!document.hidden && state.layout && state.tab === "layout" && route.value === "") loadStates();
-  });
-  every(FIRMWARE_POLL_MS, () => {
-    // The log of the build that runs; the last one's stays, so a failed build can still be read (BuildLog).
-    if (anyBuilding()) pollFirmware()?.catch(() => { /* Keep what we have. */ });
-  });
-  // A change still waiting for its short pause goes out when the page closes.
-  on("pagehide", () => flushSettings(true));
-  on("beforeunload", (e) => {
-    if (state.dirty) { e.preventDefault(); e.returnValue = ""; }
-  });
-  started = () => { started = null; for (const stop of stops.splice(0).reverse()) stop(); };
+  started = () => { started = null; scope.stop(); };
   return started;
 }
-// The inventory, the live stream and the polls that stand in for it, and a full refresh when the tab is shown again.
+// The inventory, the live stream and the polls that stand in for it, and a full refresh when the tab is shown again (the
+// clock reads the time again by itself, useClock).
 function startLive() {
-  const shown = async () => {
-    if (document.hidden) return;
-    lastFull = Date.now();
-    state.now = Date.now();
-    await refresh();
-    poll();
-  };
   following = true;
   refresh();
   listen();
   poll();
-  document.addEventListener("visibilitychange", shown);
-  return () => {
-    document.removeEventListener("visibilitychange", shown);
+  useEventListener(document, "visibilitychange", async () => {
+    if (document.hidden) return;
+    lastFull = Date.now();
+    await refresh();
+    poll();
+  });
+  onScopeDispose(() => {
     following = false;
     clearTimeout(pollTimer); clearTimeout(reconnectTimer);
     stream?.close(); stream = null; live = false; reconnects = 0;
-  };
+  });
 }
 
 // ---- A fresh start (tests/setup.ts, between tests) ----
@@ -2127,10 +2119,10 @@ function resetStore() {
   screenKept = screenPreferences();
   clearTimeout(toastTimer); clearTimeout(addedTimer); clearTimeout(topbarTimer); clearTimeout(settingTimer); clearTimeout(pollTimer);
   mapSaver.cancel();
-  narrowPhone.value = Boolean(phoneQuery()?.matches);
+  narrowPhone.value = atMost("phone");
   previewsSkipped = "";
   askedCapabilities.clear(); askedSubtitles.clear(); askedActions.clear();
-  statesFlight = false; overviewFlight = false; firmwareFlight = null; firmwareData = null; firmwareAt = 0;
+  statesFlight = false; overviewFlight = false; firmwareFlight = null; answer.value = null; firmwareAt = 0;
   edits = 0; selectionEpoch++;
   committedLayout = null; committedGrid = null; committedUpright = null;
   draftHistory.clear();

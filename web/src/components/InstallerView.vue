@@ -5,8 +5,12 @@
 // form, what it sends and when, is the one it always was.
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { send } from "../api";
-import { editorLanguage, languageMarks, numberText, t } from "../i18n";
-import { copyText, createVirtualScreen, fetchFirmware, FIRMWARE_POLL_MS, go, openIntegrations, pollFirmware, refresh, state, toast } from "../store";
+import { useClock } from "../composables/useClock";
+import { useFirmwareJob } from "../composables/useFirmwareJob";
+import { useVisibleInterval } from "../composables/useVisibleInterval";
+import { t } from "../i18n";
+import { afterBrowserBuild, errorLine, ESPHOME_WEB, firmwareImage, memoryText, usbTarget } from "../model/firmware-job";
+import { copyText, createVirtualScreen, go, openIntegrations, refresh, state, toast } from "../store";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardDetail, boardList, boardTitle } from "../model/boards";
 import { matchesWords, queryWords } from "../model/search";
@@ -15,13 +19,11 @@ import type { BoardChoice, BoardOrientation, Orientation } from "../types";
 import BrowserFlash from "./BrowserFlash.vue";
 import DeviceArt from "./DeviceArt.vue";
 import Icon from "./ui/Icon.vue";
-import { installProgress, memoryNote } from "../model/install-progress";
+import { installProgress } from "../model/install-progress";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
 
-// Download: ESP Screens builds, the owner flashes the file from their own computer. ESPHome Web is ESPHome's own
-// browser flasher; this address opens it with its hint for a downloaded project (as ESPHome Device Builder does).
-const ESPHOME_WEB = "https://web.esphome.io/?dashboard_install";
+// Download: ESP Screens builds, the owner flashes the file from their own computer with ESPHome Web (ESPHOME_WEB).
 const form = reactive({ board: "", orientation: "landscape" as Orientation, grid: { columns: 2, rows: 3 }, choices: {} as Record<string, string>, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
 const mode = ref<"physical" | "virtual">("physical");
 const installer = reactive({
@@ -42,7 +44,6 @@ const status = ref("");
 const submitting = ref(false);
 const logOpen = ref(false);
 const keyBox = ref<HTMLElement | null>(null);
-let poll = 0;
 
 function portLabel(port: string) {
   const id = port.replace(/^\/dev\/serial\/by-id\/usb-/, "").replace(/-if\d+(-port\d+)?$/, "").replace(/_/g, " ");
@@ -137,23 +138,19 @@ const goDisabled = computed(() => submitting.value || wifi.value?.state === "inv
   (form.target === "browser" && support !== "ok") ||
   nodeTaken.value || nameTaken.value || (!!form.target && (busyElsewhere.value || !data.value?.available)));
 // USB on the Home Assistant machine is always listed first, also before a board is plugged in, so nobody
-// concludes it isn't possible; "usb" stands for that port until one shows up.
+// concludes it isn't possible; "usb" stands for that port until one shows up. Another way stays once it was picked.
 function syncTarget() {
-  const current = form.target;
-  const kept = current === "download" || current === "browser" || current === "" ? installer.picked : ports.value.includes(current);
-  if (!kept) form.target = ports.value[0] || "usb";
+  const way = ["download", "browser", ""].includes(form.target);
+  if (!way) form.target = usbTarget(form.target, ports.value);
+  else if (!installer.picked) form.target = usbTarget("usb", ports.value);
 }
-// `poll`: the turn of the poll below, which asks nothing while the tab is hidden and shares the answer of the store's poll.
-async function installerRefresh(poll = false) {
-  let next: any;
-  try {
-    const asked = poll ? pollFirmware() : fetchFirmware();
-    if (!asked) return;
-    next = await asked;
-  } catch (e: any) {
-    note.value = e.message;
-    return;
-  }
+// The job, followed every few seconds while the page is in sight (composables/useFirmwareJob.ts): every answer, this
+// page's own or another's, lands in take().
+const firmware = useFirmwareJob({ onAnswer: take, onError: (e) => { note.value = e.message; } });
+async function installerRefresh() {
+  try { await firmware.refresh(); } catch (e: any) { note.value = e.message; }
+}
+function take(next: any) {
   data.value = next;
   const current = next.job;
   const ours = current && installer.file && current.file === installer.file;
@@ -187,11 +184,11 @@ const download = computed(() => installer.action === "download" && !installer.br
 // The build is done: write it, erased first as ESPHome does for a new device. A retry after a finished build
 // connects again, and that writes the image it already has.
 watch(() => [job.value?.state, flash.state.phase], ([state, phase]) => {
-  if (installer.browser && installer.file && state === "success" && phase === "waiting") flash.install(installer.file, true);
+  if (installer.browser && installer.file && afterBrowserBuild(state, phase) === "write") flash.install(installer.file, true);
 });
 // A build that fails lets go of the port. Only when the build ends: a retry connects while the failed job is on screen.
 watch(() => job.value?.state, (state) => {
-  if (installer.browser && state && state !== "running" && state !== "success" && flash.state.phase === "waiting") flash.cancel();
+  if (installer.browser && afterBrowserBuild(state, flash.state.phase) === "release") flash.cancel();
 });
 const title = computed(() => t(installer.view === "done"
   ? "editor.installer.title.saved"
@@ -215,18 +212,12 @@ const progressDetail = computed(() => installer.view === "done"
         : t(installer.calibrate ? "editor.installer.detail.booted_calibrate" : "editor.installer.detail.booted")
       : (installer.browser && job.value?.state === "success") || memory.value?.reason === "out" || memory.value?.reason === "limit"
         ? ""  // the card under it says what happened
-        : logs.value.filter((l) => /error/i.test(l)).pop() || logs.value.filter((l) => /failed/i.test(l)).pop() || t("editor.installer.detail.see_log"));
+        : errorLine(logs.value) || t("editor.installer.detail.see_log"));
 // The memory the build has (build_memory.py, app 0.4.65): a card that says why it runs with fewer compilers than the
 // machine has cores, that it started again with one after the memory ran out, or why it stopped. The numbers are GB in
 // the editor's own language.
-const memory = computed(() => {
-  const note = memoryNote(job.value);
-  if (!note) return null;
-  const marks = languageMarks(editorLanguage());
-  const params = { free: `${numberText(note.free, marks)} GB`, need: `${numberText(note.need, marks)} GB`, jobs: note.jobs, cores: note.cores };
-  return { reason: note.reason, title: t(`editor.installer.memory.${note.reason}_title`, params), text: t(`editor.installer.memory.${note.reason}`, params) };
-});
-const image = computed(() => ({ href: `api/firmware/profiles/${encodeURIComponent(installer.file || "")}/download`, name: (installer.file || "").replace(/\.yaml$/, "") + ".factory.bin" }));
+const memory = computed(() => memoryText(job.value));
+const image = computed(() => firmwareImage(installer.file || ""));
 async function submit(event: Event) {
   const element = event.target as HTMLFormElement;
   if (!element.reportValidity()) return;
@@ -281,7 +272,7 @@ async function retry() {
       return;
     }
     if (!download.value) {
-      const { ports: fresh } = await fetchFirmware();
+      const { ports: fresh } = await firmware.refresh();
       // The board may have been replugged; a single visible port is unambiguous.
       if (!fresh.includes(installer.target) && fresh.length === 1) installer.target = fresh[0];
     }
@@ -401,11 +392,8 @@ const arrival = computed(() => {
   if (found) return found.pairing === "failed" ? "failed" : "seen";
   return now.value - doneAt.value > ARRIVE_MS ? "missing" : "waiting";
 });
-let arrivalPoll = 0;
-watch(arrival, (value) => {
-  clearInterval(arrivalPoll);
-  if (value && value !== "paired") arrivalPoll = window.setInterval(() => { if (!document.hidden) refresh(false); }, 5000);
-}, { immediate: true });
+// While it waits for the screen, the inventory is asked again every five seconds the page is in sight.
+useVisibleInterval(() => refresh(false), 5000, { when: () => Boolean(arrival.value) && arrival.value !== "paired" });
 const fixing = ref(false);
 // The right network, then the same installation again: over the same cable, or from this computer after its click.
 async function fixWifi(event: Event) {
@@ -421,8 +409,8 @@ async function fixWifi(event: Event) {
 
 // ---- The installation, step by step ----
 const progress = computed(() => installProgress(job.value, logs.value, { browser: installer.browser, mode: download.value ? "download" : "install", flash: flash.state }));
-const now = ref(Date.now());
-let clock = 0;
+// The clock of the time it takes, every second while the page is in sight.
+const now = useClock(1000);
 const elapsed = computed(() => {
   const started = Number(job.value?.started) * 1000;
   if (!started) return "";
@@ -439,13 +427,9 @@ watch(() => logs.value.length, () => {
   if (!box || box.scrollHeight - box.scrollTop - box.clientHeight > 40) return;
   requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
 });
-// The job and the clock follow while the page is in sight; a hidden tab asks the add-on nothing.
-onMounted(() => {
-  installerRefresh();
-  poll = window.setInterval(() => installerRefresh(true), FIRMWARE_POLL_MS);
-  clock = window.setInterval(() => { if (!document.hidden) now.value = Date.now(); }, 1000);
-});
-onBeforeUnmount(() => { clearInterval(poll); clearInterval(clock); clearInterval(arrivalPoll); flash.cancel(); });
+// The first look at the job; from there it is followed (useFirmwareJob), and a hidden tab asks the add-on nothing.
+onMounted(installerRefresh);
+onBeforeUnmount(() => flash.cancel());
 </script>
 
 <template>
