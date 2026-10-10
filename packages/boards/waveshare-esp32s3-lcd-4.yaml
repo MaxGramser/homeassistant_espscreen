@@ -14,9 +14,9 @@ packages:
   snapshot: !include ../features/snapshot.yaml
 
 external_components:
-  # ESPHome's bundled GT911 driver can select 0x14 nondeterministically through this board's I2C expander
-  # (esphome/esphome#15019). This pins the pending fix with post-INT settling, bounded retries and address diagnostics.
-  - source: github://leonardospina/homeassistant_espscreen@03a3206b97944c29482662f3c76cade7a76a8b37
+  # Waveshare powers the non-B board down for 200 ms, then raises system power and touch reset for another 200 ms
+  # before probing the GT911. This temporary component preserves that board-specific factory sequence.
+  - source: github://leonardospina/homeassistant_espscreen@494b0c7f3fb0bd372c1c4edac4ceaec410caf447
     components: [gt911]
 
 substitutions:
@@ -70,23 +70,11 @@ waveshare_io_ch32v003:
     address: 0x24
     i2c_id: touch_bus
 
-# EXIO5 supplies the LCD. The display starts after the light has enabled this supply.
-power_supply:
-  - id: lcd_system_power
-    pin:
-      waveshare_io_ch32v003: expander
-      number: 5
-      mode:
-        output: true
-    enable_time: 0ms
-    keep_on_time: 0ms
-
 output:
   # The CH32V003 hardware PWM drives the LCD backlight.
   - platform: waveshare_io_ch32v003
     id: gpio_backlight_pwm
     waveshare_io_ch32v003_id: expander
-    power_supply: lcd_system_power
     inverted: true
     zero_means_zero: true
     safe_pwm_levels:
@@ -101,13 +89,11 @@ output:
       mode:
         output: true
 
-# The GT911's reset line is EXIO1 and its interrupt line EXIO2, both on the expander, so ESPHome polls the panel
-# instead of taking a real interrupt. This board's temporary GT911 component drives EXIO2 low through the complete
-# reset sequence, selects the primary 0x5D address and waits for the expander-backed line to settle before probing.
+# Waveshare's factory initialization holds system power (EXIO5) and touch reset (EXIO1) low for 200 ms, then raises
+# both and waits another 200 ms. The GT911 is polled because this board exposes no interrupt pin to the ESP32.
 touchscreen:
   - platform: gt911
     id: ts_touch
-    use_primary_i2c_addr: true
     i2c_id: touch_bus
     display: my_display
     update_interval: 20ms
@@ -119,9 +105,9 @@ touchscreen:
     reset_pin:
       waveshare_io_ch32v003: expander
       number: 1
-    interrupt_pin:
+    power_pin:
       waveshare_io_ch32v003: expander
-      number: 2
+      number: 5
 
 display:
   - platform: mipi_rgb

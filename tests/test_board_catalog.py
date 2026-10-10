@@ -94,32 +94,38 @@ class Catalog(unittest.TestCase):
         external = board['external_components'][0]
 
         self.assertEqual(external['source'],
-                         'github://leonardospina/homeassistant_espscreen@03a3206b97944c29482662f3c76cade7a76a8b37')
+                         'github://leonardospina/homeassistant_espscreen@494b0c7f3fb0bd372c1c4edac4ceaec410caf447')
         self.assertEqual(external['components'], ['gt911'])
-        self.assertTrue(touch['use_primary_i2c_addr'])
+        self.assertNotIn('use_primary_i2c_addr', touch)
         self.assertNotIn('setup_priority', touch)
         self.assertEqual((touch['reset_pin']['waveshare_io_ch32v003'], touch['reset_pin']['number']),
                          ('expander', 1))
-        self.assertEqual((touch['interrupt_pin']['waveshare_io_ch32v003'], touch['interrupt_pin']['number']),
-                         ('expander', 2))
+        self.assertEqual((touch['power_pin']['waveshare_io_ch32v003'], touch['power_pin']['number']),
+                         ('expander', 5))
+        self.assertNotIn('interrupt_pin', touch)
+        self.assertNotIn('power_supply', board)
+        self.assertNotIn('power_supply', board['output'][0])
 
         for entry in (ROOT / 'packages/wavesharelcd4.yaml', ROOT / 'checkout/wavesharelcd4.yaml'):
             self.assertNotIn('components: [gt911, smart_display]', entry.read_text())
 
         driver = (ROOT / 'components/gt911/touchscreen/gt911_touchscreen.cpp').read_text()
-        released = driver.index('this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT);')
-        settled = driver.index('delay(20);', released)
-        returned = driver.index('return true;', settled)
         setup = driver[driver.index('void GT911Touchscreen::setup()'):driver.index('bool GT911Touchscreen::init_sequence_')]
-        self.assertLess(released, settled)
-        self.assertLess(settled, returned)
         self.assertLess(setup.index('init_sequence_'), setup.index('setup_internal_'))
-        self.assertIn('GT911_INIT_ATTEMPTS = 3', driver)
-        primary_probe = setup.index('probe_address_(desired_address')
-        alternate_probe = setup.index('probe_address_(alternate_address')
-        self.assertLess(primary_probe, alternate_probe)
-        self.assertIn('attempt < GT911_INIT_ATTEMPTS', setup)
-        self.assertIn('this->address_ = desired_address;', setup[alternate_probe:])
+        sequence = driver[driver.index('bool GT911Touchscreen::init_sequence_'):
+                          driver.index('void GT911Touchscreen::setup_internal_')]
+        power_off = sequence.index('this->power_pin_->digital_write(false);')
+        reset_low = sequence.index('this->reset_pin_->digital_write(false);')
+        first_wait = sequence.index('delay(200);', reset_low)
+        power_on = sequence.index('this->power_pin_->digital_write(true);', first_wait)
+        reset_high = sequence.index('this->reset_pin_->digital_write(true);', power_on)
+        second_wait = sequence.index('delay(200);', reset_high)
+        self.assertLess(power_off, reset_low)
+        self.assertLess(reset_low, first_wait)
+        self.assertLess(first_wait, power_on)
+        self.assertLess(power_on, reset_high)
+        self.assertLess(reset_high, second_wait)
+        self.assertIn('probe_address_(SECONDARY_ADDRESS', driver)
 
 
 class Choices(unittest.TestCase):
