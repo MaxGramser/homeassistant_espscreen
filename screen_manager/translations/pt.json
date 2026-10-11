@@ -2064,7 +2064,8 @@
         "microphone": "microfone",
         "media_player": "leitor multimédia",
         "camera": "fluxo de câmara para o Home Assistant",
-        "camera_sensor": "sensor de câmara"
+        "camera_sensor": "sensor de câmara",
+        "bluetooth": "Bluetooth"
       },
       "fitting_only": "Só o que serve nos meus ecrãs",
       "made_by": {

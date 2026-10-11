@@ -208,9 +208,14 @@ moves a screen to another origin unless the person switches in the plugin's deta
 
 `requires.plugins` names plugins a plugin needs: they come along from the index, the newest that fits the screen.
 `requires.features` names features (`plugin_manifest.FEATURES`: speaker, microphone, media player, camera, camera
-sensor), each a promise about one ESPHome id (`ts_speaker`, ...), which a board brings (boards.json `features`) or a
-plugin (`provides`). The camera sensor is only a board's (`BOARD_ONLY`): its promise is the board file's substitution
-`CAMERA_I2C`, the bus a camera plugin drives the sensor on, and the board powers the sensor itself. A
+sensor, Bluetooth), each a promise about one ESPHome id (`ts_speaker`, ...), which a board brings (boards.json
+`features`) or a plugin (`provides`). The camera sensor is only a board's (`BOARD_ONLY`): its promise is the board file's
+substitution `CAMERA_I2C`, the bus a camera plugin drives the sensor on, and the board powers the sensor itself.
+Bluetooth is only a board's as well: a radio for it and the memory to run ESPHome's Bluetooth stack beside the screen.
+Its promise is the component `esp32_hosted` in the board's files, an ESP32-C6 beside the chip that does Wi-Fi and
+Bluetooth, the same block ESPHome looks for when it decides to run Bluetooth over the C6. Every ESP32-P4 has it; an
+ESP32-S3 with an RGB panel never does, its internal memory is spoken for. It follows the hardware, never a list of
+boards, so a new board brings it by the hardware file it includes. A
 feature the screen lacks comes along with the one plugin that brings it and fits; with several the person chooses
 (`providers`), with none the plugin does not fit. One screen has one of each feature. A part with `features` is
 offered and built only where the screen has them. `Plugins.plan` says what a change comes to before anything is built

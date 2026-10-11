@@ -1,6 +1,9 @@
 // Generated firmware profile dispatch.
 #include "font.h"
 struct FirmwareUi { lv_obj_t *room, *time, *prev, *next, *number; void (*bind)(); void (*cells)(); const char *look; };
+namespace standard_118 {
+#include "standard_118/ui.h"
+}
 namespace standard_133 {
 #include "standard_133/ui.h"
 }
@@ -38,6 +41,8 @@ namespace standard_294 {
 #include "standard_294/ui.h"
 }
 static FirmwareUi setup_firmware_ui(lv_obj_t *root, int dpi) {
+if (dpi == 118) { using namespace standard_118; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 133) { using namespace standard_133; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 143) { using namespace compact_143; setup_firmware_ui(root);

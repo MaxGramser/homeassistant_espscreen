@@ -2064,7 +2064,8 @@
         "microphone": "mikrofon",
         "media_player": "odtwarzacz multimediów",
         "camera": "obraz kamery w Home Assistant",
-        "camera_sensor": "czujnik kamery"
+        "camera_sensor": "czujnik kamery",
+        "bluetooth": "Bluetooth"
       },
       "fitting_only": "Tylko to, co pasuje do moich ekranów",
       "made_by": {

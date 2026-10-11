@@ -3414,7 +3414,8 @@
         "microphone": "microfoon",
         "media_player": "mediaspeler",
         "camera": "camerabeeld in Home Assistant",
-        "camera_sensor": "camerasensor"
+        "camera_sensor": "camerasensor",
+        "bluetooth": "Bluetooth"
       },
       "fitting_only": "Alleen wat op mijn schermen past",
       "made_by": {

@@ -1,0 +1,148 @@
+# ESP Screens - Elecrow CrowPanel Advanced 10.1-inch ESP32-P4 (DHE04310D), EXPERIMENTAL: a 10.1-inch 1024x600
+# MIPI-DSI panel (EK79007) with GT911 capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# 1024x600 at 117 dpi, the standard look, a grid of 5 x 5 cells lying down, as on the 10.1-inch Guition, and 4 x 6 standing up.
+# The panel is 1024x600 itself, so it lies down without a turn. Built from Elecrow's own ESPHome example for the
+# CrowPanel Advanced P4 boards (V1.1) and from the configuration a community member ran on a V1.2 board (GitHub #116):
+# the two agree pin for pin. That member tried pages, tiles, dimming and waking on the glass; the rest is in
+# docs/CROWPANEL101.md. The loudspeaker and the PDM microphone are the screen's audio (features/audio.yaml), on two I2S
+# buses; the LoRa socket, the SD card and the UARTs are not configured here. Only boards with a pre-v3 ESP32-P4 ("chip revision: v1.3" in the boot log) boot this firmware.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/crowpanel101.yaml (a build on this computer) and
+# packages/crowpanel101.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, with this board's own pins below.
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The loudspeaker and the microphone as the screen's audio (features/audio.yaml), and its amplifier following the
+  # sound (features/audio-amplifier.yaml): its hardware below.
+  audio: !include ../features/audio.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "crowpanel101"
+  DEVICE_NAME: "crowpanel101-new"
+  DEVICE_FRIENDLY_NAME: "My CrowPanel 10"
+
+  # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 10.1 inches. The look scales its sizes
+  # by the exact density, the firmware by the nearest whole number.
+  PANEL_W: "1024"
+  PANEL_H: "600"
+  DISPLAY_DPI: "117.508"
+  # The grid a screen starts with lying down, the same five by five as the 10.1-inch Guition; the owner picks another in
+  # the editor within what the glass holds (docs/RESPONSIVE.md, "The grid a screen is given").
+  GRID_COLS: "5"
+  GRID_ROWS: "5"
+  # Standing up, four columns of six: the glass is 600 pixels wide, and five columns of 120 cut a one-row climate card's
+  # temperature (the layout audit).
+  GRID_COLS_PORTRAIT: "4"
+  GRID_ROWS_PORTRAIT: "6"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, as on the other P4 boards
+
+  # The Wi-Fi link and the touch bus on this board's own pins (hardware/esp32p4-c6.yaml has the Guition's): its data
+  # lines run the other way round, D0 on GPIO17 to D3 on GPIO14, and the C6's reset is GPIO32.
+  HOSTED_RESET_PIN: GPIO32
+  HOSTED_D0_PIN: GPIO17
+  HOSTED_D1_PIN: GPIO16
+  HOSTED_D2_PIN: GPIO15
+  HOSTED_D3_PIN: GPIO14
+  TOUCH_SDA: GPIO45
+  TOUCH_SCL: GPIO46
+
+  # The audio (features/audio.yaml): an NS4168 amplifier that takes I2S as it is, with no volume register, so the
+  # speaker turns ESPHome's volume down in software, -49 dB at 0 to 0 dB at 1 (ESPHome's i2s_audio speaker), and a PDM
+  # microphone on a bus of its own.
+  AUDIO_DOUT_PIN: GPIO23
+  AUDIO_DIN_PIN: GPIO26
+  AUDIO_DAC_DB_AT_0: "-49"
+  AUDIO_DAC_DB_AT_1: "0"
+  AUDIO_AMPLIFIER: board_speaker_amp
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  flash_size: 16MB
+
+# A second internal regulator at 2.5 V beside the MIPI-DSI PHY's (channel 3, in the hardware file): Elecrow's example and
+# the configuration that ran on the board both turn it on.
+esp_ldo:
+  - channel: 4
+    voltage: 2.5V
+
+# The power of the LCD and its touch panel: on from the start and never switched off (standby darkens the backlight
+# below, not the panel). Elecrow's example drives it high the same way.
+switch:
+  - platform: gpio
+    id: board_panel_power
+    internal: true
+    pin: GPIO29
+    restore_mode: ALWAYS_ON
+  # The amplifier's enable, low for on (Elecrow's wiki calls it the amplifier control); features/audio-amplifier.yaml
+  # switches it with the sound.
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin:
+      number: GPIO30
+      inverted: true
+    restore_mode: ALWAYS_OFF
+
+# The backlight, a PWM pin (features/backlight.yaml makes it the light).
+output:
+  - platform: ledc
+    pin: GPIO31
+    id: gpio_backlight_pwm
+
+# ESPHome's own mipi_dsi platform knows this panel by name: `model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B` is the
+# EK79007 at 1024x600 with its timings and init sequence, the model Elecrow's own example uses. Its reset is GPIO41 on
+# this board.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
+    reset_pin: GPIO41
+    update_interval: never
+    auto_clear_enabled: false
+
+# ESPHome's own gt911 platform; the GT911 reports the panel's own pixels, so the transform stays the core's.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    reset_pin: GPIO40
+    interrupt_pin: GPIO42
+    update_interval: 20ms
+
+# The audio, as Elecrow's wiki wires it: the amplifier's I2S bus (LRCLK GPIO21, BCLK GPIO22, data GPIO23) and the PDM
+# microphone's, whose clock is the bus's word clock (GPIO24, data GPIO26).
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_lrclk_pin: GPIO21
+    i2s_bclk_pin: GPIO22
+  - id: ts_mic_bus
+    i2s_lrclk_pin: GPIO24
+
+# The NS4168 has no control interface: no audio_dac, and the speaker's own software volume instead.
+speaker:
+  - id: !extend ts_speaker_out
+    audio_dac: !remove
+
+microphone:
+  - id: !extend ts_microphone
+    pdm: true

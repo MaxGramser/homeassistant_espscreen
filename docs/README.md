@@ -19,6 +19,7 @@
 - [GUITION.md](GUITION.md): the Guition 4848S040, 4 inch, 480 × 480: hardware, mounting, touch and rotation.
 - [GUITION_FACTORY_REFERENCE.md](GUITION_FACTORY_REFERENCE.md): the manufacturer's own demo on the 4848S040, as a
   reference for the panel's driving.
+- [CROWPANEL101.md](CROWPANEL101.md): the Elecrow CrowPanel Advanced, 10.1 inch, ESP32-P4.
 - [JC3248W535.md](JC3248W535.md): the Guition JC3248W535, 3.5 inch.
 - [JC4880P443.md](JC4880P443.md): the Guition JC4880P443, 4.3 inch, ESP32-P4.
 - [JC8048W550.md](JC8048W550.md): the Guition JC8048W550C_I, 5 inch.

@@ -2064,7 +2064,8 @@
         "microphone": "Mikrofon",
         "media_player": "Mediaplayer",
         "camera": "Kamerastream für Home Assistant",
-        "camera_sensor": "Kamerasensor"
+        "camera_sensor": "Kamerasensor",
+        "bluetooth": "Bluetooth"
       },
       "fitting_only": "Nur was auf meine Bildschirme passt",
       "made_by": {

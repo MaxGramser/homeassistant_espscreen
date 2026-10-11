@@ -170,3 +170,13 @@ jc4880p443:
   name: Guition
   model: JC4880P443
   status: experimental
+
+crowpanel101:
+  file: crowpanel101.yaml
+  name: CrowPanel
+  model: Advanced 10.1 ESP32-P4
+  status: experimental
+  # Elecrow's CrowPanel Advanced 10.1-inch (DHE04310D), from Elecrow's ESPHome example and a V1.2 board a community
+  # member ran it on (GitHub #116).
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]

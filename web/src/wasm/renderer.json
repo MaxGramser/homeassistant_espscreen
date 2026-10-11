@@ -2,6 +2,10 @@
   "firmware": "0.55.0",
   "profiles": [
     {
+      "dpi": 118,
+      "look": "standard"
+    },
+    {
       "dpi": 133,
       "look": "standard"
     },

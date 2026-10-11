@@ -2064,7 +2064,8 @@
         "microphone": "mikrofon",
         "media_player": "médialejátszó",
         "camera": "kamerakép a Home Assistantban",
-        "camera_sensor": "kameraszenzor"
+        "camera_sensor": "kameraszenzor",
+        "bluetooth": "Bluetooth"
       },
       "fitting_only": "Csak ami a kijelzőimre jó",
       "made_by": {

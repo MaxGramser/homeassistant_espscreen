@@ -50,7 +50,7 @@ class Manifest(unittest.TestCase):
 
     def test_a_camera_sensor_only_a_board_brings(self):
         # Plugin API 0.8: the camera sensor is hardware a plugin drives; the board names its bus (CAMERA_I2C) and powers it.
-        self.assertEqual(pm.BOARD_ONLY, ('camera_sensor',))
+        self.assertEqual(pm.BOARD_ONLY, ('camera_sensor', 'bluetooth'))
         with self.assertRaises(pm.ManifestError):
             pm.check(manifest('camera', provides=['camera_sensor']))
         camera = pm.check(manifest('camera', provides=['camera'], requires={'features': ['camera_sensor']}))
@@ -158,6 +158,18 @@ class Catalogue(unittest.TestCase):
         self.assertEqual([s['id'] for s in d1001.plan('kitchen', {'add': [{'id': 'camera'}]})['add']], ['camera'])
         guition = self.service(camera)
         self.assertEqual(guition.fits(guition.index['camera'], guition.manager.screen('kitchen')), 'feature')
+
+    def test_a_bluetooth_proxy_fits_every_p4_and_no_rgb_s3(self):
+        # The board brings Bluetooth (its esp32_hosted); no plugin can, so it never fits a board without.
+        proxy = item('proxy', requires={'features': ['bluetooth']})
+        with self.assertRaises(pm.ManifestError):
+            pm.check(manifest('proxy', provides=['bluetooth']))
+        for board in ('reterminald1001', 'jc8012p4a1', 'tab5'):
+            p4 = self.service(proxy, board=board)
+            self.assertIsNone(p4.fits(p4.index['proxy'], p4.manager.screen('kitchen')), board)
+        for board in ('guition', 'cyd'):
+            other = self.service(proxy, board=board)
+            self.assertEqual(other.fits(other.index['proxy'], other.manager.screen('kitchen')), 'feature', board)
 
     def test_what_another_plugin_needs_goes_only_together_and_what_came_along_may_go(self):
         service = self.service(item('voice', requires={'features': ['microphone']}), item('audio', provides=['microphone']))

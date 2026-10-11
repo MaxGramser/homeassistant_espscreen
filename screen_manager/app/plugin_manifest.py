@@ -53,9 +53,14 @@ MAX_TOPICS = 2
 # `camera_sensor`, a board's own: the sensor a camera plugin drives. A board-only feature (no component) is hardware a
 # plugin cannot bring; its promise is a substitution of the board file that a plugin's ESPHome file uses, here
 # CAMERA_I2C, the I2C bus the sensor answers on. The board powers the sensor itself.
+# `bluetooth`, a board's own too: a radio for Bluetooth and the memory to run ESPHome's Bluetooth stack beside the
+# screen. Its promise is the component `esp32_hosted` in the board's files (a board-only feature is a name there, a
+# substitution or a top-level component): an ESP32-C6 beside the chip that does Wi-Fi and Bluetooth, which ESPHome uses
+# for Bluetooth by itself when that block is there. That is every ESP32-P4, by its hardware, never by a list. No ESP32-S3
+# with an RGB panel: its internal memory is spoken for, and Bluetooth left it 4.8 KB (tests/test_board_extras.py).
 FEATURES = {'speaker': ('speaker', 'ts_speaker'), 'microphone': ('microphone', 'ts_microphone'),
             'media_player': ('media_player', 'ts_media_player'), 'camera': ('esp_video_camera', 'ts_camera'),
-            'camera_sensor': (None, 'CAMERA_I2C')}
+            'camera_sensor': (None, 'CAMERA_I2C'), 'bluetooth': (None, 'esp32_hosted')}
 BOARD_ONLY = tuple(name for name, (domain, _) in FEATURES.items() if domain is None)
 INPUT_KINDS = ('secret', 'text', 'gpio', 'entity')
 OPTION_KINDS = ('text', 'choice', 'number', 'toggle')

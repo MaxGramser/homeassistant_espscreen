@@ -183,6 +183,9 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
   settings and in Home Assistant, all three the same entity (docs/SETTINGS.md, "A board's own settings").
 - A camera on the MIPI-CSI port: the board powers the sensor at start and names its I2C bus in `CAMERA_I2C` (the
   feature `camera_sensor`); the Screen camera plugin drives it.
+- Bluetooth for plugins (the feature `bluetooth`, for a Bluetooth proxy) comes by itself with an `esp32_hosted:` block
+  in the board's files, an ESP32-C6 beside the chip for Wi-Fi and Bluetooth: every ESP32-P4 board has it, nothing to
+  state. An ESP32-S3 with an RGB panel never has it: Bluetooth takes the internal memory the panel and Wi-Fi need.
 - The docs: `docs/<BOARD>.md` for what is particular to it and what has been tried on glass, the board table in
   README.md and docs/EASY_SETUP.md, and the boards and tile counts in README_EXTENDED.md.
 

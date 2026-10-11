@@ -39,12 +39,32 @@ class TheBoards(unittest.TestCase):
 
     def test_a_board_with_audio_brings_its_features_for_plugins(self):
         # Plugin API 0.7: a plugin that needs a speaker fits a screen whose board brings ts_speaker, without another plugin.
-        self.assertEqual(SHAPES['reterminald1001']['features'], ['speaker', 'microphone', 'media_player', 'camera_sensor'])
+        self.assertEqual(SHAPES['reterminald1001']['features'],
+                         ['speaker', 'microphone', 'media_player', 'camera_sensor', 'bluetooth'])
         self.assertEqual(SHAPES['cyd']['features'], [])
         # The Waveshare P4 86 has its microphone and speaker on one bus (AUDIO_HALF_DUPLEX), and the same three features.
-        self.assertEqual(SHAPES['wavesharep4']['features'], ['speaker', 'microphone', 'media_player'])
+        self.assertEqual(SHAPES['wavesharep4']['features'], ['speaker', 'microphone', 'media_player', 'bluetooth'])
         # The M5Stack Tab5 too, on one bus, and its camera clocked from a pin (CAMERA_XCLK_PIN).
-        self.assertEqual(SHAPES['tab5']['features'], ['speaker', 'microphone', 'media_player', 'camera_sensor'])
+        self.assertEqual(SHAPES['tab5']['features'],
+                         ['speaker', 'microphone', 'media_player', 'camera_sensor', 'bluetooth'])
+
+    def test_bluetooth_follows_the_radio_and_the_memory_not_a_list(self):
+        # The feature `bluetooth` (a Bluetooth proxy plugin needs it) follows the hardware, never a list of boards: every
+        # board whose Wi-Fi is an ESP32-C6 beside the chip (esp32_hosted, every ESP32-P4) has it, so a new P4 board
+        # brings it by its hardware file. An ESP32-S3 with an RGB panel never does: Bluetooth left it 4.8 KB of internal
+        # memory and the screen hung on Wi-Fi (wishlist 43).
+        boards = {board: shape for board, shape in SHAPES.items() if not board.startswith(('checkout/', 'packages/'))}
+        for board, shape in boards.items():
+            files = profiles.chain(profiles.BOARDS[board])
+            hosted = any(re.search(r'(?m)^esp32_hosted:', path.read_text()) for path in files)
+            rgb = any(path.name == 'esp32s3-rgb.yaml' for path in files)
+            with self.subTest(board=board):
+                if hosted:
+                    self.assertIn('bluetooth', shape['features'])
+                if rgb or shape['chip'] == 'ESP32':
+                    self.assertNotIn('bluetooth', shape['features'])
+        self.assertEqual(sum('bluetooth' in shape['features'] for shape in boards.values()),
+                         sum(shape['chip'] == 'ESP32-P4' for shape in boards.values()))
 
     def test_a_camera_clocked_from_a_pin_has_ledc_timer_0_to_itself(self):
         # The camera driver (esp_video_camera) makes a sensor's clock with LEDC timer 0 and channel 0, which ESPHome gives

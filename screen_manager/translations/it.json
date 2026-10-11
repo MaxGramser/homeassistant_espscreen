@@ -2064,7 +2064,8 @@
         "microphone": "microfono",
         "media_player": "lettore multimediale",
         "camera": "flusso della fotocamera per Home Assistant",
-        "camera_sensor": "sensore della fotocamera"
+        "camera_sensor": "sensore della fotocamera",
+        "bluetooth": "Bluetooth"
       },
       "fitting_only": "Solo ciò che va bene per i miei schermi",
       "made_by": {
