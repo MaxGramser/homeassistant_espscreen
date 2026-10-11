@@ -378,6 +378,7 @@ while it keeps your country's clock and numbers.
 | [Guition ESP32-S3-4848S040](https://tessera-maxgramser.on-forge.com/screens/guition), 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911 |
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
 | Waveshare ESP32-S3-Touch-LCD-5 (new) | 800 × 480, 3 × 3 tiles | RGB / capacitive GT911, the 4.3-inch's board with 5-inch glass (backlight always on: no standby, no night; [details](docs/WAVESHARE5.md)) |
+| Guition JC8048W550C_I, 5 inch (experimental) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911; dimmable backlight, the capacitive variant only ([details](docs/JC8048W550.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-7](https://tessera-maxgramser.on-forge.com/screens/waveshare7) (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; backlight always on, hardware acceptance pending ([details](docs/WAVESHARE7.md)) |
 | Waveshare ESP32-S3-Touch-LCD-7B (experimental) | 1024 × 600, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE7B.md)) |
 | Sunton ESP32-8048S070, 7 inch (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/SUNTON8048S070.md)) |
@@ -391,6 +392,7 @@ while it keeps your country's clock and numbers.
 | Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | [Waveshare ESP32-P4-86-Panel-ETH-2RO](docs/WAVESHAREP4.md), 4 inch (experimental) | 720 × 720, 2 × 3 tiles | MIPI-DSI ST7703 / capacitive GT911, ESP32-P4; dimmable backlight, Wi-Fi only ([details](docs/WAVESHAREP4.md)) |
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; hardware acceptance pending ([details](docs/JC1060P470.md)) |
+| Guition JC4880P443, 4.3 inch (experimental) | 800 × 480, 3 × 3 tiles | MIPI-DSI ST7701 / capacitive GT911, pre-v3 ESP32-P4; dimmable backlight ([details](docs/JC4880P443.md)) |
 | M5Stack Tab5 (ST7121 variant, new) | 1280 × 720, 3 × 3 tiles | MIPI-DSI ST7121 / capacitive ST7121, ESP32-P4; hardware tested ([details](docs/TAB5.md)) |
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.

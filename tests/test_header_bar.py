@@ -48,6 +48,14 @@ class ValidationTests(unittest.TestCase):
         for eid in ('device_tracker.phone', 'lock.front_door', 'alarm_control_panel.house', 'zone.home', 'event.doorbell'):
             validate_header({'items': [entity(eid)]})
 
+    def test_a_plugin_item_is_kept_the_way_the_app_before_reads_it(self):
+        # App 0.4.86 refused any key of a plugin item but type and item, and with it the whole store: only the icon-alone
+        # choice is written, so a layout with a plugin's item stays one a backup of the app from before starts with.
+        plain = validate_header({'items': [{'type': 'plugin', 'item': 'plugin:bus.next', 'content': 'all'}]})
+        self.assertEqual(plain['items'], [{'type': 'plugin', 'item': 'plugin:bus.next'}])
+        icon = validate_header({'items': [{'type': 'plugin', 'item': 'plugin:bus.next', 'content': 'icon'}]})
+        self.assertEqual(icon['items'], [{'type': 'plugin', 'item': 'plugin:bus.next', 'content': 'icon'}])
+
     def test_rejects_what_the_firmware_cannot_draw(self):
         bad = [
             None, [], {'items': None}, {'items': [], 'extra': 1},

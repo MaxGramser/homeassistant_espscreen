@@ -37,7 +37,7 @@ const partOn = (id: string) => props.screens.length > 0 && props.screens.every((
       <label class="f-label" :for="`plugin-input-${input.id}`">{{ text(input.label) }}</label>
       <input :id="`plugin-input-${input.id}`" :type="input.kind === 'secret' ? 'password' : 'text'" autocomplete="off" spellcheck="false"
         :value="plugins.valueOf(screens[0], plugin, input.id)" @input="setAll(input.id, ($event.target as HTMLInputElement).value)" />
-      <small v-if="input.kind === 'secret' && plugins.secrets[plugin.id]?.[input.id]">{{ t("editor.plugins.setup.secret_set") }}</small>
+      <small v-if="input.kind === 'secret' && plugins.secretSet(screens[0], plugin, input)">{{ t("editor.plugins.setup.secret_set") }}</small>
       <small v-else-if="input.hint">{{ text(input.hint) }}</small>
     </div>
     <template v-for="screen in showScreen() ? screens : []" :key="screen.id">
@@ -51,9 +51,10 @@ const partOn = (id: string) => props.screens.length > 0 && props.screens.every((
           <option value="" disabled>{{ t("editor.plugin_tile.choose") }}</option>
           <option v-for="entity in entitiesOf(input.domains)" :key="entity.id" :value="entity.id">{{ entity.name || entity.id }}</option>
         </select>
-        <input v-else :id="`plugin-input-${screen.id}-${input.id}`" type="text" autocomplete="off" :value="plugins.valueOf(screen, plugin, input.id)"
-          @input="plugins.setValue(screen, plugin, input.id, ($event.target as HTMLInputElement).value)" />
-        <small v-if="input.hint">{{ text(input.hint) }}</small>
+        <input v-else :id="`plugin-input-${screen.id}-${input.id}`" :type="input.kind === 'secret' ? 'password' : 'text'" autocomplete="off" spellcheck="false"
+          :value="plugins.valueOf(screen, plugin, input.id)" @input="plugins.setValue(screen, plugin, input.id, ($event.target as HTMLInputElement).value)" />
+        <small v-if="input.kind === 'secret' && plugins.secretSet(screen, plugin, input)">{{ t("editor.plugins.setup.secret_set") }}</small>
+        <small v-else-if="input.hint">{{ text(input.hint) }}</small>
       </div>
     </template>
     <label v-for="part in showScreen() ? plugin.parts || [] : []" :key="part.id" class="pd-part" :class="{ off: lacking(part.features).length }">

@@ -22,8 +22,10 @@ static std::vector<std::string> read(const std::string &stream, size_t step, siz
     const size_t n = std::min(step, stream.size() - at);
     const bool ok = reader.feed(
         reinterpret_cast<const uint8_t *>(stream.data() + at), n,
-        [&](size_t length) -> uint8_t * { return length <= buffer.size() ? buffer.data() : nullptr; },
-        [&](size_t length) { pictures.emplace_back(reinterpret_cast<const char *>(buffer.data()), length); });
+        [&](size_t length, bool) -> uint8_t * { return length <= buffer.size() ? buffer.data() : nullptr; },
+        [&](size_t length, bool audio) {
+          pictures.emplace_back((audio ? "sound:" : "") + std::string(reinterpret_cast<const char *>(buffer.data()), length));
+        });
     if (!ok) { pictures.push_back("!"); break; }
   }
   return pictures;
@@ -42,6 +44,12 @@ static void framing() {
   {
     const auto got = read(head + part(std::string(100, 'x')) + part("small"), 5, 64);
     assert(got.size() == 1 && got[0] == "small");
+  }
+  // A full view's sound comes as parts of its own between the pictures, told apart by their Content-Type.
+  {
+    const std::string sound = "--frame\r\nContent-Type: audio/L16;rate=16000\r\nContent-Length: 4\r\n\r\nabcd\r\n";
+    const auto got = read(head + part("one") + sound + part("two"), 3);
+    assert(got.size() == 3 && got[0] == "one" && got[1] == "sound:abcd" && got[2] == "two");
   }
   // An answer other than 200, a part without its length and a head that never ends break the stream.
   assert(read("HTTP/1.0 404 Not Found\r\n\r\nUnknown link", 4) == std::vector<std::string>{"!"});

@@ -136,6 +136,12 @@ waveshare5:
   model: ESP32-S3-Touch-LCD-5
   status: new
 
+jc8048w550ci:
+  file: guition-jc8048w550c-i.yaml
+  name: Guition
+  model: JC8048W550C_I
+  status: experimental
+
 wavesharep4:
   file: wavesharep4.yaml
   name: Waveshare
@@ -158,3 +164,9 @@ wavesharelcd4:
   model: ESP32-S3-Touch-LCD-4
   status: experimental
   # The board without the "B": a CH32V003 I/O expander and different pins, so the 4B's file does not fit it.
+
+jc4880p443:
+  file: guition-jc4880p443.yaml
+  name: Guition
+  model: JC4880P443
+  status: experimental

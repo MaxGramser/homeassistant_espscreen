@@ -1,7 +1,7 @@
 # A plugin for the app's tests: asks Home Assistant for a calendar's events through the app.
 id: calendar_peek
 version: 1.0.0
-api: "0.1"
+api: "0.4"
 icon: calendar
 topics: [calendar]
 maintainer: someone

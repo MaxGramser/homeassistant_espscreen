@@ -105,8 +105,10 @@ async def _p4(config):
 
 # ---- Plugins (docs/PLUGINS.md) ----
 # The plugin API this core offers: plugin_api.h's PLUGIN_API_MAJOR/MINOR and the add-on's plugin_manifest.PLUGIN_API
-# (a test keeps the three equal). A plugin builds on the same major from its own minor up.
+# (a test keeps the three equal). A plugin builds on the same major from its own minor up, unless a minor between its
+# own and this one changed a name while the major is 0 (PLUGIN_API_BREAKS, the same as plugin_manifest.py's).
 PLUGIN_API = (0, 8)
+PLUGIN_API_BREAKS = {0: (4,)}
 PLUGIN_MANIFEST = "tessera-plugin.yaml"
 
 
@@ -173,8 +175,12 @@ async def register_plugin(var, component_file):
     ok = len(parts) == 2 and all(p.isdigit() for p in parts)
     major, minor = (int(parts[0]), int(parts[1])) if ok else (-1, -1)
     fits = ok and major == PLUGIN_API[0] and minor <= PLUGIN_API[1]
+    broke = [b for b in PLUGIN_API_BREAKS.get(major, ()) if minor < b <= PLUGIN_API[1]] if fits else []
+    offered = f"{PLUGIN_API[0]}.{PLUGIN_API[1]}"
+    if broke:
+        raise cv.Invalid(f"Plugin {manifest.get('id')} was written for plugin API {wanted}; plugin API {major}.{broke[-1]} "
+                         f"changed a name it may use, and this firmware offers {offered}. Update the plugin.")
     if not fits:
-        offered = f"{PLUGIN_API[0]}.{PLUGIN_API[1]}"
         raise cv.Invalid(f"Plugin {manifest.get('id')} wants plugin API {wanted or '?'}; this firmware offers {offered}. "
                          "Update the plugin, or the screen's firmware.")
     # The whole plugin API goes into this build only now that it has a plugin (plugin_host.cpp, USE_TESSERA_PLUGINS).
@@ -183,7 +189,10 @@ async def register_plugin(var, component_file):
     for tile in manifest.get("tiles") or []:
         memory = tile.get("memory")
         memory = memory.get("bytes") if isinstance(memory, dict) else memory
-        cg.add(var.set_memory(str(tile["id"]), int(memory)))
+        if not isinstance(memory, int) or isinstance(memory, bool) or not 64 <= memory <= 16384:
+            raise cv.Invalid(f"Plugin {manifest.get('id')}: tile {tile.get('id')} names its memory in bytes, 64 to 16384 "
+                             "(tessera-plugin.yaml, tiles[].memory)")
+        cg.add(var.set_memory(str(tile["id"]), memory))
     language = (CORE.config.get("smart_display") or {}).get(CONF_LANGUAGE, "en")
     for key, text in sorted(plugin_texts(folder, language).items()):
         cg.add(var.set_text(key, text))

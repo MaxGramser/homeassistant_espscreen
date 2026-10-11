@@ -206,16 +206,14 @@ with the same signature: a blank line, a `---` rule, and two italic lines, each 
 ```
 ---
 
-_Got a screen running? Tell others which board you have and what works on the [Tessera website](https://tessera-maxgramser.on-forge.com/community/share?type=installation). It helps everyone pick a screen that works._
+_Join our brand-new [Discord](https://discord.gg/M7x96AUzC) and help build the Tessera community._
 
 _Want me to keep building? Consider [supporting monthly](https://buymeacoffee.com/f5j9jnkmhpv/membership) or [buying me a coffee](https://buymeacoffee.com/f5j9jnkmhpv), much appreciated!_
 ```
 
-When the thread is about one board, append `&board=<key>` to that link, with the board's key from boards.yaml (`cyd`,
-`guition`, `waveshare43`, ...): the website uses the same keys and opens the report for that board. Keep the blank line
-above the `---`. Without it, markdown reads the rule as underlining and turns the last line of the reply into a heading
-instead of drawing a separator. The signature belongs under comments only, never in commit messages, release notes,
-the README or the docs, where the button under the title already does this.
+Keep the blank line above the `---`. Without it, markdown reads the rule as underlining and turns the last line of the
+reply into a heading instead of drawing a separator. The signature belongs under comments only, never in commit
+messages, release notes, the README or the docs, where the button under the title already does this.
 
 ## Owner's machine
 

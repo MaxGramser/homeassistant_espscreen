@@ -163,18 +163,20 @@ def _paused_lately(state, now, seconds=PAUSED_SECONDS):
     return now - moment.timestamp() < seconds
 
 
-def player(choice, states, keys=False, now=None, held=''):
+def player(choice, states, keys=False, now=None, held='', broken=()):
     """The player the music step shows now, or '' for none: the first of its players that plays with a cover. On a
     screen with keys (KEYS_FEATURE) a player paused a short while ago counts after those, the first of them in the
     order, with the cover Home Assistant still has for it. `held` is the player the screen shows: paused just now, it
-    stays before every other (HELD_SECONDS)."""
+    stays before every other (HELD_SECONDS). A player in `broken` has a cover that could not be fetched
+    (camera_feed.cover_broken) and counts as one without a cover: the glass would stay black where it never comes."""
     now = time.time() if now is None else now
-    if keys and held in players(choice) and _has_cover(states.get(held), PAUSED) and _paused_lately(states.get(held), now, HELD_SECONDS):
+    tried = [entity for entity in players(choice) if entity not in broken]
+    if keys and held in tried and _has_cover(states.get(held), PAUSED) and _paused_lately(states.get(held), now, HELD_SECONDS):
         return held
-    found = next((entity for entity in players(choice) if _has_cover(states.get(entity))), '')
+    found = next((entity for entity in tried if _has_cover(states.get(entity))), '')
     if found or not keys:
         return found
-    return next((entity for entity in players(choice)
+    return next((entity for entity in tried
                  if _has_cover(states.get(entity), PAUSED) and _paused_lately(states.get(entity), now)), '')
 
 
@@ -186,34 +188,35 @@ def entities(choice, states=None):
     return found | ({weather} if weather else set()) | shown
 
 
-def available(kind, choice, states, pictures, keys=False, now=None, held=''):
-    """Whether a step can show now: one of its players plays with a cover, a camera Home Assistant has, the clock
-    always. The two pictures need a board that draws them."""
+def available(kind, choice, states, pictures, keys=False, now=None, held='', broken=()):
+    """Whether a step can show now: one of its players plays with a cover that can be fetched, a camera Home Assistant
+    has, the clock always. The two pictures need a board that draws them."""
     if kind == 'clock':
         return True
     if not pictures:
         return False
     if kind == 'media':
-        return bool(player(choice, states, keys, now, held))
+        return bool(player(choice, states, keys, now, held, broken))
     return bool(choice.get(kind)) and (states.get(choice[kind]) or {}).get('state', '') not in GONE
 
 
-def pick(choice, states, pictures, keys=False, now=None, held=''):
+def pick(choice, states, pictures, keys=False, now=None, held='', broken=()):
     """The first step of the order that is on and available, or '' for none (standby shows the dimmed tiles as before)."""
     if not choice or not choice.get('show'):
         return ''
     for kind in choice.get('order', KINDS):
-        if kind not in choice.get('off', ()) and available(kind, choice, states, pictures, keys, now, held):
+        if kind not in choice.get('off', ()) and available(kind, choice, states, pictures, keys, now, held, broken):
             return kind
     return ''
 
 
-def message(choice, states, pictures, short, media_extras, ground=None, keys=False, now=None, held='', bar=None):
+def message(choice, states, pictures, short, media_extras, ground=None, keys=False, now=None, held='', bar=None, broken=()):
     """The screen message for what the screensaver shows now. `short(text, n)` cuts a text the way every message does,
     `media_extras(attrs)` is the media card's (core.media_extras), `ground(entity, attrs)` the cover's colours, `keys`
     whether the screen's screensaver has keys (KEYS_FEATURE), `held` the player it shows now, `bar(item)` the top bar's
-    wire item for one of the clock's entity items (header_bar.entity_item), or None for a screen that takes none."""
-    kind = pick(choice, states, pictures, keys, now, held)
+    wire item for one of the clock's entity items (header_bar.entity_item), or None for a screen that takes none,
+    `broken` the players whose cover could not be fetched (player)."""
+    kind = pick(choice, states, pictures, keys, now, held, broken)
     result = {'op': 'saver', 'k': kind}
     if kind == 'clock':
         # The outside temperature under the time (app 0.4.52, firmware 0.31.0+); older firmware reads past it.
@@ -230,7 +233,7 @@ def message(choice, states, pictures, short, media_extras, ground=None, keys=Fal
                 result['wi'] = row
     if kind not in PICTURE_KINDS:
         return result
-    entity = player(choice, states, keys, now, held) if kind == 'media' else choice[kind]
+    entity = player(choice, states, keys, now, held, broken) if kind == 'media' else choice[kind]
     state = states.get(entity) or {}
     attrs = state.get('attributes') or {}
     result['e'] = entity

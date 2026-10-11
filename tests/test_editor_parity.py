@@ -342,8 +342,9 @@ class WatchCard(unittest.TestCase):
     # The preview builds a density as a whole number (generate_host_ui.py), and the page bar follows the density
     # (PAGE_BAR_H, 7 mm): the Waveshare 5-inch's glass is 186.59 dpi and its bar 51 pixels, the preview's 187 dpi gives
     # 52. On those pages a card of the preview is a pixel lower than the screen's, which the editor follows; its faces
-    # and whether its head stands above the number are still compared. Kept here so a fix shows up.
-    KNOWN = {'waveshare5-landscape', 'waveshare5-portrait'}
+    # and whether its head stands above the number are still compared. The Guition JC8048W550C_I has the same 5-inch
+    # 800 x 480 glass at 186.59 dpi, and the same pixel. Kept here so a fix shows up.
+    KNOWN = {'waveshare5-landscape', 'waveshare5-portrait', 'jc8048w550ci-landscape', 'jc8048w550ci-portrait'}
 
     @classmethod
     def setUpClass(cls):

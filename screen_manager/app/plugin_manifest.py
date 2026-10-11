@@ -16,6 +16,10 @@ from urllib.parse import urlsplit
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
 PLUGIN_API = (0, 8)
+# Major 0 is the time before that promise: a minor may still change a name or a signature. The minors that did are
+# listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so a plugin written before one is told
+# so in one sentence instead of failing in the compiler. 0.4: Plugin::on_tick became on_interval.
+PLUGIN_API_BREAKS = {0: (4,)}
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
 VERSION = re.compile(r'^\d+\.\d+\.\d+$')
@@ -101,13 +105,16 @@ def seconds(every):
     return int(match.group(1)) * UNITS[match.group(2)] if match else None
 
 
-def api_fits(wanted, offered=PLUGIN_API):
-    """Whether a plugin written for API `wanted` ("0.1") builds on a core that offers `offered`."""
+def api_fits(wanted, offered=PLUGIN_API, breaks=None):
+    """Whether a plugin written for API `wanted` ("0.1") builds on a core that offers `offered`: the same major, at
+    least its minor, and no minor between them that changed a name (PLUGIN_API_BREAKS)."""
     match = API.match(str(wanted or ''))
     if not match:
         return False
     major, minor = int(match.group(1)), int(match.group(2))
-    return major == offered[0] and minor <= offered[1]
+    breaks = PLUGIN_API_BREAKS if breaks is None else breaks
+    return (major == offered[0] and minor <= offered[1]
+            and not any(minor < broke <= offered[1] for broke in breaks.get(major, ())))
 
 
 def span(size):

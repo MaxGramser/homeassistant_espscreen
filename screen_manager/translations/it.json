@@ -865,7 +865,8 @@
         "like_consent": "Accetta prima che il tuo mi piace conti in un numero pubblico.",
         "like_off": "I mi piace sono disattivati: li gestisce una versione più recente dell'app.",
         "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo.",
-        "misfit_built_in": "{name} porta ciò che questa scheda ha già."
+        "misfit_built_in": "{name} porta ciò che questa scheda ha già.",
+        "offline": "L'app non sa ancora dove si trova {screen} nella rete. Accendilo, attendi che sia online e riprova."
       },
       "extras": {
         "request": "Questa modifica di un extra non è possibile su questo schermo."
@@ -1848,7 +1849,6 @@
       },
       "source_code": "Codice sorgente",
       "issues": "Segnala un problema",
-      "removed": "{name} rimosso da {screens}. Lo schermo lo perde alla prossima compilazione.",
       "add_link": "Aggiungi con un link",
       "link": {
         "title": "Aggiungi con un link",
@@ -1908,7 +1908,7 @@
         "title": "Leggimi"
       },
       "english_only": "Solo in inglese",
-      "build_note": "Compili con ESPHome Device Builder o su un altro computer? Il plugin è nello YAML dello schermo; compilalo lì come sempre.",
+      "build_note": "L'installazione ricompila il firmware di questo schermo e lo invia via Wi-Fi, qualche minuto per schermo. Il plugin è nello YAML dello schermo, quindi anche una compilazione in ESPHome Device Builder lo include.",
       "attach": {
         "row": "Collega una volta, nella pagina dello schermo",
         "text": "{screen} viene compilato dal suo YAML. Aggiungi questa riga una volta; poi Tessera tiene i suoi plugin in un file a parte, e ESPHome Device Builder li compila come sempre, anche dopo un aggiornamento.",
@@ -1943,7 +1943,16 @@
         "stage": "Aggiungi a {screen}",
         "in_tray": "Pronto da installare",
         "in_tray_note": "Installalo dalla scheda nell’angolo, da solo o insieme ad altri.",
-        "along": "arriva con {names}"
+        "along": "arriva con {names}",
+        "title_changes": "Pronto da compilare",
+        "changes": "{n} modifica | {n} modifiche",
+        "build": "Compila {n} modifica | Compila {n} modifiche",
+        "off": "viene tolto da questo schermo",
+        "off_note": "Pronto per essere tolto. Avviene alla prossima compilazione dalla scheda nell'angolo, insieme al resto per questo schermo.",
+        "keep": "Tienilo",
+        "keep_named": "Tieni {name}",
+        "minutes": "Ogni compilazione richiede qualche minuto.",
+        "off_set": "Pronto per essere tolto"
       },
       "maker": {
         "title": "Crea un plugin tuo",
@@ -2072,7 +2081,9 @@
         "title": "Novità di {version}",
         "none": "L'autore non ha scritto note per questo aggiornamento.",
         "history": "Tutte le versioni"
-      }
+      },
+      "failed_update": "La versione {version} non si è compilata per {screen}, che è tornato a {current}, quella che esegue. Il registro è in Firmware e USB.",
+      "interrupted": "L'app si è riavviata durante la compilazione."
     },
     "plugin_tile": {
       "from": "Un riquadro del plugin {plugin}",

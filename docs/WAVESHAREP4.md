@@ -18,7 +18,7 @@ See the manufacturer's [hardware comparison](https://docs.waveshare.com/ESP32-P4
 | Memory | 32 MB flash, 32 MB hex PSRAM at 200 MHz |
 | Display | ST7703, ESPHome `mipi_dsi` model `WAVESHARE-P4-86-PANEL`, reset GPIO27 |
 | Display supply | Internal LDO channel 3 at 2.5 V |
-| Backlight | Boost enable GPIO33, inverted PWM on GPIO26 at 100 Hz |
+| Backlight | Boost enable GPIO33, inverted PWM on GPIO26 at 200 Hz |
 | Touch | GT911, SDA GPIO7, SCL GPIO8, reset GPIO23, polled every 20 ms |
 | Wi-Fi | ESP32-C6 over SDIO: reset GPIO54, clock GPIO18, command GPIO19, data GPIO14-17 |
 | USB logging | UART0 through the USB-to-UART bridge |

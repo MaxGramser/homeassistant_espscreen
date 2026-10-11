@@ -48,7 +48,7 @@ substitutions:
   LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, in PSRAM
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
-  BACKLIGHT_FREQUENCY: "100Hz"                  # the backlight's PWM; see the output block
+  BACKLIGHT_FREQUENCY: "200Hz"                  # the backlight's PWM: at 100 Hz grey areas flickered (GitHub #209)
 
   # The audio (features/audio.yaml): an ES8311 for the speaker and an ES7210 for the microphones on one I2S bus, which
   # ESPHome lets them take in turns, at one rate for both. The ES8311 turns ESPHome's volume into its DAC register from
@@ -89,7 +89,8 @@ touchscreen:
 
 # The backlight, an inverted PWM pin (features/backlight.yaml makes it the light). BL_EN (GPIO33, the display's
 # enable_pin below) powers its boost converter. At most 80 % of the PWM range, as in the community configuration
-# Waveshare links to; the screen's brightness setting covers 0 to 100 % of that.
+# Waveshare links to; the screen's brightness setting covers 0 to 100 % of that. Below 15 % the glass was too dark to
+# read, so the lowest level is 15 %, and zero_means_zero keeps 0 dark for standby (GitHub #209).
 output:
   - platform: ledc
     id: gpio_backlight_pwm
@@ -97,6 +98,8 @@ output:
     frequency: ${BACKLIGHT_FREQUENCY}
     inverted: true
     max_power: 0.8
+    min_power: 0.15
+    zero_means_zero: true
 
 # ESPHome's own mipi_dsi platform knows the panel by name: the ST7703's init sequence and timings come with it.
 display:

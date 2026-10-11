@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
   - name: Feature or improvement request? Use the website
-    url: https://tessera-maxgramser.on-forge.com/wishlist
+    url: https://tessera-maxgramser.on-forge.com/wishlist/new?category=feature
     about: Requests posted on GitHub will not be reviewed. Search the wishlist first and upvote an existing wish, or add yours there.
   - name: New board or display request? Use the website
-    url: https://tessera-maxgramser.on-forge.com/wishlist?category=board
+    url: https://tessera-maxgramser.on-forge.com/wishlist/new?category=board
     about: Board requests posted on GitHub will not be reviewed. Find your exact model on the wishlist and upvote it, or add it there.
   - name: Question or discussion? Use Community on the website
     url: https://tessera-maxgramser.on-forge.com/community

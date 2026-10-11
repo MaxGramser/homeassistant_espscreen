@@ -865,7 +865,8 @@
         "like_consent": "Agree first that your like counts in a public number.",
         "like_off": "Likes are off: a newer version of the app keeps them.",
         "like_failed": "The like did not go out. Try again in a moment.",
-        "misfit_built_in": "{name} brings what this board has itself."
+        "misfit_built_in": "{name} brings what this board has itself.",
+        "offline": "The app does not know where {screen} is on the network yet. Switch it on, wait until it shows as online, then try again."
       },
       "extras": {
         "request": "This change of an extra is not possible on this screen."
@@ -3198,7 +3199,6 @@
       },
       "source_code": "Source code",
       "issues": "Report a problem",
-      "removed": "{name} removed from {screens}. The screen loses it with its next build.",
       "add_link": "Add with a link",
       "link": {
         "title": "Add with a link",
@@ -3258,7 +3258,7 @@
         "title": "Read me"
       },
       "english_only": "In English only",
-      "build_note": "Built with ESPHome Device Builder or on another computer? The plugin is in the screen's YAML; build it there as you always do.",
+      "build_note": "Installing builds this screen's firmware again and sends it over Wi-Fi, a few minutes per screen. The plugin is in the screen's YAML, so a build in ESPHome Device Builder has it too.",
       "attach": {
         "row": "Attach once, in the screen's tab",
         "text": "{screen} is built from its own YAML. Add this line to it once; after that Tessera keeps its plugins in their own file, and ESPHome Device Builder builds them as always, also after an update.",
@@ -3293,7 +3293,16 @@
         "stage": "Add to {screen}",
         "in_tray": "Ready to install",
         "in_tray_note": "Install it from the card in the corner, alone or with others.",
-        "along": "comes along with {names}"
+        "along": "comes along with {names}",
+        "title_changes": "Ready to build",
+        "changes": "{n} change | {n} changes",
+        "build": "Build {n} change | Build {n} changes",
+        "off": "comes off this screen",
+        "off_note": "Set aside to come off. It goes with the next build from the card in the corner, together with anything else for this screen.",
+        "keep": "Keep it",
+        "keep_named": "Keep {name}",
+        "minutes": "Each build takes a few minutes.",
+        "off_set": "Set aside to come off"
       },
       "maker": {
         "title": "Make a plugin of your own",
@@ -3422,7 +3431,9 @@
         "title": "What's new in {version}",
         "none": "The maker wrote no notes for this update.",
         "history": "All versions"
-      }
+      },
+      "failed_update": "Version {version} did not build for {screen}, so it went back to {current}, the one it runs. Its log is under Firmware & USB.",
+      "interrupted": "The app restarted during the build."
     },
     "plugin_tile": {
       "from": "A tile of the plugin {plugin}",

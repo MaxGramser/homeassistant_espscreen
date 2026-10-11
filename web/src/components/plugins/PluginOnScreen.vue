@@ -37,6 +37,8 @@ const whyAlong = (row: { step: { for: string[] }; plugin: Plugin }) => {
 // An update that asks for other rights waits for the person's yes, shown above the update key.
 const askConsent = computed(() => plugins.realScreens().some((s) => plugins.installedOn(s, props.plugin.id) && plugins.needsConsent(s, props.plugin)));
 const agreed = computed(() => !askConsent.value || Boolean(plugins.consented[props.plugin.id]));
+// Why a build did not go: the app restarted during it, or the first line of what the build said.
+const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plugins.interrupted") : reason.split("\n")[0]);
 </script>
 
 <template>
@@ -55,15 +57,21 @@ const agreed = computed(() => !askConsent.value || Boolean(plugins.consented[pro
 
   <div v-else-if="status" class="pd-action" :class="status.kind">
     <p v-if="!fit.ok && !installed" class="pd-misfit" id="plugin-misfit"><Icon name="information-outline" />{{ t(`editor.plugins.misfit.${fit.reason}`, { screen: screen.name, kb: headroomKb(screen) }) }}</p>
+    <template v-else-if="installed && plugins.isTakingOff(screen, plugin.id)">
+      <p class="pd-note" id="plugin-taking-off"><Icon name="minus" />{{ t("editor.plugins.tray.off_note") }}</p>
+      <div class="pd-buttons">
+        <button type="button" class="btn quiet" id="plugin-keep" @click="plugins.takeOut(screen, plugin.id)">{{ t("editor.plugins.tray.keep") }}</button>
+      </div>
+    </template>
     <template v-else-if="status.kind === 'test'">
       <p class="pd-note">{{ t("editor.plugins.test_note") }}</p>
       <div class="pd-buttons">
-        <button type="button" class="btn primary" id="plugin-rebuild" @click="plugins.addPlugin([screen], plugin)">{{ t("editor.plugins.rebuild") }}</button>
+        <button type="button" class="btn primary" id="plugin-rebuild" @click="plugins.rebuildTest(screen, plugin)">{{ t("editor.plugins.rebuild") }}</button>
         <button type="button" class="btn quiet" @click="$emit('remove', [screen])">{{ t("editor.plugins.remove", { screen: screen.name }) }}</button>
       </div>
     </template>
     <template v-else-if="status.kind === 'failed'">
-      <p class="pd-misfit" id="plugin-failed"><Icon name="information-outline" />{{ t("editor.plugins.failed", { screen: screen.name }) }}</p>
+      <p class="pd-misfit" id="plugin-failed"><Icon name="information-outline" /><span>{{ t("editor.plugins.failed", { screen: screen.name }) }}<small v-if="installed?.reason" class="pd-reason">{{ reasonText(installed.reason) }}</small></span></p>
       <div class="pd-buttons">
         <button type="button" class="btn primary" @click="plugins.addPlugin([screen], plugin)">{{ t("editor.plugins.retry") }}</button>
         <button type="button" class="btn quiet" @click="$emit('remove', [screen])">{{ t("editor.plugins.remove", { screen: screen.name }) }}</button>
@@ -74,6 +82,7 @@ const agreed = computed(() => !askConsent.value || Boolean(plugins.consented[pro
       <p class="pd-note"><Icon name="check-circle" />{{ t("editor.plugins.installed_on", { screen: screen.name, version: installed.version }) }}</p>
       <p v-if="cameWith.length" class="pd-note pd-along-note" id="plugin-came-with"><Icon name="link-variant" />{{ t("editor.plugins.along.came_with", { names: cameWith.map((p) => text(p.name)).join(", ") }) }}</p>
       <p v-else-if="needed.length" class="pd-note pd-along-note" id="plugin-needed-by"><Icon name="link-variant" />{{ t("editor.plugins.along.needed_now", { names: needed.map((p) => text(p.name)).join(", ") }) }}</p>
+      <p v-if="installed.failed_update" class="pd-misfit" id="plugin-failed-update"><Icon name="information-outline" /><span>{{ t("editor.plugins.failed_update", { screen: screen.name, version: installed.failed_update.version, current: installed.version }) }}<small v-if="installed.failed_update.reason" class="pd-reason">{{ reasonText(installed.failed_update.reason) }}</small></span></p>
       <p v-if="installed.blocked" class="pd-misfit" id="plugin-blocked"><Icon name="alert-circle-outline" />{{ t("editor.plugins.blocked_now", { why: installed.blocked }) }}</p>
       <template v-if="other">
         <p class="pd-misfit" id="plugin-other-origin"><Icon name="information-outline" />{{ t("editor.plugins.other_origin", { origin: installed.origin }) }}</p>

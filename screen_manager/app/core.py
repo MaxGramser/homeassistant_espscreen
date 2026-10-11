@@ -123,17 +123,10 @@ def channel():
     """'main', 'dev', or None when this app was not added from this repository."""
     return CHANNEL
 
-# A copy of the app installed from a local folder (its slug starts with local_): someone working on Tessera itself.
-LOCAL_APP = False
-
-def set_local(slug):
-    global LOCAL_APP
-    LOCAL_APP = isinstance(slug, str) and slug.startswith('local_')
-
 def plugins_enabled():
-    """Plugins (docs/PLUGINS.md) are on dev while their API is 0.x: for an app added from the `#dev` URL, a local copy of
-    the app, and the editor's development server. The stable app shows nothing of them."""
-    return os.environ.get('SCREEN_EDITOR_ENV') == 'development' or CHANNEL == 'dev' or LOCAL_APP
+    """Plugins (docs/PLUGINS.md) are on in every app since 0.4.87 (before, in the dev app only). The one switch: false
+    takes the Plugins page, its routes and its loops out of the app again."""
+    return True
 
 # The release a screen of the stable app builds from (app 0.4.85): the tag tools/release.py publish makes of this app's
 # own version, so every build of a screen, also one Home Assistant's firmware update or ESPHome Device Builder starts,
@@ -166,7 +159,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.54.0'
+FIRMWARE_VERSION = '0.55.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -1209,7 +1202,9 @@ def validate_header(data, most=HEADER_MAX_ITEMS):
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))
             if not plugin_tile(item.get('item')) or item.get('content', 'all') not in PLUGIN_ITEM_CONTENTS:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
-            clean = {'type': 'plugin', 'item': item['item'], 'content': item.get('content', 'all')}
+            # Its icon alone is the one choice kept: an item without `content` shows all, and stays one an app before
+            # 0.4.87 reads, so a backup of the app from before still starts.
+            clean = {'type': 'plugin', 'item': item['item'], **({'content': 'icon'} if item.get('content') == 'icon' else {})}
         elif kind == 'entity':
             if set(item) - {'type', 'entity', 'content', 'icon', 'show'}:
                 raise ValueError(t('addon.errors.top_bar.unknown_setting'))

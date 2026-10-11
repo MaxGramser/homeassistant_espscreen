@@ -34,6 +34,10 @@ substitutions:
   # settings page, under Extras (docs/SETTINGS.md, "A board's own settings"): the volume, which is the media player's
   # own (Home Assistant shows and sets the same), and the microphone's switch.
   BOOT_AUDIO: |-
+    // A live camera's sound (a P4, live_view.h) plays on the mixer's media input, as media from Home Assistant does:
+    // its resampler makes the 16 kHz the bus's rate, whatever the board's, an announcement or a plugin's sound plays
+    // over it rather than into it, and the volume under Extras holds for it too.
+    live_view::bind_speaker(id(ts_media_speaker));
     if (!${AUDIO_HALF_DUPLEX}) {
       id(ts_speaker_out)->set_audio_stream_info(audio::AudioStreamInfo(16, 1, ${AUDIO_SAMPLE_RATE}));
       id(ts_speaker_out)->start();

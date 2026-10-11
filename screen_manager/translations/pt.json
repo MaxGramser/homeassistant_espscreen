@@ -865,7 +865,8 @@
         "like_consent": "Aceite primeiro que o seu gosto conte num número público.",
         "like_off": "Os gostos estão desligados: uma versão mais recente da app gere-os.",
         "like_failed": "O gosto não foi enviado. Tente de novo daqui a pouco.",
-        "misfit_built_in": "{name} traz o que esta placa já tem."
+        "misfit_built_in": "{name} traz o que esta placa já tem.",
+        "offline": "A app ainda não sabe onde está {screen} na rede. Ligue-o, espere até aparecer online e tente de novo."
       },
       "extras": {
         "request": "Esta alteração de um extra não é possível neste ecrã."
@@ -1848,7 +1849,6 @@
       },
       "source_code": "Código-fonte",
       "issues": "Comunicar um problema",
-      "removed": "{name} removido de {screens}. O ecrã perde-o na próxima compilação.",
       "add_link": "Adicionar com uma ligação",
       "link": {
         "title": "Adicionar com uma ligação",
@@ -1908,7 +1908,7 @@
         "title": "Leia-me"
       },
       "english_only": "Apenas em inglês",
-      "build_note": "Compila com o ESPHome Device Builder ou noutro computador? O plugin está no YAML do ecrã; compile-o lá como sempre.",
+      "build_note": "Instalar volta a compilar o firmware deste ecrã e envia-o por Wi-Fi, alguns minutos por ecrã. O plugin está no YAML do ecrã, por isso uma compilação no ESPHome Device Builder também o inclui.",
       "attach": {
         "row": "Ligar uma vez, no separador do ecrã",
         "text": "{screen} é compilado a partir do seu próprio YAML. Adicione-lhe esta linha uma vez; depois o Tessera guarda os plugins num ficheiro próprio, e o ESPHome Device Builder compila-os como sempre, também depois de uma atualização.",
@@ -1943,7 +1943,16 @@
         "stage": "Adicionar a {screen}",
         "in_tray": "Pronto para instalar",
         "in_tray_note": "Instale-o a partir do cartão no canto, sozinho ou com outros.",
-        "along": "vem com {names}"
+        "along": "vem com {names}",
+        "title_changes": "Pronto para compilar",
+        "changes": "{n} alteração | {n} alterações",
+        "build": "Compilar {n} alteração | Compilar {n} alterações",
+        "off": "sai deste ecrã",
+        "off_note": "Preparado para sair. Acontece na próxima compilação a partir do cartão no canto, junto com o resto para este ecrã.",
+        "keep": "Manter",
+        "keep_named": "Manter {name}",
+        "minutes": "Cada compilação demora alguns minutos.",
+        "off_set": "Preparado para sair"
       },
       "maker": {
         "title": "Crie o seu próprio plugin",
@@ -2072,7 +2081,9 @@
         "title": "Novidades da {version}",
         "none": "O autor não escreveu notas para esta atualização.",
         "history": "Todas as versões"
-      }
+      },
+      "failed_update": "A versão {version} não compilou para {screen}, por isso voltou à {current}, a que está a correr. O registo está em Firmware e USB.",
+      "interrupted": "A app reiniciou durante a compilação."
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",

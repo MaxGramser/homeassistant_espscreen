@@ -28,7 +28,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -115,7 +115,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -212,7 +212,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -319,7 +319,7 @@
   "dimmable": true,
   "dpi": 146,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -416,7 +416,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -533,7 +533,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -650,7 +650,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -733,6 +733,123 @@
   "wide_slots": false,
   "width": 480
  },
+ "checkout/jc4880p443.yaml": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443",
+   "name": "Guition",
+   "order": 22,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "features": [],
+  "firmware": "0.55.0",
+  "fonts": {
+   "headline": 34,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 60,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "checkout/jc8012p4a1.yaml": {
   "alert": {
    "line": 21,
@@ -767,7 +884,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -884,7 +1001,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -1001,7 +1118,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -1084,6 +1201,123 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/jc8048w550ci.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": false,
+  "board": "jc8048w550ci",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    420,
+    236
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "JC8048W550C_I",
+   "name": "Guition",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 187,
+  "features": [],
+  "firmware": "0.55.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 37,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 70,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      420,
+      236
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      400,
+      225
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 59,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 51,
+   "tile_pad": 13,
+   "top": 58
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "checkout/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -1108,7 +1342,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -1127,7 +1361,7 @@
    "media_player",
    "camera_sensor"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 30,
    "icon_home": 38,
@@ -1244,7 +1478,7 @@
   "dimmable": true,
   "dpi": 133,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -1369,7 +1603,7 @@
    "media_player",
    "camera_sensor"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 47,
    "icon_home": 59,
@@ -1476,7 +1710,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -1573,7 +1807,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -1690,7 +1924,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -1807,7 +2041,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -1924,7 +2158,7 @@
   "dimmable": false,
   "dpi": 133,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -2041,7 +2275,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -2148,7 +2382,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4",
    "name": "Waveshare",
-   "order": 20,
+   "order": 21,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -2158,7 +2392,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2265,7 +2499,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 18,
+   "order": 19,
    "settings": [
     "media_player",
     "microphone"
@@ -2282,7 +2516,7 @@
    "microphone",
    "media_player"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -2394,7 +2628,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -2481,7 +2715,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -2578,7 +2812,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2685,7 +2919,7 @@
   "dimmable": true,
   "dpi": 146,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -2782,7 +3016,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -2899,7 +3133,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3016,7 +3250,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -3099,6 +3333,123 @@
   "wide_slots": false,
   "width": 480
  },
+ "jc4880p443": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443",
+   "name": "Guition",
+   "order": 22,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "features": [],
+  "firmware": "0.55.0",
+  "fonts": {
+   "headline": 34,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 60,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "jc8012p4a1": {
   "alert": {
    "line": 21,
@@ -3133,7 +3484,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -3250,7 +3601,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -3367,7 +3718,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -3450,6 +3801,123 @@
   "wide_slots": false,
   "width": 1280
  },
+ "jc8048w550ci": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": false,
+  "board": "jc8048w550ci",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    420,
+    236
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "JC8048W550C_I",
+   "name": "Guition",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 187,
+  "features": [],
+  "firmware": "0.55.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 37,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 70,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      420,
+      236
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      400,
+      225
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 59,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 51,
+   "tile_pad": 13,
+   "top": 58
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "packages/cyd.yaml": {
   "alert": {
    "line": 16,
@@ -3479,7 +3947,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -3566,7 +4034,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 25,
@@ -3663,7 +4131,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3770,7 +4238,7 @@
   "dimmable": true,
   "dpi": 146,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 18,
    "icon_home": 26,
@@ -3867,7 +4335,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -3984,7 +4452,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -4101,7 +4569,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -4184,6 +4652,123 @@
   "wide_slots": false,
   "width": 480
  },
+ "packages/jc4880p443.yaml": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443",
+   "name": "Guition",
+   "order": 22,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "features": [],
+  "firmware": "0.55.0",
+  "fonts": {
+   "headline": 34,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 60,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "packages/jc8012p4a1.yaml": {
   "alert": {
    "line": 21,
@@ -4218,7 +4803,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -4335,7 +4920,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -4452,7 +5037,7 @@
   "dimmable": true,
   "dpi": 149,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 24,
    "icon_home": 30,
@@ -4535,6 +5120,123 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/jc8048w550ci.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": false,
+  "board": "jc8048w550ci",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    420,
+    236
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "JC8048W550C_I",
+   "name": "Guition",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 187,
+  "features": [],
+  "firmware": "0.55.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 37,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 70,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      420,
+      236
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      400,
+      225
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 59,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 51,
+   "tile_pad": 13,
+   "top": 58
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "packages/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -4559,7 +5261,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -4578,7 +5280,7 @@
    "media_player",
    "camera_sensor"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 30,
    "icon_home": 38,
@@ -4695,7 +5397,7 @@
   "dimmable": true,
   "dpi": 133,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -4820,7 +5522,7 @@
    "media_player",
    "camera_sensor"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 47,
    "icon_home": 59,
@@ -4927,7 +5629,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -5024,7 +5726,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -5141,7 +5843,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -5258,7 +5960,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -5375,7 +6077,7 @@
   "dimmable": false,
   "dpi": 133,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -5492,7 +6194,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -5599,7 +6301,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4",
    "name": "Waveshare",
-   "order": 20,
+   "order": 21,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -5609,7 +6311,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -5716,7 +6418,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 18,
+   "order": 19,
    "settings": [
     "media_player",
     "microphone"
@@ -5733,7 +6435,7 @@
    "microphone",
    "media_player"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,
@@ -5840,7 +6542,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -5859,7 +6561,7 @@
    "media_player",
    "camera_sensor"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 30,
    "icon_home": 38,
@@ -5976,7 +6678,7 @@
   "dimmable": true,
   "dpi": 133,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -6101,7 +6803,7 @@
    "media_player",
    "camera_sensor"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 47,
    "icon_home": 59,
@@ -6208,7 +6910,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 26,
    "icon_home": 33,
@@ -6305,7 +7007,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -6422,7 +7124,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -6539,7 +7241,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -6656,7 +7358,7 @@
   "dimmable": false,
   "dpi": 133,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 21,
    "icon_home": 26,
@@ -6773,7 +7475,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 26,
@@ -6880,7 +7582,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4",
    "name": "Waveshare",
-   "order": 20,
+   "order": 21,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -6890,7 +7592,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 27,
    "icon_home": 34,
@@ -6997,7 +7699,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 18,
+   "order": 19,
    "settings": [
     "media_player",
     "microphone"
@@ -7014,7 +7716,7 @@
    "microphone",
    "media_player"
   ],
-  "firmware": "0.54.0",
+  "firmware": "0.55.0",
   "fonts": {
    "headline": 40,
    "icon_home": 51,

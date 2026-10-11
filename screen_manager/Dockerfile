@@ -7,8 +7,13 @@ ARG BUILD_ARCH
 ARG TARGETARCH
 LABEL io.hass.version="${BUILD_VERSION}" io.hass.type="app" io.hass.arch="${BUILD_ARCH:-$TARGETARCH}"
 # A camera live on a P4 screen (live_feed.py): aiortc receives Home Assistant's WebRTC of a camera, and brings PyAV
-# (FFmpeg) to decode its H.264 and make its JPEGs.
-RUN pip install --no-cache-dir 'aiohttp>=3.12,<4' PyYAML 'aiortc>=1.14,<2'
+# (FFmpeg) to decode its H.264 and make its JPEGs. Every Home Assistant builds this image itself, so the WebRTC part
+# is pinned to the set pip resolves on this ESPHome for amd64 and aarch64 (wheels on Python 3.12 and 3.13), and ESPHome's
+# own cryptography is a constraint: a later ESPHome that no longer fits fails this build instead of losing its pin.
+RUN (pip freeze | grep -i '^cryptography==' || true) > /tmp/esphome-keeps.txt \
+ && pip install --no-cache-dir -c /tmp/esphome-keeps.txt 'aiohttp>=3.12,<4' PyYAML \
+      aiortc==1.15.0 av==17.1.0 aioice==0.10.2 pylibsrtp==1.0.0 pyee==14.0.0 pyOpenSSL==26.4.0 google-crc32c==1.9.0 \
+ && rm /tmp/esphome-keeps.txt
 COPY app /app
 # Every text of the app, the editor and the screens, one file per language (app 0.2.90).
 COPY translations /app/translations

@@ -140,6 +140,22 @@ class PluginSecrets:
                 self.origins.pop(key, None)
             self._save()
 
+    def adopt(self, origins):
+        """Give a secret kept before secrets had an origin (app 0.4.86 and older) the origin its plugin is installed
+        from, `origins` {plugin: {origin, ...}}, so it is handed out again. One installed from a folder, from two origins
+        or not at all stays without: a folder asks for every origin, and the others are filled in again."""
+        with self.lock:
+            changed = False
+            for key in self.values:
+                if key in self.origins:
+                    continue
+                found = {origin for origin in origins.get(key.split('/', 1)[0]) or () if origin}
+                if len(found) == 1 and 'folder' not in found:
+                    self.origins[key] = next(iter(found))
+                    changed = True
+            if changed:
+                self._save()
+
     def _matches(self, key, origin):
         # None asks for every origin: a folder someone is making in their own config folder.
         return origin is None or self.origins.get(key) == origin
@@ -161,6 +177,17 @@ class PluginSecrets:
             elif inbox and scope == inbox:
                 out[input_id] = value
         return out
+
+    def drop_scope(self, plugin, scope):
+        """Forget a plugin's secrets for one screen (scope: its inbox), when it leaves that screen."""
+        with self.lock:
+            key = f'{plugin}/'
+            gone = [k for k in self.values if k.startswith(key) and k.split('/', 2)[2] == scope]
+            for k in gone:
+                self.values.pop(k, None)
+                self.origins.pop(k, None)
+            if gone:
+                self._save()
 
     def drop_plugin(self, plugin, origin=None):
         """Forget a plugin's secrets: those of one origin, or all of them."""

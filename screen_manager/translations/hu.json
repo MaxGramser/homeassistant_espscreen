@@ -865,7 +865,8 @@
         "like_consent": "Előbb fogadd el, hogy a kedvelésed nyilvános számba számít.",
         "like_off": "A kedvelés ki van kapcsolva: az alkalmazás újabb verziója kezeli.",
         "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később.",
-        "misfit_built_in": "{name} azt hozza, ami ennek a lapkának már megvan."
+        "misfit_built_in": "{name} azt hozza, ami ennek a lapkának már megvan.",
+        "offline": "Az app még nem tudja, hol van a(z) {screen} a hálózaton. Kapcsold be, várd meg, amíg online lesz, és próbáld újra."
       },
       "extras": {
         "request": "Ez a módosítás ezen a kijelzőn nem lehetséges."
@@ -1848,7 +1849,6 @@
       },
       "source_code": "Forráskód",
       "issues": "Hiba bejelentése",
-      "removed": "{name} eltávolítva innen: {screens}. A kijelző a következő fordításkor veszíti el.",
       "add_link": "Hozzáadás hivatkozással",
       "link": {
         "title": "Hozzáadás hivatkozással",
@@ -1908,7 +1908,7 @@
         "title": "Olvass el"
       },
       "english_only": "Csak angolul",
-      "build_note": "ESPHome Device Builderrel vagy másik gépen fordítasz? A bővítmény a kijelző YAML-jében van; fordítsd ott, ahogy mindig.",
+      "build_note": "A telepítés újrafordítja a kijelző firmware-ét, és Wi-Fin küldi át, kijelzőnként néhány perc alatt. A bővítmény a kijelző YAML-jében van, így az ESPHome Device Builderben fordított firmware-ben is benne lesz.",
       "attach": {
         "row": "Egyszeri csatolás, a kijelző lapján",
         "text": "A(z) {screen} a saját YAML-jéből fordul. Add hozzá egyszer ezt a sort; ezután a Tessera külön fájlban tartja a bővítményeit, és az ESPHome Device Builder ugyanúgy lefordítja őket, frissítés után is.",
@@ -1943,7 +1943,16 @@
         "stage": "Hozzáadás ehhez: {screen}",
         "in_tray": "Telepítésre kész",
         "in_tray_note": "Telepítsd a sarokban lévő kártyáról, egyedül vagy másokkal együtt.",
-        "along": "ezzel jön: {names}"
+        "along": "ezzel jön: {names}",
+        "title_changes": "Fordításra kész",
+        "changes": "{n} változás | {n} változás",
+        "build": "{n} változás fordítása | {n} változás fordítása",
+        "off": "lekerül erről a kijelzőről",
+        "off_note": "Eltávolításra előkészítve. A sarokban lévő kártyáról induló következő fordítással megy, a kijelző többi változásával együtt.",
+        "keep": "Maradjon",
+        "keep_named": "{name} maradjon",
+        "minutes": "Minden fordítás néhány percig tart.",
+        "off_set": "Eltávolításra előkészítve"
       },
       "maker": {
         "title": "Saját bővítmény készítése",
@@ -2072,7 +2081,9 @@
         "title": "Újdonságok: {version}",
         "none": "A készítő nem írt megjegyzést ehhez a frissítéshez.",
         "history": "Minden verzió"
-      }
+      },
+      "failed_update": "A(z) {version} verzió nem fordult le a(z) {screen} számára, ezért visszaállt a futó {current} verzióra. A naplót a Firmware és USB alatt találod.",
+      "interrupted": "Az app újraindult a fordítás közben."
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",

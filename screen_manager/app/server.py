@@ -3095,8 +3095,11 @@ class Manager:
         keys = screen_saver.KEYS_FEATURE in (getattr(sender, 'features', None) or ())
         # The player it shows keeps the glass for a while after a pause (screen_saver.HELD_SECONDS).
         row = screen_saver.ITEMS_FEATURE in (getattr(sender, 'features', None) or ())
+        # A player whose cover could not be fetched gives way to the next step (GitHub #229).
+        broken = {entity for entity in screen_saver.players(choice) if self.camera.cover_broken(entity)}
         return screen_saver.message(choice, self.ha.states, pictures, short, media_extras, self.player_ground, keys,
-                                    held=self.saver_shown.get(screen.get('id'), ''), bar=self.saver_item if row else None)
+                                    held=self.saver_shown.get(screen.get('id'), ''), bar=self.saver_item if row else None,
+                                    broken=broken)
 
     def saver_item(self, item):
         """One of the clock's entity items as the top bar sends it (header_bar.entity_item)."""
@@ -3119,7 +3122,10 @@ class Manager:
         try:
             delivered = await sender.auxiliary(message, session=sender.session, revision=sender.confirmed)
         except Exception as error:
-            # Tried again on the next pass; the tiles' own delivery is no business of the screensaver.
+            # Tried again on the next pass; the tiles' own delivery is no business of the screensaver. A message whose
+            # answer did not come may have reached the screen all the same, so the next pass sends what is right then,
+            # also when that is the word sent before it (GitHub #229): the screen keeps a word it already has.
+            self.saver_sent.pop(inbox, None)
             LOG.info('Screensaver for %s not delivered (%s)', screen.get('name', inbox), type(error).__name__)
             return
         if delivered:
@@ -3144,15 +3150,17 @@ class Manager:
             url = f'{base}/camera/{token}.bmp' if token else ''
         return {'v': 1, 'op': 'camera', 't': 'alert' if view == 'thumb' else 'full', 'e': entity, 'u': url}
 
-    async def live_message(self, entity, box, view='full', fit=None):
+    async def live_message(self, entity, box, view='full', fit=None, sound=False, screen=None):
         """The screen message for a camera live (live_feed.py): a link to its stream of pictures, for the full view or
         for a live tile (`view` 'live', `fit` the tile's: a picture that fills the card is cut by the screen, a whole one
-        is shown on black, and the link says which)."""
+        is shown on black, and the link says which). `screen` is the inbox that asked."""
         base = await camera_feed.base_url(self.ha.request)
         if not base:
             LOG.warning('Camera images: no address for this app on the LAN; set SCREEN_CAMERA_URL')
         contain = fit == 'contain'
-        token = self.live.link(entity, box, cover=view == 'live' and not contain) if base else ''
+        tile = view == 'live'
+        token = self.live.link(entity, box, cover=tile and not contain, sound=sound and not tile, warm=sound and tile,
+                               screen=screen, tile=tile) if base else ''
         url = f'{base}/camera/{token}.mjpeg' + ('?fit=contain' if contain else '') if base else ''
         return {'v': 1, 'op': 'camera', 't': view, 'e': entity, 'u': url}
 
@@ -3192,7 +3200,8 @@ class Manager:
         # A P4 takes a camera live (firmware dev): it names the room below its top bar, and gets a stream of pictures.
         live_box = live_feed.parse_box(request.get('live')) if not cover and entity.startswith('camera.') else None
         if live_box:
-            message = await self.live_message(entity, live_box)
+            # With the camera's sound for a screen with a speaker (firmware dev).
+            message = await self.live_message(entity, live_box, sound=request.get('sound') == '1', screen=inbox)
         else:
             message = await self.cover_message(entity, *cover) if cover else await self.camera_message(
                 entity, 'full', screen, box=camera_feed.box(screen, 'full', camera_feed.picture_cap(request)))
@@ -3219,8 +3228,16 @@ class Manager:
         base = await camera_feed.base_url(self.ha.request)
         if base and await self.camera.saver(entity, box, kind, ground):
             url = f'{base}/camera/{self.camera.link(entity, box, saver=(kind, ground))}.bmp'
+        if not url and kind == 'media' and self.camera.cover_pending(entity):
+            # The cover is still on its way: no answer, so the screen asks again (camera_view::ASK_AGAIN_MS) and gets it
+            # then. A screen told there is none keeps a black glass until the next track.
+            LOG.info('Screensaver picture of %s on %s: still on its way', entity, screen['name'])
+            return
         await self.send_auxiliary(inbox, {'v': 1, 'op': 'camera', 't': 'saver', 'e': entity, 'u': url}, action, request)
         LOG.info('Screensaver picture of %s on %s%s', entity, screen['name'], '' if url else ': none')
+        if not url and kind == 'media':
+            # The cover did not come: a pass right away, which gives the glass to the next step (cover_broken).
+            self.ha.changed.set()
 
     async def answer_live(self, inbox, screen, request):
         """The strip for a page's live camera tiles: every tile the screen names must be a camera tile of its layout
@@ -3274,7 +3291,8 @@ class Manager:
         if live_box and len(entities) == 1 and entities[0].startswith('camera.') and own is not None:
             options = options_of(0, entities[0]) or {}
             if options.get('display') == 'live':
-                message = await self.live_message(entities[0], live_box, 'live', options.get('fit'))
+                message = await self.live_message(entities[0], live_box, 'live', options.get('fit'), request.get('sound') == '1',
+                                                  screen=inbox)
                 await self.send_auxiliary(inbox, message, action, request)
                 LOG.info('Live tile %s on %s%s', entities[0], screen['name'], '' if message['u'] else ': no link')
                 return
@@ -3764,7 +3782,7 @@ def create_app(manager, development=False):
     # rules allow stays under about 75 KB (app 0.2.78). The YAML override keeps its own 12 KB limit (firmware.py).
     # Named editor features. An experiment can sit behind SCREEN_EDITOR_ENV=development here and never changes
     # authentication or firmware capabilities; taller tiles left that stage in 0.3.1.
-    # Plugins (docs/PLUGINS.md) are on dev only while their API is 0.x (core.plugins_enabled).
+    # Plugins (docs/PLUGINS.md), on in every app since 0.4.87 (core.plugins_enabled).
     editor_features = {'tall_tiles': True, 'plugins': core.plugins_enabled()}
     app = web.Application(middlewares=[guard], client_max_size=128*1024)
     static = Path(__file__).parent / 'static'
@@ -4538,7 +4556,7 @@ def create_app(manager, development=False):
     app.router.add_delete('/api/firmware/profiles/{file}', firmware_forget)
     app.router.add_post('/api/firmware/profiles', firmware_create)
     app.router.add_put('/api/firmware/wifi', firmware_wifi)
-    # Plugins (docs/PLUGINS.md): only where they are on, so the stable app has none of these routes.
+    # Plugins (docs/PLUGINS.md): only where they are on (core.plugins_enabled), so an app without them has none of these routes.
     if editor_features['plugins']:
         async def plugins_list(request):
             await manager.plugins.refresh_index(force=request.query.get('refresh') == '1')
@@ -4690,7 +4708,6 @@ async def main():
         # The branch the screens build from (docs/RELEASING.md, "Testing dev"): dev for an app added from the `#dev` URL.
         slug, version = await addon_self(session)
         core.set_channel(core.channel_of(slug))
-        core.set_local(slug)
         core.set_version(version)
         LOG.info('App %s %s, channel %s, screens build from %s', slug or 'without a Supervisor', version or '',
                  core.channel() or 'none', core.ref() if core.channel() else 'the ref they have')

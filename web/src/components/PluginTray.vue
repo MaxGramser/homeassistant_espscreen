@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// Ready to install: the plugins set aside, in a card that floats in the corner of the Plugins page and a screen's
-// Plugins tab. Adding a plugin puts it here instead of building at once, so a person can pick several and build each
-// screen once. A plugin that still needs something (a stop code, trust in its maker) says so and opens its details.
+// Ready to install: the changes set aside, in a card that floats in the corner of the Plugins page and a screen's
+// Plugins tab. Adding a plugin puts it here instead of building at once, with what comes along with it, and so does taking
+// one off, so a person can pick several and build each screen once. A plugin that still needs something (a stop code,
+// trust in its maker) says so and opens its details.
 import { computed, ref } from "vue";
 import { editorNumber, t } from "../i18n";
 import { headroomKb, text, type Plugin } from "../model/plugins";
@@ -15,8 +16,11 @@ const plugins = usePluginsStore();
 defineEmits<{ open: [plugin: Plugin, screen: Screen] }>();
 
 const groups = computed(() => plugins.trayGroups);
-const count = computed(() => groups.value.reduce((sum, g) => sum + g.plugins.length, 0));
-const stack = computed(() => groups.value.flatMap((g) => g.plugins).slice(-3));
+const adds = computed(() => groups.value.reduce((sum, g) => sum + g.plugins.length, 0));
+const count = computed(() => groups.value.reduce((sum, g) => sum + g.plugins.length + g.removes.length, 0));
+const stack = computed(() => groups.value.flatMap((g) => [...g.plugins, ...g.removes]).slice(-3));
+// Only plugins to add: "Install"; anything taken off as well: the changes are built.
+const changes = computed(() => count.value !== adds.value);
 const kb = (value: number) => editorNumber(value);
 // A 4 MB screen's slot: what is set aside together has to fit under the line, not each plugin alone.
 const small = (screen: Screen) => Boolean(screen.firmware_image ? screen.firmware_image.slot <= 2_100_000 : ["cyd", "cyd9342", "hosyond40"].includes(screen.board || ""));
@@ -38,7 +42,7 @@ async function install() { await plugins.installTray(); trust.value = false; }
 
 <template>
   <Transition name="tray">
-    <aside v-if="count" class="plugin-tray" id="plugin-tray" :class="{ folded: !plugins.tray.open }" :aria-label="t('editor.plugins.tray.title')">
+    <aside v-if="count" class="plugin-tray" id="plugin-tray" :class="{ folded: !plugins.tray.open }" :aria-label="changes ? t('editor.plugins.tray.title_changes') : t('editor.plugins.tray.title')">
       <button type="button" class="pt-head" :aria-expanded="plugins.tray.open" @click="plugins.tray.open = !plugins.tray.open">
         <span class="pt-stack" aria-hidden="true">
           <TransitionGroup name="pt-chip">
@@ -46,8 +50,8 @@ async function install() { await plugins.installTray(); trust.value = false; }
           </TransitionGroup>
         </span>
         <span class="pt-title">
-          <b>{{ t("editor.plugins.tray.title") }}</b>
-          <small>{{ t("editor.plugins.tray.count", { n: count }, count) }}</small>
+          <b>{{ changes ? t("editor.plugins.tray.title_changes") : t("editor.plugins.tray.title") }}</b>
+          <small>{{ changes ? t("editor.plugins.tray.changes", { n: count }, count) : t("editor.plugins.tray.count", { n: count }, count) }}</small>
         </span>
         <Icon :name="plugins.tray.open ? 'chevron-down' : 'chevron-up'" />
       </button>
@@ -79,6 +83,16 @@ async function install() { await plugins.installTray(); trust.value = false; }
                 </button>
               </li>
             </ul>
+            <!-- What comes off this screen in the same build. -->
+            <ul v-if="group.removes.length" class="pt-rows pt-off">
+              <li v-for="plugin in group.removes" :key="plugin.id" class="pt-row off" :data-plugin="plugin.id">
+                <button type="button" class="pt-row-main" @click="$emit('open', plugin, group.screen)">
+                  <span class="plugin-icon" :class="{ tessera: plugin.tessera }" aria-hidden="true"><span class="mdi">{{ glyph(plugin.icon) }}</span></span>
+                  <span class="pt-words"><b>{{ text(plugin.name) }}</b><small>{{ t("editor.plugins.tray.off") }}</small></span>
+                </button>
+                <button type="button" class="pt-remove" :aria-label="t('editor.plugins.tray.keep_named', { name: text(plugin.name) })" @click="plugins.takeOut(group.screen, plugin.id)"><Icon name="close" /></button>
+              </li>
+            </ul>
             <label v-for="choice in plugins.trayPlan(group)?.choose || []" :key="choice.feature" class="field pt-choose">
               <span class="f-label">{{ t("editor.plugins.along.choose", { what: t(`editor.plugins.features.${choice.feature}`) }) }}</span>
               <select :data-feature="choice.feature" @change="plugins.chooseProvider(group.screen, choice.feature, ($event.target as HTMLSelectElement).value)">
@@ -105,9 +119,9 @@ async function install() { await plugins.installTray(); trust.value = false; }
 
           <div class="pt-foot">
             <button type="button" class="btn primary pt-install" id="plugin-tray-install" :disabled="blocked" @click="install">
-              <span v-if="plugins.tray.sending" class="spin" aria-hidden="true"></span>{{ t("editor.plugins.tray.install", { n: count }, count) }}
+              <span v-if="plugins.tray.sending" class="spin" aria-hidden="true"></span>{{ changes ? t("editor.plugins.tray.build", { n: count }, count) : t("editor.plugins.tray.install", { n: count }, count) }}
             </button>
-            <p class="pt-note">{{ builds }}</p>
+            <p class="pt-note">{{ builds }} {{ t("editor.plugins.tray.minutes") }}</p>
           </div>
         </div>
       </div>

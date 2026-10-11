@@ -1,5 +1,25 @@
-## Unreleased
+## 0.4.87 (firmware 0.55.0)
 
+- **Plugins for everyone.** The Plugins page is now in every Tessera app, not only the dev app: add a tile, a top bar
+  item or a function made by Tessera or the community to a screen, pick several and build once, and make your own.
+  Plugins are pinned to the exact version you added, a build that fails changes nothing on the screen, and a screen
+  without plugins builds and runs as before.
+- **Two new boards, experimental.** The Guition JC8048W550C_I, a 5-inch ESP32-S3 with 800 x 480 RGB glass and GT911
+  touch, by [@BSkando](https://github.com/BSkando) (#230), and the Guition JC4880P443, a 4.3-inch ESP32-P4 with
+  MIPI-DSI glass and GT911 touch, by [@pmarki](https://github.com/pmarki) (#200). Both were tried on the glass by
+  the people who added them, and both dim. Choose them under New screen.
+- **Waveshare ESP32-P4 86 panel: no flicker, and readable at its lowest brightness.** The backlight runs at 200 Hz
+  instead of 100, which took away a flicker in grey areas, and its lowest level is 15 %, where the glass is still
+  readable; standby still turns it fully dark. Found and tried by [@arjanmels](https://github.com/arjanmels) (#209).
+- **The screensaver no longer stands black over a cover that doesn't come.** When a player plays but its cover can't
+  be fetched (an error from the address, or a picture of `none`), the screensaver shows its next step, the camera or
+  the clock, instead of a black glass, and the music comes back as soon as the cover does or the next track starts. A
+  change that the screen may have missed in a slow moment is sent again, so the clock no longer stays away after one
+  (#229).
+- **M5Stack Tab5: the speaker and the voice assistant.** The Tab5 turns on the output its speaker is connected to,
+  so spoken answers, announcements and sounds can be heard; its microphones are amplified before the converter and
+  read on the channel that working Tab5 voice setups use, and its speaker buffers half a second, so an answer plays
+  without gaps.
 - **A camera live, full screen, on the P4 boards.** On the reTerminal D1001, the M5Stack Tab5, the Waveshare ESP32-P4
   panel and the Guition P4 boards, a camera tapped open full screen plays live at the camera's own pace, instead of a
   new still every four seconds: 8 pictures a second from a camera's low-resolution stream, 15 from a 1080p one, about a
@@ -12,10 +32,20 @@
   tile plays the camera on the page, with its rounded corners and its name over the picture, as long as the page is on
   the glass and nothing lies over it. Opening such a camera full screen shows its first picture at once. Other screens
   keep their paces in seconds.
+- **Camera sound on the P4 boards with a speaker.** The camera full screen plays the camera's sound, through the
+  screen's speaker at the volume under Extras, with a key in its top bar that mutes it.
 - **P4 boards download faster.** Camera pictures, album covers and maps come about three times as fast on the P4
   boards: their Wi-Fi goes through an ESP32-C6, and a larger network window keeps it busy.
 - **Plugin cards and tiles.** A card a plugin opens shows everything it draws under its top bar, not only the first line
   (#226), and a plugin's tile grows to a tall size in Layout and saves (#224).
+- **Plugins: one build for every change, and a failed build changes nothing.** Taking a plugin off goes into the same
+  card in the corner as adding one, with what goes along with it, so a screen that gains one plugin and loses another
+  builds once. A build that fails leaves the screen as it was: a new plugin stays listed as failed with the reason, out of
+  the screen's YAML, and a failed update goes back to the version that worked and says which one did not build, so the
+  screen's next update never fails on it. A change made while the screen builds is no longer lost, a screen the app
+  cannot reach yet says so before anything changes, Build again on a test branch takes its newest commit at once, and a
+  key a plugin asks for per screen is hidden as you type and shows when it is set. A plugin written for an older plugin
+  API than the core's last change of a name now says so when it builds, instead of failing in the compiler.
 - **The editor asks in its own look.** Before something that can't be taken back (leaving unsaved changes, replacing a
   layout, starting the calibration, clearing an override), for a new name on a phone, and for a text to copy by hand,
   the editor now asks in a dialog of its own, light or dark and at the bottom of a phone, instead of the browser's, in
