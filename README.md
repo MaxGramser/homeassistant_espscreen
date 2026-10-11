@@ -378,6 +378,7 @@ while it keeps your country's clock and numbers.
 | [Guition ESP32-S3-4848S040](https://tessera-maxgramser.on-forge.com/screens/guition), 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911 |
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
 | Waveshare ESP32-S3-Touch-LCD-5 (new) | 800 × 480, 3 × 3 tiles | RGB / capacitive GT911, the 4.3-inch's board with 5-inch glass (backlight always on: no standby, no night; [details](docs/WAVESHARE5.md)) |
+| Guition JC8048W550C_I, 5 inch (experimental) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911; display and touch tried, dimming and layouts pending (not the N_I or R_I variants) |
 | [Waveshare ESP32-S3-Touch-LCD-7](https://tessera-maxgramser.on-forge.com/screens/waveshare7) (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; backlight always on, hardware acceptance pending ([details](docs/WAVESHARE7.md)) |
 | Waveshare ESP32-S3-Touch-LCD-7B (experimental) | 1024 × 600, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE7B.md)) |
 | Sunton ESP32-8048S070, 7 inch (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/SUNTON8048S070.md)) |

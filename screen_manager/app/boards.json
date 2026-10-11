@@ -1084,6 +1084,123 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/jc8048w550ci.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": false,
+  "board": "jc8048w550ci",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    420,
+    236
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "JC8048W550C_I",
+   "name": "Guition",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 187,
+  "features": [],
+  "firmware": "0.54.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 37,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 70,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      420,
+      236
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      400,
+      225
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 59,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 51,
+   "tile_pad": 13,
+   "top": 58
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "checkout/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -1108,7 +1225,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -2148,7 +2265,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 18,
+   "order": 19,
    "settings": [
     "media_player",
     "microphone"
@@ -3333,6 +3450,123 @@
   "wide_slots": false,
   "width": 1280
  },
+ "jc8048w550ci": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": false,
+  "board": "jc8048w550ci",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    420,
+    236
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "JC8048W550C_I",
+   "name": "Guition",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 187,
+  "features": [],
+  "firmware": "0.54.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 37,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 70,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      420,
+      236
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      400,
+      225
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 59,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 51,
+   "tile_pad": 13,
+   "top": 58
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "packages/cyd.yaml": {
   "alert": {
    "line": 16,
@@ -4418,6 +4652,123 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/jc8048w550ci.yaml": {
+  "alert": {
+   "line": 27,
+   "title_line": 35
+  },
+  "battery": false,
+  "board": "jc8048w550ci",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    420,
+    236
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "JC8048W550C_I",
+   "name": "Guition",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 187,
+  "features": [],
+  "firmware": "0.54.0",
+  "fonts": {
+   "headline": 30,
+   "icon_home": 37,
+   "icon_mini": 29,
+   "label": 20,
+   "setpoint": 70,
+   "sublabel": 18,
+   "sublabel_big": 23,
+   "watch_icon": 20,
+   "watch_value": 42
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      420,
+      236
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      400,
+      225
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 59,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 51,
+   "tile_pad": 13,
+   "top": 58
+  },
+  "wide_slots": false,
+  "width": 800
+ },
  "packages/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -4442,7 +4793,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -5482,7 +5833,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 18,
+   "order": 19,
    "settings": [
     "media_player",
     "microphone"
@@ -5606,7 +5957,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -6646,7 +6997,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 18,
+   "order": 19,
    "settings": [
     "media_player",
     "microphone"
