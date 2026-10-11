@@ -45,11 +45,17 @@ i2c:
   scl: GPIO20
   scan: true
 
+light:
+  # The default gamma (2.8) makes 20% nearly dark; linear gamma (1.0) is too bright.
+  - id: !extend back_light
+    gamma_correct: 2.0
+
 output:
   - platform: ledc
     id: gpio_backlight_pwm
     pin: GPIO2
-    frequency: 5000Hz
+    # This board's backlight driver loses most brightness at high PWM frequency.
+    frequency: 150Hz
     min_power: 0.01
     zero_means_zero: true
 
