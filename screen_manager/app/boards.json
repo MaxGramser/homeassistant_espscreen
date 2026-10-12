@@ -2622,6 +2622,123 @@
   "wide_slots": false,
   "width": 720
  },
+ "checkout/wt32sc01plus.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": false,
+  "board": "wt32sc01plus",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "WT32-SC01 Plus",
+   "name": "Wireless-Tag",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 26,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "wide_slots": false,
+  "width": 480
+ },
  "crowpanel101": {
   "alert": {
    "line": 18,
@@ -6701,6 +6818,123 @@
   "wide_slots": false,
   "width": 720
  },
+ "packages/wt32sc01plus.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": false,
+  "board": "wt32sc01plus",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "WT32-SC01 Plus",
+   "name": "Wireless-Tag",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 26,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "wide_slots": false,
+  "width": 480
+ },
  "reterminald1001": {
   "alert": {
    "line": 27,
@@ -7867,5 +8101,122 @@
   },
   "wide_slots": false,
   "width": 720
+ },
+ "wt32sc01plus": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": false,
+  "board": "wt32sc01plus",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "WT32-SC01 Plus",
+   "name": "Wireless-Tag",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 26,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "wide_slots": false,
+  "width": 480
  }
 }

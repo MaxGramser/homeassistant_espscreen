@@ -35,6 +35,7 @@
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.
 - [SUNTON8048S070.md](SUNTON8048S070.md): the Sunton ESP32-8048S070, 7 inch.
+- [WT32SC01PLUS.md](WT32SC01PLUS.md): the Wireless-Tag WT32-SC01 Plus, 3.5 inch, 480 × 320.
 
 ## Recipes for changing the code
 
