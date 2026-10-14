@@ -15,6 +15,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#if defined(USE_NETWORK) && !defined(ESP_SCREEN_HOST)
+#include "esphome/components/network/util.h"
+#endif
 #if defined(USE_WIFI) && !defined(ESP_SCREEN_HOST)
 #include "esphome/components/wifi/wifi_component.h"
 #include "esphome/core/hal.h"
@@ -59,6 +62,7 @@ inline bool weak(int rssi) { return rssi < WEAK_DBM; }
 
 struct Link {
   bool wifi = false;        // the board has Wi-Fi and it is switched on
+  bool wired = false;       // the selected connection has no Wi-Fi signal
   bool connected = false;   // ESPHome holds the network: joined and an address
   bool joined = false;      // the access point took the screen, the address may still be on its way
   bool hotspot = false;     // the board's own hotspot is up (ESPHome's ap:)
@@ -164,38 +168,57 @@ inline Link link() {
   return host_link;
 #else
   Link l;
+#ifdef USE_USB_NETWORK
+  auto *usb = esphome::usb_network::global_usb_network;
+  if (usb != nullptr && usb->is_connected()) {
+    l.wired = l.connected = l.joined = true;
+    l.ssid = "USB";
+    char address[esphome::network::IP_ADDRESS_BUFFER_SIZE];
+    usb->get_ip_addresses()[0].str_to(address);
+    l.address = address;
+    return l;
+  }
+#endif
 #if defined(USE_WIFI)
   auto *wifi = esphome::wifi::global_wifi_component;
-  if (wifi == nullptr || wifi->is_disabled()) return l;
-  watch(wifi);
-  l.wifi = true;
-  l.connected = wifi->is_connected();
-  const auto sta = wifi->get_sta();
-  l.ssid = std::string(sta.get_ssid().c_str(), sta.get_ssid().size());
+  if (wifi != nullptr && !wifi->is_disabled()) {
+    watch(wifi);
+    l.wifi = true;
+    l.connected = wifi->is_connected();
+    const auto sta = wifi->get_sta();
+    l.ssid = std::string(sta.get_ssid().c_str(), sta.get_ssid().size());
 #ifdef USE_WIFI_AP
-  l.hotspot = wifi->has_ap() && wifi->is_ap_active();
+    l.hotspot = wifi->has_ap() && wifi->is_ap_active();
 #endif
-  if (l.connected) {
-    l.rssi = wifi->wifi_rssi();
-    for (const auto &ip : wifi->wifi_sta_ip_addresses()) {
-      if (!ip.is_set()) continue;
-      char text[esphome::network::IP_ADDRESS_BUFFER_SIZE];
-      ip.str_to(text);
-      l.address = text;
-      break;
+    if (l.connected) {
+      l.rssi = wifi->wifi_rssi();
+      for (const auto &ip : wifi->wifi_sta_ip_addresses()) {
+        if (!ip.is_set()) continue;
+        char text[esphome::network::IP_ADDRESS_BUFFER_SIZE];
+        ip.str_to(text);
+        l.address = text;
+        break;
+      }
+      // A new start of the story for the next time the network goes.
+      heard.scanned = heard.seen = false;
+      heard.reason = 0;
+      heard.failures = 0;
     }
-    // A new start of the story for the next time the network goes.
-    heard.scanned = heard.seen = false;
-    heard.reason = 0;
-    heard.failures = 0;
+    l.joined = l.connected || heard.joined;
+    l.scanned = heard.scanned;
+    l.seen = heard.seen;
+    l.seen_rssi = heard.seen_rssi;
+    l.reason = heard.reason;
+    l.reason_rssi = heard.reason_rssi;
+    l.failures = heard.failures;
   }
-  l.joined = l.connected || heard.joined;
-  l.scanned = heard.scanned;
-  l.seen = heard.seen;
-  l.seen_rssi = heard.seen_rssi;
-  l.reason = heard.reason;
-  l.reason_rssi = heard.reason_rssi;
-  l.failures = heard.failures;
+#endif
+#ifdef USE_USB_NETWORK
+  if (!l.connected && usb != nullptr && usb->is_link_up()) {
+    l = Link{};
+    l.wired = l.joined = true;
+    l.ssid = "USB";
+  }
 #endif
   return l;
 #endif
@@ -211,7 +234,7 @@ inline Problem problem() {
   auto *wifi = esphome::wifi::global_wifi_component;
   if (wifi == nullptr || wifi->is_disabled()) return p;
   const uint32_t now = esphome::millis();
-  if (wifi->is_connected()) { lost_at = 0; return p; }
+  if (esphome::network::is_connected()) { lost_at = 0; return p; }
   if (lost_at == 0) lost_at = now ? now : 1;
 #ifdef USE_WIFI_AP
   // ESPHome has the hotspot's settings only on a board built with one (USE_WIFI_AP).

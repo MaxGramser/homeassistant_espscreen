@@ -315,7 +315,11 @@ esphome:
           settings_screen::apply = []() { id(apply_screen_settings).execute(); };
           settings_screen::report = [](const char *key, int32_t value) { runtime_tiles::setting_event(key, value); };
           settings_screen::name_text = []() { return std::string("${DEVICE_FRIENDLY_NAME}"); };
-          settings_screen::address_text = []() { return id(wifi_ip).state.empty() ? std::string(screen_text::tr(screen_text::txt::status_no_network)) : id(wifi_ip).state; };
+          settings_screen::address_text = []() {
+            const auto link = wifi_status::link();
+            if (link.address.empty()) return std::string(screen_text::tr(screen_text::txt::status_no_network));
+            return (link.wired ? link.ssid + " \u00B7 " : std::string()) + link.address;
+          };
           settings_screen::firmware_text = []() { return std::string("${SCREEN_FIRMWARE_VERSION}"); };
           settings_screen::link_text = []() {
             return std::string(screen_text::tr(esphome::api_is_connected() ? screen_text::txt::settings_connected : screen_text::txt::settings_not_connected));
@@ -325,6 +329,7 @@ esphome:
             if (!link.connected) return std::string(screen_text::tr(screen_text::txt::status_no_network));
             return link.ssid + " \u00B7 " + std::to_string(link.rssi) + " dBm";
           };
+          settings_screen::wifi_visible = []() { return !wifi_status::link().wired; };
           // The screen's own explanation on the alert card (runtime_tiles::hint_alert): no icon colour, no blinks, until OK.
           runtime_tiles::hint_alert = [](const std::string &title, const std::string &text) {
             runtime_tiles::own_alert_next = true;
