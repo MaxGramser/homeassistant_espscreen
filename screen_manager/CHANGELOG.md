@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.89 (firmware 0.56.0)
 
 - **A screen whose Override YAML was deleted builds again.** ESPHome Device Builder lists a screen's Override YAML
   (`<name>.local.yaml`) as a device of its own, and deleting that entry there left the screen's YAML including a file
