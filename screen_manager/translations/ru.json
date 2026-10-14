@@ -1,0 +1,390 @@
+{
+ "_meta": {
+  "name": "Русский",
+  "english": "Russian",
+  "script": "cyrillic",
+  "plural": "east_slavic",
+  "clock": "24",
+  "checked": false
+ },
+ "screen": {
+  "number": {
+   "decimal": ",",
+   "group": " ",
+   "group_min": "1",
+   "percent": "%"
+  },
+  "time": {
+   "am": "AM",
+   "pm": "PM",
+   "just_now": "Только что",
+   "minutes_ago": "{n} мин назад",
+   "hours_ago": "{n} час назад | {n} часа назад | {n} часов назад",
+   "yesterday": "Вчера",
+   "days_ago": "{n} день назад | {n} дня назад | {n} дней назад",
+   "weeks_ago": "{n} неделю назад | {n} недели назад | {n} недель назад",
+   "months_ago": "{n} месяц назад | {n} месяца назад | {n} месяцев назад",
+   "years_ago": "{n} год назад | {n} года назад | {n} лет назад",
+   "in_minutes": "Через {n} мин",
+   "in_hours": "Через {n} час | Через {n} часа | Через {n} часов",
+   "tomorrow": "Завтра",
+   "in_days": "Через {n} день | Через {n} дня | Через {n} дней"
+  },
+  "date": {
+   "weekdays": [
+    "воскресенье",
+    "понедельник",
+    "вторник",
+    "среда",
+    "четверг",
+    "пятница",
+    "суббота"
+   ],
+   "weekdays_short": [
+    "вс",
+    "пн",
+    "вт",
+    "ср",
+    "чт",
+    "пт",
+    "сб"
+   ],
+   "weekdays_min": [
+    "вс",
+    "пн",
+    "вт",
+    "ср",
+    "чт",
+    "пт",
+    "сб"
+   ],
+   "months": [
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря"
+   ],
+   "months_short": [
+    "янв.",
+    "февр.",
+    "мар.",
+    "апр.",
+    "мая",
+    "июн.",
+    "июл.",
+    "авг.",
+    "сент.",
+    "окт.",
+    "нояб.",
+    "дек."
+   ],
+   "top_bar": "{weekday}, {day} {month}",
+   "full": "{weekday}, {day} {month}",
+   "day_month": "{day} {month}",
+   "weekday_time": "{weekday} {time}"
+  },
+  "duration": {
+   "seconds": "{n} с",
+   "minutes": "{n} мин",
+   "hours": "{n} ч",
+   "hours_minutes": "{h} ч {m} мин",
+   "days": "{n} д",
+   "days_hours": "{d} д {h} ч"
+  },
+  "status": {
+   "connecting": "Ожидание Home Assistant",
+   "waiting": "Ожидание Tessera",
+   "loading_tiles": "Загрузка плиток...",
+   "preparing_pages": "Подготовка страниц {n}/{total}",
+   "ha_not_connected": "HA не подключён",
+   "manager_not_active": "Tessera не активна",
+   "choose_tiles": "Выберите плитки в HA",
+   "home": "Главная",
+   "no_network": "Нет сети",
+   "configuration_problem": "Ошибка конфигурации.\nОбновите приложение.",
+   "configuration_version": "Ошибка конфигурации.\nПроверьте версии экрана и приложения.",
+   "wifi_problem": "Проблема с Wi-Fi",
+   "wifi_hotspot": "Подключитесь к точке доступа {name}, чтобы исправить.\nПароль: {password}",
+   "wifi_usb": "Проверьте имя и пароль Wi-Fi, затем заново установите прошивку по USB.",
+   "wifi_connecting": "Подключение к Wi-Fi",
+   "wifi_address": "Получение адреса",
+   "wifi_not_found": "Сеть не найдена",
+   "wifi_password": "Неверный пароль",
+   "wifi_weak": "Слабый сигнал ({dbm} дБм)",
+   "wifi_failed": "Не удалось подключиться, повтор",
+   "loading_tiles_count": "Загрузка плиток {n}/{total}",
+   "hint_home_assistant": "Tessera добавит этот экран, как только Home Assistant сможет достучаться до него по этому адресу.",
+   "hint_tessera": "Запущено ли приложение Tessera Screen Manager в Home Assistant?",
+   "first_tiles": "Выберите плитки",
+   "first_tiles_open": "Откройте Tessera в Home Assistant",
+   "first_tiles_pick": "Выберите плитки для {name}",
+   "first_tiles_save": "Нажмите Save & send",
+   "updating": "Обновление прошивки {percent}",
+   "update_restart": "Обновлено, перезапуск",
+   "update_failed": "Ошибка обновления",
+   "hint_key": "Подключение с {address} отклонено: его ключ не подходит к этому экрану. Введите ключ этого экрана в интеграции ESPHome в Home Assistant.",
+   "no_answer_title": "Home Assistant не отвечает",
+   "no_answer_text": "Скорее всего, этому экрану ещё не разрешено выполнять действия. Включите это в Home Assistant: ESPHome > этот экран > Настроить."
+  },
+  "preparing": {
+   "default": "Раскладываем плитки",
+   "light": "Заглядываем к лампам",
+   "media": "Сдуваем пыль с обложек",
+   "camera": "Протираем объективы камер",
+   "climate": "Проверяем термостат",
+   "weather": "Смотрим в окно",
+   "cover": "Заглядываем за шторы",
+   "vacuum": "Ищем робот-пылесос",
+   "sensor": "Опрашиваем датчики",
+   "sun": "Следим за солнцем",
+   "clock": "Заводим часы",
+   "scene": "Репетируем сцены",
+   "switch": "Считаем выключатели"
+  },
+  "settings": {
+   "title": "Настройки",
+   "brightness": "Яркость",
+   "night": "Ночь",
+   "screen": "Экран",
+   "this_screen": "Этот экран",
+   "extras": "Доп.",
+   "microphone": "Микрофон",
+   "media_player": "Громкость",
+   "wake_when_moved": "Будить при движении",
+   "dark_mode": "Тёмная тема",
+   "auto_standby": "Авто-ожидание",
+   "standby_after": "Ожидание через",
+   "standby_brightness": "Яркость в ожидании",
+   "standby_lit": "Экран в ожидании",
+   "night_mode": "Ночной режим",
+   "starts": "Начало",
+   "ends": "Конец",
+   "night_brightness": "Яркость ночью",
+   "night_lit": "Экран ночью",
+   "back_to_page_1": "Возврат на главную",
+   "after": "Через",
+   "also_on_standby": "И в ожидании",
+   "swipe_between_pages": "Листать страницы",
+   "page_buttons": "Кнопки страниц",
+   "home_button": "Кнопка «Домой»",
+   "rotation": "Поворот",
+   "address": "Адрес",
+   "firmware": "Прошивка",
+   "home_assistant": "Home Assistant",
+   "restart": "Перезапуск",
+   "calibrate_touch": "Калибровка касаний",
+   "connected": "Подключено",
+   "not_connected": "Не подключено",
+   "tap_again_to_restart": "Нажмите ещё раз для перезапуска",
+   "tap_again_to_calibrate": "Нажмите ещё раз для калибровки",
+   "seconds": "{n} с",
+   "minutes": "{n} мин",
+   "hours": "{n} ч",
+   "hours_minutes": "{h} ч {m}",
+   "wifi": "Wi-Fi",
+   "tessera": "Tessera",
+   "plugins": "Плагины"
+  },
+  "tile": {
+   "tap_to_open": "Открыть",
+   "page": "Страница {n}",
+   "refused": "Отклонено",
+   "command_sent": "Команда отправлена...",
+   "updating": "Обновление...",
+   "confirmed": "Подтверждено Home Assistant",
+   "no_answer": "Нет ответа"
+  },
+  "alert": {
+   "notification": "Уведомление",
+   "ok": "OK"
+  },
+  "light": {
+   "color": "Цвет",
+   "color_temperature": "Цветовая температура",
+   "brightness": "Яркость",
+   "waiting": "Ожидание..."
+  },
+  "effects": {
+   "effect": "Эффект",
+   "nothing": "Нечего выбрать",
+   "loading": "Загрузка...",
+   "not_connected": "Не подключено"
+  },
+  "climate": {
+   "target": "Цель",
+   "mode": "Режим",
+   "fan": "Вентилятор",
+   "swing": "Качание",
+   "now": "Сейчас {value}"
+  },
+  "vacuum": {
+   "check_robot": "Проверьте робота в HA",
+   "auto_suction": "Автоматическая мощность",
+   "robot_chooses": "Робот сам выбирает мощность и воду",
+   "per_room": "Мощность и вода по настройкам комнат",
+   "speed_quiet": "Тихо",
+   "speed_balanced": "Норма",
+   "speed_turbo": "Турбо",
+   "speed_max": "Макс",
+   "pause_cleaning": "Пауза уборки",
+   "pause": "Пауза",
+   "resume": "Продолжить",
+   "start_cleaning": "Начать уборку",
+   "clean": "Уборка",
+   "dock": "На базу"
+  },
+  "cover": {
+   "position": "Положение",
+   "tilt": "Наклон",
+   "tilt_value": "Наклон {n}%"
+  },
+  "weather": {
+   "feels_like": "Ощущается {n}°",
+   "no_forecast": "Нет дневного прогноза от Home Assistant",
+   "coming_days": "Ближайшие дни"
+  },
+  "history": {
+   "no_data": "Нет данных",
+   "average": "среднее",
+   "average_of": "среднее за {duration}",
+   "now": "Сейчас",
+   "range_hour": "1 час",
+   "range_day": "24 часа",
+   "range_week": "1 неделя",
+   "high": "Макс {value}",
+   "low": "Мин {value}",
+   "times": "{n} раз | {n} раза | {n} раз",
+   "loading": "Загрузка истории...",
+   "empty": "Нет истории за этот период",
+   "unavailable": "История недоступна"
+  },
+  "media": {
+   "muted": "Без звука",
+   "not_playing": "Не играет",
+   "loading": "Загрузка",
+   "library": "Медиатека",
+   "choose_speaker": "Выберите колонку",
+   "library_hint": "Нажмите на обложку, чтобы включить",
+   "library_failed": "Медиатека не ответила",
+   "library_empty": "Здесь пусто",
+   "starting_on": "Запуск на {speaker}"
+  },
+  "timer": {
+   "running": "Идёт",
+   "paused": "Пауза",
+   "stopped": "Остановлен",
+   "pause": "Пауза",
+   "start": "Старт",
+   "cancel": "Отмена",
+   "paused_left": "Пауза {time}"
+  },
+  "sun": {
+   "name": "Солнце",
+   "sunrise": "Восход {time}",
+   "sunset": "Закат {time}",
+   "rise": "восход {time}",
+   "set": "закат {time}"
+  },
+  "script": {
+   "running": "Выполняется...",
+   "never_run": "Не запускался",
+   "last_time": "Был {time}",
+   "yesterday_time": "Вчера {time}",
+   "yesterday_time_short": "Вчера {time}",
+   "last_date": "Был {date}"
+  },
+  "camera": {
+   "no_image": "Нет изображения с камеры",
+   "loading": "Загрузка изображения",
+   "live": "Эфир",
+   "recording": "Запись",
+   "tap_to_view": "Смотреть",
+   "no_image_yet": "Кадра нет"
+  },
+  "calibration": {
+   "title": "Следуйте мастеру калибровки",
+   "touch_check": "Проверка сенсора GT911",
+   "hold": "Задерживайте каждое касание",
+   "crosshair": "Нажмите на перекрестие\nТочка {point}/5 - касание {tap}/3",
+   "gently": "Нажимайте мягче и чуть дольше",
+   "same": "Нажмите на то же перекрестие 3 раза",
+   "rejected": "Замер отклонён, попробуйте ещё",
+   "save_failed": "Не удалось сохранить, попробуйте ещё"
+  },
+  "alarm": {
+   "wrong_code": "Неверный код",
+   "nothing_changed": "Ничего не изменилось. Проверьте код.",
+   "try_again": "Повтор через {time}",
+   "too_many": "Слишком много неверных кодов",
+   "letters": "В коде есть буквы. Введите его в Home Assistant."
+  },
+  "lock": {
+   "confirm": "Подтвердить",
+   "really_unlock": "Точно открыть?",
+   "lock_only": "На этом экране можно только запереть",
+   "lock_only_short": "Только запереть"
+  },
+  "navigation": {
+   "back": "Назад"
+  },
+  "energy": {
+   "solar": "Солнце",
+   "grid": "Сеть",
+   "battery": "Батарея",
+   "home": "Дом",
+   "other": "Прочее",
+   "untracked": "Неучтённое",
+   "no_power": "Нет датчиков мощности в настройках энергии Home Assistant"
+  },
+  "plugin": {
+   "missing": "Плагин не найден"
+  },
+  "calendar": {
+   "free": "Свободно",
+   "busy": "Занято",
+   "starts_soon": "Скоро начнётся",
+   "private": "Занято",
+   "all_day": "Весь день",
+   "today": "Сегодня",
+   "tomorrow": "Завтра",
+   "nothing": "Ничего не запланировано",
+   "nothing_more": "На этой неделе больше ничего",
+   "until": "До {x}",
+   "next": "Далее {x}",
+   "left": "Осталось {x}",
+   "in": "через {x}",
+   "more": "Ещё {x}",
+   "earlier": "{x} раньше",
+   "later": "{x} позже",
+   "more_week": "Ещё {x} на этой неделе",
+   "days_view": "{x} дн.",
+   "views": [
+    "Ближайшее",
+    "День",
+    "Неделя",
+    "Месяц"
+   ],
+   "view_notes": [
+    "Что идёт сейчас, затем следующее",
+    "Один день, выбор касанием по полосе",
+    "Дни рядом, часы сверху вниз",
+    "Месяц целиком, касание открывает день"
+   ],
+   "today_key": "Сегодня",
+   "booking": "Бронирование…",
+   "calendars": "Календари",
+   "also": "+{x} сейчас",
+   "booked": "Забронировано с экрана"
+  }
+ },
+ "addon": {},
+ "editor": {}
+}
