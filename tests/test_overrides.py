@@ -116,6 +116,41 @@ class OverrideTests(unittest.TestCase):
             self.assertEqual(profile.read_text(),
                              'esphome:\n  name: tail\npackages:\n  display: !include board.yaml\n  local_overrides: !include tail.local.yaml\n')
 
+    def test_a_deleted_override_is_written_again_empty(self):
+        # ESPHome Device Builder lists kitchen.local.yaml as a device; deleting it there broke every build (#219).
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.make_firmware(tmp)
+            path = f.root / 'kitchen.local.yaml'
+            path.unlink()
+            profile = f.profile('kitchen.yaml').read_text()
+            self.assertEqual(f.follow_release(), [])
+            self.assertEqual(path.read_text(), '{}\n')
+            self.assertEqual(oct(path.stat().st_mode & 0o777), oct(0o600))
+            self.assertEqual(f.profile('kitchen.yaml').read_text(), profile)
+            # One that is there is never touched.
+            path.write_text('logger:\n  level: DEBUG\n')
+            self.assertFalse(f.restore_override('kitchen.yaml'))
+            self.assertEqual(path.read_text(), 'logger:\n  level: DEBUG\n')
+
+    def test_a_profile_without_the_include_gets_no_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'esphome'
+            root.mkdir()
+            (root / 'plain.yaml').write_text('esphome:\n  name: plain\npackages:\n  display: !include board.yaml\n')
+            f = Firmware(root, Path(tmp) / 'data')
+            self.assertFalse(f.restore_override('plain.yaml'))
+            self.assertFalse((root / 'plain.local.yaml').exists())
+
+    def test_a_dangling_symlinked_override_is_left_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.make_firmware(tmp)
+            link = f.root / 'kitchen.local.yaml'
+            link.unlink()
+            link.symlink_to(Path(tmp) / 'gone.yaml')
+            f.follow_release()
+            self.assertTrue(link.is_symlink())
+            self.assertFalse((Path(tmp) / 'gone.yaml').exists())
+
     def test_a_foreign_local_overrides_include_leaves_the_profile_alone(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'esphome'

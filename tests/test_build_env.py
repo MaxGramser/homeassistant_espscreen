@@ -45,6 +45,18 @@ def records(data):
 
 
 class BuildEnvironment(unittest.IsolatedAsyncioTestCase):
+    async def test_a_build_writes_a_deleted_override_again_before_esphome_reads_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp) / 'data'
+            data.mkdir()
+            with patch.dict(os.environ, fake_cli(tmp, data)):
+                f = Firmware(Path(tmp) / 'esphome', data)
+                f.create(PROFILE)
+                (f.root / 'kitchen.local.yaml').unlink()
+                f.start({'file': 'kitchen.yaml', 'action': 'validate'})
+                await f.task
+            self.assertEqual((f.root / 'kitchen.local.yaml').read_text(), '{}\n')
+
     async def test_everything_esphome_keeps_goes_in_the_apps_own_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             data = Path(tmp) / 'data'

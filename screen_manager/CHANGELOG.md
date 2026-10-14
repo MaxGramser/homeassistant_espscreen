@@ -1,3 +1,10 @@
+## Unreleased
+
+- **A screen whose Override YAML was deleted builds again.** ESPHome Device Builder lists a screen's Override YAML
+  (`<name>.local.yaml`) as a device of its own, and deleting that entry there left the screen's YAML including a file
+  that was gone, so every update stopped with "file not found". The app now writes the missing file again, empty, when
+  it starts and before every build. Overrides that were in it are not brought back.
+
 ## 0.4.88 (firmware 0.56.0)
 
 - **A screen that runs well no longer shows an old failed update.** An update that failed (for instance because another

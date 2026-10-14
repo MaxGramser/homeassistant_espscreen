@@ -386,7 +386,12 @@ class Firmware:
         """Every screen's YAML on what the app's channel builds from (core.ref), at the start of the app: its own release
         tag for the stable app, dev for the dev channel. A build Home Assistant's firmware update or ESPHome Device
         Builder starts then makes the firmware this app knows too. An app with no channel changes nothing. The names
-        of the profiles that changed."""
+        of the profiles that changed. A missing Override YAML is written again first, for the same builds (start)."""
+        for entry in self.profiles():
+            try:
+                self.restore_override(entry['file'])
+            except (OSError, ValueError) as error:
+                LOG.warning('Could not write the missing Override YAML of %s (%s)', entry['file'], error)
         if not channel():
             return []
         moved = []
@@ -777,6 +782,16 @@ packages:
         return {'file': profile.name, 'override_file': path.name, 'attached': attached,
                 'exists': path.exists(), 'content': content}
 
+    def restore_override(self, name):
+        """Write an empty Override YAML when the screen's YAML includes one that isn't there. True when it wrote it."""
+        profile, path = self._override_path(name)
+        if path.exists() or not re.search(rf'(?m)^\s*local_overrides:\s*!include\s+{re.escape(path.name)}\s*$',
+                                          profile.read_text()):
+            return False
+        self._atomic_write(path, '{}\n')
+        LOG.info('%s included %s, which was gone: wrote it again, empty', profile.name, path.name)
+        return True
+
     def save_override(self, name, content):
         profile, path = self._override_path(name)
         content = self._validate_override(content)
@@ -950,6 +965,14 @@ packages:
         # What a build writes into the screen's own YAML first. Not for a table, which goes with the build that was
         # made, and not for a bridge, which this app wrote whole.
         managed = action not in ('validate', 'widen') and not profile.name.endswith(self.BRIDGE_SUFFIX)
+        # ESPHome Device Builder lists the Override YAML as a device of its own (`<name>.local`, GitHub #219), and
+        # deleting that one leaves the screen's YAML including a file that is gone: every build stops at "file not
+        # found". An empty override, the one New screen writes, makes it build again.
+        if not profile.name.endswith(self.BRIDGE_SUFFIX):
+            try:
+                self.restore_override(profile.name)
+            except (OSError, ValueError) as error:
+                LOG.warning('Could not write the missing Override YAML of %s (%s)', profile.name, error)
         # Every build speaks the language of Settings -> Language & region, also for a profile made or changed since
         # that language was set (app 0.2.90).
         if managed and callable(self.language):
