@@ -9117,7 +9117,7 @@ inline std::string screen_name() {
 }
 inline BootView boot_view(uint32_t now) {
   const auto link = wifi_status::link();
-  const BootStep step = link.wifi && !link.connected ? (link.joined ? BootStep::address : BootStep::wifi)
+  const BootStep step = (link.wifi || link.wired) && !link.connected ? (link.joined ? BootStep::address : BootStep::wifi)
                       : !ha_connected() ? BootStep::home_assistant
                       : transfer.begun ? BootStep::tiles : awaiting_tiles ? BootStep::choose : BootStep::tessera;
   if (step != boot_step || !boot_step_since) { boot_step = step; boot_step_since = now ? now : 1; }
@@ -9131,7 +9131,7 @@ inline BootView boot_view(uint32_t now) {
     return view;
   }
   std::vector<std::string> lines;
-  if (link.wifi) lines.push_back(network_facts(link));
+  if (link.wifi || link.wired) lines.push_back(network_facts(link));
   std::string status;
   switch (step) {
     case BootStep::wifi:
@@ -9285,7 +9285,7 @@ inline void find_battery() {
 // and its battery (firmware 0.41.0).
 inline header_bar::Device header_device() {
   const auto link = wifi_status::link();
-  return {link.connected, link.rssi, ha_connected() && feed_alive(), battery_status::read()};
+  return {link.wifi && link.connected, link.rssi, ha_connected() && feed_alive(), battery_status::read(), link.wired};
 }
 inline const header_bar::Bar *shown_bar() {
   const int index = shown_page ? *shown_page : 0;

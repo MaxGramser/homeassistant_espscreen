@@ -140,6 +140,7 @@ struct Device {
   int rssi = 0;        // dBm
   bool linked = true;  // Home Assistant and Tessera both there
   battery_status::Reading battery{};
+  bool wired = false;  // do not suggest a Wi-Fi failure while using USB/Ethernet
 };
 struct Shown {
   bool shown = false;
@@ -162,6 +163,7 @@ inline Shown device_item(const Item &item, const Device &device) {
     s.shown = !device.linked;
     s.icon = LINK_GLYPH;
   } else if (item.kind == Kind::wifi) {
+    if (device.wired) return s;
     const int strength = device.wifi ? wifi_status::bars(device.rssi) : 0;
     s.icon = WIFI_GLYPHS[strength];
     s.shown = !item.only_weak || !strength || wifi_status::weak(device.rssi);

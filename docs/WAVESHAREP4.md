@@ -68,8 +68,10 @@ credentials. See ESPHome's [coprocessor update documentation](https://esphome.io
 
 ## Scope and follow-up work
 
-This board file uses **Wi-Fi only**. The board has Ethernet hardware, but this version does not
-configure Ethernet. Ethernet support is planned as a separate contribution.
+The default board file uses **Wi-Fi**. An experimental, opt-in
+[USB network configuration](P4_USB_NETWORK.md) lets a computer share its connection through
+the native USB OTG port, with Wi-Fi as fallback. See its documented validation scope and host requirements.
+The onboard RJ45 Ethernet hardware remains unconfigured.
 
 RS485 and microSD remain unconfigured. **Ethernet is not included in this change**;
 Ethernet configuration and testing will be a separate contribution. Wi-Fi is used for these tests.

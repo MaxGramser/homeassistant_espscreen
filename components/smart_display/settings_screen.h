@@ -161,8 +161,8 @@ inline const char *label_text(const Row &row) { return row.own && row.own->words
 inline const char *confirm_text(const Row &row) {
   return row.own && row.own->confirm ? row.own->confirm : screen_text::tr(row.confirm);
 }
-constexpr Row info(uint16_t label, Text text) {
-  Row r{}; r.kind = Kind::info; r.label = label; r.text = text; return r;
+constexpr Row info(uint16_t label, Text text, Shown shown = nullptr) {
+  Row r{}; r.kind = Kind::info; r.label = label; r.text = text; r.shown = shown; return r;
 }
 constexpr Row action(uint16_t label, const char *icon, Run run, uint16_t confirm, Shown shown = nullptr) {
   Row r{}; r.kind = Kind::action; r.label = label; r.icon = icon; r.run = run; r.confirm = confirm; r.shown = shown; return r;
@@ -414,6 +414,7 @@ inline std::string (*link_text)() = nullptr;
 // The network it holds with its signal, and whether Tessera is there (firmware 0.38.0, GitHub #130): what to look at
 // when a screen in a far room keeps waiting. The page tells them again every two seconds while it is open.
 inline std::string (*wifi_text)() = nullptr;
+inline bool (*wifi_visible)() = nullptr;
 inline std::string (*tessera_text)() = nullptr;
 inline void (*restart_device)() = nullptr;
 // Start the calibration wizard again (firmware 0.2.96+). A resistive panel reads a voltage off the film and has to
@@ -425,7 +426,8 @@ inline void (*calibrate_touch)() = nullptr;
 inline constexpr Row about_rows[] = {
   info(screen_text::txt::settings_screen, [] { return name_text ? name_text() : std::string(); }),
   info(screen_text::txt::settings_address, [] { return address_text ? address_text() : std::string(); }),
-  info(screen_text::txt::settings_wifi, [] { return wifi_text ? wifi_text() : std::string(); }),
+  info(screen_text::txt::settings_wifi, [] { return wifi_text ? wifi_text() : std::string(); },
+       [] { return !wifi_visible || wifi_visible(); }),
   info(screen_text::txt::settings_firmware, [] { return firmware_text ? firmware_text() : std::string(); }),
   info(screen_text::txt::settings_home_assistant, [] { return link_text ? link_text() : std::string(); }),
   info(screen_text::txt::settings_tessera, [] { return tessera_text ? tessera_text() : std::string(); }),
@@ -517,6 +519,7 @@ struct Drawn {
 };
 inline std::array<Drawn, 8> drawn{};
 inline uint8_t drawn_count = 0;
+inline uint8_t page_shown_count = 0;
 
 inline bool visible() { return root != nullptr; }
 
@@ -610,9 +613,15 @@ inline void move_knob(Drawn &d, const Row &row) {
 inline void refresh() {
   if (!root) return;
   const Page &page = page_at(current_page);
+  uint8_t shown_count = 0;
+  for (uint8_t i = 0; i < page.count && shown_count < 12; ++i)
+    if (visible_row(page.rows[i])) ++shown_count;
+  // Connection changes can add/remove the Wi-Fi facts while This screen is open.
+  if (shown_count != page_shown_count) { draw(); return; }
   for (uint8_t i = 0; i < drawn_count; ++i) {
     Drawn &d = drawn[i];
     const Row &row = page.rows[d.row];
+    if (!visible_row(row)) { draw(); return; }
     // An action that started or stopped running draws the page again, lit or not (a handful of rows).
     if (row.kind == Kind::action && row.own && row.own->active && d.lit != (busy_row(row) || confirm_row == d.row)) {
       draw();
@@ -735,6 +744,7 @@ inline void draw() {
   uint8_t count = 0;
   for (uint8_t i = 0; i < page.count && count < shown.size(); ++i)
     if (visible_row(page.rows[i])) shown[count++] = i;
+  page_shown_count = count;
 
   // The top bar of every page a tap opens (detail_bar): the back key and the page's name.
   detail_bar::make(root, page_title(page), {detail_bar::BACK, back_event});

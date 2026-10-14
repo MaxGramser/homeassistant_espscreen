@@ -1,5 +1,11 @@
 ## Unreleased
 
+- **Experimental Waveshare P4 USB network option.** A separate opt-in build adds CDC-NCM on the native USB OTG
+  port, with USB preferred after it obtains an address and its local gateway answers, and Wi-Fi as fallback.
+  Turning host sharing off is detected even while a USB cable and old lease remain. Startup and This screen show the
+  selected connection; Wi-Fi signal indicators stay hidden while USB is selected. Sharing off/on has been tested
+  on the Waveshare P4 with macOS; USB-only discovery, unplug/replug and host sleep still need validation.
+
 - **Waveshare P4 board audio and relays.** The relay-equipped 86 panel exposes its two outputs as Home Assistant
   switches, both off at boot. Extras adds microphone gain, automatic codec gain and live echo-cancellation on/off.
   Its AEC transport reuses the existing speaker, microphone and media-player interfaces; other boards keep their

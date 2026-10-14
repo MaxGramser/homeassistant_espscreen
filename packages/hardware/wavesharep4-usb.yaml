@@ -1,0 +1,9 @@
+# Optional experimental USB device networking. Include this package explicitly,
+# and select external components usb_network and network from the same source.
+# The default board never includes this file or the USB dependencies.
+usb_network:
+  id: board_usb_network
+
+wifi:
+  # Wi-Fi can be absent while the USB link is serving Home Assistant.
+  reboot_timeout: 0s

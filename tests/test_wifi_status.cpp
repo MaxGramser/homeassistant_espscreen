@@ -101,6 +101,18 @@ int main() {
   assert(!header_bar::device_item(wifi, good).shown);
   assert(header_bar::device_item(wifi, weak_signal).shown && header_bar::device_item(wifi, none).shown);
 
+  // USB is the selected network: no Wi-Fi warning, even if the backup radio is off.
+  Device usb{false, 0, true};
+  usb.wired = true;
+  for (bool only_weak : {false, true}) {
+    wifi.only_weak = only_weak;
+    const auto item = header_bar::device_item(wifi, usb);
+    assert(!item.shown && item.icon == 0 && item.text.empty());
+  }
+  // Unplugging USB restores the ordinary Wi-Fi presentation.
+  usb.wired = false;
+  assert(header_bar::device_item(wifi, usb).shown);
+
   // The link: only while Home Assistant or Tessera is away.
   Item link;
   link.kind = Kind::link;
