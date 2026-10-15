@@ -1,0 +1,100 @@
+# Experimental Guition JC4827W543C: 480 x 272 NV3041A QSPI LCD and GT911 touch.
+# ESP32-S3-WROOM-1-N4R8: 4 MB flash and 8 MB octal PSRAM. Not the R variant.
+# Wiring: profi-max/JC4827W543_4.3inch_ESP32S3_board (README and touch.h).
+# Display initialization: ESPHome's JC4827W543 model, PR #12034.
+# Landscape display and touch confirmed on a physical C panel.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  flash: !include ../hardware/flash-4mb.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc4827w543c"
+  DEVICE_NAME: "jc4827w543c-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 4.3"
+
+  # The glass: the panel's own pixels and its density, 552 diagonal pixels over 4.3 inches.
+  PANEL_W: "480"
+  PANEL_H: "272"
+  DISPLAY_DPI: "128.305"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "5"
+  # GT911 coordinates run opposite to the display on both axes, confirmed on glass.
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
+  LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # Reuse existing digits and omit camera pictures to preserve 4 MB flash space.
+  BEDSIDE_OWN_DIGITS: "0"
+  BACKLIGHT_FREQUENCY: "5000Hz"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 4MB
+  cpu_frequency: 240MHz
+
+# ESPHome's JC4827W543 model requires PSRAM for its frame buffer.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The panel's bus: four data lines. Chip select (GPIO45) comes with ESPHome's model.
+spi:
+  id: lcd
+  type: quad
+  clk_pin: GPIO47
+  data_pins: [GPIO21, GPIO48, GPIO40, GPIO39]
+
+# Native USB logs. Unlike the JC3248W535, this board has SDA=8 and SCL=4.
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+i2c:
+  id: touch_bus
+  sda: GPIO8
+  scl: GPIO4
+  frequency: 400kHz
+
+output:
+  - platform: ledc
+    pin: GPIO1
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+# The interrupt pin participates in GT911 reset and address selection.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    address: 0x5D
+    reset_pin: GPIO38
+    interrupt_pin: GPIO3
+    update_interval: 20ms
+
+# Model supplies the init sequence, RGB order, inversion, 480 x 272 dimensions,
+# chip select GPIO45 and a conservative 20 MHz QSPI data rate.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: JC4827W543
+    spi_id: lcd
+    update_interval: never
+    auto_clear_enabled: false

@@ -862,6 +862,93 @@
   "wide_slots": false,
   "width": 480
  },
+ "checkout/jc4827w543c.yaml": {
+  "alert": {
+   "line": 15,
+   "title_line": 19
+  },
+  "battery": false,
+  "board": "jc4827w543c",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4827W543C",
+   "name": "Guition",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 128,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 16,
+   "icon_home": 22,
+   "icon_mini": 16,
+   "label": 10,
+   "setpoint": 36,
+   "sublabel": 10,
+   "sublabel_big": 13,
+   "watch_icon": 11,
+   "watch_value": 20
+  },
+  "height": 272,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "columns": 3,
+    "height": 272,
+    "max": [
+     5,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     3,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 272
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 32,
+   "gap": 5,
+   "gap_y": 4,
+   "margin": 8,
+   "page_bar": 32,
+   "tile_pad": 7,
+   "top": 34
+  },
+  "wide_slots": true,
+  "width": 480
+ },
  "checkout/jc4880p443.yaml": {
   "alert": {
    "line": 32,
@@ -3488,6 +3575,93 @@
   "wide_slots": false,
   "width": 480
  },
+ "jc4827w543c": {
+  "alert": {
+   "line": 15,
+   "title_line": 19
+  },
+  "battery": false,
+  "board": "jc4827w543c",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4827W543C",
+   "name": "Guition",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 128,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 16,
+   "icon_home": 22,
+   "icon_mini": 16,
+   "label": 10,
+   "setpoint": 36,
+   "sublabel": 10,
+   "sublabel_big": 13,
+   "watch_icon": 11,
+   "watch_value": 20
+  },
+  "height": 272,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "columns": 3,
+    "height": 272,
+    "max": [
+     5,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     3,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 272
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 32,
+   "gap": 5,
+   "gap_y": 4,
+   "margin": 8,
+   "page_bar": 32,
+   "tile_pad": 7,
+   "top": 34
+  },
+  "wide_slots": true,
+  "width": 480
+ },
  "jc4880p443": {
   "alert": {
    "line": 32,
@@ -4942,6 +5116,93 @@
    "top": 55
   },
   "wide_slots": false,
+  "width": 480
+ },
+ "packages/jc4827w543c.yaml": {
+  "alert": {
+   "line": 15,
+   "title_line": 19
+  },
+  "battery": false,
+  "board": "jc4827w543c",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4827W543C",
+   "name": "Guition",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 128,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 16,
+   "icon_home": 22,
+   "icon_mini": 16,
+   "label": 10,
+   "setpoint": 36,
+   "sublabel": 10,
+   "sublabel_big": 13,
+   "watch_icon": 11,
+   "watch_value": 20
+  },
+  "height": 272,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "orientations": {
+   "landscape": {
+    "columns": 3,
+    "height": 272,
+    "max": [
+     5,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     3,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 272
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 32,
+   "gap": 5,
+   "gap_y": 4,
+   "margin": 8,
+   "page_bar": 32,
+   "tile_pad": 7,
+   "top": 34
+  },
+  "wide_slots": true,
   "width": 480
  },
  "packages/jc4880p443.yaml": {
