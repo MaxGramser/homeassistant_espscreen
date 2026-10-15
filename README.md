@@ -402,6 +402,7 @@ while it keeps your country's clock and numbers.
 | [Waveshare ESP32-S3-Touch-LCD-3.5](https://tessera-maxgramser.on-forge.com/screens/waveshare35) (new) | 480 × 320, 2 × 2 tiles | ST7796 SPI / capacitive FT6336; dimmable backlight, no camera pictures ([details](docs/WAVESHARE35.md)) |
 | [Hosyond ESP32-32E](https://tessera-maxgramser.on-forge.com/screens/hosyond40), 4 inch (experimental) | 480 × 320, 2 × 3 tiles | ST7796 SPI / resistive XPT2046; dimmable backlight, no camera pictures, hardware acceptance pending ([details](docs/HOSYOND40.md)) |
 | [Guition JC3248W535](docs/JC3248W535.md), 3.5 inch (new) | 480 × 320, 2 × 2 tiles | AXS15231B QSPI / capacitive AXS15231B; dimmable backlight, camera pictures |
+| [Guition JC4827W543C](docs/JC4827W543C.md), 4.3 inch (experimental) | 480 × 272, 3 × 3 tiles | NV3041A QSPI / capacitive GT911, ESP32-S3; dimmable backlight, no camera pictures, C variant only |
 | [Guition JC8012P4A1](https://tessera-maxgramser.on-forge.com/screens/jc8012p4a1), 10.1 inch | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, ESP32-P4 (new) ([details](docs/JC8012P4A1.md)) |
 | Guition JC8012P4A1 V2, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, early ESP32-P4 with the newer LCD; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; hardware acceptance pending ([details](docs/JC8012P4A1.md)) |

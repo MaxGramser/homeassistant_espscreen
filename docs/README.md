@@ -23,6 +23,7 @@
   reference for the panel's driving.
 - [CROWPANEL101.md](CROWPANEL101.md): the Elecrow CrowPanel Advanced, 10.1 inch, ESP32-P4.
 - [JC3248W535.md](JC3248W535.md): the Guition JC3248W535, 3.5 inch.
+- [JC4827W543C.md](JC4827W543C.md): the Guition JC4827W543C, 4.3 inch, ESP32-S3, capacitive touch.
 - [JC4880P443.md](JC4880P443.md): the Guition JC4880P443, 4.3 inch, ESP32-P4.
 - [JC8048W550.md](JC8048W550.md): the Guition JC8048W550C_I, 5 inch.
 - [JC1060P470.md](JC1060P470.md): the Guition JC1060P470 and its V2, 7 inch, ESP32-P4.
