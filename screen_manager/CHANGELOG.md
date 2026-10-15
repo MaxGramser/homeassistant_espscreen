@@ -2,7 +2,8 @@
 
 - **Guition JC4827W543C, 4.3 inch (experimental).** Adds the ESP32-S3 capacitive variant with a 480 x 272 NV3041A
   QSPI display and GT911 touch, including the two-axis touch correction confirmed on a physical panel. It uses the
-  compact look and wide 4 MB update slots. Camera pictures and the fallback hotspot are omitted to conserve flash.
+  compact look, a 180-degree landscape boot default and wide 4 MB update slots. Camera pictures and the fallback
+  hotspot are omitted to conserve flash.
 
 - **Tab5: the battery icon shows charging while it charges (#234).** The Tab5 showed its battery as charging while it
   ran from the pack, and as on battery while it charged: its battery monitor reads the charging current with the other

@@ -30,6 +30,8 @@ class JC4827W543CTests(unittest.TestCase):
         self.assertEqual(values['TOUCH_SWAP_XY'], 'false')
         self.assertEqual(values['TOUCH_MIRROR_X'], 'true')
         self.assertEqual(values['TOUCH_MIRROR_Y'], 'true')
+        self.assertEqual(values['ROTATION_LANDSCAPE'], '180')
+        self.assertEqual(values['LVGL_ROTATION'], '180')
         touch = BOARD['touchscreen'][0]
         self.assertEqual((touch['platform'], touch['id'], touch['i2c_id']),
                          ('gt911', 'ts_touch', 'touch_bus'))

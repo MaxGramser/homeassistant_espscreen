@@ -916,7 +916,7 @@
      1,
      1
     ],
-    "rotation": 0,
+    "rotation": 180,
     "rows": 3,
     "width": 480
    },
@@ -931,7 +931,7 @@
      1,
      1
     ],
-    "rotation": 90,
+    "rotation": 270,
     "rows": 5,
     "width": 272
    }
@@ -3629,7 +3629,7 @@
      1,
      1
     ],
-    "rotation": 0,
+    "rotation": 180,
     "rows": 3,
     "width": 480
    },
@@ -3644,7 +3644,7 @@
      1,
      1
     ],
-    "rotation": 90,
+    "rotation": 270,
     "rows": 5,
     "width": 272
    }
@@ -5172,7 +5172,7 @@
      1,
      1
     ],
-    "rotation": 0,
+    "rotation": 180,
     "rows": 3,
     "width": 480
    },
@@ -5187,7 +5187,7 @@
      1,
      1
     ],
-    "rotation": 90,
+    "rotation": 270,
     "rows": 5,
     "width": 272
    }

@@ -21,6 +21,8 @@ substitutions:
   PANEL_W: "480"
   PANEL_H: "272"
   DISPLAY_DPI: "128.305"
+  # Start the boot screen and the UI the same way up, with no saved rotation offset.
+  ROTATION_LANDSCAPE: "180"
   # The tile grid: columns and rows of cells lying down, and standing up.
   GRID_COLS: "3"
   GRID_ROWS: "3"
