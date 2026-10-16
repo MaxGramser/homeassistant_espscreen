@@ -47,8 +47,11 @@ class MipiDsi final : public display::Display {
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = std::move(enable_pins); }
   void set_pclk_frequency(float pclk_frequency) { this->pclk_frequency_ = pclk_frequency; }
-  // A panel whose pixels are not square draws on a wider canvas of square ones, squeezed to the panel's columns.
-  void set_logical_width(size_t logical_width) { this->logical_width_ = logical_width; }
+  // A panel whose pixels are not square draws on a wider canvas of square ones, squeezed to the panel's columns. The
+  // panel's own width is no squeeze: the direct path, no canvas (an Override YAML's way out, docs/JC1060P470.md).
+  void set_logical_width(size_t logical_width) {
+    this->logical_width_ = logical_width == this->width_ ? 0 : logical_width;
+  }
   int get_width_internal() override { return this->logical_width_ ? this->logical_width_ : this->width_; }
   int get_height_internal() override { return this->height_; }
   void set_hsync_back_porch(uint16_t hsync_back_porch) { this->hsync_back_porch_ = hsync_back_porch; }
