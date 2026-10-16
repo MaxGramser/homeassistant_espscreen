@@ -12,7 +12,8 @@ esphome/esphome#19237).
 
 It also squeezes a wider canvas into a panel whose pixels are not square: with `logical_width`, LVGL and the touch see a
 display that many columns wide, `draw_pixels_at` keeps what LVGL drew in a canvas of that width (in PSRAM, RGB565
-only) and blends every panel column from its two nearest canvas columns before it reaches the panel. The Guition
+only) and blends every panel column from its two nearest canvas columns before it reaches the panel. The maths is in
+`squeeze.h`, which `tests/test_squeeze.cpp` checks on the host. The Guition
 JC1060P470 V2 (`packages/boards/guition-jc1060p470-v2.yaml`) uses it, 1074 columns for its 1024, so this folder stays
 when the V3 goes back to upstream.
 
