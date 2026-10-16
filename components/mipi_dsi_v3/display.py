@@ -70,6 +70,7 @@ ColorBitness = display.display_ns.enum("ColorBitness")
 
 CONF_LANE_BIT_RATE = "lane_bit_rate"
 CONF_LANES = "lanes"
+CONF_LOGICAL_WIDTH = "logical_width"
 
 DsiDriverChip("CUSTOM")
 
@@ -139,6 +140,9 @@ def model_schema(config: ConfigType) -> cv.All:
             model.option(CONF_VSYNC_PULSE_WIDTH): cv.int_,
             model.option(CONF_VSYNC_BACK_PORCH): cv.int_,
             model.option(CONF_VSYNC_FRONT_PORCH): cv.int_,
+            # The width of a canvas of square pixels for a panel whose pixels are wider than tall: LVGL draws
+            # that many columns and the driver squeezes them into the panel's own (RGB565 only).
+            cv.Optional(CONF_LOGICAL_WIDTH): cv.int_range(min=1, max=4096),
         }
     )
     return cv.All(
@@ -162,9 +166,11 @@ def _config_schema(config: ConfigType) -> ConfigType:
     width, height, _offset_width, _offset_height, _pad_width, _pad_height = (
         model.get_dimensions(config)
     )
+    if CONF_LOGICAL_WIDTH in config and get_color_depth(config) != 16:
+        raise cv.Invalid(f"{CONF_LOGICAL_WIDTH} needs a color depth of 16 bits")
     display.add_metadata(
         config[CONF_ID],
-        width,
+        config.get(CONF_LOGICAL_WIDTH, width),
         height,
         has_hardware_rotation=False,
         byte_order=config[CONF_BYTE_ORDER],
@@ -212,6 +218,8 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_pclk_frequency(config[CONF_PCLK_FREQUENCY] / 1.0e6))
     cg.add(var.set_lanes(int(config[CONF_LANES])))
     cg.add(var.set_lane_bit_rate(config[CONF_LANE_BIT_RATE] / 1.0e6))
+    if logical_width := config.get(CONF_LOGICAL_WIDTH):
+        cg.add(var.set_logical_width(logical_width))
     if reset_pin := config.get(CONF_RESET_PIN):
         reset = await cg.gpio_pin_expression(reset_pin)
         cg.add(var.set_reset_pin(reset))

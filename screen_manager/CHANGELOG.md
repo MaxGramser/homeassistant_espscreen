@@ -442,6 +442,9 @@
   audio drivers. This is board support only: no assistant, AI provider or Ethernet support is added.
 - **Extras and plugin settings update while open.** Changes made on the panel or in Home Assistant are pushed to the
   editor, including test-action status, without reopening the page or polling for settings.
+- **Guition 7 inch V2: round circles.** The pixels of the JC1060P470 V2 are about 5 % wider than tall, so everything
+  looked a little stretched. The screen now draws on a canvas of square pixels and squeezes it to the glass, so circles
+  are round and tiles keep their size in millimetres both ways. Update the screen to get it.
 
 ## 0.4.88 (firmware 0.56.0)
 
