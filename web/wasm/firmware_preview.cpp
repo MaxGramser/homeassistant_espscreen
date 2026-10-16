@@ -11,6 +11,7 @@
 #include "generated/profiles.h"
 #include "generated/text.h"
 #include "image_transport.h"
+#include "settings_transport.h"
 
 static_assert(ESP_SCREEN_RENDERER_ABI == 3, "Update the host adapter for the renderer ABI change");
 
@@ -86,6 +87,7 @@ int preview_init(int w, int h, int display_dpi, int columns, int rows) {
   runtime_tiles::room_label = firmware.room;
   runtime_tiles::time_label = firmware.time;
   runtime_tiles::enabled = true;
+  preview_settings_host::bind();
   // The virtual device enables the firmware's normal swipe setting. Since
   // protocol 2, this preference is no longer part of a layout packet.
   settings_screen::set("swipe_pages", 1);
@@ -130,9 +132,25 @@ const char *preview_receive(const char *message) {
 }
 // The screen's Dark mode (app 0.4.86), through the same setting and theme::set_dark the screen's own switch takes.
 void preview_dark(int on) {
+  const bool receiving = preview_settings_host::receiving;
+  preview_settings_host::receiving = true;
   settings_screen::set("dark_mode", on ? 1 : 0);
+  preview_settings_host::receiving = receiving;
   theme::set_dark(settings_screen::dark_mode != 0);
   dirty = true;
+}
+void preview_settings(const char *message) { preview_settings_host::receive(message); dirty = true; }
+void preview_extras(const char *message) { preview_settings_host::receive_extras(message); dirty = true; }
+void preview_settings_controls(int on) {
+  preview_settings_host::controls = on != 0;
+  if (!on) preview_settings_host::outgoing.clear();
+  settings_screen::refresh();
+}
+const char *preview_next_setting() {
+  if (preview_settings_host::outgoing.empty()) return "";
+  preview_settings_host::last_action = std::move(preview_settings_host::outgoing.front());
+  preview_settings_host::outgoing.pop_front();
+  return preview_settings_host::last_action.c_str();
 }
 // The language ESP Screens builds the screens in (app 0.4.86): its code ("nl", "pt-BR"), else its base language,
 // else English, as a build of that code would carry. 1 when the code or its base has a table of its own.

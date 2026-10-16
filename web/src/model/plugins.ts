@@ -1,7 +1,7 @@
 // Plugins (docs/PLUGINS.md): what the add-on says about a plugin (plugins.editor_plugin, from the index, a link or a
 // test folder), and whether it fits a screen. Pure functions only, so the Plugins page and its tests share one rule.
 import { editorLanguage, t } from "../i18n";
-import type { Screen } from "../types";
+import type { PluginPick, PluginValue, Screen } from "../types";
 
 // A plugin's own words per language, "en" always present. In its repo they live in translations/<language>.json, in two
 // parts like Tessera's own files: `screen` (built into the firmware in the screen's language) and `app` (what the editor
@@ -14,10 +14,12 @@ export type PluginPart = { id: string; label: Texts; hint: Texts; flash_kb: numb
 // A tile type of a plugin (docs: the plugins proposal, "Een plugin-tegel"): its sizes as the catalogue names them, its
 // price in the screen's memory, the entity it belongs to if any, and the options the inspector draws. An option's
 // `options_from` names a fetch of the plugin, whose answer the add-on hands the inspector as a list of choices.
+// Plugin API 0.12: `multiple` keeps a list of up to that many values (texts, or picks of a choice), and `search` finds the
+// choices of `options_from` by what the person types.
 export type PluginTileOption = {
   id: string; kind: "text" | "choice" | "number" | "toggle"; label: Texts; hint?: Texts;
-  default?: string | number | boolean; choices?: { value: string; label: Texts }[]; options_from?: string;
-  min?: number; max?: number; step?: number; unit?: string;
+  default?: PluginValue; choices?: { value: string; label: Texts }[]; options_from?: string;
+  min?: number; max?: number; step?: number; unit?: string; multiple?: number; search?: boolean;
 };
 export type PluginTile = {
   id: string; name: Texts; icon?: string; min: string; max: string; memory: number;
@@ -149,8 +151,28 @@ export const barItemView = (known: PluginBarType | undefined) =>
 export const choiceKey = (plugin: Plugin, option: PluginTileOption, values: Record<string, unknown>) =>
   `${plugin.id}.${option.options_from}.${JSON.stringify(Object.entries(values).filter(([k]) => k !== option.id).sort())}`;
 // What a plugin tile's options are when nothing is chosen yet.
-export const pluginDefaults = (tile: PluginTile) =>
+export const pluginDefaults = (tile: PluginTile): Record<string, PluginValue> =>
   Object.fromEntries((tile.options || []).filter((option) => option.default !== undefined).map((option) => [option.id, option.default!]));
+
+// ---- Values of JSON (plugin API 0.12) ----
+// What a tile's options take together as JSON, and how many values a list keeps at most: the add-on's
+// plugin_manifest.OPTIONS_BYTES and MAX_MULTIPLE (a test keeps them equal), so the tile's data keeps most of its 4 KB.
+export const PLUGIN_OPTIONS_BYTES = 1280;
+export const PLUGIN_LIST_MAX = 16;
+// A choice with several values, or one found by searching, keeps picks: the value and the words the person saw, since
+// such a list may be gone or other later (plugin_manifest.keeps_picks).
+export const keepsPicks = (option: PluginTileOption) => option.kind === "choice" && Boolean(option.multiple || option.search);
+export const isPick = (value: unknown): value is PluginPick =>
+  typeof value === "object" && value !== null && !Array.isArray(value) && typeof (value as PluginPick).value === "string";
+// The values of a list option as picks (a list of texts: each its own label), in their order.
+export const picksOf = (value: PluginValue | undefined): PluginPick[] =>
+  (Array.isArray(value) ? value : []).map((item) => (isPick(item) ? { value: item.value, label: item.label || item.value } : { value: String(item), label: String(item) }));
+// What a list option keeps of these picks: the picks themselves, or for a list of texts the texts.
+export const listValue = (option: PluginTileOption, picks: PluginPick[]): PluginValue =>
+  keepsPicks(option) ? picks.map((pick) => ({ value: pick.value, label: pick.label })) : picks.map((pick) => pick.value);
+// The size of a tile's options as the screen gets them, in bytes of JSON.
+export const optionsBytes = (values: Record<string, unknown>) => new TextEncoder().encode(JSON.stringify(values)).length;
+export const optionsFit = (values: Record<string, unknown>) => optionsBytes(values) <= PLUGIN_OPTIONS_BYTES;
 
 // The words in the editor's language, else English.
 const own = (texts: Texts) => texts[editorLanguage()] ?? texts[editorLanguage().split("-")[0]];

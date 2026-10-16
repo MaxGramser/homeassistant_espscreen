@@ -155,11 +155,17 @@ def generate(dpi, look, profile):
     paints = re.search(r'theme::paints = \[\]\(\) \{(.*?)\n\s*\};', core, re.S)[1]
     paints = re.sub(r'id\((\w+)\)', r'\1', paints)
     # The fonts the core hands the shared code: the runtime's, every page's top bar (detail_bar) and the effects page's.
-    bindings = re.findall(r'(?:runtime_tiles|detail_bar|effects_page)::\w+ = id\(\w+\)->get_lv_(?:font|image_dsc)\(\);', core)
+    bindings = re.findall(r'(?:runtime_tiles|detail_bar|effects_page|settings_screen)::\w+ = id\(\w+\)->get_lv_(?:font|image_dsc)\(\);', core)
+    # Settings use the same fonts and long-press strip as the physical screen. Keep its geometry and
+    # touch tolerances sourced from the resolved boot code, so profile updates also reach the preview.
+    settings_hold = re.search(r'settings_screen::attach_hold\([^;]+;', core)[0]
+    settings_hold = settings_hold.replace('id(home_page)->obj', 'lv_screen_active()')
+    settings_limits = re.findall(r'settings_screen::(?:hold_limit|tap_limit) = [^;]+;', core)
     touch = re.findall(r'screen_input::(?:touch_guard|edge_swipe)\.configure\([^;]+\);|screen_input::edge_snap_band = [^;]+;', values.get('BOOT_TOUCH', ''))
     output += ['static void bind_firmware_ui() {', 'theme::paints = []() {' + paints + '};', 'theme::paints();',
                *[re.sub(r'id\((\w+)\)->get_lv_(?:font|image_dsc)\(\)', r'\1', b) for b in bindings],
                *touch,
+               *settings_limits, settings_hold,
                'lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_CLICKABLE);',
                'lv_obj_remove_flag(tile_scroll, LV_OBJ_FLAG_CLICKABLE);',
                f'runtime_tiles::grid_bind(tile_scroll, {values["GRID_MARGIN"]}, {values["PAGE_BAR_H"]});', '}']

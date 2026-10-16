@@ -3,11 +3,20 @@
 # docs/CATALOGUE.md says what every key means.
 domain: media_player
 memory: {bytes: 1312, extras: true}
+# A tile that grows suggests the volume over the playback keys (docs/CATALOGUE.md, "A tile that grows").
+grow: [volume_playback]
 controls:
   volume:
     needs: {actions: [media_player.volume_set, media_player.volume_mute]}
   playback:
     needs: {actions: [media_player.media_play_pause, media_player.media_play, media_player.media_pause, media_player.media_next_track, media_player.media_previous_track]}
+  # Both, Home Assistant's volume slider and playback features stacked: the volume over the keys on a card with a second
+  # row for it, drawn by a screen that says media_rows (its hello); an older one draws the keys.
+  volume_playback:
+    of: [volume, playback]
+    rows: 2
+    screen: {feature: media_rows, else: playback}
+    one_row: volume
 inline:
   needs: {actions: [media_player.volume_set]}
 displays:

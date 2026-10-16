@@ -12,6 +12,7 @@ import re
 import secrets
 
 from i18n import t
+import tile_icons
 from core import (entity_id, plugin_entity, plugin_tile, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, HEADER_MAX_ITEMS, KEY_HOLDERS, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES,
                   STORE_MAX_TILES, Grid, is_key, span_of,
                   span_offered, placed, header_items, page_target, tile_size, validate_header, validate_layout)
@@ -441,14 +442,18 @@ def validate_document(data, grid):
         raise LayoutError(t('addon.errors.pages.pages_full'))
     seen = set()
     for page in pages:
-        _object(page, {"id", "navigation", "topbar", "tiles"}, {"id", "navigation", "topbar", "tiles"})
+        # `icon` (optional): a pickable MDI icon by name, which the Dock shows for the page instead of its picture.
+        _object(page, {"id", "navigation", "topbar", "tiles", "icon"}, {"id", "navigation", "topbar", "tiles"})
+        if "icon" in page and (not isinstance(page["icon"], str) or page["icon"] not in tile_icons.ICONS):
+            raise LayoutError(t('addon.errors.pages.fields'))
         _identity(page["id"], seen, page=True)
     page_ids = seen.copy()
     if not isinstance(data["homePageId"], str) or data["homePageId"] not in page_ids:
         raise LayoutError(t('addon.errors.pages.home_invalid'))
     for page in pages:
-        navigation = _object(page["navigation"], {"excludeFromPagination"}, {"excludeFromPagination"})
-        if type(navigation["excludeFromPagination"]) is not bool:
+        # showInDock (the Dock of the larger boards, docs/MODULES.md) is optional: a page without it is in the Dock.
+        navigation = _object(page["navigation"], {"excludeFromPagination", "showInDock"}, {"excludeFromPagination"})
+        if type(navigation["excludeFromPagination"]) is not bool or type(navigation.get("showInDock", True)) is not bool:
             raise LayoutError(t('addon.errors.pages.navigation'))
         bar = _object(page["topbar"], {"leading", "title", "trailing"}, {"leading", "title", "trailing"})
         title = _object(bar["title"], {"source", "text"}, {"source"})
@@ -498,7 +503,7 @@ def legacy_compatible(layout, grid):
                     and bar_items(page) == items for page in pages)
             and all(footprint_size(tile['placement']['columns'], tile['placement']['rows'], grid, tile['appearance'].get('presentation'))
                     not in ('tall', 'square') and not span_of(footprint_size(tile['placement']['columns'], tile['placement']['rows'], grid, tile['appearance'].get('presentation')))
-                    and tile['interaction'].get('controls') not in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode')
+                    and tile['interaction'].get('controls') not in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode', 'volume_playback')
                     and not tile.get('children')
                     for page in pages for tile in page['tiles']))
 

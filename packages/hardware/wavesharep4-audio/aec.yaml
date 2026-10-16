@@ -1,0 +1,12 @@
+# Waveshare P4 electrical reference: ADC3 after the speaker circuit's attenuator.
+packages:
+  transport: !include ../es7210-aec.yaml
+
+substitutions:
+  AEC_MCLK_PIN: GPIO13
+  AEC_BCLK_PIN: GPIO12
+  AEC_LRCLK_PIN: GPIO10
+  AEC_MIC_SLOT: "0"
+  AEC_REFERENCE_GAIN: "24dB"
+  AEC_SPEAKER_BUFFER: "100ms"
+  P4_AEC_SETTINGS: ${ES7210_AEC_SETTINGS}

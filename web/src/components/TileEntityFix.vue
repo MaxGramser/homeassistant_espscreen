@@ -3,7 +3,8 @@
 // longer has it or has had no word from it for a while (stores/broken.ts), with why; and from the tile's menu for any
 // tile of an entity. Entities of the same kind come first, the ones whose names share the most words with the old one
 // first of all (model/broken-tiles.ts replacementCandidates). The arrows walk the list from the search field, Enter
-// takes one.
+// takes one. Asked for (`aside`), it takes the place under the tile at the head of the inspector (app 0.4.89), whose
+// Done closes it; a broken tile's stands first in its settings.
 import { computed, nextTick, ref, watch } from "vue";
 import { t } from "../i18n";
 import { healthText, replacementCandidates } from "../model/broken-tiles";
@@ -18,7 +19,7 @@ import { useInspectorStore } from "../stores/inspector";
 import { useInventoryStore } from "../stores/inventory";
 import { useUiStore } from "../stores/ui";
 
-const props = defineProps<{ tile: Tile }>();
+const props = defineProps<{ tile: Tile; aside?: boolean }>();
 const broken = useBrokenStore();
 const entities = useEntitiesStore();
 const insp = useInspectorStore();
@@ -26,7 +27,7 @@ const inv = useInventoryStore();
 const ui = useUiStore();
 
 const health = computed(() => broken.tileHealth(props.tile.entity));
-const shown = computed(() => Boolean(health.value) || insp.entityPickerOpen);
+const shown = computed(() => props.aside || (Boolean(health.value) && !insp.entityPickerOpen));
 const query = ref("");
 const candidates = computed(() => replacementCandidates(props.tile.entity, inv.inventory.entities, query.value));
 const field = ref<HTMLInputElement | null>(null);
@@ -47,10 +48,10 @@ const hint = computed(() => health.value ? t(`editor.broken.fix.${health.value.k
 
 <template>
   <section v-if="shown" id="entity-fix" class="picker entity-fix" :class="{ broken: health }">
-    <div class="fix-head">
+    <div v-if="health || !aside" class="fix-head">
       <Icon v-if="health" name="alert-circle-outline" class="fix-icon" />
       <div class="fix-words"><strong>{{ title }}</strong><small v-if="hint">{{ hint }}</small></div>
-      <button v-if="!health" type="button" class="icon-btn fix-close" :aria-label="t('editor.common.close')" @click="insp.entityPickerOpen = false"><Icon name="close" /></button>
+      <button v-if="!health && !aside" type="button" class="icon-btn fix-close" :aria-label="t('editor.common.close')" @click="insp.entityPickerOpen = false"><Icon name="close" /></button>
     </div>
     <label class="search-field">
       <Icon name="magnify" />

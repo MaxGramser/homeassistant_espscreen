@@ -29,11 +29,11 @@ describe("a list sorted by dragging", () => {
     view.findAll(".row")[0].element.dispatchEvent(pointer("pointerdown", { y: 5 }));
     document.dispatchEvent(pointer("pointermove", { y: 35 }));
     expect(rows().live.value).toEqual(["camera", "media", "clock"]);
-    expect(rows().drag.value).toEqual({ index: 1, active: true });
+    expect(rows().drag.value).toEqual({ index: 1, active: true, away: false });
     document.dispatchEvent(pointer("pointerup", { y: 35 }));
     expect(commit).toHaveBeenCalledWith(["camera", "media", "clock"]);
     expect(items.value).toEqual(["camera", "media", "clock"]);
-    expect(rows().drag.value).toEqual({ index: -1, active: false });
+    expect(rows().drag.value).toEqual({ index: -1, active: false, away: false });
   });
 
   it("keeps nothing of a cancelled drag, or of a press on a row's control", async () => {

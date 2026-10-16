@@ -6,6 +6,8 @@ memory: {bytes: 160, extras: true}
 displays:
   standard: {}
   watch: {}
+# A tile that grows suggests the brightness slider, else the switch.
+grow: [brightness, toggle]
 controls:
   toggle:
     needs: {actions: [light.toggle]}

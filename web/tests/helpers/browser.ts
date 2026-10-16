@@ -116,7 +116,18 @@ export function installBrowser() {
   if (!window.matchMedia) Object.defineProperty(window, "matchMedia", { configurable: true, writable: true, value: (query: string) => mediaList(query) });
   if (!("clipboard" in navigator)) Object.defineProperty(navigator, "clipboard", { configurable: true,
     value: { writeText: async (text: string) => { copied = text; }, readText: async () => copied } });
+  // A menu's placement (Reka, floating-ui) asks every element around it whether it is :modal or :popover-open, and
+  // jsdom's selector engine takes each of those through :fullscreen over and over: an open menu took twelve seconds.
+  // In jsdom nothing is ever either, which is the answer a page without a dialog open gets.
+  if (!topLayerPatched) {
+    topLayerPatched = true;
+    const matches = Element.prototype.matches;
+    Element.prototype.matches = function (this: Element, selector: string) {
+      return selector === ":modal" || selector === ":popover-open" ? false : matches.call(this, selector);
+    };
+  }
 }
+let topLayerPatched = false;
 
 /** Everything a test moved, back as it was (tests/setup.ts, after each test). */
 export function resetBrowser() {

@@ -10,6 +10,8 @@
 #include "runtime_tiles.h"
 #include "plugin_host.h"
 #include "plugin_api.h"
+#include "touch_feedback_lvgl.h"
+#include "plugin_action.h"
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -228,8 +230,56 @@ std::string fill(const char *text, const char *name, const std::string &value) {
 }
 
 bool action(const char *service, const std::string &entity, const char *key, const std::string &value) {
-  if (!service || !rt::valid_entity(entity) || entity.rfind("plugin:", 0) == 0) return false;
+  if (!service || !rt::entity_id(entity) || entity.rfind("screen.", 0) == 0) return false;
   return rt::action(service, entity, key ? key : "", value);
+}
+
+// An action with fields of any JSON type (0.12): each field as plugin_action.h writes it for Home Assistant, through
+// the screen's own route as a tap's action goes (the screen must be allowed to perform actions).
+bool action(const char *service, const std::string &entity, JsonVariantConst fields) {
+  static const char *const TAG = "plugin_action";
+  if (!service || !plugin_action::service_name(service) || !fields.is<JsonObjectConst>()) {
+    ESP_LOGW(TAG, "Not sent: %s needs a service as domain.action and its fields as an object", service ? service : "");
+    return false;
+  }
+  if (!entity.empty() && (!rt::entity_id(entity) || entity.rfind("screen.", 0) == 0)) return false;
+  std::vector<plugin_action::Field> list;
+  for (JsonPairConst pair : fields.as<JsonObjectConst>()) {
+    plugin_action::Field field{pair.key().c_str(), pair.value().is<const char *>(), ""};
+    if (field.text) field.value = pair.value().as<const char *>();
+    else serializeJson(pair.value(), field.value);
+    list.push_back(std::move(field));
+  }
+  plugin_action::Encoded encoded;
+  const char *why = "";
+  if (!plugin_action::encode(entity, list, encoded, &why)) {
+    ESP_LOGW(TAG, "Not sent: %s %s", service, why);
+    return false;
+  }
+  if (!rt::fresh()) return false;
+  esphome::api::HomeassistantActionRequest request;
+  request.service = esphome::StringRef(service);
+  request.data.init(encoded.data.size());
+  for (const auto &pair : encoded.data) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = esphome::StringRef(pair.first);
+    entry.value = esphome::StringRef(pair.second);
+    request.data.push_back(entry);
+  }
+  request.data_template.init(encoded.templates.size());
+  for (const auto &pair : encoded.templates) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = esphome::StringRef(pair.first);
+    entry.value = esphome::StringRef(pair.second);
+    request.data_template.push_back(entry);
+  }
+  // With an entity its tiles wait for the answer as for a tap; without one (the fields name their own target, or
+  // there is none) nobody waits.
+  if (entity.empty()) esphome::api::global_api_server->send_homeassistant_action(request);
+  else rt::send_action(request, entity, true);
+  ESP_LOGI(TAG, "Sent service=%s entity=%s (%u values)", service, entity.c_str(),
+           (unsigned) (encoded.data.size() + encoded.templates.size()));
+  return true;
 }
 
 bool open_card(const char *plugin_id, const char *card, const std::string &entity, int tile, const std::string &title) {
@@ -407,11 +457,17 @@ template <class S> static size_t hash(const S &text) { return std::hash<std::str
 // The card whose tile is in a call of the host (create, on_state, on_tick, on_theme, on_tap): a place the tile makes
 // in that call is this card's. Nothing else of a tile's runs (a plugin's own moments are the plugin's, not a tile's).
 static Card *making = nullptr;
+// The places a call of the host makes pictures in (ui::picture): the tile's in a call of a tile, the open card's in a
+// call of a card (0.13), nullptr outside both.
+static std::vector<Place> *placing = nullptr;
 struct Making {
   Card *was;
-  explicit Making(Card *card) : was(making) { making = card; }
-  ~Making() { making = was; }
+  std::vector<Place> *had;
+  explicit Making(Card *card) : was(making), had(placing) { making = card; placing = card ? &card->places : nullptr; }
+  ~Making() { making = was; placing = had; }
 };
+// The places of the plugin card open over the page (0.13), nullptr when none is (defined with the cards below).
+static std::vector<Place> *card_places();
 
 bool known(const rt::Tile &t) { return tessera::tile_type(t.entity) != nullptr; }
 
@@ -507,16 +563,18 @@ void tick_cards(uint32_t epoch) {
 // The places with an address that lie within the card, as the parts of one picture, in the order the tile made them,
 // and the place each part is; the atlas's scale for them (a card over the cap comes smaller as a whole). The card's
 // layout is brought up to date first, so a place moved in on_tick is measured where it is now.
-static int measure(const rt::Widgets &w, std::vector<tile_picture::Part> &parts, std::vector<Place *> &owners) {
+// `frame` is what the places are measured from: a tile's card, or a plugin card's room (0.13).
+static int measure(lv_obj_t *frame, std::vector<Place> &places, std::vector<tile_picture::Part> &parts,
+                   std::vector<Place *> &owners) {
   parts.clear();
   owners.clear();
-  if (!w.plugin || !w.tile) return picture_store::SCALE_ONE;
-  lv_obj_update_layout(w.tile);
+  if (!frame) return picture_store::SCALE_ONE;
+  lv_obj_update_layout(frame);
   lv_area_t card;
-  lv_obj_get_coords(w.tile, &card);
+  lv_obj_get_coords(frame, &card);
   const int cw = lv_area_get_width(&card), ch = lv_area_get_height(&card);
   int right = 0, bottom = 0;
-  for (auto &p : w.plugin->places) {
+  for (auto &p : places) {
     if (p.url.empty() || !p.place || lv_obj_has_flag(p.place, LV_OBJ_FLAG_HIDDEN)) continue;
     lv_area_t at;
     lv_obj_get_coords(p.place, &at);
@@ -541,6 +599,10 @@ static int measure(const rt::Widgets &w, std::vector<tile_picture::Part> &parts,
     if (parts.size() == tile_picture::MAX_PARTS) break;
   }
   return picture_store::fit_scale(right, bottom, rt::picture_cap());
+}
+static int measure(const rt::Widgets &w, std::vector<tile_picture::Part> &parts, std::vector<Place *> &owners) {
+  if (!w.plugin || !w.tile) { parts.clear(); owners.clear(); return picture_store::SCALE_ONE; }
+  return measure(w.tile, w.plugin->places, parts, owners);
 }
 
 bool pictured(const rt::Widgets &w) {
@@ -576,23 +638,22 @@ static void place_clear(Place &p) {
 
 // The places back where the tile laid them out, the moment another picture (or none) takes the place of what they
 // showed during a slide.
-static void slide_back(Card &card) {
-  for (auto &p : card.places) {
+static void slide_back(std::vector<Place> &places) {
+  for (auto &p : places) {
     if (!p.place) continue;
     lv_anim_delete(p.place, nullptr);
     if (lv_obj_get_style_translate_x(p.place, LV_PART_MAIN)) lv_obj_set_style_translate_x(p.place, 0, 0);
   }
 }
 
-void picture_place(rt::Widgets &w, void *picture) {
-  if (!w.plugin) return;
-  if (picture != picture_drawn(w)) slide_back(*w.plugin);
+// The places of `frame` each with their piece of the atlas `picture` (nullptr: none, the blocks again).
+static void lay(lv_obj_t *frame, std::vector<Place> &places, void *picture) {
 #if LV_USE_IMAGE
   auto *src = static_cast<lv_image_dsc_t *>(picture);
   std::vector<tile_picture::Part> parts;
   std::vector<Place *> owners;
-  const int scale = measure(w, parts, owners);
-  for (auto &p : w.plugin->places) {
+  const int scale = measure(frame, places, parts, owners);
+  for (auto &p : places) {
     const auto at = std::find(owners.begin(), owners.end(), &p);
     if (!src || !src->data || at == owners.end()) { place_clear(p); continue; }
     const tile_picture::Piece f = tile_picture::piece(parts[at - owners.begin()], scale);
@@ -616,27 +677,38 @@ void picture_place(rt::Widgets &w, void *picture) {
     lv_obj_invalidate(p.image);
   }
 #else
-  for (auto &p : w.plugin->places) place_clear(p);
+  (void) frame;
+  for (auto &p : places) place_clear(p);
   (void) picture;
 #endif
 }
-
-const void *picture_drawn(const rt::Widgets &w) {
-  if (!w.plugin) return nullptr;
+// The picture the places draw now (their last atlas), nullptr for none.
+static const void *drawn(const std::vector<Place> &places) {
 #if LV_USE_IMAGE
-  for (const auto &p : w.plugin->places)
+  for (const auto &p : places)
     if (p.image && !lv_obj_has_flag(p.image, LV_OBJ_FLAG_HIDDEN))
       if (const void *src = lv_image_get_src(p.image)) return src;
+#else
+  (void) places;
 #endif
   return nullptr;
 }
-
-bool picture_draws(const rt::Widgets &w, const void *picture) {
-  if (!w.plugin || !picture) return false;
-  for (const auto &p : w.plugin->places)
+static bool draws(const std::vector<Place> &places, const void *picture) {
+  if (!picture) return false;
+  for (const auto &p : places)
     if (p.image && rt::draws(p.image, static_cast<const lv_image_dsc_t *>(picture))) return true;
   return false;
 }
+
+void picture_place(rt::Widgets &w, void *picture) {
+  if (!w.plugin) return;
+  if (picture != picture_drawn(w)) slide_back(w.plugin->places);
+  lay(w.tile, w.plugin->places, picture);
+}
+
+const void *picture_drawn(const rt::Widgets &w) { return w.plugin ? drawn(w.plugin->places) : nullptr; }
+
+bool picture_draws(const rt::Widgets &w, const void *picture) { return w.plugin && draws(w.plugin->places, picture); }
 
 bool picture_let_go(rt::Widgets &w, const void *picture) {
   if (!w.plugin) return false;
@@ -649,16 +721,17 @@ bool picture_let_go(rt::Widgets &w, const void *picture) {
   return took;
 }
 
-// The place `obj` is, on the card in a call of the host first, else on any card (a plugin that kept the place and
-// sets its picture from on_message); nullptr for an object that is no place.
+// The place `obj` is, of the tile or card in a call of the host first, else on any tile's card or the open card (a
+// plugin that kept the place and sets its picture from on_message); nullptr for an object that is no place.
 static Place *find_place(lv_obj_t *obj) {
   if (!obj) return nullptr;
-  if (making) for (auto &p : making->places) if (p.place == obj) return &p;
+  if (placing) for (auto &p : *placing) if (p.place == obj) return &p;
   Place *found = nullptr;
   rt::each_card([&](rt::Widgets &w) {
     if (found || !w.plugin) return;
     for (auto &p : w.plugin->places) if (p.place == obj) { found = &p; return; }
   });
+  if (!found) if (auto *places = card_places()) for (auto &p : *places) if (p.place == obj) return &p;
   return found;
 }
 
@@ -675,8 +748,15 @@ struct OpenCard {
   size_t state = 0;
   bool dark = false;
   lv_obj_t *backdrop = nullptr, *root = nullptr;
+  lv_obj_t *room = nullptr;      // the card's own room (CardContext::parent), what its places are measured from
+  std::vector<Place> places;     // its places for pictures (0.13), in the order the card made them
+  std::string art_key;           // the picture its places want (tile_picture::card_key), "" for none
 };
 static OpenCard *shown = nullptr;
+static std::vector<Place> *card_places() { return shown ? &shown->places : nullptr; }
+static void card_pictures_end(OpenCard &open);
+// The touch guard's keys of a card's spots (card_tap), apart from the tiles' (rt::TILE_TOUCH) and the keys'.
+constexpr int CARD_TOUCH = 300000;
 // A card may close itself, or open another in its place, from any call the host makes into it (tessera::close_card,
 // tessera::open_card in its open, on_state, on_tick, on_theme or on_back). A card that closes while such a call is under
 // way leaves the glass at once and waits here until the outermost call returns, so neither the card's own code nor
@@ -702,7 +782,10 @@ static void bury() {
 // One call into the card `open`: true when it is still the card shown afterwards, so the caller may go on with it.
 template<typename Run> static bool call(OpenCard *open, Run &&run) {
   ++calling;
+  std::vector<Place> *had = placing;
+  placing = &open->places;   // a place the card makes in this call is its own (ui::picture, 0.13)
   run(*open->card);
+  placing = had;
   --calling;
   const bool still = shown == open;  // `open` is not deleted yet: the card waits in `retired` until this point
   bury();
@@ -734,9 +817,29 @@ static void card_state(OpenCard &open, bool force) {
 
 bool card_open() { return shown != nullptr; }
 
+// A tap on the open card's room (Card::on_tap, 0.12). The guard is a tile's (rt::allowed: the finger did not move, was
+// long enough, and no bounce), with the spot as its key: a cell of 8 mm, so a bounce on one row is one tap and the next
+// row right after it is its own. Where the finger let go must be on the room, as for a tile (LVGL clicks an object
+// wherever a finger that pressed it lets go when the board sets no limit to a finger's drift).
+static void card_tap(lv_event_t *event) {
+  auto *room = static_cast<lv_obj_t *>(lv_event_get_current_target(event));
+  lv_point_t at{-1, -1};
+  if (!rt::finger_at(at)) at = {-1, -1};
+  lv_area_t area;
+  lv_obj_get_coords(room, &area);
+  const bool known = at.x >= 0 && at.y >= 0;
+  if (known && (at.x < area.x1 || at.x > area.x2 || at.y < area.y1 || at.y > area.y2)) return;
+  const int cell = std::max(1, ::ui::mm(8));
+  const int spot = known ? ((at.y - area.y1) / cell) * 64 + (at.x - area.x1) / cell : 0;
+  if (!shown || !rt::allowed(esphome::millis(), CARD_TOUCH + spot, "plugin card")) return;
+  tapped = known ? tessera::Point{at.x - area.x1, at.y - area.y1} : tessera::Point{-1, -1};
+  call(shown, [](tessera::Card &card) { card.on_tap(); });
+}
+
 void close_card() {
   if (!shown) return;
   OpenCard *open = shown;
+  card_pictures_end(*open);
   shown = nullptr;  // first: a card that closes or opens a card from its destructor finds nothing open
   if (!calling) return destroy(open);
   if (open->backdrop) lv_obj_add_flag(open->backdrop, LV_OBJ_FLAG_HIDDEN);
@@ -804,6 +907,10 @@ bool open_card(const std::string &key, const std::string &entity, int tile, cons
   lv_obj_remove_flag(area, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_pos(area, pad, top);
   lv_obj_set_size(area, std::max(1, width - 2 * pad), std::max(1, height - top - pad));
+  // A tap on the room goes to the card (0.12), through the guard every tile's tap passes.
+  lv_obj_add_flag(area, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(area, card_tap, LV_EVENT_SHORT_CLICKED, nullptr);
+  open->room = area;
   shown = open;
   tessera::CardContext context{area, std::max(1, width - 2 * pad), std::max(1, height - top - pad), open->entity.c_str(),
                                tile};
@@ -822,8 +929,107 @@ static void tick_card(uint32_t epoch) {
   if (open->dark != theme::dark) {
     open->dark = theme::dark;
     if (!call(open, [](tessera::Card &card) { card.on_theme(); })) return;
+    // The blocks under its pictures follow the look; the pictures are asked again in it (the look is in their key).
+    for (auto &p : open->places) rt::set_color(p.place, LV_STYLE_BG_COLOR, theme::color(theme::TRACK));
   }
   call(open, [&](tessera::Card &card) { card.on_tick(epoch); });
+}
+
+// ---- Pictures on a plugin's card (plugin API 0.13) ----
+// The places a card lays out in its room come the way a plugin tile's do: one question for all of them (the atlas of
+// their frames from the room's top left, tile_picture::set_parts), the app fetches each address within the manifest's
+// rights and paints the frames, the loader downloads it as the media card's cover goes (Rank::CARD, the full view's
+// slot), and the store keeps it beside the page's pictures: what the glass under the card shows stays, a page out of
+// sight makes room first. When the card closes its picture goes with it, as a tile's goes with its tile; the app keeps
+// the source pictures by address, so a card that opens again, or shows the cover its tile shows, costs no fetch there.
+static const picture_loader::Owner CARD_OWNER{picture_loader::Kind::CARD, 1};
+static uint32_t card_number = 0;   // the number of the open card's last question; its answer carries it
+
+static bool card_ask(OpenCard &open, tile_picture::Ask &a) {
+  std::vector<tile_picture::Part> parts;
+  std::vector<Place *> owners;
+  measure(open.room, open.places, parts, owners);
+  if (parts.empty()) return false;
+  tile_picture::set_parts(a, std::move(parts), theme::hex(theme::PAGE), rt::picture_cap());
+  a.index = open.tile >= 0 ? static_cast<size_t>(open.tile) : 0;
+  a.entity = open.key;
+  a.dark = theme::dark;
+  return true;
+}
+static void card_request(const tile_picture::Ask &a, const std::string &entity) {
+  if (rt::inbox.empty() || !esphome::api::global_api_server) return;
+  esphome::api::HomeassistantActionRequest request;
+  request.service = esphome::StringRef("esphome.screen_camera");
+  request.is_event = true;
+  auto fields = tile_picture::card_fields(a, entity);
+  fields.insert(fields.begin(), {{"inbox", rt::inbox}, {"session", rt::protocol_key(rt::transfer.lease)},
+                                 {"rev", rt::layout_rev}, {"view", std::to_string(++card_number)}});
+  request.data.init(fields.size());
+  for (const auto &field : fields) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = esphome::StringRef(field.first);
+    entry.value = esphome::StringRef(field.second);
+    request.data.push_back(entry);
+  }
+  esphome::api::global_api_server->send_homeassistant_action(request);
+  ESP_LOGI("camera", "asked for the pictures of the card %s", a.entity.c_str());
+}
+// The card's picture onto its places, when it is the one they want now. Until the next is here, the places keep the
+// one they show of the same layout (a card that steps to the next item), as a tile's do.
+static void card_place(OpenCard &open) {
+  lv_image_dsc_t *src = rt::picture_of(open.art_key);
+  if (!src) return;
+  if (src != drawn(open.places)) slide_back(open.places);
+  lay(open.room, open.places, src);
+  ESP_LOGI("picture", "card %s: its pictures are shown", open.key.c_str());
+}
+
+void card_picture_want() {
+  OpenCard *open = shown;
+  if (!open || !open->room || !rt::tile_pictures_supported()) return;
+  // Not while the screen is dark: what it wants waits, and a download of it breaks off (not wanted this round).
+  if (!rt::tiles_seen()) return;
+  tile_picture::Ask a;
+  if (!card_ask(*open, a)) {
+    // No place with an address now (a card that took its picture away): its last picture goes.
+    if (!open->art_key.empty()) { rt::loader.release(CARD_OWNER); open->art_key.clear(); }
+    return;
+  }
+  const std::string key = tile_picture::card_key(a, open->key, open->entity);
+  if (key != open->art_key) {
+    open->art_key = key;
+    if (rt::picture_of(key)) card_place(*open);
+  }
+  picture_loader::Want want;
+  want.key = key;
+  want.tag = tile_picture::card_tag(open->key);
+  want.slot = picture_loader::Slot::FULL;
+  want.rank = picture_loader::Rank::CARD;
+  want.drawn = true;  // the app fetches them: an answer without a picture (a slow host) is asked again, later each time
+  const std::string entity = open->entity;
+  want.ask = [a, entity] { card_request(a, entity); };
+  want.done = [](picture_loader::Outcome o) { if (rt::shows(o) && shown) card_place(*shown); };
+  rt::loader.want(CARD_OWNER, std::move(want));
+}
+
+void card_picture_answer(const std::string &card, const std::string &url, uint32_t number) {
+  if (!shown || card != shown->key || number != card_number) return;
+  if (url.empty()) ESP_LOGI("picture", "card %s: no pictures now", card.c_str());
+  rt::loader.answer(tile_picture::card_tag(card), url, esphome::millis());
+}
+bool card_question(uint32_t number) { return shown && number == card_number; }
+bool card_draws(const void *picture) { return shown && draws(shown->places, picture); }
+void card_letgo(const void *download) {
+  if (!shown || !download) return;
+  for (auto &p : shown->places) if (p.image && rt::draws(p.image, static_cast<const lv_image_dsc_t *>(download))) place_clear(p);
+}
+// The card closes: its places let go of their picture and the loader of its question, so the store frees it now.
+static void card_pictures_end(OpenCard &open) {
+  for (auto &p : open.places) place_clear(p);
+  if (open.art_key.empty()) return;
+  rt::loader.release(CARD_OWNER);
+  open.art_key.clear();
+  rt::pictures_collect();
 }
 
 bool tap_action(size_t index) {
@@ -987,6 +1193,13 @@ static void start() {
   screen_hooks::cards_closed().push_back([]() { for (auto *p : tessera::plugins()) p->on_cards_closed(); });
   screen_hooks::alert_show().push_back([]() { for (auto *p : tessera::plugins()) p->on_alert(); });
   screen_hooks::touched().push_back([]() { for (auto *p : tessera::plugins()) p->on_touch(); });
+  // Feedback the moment a finger lands or a value under it steps (touch_feedback.h), heard by the plugins only.
+  touch_feedback::pressed().push_back([]() { for (auto *p : tessera::plugins()) p->on_press(); });
+  touch_feedback::stepped().push_back([](const touch_feedback::Step &s) {
+    const tessera::Step step{s.direction, s.edge};
+    for (auto *p : tessera::plugins()) p->on_step(step);
+  });
+  touch_feedback::lvgl::listen();
   screen_hooks::away().push_back([]() { return card_open(); });
   build_settings();
   for (auto *p : tessera::plugins()) p->on_ready();
@@ -1048,8 +1261,8 @@ bool pictures() { return rt::tile_pictures_supported(); }
 lv_obj_t *picture(lv_obj_t *parent) {
   lv_obj_t *place = block(parent, theme::TRACK);
   lv_obj_remove_flag(place, LV_OBJ_FLAG_SCROLLABLE);
-  if (plugin_host::making) plugin_host::making->places.push_back({place});
-  else ESP_LOGW("plugins", "ui::picture outside a tile's call: the place shows no picture");
+  if (plugin_host::placing) plugin_host::placing->push_back({place});
+  else ESP_LOGW("plugins", "ui::picture outside a call of a tile or a card: the place shows no picture");
   return place;
 }
 
@@ -1058,12 +1271,12 @@ void set_picture(lv_obj_t *place, const std::string &url, Fit fit) { set_picture
 static void slide_exec(void *obj, int32_t x) { lv_obj_set_style_translate_x(static_cast<lv_obj_t *>(obj), x, 0); }
 
 void slide_pictures(int dx, uint32_t ms) {
-  plugin_host::Card *card = plugin_host::making;
-  if (!card) {
-    ESP_LOGW("plugins", "ui::slide_pictures outside a tile's call");
+  std::vector<plugin_host::Place> *places = plugin_host::placing;
+  if (!places) {
+    ESP_LOGW("plugins", "ui::slide_pictures outside a call of a tile or a card");
     return;
   }
-  for (auto &p : card->places) {
+  for (auto &p : *places) {
     if (!p.place || lv_obj_has_flag(p.place, LV_OBJ_FLAG_HIDDEN)) continue;
     lv_anim_delete(p.place, nullptr);
     lv_anim_t a;
@@ -1113,6 +1326,11 @@ void picture_place(runtime_tiles::Widgets &, void *) {}
 const void *picture_drawn(const runtime_tiles::Widgets &) { return nullptr; }
 bool picture_draws(const runtime_tiles::Widgets &, const void *) { return false; }
 bool picture_let_go(runtime_tiles::Widgets &, const void *) { return false; }
+void card_picture_want() {}
+void card_picture_answer(const std::string &, const std::string &, uint32_t) {}
+bool card_question(uint32_t) { return false; }
+bool card_draws(const void *) { return false; }
+void card_letgo(const void *) {}
 bool open_card(const std::string &, const std::string &, int, const std::string &) { return false; }
 void close_card() {}
 bool card_open() { return false; }

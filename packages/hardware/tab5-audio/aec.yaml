@@ -1,0 +1,28 @@
+# Experimental: the Tab5 schematic routes HPOUT_L through AEC_P to ES7210 MIC3.
+# Reuse the existing bus/AEC implementation; no AI provider or assistant is added.
+packages:
+  transport: !include ../es7210-aec.yaml
+
+substitutions:
+  AEC_MCLK_PIN: GPIO30
+  AEC_BCLK_PIN: GPIO27
+  AEC_LRCLK_PIN: GPIO29
+  # Keep the physical MIC2 used by the original native-I2S right channel.
+  # ES7210 SDOUT1 TDM order is MIC1, MIC3 (reference), MIC2, MIC4.
+  AEC_MIC_SLOT: "2"
+  # Tab5 feeds the codec output directly through R41 (0 ohm), not the Waveshare attenuator.
+  # Start at unity; reference level/clipping must be measured on a real Tab5.
+  AEC_REFERENCE_GAIN: "0dB"
+  AEC_SPEAKER_BUFFER: "500ms"
+  TAB5_AUDIO_SETTINGS: ${ES7210_AEC_SETTINGS}
+
+audio_adc:
+  - platform: es7210_extended
+    id: ts_audio_adc
+    i2c_id: tab5_bus
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    mic_gain: 30dB
+    # Keep fixed gain for the first acoustic comparison. Reference gain never follows ALC.
+    alc:
+      enabled: false

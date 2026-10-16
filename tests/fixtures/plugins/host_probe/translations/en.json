@@ -3,6 +3,7 @@
   "screen": { "hello": "Hello", "rows": "Rows" },
   "app": {
     "name": "Host probe", "summary": "Writes every moment of the plugin API to the log, for the host render.",
-    "tile": "Probe", "word": "Word", "card": "Probe card", "closer": "Probe closer", "open": "Open the probe card", "mark": "Probe mark"
+    "tile": "Probe", "word": "Word", "card": "Probe card", "closer": "Probe closer", "open": "Open the probe card", "mark": "Probe mark",
+    "words": "Words", "picks": "Picks", "one": "One", "two": "Two", "three": "Three"
   }
 }

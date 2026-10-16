@@ -68,6 +68,11 @@ function finish(event: PointerEvent) {
   move(event);
   const { size, axis } = g;
   cancel();
+  // The click a release beyond the grip makes lands on the page under it, which would choose the page: the tile stays
+  // chosen, with its Controls beside the tip that may open now.
+  const swallow = (click: MouseEvent) => { click.stopPropagation(); click.preventDefault(); };
+  window.addEventListener('click', swallow, { capture: true, once: true });
+  setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0);
   resizeTile(props.tile, size, axis);
 }
 function escape(event: KeyboardEvent) {

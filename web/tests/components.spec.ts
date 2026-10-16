@@ -6,6 +6,7 @@ import { defineComponent, h, nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AppSettingsView from "../src/components/AppSettingsView.vue";
 import CommandPalette from "../src/components/CommandPalette.vue";
+import { tallKeys } from "../src/model/ui-scale";
 import CoverTilePreview from "../src/components/CoverTilePreview.vue";
 import Library from "../src/components/Library.vue";
 import ChoiceField from "../src/components/ChoiceField.vue";
@@ -114,9 +115,11 @@ describe("TileCard", () => {
     const way = SHAPES.waveshare43.orientations.landscape;
     useInventoryStore().inventory.screens = [{ id: "living", name: "Living room", online: true, layout: { title: "Living room", tiles: [] },
       shape: { width: way.width, height: way.height, columns: way.columns, rows: way.rows, dpi: SHAPES.waveshare43.dpi, look: SHAPES.waveshare43.look } } as any];
+    // The preview lays the card out on the glass's own pixels with render_tall's finger and gap (cover-tile.ts, whose
+    // tiers tests/test_editor_parity.py compares with cover_tile.h).
+    expect(tallKeys({ ...useDocumentStore().screenShape, look: SHAPES.waveshare43.look })).toEqual({ touch: 61, gap: 10 });
     const keys = mount(CoverTilePreview, { props: { primary: "position", entityState: "open", attributes: { current_position: 40 } } });
-    expect(keys.attributes("style")).toContain("--cover-touch: 38.125px");
-    expect(keys.attributes("style")).toContain("--cover-gap: 6.25px");
+    expect(keys.find(".cover-preview").exists() || keys.classes().includes("cover-preview")).toBe(true);
   });
   it('keeps the cover primary control when slats are selected or the tile shrinks', async () => {
     useInventoryStore().inventory.controls!.cover = { default: 'buttons', choices: [
@@ -135,13 +138,15 @@ describe("TileCard", () => {
     expect(current(tile)?.options?.controls ?? tile.options?.controls).toBe('position');
     const card = mount(TileCard, { props: { tile: { ...tile, options: { size: 'tall', controls: 'position_tilt' } }, slot: 0 } });
     expect(card.findComponent({ name: 'CoverTilePreview' }).exists()).toBe(true);
+    // A card one row high lays its slats out by its room (firmware 0.57.0); where they do not fit (here: no room measured)
+    // it keeps its position bar.
     await card.setProps({ tile: { ...tile, options: { size: 'wide', controls: 'position_tilt' } } });
-    expect(card.find('.cover-preview').exists()).toBe(false);
+    expect(card.find('.ctl.cover-row .cover-preview').exists()).toBe(true);
     expect(card.find('.ctl .range').exists()).toBe(true);
-    for (const controls of ['none', 'tilt']) {
-      await card.setProps({ tile: { ...tile, options: { size: 'wide', controls } } });
-      expect(card.find('.ctl').exists()).toBe(false);
-    }
+    await card.setProps({ tile: { ...tile, options: { size: 'wide', controls: 'none' } } });
+    expect(card.find('.ctl').exists()).toBe(false);
+    await card.setProps({ tile: { ...tile, options: { size: 'wide', controls: 'tilt' } } });
+    expect(card.find('.ctl.cover-row').exists()).toBe(true);
   });
 
   it("extends only taller tiles and waits for actual artwork before using white text", async () => {
@@ -1123,8 +1128,9 @@ describe("the title above a page (app 0.2.105, in the page's settings since 0.3.
   });
   it("leaves the title out of the top bar's panel and leads to the page instead", async () => {
     loadLayout({ title: "Living room", tiles: [], pages: 2, page_titles: ["", "Music"] });
-    insp.openBar(0, 1);
-    const drawer = mount(TopbarInspector, { props: { index: 0 } });
+    // The left side of the bar at the head of its inspector (app 0.4.89).
+    insp.openBar(-1, 1);
+    const drawer = mount(TopbarInspector, { props: { index: -1 } });
     expect(drawer.find("#screen-title").exists()).toBe(false);
     expect(drawer.find("#page-title").exists()).toBe(false);
     expect(drawer.find(".nav-row").text()).toContain("Music");

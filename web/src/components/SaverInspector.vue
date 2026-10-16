@@ -1,30 +1,23 @@
 <script setup lang="ts">
 // One step of the screensaver in the drawer (app 0.4.83): whether it is used, and what it shows: its players in the
-// order they are tried, its camera, or the clock's temperature and the entities beside it. The order of the steps
-// changes here too, a place earlier or later.
-import { computed, watch } from "vue";
+// order they are tried, or its camera. The order of the steps changes here too, a place earlier or later. The clock has
+// an inspector of its own with its row of entities at the head (SaverClock.vue, app 0.4.89).
+import { computed } from "vue";
 import { t } from "../i18n";
-import { glyph } from "../model/topbar";
 import { useSortableRows } from "../composables/useSortableRows";
 import type { SaverKind } from "../types";
-import SaverGlass from "./SaverGlass.vue";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
-import UiMenu from "./ui/UiMenu.vue";
-import UiMenuItem from "./ui/UiMenuItem.vue";
+import UiPicker from "./ui/UiPicker.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import { useEntitiesStore } from "../stores/entities";
-import { useTopbarStore } from "../stores/topbar";
-import { MAX_PLAYERS, SAVER_ICONS, SAVER_ITEMS_MAX, saverLabel, useScreensaverStore } from "../stores/screensaver";
-import { useDocumentStore } from "../stores/document";
+import { MAX_PLAYERS, SAVER_ICONS, saverLabel, useScreensaverStore } from "../stores/screensaver";
 import { useInspectorStore } from "../stores/inspector";
 
 const entities = useEntitiesStore();
-const topbar = useTopbarStore();
 const screensaver = useScreensaverStore();
-const doc = useDocumentStore();
 const insp = useInspectorStore();
 
 const props = defineProps<{ step: SaverKind }>();
@@ -36,9 +29,9 @@ const crumbs = computed(() => [
 ]);
 const shown = computed(() => playerSort.live.value || screensaver.players);
 const free = computed(() => screensaver.entitiesOf("media", screensaver.players));
+const freeItems = computed(() => free.value.map((e) => ({ id: e.id, name: e.name, hint: e.area })));
 const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", items: () => screensaver.players, commit: screensaver.setPlayers, skip: "button", grip: ".grip",
   enabled: () => screensaver.saverReady && screensaver.players.length > 1 });
-watch(() => screensaver.weatherSource, (id) => id && entities.loadLibraryStates([id], doc.stillSelected()), { immediate: true });
 </script>
 
 <template>
@@ -62,41 +55,21 @@ watch(() => screensaver.weatherSource, (id) => id && entities.loadLibraryStates(
             <button type="button" class="x" :aria-label="T('remove_player', { name: entities.entityName(id) })" @click="screensaver.removePlayer(id)"><Icon name="close" /></button>
           </div>
         </div>
-        <UiMenu v-if="screensaver.players.length < MAX_PLAYERS" align="start" width="260px">
+        <UiPicker v-if="screensaver.players.length < MAX_PLAYERS" :items="freeItems" :placeholder="T('player_search')" :empty="T('player_none')" @pick="screensaver.addPlayer">
           <template #trigger>
             <button type="button" class="ghost-btn" id="saver-add-player"><Icon name="plus" />{{ T("player_add") }}</button>
           </template>
-          <UiMenuItem v-for="e in free" :key="e.id" :hint="e.area" @select="screensaver.addPlayer(e.id)">{{ e.name }}</UiMenuItem>
-        </UiMenu>
+        </UiPicker>
         <small class="help">{{ T("players_hint") }}</small>
       </Section>
       <p class="hint saver-foot-hint">{{ T("keys_hint") }}</p>
     </template>
 
-    <Section v-else-if="step === 'camera'" :title="saverLabel('camera')">
+    <Section v-else :title="saverLabel('camera')">
       <UiSelect id="saver-camera" :model-value="screensaver.saver.camera" :options="screensaver.cameraChoices" @update:model-value="(value: string) => screensaver.changeSaver({ camera: value })" />
       <small class="help">{{ T("camera_hint") }}</small>
     </Section>
 
-    <template v-else>
-      <Section :title="T('glass')">
-        <SaverGlass :height="170" />
-      </Section>
-      <Section :title="T('temperature')">
-        <UiSelect id="saver-weather" :model-value="screensaver.saver.weather ?? 'auto'" :options="screensaver.weatherChoices" @update:model-value="(value: string) => screensaver.changeSaver({ weather: value })" />
-      </Section>
-      <Section :title="T('beside')" :aside="`${screensaver.saverItems.length} / ${SAVER_ITEMS_MAX}`">
-        <div v-if="screensaver.saverItems.length" id="screensaver-items" class="items" role="list" :aria-label="T('items_title')">
-          <div v-for="(it, i) in screensaver.saverItems" :key="it.entity" class="item" role="listitem" tabindex="0" @click="insp.openSaverItem(i)" @keydown.enter.prevent="insp.openSaverItem(i)">
-            <span class="av mdi">{{ topbar.topbarView(it).icon ? glyph(topbar.topbarView(it).icon!) : "" }}</span>
-            <span class="tx"><b>{{ topbar.topbarLabel(it) }}</b><small>{{ it.content === "icon" ? T("item_icon") : topbar.topbarView(it).text }}</small></span>
-            <button type="button" class="x" :aria-label="t('editor.topbar.remove_named', { name: topbar.topbarLabel(it) })" @click.stop="screensaver.removeSaverItem(i)"><Icon name="close" /></button>
-          </div>
-        </div>
-        <button v-if="screensaver.saverItems.length < SAVER_ITEMS_MAX" type="button" class="ghost-btn" id="screensaver-add-item" @click="insp.openSaverAdd"><Icon name="plus" />{{ T("items_add") }}</button>
-        <small class="help">{{ T("items_hint") }}</small>
-      </Section>
-    </template>
   </div>
   <div class="dr-foot">
     <span class="spacer"></span>

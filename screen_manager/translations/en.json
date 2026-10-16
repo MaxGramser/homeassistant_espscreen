@@ -191,7 +191,10 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "microphone_gain": "Microphone gain",
+      "automatic_gain": "Automatic gain",
+      "echo_cancellation": "Echo cancellation"
     },
     "tile": {
       "tap_to_open": "Tap to open",
@@ -239,7 +242,16 @@
       "resume": "Resume",
       "start_cleaning": "Start cleaning",
       "clean": "Clean",
-      "dock": "Dock"
+      "dock": "Dock",
+      "stop": "Stop",
+      "by_room": "By area",
+      "routines": "Routines",
+      "suction_water": "Suction & mop",
+      "pick_rooms": "Pick one or more areas",
+      "order_hint": "Not every robot keeps this order",
+      "no_rooms": "No areas mapped",
+      "no_rooms_how": "Map the robot's segments to areas in Home Assistant, in the vacuum's settings.",
+      "routines_note": "Made in the robot's own app"
     },
     "cover": {
       "position": "Position",
@@ -380,7 +392,8 @@
         "cleaning": "Cleaning",
         "paused": "Paused",
         "returning": "Returning to dock",
-        "idle": "Idle"
+        "idle": "Idle",
+        "error": "Error"
       },
       "weather": {
         "sunny": "Sunny",
@@ -937,6 +950,8 @@
       "offline": "Screen was offline; will retry next time.",
       "unknown_target": "Profile or IP address unknown; update this screen manually.",
       "build_failed": "Build or install failed; see the log under Firmware & USB.",
+      "plugin_update_needed": "{name} doesn't build with this firmware. Update the plugin {name} to {version} on the Plugins page, then update the screen again.",
+      "plugin_failed": "{name} {version} doesn't build with this firmware, and no newer version is on offer yet. Remove the plugin {name} on the Plugins page to update the screen without it; see the log under Firmware & USB.",
       "build_memory": "Not enough memory to build the firmware: about {need} must be free and {free} is. Stop a few add-ons for a while or give the machine more memory; see Firmware & USB.",
       "build_memory_limit": "Not enough memory to build the firmware, also with one compiler at a time. Stop a few add-ons for a while or give the machine more memory; see Firmware & USB.",
       "no_report": "Screen didn't report back with firmware {version}; check the screen.",
@@ -998,7 +1013,8 @@
         },
         "media_player": {
           "volume": "Volume and mute",
-          "playback": "Previous, play/pause, next"
+          "playback": "Previous, play/pause, next",
+          "volume_playback": "Volume and previous, play/pause, next"
         },
         "number": {
           "stepper": "Value − / +",
@@ -1102,6 +1118,18 @@
         "wake_when_moved": {
           "label": "Wake when moved",
           "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
+        },
+        "microphone_gain": {
+          "label": "Microphone gain",
+          "hint": "Analogue microphone gain. Starts at 30 dB; the playback-reference gain stays fixed."
+        },
+        "automatic_gain": {
+          "label": "Automatic gain",
+          "hint": "Let the microphone codec adjust the recording level. Independent of echo cancellation."
+        },
+        "echo_cancellation": {
+          "label": "Echo cancellation",
+          "hint": "Reduce the screen speaker in microphone input. Off bypasses cancellation; it does not disable the microphone or full-duplex audio. Requires the AEC transport."
         }
       }
     },
@@ -1445,7 +1473,8 @@
       "remove": "Remove",
       "loading": "Loading…",
       "back": "← Back",
-      "copy": "Copy"
+      "copy": "Copy",
+      "done": "Done"
     },
     "nav": {
       "new_screen": "New screen",
@@ -1987,7 +2016,8 @@
         "full_hint": "At the bottom of the full-page tile; a tap anywhere else works as set below.",
         "wide_hint": "On the right of the double-width tile, like the rows in Home Assistant. Tapping the name works as set below.",
         "needs_firmware": "The screen shows direct control from firmware 0.2.19; until then the tile stays as it was.",
-        "tall_hint": "Choose the controls shown in the extra height. Resizing keeps your selection; it never adds controls automatically.",
+        "tall_hint": "Choose the controls shown in the extra height. A tile that grows suggests the richest set that fits; your choice stays as you set it.",
+        "room_hint": "The screen draws them where the tile has room for them (firmware 0.57.0 or newer): under the name on a single tile, beside it on a double-width one. Where they don't fit, the tile looks as it does without them.",
         "tilt": "Slat tilt",
         "tilt_hint": "Adds the supported slat slider or tilt buttons when there is enough room. On smaller tiles, use the detail view. Your open/close selection stays unchanged."
       },
@@ -2226,6 +2256,16 @@
           "grey": "Grey",
           "blue-grey": "Blue grey"
         }
+      },
+      "anchor_hint": "Click its icon to choose another, or its name to rename the tile",
+      "grow": {
+        "title": "Room for more controls",
+        "applied": "This tile fits more controls at {columns} × {rows}. Pick what it shows; you can change it later under Controls.",
+        "offered": "At {columns} × {rows} this tile has room for these. Pick what it shows; you can change it later under Controls.",
+        "suggested": "Suggested",
+        "none": "No controls",
+        "never": "Don't show again",
+        "done": "Done"
       }
     },
     "precision": {
@@ -2289,28 +2329,21 @@
       "screen_name": "Screen title",
       "screen_name_hint": "Every page without a title of its own says this.",
       "no_title_hint": "Leave it empty to show only the logo.",
-      "right": "Right: time, sensors, or a clock",
       "item_label": "{name}, slot {slot}. Enter: configure, arrows: move",
-      "remove_named": "Remove {name} from the top bar",
       "max": "Maximum 1 item | Maximum {n} items",
       "add_title": "Add the time, date, analog clock, or an entity",
-      "add_button": "Add time, date, or an entity",
       "hint": {
         "overflow": "Not everything fits next to the name: the screen drops the dashed items. Remove one or choose a shorter name.",
-        "reorder": "Drag to reorder; tap an item to configure it.",
         "needs_firmware": "Sensors, the date, and the analog clock appear from firmware {version}; until that update, this screen shows the name and, if the time is in the bar, the clock."
       },
       "detail": {
         "hidden": "Hidden: not active right now",
         "overflow": "Doesn't fit next to the name",
-        "dial": "Dial",
         "hidden_signal": "Hidden while the signal is good",
         "hidden_link": "Hidden while everything is connected",
         "hidden_battery": "Hidden while the battery is above 20 %"
       },
       "live": {
-        "hidden": "Hidden right now: not active",
-        "overflow": "Doesn't currently fit next to the name",
         "looks": "How it looks on the screen"
       },
       "analog_sample": "Small dial with the time",
@@ -2327,8 +2360,6 @@
       "clock_12": "12 hour clock · change under {settings}",
       "clock_settings": "Settings → Language & region",
       "date_hint": "{date} today. The date follows the screen's own clock.",
-      "up": "Up",
-      "down": "Down",
       "add": {
         "title": "Add to the top bar",
         "slots": "{used} of {n} slot used | {used} of {n} slots used",
@@ -2341,7 +2372,6 @@
         "none_found": "No entities found.",
         "plugins": "From plugins"
       },
-      "left": "Left",
       "left_hint": "Title and home button: in the page settings",
       "wifi_sample": "This screen's own signal",
       "link_sample": "Only when Home Assistant or Tessera is away",
@@ -2352,7 +2382,18 @@
       "battery_hint": "The screen reads its own battery, so this item stays in the bar when Home Assistant is away. The icon follows the level the way Home Assistant draws it, with a lightning bolt while it charges.",
       "battery_show_hint": "Only when low keeps the bar clear until the battery is at 20 % or less.",
       "status_firmware": "This item shows from firmware {version}. Until that update, the screen leaves it out.",
-      "plugin_item": "Shows what its plugin says, only while it has something to say. On a screen without that plugin it stays away."
+      "plugin_item": "Shows what its plugin says, only while it has something to say. On a screen without that plugin it stays away.",
+      "left_move": "Move left",
+      "right_move": "Move right",
+      "strip": {
+        "left_title": "Title and Home button",
+        "left_hint": "Left side · set in the settings of {page}",
+        "place": "Item {place} of {count}",
+        "hint": "Tap an item in the bar to set it up. Drag it left or right to move it, or off the bar to remove it.",
+        "copy": "Copy this bar to other pages",
+        "copy_hint": "Its items, or the whole bar with its title",
+        "page_settings": "Settings of {page}"
+      }
     },
     "screen_settings": {
       "groups": {
@@ -2439,15 +2480,15 @@
         "players": "Players, the first at the top",
         "players_hint": "The first one that plays shows, with its cover.",
         "player_add": "Add a player",
+        "player_search": "Search players",
+        "player_none": "No player matches",
         "remove_player": "Remove {name}",
         "keys_hint": "Play, pause and the volume work on the screensaver. A tap anywhere else wakes the screen.",
         "choose_camera": "Choose a camera",
         "camera_hint": "Its picture, every 15 seconds",
-        "glass": "On the screen",
         "temperature": "Temperature",
         "weather_auto": "Automatic",
         "weather_none": "No temperature",
-        "beside": "Beside it",
         "items_add": "Add an entity",
         "items_hint": "Shown next to the temperature, in one line: a sensor, a door, a lamp.",
         "items_full": "The clock has room for {n} entities.",
@@ -2460,7 +2501,25 @@
         "item_both": "Both",
         "item_look": "Shows",
         "item_hint": "Black and white on the screensaver, whatever the colour of the entity.",
-        "items_add_title": "Add to the clock"
+        "items_add_title": "Add to the clock",
+        "clock_part": "Time, date and temperature",
+        "row_hint": "Tap an entity in the row to set it up. Drag it left or right to move it, or off the row to remove it.",
+        "face": "Face",
+        "faces": {
+          "digital": "Digital",
+          "glass": "Glass",
+          "classic": "Classic",
+          "bauhaus": "Bauhaus"
+        },
+        "look": "Look",
+        "look_dark": "Dark",
+        "look_light": "Light",
+        "look_auto": "Screen's",
+        "numerals": "Numbers",
+        "numerals_none": "None",
+        "seconds": "Seconds hand",
+        "face_alone_hint": "This face shows the time alone. The temperature and the entities show on Classic and Digital.",
+        "face_moves_hint": "The face moves a little every minute, and Bauhaus paints a new picture every ten minutes, so nothing stays on the same pixels for long."
       },
       "plugins": {
         "title": "Plugins",
@@ -2966,6 +3025,16 @@
       "start_fresh_confirm": "Start with one empty page on this screen? The original layout remains in the migration backup. Other screens are unchanged.",
       "offline_notice": "Waiting for the screen to reconnect. Editing uses its last verified capabilities.",
       "include_navigation_hint": "When off, direct links still open this page. Back appears in the bottom bar, or replaces Home when that bar is hidden.",
+      "dock_picture": "Picture of the page",
+      "in_dock": "In the Dock",
+      "in_dock_hint": "The Dock opens with a swipe up from the bottom edge and shows every page to jump to.",
+      "dock_mode_picture": "Picture",
+      "dock_mode_icon": "Icon",
+      "dock_mode_hidden": "Hidden",
+      "dock_hint_picture": "The Dock shows a small picture of this page.",
+      "dock_hint_icon": "The Dock shows this icon for the page instead of its picture.",
+      "dock_hint_hidden": "The page stays in swipes and page dots; only the Dock leaves it out.",
+      "wizard_home": "Home key",
       "home_control": "Show a Home control on this page",
       "clock_control": "Time",
       "edit_topbar": "Edit this page’s top bar",
@@ -3047,7 +3116,10 @@
       "bar_entities": "Also on the right",
       "actions_blocked": "Home Assistant doesn't let this screen perform actions yet, so a tap on a tile does nothing.",
       "allow_actions": "Allow actions",
-      "actions_allowed": "{name} may now control your devices."
+      "actions_allowed": "{name} may now control your devices.",
+      "part_page": "The page: title and navigation",
+      "part_page_hint": "Title, home page and how you get here",
+      "home_control_hint": "Puts the Home button at the left of this page's top bar. It leads to the home page."
     },
     "feedback": {
       "question": "Does your screen work as you expect?",
@@ -3170,9 +3242,9 @@
       "remove": "The preview and its saved layout in this browser.",
       "save": "Save preview",
       "saved": "Saved in this browser",
-      "hint": "The screen's own firmware, drawn from the layout you are editing. Tap, hold and swipe as on the screen. Nothing is saved.",
+      "hint": "The screen's own firmware, drawn from the layout you are editing. Tap, hold and swipe as on the screen. Layout edits are not saved.",
       "control": "Taps control devices",
-      "control_hint": "When on, a tap on a tile runs its action in Home Assistant, as on the screen. When off, the preview only shows what a tap does.",
+      "control_hint": "When on, taps can control Home Assistant devices and change this panel's settings. When off, hardware settings are read-only and other changes stay in the preview.",
       "skipped": "Preview screen {names} could not be loaded and was left out.",
       "not_kept": "This browser couldn't store the preview screen: its storage is full or blocked."
     },
@@ -3181,7 +3253,8 @@
         "tile": "Tile",
         "page": "Page",
         "bar": "Top bar"
-      }
+      },
+      "back": "Back to {name}"
     },
     "confirm": {
       "leave_question": "You have unsaved changes. Go to the overview anyway?",
@@ -3386,7 +3459,7 @@
         "network_none": "Makes no connections outside Home Assistant",
         "read": "Reads these entities from Home Assistant"
       },
-      "warning": "A plugin runs on your screen with full access to it, including its Wi-Fi and the actions it may perform in Home Assistant. Only add plugins from makers you trust, or read the code first.",
+      "warning": "A plugin runs on your screen with full access to it, including its Wi-Fi and the actions it may perform in Home Assistant, and its build runs in this app, where it can reach your Home Assistant configuration. Only add plugins from makers you trust, or read the code first.",
       "room": {
         "title": "Room on {screen}",
         "small": "{kb} KB more: the firmware goes from {before} to {after} of its slot.",
@@ -3652,7 +3725,17 @@
       "now": "now",
       "minutes": "{n} min",
       "live": "The editor draws it from the plugin's own data; the screen draws it itself and counts down on its own clock.",
-      "entity": "Entity"
+      "entity": "Entity",
+      "add": "Add",
+      "change": "Choose another",
+      "find": "Find…",
+      "search": "Search…",
+      "search_more": "Type two letters or more",
+      "none_found": "Nothing found",
+      "remove": "Remove {name}",
+      "type": "Type and press Enter",
+      "full": "The screen takes no more for this tile: its options are full.",
+      "count": "{n} of {max}"
     },
     "build": {
       "plugins": "Building with its plugins",
@@ -3700,6 +3783,12 @@
       "copy": "Copy",
       "hint": "{copy} copies the tiles with every setting. Choose a page or a cell, here or on another screen, and press {paste}.",
       "remove": "Remove tile | Remove {n} tiles"
+    },
+    "menu": {
+      "cut": "Cut",
+      "move_to": "Move to page",
+      "add_here": "Add a tile here",
+      "paste_here": "Paste here"
     }
   }
 }

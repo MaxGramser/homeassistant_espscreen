@@ -12,7 +12,8 @@ import { useDocumentStore } from "../stores/document";
 
 const topbar = useTopbarStore();
 const doc = useDocumentStore();
-const props = defineProps<{ pageId: string }>();
+// `foldable` false: the copy on its own under the top bar, chosen from its inspector's menu (app 0.4.89).
+const props = withDefaults(defineProps<{ pageId: string; foldable?: boolean }>(), { foldable: true });
 const source = ref(props.pageId), targets = ref<string[]>([]), whole = ref('items');
 watch(() => props.pageId, (id) => { source.value = id; targets.value = []; });
 watch(source, (id) => { targets.value = id === props.pageId ? [] : [props.pageId]; });
@@ -21,7 +22,7 @@ const toggle = (id: string) => { targets.value = targets.value.includes(id) ? ta
 function copy() { if (topbar.copyPageBars(source.value, targets.value, whole.value === 'whole')) targets.value = []; }
 </script>
 <template>
-  <Section class="copy-bar" foldable :title="t('editor.pages.copy_bar')" icon="content-copy">
+  <Section class="copy-bar" :foldable="foldable" :title="t('editor.pages.copy_bar')" icon="content-copy">
     <div class="f"><label class="f-label" for="copy-bar-from">{{ t('editor.pages.copy_from') }}</label>
       <UiSelect id="copy-bar-from" v-model="source" :options="pages" />
     </div>

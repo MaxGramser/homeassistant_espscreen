@@ -115,6 +115,15 @@ enum Role : uint8_t {
   // Assistant's own weather pictures draw them; a sun, drops and flakes keep their condition colours
   WEATHER_CLOUD,
   WEATHER_CLOUD_BACK,
+  // ---- the screensaver's clock faces (module clock_faces, docs/SCREENSAVER.md): white hands on either face, and the
+  // Bauhaus face's five colours, a little deeper in its dark look. A face reads the light or the dark value by its own
+  // look, which need not be the screen's.
+  CLOCK_HAND,
+  BAUHAUS_RED,
+  BAUHAUS_YELLOW,
+  BAUHAUS_BLUE,
+  BAUHAUS_BLACK,
+  BAUHAUS_CREAM,
   ROLE_COUNT
 };
 
@@ -204,6 +213,12 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* ENERGY_REST */              {0xBDBDBD, 0x707070},  // dark: #6F6F6F on the panel's grey step
   /* WEATHER_CLOUD */            {0xB0BEC5, 0xCFD8DC},
   /* WEATHER_CLOUD_BACK */       {0x90A4AE, 0x78909C},
+  /* CLOCK_HAND */               {0xFFFFFF, 0xFFFFFF},
+  /* BAUHAUS_RED */              {0xD9442B, 0xB23A26},
+  /* BAUHAUS_YELLOW */           {0xF2B33D, 0xC9932F},
+  /* BAUHAUS_BLUE */             {0x2B4E9B, 0x284783},
+  /* BAUHAUS_BLACK */            {0x1D1D1B, 0x0B0B0B},
+  /* BAUHAUS_CREAM */            {0xF2EBDD, 0x1A1A19},
 };
 
 // The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the

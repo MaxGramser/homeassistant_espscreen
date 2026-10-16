@@ -106,7 +106,7 @@ export function useTileCard(props: TileCardProps) {
   const note = computed(() => (face.value.display !== "standard" ? displayName(face.value.display) : ""));
   const status = computed(() => stateText(props.tile.entity, current.value, { runs: runs.value, note: note.value,
     controlled: Boolean(face.value.controls && face.value.controls !== "none") }, words.value));
-  const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value, status.value, words.value));
+  const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value, status.value));
   const fill = computed(() => fillPercent(domain.value, current.value));
   const lit = computed(() => isOn(domain.value, current.value, runs.value));
   // The value the body shows large; the same words are not repeated under the name (a second line of your own stays).
@@ -152,7 +152,7 @@ export function useTileCard(props: TileCardProps) {
   const glassScale = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
   // A wide card's chip as the glass works it out (ui-scale wideChip): its face and whether its icon fits.
   const wideFit = computed(() => chip.value && face.value.wide
-    ? wideChip(doc.screenShape, doc.documentGrid?.columns ?? doc.screenShape.columns, widestSetpoint(current.value?.a || {})) : null);
+    ? wideChip(doc.screenShape, doc.documentGrid?.columns ?? doc.screenShape.columns, shape.value.columns, widestSetpoint(current.value?.a || {})) : null);
   const sliderStyle = computed(() => ({ background: `linear-gradient(to right, ${palette.value.accent} ${fill.value}%, ${palette.value.track} ${fill.value}%)` }));
   const glassPx = (n: number) => `${(n * glassScale.value).toFixed(2)}px`;
   const watchStyle = computed(() => {

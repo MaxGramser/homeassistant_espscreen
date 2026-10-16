@@ -80,6 +80,11 @@ struct Page {
   header_bar::Bar bar;
   bool home_control = false;
   bool excluded = false;
+  // Whether the Dock shows it (module dock, docs/MODULES.md): `"dock": false` in its page message hides it, and a
+  // message without the key, from an app before it, shows it.
+  bool dock = true;
+  // Its own icon, an MDI codepoint (tile_icon::codepoint), which the Dock shows instead of the page's picture; 0 for none.
+  uint32_t icon = 0;
 };
 
 struct Pages {

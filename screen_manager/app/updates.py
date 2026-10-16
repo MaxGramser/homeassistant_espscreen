@@ -379,6 +379,11 @@ class Updater:
                                                      need=f'{memory.get("need_mb", 0) / 1024:.1f} GB'))
             elif memory.get('reason') == 'limit':
                 self.record(inbox, 'failed', english('addon.updates.build_memory_limit'))
+            elif culprit := self.manager.plugins.blame(inbox, list(getattr(firmware, 'logs', None) or [])):
+                # The core built, a plugin of this screen did not: say which, and that its update is the way out.
+                key = 'plugin_update_needed' if culprit['update'] else 'plugin_failed'
+                self.record(inbox, 'failed', english(f'addon.updates.{key}', name=culprit['name'],
+                                                     version=culprit['update'] or culprit['version'] or ''))
             else:
                 self.record(inbox, 'failed', english('addon.updates.build_failed'))
             return 'failed'

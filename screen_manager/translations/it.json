@@ -191,7 +191,10 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
-      "plugins": "Plugin"
+      "plugins": "Plugin",
+      "microphone_gain": "Guadagno microfono",
+      "automatic_gain": "Guadagno automatico",
+      "echo_cancellation": "Cancellazione eco"
     },
     "tile": {
       "tap_to_open": "Tocca per aprire",
@@ -239,7 +242,16 @@
       "resume": "Riprendi",
       "start_cleaning": "Avvia pulizia",
       "clean": "Pulisci",
-      "dock": "Base"
+      "dock": "Base",
+      "stop": "Stop",
+      "by_room": "Per area",
+      "routines": "Routine",
+      "suction_water": "Aspirazione e lavaggio",
+      "pick_rooms": "Scegli una o più aree",
+      "order_hint": "Non tutti i robot rispettano questo ordine",
+      "no_rooms": "Nessuna area associata",
+      "no_rooms_how": "Associa i segmenti alle aree in Home Assistant, nelle impostazioni dell'aspirapolvere.",
+      "routines_note": "Create nell'app del robot"
     },
     "cover": {
       "position": "Posizione",
@@ -380,7 +392,8 @@
         "cleaning": "In pulizia",
         "paused": "In pausa",
         "returning": "Ritornando alla base",
-        "idle": "Inattivo"
+        "idle": "Inattivo",
+        "error": "Errore"
       },
       "weather": {
         "sunny": "Soleggiato",
@@ -937,6 +950,8 @@
       "offline": "Lo schermo era offline; nuovo tentativo la prossima volta.",
       "unknown_target": "Profilo o indirizzo IP sconosciuto; aggiorna questo schermo manualmente.",
       "build_failed": "Compilazione o installazione non riuscita; vedi il registro in Firmware e USB.",
+      "plugin_update_needed": "{name} non si compila con questo firmware. Aggiorna il plugin {name} a {version} nella pagina Plugins, poi aggiorna di nuovo lo schermo.",
+      "plugin_failed": "{name} {version} non si compila con questo firmware e non c'è ancora una versione più recente. Rimuovi il plugin {name} nella pagina Plugins per aggiornare lo schermo senza; il log è in Firmware & USB.",
       "build_memory": "Memoria insufficiente per compilare il firmware: devono essere liberi circa {need} e ce ne sono {free}. Ferma qualche componente aggiuntivo per un po' o dai più memoria alla macchina; vedi Firmware e USB.",
       "build_memory_limit": "Memoria insufficiente per compilare il firmware, anche con un compilatore alla volta. Ferma qualche componente aggiuntivo per un po' o dai più memoria alla macchina; vedi Firmware e USB.",
       "no_report": "Lo schermo non si è ripresentato con il firmware {version}; controlla lo schermo.",
@@ -998,7 +1013,8 @@
         },
         "media_player": {
           "volume": "Volume e muto",
-          "playback": "Precedente, play/pausa, successivo"
+          "playback": "Precedente, play/pausa, successivo",
+          "volume_playback": "Volume e precedente, play/pausa, successivo"
         },
         "number": {
           "stepper": "Valore − / +",
@@ -1102,6 +1118,18 @@
         "wake_when_moved": {
           "label": "Riattiva se mosso",
           "hint": "Lo schermo esce dallo standby quando qualcuno lo prende, lo sposta o lo urta. Sente lo schermo stesso, non chi passa."
+        },
+        "microphone_gain": {
+          "label": "Guadagno microfono",
+          "hint": "Guadagno analogico del microfono. Parte da 30 dB; il guadagno del riferimento di riproduzione resta fisso."
+        },
+        "automatic_gain": {
+          "label": "Guadagno automatico",
+          "hint": "Consente al codec del microfono di regolare il livello di registrazione. Indipendente dalla cancellazione dell'eco."
+        },
+        "echo_cancellation": {
+          "label": "Cancellazione eco",
+          "hint": "Riduce il suono dell'altoparlante dello schermo nel segnale del microfono. Se disattivata, la cancellazione viene bypassata; microfono e full duplex restano attivi. Richiede il percorso audio AEC."
         }
       }
     },
@@ -1445,7 +1473,8 @@
       "remove": "Rimuovi",
       "loading": "Caricamento…",
       "back": "← Indietro",
-      "copy": "Copia"
+      "copy": "Copia",
+      "done": "Fatto"
     },
     "nav": {
       "plugins": "Plugin",
@@ -1881,7 +1910,7 @@
         "network_none": "Non si collega a nulla al di fuori di Home Assistant",
         "read": "Legge queste entità da Home Assistant"
       },
-      "warning": "Un plugin gira sul tuo schermo con pieno accesso, compresi il Wi-Fi e le azioni che lo schermo può eseguire in Home Assistant. Aggiungi solo plugin di autori di cui ti fidi, o leggi prima il codice.",
+      "warning": "Un plugin gira sul tuo schermo con pieno accesso, compresi il Wi-Fi e le azioni che lo schermo può eseguire in Home Assistant, e la sua compilazione gira in questa app, dove può accedere alla tua configurazione di Home Assistant. Aggiungi solo plugin di autori di cui ti fidi, o leggi prima il codice.",
       "room": {
         "title": "Spazio su {screen}",
         "small": "{kb} KB in più: il firmware passa da {before} a {after} del suo spazio.",
@@ -2147,7 +2176,17 @@
       "now": "ora",
       "minutes": "{n} min",
       "live": "L'editor la disegna con i dati del plugin; lo schermo la disegna da sé e fa il conto alla rovescia con il proprio orologio.",
-      "entity": "Entità"
+      "entity": "Entità",
+      "add": "Aggiungi",
+      "change": "Scegline un altro",
+      "find": "Cerca…",
+      "search": "Cerca…",
+      "search_more": "Scrivi almeno due lettere",
+      "none_found": "Nessun risultato",
+      "remove": "Rimuovi {name}",
+      "type": "Scrivi e premi Invio",
+      "full": "Lo schermo non accetta altro per questo riquadro: le sue opzioni sono piene.",
+      "count": "{n} di {max}"
     },
     "memory": {
       "label": "Memoria per i riquadri",
@@ -2348,7 +2387,8 @@
         "full_hint": "In basso nel riquadro a pagina intera; un tocco altrove funziona come impostato qui sotto.",
         "wide_hint": "A destra del riquadro a larghezza doppia, come le righe in Home Assistant. Un tocco sul nome funziona come impostato qui sotto.",
         "needs_firmware": "Lo schermo mostra il controllo diretto a partire dal firmware 0.2.19; fino ad allora il riquadro resta com'era.",
-        "tall_hint": "",
+        "tall_hint": "Scegli i controlli mostrati nell’altezza in più. Un riquadro che cresce suggerisce il set più completo che ci sta; la tua scelta resta.",
+        "room_hint": "Lo schermo li disegna dove il riquadro ha spazio (firmware 0.57.0 o successivo): sotto il nome su un riquadro singolo, accanto su uno a doppia larghezza. Dove non ci stanno, il riquadro resta com'è senza.",
         "tilt": "",
         "tilt_hint": ""
       },
@@ -2587,6 +2627,16 @@
           "grey": "Grigio",
           "blue-grey": "Grigio blu"
         }
+      },
+      "anchor_hint": "Fai clic sull'icona per sceglierne un'altra, o sul nome per rinominare il riquadro",
+      "grow": {
+        "title": "Spazio per più controlli",
+        "applied": "A {columns} × {rows} ci stanno più controlli. Scegli cosa mostra questo riquadro; puoi cambiarlo dopo in Controlli.",
+        "offered": "A {columns} × {rows} questo riquadro ha spazio per questi. Scegli cosa mostra; puoi cambiarlo dopo in Controlli.",
+        "suggested": "Suggerito",
+        "none": "Nessun controllo",
+        "never": "Non mostrare più",
+        "done": "Fatto"
       }
     },
     "precision": {
@@ -2650,28 +2700,21 @@
       "screen_name": "Titolo dello schermo",
       "screen_name_hint": "Ogni pagina senza un titolo proprio mostra questo.",
       "no_title_hint": "Lascia vuoto per mostrare solo il logo.",
-      "right": "Destra: ora, sensori o orologio",
       "item_label": "{name}, spazio {slot}. Enter: configura, frecce: sposta",
-      "remove_named": "Rimuovi {name} dalla barra superiore",
       "max": "Massimo 1 elemento | Massimo {n} elementi",
       "add_title": "Aggiungi l'ora, la data, l'orologio analogico o un'entità",
-      "add_button": "Aggiungi ora, data o un'entità",
       "hint": {
         "overflow": "Non tutto sta accanto al nome: lo schermo tralascia gli elementi tratteggiati. Rimuovine uno o scegli un nome più corto.",
-        "reorder": "Trascina per riordinare; tocca un elemento per configurarlo.",
         "needs_firmware": "Sensori, data e orologio analogico compaiono a partire dal firmware {version}; fino a quell'aggiornamento questo schermo mostra il nome e, se l'ora è nella barra, l'orologio."
       },
       "detail": {
         "hidden": "Nascosto: non attivo al momento",
         "overflow": "Non sta accanto al nome",
-        "dial": "Quadrante",
         "hidden_signal": "Nascosto finché il segnale è buono",
         "hidden_link": "Nascosto finché tutto è connesso",
         "hidden_battery": "Nascosto finché la batteria è sopra il 20 %"
       },
       "live": {
-        "hidden": "Nascosto al momento: non attivo",
-        "overflow": "Al momento non sta accanto al nome",
         "looks": "Come appare sullo schermo"
       },
       "analog_sample": "Piccolo quadrante con l'ora",
@@ -2688,8 +2731,6 @@
       "clock_12": "Orologio a 12 ore · si cambia in {settings}",
       "clock_settings": "Impostazioni → Lingua e regione",
       "date_hint": "Oggi: {date}. La data segue l'orologio dello schermo stesso.",
-      "up": "Su",
-      "down": "Giù",
       "add": {
         "title": "Aggiungi alla barra superiore",
         "slots": "{used} di {n} spazio usato | {used} di {n} spazi usati",
@@ -2702,7 +2743,6 @@
         "none_found": "Nessuna entità trovata.",
         "plugins": "Dai plugin"
       },
-      "left": "Sinistra",
       "left_hint": "Titolo e pulsante Home: nelle impostazioni della pagina",
       "wifi_sample": "Il segnale di questo schermo",
       "link_sample": "Solo quando Home Assistant o Tessera manca",
@@ -2713,7 +2753,18 @@
       "battery_hint": "Lo schermo legge la propria batteria, quindi questo elemento resta nella barra quando Home Assistant non c'è. L'icona segue il livello come la disegna Home Assistant, con un fulmine durante la ricarica.",
       "battery_show_hint": "Solo se scarica lascia la barra libera finché la batteria non è al 20 % o meno.",
       "status_firmware": "Questo elemento compare dal firmware {version}. Fino a quell'aggiornamento, lo schermo lo omette.",
-      "plugin_item": "Mostra ciò che dice il suo plugin, solo quando ha qualcosa da dire. Su uno schermo senza quel plugin non compare."
+      "plugin_item": "Mostra ciò che dice il suo plugin, solo quando ha qualcosa da dire. Su uno schermo senza quel plugin non compare.",
+      "left_move": "Sposta a sinistra",
+      "right_move": "Sposta a destra",
+      "strip": {
+        "left_title": "Titolo e pulsante Home",
+        "left_hint": "Lato sinistro · si imposta in {page}",
+        "place": "Elemento {place} di {count}",
+        "hint": "Tocca un elemento della barra per impostarlo. Trascinalo a sinistra o a destra per spostarlo, o fuori dalla barra per rimuoverlo.",
+        "copy": "Copia questa barra su altre pagine",
+        "copy_hint": "I suoi elementi, o tutta la barra con il titolo",
+        "page_settings": "Impostazioni di {page}"
+      }
     },
     "screen_settings": {
       "groups": {
@@ -2804,11 +2855,9 @@
         "keys_hint": "Riproduci, pausa e volume funzionano sul salvaschermo. Un tocco altrove riattiva lo schermo.",
         "choose_camera": "Scegli una telecamera",
         "camera_hint": "La sua immagine, ogni 15 secondi",
-        "glass": "Sullo schermo",
         "temperature": "Temperatura",
         "weather_auto": "Automatica",
         "weather_none": "Nessuna temperatura",
-        "beside": "Accanto",
         "items_add": "Aggiungi un'entità",
         "items_hint": "Accanto alla temperatura, su una riga: un sensore, una porta, una lampada.",
         "items_full": "L'orologio ha spazio per {n} entità.",
@@ -2821,7 +2870,27 @@
         "item_both": "Entrambi",
         "item_look": "Mostra",
         "item_hint": "In bianco e nero sul salvaschermo, qualunque sia il colore dell'entità.",
-        "items_add_title": "Aggiungi all'orologio"
+        "items_add_title": "Aggiungi all'orologio",
+        "clock_part": "Ora, data e temperatura",
+        "row_hint": "Tocca un'entità della riga per impostarla. Trascinala a sinistra o a destra per spostarla, o fuori dalla riga per rimuoverla.",
+        "player_search": "Cerca lettori",
+        "player_none": "Nessun lettore corrisponde",
+        "face": "Quadrante",
+        "faces": {
+          "digital": "Digitale",
+          "glass": "Vetro",
+          "classic": "Classico",
+          "bauhaus": "Bauhaus"
+        },
+        "look": "Aspetto",
+        "look_dark": "Scuro",
+        "look_light": "Chiaro",
+        "look_auto": "Come lo schermo",
+        "numerals": "Numeri",
+        "numerals_none": "Nessuno",
+        "seconds": "Lancetta dei secondi",
+        "face_alone_hint": "Questo quadrante mostra solo l'ora. La temperatura e le entità compaiono su Classico e Digitale.",
+        "face_moves_hint": "Il quadrante si sposta un poco ogni minuto e Bauhaus dipinge un'immagine nuova ogni dieci minuti, così niente resta a lungo sugli stessi pixel."
       },
       "plugins": {
         "title": "Plugin",
@@ -3327,6 +3396,16 @@
       "start_fresh_confirm": "Iniziare con una pagina vuota su questo schermo? Il layout originale rimane nel backup di migrazione. Gli altri schermi non cambiano.",
       "offline_notice": "In attesa che lo schermo si riconnetta. L’editor usa le ultime funzionalità verificate.",
       "include_navigation_hint": "Se disattivato, i collegamenti diretti aprono comunque questa pagina. Indietro appare nella barra inferiore o sostituisce Home se la barra è nascosta.",
+      "dock_picture": "Anteprima della pagina",
+      "in_dock": "Nel Dock",
+      "in_dock_hint": "Il Dock si apre scorrendo verso l'alto dal bordo inferiore e mostra ogni pagina per raggiungerla.",
+      "dock_mode_picture": "Anteprima",
+      "dock_mode_icon": "Icona",
+      "dock_mode_hidden": "Nascosta",
+      "dock_hint_picture": "Il Dock mostra una piccola anteprima di questa pagina.",
+      "dock_hint_icon": "Il Dock mostra questa icona per la pagina invece dell'anteprima.",
+      "dock_hint_hidden": "La pagina resta nello scorrimento e nei punti di pagina; solo il Dock la esclude.",
+      "wizard_home": "Tasto Home",
       "home_control": "Mostra un pulsante Home su questa pagina",
       "clock_control": "Ora",
       "edit_topbar": "Modifica la barra superiore di questa pagina",
@@ -3408,7 +3487,10 @@
       "bar_entities": "Anche a destra",
       "actions_blocked": "Home Assistant non permette ancora a questo schermo di eseguire azioni, quindi toccare un riquadro non fa nulla.",
       "allow_actions": "Consenti azioni",
-      "actions_allowed": "{name} ora può comandare i tuoi dispositivi."
+      "actions_allowed": "{name} ora può comandare i tuoi dispositivi.",
+      "part_page": "La pagina: titolo e navigazione",
+      "part_page_hint": "Titolo, pagina iniziale e come ci si arriva",
+      "home_control_hint": "Mette il pulsante Home a sinistra nella barra in alto di questa pagina. Porta alla pagina iniziale."
     },
     "feedback": {
       "question": "Il tuo schermo funziona come ti aspetti?",
@@ -3531,9 +3613,9 @@
       "remove": "L’anteprima e il suo layout salvato in questo browser.",
       "save": "Salva anteprima",
       "saved": "Salvato in questo browser",
-      "hint": "Il firmware stesso dello schermo, disegnato dal layout che stai modificando. Tocca, tieni premuto e scorri come sullo schermo. Non viene salvato nulla.",
+      "hint": "Il firmware stesso dello schermo, disegnato dal layout che stai modificando. Tocca, tieni premuto e scorri come sullo schermo. Le modifiche al layout non vengono salvate.",
       "control": "I tocchi controllano i dispositivi",
-      "control_hint": "Attivo: un tocco su un riquadro esegue la sua azione in Home Assistant, come sullo schermo. Disattivo: l’anteprima mostra solo cosa fa un tocco.",
+      "control_hint": "Se attivo, i tocchi possono controllare i dispositivi Home Assistant e modificare le impostazioni di questo pannello. Se disattivo, le impostazioni hardware sono di sola lettura e le altre modifiche rimangono nell’anteprima.",
       "skipped": "Lo schermo di anteprima {names} non è stato caricato ed è stato escluso.",
       "not_kept": "Questo browser non ha potuto salvare lo schermo di anteprima: la sua memoria è piena o bloccata."
     },
@@ -3542,7 +3624,8 @@
         "tile": "Riquadro",
         "page": "Pagina",
         "bar": "Barra superiore"
-      }
+      },
+      "back": "Torna a {name}"
     },
     "confirm": {
       "leave_question": "Hai modifiche non salvate. Andare comunque alla panoramica?",
@@ -3700,6 +3783,12 @@
       "copy": "Copia",
       "hint": "{copy} copia i riquadri con tutte le loro impostazioni. Scegli una pagina o una cella, qui o su un altro schermo, e premi {paste}.",
       "remove": "Rimuovi riquadro | Rimuovi {n} riquadri"
+    },
+    "menu": {
+      "cut": "Taglia",
+      "move_to": "Sposta nella pagina",
+      "add_here": "Aggiungi un riquadro qui",
+      "paste_here": "Incolla qui"
     }
   }
 }

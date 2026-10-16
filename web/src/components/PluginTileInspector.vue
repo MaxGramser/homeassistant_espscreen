@@ -1,13 +1,15 @@
 <script setup lang="ts">
 // A plugin's tile in the inspector (design, docs: the plugins proposal): its name, the options its manifest lists, drawn
 // with the inspector's own rows, and the sizes it takes. A choice can come from one of the plugin's fetches (the lines of
-// a stop): the add-on asks the plugin's service with the tile's other options and hands back only the choices.
+// a stop): the add-on asks the plugin's service with the tile's other options and hands back only the choices. An option
+// that keeps several values, or one found by searching (plugin API 0.12), is a list of its own (PluginListOption).
 import { computed } from "vue";
 import { editorNumber, t } from "../i18n";
 import { healthText } from "../model/broken-tiles";
-import { offeredEntities, pluginDefaults, text, type PluginTileOption } from "../model/plugins";
+import { offeredEntities, picksOf, pluginDefaults, text, type PluginTileOption } from "../model/plugins";
 import { glyph } from "../model/topbar";
-import type { Tile } from "../types";
+import type { PluginValue, Tile } from "../types";
+import PluginListOption from "./PluginListOption.vue";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
 import NameField from "./inspector/NameField.vue";
@@ -28,8 +30,8 @@ const insp = useInspectorStore();
 
 const props = defineProps<{ tile: Tile }>();
 const kind = computed(() => plugins.pluginTileOf(props.tile.entity)!);
-const values = computed(() => ({ ...pluginDefaults(kind.value.tile), ...(props.tile.options?.plugin || {}) }));
-function set(option: PluginTileOption, value: string | number | boolean) {
+const values = computed<Record<string, PluginValue>>(() => ({ ...pluginDefaults(kind.value.tile), ...(props.tile.options?.plugin || {}) }));
+function set(option: PluginTileOption, value: PluginValue) {
   setTileOption(props.tile, "plugin", { ...(props.tile.options?.plugin || {}), [option.id]: value });
 }
 // A tile that belongs to an entity (its manifest's `domains`): the entities of those domains, only those with the
@@ -38,6 +40,8 @@ const entityChoices = computed(() => offeredEntities(plugins.entitiesIn(kind.val
   .map((e) => [e.id, e.name !== e.id ? `${e.name} (${e.id})` : e.id] as [string, string]));
 const choices = (option: PluginTileOption) => plugins.choicesFor(kind.value.plugin, option, values.value).map((choice) => [choice.value, text(choice.label)] as [string, string]);
 const fromFetch = (option: PluginTileOption) => Boolean(option.options_from);
+const isList = (option: PluginTileOption) => Boolean(option.multiple || (option.kind === "choice" && option.search));
+const count = (option: PluginTileOption) => t("editor.plugin_tile.count", { n: picksOf(values.value[option.id]).length, max: option.multiple });
 const size = (value: string) => value.replace("x", "×");
 const number = (value: number) => editorNumber(value);
 function step(option: PluginTileOption, by: number) {
@@ -72,6 +76,10 @@ function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
       <template v-for="option in kind.tile.options" :key="option.id">
         <SwitchRow v-if="option.kind === 'toggle'" :label="text(option.label)" :description="option.hint ? text(option.hint) : undefined"
           :model-value="Boolean(values[option.id])" @update:model-value="(on: boolean) => set(option, on)" />
+        <PropRow v-else-if="isList(option)" :label="text(option.label)" icon="format-list-bulleted" :hint="option.hint ? text(option.hint) : undefined" stack>
+          <template v-if="option.multiple" #aside>{{ count(option) }}</template>
+          <PluginListOption :plugin="kind.plugin" :option="option" :values="values" @change="(value: PluginValue) => set(option, value)" />
+        </PropRow>
         <PropRow v-else :label="text(option.label)" icon="tune-variant" :hint="option.hint ? text(option.hint) : undefined" :for="`plugin-option-${option.id}`">
           <UiSelect v-if="option.kind === 'choice'" :id="`plugin-option-${option.id}`" :model-value="String(values[option.id] ?? '')"
             :options="choices(option)" :placeholder="t('editor.plugin_tile.choose')" @update:model-value="(value: string) => set(option, value)" />

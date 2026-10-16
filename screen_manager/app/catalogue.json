@@ -441,6 +441,10 @@
     }
    ],
    "inline": null,
+   "grow": [
+    "setpoint_mode",
+    "setpoint"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -543,6 +547,9 @@
         "action": "cover.stop_cover"
        }
       ]
+     },
+     "room": {
+      "feature": "cover_rows"
      }
     },
     {
@@ -553,6 +560,9 @@
         "action": "cover.set_cover_position"
        }
       ]
+     },
+     "room": {
+      "feature": "cover_rows"
      }
     },
     {
@@ -577,7 +587,10 @@
       "firmware": "0.3.1"
      },
      "rows": 2,
-     "one_row": "none"
+     "one_row": "none",
+     "room": {
+      "feature": "cover_rows"
+     }
     },
     {
      "key": "buttons_tilt",
@@ -589,7 +602,10 @@
       "buttons",
       "tilt"
      ],
-     "one_row": "buttons"
+     "one_row": "buttons",
+     "room": {
+      "feature": "cover_rows"
+     }
     },
     {
      "key": "position_tilt",
@@ -601,7 +617,10 @@
       "position",
       "tilt"
      ],
-     "one_row": "position"
+     "one_row": "position",
+     "room": {
+      "feature": "cover_rows"
+     }
     }
    ],
    "inline": {
@@ -614,6 +633,10 @@
      ]
     }
    },
+   "grow": [
+    "position_tilt",
+    "buttons_tilt"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -729,6 +752,10 @@
      ]
     }
    },
+   "grow": [
+    "speed",
+    "toggle"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -821,6 +848,10 @@
     }
    ],
    "inline": null,
+   "grow": [
+    "setpoint_mode",
+    "slider"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -1118,6 +1149,10 @@
      ]
     }
    },
+   "grow": [
+    "brightness",
+    "toggle"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -1403,6 +1438,19 @@
        }
       ]
      }
+    },
+    {
+     "key": "volume_playback",
+     "screen": {
+      "feature": "media_rows",
+      "else": "playback"
+     },
+     "rows": 2,
+     "of": [
+      "volume",
+      "playback"
+     ],
+     "one_row": "volume"
     }
    ],
    "inline": {
@@ -1415,6 +1463,9 @@
      ]
     }
    },
+   "grow": [
+    "volume_playback"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],

@@ -77,8 +77,11 @@ describe("the line under a card's name", () => {
 
   it("follows the second line chosen in the tile panel", () => {
     const live = climate("on", { brightness: 128, effect: "" });
-    expect([subLine("none", live, "On", en), subLine("text:Upstairs", live, "On", en), subLine("attr:brightness", live, "On", en),
-      subLine("attr:effect", live, "On", en), subLine("auto", live, "On", en)]).toEqual(["", "Upstairs", "128", "On", "On"]);
+    expect([subLine("none", live, "On"), subLine("text:Upstairs", live, "On"), subLine("attr:brightness", live, "On"),
+      subLine("attr:effect", live, "On"), subLine("auto", live, "On")]).toEqual(["", "Upstairs", "128", "On", "On"]);
+    // A value as the app writes it for the screen (ha_catalogue.subtitle_lines, #241): Home Assistant's number and unit.
+    const humid = { ...climate("heat", { current_humidity: 61.60000000000001 }), sub: { current_humidity: "61.6%" } };
+    expect(subLine("attr:current_humidity", humid, "Heat")).toBe("61.6%");
   });
 });
 

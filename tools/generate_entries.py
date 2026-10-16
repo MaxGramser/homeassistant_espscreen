@@ -31,7 +31,7 @@ def components(board):
     """The components of this repository a board's firmware needs: smart_display, and before it every other component
     under components/ that the board's files name, as a platform or as a block of its own (in the order they are
     found)."""
-    text = '\n'.join(path.read_text() for path in profiles.chain(profiles.BOARDS[board]))
+    text = '\n'.join(path.read_text() for path in profiles.chain(profiles.BOARDS[board], all_variants=True))
     own = {path.name for path in (ROOT / 'components').iterdir() if path.is_dir() and path.name != 'smart_display'}
     named = re.findall(r'(?m)^\s*-?\s*platform: ([a-z0-9_]+)\s*$', text) + re.findall(r'(?m)^([a-z0-9_]+):', text)
     found = [name for name in dict.fromkeys(named) if name in own]

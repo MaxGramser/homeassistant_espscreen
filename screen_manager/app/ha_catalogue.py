@@ -9,6 +9,7 @@ turn on and off doesn't. `local_actions` gives the same answer from the action d
 What stays ours is which action each of our widgets sends, the tile catalogue (catalogue/*.yaml, catalogue.py): a small slider
 on a light is `light.turn_on` with a brightness, so it only fits a light for which Home Assistant offers that field.
 """
+import math
 import re
 
 import catalogue
@@ -372,24 +373,133 @@ def subtitle_choice(tile):
     return None
 
 
-def subtitle_message(tile, state):
+# An attribute's number as Home Assistant's frontend writes it (computeAttributeValueToParts in
+# src/common/entity/compute_attribute_display.ts, its tables in src/data/entity/entity_attributes.ts and
+# getWeatherUnit in src/data/weather.ts; frontend ff76e4e1): a few attributes are worked out first, then the number,
+# then the unit of the attribute for its domain, the system's temperature unit or the weather's own units.
+ATTRIBUTE_UNITS = {
+    'climate': {'humidity': '%', 'current_humidity': '%', 'target_humidity_low': '%', 'target_humidity_high': '%',
+                'target_humidity_step': '%', 'min_humidity': '%', 'max_humidity': '%'},
+    'cover': {'current_position': '%', 'current_tilt_position': '%'},
+    'fan': {'percentage': '%'},
+    'humidifier': {'humidity': '%', 'current_humidity': '%', 'min_humidity': '%', 'max_humidity': '%',
+                   'target_humidity_step': '%'},
+    'light': {'color_temp': 'mired', 'max_mireds': 'mired', 'min_mireds': 'mired', 'color_temp_kelvin': 'K',
+              'min_color_temp_kelvin': 'K', 'max_color_temp_kelvin': 'K', 'brightness': '%'},
+    'sun': {'azimuth': '°', 'elevation': '°'},
+    'valve': {'current_position': '%'},
+    'sensor': {'battery_level': '%'},
+    'media_player': {'volume_level': '%'},
+}
+TEMPERATURE_ATTRIBUTES = frozenset(('temperature', 'current_temperature', 'target_temperature', 'target_temp_temp',
+                                    'target_temp_high', 'target_temp_low', 'target_temp_step', 'min_temp', 'max_temp'))
+
+
+def _js_text(number):
+    """A number as JavaScript's toString writes it: 2026, not 2026.0."""
+    return str(int(number)) if float(number).is_integer() else repr(float(number))
+
+
+def _js_round(number):
+    """JavaScript's Math.round: a half goes up."""
+    return math.floor(number + 0.5)
+
+
+def _digital_duration(seconds):
+    """formatDurationDigital: Intl.DurationFormat's digital style with hours only when there are any, "03:20" and
+    "1:02:03" in every language the screens speak. Intl takes whole seconds only (a fraction throws there), so a
+    fraction is left out."""
+    hours, minutes, rest = int(seconds // 3600), int(seconds % 3600 // 60), int(seconds % 60)
+    return f'{hours}:{minutes:02}:{rest:02}' if hours else f'{minutes:02}:{rest:02}'
+
+
+# DOMAIN_ATTRIBUTES_FORMATERS: these are written their own way, without the screens' number format.
+ATTRIBUTE_FORMATTERS = {
+    'light': {'brightness': lambda value: str(_js_round(value / 255 * 100))},
+    'media_player': {'volume_level': lambda value: str(_js_round(value * 100)), 'media_duration': _digital_duration},
+    'input_datetime': {'year': _js_text},
+}
+
+
+def _weather_unit(attribute, attributes, units):
+    """getWeatherUnit: the weather entity's own unit for a measure, else what the system's units give."""
+    length = units.get('length') or ''
+    if attribute == 'visibility':
+        return attributes.get('visibility_unit') or length
+    if attribute == 'precipitation':
+        return attributes.get('precipitation_unit') or ('mm' if length == 'km' else 'in')
+    if attribute == 'pressure':
+        return attributes.get('pressure_unit') or ('hPa' if length == 'km' else 'inHg')
+    if attribute in ('apparent_temperature', 'dew_point', 'temperature', 'templow'):
+        return attributes.get('temperature_unit') or units.get('temperature') or ''
+    if attribute in ('wind_gust_speed', 'wind_speed'):
+        return attributes.get('wind_speed_unit') or f'{length}/h'
+    if attribute in ('cloud_coverage', 'humidity', 'precipitation_probability'):
+        return '%'
+    return units.get(attribute) or ''
+
+
+def attribute_number_text(entity_id, attribute, value, attributes=None, units=None):
+    """An attribute's number with its unit, as Home Assistant's frontend shows it: "61.6%", "50%" for a lamp's
+    brightness of 128, "21.5 °C", "1015 hPa" ("61,6 %" where the screens write so). `units` is Home Assistant's
+    unit system (/api/config)."""
+    domain, units = entity_id.split('.', 1)[0], units or {}
+    formatter = ATTRIBUTE_FORMATTERS.get(domain, {}).get(attribute)
+    text = formatter(value) if formatter else header_bar.attribute_number(value)
+    if domain == 'weather':
+        unit = _weather_unit(attribute, attributes or {}, units)
+    elif attribute in TEMPERATURE_ATTRIBUTES:
+        unit = units.get('temperature') or ''
+    else:
+        unit = ATTRIBUTE_UNITS.get(domain, {}).get(attribute, '')
+    return header_bar.with_unit(text, unit)
+
+
+def subtitle_value(entity_id, attribute, value, attributes=None, units=None, entry=None, words=None):
+    """What one value of an entity says as a tile's second line: {'s': a finished line} or {'sm': a moment}, or {}
+    for a value that is no line. `entry` is the entity's registry entry and `words` Home Assistant's translations."""
+    if value is None or isinstance(value, (list, tuple, dict)):
+        return {}
+    # A value is written the way what it is asks for, not the way its name suggests: a moment in time goes as
+    # seconds, so the screen says it in its own words and its own clock the way it already says when a script
+    # last ran, instead of a second wording of the same thing over here. A number goes as Home Assistant writes an
+    # attribute's number, with its unit, here and not on the screen, and the screen writes no number of its own into
+    # a line it was handed. Words and a yes or no take Home Assistant's word for the value, as its frontend's last step
+    # does (computeAttributeValueToParts: `state_attributes.<attribute>.state.<value>`, "true" and "false" for a yes
+    # or no); where it has none, the words stay the words they are, and a yes or no says the screens' On or Off.
+    if isinstance(value, bool):
+        word = core.ha_word(entity_id, f"state_attributes.{attribute}.state.{'true' if value else 'false'}", attributes, entry, words)
+        return {'s': header_bar.short(header_bar.clean_text(word), SUBTITLE_BYTES) if word
+                else core.screen_t('screen.ha.on' if value else 'screen.ha.off')}
+    if isinstance(value, str):
+        moment = core.epoch(value)
+        if moment:
+            return {'sm': moment}
+        value = attribute_word(entity_id, attribute, value, attributes, entry, words) or value
+    elif header_bar.numeric(value) is not None:
+        return {'s': header_bar.short(attribute_number_text(entity_id, attribute, value, attributes, units), SUBTITLE_BYTES)}
+    return {'s': header_bar.short(header_bar.clean_text(str(value)), SUBTITLE_BYTES)}
+
+
+def subtitle_lines(entity_id, state, units=None, entry=None, words=None):
+    """The finished second line of each value a tile's second line may say (subtitle_attributes, so nothing Home
+    Assistant does not name, such as a token, leaves the app), for the editor's mockup (api/states): it shows what the
+    screen will. A moment in time is left out: the screen says it in its own words."""
+    attributes = (state or {}).get('attributes') or {}
+    lines = {}
+    for offered in subtitle_attributes(entity_id, state, words):
+        line = subtitle_value(entity_id, offered['key'], attributes.get(offered['key']), attributes, units, entry, words).get('s')
+        if line is not None:
+            lines[offered['key']] = line
+    return lines
+
+
+def subtitle_message(tile, state, units=None, entry=None, words=None):
     """What a tile's chosen second line adds to its state message: `s` for a finished line, `sm` for a moment in
     time. Empty when the tile says the line itself, says nothing, or says words of its own - the screen holds
     those three in the option and keeps drawing them while Home Assistant is away."""
     choice = subtitle_choice(tile)
     if not choice or choice[0] != 'attr':
         return {}
-    value = ((state or {}).get('attributes') or {}).get(choice[1])
-    if value is None or isinstance(value, (list, tuple, dict)):
-        return {}
-    # A value is written the way what it is asks for, not the way its name suggests: a moment in time goes as
-    # seconds, so the screen says it in its own words and its own clock the way it already says when a script
-    # last ran, instead of a second wording of the same thing over here. Anything else goes as the text it is,
-    # and the screen writes no number of its own into a line it was handed.
-    if isinstance(value, bool):
-        return {'s': core.screen_t('screen.ha.on' if value else 'screen.ha.off')}
-    if isinstance(value, str):
-        moment = core.epoch(value)
-        if moment:
-            return {'sm': moment}
-    return {'s': header_bar.short(header_bar.clean_text(str(value)), SUBTITLE_BYTES)}
+    attributes = (state or {}).get('attributes') or {}
+    return subtitle_value(tile['entity'], choice[1], attributes.get(choice[1]), attributes, units, entry, words)

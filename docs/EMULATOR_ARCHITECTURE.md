@@ -25,6 +25,12 @@ Live entity changes and a post-command refresh use the manager's device state pa
 There is no browser switch simulation or duplicate thermostat action logic. Commands
 must target an existing entity and an action Home Assistant offers for that entity.
 
+Holding the title bar opens `settings_screen.h`, using the same boot geometry, fonts and navigation as
+the panel. `settings_transport.h` binds its rows to the selected panel's settings and board Extras.
+Extras arrive through the existing per-device SSE stream; the browser supplies values, never widgets.
+Writes use the existing validated settings endpoints and require **Taps control devices**. Virtual
+screens have no hardware Extras, and the host does not bind restart or calibration actions.
+
 `renderer_host_api.h` declares the browser adapter's C interface. A source fingerprint
 covers the shared renderer's local dependencies, generated UI/font assets, UI-related
 YAML and the host adapter. Changing board pins alone does not change it. The manifest

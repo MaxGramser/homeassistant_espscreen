@@ -259,6 +259,8 @@ esphome:
           screen_power::later = [](uint32_t ms) { id(screen_power_wait).execute(ms); };
           screen_power::dark = []() { return id(display_dimmed) && runtime_tiles::standby_level() == 0; };
           screen_power::wake = []() { id(wake_display).execute(); };
+          // Feedback a finger hears or feels (touch_feedback.h): none for the push that wakes a dimmed screen, nor in a calibration.
+          touch_feedback::quiet = []() { return id(display_dimmed) || id(calibration_active); };
           {
             // A touch on the dark glass resumes drawing before LVGL reads it, so the wake overlay gets the tap.
             struct WakeListener : public esphome::touchscreen::TouchListener {
@@ -275,6 +277,8 @@ esphome:
           // whole number, the look took the exact one for its sizes.
           ui::configure(atoi("${ (DISPLAY_DPI | float) | round | int }"), "${LOOK}");
           runtime_tiles::grid_bind(id(tile_scroll), atoi("${GRID_MARGIN}"), atoi("${PAGE_BAR_H}"));
+          // Full: a tap on the page dots opens the Dock, the chevrons keep the bar's outer parts (the dock module).
+          runtime_tiles::page_dots_open(id(page_number));
           // The alert card, laid out on the glass it landed on (firmware 0.2.103+): screen_alert::layout works every
           // size out from the canvas, the look and the fonts, lying down or standing up, and runtime_tiles::alert_place
           // puts the parts; an alert with a camera image lays it out again with room for the picture.
@@ -690,6 +694,27 @@ api:
                     // bar_cards (firmware 0.56.0): an entity's item in the top bar opens its tile's card (hold_card), so ESP
                     // Screens names that tile in the item (`d`) and sends a tile without a cell for an entity on no tile.
                     features.add("bar_cards");
+                    // clock_faces (module clock_faces, tier full): the screensaver's clock draws Glass, Classic and Bauhaus,
+                    // so ESP Screens sends the face chosen for it (`cf` of the op "saver").
+                    #ifdef SD_MOD_CLOCK_FACES
+                    features.add("clock_faces");
+                    #endif
+                    // vacuum_card (module vacuum, tier full): the vacuum card draws its map, rooms and routines, so ESP
+                    // Screens sends them (the `vc` block, screen_manager/app/vacuum_card.py).
+                    #ifdef SD_MOD_VACUUM_CARD
+                    features.add("vacuum_card");
+                    #endif
+                    // cover_rows (firmware 0.57.0): a cover card lays out what its room holds (cover_tile.h), so ESP
+                    // Screens sends a card one row high its slats and a 1x1 card its control, which it draws when they fit.
+                    features.add("cover_rows");
+                    // media_rows: a taller player card draws its volume over its playback keys (volume_playback), so
+                    // ESP Screens sends the pair; an older screen gets the keys.
+                    features.add("media_rows");
+                    // group_covers (firmware 0.57.0, module cover_groups): a cover group's card has a key to the group's page, one card per
+                    // cover, so ESP Screens sends a cover group's covers (`covers`, cover_groups.py) with its state.
+                    #ifdef SD_MOD_COVER_GROUPS
+                    features.add("group_covers");
+                    #endif
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
                       if (size.fits(runtime_tiles::grid.columns, runtime_tiles::grid.rows)) sizes.add(size.name);

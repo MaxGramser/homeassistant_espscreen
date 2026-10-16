@@ -131,6 +131,17 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    candidate was made of, then fast-forwards main to it, tags it `screens-vX.Y.Z`, makes the GitHub release, removes
    the candidate, and on dev names the app "(dev)" again in a commit it pushes to dev. Without `--yes` it says what it
    would do.
+   **The plugins go along** (`tools/release_plugins.py`; the plugins repository's AGENTS.md, "Branches"): a plugin that
+   needs a newer plugin API waits on the plugins repository's dev, and would fit no screen of main before this release.
+   So before anything is published, `publish` checks that the plugins' check is green on their dev, that every plugin
+   of dev's index fits this release's plugin API, and that their dev merges into their main without a conflict outside
+   `index.json` and `likes.json`; any of these refuses the release. Right after main moved, it merges their dev into
+   their main, runs their index workflow on main (built against the released core), and checks main's index: it names
+   this plugin API, every plugin in it fits, every plugin dev offered is there in at least that version, and their check
+   is green on main. Then their dev moves up to main, so every app offers the plugins the same day. A step that fails
+   leaves the release out and says what is left: `tools/release.py plugins --yes` finishes it, again from the start (a
+   main that has dev already only gets its index built and checked). `status` and `prepare` say what the plugins bring;
+   `--without-plugins` publishes without them when there is a reason. A hotfix leaves the plugins alone.
 7. **After.** Point the test screens back at main. Users find the update in the App store and update Tessera Screen
    Manager; for new screen features they use **Update** on the screen in Tessera (or the nightly round), and ESPHome
    Device Builder's Install, Wirelessly, on the existing device works too: the updated app points every screen's YAML

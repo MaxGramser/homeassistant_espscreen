@@ -66,6 +66,20 @@ class Catalog(unittest.TestCase):
             for key, options in catalog['choices'].items():
                 self.assertEqual(options[0], values[key].strip('"'), f'{board} {key}: the board file\'s own value first')
 
+    def test_a_board_with_psram_states_the_ceilings_of_one(self):
+        """docs/TILE_MEMORY.md: twelve top bar items and more than 64 tiles on every board with PSRAM, six and 64 without.
+        The Tab5 had none of them (GitHub #247), so it held six items, 64 tiles and eight pages."""
+        for board, path in sorted(profiles.BOARDS.items()):
+            with self.subTest(board=board):
+                psram = any(re.search(r'(?m)^psram:', file.read_text()) for file in profiles.chain(path))
+                values = {key: int(str(profiles.board_values(board)[key]).strip('"'))
+                          for key in ('SCREEN_MAX_BAR_ITEMS', 'SCREEN_MAX_TILES', 'SCREEN_MAX_PAGES')}
+                if psram:
+                    self.assertEqual(values['SCREEN_MAX_BAR_ITEMS'], 12)
+                    self.assertGreater(values['SCREEN_MAX_TILES'], 64)
+                else:
+                    self.assertEqual(values, {'SCREEN_MAX_BAR_ITEMS': 6, 'SCREEN_MAX_TILES': 64, 'SCREEN_MAX_PAGES': 8})
+
     def test_tab5_exposes_its_battery_level_from_the_ina226(self):
         class IncludeLoader(yaml.SafeLoader):
             pass
@@ -82,6 +96,12 @@ class Catalog(unittest.TestCase):
                          ('battery', 'measurement', '%'))
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][0], '6.00 -> 0')
         self.assertEqual(level['filters'][1]['calibrate_linear']['datapoints'][-1], '8.40 -> 100')
+        # Its INA226 reads the charging current negative (#234): Battery Charging looks at the copy with the sign turned.
+        current_in = next(sensor for sensor in hardware['sensor'] if sensor.get('id') == 'tab5_battery_current_in')
+        charging = next(sensor for sensor in hardware['binary_sensor'] if sensor.get('id') == 'tab5_battery_charging')
+        self.assertEqual((current_in['platform'], current_in['source_id']), ('copy', 'tab5_battery_current'))
+        self.assertEqual(current_in['filters'], [{'multiply': -1}])
+        self.assertEqual(charging['sensor_id'], 'tab5_battery_current_in')
 
 
 class Choices(unittest.TestCase):

@@ -191,7 +191,10 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "microphone_gain": "Ganho do microfone",
+      "automatic_gain": "Ganho automático",
+      "echo_cancellation": "Cancelamento eco"
     },
     "tile": {
       "tap_to_open": "Toque para abrir",
@@ -239,7 +242,16 @@
       "resume": "Retomar",
       "start_cleaning": "Iniciar limpeza",
       "clean": "Limpar",
-      "dock": "Base"
+      "dock": "Base",
+      "stop": "Parar",
+      "by_room": "Por área",
+      "routines": "Rotinas",
+      "suction_water": "Aspirar e lavar",
+      "pick_rooms": "Escolha uma ou mais áreas",
+      "order_hint": "Nem todo robô mantém esta ordem",
+      "no_rooms": "Nenhuma área associada",
+      "no_rooms_how": "Associe os segmentos às áreas no Home Assistant, nas definições do aspirador.",
+      "routines_note": "Criadas na app do robô"
     },
     "cover": {
       "position": "Posição",
@@ -380,7 +392,8 @@
         "cleaning": "A Limpar",
         "paused": "Em pausa",
         "returning": "A regressar à base",
-        "idle": "Inativo"
+        "idle": "Inativo",
+        "error": "Erro"
       },
       "weather": {
         "sunny": "Ensolarado",
@@ -937,6 +950,8 @@
       "offline": "O ecrã estava offline; vai tentar novamente da próxima vez.",
       "unknown_target": "Perfil ou endereço IP desconhecido; atualize este ecrã manualmente.",
       "build_failed": "A compilação ou a instalação falhou; consulte o registo em Firmware e USB.",
+      "plugin_update_needed": "{name} não compila com este firmware. Atualiza o plugin {name} para {version} na página Plugins e depois atualiza o ecrã de novo.",
+      "plugin_failed": "{name} {version} não compila com este firmware e ainda não há uma versão mais recente. Remove o plugin {name} na página Plugins para atualizar o ecrã sem ele; o registo está em Firmware & USB.",
       "build_memory": "Memória insuficiente para compilar o firmware: têm de estar livres cerca de {need} e estão {free}. Para alguns complementos por um tempo ou dá mais memória à máquina; consulta Firmware e USB.",
       "build_memory_limit": "Memória insuficiente para compilar o firmware, também com um compilador de cada vez. Para alguns complementos por um tempo ou dá mais memória à máquina; consulta Firmware e USB.",
       "no_report": "O ecrã não voltou a comunicar com o firmware {version}; verifique o ecrã.",
@@ -998,7 +1013,8 @@
         },
         "media_player": {
           "volume": "Volume e silenciar",
-          "playback": "Anterior, reproduzir/pausa, seguinte"
+          "playback": "Anterior, reproduzir/pausa, seguinte",
+          "volume_playback": "Volume e anterior, reproduzir/pausa, seguinte"
         },
         "number": {
           "stepper": "Valor − / +",
@@ -1102,6 +1118,18 @@
         "wake_when_moved": {
           "label": "Acordar ao mover",
           "hint": "O ecrã sai do modo de espera quando alguém o pega, move ou bate nele. Sente o próprio ecrã, não alguém que passa."
+        },
+        "microphone_gain": {
+          "label": "Ganho do microfone",
+          "hint": "Ganho analógico do microfone. Começa em 30 dB; o ganho da referência de reprodução permanece fixo."
+        },
+        "automatic_gain": {
+          "label": "Ganho automático",
+          "hint": "Permite que o codec do microfone ajuste o nível de gravação. Independente do cancelamento de eco."
+        },
+        "echo_cancellation": {
+          "label": "Cancelamento eco",
+          "hint": "Reduz o som do próprio altifalante no sinal do microfone. Desativado, ignora o cancelamento; o microfone e o duplex completo continuam ativos. Requer o caminho de áudio AEC."
         }
       }
     },
@@ -1445,7 +1473,8 @@
       "remove": "Remover",
       "loading": "A carregar…",
       "back": "← Voltar",
-      "copy": "Copiar"
+      "copy": "Copiar",
+      "done": "Concluído"
     },
     "nav": {
       "plugins": "Plugins",
@@ -1881,7 +1910,7 @@
         "network_none": "Não faz ligações fora do Home Assistant",
         "read": "Lê estas entidades do Home Assistant"
       },
-      "warning": "Um plugin corre no seu ecrã com acesso total ao mesmo, incluindo à rede Wi-Fi e às ações que o ecrã pode executar no Home Assistant. Adicione apenas plugins de autores em quem confia, ou leia primeiro o código.",
+      "warning": "Um plugin corre no seu ecrã com acesso total ao mesmo, incluindo à rede Wi-Fi e às ações que o ecrã pode executar no Home Assistant, e a sua compilação corre nesta app, onde pode aceder à sua configuração do Home Assistant. Adicione apenas plugins de autores em quem confia, ou leia primeiro o código.",
       "room": {
         "title": "Espaço em {screen}",
         "small": "Mais {kb} KB: o firmware passa de {before} para {after} do seu espaço.",
@@ -2147,7 +2176,17 @@
       "now": "agora",
       "minutes": "{n} min",
       "live": "O editor desenha-o com os dados do plugin; o ecrã desenha-o sozinho e faz a contagem decrescente com o seu próprio relógio.",
-      "entity": "Entidade"
+      "entity": "Entidade",
+      "add": "Adicionar",
+      "change": "Escolher outro",
+      "find": "Procurar…",
+      "search": "Pesquisar…",
+      "search_more": "Escreva duas letras ou mais",
+      "none_found": "Nada encontrado",
+      "remove": "Remover {name}",
+      "type": "Escreva e prima Enter",
+      "full": "O ecrã não aceita mais para este mosaico: as opções estão cheias.",
+      "count": "{n} de {max}"
     },
     "memory": {
       "label": "Memória para mosaicos",
@@ -2348,7 +2387,8 @@
         "full_hint": "Na parte de baixo do mosaico de página inteira; um toque em qualquer outro sítio funciona como definido abaixo.",
         "wide_hint": "À direita do mosaico de largura dupla, como as linhas no Home Assistant. Tocar no nome funciona como definido abaixo.",
         "needs_firmware": "O ecrã mostra o controlo direto a partir do firmware 0.2.19; até lá, o mosaico fica como estava.",
-        "tall_hint": "",
+        "tall_hint": "Escolha os controlos mostrados na altura extra. Um mosaico que cresce sugere o conjunto mais completo que cabe; a sua escolha mantém-se.",
+        "room_hint": "O ecrã desenha-os onde o mosaico tem espaço (firmware 0.57.0 ou mais recente): por baixo do nome num mosaico simples, ao lado num de largura dupla. Onde não cabem, o mosaico fica como sem eles.",
         "tilt": "",
         "tilt_hint": ""
       },
@@ -2587,6 +2627,16 @@
           "grey": "Cinzento",
           "blue-grey": "Cinzento azulado"
         }
+      },
+      "anchor_hint": "Clique no ícone para escolher outro, ou no nome para mudar o nome do mosaico",
+      "grow": {
+        "title": "Espaço para mais controlos",
+        "applied": "Em {columns} × {rows} cabem mais controlos. Escolha o que este mosaico mostra; pode alterar depois em Controlos.",
+        "offered": "Em {columns} × {rows} este mosaico tem espaço para isto. Escolha o que mostra; pode alterar depois em Controlos.",
+        "suggested": "Sugerido",
+        "none": "Sem controlos",
+        "never": "Não mostrar novamente",
+        "done": "Concluído"
       }
     },
     "precision": {
@@ -2650,28 +2700,21 @@
       "screen_name": "Título do ecrã",
       "screen_name_hint": "Todas as páginas sem título próprio mostram este.",
       "no_title_hint": "Deixe vazio para mostrar apenas o logótipo.",
-      "right": "Direita: hora, sensores ou um relógio",
       "item_label": "{name}, espaço {slot}. Enter: configurar; setas: mover",
-      "remove_named": "Remover {name} da barra superior",
       "max": "No máximo {n} elemento | No máximo {n} elementos",
       "add_title": "Adicione a hora, a data, o relógio analógico ou uma entidade",
-      "add_button": "Adicionar hora, data ou uma entidade",
       "hint": {
         "overflow": "Nem tudo cabe ao lado do nome: o ecrã omite os elementos tracejados. Remova um ou escolha um nome mais curto.",
-        "reorder": "Arraste para reordenar; toque num elemento para o configurar.",
         "needs_firmware": "Os sensores, a data e o relógio analógico aparecem a partir do firmware {version}; até essa atualização, este ecrã mostra o nome e, se a hora estiver na barra, o relógio."
       },
       "detail": {
         "hidden": "Oculto: agora não está ativo",
         "overflow": "Não cabe ao lado do nome",
-        "dial": "Mostrador",
         "hidden_signal": "Oculto enquanto o sinal é bom",
         "hidden_link": "Oculto enquanto tudo está ligado",
         "hidden_battery": "Oculto enquanto a bateria estiver acima de 20 %"
       },
       "live": {
-        "hidden": "Oculto neste momento: não está ativo",
-        "overflow": "De momento não cabe ao lado do nome",
         "looks": "Assim fica no ecrã"
       },
       "analog_sample": "Mostrador pequeno com a hora",
@@ -2688,8 +2731,6 @@
       "clock_12": "Relógio de 12 horas · altere em {settings}",
       "clock_settings": "Definições → Idioma e região",
       "date_hint": "Hoje: {date}. A data segue o relógio do próprio ecrã.",
-      "up": "Subir",
-      "down": "Descer",
       "add": {
         "title": "Adicionar à barra superior",
         "slots": "{used} de {n} espaço usado | {used} de {n} espaços usados",
@@ -2702,7 +2743,6 @@
         "none_found": "Nenhuma entidade encontrada.",
         "plugins": "De plugins"
       },
-      "left": "Esquerda",
       "left_hint": "Título e botão de início: nas definições da página",
       "wifi_sample": "O sinal deste ecrã",
       "link_sample": "Apenas quando falta o Home Assistant ou o Tessera",
@@ -2713,7 +2753,18 @@
       "battery_hint": "O ecrã lê a sua própria bateria, por isso este item fica na barra quando o Home Assistant não está disponível. O ícone segue o nível como o Home Assistant o desenha, com um raio enquanto carrega.",
       "battery_show_hint": "Só quando fraca deixa a barra livre até a bateria estar a 20 % ou menos.",
       "status_firmware": "Este item aparece a partir do firmware {version}. Até essa atualização, o ecrã omite-o.",
-      "plugin_item": "Mostra o que o seu plugin diz, só quando tem algo a dizer. Num ecrã sem esse plugin não aparece."
+      "plugin_item": "Mostra o que o seu plugin diz, só quando tem algo a dizer. Num ecrã sem esse plugin não aparece.",
+      "left_move": "Mover para a esquerda",
+      "right_move": "Mover para a direita",
+      "strip": {
+        "left_title": "Título e botão Início",
+        "left_hint": "Lado esquerdo · define-se em {page}",
+        "place": "Item {place} de {count}",
+        "hint": "Toque num item da barra para o configurar. Arraste-o para a esquerda ou direita para o mover, ou para fora da barra para o remover.",
+        "copy": "Copiar esta barra para outras páginas",
+        "copy_hint": "Os seus itens, ou a barra inteira com o título",
+        "page_settings": "Definições de {page}"
+      }
     },
     "screen_settings": {
       "groups": {
@@ -2804,11 +2855,9 @@
         "keys_hint": "Reproduzir, pausa e volume funcionam na proteção de ecrã. Um toque noutro sítio acorda o ecrã.",
         "choose_camera": "Escolhe uma câmara",
         "camera_hint": "A sua imagem, a cada 15 segundos",
-        "glass": "No ecrã",
         "temperature": "Temperatura",
         "weather_auto": "Automática",
         "weather_none": "Sem temperatura",
-        "beside": "Ao lado",
         "items_add": "Adicionar uma entidade",
         "items_hint": "Ao lado da temperatura, numa linha: um sensor, uma porta, um candeeiro.",
         "items_full": "O relógio tem espaço para {n} entidades.",
@@ -2821,7 +2870,27 @@
         "item_both": "Ambos",
         "item_look": "Mostra",
         "item_hint": "A preto e branco no protetor de ecrã, seja qual for a cor da entidade.",
-        "items_add_title": "Adicionar ao relógio"
+        "items_add_title": "Adicionar ao relógio",
+        "clock_part": "Hora, data e temperatura",
+        "row_hint": "Toque numa entidade da fila para a configurar. Arraste-a para a esquerda ou direita para a mover, ou para fora da fila para a remover.",
+        "player_search": "Procurar leitores",
+        "player_none": "Nenhum leitor corresponde",
+        "face": "Mostrador",
+        "faces": {
+          "digital": "Digital",
+          "glass": "Vidro",
+          "classic": "Clássico",
+          "bauhaus": "Bauhaus"
+        },
+        "look": "Aspeto",
+        "look_dark": "Escuro",
+        "look_light": "Claro",
+        "look_auto": "Como o ecrã",
+        "numerals": "Números",
+        "numerals_none": "Nenhum",
+        "seconds": "Ponteiro dos segundos",
+        "face_alone_hint": "Este mostrador mostra só a hora. A temperatura e as entidades aparecem no Clássico e no Digital.",
+        "face_moves_hint": "O mostrador desloca-se um pouco a cada minuto e o Bauhaus pinta uma imagem nova a cada dez minutos, para que nada fique muito tempo nos mesmos píxeis."
       },
       "plugins": {
         "title": "Plugins",
@@ -3327,6 +3396,16 @@
       "start_fresh_confirm": "Começar com uma página vazia neste ecrã? A disposição original permanece na cópia de migração. Os outros ecrãs não são alterados.",
       "offline_notice": "A aguardar que o ecrã volte a ligar. O editor usa as últimas capacidades verificadas.",
       "include_navigation_hint": "Se estiver desligado, as ligações diretas continuam a abrir esta página. Voltar aparece na barra inferior ou substitui Início se a barra estiver oculta.",
+      "dock_picture": "Imagem da página",
+      "in_dock": "Na Dock",
+      "in_dock_hint": "A Dock abre ao deslizar para cima a partir da borda inferior e mostra cada página para saltar para ela.",
+      "dock_mode_picture": "Imagem",
+      "dock_mode_icon": "Ícone",
+      "dock_mode_hidden": "Oculta",
+      "dock_hint_picture": "A Dock mostra uma pequena imagem desta página.",
+      "dock_hint_icon": "A Dock mostra este ícone para a página em vez da imagem.",
+      "dock_hint_hidden": "A página fica no deslize e nos pontos de página; só a Dock a deixa de fora.",
+      "wizard_home": "Botão Início",
       "home_control": "Mostrar um botão de início nesta página",
       "clock_control": "Hora",
       "edit_topbar": "Editar a barra superior desta página",
@@ -3408,7 +3487,10 @@
       "bar_entities": "Também à direita",
       "actions_blocked": "O Home Assistant ainda não deixa este ecrã executar ações, por isso tocar num mosaico não faz nada.",
       "allow_actions": "Permitir ações",
-      "actions_allowed": "{name} já pode controlar os seus dispositivos."
+      "actions_allowed": "{name} já pode controlar os seus dispositivos.",
+      "part_page": "A página: título e navegação",
+      "part_page_hint": "Título, página inicial e como chegar aqui",
+      "home_control_hint": "Coloca o botão Início à esquerda da barra superior desta página. Leva à página inicial."
     },
     "feedback": {
       "question": "O seu ecrã funciona como espera?",
@@ -3531,9 +3613,9 @@
       "remove": "A pré-visualização e a sua disposição guardada neste navegador.",
       "save": "Guardar pré-visualização",
       "saved": "Guardado neste navegador",
-      "hint": "O próprio firmware do ecrã, desenhado a partir do layout que está a editar. Toque, mantenha premido e deslize como no ecrã. Nada é guardado.",
+      "hint": "O próprio firmware do ecrã, desenhado a partir do layout que está a editar. Toque, mantenha premido e deslize como no ecrã. As alterações ao layout não são guardadas.",
       "control": "Os toques controlam dispositivos",
-      "control_hint": "Ligado: um toque num mosaico executa a sua ação no Home Assistant, como no ecrã. Desligado: a pré-visualização mostra apenas o que um toque faz.",
+      "control_hint": "Quando ativado, os toques podem controlar dispositivos do Home Assistant e alterar as definições deste painel. Quando desativado, as definições de hardware são só de leitura e as restantes alterações ficam na pré-visualização.",
       "skipped": "Não foi possível carregar o ecrã de pré-visualização {names}; foi deixado de fora.",
       "not_kept": "Este navegador não conseguiu guardar o ecrã de pré-visualização: o armazenamento está cheio ou bloqueado."
     },
@@ -3542,7 +3624,8 @@
         "tile": "Mosaico",
         "page": "Página",
         "bar": "Barra superior"
-      }
+      },
+      "back": "Voltar a {name}"
     },
     "confirm": {
       "leave_question": "Tem alterações não guardadas. Ir para a visão geral mesmo assim?",
@@ -3700,6 +3783,12 @@
       "copy": "Copiar",
       "hint": "{copy} copia os mosaicos com todas as definições. Escolha uma página ou uma célula, aqui ou noutro ecrã, e prima {paste}.",
       "remove": "Remover mosaico | Remover {n} mosaicos"
+    },
+    "menu": {
+      "cut": "Cortar",
+      "move_to": "Mover para a página",
+      "add_here": "Adicionar um mosaico aqui",
+      "paste_here": "Colar aqui"
     }
   }
 }

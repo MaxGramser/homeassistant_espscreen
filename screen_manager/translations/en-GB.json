@@ -59,7 +59,8 @@
         "cleaning": "Cleaning",
         "paused": "Paused",
         "returning": "Returning to dock",
-        "idle": "Idle"
+        "idle": "Idle",
+        "error": "Error"
       },
       "weather": {
         "sunny": "Sunny",
@@ -257,6 +258,17 @@
     },
     "plugin": {
       "missing": "Plugin missing"
+    },
+    "vacuum": {
+      "stop": "Stop",
+      "by_room": "By area",
+      "routines": "Routines",
+      "suction_water": "Suction & mop",
+      "pick_rooms": "Pick one or more areas",
+      "order_hint": "Not every robot keeps this order",
+      "no_rooms": "No areas mapped",
+      "no_rooms_how": "Map the robot's segments to areas in Home Assistant, in the vacuum's settings.",
+      "routines_note": "Made in the robot's own app"
     }
   },
   "editor": {

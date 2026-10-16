@@ -1,4 +1,4 @@
-name: Tessera Screen Manager
+name: Tessera Screen Manager (dev)
 version: "0.4.88"
 slug: esp_screen_manager
 description: "Tessera: touch screens for Home Assistant. Choose tiles for your ESP32 screens, 2.8 to 10.1 inch, without reflashing."
@@ -14,6 +14,10 @@ ports:
   8098/tcp: 8098
 ports_description:
   8098/tcp: Camera images and album covers for the screens
+# With Home Assistant's Watchdog switch on (the app's Info page; off until someone turns it on) the Supervisor starts
+# the app again when it stops unexpectedly, and with this address also when it stops answering: the one address the
+# app answers from anywhere (server.py guard, the same as Docker's health check).
+watchdog: http://[HOST]:[PORT:8099]/health
 panel_icon: mdi:view-grid
 panel_title: Tessera
 panel_admin: true

@@ -15,7 +15,7 @@ import { lookups } from "./lookup";
 import { usePluginsStore } from "./plugins";
 
 // What Home Assistant reports for an entity right now: the state, its word and the attributes a card shows.
-export type Live = { state: string; word?: string | null; a: Record<string, any> };
+export type Live = { state: string; word?: string | null; a: Record<string, any>; sub?: Record<string, string> };
 /** Whether an answer is still wanted when it comes (the screen it was asked for is still open); always by default. */
 export type Still = () => boolean;
 const always: Still = () => true;

@@ -23,6 +23,11 @@ void preview_render(void);
 const unsigned *preview_frame(void);
 int preview_page(void);
 const char *preview_diagnostics(void);
+// Optional browser settings transport: the firmware's own Settings page, with values from HA.
+void preview_settings(const char *json);
+void preview_extras(const char *json);
+void preview_settings_controls(int on);
+const char *preview_next_setting(void);
 
 #ifdef __cplusplus
 }

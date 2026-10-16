@@ -3,13 +3,15 @@
 # on the real firmware built for this computer. It is never on a screen, and never in the index.
 id: host_probe
 version: 1.0.0
-api: "0.10"
+api: "0.13"
 icon: puzzle-outline
 topics: [tech]
 maintainer: tessera
 license: MIT
 permissions:
   ha_commands: ["call_service:calendar.get_events"]
+  # The action of several fields of any JSON type its tile sends on a tap (plugin API 0.12).
+  home_assistant_actions: [music_assistant.play_media]
 tiles:
   - id: probe
     name: tile
@@ -19,8 +21,16 @@ tiles:
     pictures: 2
     options:
       - { id: word, kind: text, label: word, default: "Probe" }
+      # Lists (plugin API 0.12): several texts, and several picks of a choice, each {value, label}.
+      - { id: words, kind: text, multiple: 3, label: words }
+      - id: picks
+        kind: choice
+        multiple: 3
+        label: picks
+        choices: [{ value: "1", label: one }, { value: "2", label: two }, { value: "3", label: three }]
 cards:
-  - { id: detail, name: card }
+  # A place for a picture on the card (plugin API 0.13), whose address the card sets itself.
+  - { id: detail, name: card, pictures: 1 }
   # A card that closes itself (or opens another) from its own calls, as the message from the harness says.
   - { id: closer, name: closer }
 tap_actions:

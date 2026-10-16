@@ -2,10 +2,13 @@
 // A card of one row, or one over the whole page, as the screen draws it: the icon on the left, the name and its line
 // beside it (a page's link, a Big number's value), the small slider underneath, and on a wide or full card its control
 // beside the name, with the keys the screen draws for this entity (tile_controls::keys_for). A sensor's graph stands
-// under its head.
+// under its head. A cover laid out by its room (firmware 0.57.0) has its controls beside the name on a wide card and
+// under it on a card of one cell, where they fit.
 import { glyph } from "../../model/topbar";
 import { textEms } from "../../model/ui-scale";
 import type { TileCardView } from "../../composables/useTileCard";
+import CoverTilePreview from "../CoverTilePreview.vue";
+import CoverCell from "./CoverCell.vue";
 import ModeBar from "../ModeBar.vue";
 import SensorHistory from "../SensorHistory.vue";
 import RangeChip from "./RangeChip.vue";
@@ -49,7 +52,15 @@ const card = props.card;
       </span>
     </span>
     <span v-if="card.tile.options?.inline === 'slider'" class="mini-slider" :style="card.sliderStyle"></span>
-    <span v-if="card.face.controls" class="ctl" :class="{ fill: card.face.fillsCell }">
+    <span v-if="card.face.coverRow" class="ctl cover-row">
+      <CoverTilePreview :primary="card.face.coverPrimary" :tilt="card.face.coverRow" :standing="false" :entity-state="card.current?.state || ''" :attributes="card.current?.a || {}">
+        <template #fallback>
+          <span v-if="card.face.controls === 'position'" class="range" :style="card.sliderStyle"></span>
+          <template v-else><span v-for="(control, i) in card.face.panelKeys" :key="i" class="key mdi" :class="{ disabled: control.disabled }">{{ card.key(control.icon) }}</span></template>
+        </template>
+      </CoverTilePreview>
+    </span>
+    <span v-else-if="card.face.controls" class="ctl" :class="{ fill: card.face.fillsCell }">
       <span v-if="card.face.controls === 'toggle'" class="tog" :class="{ off: !card.on }"></span>
       <span v-else-if="card.face.controls === 'setpoint'" class="stp"><span class="mdi">{{ card.key("minus") || "−" }}</span><RangeChip v-if="card.chip" :chip="card.chip" :icon="card.key(card.chip.icon)" :wide="card.wideFit" :glass="card.glassScale" /><b v-else :style="{ '--pill-ems': textEms(card.texts.setpoint + '8') }">{{ card.texts.setpoint }}</b><span class="mdi">{{ card.key("plus") || "+" }}</span></span>
       <template v-else-if="card.face.controls === 'stepper' && card.domain.endsWith('select')"><span class="key mdi">{{ card.key("chevron-left") }}</span><span class="key mdi">{{ card.key("chevron-right") }}</span></template>
@@ -60,6 +71,7 @@ const card = props.card;
       <span v-else class="range" :style="card.sliderStyle"></span>
     </span>
   </template>
+  <CoverCell v-else-if="card.face.coverRow" :card="card" />
   <template v-else>
     <!-- As the screen draws it: the icon on the left, the name and the value beside it. A watch
          card puts the name on top and the big value under it; the small slider runs underneath. -->

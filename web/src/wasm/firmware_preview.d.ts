@@ -4,6 +4,10 @@ export type FirmwarePreviewModule = {
   _preview_pictures?(on: number): void;
   // The screen's Dark mode (app 0.4.86).
   _preview_dark?(on: number): void;
+  _preview_settings?(message: number): void;
+  _preview_extras?(message: number): void;
+  _preview_settings_controls?(on: number): void;
+  _preview_next_setting?(): number;
   _preview_time(milliseconds: number, epoch: number, offset: number): void;
   _preview_touch(x: number, y: number, pressed: number): void;
   _preview_cancel(): void;

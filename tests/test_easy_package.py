@@ -150,6 +150,9 @@ class PackageTests(unittest.TestCase):
         self.assertGreater(len(shared), 90)
         for board, defined in names.items():
             own = defined - shared
+            # The P4 can build either its native I2S transport or the AEC transport; its extra settings hook is local.
+            if board == 'wavesharep4':
+                own -= {'P4_AUDIO_TRANSPORT', 'P4_AEC_SETTINGS'}
             # What a feature brings (the resistive panel's calibration, the capacitive one's edge swipe, camera images,
             # a battery's voltage, a board's audio) and the hardware a screen's own YAML may change on the board that
             # has it (the pins of an ESP32-P4's Wi-Fi link and touch bus, hardware/esp32p4-c6.yaml).

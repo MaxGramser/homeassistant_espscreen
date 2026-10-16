@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // Perform action (app 0.2.67): the actions Home Assistant offers for a tile's entity, under its own names,
-// and one field per value Home Assistant asks for (its selector). An empty field is left out.
+// and one field per value Home Assistant asks for (its selector). An empty field is left out. In the settings it is the
+// chosen action and its fields; the list of actions (`choosing`) takes the place under the tile at the head of the inspector
+// (app 0.4.89), opened from the row or by choosing Perform action.
 import { computed } from "vue";
 import { matchesQuery } from "../model/search";
 import { t } from "../i18n";
@@ -20,11 +22,11 @@ const scr = useScreenStore();
 const doc = useDocumentStore();
 const insp = useInspectorStore();
 
-const props = defineProps<{ tile: Tile }>();
+const props = defineProps<{ tile: Tile; choosing?: boolean }>();
 const list = computed(() => entities.entityActions[props.tile.entity]);
 const chosen = computed(() => props.tile.options?.action);
 const entry = computed(() => list.value?.find((a) => a.action === chosen.value?.action));
-const open = computed(() => insp.actionPickerOpen || !chosen.value);
+const open = computed(() => insp.actionPickerOpen);
 const rows = computed(() => {
   return (list.value || []).filter((a) => matchesQuery(insp.actionSearch, a.name, a.action, a.description));
 });
@@ -76,18 +78,18 @@ const unitOf = (field: Field) => configOf(field).unit_of_measurement || (kindOf(
 
 <template>
   <div class="f">
-    <span class="f-label">{{ t("editor.action.label") }}</span>
+    <span v-if="!choosing" class="f-label">{{ t("editor.action.label") }}</span>
     <small v-if="list === undefined">{{ t("editor.action.asking") }}</small>
     <small v-else-if="list === null" class="warn">{{ t("editor.action.not_answering") }}</small>
     <template v-else>
-      <button type="button" class="row" :aria-expanded="open ? 'true' : 'false'" @click="insp.actionPickerOpen = !open">
+      <button v-if="!choosing" type="button" class="row" id="action-choose" :aria-expanded="open ? 'true' : 'false'" @click="insp.actionPickerOpen = true">
         <span class="tx">
           <b>{{ entry ? entry.name : chosen ? chosen.action : t("editor.action.choose") }}</b>
           <small v-if="chosen" class="mono">{{ chosen.action }}</small>
         </span>
-        <Icon :name="open ? 'chevron-up' : 'chevron-down'" class="row-chevron" />
+        <Icon name="chevron-right" class="row-chevron" />
       </button>
-      <div v-if="open" class="picker">
+      <div v-if="choosing" class="picker">
         <label class="search-field"><Icon name="magnify" /><input v-model="insp.actionSearch" type="search" :placeholder="t('editor.action.search')" :aria-label="t('editor.action.search_label')" /></label>
         <div class="action-list">
           <button v-for="action in rows" :key="action.action" type="button" class="action-choice" :aria-pressed="action.action === chosen?.action ? 'true' : 'false'" @click="pick(action)">
@@ -97,8 +99,8 @@ const unitOf = (field: Field) => configOf(field).unit_of_measurement || (kindOf(
           <p v-if="!rows.length" class="hint">{{ t("editor.action.none_found") }}</p>
         </div>
       </div>
-      <small v-if="chosen && !entry" class="warn">{{ t("editor.action.gone") }}</small>
-      <template v-if="entry && !open">
+      <small v-if="chosen && !entry && !choosing" class="warn">{{ t("editor.action.gone") }}</small>
+      <template v-if="entry && !choosing">
         <div v-for="field in entry.fields" :key="field.key" class="f">
           <span class="f-label">{{ field.required ? field.name : t("editor.action.optional", { name: field.name }) }}</span>
           <Segmented v-if="kindOf(field) === 'boolean'" :choices="[['', t('editor.action.not_set')], ['true', t('editor.action.on')], ['false', t('editor.action.off')]]" :value="chosen?.data?.[field.key] === undefined ? '' : String(chosen?.data?.[field.key])"
@@ -125,7 +127,7 @@ const unitOf = (field: Field) => configOf(field).unit_of_measurement || (kindOf(
         </div>
         <small v-if="missing.length" class="warn">{{ t("editor.action.needs", { fields: missing.join(", ") }) }}</small>
       </template>
-      <small v-if="!scr.supports(0, 2, 58)">{{ t("editor.action.needs_firmware") }}</small>
+      <small v-if="!scr.supports(0, 2, 58) && !choosing">{{ t("editor.action.needs_firmware") }}</small>
     </template>
   </div>
 </template>

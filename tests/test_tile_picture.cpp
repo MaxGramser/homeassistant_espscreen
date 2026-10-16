@@ -146,6 +146,38 @@ int main() {
     assert(q.answered(again) == -1 && q.answered(other) == -1);
     assert(q.answered(q.ask(2)) == 2);
   }
+  // A plugin's card over the page (plugin API 0.13): its places as a tile's parts, under a key of its own that no tile's
+  // key, place or tag is, with the card and the entity it shows in its question.
+  {
+    Ask a;
+    Part cover;
+    cover.x = 200; cover.y = 0; cover.w = 160; cover.h = 160; cover.url = "https://cdn.example.org/a.jpg";
+    set_parts(a, {cover}, 0x101010);
+    a.index = 3;
+    a.entity = "plugin:music.release";
+    const std::string key = card_key(a, "plugin:music.release", "media_player.kitchen");
+    assert(key.rfind("pcard|plugin:music.release|media_player.kitchen|360x160", 0) == 0);
+    assert(place_of(key).empty() && !belongs(key, 3, "plugin:music.release") && key != tile_picture::key(a));
+    assert(card_tag("plugin:music.release") == "pcard|plugin:music.release" && card_tag("plugin:music.release") != tag(3));
+    // Another address is another picture, in the same layout: the places keep the last one until the next is here.
+    Ask b = a;
+    Part next = cover;
+    next.url = "https://cdn.example.org/b.jpg";
+    set_parts(b, {next}, 0x101010);
+    assert(card_key(b, "plugin:music.release", "media_player.kitchen") != key);
+    assert(layout_of(a.parts) == layout_of(b.parts));
+    next.x = 0;
+    set_parts(b, {next}, 0x101010);
+    assert(layout_of(a.parts) != layout_of(b.parts));
+    const auto f = card_fields(a, "media_player.kitchen");
+    bool card = false, of = false, src = false;
+    for (const auto &field : f) {
+      card = card || (field.first == "card" && field.second == "1");
+      of = of || (field.first == "for" && field.second == "media_player.kitchen");
+      src = src || (field.first == "src" && field.second == "[\"https://cdn.example.org/a.jpg\"]");
+    }
+    assert(card && of && src);
+  }
   printf("test_tile_picture: ok\n");
   return 0;
 }

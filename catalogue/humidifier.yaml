@@ -10,6 +10,8 @@ memory: {bytes: 192, extras: true}
 displays:
   standard: {}
   watch: {}
+# A tile that grows suggests the humidity with the mode keys, else the humidity slider.
+grow: [setpoint_mode, slider]
 controls:
   # The humidity it is set to between - and + (Home Assistant's target-humidity feature, style buttons).
   setpoint:

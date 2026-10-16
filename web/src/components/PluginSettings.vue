@@ -6,8 +6,9 @@
 // With `extras` it draws the board's extras instead (docs/SETTINGS.md, "A board's own settings"), under Screen
 // settings: the same rows, the entities the board lists in boards.yaml, for every screen with or without plugins.
 import { onBeforeUnmount, ref, watch } from "vue";
+import { useDocumentVisibility } from "@vueuse/core";
 import { getJson, send } from "../api";
-import { editorNumber, t } from "../i18n";
+import { editorLanguage, editorNumber, t } from "../i18n";
 import { nodeOf, text, type Texts } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import UiSelect from "./ui/UiSelect.vue";
@@ -26,35 +27,43 @@ type Row = { key: string; entity: string | null; kind: "switch" | "number" | "se
   unit?: string; options?: string[]; password?: boolean; status?: string | null };
 type Group = { plugin: string; name: Texts; rows: Row[] };
 const rows = ref<Row[]>([]);
-async function load() {
+const visible = useDocumentVisibility();
+let events: EventSource | null = null;
+function received(data: Row[] | Group[]) {
+  rows.value = props.extras ? data as Row[] : (data as Group[]).find((group) => group.plugin === props.plugin)?.rows || [];
+}
+function listen() {
+  events?.close(); events = null;
+  rows.value = [];
   const screen = scr.currentScreen;
-  if (!screen || screen.virtual) { rows.value = []; return; }
-  if (props.extras) {
-    try { rows.value = await getJson<Row[]>(route(screen.id)); } catch { rows.value = []; }
-    return;
-  }
-  if (!plugins.pluginsEnabled || !plugins.installed[nodeOf(screen)]?.length) { rows.value = []; return; }
-  try {
-    const groups = await getJson<Group[]>(route(screen.id));
-    rows.value = groups.find((group) => group.plugin === props.plugin)?.rows || [];
-  } catch { rows.value = []; }
+  if (!screen || screen.virtual || visible.value !== "visible" || typeof EventSource === "undefined") return;
+  if (!props.extras && (!plugins.pluginsEnabled || !plugins.installed[nodeOf(screen)]?.length)) return;
+  const stream = new EventSource(`api/${route(screen.id)}/events?language=${encodeURIComponent(editorLanguage())}`);
+  events = stream;
+  stream.onmessage = (event) => { if (events === stream) received(JSON.parse(event.data)); };
+  stream.onerror = () => {
+    if (events === stream) rows.value = rows.value.map((row) => ({ ...row, available: false }));
+  };
 }
-watch(() => [scr.currentScreen?.id, props.plugin, scr.currentScreen && plugins.installed[nodeOf(scr.currentScreen)]?.length], load, { immediate: true });
-// A button's status changes on the screen after the press: read the rows again a few times while it runs.
-let timers: number[] = [];
-function follow() {
-  timers.forEach(clearTimeout);
-  timers = [1000, 2500, 5000, 9000, 15000].map((ms) => window.setTimeout(load, ms));
-}
-onBeforeUnmount(() => timers.forEach(clearTimeout));
+// Home Assistant pushes changes through this stream, including button status. Reconnection sends a fresh snapshot.
+// A hidden or closed view has no subscription; opening it again reads the current values without polling.
+watch(() => [scr.currentScreen?.id, props.plugin, props.extras, visible.value, editorLanguage(),
+  plugins.pluginsEnabled, scr.currentScreen && plugins.installed[nodeOf(scr.currentScreen)]?.length], listen, { immediate: true });
+onBeforeUnmount(() => { events?.close(); events = null; });
 async function set(row: Row, value: boolean | number | string) {
   const screen = scr.currentScreen;
   if (!screen || !row.entity) return;
+  const stream = events;
+  const url = route(screen.id);
   if (row.kind !== "button") row.value = value;   // as the screen's own rows: the change shows at once, Home Assistant squares it
   try {
-    await send(route(screen.id), "POST", { entity: row.entity, value });
-    if (row.kind === "button") follow();
-  } catch (error: any) { ui.toast(error.message); load(); }
+    await send(url, "POST", { entity: row.entity, value });
+  } catch (error: any) {
+    ui.toast(error.message);
+    // A refused action may emit no state event. Read once to undo its optimistic value, only in the same open view.
+    try { const data = await getJson<Row[] | Group[]>(url); if (events === stream) received(data); }
+    catch { /* The stream restores availability and values when the connection returns. */ }
+  }
 }
 function setText(row: Row, input: HTMLInputElement) {
   if (input.value === (row.value ?? "")) return;

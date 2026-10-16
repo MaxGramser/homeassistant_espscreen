@@ -4,7 +4,7 @@
 import { t } from '../i18n';
 import { isWideSize } from './sizes';
 import { TILE, ofType, taps as catalogueTaps } from './catalogue';
-import { PLUGIN_TILE } from './plugins';
+import { PLUGIN_LIST_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE } from './plugins';
 import rules from './page-rules.json';
 import type { PageLayout, PageTile } from '../types';
 
@@ -25,6 +25,26 @@ const METER_FIELDS = ['meterStyle', 'meterMin', 'meterMax', 'meterSegments', 'me
 const entity = (value: any, domains: string[]) => typeof value === 'string' && value.length <= 120 &&
   matches(/^[a-z0-9_]+\.[a-z0-9_]+$/, value) && domains.includes(value.split('.')[0]);
 const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value);
+// A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 12, each a short text, a
+// number, true/false, a pick {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most
+// PLUGIN_OPTIONS_BYTES of JSON. Whether a value fits its option is the plugin's manifest's.
+const pluginText = (value: any, empty = true) => typeof value === 'string' && (empty || value !== '') && [...value].length <= 64;
+const pluginPick = (value: any) => !!value && typeof value === 'object' && !Array.isArray(value) &&
+  Object.keys(value).every((k) => k === 'value' || k === 'label') && pluginText(value.value, false) && pluginText(value.label ?? '');
+export function pluginOptionsShape(options: any): boolean {
+  if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).length > 12) return false;
+  for (const [key, value] of Object.entries(options)) {
+    if (!/^[a-z][a-z0-9_]{0,31}$/.test(key)) return false;
+    if (Array.isArray(value)) {
+      if (value.length > PLUGIN_LIST_MAX || !value.every((item) => pluginText(item, false) || pluginPick(item))) return false;
+    } else if (value && typeof value === 'object') {
+      if (!pluginPick(value)) return false;
+    } else if (typeof value === 'string') {
+      if (!pluginText(value)) return false;
+    } else if (!(typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value)))) return false;
+  }
+  return bytes(JSON.stringify(options)) <= PLUGIN_OPTIONS_BYTES;
+}
 const finite = (value: any): boolean => typeof value === 'number' ? Number.isFinite(value) :
   Array.isArray(value) ? value.every(finite) : value && typeof value === 'object' ? Object.values(value).every(finite) : true;
 
@@ -37,8 +57,8 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
     throw new Error(t('addon.errors.layout.title'));
   if (!Array.isArray(layout.pages)) fail();
   for (const page of layout.pages) {
-    fields(page, ['id', 'navigation', 'topbar', 'tiles']);
-    fields(page.navigation, ['excludeFromPagination']);
+    fields(page, ['id', 'navigation', 'topbar', 'tiles', 'icon'], ['id', 'navigation', 'topbar', 'tiles']);
+    fields(page.navigation, ['excludeFromPagination', 'showInDock'], ['excludeFromPagination']);
     const bar = page.topbar;
     fields(bar, ['leading', 'title', 'trailing']);
     fields(bar.title, bar.title?.source === 'screen' ? ['source'] : ['source', 'text']);
@@ -97,8 +117,7 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
         fields(content, ['kind', 'plugin', 'tile', 'entityId', 'options'], ['kind', 'plugin', 'tile']);
         if (!/^[a-z0-9_]+$/.test(String(content.plugin)) || !/^[a-z0-9_]+$/.test(String(content.tile))) fail();
         if (content.entityId !== undefined && !/^[a-z0-9_]+\.[a-z0-9_]+$/.test(String(content.entityId))) fail();
-        if (content.options !== undefined && (typeof content.options !== 'object' || content.options === null ||
-          Object.values(content.options).some((value) => !['string', 'number', 'boolean'].includes(typeof value)))) fail();
+        if (content.options !== undefined && !pluginOptionsShape(content.options)) fail();
       } else fail();
       // A bedside clock's keys (app 0.4.12): tiles without a place, at most three, only under the bedside clock.
       if (tile.children !== undefined) {

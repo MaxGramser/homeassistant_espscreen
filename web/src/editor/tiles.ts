@@ -10,7 +10,7 @@ import { suggestedPageTitle } from "../model/page-naming";
 import { validateCardOptions } from "../model/page-validation";
 import * as pages from "../model/pages";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "../model/sizes";
-import { canonicalOptions, coupledOptions } from "../model/tile-options";
+import { canonicalOptions, coupledOptions, growthOf, type TilePanel } from "../model/tile-options";
 import { PLUGIN_TILE_OPTIONS } from "../model/plugins";
 import { energyFits } from "../model/ui-scale";
 import { useDocumentStore } from "../stores/document";
@@ -152,6 +152,20 @@ export function moveTileToPage(tile: Tile, page: number) {
   if (!moved) toast(t("editor.layout.no_room", { page: page + 1 }));
   return moved;
 }
+/** The pages a tile can be moved to, by name: every page but its own. None for a key, which stands on its clock's page. */
+export function otherPages(tile: Tile) {
+  const doc = useDocumentStore(), { pageOf } = doc.editorLayout;
+  if (tile.in !== undefined || tile.entity === "screen.nightstand" || !doc.document) return [];
+  return doc.document.pages.map((page, index) => ({ index, name: pages.titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }))
+    .filter((page) => page.index !== pageOf(tile.slot));
+}
+/** Moves a tile to the first free cell of another page, and the editor goes there with it. */
+export function moveTileAndFollow(tile: Tile, page: number) {
+  const doc = useDocumentStore(), id = doc.document?.pages[page]?.id;
+  const moved = moveTileToPage(tile, page);
+  if (moved && id) doc.selectedPageId = id;
+  return moved;
+}
 
 // ---- Sizes ----
 /** The sizes the screen takes on the draft's grid: one given its grid with the layout (firmware 0.53.0+) every size of
@@ -208,11 +222,23 @@ export function resizeChoices(tile: Tile, axis: "columns" | "rows"): Size[] {
     catch { return false; }
   });
 }
+/** What a tile's choices are worked out from (model/tile-options.ts): what Home Assistant says the entity can do, the
+ * screen's firmware and board, the domain's control sets and what the entity reports now. The inspector's and the tip's. */
+export function tilePanel(tile: Tile): TilePanel {
+  const inv = useInventoryStore(), scr = useScreenStore(), entities = useEntitiesStore();
+  return { caps: entities.capabilities[tile.entity], supports: scr.supports, pictures: scr.pictures, catalogue: inv.inventory.controls?.[tile.entity.split(".")[0]],
+    columns: useDocumentStore().editorLayout.grid.columns, attributes: entities.liveOf(tile.entity)?.a || {}, rangeless: scr.currentScreen?.climate_range === false };
+}
 export function resizeTile(tile: Tile, size: Size, axis: "columns" | "rows") {
   const current = currentView(tile);
   if (!current || size === sizeOf(current) || !resizeChoices(current, axis).includes(size)) return false;
-  const doc = useDocumentStore(), { grid } = doc.editorLayout, inventory = useInventoryStore().inventory;
-  return doc.editDocument((draft) => {
+  const doc = useDocumentStore(), { grid } = doc.editorLayout, inventory = useInventoryStore().inventory, before = sizeOf(current);
+  // A tile that grows shows what its room adds (app 0.4.89): the richest control set that keeps what it drew, written
+  // with the size as one step of undo, and the tip beside it asks whether that is wanted (components/GrowTip.vue).
+  const grown = dimensions(size, grid).columns * dimensions(size, grid).rows > dimensions(before, grid).columns * dimensions(before, grid).rows;
+  const growth = grown ? growthOf(current, tilePanel(current), before, size) : null;
+  const upgrade = growth?.suggested && growth.suggested !== growth.drawn ? growth.suggested : null;
+  const done = doc.editDocument((draft) => {
     const owned = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === current.id)!;
     // Gaining height exposes choices, it never opts into a default control.
     // A Go to page tile has no controls at all (app 0.4.1): writing 'none' there made the add-on refuse the resize. Nor
@@ -224,10 +250,18 @@ export function resizeTile(tile: Tile, size: Size, axis: "columns" | "rows") {
       const controls = effectiveControls(current, inventory) || "none";
       if (canonicalOptions(current.entity, { ...current.options, controls }).controls !== undefined) owned.interaction.controls = controls;
     }
+    if (upgrade && owned.content.kind === "entity") {
+      owned.interaction.controls = upgrade;
+      // Direct controls take the standard face without the small slider (tile-options.ts coupledOptions).
+      delete owned.interaction.inline;
+    }
     Object.assign(owned.placement, dimensions(size, grid));
     if (size === "single") delete owned.appearance.presentation;
     else owned.appearance.presentation = size;
   });
+  const ui = useUiStore();
+  ui.growTip = done && growth && (growth.gained || upgrade) && current.id ? { tileId: current.id, before, size, applied: upgrade } : null;
+  return done;
 }
 
 // ---- A tile's options, action and name ----

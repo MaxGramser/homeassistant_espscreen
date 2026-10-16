@@ -446,7 +446,7 @@ BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.va
 CONTROL_GLYPHS = ('play', 'pause', 'stop', 'skip-next', 'skip-previous', 'volume-high', 'volume-off', 'arrow-up', 'arrow-down',
                   'blinds', 'blinds-open', 'arrow-expand-horizontal', 'arrow-collapse-horizontal', 'home-map-marker', 'plus', 'minus', 'chevron-left',
                   'chevron-right', 'close', 'power', 'fire', 'snowflake', 'sun-snowflake-variant', 'thermostat-auto', 'water-percent', 'fan',
-                  'dots-horizontal')
+                  'dots-horizontal', 'blinds-horizontal', 'roller-shade')
 WEATHER = {'sunny': 'weather-sunny', 'clear-night': 'weather-night', 'cloudy': 'weather-cloudy',
            'partlycloudy': 'weather-partly-cloudy', 'rainy': 'weather-rainy', 'pouring': 'weather-pouring',
            'snowy': 'weather-snowy', 'snowy-rainy': 'weather-snowy-rainy', 'fog': 'weather-fog', 'hail': 'weather-hail',

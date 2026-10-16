@@ -206,7 +206,8 @@
     ],
     "media_player": [
       "volume",
-      "playback"
+      "playback",
+      "volume_playback"
     ],
     "number": [
       "stepper",

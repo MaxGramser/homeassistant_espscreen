@@ -394,7 +394,9 @@ a:hover { text-decoration: underline; }
 .device { background: #e7e7e7; border-radius: 18px; padding: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; color: #1b1b1b; aspect-ratio: var(--screen-aspect, 1 / 1); }
 .bar-wrap { cursor: pointer; border-radius: 8px; padding: 0 2px; }
 .bar-wrap:hover { background: #dedede; }
-.bar-wrap.selected { outline: 2px dashed var(--kind-bar); outline-offset: 1px; }
+/* Inside the bar, not around it: on a compact look the bar meets the glass's top edge, and a ring outside it stood on
+   the page instead. */
+.bar-wrap.selected { outline: 2px dashed var(--kind-bar); outline-offset: -2px; }
 .bar-wrap svg { display: block; width: 100%; height: auto; }
 .tiles { display: grid; grid-template-columns: repeat(var(--screen-columns, 2), minmax(0, 1fr)); grid-template-rows: repeat(var(--screen-rows, 3), minmax(0, 1fr)); gap: 8px; min-height: 0; }
 /* manipulation, not pan-y (app 0.2.78): on a phone the row of pages scrolls sideways, also when the swipe starts on a
@@ -428,10 +430,11 @@ a:hover { text-decoration: underline; }
 .device.compact .tile:has(> .mini-slider) { padding-block: 4px; gap: 3px; }
 .device.compact .tile .mini-slider { height: 8px; }
 .tile .mini-slider { height: 10px; border-radius: 5px; background: linear-gradient(to right, #ffbf38 60%, #fff1d3 60%); flex: none; width: 100%; }
-/* A control that fills its room is one cell wide, as the screens draw it (runtime_tiles::cell_content_width):
-   a double-width card is two cells, so half its room once the gap between them and both paddings are off. */
-.tile.wide { --tile-fill: calc((100% - 26px) / 2); }
-.device.compact .tile.wide { --tile-fill: calc((100% - 22px) / 2); }
+/* A control that fills its room takes every cell after the first, as the screens draw it (runtime_tiles::rest_content_width):
+   the first cell keeps the name, and the control the rest of the card once a gap between two cards and both paddings
+   (--tile-between) are off. On a card of two cells that is half its room; --tile-cols is the card's span. */
+.tile.wide { --tile-between: 26px; --tile-fill: calc(100% - (100% - (var(--tile-cols, 2) - 1) * var(--tile-between)) / var(--tile-cols, 2) - var(--tile-between)); }
+.device.compact .tile.wide { --tile-between: 22px; }
 .tile.wide .mini-slider { width: var(--tile-fill); }
 .tile.wide .ctl.fill { width: var(--tile-fill); }
 .tile.wide .ctl.fill .range, .tile.wide .ctl.fill .stp { flex: 1; min-width: 0; }
@@ -448,6 +451,9 @@ a:hover { text-decoration: underline; }
 /* Inside the chip (its own container): the room beside its icon, as range_chip measures it. */
 .tile.wide .ctl.fill .stp .range-chip b { font-size: var(--chip-face, min(var(--face-watch), max(var(--face-text), calc((100cqw - 2 * var(--pill-in)) / var(--chip-ems, 2))))); }
 .tile .ctl { flex: none; display: flex; align-items: center; gap: 4px; color: #1b1b1b; }
+/* A cover laid out by its room (firmware 0.57.0): its controls in the right half of a wide card, under the head of a card
+   of one cell (CoverCell, CoverTilePreview measures what it is given). */
+.tile.wide .ctl.cover-row { flex: none; width: 50%; align-self: stretch; }
 .tile .tog { width: 30px; height: 17px; border-radius: 9px; background: #2196f3; position: relative; }
 .tile .tog::after { content: ""; position: absolute; top: 2px; right: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; }
 .tile .tog.off { background: #c9ccd1; }
@@ -584,9 +590,8 @@ button.crumb:hover { text-decoration: underline; }
 .f { display: grid; gap: 6px; min-width: 0; }
 .f > .f-label, .f-label { font-size: 12.5px; font-weight: 500; color: var(--ink-2); display: flex; align-items: baseline; gap: 6px; }
 .f-value { color: var(--muted); font-weight: 400; }
-/* A group of settings in the inspector: a quiet title over its rows, a hairline between groups (app 0.4.32). */
-.insp-sec { min-width: 0; border-top: 1px solid var(--line); }
-.insp-sec:first-child { border-top: 0; }
+/* A group of settings in the inspector: a quiet title over its rows, room between groups instead of a line (app 0.4.89). */
+.insp-sec { min-width: 0; }
 .insp-sec-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 14px 16px 4px; text-align: left; border-radius: 0; }
 .insp-sec.folded .insp-sec-head { padding-bottom: 14px; }
 button.insp-sec-head:hover h3 { color: var(--ink); }
@@ -771,10 +776,84 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .item .x { color: var(--muted); width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; flex: none; font-size: 15px; }
 .item .grip.ui-icon { font-size: 16px; }
 .item .x:hover { color: var(--danger); background: var(--danger-soft); }
+/* The top bar in small at the head of its inspector (app 0.4.89, BarStrip.vue): the glass's grey and the firmware's
+   font, each part a place to tap, the chosen one raised with the accent ring. Hidden items stand dashed, items the glass
+   leaves out for want of room dashed in orange. Items that don't fit beside the title go on the next line, and many items
+   (more than six) stand under the title in lines of their own. The bar stays while the part under it scrolls. */
+.bar-body, .page-body, .tile-body { padding-top: 0; }
+.bar-anchor, .page-anchor { position: sticky; top: 0; z-index: 2; background: var(--surface); padding: 12px 16px 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.bar-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px; border-radius: 12px; background: #e7e7e7; color: #1b1b1b; font-family: "Bar Roboto", var(--ui-font); min-width: 0; }
+.strip-slot { position: relative; display: inline-flex; align-items: center; gap: 3px; height: 34px; padding: 0 6px; border-radius: 8px; color: #1b1b1b; font-size: 12.5px; white-space: nowrap; flex: none; touch-action: pan-y; }
+.strip-slot .mdi { font-size: 17px; line-height: 1; }
+.strip-slot:hover:not(:disabled):not([data-state="active"]) { background: rgba(0, 0, 0, 0.06); }
+.strip-slot[data-state="active"] { background: #ffffff; box-shadow: 0 1px 3px rgba(20, 24, 40, 0.18), 0 0 0 2px var(--accent); }
+.strip-left { flex: 1 1 auto; min-width: 110px; max-width: 100%; gap: 6px; }
+.bar-strip.wrap .strip-left { flex-basis: 100%; }
+.strip-title { overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.strip-home { font-size: 16px; flex: none; }
+.strip-count { margin-left: auto; font-size: 11px; color: #5a5f66; }
+.strip-item.is-hidden { opacity: 0.5; }
+.strip-item.is-hidden[data-state="active"] { opacity: 1; }
+.strip-item.is-hidden::after, .strip-item.is-overflow::after { content: ""; position: absolute; inset: 3px; border: 1.5px dashed #5a5f66; border-radius: 6px; pointer-events: none; }
+.strip-item.is-overflow { color: #a35f00; }
+.strip-item.is-overflow::after { border-color: #a35f00; }
+.strip-item.dragging { cursor: grabbing; }
+/* Pulled off the strip: let go, it is taken off. */
+.strip-item.leaving { opacity: 0.4; }
+.strip-item.leaving::after { content: ""; position: absolute; inset: 3px; border: 1.5px dashed var(--danger); border-radius: 6px; pointer-events: none; }
+.strip-item.just-added { animation: strip-added 1.2s ease-out; }
+@keyframes strip-added { from { background: var(--accent-soft); } }
+.strip-add { width: 30px; justify-content: center; padding: 0; color: var(--accent); }
+.strip-add:disabled { opacity: 0.4; cursor: default; }
+.strip-add .ui-icon { font-size: 18px; }
+/* The screensaver clock's row (app 0.4.89, SaverClock.vue): the same strip, white on black as the screensaver draws it. */
+.bar-strip.saver { background: #000; color: #fff; }
+.bar-strip.saver .strip-slot { color: #fff; }
+.bar-strip.saver .strip-slot:hover:not(:disabled):not([data-state="active"]) { background: rgba(255, 255, 255, 0.12); }
+.bar-strip.saver .strip-slot[data-state="active"] { background: #2b2b2b; box-shadow: 0 0 0 2px var(--accent); }
+.bar-strip.saver .strip-title { font-variant-numeric: tabular-nums; }
+.bar-cap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bar-cap-av { width: 32px; height: 32px; border-radius: 9px; background: var(--seg); color: var(--ink-2); display: grid; place-items: center; flex: none; font-size: 18px; }
+.bar-cap-av .ui-icon { font-size: 18px; }
+.bar-cap-tx { flex: 1; min-width: 0; display: grid; }
+.bar-cap-tx b { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-cap-tx small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-cap-tx small.warn { color: var(--warn); }
+.bar-part { padding: 4px 16px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 0; align-content: start; }
+.bar-part > .picker { padding: 0; border: 0; background: transparent; }
+.bar-part > .picker .icon-list { max-height: none; overflow: visible; }
+.bar-part > .topbar-add { display: grid; gap: 14px; }
+.bar-part > .insp-sec > .insp-sec-head, .bar-part > .insp-sec > .insp-sec-body { padding-left: 0; padding-right: 0; }
+/* The page in small at the head of its settings (app 0.4.89, PageInspector.vue): its top bar, which opens the bar's
+   inspector, its cells, and its place in the Dock. The part chosen is ringed in the accent. */
+.mini-page { display: grid; gap: 4px; padding: 5px; border-radius: 12px; background: #e7e7e7; color: #1b1b1b; }
+.mini-page > button { border-radius: 8px; color: #1b1b1b; }
+.mini-page > button:hover { background: rgba(0, 0, 0, 0.06); }
+.mini-page > button[aria-selected="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.mini-bar { display: flex; align-items: center; gap: 4px; padding: 2px 4px; }
+.mini-bar > .ui-icon { color: #5a5f66; font-size: 16px; flex: none; }
+.mini-bar .bar-preview svg { display: block; width: 100%; height: auto; }
+.mini-tiles { display: grid; grid-template-columns: repeat(var(--cols, 2), 1fr); gap: 4px; padding: 3px; }
+.mini-tiles i { height: 26px; border-radius: 6px; background: #ffffff; display: block; }
+.mini-dock { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; padding: 5px; margin: 0 32px; background: rgba(0, 0, 0, 0.07); border-radius: 11px !important; }
+.dock-chip { width: 30px; height: 24px; border-radius: 6px; background: #ffffff; display: grid; place-items: center; }
+.dock-chip .mdi { font-size: 15px; line-height: 1; }
+.dock-chip.me { box-shadow: 0 0 0 1.5px #1b1b1b; }
+.dock-pic { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5px; width: 16px; height: 12px; }
+.dock-pic i { background: #5a5f66; border-radius: 1.5px; opacity: 0.5; }
+.dock-empty { font-size: 11px; color: #5a5f66; padding: 4px; }
+/* On a low window (a phone's sheet) the small bar or page scrolls with the rest, so the settings under it keep room. */
+@media (max-height: 720px) { .bar-anchor, .page-anchor { position: static; } }
+/* The way back to what opened this inspector (app 0.4.89): its name, before the rest of the head. */
+.dr-back { display: flex; align-items: center; gap: 1px; height: 30px; padding: 0 8px 0 2px; margin-right: -3px; border-radius: 8px; color: var(--accent); font-weight: 500; font-size: 12.5px; flex: none; max-width: 120px; }
+.dr-back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-back .ui-icon { font-size: 20px; }
+.dr-back:hover { background: var(--accent-soft); }
 .ghost-btn { border: 1.5px dashed var(--line-strong); border-radius: 10px; padding: 8px; color: var(--accent); font-weight: 600; width: 100%; background: transparent; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .ghost-btn .ui-icon { font-size: 16px; }
 .ghost-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
-.dr-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
+/* As tall as the folded library beside it (Library.vue HEAD), so their top lines meet. */
+.dr-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; min-height: 49px; padding: 7px 12px; border-top: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
 .dr-foot .spacer { flex: 1; }
 .live { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #e7e7e7; color: #1b1b1b; justify-items: start; }
 .live small { color: #5a5f66; }
@@ -801,6 +880,12 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .set-card > .s-action { padding: 2px 0 4px; }
 .srow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
 .srow > .s-label { color: var(--ink-2); }
+/* A choice of several (the rotation's four angles) goes under its name when the card is too narrow for both, and never
+   past the card's edge. */
+.srow.setting-choice { flex-wrap: wrap; row-gap: 6px; }
+.srow.setting-choice .s-control { margin-left: auto; max-width: 100%; min-width: 0; }
+.srow.setting-choice .seg { max-width: 100%; }
+.srow.setting-choice .seg button { padding-inline: 9px; }
 .srow.inactive .s-label, .srow.inactive .s-control { opacity: 0.45; }
 /* The row ⌘K found: a soft wash that fades, so the eye lands on it. */
 .srow.spotlit { animation: spotlit 1.6s ease-out; border-radius: 8px; }
@@ -1083,7 +1168,14 @@ td code { white-space: nowrap; }
 /* ---- Menus, lists and popovers (Reka UI, app 0.3.19) ---- */
 .ui-popover { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--pop-shadow); padding: 5px; z-index: 80; color: var(--ink); font-size: 13px; animation: pop-in 0.12s ease-out; }
 @keyframes pop-in { from { opacity: 0; transform: translateY(-3px) scale(0.98); } to { opacity: 1; transform: none; } }
-.ui-menu { min-width: 220px; max-width: min(340px, calc(100vw - 16px)); }
+.ui-menu { min-width: 220px; max-width: min(340px, calc(100vw - 16px)); max-height: min(420px, var(--reka-dropdown-menu-content-available-height, 70vh)); overflow-y: auto; overscroll-behavior: contain; }
+/* A pick from a list that can run long (UiPicker): a search field, the list under it scrolls in the window. */
+.ui-picker { max-width: calc(100vw - 16px); padding: 0; display: grid; overflow: hidden; }
+.ui-picker-search { display: flex; align-items: center; gap: 8px; margin: 5px 5px 0; padding: 7px 10px; border-radius: 7px; background: var(--seg); color: var(--muted); }
+.ui-picker-search .ui-icon { font-size: 17px; }
+.ui-picker-search input { flex: 1; min-width: 0; border: 0; padding: 0; background: none; outline: none; box-shadow: none; font-size: 13px; color: var(--ink); }
+.ui-picker-list { max-height: min(320px, calc(var(--reka-popover-content-available-height, 60vh) - 52px)); overflow-y: auto; overscroll-behavior: contain; padding: 5px; }
+.ui-picker-empty { padding: 10px 9px; color: var(--muted); font-size: 12.5px; }
 .ui-menu-item { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 6px; cursor: default; outline: none; user-select: none; color: var(--ink); line-height: 1.3; }
 .ui-menu-item[data-highlighted] { background: var(--seg); }
 .ui-menu-item[data-disabled] { opacity: 0.45; }
@@ -1460,8 +1552,9 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .drawer-enter-active, .app.phone .drawer-leave-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .app.phone .dr-head { padding: 14px 12px 14px 16px; }
 .app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
-/* On a phone the sheet starts with what a tile is changed for most: a way to another entity when its own is gone, then
-   its name, then its icon and colour. */
+/* On a phone the sheet starts with what a tile is changed for most: the tile itself at the head, a way to another
+   entity when its own is gone, then its name, then its icon and colour. */
+.app.phone .dr-body > .bar-anchor { order: -4; }
 .app.phone .dr-body .entity-fix { order: -3; }
 .app.phone .dr-body .name-sec { order: -2; }
 .app.phone .dr-body .style-section { order: -1; }

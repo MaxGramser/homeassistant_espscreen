@@ -6,6 +6,8 @@ memory: {bytes: 96, extras: false}
 displays:
   standard: {}
   watch: {}
+# A tile that grows suggests the speed slider, else the switch.
+grow: [speed, toggle]
 controls:
   toggle:
     needs: {actions: [fan.toggle]}

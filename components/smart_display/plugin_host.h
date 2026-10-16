@@ -56,6 +56,15 @@ bool picture_draws(const runtime_tiles::Widgets &w, const void *picture);
 // The places let go of this picture (nullptr: of every picture): another layout, or the store takes it off a page out
 // of sight. True when one did.
 bool picture_let_go(runtime_tiles::Widgets &w, const void *picture);
+// Pictures on a plugin's card over the page (plugin API 0.13): what the open card wants this round (pictures_round), the
+// app's answer to its question ("pcard", with the question's number), whether a number is its last question's, whether
+// its places draw this picture (the store frees nothing a card draws), and the full view's download going away (a board
+// without the store draws from it).
+void card_picture_want();
+void card_picture_answer(const std::string &card, const std::string &url, uint32_t number);
+bool card_question(uint32_t number);
+bool card_draws(const void *picture);
+void card_letgo(const void *download);
 
 // The moments of every plugin.
 void ready();

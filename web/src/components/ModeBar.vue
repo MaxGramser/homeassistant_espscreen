@@ -10,7 +10,7 @@ import { te } from "../i18n";
 import { glyph } from "../model/topbar";
 import { barKeys, thermostatMode } from "../model/tall-controls";
 import { thermostatModeColor } from "../model/tile-palette";
-import { cardContent, cellContent, modeBar, uiScale } from "../model/ui-scale";
+import { cardContent, restContent, modeBar, uiScale } from "../model/ui-scale";
 import { useRegionStore } from "../stores/region";
 import { useInventoryStore } from "../stores/inventory";
 import { useCanvasStore } from "../stores/canvas";
@@ -24,11 +24,11 @@ const doc = useDocumentStore();
 // `columns`: how many of the page's columns the card spans. `mode`: the entity's state; `domain`: climate or humidifier.
 const props = withDefaults(defineProps<{ a: Record<string, any>; mode: string; place: "row" | "tall" | "full"; columns: number; domain?: string }>(), { domain: "climate" });
 const glass = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
-// The room the glass gives the bar: the cell beside the name on a card of one row, the card's content on a taller one
+// The room the glass gives the bar: every cell after the name's on a card of one row, the card's content on a taller one
 // or the page (runtime_tiles layout_panel), from the board's own spacing.
 const bar = computed(() => {
   const shape = doc.screenShape, across = doc.documentGrid?.columns ?? shape.columns;
-  const reach = props.place === "row" ? cellContent(shape, across) : cardContent(shape, across, props.place === "full" ? across : props.columns);
+  const reach = props.place === "row" ? restContent(shape, across, props.columns) : cardContent(shape, across, props.place === "full" ? across : props.columns);
   return modeBar(shape, props.place, reach, barKeys(props.a, props.mode, 6, props.domain).length);
 });
 const keys = computed(() => barKeys(props.a, props.mode, bar.value.room, props.domain));

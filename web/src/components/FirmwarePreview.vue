@@ -7,8 +7,9 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { FirmwarePreviewModule } from "../wasm/firmware_preview.js";
 import { loadFirmware } from "../wasm/load";
 import { t } from "../i18n";
-import { api, send } from "../api";
-import type { PageLayout } from "../types";
+import { api, getJson, send } from "../api";
+import type { PageLayout, Screen } from "../types";
+import type { Texts } from "../model/plugins";
 import { useInventoryStore } from "../stores/inventory";
 import { useDocumentStore } from "../stores/document";
 
@@ -22,6 +23,7 @@ const props = withDefaults(defineProps<{
   pictures?: boolean;
   // The screen's Dark mode (its settings), drawn as the firmware draws it.
   dark?: boolean;
+  screen?: Screen;
 }>(), { still: false, controls: true, pictures: true, dark: false });
 const emit = defineEmits<{ ready: []; failed: [message: string] }>();
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -33,6 +35,10 @@ let lastLayout = "", lastMessages = new Map<string, string>();
 let session = "", sequence = 0;
 let sendingActions = false;
 let events: EventSource | null = null;
+let settingsEvents: EventSource | null = null;
+let sendingSettings = false;
+type Extra = { entity: string | null; label: Texts; available: boolean; [key: string]: unknown };
+let extras: Extra[] = [];
 let fetchingImage = false;
 let lastDraw = 0;
 const downloads = new AbortController();
@@ -65,6 +71,74 @@ function speak() {
 }
 function shade() {
   if (module && !disposed) module._preview_dark?.(props.dark ? 1 : 0);
+}
+
+// Bind HA values to the firmware's Settings rows. The canvas is still the only renderer.
+function screenSettings() {
+  if (!module?._preview_settings || disposed) return;
+  const screen = props.screen;
+  module.ccall('preview_settings', null, ['string'], [JSON.stringify({
+    name: screen?.name || layout()?.title || '', firmware: screen?.firmware || '', online: screen?.online ?? false,
+    values: screen?.settings?.values || {},
+    dimmable: screen?.settings?.keys.includes('brightness'), standby: screen?.screensaver?.standby,
+  })]);
+}
+function extraSettings() {
+  if (module?._preview_extras && !disposed) module.ccall('preview_extras', null, ['string'], [JSON.stringify(
+    extras.map(row => ({ ...row, label: row.label[language()] || row.label[language().split('-')[0]!] || row.label.en || '' })),
+  )]);
+}
+function settingsControls() {
+  module?._preview_settings_controls?.(props.controls && !props.still && !!props.screen && !props.screen.virtual ? 1 : 0);
+}
+function listenSettings() {
+  settingsEvents?.close(); settingsEvents = null;
+  extras = []; extraSettings();
+  const screen = props.screen;
+  if (!module?._preview_extras || disposed || props.still || !screen || screen.virtual ||
+      sight.value === 'hidden' || typeof EventSource === 'undefined') return;
+  const stream = new EventSource(`api/screens/${encodeURIComponent(screen.id)}/extras/events?language=${encodeURIComponent(language())}`);
+  settingsEvents = stream;
+  stream.onmessage = event => {
+    if (settingsEvents !== stream) return;
+    extras = JSON.parse(event.data); extraSettings();
+  };
+  stream.onerror = () => {
+    if (settingsEvents !== stream) return;
+    extras = extras.map(row => ({ ...row, available: false })); extraSettings();
+  };
+}
+async function sendSettings() {
+  if (sendingSettings || !module?._preview_next_setting || disposed) return;
+  sendingSettings = true;
+  try {
+    while (!disposed && module) {
+      const encoded = module.ccall('preview_next_setting', 'string', [], []);
+      if (!encoded) break;
+      const screen = props.screen;
+      if (!props.controls || props.still || !screen || screen.virtual) continue;
+      const request = JSON.parse(encoded), route = `screens/${encodeURIComponent(screen.id)}`;
+      try {
+        if (request.entity) await send(`${route}/extras`, 'POST', request);
+        else {
+          const view = await send<NonNullable<Screen['settings']>>(`${route}/settings`, 'PUT', { settings: { [request.key]: request.value } });
+          const current = inv.inventory.screens.find(item => item.id === screen.id);
+          if (current) current.settings = view;
+        }
+        actionError.value = '';
+      } catch (e) {
+        if (disposed || props.screen?.id !== screen.id) continue;
+        actionError.value = t('editor.preview.action_error', { message: e instanceof Error ? e.message : String(e) });
+        // Rejected writes may produce no state event. Restore once; successful writes arrive by SSE.
+        if (request.entity) {
+          try {
+            const rows = await getJson<Extra[]>(`${route}/extras`);
+            if (!disposed && props.screen?.id === screen.id) { extras = rows; extraSettings(); }
+          } catch { /* The stream restores values when the connection returns. */ }
+        } else screenSettings();
+      }
+    }
+  } finally { sendingSettings = false; }
 }
 
 function time() {
@@ -128,6 +202,7 @@ function draw() {
       time();
       module._preview_render();
       void sendActions();
+      void sendSettings();
       void fetchImages();
       const start = module._preview_frame();
       const pixels = module.HEAPU8.subarray(start, start + props.width * props.height * 4);
@@ -268,6 +343,7 @@ onMounted(async () => {
     // A board that draws no pictures (the CYD) has no square for an album cover, as on its glass (firmware 0.46.0).
     module._preview_pictures?.(props.pictures === false ? 0 : 1);
     speak(); shade();
+    screenSettings(); settingsControls(); listenSettings();
     await receive();
     listen();
     // The first frame at once, then one each time the browser draws (a failing frame stops them).
@@ -279,9 +355,13 @@ watch(layout, () => layoutPause.start(), { deep: true });
 watch(language, speak);
 watch(() => props.dark, shade);
 watch(entityQuery, listen);
+watch(() => [props.screen?.settings, props.screen?.online], screenSettings, { deep: true });
+watch(() => [props.controls, props.still, props.screen?.id], settingsControls);
+watch(() => [props.screen?.id, props.still, sight.value, language()], listenSettings);
 onBeforeUnmount(() => {
   disposed = true; generation++;
   events?.close(); events = null;
+  settingsEvents?.close(); settingsEvents = null;
   downloads.abort();
   frames.pause();
   cancel(); module = null;

@@ -216,6 +216,36 @@ inline std::vector<std::pair<std::string, std::string>> fields(const Ask &a) {
   return out;
 }
 
+// ---- A plugin's card over the page (plugin API 0.13) ----
+// A card shows pictures the way a plugin tile does: places it laid out in its room, each with an address, asked for as
+// one picture of their frames from the room's top left (set_parts). Its key starts apart from every tile's, so a card
+// and the tile it opened from never take each other's picture, and names the card, the entity it shows and the frame:
+// "pcard|plugin:<plugin>.<card>|<entity>|WxH r0 s0|<ground>|<look>|" and the mark of its places.
+inline std::string card_key(const Ask &a, const std::string &card, const std::string &entity) {
+  char frame[64];
+  snprintf(frame, sizeof(frame), "|%dx%d r%d s%d|%06X|%c|", a.frame.w, a.frame.h, a.frame.radius, a.frame.shade,
+           (unsigned) a.frame.ground, a.dark ? 'd' : 'l');
+  return "pcard|" + card + "|" + entity + frame + a.mark;
+}
+// The loader's tag for a card's question: one card is open at a time.
+inline std::string card_tag(const std::string &card) { return "pcard|" + card; }
+// Where the places lie, without what they show: the same digest for a card that only shows other addresses, so it keeps
+// its last picture on its places until the next is here.
+inline std::string layout_of(const std::vector<Part> &parts) {
+  std::string what;
+  for (const auto &p : parts)
+    what += std::to_string(p.x) + "," + std::to_string(p.y) + "," + std::to_string(p.w) + "," + std::to_string(p.h) + ";";
+  return digest(what);
+}
+// A card's question: a tile's fields with `card` (the app answers it as "pcard") and `for`, the entity the card shows
+// ("" for none), whose Home Assistant pictures it may show. `tiles` names the card (plugin:<plugin>.<card>).
+inline std::vector<std::pair<std::string, std::string>> card_fields(const Ask &a, const std::string &entity) {
+  auto out = fields(a);
+  out.push_back({"card", "1"});
+  out.push_back({"for", entity});
+  return out;
+}
+
 // The questions out to the app, by number: every question has a number of its own, the app answers with it, and only
 // the answer to a tile's last question counts (an earlier one was for a picture the tile has moved on from).
 class Questions {

@@ -128,7 +128,7 @@ tab5:
   model: Tab5 ST7121
   status: new
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone]
+  settings: [media_player, microphone, echo_cancellation]
 
 waveshare5:
   file: waveshare-esp32s3-5.yaml
@@ -148,7 +148,7 @@ wavesharep4:
   model: ESP32-P4-86-Panel-ETH-2RO
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone]
+  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
 
 reterminald1001:
   file: reterminald1001.yaml

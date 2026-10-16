@@ -59,6 +59,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -121,6 +127,7 @@
    "tile_pad": 8,
    "top": 39
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -171,6 +178,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -213,6 +221,7 @@
    "tile_pad": 8,
    "top": 37
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 320
  },
@@ -258,6 +267,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -300,6 +310,7 @@
    "tile_pad": 8,
    "top": 37
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 320
  },
@@ -355,6 +366,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -417,6 +434,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -462,6 +480,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -504,6 +523,7 @@
    "tile_pad": 8,
    "top": 38
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 480
  },
@@ -561,6 +581,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -623,6 +649,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -680,6 +707,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -742,6 +775,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -797,6 +831,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -859,6 +899,7 @@
    "tile_pad": 12,
    "top": 55
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -916,6 +957,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -978,6 +1025,7 @@
    "tile_pad": 15,
    "top": 64
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -1035,6 +1083,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -1097,6 +1151,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -1154,6 +1209,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -1216,6 +1277,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -1273,6 +1335,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -1335,6 +1403,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -1390,6 +1459,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -1452,6 +1527,7 @@
    "tile_pad": 13,
    "top": 58
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -1517,6 +1593,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -1579,6 +1661,7 @@
    "tile_pad": 13,
    "top": 59
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -1634,6 +1717,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -1696,6 +1785,7 @@
    "tile_pad": 9,
    "top": 43
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -1726,7 +1816,8 @@
    "order": 16,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "new",
    "touch": "ST7121"
@@ -1757,9 +1848,15 @@
   "height": 720,
   "hotspot": true,
   "look": "standard",
-  "max_bar_items": 6,
-  "max_pages": 8,
-  "max_tiles": 64,
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -1822,6 +1919,7 @@
    "tile_pad": 21,
    "top": 81
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -1867,6 +1965,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -1909,6 +2013,7 @@
    "tile_pad": 12,
    "top": 55
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -1964,6 +2069,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -2026,6 +2137,7 @@
    "tile_pad": 15,
    "top": 64
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -2081,6 +2193,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -2143,6 +2261,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -2198,6 +2317,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -2260,6 +2385,7 @@
    "tile_pad": 13,
    "top": 58
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -2315,6 +2441,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -2377,6 +2509,7 @@
    "tile_pad": 9,
    "top": 43
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -2432,6 +2565,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -2494,6 +2633,7 @@
    "tile_pad": 12,
    "top": 53
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -2524,7 +2664,10 @@
    "order": 19,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -2557,6 +2700,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -2619,6 +2768,7 @@
    "tile_pad": 18,
    "top": 72
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 720
  },
@@ -2682,6 +2832,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -2744,6 +2900,7 @@
    "tile_pad": 8,
    "top": 39
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -2794,6 +2951,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -2836,6 +2994,7 @@
    "tile_pad": 8,
    "top": 37
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 320
  },
@@ -2881,6 +3040,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -2923,6 +3083,7 @@
    "tile_pad": 8,
    "top": 37
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 320
  },
@@ -2978,6 +3139,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3040,6 +3207,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -3085,6 +3253,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -3127,6 +3296,7 @@
    "tile_pad": 8,
    "top": 38
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 480
  },
@@ -3184,6 +3354,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3246,6 +3422,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -3303,6 +3480,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3365,6 +3548,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -3420,6 +3604,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3482,6 +3672,7 @@
    "tile_pad": 12,
    "top": 55
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -3539,6 +3730,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3601,6 +3798,7 @@
    "tile_pad": 15,
    "top": 64
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -3658,6 +3856,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3720,6 +3924,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -3777,6 +3982,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3839,6 +4050,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -3896,6 +4108,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -3958,6 +4176,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -4013,6 +4232,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -4075,6 +4300,7 @@
    "tile_pad": 13,
    "top": 58
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -4138,6 +4364,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -4200,6 +4432,7 @@
    "tile_pad": 8,
    "top": 39
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -4250,6 +4483,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -4292,6 +4526,7 @@
    "tile_pad": 8,
    "top": 37
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 320
  },
@@ -4337,6 +4572,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -4379,6 +4615,7 @@
    "tile_pad": 8,
    "top": 37
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 320
  },
@@ -4434,6 +4671,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -4496,6 +4739,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -4541,6 +4785,7 @@
   "max_bar_items": 6,
   "max_pages": 8,
   "max_tiles": 64,
+  "modules": [],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -4583,6 +4828,7 @@
    "tile_pad": 8,
    "top": 38
   },
+  "tier": "lite",
   "wide_slots": true,
   "width": 480
  },
@@ -4640,6 +4886,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -4702,6 +4954,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -4759,6 +5012,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -4821,6 +5080,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -4876,6 +5136,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -4938,6 +5204,7 @@
    "tile_pad": 12,
    "top": 55
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -4995,6 +5262,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5057,6 +5330,7 @@
    "tile_pad": 15,
    "top": 64
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -5114,6 +5388,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5176,6 +5456,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -5233,6 +5514,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5295,6 +5582,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -5352,6 +5640,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5414,6 +5708,7 @@
    "tile_pad": 11,
    "top": 50
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -5469,6 +5764,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5531,6 +5832,7 @@
    "tile_pad": 13,
    "top": 58
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -5596,6 +5898,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5658,6 +5966,7 @@
    "tile_pad": 13,
    "top": 59
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -5713,6 +6022,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5775,6 +6090,7 @@
    "tile_pad": 9,
    "top": 43
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -5805,7 +6121,8 @@
    "order": 16,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "new",
    "touch": "ST7121"
@@ -5836,9 +6153,15 @@
   "height": 720,
   "hotspot": true,
   "look": "standard",
-  "max_bar_items": 6,
-  "max_pages": 8,
-  "max_tiles": 64,
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -5901,6 +6224,7 @@
    "tile_pad": 21,
    "top": 81
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -5946,6 +6270,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -5988,6 +6318,7 @@
    "tile_pad": 12,
    "top": 55
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -6043,6 +6374,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6105,6 +6442,7 @@
    "tile_pad": 15,
    "top": 64
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -6160,6 +6498,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6222,6 +6566,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -6277,6 +6622,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6339,6 +6690,7 @@
    "tile_pad": 13,
    "top": 58
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -6394,6 +6746,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6456,6 +6814,7 @@
    "tile_pad": 9,
    "top": 43
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -6511,6 +6870,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6573,6 +6938,7 @@
    "tile_pad": 12,
    "top": 53
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -6603,7 +6969,10 @@
    "order": 19,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -6636,6 +7005,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6698,6 +7073,7 @@
    "tile_pad": 18,
    "top": 72
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 720
  },
@@ -6763,6 +7139,12 @@
   "max_bar_items": 12,
   "max_pages": 16,
   "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6825,6 +7207,7 @@
    "tile_pad": 13,
    "top": 59
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -6880,6 +7263,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -6942,6 +7331,7 @@
    "tile_pad": 9,
    "top": 43
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -6972,7 +7362,8 @@
    "order": 16,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "new",
    "touch": "ST7121"
@@ -7003,9 +7394,15 @@
   "height": 720,
   "hotspot": true,
   "look": "standard",
-  "max_bar_items": 6,
-  "max_pages": 8,
-  "max_tiles": 64,
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -7068,6 +7465,7 @@
    "tile_pad": 21,
    "top": 81
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1280
  },
@@ -7113,6 +7511,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "columns": 2,
@@ -7155,6 +7559,7 @@
    "tile_pad": 12,
    "top": 55
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -7210,6 +7615,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -7272,6 +7683,7 @@
    "tile_pad": 15,
    "top": 64
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -7327,6 +7739,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -7389,6 +7807,7 @@
    "tile_pad": 12,
    "top": 56
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 480
  },
@@ -7444,6 +7863,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -7506,6 +7931,7 @@
    "tile_pad": 13,
    "top": 58
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -7561,6 +7987,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -7623,6 +8055,7 @@
    "tile_pad": 9,
    "top": 43
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 800
  },
@@ -7678,6 +8111,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -7740,6 +8179,7 @@
    "tile_pad": 12,
    "top": 53
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 1024
  },
@@ -7770,7 +8210,10 @@
    "order": 19,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -7803,6 +8246,12 @@
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
   "orientations": {
    "landscape": {
     "camera": {
@@ -7865,6 +8314,7 @@
    "tile_pad": 18,
    "top": 72
   },
+  "tier": "full",
   "wide_slots": false,
   "width": 720
  }

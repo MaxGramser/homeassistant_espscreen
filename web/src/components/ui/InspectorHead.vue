@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // The top of the inspector: what is open, and the way up to what holds it (the screen, a page). A step of that way
 // that can be opened is a link, so a tile leads to its page and a top bar to the page it sits on. The `title` slot takes
-// a field where the name is edited in place, the `actions` slot a menu beside the close button (app 0.4.32).
+// a field where the name is edited in place, the `actions` slot a menu beside the close button (app 0.4.32). `back` is
+// the way back to what opened this one (a page that opened its top bar, app 0.4.89): a button with its name, before the rest.
 import { t } from "../../i18n";
 import type { IconName } from "../../model/ui-icons";
 import { glyph as glyphOf } from "../../model/topbar";
@@ -12,19 +13,22 @@ import { useInspectorStore } from "../../stores/inspector";
 const insp = useInspectorStore();
 // `kind` says which of the three things is open (app 0.4.32): a tile, a page or the top bar, each with its own colour,
 // shown here as a word over the title and a line along the top, and on the canvas as the ring around what is chosen.
-defineProps<{ title: string; icon?: IconName; code?: string; tone?: { color?: string; background?: string }; crumbs?: Crumb[]; kind?: "tile" | "page" | "bar" }>();
+defineProps<{ title: string; icon?: IconName; code?: string; tone?: { color?: string; background?: string }; crumbs?: Crumb[]; kind?: "tile" | "page" | "bar"; back?: { text: string; open: () => void } }>();
 const KIND_ICONS = { tile: "view-dashboard-outline", page: "view-column-outline", bar: "page-layout-header" } as const;
 </script>
 
 <template>
   <div class="dr-head" :class="kind ? `kind-${kind}` : undefined">
+    <button v-if="back" type="button" class="dr-back" id="inspector-back" :aria-label="t('editor.inspector.back', { name: back.text })" :title="`${t('editor.inspector.back', { name: back.text })} · Esc`" @click="back.open()">
+      <Icon name="chevron-left" /><span>{{ back.text }}</span>
+    </button>
     <span class="av" :style="tone ? { color: tone.color, background: tone.background } : undefined">
       <Icon v-if="icon" :name="icon" /><span v-else-if="code" class="mdi" aria-hidden="true">{{ glyphOf(code) }}</span>
     </span>
     <span class="tx">
       <span v-if="kind" class="dr-kind"><Icon :name="KIND_ICONS[kind]" />{{ t(`editor.inspector.kind.${kind}`) }}</span>
       <slot name="title"><b>{{ title }}</b></slot>
-      <span v-if="crumbs?.length" class="crumbs">
+      <span v-if="crumbs?.length && !back" class="crumbs">
         <template v-for="(crumb, i) in crumbs" :key="i">
           <Icon v-if="i" name="chevron-right" class="crumb-sep" />
           <button v-if="crumb.open" type="button" class="crumb" :class="{ mono: crumb.mono }" @click="crumb.open()">{{ crumb.text }}</button>

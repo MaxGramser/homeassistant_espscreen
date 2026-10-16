@@ -13,6 +13,7 @@ from core import (BAR_CARDS_FEATURE, ENTITY_REPEAT_MIN_FIRMWARE, FIRMWARE_MAX_BA
                   NIGHTSTAND_MIN_FIRMWARE, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES, STORE_MAX_TILES, is_key, repeated_entities, sizes_on)
 from page_layout import compile_tiles, fingerprint, grid_of_record, new_id
 from i18n import english
+import tile_icons
 
 PROTOCOL = 2
 MAX_MESSAGE = 4096
@@ -76,6 +77,13 @@ def page_message(page, index, items, *, initial):
         title = page["topbar"]["title"]
         message.update(id=page["id"], title=title.get("text", "") if title["source"] == "text" else "",
                        home_control=bool(page["topbar"]["leading"]), excluded=page["navigation"]["excludeFromPagination"])
+        # Only a page the Dock leaves out says so: every other page message stays as it was, and firmware from before
+        # the Dock reads past the key.
+        if page["navigation"].get("showInDock") is False:
+            message["dock"] = False
+        # A page's own icon, which the Dock shows instead of its picture: its codepoint, as a tile's icon travels.
+        if page.get("icon") in tile_icons.GLYPHS:
+            message["icon"] = tile_icons.GLYPHS[page["icon"]]
     return message
 
 

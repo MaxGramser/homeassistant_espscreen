@@ -168,15 +168,17 @@ shows as a box on the screen, so a new one goes into all five lists and `GLYPHS`
   face a board carries, when they fit under the name and beside the unit and the value has no letter that face
   lacks (a word keeps the value's own face); a 4-inch Guition has no such room and keeps its face. A cell at
   least twice the look's cell height stacks the icon above the name and state.
-- **A control that fills its room is one cell wide** (`runtime_tiles::cell_content_width`). A double-width card
-  is two cells of its row: its slider, its - / + pill and a player's volume with its mute key take the second
-  one, so their edges stand where the cards in the rows above and below have theirs. A row of keys divides that
-  same cell between three of them, never above the key size the look gives and never under `ui::touch_min()`;
-  a switch and a run key keep their own size against the same edge. The look's numbers in `panel_metrics` are
-  what one cell of a CYD and a 4-inch Guition measures, give or take two pixels - which is why writing them as
-  a rule changes nothing there, and why a board whose grid divides its glass differently needs it: on the
-  Waveshare's three columns that number was a slider of 251 px on a card of 478, leaving the name 28 % of the
-  card where a Guition leaves it 36 %.
+- **A control that fills its room takes every cell after the first** (`runtime_tiles::rest_content_width`). The
+  first cell of a wide card holds its icon, name and state, as a card of one cell does, and the control fills the
+  cells beside it as if they were one card, a card's padding inside each edge. A double-width card's slider, its
+  - / + pill and a player's volume with its mute key take the second cell; on a card of three cells they take the
+  second and the third. Their edges stand where the cards in the rows above and below have theirs. A row of keys
+  divides that same room between three of them, never above the key size the look gives and never under
+  `ui::touch_min()`; a switch and a run key keep their own size against the same edge. The look's numbers in
+  `panel_metrics` are what one cell of a CYD and a 4-inch Guition measures, give or take two pixels, which is why
+  writing them as a rule changes nothing there, and why a board whose grid divides its glass differently needs it:
+  on the Waveshare's three columns that number was a slider of 251 px on a card of 478, leaving the name 28 % of
+  the card where a Guition leaves it 36 %.
 - What does not fit is left out: the forecast shows as many day columns as the width holds (seven at
   most, none below two), a single clock card drops its date when it has no room beside the dial, a
   wide card gets a control panel only when the panel, the icon and some name fit.
@@ -385,22 +387,36 @@ against its page as on the screen (`cardHeight` in `web/src/model/ui-scale.ts`).
   section checked on glass and an entry in `boards.yaml`.
 
 
-### Optional cover slat controls
+### A cover's controls by its room
 
-Taller and full-page cover tiles can explicitly select a slat group alongside
-an optional primary control. The editor keeps those choices separate; resizing
-never enables the extra group. Supported HA actions determine whether the group
-contains a tilt-position slider or individual open, stop and close tilt keys.
+A cover tile with its slats chosen (and, on a screen that says `cover_rows` in its hello, a cover tile one row high or
+of one cell with any control chosen) lays its controls out by the room its card has. `cover_tile::layout` takes the
+richest tier that fits, measured in the look's finger (`ui::touch_min`, 7 mm) and fonts, never a board's name:
 
-`cover_tile.h` lays out the selected groups using measured body dimensions,
-caption height and the active look's physical touch size. It changes a vertical
-key stack to a row when that makes the groups fit. If space is insufficient,
-only the primary controls remain on the tile, and the existing detail overlay
-keeps the supported slat controls. No board identity or fixed glass resolution
-participates in this decision.
+| Tier | What the card draws | Where it fits |
+| --- | --- | --- |
+| `COLUMNS_KEYS` | position and slats standing side by side, open/stop/close in a row under them | a tall card with room for a row of keys too |
+| `COLUMNS_SIDE` | the same, the keys stacked beside the sliders | a card wider than tall |
+| `COLUMNS` | the two standing sliders (or key stacks), a caption under each | a card two sliders high |
+| `ROWS` | each group lying in a row of its own: bars, as Home Assistant stacks its tile features | a low card two rows high |
+| `SWAP` | one row and a key that turns it from the primary control to the slats and back | a card one row high |
 
-The tile and overlay share `cover_slider`, `cover_tilt_keys`, and
-`cover_position_action`. Position fills the closed part of the blind; slat tilt
-uses the HA tilt percentage directly. The tile also uses the existing captured
-slider lifecycle, so a lost press cannot send an action. Capability and pending
-checks run again when an interaction commits.
+A bar or a key may be drawn at 85 % of a finger (`cover_tile::bar_height`, the size of the tile's own bars) where a
+whole finger does not fit; its touch area keeps the finger's size. A card one row high lays its controls only (two thin
+standing sliders beside a name read worse than two bars). A card at least twice as wide as high puts its heading at the
+left where that gives the controls a richer tier and the whole name fits the left half. Where nothing fits, the card is
+the one it is without them, and the cover's card keeps every control. Open, stop and close come with a positional blind
+only where the room holds them too. A tile that grows by its edge gets the slats suggested where the blind has them
+(docs/CATALOGUE.md, "A tile that grows"), and the tip beside it lets the user keep, change or drop them.
+
+The slats of a tilt slider are drawn at the angle the blind stands at (`cover_tile::slats`, `cover_paint::slats_draw`):
+flat when open, nearly upright and overlapping when closed, in a pale tint behind the slider's accent handle. The
+slider draws them itself, so they turn with every value without objects of their own; the tile, the cover's card and a
+cover group's page share the one drawing (`cover_paint.h`). The editor lays the card out with `model/cover-tile.ts`, a
+port that `tests/test_editor_parity.py` compares with the C++ on a sweep of rooms.
+
+The tile and the card share `cover_slider`, `cover_bar`, `cover_tilt_keys` and `cover_position_action`. A standing
+position slider fills the closed part of the blind; a lying one fills the open part, as Home Assistant's
+cover-position feature does (`cover_bar_raw` turns its value around before it goes out). The tile uses the existing
+captured slider lifecycle, so a lost press cannot send an action. Capability and pending checks run again when an
+interaction commits.

@@ -191,7 +191,10 @@
       "hours_minutes": "{h} ó {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
-      "plugins": "Bővítmények"
+      "plugins": "Bővítmények",
+      "microphone_gain": "Mikrofonerősítés",
+      "automatic_gain": "Automatikus erősítés",
+      "echo_cancellation": "Visszhangszűrés"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -239,7 +242,16 @@
       "resume": "Folytatás",
       "start_cleaning": "Takarítás indítása",
       "clean": "Takarítás",
-      "dock": "Dokkoló"
+      "dock": "Dokkoló",
+      "stop": "Leállítás",
+      "by_room": "Terület szerint",
+      "routines": "Rutinok",
+      "suction_water": "Szívás és felmosás",
+      "pick_rooms": "Válassz egy vagy több területet",
+      "order_hint": "Nem minden robot tartja ezt a sorrendet",
+      "no_rooms": "Nincs hozzárendelt terület",
+      "no_rooms_how": "Rendeld a szegmenseket területekhez a Home Assistantban, a porszívó beállításainál.",
+      "routines_note": "A robot saját alkalmazásában készült"
     },
     "cover": {
       "position": "Pozíció",
@@ -380,7 +392,8 @@
         "cleaning": "Takarítás",
         "paused": "Szünetel",
         "returning": "Dokkolás folyamatban",
-        "idle": "Tétlen"
+        "idle": "Tétlen",
+        "error": "Hiba"
       },
       "weather": {
         "sunny": "Napos",
@@ -937,6 +950,8 @@
       "offline": "A kijelző offline volt; legközelebb újrapróbáljuk.",
       "unknown_target": "A profil vagy az IP-cím ismeretlen; frissítsd ezt a kijelzőt kézzel.",
       "build_failed": "A fordítás vagy a telepítés sikertelen; nézd meg a naplót a Firmware és USB alatt.",
+      "plugin_update_needed": "A(z) {name} nem fordítható ezzel a firmware-rel. Frissítsd a(z) {name} bővítményt {version} verzióra a Plugins oldalon, majd frissítsd újra a kijelzőt.",
+      "plugin_failed": "A(z) {name} {version} nem fordítható ezzel a firmware-rel, és még nincs újabb verzió. Távolítsd el a(z) {name} bővítményt a Plugins oldalon, hogy nélküle frissíthesd a kijelzőt; a napló a Firmware & USB alatt van.",
       "build_memory": "Nincs elég memória a firmware fordításához: körülbelül {need} kell szabadon, és {free} van. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek; lásd Firmware és USB.",
       "build_memory_limit": "Nincs elég memória a firmware fordításához, egy fordítóval sem. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek; lásd Firmware és USB.",
       "no_report": "A kijelző nem jelentkezett vissza a(z) {version} firmware-rel; ellenőrizd a kijelzőt.",
@@ -998,7 +1013,8 @@
         },
         "media_player": {
           "volume": "Hangerő és némítás",
-          "playback": "Előző, lejátszás/szünet, következő"
+          "playback": "Előző, lejátszás/szünet, következő",
+          "volume_playback": "Hangerő és előző, lejátszás/szünet, következő"
         },
         "number": {
           "stepper": "Érték − / +",
@@ -1102,6 +1118,18 @@
         "wake_when_moved": {
           "label": "Ébresztés mozgatásra",
           "hint": "A kijelző felébred készenlétből, ha valaki felveszi, elmozdítja vagy megkocogtatja. Magát a kijelzőt érzékeli, nem az arra járókat."
+        },
+        "microphone_gain": {
+          "label": "Mikrofonerősítés",
+          "hint": "Analóg mikrofonerősítés. Kezdetben 30 dB; a lejátszási referencia erősítése állandó marad."
+        },
+        "automatic_gain": {
+          "label": "Automatikus erősítés",
+          "hint": "A mikrofon kodekje automatikusan állítja a felvétel szintjét. Független a visszhangszűréstől."
+        },
+        "echo_cancellation": {
+          "label": "Visszhangszűrés",
+          "hint": "Csökkenti a saját hangszóró hangját a mikrofon jelében. Kikapcsolva megkerüli a szűrést; a mikrofon és a teljes duplex hang továbbra is működik. AEC hangút szükséges."
         }
       }
     },
@@ -1445,7 +1473,8 @@
       "remove": "Eltávolítás",
       "loading": "Betöltés…",
       "back": "← Vissza",
-      "copy": "Másolás"
+      "copy": "Másolás",
+      "done": "Kész"
     },
     "nav": {
       "plugins": "Bővítmények",
@@ -1881,7 +1910,7 @@
         "network_none": "A Home Assistanton kívül semmihez nem csatlakozik",
         "read": "Ezeket az entitásokat olvassa a Home Assistantból"
       },
-      "warning": "A bővítmény teljes hozzáféréssel fut a kijelződön, beleértve a Wi-Fi-t és azokat a műveleteket, amelyeket a kijelző a Home Assistantban végrehajthat. Csak megbízható készítőktől adj hozzá bővítményt, vagy előbb olvasd el a kódot.",
+      "warning": "A bővítmény teljes hozzáféréssel fut a kijelződön, beleértve a Wi-Fi-t és azokat a műveleteket, amelyeket a kijelző a Home Assistantban végrehajthat, a fordítása pedig ebben az alkalmazásban fut, ahol hozzáfér a Home Assistant konfigurációdhoz. Csak megbízható készítőktől adj hozzá bővítményt, vagy előbb olvasd el a kódot.",
       "room": {
         "title": "Hely ezen: {screen}",
         "small": "{kb} KB-tal több: a firmware foglaltsága {before} helyett {after} lesz.",
@@ -2147,7 +2176,17 @@
       "now": "most",
       "minutes": "{n} perc",
       "live": "A szerkesztő a bővítmény saját adataiból rajzolja meg; a képernyő maga rajzolja, és a saját órája szerint számol vissza.",
-      "entity": "Entitás"
+      "entity": "Entitás",
+      "add": "Hozzáadás",
+      "change": "Másik választása",
+      "find": "Keresés…",
+      "search": "Keresés…",
+      "search_more": "Írj be legalább két betűt",
+      "none_found": "Nincs találat",
+      "remove": "{name} eltávolítása",
+      "type": "Írd be, majd Enter",
+      "full": "A kijelző nem fogad többet ehhez a csempéhez: a beállításai megteltek.",
+      "count": "{n} / {max}"
     },
     "memory": {
       "label": "Memória a csempéknek",
@@ -2348,7 +2387,8 @@
         "full_hint": "Az egész oldalas csempe alján; bárhol máshol a koppintás az alábbi beállítás szerint működik.",
         "wide_hint": "A dupla széles csempe jobb oldalán, mint a Home Assistant soraiban. A névre koppintás az alábbi beállítás szerint működik.",
         "needs_firmware": "A kijelző a 0.2.19-es firmware-től mutatja a közvetlen vezérlést; addig a csempe változatlan marad.",
-        "tall_hint": "Válaszd ki, milyen vezérlők jelenjenek meg a többletmagasságban. Átméretezéskor a választásod megmarad; vezérlőt sosem ad hozzá automatikusan.",
+        "tall_hint": "Válaszd ki a vezérlőket az extra magassághoz. A növekvő csempe a legbővebb elférő készletet javasolja; a saját választásod megmarad.",
+        "room_hint": "A kijelző ott rajzolja ki őket, ahol a csempén van hely (0.57.0-s vagy újabb firmware): egyes csempén a név alatt, dupla szélesen mellette. Ahol nem férnek el, a csempe úgy néz ki, mint nélkülük.",
         "tilt": "Lamella dőlése",
         "tilt_hint": "Ha van elég hely, hozzáadja a támogatott lamellacsúszkát vagy dőlésgombokat. Kisebb csempéken használd a részletes nézetet. A nyitás/zárás választásod változatlan marad."
       },
@@ -2587,6 +2627,16 @@
           "grey": "Szürke",
           "blue-grey": "Kékesszürke"
         }
+      },
+      "anchor_hint": "Kattints az ikonra egy másik választásához, vagy a névre a csempe átnevezéséhez",
+      "grow": {
+        "title": "Hely több vezérlőnek",
+        "applied": "{columns} × {rows} méretben több vezérlő fér el. Válaszd ki, mit mutasson a csempe; később a Vezérlők alatt módosíthatod.",
+        "offered": "{columns} × {rows} méretben ezeknek van hely a csempén. Válaszd ki, mit mutasson; később a Vezérlők alatt módosíthatod.",
+        "suggested": "Javasolt",
+        "none": "Nincs vezérlő",
+        "never": "Ne mutasd újra",
+        "done": "Kész"
       }
     },
     "precision": {
@@ -2650,28 +2700,21 @@
       "screen_name": "Kijelző címe",
       "screen_name_hint": "Minden saját cím nélküli oldal ezt mutatja.",
       "no_title_hint": "Hagyd üresen, ha csak a logót szeretnéd látni.",
-      "right": "Jobb oldal: idő, érzékelők vagy óra",
       "item_label": "{name}, {slot}. hely. Enter: beállítás, nyilak: áthelyezés",
-      "remove_named": "{name} eltávolítása a felső sávból",
       "max": "Legfeljebb 1 elem | Legfeljebb {n} elem",
       "add_title": "Idő, dátum, analóg óra vagy entitás hozzáadása",
-      "add_button": "Idő, dátum vagy entitás hozzáadása",
       "hint": {
         "overflow": "Nem fér el minden a név mellett: a kijelző elhagyja a szaggatott keretes elemeket. Távolíts el egyet, vagy válassz rövidebb nevet.",
-        "reorder": "Húzással rendezheted át; koppints egy elemre a beállításához.",
         "needs_firmware": "Az érzékelők, a dátum és az analóg óra a(z) {version} firmware-től jelennek meg; addig ez a kijelző a nevet mutatja, és ha az idő a sávban van, az órát."
       },
       "detail": {
         "hidden": "Rejtve: most nem aktív",
         "overflow": "Nem fér el a név mellett",
-        "dial": "Számlap",
         "hidden_signal": "Rejtve, amíg a jel jó",
         "hidden_link": "Rejtve, amíg minden csatlakoztatva van",
         "hidden_battery": "Rejtve, amíg az akkumulátor 20 % fölött van"
       },
       "live": {
-        "hidden": "Most rejtve: nem aktív",
-        "overflow": "Jelenleg nem fér el a név mellett",
         "looks": "Így néz ki a kijelzőn"
       },
       "analog_sample": "Kis számlap az idővel",
@@ -2688,8 +2731,6 @@
       "clock_12": "12 órás óra · módosítás itt: {settings}",
       "clock_settings": "Beállítások → Nyelv és régió",
       "date_hint": "Ma {date}. A dátum a kijelző saját óráját követi.",
-      "up": "Fel",
-      "down": "Le",
       "add": {
         "title": "Hozzáadás a felső sávhoz",
         "slots": "{used} / {n} hely foglalt | {used} / {n} hely foglalt",
@@ -2702,7 +2743,6 @@
         "none_found": "Nincs találat.",
         "plugins": "Bővítményekből"
       },
-      "left": "Bal oldal",
       "left_hint": "Cím és kezdőlap gomb: az oldal beállításaiban",
       "wifi_sample": "A kijelző saját jele",
       "link_sample": "Csak ha a Home Assistant vagy a Tessera nem elérhető",
@@ -2713,7 +2753,18 @@
       "battery_hint": "A kijelző maga olvassa az akkumulátorát, így ez az elem a sávon marad, amikor a Home Assistant nem elérhető. Az ikon úgy követi a töltöttséget, ahogy a Home Assistant rajzolja, töltés közben villámmal.",
       "battery_show_hint": "A Csak ha alacsony üresen hagyja a sávot, amíg az akkumulátor 20 % vagy kevesebb nem lesz.",
       "status_firmware": "Ez az elem a(z) {version} firmware-től jelenik meg. A frissítésig a kijelző kihagyja.",
-      "plugin_item": "Azt mutatja, amit a bővítménye mond, csak amíg van mit mondania. Egy képernyőn e bővítmény nélkül nem jelenik meg."
+      "plugin_item": "Azt mutatja, amit a bővítménye mond, csak amíg van mit mondania. Egy képernyőn e bővítmény nélkül nem jelenik meg.",
+      "left_move": "Balra",
+      "right_move": "Jobbra",
+      "strip": {
+        "left_title": "Cím és Kezdőlap gomb",
+        "left_hint": "Bal oldal · itt állítható: {page}",
+        "place": "{place}. elem / {count}",
+        "hint": "Koppints egy elemre a sávban a beállításához. Húzd balra vagy jobbra az áthelyezéshez, vagy ki a sávból az eltávolításhoz.",
+        "copy": "Sáv másolása más oldalakra",
+        "copy_hint": "Az elemei, vagy az egész sáv a címmel",
+        "page_settings": "{page} beállításai"
+      }
     },
     "screen_settings": {
       "groups": {
@@ -2804,11 +2855,9 @@
         "keys_hint": "A lejátszás, a szünet és a hangerő működik a képernyővédőn. Máshol egy koppintás felébreszti a képernyőt.",
         "choose_camera": "Válassz kamerát",
         "camera_hint": "A képe, 15 másodpercenként",
-        "glass": "A képernyőn",
         "temperature": "Hőmérséklet",
         "weather_auto": "Automatikus",
         "weather_none": "Nincs hőmérséklet",
-        "beside": "Mellette",
         "items_add": "Entitás hozzáadása",
         "items_hint": "A hőmérséklet mellett, egy sorban: egy érzékelő, egy ajtó, egy lámpa.",
         "items_full": "Az órán {n} entitásnak van hely.",
@@ -2821,7 +2870,27 @@
         "item_both": "Mindkettő",
         "item_look": "Mutatja",
         "item_hint": "Fekete-fehéren a képernyőkímélőn, az entitás színétől függetlenül.",
-        "items_add_title": "Hozzáadás az órához"
+        "items_add_title": "Hozzáadás az órához",
+        "clock_part": "Idő, dátum és hőmérséklet",
+        "row_hint": "Koppints egy entitásra a sorban a beállításához. Húzd balra vagy jobbra az áthelyezéshez, vagy ki a sorból az eltávolításhoz.",
+        "player_search": "Lejátszók keresése",
+        "player_none": "Nincs ilyen lejátszó",
+        "face": "Számlap",
+        "faces": {
+          "digital": "Digitális",
+          "glass": "Üveg",
+          "classic": "Klasszikus",
+          "bauhaus": "Bauhaus"
+        },
+        "look": "Megjelenés",
+        "look_dark": "Sötét",
+        "look_light": "Világos",
+        "look_auto": "Mint a képernyő",
+        "numerals": "Számok",
+        "numerals_none": "Nincs",
+        "seconds": "Másodpercmutató",
+        "face_alone_hint": "Ez a számlap csak az időt mutatja. A hőmérséklet és az entitások a Klasszikus és a Digitális számlapon látszanak.",
+        "face_moves_hint": "A számlap percenként kicsit elmozdul, a Bauhaus pedig tízpercenként új képet fest, így semmi sem marad sokáig ugyanazokon a pixeleken."
       },
       "plugins": {
         "title": "Bővítmények",
@@ -3327,6 +3396,16 @@
       "start_fresh_confirm": "Egy üres oldallal kezdesz ezen a kijelzőn? Az eredeti elrendezés a migrációs biztonsági mentésben megmarad. A többi kijelző nem változik.",
       "offline_notice": "Várakozás a kijelző újracsatlakozására. A szerkesztés az utoljára ellenőrzött képességeit használja.",
       "include_navigation_hint": "Kikapcsolva a közvetlen hivatkozások továbbra is megnyitják ezt az oldalt. A Vissza az alsó sávban jelenik meg, vagy a Kezdőlap helyén, ha az a sáv rejtett.",
+      "dock_picture": "Az oldal képe",
+      "in_dock": "A Dockban",
+      "in_dock_hint": "A Dock az alsó szélről felfelé húzva nyílik meg, és minden oldalt megmutat, hogy odaugorj.",
+      "dock_mode_picture": "Kép",
+      "dock_mode_icon": "Ikon",
+      "dock_mode_hidden": "Rejtett",
+      "dock_hint_picture": "A Dock egy kis képet mutat erről az oldalról.",
+      "dock_hint_icon": "A Dock ezt az ikont mutatja az oldal képe helyett.",
+      "dock_hint_hidden": "Az oldal megmarad a lapozásban és az oldalpontokban; csak a Dock hagyja ki.",
+      "wizard_home": "Kezdőlap gomb",
       "home_control": "Kezdőlap gomb megjelenítése ezen az oldalon",
       "clock_control": "Idő",
       "edit_topbar": "Az oldal felső sávjának szerkesztése",
@@ -3408,7 +3487,10 @@
       "bar_entities": "Jobb oldalon is",
       "actions_blocked": "A Home Assistant még nem engedi, hogy ez a kijelző műveleteket hajtson végre, így egy csempe megérintése nem csinál semmit.",
       "allow_actions": "Műveletek engedélyezése",
-      "actions_allowed": "{name} mostantól vezérelheti az eszközeidet."
+      "actions_allowed": "{name} mostantól vezérelheti az eszközeidet.",
+      "part_page": "Az oldal: cím és navigáció",
+      "part_page_hint": "Cím, kezdőlap és hogyan jutsz ide",
+      "home_control_hint": "A Kezdőlap gombot az oldal felső sávjának bal szélére teszi. A kezdőlapra visz."
     },
     "feedback": {
       "question": "Úgy működik a kijelződ, ahogy várod?",
@@ -3531,9 +3613,9 @@
       "remove": "Az előnézet és a böngészőben mentett elrendezése.",
       "save": "Előnézet mentése",
       "saved": "Mentve ebben a böngészőben",
-      "hint": "A kijelző saját firmware-e, a szerkesztett elrendezésből rajzolva. Koppints, tartsd lenyomva és húzd, mint a kijelzőn. Semmi nem mentődik.",
+      "hint": "A kijelző saját firmware-e, a szerkesztett elrendezésből rajzolva. Koppints, tartsd lenyomva és húzd, mint a kijelzőn. Az elrendezés módosításai nem mentődnek.",
       "control": "A koppintások vezérlik az eszközöket",
-      "control_hint": "Bekapcsolva: egy csempére koppintás végrehajtja a műveletét a Home Assistantben, mint a kijelzőn. Kikapcsolva: az előnézet csak megmutatja, mit tenne a koppintás.",
+      "control_hint": "Bekapcsolva az érintések vezérelhetik a Home Assistant eszközeit és módosíthatják a panel beállításait. Kikapcsolva a hardverbeállítások csak olvashatók, az egyéb módosítások pedig az előnézetben maradnak.",
       "skipped": "A(z) {names} előnézeti kijelző nem tölthető be, kimaradt.",
       "not_kept": "Ez a böngésző nem tudta tárolni az előnézeti kijelzőt: a tárhelye megtelt vagy le van tiltva."
     },
@@ -3542,7 +3624,8 @@
         "tile": "Csempe",
         "page": "Oldal",
         "bar": "Felső sáv"
-      }
+      },
+      "back": "Vissza ide: {name}"
     },
     "confirm": {
       "leave_question": "Nem mentett módosításaid vannak. Mégis az áttekintésre lépsz?",
@@ -3700,6 +3783,12 @@
       "copy": "Másolás",
       "hint": "A(z) {copy} minden beállításukkal együtt másolja a csempéket. Válassz egy oldalt vagy cellát, itt vagy egy másik képernyőn, és nyomd meg a(z) {paste} billentyűt.",
       "remove": "Csempe eltávolítása | {n} csempe eltávolítása"
+    },
+    "menu": {
+      "cut": "Kivágás",
+      "move_to": "Áthelyezés oldalra",
+      "add_here": "Csempe hozzáadása ide",
+      "paste_here": "Beillesztés ide"
     }
   }
 }

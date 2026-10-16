@@ -54,12 +54,23 @@ def board_of(name):
     return ENTRIES[str(name).replace(str(ROOT) + '/', '')]
 
 
-def packages_of(path):
+def packages_of(path, *, all_variants=False):
     """The files a file's `packages:` block includes, in its order, resolved against that file's folder."""
     block = re.search(r'^packages:\n(.*?)(?=^[a-z_0-9]+:|\Z)', Path(path).read_text(), re.M | re.S)
     if not block:
         return []
     includes = re.findall(r'!include (\S+)', block[1])
+    if all_variants:
+        # Metadata must also know components/settings in opt-in transports. This only
+        # enumerates sibling YAML files; normal resolution still uses the board's default.
+        found = []
+        for include in includes:
+            if '${' in include:
+                pattern = re.sub(r'\$\{\w+\}', '*', include)
+                found.extend(sorted(Path(path).parent.glob(pattern)))
+            else:
+                found.append(Path(path).parent / include)
+        return [item.resolve() for item in found]
     if any('${' in include for include in includes):
         # A path worked out from the file's own substitutions, as ESPHome does it: the board file's own values, which
         # a screen's YAML may change when it is built.
@@ -68,12 +79,12 @@ def packages_of(path):
     return [(Path(path).parent / include).resolve() for include in includes]
 
 
-def chain(path):
+def chain(path, *, all_variants=False):
     """A file and everything it includes, depth first: each package's own packages before it, the file itself last.
     That is the order ESPHome merges them in, and the reverse of the order their substitutions win."""
     found = []
-    for package in packages_of(path):
-        for item in chain(package):
+    for package in packages_of(path, all_variants=all_variants):
+        for item in chain(package, all_variants=all_variants):
             if item not in found:
                 found.append(item)
     found.append(Path(path).resolve())
@@ -98,6 +109,26 @@ def hotspot(board):
     screen whose Wi-Fi changed is
     installed again over USB instead (docs/EASY_SETUP.md). Every board with more flash keeps it."""
     return flash_mb(board) > 4
+
+
+def _modules():
+    """components/smart_display/modules.py, the firmware's own table of tiers and modules, read where it lives."""
+    import importlib.util
+    path = Path(__file__).resolve().parents[1] / 'components' / 'smart_display' / 'modules.py'
+    spec = importlib.util.spec_from_file_location('smart_display_modules', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def tier(board):
+    """The UI tier of a board (docs/MODULES.md): lite below 8 MB of flash, full above, as the firmware works it out."""
+    return _modules().tier_for_flash(flash_mb(board))
+
+
+def modules(board):
+    """The modules a screen of this board has, by its tier (docs/MODULES.md)."""
+    return _modules().modules_for(tier(board))
 
 
 def wide_slots(board):

@@ -33,7 +33,8 @@ PLAYER, CAMERA = 'media_player.living_room', 'camera.front_door'
 PLAYING = {'state': 'playing', 'attributes': {'friendly_name': 'Living room', 'media_title': 'Song', 'media_artist': 'Band',
                                               'media_duration': 200, 'entity_picture': '/api/media_player_proxy/x?cache=1'}}
 DOOR = {'state': 'idle', 'attributes': {'friendly_name': 'Front door'}}
-CHOICE = {'show': True, 'media': PLAYER, 'camera': CAMERA, 'order': ['media', 'camera', 'clock'], 'off': [], 'weather': 'auto', 'more': [], 'items': []}
+CHOICE = {'show': True, 'media': PLAYER, 'camera': CAMERA, 'order': ['media', 'camera', 'clock'], 'off': [], 'weather': 'auto', 'more': [], 'items': [],
+          'face': 'digital', 'numerals': 4, 'seconds': True, 'look': 'dark'}
 
 
 class Choice(unittest.TestCase):
@@ -169,6 +170,24 @@ class Choice(unittest.TestCase):
         self.assertEqual(camera, {'op': 'saver', 'k': 'camera', 'e': CAMERA, 'n': 'Front door'})
         self.assertEqual(screen_saver.message(CHOICE, states, False, short, media_extras), {'op': 'saver', 'k': 'clock'})
         self.assertEqual(screen_saver.message({**CHOICE, 'show': False}, states, True, short, media_extras), {'op': 'saver', 'k': ''})
+
+    def test_the_clock_has_a_face_on_a_screen_that_draws_them(self):
+        """Module clock_faces: Glass, Classic or Bauhaus with their numerals, seconds hand and look, sent as `cf` only to a
+        screen whose hello lists clock_faces; any other screen keeps the digital clock."""
+        self.assertEqual({key: screen_saver.DEFAULT[key] for key in ('face', 'numerals', 'seconds', 'look')},
+                         {'face': 'digital', 'numerals': 4, 'seconds': True, 'look': 'dark'})
+        choice = screen_saver.validate({'show': True, 'face': 'glass', 'numerals': 12, 'seconds': False, 'look': 'auto'})
+        self.assertEqual((choice['face'], choice['numerals'], choice['seconds'], choice['look']), ('glass', 12, False, 'auto'))
+        for wrong in ({'face': 'flip'}, {'numerals': 6}, {'numerals': True}, {'seconds': 1}, {'look': 'night'}):
+            with self.assertRaises(ValueError, msg=wrong):
+                screen_saver.validate(wrong)
+        clock = {**CHOICE, 'off': ['media', 'camera'], 'face': 'bauhaus', 'look': 'light'}
+        drawn = screen_saver.message(clock, {}, True, short, media_extras, faces=True)
+        self.assertEqual(drawn['cf'], {'f': 'bauhaus', 'n': 4, 's': 1, 'l': 'light'})
+        self.assertNotIn('cf', screen_saver.message(clock, {}, True, short, media_extras))
+        self.assertNotIn('cf', screen_saver.message({**clock, 'face': 'digital'}, {}, True, short, media_extras, faces=True))
+        # A face is the clock's: a cover or a camera carries none.
+        self.assertNotIn('cf', screen_saver.message({**CHOICE, 'face': 'glass'}, {PLAYER: PLAYING}, True, short, media_extras, faces=True))
 
     def test_the_clock_shows_the_outside_temperature(self):
         """App 0.4.52: under the clock the outside temperature, whole degrees in Home Assistant's own unit, from its

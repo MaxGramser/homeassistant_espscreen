@@ -181,24 +181,51 @@ def size_rows(size, spans):
     return span[1] if span else 2 if size in ('tall', 'square') else 1
 
 
+def one_cell(size, spans):
+    """Whether a card is one cell: the single size, or a span of one column and one row."""
+    span = spans(size)
+    return size in (None, '', 'single') or span == (1, 1)
+
+
 def resolve_controls(tile, spans):
     """The control set a card draws, or None. Only a card with room beside or under its name has one; a full page and a
     card one column wide and taller draw none unless one was chosen, a wider card its type's default (the first).
-    A card one row high draws what fits there (`one_row`): the buttons of buttons and slats, the setpoint of both."""
+    A card one row high draws what fits there (`one_row`): the buttons of buttons and slats, the setpoint of both.
+    A control the screen lays out by its room (`room`, firmware 0.57.0) stays whole on any card, a card of one cell
+    included where it was chosen: drawn_controls cuts it for a screen that does not say `room`'s feature."""
     options = tile.get('options', {})
     domain = tile['entity'].split('.')[0]
     keys = control_keys(domain)
     size = options.get('size')
     span = spans(size)
-    if not keys or (size not in ('wide', 'tall', 'square', 'full') and span is None) \
-            or options.get('display', 'standard') not in ('standard', 'cover') or options.get('inline') == 'slider':
+    if not keys or options.get('display', 'standard') not in ('standard', 'cover') or options.get('inline') == 'slider':
+        return None
+    single = one_cell(size, spans)
+    if single:
+        choice = options.get('controls', 'none')
+        item = option(domain, 'controls', choice)
+        return choice if item and item.get('room') and choice != 'none' else None
+    if size not in ('wide', 'tall', 'square', 'full') and span is None:
         return None
     default = 'none' if size in ('tall', 'full') or (span or (0,))[0] == 1 else keys[0]
     choice = options.get('controls', default)
     item = option(domain, 'controls', choice)
-    if item and item.get('one_row') and size_rows(size, spans) == 1 and size != 'full':
+    if item and item.get('one_row') and not item.get('room') and size_rows(size, spans) == 1 and size != 'full':
         choice = item['one_row']
     return None if choice == 'none' else choice
+
+
+def roomless(domain, key, size, spans):
+    """What a screen without `room`'s feature draws of a control resolve_controls kept whole: nothing on a card of one
+    cell, the `one_row` part on a card one row high, the control itself elsewhere."""
+    item = option(domain, 'controls', key)
+    if not item or not item.get('room'):
+        return key
+    if one_cell(size, spans):
+        return 'none'
+    if item.get('one_row') and size_rows(size, spans) == 1 and size != 'full':
+        return item['one_row']
+    return key
 
 
 # ---- The screen's side: what a screen gets ----
@@ -224,6 +251,11 @@ def drawable(domain, key, attributes, features):
     item = option(domain, 'controls', key)
     if item is None:
         return key
+    # A set a screen draws once it says so in its hello (a player's volume over its keys, media_rows): another the
+    # screen draws before then (`else`).
+    screen = item.get('screen') or {}
+    if screen.get('feature') and 'else' in screen and not screen_holds(screen, features=features):
+        return 'none' if screen['else'] == 'none' else drawable(domain, screen['else'], attributes, features)
     if 'of' in item:
         parts = [drawable(domain, part, attributes, features) for part in item['of']]
         if parts == item['of']:
@@ -238,15 +270,24 @@ def drawable(domain, key, attributes, features):
     return key
 
 
-def drawn_controls(message, features):
+def drawn_controls(message, features, spans=lambda size: None):
     """The state message a screen gets, its controls cut to what it draws right (app 0.4.32): the entity's features and
     the screen's hello (`features`, the list it said; None where not known, as for the editor's preview, which runs
-    the newest firmware)."""
+    the newest firmware). A control the screen lays out by its room goes whole only to a screen that says so."""
     domain = message.get('entity', '').split('.', 1)[0]
     options = message.get('o')
     if not isinstance(options, dict) or not options.get('controls') or domain not in TYPES:
         return message
-    drawn = drawable(domain, options['controls'], (message.get('a') or {}), features)
+    key = options['controls']
+    item = option(domain, 'controls', key)
+    if item and item.get('room') and not screen_holds(item['room'], features=features):
+        key = roomless(domain, key, options.get('size'), spans)
+        # Where resolve_controls sent no controls before (a card of one cell, slats alone one row high), an older screen
+        # gets none again, not even 'none'.
+        if key == 'none':
+            del options['controls']
+            return message
+    drawn = 'none' if key == 'none' else drawable(domain, key, (message.get('a') or {}), features)
     if drawn != options['controls']:
         options['controls'] = drawn
     return message

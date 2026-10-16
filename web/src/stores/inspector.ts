@@ -46,6 +46,12 @@ export const useInspectorStore = defineStore("inspector", () => {
   const insertAt = computed(() => insert.value?.kind === "cell" ? insert.value.slot : -1);
   const insertKey = computed(() => insert.value?.kind === "key" ? { holder: insert.value.holder, key: insert.value.key } : null);
   const optionPreview = ref<OptionPreview | null>(null);
+  // Where the way back in the inspector's head leads (app 0.4.89): the page whose settings opened its top bar. Anything
+  // opened another way has none.
+  const back = ref<Inspector | null>(null);
+  // Which part of a page its settings show (app 0.4.89): the page itself or its place in the Dock, chosen in the small
+  // page at their head. Kept while its top bar is open, so the way back finds the part it left.
+  const pagePart = ref<"page" | "dock">("page");
   // A name asked to be changed (app 0.4.x): the drawer of that tile or page puts the focus in its name field. Counted, so
   // asking again for the same one focuses it again.
   const naming = ref<{ kind: "tile" | "page"; id: string; asked: number } | null>(null);
@@ -82,7 +88,7 @@ export const useInspectorStore = defineStore("inspector", () => {
     const found = [...new Set(ids)].map((id) => tiles.find((tile) => tile.id === id && tile.in === undefined)).filter((tile): tile is Tile => Boolean(tile));
     if (!found.length) { if (inspector.value?.kind === "tiles" || inspector.value?.kind === "tile") closeInspector(); return; }
     if (found.length === 1) { openTile(found[0]); return; }
-    iconPickerOpen.value = false; actionPickerOpen.value = false; entityPickerOpen.value = false; optionPreview.value = null;
+    iconPickerOpen.value = false; actionPickerOpen.value = false; entityPickerOpen.value = false; optionPreview.value = null; back.value = null;
     // The drawer first: a tile's drawer closes itself (and lets go of every choice) once its tile is no longer chosen.
     inspector.value = { kind: "tiles" };
     selection.value = found.map((tile) => tile.id!);
@@ -96,7 +102,7 @@ export const useInspectorStore = defineStore("inspector", () => {
     selectTiles(now.includes(tile.id) ? now.filter((id) => id !== tile.id) : [...now, tile.id]);
   }
   function openTile(tile: Tile) {
-    selection.value = [];
+    selection.value = []; back.value = null;
     if (!doc.isSelected(tile)) { iconPickerOpen.value = false; actionPickerOpen.value = false; actionSearch.value = ""; entityPickerOpen.value = false; }
     doc.selectedTileId = tile.id || null;
     doc.selectedPageId = doc.document?.pages.find((page) => page.tiles.some((item) => item.id === tile.id ||
@@ -105,35 +111,43 @@ export const useInspectorStore = defineStore("inspector", () => {
     entities.loadCapabilities([tile.entity]);
   }
   function openPage(id: string) {
-    selection.value = [];
+    if (!(inspector.value?.kind === "page" && inspector.value.id === id)) iconPickerOpen.value = false;
+    if (doc.selectedPageId !== id) pagePart.value = "page";
+    selection.value = []; back.value = null;
     doc.selectedPageId = id; doc.selectedTileId = null;
     inspector.value = { kind: "page", id };
   }
   // `page` is the page whose bar was clicked (app 0.2.105): the inspector changes that page's own title there, which is
   // where you look for it after clicking the bar.
   function openBar(index: number, page = doc.barPage) {
-    if (!(inspector.value?.kind === "bar" && inspector.value.index === index)) iconPickerOpen.value = false;
+    const was = inspector.value;
+    if (!(was?.kind === "bar" && was.index === index)) iconPickerOpen.value = false;
+    // From a page's settings the way back leads there; from the bar itself it stays where it led.
+    back.value = was?.kind === "page" ? was : was?.kind === "bar" || was?.kind === "bar-add" ? back.value : null;
     doc.selectedTileId = null;
     doc.selectedPageId = doc.document?.pages[page]?.id || null;
     inspector.value = { kind: "bar", index };
   }
   function openBarAdd() {
+    iconPickerOpen.value = false;
     doc.selectedTileId = null;
     inspector.value = { kind: "bar-add" };
   }
   // The drawer of one entity of the screensaver clock's row (app 0.4.81, stores/screensaver.ts).
   function openSaverItem(index: number) {
+    back.value = null;
     if (!(inspector.value?.kind === "saver-item" && inspector.value.index === index)) iconPickerOpen.value = false;
     doc.selectedTileId = null;
     inspector.value = { kind: "saver-item", index };
   }
   // One step of the screensaver in the drawer: its players, its camera or its clock.
   function openSaverStep(step: SaverKind) {
-    iconPickerOpen.value = false;
+    iconPickerOpen.value = false; back.value = null;
     doc.selectedTileId = null;
     inspector.value = { kind: "saver", step };
   }
   function openSaverAdd() {
+    iconPickerOpen.value = false; back.value = null;
     doc.selectedTileId = null;
     inspector.value = { kind: "saver-add" };
   }
@@ -148,7 +162,26 @@ export const useInspectorStore = defineStore("inspector", () => {
     openPage(id);
     naming.value = { kind: "page", id, asked: ++asked };
   }
+  /** The way back in the head: to the page whose settings opened this top bar. */
+  function goBack() {
+    const to = back.value;
+    back.value = null;
+    if (to?.kind === "page") openPage(to.id);
+  }
+  /** Escape goes one step out (app 0.4.89): an open icon choice, a tile's actions or another entity closes, Add goes back to its bar or its clock, a top bar
+   * opened from its page goes back to that page, and only then the inspector closes. */
+  function escape() {
+    if (iconPickerOpen.value) { iconPickerOpen.value = false; optionPreview.value = null; return; }
+    // A tile's actions or another entity in the place under it (app 0.4.89).
+    if (actionPickerOpen.value) { actionPickerOpen.value = false; actionSearch.value = ""; return; }
+    if (entityPickerOpen.value) { entityPickerOpen.value = false; return; }
+    if (inspector.value?.kind === "bar-add") { openBar(-1); return; }
+    if (inspector.value?.kind === "saver-add") { openSaverStep("clock"); return; }
+    if (back.value) { goBack(); return; }
+    closeInspector();
+  }
   function closeInspector() {
+    back.value = null;
     inspector.value = null;
     selection.value = [];
     doc.selectedTileId = null;
@@ -177,6 +210,7 @@ export const useInspectorStore = defineStore("inspector", () => {
     inspector, selection, band, selectedTiles, chosenTiles, isPicked, selectTiles, toggleTile, iconPickerOpen, actionPickerOpen, actionSearch, entityPickerOpen, insert, insertAt, insertKey, optionPreview, naming, renameTile, renamePage,
     // What the mockup reads as it draws (stores/lookup.ts).
     ...lookups({ previewed }),
+    back, pagePart, goBack, escape,
     forgetCell, openTile, openPage, openBar, openBarAdd, openSaverItem, openSaverStep, openSaverAdd, closeInspector,
   };
 });

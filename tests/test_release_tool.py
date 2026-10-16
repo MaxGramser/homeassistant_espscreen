@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import firmware_count  # noqa: E402
 import profiles  # noqa: E402
 import release  # noqa: E402
+import release_plugins  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import changelog as whats_new  # noqa: E402
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -201,6 +202,89 @@ class TheCandidate(unittest.TestCase):
                 text = release.git('show', f'{commit}:{path}', cwd=clone)
                 self.assertNotRegex(text, release.REF_MAIN)
                 self.assertIn(release.CANDIDATE, text)
+
+
+def plugin_index(api, *plugins):
+    """An index.json of the plugins repository: (id, version, api[, status])."""
+    return {'format': 1, 'plugin_api': api, 'plugins': [
+        {'id': p[0], 'status': p[3] if len(p) > 3 else 'ok', 'release': {'version': p[1]},
+         'manifest': {'id': p[0], 'version': p[1], 'api': p[2]}} for p in plugins]}
+
+
+class ThePlugins(unittest.TestCase):
+    """The plugins repository goes along with a release (tools/release_plugins.py): what it brings, what does not fit,
+    and main's index after it."""
+
+    def setUp(self):
+        self.api, self.fits = release_plugins.core_api(ROOT)
+        self.here = release_plugins.api_text(self.api)
+        self.newer = f'{self.api[0]}.{self.api[1] + 1}'
+
+    def test_the_core_of_the_release_decides_what_fits(self):
+        self.assertTrue(self.fits(self.here) and self.fits('0.8'))
+        self.assertFalse(self.fits(self.newer) or self.fits('0.3'))   # newer than the core, or before the 0.4 break
+        dev = plugin_index(self.here, ('tap_sound', '0.2.0', '0.11'), ('music', '1.0.0', self.newer), ('gone', '1.0.0', '9.9', 'blocked'))
+        self.assertEqual(release_plugins.misfits(dev, self.fits), [f'music 1.0.0 (plugin API {self.newer})'])
+
+    def test_what_the_release_brings_every_app(self):
+        main = plugin_index('0.10', ('tap_sound', '0.1.0', '0.8'), ('cinema', '1.2.0', '0.10'))
+        dev = plugin_index(self.here, ('tap_sound', '0.2.0', '0.11'), ('cinema', '1.2.0', '0.10'), ('music', '1.0.0', '0.12'))
+        self.assertEqual(release_plugins.brings(main, dev), [('tap_sound', '0.1.0', '0.2.0'), ('music', None, '1.0.0')])
+
+    def test_mains_index_after_the_release(self):
+        offered = plugin_index(self.here, ('tap_sound', '0.2.0', '0.11'), ('cinema', '1.2.0', '0.10'))
+        good = plugin_index(self.here, ('tap_sound', '0.2.0', '0.11'), ('cinema', '1.3.0', '0.10'))   # a newer one is fine
+        self.assertEqual(release_plugins.index_problems(good, self.api, self.fits, offered), [])
+        stale = plugin_index('0.10', ('tap_sound', '0.1.0', '0.8'), ('odd', '1.0.0', self.newer))
+        problems = release_plugins.index_problems(stale, self.api, self.fits, offered)
+        self.assertEqual(len(problems), 4, problems)   # another API, a misfit, one older, one missing
+        self.assertIn('plugin API 0.10', problems[0])
+
+    def test_the_address_beside_tesseras_own(self):
+        self.assertEqual(release_plugins.remote_of('git@github.com:MaxGramser/homeassistant_espscreen.git'),
+                         'git@github.com:MaxGramser/tessera-plugins.git')
+        self.assertEqual(release_plugins.remote_of('https://github.com/MaxGramser/homeassistant_espscreen'),
+                         'https://github.com/MaxGramser/tessera-plugins')
+        with self.assertRaises(release_plugins.Problem):
+            release_plugins.remote_of('https://example.org/other.git')
+
+    @unittest.skipUnless(shutil.which('git'), 'needs git')
+    def test_dev_merges_into_main_with_the_generated_files_settled(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            run = lambda *args, cwd=root / 'work': subprocess.run(['git', *args], cwd=cwd, check=True, capture_output=True, text=True)
+            subprocess.run(['git', 'init', '--quiet', '--bare', '-b', 'main', str(root / 'origin.git')], check=True)
+            subprocess.run(['git', 'clone', '--quiet', str(root / 'origin.git'), str(root / 'work')], check=True, capture_output=True)
+            for key, value in (('user.name', 'Release test'), ('user.email', 'release-test@example.invalid')):
+                run('config', key, value)
+            write = lambda name, text: (root / 'work' / name).write_text(text)
+            write('index.json', '{"plugin_api": "0.11"}'); write('likes.json', '{"a": 1}'); write('README.md', 'one\n')
+            run('add', '-A'); run('commit', '-qm', 'start'); run('push', '-q', 'origin', 'HEAD:main')
+            run('checkout', '-qb', 'dev')
+            write('index.json', '{"plugin_api": "0.12"}'); write('likes.json', '{"a": 2}'); (root / 'work' / 'plugins').mkdir()
+            write('plugins/new.txt', 'tap sound 0.2.0\n')
+            run('add', '-A'); run('commit', '-qm', 'dev'); run('push', '-q', 'origin', 'dev')
+            run('checkout', '-q', 'main')
+            write('index.json', '{"plugin_api": "0.10"}'); write('likes.json', '{"a": 3}')   # the hourly bot on main
+            run('add', '-A'); run('commit', '-qm', 'Index: likes'); run('push', '-q', 'origin', 'main')
+            with release_plugins.Clone(str(root / 'origin.git')) as plugins:
+                plugins.fetch()
+                self.assertEqual(plugins.merge('trial', keep=False), (None, []))
+                self.assertEqual(plugins.git('status', '--porcelain'), '')          # a trial leaves nothing behind
+                merged, left = plugins.merge('Merge dev into main', keep=True)
+                self.assertTrue(merged and not left)
+                self.assertEqual(plugins.git('show', f'{merged}:index.json'), '{"plugin_api": "0.12"}')   # dev's, built again after
+                self.assertEqual(plugins.git('show', f'{merged}:likes.json'), '{"a": 3}')                  # main's, the newest
+                self.assertEqual(plugins.git('show', f'{merged}:plugins/new.txt'), 'tap sound 0.2.0')
+                self.assertTrue(plugins.contains('origin/dev', merged))
+            # A conflict outside the generated files stops it, and leaves nothing behind.
+            write('README.md', 'main\n'); run('commit', '-qam', 'main readme'); run('push', '-q', 'origin', 'main')
+            run('checkout', '-q', 'dev'); write('README.md', 'dev\n'); run('commit', '-qam', 'dev readme'); run('push', '-q', 'origin', 'dev')
+            with release_plugins.Clone(str(root / 'origin.git')) as plugins:
+                plugins.fetch()
+                self.assertEqual(plugins.merge('trial', keep=False), (None, ['README.md']))
+                self.assertEqual(plugins.merge('again', keep=True), (None, ['README.md']))
+                self.assertEqual(plugins.git('status', '--porcelain'), '')
 
 
 if __name__ == '__main__':

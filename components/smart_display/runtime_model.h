@@ -13,6 +13,7 @@
 #include "optimistic.h"
 #include "energy_card.h"
 #include "calendar_card.h"
+#include "vacuum_model.h"
 #include "roomy.h"
 #include <cmath>
 #include <cstdint>
@@ -176,15 +177,21 @@ inline bool plugin_key(const std::string &entity) {
   }
   return true;
 }
-inline bool valid_entity(const std::string &entity) {
+// An entity id as Home Assistant writes it (domain.object_id: lowercase letters, digits, underscores), of any domain.
+inline bool entity_id(const std::string &entity) {
   if (entity.size() > 120) return false;
-  if (entity.rfind("plugin:", 0) == 0) return plugin_key(entity);
   auto dot = entity.find('.');
   if (dot == std::string::npos || dot == 0 || dot + 1 == entity.size()) return false;
   for (size_t i = 0; i < entity.size(); ++i)
     if (i != dot && !(entity[i] >= 'a' && entity[i] <= 'z') &&
         !(entity[i] >= '0' && entity[i] <= '9') && entity[i] != '_') return false;
-  std::string domain = entity.substr(0, dot);
+  return true;
+}
+inline bool valid_entity(const std::string &entity) {
+  if (entity.size() > 120) return false;
+  if (entity.rfind("plugin:", 0) == 0) return plugin_key(entity);
+  if (!entity_id(entity)) return false;
+  std::string domain = entity.substr(0, entity.find('.'));
   // screen.* are built-in cards without a Home Assistant entity behind them; screen.page_<n> (firmware 0.2.62+)
   // only goes to page n. Several pages may each carry the same one (firmware 0.2.65+, Model::set_layout).
   if (domain == "screen") {
@@ -269,6 +276,16 @@ struct Lamp {
   uint16_t hue = 0, kelvin = 0, low = 0, high = 0;
 };
 constexpr size_t MAX_LAMPS = 24;
+// A cover of a cover group (firmware 0.57.0): what the group's page shows of it and may change, as a lamp of a light
+// group. The add-on sends at most MAX_LAMPS of them, only to a screen whose hello says group_covers. `supported` is the
+// cover's own supported_features (tile_controls::cover_card reads it as a tile's); position and tilt NAN where it reports
+// none.
+struct Blind {
+  std::string entity, name, state, device_class;
+  uint32_t supported = 0;
+  float position = NAN, tilt = NAN;
+  bool unavailable = false;
+};
 struct Extra {
   // The effect a light runs (its `effect` attribute), and the rows of its effects page.
   std::string effect;
@@ -276,6 +293,8 @@ struct Extra {
   std::vector<NumberRow> number_rows;
   // The lamps of a light group, for its lamp page.
   std::vector<Lamp> lamps;
+  // The covers of a cover group, for its page (firmware 0.57.0).
+  std::vector<Blind> blinds;
   // Climate: the modes as JSON lists, the current fan and swing mode, and what it is doing now.
   std::string hvac_modes, fan_modes, swing_modes, fan_mode, swing_mode, hvac_action;
   // A humidifier (firmware 0.42.0+) keeps its modes (available_modes) in hvac_modes and what it does (action) in
@@ -313,6 +332,8 @@ struct Extra {
   std::shared_ptr<const energy_card::Data> energy;
   // A calendar card's events (firmware 0.56.0+, calendar_card.h): its own block too, shared with the card that paints it.
   std::shared_ptr<const calendar_card::Data> calendar;
+  // A vacuum card's map, rooms and routines (module vacuum, vacuum_model.h): its own block too.
+  std::shared_ptr<const vacuum_model::Data> vacuum;
   uint32_t media_duration = 0, media_position = 0, media_position_at = 0;
   // More of a media player (firmware 0.24.0+, app 0.4.42+): the speaker it plays on and the ones it may (source_list,
   // sixteen at most), shuffle (-1 for a player without it) and repeat ("" without it), the features it reported at its
@@ -385,7 +406,7 @@ struct Extra {
            media_picture.empty() && map_mark.empty() && !media_duration && !media_position && !media_position_at && fan_speeds.empty() && fan_speed.empty() &&
            choices.empty() && room.empty() && !charging && std::isnan(tilt) && action.empty() && action_data.empty() &&
            action_templates.empty() && state_word.empty() && subtitle.empty() && !subtitle_at && effect.empty() &&
-           option_rows.empty() && number_rows.empty() && lamps.empty() && code_format.empty() && changed_by.empty() && !arm_code_free &&
+           option_rows.empty() && number_rows.empty() && lamps.empty() && blinds.empty() && code_format.empty() && changed_by.empty() && !arm_code_free &&
            !code_saved && !alarm_end && !alarm_delay && !assumed && activity.empty() && keypad.empty() &&
            media_source.empty() && media_repeat.empty() && media_sources.empty() && media_shuffle < 0 && !media_features &&
            speaker_flags.empty() && speaker_volumes.empty() && media_inputs.empty() && media_input.empty() && media_target.empty() &&
@@ -687,7 +708,10 @@ struct Tile {
     if (builtin()) return true;
     if (!received || state.empty() || state == "unavailable") return false;
     auto d = domain();
-    return state != "unknown" || d == "scene" || d == "button" || d == "input_button";
+    // A cover that cannot tell whether it is open (an awning or a blind without feedback: Home Assistant's is_closed is
+    // None) reports "unknown" and still takes its keys, as in Home Assistant, where only "unavailable" turns them off
+    // (frontend data/cover.ts canOpen, canClose, canStop).
+    return state != "unknown" || d == "scene" || d == "button" || d == "input_button" || d == "cover";
   }
   // Home Assistant's stateActive() (frontend src/common/entity/state_active.ts), the rule its cards colour by: an
   // entity it calls inactive is grey, such as an airco that is off, a closed blind, a docked robot, a player in

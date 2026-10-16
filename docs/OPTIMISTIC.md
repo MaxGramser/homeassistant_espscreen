@@ -135,6 +135,8 @@ A wish writes its value into the tile and paints every tile and the open card of
 | `LAMP_LEVEL` | 1-100, `0` for off | a lamp's brightness, and on or off with it |
 | `LAMP_HUE` | 0-360 | a lamp's hue, at full saturation (sent as `hs_color`, rendered) |
 | `LAMP_KELVIN` | kelvin | a lamp's white shade |
+| `MEMBER_POSITION` | 0-100 | a cover of a cover group (`item`: the cover), its position |
+| `MEMBER_TILT` | 0-100 | its slats' tilt |
 | `EFFECT` | the effect | the effect a light runs |
 | `ROW_OPTION` | the option | a select of the light's device (`item`: the select) |
 | `ROW_NUMBER` | the number | a number of the light's device (`item`: the number) |

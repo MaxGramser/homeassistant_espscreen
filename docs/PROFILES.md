@@ -26,6 +26,13 @@ Both entries of every board are written from `boards.yaml` by `tools/generate_en
 fails when one is out of date), so neither is edited by hand. The old profiles in the root of the repository are gone
 (app 0.2.129); a build from a checkout names `checkout/<board>.yaml`.
 
+When a board selects a transport through an include such as `audio/${TRANSPORT}.yaml`,
+entry generation also discovers the sibling YAML variants' local components. This
+lets an override pick the other transport without editing generated entries. The
+settings in `boards.yaml` are checked against the default files only, so a board lists only the settings its default
+firmware has. Normal profile resolution follows the default transport too, and listing an external component does
+not enable it in the firmware.
+
 A board file reads like this (the 4-inch Guition, without its comments):
 
 ```yaml

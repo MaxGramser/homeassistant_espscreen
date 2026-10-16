@@ -114,7 +114,7 @@ def demo_hourly(now):
                       'temperature': round(16 + warm, 1), 'precipitation': 1.2 if 18 <= at.hour <= 21 else 0, 'precipitation_probability': 70 if 18 <= at.hour <= 21 else 10})
     return hours
 
-def configuration(grid, rotate=0, digital=False, wide=False, controls=False, now=None, titles=None):
+def configuration(grid, rotate=0, digital=False, wide=False, controls=False, now=None, titles=None, pages=None):
     """A canonical synthetic fixture, using the real board grid and formatter.
 
     The explicit fixture import is the only legacy-format boundary here. The
@@ -127,6 +127,14 @@ def configuration(grid, rotate=0, digital=False, wide=False, controls=False, now
     elif wide:
         layout['tiles'][0]['options'] = {'display': 'analog', 'size': 'wide'}
     layout['tiles'] = layout['tiles'][rotate:] + layout['tiles'][:rotate]
+    if pages:
+        # The same tiles again until `pages` pages are full (the dock's render): the tiles of a page past them go.
+        base = layout['tiles']
+        while grid.pack(layout['tiles'])[-1] // (grid.columns * grid.rows) < pages and len(layout['tiles']) < 64:
+            layout['tiles'] = layout['tiles'] + [dict(t) for t in base]
+        slots = grid.pack(layout['tiles'])
+        layout['tiles'] = [t for t, slot in zip(layout['tiles'], slots) if slot // (grid.columns * grid.rows) < pages]
+        layout['tiles'] = layout['tiles'][:64]
     for tile, slot in zip(layout['tiles'], grid.pack(layout['tiles'])):
         tile['slot'] = slot
     if titles: layout['page_titles'] = titles

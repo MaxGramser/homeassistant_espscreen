@@ -21,12 +21,14 @@ Home Assistant entity belongs in a board file. docs/README.md lists every doc an
 | add a screen setting | docs/SETTINGS.md | `settings_screen.h`, `SETTING_RULES` in `screen_manager/app/core.py` |
 | give a board a setting of its own (Extras: on the screen, in the app, in Home Assistant) | docs/SETTINGS.md, "A board's own settings" | `boards.yaml` `settings`, the board's `BOOT_BOARD_SETTINGS`, `entity_settings.py` |
 | add a board | docs/ADDING_A_BOARD.md, then docs/BOARD_RELEASES.md | `boards.yaml`, `packages/boards/<file>.yaml` |
+| add a part of the UI that only the larger boards get | docs/MODULES.md | `components/smart_display/modules.py`, `module_<name>.h` |
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
 | change how a picture reaches the screen | docs/CAMERA.md | `picture_loader.h`, `picture_fetch.h`, `camera_view.h`, `screen_manager/app/camera_feed.py` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
+| make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
 | make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `runtime_tiles.h` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
 | change what a plugin can do, or how plugins reach a screen | docs/PLUGINS.md, then the tessera-plugins repository's docs | `plugin_api.h`, `plugin_host.cpp`, `screen_manager/app/plugins.py`, `plugin_manifest.py` |
@@ -98,6 +100,9 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   scrolling stays out unless it is tested on real glass. Keep the touch filter and the event guard before actions;
   calibration works on filtered raw values, and the affine correction is applied once, never in both the driver and
   the UI. The default standby is at least 600 seconds.
+- **The editor's controls are Reka UI** (docs/PAGES.md): menus, selects, pickers and popups come from the wrappers in
+  `web/src/components/ui/`, a list of the user's own entities is a searchable, scrolling `UiPicker`, and a part Reka
+  has is never built by hand.
 - **The editor** is `web/src`; `screen_manager/app/static` is its build output: run `cd web && npm test && npm run
   build` and commit both. Keep every URL the page asks for relative (`api/...`) so it works behind ingress.
 - Production ingress needs no long-lived token or public port.
@@ -144,7 +149,8 @@ Two branches, and the difference between them is the most important rule in this
   whether it is a release or work to test on the bench, before anything goes near main.
 - **The release**, about once a week: `tools/release.py` with docs/RELEASING.md, "The release", step by step. It counts
   everything since the last release as one: one app version, one CHANGELOG section, one firmware number, tested as an
-  upgrade from main on the bench, and then main moves to that exact commit with its tag and GitHub release.
+  upgrade from main on the bench, and then main moves to that exact commit with its tag and GitHub release. The
+  plugins repository goes along in the same `publish`: its dev to its main, its index checked against the release.
 - **A hotfix** is for something broken for users now: a screen that doesn't start, an add-on that doesn't start, data
   that is lost. Branch from main (`hotfix-<what>`), fix it, release it alone with the same steps, then merge main into
   dev.
@@ -172,8 +178,10 @@ blueprint. Tiles live in the add-on's data; Wi-Fi, API and OTA stay in the scree
    and allows its actions (`screen_manager/app/ha_pairing.py`, docs/EASY_SETUP.md chapter 3); a screen built elsewhere
    is added by hand. Read real entity ids and attributes; don't make up entities, and don't run real device actions
    without the owner's permission.
-4. Per board, docs/<BOARD>.md has the hardware notes. Display support never configures relays or other peripherals
-   on the board.
+4. Per board, docs/<BOARD>.md has the hardware notes. Hardware that every unit of a board model has (the relays of the
+   Waveshare P4 86 panel, its codecs, a motion sensor) belongs in that board's file, as entities and Extras of that
+   board. Hardware a board only sometimes has (a Guition sold with or without relays, a module someone adds) is a
+   plugin made for that board (docs/PLUGINS.md), never the board file.
 
 - No automatic firmware upload to an arbitrary connected port: with several boards, first find the intended port.
 - Builds with the same `DEVICE_NAME` share `.esphome/build/<name>`: never compile or upload them at the same time.

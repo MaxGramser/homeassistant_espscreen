@@ -50,6 +50,11 @@ export type Face = {
   climateModes: boolean;
   /** A blind with slats, two rows or more: its slats beside its own control. */
   coverExtended: boolean;
+  /** A cover card one row high laid out by its room (firmware 0.57.0, cover_tile.h): its slats on a card of one row, its
+   * control on a card of one cell, where they fit; else the card it is without them. */
+  coverRow: boolean;
+  /** The primary control a cover card lays out beside its slats ('position', 'buttons' or ''). */
+  coverPrimary: string;
   /** A tall card that only opens something: the settings, or a page. */
   tallAction: boolean;
   /** A tall card that only switches: one centred stack. */
@@ -64,7 +69,7 @@ export type Face = {
   panelKeys: ControlKey[];
   /** A thermostat's modes as its mode bar, on a card of one row or the whole page. */
   modeBar: boolean;
-  /** The control fills the content width of one cell (runtime_tiles::cell_content_width). */
+  /** The control fills every cell after the first (runtime_tiles::rest_content_width). */
   fillsCell: boolean;
 };
 
@@ -72,8 +77,8 @@ export type Face = {
 const BIG_KEY_DOMAINS = ["light", "switch", "input_boolean", "fan", "script", "scene", "button", "input_button"];
 // Controls whose keys are not a row of keys: a toggle, a -/+, a slider, a run key.
 const NOT_KEYS = ["toggle", "setpoint", "volume", "run", "stepper", "slider", "brightness", "speed", "position"];
-// The screens give a control that fills its room the content width of one cell, so its edges stand where the cards
-// above and below have theirs; keys, a switch and a run key keep their own size.
+// The screens give a control that fills its room every cell after the first (the first keeps the name), so its edges
+// stand where the cards above and below have theirs; keys, a switch and a run key keep their own size.
 const FILLS_CELL = ["brightness", "speed", "position", "slider", "volume", "setpoint", "mode"];
 const CLOCK_FACES = ["dial", "flip", "digital"];
 
@@ -87,6 +92,7 @@ export function drawnControls(domain: string, chosen: string | null, live: Live 
   const drawn = chosen ? drawable(domain, chosen, live?.a || {}, rangeReady ? null : new Set<string>()) : null;
   const selected = drawn === "none" ? null : drawn;
   if (selected === "setpoint_mode" && rows < 2) return "setpoint";
+  if (selected === "volume_playback" && rows < 2) return "volume";
   if (domain !== "cover") return selected;
   const primary = coverPrimary(selected);
   return primary === "none" ? null : primary;
@@ -100,6 +106,9 @@ export function tileFace(input: FaceInput): Face {
   const thermostat = domain === "climate" || domain === "humidifier";
   const climateModes = thermostat && chosen === "setpoint_mode" && shape.rows > 1;
   const coverExtended = domain === "cover" && hasCoverTilt(chosen) && shape.rows > 1;
+  const coverRow = domain === "cover" && !full && shape.rows === 1 && options?.inline !== "slider" && ["standard", "cover"].includes(display)
+    && Boolean(chosen) && (hasCoverTilt(chosen) || (shape.columns === 1 && ["position", "buttons"].includes(chosen || "")));
+  const coverPrimaryKind = domain === "cover" ? availableControl(domain, coverPrimary(chosen) === "none" ? null : coverPrimary(chosen), state, a, input.rangeReady) : "";
   const tall = shape.rows > 1 && (!full || coverExtended || climateModes) && ["standard", "cover"].includes(display);
   const goesTo = pageTarget(entity);
   const tallAction = tall && (entity === "screen.settings" || Boolean(goesTo));
@@ -109,8 +118,9 @@ export function tileFace(input: FaceInput): Face {
   const bigKey = tall && !full && input.bigKeys && BIG_KEY_DOMAINS.includes(domain) && options?.inline !== "slider"
     && (!tallControls || tallControls === "toggle" || tallControls === "run");
   const face: Omit<Face, "kind"> = {
-    domain, display, full, wide, tall, thermostat, climateModes, coverExtended, tallAction, tallStack, bigKey, controls, tallControls,
-    tallKeys: controlKeys(domain, tallControls, state, a),
+    domain, display, full, wide, tall, thermostat, climateModes, coverExtended, coverRow, coverPrimary: coverPrimaryKind, tallAction, tallStack, bigKey, controls, tallControls,
+    // A player's volume over its keys: the keys are its playback's, the volume a row above them (TileTall).
+    tallKeys: controlKeys(domain, tallControls === "volume_playback" ? "playback" : tallControls, state, a),
     panelKeys: controls && !NOT_KEYS.includes(controls) ? controlKeys(domain, controls, state, a) : [],
     modeBar: thermostat && controls === "mode",
     fillsCell: FILLS_CELL.includes(controls || "") || (controls === "stepper" && !domain.endsWith("select")),

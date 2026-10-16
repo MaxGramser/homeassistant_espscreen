@@ -28,6 +28,10 @@ FEATURE = 'screensaver'
 KEYS_FEATURE = 'saver_keys'
 # A screen that draws the clock's row of entities (firmware 0.50.0+, app 0.4.81): `wi` in the message.
 ITEMS_FEATURE = 'saver_items'
+# A screen whose clock has faces beside the digital one (module clock_faces, boards with 8 MB of flash or more): `cf` in
+# the message. Its hello lists it; any other screen shows the digital clock whatever face is chosen.
+FACES_FEATURE = 'clock_faces'
+MODULE = 'clock_faces'
 # How long a paused player keeps the screensaver. A speaker stays "paused" in Home Assistant for days, and the camera
 # or the clock after it would never show again.
 PAUSED_SECONDS = 600
@@ -43,8 +47,13 @@ PICTURE_KINDS = frozenset(('media', 'camera'))
 # that plays with a cover: a speaker's own music first, say, and the poster of what the television under it plays next.
 # `items` (app 0.4.81): entities the clock shows beside the temperature, in one centred row: the top bar's entity items,
 # each with its state or its icon alone (content `state` or `icon`, with the icon `auto`, `none` or a named one).
+# `face` (clock_faces): the clock's face, `digital` (every screen), `glass`, `classic` or `bauhaus`; `numerals` the numbers
+# on Glass (0, 4 or 12), `seconds` its seconds hand, `look` dark, light or the screen's own (`auto`).
+FACES = ('digital', 'glass', 'classic', 'bauhaus')
+LOOKS = ('dark', 'light', 'auto')
+NUMERALS = (0, 4, 12)
 DEFAULT = {'show': False, 'media': '', 'camera': '', 'order': list(KINDS), 'off': [], 'weather': 'auto', 'more': [],
-           'items': []}
+           'items': [], 'face': 'digital', 'numerals': 4, 'seconds': True, 'look': 'dark'}
 ITEMS_MAX = 4
 MORE_PLAYERS = 3
 ENTITY = re.compile(r'[a-z0-9_]+\.[a-z0-9_]+')
@@ -85,6 +94,15 @@ def validate(value):
         result['weather'] = weather
     if 'items' in value:
         result['items'] = valid_items(value['items'])
+    for name, allowed in (('face', FACES), ('look', LOOKS), ('numerals', NUMERALS)):
+        if name in value:
+            if isinstance(value[name], bool) or value[name] not in allowed:
+                raise ValueError(f'screensaver {name}')
+            result[name] = value[name]
+    if 'seconds' in value:
+        if not isinstance(value['seconds'], bool):
+            raise ValueError('screensaver seconds')
+        result['seconds'] = value['seconds']
     if 'order' in value:
         order = value['order']
         if not isinstance(order, list) or sorted(order) != sorted(KINDS):
@@ -210,12 +228,22 @@ def pick(choice, states, pictures, keys=False, now=None, held='', broken=()):
     return ''
 
 
-def message(choice, states, pictures, short, media_extras, ground=None, keys=False, now=None, held='', bar=None, broken=()):
+def face(choice):
+    """The clock's face as the screen reads it (`cf`), or None for the digital clock."""
+    if choice.get('face', 'digital') not in FACES[1:]:
+        return None
+    return {'f': choice['face'], 'n': choice.get('numerals', 4), 's': 1 if choice.get('seconds', True) else 0,
+            'l': choice.get('look', 'dark')}
+
+
+def message(choice, states, pictures, short, media_extras, ground=None, keys=False, now=None, held='', bar=None, broken=(),
+            faces=False):
     """The screen message for what the screensaver shows now. `short(text, n)` cuts a text the way every message does,
     `media_extras(attrs)` is the media card's (core.media_extras), `ground(entity, attrs)` the cover's colours, `keys`
     whether the screen's screensaver has keys (KEYS_FEATURE), `held` the player it shows now, `bar(item)` the top bar's
     wire item for one of the clock's entity items (header_bar.entity_item), or None for a screen that takes none,
-    `broken` the players whose cover could not be fetched (player)."""
+    `broken` the players whose cover could not be fetched (player), `faces` whether the screen draws the clock's faces
+    (FACES_FEATURE)."""
     kind = pick(choice, states, pictures, keys, now, held, broken)
     result = {'op': 'saver', 'k': kind}
     if kind == 'clock':
@@ -231,6 +259,10 @@ def message(choice, states, pictures, short, media_extras, ground=None, keys=Fal
             row += [{key: value for key, value in bar(item).items() if key != 'c'} for item in choice['items']]
             if row:
                 result['wi'] = row
+        # The clock's face (clock_faces): only to a screen that draws them; older firmware and lite boards read past it.
+        chosen = face(choice) if faces else None
+        if chosen:
+            result['cf'] = chosen
     if kind not in PICTURE_KINDS:
         return result
     entity = player(choice, states, keys, now, held, broken) if kind == 'media' else choice[kind]

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-// Adding to the top bar: the screen's own items, then an entity (EntityItemPicker).
+// Adding to the top bar: the screen's own items, then an entity (EntityItemPicker). It stands under the bar at the head of
+// the top bar's inspector, in the place of an item's settings, while the bar's + is chosen (app 0.4.89).
 import { computed } from "vue";
 import { t } from "../i18n";
 import { clockSample } from "../model/clock";
 import { BUILTIN_ICONS, glyph, itemKey, STATUS_CODES } from "../model/topbar";
 import type { HeaderItem } from "../types";
 import EntityItemPicker from "./EntityItemPicker.vue";
-import InspectorHead from "./ui/InspectorHead.vue";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useEntitiesStore } from "../stores/entities";
@@ -14,7 +14,6 @@ import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
 import { useInventoryStore } from "../stores/inventory";
-import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -23,7 +22,6 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const topbar = useTopbarStore();
 const inv = useInventoryStore();
-const insp = useInspectorStore();
 
 const taken = computed(() => new Set(topbar.topbarItems().map(itemKey)));
 const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
@@ -45,9 +43,7 @@ const builtins = computed(() => (inv.inventory.header?.builtin || []).filter((b)
 </script>
 
 <template>
-  <InspectorHead kind="bar" :title="t('editor.topbar.add.title')" icon="plus"
-    :crumbs="[{ text: t('editor.topbar.title'), open: () => insp.openBar(-1) }, { text: t('editor.topbar.add.slots', { used: topbar.topbarItems().length }, scr.topbarMax) }]" />
-  <div class="dr-body">
+  <div class="topbar-add">
     <div class="f">
       <span class="f-label">{{ t("editor.topbar.add.builtin") }}</span>
       <div class="options">
@@ -57,7 +53,7 @@ const builtins = computed(() => (inv.inventory.header?.builtin || []).filter((b)
         </button>
       </div>
     </div>
- <div v-if="fromPlugins.length" class="f">
+    <div v-if="fromPlugins.length" class="f">
       <span class="f-label">{{ t("editor.topbar.add.plugins") }}</span>
       <div class="options">
         <button v-for="p in fromPlugins" :key="p.item" type="button" class="option" :disabled="taken.has(itemKey(pluginItem(p.item)))" @click="topbar.addTopbarItem(pluginItem(p.item))">
@@ -67,9 +63,5 @@ const builtins = computed(() => (inv.inventory.header?.builtin || []).filter((b)
       </div>
     </div>
     <EntityItemPicker id="topbar-search" :taken="(item) => taken.has(itemKey(item))" @pick="topbar.addTopbarItem" />
-  </div>
-  <div class="dr-foot">
-    <span class="spacer"></span>
-    <button type="button" class="btn quiet" @click="insp.closeInspector">{{ t("editor.common.cancel") }}</button>
   </div>
 </template>

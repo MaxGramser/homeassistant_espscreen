@@ -162,5 +162,18 @@ class Firmware(unittest.TestCase):
             self.assertNotRegex(script, r'if \(id\(setting_\w+\)\.state != ', name)
 
 
+class AwningWithoutFeedback(unittest.TestCase):
+    """An awning whose motor does not report back (Somfy RTS, 433 MHz): Home Assistant's state is "unknown" and
+    assumed_state is true, and its frontend keeps open, stop and close working (data/cover.ts canOpen, canClose)."""
+
+    def test_its_assumed_state_reaches_the_screen(self):
+        import core
+        states = {'cover.awning': {'state': 'unknown', 'attributes': {'friendly_name': 'Awning', 'supported_features': 11,
+                                                                     'device_class': 'awning', 'assumed_state': True}}}
+        message = core.state_message(0, {'entity': 'cover.awning', 'name': ''}, states)
+        self.assertEqual(message['state'], 'unknown')
+        self.assertIs(message['a']['assumed_state'], True)
+
+
 if __name__ == '__main__':
     unittest.main()

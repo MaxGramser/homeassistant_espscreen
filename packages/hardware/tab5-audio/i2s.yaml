@@ -1,0 +1,37 @@
+# Original Tab5 transport; no AEC libraries are compiled in this configuration.
+packages:
+  audio: !include ../../features/audio.yaml
+  half_duplex: !include ../../features/audio-half-duplex.yaml
+
+substitutions:
+  AUDIO_HALF_DUPLEX: "true"
+  TAB5_AUDIO_SETTINGS: ""
+
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: GPIO30
+    i2s_bclk_pin: GPIO27
+    i2s_lrclk_pin: GPIO29
+
+audio_adc:
+  - platform: es7210
+    id: ts_audio_adc
+    i2c_id: tab5_bus
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    # The microphones' gain in the ES7210's analogue stage, before the converter: 30 dB rather than ESPHome's 24, which
+    # raises the voice above the converter's own noise, where a digital gain raises both and clips the peaks.
+    mic_gain: 30dB
+
+# The Tab5's own choices on top of features/audio.yaml (ESPHome's !extend). The microphone on the right
+# channel of the ES7210, as ESPHome's Tab5 configuration and the Tab5 voice configurations that work read it, with its
+# DC offset taken out. The speaker with ESPHome's default buffer of 500 ms instead of 100: an answer comes over the
+# C6's Wi-Fi while Home Assistant still makes it, and a buffer that runs dry plays silence, a gap in the voice.
+microphone:
+  - id: !extend ts_microphone
+    channel: right
+    correct_dc_offset: true
+
+speaker:
+  - id: !extend ts_speaker_out
+    buffer_duration: 500ms

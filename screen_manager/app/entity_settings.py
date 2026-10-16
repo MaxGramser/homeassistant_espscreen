@@ -5,7 +5,11 @@ Both are the same kind of row: found in Home Assistant's entity registry by the 
 in the editor as the screen's own rows are, and changed through Home Assistant at once, so the screen's settings page,
 Home Assistant and the app show one value. This module is the one way both go.
 """
+import asyncio
+import json
 import re
+
+from aiohttp import web
 
 import core
 from i18n import english, t
@@ -108,9 +112,13 @@ async def change(manager, entity, value, refused):
 
 # ---- A board's extras ----
 
-def extras_of(screen):
+def extras_of(screen, manager=None):
     """The settings a screen's board lists (boards.yaml `settings`, through boards.json), in their order."""
     board = core.board_of(screen) if screen else None
+    # An offline board cannot report its model. Use its saved build profile, as inventory does,
+    # so Extras stay visible (unavailable) rather than disappearing when the connection drops.
+    if screen and board not in core.SHAPES and manager is not None:
+        board = core.board_of({**screen, 'package': manager.package_of(screen)})
     return [{'key': key} for key in (core.SHAPES.get(board, {}).get('catalog', {}).get('settings') or [])]
 
 
@@ -120,7 +128,7 @@ def extras_for(manager, inbox, language='en'):
     screen = manager.screen(inbox)
     if screen is None:
         raise ValueError(t('addon.errors.not_paired'))
-    settings = extras_of(screen)
+    settings = extras_of(screen, manager)
     if not settings:
         return []
     found = entities(manager, screen, settings)
@@ -140,6 +148,48 @@ async def set_extra(manager, inbox, entity, value):
     if screen is None:
         raise ValueError(t('addon.errors.not_paired'))
     refused = t('addon.errors.extras.request')
-    if not isinstance(entity, str) or entity not in entities(manager, screen, extras_of(screen)).values():
+    if not isinstance(entity, str) or entity not in entities(manager, screen, extras_of(screen, manager)).values():
         raise ValueError(refused)
     return await change(manager, entity, value, refused)
+
+
+async def stream(manager, request, values):
+    """Push settings when Home Assistant reports a change on this screen's device. `values` uses the same rows as
+    the GET endpoint. The initial snapshot is also sent on reconnect; idle connections send only SSE keepalives."""
+    inbox = request.match_info['inbox']
+    values()  # Validate the screen before preparing a streaming response.
+    response = web.StreamResponse(headers={'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store',
+                                           'X-Accel-Buffering': 'no', 'X-Content-Type-Options': 'nosniff'})
+    wake = asyncio.Event()
+    changes = manager.ha.state_events
+    # Inventory notifications cover registry changes, installed plugins, removal and connection status. HA state
+    # events cover the device's entities, including a test action's separate status sensor and volume attributes.
+    manager.listeners.add(wake)
+    wake.set()
+    sent = None
+    try:
+        await response.prepare(request)
+        while True:
+            try:
+                await asyncio.wait_for(wake.wait(), 15)
+            except TimeoutError:
+                await response.write(b': keepalive\n\n')
+                continue
+            wake.clear()
+            screen = manager.screen(inbox)
+            if screen is None:
+                await response.write(b'data: []\n\n')
+                break
+            device = screen.get('device_id')
+            changes.listeners[wake] = frozenset(item['entity_id'] for item in manager.ha.registry
+                if device and item.get('device_id') == device and isinstance(item.get('entity_id'), str))
+            body = json.dumps(values(), ensure_ascii=False)
+            if body != sent:
+                await response.write(f'data: {body}\n\n'.encode())
+                sent = body
+    except (ConnectionResetError, asyncio.CancelledError):
+        pass
+    finally:
+        manager.listeners.discard(wake)
+        changes.listeners.pop(wake, None)
+    return response

@@ -131,6 +131,12 @@ export const useUiStore = defineStore("ui", () => {
   const room = ref("");
   const hidePlaced = ref(false);
 
+  // ---- The tip beside a tile that grew (app 0.4.89, components/GrowTip.vue) ----
+  // Which tile, the size it had and has, and the control set its growing put on it (null: it kept its own). Asking is
+  // remembered in this browser: "Don't show this again" leaves the richer default and only the tip goes.
+  const growTip = ref<{ tileId: string; before: string; size: string; applied: string | null } | null>(null);
+  const growTips = usePreference("esp-screens.grow-tips", true, { serializer: flagSerializer });
+
   // ---- The editor's clock and the top bar's fonts ----
   // The time the mockup's clocks and "last changed" lines read: the store's start ticks it (composables/useClock.ts).
   const now = shallowRef(Date.now());
@@ -161,7 +167,7 @@ export const useUiStore = defineStore("ui", () => {
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
     hash, route, go, overrideProfile, overrideFriendly,
-    libraryOpen, filter, search, room, hidePlaced,
+    libraryOpen, filter, search, room, hidePlaced, growTip, growTips,
     now, fontsVersion, start,
   };
 });

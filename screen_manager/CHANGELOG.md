@@ -1,3 +1,165 @@
+## Unreleased
+
+- **A plugin's build no longer sees the app's own keys.** ESPHome runs a plugin's component while it builds a screen,
+  inside this app. That build now gets only the environment the compilers read, never the token the app holds for Home
+  Assistant or anything else of the app's own. The warning before you add a plugin now says where its code runs: on the
+  screen, and its build in this app. The plugins repository checks a listed plugin's Python at every release it takes:
+  ESPHome and a little of the standard library, files beside itself, nothing of the computer it is built on, and no
+  secret or include of the screen's in its YAML.
+- **The app comes back by itself, when you let it.** Turn on **Watchdog** on the app's Info page in Home Assistant:
+  Home Assistant then starts Tessera again when it stops unexpectedly, and from this version also when it stops
+  answering. A slip while the app adds new screens to Home Assistant or answers a picker on a screen is logged and the
+  app goes on, instead of ending. A request the app could not read says so in the log as well, with where it went
+  wrong, so a bug is not taken for bad input.
+
+- **New clock faces for the screensaver.** On screens with 8 MB of flash or more, the screensaver's clock can now be
+  Glass (a dial that is the glass itself, with ticks along its edge), Classic (a round watch dial with the day, the
+  date, the temperature and your entities beside or under it) or Bauhaus (the whole glass a grid of colourful shapes
+  with a round clock). Pick one under Screensaver, Clock, each shown as a small picture of your own screen, and choose
+  its look (dark, light or the screen's own), the numbers on Glass and the seconds hand. Every face fills the glass on
+  any screen shape, and none stands still: Glass and Classic shift a fraction every minute, and Bauhaus paints a new
+  picture every ten minutes, so nothing marks the glass. The CYD and the other 4 MB screens keep the digital clock.
+- **A plugin's card can show pictures (plugin API 0.13).** The card a plugin opens over the page, such as the details
+  of an album or a film, can now show its cover or poster large, the same way the plugin's tile shows them. It comes
+  as quickly as the cover on Tessera's own media card, and it is freed again when the card closes. Screens without the
+  memory for pictures, such as the CYD, show the card without them.
+- **Plugins can keep lists and send richer actions (plugin API 0.12).** A plugin tile's option can now hold several
+  values: several artists, stops or calendars, each added from a list or found by typing a few letters, in the order you
+  put them and dragged into another. The plugin asks its web service once per value and shows one list, newest first if
+  it likes, and on a tap it can send Home Assistant an action with several fields of any kind (a text, a number, a list),
+  such as playing an album through Music Assistant. Plugins written for an older API keep working as they are.
+- **A screen update that a plugin stops says which plugin.** When a plugin doesn't build with the new firmware, the
+  screen's update no longer ends in "Build or install failed" alone: it names the plugin and, when a newer version is
+  on offer, asks you to update that plugin first and then the screen.
+- **A Valetudo robot's map shows as a map.** A robot running Valetudo hands Home Assistant a placeholder that asks to
+  install a Lovelace card, with the real map hidden inside it, so the vacuum card and a camera tile showed that
+  placeholder. The app now reads the map out of it and draws the rooms, walls, path, zones, charger and robot, once
+  for every map the robot sends.
+- **A tile that grows shows more controls.** Drag a tile larger and it now gets the controls that fit its new size:
+  a blind shows its position and its slats, a thermostat its temperature and mode keys, a light its brightness. A tip
+  beside the tile lists every set that fits, so you can keep that one, pick another or choose none, and pointing at
+  one shows it on the tile first. A set you chose yourself is kept and added to. "Don't show again" hides the tip;
+  the inspector's Controls works as before.
+- **A media player shows its volume and its playback keys together.** On a tile two rows high or larger, a player can
+  now have both: the volume slider above previous, play/pause and next, as Home Assistant stacks them. Pick "Volume and
+  previous, play/pause, next" under Controls, or drag a player's tile larger and it is suggested. A screen gets it after
+  its next update; until then it shows the playback keys. On a tile wider than high the volume stands at the right,
+  the whole height of the tile, with the keys at the left under the track.
+- **A large player tile reads from across the room.** When a media player takes a big tile, on a 7- or 10-inch screen
+  for example, the track's title now takes the largest text the screen has, its artist grows with it, and the keys and
+  the volume grow up to half again their size. Smaller tiles look as they did.
+- **The vacuum card shows the map, the rooms and the routines.** On every board with 8 MB of flash or more, a robot
+  vacuum's card now shows its map, cleaned up and in the screen's own colours, with its state and battery above it.
+  Tap rooms in the order you want and Start cleans just those (Home Assistant's clean by area), its own routines run
+  with one tap, and suction and water stay one tap away. The card shows only what your robot offers and fits each
+  screen: on a large screen everything is on the card, on a smaller one rooms, routines and suction open their own
+  view. The keys follow what the robot can do, an error says why, and while it cleans you see the room and how far it
+  is. The CYD and the other 4 MB boards keep the card they had.
+- **Slats at their angle, and on more tiles.** A blind's tilt slider now shows its slats at the angle they stand at:
+  flat when open, overlapping when closed, in a soft tint so the handle stays on top. With **Slat tilt** switched on, a
+  cover tile lays out what its room holds: the position and the slats standing side by side, with open, stop and close
+  under or beside them on a large tile, two bars on a low one, or one bar and a key that swaps it to the slats on the
+  smallest. On the CYD and the 4.3-inch Waveshare the slats no longer drop off a 1x2 or 2x2 tile, and a cover with only
+  tilt keys gets them as a second row.
+- **Covers on 1x1 and 2x1 tiles.** On larger screens a cover's controls now fit a single tile too: a position bar, open,
+  stop and close, or position and slats as two bars. A double-width tile takes the slats as well. Choose them under
+  Controls in the editor; where a tile has no room for them, it looks as it did. This needs the new firmware.
+- **Awnings and blinds without feedback keep their buttons.** A cover whose motor does not report whether it is open
+  (many awnings, Somfy RTS and other radio motors) shows its state as unknown in Home Assistant. Its tile had no buttons
+  on the screen then, although the editor showed them. Now open, stop and close work as they do in Home Assistant, and
+  a cover that only assumes its state keeps both open and close at hand.
+- **Cover groups, one cover at a time.** On every board with 8 MB of flash or more, the card of a cover group has a key at the top right, where a light group's
+  lamps key stands. It opens a page with a card for every cover in the group: its position bar, or open, stop and close,
+  and for a blind with slats a … key that opens its tilt.
+- **Tap sound clicks as your finger lands.** With the Tap sound plugin the click now comes the moment a finger touches
+  a tile, a key, a slider or a row of the settings, instead of after you let go. Dragging a slider, a cover's
+  position or a player's seek bar clicks softly at every step, evenly spaced however fast you drag: every 5 %, or every
+  position of a slider with only a few. A push that wakes a dimmed screen and a touch
+  between the tiles stay silent. Plugins get this as `on_press` and `on_step` (plugin API 0.11).
+- **A live camera's top bar goes with it.** On the ESP32-P4 boards the black bar with the back key and the camera's
+  name now and then stayed over the page after the camera full screen closed, until a swipe drew the page again. A
+  camera's pictures are no longer decoded while the screen draws, and once the camera's stream has ended the screen
+  draws the whole page once more.
+- **The Dock: swipe up for every page at once.** On every board with 8 MB of flash or more, a swipe up from the bottom
+  edge now opens the Dock, a drawer with all pages as small pictures with their names, in two rows. It comes up with
+  your finger and opens the rest of the way when you let go (pulled up only a little, it falls back). A tap on the
+  page dots at the bottom opens it as well. Tap a page to go there, drag it down to close it, or swipe up once more to go home. The CYD and the other 4 MB boards keep going home on that swipe and get none of
+  its code, so their room for updates stays the same.
+- **In the Dock, per page.** On a screen whose board has the Dock, a page's settings say how it stands there: its
+  **Picture** (the default), an **Icon** of its own from the same icons as the tiles, or **Hidden**. A page left out of
+  swiping is not in the Dock either.
+- **The top bar's settings start from the bar itself.** At the head of its settings the editor draws the top bar as the
+  screen does: the title on the left, every item, and a + to add one. Tap a part and only its settings show under it;
+  the bar stays in view and shows each change on the item at once, also while you pick an icon. Drag an item left or
+  right in the bar to move it, or pull it out of the bar to take it off, as an icon out of a menu bar; a right click on an
+  item takes it off as well. The screensaver clock's row of entities works the same way. Many items go on more lines, and an item the screen leaves out for want of room is
+  dashed in orange. Copying the bar to other pages is in the menu behind the three dots.
+- **A right click in the editor.** On a tile it opens the tile and shows the same menu as the ··· in its settings:
+  rename, show another entity, read its data, move it to another page, copy, cut and remove. On tiles chosen together
+  it copies, cuts or removes them all, on an empty cell it adds a tile there or pastes there, and anywhere else on a
+  page it shows the page's own menu. A finger held on a tile still drags it; on a touch screen the ··· is the way to
+  the menu.
+- **A page's settings start from the page.** A small page at the head shows its top bar, its tiles and, on a board with
+  the Dock, its place in the Dock: tap the Dock for how the page stands there, or the top bar to set that up, and a
+  back button takes you to the page again. Escape goes one step back at a time, and the settings have room between
+  their groups instead of lines.
+- **The screensaver's clock and a tile start from themselves too.** The clock's settings draw its row of entities at
+  the head, white on black as the screensaver does: tap the clock for its temperature, an entity for how it shows, or +
+  to add one, and drag an entity left or right to move it. A tile's settings show the tile itself at the head as its
+  page draws it, with every change and the icon you point at. Its icons, the actions to perform and another entity now
+  take the place of the settings under it instead of opening between them; Done or Escape goes back. Tap the tile's icon
+  for its icons, or its name to rename it.
+- **Two small fixes in the editor.** The screensaver's steps show their grip again when the pointer rests on one,
+  instead of an empty square, and the rotation's four angles go under their name on a narrow card instead of running
+  past its edge.
+- **A new page asks what it needs.** The Add page window chooses the top bar with chips: the home key is on, and the
+  clock and the screen's other items are a tap away instead of a clock on every new page. On a screen with the Dock it
+  also asks how the page stands in the Dock: its picture, an icon, or hidden.
+- **Swipe between pages is on for a new screen.** A screen set up from now on can swipe through its pages, open the
+  settings from the top edge and open the Dock from the bottom edge without turning anything on first. A screen you
+  already have keeps the setting it has.
+- **A wide tile's slider lines up with the tiles above it (#250).** On a tile three cells wide or more, a player's
+  volume, a brightness or a -/+ took only the last cell at the right end, a short slider where the editor showed half
+  the tile. The first cell now keeps the name, as on a tile of one cell, and the control fills every cell after it, on
+  the screen and in the editor, so its edges stand where the tiles above and below have theirs. A tile two cells wide
+  stays as it was. The screen needs this firmware.
+- **Tab5: echo cancellation, and the microphone keeps listening while it plays.** Like the Waveshare P4 86 panel, the
+  Tab5 now plays and listens at the same time, and takes the sound of its own speaker out of what the microphone hears.
+  An Echo cancellation switch is under Extras and in Home Assistant. On both screens music now plays at 48 kHz, the
+  echo cancellation works on the microphone at 16 kHz. The screen needs this firmware.
+- **Editor: a long list of media players scrolls and has a search.** Adding a player to the screensaver opened a menu
+  that ran off the window in a home with many players, and the ones below could not be reached. It now opens a search
+  field with a list that scrolls, and typing narrows it by name or area. Every other menu of the editor scrolls when it
+  is taller than the window, too.
+- **An icon alone in the top bar opens its card (#252).** An entity in the top bar that shows only its icon now opens
+  its card on a tap too, as it does when it shows its state. The screen needs firmware 0.56.0.
+- **The power key on a player's card turns it off (#239).** On a media player's card, the power key in its top bar did
+  nothing; the key on the tile worked. The screen needs this firmware.
+- **A value on a tile's second line as Home Assistant writes it (#241).** A second line set to a value of the entity
+  shows it as Home Assistant's own frontend does: a number with at most two decimals and its unit, so a humidity of
+  61.60000000000001 shows as 61.6%, a lamp's brightness of 128 as 50%, a player's volume as 43% and a temperature
+  with the system's unit; and a word or a yes or no in Home Assistant's own words ("Single" instead of single). The
+  editor's preview shows exactly what the screen gets.
+- **Tab5: twelve items in the top bar, and room for 256 tiles over 16 pages (#247).** The Tab5 has the PSRAM of the
+  other ESP32-P4 screens but held six top bar items, 64 tiles and eight pages. The screen needs this firmware.
+- **Tab5: the battery icon shows charging while it charges (#234).** The Tab5 showed its battery as charging while it
+  ran from the pack, and as on battery while it charged: its battery monitor reads the charging current with the other
+  sign. The screen needs this firmware.
+- **A plugin tile keeps its entity of any domain (#254).** A plugin tile bound to an entity of a domain Tessera draws
+  no tile for, such as a `plant.*` of Plant Monitor, now gets its entity id in `context.entity` too, so the plugin can
+  ask Home Assistant about that entity. Before, it got the state and attributes but an empty entity id. A plugin's
+  `tessera::action` works on such an entity too, as a `todo.add_item` on a to-do list.
+- **A plugin added with a link stays on the screen after an update (#260).** Updating a plugin added with a link to a
+  newer release built the screen without it, and its tiles showed "plugin missing" until it was removed and added
+  again. The screen's build now takes the new release.
+
+- **Waveshare P4 board audio and relays.** The relay-equipped 86 panel exposes its two outputs as Home Assistant
+  switches, both off at boot. Extras adds microphone gain, automatic codec gain and live echo-cancellation on/off.
+  Its AEC transport reuses the existing speaker, microphone and media-player interfaces; other boards keep their
+  audio drivers. This is board support only: no assistant, AI provider or Ethernet support is added.
+- **Extras and plugin settings update while open.** Changes made on the panel or in Home Assistant are pushed to the
+  editor, including test-action status, without reopening the page or polling for settings.
+
 ## 0.4.88 (firmware 0.56.0)
 
 - **A screen that runs well no longer shows an old failed update.** An update that failed (for instance because another

@@ -58,6 +58,8 @@ enum class Field : uint8_t {
   LAMP_LEVEL,       // its brightness 1-100, "0" for off
   LAMP_HUE,         // its hue 0-360 (at full saturation)
   LAMP_KELVIN,      // its white shade in kelvin
+  MEMBER_POSITION,  // a cover of a cover group (firmware 0.57.0): its position 0-100
+  MEMBER_TILT,      // its slats' tilt 0-100
   EFFECT,           // the effect a light runs (no item: the light itself)
   ROW_OPTION,       // the option of a select on the light's device (item: the select)
   ROW_NUMBER,       // the value of a number on the light's device (item: the number)

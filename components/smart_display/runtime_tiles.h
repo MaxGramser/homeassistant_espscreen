@@ -31,6 +31,7 @@
 #include "page_bar.h"
 #include "tall_tile.h"
 #include "cover_tile.h"
+#include "cover_paint.h"
 #include "alert_overlay.h"
 #include "theme.h"
 #include "tile_icon.h"
@@ -62,6 +63,7 @@
 #include "plugin_api.h"
 #include "plugin_host.h"
 #include "screen_hooks.h"
+#include "touch_feedback.h"
 #include "light_card.h"
 #include "forecast_tile.h"
 #include "weather_chart.h"
@@ -194,7 +196,7 @@ inline bool navigation_ready() {
 }
 inline uint64_t previous_page_id = 0;
 inline bool had_previous_page = false;
-inline uint32_t history_view_id = 0, options_view_id = 0, camera_view_id = 0, cover_view_id = 0;
+inline uint32_t history_view_id = 0, options_view_id = 0, camera_view_id = 0, cover_view_id = 0, vacuum_map_view_id = 0;
 // A player's library (firmware 0.24.0+): the folder asked for last, and the covers of its page.
 inline uint32_t library_view_id = 0, library_art_view_id = 0;
 inline void cancel_layout_input(bool invalidate_widgets = true);
@@ -226,8 +228,18 @@ inline bool pictures_awake() { return awake() || saver_pictures; }
 // What ESP Screen Manager says the screensaver shows (op "saver", screen_saver.py): "media", "camera", "clock" or ""
 // for none, with the player's or camera's name and, for a player, its title, artist and album, its picture's mark and
 // the cover's colour (the picture is made again when either changes). Where the track is, is no part of it.
+// The clock's face (module clock_faces, app `cf`): the digital clock every screen has, or Glass, Classic or Bauhaus on
+// a screen with the module. Its numerals (Glass: 0, 4 or 12), its seconds hand, and its look: dark, light or the screen's.
+struct SaverFace {
+  enum Kind : uint8_t { DIGITAL, GLASS, CLASSIC, BAUHAUS };
+  enum Look : uint8_t { DARK, LIGHT, FOLLOW };
+  uint8_t kind = DIGITAL, numerals = 4, look = DARK;
+  bool seconds = true;
+  bool operator==(const SaverFace &o) const { return kind == o.kind && numerals == o.numerals && look == o.look && seconds == o.seconds; }
+};
 struct SaverChoice {
   std::string kind, entity, name, title, artist, album, picture, ground;
+  SaverFace face;
   std::string weather;  // the clock's outside temperature, ready to draw (firmware 0.31.0+, app 0.4.52)
   // The clock's row of entities, the temperature first (firmware 0.50.0+, app 0.4.81): an icon and a text each.
   std::vector<header_bar::Item> row;
@@ -238,7 +250,7 @@ struct SaverChoice {
   bool operator==(const SaverChoice &o) const {
     return kind == o.kind && entity == o.entity && name == o.name && title == o.title && artist == o.artist &&
            album == o.album && picture == o.picture && ground == o.ground && weather == o.weather && row == o.row &&
-           state == o.state && features == o.features && muted == o.muted;
+           state == o.state && features == o.features && muted == o.muted && face == o.face;
   }
 };
 inline SaverChoice saver_next, saver_now;  // the app's latest word, and what the glass shows
@@ -482,7 +494,7 @@ inline void load_settings() {
   numbers_preference = esphome::global_preferences->make_preference<uint32_t>(0x4E554D31);
   uint32_t numbers_saved=0;
   if(numbers_preference.load(&numbers_saved))screen_text_numbers(numbers_saved);
-  uint32_t swipe_saved=0;
+  uint32_t swipe_saved=1;
   if(swipe_preference.load(&swipe_saved))swipe_pages=swipe_saved==1;
   uint32_t dark_saved=0;
   if(dark_preference.load(&dark_saved))settings_screen::dark_mode=dark_saved==1;
@@ -557,7 +569,7 @@ struct Widgets {
   const lv_point_precise_t *fill_points{}; unsigned fill_count=0; int fill_x=0, fill_y=0, fill_base=0; lv_color_t fill_color{}; lv_opa_t fill_opa=0;
   // Direct controls on a wide card: a panel at the right with pill keys, a -/+ pill,
   // a slider or a toggle. Objects are rebuilt only when the control set changes.
-  lv_obj_t *panel{}; std::string panel_mode; bool panel_dirty=false, panel_full=false, panel_tall=false; int panel_w=0; uint16_t panel_layout_w=0,panel_layout_h=0;
+  lv_obj_t *panel{}; std::string panel_mode; bool panel_dirty=false, panel_full=false, panel_tall=false; uint8_t panel_pair=0; int panel_w=0; uint16_t panel_layout_w=0,panel_layout_h=0;
   std::array<lv_obj_t *,3> keys{}, key_icons{}; std::array<int,3> key_commands{}; std::array<std::string,3> key_args; std::array<int,3> key_checked{};
   // A thermostat's mode bar as its panel ("Mode", firmware 0.19.0): its segments, on the panel's track (pill).
   std::array<lv_obj_t *,climate_tile::SEGMENTS> segments{};
@@ -911,7 +923,8 @@ inline const std::string &media_entity(const Tile &t){return t.extra().media_tar
 // Returns whether Home Assistant will answer it.
 inline bool action(const std::string &service, const std::string &entity, const std::string &key="", const std::string &value="", bool watch=true,
                    const std::string &key2="", const std::string &value2="", bool busy=true) {
-  if (!fresh() || !valid_entity(entity)) return false;
+  // Of any domain: a tile's entity was checked when it came, and a plugin may act on one Tessera draws no tile for.
+  if (!fresh() || !entity_id(entity)) return false;
   esphome::api::HomeassistantActionRequest request;
   request.service = esphome::StringRef(service);
   request.data.init(1 + !key.empty() + !key2.empty());
@@ -1170,6 +1183,12 @@ inline std::string wish_read(const Tile &t, optimistic::Field field, const std::
     case F::LAMP_LEVEL: return lamp ? std::to_string(lamp->on ? lamp->level : 0) : std::string();
     case F::LAMP_HUE: return lamp ? std::to_string(lamp->saturation ? lamp->hue : 0) : std::string();
     case F::LAMP_KELVIN: return lamp ? std::to_string(lamp->kelvin) : std::string();
+    case F::MEMBER_POSITION: case F::MEMBER_TILT:
+      for (const auto &b : x.blinds) if (b.entity == item) {
+        const float v = field == F::MEMBER_POSITION ? b.position : b.tilt;
+        return std::isfinite(v) ? std::to_string((int) std::lround(v)) : std::string();
+      }
+      return {};
     case F::EFFECT: return x.effect;
     case F::ROW_OPTION: for (const auto &r : x.option_rows) if (r.entity == item) return r.current; return {};
     case F::ROW_NUMBER: for (const auto &r : x.number_rows) if (r.entity == item) return effects_page::number_text(r.value); return {};
@@ -1199,6 +1218,11 @@ inline void wish_write(Tile &t, optimistic::Field field, const std::string &valu
     case F::LAMP_LEVEL: if (lamp) { lamp->on = number > 0; if (number > 0) lamp->level = (uint8_t) std::min(100, number); } break;
     case F::LAMP_HUE: if (lamp) { lamp->hue = (uint16_t) number; lamp->saturation = 100; } break;
     case F::LAMP_KELVIN: if (lamp) { lamp->kelvin = (uint16_t) number; lamp->saturation = 0; } break;
+    case F::MEMBER_POSITION: case F::MEMBER_TILT:
+      if (auto *x = t.extra_ptr()) for (auto &b : x->blinds) if (b.entity == item) {
+        (field == F::MEMBER_POSITION ? b.position : b.tilt) = (float) std::clamp(number, 0, 100);
+      }
+      break;
     case F::EFFECT: t.edit_extra().effect = value; break;
     case F::ROW_OPTION: for (auto &r : t.edit_extra().option_rows) if (r.entity == item) r.current = value; break;
     case F::ROW_NUMBER: for (auto &r : t.edit_extra().number_rows) if (r.entity == item) r.value = std::strtof(value.c_str(), nullptr); break;
@@ -1391,6 +1415,12 @@ inline void lock_card_closed();
 // Every way a card closes (Back, standby, Back to page 1, another card) also forgets a code half typed on an alarm's
 // keypad: it never waits in memory for the next person at the screen.
 inline void colour_close();
+#ifdef SD_MOD_VACUUM_CARD
+// The vacuum card of the module (module_vacuum_card.cpp, a compilation unit of its own).
+}  // namespace runtime_tiles
+#include "module_vacuum_card.h"
+namespace runtime_tiles {
+#endif
 inline void hide_detail(){
   alarm_close_pad();lock_card_closed();
   // The colour card is a card as well, and closes on every way a card closes.
@@ -1398,6 +1428,9 @@ inline void hide_detail(){
   // A plugin's card closes on every way Tessera's own cards close (docs/PLUGINS.md).
   plugin_host::close_card();
   if(detail_backdrop)lv_obj_add_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);if(detail_root)lv_obj_add_flag(detail_root,LV_OBJ_FLAG_HIDDEN);
+#ifdef SD_MOD_VACUUM_CARD
+  vacuum_card::closed();
+#endif
   // A player's library and speaker menu go with its card (firmware 0.24.0+), after it: the card stays as it was.
   media_library::close();}
 inline int slider_value(const Tile &t){
@@ -1417,6 +1450,7 @@ inline lv_obj_t *captured_slider=nullptr;
 inline bool slider_changed=false;
 inline int slider_held=0;
 inline void slider_event(lv_event_t *e);
+inline int cover_bar_raw(lv_obj_t *slider,bool tilt);
 inline void commit_slider(unsigned i,int raw,bool tilt=false){
   if(i>=model.count || !fresh())return;auto &t=model.tiles[i];if(!t.available() || t.waiting(esphome::millis()))return;
   float value=std::clamp(raw,0,1000)/1000.0f;auto d=t.domain();
@@ -1504,7 +1538,8 @@ inline void slider_event(lv_event_t *e){
     struct GhostEnd{lv_obj_t *slider;~GhostEnd(){ghost_end(slider);}} ghost{slider};
     unsigned index=(uintptr_t)lv_event_get_user_data(e);bool tilt=false;
     // A slider among a card's own parts (the media tile's volume) belongs to the tile the slot shows now.
-    for(auto &w:widgets)if(w.slider==slider || w.control_slider==slider || (w.extra && lv_obj_get_parent(slider)==w.extra)){index=w.index;tilt=w.extra_mode=="cover_tilt"&&w.parts[3]==slider;break;}
+    bool cover_strip=false;
+    for(auto &w:widgets)if(w.slider==slider || w.control_slider==slider || (w.extra && lv_obj_get_parent(slider)==w.extra)){index=w.index;cover_strip=w.extra_mode=="cover_tilt";tilt=cover_strip&&w.parts[3]==slider;break;}
     bool changed=slider_changed;captured_slider=nullptr;slider_changed=false;
     // A finger that landed beside a tile's strip and let go without moving tapped the tile (or held it, sent above):
     // the value LVGL set from that point on release goes back, and the tile's own rules decide what the tap does.
@@ -1526,7 +1561,8 @@ inline void slider_event(lv_event_t *e){
     }
     if(index<model.count&&model.tiles[index].row_span()>1&&!model.tiles[index].full)
       for(const auto &w:widgets)if(w.control_slider==slider&&!tile_controls::panel_available(model.tiles[index]))return;
-    if(changed && screen_input::touch_guard.accept_slider(esphome::millis(),200+index))commit_slider(index,lv_slider_get_value(slider),tilt);
+    if(changed && screen_input::touch_guard.accept_slider(esphome::millis(),200+index))
+      commit_slider(index,cover_strip?cover_bar_raw(slider,tilt):lv_slider_get_value(slider),tilt);
   }
 }
 inline void show_detail(unsigned index);
@@ -1553,17 +1589,23 @@ inline bool alarm_pad_open();
 // The card keys whose change is a wish (docs/OPTIMISTIC.md): play or pause, mute, shuffle, repeat, an option, a mode,
 // a thermostat's rows and the power keys.
 inline bool wish_command(int cmd){
-  return cmd==20||cmd==23||cmd==25||cmd==26||(cmd>=30&&cmd<38)||(cmd>=SELECT_OPTION_FIRST&&cmd<SELECT_OPTION_FIRST+64)||
+  return cmd==20||cmd==23||cmd==25||cmd==26||(cmd>=SELECT_OPTION_FIRST&&cmd<SELECT_OPTION_FIRST+64)||
          (cmd>=CLIMATE_MODE_FIRST&&cmd<CLIMATE_ROW_FIRST+12)||cmd==CLIMATE_POWER||cmd==LIGHT_POWER;
 }
 inline void detail_command(int cmd){
   // Back on the alarm's keypad goes back to its card; everywhere else it closes the card.
   if(cmd==-1&&alarm_pad_open()){alarm_close_pad();redraw_detail();return;}
+#ifdef SD_MOD_VACUUM_CARD
+  // A view of the vacuum card (its rooms, routines, suction and water) goes back to the card.
+  if(cmd==-1&&vacuum_card::back())return;
+#endif
   if(cmd==-1){hide_detail();return;}
   // The alarm panel's modes, digits, Clear and OK (600-621): the digits count every clean tap, like the -/+ keys.
   if(cmd>=600&&cmd<=621){alarm_command(cmd);return;}
   // A lock's keys (700-702): Lock, Unlock, Open door.
   if(cmd>=700&&cmd<=709){lock_command(cmd);return;}
+  // A cover group's key (720): its page of covers over the card.
+  if(cmd==720){if(const Tile *t=detail_tile())group_page::open(t->entity);return;}
   // History ranges (firmware 0.2.51+): redraw after this event, which belongs to a key the redraw deletes.
   if(cmd>=160&&cmd<163){
     static const uint32_t hours[]={1,24,168};
@@ -1610,18 +1652,19 @@ inline void detail_command(int cmd){
   if(cmd==27){media_library::open(t.entity);return;}
   if(cmd==28){media_library::speakers(t.entity);return;}
   if(cmd==29){media_library::inputs(t.entity);return;}
+#ifdef SD_MOD_VACUUM_CARD
+  // The vacuum card's own keys (800-899): picks and views at once, its actions when the robot answers.
+  if(vacuum_card::handles(cmd)){vacuum_card::command(t,cmd);return;}
+#endif
   if(!t.available()||t.waiting(esphome::millis()))return;
   if(cmd<4){const char *services[]={"vacuum.start","vacuum.pause","vacuum.return_to_base","vacuum.locate"};action(services[cmd],t.entity);}
   // Vacuum rows: 10-15 suction, 50-55 cleaning mode, 60-65 water.
   static const std::pair<int,char> rows[]={{10,'s'},{50,'m'},{60,'w'}};
   for(const auto &[first,kind]:rows)
     if(cmd>=first && cmd<first+6){auto *row=t.choice(kind);if(row && cmd-first<(int)row->values.size())choose(t,*row,row->values[cmd-first]);}
-  // The media card's keys (20-23); its volume slider goes through commit_slider.
-  if(cmd>=20 && cmd<=26)media_action(t,cmd);
-  if(cmd>=30 && cmd<38 && cmd-30<(int)t.extra().options.size()){
-    const std::string option=t.extra().options[cmd-30];
-    if(option!=t.state)wish(t,optimistic::Field::OPTION,option,t.domain()+".select_option","option",option);
-  }
+  // The media card's keys (20-26, and 30 its power key's turn off, GitHub #239); its volume slider goes through
+  // commit_slider.
+  if((cmd>=20 && cmd<=26) || cmd==30)media_action(t,cmd);
   // A row of the select card: chosen at once on the card, confirmed by Home Assistant's next state.
   if(cmd>=SELECT_OPTION_FIRST&&cmd<SELECT_OPTION_FIRST+64&&cmd-SELECT_OPTION_FIRST<(int)t.extra().options.size()){
     const std::string option=t.extra().options[cmd-SELECT_OPTION_FIRST];
@@ -2370,10 +2413,9 @@ inline void render_vacuum_detail(Tile &t,bool large,int width,int height,int pad
 // and the tilt as a handle over slats, each with its value below, like Home Assistant's own sliders. Open, stop
 // and close as a row of pill keys under them; the key of the direction the cover moves is filled. A slider
 // sends its value when the finger lifts, and shows it while it moves.
-// Home Assistant's purple for covers; the track and the slats are its tints.
-inline constexpr uint32_t COVER_ACCENT = theme::ha::PURPLE;
-inline uint32_t cover_track(){return theme::tint(COVER_ACCENT,37);}
-inline uint32_t cover_slats(){return theme::tint(COVER_ACCENT,80);}
+// Home Assistant's purple for covers; the track and the slats are its tints (cover_paint.h).
+inline constexpr uint32_t COVER_ACCENT = cover_paint::ACCENT;
+inline uint32_t cover_track(){return cover_paint::track();}
 inline lv_obj_t *cover_values[2]{};
 inline std::string alarm_card_line(const Tile &t);
 inline std::string lock_card_line(const Tile &t);
@@ -2411,17 +2453,10 @@ inline void cover_slider_event(lv_event_t *e){
   if(call.valid())action(call.service,t.entity,call.key,call.value);
 }
 // One slider. The position fills from the top by how far the cover is closed; the tilt has no fill and its
-// handle moves over slats drawn behind it, thicker towards the closed end as in Home Assistant.
+// handle moves over the slats, drawn at their angle (firmware 0.57.0).
 inline lv_obj_t *cover_slider(lv_obj_t *parent,int x,int y,int w,int h,float value,bool tilt,lv_event_cb_t callback=nullptr,void *user=nullptr){
   int radius=std::max(8,w/7),handle_h=std::max(4,w/18),handle_w=tilt?w*3/5:w*2/5,inset=std::max(6,w/9);
-  if(tilt){
-    auto *slats=detail_shape(parent,x,y,w,h,cover_track(),radius);
-    const int count=10,pitch=(h-2*radius/2)/count;
-    for(int i=0;i<count;++i){
-      int thick=std::max(2,pitch*(20+60*i/(count-1))/100);
-      detail_shape(slats,inset,radius/2+i*pitch+(pitch-thick)/2,w-2*inset,thick,cover_slats(),thick/2);
-    }
-  }
+  if(tilt)detail_shape(parent,x,y,w,h,cover_track(),radius);
   auto *slider=lv_slider_create(parent);lv_obj_remove_style_all(slider);
   lv_obj_set_pos(slider,x,y);lv_obj_set_size(slider,w,h);lv_slider_set_orientation(slider,LV_SLIDER_ORIENTATION_VERTICAL);
   lv_obj_set_style_radius(slider,radius,LV_PART_MAIN);lv_obj_set_style_radius(slider,radius,LV_PART_INDICATOR);
@@ -2441,6 +2476,7 @@ inline lv_obj_t *cover_slider(lv_obj_t *parent,int x,int y,int w,int h,float val
     int margin=1000*(inset+handle_h)/std::max(1,h-2*(inset+handle_h));
     lv_slider_set_range(slider,-margin,1000+margin);
     lv_slider_set_value(slider,std::isfinite(value)?(int)std::lround(std::clamp(value,0.0f,100.0f)*10):500,LV_ANIM_OFF);
+    lv_obj_add_event_cb(slider,cover_paint::slats_draw,LV_EVENT_DRAW_MAIN_BEGIN,nullptr);
   }else{
     lv_obj_set_style_pad_top(slider,inset+handle_h-w/2,LV_PART_KNOB);lv_obj_set_style_pad_bottom(slider,1-inset-w/2,LV_PART_KNOB);
     // Reversed, the fill hangs from the top; the stub past 0 holds the handle of a cover that is fully open.
@@ -2457,6 +2493,36 @@ inline lv_obj_t *cover_slider(lv_obj_t *parent,int x,int y,int w,int h,float val
   if(detail_action_count<32)detail_actions[detail_action_count++]=slider;
   }
   return slider;
+}
+inline void slider_handle(lv_obj_t *slider,int width,int height);
+// The same two lying across a card one bar high (firmware 0.57.0), as Home Assistant's cover-position and
+// cover-tilt-position tile features: the position fills from the left by how far the cover is open, with the white
+// handle of every tile bar (slider_handle); the tilt keeps its slats and its accent handle. A lying position slider holds
+// the open share, so its value is turned around before it goes out (cover_bar_raw).
+inline lv_obj_t *cover_bar(lv_obj_t *parent,int x,int y,int w,int h,float value,bool tilt,lv_event_cb_t callback,void *user){
+  lv_obj_t *slider=nullptr;
+  if(tilt)slider=cover_paint::tilt_bar(parent,x,y,w,h,value);
+  else{
+    slider=lv_slider_create(parent);lv_obj_remove_style_all(slider);
+    lv_obj_set_pos(slider,x,y);lv_obj_set_size(slider,w,h);lv_slider_set_orientation(slider,LV_SLIDER_ORIENTATION_HORIZONTAL);
+    lv_obj_set_style_bg_color(slider,lv_color_hex(cover_track()),LV_PART_MAIN);lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_MAIN);
+    lv_obj_set_style_bg_color(slider,lv_color_hex(COVER_ACCENT),LV_PART_INDICATOR);lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_INDICATOR);
+    lv_obj_set_style_opa(slider,LV_OPA_50,LV_STATE_DISABLED);
+    lv_obj_set_style_radius(slider,2,LV_PART_KNOB);lv_obj_add_style(slider,theme::style(theme::Paint::knob),LV_PART_KNOB);
+    lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_KNOB);
+    slider_handle(slider,w,h);
+    lv_slider_set_value(slider,std::isfinite(value)?(int)std::lround(std::clamp(value,0.0f,100.0f)*10):0,LV_ANIM_OFF);
+  }
+  overlay_card::touchable(slider,h);
+  lv_obj_remove_flag(slider,LV_OBJ_FLAG_GESTURE_BUBBLE);lv_obj_set_ext_click_area(slider,0);
+  lv_obj_add_event_cb(slider,callback,LV_EVENT_ALL,user);
+  return slider;
+}
+// What a cover slider's value means for cover_position_action: a lying position bar holds the open share, every
+// other the closed share (or the tilt).
+inline int cover_bar_raw(lv_obj_t *slider,bool tilt){
+  const int raw=lv_slider_get_value(slider);
+  return !tilt&&lv_obj_get_width(slider)>lv_obj_get_height(slider)?1000-std::clamp(raw,0,1000):raw;
 }
 // A row of pill keys with an icon each, as the climate card's modes. A key that cannot move the cover further
 // is drawn disabled and left out of the keys the card enables again once Home Assistant answers.
@@ -2549,9 +2615,13 @@ inline uint32_t cover_card_shape(const Tile &t){
   add(std::isfinite(t.battery)?std::to_string((int)std::lround(t.battery)):"");
   return f.value;
 }
+inline lv_obj_t *climate_round_key(const climate_card::Rect &r,const char *icon,const lv_font_t *font,theme::Role fill,theme::Role ink,int command);
 inline void render_cover_detail(Tile &t,bool large,int width,int height,int pad,int columns=1){
   auto card=tile_controls::cover_card(t);
   cover_battery(t,large,width);
+  // A cover group's key (firmware 0.57.0): in the top bar at the right, where a light group's lamps key stands, it opens
+  // the group's page with a card per cover (group_page.h); after the battery where the cover has one.
+  if(group_page::available(t))climate_round_key(bar_key(std::isfinite(t.battery)?1:0),tile_controls::glyph::SLATS,mini_icon_font,theme::KEY,theme::INK,720);
   const lv_font_t *text=large?detail_font:(control_font?control_font:detail_font);
   const lv_font_t *big=watch_font?watch_font:detail_font;
   cover_values[0]=cover_values[1]=nullptr;
@@ -3069,6 +3139,7 @@ inline void climate_hold(lv_event_t *e){
   auto &t=model.tiles[detail_index];
   if(!fresh()||!t.available()||esphome::millis()-t.edit_since<300)return;
   climate_step(t,direction);
+  touch_feedback::step(direction);   // each step of a held key clicks, as a detent (touch_feedback.h)
 }
 // A humidifier's dial (firmware 0.42.0+): Home Assistant's humidity ring (ha-control-circular-slider) round the number,
 // as a picture and not a control (the - and + set it, a finger on a small ring would not): a 270 degree track, the part from the minimum to the target filled
@@ -4880,6 +4951,8 @@ inline void media_seek_event(lv_event_t *e){
   lv_area_t area;lv_obj_get_coords(lv_obj_get_parent(media_progress_fill),&area);
   const int along=point.x-area.x1-media_bar_x;
   const uint32_t seconds=media_card::seek_seconds(along,media_bar_width,x.media_duration);
+  // The seek bar is no LVGL slider: it says its own steps (touch_feedback.h), every 5 % of the track.
+  if(code==LV_EVENT_PRESSED||code==LV_EVENT_PRESSING)touch_feedback::moved(media_progress_fill,(int)seconds,0,(int)x.media_duration);
   if(code==LV_EVENT_PRESSED||code==LV_EVENT_PRESSING){media_seeking=true;media_bar_at(seconds,x.media_duration,media_progress_fill,media_elapsed_label,media_bar_width);return;}
   if(code==LV_EVENT_PRESS_LOST){media_seeking=false;media_bar_at(media_elapsed(t),x.media_duration,media_progress_fill,media_elapsed_label,media_bar_width);return;}
   if(code!=LV_EVENT_RELEASED||!media_seeking)return;
@@ -5291,7 +5364,11 @@ inline void show_detail(unsigned index){
   lv_obj_remove_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_backdrop);
   ++card_builds;
   detail_action_count=0;card_parts.clear();card_shape_of=nullptr;card_blocked=false;detail_status=nullptr;detail_badge_status=nullptr;detail_switch=nullptr;climate_number=nullptr;climate_ends[0]=climate_ends[1]=nullptr;climate_now_mark=nullptr;climate_keys[0]=climate_keys[1]=nullptr;detail_placed=false;detail_status_brief=false;history_forget();
-  alarm_forget_widgets();media_progress_fill=nullptr;media_elapsed_label=nullptr;media_total_label=nullptr;media_detail_picture=nullptr;light_value=nullptr;lv_obj_clean(detail_root);lv_obj_remove_flag(detail_root,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_root);
+  alarm_forget_widgets();media_progress_fill=nullptr;media_elapsed_label=nullptr;media_total_label=nullptr;media_detail_picture=nullptr;light_value=nullptr;
+#ifdef SD_MOD_VACUUM_CARD
+  vacuum_card::card_cleared();
+#endif
+  lv_obj_clean(detail_root);lv_obj_remove_flag(detail_root,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(detail_root);
   lv_obj_set_style_bg_color(detail_root,theme::color(theme::PAGE),0);lv_obj_set_style_bg_opa(detail_root,LV_OPA_COVER,0);
   lv_obj_set_style_bg_grad_dir(detail_root,LV_GRAD_DIR_NONE,0);
   media_knob=media_pill_obj=media_library_key=media_input_key=nullptr;
@@ -5304,7 +5381,11 @@ inline void show_detail(unsigned index){
   // range keys under it keeps a hand's width (overlay_card::reach). Asked here because every size below
   // follows from `width`.
   const bool with_history=history_card(t);
-  const auto kind=d=="media_player"?overlay_card::picture:with_history||d=="weather"?overlay_card::graph:overlay_card::controls;
+  auto kind=d=="media_player"?overlay_card::picture:with_history||d=="weather"?overlay_card::graph:overlay_card::controls;
+#ifdef SD_MOD_VACUUM_CARD
+  // The vacuum card of the module takes the whole glass on landscape glass with a map, and on low glass.
+  if(d=="vacuum"&&!with_history&&vacuum_card::wide(t))kind=overlay_card::picture;
+#endif
   bool large=ui::large();
   // A card whose stack asks for more height than the glass has stands in two columns instead.
   const int columns=d=="climate"||d=="humidifier"?climate_columns(t,large):d=="cover"?cover_columns(t,large):d=="weather"?1
@@ -5323,7 +5404,11 @@ inline void show_detail(unsigned index){
   if(with_history){
     render_history_detail(t,large,width,height,pad);
   }else if(d=="vacuum"){
+#ifdef SD_MOD_VACUUM_CARD
+    vacuum_card::render(t,heading,width,height);
+#else
     render_vacuum_detail(t,large,width,height,pad);
+#endif
   }else if(d=="climate"||d=="humidifier"){
     // A humidifier is the thermostat's card in percent: its power key, the humidity it is set to, its modes.
     render_climate_detail(t,large,width,height,columns);
@@ -5869,6 +5954,23 @@ inline void slider_handle(lv_obj_t *slider, int width, int height) {
   int stub = slider_stub(height), below = width > stub ? 1000 * stub / (width - stub) : 0;
   if (lv_slider_get_min_value(slider) != -below || lv_slider_get_max_value(slider) != 1000) lv_slider_set_range(slider, -below, 1000);
 }
+// A player's keys and volume on a taller card grow with it, up to half again the look's finger key, so a player that
+// takes a large card's height reads and plays from across the room (the same key on a 4-inch cell and a 10-inch column).
+inline int media_tall_key(int base,int height){return std::clamp(height/6,base,base*3/2);}
+// The same handle on a standing slider (a player's volume at the right of its card): the fill rises from the bottom,
+// the white bar lies across it an eighth of the slider's width under the end of the fill.
+inline void slider_handle_standing(lv_obj_t *slider, int width, int height) {
+  int handle = slider_handle_width(width), inset = std::max(1, width / 8) + handle / 2, half = width >> 1;
+  int corner = width > 20 ? width * 12 / 42 : LV_RADIUS_CIRCLE;
+  set_number(slider, LV_STYLE_RADIUS, corner, LV_PART_MAIN);
+  set_number(slider, LV_STYLE_RADIUS, corner, LV_PART_INDICATOR);
+  set_number(slider, LV_STYLE_PAD_TOP, handle / 2 - inset - half, LV_PART_KNOB);
+  set_number(slider, LV_STYLE_PAD_BOTTOM, inset + handle / 2 - (width - half), LV_PART_KNOB);
+  set_number(slider, LV_STYLE_PAD_LEFT, -(width / 4), LV_PART_KNOB);
+  set_number(slider, LV_STYLE_PAD_RIGHT, -(width / 4), LV_PART_KNOB);
+  int stub = slider_stub(width), below = height > stub ? 1000 * stub / (height - stub) : 0;
+  if (lv_slider_get_min_value(slider) != -below || lv_slider_get_max_value(slider) != 1000) lv_slider_set_range(slider, -below, 1000);
+}
 // An off light or fan shows only the grey track, as in Home Assistant: no fill, no handle.
 inline void slider_bar(lv_obj_t *slider, bool shown) {
   set_number(slider, LV_STYLE_BG_OPA, shown ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
@@ -5900,17 +6002,20 @@ inline const lv_font_t *name_font(const Widgets &w, int room) {
 inline int content_height(const Widgets &w) {
   return tile_height(w) - lv_obj_get_style_space_top(w.tile, LV_PART_MAIN) - lv_obj_get_style_space_bottom(w.tile, LV_PART_MAIN);
 }
-// What one cell of the grid has to draw in. A control that fills its room on a double-width card takes exactly
-// this: such a card is two cells, its controls claim the second one, and their edges then stand where the cards
-// in the rows above and below have theirs. The look's own numbers (panel_metrics) are what one cell of a Guition
-// and a CYD measures, give or take two pixels; a board whose grid divides its glass differently (three columns
-// on a 4.3 inch) gets its own cell instead of that number.
-inline int cell_content_width(const Widgets &w) {
+// The room a control that fills it takes on a wide card of one row: every cell after the first. The first cell holds
+// the icon, the name and the state, as a card of one cell does, and the control fills the cells beside it as if they
+// were one card, less a card's padding and border; its edges then stand where the cards in the rows above and below
+// have theirs. On a card of two cells that is the second cell; on a card of three, the second and the third (GitHub
+// #250: before, one cell at the right end of every wide card, a short slider on a card of three). The look's own
+// numbers (panel_metrics) are what one cell of a Guition and a CYD measures, give or take two pixels; a board whose
+// grid divides its glass differently (three columns on a 4.3 inch) gets its own cells instead of that number.
+inline int rest_content_width(const Widgets &w) {
   const int edges = tile_width(w) - content_width(w);
   if (tile_grid && grid.wide_span() > 1) {
     const int gap = lv_obj_get_style_pad_column(tile_grid, LV_PART_MAIN);
     const int cell = (lv_obj_get_content_width(tile_grid) - (int) (grid.columns - 1) * gap) / (int) grid.columns;
-    if (cell - edges > 0) return cell - edges;
+    const int rest = tile_width(w) - cell - gap - edges;
+    if (rest > 0) return rest;
   }
   return std::max(1, w.base_width > edges ? w.base_width - edges : content_width(w) / 2);
 }
@@ -7216,7 +7321,10 @@ inline void stepper_keys(Widgets &w,int width,int height,const lv_font_t *text_f
 }
 // Build (once per control set) and lay out the panel; returns the width it takes
 // from the text, including the gap, or 0 when the card shows no panel.
-inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int content_h) {
+// `standing`: the height of a player's volume standing at the right of its card (volume_playback on a card wider than
+// high, render_tall draws it among the card's parts): the panel holds the keys alone; -1 the keys alone, without room
+// for the volume; 0 lays the volume over the keys.
+inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int content_h,int standing=0) {
   std::string mode=tile_controls::panel_kind(t);
   // A full card that draws its setpoint and mode keys as rows (render_tall) takes the taller card's control sizes.
   const bool taller=t.row_span()>1 && (!w.full || tile_controls::climate_modes_selected(t));
@@ -7227,6 +7335,7 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
   PanelMetrics m=w.full?panel_metrics_full(std::max(content_w,content_h)>=ui::mm(56)):panel_metrics(large);
   if(taller){
     m.key_h=std::max(ui::touch_min(),ui::px(large?48:34));m.key_w=m.key_h;
+    if(t.domain()=="media_player"){m.key_h=media_tall_key(m.key_h,content_h);m.key_w=m.key_h;}
     m.pill_w=std::min(content_w,ui::control_max_width());m.pill_key=m.key_h;
     m.slider_h=m.key_h;m.toggle_h=m.key_h;m.ext=0;
     if(mode=="toggle"){
@@ -7243,8 +7352,8 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
   const lv_font_t *icon_font=w.full?w.icon_font:mini_icon_font?mini_icon_font:w.icon_font;
   const lv_font_t *text_font=control_font?control_font:w.title_font;
   auto d=t.domain();
-  // A double-width card's controls fill the cell they stand on (cell_content_width); a card over the whole page
-  // keeps the wide sizes of panel_metrics_full, centred under it. A row of keys divides that cell between three
+  // A wide card's controls fill every cell after its first (rest_content_width); a card over the whole page
+  // keeps the wide sizes of panel_metrics_full, centred under it. A row of keys divides that room between three
   // of them, and never takes a key above the size the look gives it.
   // A full card's sizes are the look's, but its glass can be narrower than they are (a small screen standing up):
   // every width stays inside the card, and a key never below the touch minimum.
@@ -7253,16 +7362,42 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
     m.slider_w=std::min(m.slider_w,std::max(ui::touch_min(),content_w-m.key_h-m.gap));
     m.toggle_w=std::min(m.toggle_w,content_w);
   }
-  const int fill=(w.full||taller)?m.pill_w:cell_content_width(w);
+  const int fill=(w.full||taller)?m.pill_w:rest_content_width(w);
+  // That room follows the card's width (GitHub #250): a slot that showed a card of another width builds its parts again,
+  // as a taller card does when it is resized.
+  if(!w.full&&!taller){
+    if(w.panel_layout_w!=fill){end_panel(w);w.panel_mode.clear();}
+    w.panel_layout_w=fill;w.panel_layout_h=0;
+  }
   const int keys_room=w.full?content_w:fill;
   const int key_w=std::min(m.key_w,std::max(ui::touch_min(),(keys_room-2*m.gap)/3));
   // A player's volume shares that room with its mute key; every other slider takes it whole.
   const int track=(w.full||taller)?(mode=="volume"?m.slider_w:m.pill_w):(mode=="volume"?std::max(ui::touch_min(),fill-m.gap-m.key_h):fill);
+  // A player's volume over its playback keys (volume_playback) on a taller card: one panel, the slider a row above.
+  const bool pair=taller&&mode=="playback"&&tile_controls::media_volume_selected(t);
+  const int pair_w=pair?std::max(3*key_w+2*m.gap,m.pill_w):0;
+  // 1: the volume over the keys, 2: standing at the card's right, 3: no room for it, the keys alone.
+  const uint8_t pair_form=!pair?0:standing>0?2:standing<0?3:1;
+  auto make_slider=[&](int width,int h){
+    auto *slider=lv_slider_create(w.panel);w.control_slider=slider;
+    lv_obj_remove_flag(slider,LV_OBJ_FLAG_GESTURE_BUBBLE);lv_obj_remove_flag(slider,LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(slider,width,h);
+    lv_obj_set_style_pad_all(slider,0,LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_MAIN);lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_INDICATOR);
+    // The handle is a short white bar inside the fill, like Home Assistant's slider.
+    lv_obj_set_style_radius(slider,2,LV_PART_KNOB);lv_obj_add_style(slider,theme::style(theme::Paint::knob),LV_PART_KNOB);lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_KNOB);
+    slider_handle(slider,width,h);
+    lv_obj_set_style_border_width(slider,0,LV_PART_KNOB);lv_obj_set_style_shadow_width(slider,0,LV_PART_KNOB);
+    lv_obj_set_ext_click_area(slider,m.ext+2);
+    lv_obj_add_event_cb(slider,slider_event,LV_EVENT_ALL,(void*)(uintptr_t)w.index);
+  };
   if(!w.panel){w.panel=panel_obj(w.tile,false);}
-  if(w.panel_mode!=mode || w.panel_full!=w.full || w.panel_tall!=taller){
-    end_panel(w);w.panel_mode=mode;w.panel_full=w.full;w.panel_tall=taller;w.panel_dirty=true;
+  if(w.panel_mode!=mode || w.panel_full!=w.full || w.panel_tall!=taller || w.panel_pair!=pair_form){
+    end_panel(w);w.panel_mode=mode;w.panel_full=w.full;w.panel_tall=taller;w.panel_pair=pair_form;w.panel_dirty=true;
     if(tile_controls::is_key_row(mode)){
       for(unsigned n=0;n<3;++n){panel_key(w,n,w.panel,m,key_w,m.key_h,false);panel_icon(w,n,icon_font);}
+      // Standing at the card's right (form 2), the volume is one of the card's own parts (render_tall, media_standing).
+      if(pair_form==1)make_slider(pair_w,m.slider_h);
     }else if(mode=="mode"){
       // Drawn per render (draw_mode_bar): the track and a segment per mode, as many as its width holds.
     }else if(mode=="setpoint"||mode=="stepper"){
@@ -7289,18 +7424,7 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
       lv_obj_set_pos(w.pill_value,m.pill_key,(m.key_h+2-lv_font_get_line_height(text_font))/2);
       w.key_commands[0]=tile_controls::STEP_DOWN;w.key_commands[1]=tile_controls::STEP_UP;
     }else if(tile_controls::is_slider(mode)){
-      int h=m.slider_h;
-      auto *slider=lv_slider_create(w.panel);w.control_slider=slider;
-      lv_obj_remove_flag(slider,LV_OBJ_FLAG_GESTURE_BUBBLE);lv_obj_remove_flag(slider,LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_set_size(slider,track,h);
-      lv_obj_set_style_pad_all(slider,0,LV_PART_MAIN);
-      lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_MAIN);lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_INDICATOR);
-      // The handle is a short white bar inside the fill, like Home Assistant's slider.
-      lv_obj_set_style_radius(slider,2,LV_PART_KNOB);lv_obj_add_style(slider,theme::style(theme::Paint::knob),LV_PART_KNOB);lv_obj_set_style_bg_opa(slider,LV_OPA_COVER,LV_PART_KNOB);
-      slider_handle(slider,track,h);
-      lv_obj_set_style_border_width(slider,0,LV_PART_KNOB);lv_obj_set_style_shadow_width(slider,0,LV_PART_KNOB);
-      lv_obj_set_ext_click_area(slider,m.ext+2);
-      lv_obj_add_event_cb(slider,slider_event,LV_EVENT_ALL,(void*)(uintptr_t)w.index);
+      make_slider(track,m.slider_h);
       if(mode=="volume"){panel_key(w,0,w.panel,m,m.key_h,m.key_h,false);panel_icon(w,0,icon_font);w.key_commands[0]=tile_controls::MEDIA_MUTE;}
     }else if(mode=="toggle"){
       panel_key(w,0,w.panel,m,m.toggle_w,m.toggle_h,false);lv_obj_set_style_radius(w.keys[0],LV_RADIUS_CIRCLE,0);
@@ -7325,15 +7449,28 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
   auto set_disabled=[&](unsigned n,bool disabled){if(disabled)lv_obj_add_state(w.keys[n],LV_STATE_DISABLED);else lv_obj_remove_state(w.keys[n],LV_STATE_DISABLED);};
   if(tile_controls::is_key_row(mode)){
     std::array<tile_controls::Key,3> keys;unsigned count=tile_controls::keys_for(t,keys,now);
+    // With the volume above them, the keys stand centred under its slider, a row lower.
+    const bool volume=pair_form==1&&(t.supported&tile_controls::feature::MEDIA_VOLUME_SET);
+    const int row_w=count?count*key_w+(count-1)*m.gap:0;
+    const int key_x=volume?(pair_w-row_w)/2:0,key_y=volume?m.slider_h+m.gap:0;
     for(unsigned n=0;n<3;++n){
       if(n>=count){lv_obj_add_flag(w.keys[n],LV_OBJ_FLAG_HIDDEN);w.key_commands[n]=tile_controls::NONE;continue;}
-      lv_obj_remove_flag(w.keys[n],LV_OBJ_FLAG_HIDDEN);lv_obj_set_pos(w.keys[n],n*(key_w+m.gap),0);
+      lv_obj_remove_flag(w.keys[n],LV_OBJ_FLAG_HIDDEN);lv_obj_set_pos(w.keys[n],key_x+n*(key_w+m.gap),key_y);
       label(w.key_icons[n],keys[n].icon);center_icon(w.key_icons[n]);w.key_commands[n]=keys[n].command;w.key_args[n]=keys[n].arg;
       // The active mode key carries the accent; "off" stays neutral grey.
       if(keys[n].checked && w.key_checked[n]!=1)lv_obj_set_style_bg_color(w.keys[n],keys[n].arg=="off"?theme::color(theme::OFF):w.panel_accent,LV_STATE_CHECKED);
       set_checked(n,keys[n].checked);set_disabled(n,keys[n].disabled);
     }
-    panel_w=count?count*key_w+(count-1)*m.gap:0;
+    panel_w=row_w;
+    if(pair_form==1&&w.control_slider){
+      set_hidden(w.control_slider,!volume);
+      if(volume){
+        lv_obj_set_pos(w.control_slider,0,0);
+        // Keep the dragged value while the command is under way; HA's report takes over afterwards.
+        if(!lv_obj_has_state(w.control_slider,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(w.control_slider,slider_value(t),LV_ANIM_OFF);
+        panel_w=pair_w;panel_h=key_y+m.key_h;
+      }
+    }
   }else if(mode=="mode"){
     // A thermostat's modes (firmware 0.19.0): the bar under its -/+ in "Temperature and mode", with the same rule for
     // how many fit (climate_tile::bar_room) and the same modes (climate_bar_keys). Over the card's reach on a card of
@@ -7438,6 +7575,7 @@ inline void control_event(lv_event_t *e) {
   else if(tile_controls::wanted(t,command,w.key_args[n]).valid?!allowed_wish(now,400+slot*16+n,"control "+std::to_string(slot))
                                                                :!allowed(now,400+slot*16+n,"control "+std::to_string(slot)))return;
   if(!t.available())return;
+  if(held)touch_feedback::step(command==tile_controls::STEP_UP?1:-1);   // each step of a held key clicks (touch_feedback.h)
   // A range (firmware 0.19.0): the chip switches the end the -/+ move, heat or cool; the -/+ move that end.
   if(command==tile_controls::RANGE_SWITCH&&tile_controls::climate_range(t)){
     t.range_end=t.range_end==tile_controls::RANGE_HIGH?tile_controls::RANGE_LOW:tile_controls::RANGE_HIGH;
@@ -7626,21 +7764,6 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   if(volume)media_volume_row(w.extra,&w.parts[11],at(l.minus),at(l.volume),at(l.plus),t,big,usable,(void*)(uintptr_t)w.index,false,key_font);
   show(11,volume);show(12,volume);show(13,volume);
 }
-// Both overlay and tile use the same feature-filtered cover commands. Slot
-// ownership is resolved on every tap; stale/offline/waiting entities stay inert.
-inline void cover_tile_key_event(lv_event_t *e){
-  const unsigned tag=(uintptr_t)lv_event_get_user_data(e),slot=tag/8,part=tag%8;
-  if(slot>=widgets.size()||part>=6)return;
-  const auto &w=widgets[slot];if(w.index>=model.count||w.extra_mode!="cover_tilt")return;
-  const auto &t=model.tiles[w.index];
-  if(!enabled||!fresh()||!t.available()||t.waiting(esphome::millis())||!tile_controls::cover_tilt_selected(t))return;
-  std::array<tile_controls::Key,3> keys;
-  const unsigned count=part>=3?tile_controls::cover_tilt_keys(t,keys):tile_controls::keys_for(t,keys);
-  if(part%3>=count||keys[part%3].disabled)return;
-  if(!screen_input::touch_guard.accept(esphome::millis(),600+tag))return;
-  const auto call=tile_controls::key_action(t,keys[part%3].command);
-  if(!call.service.empty())action(call.service,t.entity,call.key,call.value);
-}
 // A thermostat's mode bar (firmware 0.3.3): under its -/+ on a card of "Temperature and mode" (the tall card's parts
 // 2 and 4..9) and on its own as the panel of "Mode" (the panel's pill and segments, firmware 0.19.0). One bar, one
 // drawing, one press: a segment says its place in the bar, and the bar's modes are climate_bar_keys for the room it
@@ -7721,53 +7844,111 @@ inline void draw_mode_bar(Widgets &w,const Tile &t,lv_obj_t *parent,lv_obj_t *&t
     else if(segments[n])lv_obj_add_flag(segments[n],LV_OBJ_FLAG_HIDDEN);
   }
 }
+// The cover cards the cover layout draws (firmware 0.57.0, hello feature cover_rows): any card with its slats chosen,
+// and a card of one cell with a control chosen at all (on large glass a 1x1 holds a bar or a row of keys). The add-on
+// sends a one-row card its slats and a 1x1 its control only to a screen that says cover_rows.
+inline bool cover_row_card(const Tile &t){
+  if(t.domain()!="cover")return false;
+  if(tile_controls::cover_tilt_selected(t))return true;
+  const auto kind=tile_controls::panel_kind(t);
+  return t.column_span()==1&&t.row_span()==1&&!t.full&&(kind=="position"||kind=="buttons");
+}
 inline cover_tile::Layout cover_tile_layout(const Tile &t,tall_tile::Rect body,int touch,int gap,int caption){
   // Capability, not freshness, decides the layout: while HA reconnects the same keys stay, greyed out (ready below).
-  if(!tile_controls::cover_tilt_selected(t))return {};
+  if(!cover_row_card(t))return {};
   const auto card=tile_controls::cover_card(t);std::array<tile_controls::Key,3> keys;
   const auto kind=tile_controls::panel_kind(t);
+  const bool position=kind=="position"&&card.position;
+  const bool tilt=tile_controls::cover_tilt_selected(t);
+  // Slats chosen on a cover that reports none (a motor swapped, a group that lost its venetian blind): a card larger than
+  // one cell keeps the card it has without them, as before firmware 0.57.0; a 1x1 still lays out its primary control.
+  const bool one_cell=t.column_span()==1&&t.row_span()==1&&!t.full;
+  if(tilt&&!card.tilt&&!card.tilt_keys&&!one_cell)return {};
+  // A blind worked by its position gets its open, stop and close as well where the card has room for them too.
   return cover_tile::layout(body,touch,gap,caption,2*touch,
-    kind=="position"&&card.position,kind=="buttons"?tile_controls::keys_for(t,keys):0,
-    card.tilt,card.tilt_keys?tile_controls::cover_tilt_keys(t,keys):0);
+    position,kind=="buttons"?tile_controls::keys_for(t,keys):0,
+    tilt&&card.tilt,tilt&&card.tilt_keys?tile_controls::cover_tilt_keys(t,keys):0,
+    position&&card.keys?tile_controls::cover_keys(t,keys):0,t.row_span()>1||t.full);
+}
+// A cover card whose slats share one row with its primary control (cover_tile::SWAP) shows one of the two: the swap key
+// turns it. By the tile's index, so it stays while the card is drawn again; a new layout starts at the primary.
+inline std::array<uint8_t,TILES_MAX> cover_swapped{};
+inline void render_cover_tile(Widgets &w,const Tile &t,const cover_tile::Layout &l,int width,int height);
+// Both overlay and tile use the same feature-filtered cover commands. Slot ownership is resolved on every tap;
+// stale/offline/waiting entities stay inert. A cover card's keys: tag slot*16 + group*3 + key (group 0 the primary, 1 the slats, 2 open/stop/close beside the
+// sliders), slot*16 + 15 the swap key.
+inline void cover_tile_key_event(lv_event_t *e){
+  const unsigned tag=(uintptr_t)lv_event_get_user_data(e),slot=tag/16,part=tag%16;
+  if(slot>=widgets.size()||(part>=9&&part!=15))return;
+  auto &w=widgets[slot];if(w.index>=model.count||w.extra_mode!="cover_tilt")return;
+  const auto &t=model.tiles[w.index];
+  if(part==15){
+    if(!enabled||!screen_input::touch_guard.accept(esphome::millis(),600+tag))return;
+    cover_swapped[w.index]^=1;w.cached_active=-1;refresh_tile(w.index);return;
+  }
+  if(!enabled||!fresh()||!t.available()||t.waiting(esphome::millis())||!tile_controls::cover_tilt_selected(t))return;
+  std::array<tile_controls::Key,3> keys;
+  const unsigned group=part/3,count=group==1?tile_controls::cover_tilt_keys(t,keys):group==2?tile_controls::cover_keys(t,keys):tile_controls::keys_for(t,keys);
+  if(part%3>=count||keys[part%3].disabled)return;
+  if(!screen_input::touch_guard.accept(esphome::millis(),600+tag))return;
+  const auto call=tile_controls::key_action(t,keys[part%3].command);
+  if(!call.service.empty())action(call.service,t.entity,call.key,call.value);
 }
 inline void render_cover_tile(Widgets &w,const Tile &t,const cover_tile::Layout &l,int width,int height){
   hide_panel(w);
-  // Rebuild only when structure, physical size or theme changes, never for live
-  // position updates (which must not interrupt an active drag).
+  const unsigned index=w.index<TILES_MAX?w.index:0;
+  if(l.swap.empty())cover_swapped[index]=0;
+  const bool swapped=cover_swapped[index];
+  // Rebuild only when structure, physical size, theme or the swap changes, never for live position updates (which
+  // must not interrupt an active drag).
   const int signature=(int)t.supported+(tile_controls::panel_kind(t)=="position"?256:0)+
-    (tile_controls::panel_kind(t)=="buttons"?512:0)+(theme::dark?1024:0);
+    (tile_controls::panel_kind(t)=="buttons"?512:0)+(theme::dark?1024:0)+(swapped?2048:0)+(int)l.tier*4096;
   if(w.extra_mode=="cover_tilt"&&(w.hand_cx!=width||w.hand_cy!=height||w.hand_width!=signature))end_extra(w);
   begin_extra(w,"cover_tilt",width,height);w.hand_cx=width;w.hand_cy=height;w.hand_width=signature;
-  const int slot=&w-widgets.data(),gap=ui::px(ui::large()?8:4),touch=std::max(ui::touch_min(),ui::px(ui::large()?48:34));
+  const int slot=&w-widgets.data(),gap=ui::px(ui::large()?8:4);
   const bool ready=fresh()&&t.available()&&!t.waiting(esphome::millis());
-  for(int i=0;i<2;++i){
+  const lv_font_t *icons=mini_icon_font?mini_icon_font:w.icon_font;
+  auto key=[&](int part,const tall_tile::Rect &r,const char *glyph,bool on){
+    w.parts[part]=media_key(w.extra,w.parts[part],{r.x,r.y,r.w,r.h},glyph,icons,false,false,on,cover_tile_key_event,(void*)(uintptr_t)(slot*16+(part==13?15:part-4)));
+    lv_obj_set_ext_click_area(w.parts[part],0);
+    set_color(w.parts[part],LV_STYLE_BG_COLOR,lv_color_hex(cover_track()));
+    set_color(lv_obj_get_child(w.parts[part],0),LV_STYLE_TEXT_COLOR,lv_color_hex(COVER_ACCENT));
+  };
+  for(int i=0;i<3;++i){
     const auto &g=l.groups[i];if(g.area.empty())continue;
+    if(i<2&&!l.swap.empty()&&(i==1)!=swapped)continue;
     const float value=i?t.extra().tilt:t.position;
-    std::string caption=std::string(tr(i?txt::cover_tilt:txt::cover_position));
-    if(g.slider&&std::isfinite(value)){
-      const auto with_value=caption+" "+screen_text::percent((int)std::lround(value));
-      if(text_width(with_value,w.value_font)<=g.caption.w)caption=with_value;
+    if(i<2&&!g.caption.empty()){
+      // The word and the value where both fit, else the word, else the value of a slider, else nothing: never cut.
+      const std::string word=tr(i?txt::cover_tilt:txt::cover_position);
+      const std::string number=g.slider&&std::isfinite(value)?screen_text::percent((int)std::lround(value)):"";
+      std::string caption;
+      for(const auto &c:{number.empty()?std::string():word+" "+number,word,number})
+        if(!c.empty()&&text_width(c,w.value_font)<=g.caption.w){caption=c;break;}
+      auto *label=part_label(w,i,w.value_font,g.caption.x,g.caption.y,g.caption.w,LV_TEXT_ALIGN_CENTER,caption);
+      set_color(label,LV_STYLE_TEXT_COLOR,theme::color(theme::MUTED));
     }
-    auto *label=part_label(w,i,w.value_font,g.caption.x,g.caption.y,g.caption.w,LV_TEXT_ALIGN_CENTER,caption);
-    set_color(label,LV_STYLE_TEXT_COLOR,theme::color(theme::MUTED));
     if(g.slider){
       auto *&slider=w.parts[2+i];
-      if(!slider)slider=cover_slider(w.extra,g.control.x,g.control.y,g.control.w,g.control.h,value,i,slider_event,nullptr);
-      if(captured_slider!=slider)lv_slider_set_value(slider,std::isfinite(value)?(int)std::lround((i?value:100-value)*10):500,LV_ANIM_OFF);
+      if(!slider)slider=g.lying?cover_bar(w.extra,g.control.x,g.control.y,g.control.w,g.control.h,value,i,slider_event,nullptr)
+                               :cover_slider(w.extra,g.control.x,g.control.y,g.control.w,g.control.h,value,i,slider_event,nullptr);
+      if(captured_slider!=slider)lv_slider_set_value(slider,std::isfinite(value)?(int)std::lround((i||g.lying?value:100-value)*10):(i?500:0),LV_ANIM_OFF);
       if(ready)lv_obj_remove_state(slider,LV_STATE_DISABLED);else lv_obj_add_state(slider,LV_STATE_DISABLED);
     }else{
       std::array<tile_controls::Key,3> keys;
-      const unsigned count=i?tile_controls::cover_tilt_keys(t,keys):tile_controls::keys_for(t,keys);
+      const unsigned count=i==1?tile_controls::cover_tilt_keys(t,keys):i==2?tile_controls::cover_keys(t,keys):tile_controls::keys_for(t,keys);
+      if(!count)continue;
+      // In a row the keys share its width; in a stack they share its height, each as high as the stack allows.
+      const int along=g.horizontal?(g.control.w-(int)(count-1)*gap)/(int)count:g.control.w;
+      const int across=g.horizontal?g.control.h:(g.control.h-(int)(count-1)*gap)/(int)count;
       for(unsigned n=0;n<count;++n){
-        const int part=4+i*3+n;const auto &k=keys[n];
-        media_card::Rect r{g.control.x+(g.horizontal?(int)n*(touch+gap):(g.control.w-touch)/2),g.control.y+(g.horizontal?0:(int)n*(touch+gap)),touch,touch};
-        w.parts[part]=media_key(w.extra,w.parts[part],r,k.icon,mini_icon_font?mini_icon_font:w.icon_font,false,false,ready&&!k.disabled,cover_tile_key_event,(void*)(uintptr_t)(slot*8+i*3+n));
-        lv_obj_set_ext_click_area(w.parts[part],0);
-        set_color(w.parts[part],LV_STYLE_BG_COLOR,lv_color_hex(cover_track()));
-        set_color(lv_obj_get_child(w.parts[part],0),LV_STYLE_TEXT_COLOR,lv_color_hex(COVER_ACCENT));
+        const tall_tile::Rect r{g.control.x+(g.horizontal?(int)n*(along+gap):0),g.control.y+(g.horizontal?0:(int)n*(across+gap)),along,across};
+        key(4+i*3+n,r,keys[n].icon,ready&&!keys[n].disabled);
       }
     }
   }
+  // The swap key shows what the row turns into: the slats, or the blind again.
+  if(!l.swap.empty())key(13,l.swap,swapped?tile_controls::glyph::SHADE:tile_controls::glyph::SLATS,ready);
 }
 // Additional rows extend the existing heading and controls. Compact tiles never
 // enter this path. The selected control kind and its events remain authoritative.
@@ -7882,16 +8063,64 @@ inline bool render_camera_card(Widgets &w,const Tile &t,int width,int height){
 }
 // False only for a full-page cover whose slat group cannot be drawn here (no tilt, or too little room): the caller
 // then draws the ordinary full card with the primary controls, untouched by this function.
+// A player's volume standing at the right of its taller card (volume_playback on a card wider than high), beside its
+// playback keys: one of the card's own parts, so it stays inside the card's content however the keys stand, with the
+// tile slider's look (slider_handle_standing) and colours (style_panel's: the fill in the accent over 20 % of it).
+constexpr unsigned MEDIA_STANDING_PART=34;
+inline void media_standing(Widgets &w,const Tile &t,int x,int y,int width,int height){
+  auto *&s=w.parts[MEDIA_STANDING_PART];
+  if(s&&!lv_obj_check_type(s,&lv_slider_class)){lv_obj_delete(s);s=nullptr;}
+  if(!s){
+    s=lv_slider_create(w.extra);
+    lv_obj_remove_flag(s,LV_OBJ_FLAG_GESTURE_BUBBLE);lv_obj_remove_flag(s,LV_OBJ_FLAG_SCROLLABLE);
+    lv_slider_set_orientation(s,LV_SLIDER_ORIENTATION_VERTICAL);
+    lv_obj_set_style_pad_all(s,0,LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(s,LV_OPA_COVER,LV_PART_MAIN);lv_obj_set_style_bg_opa(s,LV_OPA_COVER,LV_PART_INDICATOR);
+    lv_obj_set_style_radius(s,2,LV_PART_KNOB);lv_obj_add_style(s,theme::style(theme::Paint::knob),LV_PART_KNOB);lv_obj_set_style_bg_opa(s,LV_OPA_COVER,LV_PART_KNOB);
+    lv_obj_set_style_border_width(s,0,LV_PART_KNOB);lv_obj_set_style_shadow_width(s,0,LV_PART_KNOB);
+    lv_obj_add_event_cb(s,slider_event,LV_EVENT_ALL,(void*)(uintptr_t)w.index);
+  }
+  lv_obj_set_pos(s,x,y);lv_obj_set_size(s,width,height);slider_handle_standing(s,width,height);
+  const lv_color_t fill=t.muted?theme::color(theme::OFF):w.panel_accent,card=lv_color_hex(theme::surface(t.background));
+  set_color(s,LV_STYLE_BG_COLOR,lv_color_mix(fill,card,51),LV_PART_MAIN);set_color(s,LV_STYLE_BG_COLOR,fill,LV_PART_INDICATOR);
+  if(!lv_obj_has_state(s,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(s,slider_value(t),LV_ANIM_OFF);
+  lv_obj_remove_flag(s,LV_OBJ_FLAG_HIDDEN);
+}
 inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int height) {
   selected=selected&&tile_controls::panel_available(t);
   const bool large=ui::large();const int gap=ui::px(large?8:4);
   const int touch=std::max(ui::touch_min(),ui::px(large?48:34));
   tall_tile::Metrics m{width,height,(int)lv_font_get_line_height(w.title_font),
     (int)lv_font_get_line_height(w.value_font),w.base_circle,gap,ui::touch_min(),ui::control_max_width(),{touch+2,0},selected?1:0};
+  const int media_key=t.domain()=="media_player"?media_tall_key(touch,height):touch;
+  if(media_key!=touch)m.row_heights={media_key+2,0};
+  // A player's volume beside its keys: on a card wider than high it stands at the right, the whole height of the card,
+  // and the heading, the track and the keys share the rest; on a narrower card it lies over the keys as a second row.
+  // Without the room for either, its keys alone.
+  // `standing` the volume's height at the card's right, -1 no room for the volume: the keys alone.
+  const int whole_w=width;int standing=0;
+  if(selected&&!w.full&&tile_controls::media_volume_selected(t)&&(t.supported&tile_controls::feature::MEDIA_VOLUME_SET)){
+    const int lane=media_key,inner=width-lane-gap;
+    auto beside=m;beside.width=inner;
+    if(width*4>=height*5&&inner>=3*media_key+2*gap&&tall_tile::layout(beside).fits){m=beside;standing=height;width=inner;}
+    else{
+      auto both=m;both.row_heights={media_key+2,media_key+2};both.row_count=2;
+      if(tall_tile::layout(both).fits)m=both;else standing=-1;
+    }
+  }
   auto cover_metrics=m;cover_metrics.row_count=0;
   const auto cover_base=tall_tile::layout(cover_metrics);
-  const auto cover=cover_tile_layout(t,cover_base.body,touch,gap,m.state_h);
-  if(w.full&&!cover.fits&&!tile_controls::climate_modes_selected(t)){if(w.extra_mode=="cover_tilt")hide_extra(w);return false;}
+  auto cover=cover_tile_layout(t,cover_base.body,touch,gap,m.state_h);
+  // A card (not a full page) at least twice as wide as high puts its heading at the left and the cover's controls at the right, where
+  // that gives them a richer layout than under the heading (a CYD's 2x2: two bars instead of one and its swap key).
+  bool beside=false;
+  // Only where the whole name fits the left half: a name cut short is worse than a poorer layout under it.
+  const int side_circle=std::min(w.base_circle,width/6);
+  if(!w.full&&width>=2*height&&text_width(lv_label_get_text(w.title),w.title_font)<=width/2-side_circle-gap){
+    const auto side=cover_tile_layout(t,{width/2+gap,0,width-width/2-gap,height},touch,gap,m.state_h);
+    if(side.fits&&(!cover.fits||side.tier>cover.tier)){cover=side;beside=true;}
+  }
+  if((w.full||t.row_span()==1)&&!cover.fits&&!tile_controls::climate_modes_selected(t)){if(w.extra_mode=="cover_tilt")hide_extra(w);return false;}
   if(cover.fits){selected=false;m.row_count=0;}
   auto l=tall_tile::layout(m);
   // An unusual override can leave too little physical room for the selection.
@@ -7945,17 +8174,34 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
   set_font(w.value,w.value_font);set_text_align(w.value,LV_TEXT_ALIGN_LEFT);
   lv_obj_set_pos(w.value,tx,y+m.name_h);lv_obj_set_size(w.value,tw,m.state_h);set_hidden(w.value,!l.state);
   tile_picture_place(w,t,circle,0,(l.header.h-circle)/2);
+  if(cover.fits&&beside){
+    // The heading stands in the left half, its circle, name and state centred on the card's height.
+    const int half=width/2,lines=m.name_h+m.state_h,ty=(height-lines)/2;
+    int c=std::min(w.base_circle,half/3);
+    const lv_font_t *font=heading_icon(w,c,height,half);
+    lv_obj_set_size(w.circle,c,c);lv_obj_set_pos(w.circle,0,(height-c)/2);
+    set_font(w.icon,font);center_icon(w.icon);
+    lv_obj_set_pos(w.title,c+gap,ty);lv_obj_set_size(w.title,std::max(1,half-c-gap),m.name_h);
+    lv_obj_set_pos(w.value,c+gap,ty+m.name_h);lv_obj_set_size(w.value,std::max(1,half-c-gap),m.state_h);set_hidden(w.value,false);
+    tile_picture_place(w,t,c,0,(height-c)/2);
+  }
   if(cover.fits){render_cover_tile(w,t,cover,width,height);return true;}
-  bool panel=selected&&layout_panel(w,t,large,width,height);
+  bool panel=selected&&layout_panel(w,t,large,width,height,standing);
   if(!panel)hide_panel(w);
   if(panel){
     const int pw=lv_obj_get_style_width(w.panel,LV_PART_MAIN),ph=lv_obj_get_style_height(w.panel,LV_PART_MAIN);
-    if(pw>width||ph>l.rows[0].h){hide_panel(w);panel=false;}
-    else lv_obj_set_pos(w.panel,(width-pw)/2,l.rows[0].y+(l.rows[0].h-ph)/2);
+    // Its rows together: one row, or the volume's and the keys' with the gap between them.
+    const int top=l.rows[0].y,room=(l.count>1?l.rows[1].bottom():l.rows[0].bottom())-top;
+    if(pw>width||ph>room){hide_panel(w);panel=false;}
+    else lv_obj_set_pos(w.panel,(width-pw)/2,top+(room-ph)/2);
+    // Beside a standing volume the keys start at the card's left, under the track and the name: one left edge for the
+    // card's words and keys, the volume its counterweight at the right (centred in the room left, they looked off).
+    if(panel&&standing>0)lv_obj_set_x(w.panel,0);
   }
   const auto d=t.domain();
-  begin_extra(w,"tall",width,height);
+  begin_extra(w,"tall",whole_w,height);
   for(auto *part:w.parts)if(part)lv_obj_add_flag(part,LV_OBJ_FLAG_HIDDEN);
+  if(panel&&standing>0)media_standing(w,t,width+gap,0,whole_w-width-gap,standing);
   auto text=[&](int i,const std::string &value,const lv_font_t *font,tall_tile::Rect area,lv_text_align_t align){
     if(value.empty()||area.h<(int)lv_font_get_line_height(font))return false;
     auto *p=part_label(w,i,font,area.x,area.y,area.w,align,value);
@@ -8045,14 +8291,27 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
   if(d=="media_player"){
     const auto &x=t.extra();
     const std::string title=fresh()&&t.available()&&media_card::has_track(t.state)?x.media_title:std::string();
-    const lv_font_t *font=room_label?lv_obj_get_style_text_font(room_label,LV_PART_MAIN):w.title_font;
-    if(lv_font_get_line_height(font)>body.h)font=w.title_font;
-    const int fh=lv_font_get_line_height(font);
     const std::string artist=media_card::subtitle(x.media_artist,x.media_album);
-    const bool secondary=!artist.empty()&&body.h>=fh+m.state_h+gap/2;
-    int y=body.y+std::max(0,(body.h-fh-(secondary?m.state_h+gap/2:0))/2);
+    // The largest step of the board's text fonts that fits (docs/RESPONSIVE.md, "One set of fonts"): on a large card
+    // the track in the large value's face with its artist in the top bar's, then the page headline over the small text,
+    // then the tile's name. The large face only where the whole title fits the width (a marquee that size reads badly)
+    // and leaves its artist line room; the artist gives way before the title steps down.
+    const lv_font_t *headline=room_label?lv_obj_get_style_text_font(room_label,LV_PART_MAIN):w.title_font;
+    struct Step{const lv_font_t *title,*artist;bool whole;};
+    const Step steps[]={{watch_value_font,control_font?control_font:w.value_font,true},{headline,w.value_font,false},{w.title_font,w.value_font,false}};
+    const lv_font_t *font=w.title_font,*small=w.value_font;bool secondary=false;
+    for(const auto &step:steps){
+      if(!step.title||!face_covers(step.title,title))continue;
+      const int th=lv_font_get_line_height(step.title),ah=lv_font_get_line_height(step.artist);
+      if(th>body.h||(step.whole&&(title.empty()||text_width(title,step.title)>width)))continue;
+      const bool both=!artist.empty()&&body.h>=th+ah+gap/2;
+      if(step.whole&&!artist.empty()&&!both)continue;
+      font=step.title;small=step.artist;secondary=both;break;
+    }
+    const int fh=lv_font_get_line_height(font),ah=lv_font_get_line_height(small);
+    int y=body.y+std::max(0,(body.h-fh-(secondary?ah+gap/2:0))/2);
     if(text(0,title,font,{0,y,width,fh},LV_TEXT_ALIGN_LEFT))drop_repeat(title);
-    if(secondary)text(1,artist,w.value_font,{0,y+fh+gap/2,width,m.state_h},LV_TEXT_ALIGN_LEFT);
+    if(secondary)text(1,artist,small,{0,y+fh+gap/2,width,ah},LV_TEXT_ALIGN_LEFT);
   }else if((d=="climate"||d=="humidifier")&&std::isfinite(t.current)){
     const auto *font=watch_value_font&&lv_font_get_line_height(watch_value_font)<=body.h?watch_value_font:w.value_font;
     text(0,tile_controls::reading_text(t,t.current),font,{0,body.y+std::max(0,(body.h-static_cast<int>(lv_font_get_line_height(font)))/2),width,body.h},LV_TEXT_ALIGN_CENTER);
@@ -8321,13 +8580,13 @@ inline void render_slot(size_t slot) {
   bool with_panel=(w.wide||taller) && !t.builtin() && !watch && fresh() && t.available() &&
                   (inline_panel || (!t.controls.empty() && t.inline_control!="slider"));
   // A panel needs its own width plus the icon and some name; a narrow wide card stays a plain card. What it
-  // needs is what it takes: the cell its controls fill (layout_panel), or the toggle and the run key their own
+  // needs is what it takes: the cells its controls fill (layout_panel), or the toggle and the run key their own
   // width.
   if(with_panel && !w.full && !taller){
     const bool lt=ui::large();
     const PanelMetrics pm=panel_metrics(lt);
     const std::string kind=tile_controls::panel_kind(t);
-    const int panel_need=kind=="toggle"?pm.toggle_w:kind=="run"?pm.key_w*3/2:cell_content_width(w);
+    const int panel_need=kind=="toggle"?pm.toggle_w:kind=="run"?pm.key_w*3/2:rest_content_width(w);
     if(content_width(w)<panel_need+pm.text_gap+ui::px(lt?54:36)+ui::px(60))with_panel=false;
   }
   // A wide card with a panel says what its control is doing, unless the second line was set by hand.
@@ -8420,7 +8679,8 @@ inline void render_slot(size_t slot) {
   }else if(t.favorite()&&render_favorite_card(w,t,content_w,content_h)){
     label(w.value,value);
     lap(swipe_profile::GEOMETRY);
-  }else if((taller||(w.full&&(tile_controls::cover_tilt_selected(t)||tile_controls::climate_modes_selected(t))))&&!custom&&!watch&&!graph&&
+  }else if((taller||(w.full&&(tile_controls::cover_tilt_selected(t)||tile_controls::climate_modes_selected(t)))||
+            (!w.full&&t.row_span()==1&&t.inline_control!="slider"&&cover_row_card(t)))&&!custom&&!watch&&!graph&&
      render_tall(w,t,with_panel,content_w,content_h)){
     lap(swipe_profile::GEOMETRY);
   }else if(w.full && !bedside){
@@ -9369,11 +9629,12 @@ inline bool check_tile_geometry() {
       }
     }
     if(w.wide && !w.full && grid.columns>1 && tile_grid){
-      // A wide card is two cells of its row plus the gap between them.
+      // A wide card is its cells of the row plus the gaps between them: two, or a span's own (a 3 x 2).
       const int gap=lv_obj_get_style_pad_column(tile_grid,LV_PART_MAIN);
-      // Two of the columns' free units: LVGL shares the room exactly and rounds each track, so the sum is rounded once.
+      const int span=w.index<model.count?(int)model.tiles[w.index].column_span():2;
+      // The columns' free units: LVGL shares the room exactly and rounds each track, so the sum is rounded once.
       const int room=lv_obj_get_content_width(tile_grid)-(int)(grid.columns-1)*gap;
-      int expected=(2*room+(int)grid.columns/2)/(int)grid.columns+gap;
+      int expected=(span*room+(int)grid.columns/2)/(int)grid.columns+(span-1)*gap;
       const bool width_ok=std::abs(lv_obj_get_width(w.tile)-expected)<=1;
       fits=fits && width_ok;
       if(!width_ok)ESP_LOGE("ui_test","Wide width FAIL slot=%u width=%d expected=%d",(unsigned)w.index,(int)lv_obj_get_width(w.tile),expected);
@@ -9416,7 +9677,9 @@ inline bool check_tile_geometry() {
       fits=fits&&circle.x1>=content.x1&&circle.x2<title.x1&&circle.y1>=content.y1&&circle.y2<=content.y2;
       for(auto *part:w.parts)if(part&&!lv_obj_has_flag(part,LV_OBJ_FLAG_HIDDEN)){
         lv_area_t a;lv_obj_get_coords(part,&a);
-        fits=fits&&a.x1>=content.x1&&a.x2<=content.x2&&a.y1>std::max(title.y2,value.y2)&&a.y2<=content.y2;
+        // Under the heading, or wholly right of it (a player's volume standing at the card's right, media_standing).
+        const bool beside_head=a.x1>std::max(title.x2,lv_obj_has_flag(w.value,LV_OBJ_FLAG_HIDDEN)?title.x2:value.x2);
+        fits=fits&&a.x1>=content.x1&&a.x2<=content.x2&&(beside_head||a.y1>std::max(title.y2,value.y2))&&a.y1>=content.y1&&a.y2<=content.y2;
         if(w.panel&&!lv_obj_has_flag(w.panel,LV_OBJ_FLAG_HIDDEN)){
           lv_area_t b;lv_obj_get_coords(w.panel,&b);fits=fits&&(a.x2<b.x1||b.x2<a.x1||a.y2<b.y1||b.y2<a.y1);
         }
@@ -10515,7 +10778,10 @@ inline bool picture_shown(const lv_image_dsc_t *image) {
   on(media_detail_picture);
   on(camera_picture);
   on(alert_picture);
-  if (media_library::draws(image)) shown = true;
+  if (media_library::draws(image) || plugin_host::card_draws(image)) shown = true;
+#ifdef SD_MOD_VACUUM_CARD
+  if (vacuum_card::draws(image)) shown = true;
+#endif
   return shown;
 #else
   (void) image;
@@ -10528,8 +10794,12 @@ inline bool picture_away(const lv_image_dsc_t *image) {
 #if LV_USE_IMAGE
   const auto drawn = [&](Widgets &w) { return draws(w.picture, image) || (w.extra_mode == "media" && draws(w.parts[MEDIA_PICTURE], image)) || plugin_host::picture_draws(w, image); };
   for (auto &w : widgets) if (drawn(w)) return false;
-  if (draws(media_detail_picture, image) || draws(camera_picture, image) || draws(alert_picture, image) || media_library::draws(image))
+  if (draws(media_detail_picture, image) || draws(camera_picture, image) || draws(alert_picture, image) || media_library::draws(image) ||
+      plugin_host::card_draws(image))
     return false;
+#ifdef SD_MOD_VACUUM_CARD
+  if (vacuum_card::draws(image)) return false;
+#endif
   bool kept = false;
   for (auto *set : kept_sets) if (set) for (auto &w : *set) kept = kept || drawn(w);
   return kept;
@@ -10728,6 +10998,9 @@ inline void cover_forget_pictures() {
   if (media_detail_picture) { lv_image_set_src(media_detail_picture, nullptr); lv_obj_add_flag(media_detail_picture, LV_OBJ_FLAG_HIDDEN); }
 #endif
   media_face.key.clear(); media_face.src = nullptr;
+#ifdef SD_MOD_VACUUM_CARD
+  vacuum_card::forget_pictures();
+#endif
   for (auto &w : widgets) if (w.extra_mode == "media" && w.parts[MEDIA_PICTURE]) { lv_obj_delete(w.parts[MEDIA_PICTURE]); w.parts[MEDIA_PICTURE] = nullptr; w.cover_shown.clear(); }
 }
 inline void pictures_round();
@@ -11708,10 +11981,17 @@ inline void camera_answer(const std::string &view, const std::string &entity, co
   } else if (view == "cover") {  // a media card's or tile's album cover (firmware 0.2.64+)
     if (url.empty()) ESP_LOGI("camera", "no cover for %s", entity.c_str());
     loader.answer("cover|" + entity, url, now);
+#ifdef SD_MOD_VACUUM_CARD
+  } else if (view == "vmap") {  // a vacuum card's map (module vacuum)
+    if (url.empty()) ESP_LOGI("camera", "no map for %s", entity.c_str());
+    loader.answer("vmap|" + entity, url, now);
+#endif
   } else if (view == "lib") {  // the covers of a page of a player's library (firmware 0.24.0+)
     media_library::art_answer(entity, url);
   } else if (view == "live") {  // a tile's own picture (tile_picture.h), found by its question's number
     tile_picture_answer(number, url, now);
+  } else if (view == "pcard") {  // the pictures of a plugin's card over the page (plugin API 0.13)
+    plugin_host::card_picture_answer(entity, url, number);
   } else if (url.empty()) {  // announced before its alert
     alert_announced = entity;
     alert_announced_at = now;
@@ -11843,6 +12123,7 @@ inline void slot_letgo(picture_loader::Slot slot) {
   if (camera_picture) { lv_image_set_src(camera_picture, nullptr); }
 #endif
   media_library::art_forget_download();
+  plugin_host::card_letgo(camera_full.source ? camera_full.source() : nullptr);
 }
 // A download ended (picture_fetch, any slot; packages/features/camera.yaml): the picture goes into the store under its
 // key, a 304 keeps the copy there as it is, and its owner shows it. Without room in the store the owner draws the
@@ -12027,9 +12308,13 @@ inline void pictures_round() {
   alert_want();
   camera_want();
   card_cover_want();
+#ifdef SD_MOD_VACUUM_CARD
+  vacuum_card::picture_want();
+#endif
   picture_loader::Want library;
   if (media_library::picture_want(library)) loader.want(owners::LIBRARY, std::move(library));
   card_picture_wants();
+  plugin_host::card_picture_want();
   // Never under a finger, and not between two quick page turns (camera_view::settled): a download that starts then is
   // for a page on its way past. Asking the app is an event and goes at once.
   auto *input = lv_indev_get_next(nullptr);
@@ -12113,12 +12398,22 @@ inline void saver_row_draw(const std::vector<header_bar::Item> &row, const espho
   }
 }
 
+#ifdef SD_MOD_CLOCK_FACES
+// The clock's faces of the module (module_clock_faces.cpp, a compilation unit of its own).
+}  // namespace runtime_tiles
+#include "module_clock_faces.h"
+namespace runtime_tiles {
+#endif
 // The clock: the time in the bedside clock's digits where they fit, else the largest digit step that does, and the date
 // under it in the card heading's font, white on black whatever the look. In 12 hours AM or PM stands after the time, and
 // the outside temperature the app sends stands small in the middle at the bottom (firmware 0.31.0+).
 inline void saver_clock_draw() {
   const int width = overlay_card::screen_width(), height = overlay_card::screen_height();
   const auto now = now_time ? now_time() : esphome::ESPTime{};
+#ifdef SD_MOD_CLOCK_FACES
+  // A face of the module in the place of the digital clock, with the same row of entities (Classic shows it).
+  if (saver_next.face.kind != SaverFace::DIGITAL) { clock_faces::draw(saver_root, saver_next.face, now, saver_next.row, saver_next.weather); return; }
+#endif
   const std::string time = time_text(now), date = date_text(now), ampm = am_pm(now);
   const std::string &degrees = saver_next.weather;
   const auto &entities = saver_next.row;
@@ -12317,6 +12612,9 @@ inline void saver_keys_draw() {
 
 inline void saver_hide() {
   saver_follow_due = false;
+#ifdef SD_MOD_CLOCK_FACES
+  clock_faces::forget();
+#endif
   if (saver_root) lv_obj_delete(saver_root);
   saver_root = nullptr;
   if (saver_camera) camera_close();
@@ -12422,6 +12720,10 @@ inline void saver_tick(uint32_t now) {
   }
   // Gone under it (a new layout, an alert that closed the camera): drawn again.
   if (saver_lit && !saver_root && !saver_camera && saver_wanted()) saver_show();
+#ifdef SD_MOD_CLOCK_FACES
+  // A face's seconds hand, one step a second.
+  else if (saver_root && now_time) clock_faces::tick(now_time());
+#endif
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -12543,12 +12845,36 @@ inline bool starts_on_control(int x, int y) {
   return false;
 }
 
+}  // namespace touch_input
+}  // namespace runtime_tiles
+// The modules of the tier (docs/MODULES.md): only their define brings their code in, so a lite screen has none of it.
+#define SMART_DISPLAY_MODULE_SITE
+#ifdef SD_MOD_DOCK
+#include "module_dock.h"
+#endif
+#undef SMART_DISPLAY_MODULE_SITE
+namespace runtime_tiles {
+// The page dots of the tile pages' bar: a key that opens the Dock on a screen with the module, nothing without it.
+inline void page_dots_open(lv_obj_t *number) {
+#ifdef SD_MOD_DOCK
+  dock::dots_open(number);
+#else
+  (void) number;
+#endif
+}
+namespace touch_input {
+
 // The edge swipe of every board, in the touchscreen's own coordinates: where a touch starts, where it goes, and when
 // it ends. The capacitive boards feed it from pressed, moved and released below; the resistive ones call these three
 // from their own triggers (features/resistive-touch.yaml), where only the top and the bottom band are armed.
+// Where and when the touch started, on the glass: the Dock rises from there under the finger.
+inline int edge_start_y = 0;
+inline uint32_t edge_pressed_ms = 0;
 inline void edge_press(int x, int y) {
   int sx = x, sy = y;
   screen_point(sx, sy);
+  edge_start_y = sy;
+  edge_pressed_ms = lv_tick_get();
   screen_input::edge_swipe.begin(sx, sy, overlay_card::screen_width(), overlay_card::screen_height());
   if (screen_input::edge_swipe.armed() && starts_on_control(sx, sy)) {
     ESP_LOGI("touch", "edge swipe off: the touch starts on a slider");
@@ -12560,8 +12886,27 @@ inline void edge_move(int x, int y) {
   int sx = x, sy = y;
   screen_point(sx, sy);
   using Gesture = screen_input::EdgeSwipe::Gesture;
+#ifdef SD_MOD_DOCK
+  // The finger that opened the Dock carries it until it lets go.
+  if (dock::lifting()) { dock::lift_move(sy); return; }
+#endif
   const auto gesture = screen_input::edge_swipe.update(sx, sy);
   if (gesture == Gesture::none) return;
+#ifdef SD_MOD_DOCK
+  // While the Dock is open a page turns only by a tap in it, and up from the bottom once more goes home: one swipe up
+  // shows the Dock, a second one goes further out, as on a tablet. The Dock closes on the way (go_home closes every card).
+  if (dock::open() && gesture != Gesture::settings) {
+    screen_input::touch_guard.consume();
+    if (gesture == Gesture::home) {
+      ESP_LOGI("touch", "edge swipe up over the Dock: back home");
+      for (auto *indev = lv_indev_get_next(nullptr); indev; indev = lv_indev_get_next(indev)) lv_indev_wait_release(indev);
+      swipe_glow(Edge::bottom);
+      if (back_home) back_home();
+      else dock::close();
+    }
+    return;
+  }
+#endif
   // Up from the bottom and down from the top work wherever the person is, over a card, a camera or the settings page,
   // as on a phone (firmware 0.28.0+). A page turns only over the tiles.
   const bool page = gesture == Gesture::previous || gesture == Gesture::next;
@@ -12585,6 +12930,14 @@ inline void edge_move(int x, int y) {
   // from a side edge is one page. Either way the edge it came from lights up for a moment, so the gesture is answered
   // before the new page is drawn.
   if (gesture == Gesture::home) {
+#ifdef SD_MOD_DOCK
+    // Full: up from the bottom opens the dock, over whatever is open, once the pages are there to show.
+    if (navigation_ready() && dock::show(true, edge_start_y, sy, edge_pressed_ms)) {
+      // No glow: the drawer under the finger is the answer, and a haze fading under it would draw its area anew.
+      ESP_LOGI("touch", "edge swipe up: dock");
+      return;
+    }
+#endif
     ESP_LOGI("touch", "edge swipe up: close everything, back home");
     swipe_glow(Edge::bottom);
     if (back_home) back_home();
@@ -12604,6 +12957,9 @@ inline void edge_move(int x, int y) {
 }
 
 inline void edge_release() {
+#ifdef SD_MOD_DOCK
+  dock::lift_release();
+#endif
   if (screen_input::edge_swipe.armed() && screen_input::edge_swipe.inward() > 0)
     ESP_LOGI("touch", "edge swipe not fired: %d px travelled, %d px across", screen_input::edge_swipe.inward(), screen_input::edge_swipe.sideways());
   screen_input::edge_swipe.end();

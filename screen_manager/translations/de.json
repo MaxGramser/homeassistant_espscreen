@@ -191,7 +191,10 @@
       "hours_minutes": "{h} Std. {m}",
       "wifi": "WLAN",
       "tessera": "Tessera",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "microphone_gain": "Mikrofonverstärkung",
+      "automatic_gain": "Automatische Verstärkung",
+      "echo_cancellation": "Echounterdrückung"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -239,7 +242,16 @@
       "resume": "Fortsetzen",
       "start_cleaning": "Reinigung starten",
       "clean": "Reinigen",
-      "dock": "Station"
+      "dock": "Station",
+      "stop": "Stopp",
+      "by_room": "Nach Bereich",
+      "routines": "Routinen",
+      "suction_water": "Saugen & Wischen",
+      "pick_rooms": "Einen oder mehrere Bereiche wählen",
+      "order_hint": "Nicht jeder Roboter hält diese Reihenfolge ein",
+      "no_rooms": "Keine Bereiche zugeordnet",
+      "no_rooms_how": "Ordne die Segmente in Home Assistant Bereichen zu, in den Einstellungen des Saugers.",
+      "routines_note": "In der App des Roboters erstellt"
     },
     "cover": {
       "position": "Position",
@@ -380,7 +392,8 @@
         "cleaning": "Reinigt",
         "paused": "Pausiert",
         "returning": "Rückkehr zur Ladestation",
-        "idle": "Leerlauf"
+        "idle": "Leerlauf",
+        "error": "Fehler"
       },
       "weather": {
         "sunny": "Sonnig",
@@ -937,6 +950,8 @@
       "offline": "Bildschirm war offline; neuer Versuch beim nächsten Mal.",
       "unknown_target": "Profil oder IP-Adresse unbekannt; aktualisiere diesen Bildschirm von Hand.",
       "build_failed": "Erstellen oder Installieren fehlgeschlagen; siehe Protokoll unter Firmware & USB.",
+      "plugin_update_needed": "{name} lässt sich mit dieser Firmware nicht bauen. Aktualisiere das Plugin {name} auf der Seite Plugins auf {version} und aktualisiere dann den Bildschirm erneut.",
+      "plugin_failed": "{name} {version} lässt sich mit dieser Firmware nicht bauen, und es gibt noch keine neuere Version. Entferne das Plugin {name} auf der Seite Plugins, um den Bildschirm ohne es zu aktualisieren; das Protokoll steht unter Firmware & USB.",
       "build_memory": "Zu wenig Speicher, um die Firmware zu erstellen: etwa {need} müssen frei sein, frei sind {free}. Halte ein paar Add-ons vorübergehend an oder gib der Maschine mehr Speicher; siehe Firmware & USB.",
       "build_memory_limit": "Zu wenig Speicher, um die Firmware zu erstellen, auch mit einem Compiler gleichzeitig. Halte ein paar Add-ons vorübergehend an oder gib der Maschine mehr Speicher; siehe Firmware & USB.",
       "no_report": "Bildschirm hat sich nicht mit Firmware {version} zurückgemeldet; prüfe den Bildschirm.",
@@ -998,7 +1013,8 @@
         },
         "media_player": {
           "volume": "Lautstärke und Stumm",
-          "playback": "Zurück, Wiedergabe/Pause, Weiter"
+          "playback": "Zurück, Wiedergabe/Pause, Weiter",
+          "volume_playback": "Lautstärke und Zurück, Wiedergabe/Pause, Weiter"
         },
         "number": {
           "stepper": "Wert − / +",
@@ -1102,6 +1118,18 @@
         "wake_when_moved": {
           "label": "Bei Bewegung aufwecken",
           "hint": "Der Bildschirm wacht aus dem Standby auf, wenn jemand ihn hochnimmt, bewegt oder anstößt. Er spürt sich selbst, nicht jemanden, der vorbeigeht."
+        },
+        "microphone_gain": {
+          "label": "Mikrofonverstärkung",
+          "hint": "Analoge Mikrofonverstärkung. Beginnt bei 30 dB; die Verstärkung der Wiedergabereferenz bleibt fest."
+        },
+        "automatic_gain": {
+          "label": "Automatische Verstärkung",
+          "hint": "Der Mikrofoncodec regelt den Aufnahmepegel automatisch. Unabhängig von der Echounterdrückung."
+        },
+        "echo_cancellation": {
+          "label": "Echounterdrückung",
+          "hint": "Verringert den eigenen Lautsprecher im Mikrofonsignal. Aus umgeht die Echounterdrückung; Mikrofon und Vollduplex bleiben aktiv. Erfordert den AEC-Audiopfad."
         }
       }
     },
@@ -1445,7 +1473,8 @@
       "remove": "Entfernen",
       "loading": "Wird geladen…",
       "back": "← Zurück",
-      "copy": "Kopieren"
+      "copy": "Kopieren",
+      "done": "Fertig"
     },
     "nav": {
       "plugins": "Plugins",
@@ -1881,7 +1910,7 @@
         "network_none": "Baut keine Verbindungen außerhalb von Home Assistant auf",
         "read": "Liest diese Entitäten aus Home Assistant"
       },
-      "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
+      "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf, und sein Build läuft in dieser App, wo er an deine Home-Assistant-Konfiguration herankommt. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
       "room": {
         "title": "Platz auf {screen}",
         "small": "{kb} KB mehr: Die Firmware belegt dann {after} statt {before} ihres Speicherplatzes.",
@@ -2147,7 +2176,17 @@
       "now": "jetzt",
       "minutes": "{n} Min.",
       "live": "Der Editor zeichnet sie aus den eigenen Daten des Plugins; der Bildschirm zeichnet sie selbst und zählt mit seiner eigenen Uhr herunter.",
-      "entity": "Entität"
+      "entity": "Entität",
+      "add": "Hinzufügen",
+      "change": "Andere wählen",
+      "find": "Suchen…",
+      "search": "Suchen…",
+      "search_more": "Mindestens zwei Buchstaben eingeben",
+      "none_found": "Nichts gefunden",
+      "remove": "{name} entfernen",
+      "type": "Eingeben und Enter drücken",
+      "full": "Der Bildschirm nimmt für diese Kachel nicht mehr auf: ihre Optionen sind voll.",
+      "count": "{n} von {max}"
     },
     "memory": {
       "label": "Speicher für Kacheln",
@@ -2348,7 +2387,8 @@
         "full_hint": "Am unteren Rand der ganzseitigen Kachel; ein Tippen woanders wirkt wie unten eingestellt.",
         "wide_hint": "Rechts auf der doppelt breiten Kachel, wie die Zeilen in Home Assistant. Ein Tippen auf den Namen wirkt wie unten eingestellt.",
         "needs_firmware": "Der Bildschirm zeigt die direkte Steuerung ab Firmware 0.2.19; bis dahin bleibt die Kachel, wie sie war.",
-        "tall_hint": "",
+        "tall_hint": "Wähle die Steuerung für die zusätzliche Höhe. Eine Kachel, die wächst, schlägt die umfangreichste passende Auswahl vor; deine eigene Wahl bleibt.",
+        "room_hint": "Der Bildschirm zeigt sie, wo die Kachel Platz dafür hat (Firmware 0.57.0 oder neuer): auf einer einfachen Kachel unter dem Namen, auf einer doppelt breiten daneben. Wo sie nicht passen, sieht die Kachel aus wie ohne sie.",
         "tilt": "",
         "tilt_hint": ""
       },
@@ -2587,6 +2627,16 @@
           "grey": "Grau",
           "blue-grey": "Blaugrau"
         }
+      },
+      "anchor_hint": "Klicke auf das Symbol, um ein anderes zu wählen, oder auf den Namen, um die Kachel umzubenennen",
+      "grow": {
+        "title": "Platz für mehr Steuerung",
+        "applied": "Bei {columns} × {rows} passt mehr Steuerung. Wähle, was diese Kachel zeigt; ändern kannst du es später unter Steuerung.",
+        "offered": "Bei {columns} × {rows} hat diese Kachel Platz hierfür. Wähle, was sie zeigt; ändern kannst du es später unter Steuerung.",
+        "suggested": "Vorschlag",
+        "none": "Keine Steuerung",
+        "never": "Nicht mehr anzeigen",
+        "done": "Fertig"
       }
     },
     "precision": {
@@ -2650,28 +2700,21 @@
       "screen_name": "Titel des Bildschirms",
       "screen_name_hint": "Jede Seite ohne eigenen Titel zeigt diesen.",
       "no_title_hint": "Leer lassen, um nur das Logo zu zeigen.",
-      "right": "Rechts: Uhrzeit, Sensoren oder eine Uhr",
       "item_label": "{name}, Platz {slot}. Enter: einstellen, Pfeile: verschieben",
-      "remove_named": "{name} aus der Kopfleiste entfernen",
       "max": "Höchstens 1 Element | Höchstens {n} Elemente",
       "add_title": "Uhrzeit, Datum, Analoguhr oder eine Entität hinzufügen",
-      "add_button": "Uhrzeit, Datum oder Entität hinzufügen",
       "hint": {
         "overflow": "Nicht alles passt neben den Namen: Der Bildschirm lässt die gestrichelten Elemente weg. Entferne eines oder wähle einen kürzeren Namen.",
-        "reorder": "Zum Umsortieren ziehen; zum Einstellen auf ein Element tippen.",
         "needs_firmware": "Sensoren, Datum und Analoguhr erscheinen ab Firmware {version}; bis zu diesem Update zeigt dieser Bildschirm den Namen und, falls die Uhrzeit in der Leiste ist, die Uhr."
       },
       "detail": {
         "hidden": "Ausgeblendet: gerade nicht aktiv",
         "overflow": "Passt nicht neben den Namen",
-        "dial": "Zifferblatt",
         "hidden_signal": "Ausgeblendet, solange das Signal gut ist",
         "hidden_link": "Ausgeblendet, solange alles verbunden ist",
         "hidden_battery": "Ausgeblendet, solange der Akku über 20 % ist"
       },
       "live": {
-        "hidden": "Gerade ausgeblendet: nicht aktiv",
-        "overflow": "Passt gerade nicht neben den Namen",
         "looks": "So sieht es auf dem Bildschirm aus"
       },
       "analog_sample": "Kleines Zifferblatt mit der Uhrzeit",
@@ -2688,8 +2731,6 @@
       "clock_12": "12-Stunden-Uhr · ändern unter {settings}",
       "clock_settings": "Einstellungen → Sprache & Region",
       "date_hint": "Heute: {date}. Das Datum folgt der eigenen Uhr des Bildschirms.",
-      "up": "Nach oben",
-      "down": "Nach unten",
       "add": {
         "title": "Zur Kopfleiste hinzufügen",
         "slots": "{used} von {n} Platz belegt | {used} von {n} Plätzen belegt",
@@ -2702,7 +2743,6 @@
         "none_found": "Keine Entitäten gefunden.",
         "plugins": "Aus Plugins"
       },
-      "left": "Links",
       "left_hint": "Titel und Startseiten-Schaltfläche: in den Seiteneinstellungen",
       "wifi_sample": "Das Signal dieses Bildschirms",
       "link_sample": "Nur wenn Home Assistant oder Tessera fehlt",
@@ -2713,7 +2753,18 @@
       "battery_hint": "Der Bildschirm liest seinen eigenen Akku, daher bleibt dieses Element in der Leiste, wenn Home Assistant weg ist. Das Symbol folgt dem Ladestand so, wie Home Assistant ihn zeichnet, mit einem Blitz während des Ladens.",
       "battery_show_hint": "Nur wenn niedrig hält die Leiste frei, bis der Akku bei 20 % oder weniger ist.",
       "status_firmware": "Dieses Element erscheint ab Firmware {version}. Bis zu diesem Update lässt der Bildschirm es weg.",
-      "plugin_item": "Zeigt, was sein Plugin sagt, nur solange es etwas zu sagen hat. Auf einem Bildschirm ohne dieses Plugin bleibt es weg."
+      "plugin_item": "Zeigt, was sein Plugin sagt, nur solange es etwas zu sagen hat. Auf einem Bildschirm ohne dieses Plugin bleibt es weg.",
+      "left_move": "Nach links",
+      "right_move": "Nach rechts",
+      "strip": {
+        "left_title": "Titel und Home-Taste",
+        "left_hint": "Linke Seite · einstellbar in {page}",
+        "place": "Element {place} von {count}",
+        "hint": "Tippe ein Element in der Leiste an, um es einzustellen. Ziehe es nach links oder rechts, um es zu verschieben, oder aus der Leiste, um es zu entfernen.",
+        "copy": "Diese Leiste auf andere Seiten kopieren",
+        "copy_hint": "Ihre Elemente oder die ganze Leiste mit Titel",
+        "page_settings": "Einstellungen von {page}"
+      }
     },
     "screen_settings": {
       "groups": {
@@ -2804,11 +2855,9 @@
         "keys_hint": "Wiedergabe, Pause und Lautstärke funktionieren auf dem Bildschirmschoner. Ein Tippen woanders weckt den Bildschirm.",
         "choose_camera": "Kamera wählen",
         "camera_hint": "Ihr Bild, alle 15 Sekunden",
-        "glass": "Auf dem Bildschirm",
         "temperature": "Temperatur",
         "weather_auto": "Automatisch",
         "weather_none": "Keine Temperatur",
-        "beside": "Daneben",
         "items_add": "Entität hinzufügen",
         "items_hint": "Neben der Temperatur in einer Zeile: ein Sensor, eine Tür, eine Lampe.",
         "items_full": "Die Uhr hat Platz für {n} Entitäten.",
@@ -2821,7 +2870,27 @@
         "item_both": "Beides",
         "item_look": "Zeigt",
         "item_hint": "Schwarzweiß auf dem Bildschirmschoner, egal welche Farbe die Entität hat.",
-        "items_add_title": "Zur Uhr hinzufügen"
+        "items_add_title": "Zur Uhr hinzufügen",
+        "clock_part": "Uhrzeit, Datum und Temperatur",
+        "row_hint": "Tippe eine Entität in der Zeile an, um sie einzustellen. Ziehe sie nach links oder rechts, um sie zu verschieben, oder aus der Zeile, um sie zu entfernen.",
+        "player_search": "Player suchen",
+        "player_none": "Kein Player gefunden",
+        "face": "Zifferblatt",
+        "faces": {
+          "digital": "Digital",
+          "glass": "Glas",
+          "classic": "Klassisch",
+          "bauhaus": "Bauhaus"
+        },
+        "look": "Aussehen",
+        "look_dark": "Dunkel",
+        "look_light": "Hell",
+        "look_auto": "Wie der Bildschirm",
+        "numerals": "Ziffern",
+        "numerals_none": "Keine",
+        "seconds": "Sekundenzeiger",
+        "face_alone_hint": "Dieses Zifferblatt zeigt nur die Uhrzeit. Temperatur und Entitäten stehen auf Klassisch und Digital.",
+        "face_moves_hint": "Das Zifferblatt verschiebt sich jede Minute ein wenig, und Bauhaus malt alle zehn Minuten ein neues Bild, damit nichts lange auf denselben Pixeln steht."
       },
       "plugins": {
         "title": "Plugins",
@@ -3327,6 +3396,16 @@
       "start_fresh_confirm": "Mit einer leeren Seite auf diesem Bildschirm beginnen? Das ursprüngliche Layout bleibt in der Migrationssicherung erhalten. Andere Bildschirme bleiben unverändert.",
       "offline_notice": "Warten auf die erneute Verbindung des Bildschirms. Der Editor verwendet die zuletzt geprüften Funktionen.",
       "include_navigation_hint": "Wenn ausgeschaltet, bleibt die Seite über direkte Links erreichbar. Zurück erscheint unten oder ersetzt das Haus, wenn die untere Leiste ausgeblendet ist.",
+      "dock_picture": "Bild der Seite",
+      "in_dock": "Im Dock",
+      "in_dock_hint": "Das Dock öffnet sich mit einem Wisch vom unteren Rand nach oben und zeigt jede Seite zum Springen.",
+      "dock_mode_picture": "Bild",
+      "dock_mode_icon": "Symbol",
+      "dock_mode_hidden": "Ausgeblendet",
+      "dock_hint_picture": "Das Dock zeigt ein kleines Bild dieser Seite.",
+      "dock_hint_icon": "Das Dock zeigt dieses Symbol statt des Bildes der Seite.",
+      "dock_hint_hidden": "Die Seite bleibt beim Wischen und in den Seitenpunkten; nur das Dock lässt sie weg.",
+      "wizard_home": "Home-Taste",
       "home_control": "Startseiten-Schaltfläche auf dieser Seite anzeigen",
       "clock_control": "Uhrzeit",
       "edit_topbar": "Kopfleiste dieser Seite bearbeiten",
@@ -3408,7 +3487,10 @@
       "bar_entities": "Außerdem rechts",
       "actions_blocked": "Home Assistant lässt diesen Bildschirm noch keine Aktionen ausführen, ein Tippen auf eine Kachel bewirkt also nichts.",
       "allow_actions": "Aktionen erlauben",
-      "actions_allowed": "{name} darf deine Geräte jetzt steuern."
+      "actions_allowed": "{name} darf deine Geräte jetzt steuern.",
+      "part_page": "Die Seite: Titel und Navigation",
+      "part_page_hint": "Titel, Startseite und wie man hierher kommt",
+      "home_control_hint": "Setzt die Home-Taste links in die obere Leiste dieser Seite. Sie führt zur Startseite."
     },
     "feedback": {
       "question": "Funktioniert dein Bildschirm wie erwartet?",
@@ -3531,9 +3613,9 @@
       "remove": "Die Vorschau und ihr gespeichertes Layout in diesem Browser.",
       "save": "Vorschau speichern",
       "saved": "In diesem Browser gespeichert",
-      "hint": "Die Firmware des Bildschirms selbst, gezeichnet aus dem Layout, das du bearbeitest. Tippe, halte und wische wie auf dem Bildschirm. Es wird nichts gespeichert.",
+      "hint": "Die Firmware des Bildschirms selbst, gezeichnet aus dem Layout, das du bearbeitest. Tippe, halte und wische wie auf dem Bildschirm. Änderungen am Layout werden nicht gespeichert.",
       "control": "Tippen steuert Geräte",
-      "control_hint": "Ein: Ein Tippen auf eine Kachel führt ihre Aktion in Home Assistant aus, wie auf dem Bildschirm. Aus: Die Vorschau zeigt nur, was ein Tippen bewirkt.",
+      "control_hint": "Wenn aktiviert, können Berührungen Home-Assistant-Geräte steuern und die Einstellungen dieses Panels ändern. Sonst sind Hardware-Einstellungen schreibgeschützt und andere Änderungen bleiben in der Vorschau.",
       "skipped": "Vorschau-Bildschirm {names} ließ sich nicht laden und wurde ausgelassen.",
       "not_kept": "Dieser Browser konnte den Vorschau-Bildschirm nicht speichern: Sein Speicher ist voll oder gesperrt."
     },
@@ -3542,7 +3624,8 @@
         "tile": "Kachel",
         "page": "Seite",
         "bar": "Kopfleiste"
-      }
+      },
+      "back": "Zurück zu {name}"
     },
     "confirm": {
       "leave_question": "Du hast nicht gespeicherte Änderungen. Trotzdem zur Übersicht?",
@@ -3700,6 +3783,12 @@
       "copy": "Kopieren",
       "hint": "{copy} kopiert die Kacheln mit allen Einstellungen. Wähle eine Seite oder ein Feld, hier oder auf einem anderen Bildschirm, und drücke {paste}.",
       "remove": "Kachel entfernen | {n} Kacheln entfernen"
+    },
+    "menu": {
+      "cut": "Ausschneiden",
+      "move_to": "Auf Seite verschieben",
+      "add_here": "Hier eine Kachel hinzufügen",
+      "paste_here": "Hier einfügen"
     }
   }
 }

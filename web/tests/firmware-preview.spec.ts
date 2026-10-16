@@ -2,16 +2,16 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FirmwarePreview from "../src/components/FirmwarePreview.vue";
 import createModule from "../src/wasm/firmware_preview.js";
-import { api, send } from "../src/api";
+import { api, getJson, send } from "../src/api";
 import { useInventoryStore } from "../src/stores/inventory";
 import { useDocumentStore } from "../src/stores/document";
 import { setHidden } from "./helpers/browser";
 
 vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
-vi.mock("../src/api", () => ({ api: vi.fn(), send: vi.fn() }));
+vi.mock("../src/api", () => ({ api: vi.fn(), getJson: vi.fn(), send: vi.fn() }));
 const bundle = () => ({ revision: "1111111111111111", configuration: [{ op: "begin" }, { op: "commit" }], values: [{ op: "state", i: 0, state: "on" }] });
 function response(name: string, _result?: unknown, _types?: unknown, args?: unknown[]): string {
-  if (name === "preview_next_action" || name === "preview_next_image") return "";
+  if (name === "preview_next_action" || name === "preview_next_image" || name === "preview_next_setting") return "";
   if (name === "preview_receive" && JSON.parse(String(args?.[0])).op === "hello") return "Session:2222222222222222";
   return "Synced";
 }
@@ -57,6 +57,94 @@ async function preview(width = 720, height = 720, extra: Record<string, unknown>
 }
 
 describe("Firmware preview transport", () => {
+  const screen = () => ({ id: 'text.test_panel', name: 'Test panel', online: true,
+    settings: { owner: 'screen', keys: ['dark_mode', 'brightness'], values: { dark_mode: false, brightness: 80 }, unavailable: [] } });
+  function settingsModule() {
+    Object.assign(firmware, { _preview_settings: vi.fn(), _preview_extras: vi.fn(),
+      _preview_settings_controls: vi.fn(), _preview_next_setting: vi.fn() });
+  }
+  afterEach(() => {
+    for (const key of ['_preview_settings', '_preview_extras', '_preview_settings_controls', '_preview_next_setting'])
+      delete (firmware as any)[key];
+  });
+  it('binds the selected panel and pushes Extras directly into the firmware, without polling', async () => {
+    settingsModule();
+    const streams: any[] = [];
+    vi.stubGlobal('EventSource', class {
+      onmessage = null; onerror = null; close = vi.fn();
+      constructor(public url: string) { streams.push(this); }
+    });
+    await preview(720, 720, { screen: screen(), controls: false });
+    expect(streams[0].url).toBe('api/screens/text.test_panel/extras/events?language=en');
+    const row = { entity: 'switch.panel_aec', kind: 'switch', label: { en: 'Echo cancellation' }, value: true, available: true };
+    streams[0].onmessage({ data: JSON.stringify([row]) });
+    expect(firmware.ccall).toHaveBeenLastCalledWith('preview_extras', null, ['string'], [JSON.stringify([{ ...row, label: 'Echo cancellation' }])]);
+    streams[0].onmessage({ data: JSON.stringify([{ ...row, value: false }]) });
+    expect(firmware.ccall).toHaveBeenLastCalledWith('preview_extras', null, ['string'], [JSON.stringify([{ ...row, value: false, label: 'Echo cancellation' }])]);
+    streams[0].onerror();
+    expect(JSON.parse(String(firmware.ccall.mock.lastCall?.[3]?.[0]))[0].available).toBe(false);
+    await vi.advanceTimersByTimeAsync(2200);
+    expect(getJson).not.toHaveBeenCalled();
+    setHidden(true); await flushPromises();
+    expect(streams[0].close).toHaveBeenCalledOnce();
+    streams[0].onmessage({ data: JSON.stringify([row]) });
+    expect(firmware.ccall).toHaveBeenLastCalledWith('preview_extras', null, ['string'], ['[]']);
+    setHidden(false); await flushPromises();
+    expect(streams).toHaveLength(2);
+    wrapper!.unmount(); wrapper = undefined;
+    expect(streams[1].close).toHaveBeenCalledOnce();
+  });
+  it.each([{ controls: false }, { still: true }, { screen: { ...screen(), virtual: true } }])(
+    'never sends a queued settings command to HA when %o', async (mode) => {
+      settingsModule();
+      let queued = true;
+      firmware.ccall.mockImplementation((name, result, types, args) => {
+        if (name !== 'preview_next_setting') return response(name, result, types, args);
+        if (!queued) return ''; queued = false;
+        return JSON.stringify({ entity: 'switch.panel_aec', value: false });
+      });
+      await preview(720, 720, { screen: screen(), controls: true, ...mode });
+      expect(vi.mocked(send).mock.calls.some(([path]) => path.startsWith('screens/'))).toBe(false);
+    },
+  );
+  it.each([true, false])('uses the existing Extras endpoint and restores a rejected write (success=%s)', async success => {
+    settingsModule();
+    let queued = true;
+    const request = { entity: 'switch.panel_aec', value: false };
+    firmware.ccall.mockImplementation((name, result, types, args) => {
+      if (name !== 'preview_next_setting') return response(name, result, types, args);
+      if (!queued) return ''; queued = false; return JSON.stringify(request);
+    });
+    vi.mocked(send).mockImplementation(async path => {
+      if (path === 'firmware-preview') return bundle() as any;
+      if (!success) throw new Error('Panel offline');
+      return { ok: true } as any;
+    });
+    vi.mocked(getJson).mockResolvedValue([]);
+    const editor = await preview(720, 720, { screen: screen(), controls: true });
+    expect(send).toHaveBeenCalledWith('screens/text.test_panel/extras', 'POST', request);
+    if (success) expect(getJson).not.toHaveBeenCalled();
+    else {
+      expect(getJson).toHaveBeenCalledExactlyOnceWith('screens/text.test_panel/extras');
+      expect(editor.get('[role="alert"]').text()).toContain('Panel offline');
+    }
+  });
+  it('saves a core setting through its validated endpoint and keeps the confirmed value', async () => {
+    settingsModule();
+    const panel = screen();
+    useInventoryStore().inventory.screens = [panel as any];
+    let queued = true;
+    firmware.ccall.mockImplementation((name, result, types, args) => {
+      if (name !== 'preview_next_setting') return response(name, result, types, args);
+      if (!queued) return ''; queued = false;
+      return JSON.stringify({ key: 'dark_mode', value: true });
+    });
+    vi.mocked(send).mockImplementation(async path => path === 'firmware-preview' ? bundle() as any
+      : { ...panel.settings, values: { dark_mode: true, brightness: 80 } });
+    await preview(720, 720, { screen: panel, controls: true });
+    expect(send).toHaveBeenCalledWith('screens/text.test_panel/settings', 'PUT', { settings: { dark_mode: true } });
+    expect(useInventoryStore().inventory.screens[0].settings?.values.dark_mode).toBe(true);
+  });
   it('delivers firmware image events and pixels without invoking HA actions or drawing images in Vue', async () => {
     const request = { service: 'esphome.screen_camera', event: true, data: { entity: 'media_player.test', view: '1' } };
     const packet = { op: 'camera', t: 'cover', e: 'media_player.test', view: 1,

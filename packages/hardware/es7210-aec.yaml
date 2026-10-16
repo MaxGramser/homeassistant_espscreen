@@ -1,0 +1,106 @@
+# Shared ES7210 TDM transport, backed by the reviewed Espressif AEC wrapper.
+# Board packages supply pins, microphone/reference slots and reference gain.
+# Keep codec I2C control in the board; do not also declare stack codec owners.
+packages:
+  player: !include ../features/audio-player.yaml
+
+substitutions:
+  # Keep playback at the codec rate; only microphone/reference audio is converted for AEC.
+  AUDIO_SAMPLE_RATE: "48000"
+  AUDIO_HALF_DUPLEX: "false"
+  ES7210_AEC_SETTINGS: |-
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_echo_cancellation,
+        []() -> int32_t { return id(board_echo_cancellation).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); }));
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/n-IA-hane/esphome-audio-stack
+      ref: 0482d741a938378ef948e3b8f3dd31536f9f2cc9
+      path: esphome/components
+    components: [esp_audio_stack]
+    refresh: never
+
+# The board entry supplies the reviewed esp_aec wrapper and ES7210 extension.
+# Physical ADC3 is the playback reference. Its gain stays independent of mic ALC.
+audio_adc:
+  - id: !extend ts_audio_adc
+    tdm: true
+    reference:
+      channel: 3
+      gain: ${AEC_REFERENCE_GAIN}
+
+esp_aec:
+  id: board_aec
+  sample_rate: 16000
+  mode: fd_low_cost
+  filter_length: 4
+
+esp_audio_stack:
+  id: board_audio_stack
+  sample_rate: ${AUDIO_SAMPLE_RATE}
+  # The pinned stack converts the selected TDM mic and reference together, preserving alignment.
+  output_sample_rate: 16000
+  bits_per_sample: 16
+  slot_bit_width: 16
+  rx_slot_mode: stereo
+  mic_channel: left
+  speaker_channels: 1
+  tx_channel: left
+  i2s_mclk_pin: ${AEC_MCLK_PIN}
+  i2s_bclk_pin: ${AEC_BCLK_PIN}
+  i2s_lrclk_pin: ${AEC_LRCLK_PIN}
+  i2s_din_pin: ${AUDIO_DIN_PIN}
+  i2s_dout_pin: ${AUDIO_DOUT_PIN}
+  processor_id: board_aec
+  # ES7210 SDOUT1: MIC1, MIC3 (reference), MIC2, MIC4.
+  use_tdm_reference: true
+  tdm_total_slots: 4
+  tdm_mic_slot: ${AEC_MIC_SLOT}
+  tdm_ref_slot: 1
+  tdm_tx_slot: 0
+  i2s_comm_fmt: philips
+  dma_desc_num: 6
+
+microphone:
+  - platform: esp_audio_stack
+    id: ts_microphone
+
+speaker:
+  - platform: esp_audio_stack
+    id: ts_speaker_out
+    audio_dac: ts_audio_dac
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16
+    buffer_duration: ${AEC_SPEAKER_BUFFER}
+    timeout: never
+
+switch:
+  - platform: template
+    id: board_echo_cancellation
+    name: "Echo cancellation"
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    lambda: |-
+      if (id(board_aec).is_failed()) return {};
+      return id(board_aec).enabled();
+    turn_on_action:
+      - lambda: |-
+          if (id(board_aec).set_feature(esp_audio_stack::AudioFeature::AEC, true))
+            id(board_echo_cancellation).publish_state(true);
+    turn_off_action:
+      - lambda: |-
+          if (id(board_aec).set_feature(esp_audio_stack::AudioFeature::AEC, false))
+            id(board_echo_cancellation).publish_state(false);
+
+text_sensor:
+  - platform: template
+    id: board_aec_status
+    name: "Echo cancellation status"
+    entity_category: diagnostic
+    update_interval: 2s
+    lambda: |-
+      if (id(board_aec).is_failed()) return {"Error"};
+      if (!id(board_aec).is_initialized()) return {"Starting"};
+      return id(board_aec).enabled() ? std::string("Enabled") : std::string("Bypass");

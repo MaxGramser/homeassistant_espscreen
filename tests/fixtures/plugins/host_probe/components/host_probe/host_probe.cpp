@@ -21,6 +21,12 @@ class ProbeTile : public tessera::Tile {
     word_ = c.options["word"] | "";   // copied: the context is gone after this call
     ESP_LOGI(TAG, "tile=%d create %dx%d cells=%ux%u name=[%s] word=[%s] entity=[%s]", tile_, c.width, c.height,
              (unsigned) c.columns, (unsigned) c.rows, c.name, word_.c_str(), c.entity);
+    // The list options (0.12): an array of texts, and an array of picks with the words the person saw.
+    std::string words, picks;
+    for (JsonVariantConst w : c.options["words"].as<JsonArrayConst>()) words += std::string(words.empty() ? "" : ",") + (w | "");
+    for (JsonVariantConst p : c.options["picks"].as<JsonArrayConst>())
+      picks += std::string(picks.empty() ? "" : ",") + (p["value"] | "") + ":" + (p["label"] | "");
+    ESP_LOGI(TAG, "tile=%d lists words=[%s] picks=[%s]", tile_, words.c_str(), picks.c_str());
     // The moments of boot, which came before anyone listened to the log, and how often before_update was heard.
     ESP_LOGI(TAG, "status ready=%d settings=%u interval=%d updates=%d early=%d", (int) plugin_->ready_, plugin_->rows_,
              (int) plugin_->interval_, (int) plugin_->updates_, plugin_->early_);
@@ -101,6 +107,24 @@ class ProbeTile : public tessera::Tile {
     // Where the finger was (0.10), in the tile's own pixels.
     const tessera::Point at = tessera::tap_point();
     ESP_LOGI(TAG, "tile=%d tap at=%d,%d", tile_, at.x, at.y);
+    // An action of several fields of any JSON type (0.12): texts as they are, also one that looks like a number or a
+    // template, and a number, a toggle, a list and an object that Home Assistant reads back into their types.
+    JsonDocument d;
+    d["media_id"] = "1989";
+    d["media_type"] = "album";
+    d["artist"] = "{{ states('lock.door') }}";
+    d["volume"] = 0.4;
+    d["radio_mode"] = false;
+    JsonArray ids = d["ids"].to<JsonArray>();
+    ids.add("a");
+    ids.add("{% b %}");
+    d["extra"]["none"] = nullptr;
+    const bool sent = tessera::action("music_assistant.play_media", "media_player.probe", d);
+    // What does not fit is not sent: entity_id twice.
+    JsonDocument twice;
+    twice["entity_id"] = "media_player.other";
+    const bool refused = !tessera::action("music_assistant.play_media", "media_player.probe", twice);
+    ESP_LOGI(TAG, "tile=%d action sent=%d refused=%d", tile_, (int) sent, (int) refused);
     tessera::open_card(plugin_->plugin_id(), "detail", "", tile_, "Probe card");
   }
 
@@ -124,6 +148,31 @@ class ProbeCard : public tessera::Card {
     foot_ = ui::label(c.parent, Font::BODY_LARGE, theme::INK);
     ui::set_text(foot_, "Foot");
     lv_obj_align(foot_, LV_ALIGN_BOTTOM_MID, 0, 0);
+    // A place for a picture on the card (0.13), a square of a third of the room at its top right, with an address of
+    // its own; a board without pictures lays out without it.
+    const bool pictures = ui::pictures();
+    ESP_LOGI(TAG, "card pictures=%d", (int) pictures);
+    if (pictures) {
+      const int side = std::max(ui::px(24), std::min(c.width, c.height) / 3);
+      cover_ = ui::picture(c.parent);
+      lv_obj_set_size(cover_, side, side);
+      lv_obj_set_pos(cover_, c.width - side, 0);
+      ui::set_picture(cover_, "https://image.tmdb.org/t/p/w342/probe-card.jpg");
+    }
+    // Where the card's room lies on the glass, so the harness taps it (0.12), and where its place is (0.13).
+    lv_obj_update_layout(c.parent);
+    lv_area_t a;
+    lv_obj_get_coords(c.parent, &a);
+    ESP_LOGI(TAG, "card room %d,%d,%d,%d", (int) a.x1, (int) a.y1, (int) a.x2, (int) a.y2);
+    if (cover_) {
+      lv_obj_get_coords(cover_, &a);
+      ESP_LOGI(TAG, "card place %d,%d,%d,%d", (int) a.x1, (int) a.y1, (int) a.x2, (int) a.y2);
+    }
+  }
+  // A tap on the card's room (0.12), where in its own pixels.
+  void on_tap() override {
+    const tessera::Point at = tessera::tap_point();
+    ESP_LOGI(TAG, "card tap at=%d,%d", at.x, at.y);
   }
   void on_state(JsonObjectConst data) override { ESP_LOGI(TAG, "card state n=%d", data["n"] | -1); }
   void on_tick(uint32_t epoch) override { ESP_LOGI(TAG, "card tick epoch=%u", (unsigned) epoch); }
@@ -131,7 +180,7 @@ class ProbeCard : public tessera::Card {
   bool on_back() override { ESP_LOGI(TAG, "card back"); return false; }
 
  private:
-  lv_obj_t *words_{}, *foot_{};
+  lv_obj_t *words_{}, *foot_{}, *cover_{};
 };
 
 // A card that closes itself, or opens another card in its place, from inside one of its own calls, as the harness's
@@ -236,6 +285,8 @@ void HostProbe::before_update() {
 void HostProbe::on_cards_closed() { ESP_LOGI(TAG, "cards_closed"); }
 void HostProbe::on_alert() { ESP_LOGI(TAG, "alert"); }
 void HostProbe::on_touch() { ESP_LOGI(TAG, "touch"); }
+void HostProbe::on_press() { ESP_LOGI(TAG, "press"); }
+void HostProbe::on_step(const tessera::Step &step) { ESP_LOGI(TAG, "step %d%s", step.direction, step.edge ? " edge" : ""); }
 
 bool HostProbe::settings(tessera::SettingsPage &page) {
   if (!set_up_) ++early_;

@@ -65,7 +65,7 @@ const style = computed(() => {
   const background = card.background;
   return { gridColumn: `${props.slot % card.grid.columns + 1} / span ${card.shape.columns}`, gridRow: `${Math.floor(props.slot % card.grid.slots / card.grid.columns) + 1} / span ${card.shape.rows}`,
     ...(background && props.tile.options?.background !== "none" ? { backgroundColor: background } : {}),
-    "--tile-icon": card.palette.icon, "--tile-circle": card.palette.circle, "--tile-accent": card.palette.accent, ...(card.watchStyle?.pad ?? {}) };
+    "--tile-cols": card.shape.columns, "--tile-icon": card.palette.icon, "--tile-circle": card.palette.circle, "--tile-accent": card.palette.accent, ...(card.watchStyle?.pad ?? {}) };
 });
 
 async function onKey(e: KeyboardEvent) {

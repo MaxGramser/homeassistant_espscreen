@@ -2,14 +2,27 @@
 // The screensaver's clock in miniature, in the glass's own proportions: the time large in the middle, the date under it
 // and the bottom line with the temperature and the entities, white on black as the screen draws it. A line wider than
 // the glass loses its last entities until it fits, as on the screen, so the temperature always stays.
+// A face of the module (Glass, Classic, Bauhaus) shows as that face instead (SaverFace.vue).
 import { useResizeObserver } from "@vueuse/core";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { t } from "../i18n";
 import { glyph } from "../model/topbar";
+import { useRegionStore } from "../stores/region";
 import { useTopbarStore } from "../stores/topbar";
 import { useScreensaverStore } from "../stores/screensaver";
+import { useUiStore } from "../stores/ui";
+import SaverFace from "./SaverFace.vue";
 
 const topbar = useTopbarStore();
 const screensaver = useScreensaverStore();
+const region = useRegionStore();
+const ui = useUiStore();
+const at = computed(() => new Date(ui.now));
+const say = (key: string) => t(key, {}, { locale: region.screenLanguage });
+const words = computed(() => ({
+  weekday: say(`screen.date.weekdays.${at.value.getDay()}`), short: say(`screen.date.weekdays_short.${at.value.getDay()}`),
+  month: say(`screen.date.months.${at.value.getMonth()}`), day: at.value.getDate(),
+}));
 
 defineProps<{ height: number }>();
 const line = ref<HTMLElement | null>(null);
@@ -33,7 +46,11 @@ useResizeObserver(line, () => measure());
 </script>
 
 <template>
-  <div class="saver-glass" aria-hidden="true" :style="{ aspectRatio: screensaver.glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
+  <div v-if="screensaver.face !== 'digital'" class="saver-glass face" aria-hidden="true" :style="{ aspectRatio: screensaver.glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
+    <SaverFace :kind="screensaver.face" :dark="screensaver.faceDark" :numerals="screensaver.saver?.numerals ?? 4" :seconds="screensaver.saver?.seconds ?? true"
+      :width="screensaver.glassSize.width" :height="screensaver.glassSize.height" :at="at" v-bind="words" />
+  </div>
+  <div v-else class="saver-glass" aria-hidden="true" :style="{ aspectRatio: screensaver.glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
     <span class="saver-glass-time">{{ screensaver.clockPreview.time }}</span>
     <span class="saver-glass-date">{{ screensaver.clockPreview.date }}</span>
     <span ref="line" class="saver-glass-line">
@@ -44,6 +61,7 @@ useResizeObserver(line, () => measure());
 </template>
 
 <style scoped>
+.saver-glass.face { padding: 0; overflow: hidden; }
 .saver-glass { display: grid; justify-items: center; align-content: center; gap: 2px; width: auto; max-width: 100%; justify-self: center; position: relative;
   border-radius: calc(var(--glass-h) * 0.07); background: #000; color: #fff; padding: 0 10px; }
 .saver-glass-time { font-size: calc(var(--glass-h) * 0.25); font-weight: 300; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }

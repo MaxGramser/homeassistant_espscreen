@@ -50,6 +50,8 @@ constexpr const char *EXPAND = "\U000F084E", *COLLAPSE = "\U000F084C", *DOCK = "
 constexpr const char *LEFT = "\U000F0141", *RIGHT = "\U000F0142", *CLOSE = "\U000F0156", *POWER = "\U000F0425", *STANDBY = "\U000F0906", *FIRE = "\U000F0238";
 constexpr const char *SNOWFLAKE = "\U000F0717", *HEAT_COOL = "\U000F1A79", *AUTO = "\U000F1B17", *DRY = "\U000F058E", *FAN = "\U000F0210";
 constexpr const char *BLINDS_OPEN = "\U000F1011", *BLINDS = "\U000F00AC", *MORE = "\U000F01D8";
+// A cover card's swap key and a cover group's key (firmware 0.57.0): the slats (blinds-horizontal), the blind (roller-shade).
+constexpr const char *SLATS = "\U000F1A2B", *SHADE = "\U000F1A6B";
 }
 enum Command {
   NONE = 0, COVER_OPEN, COVER_STOP, COVER_CLOSE, VACUUM_START, VACUUM_PAUSE, VACUUM_STOP, VACUUM_DOCK,
@@ -90,11 +92,17 @@ inline bool cover_tilt_selected(const Tile &t) {
 inline bool climate_modes_selected(const Tile &t) {
   return thermostat(t) && t.controls=="setpoint_mode";
 }
+// A player's volume over its playback keys (Home Assistant's two media tile features stacked), where a taller card has
+// the room: the keys are its first group, the volume slider the second.
+inline bool media_volume_selected(const Tile &t) {
+  return t.domain()=="media_player" && t.controls=="volume_playback";
+}
 // A select's "stepper" is a pair of chevron keys; numbers and climate get the -/+ pill.
 inline std::string panel_kind(const Tile &t) {
   auto c = t.controls, d = t.domain();
   if(d=="cover"){if(c=="tilt")return {};if(c=="buttons_tilt")return "buttons";if(c=="position_tilt")return "position";}
   if((d=="climate"||d=="humidifier")&&c=="setpoint_mode")return "setpoint";
+  if(d=="media_player"&&c=="volume_playback")return "playback";
   // The small slider of a wide card is that domain's slider: the manager sends no control set beside it
   // (resolve_controls), so the kind comes from the domain.
   if (c.empty() && t.inline_control == "slider") return inline_kind(d);
@@ -603,8 +611,10 @@ inline unsigned cover_keys(const Tile &t, std::array<Key, 3> &out) {
   unsigned n = 0;
   const uint32_t f = t.supported ? t.supported : feature::COVER_OPEN | feature::COVER_STOP | feature::COVER_CLOSE;
   bool sideways = sideways_cover(t.device_class);
-  bool fully_open = std::isfinite(t.position) ? t.position >= 99.5f : t.state == "open";
-  bool fully_closed = std::isfinite(t.position) ? t.position <= 0.5f : t.state == "closed";
+  // A cover that only assumes its state (assumed_state, firmware 0.57.0) keeps open and close, as Home Assistant does.
+  const bool assumed = t.extra().assumed;
+  bool fully_open = !assumed && (std::isfinite(t.position) ? t.position >= 99.5f : t.state == "open");
+  bool fully_closed = !assumed && (std::isfinite(t.position) ? t.position <= 0.5f : t.state == "closed");
   if (f & feature::COVER_OPEN) out[n++] = Key{sideways ? glyph::EXPAND : glyph::UP, COVER_OPEN, "", t.state == "opening", fully_open && t.state != "closing"};
   if (f & feature::COVER_STOP) out[n++] = Key{glyph::STOP, COVER_STOP, "", false, false};
   if (f & feature::COVER_CLOSE) out[n++] = Key{sideways ? glyph::COLLAPSE : glyph::DOWN, COVER_CLOSE, "", t.state == "closing", fully_closed && t.state != "opening"};
@@ -612,7 +622,7 @@ inline unsigned cover_keys(const Tile &t, std::array<Key, 3> &out) {
 }
 inline unsigned cover_tilt_keys(const Tile &t, std::array<Key, 3> &out) {
   unsigned n = 0;
-  const float tilt = t.extra().tilt;
+  const float tilt = t.extra().assumed ? NAN : t.extra().tilt;
   if (t.supported & feature::COVER_OPEN_TILT) out[n++] = Key{glyph::BLINDS_OPEN, COVER_OPEN_TILT, "", false, std::isfinite(tilt) && tilt >= 99.5f};
   if (t.supported & feature::COVER_STOP_TILT) out[n++] = Key{glyph::STOP, COVER_STOP_TILT, "", false, false};
   if (t.supported & feature::COVER_CLOSE_TILT) out[n++] = Key{glyph::BLINDS, COVER_CLOSE_TILT, "", false, std::isfinite(tilt) && tilt <= 0.5f};

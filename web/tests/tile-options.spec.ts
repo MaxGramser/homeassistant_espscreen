@@ -125,7 +125,10 @@ describe("the tile panel", () => {
     // The choice waits for its action: nothing is stored yet, and nothing fails.
     expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.tap).toBeUndefined();
-    expect(perform.attributes("aria-pressed")).toBe("true");
+    // The actions take the place under the tile instead of the settings (app 0.4.89), and Done would leave the tap as it was.
+    expect(useInspectorStore().actionPickerOpen).toBe(true);
+    expect(panel.find(".bar-part .action-choice").exists()).toBe(true);
+    expect(panel.find("#tile-place b").text()).toBe("Action");
     const picker = panel.findComponent(ActionPicker);
     expect(picker.exists()).toBe(true);
     await picker.find(".action-choice").trigger("click");

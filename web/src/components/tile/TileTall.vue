@@ -18,6 +18,11 @@ const props = defineProps<{ card: TileCardView }>();
 const card = props.card;
 // A tall card's slider has a white mark where its fill ends.
 const rangeStyle = computed(() => ({ ...card.sliderStyle, "--fill": `${card.fill}%` }));
+// A player's volume beside its keys: standing at the right on a card wider than high, over the keys on a narrower one
+// (runtime_tiles render_tall, media_standing).
+const volume = computed(() => card.face.tallControls === "volume_playback" && Boolean(card.features & bits("media_player", "VOLUME_SET")));
+const standing = computed(() => volume.value && card.shape.columns >= 2 && card.shape.columns >= card.shape.rows);
+const standStyle = computed(() => ({ background: `linear-gradient(to top, ${card.palette.accent} ${card.fill}%, ${card.palette.track} ${card.fill}%)`, "--fill": `${card.fill}%` }));
 </script>
 
 <template>
@@ -32,7 +37,12 @@ const rangeStyle = computed(() => ({ ...card.sliderStyle, "--fill": `${card.fill
       <span class="ic mdi">{{ glyph(card.icon) }}</span>
       <span class="tx"><span class="nm">{{ card.texts.name }}</span><span v-if="card.texts.headLine" class="st" :class="{ off: card.gone }">{{ card.texts.headLine }}</span></span>
     </span>
-    <CoverTilePreview v-if="card.face.coverExtended" :primary="card.face.tallControls" :entity-state="card.current?.state || ''" :attributes="card.current?.a || {}" />
+    <CoverTilePreview v-if="card.face.coverExtended" :primary="card.face.tallControls" :entity-state="card.current?.state || ''" :attributes="card.current?.a || {}">
+      <template #fallback>
+        <span v-if="card.face.tallControls === 'position'" class="cover-range" :style="{ '--position': `${100 - (card.current?.a?.current_position ?? 50)}%` }"></span>
+        <span v-else-if="card.face.tallKeys.length" class="cover-row"><span v-for="(k, i) in card.face.tallKeys" :key="i" class="key mdi" :class="{ disabled: k.disabled }">{{ card.key(k.icon) }}</span></span>
+      </template>
+    </CoverTilePreview>
     <span v-else-if="card.face.thermostat && (card.face.tallControls === 'setpoint' || card.face.tallControls === 'setpoint_mode')" class="tall-setpoint">
       <span class="target"><span class="key mdi">{{ card.key('minus') || '−' }}</span><RangeChip v-if="card.chip" :chip="card.chip" :icon="card.key(card.chip.icon)" /><b v-else>{{ card.texts.setpoint }}</b><span class="key mdi">{{ card.key('plus') || '+' }}</span></span>
       <span class="st">{{ card.texts.now || card.texts.status }}</span>
@@ -48,7 +58,10 @@ const rangeStyle = computed(() => ({ ...card.sliderStyle, "--fill": `${card.fill
         <span v-else-if="card.domain === 'humidifier' && !card.gone" class="target-value">{{ card.texts.reading || card.texts.status }}</span>
         <span v-else-if="card.domain !== 'screen' && !card.gone && card.face.tallControls !== 'toggle'" class="target-value">{{ card.domain === 'light' && card.lit ? `${card.fill}%` : card.texts.status }}</span>
       </span>
-      <span v-if="card.face.tallControls" class="ctl" :class="{ playback: card.face.tallControls === 'playback' }">
+      <!-- A player's volume over its keys (volume_playback): a row of its own above them, as the screen stacks them. -->
+      <span v-if="standing" class="vol-stand" :style="standStyle"></span>
+      <span v-else-if="volume" class="ctl volume-row"><span class="range" :style="rangeStyle"></span></span>
+      <span v-if="card.face.tallControls" class="ctl" :class="{ playback: ['playback', 'volume_playback'].includes(card.face.tallControls) }">
         <span v-if="card.face.tallControls === 'toggle'" class="tog" :class="{ off: !card.on }"></span>
         <span v-else-if="card.face.tallControls === 'setpoint'" class="stp"><span class="mdi">{{ card.key("minus") || "−" }}</span><RangeChip v-if="card.chip" :chip="card.chip" :icon="card.key(card.chip.icon)" /><b v-else :style="{ '--pill-ems': textEms(card.texts.setpoint + '8') }">{{ card.texts.setpoint }}</b><span class="mdi">{{ card.key("plus") || "+" }}</span></span>
         <ModeBar v-else-if="card.face.tallControls === 'mode' && card.face.thermostat" :a="card.current?.a || {}" :mode="card.current?.state || ''" :domain="card.domain" place="tall" :columns="card.shape.columns" />
@@ -64,6 +77,17 @@ const rangeStyle = computed(() => ({ ...card.sliderStyle, "--fill": `${card.fill
 
 <style scoped src="./parts.css"></style>
 <style scoped>
+/* A player's volume standing at the card's right, the whole height of its content; the rest keeps clear of it. */
+.vol-stand { position: absolute; top: 8px; bottom: 8px; right: 9px; width: clamp(22px, 18cqh, 36px); border-radius: 10px; }
+.vol-stand::after { content: ''; position: absolute; left: 25%; right: 25%; height: 3px; bottom: clamp(4px, var(--fill), calc(100% - 6px)); background: white; border-radius: 2px; }
+.tile.tall:has(> .vol-stand) > :not(.vol-stand, .tall-art, .remove, .resize-handle) { margin-right: calc(clamp(22px, 18cqh, 36px) + 8px); }
+/* Beside it the keys start at the left, under the track and the name (runtime_tiles render_tall). */
+.tile.tall:has(> .vol-stand) > .ctl { justify-content: flex-start; }
+</style>
+<style scoped>
+/* What a cover shows where its slats do not fit (CoverTilePreview's fallback): its position bar, or its keys. */
+.cover-range { position: absolute; left: 0; right: 0; bottom: 0; height: min(40%, 34px); border-radius: 10px; background: linear-gradient(to right, var(--tile-accent) var(--position), var(--tile-circle) var(--position)); }
+.cover-row { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 6px; justify-content: center; }
 .tile.tall.big-key .ic { width: 44cqmin; height: 44cqmin; display: grid; place-items: center; font-size: 24cqmin; padding: 0; }
 .tile.tall.big-key .nm { font-size: clamp(12px, 13cqmin, 26px); font-weight: 500; color: #1b1b1b; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile.tall.big-key .st { font-size: 10px; }

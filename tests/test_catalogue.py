@@ -128,13 +128,30 @@ class Cards(unittest.TestCase):
         self.assertIsNone(self.resolve('light.a', 'wide', inline='slider'))
 
     def test_a_card_one_row_high_draws_what_fits_there(self):
-        self.assertEqual(self.resolve('cover.a', 'wide', controls='buttons_tilt'), 'buttons')
-        self.assertIsNone(self.resolve('cover.a', 'wide', controls='tilt'))
         self.assertEqual(self.resolve('climate.a', 'wide', controls='setpoint_mode'), 'setpoint')
-        # A span of one row too (spans came with app 0.4.32; the old rule only knew "wide").
-        self.assertEqual(self.resolve('cover.a', '3x1', controls='position_tilt'), 'position')
+        self.assertEqual(self.resolve('climate.a', '3x1', controls='setpoint_mode'), 'setpoint')
         self.assertEqual(self.resolve('cover.a', 'square', controls='buttons_tilt'), 'buttons_tilt')
         self.assertEqual(self.resolve('cover.a', 'full', controls='buttons_tilt'), 'buttons_tilt')
+
+    def test_a_cover_lays_out_its_controls_by_its_room(self):
+        # A cover's controls stay whole on a card of one row and of one cell (firmware 0.57.0, `room`): a screen that
+        # says cover_rows draws what fits, and an older one gets what it always got (roomless).
+        self.assertEqual(self.resolve('cover.a', 'wide', controls='buttons_tilt'), 'buttons_tilt')
+        self.assertEqual(self.resolve('cover.a', '3x1', controls='position_tilt'), 'position_tilt')
+        self.assertEqual(self.resolve('cover.a', 'single', controls='position'), 'position')
+        self.assertEqual(self.resolve('cover.a', '1x1', controls='tilt'), 'tilt')
+        self.assertIsNone(self.resolve('cover.a', 'single'))
+        self.assertIsNone(self.resolve('light.a', 'single', controls='brightness'))
+        roomless = lambda key, size: catalogue.roomless('cover', key, size, span_of)
+        self.assertEqual((roomless('buttons_tilt', 'wide'), roomless('tilt', 'wide'), roomless('position_tilt', '3x1')), ('buttons', 'none', 'position'))
+        self.assertEqual((roomless('position', 'single'), roomless('position_tilt', 'square')), ('none', 'position_tilt'))
+        sent = lambda size, controls, features: catalogue.drawn_controls(
+            {'entity': 'cover.a', 'o': {'size': size, 'controls': controls}, 'a': {'supported_features': 255}}, features, span_of)['o']['controls']
+        self.assertEqual(sent('wide', 'position_tilt', frozenset({'cover_rows'})), 'position_tilt')
+        self.assertEqual(sent('wide', 'position_tilt', frozenset()), 'position')
+        older = catalogue.drawn_controls({'entity': 'cover.a', 'o': {'size': 'single', 'controls': 'position'}, 'a': {}}, frozenset(), span_of)
+        self.assertNotIn('controls', older['o'])                                    # as resolve_controls sent it before
+        self.assertEqual(sent('single', 'position', None), 'position')              # the hello not known: as it is
 
 
 class Screens(unittest.TestCase):

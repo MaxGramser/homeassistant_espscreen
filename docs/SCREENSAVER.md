@@ -73,6 +73,31 @@ white on black like the rest, whatever the colour of the entity. They look as th
 and icons, and a moment ("5 min ago") counts on as it does there. When the line is wider than the glass, the last
 entities leave until it fits, so the temperature always stays. A screen on older firmware shows the temperature alone.
 
+**Clock faces** (boards with 8 MB of flash or more). In the drawer of Clock, **Face** picks how the clock looks, each
+choice shown as a small picture of your own glass:
+
+- **Digital**: the time with the date, the temperature and the entities, as above. Every screen has it.
+- **Glass**: the dial is the glass itself. Ticks run along its edge, the numbers stand inside them, and white hands
+  with an orange seconds hand turn in the middle. **Numbers** shows none, 4 (12, 3, 6 and 9) or all 12. Twelve is
+  offered only on glass about as wide as it is tall, because on long glass they bunch at 12 and 6. A number never
+  touches a tick: each one moves toward the middle until there is a clear gap around it.
+- **Classic**: a round watch dial with 1 to 12. On long glass the day stands beside it, on standing glass under it:
+  the weekday, the date large, the month, then the temperature and the entities one to a line, as many as fit. On
+  square glass the date stands in a small window at 3, as on a watch.
+- **Bauhaus**: the whole glass is a grid of squares, each a circle, a half or quarter circle, a half square or stripes
+  in red, yellow, blue, black and cream, with a round clock on top.
+
+For Glass, Classic and Bauhaus, **Look** is Dark, Light, or the screen's own Dark mode, and **Seconds hand** turns the
+seconds hand on or off. Glass and Bauhaus show the time alone: the temperature and the entities stand on Classic and
+Digital. Every size follows the glass and every letter is one of the screen's own font steps, so a face fills a small
+square screen and a wide 10-inch screen alike.
+
+A face never stands still long enough to mark the glass. Glass and Classic move up to a millimetre every minute, along
+a slow circle; you do not see it, but nothing stays on the same pixels for hours. Bauhaus gives one square a new shape
+every minute and paints a whole new picture every ten minutes, and its clock moves to another spot near the middle
+with each new picture. The seconds hand redraws only the strip of glass it passes. Boards with 4 MB of flash (the CYD
+and its kin) have no room for the faces and keep the digital clock, and so does a screen whose firmware predates them.
+
 The cover and the camera are a little darker everywhere, so the words always read. A camera has nothing else on it,
 and a cover only its three keys: no bar, no spinner.
 
@@ -108,6 +133,15 @@ has.
   measure and word each item, and `header_bar::centre`, beside the bar's `place`, centres the line with the bar's gaps
   (`tests/test_header_bar.cpp`). The editor uses the top bar's entity list (`EntityItemPicker.vue`) and its add, move
   and remove (`itemList` in `stores/topbar.ts`), and edits one entity in `SaverItemInspector.vue`.
+- **The clock's faces** are the module `clock_faces` (docs/MODULES.md), so only a board of the full tier compiles them.
+  The choice holds `face` (`digital`, `glass`, `classic` or `bauhaus`), `numerals` (0, 4 or 12), `seconds` and `look`
+  (`dark`, `light` or `auto`). A screen whose hello lists `clock_faces` gets them as `cf` in the clock's message
+  (`screen_saver.face`): `f`, `n`, `s` (1 or 0) and `l`. The firmware draws them in
+  `components/smart_display/module_clock_faces.h` with the colours of `theme.h` (`CLOCK_HAND` and `BAUHAUS_*`, read by
+  the face's own look), and the editor's picture of them is `SaverFace.vue` with the same rules in
+  `web/src/model/clock-faces.ts`, Bauhaus's composition from the same hash. The clock is drawn whole again every minute
+  (`apply_screen_settings`), which moves Glass and Classic (`clock_faces::drift`) and Bauhaus; `saver_tick` moves the
+  seconds hand every second and invalidates only its old and new box (`clock_faces::tick`).
 - **The editor** (app 0.4.83): `ScreensaverCard.vue` lists the steps and `SaverInspector.vue` opens one in the drawer;
   both read and change the choice through `web/src/stores/screensaver.ts`, and drag their lists with
   `web/src/composables/useSortableRows.ts`.

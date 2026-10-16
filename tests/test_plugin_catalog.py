@@ -2,6 +2,7 @@
 id a screen runs (its origin), what comes along when a plugin needs another or needs a feature, and the plugins that
 need one when it goes."""
 import asyncio
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -9,6 +10,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+import core  # noqa: E402
 import plugin_manifest as pm  # noqa: E402
 
 TESSERA = 'https://github.com/MaxGramser/tessera-plugins'
@@ -295,6 +297,57 @@ class StoreImage(unittest.IsolatedAsyncioTestCase):
         service.folders = {'clock': entry}
         self.assertTrue(service.image_url(entry).startswith('api/plugins/clock/image?v='))
         self.assertEqual(await service.store_image('clock'), png())
+
+
+
+class IndexResponse(FakeResponse):
+    headers = {}
+
+    def raise_for_status(self):
+        if self.status >= 400:
+            raise OSError(self.status)
+
+
+class IndexHttp(FakeHttp):
+    def get(self, url, **kw):
+        self.asked.append(url)
+        return IndexResponse(200, self.files[url]) if url in self.files else IndexResponse(404, b'')
+
+
+class IndexBranch(unittest.IsolatedAsyncioTestCase):
+    """The dev app reads the plugins repository's dev index (plugins that need Tessera's dev firmware wait there for its
+    release), main while dev has none; every other app reads main alone."""
+    service = Catalogue.service
+
+    def url(self, branch):
+        return f'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/{branch}/index.json'
+
+    async def read(self, channel, files):
+        service = self.service()
+        service.fetcher.user_agent = 'test'
+        service.http = IndexHttp({self.url(b): json.dumps({'format': 1, 'plugins': [item(name)]}).encode()
+                                  for b, name in files.items()})
+        before = core.channel()
+        core.set_channel(channel)
+        try:
+            await service.refresh_index(force=True)
+        finally:
+            core.set_channel(before)
+        return service
+
+    async def test_the_dev_app_reads_dev_and_falls_back_on_main(self):
+        service = await self.read('dev', {'dev': 'beta', 'main': 'stable'})
+        self.assertEqual(list(service.index), ['beta'])
+        self.assertEqual(service.index_state['branch'], 'dev')
+        service = await self.read('dev', {'main': 'stable'})
+        self.assertEqual(list(service.index), ['stable'])
+        self.assertEqual(service.http.asked, [self.url('dev'), self.url('main')])
+
+    async def test_every_other_app_reads_main(self):
+        for channel in ('main', None):
+            service = await self.read(channel, {'dev': 'beta', 'main': 'stable'})
+            self.assertEqual(list(service.index), ['stable'])
+            self.assertEqual(service.http.asked, [self.url('main')])
 
 
 if __name__ == '__main__':

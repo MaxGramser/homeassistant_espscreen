@@ -91,8 +91,16 @@ Home Assistant connected to Screen Manager. Its normal action responses and upda
 entity states drive the firmware's confirmation/refusal behaviour. Taps can therefore
 operate real devices connected to that instance.
 
-Hardware, persistent device settings, non-image ESPHome event requests
-(history/options/settings) and custom actions with data templates are not emulated. Runtime
+Hold the preview's title bar for 1.5 seconds to open the firmware's Settings menu. Its fonts, hold geometry,
+rows and navigation come from the firmware. The selected panel's core settings and board Extras are supplied
+through the existing settings APIs. Extras use server-sent events, including the initial and reconnect snapshots;
+there is no settings polling. Enable **Taps control devices** to change those settings on the physical panel.
+With it off, core settings can be tried locally and hardware Extras are read-only. Virtual screens have no
+hardware Extras. Restart and calibration are not offered in the browser.
+
+Hardware, device preferences stored inside WASM, non-image ESPHome event requests
+(history/options) and custom actions with data templates are not emulated. Text and fractional-number Extras
+are read-only, and plugin-specific settings pages are not loaded into the preview. Runtime
 detail screens such as the weather card are firmware-rendered; board/YAML-specific
 overlays such as the light colour picker are not yet connected. This is a UI runtime,
 not an ESP32 CPU or peripheral emulator. Browser speed is not a hardware benchmark.

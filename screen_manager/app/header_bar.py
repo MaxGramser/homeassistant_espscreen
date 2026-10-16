@@ -14,6 +14,7 @@ screen that takes cards from its top bar (core.BAR_CARDS_FEATURE, firmware 0.56.
 import math
 import unicodedata
 from datetime import datetime, time
+from decimal import ROUND_HALF_UP, Decimal
 
 import durations
 import tile_icons
@@ -147,6 +148,14 @@ def number_text(value, precision=None):
     if text.startswith('-') and not any(c not in '0.' for c in text[1:]):
         text = text[1:]
     return screen_number(text)
+
+def attribute_number(value):
+    """A number an attribute holds, as Home Assistant's frontend writes it (computeAttributeValueDisplay, formatNumber
+    without options): at most two decimals, in the screens' number format. Intl.NumberFormat rounds the number as
+    JavaScript writes it, a half away from zero: 2.675 is "2.68", although the float is 2.67499..., and -0.001 is
+    "-0". repr writes a float as JavaScript does. 61.60000000000001 is "61.6" (GitHub #241)."""
+    exact = Decimal(repr(float(value))) if isinstance(value, float) else Decimal(value)
+    return screen_number(format(exact.quantize(Decimal('0.01'), ROUND_HALF_UP).normalize(), 'f'))
 
 def with_unit(text, unit):
     """Home Assistant's spacing: "21.3 °C", "65%" ("65 %" in German and French), "18°"."""
@@ -312,6 +321,9 @@ def entity_item(item, states, registry=None, units=None, tz=None, words=None, ca
         wire['i'] = auto_icon(entity, state, (registry or {}).get(entity) if isinstance(registry, dict) else None)
     elif item['icon'] != 'none':
         wire['i'] = tile_icons.ICONS[item['icon']][0]
+    # Its card, whatever the item shows: its icon alone opens it too (GitHub #252).
+    if card is not None:
+        wire['d'] = card
     if item['content'] == 'icon':
         # Its icon alone (GitHub #144): no text, so the screen draws the icon, coloured and changing with the state.
         wire['t'] = ''
@@ -331,8 +343,6 @@ def entity_item(item, states, registry=None, units=None, tz=None, words=None, ca
     color = accent(entity, state)
     if color:
         wire['c'] = color
-    if card is not None:
-        wire['d'] = card
     return wire, item['show'] == 'always' or active(entity, state)
 
 # What the Wi-Fi item's text says beside its bars on the screen (header_bar.h device_item): nothing, a percentage or dBm;

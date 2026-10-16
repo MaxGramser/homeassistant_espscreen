@@ -1,10 +1,13 @@
-"""Pictures on a plugin's tile (plugin API 0.10, docs/PLUGINS.md "Pictures"): the app's side of the question a plugin
-tile asks for its places (tile_picture.h "parts", plugin_host.cpp).
+"""Pictures on a plugin's tile (plugin API 0.10, docs/PLUGINS.md "Pictures") and on a plugin's card over the page
+(0.13): the app's side of the question a plugin tile or card asks for its places (tile_picture.h "parts",
+plugin_host.cpp).
 
 The screen asks with the event every tile picture is asked with (`esphome.screen_camera` with `tiles`, `idx`, `bg`,
 `dark`, `atlas`), plus `src`, the address of each frame, and `fit`, how each fills its frame. The app checks that the
 tile is a plugin tile of the screen's layout whose manifest gives it places, and each address against what the manifest
-allows (`allowed`): a host of `permissions.network`, or a picture of Home Assistant's own for a tile of an entity. It
+allows (`allowed`): a host of `permissions.network`, or a picture of Home Assistant's own for a tile of an entity. A
+card's question has `card` and `for` (the entity it shows) beside them, and is a card of a plugin on that screen whose
+manifest gives it places; Home Assistant's own pictures are for a card shown for an entity of the screen's layout. It
 fetches each address once (a cache by address, so a page that comes back costs no fetch), paints the atlas as every
 tile picture is painted (tile_art.encode) and answers with a link to it, as it answers a camera tile. Nothing of the
 plugin runs here: the manifest is read, the addresses are data.
@@ -36,13 +39,17 @@ HA_PICTURES = ('/api/image/serve/', '/api/image_proxy/', '/local/')
 
 class Question:
     """What one plugin tile asked for."""
-    __slots__ = ('entity', 'plugin', 'tile', 'index', 'atlas', 'sources', 'fits', 'ground', 'dark', 'turns', 'mirrors')
+    __slots__ = ('entity', 'plugin', 'tile', 'index', 'atlas', 'sources', 'fits', 'ground', 'dark', 'turns', 'mirrors',
+                 'card', 'of')
 
-    def __init__(self, entity, plugin, tile, index, atlas, sources, fits, ground, dark, turns=None, mirrors=None):
+    def __init__(self, entity, plugin, tile, index, atlas, sources, fits, ground, dark, turns=None, mirrors=None,
+                 card=False, of=''):
         self.entity, self.plugin, self.tile, self.index = entity, plugin, tile, index
         self.atlas, self.sources, self.fits, self.ground, self.dark = atlas, sources, fits, ground, dark
         self.turns = turns or [''] * len(sources)
         self.mirrors = mirrors or [False] * len(sources)
+        # A card's question (0.13): `tile` is then the card's id, `index` None, `of` the entity it shows ('' for none).
+        self.card, self.of = card, of
 
     def styles(self):
         """How each frame is painted (tile_art.layers): its fit, its turn and whether a reflection goes under it."""
@@ -61,7 +68,11 @@ def parse(request, canvas):
     entity = request.get('tiles')
     parts = core.plugin_tile(entity) if isinstance(entity, str) else None
     idx, ground = request.get('idx'), request.get('bg')
-    if not parts or not isinstance(idx, str) or not idx.isdigit() or len(idx) > 3:
+    card = request.get('card') == '1'
+    of = request.get('for') or ''
+    if card and (not isinstance(of, str) or of and not core.plugin_entity(of)):
+        return None
+    if not parts or not card and (not isinstance(idx, str) or not idx.isdigit() or len(idx) > 3):
         return None
     if not isinstance(ground, str) or not re.fullmatch(r'[0-9A-Fa-f]{6}', ground):
         return None
@@ -89,19 +100,21 @@ def parse(request, canvas):
     atlas = tile_art.parse(request.get('atlas'), canvas, len(sources), overlap=True)
     if atlas is None:
         return None
-    return Question(entity, parts[0], parts[1], int(idx), atlas, sources, fits, int(ground, 16),
-                    str(request.get('dark') or '') == '1', turns, [bool(m) for m in mirrors])
+    return Question(entity, parts[0], parts[1], None if card else int(idx), atlas, sources, fits, int(ground, 16),
+                    str(request.get('dark') or '') == '1', turns, [bool(m) for m in mirrors], card, of)
 
 
-def allowed(url, manifest, tile):
-    """Where a picture of a tile with this manifest may come from: 'network' for an address on a host the manifest
-    names under permissions.network, 'home_assistant' for a picture of Home Assistant's own (HA_PICTURES) on a tile of
-    an entity, None for anything else (the app fetches nothing it does not name)."""
+def allowed(url, manifest, tile, of_entity=None):
+    """Where a picture of a tile (or a card, 0.13) with this manifest may come from: 'network' for an address on a host
+    the manifest names under permissions.network, 'home_assistant' for a picture of Home Assistant's own (HA_PICTURES)
+    on a tile of an entity (`of_entity`: a card shown for one), None for anything else (the app fetches nothing it does
+    not name)."""
     if not manifest or not tile or not tile.get('pictures'):
         return None
+    of_entity = bool(tile.get('domains')) if of_entity is None else of_entity
     if url.startswith('/'):
         path = url.split('?', 1)[0]
-        if tile.get('domains') and path.startswith(HA_PICTURES) and '..' not in path and '//' not in url[1:]:
+        if of_entity and path.startswith(HA_PICTURES) and '..' not in path and '//' not in url[1:]:
             return 'home_assistant'
         return None
     try:
@@ -111,16 +124,18 @@ def allowed(url, manifest, tile):
     return 'network'
 
 
-def refused(question, manifest, tile):
-    """Why a question is not answered with pictures, as a sentence for the log; None when it may be."""
+def refused(question, manifest, tile, of_entity=None):
+    """Why a question is not answered with pictures, as a sentence for the log; None when it may be. `tile` is the
+    manifest's tile, or its card for a card's question."""
+    what = 'card' if question.card else 'tile'
     if not manifest or not tile:
-        return 'the screen does not run the plugin, or the plugin has no such tile'
+        return f'the screen does not run the plugin, or the plugin has no such {what}'
     if not tile.get('pictures'):
-        return 'the manifest gives the tile no pictures'
+        return f'the manifest gives the {what} no pictures'
     if len(question.sources) > tile['pictures']:
         return f'{len(question.sources)} pictures asked, the manifest allows {tile["pictures"]}'
     for url in question.sources:
-        if not allowed(url, manifest, tile):
+        if not allowed(url, manifest, tile, of_entity):
             return f'{url[:80]} is not an address the plugin may show'
     return None
 
@@ -143,10 +158,11 @@ class Pictures:
         while len(self.cache) > 256 or self._bytes() > CACHE_BYTES:
             self.cache.popitem(last=False)
 
-    async def fetch(self, url, manifest, tile):
-        """The picture at `url` for a tile with this manifest, or None when it does not come (logged once; tried again
-        after FAIL_SECONDS). A picture that came is kept KEEP_SECONDS."""
-        where = allowed(url, manifest, tile)
+    async def fetch(self, url, manifest, tile, of_entity=None):
+        """The picture at `url` for a tile (or card) with this manifest, or None when it does not come (logged once;
+        tried again after FAIL_SECONDS). A picture that came is kept KEEP_SECONDS, by address: a card that shows the
+        cover its tile shows costs no fetch."""
+        where = allowed(url, manifest, tile, of_entity)
         if not where:
             return None
         entry = self.cache.get(url)

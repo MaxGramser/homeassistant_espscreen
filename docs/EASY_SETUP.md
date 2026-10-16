@@ -301,7 +301,7 @@ Guition). From firmware 0.34.0 a board with PSRAM holds more: up to 128 tiles on
 on 16 pages on an ESP32-P4 board, as many as the screen's memory takes. The editor shows that memory beside the tile
 count, and a tile that no longer fits can't be added ([TILE_MEMORY.md](TILE_MEMORY.md)). Firmware 0.2.7 to
 0.2.61 keeps the limit of twenty (four pages) and older firmware ten, until you
-update. In the **Screen settings** tab, **Swipe between pages** turns on swiping.
+update. In the **Screen settings** tab, **Swipe between pages** turns swiping on or off; a new screen has it on.
 On a board with capacitive touch (every board but the CYD and the Hosyond, firmware 0.2.24+), you then swipe inward from the left or right
 edge, like the back-swipe gesture on a phone; slow or fast, and a swipe starting in the
 middle of the screen does nothing, so tapping and dragging tiles never
@@ -512,7 +512,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Clock | 24 or 12 hour, the same on every screen: Settings → Language & region in Tessera (firmware 0.2.76+); the Simple dial shows AM or PM beside the time (firmware 0.3.6+); the Flip clock on a card as wide as the page and the bedside clock put it under the time (firmware 0.17.0+) | Follows the language |
 | Back to Home | Closes an open card and goes back to the Home page after 30 seconds to 60 minutes without a touch, firmware 0.2.44+ | On, 2 minutes |
 | Also on standby | Standby goes back to the Home page too (it always closes an open card) | Off |
-| Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | Off |
+| Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | On |
 | Page buttons | Off: no buttons under the tiles, the tiles take their room, firmware 0.2.69+ | On |
 | Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+ (a house before firmware 0.10.0) | On |
 | Rotation | 0° or 180°, and also 90° and 270° on a square screen; every board from firmware 0.2.80 | 0° |

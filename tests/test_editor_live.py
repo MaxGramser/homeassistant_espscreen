@@ -347,6 +347,13 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.manager.ha.states['sensor.left'] = {'state': '0.2', 'attributes': {'device_class': 'duration', 'unit_of_measurement': 'h'}}
         response = await self.client.get('/api/states?entity=sensor.left')
         self.assertEqual((await response.json())['states']['sensor.left']['word'], '12m')
+        # A tile's second line set to a value of the entity shows on the mockup as the screen gets it (ha_catalogue).
+        self.manager.ha.states['climate.hall'] = {'state': 'heat', 'attributes': {'current_humidity': 61.60000000000001,
+                                                                                    'access_token': 'private'}}
+        self.manager.ha.state_words = {**(getattr(self.manager.ha, 'state_words', None) or {}),
+                                       'component.climate.entity_component._.state_attributes.current_humidity.name': 'Humidity'}
+        response = await self.client.get('/api/states?entity=climate.hall')
+        self.assertEqual((await response.json())['states']['climate.hall']['sub'], {'current_humidity': '61.6%'})
 
     async def test_firmware_preview_uses_device_packets_without_saving_or_actions(self):
         from core import Grid

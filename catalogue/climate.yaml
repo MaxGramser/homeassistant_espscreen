@@ -6,6 +6,8 @@ memory: {bytes: 304, extras: true}
 displays:
   standard: {}
   watch: {}
+# A tile that grows suggests the temperature with the mode keys, else the temperature.
+grow: [setpoint_mode, setpoint]
 controls:
   # The temperature it is set to between - and +: one number, or a range with the chip for its end (firmware 0.19.0).
   setpoint:

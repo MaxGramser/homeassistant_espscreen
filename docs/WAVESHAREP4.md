@@ -2,7 +2,7 @@
 
 The `wavesharep4` board file supports the relay-equipped 4-inch, 720 × 720 Waveshare 86 panel
 (SKU 31570), with the shared screen UI in two columns and three rows. Display, capacitive
-touch, dimmable backlight and Wi-Fi are configured. The board is experimental.
+touch, dimmable backlight, Wi-Fi, audio and the two relay outputs are configured. The board is experimental.
 
 Waveshare documents this panel alongside the ESP32-P4-WIFI6-Touch-LCD-4B (SKU 31416), which has
 the same main board in a different assembly and enclosure. The board file was first tried on the
@@ -21,6 +21,7 @@ See the manufacturer's [hardware comparison](https://docs.waveshare.com/ESP32-P4
 | Backlight | Boost enable GPIO33, inverted PWM on GPIO26 at 200 Hz |
 | Touch | GT911, SDA GPIO7, SCL GPIO8, reset GPIO23, polled every 20 ms |
 | Wi-Fi | ESP32-C6 over SDIO: reset GPIO54, clock GPIO18, command GPIO19, data GPIO14-17 |
+| Relays | GPIO32 (Relay 1), GPIO46 (Relay 2), active-high; both off at every boot |
 | USB logging | UART0 through the USB-to-UART bridge |
 
 The assignments follow the [main-board schematic, page 1](https://files.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-4B/ESP32-P4-WIFI6-Touch-LCD-4B.pdf).
@@ -70,26 +71,48 @@ credentials. See ESPHome's [coprocessor update documentation](https://esphome.io
 This board file uses **Wi-Fi only**. The board has Ethernet hardware, but this version does not
 configure Ethernet. Ethernet support is planned as a separate contribution.
 
-Relays, RS485 and microSD are not configured by this board file. The model name describes the
-hardware fitted to the board; it does not mean these peripherals are enabled in firmware.
+RS485 and microSD remain unconfigured. **Ethernet is not included in this change**;
+Ethernet configuration and testing will be a separate contribution. Wi-Fi is used for these tests.
+
+## Relays
+
+The 86 Panel Bottom Board exposes two ordinary Home Assistant switch entities, **Relay 1** and
+**Relay 2**. They are not configuration entities and do not appear under Extras: add them to tiles
+or automations as needed. Both use `ALWAYS_OFF`, so a reboot does not restore an energised relay.
+This is a boot policy, not a connection-loss watchdog. The state is the commanded GPIO state,
+not physical contact feedback.
+
+GPIO32 and GPIO46 are active-high, as in Waveshare's [bottom-board schematic](https://files.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-4B/86_Panel_Bottom_Board.pdf)
+and [relay implementation](https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/blob/5a7a9a2823d77983c15b44a72934a7699e5d2d8b/firmware/brookesia/components/bsp_extra/src/bsp_board_peripherals.c).
+The bare 4B assembly has no relay bottom board; these outputs concern the 86-Panel-ETH-2RO.
 
 ## Audio
 
-The speaker (an ES8311 and an amplifier on GPIO53) and the microphones (an ES7210) are the screen's
-audio through `features/audio.yaml`: a media player in Home Assistant, a Volume and a Microphone
-setting under Extras, and the speaker and microphone that plugins such as the voice assistant use.
-Both codecs share one I2S bus, which ESPHome lets them take in turns, so the board sets
-`AUDIO_HALF_DUPLEX`:
+The speaker (ES8311, amplifier GPIO53) and microphones (ES7210) keep the shared audio
+interfaces `ts_speaker`, `ts_microphone` and `ts_media_player`. Existing plugins use these same
+interfaces; no voice assistant or AI provider is added by this board support.
 
-- the bus runs at 16 kHz for both;
-- the speaker lets go of the bus half a second after a sound, and the amplifier follows the sound,
-  on while it plays and off just before the bus stops, so the DAC's clock is not heard;
-- the microphone lets go of the bus whenever the speaker wants it, for any sound (an
-  announcement, an answer, music, a plugin's tick), and listens again after; a wake word does not
-  hear during that time (`features/audio-half-duplex.yaml`).
+This branch selects `P4_AUDIO_TRANSPORT: "aec"` on the Waveshare P4. The shared I2S/TDM bus
+can capture and play simultaneously. **Extras** in the editor and on the panel offers Volume,
+Microphone, Microphone gain (0–36 dB in 3 dB steps, initially 30 dB), Automatic gain and
+Echo cancellation. These are the board's ESPHome entities in HA, not separate editor settings.
+The fixed playback-reference gain is unaffected by microphone gain and Automatic gain.
 
-This replaces the `p4_audio` plugin, which brought the codecs to this board before. The audio has
-been built for this board but not yet heard on one.
+Echo cancellation can be turned on/off live. Off passes the selected microphone through while
+keeping the adaptive filter current; it does not mute the microphone or switch to half-duplex.
+The setting survives reboot. `Echo cancellation status` reports Enabled, Bypass, Starting or Error.
+Other boards do not select the extended ES7210 driver, audio stack or AEC dependency.
+
+For the original half-duplex path without the AEC library, override and rebuild:
+
+```yaml
+substitutions:
+  P4_AUDIO_TRANSPORT: "i2s"
+```
+
+Gain and Automatic gain remain available. Echo cancellation is absent in that firmware and
+its editor row is unavailable. A live switch does not change firmware size. See
+[P4_AUDIO.md](P4_AUDIO.md) for processing, provenance, licenses and hardware validation.
 
 For Docker Desktop builds, keep compiler and build caches in container-local storage rather than
 a macOS shared folder. The first build still has to obtain its dependencies; see

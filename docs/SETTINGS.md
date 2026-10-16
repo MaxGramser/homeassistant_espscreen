@@ -115,7 +115,7 @@ settings, so a new setting never travels in the layout message.
 
 ```cpp
 // settings_screen.h, next to the others
-inline int32_t swipe_pages = 0, rotation = 0, auto_home = 1, auto_home_seconds = 120, dark_mode = 0, page_buttons = 1, beep = 0;
+inline int32_t swipe_pages = 1, rotation = 0, auto_home = 1, auto_home_seconds = 120, dark_mode = 0, page_buttons = 1, beep = 0;
 ```
 
 ### 2. The one write path, and the row
@@ -238,8 +238,8 @@ What the boards have today:
 | Board | Extras | Where it comes from |
 |---|---|---|
 | reTerminal D1001 | Volume, Microphone, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
-| Waveshare ESP32-P4 86 panel | Volume, Microphone | `features/audio.yaml` |
-| M5Stack Tab5 | Volume, Microphone | `features/audio.yaml` |
+| Waveshare ESP32-P4 86 panel | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation (AEC transport) | `hardware/wavesharep4-audio/` and the shared audio player |
+| M5Stack Tab5 | Volume, Microphone, Echo cancellation (AEC transport) | `hardware/tab5-audio/` and the shared audio player |
 | CrowPanel Advanced 10.1 | Volume, Microphone | `features/audio.yaml` |
 
 A plugin's settings work the same way, from its own ESPHome entities, on its own settings page and in its details on

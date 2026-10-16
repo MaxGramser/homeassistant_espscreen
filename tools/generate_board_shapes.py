@@ -191,7 +191,7 @@ def shapes():
                                                                    ('watch_icon', 'FONT_WATCH_ICON_SIZE'),
                                                                    ('setpoint', 'FONT_SETPOINT_SIZE'))},
                  # The glass's grid in its own pixels (the look's GRID_MARGIN, GRID_GAP_X and TILE_PAD): the editor's
-                 # mockup works out a card's width from them as runtime_tiles::cell_content_width does (app 0.4.32).
+                 # mockup works out a card's width from them as runtime_tiles::rest_content_width does (app 0.4.32).
                  # And its height (app 0.4.74): the tile area runs from under the top bar (SCROLL_Y) to the page bar
                  # (PAGE_BAR_H) or the margin, its rows GRID_GAP_Y apart, so the mockup's page has the glass's
                  # proportions; `circle` is a card's icon circle (TILE_ICON_SIZE), which a Big number card halves.
@@ -211,6 +211,10 @@ def shapes():
                  # writes `allow_partition_access` into a screen's own YAML and sends a screen that still has
                  # ESPHome's table the wide one after an update (docs/FLASH_LAYOUT.md).
                  'wide_slots': profiles.wide_slots(board),
+                 # Its UI tier and the modules that come with it (docs/MODULES.md): what the editor and the add-on may
+                 # offer a screen of this board beyond what every board has.
+                 'tier': profiles.tier(board),
+                 'modules': profiles.modules(board),
                  # Whether it has a battery (firmware 0.41.0, profiles.battery): the editor offers the top bar's battery
                  # item on a screen of this board before it ever connected; a screen's hello says `battery` itself.
                  'battery': profiles.battery(board),

@@ -15,13 +15,17 @@ import type { PageLayout, PageTile } from "../types";
 
 const toast = (message: string) => useUiStore().toast(message);
 
-export function addPage(bar?: PageLayout["pages"][number]["topbar"]) {
+// `extras`: what the page wizard chose for the Dock (an icon of its own, left out of it), in the same single edit.
+export function addPage(bar?: PageLayout["pages"][number]["topbar"], extras: { icon?: string; showInDock?: boolean } = {}) {
   const doc = useDocumentStore();
   if (doc.document && doc.document.pages.length >= doc.editorLayout.grid.pages) { toast(t("addon.errors.pages.pages_full")); return false; }
   let created = "";
   if (doc.editDocument((draft) => {
     const selected = draft.pages.find((page) => page.id === doc.selectedPageId) || draft.pages.at(-1)!;
-    const page = pages.emptyPage(bar || selected.topbar); created = page.id; draft.pages.push(page);
+    const page = pages.emptyPage(bar || selected.topbar); created = page.id;
+    if (extras.icon) page.icon = extras.icon;
+    if (extras.showInDock === false) page.navigation.showInDock = false;
+    draft.pages.push(page);
   })) { doc.selectedPageId = created; return true; }
   return false;
 }
@@ -56,6 +60,36 @@ export function connectTile(tileId: string, target: string | "home") {
 }
 export function setPageExcluded(id: string, excluded: boolean) {
   return useDocumentStore().editDocument((draft) => { const page = draft.pages.find((item) => item.id === id); if (page) page.navigation.excludeFromPagination = excluded; });
+}
+// The Dock shows a page unless it says otherwise; shown again, the key goes, so the document stays as it was.
+export function setPageInDock(id: string, shown: boolean) {
+  return useDocumentStore().editDocument((draft) => {
+    const page = draft.pages.find((item) => item.id === id);
+    if (!page) return;
+    if (shown) delete page.navigation.showInDock;
+    else page.navigation.showInDock = false;
+  });
+}
+// How a page stands in the Dock (DockField), in one edit: its picture, an icon of its own, or left out. Left out keeps
+// a chosen icon, so choosing the Dock again brings it back; its picture drops the icon.
+export function setPageDock(id: string, mode: "picture" | "icon" | "hidden", icon?: string) {
+  return useDocumentStore().editDocument((draft) => {
+    const page = draft.pages.find((item) => item.id === id);
+    if (!page) return;
+    if (mode === "hidden") { page.navigation.showInDock = false; return; }
+    delete page.navigation.showInDock;
+    if (mode === "icon" && icon) page.icon = icon;
+    else delete page.icon;
+  });
+}
+// A page's own icon for the Dock, or "auto" for its picture: the key goes then, so the document stays as it was.
+export function setPageIcon(id: string, icon: string) {
+  return useDocumentStore().editDocument((draft) => {
+    const page = draft.pages.find((item) => item.id === id);
+    if (!page) return;
+    if (icon === "auto" || icon === "none") delete page.icon;
+    else page.icon = icon;
+  });
 }
 // A full copy of a page puts its tiles on the screen twice: a page tile when the firmware takes that (0.2.65), any other
 // entity from 0.16.0, but never a clock with keys, which is on a screen once.

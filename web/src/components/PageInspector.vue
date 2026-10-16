@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // A page's settings (app 0.3.19): what stands above it, how you get to it, its top bar, and on the map where it
-// stands and which tiles lead to it. The title of a page lives here and only here; the screen's own title, which every
+// stands and which tiles lead to it. At the head the page itself in small (app 0.4.89): its top bar, which opens the
+// bar's own inspector (the way back leads here), the page, and on a board with the Dock its place in the Dock; under it
+// only the part chosen there, and an icon picked for the Dock shows in the small Dock at once. The title of a page lives here and only here; the screen's own title, which every
 // page without one says, waits behind a link under it.
 import { computed, nextTick, ref, watch } from "vue";
 import { t } from "../i18n";
@@ -13,19 +15,24 @@ import InspectorHead from "./ui/InspectorHead.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import HelpTip from "./HelpTip.vue";
+import DockField, { type DockMode } from "./DockField.vue";
 import { useScreenStore } from "../stores/screen";
 import { useTopbarStore } from "../stores/topbar";
-import { duplicateEditorPage, pageCopyable, pageTitleShown, movePage, pageTitle, removePage, screenTitle, setHomePage, setPageExcluded, setPageHomeControl, setPageTitle, setScreenTitle } from "../editor/pages";
+import { duplicateEditorPage, pageCopyable, pageTitleShown, movePage, pageTitle, removePage, screenTitle, setHomePage, setPageExcluded, setPageDock, setPageHomeControl, setPageTitle, setScreenTitle } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { useEntitiesStore } from "../stores/entities";
+import { glyph } from "../model/topbar";
 
 const scr = useScreenStore();
 const topbar = useTopbarStore();
 const doc = useDocumentStore();
 const insp = useInspectorStore();
+const entities = useEntitiesStore();
 
 const props = defineProps<{ id: string }>();
 const page = computed(() => doc.document?.pages.find((item) => item.id === props.id));
+const dockMode = computed<DockMode>(() => (page.value?.navigation.showInDock === false ? "hidden" : page.value?.icon ? "icon" : "picture"));
 const index = computed(() => doc.document?.pages.findIndex((item) => item.id === props.id) ?? -1);
 const count = computed(() => doc.document?.pages.length || 0);
 const home = computed(() => doc.document?.homePageId === props.id);
@@ -54,13 +61,45 @@ watch(() => insp.naming, async (asked) => {
 const orders = computed(() => (doc.document?.pages || []).map((_, at) => [at, String(at + 1)] as [number, string]));
 const barItems = computed(() => topbar.topbarItems(index.value));
 const tiles = computed(() => page.value?.tiles.length || 0);
+// The Dock, on a board that has it, for a page of the swipe: a detail page is never in it.
+const hasDock = computed(() => Boolean(scr.currentScreen?.dock && page.value && !page.value.navigation.excludeFromPagination));
+const part = computed(() => (hasDock.value && insp.pagePart === "dock" ? "dock" : "page"));
+// The pages the Dock shows, in their order: each its own icon, or its picture.
+const docked = computed(() => (doc.document?.pages || []).filter((item) => !item.navigation.excludeFromPagination && item.navigation.showInDock !== false)
+  .map((item) => ({ id: item.id, glyph: item.icon ? entities.iconNamed(item.icon)?.cp : undefined })));
+const cells = computed(() => Math.min(12, (doc.documentGrid?.columns || 2) * (doc.documentGrid?.rows || 3)));
 </script>
 
 <template>
   <template v-if="page">
     <InspectorHead kind="page" :title="t('editor.page.label', { page: index + 1 })" :icon="home ? 'home' : 'view-column-outline'"
       :crumbs="[{ text: scr.currentScreen?.name || '' }, { text: name(id) }]" />
-    <div class="dr-body">
+    <div class="dr-body page-body">
+      <!-- The page in small: its parts are the way to their settings. -->
+      <div class="page-anchor">
+        <div class="mini-page" role="tablist" :aria-label="t('editor.page.label', { page: index + 1 })" :style="{ '--cols': doc.documentGrid?.columns || 2 }">
+          <button type="button" class="mini-bar" id="page-edit-topbar" :aria-label="t('editor.pages.edit_topbar')" :title="t('editor.pages.edit_topbar')" @click="insp.openBar(-1, index)">
+            <span class="bar-preview"><TopbarSvg :items="barItems" :name-text="pageTitleShown(index)" :home="topbar.homeKeyShown(index)" /></span>
+            <Icon name="chevron-right" />
+          </button>
+          <button type="button" role="tab" class="mini-tiles" id="page-part-page" :aria-selected="part === 'page' ? 'true' : 'false'" :title="t('editor.pages.part_page')" @click="insp.pagePart = 'page'">
+            <i v-for="n in cells" :key="n"></i>
+          </button>
+          <button v-if="hasDock" type="button" role="tab" class="mini-dock" id="page-part-dock" :aria-selected="part === 'dock' ? 'true' : 'false'" :title="t('editor.pages.in_dock')" @click="insp.pagePart = 'dock'">
+            <span v-for="item in docked" :key="item.id" class="dock-chip" :class="{ me: item.id === id }"><span v-if="item.glyph" class="mdi">{{ glyph(item.glyph) }}</span><span v-else class="dock-pic"><i></i><i></i><i></i><i></i></span></span>
+            <span v-if="!docked.length" class="dock-empty">{{ t('editor.pages.dock_mode_hidden') }}</span>
+          </button>
+        </div>
+        <div class="bar-cap">
+          <span class="bar-cap-av"><Icon :name="part === 'dock' ? 'view-dashboard-outline' : home ? 'home' : 'view-column-outline'" /></span>
+          <span class="bar-cap-tx"><b>{{ part === 'dock' ? t('editor.pages.in_dock') : name(id) }}</b><small>{{ part === 'dock' ? t('editor.pages.in_dock_hint') : t('editor.pages.part_page_hint') }}</small></span>
+        </div>
+      </div>
+
+      <div v-if="part === 'dock'" class="bar-part">
+        <DockField :mode="dockMode" :icon="page.icon" :disabled="!scr.pageReady" @change="(value) => setPageDock(id, value.mode, value.icon)" />
+      </div>
+      <template v-else>
       <Section :title="t('editor.pages.sections.title')" icon="format-title">
         <div v-if="ownTitle" class="f">
           <span class="f-label"><label for="owned-page-title">{{ t('editor.pages.title') }}</label><HelpTip :text="t('editor.pages.title_hint')" /></span>
@@ -88,19 +127,12 @@ const tiles = computed(() => page.value?.tiles.length || 0);
         </div>
         <SwitchRow class="page-check" :label="t('editor.pages.include_navigation')" :description="t('editor.pages.include_navigation_hint')"
           :model-value="!page.navigation.excludeFromPagination" :disabled="!scr.pageReady" @update:model-value="(on) => setPageExcluded(id, !on)" />
-        <SwitchRow class="home-control" :label="t('editor.pages.home_control')"
+        <SwitchRow class="home-control" :label="t('editor.pages.home_control')" :description="t('editor.pages.home_control_hint')"
           :model-value="!!page.topbar.leading.length" :disabled="!scr.pageReady" @update:model-value="(on) => setPageHomeControl(id, on)" />
         <div v-if="count > 1" class="f">
           <span class="f-label"><span id="page-order-label">{{ t('editor.pages.order') }}</span><HelpTip :text="t('editor.pages.order_hint')" /></span>
           <Segmented id="page-order" :choices="orders" :value="index" aria-labelledby="page-order-label" @pick="(to) => movePage(index, Number(to))" />
         </div>
-      </Section>
-
-      <Section :title="t('editor.topbar.title')" icon="page-layout-header">
-        <button type="button" class="nav-row" :aria-label="t('editor.pages.edit_topbar')" :title="t('editor.pages.edit_topbar')" @click="insp.openBar(0, index)">
-          <span class="bar-preview"><TopbarSvg :items="barItems" :name-text="pageTitleShown(index)" :home="topbar.homeKeyShown(index)" /></span>
-          <span class="nav-row-end"><small>{{ t('editor.topbar.items', { used: barItems.length }, scr.topbarMax) }}</small><Icon name="chevron-right" /></span>
-        </button>
       </Section>
 
       <Section v-if="doc.editorMode === 'advanced'" :title="t('editor.pages.view_map')" icon="sitemap-outline">
@@ -127,6 +159,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
         <button v-if="canCopy" class="btn quiet" type="button" @click="duplicateEditorPage(id, false)"><Icon name="content-duplicate" />{{ t('editor.pages.duplicate') }}</button>
         <button class="btn quiet" type="button" @click="duplicateEditorPage(id, true)"><Icon name="file-plus-outline" />{{ t('editor.pages.empty_copy') }}</button>
       </div>
+      </template>
     </div>
     <div class="dr-foot">
       <button class="btn danger" type="button" :disabled="count < 2" @click="removePage(index)"><Icon name="delete-outline" />{{ t('editor.page.remove') }}</button>
@@ -138,7 +171,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
 
 <style scoped>
 .nested { padding-left: 12px; border-left: 2px solid var(--line); }
-.bar-preview { flex: 1; min-width: 0; background: #e7e7e7; border-radius: 8px; padding: 3px 6px; display: block; }
+.bar-preview { flex: 1; min-width: 0; border-radius: 6px; padding: 1px 2px; display: block; }
 .bar-preview :deep(svg) { display: block; width: 100%; height: auto; }
 .map-move { display: inline-flex; gap: 2px; padding: 2px; border-radius: 9px; background: var(--seg); }
 .map-move .icon-btn { width: 28px; height: 28px; }

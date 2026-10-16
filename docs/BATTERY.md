@@ -167,7 +167,8 @@ about six hours from full at half brightness with Wi-Fi on. Its board file measu
 the board:
 
 - an **INA226** at I2C address 0x41 in the battery's path: its bus voltage is the pack's voltage, and its current is
-  positive while the pack charges, the way M5Stack's own firmware reads it;
+  negative while the pack charges (**Battery Current** shows it as the INA226 reads it; **Battery Charging** turns the
+  sign around);
 - **Battery Level** follows the pack's voltage from 6.0 V (empty) to 8.4 V (full) on a curve;
 - **Battery Charging** is on while more than 50 mA flows into the pack and off again under 20 mA: the IP2326 charger
   stops at a full pack and the current falls to about nothing.

@@ -24,9 +24,13 @@ upgrade from main, and then moves main to it.
     tools/release.py publish --notes FILE [--yes]
                                            main fast-forwards to HEAD, the tag screens-vX.Y.Z, the GitHub release with
                                            FILE as its notes, and the candidate branch goes; from dev, dev then names
-                                           the app "(dev)" again in a commit of its own. Only for a commit that is
-                                           pushed, green in CI and the one the candidate was made of; without --yes it
-                                           says what it would do and does nothing
+                                           the app "(dev)" again in a commit of its own, and the plugins repository's
+                                           dev goes to its main with its index built and checked against this release
+                                           (tools/release_plugins.py). Only for a commit that is pushed, green in CI
+                                           and the one the candidate was made of, and plugins that fit it; without
+                                           --yes it says what it would do and does nothing
+    tools/release.py plugins [--yes]       the plugins repository's part alone, again after a step of it failed: what
+                                           it brings, what stops it, and with --yes it does it
 
 Any refusal exits 1 with the reason. Standard library and PyYAML only; publish also needs gh.
 """
@@ -42,6 +46,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import affected_boards  # noqa: E402
 import firmware_count  # noqa: E402
 import profiles  # noqa: E402
+import release_plugins  # noqa: E402
 
 ROOT = profiles.ROOT
 CHANGELOG = 'screen_manager/CHANGELOG.md'
@@ -286,6 +291,21 @@ def the_release():
     return base, reach, new, affected_boards.release_of(reach, new, affected_boards.read_at(base))
 
 
+def plugins_clone():
+    """A clone of the plugins repository of its own (release_plugins.Clone), beside this one's origin."""
+    return release_plugins.Clone(release_plugins.remote_of(git('remote', 'get-url', 'origin')))
+
+
+def plugins_report():
+    """What the plugins repository's dev brings with this release, as lines; a line that says why when it cannot tell."""
+    api, fits = release_plugins.core_api(ROOT)
+    try:
+        with plugins_clone() as plugins:
+            return release_plugins.report(plugins, api, fits)
+    except release_plugins.Problem as problem:
+        return [f'tessera-plugins: could not look ({problem})']
+
+
 # ----- the commands ------------------------------------------------------------------------------------------------
 
 def status(_args):
@@ -308,6 +328,9 @@ def status(_args):
     base, reach, new, _release = the_release()
     print(f'\nThe firmware, against {base[:12]}:\n')
     print(affected_boards.plan(reach, new, affected_boards.read_at(base)))
+    print('\nThe plugins, which go to their main with the release (publish):')
+    for line in plugins_report():
+        print(f'  {line}')
     return 0
 
 
@@ -364,13 +387,18 @@ def prepare(args):
         'tools/release.py ci: every board on both ESPHome versions with the flash budget, in CI, about an hour; the '
         'upgrade test can run meanwhile.',
         'tools/release.py candidate, then the upgrade test (docs/TESTING.md, "6. The upgrade").',
-        'Write the GitHub release notes in English in a file, then tools/release.py publish --notes <file> --yes.',
+        'Write the GitHub release notes in English in a file, then tools/release.py publish --notes <file> --yes. '
+        'It also takes the plugins repository\'s dev to its main and checks its index against this release (below).',
     ]
     print('\nNext:')
     for number, step in enumerate(steps, 1):
         print(f'{number}. {step}')
     print('\nThe firmware plan (CI builds it in step 5; locally only a board you want to look at):\n')
     print(affected_boards.plan(reach, new, affected_boards.read_at(_base)))
+    if here == WORK:
+        print('\nThe plugins:')
+        for line in plugins_report():
+            print(f'  {line}')
     return 0
 
 
@@ -483,6 +511,15 @@ def publish(args):
     notes = Path(args.notes)
     if not notes.is_file() or not notes.read_text(encoding='utf-8').strip():
         problems.append(f'no release notes in {notes}')
+    # The plugins go along from dev (a hotfix brings no newer plugin API): checked before anything moves.
+    with_plugins = here == WORK and not args.without_plugins
+    if with_plugins:
+        api, fits = release_plugins.core_api(ROOT)
+        try:
+            with plugins_clone() as plugins:
+                problems += [f'plugins: {problem}' for problem in release_plugins.preflight(plugins, api, fits)]
+        except release_plugins.Problem as problem:
+            problems.append(f'plugins: {problem} (or say why not with --without-plugins)')
     if problems:
         raise Refusal('Not published:\n- ' + '\n- '.join(problems))
     name = title(found[0])
@@ -491,6 +528,9 @@ def publish(args):
             f'remove {CANDIDATE}']
     if here == WORK:
         plan.append(f'name the app "{name_of(with_name(read(CONFIG), dev=True))}" on {WORK} again, in a commit pushed to {WORK}')
+    if with_plugins:
+        plan.append('merge the plugins repository\'s dev into its main, build its index against this release and check '
+                    'it (every plugin fits, every one dev offered is there, its check green), then move its dev up to main')
     if not args.yes:
         print('Would:\n- ' + '\n- '.join(plan) + '\nNothing done: run again with --yes.')
         return 0
@@ -512,6 +552,9 @@ def publish(args):
         git('commit', '--quiet', '-m', f'Dev app: the App store names it "{name_of(read(CONFIG))}" again after the release of {version}', CONFIG)
         git('push', '--quiet', 'origin', f'HEAD:refs/heads/{WORK}')
         print(f'{WORK} names the app "{name_of(read(CONFIG))}" again.')
+    plugins_done = True
+    if with_plugins:
+        plugins_done = plugins_step(version)
     named = issues_in(found[1])
     if named:
         print('Reply on each with the version that has it and how to get it, then close it: '
@@ -519,7 +562,38 @@ def publish(args):
     if here != WORK:
         print(f'This came from {here}: merge origin/main into {WORK} now, so the next release has it too.')
     print('Point the test screens back at main (ref: main), and keep an eye on new issues today.')
-    return 0
+    return 0 if plugins_done else 1
+
+
+def plugins_step(version):
+    """The plugins repository's part after Tessera's main moved: True when it is done and checked."""
+    api, fits = release_plugins.core_api(ROOT)
+    try:
+        with plugins_clone() as plugins:
+            release_plugins.release(plugins, api, fits, version)
+        return True
+    except release_plugins.Problem as problem:
+        print(f'\nThe release is out, but the plugins are not done: {problem}\n'
+              'Fix it, then finish with tools/release.py plugins --yes.', file=sys.stderr)
+        return False
+
+
+def plugins(args):
+    """The plugins repository's part alone (after a step of it failed, or to see what it would do)."""
+    fetch()
+    api, fits = release_plugins.core_api(ROOT)
+    version = version_of(read(CONFIG))
+    with plugins_clone() as clone:
+        for line in release_plugins.report(clone, api, fits):
+            print(line)
+        problems = release_plugins.preflight(clone, api, fits)
+    if problems:
+        raise Refusal('The plugins cannot go along:\n- ' + '\n- '.join(problems))
+    if not args.yes:
+        print(f'Would merge the plugins\' dev into their main for Tessera {version} (plugin API '
+              f'{release_plugins.api_text(api)}), build and check the index, and move their dev up. Run again with --yes.')
+        return 0
+    return 0 if plugins_step(version) else 1
 
 
 def main(argv=None):
@@ -537,9 +611,13 @@ def main(argv=None):
     out.add_argument('--yes', action='store_true', help='do it (without: say what it would do)')
     out.add_argument('--without-ci', action='store_true', help='publish while CI is not green on HEAD')
     out.add_argument('--without-upgrade-test', action='store_true', help=f'publish without a {CANDIDATE} of HEAD')
+    out.add_argument('--without-plugins', action='store_true', help='publish without taking the plugins repository along')
+    plug = commands.add_parser('plugins', help="the plugins repository's part of the release alone")
+    plug.add_argument('--yes', action='store_true', help='do it (without: say what it would do)')
     args = parser.parse_args(argv)
     try:
-        return {'status': status, 'prepare': prepare, 'ci': ci, 'candidate': candidate, 'publish': publish}[args.command](args)
+        return {'status': status, 'prepare': prepare, 'ci': ci, 'candidate': candidate, 'publish': publish,
+                'plugins': plugins}[args.command](args)
     except Refusal as refusal:
         print(f'release: {refusal}', file=sys.stderr)
         return 1

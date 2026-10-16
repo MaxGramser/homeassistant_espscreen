@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.10 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.13 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -14,7 +14,7 @@ change a name or a signature while the API settles (0.4 renamed `Plugin::on_tick
 plugins move with it in the same release. Such a minor goes into `PLUGIN_API_BREAKS` (`plugin_manifest.py` and
 `__init__.py`, a test keeps them equal): a plugin written before it does not fit a core after it, and its build says so in
 one sentence instead of a compiler error (`api_fits`; the plugins repository's check uses the same rule). A minor that only
-adds is not listed, so a 0.9 plugin builds on 0.10. A test keeps the number equal in `plugin_api.h`, `__init__.py`,
+adds is not listed, so a 0.10 plugin builds on 0.11. A test keeps the number equal in `plugin_api.h`, `__init__.py`,
 `plugin_manifest.py`, this page and the host probe's manifest.
 
 ## The pieces
@@ -40,8 +40,10 @@ adds is not listed, so a 0.9 plugin builds on 0.10. A test keeps the number equa
    the protocol and the layout check see it, that is `entity: "plugin:ov_departures.next"` with `options.plugin`.
    `core.entity_id()` is unchanged (commands and events use it); `core.plugin_tile()` is the second kind a layout takes.
 2. **The layout check** keeps only the shape of a plugin tile: its size, colour, icon, `tap` (auto or none) and at most
-   twelve options of its own, each a short text, a number or true/false. A saved layout never becomes unreadable
-   because a plugin left a screen.
+   twelve options of its own, each a short text, a number, true/false, a pick or a list (0.12, "Values of JSON" below),
+   together at most 1280 bytes of JSON (`core.plugin_options`, the editor's `pluginOptionsShape`). Whether a value fits
+   its option is the manifest's (`plugin_manifest.option_value`, in `Plugins.values_of`). A saved layout never becomes
+   unreadable because a plugin left a screen.
 3. **The price** of a plugin tile is its manifest's `memory` (`core.PLUGIN_MEMORY`, filled by `plugins.Plugins`), plus
    the tile and its extras on a board without PSRAM. The screen counts the same (`plugin_host::bytes`, from the same
    manifest through `register_plugin`). A tile of a plugin the app does not know costs `PLUGIN_PLACEHOLDER_BYTES` (64),
@@ -53,7 +55,8 @@ adds is not listed, so a 0.9 plugin builds on 0.10. A test keeps the number equa
 5. **The state message** of a plugin tile (`Plugins.tile_message`) has `state: "ok"`, no attributes, `o.plugin` (its
    options with the manifest's defaults) and `x`: the mapped answer of its fetch and, for a tile of an entity
    (`Plugins.entity_part`), the entity's state, name, the attributes the manifest names and the `fields` it takes out
-   of them. `x` stays under 2.6 KB (`X_BUDGET`). Bytes decide, not a count: a text is cut at 48 bytes, and lists are
+   of them. `x` gets what the 4 KB message leaves after the rest of it, the tile's options included, and at most 2.6 KB
+   (`X_BUDGET`): about 2 KB beside options that take their whole 1280 bytes. Bytes decide, not a count: a text is cut at 48 bytes, and lists are
    shortened, all to the same length from the end, only when together they do not fit. Two days of 96 prices fit
    whole. A list of objects never goes as it is: `fields` with `as: numbers` turns `raw_today[*].value` into one list
    of numbers.
@@ -63,7 +66,7 @@ adds is not listed, so a 0.9 plugin builds on 0.10. A test keeps the number equa
    the look did. The once-a-second gate in `tick()` calls `on_tick` for every plugin card on the glass, and a short tap
    goes to `on_tap` through the same guard as every tile's. `hide_extra` (the card shows something else), `end_extra` and `release_kept` delete the object.
 7. **In the editor** a plugin tile is drawn from its data when its manifest has a `preview`: the add-on fills in the
-   first rows (`GET api/plugins/<id>/preview/<tile>`, `Plugins.preview`) and the mockup counts down to a moment on the
+   first rows (`POST api/plugins/<id>/preview/<tile>` with the options as they are kept, `Plugins.preview`) and the mockup counts down to a moment on the
    editor's clock, so a page in the editor looks like the glass. Without a preview it shows the icon, the name and the
    manifest's `example`. The editor loads the plugins as soon as they are on, so a page with a plugin tile knows its
    type before the Plugins page was opened.
@@ -112,6 +115,29 @@ adds is not listed, so a 0.9 plugin builds on 0.10. A test keeps the number equa
 sends them. The rules (named hosts only, public addresses only, checked again at connect time by `PublicResolver`, no
 redirects, 64 KB, 10 s, JSON, every 30 s at most, secrets never logged) are in `plugin_fetch.py` and the plugins
 repository's `docs/FETCH.md`.
+
+## Values of JSON (0.12)
+
+A plugin's value may be a list or an object wherever a value travels: an option, a fetch, an action. One mechanism,
+typed end to end, within the 4 KB message.
+
+| Part | What | Where |
+|---|---|---|
+| An option of several values | `multiple: N` (2 to 16) on a text or a choice: a list in the order the person put them. A text list keeps texts; a choice keeps picks, `{value, label}`, the label being the words the person saw, since a list from a fetch may be gone or other later. | `plugin_manifest.check_option`, `option_value`, `keeps_picks`; `core.plugin_options`; `PluginListOption.vue`, `model/plugins.ts` (`picksOf`, `listValue`) |
+| A choice found by searching | `search: true` on a choice with `options_from`: what the person types reaches its fetch as `{search}` (from two characters, 300 ms after the last key). One pick, or a list with `multiple`. Its answers stay ten minutes (`SEARCH_EVERY`), the editor keeps the last twelve. | `Plugins.choices`, `POST api/plugins/<id>/choices/<fetch>` with `{options, search, screen}`; `UiPicker` with `remote` |
+| A fetch once per value | `each: <list option>`: one ask per value, `{<option>}` in the URL that value, each a question of its own shared as every other. The map runs per answer (`{each: value}` or `{each: label}` as a field), then `sort` and `limit` over all of them together; a map of one object gives one item per value. A value whose ask failed is left out and makes the list `stale`; the tile waits only when none has an answer. | `plugin_manifest.check_fetch`, `Plugins.asks`, `tile_data`, `refresh_data`, `plugin_fetch.apply_each` |
+| A list in one ask | `{name\|,}` joins a list option's values, each percent-encoded in a URL, by the separator after the bar (1 to 3 characters). A list in a plain `{name}` is refused by the check. | `FETCH_PLACEHOLDER`, `plugin_fetch.fill` |
+| One word per value | A fetch gets every value as one word: `true`/`false`, a whole number without `.0`, a pick as its value (`plugin_fetch.word_of`). The editor sends options as JSON, never in a query string, so `3` stays a number and a toggle one word. | `words_of` |
+| An action of several fields | `tessera::action(service, entity, fields)`: a JSON object of up to 16 fields, together 1 KB. Texts go in the action's `data` as they are; every other value in `data_template` as the Python literal Home Assistant's ESPHome integration reads back into its type (`helpers/template`, `_parse_result`), with a brace in a text written `\x7b`/`\x7d` so nothing a plugin sends is ever a template. Through the screen's own route, as a tap's: the entity's tiles wait for the answer; `entity` "" for an action whose fields name their own target. | `plugin_action.h` (pure, `tests/test_plugin_action.cpp`), `plugin_host.cpp`; the render harness checks what Home Assistant gets |
+
+The options of a tile go to the screen with its data in one message, so the options of a tile together take at most
+1280 bytes (`pm.OPTIONS_BYTES`, `core.PLUGIN_OPTIONS_BYTES`, `PLUGIN_OPTIONS_BYTES` in the editor, a test keeps them
+equal) and the data gets what is left (`Plugins.tile_message`). The editor refuses a value that would not fit, with a
+line under the list, instead of the delivery being refused later.
+
+An app older than 0.12 does not know `multiple`, `search` or `each` and leaves such a plugin out of its list, as every
+newer manifest field. A layout with a list option that such an app reads is kept as it is, and refused only when it is
+saved there. Every value kept before 0.12 is still valid.
 
 ## Rules a change keeps
 
@@ -179,25 +205,56 @@ beside it, read again a few times after a press, so a test can say how it went. 
 | Part | Firmware | Add-on | Editor |
 |---|---|---|---|
 | A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector, `preview` drawn from the data |
+| Values of JSON (0.12) | `TileContext::options` holds lists and picks; `tessera::action` with a JSON object | `multiple`, `search`, `each`, `{name\|,}`; above | `PluginListOption.vue` |
 | A tile of an entity | `TileContext.entity`, `tessera::action` | the manifest's `domains`, `attributes` and `fields`; `Plugins.entity_part` (state, name, named attributes, fields), `related_entities`; `has_attributes` through `Plugins.entities_with` | entity picker of those domains, also ones Tessera draws no tile for; with `has_attributes` only the entities that have them, and always the one chosen (`offeredEntities`) |
-| A card | `Card`, `add_card`, `open_card`; closed by `hide_detail` | nothing | nothing |
+| A card | `Card`, `add_card`, `open_card`; closed by `hide_detail`; `on_tap` (0.12): a short tap on its room through the tiles' guard (`rt::allowed`), keyed by an 8 mm spot so a bounce on one row is one tap and the next row its own, with `tap_point()` in the room's pixels (`card_tap`) | nothing | nothing |
 | A tap action | `add_tap_action`; `event()` runs a tile's `plugin:` tap | `validate_layout` takes a `plugin:` tap | the tile inspector's tap choices |
 | Pictures on a tile (0.10) | `ui::picture` makes a place (a block in `theme::TRACK`) on the card in a call of the tile, `ui::set_picture` names its address and fit, `ui::pictures` says whether the board shows any. The places are the parts of one picture (`tile_picture::Part`, `set_parts`): `tile_ask` hands a plugin card to `plugin_host::picture_ask`, which measures them on the card; the question goes as every tile picture's, with `src` and `fit`; the atlas lands in the store under the tile's key, and `tile_picture_place` hands it to `plugin_host::picture_place`, which lays each place its piece (`lv_image_set_offset`, as the library's covers). The store counts a place's image as a card that draws (`picture_draws`, `picture_let_go`). A board without pictures has the API and no places. | `server.answer_plugin_pictures`: the tile is a plugin tile of the layout, its manifest gives it `pictures`, every address passes `plugin_pictures.allowed` (a host of `permissions.network`, or Home Assistant's own pictures for a tile of an entity); `Pictures.fetch` keeps each by address; `tile_art.encode` paints the frames (fit `fill` or `within`) and a still link serves the BMP | `PluginTile.pictures`; the mockup draws no picture |
+| Pictures on a card (0.13) | The same `ui::picture` and `ui::set_picture` in a card's calls: `placing` is the tile's places in a tile's call and the open card's in a card's (`call`), so the places are the same `Place`s, measured from the card's room (`measure`), laid by the same `lay`. The card is one owner of the loader (`CARD_OWNER`, `Kind::CARD` 1, `Rank::CARD`, the full view's slot), its key apart from every tile's (`tile_picture::card_key`, `pcard|`), its question a tile's with `card` and `for` (`card_fields`), its answer `pcard` (`card_picture_answer`, `card_question`). The store counts its places as on the glass (`card_draws` in `picture_shown` and `picture_away`); closing lets the picture go at once (`card_pictures_end`: the loader's release, then `pictures_collect`). It shares the store's budget as the media card's cover does: the glass under it keeps its pictures, a page out of sight makes room first. | `answer_plugin_pictures` with `question.card`: a card of a plugin the screen runs (`Entry.card`), its manifest's `pictures`, every address through `plugin_pictures.allowed` (Home Assistant's own pictures only for a card shown for an entity of the layout, `of_entity`); the source pictures are kept by address, so the cover a tile shows costs no second fetch | nothing |
 | A label of several lines (0.10) | `ui::text`: a label of the plugin's height, wrapped, ending in dots | nothing | nothing |
 | Where a tap was (0.10) | `tessera::tap_point()`: the finger of the tile's `on_tap` in the tile's own pixels (`finger_at` in the tile's touch handler, made relative to the extra layer by `plugin_host::tap`) | nothing | nothing |
 | The large digits (0.9) | `Font::DIGITS` is `setpoint_digits`, a font every board has, so it costs no flash; `ui::covers()` says whether a value has only its characters (`face_covers`) | nothing | nothing |
 | Tones for a block (0.9) | `Tone::GOOD` (Home Assistant's green) beside ACCENT, BUSY and ALERT; `ui::set_fill` gives a block (a bar, a dot) a tone's colour, `ui::tone_color` the colour itself; one `tone_color` in `plugin_host.cpp` for the bar, labels and blocks | nothing | nothing |
-| A sound of its own (0.8) | `plugin_sound.h` (`tessera::Sound`, `SoundPlayer` on `ts_speaker`); `smart_display.sound()` builds a WAV in | nothing: a plugin that needs the feature `speaker` | nothing |
+| A sound of its own (0.8) | `plugin_sound.h` (`tessera::Sound`, `SoundPlayer` on `ts_speaker`; `add()`, 0.11, plays a sound after the ones before it, each followed by silence to its span, so the speaker spaces a run of clicks evenly); `smart_display.sound()` builds a WAV in | nothing: a plugin that needs the feature `speaker` | nothing |
 | A top bar item | `add_bar_item`, its icon in a `tone` (0.8); `header_bar::Kind::plugin` | `validate_header` type `plugin`, `content` all or icon (wire `o`), sent to a screen whose hello says `plugins` | "From plugins" in Top bar, Add; Show: icon and words, or icon only |
 | Settings rows | `settings(SettingsPage&)`; `settings_screen::plugin_pages` | `Plugins.settings_for`, `set_setting`: the manifest's `settings` (switch, number, select, text, button with its `status`), entities of the screen's own device found in the entity registry (`_setting_entities`) | in the plugin's details on the screen's Plugins tab (`PluginSettings.vue`), with its inputs and parts; Screen settings links there |
 | A question to Home Assistant | `tessera::send`, `on_message` (op `plugin`) | `Plugins.answer`: only `permissions.ha_commands`, logged; an answer the manifest's `answers` maps goes as its fields, the rest as it came; both bounded (`bounded`, 3.2 KB, by bytes) | the commands under "What it may do" |
-| The moments | `on_ready`, `on_interval` (every 250 ms; `on_tick` before 0.4), `on_standby`, `before_update`, `on_cards_closed`, `on_alert`, `on_touch` (0.3: every tap `screen_input::TouchGuard` takes, through `screen_hooks::touched()`) | | |
+| The moments | `on_ready`, `on_interval` (every 250 ms; `on_tick` before 0.4), `on_standby`, `before_update`, `on_cards_closed`, `on_alert`, `on_touch` (0.3: every tap `screen_input::TouchGuard` takes, through `screen_hooks::touched()`), `on_press` and `on_step(Step)` (0.11, "Touch feedback" below) | | |
 | A board's own hardware | the plugin's `plugin.yaml` (audio codecs, a relay), its `boards` in the manifest | offered only to the screens of those boards | the Plugins page says which boards |
+
+## Touch feedback
+
+A click or a buzz that answers a finger comes at the moment the finger does something, not with the action that follows.
+`touch_feedback.h` says those moments and nothing else; a plugin listens (`on_press`, `on_step(Step)`, plugin API 0.11)
+and makes the sound or the buzz. The core never plays anything itself.
+
+| Moment | When | Said by |
+|---|---|---|
+| A press | A finger lands on something that takes it: the object under it, or a parent its events bubble up to, listens for a press, a tap or a hold (a tile, a key, a slider, a row of the settings, the top bar, a plugin's card). Not between the tiles, not for the push that wakes a dimmed screen, not in a calibration (`touch_feedback::quiet`, set in `packages/core.yaml`). | `touch_feedback_lvgl.h`, from LVGL's press of the input device, for every object |
+| A step of a drag | A value under the finger passes a step: every 5 % of its range, every position of a range of 20 or fewer. Once per step, two at most for one move; the first value after a landing only marks the start, so a slider that jumps to the finger is no run. `Step.edge` when it reached either end. | `touch_feedback_lvgl.h` for every `lv_slider` and `lv_arc` (a listener goes onto it when a finger first lands on it); `touch_feedback::moved()` for any other |
+| A step of a held key | A key held down steps once more. | `touch_feedback::step(direction)` where the key steps |
+
+So a new control needs at most one line, by what it is:
+
+- **An LVGL slider or arc**, anywhere, of the core or of a plugin: nothing. Its range is its own (the core's sliders run
+  per mille, a range reaching below 0 to draw a round end counts from 0, a reversed one the other way round).
+- **A control dragged by hand** that is no LVGL slider (the player's seek bar, `media_seek_event`): call
+  `touch_feedback::moved(object, value, low, high)` on the press and on every move, with the value it shows.
+- **A key that repeats while held** (`climate_hold`, the -/+ of a tile's control panel): call
+  `touch_feedback::step(direction)` where it actually steps, not on every repeat LVGL sends.
+
+`touch_feedback.h` is free of LVGL (`tests/test_touch_feedback.cpp`); `touch_feedback_lvgl.h` is included by
+`plugin_host.cpp` alone and starts listening when the first plugin starts, so a screen without plugins has none of it.
+`on_touch` (0.3) stays what it was: the tap the touch filter took, as the finger lets go.
 
 ## Where a plugin comes from
 
 - **The index** (`tessera-plugins/index.json`): Tessera's own plugins (label Tessera) and entries of `community/`
-  (label Community), each pinned to a commit, read when the editor opens and at most every ten minutes (ETag). An id
+  (label Community), each pinned to a commit, read when the editor opens and at most every ten minutes (ETag). The
+  plugins repository has two branches, as this one has: main for every app, dev for the dev app
+  (`Plugins.index_branches`, falling back on main while dev has no index). A plugin that needs what only this dev
+  firmware has (a newer plugin API) waits on its dev, where the dev app installs and updates it the ordinary way, and
+  goes to its main with the release that brings that firmware ("The release" in docs/RELEASING.md, step 6). An id
   belongs to the repository that first published it (`claims` in the index; a move goes through `transfers.yaml`).
 - **A link** (`POST api/plugins/link`): the newest release of any GitHub repository (Community, or Tessera for a
   repository of MaxGramser); a branch to test (Test); a repository without a release, which becomes a test of its default
@@ -212,6 +269,24 @@ beside it, read again a few times after a press, so a test can say how it went. 
   update keeps what was filled in when the plugin was added. An update whose rights differ from what the person agreed
   to (`permission_hash`) waits for their yes in the editor; the add-on refuses it without (`consent`). A release the
   index blocks leaves the next build of every screen that runs it (`drop_blocked`).
+
+## Where a plugin's code runs
+
+A plugin is two things. Its C++ runs on the screen, with full access to it (the plugins repository's docs/PUBLISHING.md,
+"What listing means"). Its ESPHome component's Python, `components/<id>/__init__.py` and what it imports, runs where
+the screen is built: in this app's container, when the app builds the screen, as the Python of every external
+component of ESPHome does. That build can read and write the Home Assistant config folder the app has
+(`homeassistant_config:rw`, where the ESPHome folder is) and reach the network. Two things hold it:
+
+- **The build gets none of the app's own standing.** `Firmware.build_env` hands a build the names and the families the
+  build tools read (`firmware.BUILD_ENV_NAMES`, `BUILD_ENV_PREFIXES`: ESPHome, ESP-IDF, PlatformIO, ccache, pip, git,
+  Python) and nothing else of the container's environment, never the Supervisor's token or any name that spells one
+  (`BUILD_ENV_NEVER`; `tests/test_build_env.py`).
+- **A listed plugin's Python does what a component needs.** The plugins repository's `tools/check.py` reads it as a
+  syntax tree at every release the index takes: imports of ESPHome and a little of the standard library, files beside
+  itself only, no process, environment, network or file of the computer it is built on. Tessera's own plugins keep to
+  the same rules. A plugin added with a link or from a folder passes only the app's manifest check: the editor's
+  warning names both halves, the screen and the build, before anyone adds one.
 
 ## Which plugin
 

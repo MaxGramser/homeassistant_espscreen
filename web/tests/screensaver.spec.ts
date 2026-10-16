@@ -3,6 +3,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import SaverClock from "../src/components/SaverClock.vue";
 import SaverInspector from "../src/components/SaverInspector.vue";
 import ScreensaverCard from "../src/components/ScreensaverCard.vue";
 import type { Inventory, ScreensaverView } from "../src/types";
@@ -103,7 +104,7 @@ describe("a step in the drawer", () => {
 
   it("shows the clock in the glass's own shape, without a temperature when none is chosen", async () => {
     useScreenStore().currentScreen!.screensaver = saver({ weather: "" });
-    const wrapper = mount(SaverInspector, { props: { step: "clock" } });
+    const wrapper = mount(SaverClock, { props: { index: -1 } });
     const glass = wrapper.find(".saver-glass");
     expect((glass.element as HTMLElement).style.aspectRatio).toBe("480 / 480");
     expect(glass.find(".saver-glass-time").text()).toMatch(/\d/);

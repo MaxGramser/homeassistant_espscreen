@@ -504,16 +504,44 @@ describe('creating a page', () => {
     const before = JSON.stringify(doc.document);
     const view = mount(PageWizard);
     await view.find('#new-page-title').setValue('Study');
-    await view.find('.home-choice [role=switch]').trigger('click');
+    // The home key is a chip that starts on, and nothing else of the bar is chosen for you: no clock by default.
+    await view.find('.bar-group .ui-chip').trigger('click');
     await view.find('.entity-option').trigger('click');
     await view.find('form').trigger('submit');
     const page = doc.document!.pages.at(-1)!;
     expect(page.topbar.title).toEqual({ source: 'text', text: 'Study' });
     expect(page.topbar.leading).toEqual([]);
-    expect(page.topbar.trailing.map(item => item.type)).toEqual(['clock', 'entity']);
+    expect(page.topbar.trailing.map(item => item.type)).toEqual(['entity']);
     expect(doc.selectedPageId).toBe(page.id);
     expect(view.emitted('close')).toHaveLength(1);
     doc.undo(); expect(JSON.stringify(doc.document)).toBe(before);
+  });
+  it('adds a clock from its chip, and on a screen with the Dock takes an icon and Show in Dock in the same step', async () => {
+    const inv = useInventoryStore();
+    inv.inventory.header = { ...(inv.inventory.header || {}), builtin: [{ type: 'clock', label: 'Time' }] } as any;
+    inv.inventory.screens[0].dock = true;
+    inv.inventory.icons = { groups: [{ label: 'Rooms', icons: [{ name: 'sofa', cp: 'F04B9', label: 'Sofa' }] }] } as any;
+    const before = JSON.stringify(doc.document);
+    const view = mount(PageWizard);
+    const chips = view.findAll('.bar-group .ui-chip');
+    expect(chips.map((chip) => chip.attributes('data-state'))).toEqual(['on', 'off']);
+    await chips[1].trigger('click');
+    expect(view.find('.dock-group').exists()).toBe(true);
+    await view.findAll('.dock-group .seg button')[1].trigger('click');
+    await view.find('.dock-group .icon-choice:not(.icon-auto)').trigger('click');
+    await view.find('form').trigger('submit');
+    const page = doc.document!.pages.at(-1)!;
+    expect(page.topbar.trailing.map(item => item.type)).toEqual(['clock']);
+    expect(page.topbar.leading.length).toBe(1);
+    expect(page.icon).toBe('sofa');
+    expect('showInDock' in page.navigation).toBe(false);
+    doc.undo(); expect(JSON.stringify(doc.document)).toBe(before);
+    // Left out of the Dock: the page says so, and no icon is asked for.
+    const again = mount(PageWizard);
+    await again.findAll('.dock-group .seg button')[2].trigger('click');
+    expect(again.find('.dock-group .picker').exists()).toBe(false);
+    await again.find('form').trigger('submit');
+    expect(doc.document!.pages.at(-1)!.navigation.showInDock).toBe(false);
   });
   it('offers only what a top bar can show: never a camera (app 0.4.1)', async () => {
     useInventoryStore().inventory.entities = [{ id: 'sensor.room', name: 'Temperature', area: '' }, { id: 'camera.door', name: 'Door', area: '' }];
@@ -524,7 +552,7 @@ describe('creating a page', () => {
     useInventoryStore().inventory.screens[0].page_capability = 'update_screen';
     const first = doc.document!.pages[0].topbar;
     const view = mount(PageWizard);
-    expect(view.find('.home-choice').exists()).toBe(false);
+    expect(view.find('.bar-group').exists()).toBe(false);
     await view.find('#new-page-title').setValue('Study');
     await view.find('form').trigger('submit');
     const page = doc.document!.pages.at(-1)!;

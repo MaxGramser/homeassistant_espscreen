@@ -32,7 +32,7 @@ files += [Path(__file__).resolve(), root / 'components/smart_display/screen_text
 files += sorted((root / 'web/wasm/generated').rglob('*.h'))
 files += sorted((root / 'web/wasm/host_include').rglob('*.h'))
 files += sorted((root / 'web/wasm/generated/image').glob('*.cpp'))
-files += [root / 'web/wasm/image_buffer.h', root / 'web/wasm/image_transport.h', root / 'web/wasm/generate_image_decoder.py']
+files += [root / 'web/wasm/image_buffer.h', root / 'web/wasm/image_transport.h', root / 'web/wasm/settings_transport.h', root / 'web/wasm/generate_image_decoder.py']
 files += [root / 'web/wasm/generated/font.cpp', root / 'web/wasm/generate_host_ui.py', root / 'web/wasm/preview_profiles.py', root / 'web/wasm/build.py', root / 'web/wasm/firmware_preview.cpp', root / 'web/wasm/lv_conf.h']
 files += sorted((root / 'fonts').glob('*.ttf')) + sorted((root / 'fonts').glob('*.png'))
 files = sorted({p for p in files if p.name != 'firmware_renderer_manifest.h'})

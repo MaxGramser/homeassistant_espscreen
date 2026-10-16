@@ -5,9 +5,7 @@
 import { computed } from "vue";
 import TileInspector from "./TileInspector.vue";
 import TopbarInspector from "./TopbarInspector.vue";
-import TopbarAdd from "./TopbarAdd.vue";
-import SaverItemInspector from "./SaverItemInspector.vue";
-import SaverAdd from "./SaverAdd.vue";
+import SaverClock from "./SaverClock.vue";
 import SaverInspector from "./SaverInspector.vue";
 import InspectPanel from "./InspectPanel.vue";
 import PageInspector from "./PageInspector.vue";
@@ -32,10 +30,11 @@ const open = computed(() => Boolean(insp.inspector && (insp.inspector.kind !== "
       <!-- Keyed by the tile: another tile's settings start as a tile's settings start, with More settings and every chooser closed. -->
       <TileInspector v-if="insp.inspector.kind === 'tile' && doc.currentTile" :key="doc.currentTile.id" :tile="doc.currentTile" />
       <SelectionInspector v-else-if="insp.inspector.kind === 'tiles'" />
-      <TopbarInspector v-else-if="insp.inspector.kind === 'bar'" :index="insp.inspector.index" />
-      <TopbarAdd v-else-if="insp.inspector.kind === 'bar-add'" />
-      <SaverItemInspector v-else-if="insp.inspector.kind === 'saver-item'" :index="insp.inspector.index" />
-      <SaverAdd v-else-if="insp.inspector.kind === 'saver-add'" />
+      <!-- The bar and its +: one inspector, so the bar at its head stays where it is. -->
+      <TopbarInspector v-else-if="insp.inspector.kind === 'bar' || insp.inspector.kind === 'bar-add'" :index="insp.inspector.kind === 'bar' ? insp.inspector.index : -1" :adding="insp.inspector.kind === 'bar-add'" />
+      <!-- The screensaver's clock, its entities and its +: one inspector, so the clock's row at its head stays where it is. -->
+      <SaverClock v-else-if="insp.inspector.kind === 'saver-item' || insp.inspector.kind === 'saver-add' || (insp.inspector.kind === 'saver' && insp.inspector.step === 'clock')"
+        :index="insp.inspector.kind === 'saver-item' ? insp.inspector.index : -1" :adding="insp.inspector.kind === 'saver-add'" />
       <SaverInspector v-else-if="insp.inspector.kind === 'saver'" :step="insp.inspector.step" />
       <PageInspector v-else-if="insp.inspector.kind === 'page'" :id="insp.inspector.id" />
       <InspectPanel v-else-if="insp.inspector.kind === 'inspect'" :entity="insp.inspector.entity" :slot="insp.inspector.slot" :tile-key="insp.inspector.key" />

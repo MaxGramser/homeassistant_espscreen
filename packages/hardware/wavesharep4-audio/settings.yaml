@@ -1,0 +1,54 @@
+# ES7210 controls shared by the native-I2S and AEC paths. The reference ADC is excluded by the driver.
+substitutions:
+  BOOT_BOARD_SETTINGS: |-
+    // Restore codec gain inside the core's boot hook; a separate on_boot replaces that whole trigger.
+    const float gain = id(board_saved_microphone_gain);
+    if (gain >= 0 && gain <= 36 && int(gain) % 3 == 0)
+      id(ts_audio_adc).set_mic_gain(gain);
+    id(board_saved_microphone_gain) = id(ts_audio_adc).mic_gain();
+    id(board_microphone_gain).publish_state(id(ts_audio_adc).mic_gain());
+    settings_screen::board_rows.push_back(settings_screen::number(screen_text::txt::settings_microphone_gain,
+        []() -> int32_t { return static_cast<int32_t>(id(ts_audio_adc).mic_gain()); },
+        [](int32_t gain) { id(board_microphone_gain).make_call().set_value(gain).perform(); }, 0, 36, 3, "dB"));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_automatic_gain,
+        []() -> int32_t { return id(board_automatic_gain).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(board_automatic_gain).turn_on(); else id(board_automatic_gain).turn_off(); }));
+    ${P4_AEC_SETTINGS}
+
+globals:
+  - id: board_saved_microphone_gain
+    type: float
+    restore_value: true
+    initial_value: '30.0f'
+
+number:
+  - platform: template
+    id: board_microphone_gain
+    name: "Microphone gain"
+    entity_category: config
+    unit_of_measurement: "dB"
+    min_value: 0
+    max_value: 36
+    step: 3
+    update_interval: 1s
+    lambda: return id(ts_audio_adc).mic_gain();
+    set_action:
+      - lambda: |-
+          if (id(ts_audio_adc).set_mic_gain(x)) id(board_saved_microphone_gain) = id(ts_audio_adc).mic_gain();
+          id(board_microphone_gain).publish_state(id(ts_audio_adc).mic_gain());
+
+switch:
+  - platform: template
+    id: board_automatic_gain
+    name: "Automatic gain"
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    lambda: return id(ts_audio_adc).alc_enabled();
+    turn_on_action:
+      - lambda: |-
+          id(ts_audio_adc).set_alc_enabled(true);
+          id(board_automatic_gain).publish_state(id(ts_audio_adc).alc_enabled());
+    turn_off_action:
+      - lambda: |-
+          id(ts_audio_adc).set_alc_enabled(false);
+          id(board_automatic_gain).publish_state(id(ts_audio_adc).alc_enabled());

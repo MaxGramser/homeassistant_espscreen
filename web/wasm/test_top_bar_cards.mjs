@@ -15,13 +15,16 @@ const SHAPES = [
 ];
 const left = (state, words) => ({ entity: 'sensor.dishwasher_left', name: 'Dishwasher', state,
   a: { unit_of_measurement: 'h', device_class: 'duration' }, x: { w: words } });
-// A lamp on a page, and a switch and a sensor on no tile: what the app sends them as (page_service.top_bar_tiles).
+// A lamp on a page, and a switch, a sensor and a player on no tile: what the app sends them as
+// (page_service.top_bar_tiles). The player's item shows its icon alone (header_bar.entity_item, content icon).
+const SPEAKER = '\u{F04C3}', STANDBY = '\u{F0906}';
 const TILES = [
   { entity: 'light.desk', name: 'Desk', state: 'on', a: { brightness: 204, supported_color_modes: ['brightness'], color_mode: 'brightness' }, o: {}, slot: 0 },
   { entity: 'switch.coffee', name: 'Coffee', state: 'on', a: {}, o: {}, bar: 1 },
   { ...left('0.2', '12m'), o: {}, bar: 1 },
+  { entity: 'media_player.kitchen', name: 'Speaker', state: 'playing', a: { volume_level: 0.4, is_volume_muted: false, supported_features: 252349 }, o: {}, bar: 1 },
 ];
-const ITEMS = [{ k: 'text', t: 'On', d: 1 }, { k: 'text', t: '12m', d: 2 }, { k: 'text', t: '80%', d: 0 }];
+const ITEMS = [{ k: 'text', t: 'On', d: 1 }, { k: 'text', t: '12m', d: 2 }, { k: 'text', t: '80%', d: 0 }, { k: 'text', i: 'F04C3', t: '', d: 3 }];
 
 for (const shape of SHAPES) {
   const m = await createModule({ wasmBinary });
@@ -36,12 +39,16 @@ for (const shape of SHAPES) {
   const actions = () => { const out = []; for (let a; (a = m.ccall('preview_next_action', 'string', [], [])); ) if (!a.includes('screen_history')) out.push(a); return out; };
   const touch = (x, y) => { m._preview_touch(x, y, 1); tick(2); m._preview_touch(x, y, 0); tick(6); };
   const centre = (o) => [Math.round((o.x1 + o.x2) / 2), Math.round((o.y1 + o.y2) / 2)];
-  const back = () => {
+  // The key a glyph is drawn on: the last one, the open card's over the page.
+  const key = (glyph) => {
     const all = objects();
-    const arrows = all.filter((o) => o.type === 'label' && o.text === '\u{F004D}').map((o) => all.find((p) => p.id === o.parent));
-    touch(...centre(arrows[arrows.length - 1]));
+    const keys = all.filter((o) => o.type === 'label' && o.text === glyph).map((o) => all.find((p) => p.id === o.parent));
+    return keys[keys.length - 1];
   };
+  const back = () => touch(...centre(key('\u{F004D}')));
+  // A finger on the top bar, after the pause a person makes: the touch guard takes one tap of the bar each 600 ms.
   const tapItem = (words) => {
+    tick(20);
     const item = objects().find((o) => o.type === 'label' && o.text === words && o.card < 0 && o.y2 < shape.height / 4);
     assert.ok(item, `${shape.key}: ${words} on the top bar (${texts().join(' | ')})`);
     const [x, y] = centre(item);
@@ -82,5 +89,17 @@ for (const shape of SHAPES) {
   tapItem('80%');
   assert.ok(texts().includes('Desk') && objects().some((o) => o.type === 'slider'), `${shape.key}: the lamp's card (${texts().join(' | ')})`);
   assert.deepEqual(actions(), [], `${shape.key}: the lamp is not switched`);
+  back();
+
+  // An item that shows its icon alone opens its card too (GitHub #252): the player's, which plays on.
+  tapItem(SPEAKER);
+  assert.ok(texts().includes('Speaker') && key(STANDBY), `${shape.key}: the player's card (${texts().join(' | ')})`);
+  assert.deepEqual(actions(), [], `${shape.key}: the player is not paused`);
+  // Its power key turns it off (GitHub #239): the card's command 30 reaches media_action, as the tile's keys do.
+  const power = key(STANDBY);
+  assert.ok(power?.clickable, `${shape.key}: the power key on the player's card`);
+  touch(...centre(power));
+  const off = actions();
+  assert.ok(off.some((a) => a.includes('media_player.turn_off') && a.includes('media_player.kitchen')), `${shape.key}: the power key turns the player off (${off})`);
 }
-console.log(`PASS top bar cards: a switch, a sensor and a lamp open their cards from the top bar and nothing else, on ${SHAPES.map((s) => s.key).join(', ')}`);
+console.log(`PASS top bar cards: a switch, a sensor, a lamp and a player's icon open their cards from the top bar and nothing else, and the player's power key turns it off, on ${SHAPES.map((s) => s.key).join(', ')}`);

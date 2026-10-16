@@ -10,8 +10,9 @@ import { modeColor } from "./tile-palette";
 import { textEms, widestSetpoint } from "./ui-scale";
 
 /** What Home Assistant reports of an entity, as the add-on hands it to the editor (api/states): its state, the
- * attributes a card shows and, for a state the screens have no word of their own for, Home Assistant's word. */
-export type Live = { state: string; a?: Record<string, any>; word?: string | null };
+ * attributes a card shows, for a state the screens have no word of their own for Home Assistant's word, and each value's
+ * second line as the screen gets it (ha_catalogue.subtitle_lines). */
+export type Live = { state: string; a?: Record<string, any>; word?: string | null; sub?: Record<string, string> };
 /** How the screens write: their language, their number marks ("1,234.5" or "1.234,5"), and whether "%" stands apart
  * from its number (Home Assistant's rule for the language: "54 %" in German and French). */
 export type ScreenWords = { locale: string; marks: NumberMarks; percentSpace?: boolean };
@@ -19,10 +20,10 @@ export type ScreenWords = { locale: string; marks: NumberMarks; percentSpace?: b
 /** Whether two ways of writing are the same. */
 export const sameWords = (a: ScreenWords, b: ScreenWords) => a.locale === b.locale && Boolean(a.percentSpace) === Boolean(b.percentSpace)
   && a.marks.decimal === b.marks.decimal && a.marks.group === b.marks.group && a.marks.from === b.marks.from;
-/** Whether two reports of an entity say the same: its state, its word and the very same attributes (or none). */
+/** Whether two reports of an entity say the same: its state, its word and the very same attributes and lines (or none). */
 export const sameLive = (a: Live, b: Live) => a === b || (a.state === b.state && (a.word ?? null) === (b.word ?? null)
-  && (a.a === b.a || (isEmpty(a.a) && isEmpty(b.a))));
-const isEmpty = (attributes: Record<string, any> | undefined) => !attributes || Object.keys(attributes).length === 0;
+  && (a.a === b.a || (isEmpty(a.a) && isEmpty(b.a))) && (a.sub === b.sub || (isEmpty(a.sub) && isEmpty(b.sub))));
+const isEmpty = (values: Record<string, any> | undefined) => !values || Object.keys(values).length === 0;
 /** A text as the screens show it, in their language. */
 export const screenText = (words: ScreenWords, key: string, named: Record<string, unknown> = {}) => t(key, named, { locale: words.locale });
 // A text the screens have, asked in English: every language falls back to it.
@@ -155,14 +156,14 @@ export function stateText(entity: string, live: Live | null | undefined, options
   return word;
 }
 /** The second line as chosen in the tile panel (app 0.2.105; drawn on the mockup since app 0.4.1): the screen's own
- * line, nothing, words of your own, or a value of the entity. A value Home Assistant does not report leaves the line to
- * the screen, as on the glass. */
-export function subLine(sub: string, live: Live | null | undefined, status: string, words: ScreenWords) {
+ * line, nothing, words of your own, or a value of the entity, as the add-on writes it for the screen (Home Assistant's
+ * number, unit and word for it). A value Home Assistant does not report leaves the line to the screen, as on the glass. */
+export function subLine(sub: string, live: Live | null | undefined, status: string) {
   if (sub === "none") return "";
   if (sub.startsWith("text:")) return sub.slice(5);
   if (sub.startsWith("attr:")) {
-    const value = live?.a?.[sub.slice(5)];
-    if (value !== undefined && value !== null && value !== "") return typeof value === "number" ? numberOf(value, words) : String(value);
+    const line = live?.sub?.[sub.slice(5)] ?? live?.a?.[sub.slice(5)];
+    if (line !== undefined && line !== null && line !== "") return String(line);
   }
   return status;
 }

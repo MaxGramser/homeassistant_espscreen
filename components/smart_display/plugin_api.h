@@ -49,7 +49,16 @@ namespace tessera {
 // tile lays out, each with an address the app fetches and paints for exactly that place, through the route every
 // picture of the screen takes (tile_picture.h "parts"); ui::text, a label of several lines; and tap_point(), where the
 // finger of a tile's on_tap was.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 10;
+// 0.11: on_press, a finger landing on something that takes a tap, at once; on_step(Step), a value under the finger
+// stepping (a dragged slider, dial or seek bar, a held key); SoundPlayer::add(), a sound after the ones before it, evenly
+// spaced.
+// 0.12: values of JSON: an option that keeps several values (`multiple`: a list of texts, or of picks {value, label}), a
+// choice found by searching (`search`, a pick), a fetch that asks once per value of a list and puts the answers together
+// (`each`, `{name|,}` to join a list in one ask), and action() with fields of any JSON type. Card::on_tap, a tap on a
+// card's room, with tap_point() in the card's own pixels.
+// 0.13: pictures on a card over the page: ui::picture and ui::set_picture in a card's calls as in a tile's, and the
+// manifest's `pictures` of a card.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 13;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -68,7 +77,11 @@ struct TileContext {
   const char *name;          // the name given to the tile in the editor, "" for none (copy it)
   const char *entity;        // its Home Assistant entity (plugin_entity), "" for none (copy it)
   int tile;                  // its index in the layout, for tessera::open_card from on_tap
-  JsonObjectConst options;   // the tile's options as the editor set them (the manifest's `options`); gone after create()
+  // The tile's options as the editor set them (the manifest's `options`, its defaults filled in); gone after create().
+  // A text, number or toggle is that value, a choice its value. A list option (0.12, `multiple`) is an array: of texts,
+  // or for a choice of picks, {"value": "...", "label": "..."} with the words the person saw in the list; a choice found
+  // by searching (`search`) without `multiple` is one pick (or "" while none is chosen).
+  JsonObjectConst options;
 };
 
 // Memory for what a plugin keeps (0.10). The memory inside the chip is small and Wi-Fi needs it; a board with PSRAM has
@@ -108,7 +121,7 @@ class Tile : public InPsram {
   virtual void on_tick(uint32_t epoch) {}
   // The screen went light or dark: set the colours again (theme roles have another value now).
   virtual void on_theme() {}
-  // A tap on the card that the touch filter let through.
+  // A tap on the tile that the touch filter let through (tap_point() says where).
   virtual void on_tap() {}
 };
 
@@ -136,9 +149,22 @@ class Card : public InPsram {
   virtual void on_theme() {}
   // Back was pressed: true keeps the card open (it went back a step of its own), false lets it close.
   virtual bool on_back() { return false; }
+  // A tap on the card's room (CardContext::parent) that the touch filter let through (0.12): a finger that moved or
+  // was too short never comes, a bounce on the same spot within 600 ms is one tap, a tap on another spot is its own.
+  // tap_point() says where, in the card's own pixels, so a list knows its row. The objects of tessera::ui take no taps,
+  // so a tap on them comes here; an LVGL object of the plugin's own that is clickable takes the tap itself. Back is
+  // on_back, never this. The card may close itself or open another from here.
+  virtual void on_tap() {}
 };
 
 // A tap action on a tile of Home Assistant's own (a thermostat that opens the plugin's schedule): what it was tapped on.
+// One step of a value under the finger, for on_step (0.11): `direction` +1 towards the larger end of its range, -1
+// towards the smaller, 0 when not known (a held key); `edge` when it reached either end, for a firmer click there.
+struct Step {
+  int8_t direction;
+  bool edge;
+};
+
 struct TapContext {
   const char *entity;        // the tile's entity
   const char *name;          // the tile's name
@@ -256,6 +282,16 @@ class Plugin {
   // never the repeat of a key that is held. For a click or a buzz, 0.3. It runs inside the touch event: start a sound,
   // never wait for one.
   virtual void on_touch() {}
+  // A finger came down on something that takes a tap or a drag: a tile, a key, a slider, a row of the settings, the
+  // top bar. At once, before the screen knows whether it becomes a tap, a hold or a swipe, so a click answers the finger
+  // (0.11). Not for the push that wakes a dimmed screen, nor between the tiles. Runs inside the touch: start a sound,
+  // never wait for one.
+  virtual void on_press() {}
+  // A value under the finger stepped (0.11): a dragged slider, dial or seek bar passed a step (every 5 % of its range, or
+  // every position of one with 20 or fewer), or a held key stepped once more. Once for every step, two at most at once,
+  // as a detent clicks; not for the jump of a slider to where the finger lands. For a detent you can hear or feel:
+  // SoundPlayer::add() spaces a run of clicks evenly. The moments of touch_feedback.h (docs/PLUGINS.md, "Touch feedback").
+  virtual void on_step(const Step &step) {}
   // Rows on the screen's settings page. Called once when the interface is up; true when the plugin added some.
   virtual bool settings(SettingsPage &page) { return false; }
   // An answer from the app to tessera::send(): {"re": <the number send returned>, "ok": true, "result": ...} or
@@ -328,7 +364,8 @@ bool open_card(const char *plugin_id, const char *card, const std::string &entit
 void close_card();
 // Where the finger of a tile's on_tap was (0.10), in the pixels of the tile's drawing area (TileContext::parent: 0,0
 // its top left, width and height as create() got them), so a tile with a list or a row of posters knows which one was
-// tapped. Valid during on_tap; -1,-1 when the screen could not say.
+// tapped; or of a card's on_tap (0.12), in the pixels of its room (CardContext::parent). Valid during on_tap; -1,-1
+// when the screen could not say.
 struct Point {
   int x = -1, y = -1;
 };
@@ -346,6 +383,16 @@ void refresh();
 // what it does before adding it; the screen does not check that list (code built into the firmware can do what the
 // firmware can), the manifest is the plugin's own word. False when it was not sent.
 bool action(const char *service, const std::string &entity, const char *key = nullptr, const std::string &value = "");
+// The same with fields of any JSON type (0.12), a JSON object of up to 16 fields, together at most 1 KB:
+//   JsonDocument d;
+//   d["media_id"] = title; d["media_type"] = "album"; d["artist"] = artist;
+//   tessera::action("music_assistant.play_media", player, d);
+// A text arrives as the text ("1989" stays a text), a number as a number, true and false as themselves, a list or an
+// object whole, and nothing in it is ever run as a template. `entity` is the action's entity_id, whose tiles wait for
+// the answer as for a tap; "" when the fields name their own target (an "entity_id" list of several speakers, an
+// area_id) or the action has none. False when it was not sent: no object, a field name that is not a-z, 0-9 and _,
+// entity_id given twice, too many or too much (the log says which).
+bool action(const char *service, const std::string &entity, JsonVariantConst fields);
 
 namespace ui {
 // Sizes: a physical size in millimetres of glass, or a size of the reference look in this board's pixels.
@@ -382,7 +429,7 @@ std::string icon(uint32_t codepoint);
 // (lv_obj_set_size); for a description, a sentence, a title that may take two lines. ui::set_text and the rest apply.
 lv_obj_t *text(lv_obj_t *parent, Font font, theme::Role role = theme::INK);
 
-// ---- Pictures on a tile (0.10) ----
+// ---- Pictures on a tile (0.10) and on a card (0.13) ----
 // A tile lays out places for pictures and names an address for each; the core does the rest, the way every picture
 // of the screen comes: the card asks the app for all its places as one picture (an atlas of their frames, one
 // download, one entry in the picture store), the app fetches each address once, cuts or fits it to its place, and the
@@ -390,12 +437,17 @@ lv_obj_t *text(lv_obj_t *parent, Font font, theme::Role role = theme::INK);
 // store when the tile does. An address is on a host the plugin's manifest names under permissions.network, or a
 // picture of Home Assistant's own for a tile of an entity (its entity_picture: /api/image/serve/..., /api/image_proxy/...,
 // /local/...); the app fetches nothing else. The manifest's `pictures` of the tile says how many places it has at most.
+// A card (0.13) does the same in its room (CardContext::parent): its places, made in open(), come as one picture while it
+// is open, the way Tessera's own media card shows its cover, and leave the store when it closes. The manifest's
+// `pictures` of the card says how many it has; Home Assistant's own pictures only for a card opened for an entity. The
+// same address as on a tile (the cover the tile shows) is a picture the app has already: it only paints it larger.
 // Whether this screen shows pictures at all: a board without the memory for them (the CYD, the Waveshare 3.5-inch,
 // the Hosyond 4-inch) shows none, and a tile lays itself out without the places, as it does without a picture.
 bool pictures();
 // A place for a picture in `parent`, sized and placed by the plugin as any object (lv_obj_set_size, lv_obj_set_pos):
 // a soft block (theme::TRACK) until its picture is there. Its corners are a key's; a radius of the plugin's own
-// (lv_obj_set_style_radius) is taken over by the picture. Call it in create(), as every object.
+// (lv_obj_set_style_radius) is taken over by the picture. Call it in create() of a tile or open() of a card, as every
+// object.
 lv_obj_t *picture(lv_obj_t *parent);
 // The picture a place shows, by its address, COVER or CONTAIN (Fit). The same address again does nothing (call it on
 // every on_state for free); another address asks the app again; "" takes the picture away and shows the block. A
@@ -408,7 +460,7 @@ void set_picture(lv_obj_t *place, const std::string &url, Fit fit, Turn turn, bo
 // Slide every place of the tile `dx` pixels sideways over `ms` (0.10), and keep them there until the tile's next
 // picture is here: then they are back where the tile laid them out, with it, in the same frame. Call it beside the
 // set_picture calls of a change (a cover flow that turns), so the change shows which way it goes while the next picture
-// comes. Call it in a call of the tile (on_tap, on_tick).
+// comes. Call it in a call of the tile or the card (on_tap, on_tick).
 void slide_pictures(int dx, uint32_t ms = 300);
 }  // namespace ui
 

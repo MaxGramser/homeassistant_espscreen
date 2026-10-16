@@ -261,9 +261,16 @@ effects_page::title_font = headline;
 effects_page::row_font = sublabel;
 effects_page::roller_font = sublabel_big;
 effects_page::icon_font = materialdesign_icons_mini;
+settings_screen::title_font = headline;
+settings_screen::row_font = sublabel_big;
+settings_screen::icon_font = materialdesign_icons_mini;
 screen_input::touch_guard.configure(0, 20);
 screen_input::edge_swipe.configure(22, 28);
 screen_input::edge_snap_band = 47;
+settings_screen::hold_limit = 22;
+settings_screen::tap_limit = 0;
+settings_screen::attach_hold(lv_screen_active(), 22, 0,
+            overlay_card::screen_width() - 22 * 2, 39);
 lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_CLICKABLE);
 lv_obj_remove_flag(tile_scroll, LV_OBJ_FLAG_CLICKABLE);
 runtime_tiles::grid_bind(tile_scroll, 11, 33);

@@ -132,6 +132,78 @@ class SecondLine(unittest.TestCase):
         # An attribute that is gone leaves the line to the screen again, instead of an empty one.
         self.assertEqual(message('attr:nope'), {})
 
+    def test_a_number_is_written_as_home_assistant_writes_an_attributes_number(self):
+        """computeAttributeValueToParts of Home Assistant's frontend (GitHub #241): a formatter for a few attributes,
+        formatNumber (at most two decimals, a half away from zero), then the unit of the attribute for its domain, the
+        system's temperature unit or the weather's units."""
+        import i18n
+
+        def line(entity, attribute, value, units=None, **attributes):
+            tile = {'entity': entity, 'options': {'sub': f'attr:{attribute}'}}
+            return ha_catalogue.subtitle_message(tile, {'attributes': {attribute: value, **attributes}}, units).get('s')
+        metric = {'temperature': '°C', 'length': 'km', 'pressure': 'Pa'}
+        cases = [
+            (('climate.hall', 'current_humidity', 61.60000000000001), '61.6%'),
+            (('climate.hall', 'current_humidity', 0.125), '0.13%'),
+            (('climate.hall', 'current_temperature', 21.5, metric), '21.5 °C'),      # the system's unit, not the entity's
+            (('light.desk', 'brightness', 128), '50%'),                             # 128 of 255
+            (('light.desk', 'color_temp_kelvin', 2700), '2,700 K'),
+            (('media_player.den', 'volume_level', 0.425), '43%'),                   # Math.round: a half goes up
+            (('media_player.den', 'media_duration', 200), '03:20'),
+            (('media_player.den', 'media_duration', 3723.4), '1:02:03'),
+            (('input_datetime.day', 'year', 2026), '2026'),                         # its own toString, no grouping
+            (('sun.sun', 'elevation', 12.345), '12.35°'),
+            # Intl.NumberFormat rounds the number as JavaScript writes it: 2.675 and 1.005 are halves there.
+            (('climate.hall', 'current_humidity', 2.675), '2.68%'),
+            (('climate.hall', 'current_humidity', 1.005), '1.01%'),
+            (('climate.hall', 'current_humidity', -0.001), '-0%'),
+            (('weather.home', 'pressure', 1015.2, metric), '1,015.2 hPa'),          # no pressure_unit: hPa where lengths are km
+            (('weather.home', 'wind_speed', 12, metric), '12 km/h'),
+            (('weather.home', 'ozone', 5, metric), '5'),
+            (('sensor.phone', 'speed', 3), '3'),                                    # no unit Home Assistant knows
+        ]
+        for (entity, attribute, value, *units), expected in cases:
+            self.assertEqual(line(entity, attribute, value, *units), expected, (entity, attribute, value))
+        self.assertEqual(line('weather.home', 'pressure', 1015, metric, pressure_unit='hPa'), '1,015 hPa')
+        self.assertEqual(line('weather.home', 'precipitation', 1.2, {'length': 'mi'}), '1.2 in')
+        # A number Home Assistant sends as text stays the text it is, as its frontend keeps it.
+        self.assertEqual(line('climate.hall', 'current_humidity', '61.600'), '61.600')
+        try:
+            i18n.set_screens('nl', 'comma', True)
+            self.assertEqual(line('climate.hall', 'current_humidity', 1234.5), '1.234,5%')
+            i18n.set_screens('de', 'comma', True, percent_space=True)
+            self.assertEqual(line('climate.hall', 'current_humidity', 61.6), '61,6 %')
+        finally:
+            i18n.set_screens('en', 'point', True)
+
+    def test_words_and_a_yes_or_no_take_home_assistants_word(self):
+        words = {'component.script.entity_component._.state_attributes.mode.state.single': 'Single',
+                 'component.media_player.entity_component._.state_attributes.is_volume_muted.state.true': 'Muted'}
+
+        def line(entity, attribute, value, words=words):
+            tile = {'entity': entity, 'options': {'sub': f'attr:{attribute}'}}
+            return ha_catalogue.subtitle_message(tile, {'attributes': {attribute: value}}, None, None, words).get('s')
+        self.assertEqual(line('script.morning', 'mode', 'single'), 'Single')
+        self.assertEqual(line('script.morning', 'mode', 'queued'), 'queued')     # no word: the words it is
+        self.assertEqual(line('media_player.den', 'is_volume_muted', True), 'Muted')
+        self.assertEqual(line('media_player.den', 'is_volume_muted', False), 'Off')  # no word: the screens' Off
+        # An integration's own word for its translation key comes first, as in Home Assistant's frontend.
+        own = {**words, 'component.roborock.entity.vacuum.roborock.state_attributes.fan_speed.state.max': 'Max+'}
+        tile = {'entity': 'vacuum.robot', 'options': {'sub': 'attr:fan_speed'}}
+        entry = {'platform': 'roborock', 'translation_key': 'roborock'}
+        self.assertEqual(ha_catalogue.subtitle_message(tile, {'attributes': {'fan_speed': 'max'}}, None, entry, own), {'s': 'Max+'})
+
+    def test_the_editor_gets_every_line_the_screen_would(self):
+        named = {f'component.climate.entity_component._.state_attributes.{key}.name': key.title()
+                 for key in ('current_humidity', 'hvac_action', 'friendly_name', 'last_triggered', 'fan_modes', 'aux')}
+        state = {'attributes': {'current_humidity': 61.60000000000001, 'hvac_action': 'heating', 'friendly_name': 'Hall',
+                                'last_triggered': '2026-09-21T05:08:31+00:00', 'fan_modes': ['on', 'auto'], 'aux': True,
+                                'access_token': 'private'}}
+        lines = ha_catalogue.subtitle_lines('climate.hall', state, {'temperature': '°C'}, None, named)
+        # Only what the panel offers: a moment is the screen's to say, a list is no line, the name is the tile's own,
+        # and what Home Assistant does not name (a token) never leaves the app.
+        self.assertEqual(lines, {'current_humidity': '61.6%', 'hvac_action': 'heating', 'aux': 'On'})
+
     def test_the_layout_keeps_the_choice_and_refuses_a_shape_it_cannot_read(self):
         def options(sub):
             layout = validate_layout({'title': 'Home', 'tiles': [{'entity': 'script.morning', 'options': {'sub': sub}}]})

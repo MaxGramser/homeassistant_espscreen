@@ -8,8 +8,12 @@ Where plugins come from:
 - **a folder** in Home Assistant's config, `tessera-plugins/<id>/` beside the `esphome/` folder: a plugin someone is
   making. Every build takes what the folder holds now; the app shows it as a test and offers no updates.
 
-The app never runs a plugin's code. It reads the manifest (plugin_manifest.py), writes the screen's plugins file so
+The app itself runs no plugin code: it reads the manifest (plugin_manifest.py), writes the screen's plugins file so
 ESPHome builds the plugin into that screen, and carries out the plugin's fetches with its own rules (plugin_fetch.py).
+ESPHome does run a plugin's Python, its component's `__init__.py`, while it builds the screen, in this app's container
+(docs/PLUGINS.md, "Where a plugin's code runs"): the build gets the environment the build tools read and nothing of the
+app's own (firmware.build_environment), and the plugins repository holds a listed plugin's Python to what a component
+needs (its tools/check.py).
 """
 import asyncio
 import json
@@ -25,6 +29,7 @@ import yaml
 import build_cache
 import core
 import entity_settings
+import page_delivery
 import plugin_fetch
 import plugin_likes
 import plugin_manifest as pm
@@ -35,7 +40,7 @@ from plugin_store import PluginSecrets, PluginStore
 
 LOG = logging.getLogger('plugins')
 
-INDEX_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/main/index.json'
+INDEX_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/{branch}/index.json'
 # How many people like each plugin: the website counts the likes, the plugins repository copies the counts every hour, so
 # reading them is a request to GitHub like the index's, never to the website (plugin_likes.py sends a like).
 LIKES_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/main/likes.json'
@@ -63,6 +68,12 @@ STORE_IMAGE_SIZE = (2560, 1440)   # the largest it takes; the tool makes 1280 x 
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 PLUGIN_ICON = 'F0A66'         # puzzle-outline, for a plugin whose icon is not in Tessera's set
 X_BUDGET = 2600               # bytes of a tile's data on the wire: the message carries more and stays under 4 KB
+# What a tile's message holds besides its own fields on the way (session, sequence, revision, slot, the "x" key): its
+# data gets what is left of the 4 KB after the message and this, at most X_BUDGET (0.12: a tile's options take up to
+# pm.OPTIONS_BYTES of it).
+ENVELOPE = 128
+# How long the answer to what a person typed in a searched list stays (0.12): the next search asks again anyway.
+SEARCH_EVERY = 600
 # How far lists are shortened, each to the same length from the end, until an answer or a tile's entity fits its bytes:
 # first not at all, then a day of quarters twice, once, half a day.
 LIST_STEPS = (None, 192, 96, 48, 24, 16, 12, 8, 4, 2, 1, 0)
@@ -109,6 +120,16 @@ def build_reason(logs):
     return (errors or lines)[-1][:200]
 
 
+# A compiler error in a file of an external component: `../src/esphome/components/tap_sound/tap_sound.h:19:8: error: ...`.
+COMPONENT_ERROR = re.compile(r'components/([a-z0-9_]+)/[^\s:]+:\d+(?::\d+)?:\s*(?:fatal\s+)?error:')
+
+
+def failed_components(logs):
+    """The components a build's compiler errors lie in, Tessera's own left out."""
+    found = {match.group(1) for line in logs or [] for match in [COMPONENT_ERROR.search(str(line))] if match}
+    return found - {'smart_display', 'flash_layout'}
+
+
 def version_tuple(text):
     return tuple(int(n) for n in re.findall(r'\d+', str(text or ''))[:3])
 
@@ -150,12 +171,12 @@ def bounded(value, limit=3200):
     return None
 
 
-def trimmed(data):
-    """A tile's data within X_BUDGET: the last items go first."""
+def trimmed(data, budget=X_BUDGET):
+    """A tile's data within `budget` bytes (X_BUDGET, or less beside large options): the last items go first."""
     if not isinstance(data, dict):
         return data
     data = dict(data)
-    while len(json.dumps(data, separators=(',', ':'), ensure_ascii=False).encode()) > X_BUDGET:
+    while len(json.dumps(data, separators=(',', ':'), ensure_ascii=False).encode()) > budget:
         items = data.get('items')
         if not isinstance(items, list) or not items:
             return {'wait': 'too_large'}
@@ -211,6 +232,9 @@ class Entry:
     def fetch(self, fetch_id):
         return next((fetch for fetch in self.manifest['fetch'] if fetch['id'] == fetch_id), None)
 
+    def card(self, card_id):
+        return next((card for card in self.manifest['cards'] if card['id'] == card_id), None)
+
     def link(self):
         """The plugin's folder on GitHub, at its commit."""
         if not self.repo:
@@ -260,7 +284,8 @@ class Plugins:
         # The pictures of plugin tiles (plugin API 0.10), through the fetcher's session, or Home Assistant's own.
         self.pictures = plugin_pictures.Pictures(self.fetcher, lambda path: self.manager.ha.entity_picture(path))
         self.index = {}             # id -> Entry, from index.json
-        self.index_state = {'at': None, 'error': None, 'etag': None, 'checked': 0.0, 'blocked': [], 'featured': []}
+        self.index_state = {'at': None, 'error': None, 'etag': None, 'branch': None, 'checked': 0.0, 'blocked': [],
+                            'featured': []}
         # likes.json: how many like each plugin; `fresh`: the website's own answer to a like from this app, which counts
         # until likes.json has caught up (it is copied once an hour).
         self.likes = {'counts': {}, 'etag': None, 'checked': 0.0, 'fresh': {}}
@@ -286,6 +311,7 @@ class Plugins:
         except (OSError, ValueError):
             return
         self._take_index(cached.get('index') or {}, cached.get('etag'), cached.get('at'))
+        self.index_state['branch'] = cached.get('branch')
 
     def _take_index(self, index, etag=None, at=None):
         if not isinstance(index, dict) or index.get('format') != INDEX_FORMAT:
@@ -315,6 +341,14 @@ class Plugins:
         if newly:
             self.drop_blocked()
 
+    @staticmethod
+    def index_branches():
+        """The branches of the plugins repository whose index.json this app reads, the first that has one. The plugins
+        repository has a dev branch as Tessera has (its AGENTS.md, "Branches"): a plugin that needs what only Tessera's
+        dev firmware has waits there for Tessera's next release. The dev app reads it, so such a plugin is installed and
+        updated the way every plugin is; it falls back on main while dev has no index. Every other app reads main."""
+        return ('dev', 'main') if core.channel() == 'dev' else ('main',)
+
     async def refresh_index(self, force=False):
         """index.json again when it is older than INDEX_TTL (or `force`), with its ETag; the last one stays offline."""
         if not force and time.monotonic() - self.index_state['checked'] < INDEX_TTL and self.index_state['at']:
@@ -325,13 +359,20 @@ class Plugins:
             if self.http is None or self.http.closed:
                 self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
                                                   headers={'User-Agent': self.fetcher.user_agent})
-            headers = {'If-None-Match': self.index_state['etag']} if self.index_state['etag'] and not force else {}
-            async with self.http.get(INDEX_URL, headers=headers) as response:
-                if response.status == 304:
-                    return
-                response.raise_for_status()
-                index = json.loads(await read_whole(response, INDEX_MAX))
-                etag = response.headers.get('ETag')
+            index = None
+            for branch in self.index_branches():
+                same = self.index_state.get('branch') == branch
+                headers = {'If-None-Match': self.index_state['etag']} if self.index_state['etag'] and same and not force else {}
+                async with self.http.get(INDEX_URL.format(branch=branch), headers=headers) as response:
+                    if response.status == 304:
+                        return
+                    if response.status == 404 and branch != self.index_branches()[-1]:
+                        continue
+                    response.raise_for_status()
+                    index = json.loads(await read_whole(response, INDEX_MAX))
+                    etag = response.headers.get('ETag')
+                    self.index_state['branch'] = branch
+                    break
         except Exception as error:
             self.index_state['error'] = type(error).__name__
             LOG.info('Plugin index not read (%s)', error)
@@ -340,7 +381,8 @@ class Plugins:
         self._take_index(index, etag, at)
         try:
             self.data.mkdir(parents=True, exist_ok=True)
-            self._index_file().write_text(json.dumps({'index': index, 'etag': etag, 'at': at}))
+            self._index_file().write_text(json.dumps({'index': index, 'etag': etag, 'at': at,
+                                                      'branch': self.index_state['branch']}))
         except OSError as error:
             LOG.warning('Plugin index not kept (%s)', error)
 
@@ -395,12 +437,18 @@ class Plugins:
         """What an installed plugin is: its folder, the branch it follows, or the release it is pinned to."""
         if record.get('source') == 'folder':
             return self.folders.get(record['id'])
-        if record.get('source') == 'branch':
-            # Pinned to the commit it was built from, as every source but a folder.
+        # Pinned to the commit it was built from, as every source but a folder: its snapshot, or the link or index entry
+        # of that same commit. A release just read from a link has no snapshot until apply() has written the plugins
+        # file, and is in no index, so the link stands in (#260).
+        ref = record.get('ref')
+        found = self.snapshot_of(record['id'], ref)
+        if not found and record.get('source') in ('link', 'branch'):
             link = self.links.get(record['id'])
-            return self.snapshot_of(record['id'], record.get('ref')) or (link if link and link.ref == record.get('ref') else None)
-        return self.snapshot_of(record['id'], record.get('ref')) or (
-            self.index.get(record['id']) if self.index.get(record['id']) and self.index[record['id']].ref == record.get('ref') else None)
+            found = link if link and link.ref == ref else None
+        if not found and record.get('source') != 'branch':
+            index = self.index.get(record['id'])
+            found = index if index and index.ref == ref else None
+        return found
 
     def secret_values(self, entry, inbox=None):
         """The secrets a fetch of this plugin may carry: filled in for its own origin (a folder someone is making in
@@ -1284,6 +1332,25 @@ class Plugins:
             self._know_tiles()
             self.rewrite_sidecar(inbox)
 
+    def blame(self, inbox, logs):
+        """The plugin of this screen a failed build stopped on: a compiler error in one of its components, which are
+        named after it (`tap_sound`, `tap_sound_player`). {'id', 'name', 'version', 'update'}, with `update` the version
+        on offer when it is another than the one built, or None when no plugin of this screen is to blame."""
+        broken = failed_components(logs)
+        for record in self.store.of(inbox) if broken else []:
+            plugin = record.get('id') or ''
+            if not any(name == plugin or name.startswith(plugin + '_') for name in broken):
+                continue
+            entry, source = self.known(plugin, inbox), record.get('source', 'index')
+            # The same newer release the editor offers (hasUpdate in web/src/stores/plugins.ts): a test of a branch by
+            # its commit, a release by its version; a folder is built as it is.
+            offer = None if source == 'folder' else (self.links if source in ('link', 'branch') else self.index).get(plugin)
+            newer = offer and (offer.ref != record.get('ref') if source == 'branch' else offer.version != record.get('version'))
+            update = offer.version if newer else None
+            return {'id': plugin, 'name': entry.text('name') if entry else plugin, 'version': record.get('version'),
+                    'update': update}
+        return None
+
     def file_for(self, inbox):
         screen = self.manager.screen(inbox)
         if screen is None:
@@ -1325,32 +1392,62 @@ class Plugins:
                 continue
         return chosen
 
+    @staticmethod
+    def asks(fetch, chosen):
+        """The questions of one tile's fetch: [(values, pick)], the tile's options as words (plugin_fetch.word_of). One,
+        or for a fetch with `each` (0.12) one per value of that list option, in its order, with the option's place
+        holding that one value and `pick` its {value, label}; none while the list is empty."""
+        words = plugin_fetch.words_of(chosen)
+        each = fetch.get('each')
+        if not each:
+            return [(words, None)]
+        out = []
+        for item in (chosen.get(each) if isinstance(chosen.get(each), list) else [])[:pm.MAX_MULTIPLE]:
+            pick = item if isinstance(item, dict) else {'value': str(item), 'label': str(item)}
+            out.append(({**words, each: str(pick.get('value', ''))}, pick))
+        return out
+
     async def tile_data(self, entry, tile, chosen, ask=True, inbox=None):
-        """What the screen gets for one tile: the mapped answer of its fetch, with "stale" or "wait"."""
+        """What the screen gets for one tile: the mapped answer of its fetch, with "stale" or "wait". A fetch with `each`
+        (0.12) puts the answers of its values together; one that has none yet is left out, one that failed makes the
+        list stale, and only when none has an answer does the tile wait."""
         if not tile.get('data'):
             return None
         fetch = entry.fetch(tile['data'])
         secrets = self.secret_values(entry, inbox)
-        values = {**{k: str(v) for k, v in chosen.items()}}
+        asks = self.asks(fetch, chosen)
+        if not asks:
+            return {'wait': 'not_filled'}
+        answers, waits, stale = [], [], False
+        for values, pick in asks:
+            try:
+                if ask:
+                    _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, secrets)
+                else:
+                    cached = self.fetcher.peek(entry.id, fetch, values, secrets)
+            except plugin_fetch.FetchRefused as error:
+                waits.append('not_filled' if 'not filled' in str(error) else 'refused')
+                continue
+            if not cached or cached['data'] is None:
+                waits.append('failed' if cached and cached['error'] else 'asking')
+                continue
+            stale = stale or cached['stale']
+            answers.append((cached['data'], values, pick))
+        if not answers:
+            return {'wait': next(w for w in ('refused', 'not_filled', 'failed', 'asking') if w in waits)}
         try:
-            if ask:
-                _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, secrets)
+            if fetch.get('each'):
+                data = plugin_fetch.apply_each(fetch['map'], answers)
             else:
-                cached = self.fetcher.peek(entry.id, fetch, values, secrets)
-        except plugin_fetch.FetchRefused as error:
-            return {'wait': 'not_filled' if 'not filled' in str(error) else 'refused'}
-        if not cached or cached['data'] is None:
-            return {'wait': 'failed' if cached and cached['error'] else 'asking'}
-        try:
-            data = plugin_fetch.apply_map(fetch['map'], cached['data'], values)
+                data = plugin_fetch.apply_map(fetch['map'], *answers[0])
         except Exception as error:   # an answer of another shape than the map expects
             LOG.warning('plugin %s: the answer did not fit its map (%s)', entry.id, error)
             return {'wait': 'failed'}
-        if cached['stale']:
+        if stale or 'failed' in waits:
             data['stale'] = True
         return trimmed(data)
 
-    def entity_part(self, kind, tile):
+    def entity_part(self, kind, tile, budget=X_BUDGET):
         """(entity, what the screen gets of it) for a tile that belongs to an entity: its state, its name, the
         attributes its manifest names and the `fields` it takes out of them, bounded as every tile's: a text at 48
         bytes, and the lists together within X_BUDGET, each shortened from the end to the same length only when they
@@ -1388,7 +1485,7 @@ class Plugins:
         for items in LIST_STEPS:
             shaped = {**part, 'attributes': {name: value if not isinstance(value, list) or items is None else value[:items]
                                              for name, value in bounded.items()}}
-            if json_size(shaped) <= X_BUDGET:
+            if json_size(shaped) <= budget:
                 return entity, shaped
         return entity, {'wait': 'too_large'}
 
@@ -1408,7 +1505,13 @@ class Plugins:
         chosen = self.values_of(entry, kind, options.get('plugin')) if kind else dict(options.get('plugin') or {})
         if chosen:
             wire['plugin'] = chosen
-        entity, part = self.entity_part(kind, tile)
+        bound = (options.get('plugin_entity') or '') if kind and kind['domains'] else ''
+        if bound:
+            wire['pe'] = bound
+        # The data gets what the message leaves of its 4 KB (the tile's options count, a name of at most 80 bytes).
+        room = min(X_BUDGET, page_delivery.MAX_MESSAGE - ENVELOPE - 80 - json_size(
+            {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'], 'name': '', 'state': 'ok', 'a': {}, 'o': wire}))
+        entity, part = self.entity_part(kind, tile, room)
         if entity:
             wire['pe'] = entity
         name = tile.get('name') or (part or {}).get('name') or (entry.text(kind['name']) if kind else tile_id)
@@ -1417,36 +1520,45 @@ class Plugins:
         if kind:
             data = await self.tile_data(entry, kind, chosen, ask, inbox)
             if part or data:
-                message['x'] = trimmed({**(part or {}), **(data or {})})
+                message['x'] = trimmed({**(part or {}), **(data or {})}, room)
         return message
 
-    async def choices(self, plugin, fetch_id, values, inbox=None):
-        """The choices of an option with `options_from`, for the editor's inspector: [{value, label}]."""
+    async def choices(self, plugin, fetch_id, values, inbox=None, search=''):
+        """The choices of an option with `options_from`, for the editor's inspector: [{value, label}]. `values`: the
+        tile's other options as they are kept (0.12: typed, a list as a list); `search`: what the person typed in a
+        searched list, the fetch's {search}, whose answer is soon forgotten."""
         entry = self.known(plugin, inbox)
         fetch = entry.fetch(fetch_id) if entry else None
         if not fetch or 'value' not in fetch['map']:
             raise ValueError(t('addon.errors.plugins.request'))
-        clean = {k: str(v)[:64] for k, v in (values or {}).items() if isinstance(k, str)}
+        clean = {}
+        for key, value in plugin_fetch.words_of(values if isinstance(values, dict) else {}).items():
+            if isinstance(key, str) and pm.ID.match(key) and key != pm.SEARCH:
+                clean[key] = [v[:64] for v in value[:pm.MAX_MULTIPLE]] if isinstance(value, list) else value[:64]
+        typed = (search if isinstance(search, str) else '').strip()[:pm.MAX_TEXT]
+        if typed:
+            clean[pm.SEARCH] = typed
         try:
-            _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, clean, self.secret_values(entry, inbox))
+            _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, clean, self.secret_values(entry, inbox),
+                                               every=SEARCH_EVERY if typed else None)
         except plugin_fetch.FetchRefused:
             return {'choices': [], 'wait': 'not_filled'}
         if cached['data'] is None:
             return {'choices': [], 'wait': 'failed', 'error': cached['error']}
         return {'choices': plugin_fetch.apply_choices(fetch['map'], cached['data'], clean)}
 
-    async def preview(self, plugin, tile_id, options, inbox=None):
+    async def preview(self, plugin, tile_id, options, inbox=None, entity=None):
         """What the editor draws for a plugin tile (it cannot run the plugin's C++): the manifest's `preview` filled in
         from the tile's data, for its first items: [{badge, title, value, at}], `at` a moment the editor counts down to."""
         entry = self.known(plugin, inbox)
         kind = entry.tile(tile_id) if entry else None
         if not kind or not kind.get('preview'):
             raise ValueError(t('addon.errors.plugins.request'))
-        chosen = self.values_of(entry, kind, {k: v for k, v in options.items() if k != 'entity'})
+        chosen = self.values_of(entry, kind, options if isinstance(options, dict) else {})
         if kind.get('data'):
             data = await self.tile_data(entry, kind, chosen, inbox=inbox)
         else:
-            _, part = self.entity_part(kind, {'options': {'plugin_entity': options.get('entity')}})
+            _, part = self.entity_part(kind, {'options': {'plugin_entity': entity}})
             data = {'items': [{**part['attributes'], 'state': part['state'], 'name': part['name']}]} \
                 if part and 'wait' not in part else (part or {'wait': 'no_entity'})
         if not data or 'wait' in data:
@@ -1584,16 +1696,15 @@ class Plugins:
                 continue
             chosen = self.values_of(entry, kind, (tile.get('options') or {}).get('plugin'))
             fetch = entry.fetch(kind['data'])
-            try:
-                secrets = self.secret_values(entry, inbox)
-                before = (self.fetcher.peek(entry.id, fetch, {k: str(v) for k, v in chosen.items()},
-                                            secrets) or {}).get('changed')
-                _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, {k: str(v) for k, v in chosen.items()},
-                                                   secrets)
-            except plugin_fetch.FetchRefused:
-                continue
-            if cached['changed'] != before:
-                changed.add(tile['entity'])
+            secrets = self.secret_values(entry, inbox)
+            for values, _ in self.asks(fetch, chosen):
+                try:
+                    before = (self.fetcher.peek(entry.id, fetch, values, secrets) or {}).get('changed')
+                    _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, secrets)
+                except plugin_fetch.FetchRefused:
+                    continue
+                if cached['changed'] != before:
+                    changed.add(tile['entity'])
         self.fetcher.forget_unused()
         if changed:
             self.manager.ha.dirty.update(changed)

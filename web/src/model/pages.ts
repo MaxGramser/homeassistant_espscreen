@@ -279,7 +279,8 @@ export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
   for (const page of layout.pages) identity(page.id, true);
   for (const page of layout.pages) {
     const bar = page.topbar;
-    if (typeof page.navigation.excludeFromPagination !== "boolean") throw new Error(t("addon.errors.pages.navigation"));
+    if (typeof page.navigation.excludeFromPagination !== "boolean" || !["boolean", "undefined"].includes(typeof page.navigation.showInDock))
+      throw new Error(t("addon.errors.pages.navigation"));
     if (bar.leading.length > 1 || bar.trailing.length > barLimit(grid)) throw new Error(t("addon.errors.top_bar.full", barLimit(grid)));
     if (bar.title.source !== "screen" && (bar.title.source !== "text" || !bar.title.text.trim() || byteLength(bar.title.text) > 96))
       throw new Error(t("addon.errors.layout.page_title"));

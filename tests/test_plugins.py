@@ -426,6 +426,51 @@ class Links(unittest.IsolatedAsyncioTestCase):
         await service.refresh_links(force=True)
         self.assertEqual(read, [('https://github.com/someone/tessera-bus', '.')])
 
+    async def test_an_update_builds_the_new_release_in(self):
+        """#260: the plugins file of an update named the new release, not nothing. A release added with a link is not
+        in the index and its snapshot is kept only after the file is written, so the link it was read from stands in."""
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+
+        class FakeFirmware:
+            task = None
+            job = None
+
+            def save_plugins(self, profile, text):
+                (config / profile.replace('.yaml', '.plugins.yaml')).write_text(text)
+
+            def start(self, data):
+                async def build():
+                    self.job = {'state': 'success'}
+                self.task = asyncio.get_running_loop().create_task(build())
+
+        class FakeManager:
+            firmware = FakeFirmware()
+
+            def __init__(self):
+                self.build_queue = BuildQueue(self)
+            ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
+            page_senders = {}
+
+            def screen(self, inbox):
+                return {'id': inbox, 'node': inbox, 'board': 'guition'}
+
+            def notify(self):
+                pass
+        FakeManager.updates = type('U', (), {'resolve': lambda self, screen: (screen['id'] + '.yaml', '10.0.0.1')})()
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', config)
+        for version, ref in (('1.0.0', 'a' * 40), ('1.1.0', 'b' * 40)):
+            service.links['bus'] = plugin_service.Entry(manifest(version=version), {'en': ENGLISH}, {}, 'link', 'community',
+                                                        repo='https://github.com/someone/tessera-bus', path='.', ref=ref)
+            await service.apply('hall', {'add': [{'id': 'bus', 'source': 'link', 'consent': True}]})
+            await service.manager.build_queue.idle()
+            with self.subTest(version):
+                self.assertIn(f'ref: {ref}  # bus {version}', (config / 'hall.plugins.yaml').read_text())
+                self.assertEqual(service.store.get('hall', 'bus')['state'], 'active')
+
 
 class LinkPath(unittest.IsolatedAsyncioTestCase):
     """The folder in a link goes into the screen's plugins file and into git's path: only plain names, never a step up."""
@@ -691,6 +736,31 @@ class EntityTile(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(part['attributes']['next_date'], int)   # a date as seconds, for the screen's own words
         _, wrong = service.entity_part(kind, {'options': {'plugin_entity': 'light.kitchen'}})
         self.assertEqual(wrong, {'wait': 'wrong_entity'})
+
+
+class BlamedBuilds(unittest.TestCase):
+    """A screen's update that stops on a plugin's code says which plugin, and its update when one is on offer."""
+
+    def test_compiler_error_in_a_plugin_names_it(self):
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        service = plugin_service.Plugins(type('Manager', (), {'page_senders': {}})(), Path(tmp.name) / 'data',
+                                         Path(tmp.name) / 'esphome')
+        logs = ["../src/esphome/components/smart_display/page_bar.h:169:36: warning: '%d' directive output may be truncated",
+                "../src/esphome/components/tap_sound/tap_sound.h:19:8: error: 'void esphome::tap_sound::TapSound::on_step()'"
+                " marked 'override', but does not override",
+                'ninja: build stopped: subcommand failed.', 'ESPHome compile failed; see the log.']
+        self.assertEqual(plugin_service.failed_components(logs), {'tap_sound'})
+        self.assertIsNone(service.blame('tablet', logs))   # not a plugin of this screen
+        service.store.put('tablet', {'id': 'tap_sound', 'version': '0.2.0', 'source': 'index', 'ref': 'a' * 40})
+        self.assertEqual(service.blame('tablet', logs),
+                         {'id': 'tap_sound', 'name': 'tap_sound', 'version': '0.2.0', 'update': None})
+        service.index['tap_sound'] = type('Entry', (), {'version': '0.2.1', 'ref': 'b' * 40, 'text': lambda self, key: 'Tap sound'})()
+        self.assertEqual(service.blame('tablet', logs), {'id': 'tap_sound', 'name': 'Tap sound', 'version': '0.2.0', 'update': '0.2.1'})
+        # An error in Tessera's own code, or none at all, blames no plugin.
+        self.assertIsNone(service.blame('tablet', [logs[0].replace('warning', 'error'), logs[-1]]))
+        self.assertIsNone(service.blame('tablet', ['Succeeded: install']))
 
 
 class Questions(unittest.IsolatedAsyncioTestCase):
@@ -1486,3 +1556,251 @@ class PanelSettings(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(pm.check(good, ENGLISH)['settings'][0]['status'], 'test_wake_result')
         with self.assertRaises(pm.ManifestError):
             pm.check(manifest(settings=[{'key': 'test_wake', 'label': 'tile', 'status': 'Test wake result'}]), ENGLISH)
+
+
+MUSIC_ENGLISH = {'app': {'name': 'New music', 'summary': 'New releases.', 'tile': 'Releases', 'artists': 'Artists',
+                         'kinds': 'Kinds', 'album': 'Albums', 'single': 'Singles', 'tags': 'Tags'}, 'screen': {}}
+
+
+def music(**changes):
+    """New music (plugin API 0.12): artists found by searching, one ask per artist, the answers as one list."""
+    data = {
+        'id': 'music', 'version': '1.0.0', 'api': '0.12', 'icon': 'music', 'maintainer': 'someone', 'license': 'MIT',
+        'topics': ['media'], 'permissions': {'network': ['api.deezer.com'], 'home_assistant_actions': ['music_assistant.play_media']},
+        'attributes': ['cloud'], 'privacy': 'https://example.org/p',
+        'tiles': [{'id': 'releases', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 1200,
+                   'data': 'releases', 'preview': {'title': '{title}', 'badge': '{artist}'}, 'options': [
+                       {'id': 'artists', 'kind': 'choice', 'multiple': 8, 'options_from': 'artist_search', 'search': True,
+                        'label': 'artists'},
+                       {'id': 'kinds', 'kind': 'choice', 'multiple': 2, 'label': 'kinds',
+                        'choices': [{'value': 'album', 'label': 'album'}, {'value': 'single', 'label': 'single'}]},
+                       {'id': 'tags', 'kind': 'text', 'multiple': 4, 'label': 'tags', 'default': ['new']}]}],
+        'fetch': [
+            {'id': 'releases', 'each': 'artists', 'url': 'https://api.deezer.com/artist/{artists}/albums?limit=25',
+             'every': '6h', 'map': {'items': '$.data[*]', 'fields': {
+                 'title': 'title', 'date': {'path': 'release_date', 'as': 'epoch', 'tz': 'UTC'}, 'kind': 'record_type',
+                 'artist': {'each': 'label'}, 'id': {'each': 'value'}}, 'sort': '-date', 'limit': 4}},
+            {'id': 'artist_search', 'url': 'https://api.deezer.com/search/artist?q={search}', 'every': '1d',
+             'map': {'items': '$.data[*]', 'value': 'id', 'label': 'name'}}],
+    }
+    data.update(changes)
+    return data
+
+
+class JsonValues(unittest.IsolatedAsyncioTestCase):
+    """Plugin API 0.12: an option keeps a list (texts, or picks of a choice with their words), a choice is found by
+    searching, a fetch asks once per value and puts the answers together, and a list joins into one ask."""
+
+    def test_the_manifest_takes_lists_searches_and_each(self):
+        out = pm.check(music(), MUSIC_ENGLISH)
+        artists, kinds, tags = out['tiles'][0]['options']
+        self.assertEqual((artists['multiple'], artists['search'], artists['default']), (8, True, []))
+        self.assertTrue(pm.keeps_picks(artists) and pm.keeps_picks(kinds) and not pm.keeps_picks(tags))
+        self.assertEqual(tags['default'], ['new'])
+        self.assertEqual(out['fetch'][0]['each'], 'artists')
+        self.assertEqual(out['fetch'][1]['placeholders'], ['search'])
+
+    def test_wrong_ones_say_why(self):
+        tile = music()['tiles'][0]
+        artist, kinds, tags = tile['options']
+
+        def with_options(*options, fetch=None):
+            changed = json.loads(json.dumps(music()))
+            changed['tiles'][0]['options'] = list(options)
+            if fetch:
+                changed['fetch'][0].update(fetch)
+            return changed
+        cases = {
+            'only a text or a choice keeps several values': with_options({**tags, 'kind': 'toggle', 'default': False}),
+            'must be between 2 and 16': with_options(artist, kinds, {**tags, 'multiple': 17}),
+            'starts empty': with_options({**artist, 'default': [{'value': '1', 'label': 'x'}]}, kinds, tags),
+            'search': with_options(artist, {**kinds, 'search': True}, tags),
+            '"each" asks once per value': with_options({k: v for k, v in artist.items() if k != 'multiple'}, kinds, tags),
+            'joins them': with_options(artist, kinds, tags, fetch={'each': None, 'url': 'https://api.deezer.com/a/{artists}'}),
+            'is not this fetch\'s "each"': with_options(artist, kinds, tags, fetch={'url': 'https://api.deezer.com/a/{artists|,}'}),
+            'only in a fetch with "each"': with_options(artist, kinds, tags, fetch={'each': None, 'url': 'https://api.deezer.com/a/{artists|,}'}),
+        }
+        for reason, manifest in cases.items():
+            manifest['fetch'][0] = {k: v for k, v in manifest['fetch'][0].items() if v is not None}
+            with self.subTest(reason), self.assertRaises(pm.ManifestError) as caught:
+                pm.check(manifest, MUSIC_ENGLISH)
+            if reason == '"each" asks once per value':
+                self.assertIn('"multiple"', str(caught.exception))
+            elif reason != 'search':
+                self.assertIn(reason, str(caught.exception))
+
+    def test_a_value_fits_its_option_or_not(self):
+        artists, kinds, tags = pm.check(music(), MUSIC_ENGLISH)['tiles'][0]['options']
+        picks = [{'value': '9635624', 'label': 'Billie Eilish'}, {'value': '27'}]
+        self.assertEqual(pm.option_value(artists, picks), [picks[0], {'value': '27', 'label': '27'}])
+        self.assertEqual(pm.option_value(kinds, [{'value': 'single', 'label': 'Singles'}]), [{'value': 'single', 'label': 'Singles'}])
+        self.assertEqual(pm.option_value(tags, ['a', 'b']), ['a', 'b'])
+        single = {**artists, 'multiple': None}
+        self.assertEqual(pm.option_value(single, {'value': '1', 'label': 'One'}), {'value': '1', 'label': 'One'})
+        self.assertEqual(pm.option_value(single, ''), '')
+        for option, value in ((artists, ['9635624']), (artists, picks * 5), (artists, [picks[0], picks[0]]),
+                              (kinds, [{'value': 'ep', 'label': 'EP'}]), (tags, ['a', '']), (tags, 'a'),
+                              (tags, ['x' * 65]), (artists, [{'value': '1', 'label': 'x', 'more': 1}]), (single, '1')):
+            with self.subTest(value=value), self.assertRaises(pm.ManifestError):
+                pm.option_value(option, value)
+
+    def test_the_stored_shape(self):
+        ok = {'artists': [{'value': '1', 'label': 'One'}], 'tags': ['a'], 'pick': {'value': '2', 'label': ''},
+              'n': 3, 'on': True, 'word': 'x'}
+        self.assertTrue(core.plugin_options(ok))
+        for wrong in ({'a': [[1]]}, {'a': [{'value': ''}]}, {'a': ['x'] * 17}, {'a': {'value': '1', 'deep': {}}},
+                      {'a': [{'value': '1', 'label': 'é' * 65}]}, {'a': [1]},
+                      {f'o{i}': [{'value': f'{i}{j}', 'label': 'l' * 60} for j in range(4)] for i in range(5)}):
+            with self.subTest(wrong=str(wrong)[:60]):
+                self.assertFalse(core.plugin_options(wrong))
+
+    def test_one_number_everywhere(self):
+        self.assertEqual((core.PLUGIN_LIST_MAX, core.PLUGIN_OPTIONS_BYTES), (pm.MAX_MULTIPLE, pm.OPTIONS_BYTES))
+        model = (ROOT / 'web/src/model/plugins.ts').read_text()
+        self.assertTrue(f'PLUGIN_OPTIONS_BYTES = {pm.OPTIONS_BYTES}' in model, 'the editor keeps another budget')
+        self.assertTrue(f'PLUGIN_LIST_MAX = {pm.MAX_MULTIPLE}' in model, 'the editor keeps another list length')
+
+    def test_words_and_joins(self):
+        self.assertEqual(plugin_fetch.words_of({'on': True, 'off': False, 'n': 3.0, 'x': 2.5, 'pick': {'value': '7', 'label': 'L'},
+                                                'list': [{'value': 'a'}, 'b', {'value': ''}]}),
+                         {'on': 'true', 'off': 'false', 'n': '3', 'x': '2.5', 'pick': '7', 'list': ['a', 'b']})
+        fetch = {'url': 'https://api.example.org/q?ids={ids|,}&k={key}', 'headers': {'X-Ids': '{ids|;}'},
+                 'placeholders': ['ids', 'key']}
+        url, headers = plugin_fetch.fill(fetch, {'ids': ['a b', 'c,d']}, {'key': 's'})
+        self.assertEqual(url, 'https://api.example.org/q?ids=a%20b,c%2Cd&k=s')
+        self.assertEqual(headers, {'X-Ids': 'a b;c,d'})
+        with self.assertRaises(plugin_fetch.FetchRefused):
+            plugin_fetch.fill(fetch, {'ids': []}, {'key': 's'})
+        with self.assertRaises(plugin_fetch.FetchRefused):
+            plugin_fetch.fill({'url': 'https://x.org/{ids}', 'headers': {}, 'placeholders': ['ids']}, {'ids': ['a']}, {})
+
+    def service(self, answers):
+        import plugins as plugin_service
+        from types import SimpleNamespace
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+
+        class FakeManager:
+            ha = type('HA', (), {'states': {}, 'time_zone': 'UTC', 'changed': asyncio.Event(), 'dirty': set()})()
+            page_senders, layouts = {}, {}
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', Path(tmp.name) / 'esphome')
+        asked = []
+
+        async def download(url, headers, network):
+            asked.append(url)
+            answer = answers.get(url)
+            if isinstance(answer, Exception) or answer is None:
+                raise answer or OSError('HTTP 404')
+            return answer
+        service.fetcher.download = download
+        service.secret_values = lambda entry, inbox=None: {}
+        checked = pm.check(music(), MUSIC_ENGLISH)
+        entry = SimpleNamespace(id='music', manifest=checked, fetch=lambda i: next(f for f in checked['fetch'] if f['id'] == i),
+                                tile=lambda i: checked['tiles'][0], text=lambda key, language='en': key)
+        return service, entry, checked['tiles'][0], asked
+
+    ALBUMS = 'https://api.deezer.com/artist/{}/albums?limit=25'
+
+    async def test_one_ask_per_artist_and_one_list_newest_first(self):
+        answers = {self.ALBUMS.format('1'): {'data': [{'title': 'Old', 'release_date': '2024-01-01', 'record_type': 'album'},
+                                                      {'title': 'Newest', 'release_date': '2026-10-01', 'record_type': 'single'}]},
+                   self.ALBUMS.format('2'): {'data': [{'title': 'Middle', 'release_date': '2025-05-05', 'record_type': 'album'}]}}
+        service, entry, tile, asked = self.service(answers)
+        chosen = service.values_of(entry, tile, {'artists': [{'value': '1', 'label': 'One'}, {'value': '2', 'label': 'Two'}]})
+        data = await service.tile_data(entry, tile, chosen)
+        self.assertEqual(sorted(asked), sorted(answers))
+        self.assertEqual([(i['title'], i['artist'], i['id']) for i in data['items']],
+                         [('Newest', 'One', '1'), ('Middle', 'Two', '2'), ('Old', 'One', '1')])
+        self.assertNotIn('stale', data)
+        # A second tile with one of the same artists shares its ask.
+        await service.tile_data(entry, tile, service.values_of(entry, tile, {'artists': [{'value': '2', 'label': 'Two'}]}))
+        self.assertEqual(len(asked), 2)
+
+    async def test_an_artist_that_fails_is_left_out_and_the_list_is_stale(self):
+        service, entry, tile, _ = self.service({self.ALBUMS.format('1'): {'data': [{'title': 'A', 'release_date': '2026-01-01'}]},
+                                                self.ALBUMS.format('2'): OSError('HTTP 503')})
+        data = await service.tile_data(entry, tile, service.values_of(entry, tile, {'artists': [
+            {'value': '1', 'label': 'One'}, {'value': '2', 'label': 'Two'}]}))
+        self.assertEqual([i['title'] for i in data['items']], ['A'])
+        self.assertTrue(data['stale'])
+        none = await service.tile_data(entry, tile, service.values_of(entry, tile, {'artists': [{'value': '2', 'label': 'Two'}]}))
+        self.assertEqual(none, {'wait': 'failed'})
+        empty = await service.tile_data(entry, tile, service.values_of(entry, tile, {}))
+        self.assertEqual(empty, {'wait': 'not_filled'})
+
+    async def test_a_search_asks_with_what_was_typed(self):
+        url = 'https://api.deezer.com/search/artist?q=billie%20e'
+        service, entry, _, asked = self.service({url: {'data': [{'id': 9635624, 'name': 'Billie Eilish'}]}})
+        service.known = lambda plugin, inbox=None: entry
+        out = await service.choices('music', 'artist_search', {'kinds': [{'value': 'album', 'label': 'Albums'}]}, search=' billie e ')
+        self.assertEqual(out, {'choices': [{'value': '9635624', 'label': 'Billie Eilish'}]})
+        self.assertEqual(asked, [url])
+        self.assertEqual(service.fetcher.cache[next(iter(service.fetcher.cache))]['every'], 600)
+        self.assertEqual(await service.choices('music', 'artist_search', {}), {'choices': [], 'wait': 'not_filled'})
+
+    async def test_the_options_count_in_the_message(self):
+        service, entry, tile, _ = self.service({})
+        service.known = lambda plugin, inbox=None: entry
+        long = [{'value': f'{i:02d}' * 30, 'label': 'L' * 60} for i in range(8)]
+        items = {'items': [{'title': 'x' * 40, 'n': i} for i in range(60)]}
+
+        async def data(*args, **kwargs):
+            return dict(items)
+        service.tile_data = data
+        message = await service.tile_message(0, {'entity': 'plugin:music.releases', 'name': 'N' * 80,
+                                                 'options': {'plugin': {'artists': long}}})
+        import page_delivery
+        size = len(json.dumps({**message, 'v': 2, 'session': '0' * 16, 'seq': 0xFFFFFFFF, 'rev': '0' * 16, 'slot': 63},
+                              ensure_ascii=False, separators=(',', ':')).encode())
+        self.assertLessEqual(size, page_delivery.MAX_MESSAGE)
+        self.assertGreater(len(message['x']['items']), 10)
+
+
+class CardPictures(unittest.TestCase):
+    """Pictures on a plugin's card over the page (plugin API 0.13): the manifest's `pictures` of a card, the card's
+    question, and where its pictures may come from."""
+
+    def checked(self, **card):
+        data = manifest(api='0.13', cards=[{'id': 'release', 'name': 'tile', **card}])
+        return pm.check(data, ENGLISH)
+
+    def question(self, **changes):
+        request = {'tiles': 'plugin:bus.release', 'idx': '0', 'card': '1', 'for': '', 'bg': '202020', 'dark': '0',
+                   'atlas': '[[300,0,160,160,8,0]]', 'src': '["https://api.example.org/cover.jpg"]', 'fit': '["cover"]'}
+        request.update(changes)
+        return plugin_pictures.parse(request, (480, 480))
+
+    def test_a_card_may_have_places(self):
+        self.assertEqual(self.checked(pictures=1)['cards'][0]['pictures'], 1)
+        self.assertEqual(self.checked()['cards'][0]['pictures'], 0)           # none without the field, as before
+        for wrong in (9, -1, 1.5, 'one'):
+            with self.subTest(wrong), self.assertRaises(pm.ManifestError):
+                self.checked(pictures=wrong)
+
+    def test_the_question_names_the_card_and_what_it_shows(self):
+        q = self.question()
+        self.assertEqual((q.card, q.plugin, q.tile, q.index, q.of), (True, 'bus', 'release', None, ''))
+        self.assertEqual(self.question(**{'for': 'media_player.kitchen'}).of, 'media_player.kitchen')
+        self.assertEqual(self.question(idx='').index, None)                    # a card has no index of its own
+        for bad in ({'for': 'screen.clock'}, {'for': 'not an entity'}, {'tiles': 'media_player.kitchen'}):
+            self.assertIsNone(self.question(**bad), bad)
+        tile = plugin_pictures.parse({'tiles': 'plugin:bus.next', 'idx': '3', 'bg': '202020', 'atlas': '[[0,0,60,90,6,0]]',
+                                      'src': '["https://api.example.org/a.jpg"]'}, (480, 480))
+        self.assertFalse(tile.card)   # a tile's question as before
+
+    def test_where_a_cards_picture_may_come_from(self):
+        checked = self.checked(pictures=1)
+        card = checked['cards'][0]
+        self.assertEqual(plugin_pictures.allowed('https://api.example.org/cover.jpg', checked, card, False), 'network')
+        self.assertIsNone(plugin_pictures.allowed('https://image.tmdb.org/cover.jpg', checked, card, False))
+        # Home Assistant's own pictures only for a card shown for an entity of the layout.
+        self.assertIsNone(plugin_pictures.allowed('/api/image_proxy/media_player.kitchen', checked, card, False))
+        self.assertEqual(plugin_pictures.allowed('/api/image_proxy/media_player.kitchen', checked, card, True), 'home_assistant')
+        self.assertIsNone(plugin_pictures.allowed('https://api.example.org/cover.jpg', checked, self.checked()['cards'][0], False))
+        q = self.question()
+        self.assertIsNone(plugin_pictures.refused(q, checked, card, False))
+        self.assertIn('no pictures', plugin_pictures.refused(q, self.checked(), self.checked()['cards'][0], False))
+        self.assertIn('no such card', plugin_pictures.refused(q, checked, None, False))
+        self.assertIn('allows 1', plugin_pictures.refused(self.question(atlas='[[0,0,60,60,0,0],[100,0,60,60,0,0]]',
+                                                                        src='["https://api.example.org/a.jpg","https://api.example.org/b.jpg"]',
+                                                                        fit='["cover","cover"]'), checked, card, False))

@@ -7,7 +7,8 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "screen_manager/app"))
 from core import Grid
 from layout_migrations import migrate_legacy
-from page_delivery import Sender, DeliveryError, Refused, Superseded, configuration, bar_value_messages, grids_of
+import tile_icons
+from page_delivery import Sender, DeliveryError, Refused, Superseded, configuration, bar_value_messages, grids_of, page_message
 
 
 class Screen:
@@ -455,6 +456,27 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         count = len(self.screen.messages)
         self.assertFalse(await self.sender.auxiliary(message, session=old_session, revision=old_revision))
         self.assertEqual(len(self.screen.messages), count)
+
+
+class DockMessageTests(unittest.TestCase):
+    def test_only_a_page_left_out_of_the_dock_says_so(self):
+        # Every other page message stays as it was, so firmware from before the Dock and every saved fingerprint agree.
+        page = {"id": "0000000000000001", "navigation": {"excludeFromPagination": False},
+                "topbar": {"leading": [], "title": {"source": "screen"}, "trailing": []}, "tiles": []}
+        self.assertNotIn("dock", page_message(page, 0, [], initial=True))
+        page["navigation"]["showInDock"] = True
+        self.assertNotIn("dock", page_message(page, 0, [], initial=True))
+        page["navigation"]["showInDock"] = False
+        self.assertIs(page_message(page, 0, [], initial=True)["dock"], False)
+        self.assertNotIn("dock", page_message(page, 0, [], initial=False))
+
+    def test_a_page_icon_travels_as_its_codepoint(self):
+        page = {"id": "0000000000000001", "navigation": {"excludeFromPagination": False},
+                "topbar": {"leading": [], "title": {"source": "screen"}, "trailing": []}, "tiles": []}
+        self.assertNotIn("icon", page_message(page, 0, [], initial=True))
+        page["icon"] = "sofa"
+        self.assertEqual(page_message(page, 0, [], initial=True)["icon"], tile_icons.GLYPHS["sofa"])
+        self.assertNotIn("icon", page_message(page, 0, [], initial=False))
 
 
 if __name__ == "__main__": unittest.main()

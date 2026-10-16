@@ -1,6 +1,8 @@
 #pragma once
 // A light group's lamp page (firmware 0.3.9+, app 0.3.16+): the lamps of the group, one card per lamp, reached from the
-// lamps key beside the sparkles key on the group's colour card.
+// lamps key beside the sparkles key on the group's colour card. A cover group's page (firmware 0.57.0) is the same page:
+// one card per cover, reached from the key at the same place on the group's cover card, each with its position bar (or
+// its open, stop and close) and, for a blind with slats, the ellipsis key that opens its tilt.
 //
 // Every part is one the screens already draw: the top bar and the cards of the effects page, the colour card's
 // brightness slider (amber fill, the white handle inside the fill, an off lamp only its track) and its colour and
@@ -11,6 +13,7 @@
 // Like the effects page, the page is built when it opens and thrown away when it closes, so it costs nothing while
 // closed. The model part (which lamps, where the cards stand, the values) stays free of LVGL for tests/test_group_page.cpp.
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -21,14 +24,23 @@
 #include "ui_scale.h"
 
 namespace group_page {
+using runtime_tiles::Blind;
 using runtime_tiles::Lamp;
 using runtime_tiles::Tile;
 
 // The fallback range of a white-shade slider when the lamp names none.
 constexpr int KELVIN_LOW = 2000, KELVIN_HIGH = 6500;
 
-// Whether a light has a lamp page: it is a group with lamps.
-inline bool available(const Tile &t) { return t.domain() == "light" && !t.extra().lamps.empty(); }
+// Whether a tile has a group page: a light group with lamps, a cover group with covers.
+// A cover group's page is the module cover_groups (tier full, docs/MODULES.md); a lite screen has light groups only.
+inline bool available(const Tile &t) {
+#ifdef SD_MOD_COVER_GROUPS
+  if (t.domain() == "cover") return !t.extra().blinds.empty();
+#endif
+  return t.domain() == "light" && !t.extra().lamps.empty();
+}
+// How many members the page shows.
+inline size_t members(const Tile &t) { return t.domain() == "cover" ? t.extra().blinds.size() : t.extra().lamps.size(); }
 // Whether a lamp gets the ellipsis key: it takes a colour or a white shade, and answers at all.
 inline bool has_panel(const Lamp &l) { return !l.unavailable && (l.color || l.temperature); }
 // The white-shade range of a lamp, its own when it names one.
@@ -73,6 +85,7 @@ inline Layout layout(int count, const Room &r) {
 #include <cstdio>
 #include "esphome/core/log.h"
 #include "lvgl.h"
+#include "cover_paint.h"
 #include "effects_page.h"
 #include "light_controls.h"
 #include "overlay_card.h"
@@ -95,8 +108,10 @@ inline std::string entity;   // the group
 inline int page = 0;
 struct Card {
   lv_obj_t *box = nullptr, *icon = nullptr, *slider = nullptr, *knob = nullptr, *key = nullptr;
+  // A cover's open, stop and close where it has no position (firmware 0.57.0).
+  std::array<lv_obj_t *, 3> keys{};
   std::string entity;
-  bool dirty = false;
+  bool dirty = false, cover = false;
 };
 inline std::vector<Card> cards;
 // The panel of one lamp: the sheet under it that closes it, the panel, and its sliders.
@@ -109,6 +124,10 @@ inline uint32_t clock() { return effects_page::clock(); }
 inline const Tile *tile() { return effects_page::tile_of ? effects_page::tile_of(entity) : nullptr; }
 inline const Lamp *lamp_of(const std::string &lamp) {
   if (const Tile *t = tile()) for (auto &l : t->extra().lamps) if (l.entity == lamp) return &l;
+  return nullptr;
+}
+inline const Blind *blind_of(const std::string &cover) {
+  if (const Tile *t = tile()) for (auto &b : t->extra().blinds) if (b.entity == cover) return &b;
   return nullptr;
 }
 inline bool offered(const std::string &group) {
@@ -220,29 +239,21 @@ inline lv_obj_t *gradient_slider(lv_obj_t *box, int x, int y, int w, int h, bool
   return s;
 }
 inline void open_panel(int index);
+#ifdef SD_MOD_COVER_GROUPS
+inline void open_cover_panel(int index);  // module cover_groups
+#endif
 inline void key_event(lv_event_t *e) {
   if (!effects_page::steady()) return;
   open_panel(static_cast<int>(reinterpret_cast<intptr_t>(lv_event_get_user_data(e))));
 }
-inline void open_panel(int index) {
-  if (!root || index < 0 || index >= static_cast<int>(cards.size()) || !cards[index].key) return;
-  const bool same = index == panel_card;
-  close_panel();
-  const Lamp *l = lamp_of(cards[index].entity);
-  if (same || !l || !has_panel(*l)) return;
-  panel_card = index;
+// The panel of a member's ellipsis key, `w` x `h`: under the key, over it where the glass ends, never over the top bar or
+// past the bottom, with the sheet that closes it.
+inline void make_panel(int index, int w, int h) {
   const bool large = ui::large();
   const auto em = effects_page::screen_metrics();
   lv_obj_update_layout(root);
   lv_area_t k; lv_obj_get_coords(cards[index].key, &k);
   lv_area_t r; lv_obj_get_coords(root, &r);
-  const lv_font_t *font = effects_page::row_font;
-  const int rows = (l->color ? 1 : 0) + (l->temperature ? 1 : 0);
-  const int pad = ui::px(large ? 8 : 4), inset = ui::px(large ? 14 : 7), text_y = ui::px(large ? 10 : 4);
-  const int track_h = ui::px(large ? 28 : 16), text_h = lv_font_get_line_height(font), foot = ui::px(large ? 12 : 6);
-  const int row_h = text_y + text_h + ui::px(large ? 10 : 5) + track_h + foot;
-  const int w = std::min(em.width - 2 * em.pad, ui::px(large ? 320 : 220)), h = rows * row_h + 2 * pad;
-  // Under the key, over it where the glass ends, never over the top bar or past the bottom.
   int x = std::max(em.pad, static_cast<int>(k.x2 - r.x1) - w), y = k.y2 - r.y1 + ui::px(large ? 6 : 3);
   if (y + h > em.height - ui::px(4)) y = k.y1 - r.y1 - h - ui::px(large ? 6 : 3);
   y = std::max(em.bar_y, std::min(y, em.height - h - ui::px(4)));
@@ -252,13 +263,33 @@ inline void open_panel(int index) {
   catcher = effects_page::plain(root, -side, 0, overlay_card::screen_width(), em.height);
   lv_obj_add_flag(catcher, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(catcher, [](lv_event_t *) { lv_async_call([](void *) { close_panel(); }, nullptr); }, LV_EVENT_PRESSED, nullptr);
-  // The key of the lamp the panel belongs to stays dark while it is open.
+  // The key of the member the panel belongs to stays dark while it is open.
   lv_obj_set_style_bg_color(cards[index].key, theme::color(theme::KEY_PRESSED), 0);
   panel = effects_page::card(root, x, y, w, h, ui::px(large ? 18 : 10));
   lv_obj_set_style_shadow_width(panel, ui::px(large ? 24 : 14), 0);
   lv_obj_set_style_shadow_opa(panel, LV_OPA_20, 0);
   lv_obj_set_style_shadow_offset_y(panel, ui::px(large ? 4 : 2), 0);
   lv_obj_add_flag(panel, LV_OBJ_FLAG_CLICKABLE);  // a tap between the sliders stays on the panel
+}
+inline void open_panel(int index) {
+  if (!root || index < 0 || index >= static_cast<int>(cards.size()) || !cards[index].key) return;
+  const bool same = index == panel_card;
+  close_panel();
+#ifdef SD_MOD_COVER_GROUPS
+  if (cards[index].cover) { if (!same) open_cover_panel(index); return; }
+#endif
+  const Lamp *l = lamp_of(cards[index].entity);
+  if (same || !l || !has_panel(*l)) return;
+  panel_card = index;
+  const bool large = ui::large();
+  const lv_font_t *font = effects_page::row_font;
+  const int rows = (l->color ? 1 : 0) + (l->temperature ? 1 : 0);
+  const int pad = ui::px(large ? 8 : 4), inset = ui::px(large ? 14 : 7), text_y = ui::px(large ? 10 : 4);
+  const int track_h = ui::px(large ? 28 : 16), text_h = lv_font_get_line_height(font), foot = ui::px(large ? 12 : 6);
+  const int row_h = text_y + text_h + ui::px(large ? 10 : 5) + track_h + foot;
+  const auto em = effects_page::screen_metrics();
+  const int w = std::min(em.width - 2 * em.pad, ui::px(large ? 320 : 220)), h = rows * row_h + 2 * pad;
+  make_panel(index, w, h);
   panel_sliders.reserve(2);
   int row = 0;
   for (int kind = 0; kind < 2; ++kind) {
@@ -428,6 +459,13 @@ inline void member_card(lv_obj_t *parent, int x, int y, int w, int h, const Lamp
   paint(cards.back(), l, true);
 }
 
+// ---- a cover group's cards: the module cover_groups (docs/MODULES.md) ----
+#define SMART_DISPLAY_COVER_GROUPS_SITE
+#ifdef SD_MOD_COVER_GROUPS
+#include "module_cover_groups.h"
+#endif
+#undef SMART_DISPLAY_COVER_GROUPS_SITE
+
 // ---- the page ----
 inline void draw();
 inline void pager_step(int step) {
@@ -453,19 +491,32 @@ inline void draw() {
   detail_bar::make(root, t ? (t->name.empty() ? t->entity : t->name) : entity, {detail_bar::BACK, back_event});
   if (!t) return;
   const auto &lamps = t->extra().lamps;
-  const Layout l = layout(static_cast<int>(lamps.size()), room());
+  const bool covers = t->domain() == "cover";
+#ifdef SD_MOD_COVER_GROUPS
+  const auto &blinds = t->extra().blinds;
+#endif
+  const int count = static_cast<int>(members(*t));
+  const Layout l = layout(count, room());
   page = std::max(0, std::min(page, l.pages - 1));
-  const int first = page * l.per_page, shown = std::min(l.per_page, static_cast<int>(lamps.size()) - first);
+  const int first = page * l.per_page, shown = std::min(l.per_page, count - first);
   cards.reserve(std::max(0, shown));
-  for (int i = 0; i < shown; ++i) member_card(root, em.pad + l.card_x(i), l.card_y(i), l.card_w, l.card_h, lamps[first + i], i);
+  for (int i = 0; i < shown; ++i) {
+#ifdef SD_MOD_COVER_GROUPS
+    if (covers) { blind_card(root, em.pad + l.card_x(i), l.card_y(i), l.card_w, l.card_h, blinds[first + i], i); continue; }
+#endif
+    member_card(root, em.pad + l.card_x(i), l.card_y(i), l.card_w, l.card_h, lamps[first + i], i);
+  }
   if (l.pages > 1) pager(l);
-  ESP_LOGI("group", "Lamp page of %s: %u lamps, page %d of %d, %d a page", entity.c_str(), (unsigned) lamps.size(), page + 1, l.pages, l.per_page);
+  ESP_LOGI("group", "%s page of %s: %d, page %d of %d, %d a page", covers ? "Cover" : "Lamp", entity.c_str(), count, page + 1, l.pages, l.per_page);
 }
 // A state of the group while its page is open: the cards follow Home Assistant, a card just sent keeps its value a
 // moment, a slider under a finger is left alone. A group that gained or lost lamps is drawn again, unless a finger
 // is on the page.
 inline void updated(const Tile &t) {
   if (!root || t.entity != entity) return;
+#ifdef SD_MOD_COVER_GROUPS
+  if (t.domain() == "cover") { cover_updated(t); return; }
+#endif
   const auto &lamps = t.extra().lamps;
   if (lamps.empty()) { close(); return; }
   const Layout l = layout(static_cast<int>(lamps.size()), room());

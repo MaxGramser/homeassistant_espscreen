@@ -21,6 +21,31 @@ from i18n import t
 
 LOG = logging.getLogger('screen_manager')
 
+# What a build gets of the container's environment. ESPHome runs the Python of every external component while it
+# builds a screen, a plugin's too, inside this app's container (docs/PLUGINS.md, "Where a plugin's code runs"), so a
+# build never gets the whole environment: the Supervisor's token in it would hand any plugin the app's own standing
+# with Home Assistant. The names and the families the compilers, ESPHome, ESP-IDF, PlatformIO, ccache, pip, git and
+# Python read pass; nothing else does, and a name that spells a token or a password never, whatever family it is in.
+BUILD_ENV_NAMES = frozenset({'PATH', 'HOME', 'LANG', 'LANGUAGE', 'TZ', 'TMPDIR', 'TMP', 'TEMP', 'TERM', 'USER', 'LOGNAME',
+                             'SHELL', 'VIRTUAL_ENV', 'NO_COLOR', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy',
+                             'https_proxy', 'no_proxy', 'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE'})
+BUILD_ENV_PREFIXES = ('ESPHOME_', 'ESP_IDF_', 'IDF_', 'PLATFORMIO_', 'CCACHE_', 'CMAKE_', 'NINJA_', 'PIP_', 'PYTHON', 'XDG_',
+                      'LC_', 'GIT_', 'SSL_', 'ESP_SCREENS_')
+BUILD_ENV_NEVER = ('TOKEN', 'SECRET', 'PASSWORD', 'PASSWD', 'CREDENTIAL')
+
+
+def build_environment(environ):
+    """What a build gets of `environ` (the container's): BUILD_ENV_NAMES and the BUILD_ENV_PREFIXES families, never a
+    name of BUILD_ENV_NEVER or the Supervisor's own (SUPERVISOR_, HASSIO_)."""
+    out = {}
+    for key, value in environ.items():
+        upper = key.upper()
+        if upper.startswith(('SUPERVISOR_', 'HASSIO_')) or any(word in upper for word in BUILD_ENV_NEVER):
+            continue
+        if key in BUILD_ENV_NAMES or key.startswith(BUILD_ENV_PREFIXES):
+            out[key] = value
+    return out
+
 # libyaml parses a 300 KB profile roughly ten times faster than the pure-Python loader.
 class LenientLoader(yaml.CSafeLoader if getattr(yaml, '__with_libyaml__', False) else yaml.SafeLoader):
     """Reads profile metadata without resolving !secret or !include."""
@@ -1034,8 +1059,11 @@ packages:
         nothing says otherwise, as PlatformIO ran them (ESP-IDF's ninja would start two more, and each takes a few
         hundred MB next to Home Assistant on a small Raspberry Pi; ESPHome's own limit, which the official ESPHome app
         sets too), fewer when the memory that is free says so. A limit the owner set in the add-on's environment stands.
-        The ccache options let a compile cache GitHub made answer here (build_cache, app 0.4.49)."""
-        return {**os.environ, 'ESPHOME_BUILD_PATH': str(self.data / 'build' / profile.stem),
+        The ccache options let a compile cache GitHub made answer here (build_cache, app 0.4.49).
+
+        Of the container's own environment only what the build tools read goes in (build_environment): ESPHome runs a
+        plugin's Python during the build, and the app's token for Home Assistant is not its to have."""
+        return {**build_environment(os.environ), 'ESPHOME_BUILD_PATH': str(self.data / 'build' / profile.stem),
                 'ESPHOME_DATA_DIR': str(self.data / 'esphome'), 'ESPHOME_ESP_IDF_PREFIX': str(self.data / 'idf'),
                 'CCACHE_MAXSIZE': os.environ.get('CCACHE_MAXSIZE', self.CCACHE_SIZE),
                 **{key: os.environ.get(key, value) for key, value in build_cache.CCACHE_ENV.items()},

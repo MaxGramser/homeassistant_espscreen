@@ -9,13 +9,13 @@ import { spanOf } from "./sizes";
 type Needs = { actions?: { action: string; field?: string }[]; features?: string[]; attributes?: string[]; history?: string; unless?: Needs };
 type Screen = { firmware?: string; feature?: string; pictures?: boolean; else?: string };
 type Option = { key: string; needs?: Needs; screen?: Screen; sizes?: { full: boolean }; wide?: boolean; rows?: number; of?: string[];
-  one_row?: string; fallback?: string; range?: { when?: Needs; screen?: Screen } };
+  one_row?: string; fallback?: string; range?: { when?: Needs; screen?: Screen }; room?: Screen };
 // What one tile of a type keeps in the memory inside a screen's chip (firmware 0.34.0+, model/memory.ts).
 export type TypeMemory = { bytes: number; extras: boolean };
 type Type = { firmware: string | null; key: boolean; memory: TypeMemory; cards?: Record<string, TypeMemory>; features: Record<string, number>; actions: Record<string, string[][]>;
   displays: Option[]; controls: Option[]; inline: Option | null; toggle: Needs | null; taps: string[]; guards: string[]; picture: Record<string, unknown[]> | null;
   map: { framing: string[]; distance: string[]; overlay: string[]; follow: string[]; markers: string[]; names: string[];
-    zones: string[]; streets: string[]; look: string[]; with: string[]; max: number } | null; favorite?: Option[]; energy?: { flow: string[] } };
+    zones: string[]; streets: string[]; look: string[]; with: string[]; max: number } | null; favorite?: Option[]; energy?: { flow: string[] }; grow?: string[] };
 type Attributes = Record<string, any>;
 
 export const TYPES = data.domains as unknown as Record<string, Type>;
@@ -25,6 +25,11 @@ export const DOMAINS = new Set(Object.keys(TYPES));
 export const ofType = (domain: string): Type | undefined => TYPES[domain];
 export const controlKeys = (domain: string) => (TYPES[domain]?.controls ?? []).map((item) => item.key);
 export const displayKeys = (domain: string) => (TYPES[domain]?.displays ?? []).map((item) => item.key);
+/** What a tile that grows suggests first, the richest first (catalogue `grow`), then the type's other sets in its order. */
+export const growOrder = (domain: string) => [...new Set([...(TYPES[domain]?.grow ?? []), ...controlKeys(domain)])];
+/** The parts of a control set: a pair's two, any other its own, none none. */
+export const controlParts = (domain: string, key: string | null | undefined): string[] =>
+  !key || key === "none" ? [] : controlOption(domain, key)?.of ?? [key];
 export const controlOption = (domain: string, key: string | null | undefined) => TYPES[domain]?.controls.find((item) => item.key === key);
 export const displayOption = (domain: string, key: string | null | undefined) => TYPES[domain]?.displays.find((item) => item.key === key);
 /** Home Assistant's feature bits of a type by their names (catalogue/_ha.json, from its source), joined. */
@@ -57,17 +62,39 @@ export function screenHolds(requirement: Screen | undefined, features: Set<strin
 /** Rows a size is high on the card: tall and square two, a span its own, the rest one. */
 const sizeRows = (size: unknown) => spanOf(size)?.rows ?? (size === "tall" || size === "square" ? 2 : 1);
 
+/** Whether a card is one cell (catalogue.one_cell): the single size, or a span of one column and one row. */
+export const oneCell = (size: unknown) => size === undefined || size === null || size === "" || size === "single"
+  || (spanOf(size)?.columns === 1 && spanOf(size)?.rows === 1);
+
 /** The control set a card draws, or null (catalogue.resolve_controls): the chosen one or its type's default, and on a
- * card one row high what fits there (`one_row`). */
+ * card one row high what fits there (`one_row`). A control the screen lays out by its room (`room`, firmware 0.57.0)
+ * stays whole on any card, a card of one cell included where it was chosen. */
 export function resolveControls(tile: { entity: string; options?: Record<string, any> }): string | null {
   const o = tile.options || {}, domain = tile.entity.split(".")[0], keys = controlKeys(domain), size = o.size, span = spanOf(size);
-  if (!keys.length || (!["wide", "tall", "square", "full"].includes(size) && !span)
-      || !["standard", "cover"].includes(o.display ?? "standard") || o.inline === "slider") return null;
+  if (!keys.length || !["standard", "cover"].includes(o.display ?? "standard") || o.inline === "slider") return null;
+  if (oneCell(size)) {
+    const choice: string = o.controls ?? "none";
+    return choice !== "none" && controlOption(domain, choice)?.room ? choice : null;
+  }
+  if (!["wide", "tall", "square", "full"].includes(size) && !span) return null;
   const fallback = ["tall", "full"].includes(size) || span?.columns === 1 ? "none" : keys[0];
   let choice: string = o.controls ?? fallback;
   const item = controlOption(domain, choice);
-  if (item?.one_row && sizeRows(size) === 1 && size !== "full") choice = item.one_row;
+  if (item?.one_row && !item.room && sizeRows(size) === 1 && size !== "full") choice = item.one_row;
   return choice === "none" ? null : choice;
+}
+
+/** Whether a type's controls are laid out by the screen's room (`room`): they may be chosen on a card of one cell. */
+export const roomControls = (domain: string) => (TYPES[domain]?.controls ?? []).some((item: Option) => Boolean(item.room));
+
+/** What a screen without `room`'s feature draws of a control resolveControls kept whole (catalogue.roomless): nothing on
+ * a card of one cell, the `one_row` part on a card one row high, the control itself elsewhere. */
+export function roomless(domain: string, key: string, size: unknown): string {
+  const item = controlOption(domain, key);
+  if (!item?.room) return key;
+  if (oneCell(size)) return "none";
+  if (item.one_row && sizeRows(size) === 1 && size !== "full") return item.one_row;
+  return key;
 }
 
 /** The control a screen draws for this entity in place of `key` (catalogue.drawable): the type's `fallback` where the
@@ -76,6 +103,9 @@ export function resolveControls(tile: { entity: string; options?: Record<string,
 export function drawable(domain: string, key: string, attributes: Attributes, features: Set<string> | null): string {
   const item = controlOption(domain, key);
   if (!item) return key;
+  // A set a screen draws once it says so in its hello (a player's volume over its keys, media_rows): another before then.
+  if (item.screen?.feature && item.screen.else !== undefined && !screenHolds(item.screen, features))
+    return item.screen.else === "none" ? "none" : drawable(domain, item.screen.else, attributes, features);
   if (item.of) {
     const parts = item.of.map((part) => drawable(domain, part, attributes, features));
     if (parts.every((part, i) => part === item.of![i])) return key;
@@ -92,6 +122,8 @@ export function drawable(domain: string, key: string, attributes: Attributes, fe
  * columns for a wide display, not the whole page where it may not stand there. */
 export function fits(item: Option | undefined, size: unknown, columns = 2) {
   if (!item) return true;
+  // A control the screen lays out by its room stands on any card (firmware 0.57.0); the screen draws what fits.
+  if (item.room) return !(item.sizes && item.sizes.full === false && size === "full");
   if (item.rows && item.rows > 1 && sizeRows(size) < item.rows && size !== "full") return false;
   if (item.wide && !(size === "wide" || size === "square" || size === "full" || (spanOf(size)?.columns ?? 1) > 1) && columns > 1) return false;
   if (item.sizes && item.sizes.full === false && size === "full") return false;

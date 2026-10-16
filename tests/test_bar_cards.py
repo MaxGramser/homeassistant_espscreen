@@ -51,6 +51,11 @@ class WhichEntities(unittest.TestCase):
         self.assertEqual(bar_cards(tiles), {'light.desk': 0, 'climate.hall': 1, 'switch.coffee': 3})
         wire, _ = header_bar.entity_item(item('switch.coffee'), {'switch.coffee': {'state': 'on', 'attributes': {}}}, card=3)
         self.assertEqual(wire['d'], 3)
+        # Whatever the item shows: its icon alone (GitHub #252) and when it last changed open the card too.
+        for content in ('icon', 'last_changed'):
+            states = {'switch.coffee': {'state': 'on', 'attributes': {}, 'last_changed': '2026-10-14T08:00:00+00:00'}}
+            wire, _ = header_bar.entity_item({**item('switch.coffee'), 'content': content}, states, card=3)
+            self.assertEqual(wire['d'], 3, content)
         # Without a card (an older screen, the preview) the item is as it always was.
         wire, _ = header_bar.entity_item(item('switch.coffee'), {'switch.coffee': {'state': 'on', 'attributes': {}}})
         self.assertNotIn('d', wire)

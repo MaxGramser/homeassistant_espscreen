@@ -22,7 +22,8 @@
   --danger-soft: #fdecea;
   --danger-ink: #ffffff;
   --seg: #f1f2f3;
-  /* What is open in the inspector (app 0.4.32): a tile in black, a page in the accent, the top bar in white. */
+  /* What is open in the inspector (app 0.4.32): a tile in black, a page in the accent, the top bar dashed in black. The
+     tile's and the bar's ring stand on the mockup, which keeps its light palette in either theme. */
   --kind-tile: #101112;
   --kind-page: #266df0;
   --kind-bar: #101112;
@@ -59,7 +60,7 @@
     --seg: #262626;
     --kind-tile: #000000;
     --kind-page: #3f6fe0;
-    --kind-bar: #e1e1e1;
+    --kind-bar: #000000;
     --shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45);
     --code-bg: #161616;
     --pop-shadow: 0 16px 44px rgba(0, 0, 0, 0.62), 0 2px 6px rgba(0, 0, 0, 0.4);

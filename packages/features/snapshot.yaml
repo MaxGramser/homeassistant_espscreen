@@ -14,6 +14,14 @@ api:
     - action: ui_snapshot
       then:
         - script.execute: capture_ui_snapshot
+    # The Dock opened from afar (docs/MODULES.md), so a snapshot can show it: a finger is the only other way. A board
+    # without the module does nothing.
+    - action: ui_dock
+      then:
+        - lambda: |-
+            #ifdef SD_MOD_DOCK
+            if (runtime_tiles::navigation_ready()) dock::show();
+            #endif
 
 script:
   - id: capture_ui_snapshot

@@ -166,7 +166,8 @@ describe("the parts that show them", () => {
   it("the tile's inspector: why, then the entities to choose, walked with the arrows and taken with Enter", async () => {
     const broken = useBrokenStore(), doc = useDocumentStore();
     await broken.show(broken.tiles[0]);
-    const fix = mount(TileEntityFix, { props: { tile: doc.currentTile! }, attachTo: document.body });
+    // Shown from the list of broken tiles, the entities take the place under the tile, with why at their head.
+    const fix = mount(TileEntityFix, { props: { tile: doc.currentTile!, aside: true }, attachTo: document.body });
     await flushPromises();
     expect(fix.find(".fix-words strong").text()).toBe(t("editor.broken.fix.missing"));
     expect(document.activeElement?.id).toBe("entity-fix-search");
@@ -180,18 +181,21 @@ describe("the parts that show them", () => {
     fix.unmount();
   });
 
-  it("the tile's inspector, for a tile that is fine: only when its menu asks, and it closes again", async () => {
+  it("the tile's inspector, for a tile that is fine: only in the place under the tile, when its menu asks", async () => {
     useInventoryStore().inventory.entities.push(entity("sensor.gone"));
     const doc = useDocumentStore();
     await openScreen("living");
     useInspectorStore().openTile(doc.layout!.tiles[0]);
     useInspectorStore().entityPickerOpen = false;
-    const fix = mount(TileEntityFix, { props: { tile: doc.currentTile! } });
-    expect(fix.find("#entity-fix").exists()).toBe(false);
+    const inline = mount(TileEntityFix, { props: { tile: doc.currentTile! } });
+    expect(inline.find("#entity-fix").exists()).toBe(false);
     useInspectorStore().entityPickerOpen = true;
     await flushPromises();
-    expect(fix.find(".fix-words strong").text()).toBe(t("editor.broken.fix.choose"));
-    await fix.find(".fix-close").trigger("click");
-    expect(fix.find("#entity-fix").exists()).toBe(false);
+    // Asked for, it stands in the place under the tile (aside), not among the settings; the head of that place names it
+    // and its Done closes it, so it has no head or close of its own.
+    expect(inline.find("#entity-fix").exists()).toBe(false);
+    const fix = mount(TileEntityFix, { props: { tile: doc.currentTile!, aside: true } });
+    expect(fix.find("#entity-fix").exists()).toBe(true);
+    expect(fix.find(".fix-head").exists()).toBe(false);
   });
 });

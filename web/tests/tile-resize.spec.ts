@@ -101,14 +101,51 @@ it('previews a pointer gesture without changing the document and cancels on Esca
   view.unmount(); host.remove();
 });
 
-it('gaining height never opts into a default control, through either resize route', () => {
+it('a tile that grows by its edge shows the richest set it has room for, and the tip asks (app 0.4.89)', () => {
   useInventoryStore().inventory.editor_features = { tall_tiles: true };
-  useInventoryStore().inventory.controls = { light: { default: 'toggle', choices: [{ key: 'toggle', label: 'Power' }, { key: 'none', label: 'None' }] } };
+  useInventoryStore().inventory.controls = { light: { default: 'toggle', choices: [{ key: 'toggle', label: 'Power' }, { key: 'brightness', label: 'Brightness' }, { key: 'none', label: 'None' }] } };
   expect(resizeTile(tile(), 'tall', 'rows')).toBe(true);
-  expect(tile().options?.controls).toBe('none');
+  expect(tile().options?.controls).toBe('brightness');
+  expect(useUiStore().growTip).toMatchObject({ before: 'single', size: 'tall', applied: 'brightness' });
   doc.undo();
+  expect(tile().options?.controls).toBeUndefined();
+  // The inspector's own route keeps what the tile had: nothing is suggested there.
   setTileOption(tile(), 'size', 'square');
   expect(tile().options?.controls).toBe('none');
+});
+
+const COVER = { default: 'buttons', choices: ['buttons', 'position', 'tilt', 'buttons_tilt', 'position_tilt', 'none'].map((key) => ({ key, label: key })) };
+const cover = (options = {}) => {
+  useInventoryStore().inventory.editor_features = { tall_tiles: true };
+  useInventoryStore().inventory.controls = { cover: COVER };
+  useInventoryStore().inventory.screens[0] = screenFixture({ ...useInventoryStore().inventory.screens[0], layout: { title: 'Home', tiles: [{ entity: 'cover.blind', name: 'Blind', slot: 0, options }] } });
+  useSessionStore().select(null); useSessionStore().select('test');
+};
+it.each([
+  [{ size: 'wide' }, 'square', 'position_tilt'],
+  [{ size: 'wide', controls: 'buttons' }, 'square', 'buttons_tilt'],
+  [{ size: 'wide', controls: 'position' }, 'square', 'position_tilt'],
+  [{}, 'tall', 'position_tilt'],
+  // A cover lays its controls out by its room (firmware 0.57.0): the slats come on a card one row high too.
+  [{}, 'wide', 'position_tilt'],
+])('a blind that grows keeps what it drew and gains what fits: %j to %s', (options, size, controls) => {
+  cover(options);
+  expect(resizeTile(tile(), size as never, size === 'wide' ? 'columns' : 'rows')).toBe(true);
+  expect(tile().options?.controls ?? 'buttons').toBe(controls);
+  expect(useUiStore().growTip?.size).toBe(size);
+});
+it('a tile that shrinks keeps what it has, and no tip shows', () => {
+  cover({ size: 'square', controls: 'buttons_tilt' });
+  expect(resizeTile(tile(), 'wide', 'rows')).toBe(true);
+  expect(tile().options?.controls).toBe('buttons_tilt');
+  expect(useUiStore().growTip).toBeNull();
+});
+it('a tile with a face without controls keeps it as it grows, and no tip shows', () => {
+  cover({ display: 'watch' });
+  expect(resizeTile(tile(), 'tall', 'rows')).toBe(true);
+  expect(tile().options?.display).toBe('watch');
+  expect(tile().options?.controls ?? 'none').toBe('none');
+  expect(useUiStore().growTip).toBeNull();
 });
 
 it('keeps already chosen controls when a wide tile gains height', () => {

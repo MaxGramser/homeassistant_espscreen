@@ -23,7 +23,7 @@ import time
 from datetime import datetime, timezone
 from urllib.parse import quote, urlsplit
 
-from plugin_manifest import MAX_ITEMS, PLACEHOLDER, parse_path
+from plugin_manifest import FETCH_PLACEHOLDER, MAX_ITEMS, PLACEHOLDER, parse_path
 
 log = logging.getLogger('plugin_fetch')
 
@@ -54,7 +54,7 @@ def walk(data, steps, values=None):
         for node in found:
             kind = step[0]
             if kind in ('key', 'var'):
-                name = step[1] if kind == 'key' else str((values or {}).get(step[1], ''))
+                name = step[1] if kind == 'key' else _word((values or {}).get(step[1], ''))
                 if isinstance(node, dict) and name in node:
                     nxt.append(node[name])
             elif kind == 'all':
@@ -141,7 +141,7 @@ def _filled(values, rules):
     for name, wanted in (rules or {}).items():
         words = []
         for word in wanted:
-            word = PLACEHOLDER.sub(lambda m: str(values.get(m.group(1), '')), word)
+            word = PLACEHOLDER.sub(lambda m: _word(values.get(m.group(1), '')), word)
             if word != '':
                 words.append(word)
         if words:
@@ -152,22 +152,39 @@ def _filled(values, rules):
 def _word(value):
     if isinstance(value, float) and value.is_integer():
         value = int(value)
-    return '' if value is None else str(value)
+    return '' if value is None or isinstance(value, (list, dict)) else str(value)
 
 
-def apply_map(spec, data, values=None):
-    """What the screen gets of one answer: `{"items": [...]}` for a list, or the fields of one object."""
+def _fields(spec, raw, pick):
+    """An item's fields; a field `{each: value|label}` (0.12) is the pick whose ask brought it."""
+    return {name: short((pick or {}).get(field['each'], '')) if 'each' in field else field_value(raw, field)
+            for name, field in spec['fields'].items()}
+
+
+def _sorted_and_cut(spec, items):
+    if spec.get('sort'):
+        name = spec['sort'].lstrip('-')
+        present = [i for i in items if i.get(name) is not None]
+        missing = [i for i in items if i.get(name) is None]
+        present.sort(key=lambda i: (isinstance(i[name], str), i[name]), reverse=spec['sort'].startswith('-'))
+        items = present + missing
+    return items[:min(spec.get('limit', MAX_ITEMS), MAX_ITEMS)]
+
+
+def apply_map(spec, data, values=None, pick=None):
+    """What the screen gets of one answer: `{"items": [...]}` for a list, or the fields of one object. `pick`: the
+    value of a fetch with `each` this answer belongs to, {value, label}."""
     values = values or {}
     if 'fields' not in spec:
         raise FetchRefused('this fetch fills a list of choices')
     if 'items' not in spec:
-        return {name: field_value(data, field) for name, field in spec['fields'].items()}
+        return _fields(spec, data, pick)
     keep, skip = _filled(values, spec.get('where')), _filled(values, spec.get('skip'))
     items = []
     for raw in walk(data, spec['items'], values):
         if not isinstance(raw, dict):
             continue
-        item = {name: field_value(raw, field) for name, field in spec['fields'].items()}
+        item = _fields(spec, raw, pick)
         if any(_word(item.get(name)) not in wanted for name, wanted in keep.items()):
             continue
         if any(_word(item.get(name)) in unwanted for name, unwanted in skip.items()):
@@ -175,13 +192,18 @@ def apply_map(spec, data, values=None):
         items.append(item)
         if len(items) >= 1000:
             break
-    if spec.get('sort'):
-        name = spec['sort'].lstrip('-')
-        present = [i for i in items if i.get(name) is not None]
-        missing = [i for i in items if i.get(name) is None]
-        present.sort(key=lambda i: (isinstance(i[name], str), i[name]), reverse=spec['sort'].startswith('-'))
-        items = present + missing
-    return {'items': items[:min(spec.get('limit', MAX_ITEMS), MAX_ITEMS)]}
+    return {'items': _sorted_and_cut(spec, items)}
+
+
+def apply_each(spec, answers):
+    """One list of the answers of a fetch with `each` (0.12), in the order of the picks: `answers` is [(data, values,
+    pick)]. Each answer is mapped on its own (its items, or one item for a map of one object), then `sort` and `limit`
+    work on them together: the newest releases of three artists, not three lists."""
+    items = []
+    for data, values, pick in answers:
+        mapped = apply_map(spec, data, values, pick)
+        items.extend(mapped['items'] if 'items' in spec else [mapped])
+    return {'items': _sorted_and_cut(spec, items)}
 
 
 def apply_choices(spec, data, values=None):
@@ -201,21 +223,48 @@ def apply_choices(spec, data, values=None):
 
 # ---- Filling in a fetch ----
 
+def word_of(value):
+    """An option's value as a fetch puts it in a URL (0.12, the same word wherever it comes from): true and false as
+    JSON writes them, a whole number without ".0", a pick as its value, a list as a list of those."""
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    if isinstance(value, dict):
+        return str(value.get('value', ''))
+    if isinstance(value, list):
+        return [word_of(item) for item in value if word_of(item) != '']
+    return '' if value is None else str(value)
+
+
+def words_of(values):
+    """Every option's word (word_of): what fill(), `where` and `skip` take."""
+    return {key: word_of(value) for key, value in (values or {}).items()}
+
+
 def fill(fetch, values, secrets):
     """The URL and headers with every placeholder filled in. A value in the URL is percent-encoded; a secret may only
-    stand in a header or the query (the manifest check makes sure). Raises FetchRefused when one is missing."""
+    stand in a header or the query (the manifest check makes sure). `{name|,}` joins the values of a list, each
+    percent-encoded in a URL (0.12). Raises FetchRefused when one is missing: an empty text or an empty list."""
+    def given(name):
+        value = secrets[name] if name in secrets else values.get(name, '')
+        return [str(v) for v in value] if isinstance(value, list) else str(value)
+
     missing = [name for name in fetch['placeholders']
-               if str(values.get(name, secrets.get(name, ''))).strip() == '']
+               if (lambda v: not v if isinstance(v, list) else v.strip() == '')(given(name))]
     if missing:
         raise FetchRefused(f'not filled in: {", ".join(missing)}')
 
     def word(match, encode):
-        name = match.group(1)
-        value = str(secrets[name]) if name in secrets else str(values.get(name, ''))
+        value, joiner = given(match.group(1)), match.group(2)
+        if isinstance(value, list):
+            if not joiner:
+                raise FetchRefused(f'{match.group(1)} holds several values')
+            return joiner.join(quote(v, safe='') if encode else v for v in value)
         return quote(value, safe='') if encode else value
 
-    url = PLACEHOLDER.sub(lambda m: word(m, True), fetch['url'])
-    headers = {key: PLACEHOLDER.sub(lambda m: word(m, False), value) for key, value in fetch['headers'].items()}
+    url = FETCH_PLACEHOLDER.sub(lambda m: word(m, True), fetch['url'])
+    headers = {key: FETCH_PLACEHOLDER.sub(lambda m: word(m, False), value) for key, value in fetch['headers'].items()}
     if any(c in value for value in headers.values() for c in '\r\n'):
         raise FetchRefused('a header value holds a line break')
     return url, headers
@@ -335,20 +384,22 @@ class Fetcher:
         url, headers = fill(fetch, values, secrets)
         return self.cache.get(question(plugin, url, headers))
 
-    async def get(self, plugin, manifest, fetch, values, secrets, force=False):
+    async def get(self, plugin, manifest, fetch, values, secrets, force=False, every=None):
         """(key, entry) for this question, asked again when its answer is older than this fetch's `every` (and no
         failure asks it to wait). Never raises for a network failure: the entry says what went wrong and keeps the last
-        good data. `entry['changed']` counts the answers that differed from the one before."""
+        good data. `entry['changed']` counts the answers that differed from the one before. `every`: shorter than the
+        fetch's own for a question that is soon forgotten (what a person typed in a search)."""
         url, headers = fill(fetch, values, secrets)
         key = question(plugin, url, headers)
         now = self.clock()
+        every = min(fetch['every'], every or fetch['every'])
         entry = self.cache.setdefault(key, {'data': None, 'fetched': None, 'ok': None, 'error': None, 'stale': False,
-                                            'retry': 0, 'fails': 0, 'asked': now, 'every': fetch['every'], 'changed': 0})
+                                            'retry': 0, 'fails': 0, 'asked': now, 'every': every, 'changed': 0})
         entry['asked'] = now
-        entry['every'] = min(entry['every'], fetch['every'])
+        entry['every'] = min(entry['every'], every)
         lock = self.locks.setdefault(key, asyncio.Lock())
         async with lock:
-            fresh = entry['fetched'] is not None and self.clock() - entry['fetched'] < fetch['every']
+            fresh = entry['fetched'] is not None and self.clock() - entry['fetched'] < every
             if not force and (fresh or self.clock() < entry['retry']):
                 return key, entry
             try:

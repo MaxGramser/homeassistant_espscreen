@@ -5,7 +5,7 @@ TypeScript: ui::px and the look (ui_scale.h) in web/src/model/ui-scale.ts, the -
 (runtime_tiles panel_metrics, stepper_keys, climate_tile::bar_room) there too, the top bar (header_bar.h and the look's
 fonts) in topbar.ts, a tile's size (page_protocol.h, core.py) in sizes.ts, a card's colour (Tile::active,
 tile_controls::accent) in tile-palette.ts, a thermostat's modes (tile_controls::climate_bar_keys) in tall-controls.ts, and
-the words a card writes where the firmware has a rule for them (tile_controls::temperature_text, humidity_text,
+a cover card's layout and its slats (cover_tile.h) in cover-tile.ts, the words a card writes where the firmware has a rule for them (tile_controls::temperature_text, humidity_text,
 reading_text, status_text, binary_state_text) in tile-text.ts.
 The editor does not read these numbers from the firmware; this test keeps the two the same, the way
 tests/test_alert_layout.py does for the alert: it compiles the C++ (the real headers, and the few lines of
@@ -127,11 +127,12 @@ def run_ts(body, data, tmp):
     (Path(tmp) / 'data.json').write_text(json.dumps(data))
     script = Path(tmp) / 'parity.ts'
     script.write_text(f'''import {{ readFileSync }} from "node:fs";
-import {{ cardContent, cardHeight, cellContent, modeBar, pillMetrics, tallKeys, uiScale, watchCard, watchPadding, widestSetpoint }} from "{model / 'ui-scale'}";
+import {{ cardContent, cardHeight, restContent, modeBar, pillMetrics, tallKeys, uiScale, watchCard, watchPadding, widestSetpoint }} from "{model / 'ui-scale'}";
 import {{ barGaps, barLayout, barMetricsFor }} from "{model / 'topbar'}";
 import {{ sizeColumns, sizeFor, sizeRows, sizesOn, spanOf, spanOffered }} from "{model / 'sizes'}";
 import {{ accent, tileActive }} from "{model / 'tile-palette'}";
 import {{ barKeys }} from "{model / 'tall-controls'}";
+import {{ coverLayout, slats }} from "{model / 'cover-tile'}";
 import {{ humidityText, readingText, stateText, temperatureText }} from "{model / 'tile-text'}";
 const DATA = JSON.parse(readFileSync("{Path(tmp) / 'data.json'}", "utf8"));
 {body}
@@ -266,7 +267,7 @@ int main() {{
 
 
 class Grid(unittest.TestCase):
-    """What LVGL's grid makes of a card (runtime_tiles cell_content_width, base_height), from the WebAssembly build."""
+    """What LVGL's grid makes of a card (runtime_tiles rest_content_width, base_height), from the WebAssembly build."""
 
     @classmethod
     def setUpClass(cls):
@@ -294,7 +295,7 @@ class Grid(unittest.TestCase):
             cls.ts = run_ts('''
 console.log(JSON.stringify(DATA.shapes.map((shape: any) => ({
   content: Array.from({ length: shape.columns }, (_, i) => cardContent(shape, shape.columns, i + 1)),
-  last: cardContent(shape, shape.columns, 1, shape.columns - 1), cell: cellContent(shape, shape.columns),
+  last: cardContent(shape, shape.columns, 1, shape.columns - 1), rest: shape.columns >= 2 ? restContent(shape, shape.columns, 2) : null,
   full: modeBar(shape, "full", 400, 4).finger, px: [uiScale(shape).px(44), uiScale(shape).px(84)] }))));''',
                             {'shapes': [s for _, _, s in SHAPES]}, tmp)
 
@@ -308,8 +309,12 @@ console.log(JSON.stringify(DATA.shapes.map((shape: any) => ({
                 self.assertEqual(ts['content'][1] + edges, self.cards[(key, 'wide')][0], f'{key}: cardContent of a wide card')
             full = self.cards[(key, 'full')][0]
             self.assertEqual(ts['content'][-1] + edges, full, f'{key}: cardContent of the whole page')
-            # And the cell a wide card's controls fill (cell_content_width): the grid's own width shared out, rounded down.
-            self.assertEqual(ts['cell'], (full - (columns - 1) * shape['spacing']['gap']) // columns - edges, f'{key}: cellContent')
+            # And the room a wide card's controls fill (rest_content_width): the card less one cell of the page, rounded
+            # down, the gap after it, a card's padding and border.
+            if columns >= 2:
+                wide, gap = self.cards[(key, 'wide')][0], shape['spacing']['gap']
+                cell = (full - (columns - 1) * gap) // columns
+                self.assertEqual(ts['rest'], wide - cell - gap - edges, f'{key}: restContent')
 
     # A card over the whole page takes its keys by the height of a cell (layout_panel: panel_metrics_full(w.base_height
     # > 80)), and the editor knows no cell heights: its mockup takes them by the look (modeBar "full"), which is the same
@@ -871,6 +876,78 @@ int main() {{
 
     def test_a_binary_sensors_state(self):
         self.same(self.binaries, self.ts['binaries'], self.lines('binary'), 'stateText is not binary_state_text')
+
+
+class CoverLayout(unittest.TestCase):
+    """A cover card's layout by its room and the slats of its tilt slider (cover_tile.h, firmware 0.57.0) in
+    cover-tile.ts: the tier and every rectangle, on a sweep of rooms, fingers and chosen controls."""
+
+    CASES = [(touch, w, h, position, keys, tilt, tilt_keys, extra, standing)
+             for touch in (34, 41, 48, 61) for w in range(40, 760, 37) for h in range(24, 520, 29) for standing in (1, 0)
+             for position, keys, tilt, tilt_keys, extra in ((True, 0, True, 0, 3), (True, 0, True, 0, 0), (False, 3, True, 0, 0),
+                                                            (False, 3, False, 3, 0), (True, 0, False, 0, 0), (False, 2, False, 0, 0),
+                                                            (False, 0, True, 0, 0))]
+    SLATS = [(w, h, tilt) for w in (30, 64, 96, 300) for h in (36, 80, 240, 500) for tilt in (0, 33, 45, 100)]
+
+    @classmethod
+    def setUpClass(cls):
+        compiler(), node()
+        with tempfile.TemporaryDirectory() as tmp:
+            cls.ts = run_ts('''
+const r = (x: any) => [x.x, x.y, x.w, x.h];
+const layouts = DATA.cases.map((c: any) => { const l = coverLayout({ x: 3, y: 5, w: c[1], h: c[2] }, c[0], 8, 16, 2 * c[0], !!c[3], c[4], !!c[5], c[6], c[7], !!c[8]);
+  return [l.tier, ...l.groups.flatMap((g: any) => [...r(g.area), ...r(g.control), ...r(g.caption), g.keys, +g.slider, +g.horizontal, +g.lying]), ...r(l.swap)].join(" "); });
+const slat = DATA.slats.map((c: any) => slats(c[0], c[1], c[2], 18, 7).map((s: any) => [s.x1, s.y1, s.x2, s.y2].map((v: number) => v.toFixed(1)).join(",")).join(" "));
+console.log(JSON.stringify({ layouts, slat }));''', {'cases': cls.CASES, 'slats': cls.SLATS}, tmp)
+            cases = ',\n'.join('{%d,%d,%d,%d,%d,%d,%d,%d,%d}' % c for c in cls.CASES)
+            slat_cases = ',\n'.join('{%d,%d,%d}' % c for c in cls.SLATS)
+            cls.cpp = build_and_run(f'''#include "components/smart_display/cover_tile.h"
+#include <cstdio>
+struct C {{ int touch, w, h, position, keys, tilt, tilt_keys, extra, standing; }};
+static const C CASES[] = {{
+{cases}
+}};
+struct S {{ int w, h, tilt; }};
+static const S SLATS[] = {{
+{slat_cases}
+}};
+static void r(const tall_tile::Rect &x) {{ std::printf(" %d %d %d %d", x.x, x.y, x.w, x.h); }}
+int main() {{
+  for (const auto &c : CASES) {{
+    const auto l = cover_tile::layout({{3, 5, c.w, c.h}}, c.touch, 8, 16, 2 * c.touch, c.position, c.keys, c.tilt, c.tilt_keys, c.extra, c.standing);
+    std::printf("layout %d", (int) l.tier);
+    for (const auto &g : l.groups) {{ r(g.area); r(g.control); r(g.caption); std::printf(" %d %d %d %d", g.keys, g.slider ? 1 : 0, g.horizontal ? 1 : 0, g.lying ? 1 : 0); }}
+    r(l.swap); std::printf("\\n");
+  }}
+  for (const auto &c : SLATS) {{
+    const auto s = cover_tile::slats(c.w, c.h, (float) c.tilt, 18, 7);
+    std::printf("slats");
+    for (int i = 0; i < s.count; ++i) std::printf("%s%.1f,%.1f,%.1f,%.1f", i ? " " : " ", s.slat[i].x1, s.slat[i].y1, s.slat[i].x2, s.slat[i].y2);
+    std::printf("\\n");
+  }}
+}}
+''', tmp)
+
+    def lines(self, tag):
+        return [line[len(tag):].strip() for line in self.cpp.splitlines() if line.startswith(tag)]
+
+    def test_a_cover_cards_layout_is_cover_tiles(self):
+        fw = self.lines('layout')
+        self.assertEqual((len(fw), len(self.ts['layouts'])), (len(self.CASES), len(self.CASES)))
+        self.assertGreater(len({line.split()[0] for line in fw}), 5)   # every tier, NONE included, is met
+        wrong = [(case, ts, c) for case, ts, c in zip(self.CASES, self.ts['layouts'], fw) if ts != c]
+        self.assertEqual(wrong[:5], [], f'coverLayout is not cover_tile::layout in {len(wrong)} of {len(fw)} rooms')
+
+    def test_the_slats_are_cover_tiles(self):
+        fw = self.lines('slats')
+        self.assertEqual((len(fw), len(self.ts['slat'])), (len(self.SLATS), len(self.SLATS)))
+        wrong = []
+        for case, ts, c in zip(self.SLATS, self.ts['slat'], fw):
+            a, b = ts.split(), c.split()
+            close = len(a) == len(b) and all(abs(float(x) - float(y)) <= 0.15 for p, q in zip(a, b) for x, y in zip(p.split(','), q.split(',')))
+            if not close:
+                wrong.append((case, ts, c))
+        self.assertEqual(wrong[:5], [], 'slats() is not cover_tile::slats')
 
 
 if __name__ == '__main__':

@@ -109,7 +109,8 @@ describe("a page's top bar", () => {
     expect(topbar.topbarItems().map((item) => item.type)).toEqual(["entity", "clock", "date"]);
     topbar.removeTopbarItem(0);
     expect(ui.notice?.message).toBe(t("editor.topbar.removed", { name: "Outside" }));
-    expect(insp.inspector).toBeNull();
+    // The bar stays open, on its left side, so the next item comes off as easily.
+    expect(insp.inspector).toEqual({ kind: "bar", index: -1 });
     ui.notice!.action!.run();
     expect(topbar.topbarItems().map((item) => item.type)).toEqual(["entity", "clock", "date"]);
   });

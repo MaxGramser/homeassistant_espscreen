@@ -15,8 +15,10 @@ export function controlKeys(domain: string, kind: string, state: string, a: Attr
     if (media('NEXT_TRACK')) add('skip-next');
   } else if (kind === 'buttons' && domain === 'cover') {
     const sideways = ['curtain', 'awning', 'door', 'gate'].includes(a.device_class);
-    const open = typeof a.current_position === 'number' ? a.current_position >= 99.5 : state === 'open';
-    const closed = typeof a.current_position === 'number' ? a.current_position <= .5 : state === 'closed';
+    // A cover that only assumes its state keeps open and close, as Home Assistant does (frontend data/cover.ts).
+    const assumed = a.assumed_state === true;
+    const open = !assumed && (typeof a.current_position === 'number' ? a.current_position >= 99.5 : state === 'open');
+    const closed = !assumed && (typeof a.current_position === 'number' ? a.current_position <= .5 : state === 'closed');
     if (f & bits('cover', 'OPEN')) add(sideways ? 'arrow-expand-horizontal' : 'arrow-up', open && state !== 'closing');
     if (f & bits('cover', 'STOP')) add('stop');
     if (f & bits('cover', 'CLOSE')) add(sideways ? 'arrow-collapse-horizontal' : 'arrow-down', closed && state !== 'opening');
@@ -65,7 +67,8 @@ export function barKeys(a: Attributes, state: string, room = 6, domain = 'climat
 // `range`: the screen draws a thermostat's range on its -/+ (its firmware's climate_range, 0.19.0+); an older one gets a
 // thermostat with only a range without them (core.drawn_controls), and so does its picture here.
 export function availableControl(domain: string, kind: string | null, state: string, a: Attributes, range = true): string {
-  if (!kind || ['unavailable', 'unknown', ''].includes(state)) return '';
+  // A cover that cannot tell whether it is open reports "unknown" and keeps its controls (Tile::available).
+  if (!kind || ['unavailable', ''].includes(state) || (state === 'unknown' && domain !== 'cover')) return '';
   if (domain === 'cover') kind = coverPrimary(kind);
   const f = Number(a.supported_features || 0);
   if (['buttons', 'playback', 'mode'].includes(kind) || kind === 'stepper' && domain.endsWith('select'))
@@ -73,6 +76,8 @@ export function availableControl(domain: string, kind: string | null, state: str
   if (kind === 'brightness') return domain === 'light' && (!a.supported_color_modes?.length || a.supported_color_modes.some((mode: string) => ['brightness', 'white', 'color_temp', 'hs', 'rgb', 'rgbw', 'rgbww', 'xy'].includes(mode))) ? kind : '';
   if (kind === 'speed') return domain === 'fan' && f & bits('fan', 'SET_SPEED') ? kind : '';
   if (kind === 'position') return domain === 'cover' && f & bits('cover', 'SET_POSITION') ? kind : '';
+  // A player's volume over its playback keys (runtime_tiles media_volume_selected): where its keys stand.
+  if (kind === 'volume_playback') return domain === 'media_player' && controlKeys(domain, 'playback', state, a).length ? kind : '';
   if (kind === 'volume') return domain === 'media_player' && f & bits('media_player', 'VOLUME_SET', 'VOLUME_MUTE') ? kind : '';
   // A single temperature (feature 1) or a range with its chip (feature 2, firmware 0.19.0).
   // A humidifier's humidity between - and + (firmware 0.42.0+), whatever it reports.
@@ -89,7 +94,7 @@ export const hasCoverTilt = (kind: string | null | undefined) => ['tilt', 'butto
 export const coverPrimary = (kind: string | null | undefined) => kind === 'tilt' ? 'none' : (kind || 'none').replace(/_tilt$/, '');
 export const withCoverTilt = (primary: string, tilt: boolean) => tilt ? (primary === 'none' ? 'tilt' : primary + '_tilt') : primary;
 export function coverTiltKind(state: string, a: Attributes): '' | 'position' | 'buttons' {
-  if (['unavailable', 'unknown', ''].includes(state)) return '';
+  if (['unavailable', ''].includes(state)) return '';
   const f = Number(a.supported_features || 0);
   return f & bits('cover', 'SET_TILT_POSITION') ? 'position' : f & bits('cover', 'OPEN_TILT', 'CLOSE_TILT', 'STOP_TILT') ? 'buttons' : '';
 }

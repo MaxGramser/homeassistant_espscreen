@@ -26,7 +26,7 @@ class TheBoards(unittest.TestCase):
         self.assertEqual(listed['reterminald1001'], ['media_player', 'microphone', 'wake_when_moved'])
         labels = SCREEN_TEXT['addon']['labels']['extras']
         for board, keys in listed.items():
-            text = profiles.resolved(f'packages/{board}.yaml')
+            text = '\n'.join(path.read_text() for path in profiles.chain(profiles.BOARDS[board], all_variants=True))
             for key in keys:
                 with self.subTest(board=board, key=key):
                     names = {entity_settings.object_id(n) for n in re.findall(r'(?m)^[ \t]+name:[ \t]*"?([^"\n]+)"?', text)}
@@ -121,6 +121,15 @@ class Manager:
 
 
 class TheApp(unittest.TestCase):
+    def test_offline_panel_keeps_extras_from_its_saved_board_profile(self):
+        manager = Manager('unknown')
+        original = manager.screen
+        manager.screen = lambda inbox: {**original(inbox), 'online': False}
+        manager.package_of = lambda screen: 'packages/reterminald1001.yaml'
+        rows = entity_settings.extras_for(manager, 'text.hall_tiles')
+        self.assertEqual([row['key'] for row in rows], ['media_player', 'microphone', 'wake_when_moved'])
+        self.assertTrue(all(not row['available'] for row in rows))
+
     def test_the_rows_are_the_boards_entities_in_its_order_with_the_apps_words(self):
         rows = entity_settings.extras_for(Manager('reterminald1001'), 'text.hall_tiles', 'nl')
         self.assertEqual([(r['key'], r['entity'], r['kind'], r['value'], r['available']) for r in rows],

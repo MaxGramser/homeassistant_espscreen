@@ -6,24 +6,34 @@ memory: {bytes: 96, extras: true}
 displays:
   standard: {}
   watch: {}
+# `room`: a screen that says cover_rows (firmware 0.57.0) lays a cover's controls out by the room its card has
+# (cover_tile.h): the slats on a card one row high, and a control on a card of one cell, where they fit.
+# A tile that grows suggests the richest set it has room for (docs/CATALOGUE.md, "A tile that grows"): a blind's
+# position and slats, else its keys and slats, where the card has room for them.
+grow: [position_tilt, buttons_tilt]
 controls:
   buttons:
     needs: {actions: [cover.open_cover, cover.close_cover, cover.stop_cover]}
+    room: {feature: cover_rows}
   position:
     needs: {actions: [cover.set_cover_position]}
+    room: {feature: cover_rows}
   # The slats of a blind; with the buttons or the position on a card with a second row for them (firmware 0.3.1).
   tilt:
     needs: {actions: [cover.set_cover_tilt_position, cover.open_cover_tilt, cover.close_cover_tilt, cover.stop_cover_tilt]}
+    room: {feature: cover_rows}
     rows: 2
     screen: {firmware: 0.3.1}
     one_row: none
   buttons_tilt:
     of: [buttons, tilt]
+    room: {feature: cover_rows}
     rows: 2
     screen: {firmware: 0.3.1}
     one_row: buttons
   position_tilt:
     of: [position, tilt]
+    room: {feature: cover_rows}
     rows: 2
     screen: {firmware: 0.3.1}
     one_row: position

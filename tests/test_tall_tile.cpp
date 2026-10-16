@@ -1,6 +1,8 @@
 #include "../components/smart_display/tall_tile.h"
 #include "../components/smart_display/cover_tile.h"
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdio>
 using namespace tall_tile;
 static bool inside(Rect r,int w,int h){return r.x>=0&&r.y>=0&&r.right()<=w&&r.bottom()<=h;}
@@ -52,27 +54,56 @@ int main(){
     assert(std::abs(a.icon.y-(height-a.control.bottom()))<=1);
   }
   assert(action(300,400,54,28,16,14,8).control.empty());
-  // Extended covers never overlap groups or squeeze a touch target to fit.
-  // Sweep independent dimensions, densities and partial capability sets.
-  unsigned covers=0;
+  // Extended covers never overlap groups, leave the card or squeeze a control below what its kind needs: a standing
+  // slider its slider height, a bar or a key 85 % of a finger (cover_tile::bar_height). Sweep independent dimensions,
+  // densities and partial capability sets, with and without open/stop/close beside a positional blind.
+  unsigned covers=0,tiers[6]{};
   for(int touch:{28,39,48,60})for(int width=20;width<800;width+=31)
   for(int height=20;height<600;height+=23)for(int keys=0;keys<4;++keys)
-  for(int tilt_keys=0;tilt_keys<4;++tilt_keys){
-    const auto c=cover_tile::layout({0,0,width,height},touch,6,16,2*touch,keys==0,keys,tilt_keys==0,tilt_keys);
-    if(!c.fits)continue;
-    for(const auto &g:c.groups){
+  for(int tilt_keys=0;tilt_keys<4;++tilt_keys)for(int extra:{0,3}){
+    const int bar=cover_tile::bar_height(touch);
+    const auto c=cover_tile::layout({0,0,width,height},touch,6,16,2*touch,keys==0,keys,tilt_keys==0,tilt_keys,keys==0?extra:0);
+    if(!c.fits){assert(c.tier==cover_tile::NONE);continue;}
+    ++tiers[c.tier];
+    for(int i=0;i<3;++i){
+      const auto &g=c.groups[i];
       if(g.area.empty())continue;
-      assert(inside(g.control,width,height)&&inside(g.caption,width,height));
-      assert(g.control.w>=touch&&g.control.h>=touch&&g.control.bottom()<g.caption.y);
-      if(g.slider)assert(g.control.h>=2*touch);
-      else if(g.horizontal)assert(g.control.w>=g.keys*touch+(g.keys-1)*6);
-      else assert(g.control.h>=g.keys*touch+(g.keys-1)*6);
+      assert(inside(g.control,width,height)&&inside(g.area,width,height));
+      if(!g.caption.empty()){assert(inside(g.caption,width,height));assert(g.control.bottom()<g.caption.y);}
+      if(g.slider&&!g.lying)assert(g.control.h>=2*touch);
+      if(g.slider&&g.lying)assert(g.control.h>=bar&&g.control.w>=2*touch);
+      if(g.keys&&g.horizontal)assert(g.control.h>=bar&&g.control.w>=g.keys*bar+(g.keys-1)*6);
+      if(g.keys&&!g.horizontal)assert(g.control.w>=touch&&g.control.h>=g.keys*std::min(bar,touch)+(g.keys-1)*6);
+      for(int j=i+1;j<3;++j){
+        const auto &o=c.groups[j];
+        if(o.area.empty()||(c.tier==cover_tile::SWAP&&i<2&&j<2))continue;
+        assert(g.control.right()<=o.control.x||o.control.right()<=g.control.x||g.control.bottom()<=o.control.y||o.control.bottom()<=g.control.y);
+      }
     }
-    assert(c.groups[0].area.right()<c.groups[1].area.x);++covers;
+    if(c.tier==cover_tile::SWAP){assert(!c.swap.empty()&&inside(c.swap,width,height)&&c.swap.w>=bar);
+      assert(c.groups[0].control.right()<=c.swap.x);}
+    ++covers;
   }
   assert(covers>1000);
-  assert(!cover_tile::layout({0,0,131,60},39,4,13,91,true,0,true,0).fits);
+  for(int t=1;t<6;++t)assert(tiers[t]>0);
+  assert(cover_tile::layout({0,0,131,60},39,4,13,91,true,0,true,0).tier==cover_tile::SWAP);
+  assert(!cover_tile::layout({0,0,100,30},39,4,13,91,true,0,true,0).fits);
   assert(cover_tile::layout({0,0,204,180},48,8,19,150,true,0,true,0).fits);
+  // A Guition 1x2 stands its sliders, a CYD 1x2 shares one row and swaps, a lying 2x1 lays them in rows.
+  assert(cover_tile::layout({0,0,194,150},48,8,16,96,true,0,true,0,3).tier==cover_tile::COLUMNS);
+  assert(cover_tile::layout({0,0,132,50},40,4,13,80,true,0,true,0,3).tier==cover_tile::SWAP);
+  assert(cover_tile::layout({0,0,208,94},48,8,16,96,true,0,true,0,3).tier==cover_tile::ROWS);
+  assert(cover_tile::layout({0,0,424,180},48,8,16,96,true,0,true,0,3).tier==cover_tile::COLUMNS_SIDE);
+  // The slats: within the slider, as many as fit at their pitch, flat when open and steep when closed.
+  for(int w:{30,60,96,180})for(int h:{30,80,240,500})for(float tilt:{0.0f,45.0f,100.0f}){
+    const auto s=cover_tile::slats(w,h,tilt,12,6);
+    assert(s.count>=1&&s.count<=16);if(h>=80&&w<=h)assert(s.count>=3);
+    for(int i=0;i<s.count;++i){const auto &l=s.slat[i];
+      assert(std::min(l.x1,l.x2)>=-1&&std::max(l.x1,l.x2)<=w+1&&std::min(l.y1,l.y2)>=-1&&std::max(l.y1,l.y2)<=h+1);}
+    const auto &m=s.slat[0];const float dx=std::abs(m.x2-m.x1),dy=std::abs(m.y2-m.y1);
+    if(w<=h&&tilt==100.0f)assert(dy<0.5f);
+    if(w<=h&&tilt==0.0f)assert(dy>dx);
+  }
   // A CYD-sized cell accepts one row, but cannot promise two physical rows.
   Metrics compact{131,92,13,13,28,4,39,280,{39,39},1};
   assert(layout(compact).fits);compact.row_count=2;assert(!layout(compact).fits);

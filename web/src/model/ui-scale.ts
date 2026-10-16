@@ -171,11 +171,14 @@ export function watchCard(shape: Shape, width: number, height: number, value: st
     unitGap: unitGap - unitWidth };
 }
 
-/** The cell a wide card's controls fill, in glass pixels (runtime_tiles cell_content_width): the page less its margins
- * shared between `across` cells with a gap between two, rounded down, less the card's padding and its border. */
-export function cellContent(shape: Shape, across: number) {
-  const s = spacingOf(shape);
-  return Math.floor(((shape.width ?? 320) - 2 * s.margin - (across - 1) * s.gap) / Math.max(1, across)) - 2 * s.tile_pad - 2;
+/** The room a wide card's controls fill, in glass pixels (runtime_tiles rest_content_width): every cell after the first,
+ * the card's width less one cell of the page (its share rounded down), the gap after it, the card's padding and its
+ * border. On a card of two cells that is its second cell; on a card of three, the second and third (GitHub #250). */
+export function restContent(shape: Shape, across: number, columns: number, start = 0) {
+  const s = spacingOf(shape), edges = 2 * s.tile_pad + 2;
+  const cell = Math.floor(((shape.width ?? 320) - 2 * s.margin - (across - 1) * s.gap) / Math.max(1, across));
+  const rest = cardContent(shape, across, columns, start) + edges - cell - s.gap - edges;
+  return rest > 0 ? rest : Math.max(1, Math.floor(cardContent(shape, across, columns, start) / 2));
 }
 
 /** A card's content width in glass pixels: `columns` of the page's `across` cells from column `start`, as LVGL's grid
@@ -195,9 +198,9 @@ export function cardContent(shape: Shape, across: number, columns: number, start
 /** A range's chip on a wide card's -/+ pill (runtime_tiles stepper_keys and range_chip), in glass pixels: the face its
  * number is drawn in, the largest whose line fits the pill and whose widest temperature fits the chip on its own, and
  * whether its heat or cool icon fits beside that number (else the number stands alone in its end's colour). */
-export function wideChip(shape: Shape, across: number, widest: string) {
+export function wideChip(shape: Shape, across: number, columns: number, widest: string) {
   const { px } = uiScale(shape), pill = pillMetrics(shape), fonts = shape.fonts || {};
-  const width = cellContent(shape, across), chip = width - 2 * (pill.inset + pill.key + pill.inset), pad = px(6);
+  const width = restContent(shape, across, columns), chip = width - 2 * (pill.inset + pill.key + pill.inset), pad = px(6);
   const line = (size: number) => Math.round(size * 1.172), ems = textEms(widest);
   let face = pill.faces[pill.faces.length - 1] ?? 14;
   for (const size of pill.faces) if (line(size) <= pill.height && ems * size + pad <= chip) { face = size; break; }

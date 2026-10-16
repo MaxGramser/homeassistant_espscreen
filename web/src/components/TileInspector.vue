@@ -1,18 +1,22 @@
 <script setup lang="ts">
 // One tile's settings. Every change applies live, so the card on the mockup shows the result while you pick. What each
 // field offers and what it says of a choice is model/tile-options.ts, from the tile, what Home Assistant says the entity
-// can do and the screen's firmware; a map's and a favourite's own settings are sections of their own (inspector/).
+// can do and the screen's firmware; a map's and a favourite's own settings are sections of their own (inspector/). The
+// tile itself stands at the head (TileAnchor, app 0.4.89), and its icons, the actions to perform or another entity take
+// the place under it instead of opening inside the settings; Done or Escape goes back (stores/inspector.ts escape).
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
 import { domainInfo, entriesOf, inlineControlKind, pageTarget } from "../model/layout";
-import { titleOf } from "../model/pages";
-import { copyChosen, shortcut } from "../editor/clipboard";
+import { glyph } from "../model/topbar";
 import PluginTileInspector from "./PluginTileInspector.vue";
 import TileEntityFix from "./TileEntityFix.vue";
 import type { Tile } from "../types";
 import ActionPicker from "./ActionPicker.vue";
+import IconChoices from "./IconChoices.vue";
 import IconPicker from "./IconPicker.vue";
+import TileAnchor from "./TileAnchor.vue";
 import { coverPrimary, hasCoverTilt, withCoverTilt } from "../model/tall-controls";
+import { roomControls } from "../model/catalogue";
 import ChoiceField from "./ChoiceField.vue";
 import CalendarSection from "./inspector/CalendarSection.vue";
 import FavoriteSection from "./inspector/FavoriteSection.vue";
@@ -29,7 +33,6 @@ import SwitchRow from "./ui/SwitchRow.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
-import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import rules from "../model/page-rules.json";
 import { precisionOffered } from "../model/display-precision";
 import { controlChoices, controlHint, displayChoices, displayHint, goesToChoices, goesToHint, offeredChoices, sliderOffered, subChoices,
@@ -40,7 +43,8 @@ import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
-import { moveTileToPage, removeTile, retargetPageTile, setTileOption } from "../editor/tiles";
+import { moveTileAndFollow, otherPages, removeTile, retargetPageTile, setTileOption, tilePanel } from "../editor/tiles";
+import TileMenuItems from "./TileMenuItems.vue";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 
@@ -60,12 +64,7 @@ const props = defineProps<{ tile: Tile }>();
 // Another tile opens its own inspector (Drawer keys it by the tile), so these start closed for every tile.
 const more = ref(false);
 // The tile goes to the first free cell of another page, and the sheet follows it there.
-function moveTile(page: number) {
-  const id = doc.document?.pages[page]?.id;
-  if (moveTileToPage(props.tile, page) && id) doc.selectedPageId = id;
-}
-const otherPages = computed(() => (doc.document?.pages || []).map((page, index) => ({ index, name: titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }))
-  .filter((page) => page.index !== pageOf(props.tile.slot)));
+const pagesBesides = computed(() => otherPages(props.tile));
 const domain = computed(() => props.tile.entity.split(".")[0]);
 // A plugin's tile (design) has an inspector of its own, built from the plugin's manifest.
 const pluginTile = computed(() => Boolean(plugins.pluginTileOf(props.tile.entity)));
@@ -88,8 +87,7 @@ const key = computed(() => props.tile.in !== undefined);
 // What the panel's choices are worked out from (model/tile-options.ts): what Home Assistant says the entity can do, the
 // screen's firmware and board, the domain's control sets, and what the entity reports now.
 const catalogue = computed(() => inv.inventory.controls?.[domain.value]);
-const panel = computed<TilePanel>(() => ({ caps: caps.value, supports: scr.supports, pictures: scr.pictures, catalogue: catalogue.value, columns: grid.columns,
-  attributes: entities.liveOf(props.tile.entity)?.a || {}, rangeless: scr.currentScreen?.climate_range === false }));
+const panel = computed<TilePanel>(() => tilePanel(props.tile));
 // Every choice the panel shows is one the add-on saves (app 0.4.0, GitHub #47): tried the way the panel applies it,
 // against the same card check the save runs. The tile's own choice always stays in sight.
 const offer = <T extends string | number>(key: string, choices: [T, string][], now: unknown) => offeredChoices(props.tile, key, choices, now, Boolean(catalogue.value));
@@ -138,6 +136,8 @@ const controlNote = computed(() => controlHint(props.tile, panel.value, controls
 const choosingAction = ref(false);
 const tap = computed(() => choosingAction.value ? "action" : current("tap", "auto") as string);
 watch(() => props.tile.options?.tap, (stored) => { if (stored === "action") choosingAction.value = false; });
+// The actions closed without one chosen (Done, Escape): the tile keeps the tap choice it had.
+watch(() => insp.actionPickerOpen, (open) => { if (!open) choosingAction.value = false; });
 // A plugin on this screen may offer a tap of its own for this kind of tile (docs/PLUGINS.md): a thermostat that opens its
 // schedule.
 const taps = computed(() => tapChoices(props.tile, panel.value, tap.value, plugins.pluginsEnabled ? plugins.tapActionsFor(scr.currentScreen, domain.value) : []));
@@ -181,10 +181,6 @@ const sliderWarn = computed(() => inline.value === "slider" && caps.value && !ca
 const backgrounds = computed(() => Object.entries(inv.inventory.backgrounds || {}));
 const fromHA = computed(() => Boolean(inv.entityOf(props.tile.entity)?.icon));
 const showIcon = computed(() => Boolean(inv.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
-function inspect() {
-  // This tile's own data: its entity may be on several tiles (firmware 0.16.0+).
-  insp.inspector = { kind: "inspect", entity: props.tile.entity, slot: props.tile.slot, key: props.tile.key };
-}
 // The way up in the head: the page the tile stands on opens that page's settings.
 const pageId = computed(() => doc.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
@@ -193,7 +189,9 @@ const crumbs = computed(() => [
   { text: props.tile.entity, mono: true },
 ]);
 const lookShown = computed(() => !goesTo.value && !bedside.value && !key.value && (props.tile.entity !== "screen.settings" || display.value === "live" || domain.value === "sensor"));
-const controlsShown = computed(() => (domain.value !== "screen" && !goesTo.value) || Boolean(catalogue.value && size.value !== "single" && !goesTo.value) || (showSlider.value && !goesTo.value));
+// A card of one cell offers controls only for a type the screen lays out by its room (a cover, firmware 0.57.0).
+const controlsHere = computed(() => Boolean(catalogue.value) && (size.value !== "single" || roomControls(domain.value)));
+const controlsShown = computed(() => (domain.value !== "screen" && !goesTo.value) || (controlsHere.value && !goesTo.value) || (showSlider.value && !goesTo.value));
 // What the pointer rests on is drawn on the tile before it is picked (ChoiceField does the same for its lists).
 const subSample = (kind: string) => kind === "attr" ? `attr:${subAttribute.value || "state"}` : kind === "text" ? `text:${subText.value || t("editor.tile.sub.text_placeholder")}` : kind;
 const controlSample = (key: string) => domain.value === "cover" ? withCoverTilt(key, tiltSelected.value) : key;
@@ -201,6 +199,12 @@ function previewBackground(key: string | null) {
   if (key && props.tile.id && key !== (props.tile.options?.background || "auto")) insp.optionPreview = { tileId: props.tile.id, key: "background", value: key };
   else if (insp.optionPreview?.key === "background") insp.optionPreview = null;
 }
+// What takes the place under the tile instead of its settings: its icons, the actions to perform, or another entity.
+const place = computed(() => (insp.entityPickerOpen && domain.value !== "screen" ? "entity"
+  : insp.actionPickerOpen && tap.value === "action" && domain.value !== "screen" && !goesTo.value ? "action"
+  : insp.iconPickerOpen && showIcon.value ? "icon" : ""));
+const placeTitle = computed(() => ({ entity: t("editor.broken.fix.choose"), action: t("editor.action.label"), icon: t("editor.icon.label") } as Record<string, string>)[place.value] || "");
+function done() { insp.iconPickerOpen = false; insp.actionPickerOpen = false; insp.entityPickerOpen = false; insp.optionPreview = null; }
 const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.options?.background || "auto"]?.label || "");
 </script>
 
@@ -213,17 +217,29 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
     <template #actions>
       <UiMenu width="220px">
         <template #trigger><button type="button" class="icon-btn" id="tile-more" :aria-label="t('editor.screen_view.more')"><Icon name="dots-horizontal" /></button></template>
-        <UiMenuItem id="tile-rename" icon="pencil-outline" @select="insp.renameTile(tile)">{{ t("editor.naming.rename") }}</UiMenuItem>
-        <UiMenuItem v-if="domain !== 'screen'" icon="database-search-outline" @select="inspect">{{ t("editor.common.read_current_data") }}</UiMenuItem>
-        <UiMenuItem v-if="domain !== 'screen'" icon="pencil-outline" @select="insp.entityPickerOpen = true">{{ t("editor.broken.change") }}</UiMenuItem>
-        <UiMenuItem id="tile-copy" icon="content-copy" :hint="shortcut('C')" @select="copyChosen">{{ t("editor.selection.copy") }}</UiMenuItem>
-        <UiMenuSeparator />
-        <UiMenuItem icon="delete-outline" danger hint="⌫" @select="removeTile(tile)">{{ t("editor.common.remove") }}</UiMenuItem>
+        <!-- The same items as the right mouse button on the card (docs/PAGES.md, "Menus"). -->
+        <TileMenuItems :tile="tile" />
       </UiMenu>
     </template>
   </InspectorHead>
-  <div class="dr-body">
-    <!-- Its entity gone or away for a while, or another one asked for from the menu: the picker comes first. -->
+  <div class="dr-body bar-body tile-body">
+    <!-- The tile as its page draws it stays at the head while what is under it scrolls. -->
+    <div class="bar-anchor">
+      <TileAnchor :tile="tile" :icon="showIcon" @icon="insp.iconPickerOpen = true" @name="insp.renameTile(tile)" />
+      <div v-if="place" class="bar-cap" id="tile-place">
+        <span class="bar-cap-av"><span class="mdi" aria-hidden="true">{{ glyph(entities.tileIconCp(tile)) }}</span></span>
+        <span class="bar-cap-tx"><b>{{ placeTitle }}</b><small>{{ tile.name || name }}</small></span>
+        <button type="button" class="btn quiet mini" id="tile-done" @click="done">{{ t('editor.common.done') }}</button>
+      </div>
+    </div>
+    <div v-if="place" class="bar-part">
+      <TileEntityFix v-if="place === 'entity'" :tile="tile" aside />
+      <ActionPicker v-else-if="place === 'action'" :tile="tile" choosing />
+      <IconChoices v-else :tile="tile" :selected="tile.options?.icon || 'auto'" :automatic="entities.automaticIcon(tile.entity)"
+        :auto-label="t(fromHA ? 'editor.tile.icon.auto_ha' : 'editor.tile.icon.auto_default')" @pick="(n) => setTileOption(tile, 'icon', n)" />
+    </div>
+    <template v-else>
+    <!-- Its entity gone or away for a while: the picker comes first. -->
     <TileEntityFix v-if="domain !== 'screen'" :tile="tile" />
     <NameField :tile="tile" :fallback="name" />
     <p v-if="bedside" class="hint">{{ t("editor.tile.keys.hint") }}</p>
@@ -304,7 +320,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       <PropRow v-if="domain === 'lock'" :label="t('editor.tile.guard.label')" icon="check-circle" :hint="t(guard === 'lock_only' ? 'editor.tile.guard.lock_only_hint' : 'editor.tile.guard.confirm_hint')">
         <ChoiceField :choices="guards" :value="guard" :aria-label="t('editor.tile.guard.label')" @pick="(v) => setTileOption(tile, 'guard', v)" />
       </PropRow>
-      <PropRow v-if="catalogue && size !== 'single' && !goesTo" :label="t('editor.tile.controls.label')" icon="tune-variant" :hint="!controlNote.warn ? controlNote.text : undefined">
+      <PropRow v-if="controlsHere && !goesTo" :label="t('editor.tile.controls.label')" icon="tune-variant" :hint="!controlNote.warn ? controlNote.text : undefined">
         <ChoiceField :choices="controlList" :value="primaryControl" :tile="tile" preview-key="controls" :sample="controlSample" :aria-label="t('editor.tile.controls.label')" @pick="pickControl" />
         <template v-if="controlNote.warn" #note><small class="help warn">{{ controlNote.text }}</small></template>
       </PropRow>
@@ -318,7 +334,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
     </template>
 
     <Section :title="t('editor.tile.sections.style')" class="style-section">
-      <IconPicker v-if="showIcon" :tile="tile" :selected="tile.options?.icon || 'auto'" :automatic="entities.automaticIcon(tile.entity)"
+      <IconPicker v-if="showIcon" aside :tile="tile" :selected="tile.options?.icon || 'auto'" :automatic="entities.automaticIcon(tile.entity)"
         :auto-label="t(fromHA ? 'editor.tile.icon.auto_ha' : 'editor.tile.icon.auto_default')"
         :note="scr.supports(0, 2, 18) ? '' : t('editor.tile.icon.needs_firmware')"
         @pick="(n) => setTileOption(tile, 'icon', n)" />
@@ -337,12 +353,13 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
         <span><b>{{ t("editor.phone.more_settings") }}</b><small>{{ t("editor.phone.more_settings_hint") }}</small></span><Icon name="chevron-right" />
       </button>
       <div class="phone-tile-actions">
-        <UiMenu v-if="!key && !bedside && otherPages.length" width="240px">
+        <UiMenu v-if="pagesBesides.length" width="240px">
           <template #trigger><button type="button" class="btn"><Icon name="arrow-right" />{{ t("editor.phone.move") }}</button></template>
-          <UiMenuItem v-for="page in otherPages" :key="page.index" icon="view-column-outline" @select="moveTile(page.index)">{{ page.name }}</UiMenuItem>
+          <UiMenuItem v-for="page in pagesBesides" :key="page.index" icon="view-column-outline" @select="moveTileAndFollow(tile, page.index)">{{ page.name }}</UiMenuItem>
         </UiMenu>
         <button type="button" class="btn danger-soft" @click="removeTile(tile)"><Icon name="delete-outline" />{{ t("editor.common.remove") }}</button>
       </div>
+    </template>
     </template>
   </div>
   </template>

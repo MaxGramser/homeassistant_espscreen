@@ -152,6 +152,13 @@ static Stream *streams[MAX_STREAMS] = {};
 // and that drawing then lay over the picture until the next one (2026-10-12, the D1001: the name over a live tile after
 // the camera full screen closed). Recursive: close() takes it too, and runs inside a refresh when something covers a
 // stream (live_stop_covered, on REFR_START).
+// It is also the one user of the 2D-DMA at a time: a stream's task decodes and lays out each picture with it held, as
+// the decoder, the PPA and the panel's copy of LVGL's strips (ESPHome's PPA turn, then ESP-IDF's async copy into the
+// frame buffer) all go through the 2D-DMA. Two of them at once from different tasks is what hangs in ESP-IDF's reports
+// on the P4 (espressif/esp-idf #18999, #19108: serialised with a mutex, it ran). A decode was the one thing left
+// running beside a refresh, and the top bar of the camera full screen now and then stayed over the page after it
+// closed (2026-10-15, a P4 board): most likely the first strip LVGL sent, while the stream's last picture was still
+// decoding. LVGL waits for a decode now and then: about 11 ms for a full view's picture.
 static SemaphoreHandle_t glass = nullptr;
 static void hold_glass(lv_event_t *) { xSemaphoreTakeRecursive(glass, portMAX_DELAY); }
 static void release_glass(lv_event_t *) { xSemaphoreGiveRecursive(glass); }
@@ -370,12 +377,21 @@ static void show(Stream &s, size_t length) {
   cfg.rgb_order = JPEG_DEC_RGB_ELEMENT_ORDER_BGR;  // little-endian RGB565, as LVGL's own pixels
   cfg.conv_std = JPEG_YUV_RGB_CONV_STD_BT601;
   uint32_t written = 0;
+  // The decoder works through the 2D-DMA, as the PPA and the panel's copy of each of LVGL's strips do: it decodes
+  // while it holds the glass (above, where the glass is).
+  xSemaphoreTakeRecursive(glass, portMAX_DELAY);
+  if (s.stopping) {
+    xSemaphoreGiveRecursive(glass);
+    return;
+  }
   const int64_t t0 = esp_timer_get_time();
-  if (jpeg_decoder_process(decoder, &cfg, s.input, length, s.picture, s.picture_size, &written) != ESP_OK) {
+  const esp_err_t decoded = jpeg_decoder_process(decoder, &cfg, s.input, length, s.picture, s.picture_size, &written);
+  const int64_t t1 = esp_timer_get_time();
+  xSemaphoreGiveRecursive(glass);
+  if (decoded != ESP_OK) {
     s.skipped++;
     return;
   }
-  const int64_t t1 = esp_timer_get_time();
   if (s.shown == 0)
     ESP_LOGD(TAG, "picture %dx%d decoded in %u us, for %dx%d at %d,%d", w, h, (unsigned) (t1 - t0), where.w, where.h,
              where.x, where.y);
@@ -397,8 +413,11 @@ static void show(Stream &s, size_t length) {
       }
     }
     if (!into.covers(cw, ch)) memset(s.canvas, 0, static_cast<size_t>(cw) * ch * 2);
+    // Into the card's canvas, not the glass, but through the PPA all the same: with the glass held.
+    xSemaphoreTakeRecursive(glass, portMAX_DELAY);
     err = copy(s, s.picture, stride_w, rows, into.in_x, into.in_y, into.in_w, into.in_h, s.canvas, s.canvas_size, cw,
                ch, into.out_x, into.out_y, into.sixteenths, 0);
+    xSemaphoreGiveRecursive(glass);
     if (err == ESP_OK) {
       compose(s.canvas, cw, cw, ch, s.look);
       const Rect target = on_panel(s.area, s.turn, panel_w, panel_h);
@@ -654,6 +673,16 @@ void tick(const std::function<void(Handle, Event)> &tell) {
       const bool was_armed = s->armed.exchange(false);
       streams[slot] = nullptr;
       if (was_armed) invalidate(lv_rect(s->area));
+      // A full view's stream gone for good: LVGL draws the whole glass once more, now that its task decodes and copies
+      // nothing. Now and then the view's top bar, the back key and the name, stayed over the page after the camera
+      // closed while the picture's room below it was drawn again, until something else drew there (2026-10-15, a P4
+      // board). The redraw at closing comes while the task may still be busy with its last picture, and its first strip
+      // is that bar; this one comes after. The whole glass, as the view covered all of it.
+      if (!s->look.tile) {
+        const lv_area_t whole = {0, 0, lv_display_get_horizontal_resolution(lv_display_get_default()) - 1,
+                                 lv_display_get_vertical_resolution(lv_display_get_default()) - 1};
+        invalidate(whole);
+      }
       free_stream(s);
       unwatch_lvgl_when_alone();
       tell(slot, turned ? Event::TURNED : ended ? Event::ENDED : Event::FAILED);
