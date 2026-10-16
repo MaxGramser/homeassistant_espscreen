@@ -23,7 +23,7 @@ import time
 import catalogue
 import tile_art
 import alert_layout
-from core import SHAPES, board_of, screen_firmware, shape_of
+from core import SHAPES, board_of, orientation_shown, screen_firmware, shape_of
 
 LOG = logging.getLogger(__name__)
 
@@ -121,7 +121,15 @@ def boxes(screen):
     found = shape_of(screen).get('camera') if isinstance(screen, dict) else None
     if not found:
         return BOXES.get(board_of(screen))
-    return {view: tuple(box) for view, box in found.items()}
+    found = {view: tuple(box) for view, box in found.items()}
+    # A canvas that is neither of the board's own (older firmware of a board whose canvas has since changed, such as
+    # the Guition 7 inch V2 on 1024 x 600) is the glass the full-screen picture must fill; the thumb is the alert
+    # card's frame, the same either way, and the grid is not touched (shape_of).
+    reported = screen.get('shape')
+    if (isinstance(reported, dict) and 'full' in found and type(reported.get('width')) is int
+            and type(reported.get('height')) is int and not orientation_shown(SHAPES.get(board_of(screen), {}), reported)):
+        found['full'] = (reported['width'], reported['height'])
+    return found
 
 
 def picture_cap(request):
