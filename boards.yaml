@@ -173,3 +173,12 @@ crowpanel101:
   # member ran it on (GitHub #116).
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone]
+
+wavesharep47b:
+  file: wavesharep47b.yaml
+  name: Waveshare
+  model: ESP32-P4-WIFI6-Touch-LCD-7B
+  status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings"): the same ES8311/ES7210
+  # audio as the Waveshare P4 86 panel (hardware/wavesharep4-audio/).
+  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]

@@ -1,5 +1,6 @@
 # The original half-duplex transport, without the AEC dependency.
 packages:
+  codecs: !include codecs.yaml
   audio: !include ../../features/audio.yaml
   half_duplex: !include ../../features/audio-half-duplex.yaml
 
