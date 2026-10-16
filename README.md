@@ -410,6 +410,7 @@ while it keeps your country's clock and numbers.
 | Guition JC4880P443, 4.3 inch (experimental) | 800 × 480, 3 × 3 tiles | MIPI-DSI ST7701 / capacitive GT911, pre-v3 ESP32-P4; dimmable backlight ([details](docs/JC4880P443.md)) |
 | Elecrow CrowPanel Advanced 10.1 inch, ESP32-P4 (experimental) | 1024 × 600, 5 × 5 tiles | MIPI-DSI EK79007 / capacitive GT911, pre-v3 ESP32-P4, V1.1 or V1.2; dimmable backlight, speaker and microphone ([details](docs/CROWPANEL101.md)) |
 | M5Stack Tab5 (ST7121 variant, new) | 1280 × 720, 3 × 3 tiles | MIPI-DSI ST7121 / capacitive ST7121, ESP32-P4; hardware tested ([details](docs/TAB5.md)) |
+| Waveshare ESP32-P4-WIFI6-Touch-LCD-7B, 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI EK79007 / capacitive GT911, rev3 ESP32-P4; dimmable backlight, speaker and microphone, hardware acceptance pending ([details](docs/WAVESHAREP47B.md)) |
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.
 

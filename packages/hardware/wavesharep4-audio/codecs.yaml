@@ -1,0 +1,33 @@
+# ESP Screens - the audio codecs of the Waveshare ESP32-P4 boards, for a board file that includes this one.
+#
+# Waveshare's BSP wires them the same on the ESP32-P4 7B and the 4B/86 panel: an ES8311 for the speaker and an ES7210
+# for the microphones, both on the touch panel's I2C bus, with the speaker's amplifier enable on GPIO53. The transport
+# (aec.yaml or i2s.yaml) sets AUDIO_SAMPLE_RATE and extends the ADC for its TDM reference; the board file states its own
+# substituted values (AUDIO_DAC_DB_AT_0/1, AUDIO_AMPLIFIER).
+audio_adc:
+  - platform: es7210_extended
+    id: ts_audio_adc
+    i2c_id: touch_bus
+    address: 0x40
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    mic_gain: 30db
+    alc:
+      enabled: true
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF

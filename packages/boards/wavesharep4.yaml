@@ -108,35 +108,10 @@ display:
     update_interval: never
     auto_clear_enabled: false
 
-# The audio, as Waveshare's schematic wires it: both codecs on the touch panel's I2C bus, one I2S bus for both, and the
-# speaker's amplifier on GPIO53.
-audio_adc:
-  - platform: es7210_extended
-    id: ts_audio_adc
-    i2c_id: touch_bus
-    address: 0x40
-    sample_rate: ${AUDIO_SAMPLE_RATE}
-    bits_per_sample: 16bit
-    mic_gain: 30db
-    alc:
-      enabled: true
-
-audio_dac:
-  - platform: es8311
-    id: ts_audio_dac
-    i2c_id: touch_bus
-    address: 0x18
-    sample_rate: ${AUDIO_SAMPLE_RATE}
-    bits_per_sample: 16bit
-    use_mclk: true
-    use_microphone: false
+# The audio codecs (ES8311 and ES7210, amplifier GPIO53) are hardware/wavesharep4-audio/codecs.yaml, shared with the
+# ESP32-P4 7B; the transport's substitutions are this board's own.
 
 switch:
-  - platform: gpio
-    id: board_speaker_amp
-    internal: true
-    pin: GPIO53
-    restore_mode: ALWAYS_OFF
   # Ordinary HA controls, not settings: show them as switches and let the user choose tiles/automations.
   # Waveshare's bottom board and demo use active-high GPIO32/GPIO46. Always start de-energised.
   - platform: gpio

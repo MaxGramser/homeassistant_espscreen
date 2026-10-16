@@ -1,5 +1,10 @@
 ## Unreleased
 
+- **A new board, experimental: the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B**, 7-inch 1024 x 600 MIPI-DSI glass with GT911
+  touch, a dimmable backlight, and its ES8311 speaker and ES7210 microphone as the screen's audio, so audio plugins such
+  as a voice assistant fit it. Built for the rev3 ESP32-P4 silicon Waveshare ships now; a pre-v3 board of the same name
+  sets `engineering_sample: true` in its Override YAML. Choose it under New screen. Hardware acceptance on the glass is
+  pending ([details](docs/WAVESHAREP47B.md)).
 - **New clock faces for the screensaver.** On screens with 8 MB of flash or more, the screensaver's clock can now be
   Glass (a dial that is the glass itself, with ticks along its edge), Classic (a round watch dial with the day, the
   date, the temperature and your entities beside or under it) or Bauhaus (the whole glass a grid of colourful shapes

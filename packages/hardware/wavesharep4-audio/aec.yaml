@@ -1,5 +1,6 @@
 # Waveshare P4 electrical reference: ADC3 after the speaker circuit's attenuator.
 packages:
+  codecs: !include codecs.yaml
   transport: !include ../es7210-aec.yaml
 
 substitutions:
