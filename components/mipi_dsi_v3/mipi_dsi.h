@@ -82,8 +82,8 @@ class MipiDsi final : public display::Display {
   void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                          int x_pad);
   bool check_buffer_();
-  void draw_squeezed_(int x_start, int y_start, int w, int h, const uint8_t *ptr, bool big_endian, int x_offset,
-                      int y_offset, int x_pad);
+  void draw_squeezed_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+                      int x_pad);
   GPIOPin *reset_pin_{nullptr};
   std::vector<GPIOPin *> enable_pins_{};
   size_t width_{};
