@@ -23,7 +23,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone"
@@ -1665,6 +1665,100 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/sensecapd1l.yaml": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "sensecapd1l",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "SenseCAP Indicator D1L (GX)",
+   "name": "SenseCAP Indicator",
+   "order": 22,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT6336U"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 172,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 65,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 55,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "checkout/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -2796,7 +2890,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone"
@@ -4328,7 +4422,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone"
@@ -5970,6 +6064,100 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/sensecapd1l.yaml": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "sensecapd1l",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "SenseCAP Indicator D1L (GX)",
+   "name": "SenseCAP Indicator",
+   "order": 22,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT6336U"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 172,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 65,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 55,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "packages/sunton8048s070.yaml": {
   "alert": {
    "line": 19,
@@ -7210,6 +7398,100 @@
   "tier": "full",
   "wide_slots": false,
   "width": 1280
+ },
+ "sensecapd1l": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "sensecapd1l",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "SenseCAP Indicator D1L (GX)",
+   "name": "SenseCAP Indicator",
+   "order": 22,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT6336U"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 172,
+  "features": [],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 65,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 55,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
  },
  "sunton8048s070": {
   "alert": {

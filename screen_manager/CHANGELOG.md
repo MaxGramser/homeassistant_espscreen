@@ -1,5 +1,6 @@
 ## Unreleased
 
+- Add an experimental Seeed SenseCAP Indicator D1L GX profile for Wi-Fi, display and touch. Keep LoRa and RP2040 peripherals disabled, with the shared S3 PSRAM ceilings of 128 tiles, 24 pages and 12 top bar items.
 - **New clock faces for the screensaver.** On screens with 8 MB of flash or more, the screensaver's clock can now be
   Glass (a dial that is the glass itself, with ticks along its edge), Classic (a round watch dial with the day, the
   date, the temperature and your entities beside or under it) or Bauhaus (the whole glass a grid of colourful shapes
