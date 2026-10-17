@@ -64,7 +64,8 @@ namespace tessera {
 // `backdrop: true`, the step's own picture (moving, for the photos) under the whole saver; and wish(), a
 // value a finger changed, shown at once and squared with Home Assistant as every control of the screen does; drift(),
 // the slow circle against burn-in, for a saver that moves only some of its parts.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 14;
+// 0.15: optional screensaver animation: frame_interval_ms() and on_frame(now_ms), driven by the host while visible.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 15;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -297,6 +298,13 @@ class Saver : public InPsram {
   // Once a second while it is on the glass, with the screen's clock (seconds since 1970, 0 until it is set). Paint what
   // changed, never the whole saver: the glass draws only the boxes that changed.
   virtual void on_tick(uint32_t epoch) {}
+  // Optional animation (0.15). Read once after show(), on_state() and the first on_tick(): 0 (the default) means no
+  // animation timer; 33 requests about 30 frames/s, 16 about 60. The host clamps nonzero intervals to at least 16 ms.
+  virtual uint32_t frame_interval_ms() const { return 0; }
+  // Monotonic milliseconds, NOT epoch seconds. Use elapsed time, not a frame count: drawing can delay a frame.
+  // Called only while visible, in the same dark look as on_tick. Change existing parts only, and keep it short.
+  // The host owns and stops the timer; a saver must not create a timer, task or animation of its own.
+  virtual void on_frame(uint32_t now_ms) {}
   // A tap on a part made with ui::takes_taps, through the touch guard every key passes; tap_point() says where, in the
   // glass's pixels. The screen stays in standby. A tap anywhere else wakes the screen and the saver goes.
   virtual void on_tap() {}

@@ -1099,6 +1099,7 @@ static void card_pictures_end(OpenCard &open) {
 // mark of it, so the next cover or photo is another picture.
 struct OpenSaver : tessera::InPsram {
   std::unique_ptr<tessera::Saver> saver;
+  lv_timer_t *frame_timer = nullptr;  // optional animation, owned by the host and stopped before the saver dies
   std::string key;
   tessera::SaverStep step = tessera::SaverStep::OWN;
   lv_obj_t *stage = nullptr;     // what the saver draws in (SaverContext::parent), a child of the glass rt made
@@ -1129,6 +1130,17 @@ template <typename Run> static void saver_call(Run &&run) {
   if (!saver_calling && saver_gone) saver_end();
 }
 constexpr int SAVER_TOUCH = 400000;   // the touch guard's keys of a saver's parts, apart from tiles' and cards'
+
+static void saver_animate() {
+  OpenSaver *open = saver_open;
+  if (!open) return;
+  uint32_t interval = 0;
+  saver_call([&](tessera::Saver &s) { interval = s.frame_interval_ms(); });
+  if (saver_open != open || !interval) return;
+  open->frame_timer = lv_timer_create([](lv_timer_t *) {
+    saver_call([](tessera::Saver &s) { s.on_frame(esphome::millis()); });
+  }, std::max<uint32_t>(16, interval), nullptr);
+}
 
 bool saver_known(const std::string &key) {
   for (const auto &type : tessera::saver_types()) if (type.key == key && type.make) return true;
@@ -1218,6 +1230,7 @@ void saver_show(lv_obj_t *root, const std::string &key, const roomy::Text &data,
   saver_feed(true);
   saver_call([](tessera::Saver &s) { s.on_tick(rt::now_epoch()); });
   saver_drift();
+  saver_animate();
 }
 
 void saver_state(const roomy::Text &data) {
@@ -1235,6 +1248,7 @@ static void saver_end() {
   saver_open = nullptr;
   saver_gone = false;
   if (!open) return;
+  if (open->frame_timer) lv_timer_delete(open->frame_timer);
   for (auto &p : open->places) place_clear(p);
   if (!open->art_key.empty()) { rt::loader.release(SAVER_OWNER); rt::pictures_collect(); }
   ++saver_calling;
