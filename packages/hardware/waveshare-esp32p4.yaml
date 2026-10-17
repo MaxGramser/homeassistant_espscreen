@@ -1,0 +1,45 @@
+# ESP Screens - Waveshare's ESP32-P4 main board, for a board file that includes this one.
+#
+# The P4 and its Wi-Fi co-processor are hardware/esp32p4-c6.yaml. What Waveshare's P4 screens add to it, pin for pin:
+# 32 MB of flash, and the audio, as Waveshare's schematic wires it: an ES7210 for the microphones and an ES8311 for the
+# speaker, both on the touch panel's I2C bus, and the speaker's amplifier on GPIO53. The I2S bus they share is the
+# transport's (hardware/wavesharep4-audio/). The ESP32-P4-86-Panel-ETH-2RO (wavesharep4.yaml) and the
+# ESP32-P4-WIFI6-Touch-LCD-10.1 (waveshare101.yaml) include this file; the board file adds its display, its touch
+# panel, its backlight and what else its own board carries (the 86 panel's relays).
+packages:
+  p4: !include esp32p4-c6.yaml
+
+esp32:
+  flash_size: 32MB
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+audio_adc:
+  - platform: es7210_extended
+    id: ts_audio_adc
+    i2c_id: touch_bus
+    address: 0x40
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    mic_gain: 30db
+    alc:
+      enabled: true
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF

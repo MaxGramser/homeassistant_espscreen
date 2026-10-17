@@ -1,0 +1,104 @@
+# ESP Screens - Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1: 10.1-inch 800x1280 MIPI-DSI panel (JD9365) with GT911-family
+# capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# 1280x800 at 149 dpi, the standard look, a grid of 5 x 5 cells either way it hangs: the same glass as the 10.1-inch
+# Guition JC8012P4A1. The panel itself is 800x1280 (portrait); LVGL turns the picture and the touch together. The main
+# board is Waveshare's ESP32-P4 board, as on the 86 panel (hardware/waveshare-esp32p4.yaml). The display, touch and
+# backlight settings come from a community configuration that has run on this board for months, with a pre-v3 ESP32-P4
+# ("chip revision: v1.3" in the boot log); a board with rev3 silicon needs `engineering_sample: false`
+# (docs/WAVESHARE101.md). The microSD slot and the MIPI-CSI camera port are not configured here.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/waveshare101.yaml (a build on this computer) and
+# packages/waveshare101.yaml (the package a screen builds from over GitHub).
+packages:
+  # Waveshare's ESP32-P4 main board: the P4, its memory, the ESP32-C6 for Wi-Fi, the touch bus and the audio codecs.
+  hardware: !include ../hardware/waveshare-esp32p4.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The P4 transport keeps the shared speaker/microphone/player interfaces. The amplifier follows playback.
+  audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
+  audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare101"
+  DEVICE_NAME: "waveshare101-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 10"
+
+  # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
+  # touch together. 1509 diagonal pixels over 10.1 inches.
+  PANEL_W: "800"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "149.449"
+  # The LVGL angle that lays this panel out lying down (1280 x 800), the way the community configuration hangs it on a
+  # wall. Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "270"
+  # The tile grid: columns and rows of cells, the 10.1-inch Guition's five by five, the same 25 cells either way up.
+  GRID_COLS: "5"
+  GRID_ROWS: "5"
+  # More tiles and pages than the 64 and eight of a board without PSRAM: an ESP32-P4 states 256 on 16 pages
+  # (docs/ADDING_A_BOARD.md), and the memory budget (tile_memory.h) says how many a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, in PSRAM
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM, as in the community configuration
+
+  # One physical I2S bus, with full-duplex AEC or the original half-duplex I2S path. The ES8311 maps volume from
+  # 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
+  P4_AUDIO_TRANSPORT: "aec"
+  AUDIO_MIC_BUS: ts_speaker_bus
+  AUDIO_DOUT_PIN: GPIO9
+  AUDIO_DIN_PIN: GPIO11
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+  AUDIO_AMPLIFIER: board_speaker_amp
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # The audio transport this board shares with the 86 panel has only been built on 2026.9.0, the add-on's ESPHome.
+  # A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+# The touch panel's INT and RESET are not wired to the P4 in the community configuration, so it is read by polling,
+# without a reset pin. LVGL turns the touch with the picture (LVGL_ROTATION): the panel reports its own pixels.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    update_interval: 20ms
+
+# The backlight, a PWM pin that is not inverted on this board (the 86 panel's is), at the community configuration's
+# 1 kHz (features/backlight.yaml makes it the light). Below 15 % the glass is assumed too dark to read, as on the 86
+# panel, and zero_means_zero keeps 0 dark for standby.
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO26
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.15
+    zero_means_zero: true
+
+# ESPHome's own mipi_dsi platform knows the panel by name: `model: WAVESHARE-P4-NANO-10.1` brings the JD9365's init
+# sequence and timings for two lanes. The model does not bring the reset pin: GPIO27 on this board.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: WAVESHARE-P4-NANO-10.1
+    reset_pin: GPIO27
+    dimensions: {width: 800, height: 1280}
+    update_interval: never
+    auto_clear_enabled: false

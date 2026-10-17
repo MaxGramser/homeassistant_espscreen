@@ -1923,6 +1923,141 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/waveshare101.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "waveshare101",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 24,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
  "checkout/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -6228,6 +6363,141 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/waveshare101.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "waveshare101",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 24,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
  "packages/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -7464,6 +7734,141 @@
    "page_bar": 81,
    "tile_pad": 21,
    "top": 81
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
+ "waveshare101": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "waveshare101",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 24,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "tile_pad": 11,
+   "top": 50
   },
   "tier": "full",
   "wide_slots": false,

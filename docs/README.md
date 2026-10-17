@@ -34,6 +34,7 @@
 - [WAVESHARE4B.md](WAVESHARE4B.md): the Waveshare ESP32-S3-Touch-LCD-4B.
 - [WAVESHARE5.md](WAVESHARE5.md): the Waveshare ESP32-S3-Touch-LCD-5, the 4.3-inch's board with 5-inch glass.
 - [WAVESHAREP4.md](WAVESHAREP4.md): the Waveshare ESP32-P4-86-Panel-ETH-2RO, 4 inch, 720 × 720, using Wi-Fi.
+- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.

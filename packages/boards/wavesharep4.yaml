@@ -14,8 +14,9 @@
 # is added. Two entry files include this one: checkout/wavesharep4.yaml (a build on this computer) and
 # packages/wavesharep4.yaml (the package a screen builds from over GitHub).
 packages:
-  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the Guition P4 panels' own.
-  hardware: !include ../hardware/esp32p4-c6.yaml
+  # Waveshare's ESP32-P4 main board: the P4, its memory, the ESP32-C6 for Wi-Fi, the touch bus and the audio codecs,
+  # shared with the ESP32-P4-WIFI6-Touch-LCD-10.1.
+  hardware: !include ../hardware/waveshare-esp32p4.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
@@ -69,13 +70,6 @@ esphome:
   # `WAVESHARE-P4-86-PANEL` below, arrived in 2026.9.0. A board file's min_version wins over the core's.
   min_version: 2026.9.0
 
-esp32:
-  flash_size: 32MB
-  framework:
-    advanced:
-      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
-      enable_idf_experimental_features: true
-
 # TP_INT ends at a test point, so the touch panel is read by polling.
 touchscreen:
   - platform: gt911
@@ -108,35 +102,8 @@ display:
     update_interval: never
     auto_clear_enabled: false
 
-# The audio, as Waveshare's schematic wires it: both codecs on the touch panel's I2C bus, one I2S bus for both, and the
-# speaker's amplifier on GPIO53.
-audio_adc:
-  - platform: es7210_extended
-    id: ts_audio_adc
-    i2c_id: touch_bus
-    address: 0x40
-    sample_rate: ${AUDIO_SAMPLE_RATE}
-    bits_per_sample: 16bit
-    mic_gain: 30db
-    alc:
-      enabled: true
-
-audio_dac:
-  - platform: es8311
-    id: ts_audio_dac
-    i2c_id: touch_bus
-    address: 0x18
-    sample_rate: ${AUDIO_SAMPLE_RATE}
-    bits_per_sample: 16bit
-    use_mclk: true
-    use_microphone: false
-
+# The audio codecs and the speaker's amplifier are hardware/waveshare-esp32p4.yaml's.
 switch:
-  - platform: gpio
-    id: board_speaker_amp
-    internal: true
-    pin: GPIO53
-    restore_mode: ALWAYS_OFF
   # Ordinary HA controls, not settings: show them as switches and let the user choose tiles/automations.
   # Waveshare's bottom board and demo use active-high GPIO32/GPIO46. Always start de-energised.
   - platform: gpio
