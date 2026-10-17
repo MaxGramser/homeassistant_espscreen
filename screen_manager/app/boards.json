@@ -2772,6 +2772,135 @@
   "wide_slots": false,
   "width": 720
  },
+ "checkout/wavesharep47.yaml": {
+  "alert": {
+   "line": 30,
+   "title_line": 39
+  },
+  "battery": false,
+  "board": "wavesharep47",
+  "camera": {
+   "full": [
+    1280,
+    720
+   ],
+   "thumb": [
+    484,
+    272
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-7",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 210,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 33,
+   "icon_home": 42,
+   "icon_mini": 32,
+   "label": 22,
+   "setpoint": 79,
+   "sublabel": 20,
+   "sublabel_big": 26,
+   "watch_icon": 22,
+   "watch_value": 47
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      720
+     ],
+     "thumb": [
+      484,
+      272
+     ]
+    },
+    "columns": 4,
+    "height": 720,
+    "max": [
+     7,
+     7
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 4,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      1280
+     ],
+     "thumb": [
+      484,
+      272
+     ]
+    },
+    "columns": 2,
+    "height": 1280,
+    "max": [
+     3,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 720
+   }
+  },
+  "rows": 4,
+  "spacing": {
+   "circle": 67,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 58,
+   "tile_pad": 15,
+   "top": 62
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
  "crowpanel101": {
   "alert": {
    "line": 18,
@@ -7077,6 +7206,135 @@
   "wide_slots": false,
   "width": 720
  },
+ "packages/wavesharep47.yaml": {
+  "alert": {
+   "line": 30,
+   "title_line": 39
+  },
+  "battery": false,
+  "board": "wavesharep47",
+  "camera": {
+   "full": [
+    1280,
+    720
+   ],
+   "thumb": [
+    484,
+    272
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-7",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 210,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 33,
+   "icon_home": 42,
+   "icon_mini": 32,
+   "label": 22,
+   "setpoint": 79,
+   "sublabel": 20,
+   "sublabel_big": 26,
+   "watch_icon": 22,
+   "watch_value": 47
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      720
+     ],
+     "thumb": [
+      484,
+      272
+     ]
+    },
+    "columns": 4,
+    "height": 720,
+    "max": [
+     7,
+     7
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 4,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      1280
+     ],
+     "thumb": [
+      484,
+      272
+     ]
+    },
+    "columns": 2,
+    "height": 1280,
+    "max": [
+     3,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 720
+   }
+  },
+  "rows": 4,
+  "spacing": {
+   "circle": 67,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 58,
+   "tile_pad": 15,
+   "top": 62
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
  "reterminald1001": {
   "alert": {
    "line": 27,
@@ -8317,5 +8575,134 @@
   "tier": "full",
   "wide_slots": false,
   "width": 720
+ },
+ "wavesharep47": {
+  "alert": {
+   "line": 30,
+   "title_line": 39
+  },
+  "battery": false,
+  "board": "wavesharep47",
+  "camera": {
+   "full": [
+    1280,
+    720
+   ],
+   "thumb": [
+    484,
+    272
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-7",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 210,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.56.0",
+  "fonts": {
+   "headline": 33,
+   "icon_home": 42,
+   "icon_mini": 32,
+   "label": 22,
+   "setpoint": 79,
+   "sublabel": 20,
+   "sublabel_big": 26,
+   "watch_icon": 22,
+   "watch_value": 47
+  },
+  "height": 720,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      720
+     ],
+     "thumb": [
+      484,
+      272
+     ]
+    },
+    "columns": 4,
+    "height": 720,
+    "max": [
+     7,
+     7
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 4,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      720,
+      1280
+     ],
+     "thumb": [
+      484,
+      272
+     ]
+    },
+    "columns": 2,
+    "height": 1280,
+    "max": [
+     3,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 720
+   }
+  },
+  "rows": 4,
+  "spacing": {
+   "circle": 67,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 58,
+   "tile_pad": 15,
+   "top": 62
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
  }
 }

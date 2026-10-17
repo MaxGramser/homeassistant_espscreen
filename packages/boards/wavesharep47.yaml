@@ -1,0 +1,131 @@
+# ESP Screens - wavesharep47: a 7.0-inch 1280 x 720 panel. Written by tools/new_board.py from the wavesharep4
+# board: its packages and its hardware sections are the template's until they are replaced by this board's
+# (docs/ADDING_A_BOARD.md). docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the Guition P4 panels' own.
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The P4 transport keeps the shared speaker/microphone/player interfaces. The amplifier follows playback.
+  audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
+  audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "wavesharep47"
+  DEVICE_NAME: "wavesharep47-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare P4 7"
+
+  # The glass: the panel's own pixels and its density, 1469 diagonal pixels over 7.0 inches.
+  PANEL_W: "720"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "209.801"
+  # The LVGL angle that lays this panel out lying down (1280 x 720). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "270"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "8"
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+
+  # From the wavesharep4 board: its hardware values and the code it hands the shared lambdas. Replace them
+  # with this board's, as the hardware sections below.
+  # More tiles and pages than the 64 and eight of a board without PSRAM, as on the square Guition: the memory budget
+  # (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "5000Hz"                  # the backlight's PWM: taken from Waveshare's examples
+  # One physical I2S bus, with full-duplex AEC or the original half-duplex I2S path. The ES8311 maps volume from
+  # 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
+  P4_AUDIO_TRANSPORT: "aec"
+  AUDIO_MIC_BUS: ts_speaker_bus
+  AUDIO_DOUT_PIN: GPIO9
+  AUDIO_DIN_PIN: GPIO11
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+  AUDIO_AMPLIFIER: board_speaker_amp
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its display model,
+  # `WAVESHARE-7-DSI-TOUCH-A` below, arrived in 2026.7.0. A board file's min_version wins over the core's.
+  min_version: 2026.7.0
+
+esp32:
+  flash_size: 32MB
+  engineering_sample: true # Tested on hardware resulted in rev 1.3
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    reset_pin: GPIO23
+    interrupt_pin: GPIO33
+    update_interval: 20ms
+
+# The backlight, an inverted PWM pin (features/backlight.yaml makes it the light). BL_EN (the display's
+# enable_pin below) powers its boost converter. The settings for frequency and range are taken from
+# Waveshare's example code and worked well in my experience
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO26
+    frequency: ${BACKLIGHT_FREQUENCY}
+    inverted: false
+    max_power: 0.95
+    min_power: 0.0
+    zero_means_zero: true
+
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: WAVESHARE-7-DSI-TOUCH-A
+    reset_pin: GPIO27
+    update_interval: never
+    auto_clear_enabled: false
+
+# The audio, as Waveshare's schematic wires it: both codecs on the touch panel's I2C bus, one I2S bus for both, and the
+# speaker's amplifier on GPIO53.
+audio_adc:
+  - platform: es7210_extended
+    id: ts_audio_adc
+    i2c_id: touch_bus
+    address: 0x40
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    mic_gain: 30db
+    alc:
+      enabled: true
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF
