@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Plugin Clock previews can respond to options through a sandboxed illustration, with a firmware screenshot fallback.
+
 - Plugin screensaver options update on the glass while visible, including animation speed, without recreating the face.
 
 - **Smooth animation for plugin screensavers.** A screensaver can request animation callbacks at about 30 or 60

@@ -300,6 +300,57 @@ class StoreImage(unittest.IsolatedAsyncioTestCase):
 
 
 
+class SaverPreview(unittest.IsolatedAsyncioTestCase):
+    service = Catalogue.service
+
+    async def test_interactive_preview_is_pinned_declared_and_cached_separately(self):
+        service = self.catalogue()
+        url = f'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/{"a" * 40}/plugins/clock/previews/dial.html'
+        html = b'<!doctype html><canvas></canvas>'
+        service.http = FakeHttp({url: html})
+        self.assertEqual(await service.store_image('clock', 'dial', True), html)
+        self.assertEqual(await service.store_image('clock', 'dial', True), html)
+        self.assertIsNone(await service.store_image('clock', '../dial', True))
+        self.assertIsNone(await service.store_image('clock', None, True))
+        self.assertEqual(service.http.asked, [url])
+
+    async def test_interactive_preview_rejects_non_html_invalid_utf8_and_large_files(self):
+        service = self.catalogue()
+        folder = service.data.parent / 'preview-clock'
+        (folder / 'previews').mkdir(parents=True)
+        service.index['clock'].folder = folder
+        file = folder / 'previews/dial.html'
+        for body in (b'plain text', b'<!doctype html>\xff', b'<!doctype html>' + b' ' * (512 * 1024)):
+            file.write_bytes(body)
+            self.assertIsNone(await service.store_image('clock', 'dial', True))
+
+    def catalogue(self):
+        return self.service(item('clock', api='0.14', savers=[
+            {'id': 'dial', 'name': 'name', 'step': 'clock', 'memory': 400}]))
+
+    async def test_only_a_declared_savers_png_is_fetched_and_cached(self):
+        service = self.catalogue()
+        url = f'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/{"a" * 40}/plugins/clock/previews/dial.png'
+        service.http = FakeHttp({url: png(480, 480)})
+        self.assertEqual(await service.store_image('clock', 'dial'), png(480, 480))
+        self.assertEqual(await service.store_image('clock', 'dial'), png(480, 480))
+        self.assertIsNone(await service.store_image('clock', '../store'))
+        self.assertIsNone(await service.store_image('clock', 'missing'))
+        self.assertEqual(service.http.asked, [url])
+
+    async def test_a_missing_or_invalid_screenshot_is_not_served(self):
+        service = self.catalogue()
+        folder = service.data.parent / 'preview-clock'
+        (folder / 'previews').mkdir(parents=True)
+        service.index['clock'].folder = folder
+        self.assertIsNone(await service.store_image('clock', 'dial'))
+        image = folder / 'previews/dial.png'
+        image.write_bytes(b'<html>not an image</html>')
+        self.assertIsNone(await service.store_image('clock', 'dial'))
+        image.write_bytes(png(480, 480))
+        self.assertEqual(await service.store_image('clock', 'dial'), png(480, 480))
+
+
 class IndexResponse(FakeResponse):
     headers = {}
 

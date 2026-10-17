@@ -2,9 +2,10 @@
 // screen takes it, a plugin's own steps added, moved and taken off, the plugin faces of the clock, the music and the
 // photos, a step's entity and options, the folder chosen by browsing, and the whole choice sent to the add-on.
 import { flushPromises, mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import ScreensaverCard from "../src/components/ScreensaverCard.vue";
 import SaverClock from "../src/components/SaverClock.vue";
+import SaverGlass from "../src/components/SaverGlass.vue";
 import SaverInspector from "../src/components/SaverInspector.vue";
 import { i18n } from "../src/i18n";
 import type { Plugin } from "../src/model/plugins";
@@ -18,6 +19,45 @@ import { fakeApi } from "./helpers/fake-api";
 
 const t = (key: string, named: Record<string, unknown> = {}) => i18n.global.t(key, named);
 const T = (key: string, named: Record<string, unknown> = {}) => t(`editor.screen_settings.screensaver.${key}`, named);
+
+describe("a plugin clock screenshot", () => {
+  it("isolates an interactive preview and sends current options only to its own frame", async () => {
+    const { saver, plugins } = open();
+    plugins.index = [{ ...radar, image: "api/plugins/radar/image?v=one" }];
+    saver.setFace("clock", "plugin:radar.big");
+    const glass = mount(SaverGlass, { props: { height: 150 }, attachTo: document.body });
+    await flushPromises();
+    const frame = glass.find("iframe");
+    expect(frame.attributes("sandbox")).toBe("allow-scripts");
+    expect(frame.attributes("src")).toBe("api/plugins/radar/image?v=one&saver=big&interactive=1");
+    const target = (frame.element as HTMLIFrameElement).contentWindow!;
+    const post = vi.spyOn(target, "postMessage");
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "tessera:preview-ready" } }));
+    expect(post).not.toHaveBeenCalled();
+    window.dispatchEvent(new MessageEvent("message", { source: target, data: { type: "tessera:preview-ready" } }));
+    expect(post).toHaveBeenLastCalledWith(expect.objectContaining({ type: "tessera:preview", options: { bold: false }, size: { width: 800, height: 480 } }), "*");
+    saver.setPluginOption("plugin:radar.big", "bold", true);
+    await flushPromises();
+    expect(post).toHaveBeenLastCalledWith(expect.objectContaining({ options: { bold: true } }), "*");
+    expect(glass.find("img").exists()).toBe(false);
+    glass.unmount();
+  });
+  it("loads the declared face through the app and falls back when the image is missing", async () => {
+    const { saver, plugins } = open();
+    plugins.index = [{ ...radar, image: "api/plugins/radar/image?v=one" }];
+    saver.setFace("clock", "plugin:radar.big");
+    const glass = mount(SaverGlass, { props: { height: 150 } });
+    await flushPromises();
+    expect(glass.find("img").attributes("src")).toBe("api/plugins/radar/image?v=one&saver=big");
+    expect(glass.find(".saver-glass-icon").exists()).toBe(false);
+    await glass.find("img").trigger("error");
+    expect(glass.find("img").exists()).toBe(false);
+    expect(glass.find(".saver-glass-icon").exists()).toBe(true);
+    plugins.index = [{ ...radar, image: "api/plugins/radar/image?v=two" }];
+    await flushPromises();
+    expect(glass.find("img").attributes("src")).toContain("v=two");
+  });
+});
 
 // A plugin with a step of its own of an entity (a radar of a weather entity), one without, and a face of each core step.
 const radar: Plugin = {

@@ -3,9 +3,9 @@
 // and the bottom line with the temperature and the entities, white on black as the screen draws it. A line wider than
 // the glass loses its last entities until it fits, as on the screen, so the temperature always stays.
 // A face of the module (Glass, Classic, Bauhaus) shows as that face instead (SaverFace.vue), and a plugin's face as its
-// icon and the words of its example: the editor cannot run its drawing.
+// optional firmware screenshot, or its icon and example when no screenshot exists.
 import { useResizeObserver } from "@vueuse/core";
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { t } from "../i18n";
 import { text } from "../model/plugins";
 import { glyph } from "../model/topbar";
@@ -14,6 +14,7 @@ import { useRegionStore } from "../stores/region";
 import { useTopbarStore } from "../stores/topbar";
 import { useScreensaverStore } from "../stores/screensaver";
 import { useUiStore } from "../stores/ui";
+import { useScreenStore } from "../stores/screen";
 import SaverFace from "./SaverFace.vue";
 
 const topbar = useTopbarStore();
@@ -22,6 +23,32 @@ const region = useRegionStore();
 const ui = useUiStore();
 const plugins = usePluginsStore();
 const pluginFace = computed(() => (screensaver.clockPluginFace ? plugins.saverOf(screensaver.clockPluginFace) : undefined));
+const pluginPreview = computed(() => {
+  const known = pluginFace.value;
+  return known?.plugin.image ? `${known.plugin.image}&saver=${encodeURIComponent(known.saver.id)}` : null;
+});
+const previewFailed = ref(false);
+watch(pluginPreview, () => { previewFailed.value = false; });
+const showPreview = computed(() => Boolean(pluginPreview.value && !previewFailed.value));
+// Plugin code runs in an opaque-origin sandbox, with no same-origin access or network.
+const screen = useScreenStore();
+const frame = ref<HTMLIFrameElement | null>(null);
+const interactiveReady = ref(false);
+const interactiveUrl = computed(() => pluginPreview.value ? `${pluginPreview.value}&interactive=1` : null);
+watch(interactiveUrl, () => { interactiveReady.value = false; });
+function sendPreview() {
+  if (!interactiveReady.value) return;
+  frame.value?.contentWindow?.postMessage({ type: "tessera:preview", options: screensaver.pluginValues(screensaver.clockPluginFace),
+    size: screensaver.glassSize, shape: screen.currentScreen?.shape, now: ui.now, language: region.screenLanguage }, "*");
+}
+function previewMessage(event: MessageEvent) {
+  if (!frame.value?.contentWindow || event.source !== frame.value.contentWindow || event.data?.type !== "tessera:preview-ready") return;
+  interactiveReady.value = true;
+  sendPreview();
+}
+onMounted(() => window.addEventListener("message", previewMessage));
+onBeforeUnmount(() => window.removeEventListener("message", previewMessage));
+watch(() => [screensaver.pluginValues(screensaver.clockPluginFace), screensaver.glassSize, screen.currentScreen?.shape, ui.now, region.screenLanguage], sendPreview, { deep: true });
 const at = computed(() => new Date(ui.now));
 const say = (key: string) => t(key, {}, { locale: region.screenLanguage });
 const words = computed(() => ({
@@ -51,9 +78,13 @@ useResizeObserver(line, () => measure());
 </script>
 
 <template>
-  <div v-if="screensaver.clockPluginFace" class="saver-glass plugin" aria-hidden="true" :style="{ aspectRatio: screensaver.glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
-    <span class="mdi saver-glass-icon">{{ glyph(pluginFace?.saver.icon || pluginFace?.plugin.icon || "F0A66") }}</span>
-    <span class="saver-glass-date">{{ pluginFace ? text(pluginFace.saver.example || pluginFace.saver.name) : screensaver.stepLabel(screensaver.clockPluginFace) }}</span>
+  <div v-if="screensaver.clockPluginFace" class="saver-glass plugin" :class="{ pictured: showPreview || interactiveReady }" aria-hidden="true" :style="{ aspectRatio: screensaver.glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
+    <iframe v-if="interactiveUrl" ref="frame" class="saver-interactive" :class="{ ready: interactiveReady }" :src="interactiveUrl" sandbox="allow-scripts" tabindex="-1" title="" />
+    <img v-if="showPreview && !interactiveReady" class="saver-glass-preview" :src="pluginPreview!" alt="" @error="previewFailed = true" />
+    <template v-else-if="!interactiveReady">
+      <span class="mdi saver-glass-icon">{{ glyph(pluginFace?.saver.icon || pluginFace?.plugin.icon || "F0A66") }}</span>
+      <span class="saver-glass-date">{{ pluginFace ? text(pluginFace.saver.example || pluginFace.saver.name) : screensaver.stepLabel(screensaver.clockPluginFace) }}</span>
+    </template>
   </div>
   <div v-else-if="screensaver.face !== 'digital'" class="saver-glass face" aria-hidden="true" :style="{ aspectRatio: screensaver.glassRatio, height: `${height}px`, '--glass-h': `${height}px` }">
     <SaverFace :kind="screensaver.face" :dark="screensaver.faceDark" :numerals="screensaver.saver?.numerals ?? 4" :seconds="screensaver.saver?.seconds ?? true"
@@ -70,7 +101,11 @@ useResizeObserver(line, () => measure());
 </template>
 
 <style scoped>
+.saver-interactive { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; pointer-events: none; }
+.saver-interactive.ready { visibility: visible; }
 .saver-glass.face { padding: 0; overflow: hidden; }
+.saver-glass.plugin.pictured { padding: 0; overflow: hidden; }
+.saver-glass-preview { display: block; width: 100%; height: 100%; object-fit: contain; }
 .saver-glass { display: grid; justify-items: center; align-content: center; gap: 2px; width: auto; max-width: 100%; justify-self: center; position: relative;
   border-radius: calc(var(--glass-h) * 0.07); background: #000; color: #fff; padding: 0 10px; }
 .saver-glass-time { font-size: calc(var(--glass-h) * 0.25); font-weight: 300; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }

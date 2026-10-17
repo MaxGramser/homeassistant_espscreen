@@ -4162,6 +4162,11 @@ def create_app(manager, development=False):
         # The LVGL preview compiles the bundled WASM module. Allow that narrowly;
         # JavaScript eval and inline scripts remain disallowed.
         response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'"
+        if (request.path.startswith('/api/plugins/') and request.path.endswith('/image') and
+                request.query.get('interactive') == '1' and response.content_type == 'text/html'):
+            response.headers['Content-Security-Policy'] = ("default-src 'none'; script-src 'unsafe-inline'; "
+                "style-src 'unsafe-inline'; font-src data:; img-src data:; base-uri 'none'; form-action 'none'; sandbox allow-scripts")
+
         return response
 
     # A layout of 48 tiles with actions on their taps passes 16 KB, the limit from the twenty-tile days; the largest the
@@ -5117,10 +5122,10 @@ def create_app(manager, development=False):
         async def plugins_image(request):
             # A plugin's picture for the Plugins page (store.png), served by the app: the editor shows no picture of
             # another address (its img-src is 'self').
-            body = await manager.plugins.store_image(request.match_info['plugin'])
+            body = await manager.plugins.store_image(request.match_info['plugin'], request.query.get('saver'), request.query.get('interactive') == '1')
             if body is None:
                 raise web.HTTPNotFound()
-            return web.Response(body=body, content_type='image/png')
+            return web.Response(body=body, content_type='text/html' if request.query.get('interactive') == '1' else 'image/png')
         app.router.add_get('/api/plugins/{plugin}/image', plugins_image)
 
         async def plugins_link(request):

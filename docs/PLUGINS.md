@@ -366,6 +366,13 @@ picture store of a 4-inch Guition's size, so its renders show every picture of a
 
 ## A screensaver (0.14)
 
+A clock face may include a static firmware screenshot at `previews/<saver-id>.png`, for example
+`previews/watch.png`. The Clock drawer asks for it through the plugin image route with `saver=<saver-id>`, at the
+plugin's pinned commit. The app accepts only a declared saver and a PNG within the store picture limits. A missing
+or invalid picture keeps the icon and example text. No manifest field or firmware API change is needed. The picture
+is an example; it does not update when the person changes the saver's options. The Plugins listing still uses
+`store.png`, independently of this screenshot.
+
 The screensaver is a list of steps in the order the person put them (docs/SCREENSAVER.md): the music that plays, the
 photos of a folder, a camera, the clock. ESP Screen Manager picks the first that has something to show; the screen
 shows it over the whole glass while Auto standby dims it. A plugin adds to that list in two ways, and never beside it:
@@ -461,3 +468,18 @@ tests/test_saver_plugins.py.
 
 A plugin's own messages beyond Home Assistant commands, Python modules of Tessera's own plugins in the add-on (the
 design's `module`), and plugin faces of the camera step.
+
+
+### Interactive screensaver preview (community integration)
+
+A declared saver may additionally include `previews/<id>.html`, a self-contained UTF-8 HTML document (at most 512 KiB).
+The editor loads it through the pinned image endpoint with `saver=<id>&interactive=1`, in an iframe with only
+`sandbox="allow-scripts"`. The response also enforces a CSP sandbox: no same-origin access, network, forms, navigation,
+external scripts or external styles. Inline code/styles and data fonts/images are allowed. Never pass secrets to it.
+A missing HTML preview keeps the PNG, then the existing icon/example fallback.
+
+Once ready, the iframe posts `{type: "tessera:preview-ready"}` to its parent. The parent verifies `event.source` and
+replies with `{type: "tessera:preview", options, size: {width,height}, shape, now, language}`. `shape` includes the board's
+font sizes, density and look; `now` is epoch milliseconds. It sends updated values as settings change. A preview must
+accept messages only from `parent`; it has no actions or access to the device. This is an illustration, not firmware
+execution or a measurement of panel frame rate. Keep its appearance in step with the firmware and supply a PNG fallback.

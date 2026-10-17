@@ -846,28 +846,46 @@ class Plugins:
                 return None
         return f'api/plugins/{entry.id}/image?v={version or 0}'
 
-    async def store_image(self, plugin_id):
+    async def store_image(self, plugin_id, saver_id=None, interactive=False):
         """The PNG of a listed plugin's picture for the Plugins page, or None: from its folder, or fetched from GitHub at
-        the plugin's commit and kept under data/images (one per plugin), checked to be a PNG of a size the page takes."""
+        the plugin's commit and kept under data/images (one per plugin), checked to be a PNG of a size the page takes.
+        A declared saver may ask for previews/<id>.png instead; its cache is separate from the listing picture."""
         entry = self.listed().get(plugin_id)
-        if entry is None or not entry.image:
+        if entry is None or (saver_id is None and not entry.image):
             return None
+        if interactive and saver_id is None:
+            return None
+        if saver_id is not None and not entry.saver(saver_id):
+            return None
+        extension = 'html' if interactive else 'png'
+        picture = f'previews/{saver_id}.{extension}' if saver_id is not None else STORE_IMAGE
+        limit = 512 * 1024 if interactive else STORE_IMAGE_MAX
+        def valid(body):
+            if not interactive:
+                return store_image_ok(body)
+            try:
+                return 0 < len(body) <= limit and '<!doctype html' in body.decode('utf-8').lower()[:100]
+            except UnicodeError:
+                return False
+        cache_id = f'{entry.id}-{saver_id}' if saver_id is not None else entry.id
+        cache_folder = 'saver-html' if interactive else 'saver-images' if saver_id is not None else 'images'
         if entry.folder is not None:
             try:
-                body = (Path(entry.folder) / STORE_IMAGE).read_bytes()
+                body = (Path(entry.folder) / picture).read_bytes()
             except OSError:
                 return None
-            return body if store_image_ok(body) else None
+            return body if valid(body) else None
         found = GITHUB_LINK.match(entry.repo or '')
         if not found or not re.fullmatch(r'[0-9a-f]{40}', entry.ref or ''):
             return None
-        kept = self.data / 'images' / f'{entry.id}-{entry.ref}.png'
+        kept = self.data / cache_folder / f'{cache_id}-{entry.ref}.{extension}'
         try:
-            return kept.read_bytes()
+            body = kept.read_bytes()
+            return body if valid(body) else None
         except OSError:
             pass
         base = '' if entry.path in ('', '.') else entry.path.strip('/') + '/'
-        url = GITHUB_RAW.format(owner=found.group(1), repo=found.group(2), ref=entry.ref, path=base + STORE_IMAGE)
+        url = GITHUB_RAW.format(owner=found.group(1), repo=found.group(2), ref=entry.ref, path=base + picture)
         import aiohttp
         try:
             if self.http is None or self.http.closed:
@@ -876,16 +894,16 @@ class Plugins:
             async with self.http.get(url) as response:
                 if response.status != 200:
                     return None
-                body = bytes(await read_whole(response, STORE_IMAGE_MAX))
+                body = bytes(await read_whole(response, limit))
         except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
             LOG.info('Plugin %s: picture not read (%s)', entry.id, error)
             return None
-        if not store_image_ok(body):
-            LOG.info('Plugin %s: %s is not a PNG the Plugins page takes', entry.id, STORE_IMAGE)
+        if not valid(body):
+            LOG.info('Plugin %s: %s is not a PNG the editor takes', entry.id, picture)
             return None
         try:
             kept.parent.mkdir(parents=True, exist_ok=True)
-            for old in kept.parent.glob(f'{entry.id}-*.png'):
+            for old in kept.parent.glob(f'{cache_id}-*.{extension}'):
                 old.unlink(missing_ok=True)
             kept.write_bytes(body)
         except OSError as error:
