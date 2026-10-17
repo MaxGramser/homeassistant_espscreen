@@ -175,8 +175,8 @@ crowpanel101:
   settings: [media_player, microphone]
 
 waveshare4v4:
-#The waveshare ESP32-S3-Touch-LCD-4 line is very version specific with meaningful hardware variances between versions
-#Specifying the version in the panel name to assist differentiation if other versions are requested to be supported
+# The waveshare ESP32-S3-Touch-LCD-4 family is very version specific with meaningful hardware variances between versions
+# Specifying the version in the panel name to assist differentiation if other versions are requested to be supported
   file: waveshare-esp32s3-4v4.yaml
   # version 4 board swaps expander for a new custom waveshare expander (CH32V003) as the most significant component change.
   name: Waveshare

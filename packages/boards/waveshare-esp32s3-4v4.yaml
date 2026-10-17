@@ -13,8 +13,6 @@
 packages:
   # The chip and its memory for an RGB panel, as on the other Waveshare boards.
   hardware: !include ../hardware/esp32s3-rgb.yaml
-  # The cards of this board's grid, one per cell (tools/generate_cells.py writes them; docs/RESPONSIVE.md).
-  cells: !include ../cells/6.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
