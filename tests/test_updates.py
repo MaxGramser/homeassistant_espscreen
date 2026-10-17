@@ -337,8 +337,16 @@ class UpdaterTests(unittest.IsolatedAsyncioTestCase):
             again = self.setup_manager(tmp)
             self.assertTrue(again.updates.auto)
             self.assertEqual(again.updates.last_round, '2026-09-14')
+            # A file of another app's version (atomic.read_json): the app starts with the defaults, the file stays exactly as
+            # it is, and nothing is written over it (an older app never writes an older file over a newer one).
             (Path(tmp) / 'updates.json').write_text('{"version": 9}')
-            with self.assertRaises(ValueError): self.setup_manager(tmp)
+            with self.assertLogs('screen_manager', 'ERROR'):
+                frozen = self.setup_manager(tmp)
+            self.assertFalse(frozen.updates.auto)
+            self.assertIsNone(frozen.updates.last_round)
+            with self.assertRaises(OSError):
+                frozen.updates.save()
+            self.assertEqual((Path(tmp) / 'updates.json').read_text(), '{"version": 9}')
             with self.assertRaises(ValueError): m.updates.set_auto('yes')
 
     async def test_manager_watches_only_layout_and_screen_entities(self):

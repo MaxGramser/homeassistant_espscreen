@@ -209,6 +209,13 @@ LINT_KEEP = {
     'My M5Stack Tab5',
     'configuration not ready',
     'UI_TEST START: page/overlay render stress, no HA actions', 'Color', 'Color temperature', 'Brightness',
+    # A plugin's action of JSON values (plugin_action.h, plugin API 0.12): JSON's true and false as Home Assistant's Python
+    # writes them, and the reasons an action is refused, which only the app's log and the plugin's maker see.
+    'True', 'False', 'too many fields', "a field's name is a-z, 0-9 and _", 'entity_id is given twice', 'a field is given twice',
+    'a value is no JSON', 'the fields are larger than 1 KB',
+    # The ES7210's diagnostic sensor (packages/hardware/es7210-aec.yaml): the states of a diagnostic entity in Home
+    # Assistant, in English as Home Assistant's own diagnostics are.
+    'Error', 'Starting', 'Enabled', 'Bypass',
     # Home Assistant's own values and units the code compares with, not words it shows.
     'None', 'Auto', 'Wh',
     # Placeholders of the YAML tree that the runtime tiles replace before a screen shows them, and profile defaults.

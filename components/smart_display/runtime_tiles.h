@@ -855,6 +855,7 @@ inline bool watch_call(esphome::api::HomeassistantActionRequest &request, const 
         silent = true;
         t.pending = false;
         t.release_slider();
+        t.release_travel();
         t.refused_at = std::max<uint32_t>(1, esphome::millis());
         t.unanswered = true;
         refresh_tile(i);
@@ -884,6 +885,7 @@ inline bool watch_call(esphome::api::HomeassistantActionRequest &request, const 
     for (size_t i = 0; i < model.tiles.size(); ++i) if (model.tiles[i].entity == entity) {
       model.tiles[i].pending = false;
       model.tiles[i].release_slider();
+      model.tiles[i].release_travel();
       model.tiles[i].refused_at = std::max<uint32_t>(1, esphome::millis());
       model.tiles[i].unanswered = false;
       refresh_tile(i);
@@ -1359,11 +1361,135 @@ inline void climate_power(Tile &t) {
   t.begin(esphome::millis());
   action(t.domain() + ".turn_on", t.entity);
 }
+// A cover's command (cover_travel.h): every tile and the card of the cover show where it goes and which way at once,
+// and the action goes out without the busy sheet, so a finger can send the cover elsewhere while it is on its way.
+// `to` the position or tilt asked for, `dir` +1 open, -1 close, 0 from the positions. A stop ends the travel: Home
+// Assistant's next report says where the cover stood still.
+inline void cover_go(Tile &t, const tile_controls::Action &a, float to, int dir, bool tilt = false) {
+  if (!a.valid()) return;
+  const uint32_t now = esphome::millis();
+  const bool stop = a.service == "cover.stop_cover" || a.service == "cover.stop_cover_tilt";
+  const std::string entity = t.entity;
+  for (size_t i = 0; i < model.tiles.size(); ++i) {
+    auto &o = model.tiles[i];
+    if (o.entity != entity) continue;
+    o.release_travel();
+    if (!stop) o.travel_start(now, to, dir, tilt);
+    o.refused_at = 0;
+    refresh_tile(i);
+  }
+  action(a.service, entity, a.key, a.value, true, "", "", false);
+}
+// A cover's key: open and close travel to their end, the stops end a travel.
+inline void cover_key(Tile &t, int command) {
+  const auto a = tile_controls::key_action(t, command);
+  switch (command) {
+    case tile_controls::COVER_OPEN: cover_go(t, a, 100, 1); break;
+    case tile_controls::COVER_CLOSE: cover_go(t, a, 0, -1); break;
+    case tile_controls::COVER_OPEN_TILT: cover_go(t, a, 100, 1, true); break;
+    case tile_controls::COVER_CLOSE_TILT: cover_go(t, a, 0, -1, true); break;
+    default: cover_go(t, a, NAN, 0); break;
+  }
+}
+// A cover slider while its cover is on its way (cover_travel.h). The fill stands faint at the target and the handle is
+// gone, so nothing looks as if it waits for a finger, and a soft band runs over the slider from where Home Assistant
+// last had the cover towards where it goes, about once a second: the cover moves, and which way, also where it cannot
+// be seen. The slider still takes a finger: a press brings the handle back (the pressed state outranks the travel's)
+// and the release sends the cover elsewhere. The slats' slider has no fill, so its handle goes faint instead.
+// Only the sliders on the glass are redrawn, by one timer that lives while a band runs.
+namespace travel_band {
+struct Run { lv_obj_t *slider = nullptr; int from = 0, to = 0; };
+inline std::array<Run, 8> runs{};
+inline lv_timer_t *timer = nullptr;
+constexpr uint32_t PERIOD = 1100, FRAME = 50;
+inline Run *find(lv_obj_t *slider) {
+  for (auto &r : runs) if (r.slider == slider) return &r;
+  return nullptr;
+}
+inline void tick(lv_timer_t *) {
+  bool any = false;
+  for (auto &r : runs) if (r.slider) { lv_obj_invalidate(r.slider); any = true; }
+  if (!any && timer) { lv_timer_delete(timer); timer = nullptr; }
+}
+// The slider's pixel along its axis for a raw value, in its own range (a reversed range runs the other way).
+inline int at(lv_obj_t *slider, const lv_area_t &c, int raw) {
+  const int lo = lv_slider_get_min_value(slider), hi = lv_slider_get_max_value(slider);
+  const float share = hi == lo ? 0.0f : std::clamp((raw - lo) / float(hi - lo), 0.0f, 1.0f);
+  const bool lying = lv_area_get_width(&c) >= lv_area_get_height(&c);
+  return lying ? c.x1 + (int) std::lround(share * (lv_area_get_width(&c) - 1))
+               : c.y2 - (int) std::lround(share * (lv_area_get_height(&c) - 1));
+}
+inline void draw(lv_event_t *e) {
+  auto *slider = lv_event_get_target_obj(e);
+  const Run *r = find(slider);
+  if (!r || lv_obj_has_state(slider, LV_STATE_PRESSED)) return;
+  lv_area_t c;
+  lv_obj_get_coords(slider, &c);
+  const bool lying = lv_area_get_width(&c) >= lv_area_get_height(&c);
+  const int a = at(slider, c, r->from), b = at(slider, c, r->to), span = std::abs(b - a);
+  const int across = lying ? lv_area_get_height(&c) : lv_area_get_width(&c);
+  if (span < 2) return;
+  const int length = std::max(across / 2, span / 3);
+  const float phase = (esphome::millis() % PERIOD) / float(PERIOD);
+  // The band's front runs from `a` to past `b`, so it leaves at the target before it starts again.
+  const int front = a + (b > a ? 1 : -1) * (int) std::lround(phase * (span + length));
+  const int lo = std::max(std::min(a, b), std::min(front, front - (b > a ? length : -length)));
+  const int hi = std::min(std::max(a, b), std::max(front, front - (b > a ? length : -length)));
+  if (hi <= lo) return;
+  lv_draw_rect_dsc_t d;
+  lv_draw_rect_dsc_init(&d);
+  d.bg_color = lv_color_hex(cover_paint::ACCENT);
+  // Cut short at either end, it fades instead of narrowing to a stripe that would read as a handle.
+  d.bg_opa = (lv_opa_t) (LV_OPA_50 * (hi - lo) * (hi - lo) / (length * length));
+  d.radius = std::min(across / 2, (hi - lo) / 2);
+  lv_area_t band = lying ? lv_area_t{lo, c.y1, hi, c.y2} : lv_area_t{c.x1, lo, c.x2, hi};
+  lv_draw_rect(lv_event_get_layer(e), &d, &band);
+}
+inline void forget(lv_event_t *e) {
+  if (Run *r = find(lv_event_get_target_obj(e))) *r = Run();
+}
+// The band of one slider: from and to in the slider's raw values, or none.
+inline void set(lv_obj_t *slider, bool on, int from, int to) {
+  Run *r = find(slider);
+  if (!on) { if (r) { *r = Run(); lv_obj_invalidate(slider); } return; }
+  if (!r) {
+    r = find(nullptr);
+    if (!r) return;
+    // Once per slider, however often a cover on it travels.
+    lv_obj_remove_event_cb(slider, draw);
+    lv_obj_remove_event_cb(slider, forget);
+    lv_obj_add_event_cb(slider, draw, LV_EVENT_DRAW_MAIN_END, nullptr);
+    lv_obj_add_event_cb(slider, forget, LV_EVENT_DELETE, nullptr);
+  }
+  r->slider = slider;
+  r->from = from;
+  r->to = to;
+  if (!timer) timer = lv_timer_create(tick, FRAME, nullptr);
+}
+}  // namespace travel_band
+// `closed`: the slider holds the closed share (a standing blind, a tile's strip), else the open share or the tilt.
+inline void travel_look(lv_obj_t *slider, const Tile &t, bool tilt, bool closed) {
+  if (!slider) return;
+  const bool on = t.travelling() && t.travel.tilt == tilt;
+  auto raw = [&](float v) { return (int) std::lround(std::clamp(closed ? 100.0f - v : v, 0.0f, 100.0f) * 10); };
+  const float from = t.travel.real, to = t.travel.to;
+  travel_band::set(slider, on && std::isfinite(to), std::isfinite(from) ? raw(from) : raw(to < 50 ? 100 : 0), raw(to));
+  if (on == lv_obj_has_state(slider, LV_STATE_USER_1)) return;
+  if (on) {
+    if (!tilt) lv_obj_set_style_bg_opa(slider, LV_OPA_40, LV_PART_INDICATOR | LV_STATE_USER_1);
+    lv_obj_set_style_opa(slider, tilt ? LV_OPA_40 : LV_OPA_TRANSP, LV_PART_KNOB | LV_STATE_USER_1);
+    lv_obj_set_style_opa(slider, LV_OPA_COVER, LV_PART_KNOB | LV_STATE_USER_1 | LV_STATE_PRESSED);
+    lv_obj_add_state(slider, LV_STATE_USER_1);
+  } else {
+    lv_obj_remove_state(slider, LV_STATE_USER_1);
+  }
+}
 // A key of a tile (a wide tile's row, a thermostat's mode bar): a wish where the key changes a value it can show
 // (tile_controls::wanted), the plain action otherwise.
 inline void key_press(Tile &t, int command, const std::string &arg = "") {
   const auto a = tile_controls::key_action(t, command, arg);
   if (!a.valid()) return;
+  if (t.domain() == "cover") { cover_key(t, command); return; }
   const auto w = tile_controls::wanted(t, command, arg);
   if (!w.valid) { action(a.service, t.entity, a.key, a.value); return; }
   if (w.field == optimistic::Field::HVAC_MODE) { climate_mode_wish(t, w.value); return; }
@@ -1457,7 +1583,8 @@ inline void commit_slider(unsigned i,int raw,bool tilt=false){
   if(d=="cover"){
     if(tilt&&!tile_controls::cover_tilt_selected(t))return;
     const auto call=tile_controls::cover_position_action(t,raw,tilt);
-    if(call.valid())action(call.service,t.entity,call.key,call.value);
+    const float percent=std::lround(std::clamp(raw,0,1000)/10.0f);
+    cover_go(t,call,tilt?percent:100-percent,0,tilt);
     return;
   }
   if(tilt)return;
@@ -1680,7 +1807,7 @@ inline void detail_command(int cmd){
     return;
   }
   // Cover keys: 70 + tile_controls::Command (open, stop, close and the tilt keys).
-  if(cmd>=70 && cmd<130){auto a=tile_controls::key_action(t,cmd-70);if(a.valid()&&t.domain()=="cover")action(a.service,t.entity,a.key,a.value);}
+  if(cmd>=70 && cmd<130){if(t.domain()=="cover")cover_key(t,cmd-70);}
   if(cmd==40)action(t.state=="active"?"timer.pause":"timer.start",t.entity);
   if(cmd==41)action("timer.cancel",t.entity);
   // The climate card: a mode (200-207), a fan or swing choice (210-221) and the power key (230). The card
@@ -1735,17 +1862,9 @@ inline int text_width(const std::string &text,const lv_font_t *font){
   lv_point_t size;lv_text_get_size(&size,text.c_str(),font,0,0,LV_COORD_MAX,LV_TEXT_FLAG_NONE);return size.x;
 }
 // ---- Weather card: now, the next hours and the coming days, with rain ----
-// The colour of a condition's icon, as this look draws it on a card.
-inline uint32_t weather_color_raw(const std::string &c) {
-  using namespace theme::ha;
-  if(c=="sunny")return SUNNY;
-  if(c=="clear-night")return DEEP_PURPLE;
-  if(c=="rainy"||c=="pouring"||c=="lightning-rainy"||c=="snowy-rainy")return RAIN;
-  if(c=="snowy"||c=="hail")return SNOW;
-  if(c=="lightning")return LIGHTNING;
-  if(c=="partlycloudy")return PARTLY_CLOUDY;
-  return CLOUDY;
-}
+// The colour of a condition's icon on a card: the sky of the one weather table (tile_controls::weather_sky), the same the
+// chart beside it draws its marks in.
+inline uint32_t weather_color_raw(const std::string &c) { return tile_controls::weather_sky(c); }
 inline uint32_t weather_accent(const std::string &c) { return theme::foreground(weather_color_raw(c)); }
 inline lv_obj_t *detail_text(lv_obj_t *parent,const std::string &text,int x,int y,int width,const lv_font_t *font,lv_text_align_t align,uint32_t color){
   auto *l=detail_label(parent,text,x,y,std::max(1,width));lv_obj_set_style_text_font(l,font,0);lv_obj_set_height(l,lv_font_get_line_height(font));
@@ -2449,8 +2568,10 @@ inline void cover_slider_event(lv_event_t *e){
   if(code!=LV_EVENT_RELEASED||detail_index>=model.count)return;
   auto &t=model.tiles[detail_index];
   if(!fresh()||!t.available()||!screen_input::touch_guard.accept_slider(esphome::millis(),390+(tilt?1:0)))return;
-  const auto call=tile_controls::cover_position_action(t,lv_slider_get_value(slider),tilt);
-  if(call.valid())action(call.service,t.entity,call.key,call.value);
+  const int raw=lv_slider_get_value(slider);
+  const auto call=tile_controls::cover_position_action(t,raw,tilt);
+  const float percent=std::lround(std::clamp(raw,0,1000)/10.0f);
+  cover_go(t,call,tilt?percent:100-percent,0,tilt);
 }
 // One slider. The position fills from the top by how far the cover is closed; the tilt has no fill and its
 // handle moves over the slats, drawn at their angle (firmware 0.57.0).
@@ -2591,6 +2712,7 @@ inline int cover_columns(const Tile &t,bool large){
 // A position (arg 0) or tilt (arg 1) slider follows the blind as it moves, unless a finger holds it.
 inline float cover_value(const Tile &t,bool tilt){return tilt?t.extra().tilt:t.position;}
 inline void cover_slider_paint(lv_obj_t *slider,const Tile &t,const CardPart &part){
+  travel_look(slider,t,part.arg,!part.arg);
   if(lv_obj_has_state(slider,LV_STATE_PRESSED))return;
   const float v=cover_value(t,part.arg);
   const int raw=part.arg?(std::isfinite(v)?(int)std::lround(std::clamp(v,0.0f,100.0f)*10):500)
@@ -7467,7 +7589,7 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
       if(volume){
         lv_obj_set_pos(w.control_slider,0,0);
         // Keep the dragged value while the command is under way; HA's report takes over afterwards.
-        if(!lv_obj_has_state(w.control_slider,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(w.control_slider,slider_value(t),LV_ANIM_OFF);
+        travel_look(w.control_slider,t,false,true);if(!lv_obj_has_state(w.control_slider,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(w.control_slider,slider_value(t),LV_ANIM_OFF);
         panel_w=pair_w;panel_h=key_y+m.key_h;
       }
     }
@@ -7495,7 +7617,7 @@ inline int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int co
     if(has_slider){
       lv_obj_remove_flag(w.control_slider,LV_OBJ_FLAG_HIDDEN);lv_obj_set_pos(w.control_slider,0,(panel_h-m.slider_h)/2);
       // Keep the dragged value while the command is under way; HA's report takes over afterwards.
-      if(!lv_obj_has_state(w.control_slider,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(w.control_slider,slider_value(t),LV_ANIM_OFF);
+      travel_look(w.control_slider,t,false,true);if(!lv_obj_has_state(w.control_slider,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(w.control_slider,slider_value(t),LV_ANIM_OFF);
       panel_w=track;
     }else lv_obj_add_flag(w.control_slider,LV_OBJ_FLAG_HIDDEN);
     if(mode=="volume"){
@@ -7891,8 +8013,7 @@ inline void cover_tile_key_event(lv_event_t *e){
   const unsigned group=part/3,count=group==1?tile_controls::cover_tilt_keys(t,keys):group==2?tile_controls::cover_keys(t,keys):tile_controls::keys_for(t,keys);
   if(part%3>=count||keys[part%3].disabled)return;
   if(!screen_input::touch_guard.accept(esphome::millis(),600+tag))return;
-  const auto call=tile_controls::key_action(t,keys[part%3].command);
-  if(!call.service.empty())action(call.service,t.entity,call.key,call.value);
+  cover_key(model.tiles[w.index],keys[part%3].command);
 }
 inline void render_cover_tile(Widgets &w,const Tile &t,const cover_tile::Layout &l,int width,int height){
   hide_panel(w);
@@ -7934,6 +8055,7 @@ inline void render_cover_tile(Widgets &w,const Tile &t,const cover_tile::Layout 
                                :cover_slider(w.extra,g.control.x,g.control.y,g.control.w,g.control.h,value,i,slider_event,nullptr);
       if(captured_slider!=slider)lv_slider_set_value(slider,std::isfinite(value)?(int)std::lround((i||g.lying?value:100-value)*10):(i?500:0),LV_ANIM_OFF);
       if(ready)lv_obj_remove_state(slider,LV_STATE_DISABLED);else lv_obj_add_state(slider,LV_STATE_DISABLED);
+      travel_look(slider,t,i==1,i!=1&&!g.lying);
     }else{
       std::array<tile_controls::Key,3> keys;
       const unsigned count=i==1?tile_controls::cover_tilt_keys(t,keys):i==2?tile_controls::cover_keys(t,keys):tile_controls::keys_for(t,keys);
@@ -8443,6 +8565,7 @@ inline void render_full(Widgets &w,const Tile &t,bool custom,bool clock,bool sun
     lv_obj_set_size(w.slider,content_w,strip);lv_obj_set_ext_click_area(w.slider,slider_zone(w,strip));
     slider_handle(w.slider,content_w,strip);
     lv_obj_remove_flag(w.slider,LV_OBJ_FLAG_HIDDEN);
+    travel_look(w.slider,t,false,true);
     if(!lv_obj_has_state(w.slider,LV_STATE_PRESSED) && lv_slider_get_value(w.slider)!=slider_value(t))lv_slider_set_value(w.slider,slider_value(t),LV_ANIM_OFF);
     return;
   }
@@ -8864,7 +8987,7 @@ inline void render_slot(size_t slot) {
   }else lv_obj_add_flag(w.unit,LV_OBJ_FLAG_HIDDEN);
   lv_obj_set_size(w.slider,content_w,slider_height);lv_obj_set_ext_click_area(w.slider,slider_zone(w,slider_height));
   slider_handle(w.slider,content_w,slider_height);
-  if(mini){lv_obj_remove_flag(w.slider,LV_OBJ_FLAG_HIDDEN);if(!lv_obj_has_state(w.slider,LV_STATE_PRESSED) && lv_slider_get_value(w.slider)!=slider_value(t))lv_slider_set_value(w.slider,slider_value(t),LV_ANIM_OFF);}
+  if(mini){lv_obj_remove_flag(w.slider,LV_OBJ_FLAG_HIDDEN);travel_look(w.slider,t,false,true);if(!lv_obj_has_state(w.slider,LV_STATE_PRESSED) && lv_slider_get_value(w.slider)!=slider_value(t))lv_slider_set_value(w.slider,slider_value(t),LV_ANIM_OFF);}
   else lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);
   lap(swipe_profile::GEOMETRY);
   if(graph_strip)render_graph(w,t,large_tile,0,content_h-slider_height,content_w,slider_height);
@@ -10516,6 +10639,8 @@ inline void tick() {
     if(t.refused_at && esphome::millis()-t.refused_at>=4000){t.refused_at=0;card(i);}
     // A held slider whose light never got there shows what Home Assistant last reported again.
     if(std::isfinite(t.slider_sent) && !t.slider_holding(esphome::millis())){t.release_slider();card(i);}
+    // A cover that gave no sign of getting where it was sent shows where Home Assistant last said it is.
+    if(t.travelling() && !cover_travel::holding(t.travel,esphome::millis())){t.release_travel();card(i);}
     if(!t.pending || t.waiting(esphome::millis()))continue;
     end_wait(i);card(i);
   }

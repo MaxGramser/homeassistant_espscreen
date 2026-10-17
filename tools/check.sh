@@ -193,6 +193,7 @@ firmware_numbers_raised() {
 translations_check() { cd "$ROOT" && "$PYTHON" tools/i18n.py check > "$WORK/i18n.txt" && "$PYTHON" tools/i18n.py header --check && "$PYTHON" tools/i18n.py lint; }
 editor_install() { cd "$ROOT/web" && npm ci --no-audit --no-fund; }
 editor_tests() { cd "$ROOT/web" && npm test; }
+editor_lint() { cd "$ROOT/web" && npm run lint; }
 # The editor's mockup against the firmware's numbers (tests/test_editor_parity.py): it needs web/node_modules, which the
 # Python tests above run before, so it runs here again, where a missing piece is a failure and not a skip.
 editor_parity() { cd "$ROOT" && EDITOR_PARITY=1 "$PYTHON" -m unittest tests.test_editor_parity; }
@@ -289,7 +290,26 @@ EOF
       return 1
     fi
   done < <(board_entries)
+  # The Guition with the host probe plugin (tests/fixtures/plugins/host_probe) in it, the way the app builds a screen
+  # with plugins (plugins.Plugins.sidecar: its plugin.yaml as a package, its components as a local source): a change to
+  # the plugin API that no plugin builds against any more fails here, on the add-on's ESPHome, before a release.
+  if [[ -f "$config/check-guition.yaml" ]]; then
+    cat > "$config/check-plugin.yaml" <<EOF2 || return 1
+# The Guition with the host probe plugin in it (tools/check.sh, docs/TESTING.md "2. Firmware builds").
+packages:
+  screen: !include check-guition.yaml
+  plugin_host_probe: !include $ROOT/tests/fixtures/plugins/host_probe/plugin.yaml
+external_components:
+  - source: {type: local, path: $ROOT/tests/fixtures/plugins/host_probe/components}
+EOF2
+  fi
   echo "Check profiles in $config"
+}
+
+compile_plugin() {
+  cd "$WORK/config/checkout" || return 1
+  "${ESPHOME_CMD[@]}" -s DEVICE_NAME check-plugin -s DEVICE_FRIENDLY_NAME "Check plugin" compile check-plugin.yaml || return 1
+  note "the Guition with host_probe"
 }
 
 # The boards that ship and their checkout entries, one "board entry" per line (tools/profiles.py is the one list).
@@ -484,6 +504,7 @@ if ((want_fast)); then
   run "Editor: npm ci" editor_install
   if ((last_ok)); then
     run "Editor: tests (Vitest)" editor_tests
+    run "Editor: lint (ESLint)" editor_lint
     run "Editor: the firmware's numbers" editor_parity
     run "Firmware preview: WASM" firmware_preview
     run "Editor: types (vue-tsc)" editor_types
@@ -553,6 +574,9 @@ if ((want_firmware)); then
         continue
       fi
       run "Firmware: $board" compile_board "$board"
+      if [[ $board == guition ]]; then
+        if ((last_ok)); then run "Firmware: a plugin in the Guition" compile_plugin; else skip "Firmware: a plugin in the Guition" "no build"; fi
+      fi
       if [[ " ${small_flash[*]} " == *" $board "* ]]; then
         if ((last_ok)); then run "Flash budget: $board" flash_budget "$board"; built_small+=("$board"); else skip "Flash budget: $board" "no build"; fi
       fi

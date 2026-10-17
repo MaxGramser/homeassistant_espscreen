@@ -48,7 +48,7 @@ function renameFrom(e: MouseEvent) {
   e.preventDefault();
   insp.renameTile(props.tile);
 }
-const label = computed(() => t("editor.tile_card.label", { name: card.texts.name, slot: (props.slot % card.grid.slots) + 1, page: Math.floor(props.slot / card.grid.slots) + 1 }));
+const label = computed(() => t("editor.tile_card.label", { name: card.texts.name, slot: (props.at % card.grid.slots) + 1, page: Math.floor(props.at / card.grid.slots) + 1 }));
 // The remove key's words, said again only when the name changes, not each time the card is drawn.
 const removeText = computed(() => t("editor.tile_card.remove"));
 const removeLabel = computed(() => t("editor.tile_card.remove_named", { name: card.texts.name }));
@@ -63,7 +63,7 @@ const classes = computed(() => {
 });
 const style = computed(() => {
   const background = card.background;
-  return { gridColumn: `${props.slot % card.grid.columns + 1} / span ${card.shape.columns}`, gridRow: `${Math.floor(props.slot % card.grid.slots / card.grid.columns) + 1} / span ${card.shape.rows}`,
+  return { gridColumn: `${props.at % card.grid.columns + 1} / span ${card.shape.columns}`, gridRow: `${Math.floor(props.at % card.grid.slots / card.grid.columns) + 1} / span ${card.shape.rows}`,
     ...(background && props.tile.options?.background !== "none" ? { backgroundColor: background } : {}),
     "--tile-cols": card.shape.columns, "--tile-icon": card.palette.icon, "--tile-circle": card.palette.circle, "--tile-accent": card.palette.accent, ...(card.watchStyle?.pad ?? {}) };
 });
@@ -98,7 +98,7 @@ async function onKey(e: KeyboardEvent) {
 
 <template>
   <TileRoundKey v-if="round" :card="card" @activate="activate" />
-  <div v-else class="tile" :class="classes" :data-slot="slot" :data-tile-id="tile.id" :data-columns="card.shape.columns" :data-rows="card.shape.rows" :style="style"
+  <div v-else class="tile" :class="classes" :data-slot="at" :data-tile-id="tile.id" :data-columns="card.shape.columns" :data-rows="card.shape.rows" :style="style"
     :tabindex="reachable ? 0 : -1" :role="reachable ? 'button' : undefined" :aria-label="card.live ? label : undefined"
     v-drag="preview || card.foreign ? null : { kind: 'tile', tile }" @click="activate" @dblclick="renameFrom" @keydown="card.live && onKey($event)">
     <TileBedside v-if="kind === 'bedside'" :card="card" />

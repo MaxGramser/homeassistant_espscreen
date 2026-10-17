@@ -5,7 +5,7 @@ declare module "virtual:esp-screens-theme" {
 }
 declare module "*.vue" {
   import type { DefineComponent } from "vue";
-  const component: DefineComponent<{}, {}, any>;
+  const component: DefineComponent<object, object, any>;
   export default component;
 }
 // Every language's _meta by its code, from screen_manager/translations (vite.config.ts, app 0.2.90).

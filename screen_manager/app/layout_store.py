@@ -14,6 +14,7 @@ from pathlib import Path
 import tempfile
 import threading
 
+import atomic
 from i18n import t
 from core import validate_settings
 from page_layout import FORMAT, LayoutError, fingerprint, grid_of_record, new_id, screen_grid_of_record, validate_document
@@ -111,23 +112,14 @@ class LayoutStore:
     def _replace(self, records):
         payload = json.dumps({"version": VERSION, "screens": records}, ensure_ascii=False,
                              allow_nan=False, separators=(",", ":")) + "\n"
-        descriptor, name = tempfile.mkstemp(prefix=self.path.name + ".", suffix=".tmp", dir=self.path.parent)
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf8") as output:
-                os.fchmod(output.fileno(), 0o600)
-                output.write(payload)
-                output.flush()
-                os.fsync(output.fileno())
-            os.replace(name, self.path)
-            self._records = records
-            self._stamp = self._file_stamp()
-            try:
-                self._directory_sync()
-            except OSError as error:
-                raise CommitUncertain("Storage was replaced; reread its revision before retrying") from error
-        finally:
-            if os.path.exists(name): os.unlink(name)
+        # Whole or not at all (atomic.write_text); the folder's sync is this store's own, so an uncertain one is reported.
+        atomic.write_text(self.path, payload, sync_folder=False)
         self._records = records
+        self._stamp = self._file_stamp()
+        try:
+            self._directory_sync()
+        except OSError as error:
+            raise CommitUncertain("Storage was replaced; reread its revision before retrying") from error
 
     def _backup(self, original):
         backup = self.path.with_name(self.path.stem + ".v1.backup.json")

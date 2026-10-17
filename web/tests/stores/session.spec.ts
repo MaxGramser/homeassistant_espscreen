@@ -11,7 +11,7 @@ import { useSettingsStore } from "../../src/stores/settings";
 import { useUiStore } from "../../src/stores/ui";
 import type { Inventory, Screen } from "../../src/types";
 import { answerDialogs } from "../helpers/dialogs";
-import { failure, fakeApi } from "../helpers/fake-api";
+import { failure, fakeApi, type Routed } from "../helpers/fake-api";
 import { screenFixture } from "../helpers/fixtures";
 import { useInventoryStore } from "../../src/stores/inventory";
 import { addTile } from "../../src/editor/tiles";
@@ -29,7 +29,26 @@ const screen = (id: string, tiles: { entity: string; name: string; slot: number 
   screenFixture({ id, name: id, online: true, firmware: "0.53.0", layout: { title: id, tiles } } as unknown as Screen);
 const inventory = (...screens: Screen[]) => ({ connected: true, screens, entities: [] }) as unknown as Inventory;
 // What opening a screen asks the add-on for: the states and capabilities of its tiles, its top bar's previews.
-const api = (extra = {}) => fakeApi({ states: { states: {} }, capabilities: { capabilities: {} }, "POST header-preview": { items: [] }, ...extra });
+const api = (extra: Record<string, Routed> = {}) => fakeApi({ states: { states: {} }, capabilities: { capabilities: {} }, "POST header-preview": { items: [] }, ...extra });
+
+describe("the address (router.ts)", () => {
+  it("opens the screen the address names once the inventory has been read, and sends an unknown one home", async () => {
+    const { router } = await import("../../src/router");
+    const { flushPromises } = await import("@vue/test-utils");
+    api({ inventory: inventory(screen("hall")) });
+    await router.push("/screens/hall");
+    const session = useSessionStore();
+    const stop = session.start();
+    // Nothing opens before the inventory answered: it says whether the screen exists, and brings the write token.
+    expect(useScreenStore().selected).toBeNull();
+    await flushPromises();
+    expect(useScreenStore().selected).toBe("hall");
+    await router.push("/screens/nowhere");
+    await flushPromises();
+    expect([router.currentRoute.value.path, useScreenStore().selected]).toEqual(["/", null]);
+    stop();
+  });
+});
 
 describe("opening a screen", () => {
   it("opens one with its draft, the editor's sheets and drawers closed, and the layout in view", () => {
@@ -85,10 +104,10 @@ describe("opening a screen", () => {
     api();
     useInventoryStore().inventory = inventory(screen("hall"));
     const session = useSessionStore(), ui = useUiStore();
-    ui.go("#settings");
+    await ui.go("#settings");
     await session.goHome();
     expect(ui.route).toBe("");
-    session.select("hall");
+    await session.select("hall");
     addTile("light.b");
     let yes = false;
     const asked = answerDialogs(() => yes);

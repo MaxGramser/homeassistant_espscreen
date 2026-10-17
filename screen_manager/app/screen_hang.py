@@ -7,10 +7,8 @@ back the next time its layout goes out. A screen nobody turned has no entry: it 
 keeps the angle its screen's own YAML was built with at the time (LVGL_ROTATION, None for its board's own): a screen
 installed again with another way in New screen hangs that way, and the old choice no longer counts.
 Kept apart from the saved layouts, whose records an older app reads with a fixed set of fields."""
-import json
 import logging
-import os
-import tempfile
+import atomic
 
 LOG = logging.getLogger(__name__)
 WAYS = ('landscape', 'portrait')
@@ -19,11 +17,8 @@ WAYS = ('landscape', 'portrait')
 class ScreenHang:
     def __init__(self, path):
         self.path = path
-        try:
-            data = json.loads(path.read_text())
-            ways = data.get('ways') if isinstance(data, dict) and data.get('version') == 1 else None
-        except (OSError, ValueError):
-            ways = None
+        data = atomic.read_json(path, 1)
+        ways = data.get('ways') if data else None
         self.ways = {str(k): v for k, v in (ways or {}).items()
                      if isinstance(v, dict) and v.get('way') in WAYS and (v.get('built') is None or type(v.get('built')) is int)}
 
@@ -49,17 +44,7 @@ class ScreenHang:
             self._save()
 
     def _save(self):
-        temporary = None
         try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(mode='w', dir=self.path.parent, delete=False) as handle:
-                temporary = handle.name
-                json.dump({'version': 1, 'ways': self.ways}, handle)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary, self.path)
+            atomic.write_json(self.path, {'version': 1, 'ways': self.ways})
         except OSError as error:
             LOG.warning('Could not keep which way the screens hang (%s)', type(error).__name__)
-        finally:
-            if temporary and os.path.exists(temporary):
-                os.unlink(temporary)

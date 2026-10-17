@@ -752,6 +752,15 @@ class BlamedBuilds(unittest.TestCase):
                 " marked 'override', but does not override",
                 'ninja: build stopped: subcommand failed.', 'ESPHome compile failed; see the log.']
         self.assertEqual(plugin_service.failed_components(logs), {'tap_sound'})
+        # The core refused the plugin by its API while ESPHome read the configuration (smart_display.register_plugin):
+        # no compiler ran, and the plugin is to blame all the same.
+        refused = ['INFO Reading configuration /config/esphome/tablet.yaml...',
+                   'Failed config', 'tap_sound: [source /config/esphome/tablet.plugins.yaml:4]',
+                   '  Plugin tap_sound wants plugin API 0.14; this firmware offers 0.13. Update the plugin, or the screen\'s firmware.',
+                   'ESPHome compile failed; see the log.']
+        self.assertEqual(plugin_service.failed_components(refused), {'tap_sound'})
+        self.assertEqual(plugin_service.failed_components(['Plugin tap_sound was written for plugin API 0.10; plugin API 0.11 changed a name it may use']), {'tap_sound'})
+        self.assertEqual(plugin_service.failed_components(['Plugin smart_display wants plugin API 0.1']), set())
         self.assertIsNone(service.blame('tablet', logs))   # not a plugin of this screen
         service.store.put('tablet', {'id': 'tap_sound', 'version': '0.2.0', 'source': 'index', 'ref': 'a' * 40})
         self.assertEqual(service.blame('tablet', logs),
@@ -1754,6 +1763,30 @@ class JsonValues(unittest.IsolatedAsyncioTestCase):
                               ensure_ascii=False, separators=(',', ':')).encode())
         self.assertLessEqual(size, page_delivery.MAX_MESSAGE)
         self.assertGreater(len(message['x']['items']), 10)
+
+
+class WhetherTheScreenRunsIt(unittest.TestCase):
+    """plugins.runs: the editor says when a screen does not run a plugin the app built into it (a crash at boot, a
+    firmware built without it), and nothing while that cannot be known."""
+
+    def test_the_hello_decides_once_the_screen_has_said_it(self):
+        import plugins as plugin_service
+        record = {'id': 'tap_sound', 'version': '0.2.0', 'state': 'active', 'settled': 1000}
+        running = {'tablet': [{'id': 'tap_sound', 'version': '0.2.0', 'tiles': []}, {'id': 'cinema', 'version': '0.1.0'}]}
+        self.assertTrue(plugin_service.runs('tablet', record, running, now=5000))
+        self.assertFalse(plugin_service.runs('tablet', dict(record, version='0.2.1'), running, now=5000), 'another version')
+        self.assertFalse(plugin_service.runs('tablet', dict(record, id='bt_proxy'), running, now=5000), 'not in the hello')
+        self.assertTrue(plugin_service.runs('tablet', {'id': 'cinema', 'version': '0.1.0'}, running, now=5000), 'a record from before `settled`')
+
+    def test_nothing_while_it_cannot_be_known(self):
+        import plugins as plugin_service
+        record = {'id': 'tap_sound', 'version': '0.2.0', 'state': 'active', 'settled': 1000}
+        running = {'tablet': []}
+        self.assertIsNone(plugin_service.runs('kitchen', record, running, now=5000), 'the screen has not said: offline, or no plugins in its hello')
+        self.assertIsNone(plugin_service.runs('tablet', dict(record, state='building'), running, now=5000))
+        self.assertIsNone(plugin_service.runs('tablet', dict(record, state='failed'), running, now=5000))
+        self.assertIsNone(plugin_service.runs('tablet', record, running, now=1000 + plugin_service.SETTLING - 1), 'the screen reboots after its build')
+        self.assertFalse(plugin_service.runs('tablet', record, running, now=1000 + plugin_service.SETTLING))
 
 
 class CardPictures(unittest.TestCase):

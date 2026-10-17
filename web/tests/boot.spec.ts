@@ -70,13 +70,17 @@ describe("boot", () => {
     expect(inventory.connected).toBe(true);
     // The plugins load where they are on (import.meta.env.DEV in the tests, editor_features.plugins in the app).
     expect(fetch.mock.calls.some(([url]) => url === "api/plugins")).toBe(true);
-    // The address and the width of the window are followed.
-    history.replaceState(null, "", "#settings");
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    // The address (the router's, router.ts) and the width of the window are followed.
+    const { router } = await import("../src/router");
+    await router.push("/settings");
     expect(ui.route).toBe("#settings");
+    ui.go("");
+    await router.isReady();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(ui.route).toBe("");
     setMedia(PHONE, true);
     expect(ui.narrowPhone).toBe(true);
-    expect(ours.added()).toEqual(["document:visibilitychange", "window:beforeunload", "window:click", "window:hashchange", "window:pagehide", "window:pageshow"]);
+    expect(ours.added()).toEqual(["document:visibilitychange", "window:beforeunload", "window:click", "window:pagehide", "window:pageshow"]);
 
     stop();
     expect(ours.added()).toEqual([]);

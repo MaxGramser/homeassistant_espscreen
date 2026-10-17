@@ -20,21 +20,22 @@ if HAS_AIOHTTP:
 PROFILE = {'board': 'cyd', 'name': 'kitchen', 'friendly_name': 'Kitchen', 'wifi_ssid': 'ssid', 'wifi_password': 'password'}
 
 # Stands in for the ESPHome CLI: it logs, and `compile` writes the factory image where ESPHome 2026.6 puts it
-# (PlatformIO: <build>/<node>/.pioenvs/<node>/, native ESP-IDF: <build>/<node>/build/). FAKE_LAYOUT=none writes
-# nothing, FAKE_EXIT makes it fail, FAKE_SLEEP keeps it busy.
+# (PlatformIO: <build>/<node>/.pioenvs/<node>/, native ESP-IDF: <build>/<node>/build/). Its switches are in the ESPHOME_
+# family, the one a build passes on (firmware.build_environment). ESPHOME_FAKE_LAYOUT=none writes
+# nothing, ESPHOME_FAKE_EXIT makes it fail, ESPHOME_FAKE_SLEEP keeps it busy.
 FAKE_CLI = '''#!{python}
 import os, sys, time
 from pathlib import Path
 stage, profile = [arg for arg in sys.argv[1:] if arg != '--quiet'][:2]
 profile = Path(profile)
 print('INFO Reading configuration ' + profile.name, flush=True)
-time.sleep(float(os.environ.get('FAKE_SLEEP', '0')))
-if os.environ.get('FAKE_EXIT'):
+time.sleep(float(os.environ.get('ESPHOME_FAKE_SLEEP', '0')))
+if os.environ.get('ESPHOME_FAKE_EXIT'):
     print('ERROR Compiling ' + profile.stem + ' failed', flush=True)
-    sys.exit(int(os.environ['FAKE_EXIT']))
+    sys.exit(int(os.environ['ESPHOME_FAKE_EXIT']))
 if stage == 'compile':
     build = Path(os.environ['ESPHOME_BUILD_PATH']) / profile.stem
-    folder = {{'pio': build / '.pioenvs' / profile.stem, 'idf': build / 'build'}}.get(os.environ.get('FAKE_LAYOUT', 'pio'))
+    folder = {{'pio': build / '.pioenvs' / profile.stem, 'idf': build / 'build'}}.get(os.environ.get('ESPHOME_FAKE_LAYOUT', 'pio'))
     if folder:
         folder.mkdir(parents=True, exist_ok=True)
         (folder / 'firmware.bin').write_bytes(b'app')
@@ -166,7 +167,7 @@ class DownloadJobs(unittest.IsolatedAsyncioTestCase):
             self.assertEqual({key: board['chip'] for key, board in status['boards'].items()}.get('cyd'), 'ESP32')
 
     async def test_a_build_without_a_factory_image_fails_instead_of_offering_nothing(self):
-        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {**fake_cli(tmp), 'FAKE_LAYOUT': 'none'}):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {**fake_cli(tmp), 'ESPHOME_FAKE_LAYOUT': 'none'}):
             f = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
             f.install({**PROFILE, 'target': 'download'})
             await f.task
@@ -177,7 +178,7 @@ class DownloadJobs(unittest.IsolatedAsyncioTestCase):
                 f.image('kitchen.yaml')
 
     async def test_the_native_esp_idf_layout_is_found_too(self):
-        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {**fake_cli(tmp), 'FAKE_LAYOUT': 'idf'}):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {**fake_cli(tmp), 'ESPHOME_FAKE_LAYOUT': 'idf'}):
             f = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
             f.install({**PROFILE, 'target': 'download'})
             await f.task
@@ -190,7 +191,7 @@ class DownloadJobs(unittest.IsolatedAsyncioTestCase):
             f.install({**PROFILE, 'target': 'download'})
             await f.task
             path, _ = f.image('kitchen.yaml')
-            with patch.dict(os.environ, {'FAKE_EXIT': '1'}):
+            with patch.dict(os.environ, {'ESPHOME_FAKE_EXIT': '1'}):
                 f.start({'file': 'kitchen.yaml', 'action': 'build'})
                 with self.assertRaisesRegex(ValueError, 'still being built'):
                     f.image('kitchen.yaml')
@@ -218,7 +219,7 @@ class DownloadJobs(unittest.IsolatedAsyncioTestCase):
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
 class DownloadRoute(unittest.IsolatedAsyncioTestCase):
     async def test_the_page_downloads_the_built_file_and_the_card_says_so(self):
-        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {**fake_cli(tmp), 'FAKE_SLEEP': '0.3',
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {**fake_cli(tmp), 'ESPHOME_FAKE_SLEEP': '0.3',
                                                                            'ESPHOME_CONFIG': str(Path(tmp) / 'esphome')}):
             m = Manager(fake_ha(), Path(tmp) / 'screens.json')
             async with TestClient(TestServer(create_app(m, True))) as client:

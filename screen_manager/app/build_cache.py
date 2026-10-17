@@ -9,6 +9,7 @@ costs time and never makes different firmware. A board without a cache, a cache 
 download over TIME_LIMIT: the build simply runs without it, as before.
 """
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -66,6 +67,14 @@ def _unpack(archive, folder):
     return len(members)
 
 
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, 'rb') as file:
+        for block in iter(lambda: file.read(1 << 20), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 async def seed(board, folder, log, env=None, session=None):
     """Fetch and unpack `board`'s published cache into the ccache folder `folder` when there is a newer one than the
     last. Returns what happened in a few words; never raises, so a build never fails on it."""
@@ -107,6 +116,16 @@ async def seed(board, folder, log, env=None, session=None):
         finally:
             if own:
                 await session.close()
+        # GitHub names the sha256 of every release asset (`digest`): a download that does not match it, however it came
+        # to differ, is not unpacked. ccache trusts what is in its folder by its key, so what goes in has to be what
+        # GitHub built. An older release without a digest is taken as before.
+        digest = str(asset.get('digest') or '')
+        if digest.startswith('sha256:'):
+            found = await asyncio.to_thread(_sha256, part)
+            if found != digest[7:].lower():
+                part.unlink(missing_ok=True)
+                LOG.warning('The compile cache for %s does not match the digest GitHub gives for it; building without it', board)
+                return 'digest mismatch'
         files = await asyncio.to_thread(_unpack, part, folder)
         part.unlink(missing_ok=True)
         if shutil.which('ccache'):

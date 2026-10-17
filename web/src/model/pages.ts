@@ -120,7 +120,7 @@ export function footprintSize(tile: PageTile, grid: PageGrid): Size {
       if (span.columns !== columns || span.rows !== rows || !spanOffered(columns, rows, grid)) throw new Error(t("addon.errors.pages.footprint"));
       return presentation;
     }
-    const sizes = { single: [1, 1], wide: [Math.min(2, grid.columns), 1], tall: [1, 2], square: [2, 2], full: [grid.columns, grid.rows] };
+    const sizes: Partial<Record<Size, [number, number]>> = { single: [1, 1], wide: [Math.min(2, grid.columns), 1], tall: [1, 2], square: [2, 2], full: [grid.columns, grid.rows] };
     const size = sizes[presentation];
     if (!size || size[0] !== columns || size[1] !== rows) throw new Error(t("addon.errors.pages.footprint"));
     return presentation;

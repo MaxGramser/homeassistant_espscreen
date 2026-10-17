@@ -148,7 +148,8 @@ class WhatTheEditorOffers(unittest.TestCase):
         self.assertEqual((caps('cover.curtains')['inline'], caps('cover.curtains')['controls']), (True, ['buttons', 'position']))
         self.assertEqual((caps('cover.garage')['inline'], caps('cover.garage')['controls']), (False, ['buttons']))
         self.assertEqual((caps('cover.position_only')['inline'], caps('cover.position_only')['controls']), (True, ['position']))
-        self.assertEqual(caps('media_player.sonos')['controls'], ['volume', 'playback'])
+        # Volume over the playback keys came with the taller card (catalogue/media_player.yaml volume_playback, firmware 0.56.0).
+        self.assertEqual(caps('media_player.sonos')['controls'], ['volume', 'playback', 'volume_playback'])
         self.assertEqual(caps('climate.old_thermostat')['controls'], ['setpoint', 'mode', 'setpoint_mode'])
         self.assertEqual((caps('fan.ceiling')['inline'], caps('fan.ceiling')['controls']), (False, ['toggle']))
         self.assertEqual(caps('scene.evening')['controls'], ['run'])

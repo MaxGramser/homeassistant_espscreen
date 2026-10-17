@@ -1,6 +1,7 @@
 import { loadLayout, loadTiles, loadPages, loadTitles, screenFixture, documentFixture, current } from "./helpers/fixtures";
 // The store: selecting a screen, editing its layout, what's new, progress, copy and import.
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { flushPromises } from "@vue/test-utils";
 import { t } from "../src/i18n";
 import type { Question } from "../src/composables/useConfirm";
 import { answerDialogs } from "./helpers/dialogs";
@@ -410,17 +411,19 @@ describe("full-page and navigation tiles", () => {
 });
 
 describe("the open screen chosen again (app 0.2.78)", () => {
-  it("keeps unsaved edits and only brings the layout back into view", () => {
+  it("keeps unsaved edits and only brings the layout back into view", async () => {
     useSessionStore().select("living");
     addTile("light.b");
     ui.tab = "settings";
-    useUiStore().hash = "#firmware";
+    await useUiStore().go("#firmware");
+    expect(useUiStore().route).toBe("#firmware");
     useSessionStore().select("living");
+    await flushPromises();
     expect(doc.layout!.tiles.map((t) => t.entity)).toEqual(["light.a", "sensor.t", "light.b"]);
     expect(doc.dirty).toBe(true);
     expect(ui.tab).toBe("layout");
     expect(insp.inspector).toBeNull();
-    expect(useUiStore().hash).toBe("");
+    expect(useUiStore().route).toBe("");
     expect(asked).toEqual([]);
   });
   it("reads the stored layout again when nothing is unsaved, so a change from Claude or another tab shows up", () => {

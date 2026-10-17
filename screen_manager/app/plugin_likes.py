@@ -14,17 +14,15 @@ counts in a public number (asked once), and the plugins this app likes. A file w
 liking stays off until an app that knows it reads it.
 """
 import asyncio
-import json
-import os
 import re
 import secrets
-import tempfile
 import threading
 from pathlib import Path
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 
 import feedback
+import atomic
 
 LIKE_URL = f'{feedback.API}/plugins/{{plugin}}/like'
 VERSION = 1
@@ -36,33 +34,13 @@ class Likes:
         self.path = Path(path)
         self.lock = threading.RLock()
         self.data = {'version': VERSION, 'key': None, 'consented': False, 'liked': []}
-        self.usable = True
-        try:
-            data = json.loads(self.path.read_text())
-        except (OSError, ValueError):
-            data = None
-        if isinstance(data, dict):
-            if data.get('version') != VERSION:
-                self.usable = False   # a newer app's file: left exactly as it is
-            else:
-                self.data.update({k: data[k] for k in ('key', 'consented', 'liked') if k in data})
+        data = atomic.read_json(self.path, VERSION)
+        self.usable = not atomic.frozen(self.path)   # a newer app's file: left exactly as it is
+        if data:
+            self.data.update({k: data[k] for k in ('key', 'consented', 'liked') if k in data})
 
     def _save(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(dir=self.path.parent, prefix=self.path.name + '.', suffix='.tmp')
-        try:
-            os.fchmod(fd, 0o600)
-            with os.fdopen(fd, 'w') as handle:
-                json.dump(self.data, handle, indent=1, sort_keys=True)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary, self.path)
-        except BaseException:
-            try:
-                os.unlink(temporary)
-            except OSError:
-                pass
-            raise
+        atomic.write_json(self.path, self.data, indent=1, sort_keys=True)
 
     def liked(self, plugin):
         return plugin in (self.data.get('liked') or [])

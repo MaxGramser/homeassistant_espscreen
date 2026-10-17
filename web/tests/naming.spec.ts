@@ -58,7 +58,7 @@ describe("a tile's name", () => {
 
   it("is reached with a double click on the name on the mockup", async () => {
     const tile = lamp("Spots");
-    const card = mount(TileCard, { props: { tile, slot: 0 }, attachTo: document.body });
+    const card = mount(TileCard, { props: { tile, at: 0 }, attachTo: document.body });
     await card.find(".nm").trigger("dblclick");
     const insp = useInspectorStore();
     expect([insp.inspector, useDocumentStore().selectedTileId, insp.naming?.kind, insp.naming?.id]).toEqual([{ kind: "tile" }, tile.id, "tile", tile.id]);

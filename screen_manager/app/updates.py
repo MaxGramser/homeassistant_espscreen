@@ -2,12 +2,11 @@
 (build_queue, docs/BUILDS.md), so one screen at a time and never refused because something else builds."""
 import asyncio
 from datetime import datetime, timezone
-import json
 import logging
-import os
 from pathlib import Path
 import re
 import time
+import atomic
 import changelog
 from build_queue import Round
 from core import FIRMWARE_VERSION, SHAPES, board_of, channel, firmware_target, parse_firmware
@@ -61,10 +60,10 @@ class Updater:
         self.bridging, self.bridge_tried = {}, 0.0
         # What's new since a screen's firmware, for the Update badge (app 0.2.73).
         self.changelog = changelog.load()
-        if self.path.exists():
-            raw = json.loads(self.path.read_text())
-            if raw.get('version') != 1:
-                raise ValueError('Unknown storage version for updates; data stays unchanged.')
+        # A file of another app's version stays as it is and is never written (atomic.read_json): the app starts with
+        # the defaults, and a save says so in the log instead of writing an older file over a newer one.
+        raw = atomic.read_json(self.path, 1)
+        if raw is not None:
             self.auto = raw.get('auto') is True
             self.hosts = {k: v for k, v in raw.get('hosts', {}).items() if isinstance(v, str)}
             self.results = {k: v for k, v in raw.get('results', {}).items() if isinstance(v, dict)}
@@ -73,17 +72,9 @@ class Updater:
                              if isinstance(v, dict) and isinstance(v.get('profile'), str) and isinstance(v.get('host'), str)}
 
     def save(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        temp = self.path.with_suffix('.tmp')
-        with open(temp, 'w', encoding='utf8') as handle:
-            os.chmod(temp, 0o600)
-            # 'bridging' only while a screen is on its bridge, so the file reads as before for an older app.
-            json.dump({'version': 1, 'auto': self.auto, 'hosts': self.hosts, 'results': self.results,
-                       'last_round': self.last_round, **({'bridging': self.bridging} if self.bridging else {})},
-                      handle, ensure_ascii=False)
-            handle.flush()
-            os.fsync(handle.fileno())
-        temp.replace(self.path)
+        # 'bridging' only while a screen is on its bridge, so the file reads as before for an older app.
+        atomic.write_json(self.path, {'version': 1, 'auto': self.auto, 'hosts': self.hosts, 'results': self.results,
+                                      'last_round': self.last_round, **({'bridging': self.bridging} if self.bridging else {})})
 
     @property
     def line(self):

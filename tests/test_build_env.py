@@ -1,5 +1,6 @@
 """Where the add-on's ESPHome CLI keeps what it downloads and builds (app 0.2.89+): all in the app's own /data, apart
-from the ESPHome folder the ESPHome Device Builder app cleans, and PlatformIO from before ESPHome 2026.7 removed once."""
+from the ESPHome folder the ESPHome Device Builder app cleans, and PlatformIO from before ESPHome 2026.7 removed once.
+And what of the container's environment a build gets: the build tools' names and families, never the app's token."""
 import json
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-from firmware import Firmware  # noqa: E402
+from firmware import BUILD_ENV_NAMES, Firmware, build_environment  # noqa: E402
 
 PROFILE = {'board': 'cyd', 'name': 'kitchen', 'friendly_name': 'Kitchen', 'wifi_ssid': 'ssid', 'wifi_password': 'password'}
 KEYS = ('ESPHOME_BUILD_PATH', 'ESPHOME_DATA_DIR', 'ESPHOME_ESP_IDF_PREFIX', 'CCACHE_MAXSIZE', 'PLATFORMIO_CORE_DIR',
@@ -22,9 +23,10 @@ KEYS = ('ESPHOME_BUILD_PATH', 'ESPHOME_DATA_DIR', 'ESPHOME_ESP_IDF_PREFIX', 'CCA
 FAKE_CLI = '''#!{python}
 import json, os, sys
 from pathlib import Path
-data = Path(os.environ['FAKE_DATA'])
+data = Path(os.environ['ESPHOME_FAKE_DATA'])
 record = {{key: os.environ.get(key) for key in {keys!r}}}
 record['platformio_left'] = (data / 'platformio' / 'packages').exists()
+record['names'] = sorted(os.environ)
 with open(data / 'env.jsonl', 'a') as out:
     out.write(json.dumps(record) + '\\n')
 '''
@@ -36,7 +38,7 @@ def fake_cli(folder, data):
     cli = bin_dir / 'esphome'
     cli.write_text(FAKE_CLI.format(python=sys.executable, keys=KEYS))
     cli.chmod(0o755)
-    return {'PATH': f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", 'FAKE_DATA': str(data),
+    return {'PATH': f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", 'ESPHOME_FAKE_DATA': str(data),
             'ESP_SCREENS_BUILD_CACHE': 'off'}
 
 
@@ -86,6 +88,47 @@ class BuildEnvironment(unittest.IsolatedAsyncioTestCase):
                 await f.task
             self.assertEqual(records(data)[0]['CCACHE_MAXSIZE'], '300M')
             self.assertEqual(records(data)[0]['ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT'], '1')
+
+    async def test_the_apps_own_standing_with_home_assistant_stays_out_of_a_build(self):
+        """ESPHome runs a plugin's Python while it builds (docs/PLUGINS.md, "Where a plugin's code runs"): the build gets
+        the names the build tools read, and never the Supervisor's token or anything else of the container's."""
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp) / 'data'
+            data.mkdir()
+            with patch.dict(os.environ, {**fake_cli(tmp, data), 'SUPERVISOR_TOKEN': 'never', 'HASSIO_TOKEN': 'never',
+                                         'ESPHOME_WEB_TOKEN': 'never', 'S6_KEEP_ENV': '1', 'CCACHE_DIR': '/tmp/ccache',
+                                         'PLATFORMIO_SETTING': 'yes', 'PIP_ROOT_USER_ACTION': 'ignore'}):
+                f = Firmware(Path(tmp) / 'esphome', data)
+                f.create(PROFILE)
+                f.start({'file': 'kitchen.yaml', 'action': 'build'})
+                await f.task
+            self.assertEqual(f.job['state'], 'success', list(f.logs))
+            names = set(records(data)[0]['names'])
+            self.assertFalse(names & {'SUPERVISOR_TOKEN', 'HASSIO_TOKEN', 'ESPHOME_WEB_TOKEN', 'S6_KEEP_ENV'}, names)
+            self.assertFalse([n for n in names if 'TOKEN' in n.upper() or 'SECRET' in n.upper() or 'PASSWORD' in n.upper()], names)
+            # The tools' own: the path the fake CLI is on, its home, and the families ESPHome, ccache, PlatformIO and pip read.
+            self.assertTrue({'PATH', 'ESPHOME_FAKE_DATA', 'CCACHE_DIR', 'PLATFORMIO_SETTING', 'PIP_ROOT_USER_ACTION',
+                             'ESPHOME_BUILD_PATH', 'ESPHOME_DATA_DIR', 'PLATFORMIO_CORE_DIR'} <= names, names)
+
+    def test_what_a_build_environment_keeps(self):
+        got = build_environment({'PATH': '/bin', 'HOME': '/root', 'LANG': 'C.UTF-8', 'TZ': 'Europe/Amsterdam',
+                                 'SUPERVISOR_TOKEN': 'x', 'HASSIO_TOKEN': 'x', 'SUPERVISOR_API': 'http://supervisor',
+                                 'ESPHOME_DASHBOARD_USE_PING': '1', 'ESPHOME_API_TOKEN': 'x', 'IDF_TOOLS_PATH': '/data/idf',
+                                 'CCACHE_MAXSIZE': '1G', 'GIT_SSL_CAINFO': '/certs', 'PYTHONUNBUFFERED': '1',
+                                 'ESP_SCREENS_BUILD_CACHE': 'off', 'S6_CMD_WAIT_FOR_SERVICES': '1', 'HOSTNAME': 'addon',
+                                 'MY_PASSWORD': 'x', 'A_SECRET': 'x', 'npm_config_credentials': 'x'})
+        self.assertEqual(got, {'PATH': '/bin', 'HOME': '/root', 'LANG': 'C.UTF-8', 'TZ': 'Europe/Amsterdam',
+                               'ESPHOME_DASHBOARD_USE_PING': '1', 'IDF_TOOLS_PATH': '/data/idf', 'CCACHE_MAXSIZE': '1G',
+                               'GIT_SSL_CAINFO': '/certs', 'PYTHONUNBUFFERED': '1', 'ESP_SCREENS_BUILD_CACHE': 'off'})
+        # A token stays out whatever family it is in, and the names themselves spell none.
+        self.assertFalse([n for n in BUILD_ENV_NAMES if 'TOKEN' in n or 'SECRET' in n])
+
+    def test_the_supervisor_starts_the_app_again_when_it_stops(self):
+        """The app's loops run under one gather: an exception none of them catches ends the process. With Home Assistant's
+        Watchdog switch on, the Supervisor starts it again, and with this address also when the app stops answering
+        (/health, which the app answers from any address: server.py guard)."""
+        config = yaml.safe_load((ROOT / 'screen_manager/config.yaml').read_text())
+        self.assertEqual(config.get('watchdog'), 'http://[HOST]:[PORT:8099]/health')
 
     def test_every_cache_stays_out_of_a_backup(self):
         config = yaml.safe_load((ROOT / 'screen_manager/config.yaml').read_text())

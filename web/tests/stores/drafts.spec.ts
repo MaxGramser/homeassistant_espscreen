@@ -83,11 +83,11 @@ describe("a draft kept in this browser", () => {
 
   it("goes when it is discarded, and when what it kept is saved", async () => {
     const { inventory } = addon(screen("hall"));
-    let { doc, drafts, session } = boot(inventory);
-    session.select("hall");
+    const first = boot(inventory);
+    first.session.select("hall");
     setTileName(lamp(), "Reading lamp");
     await nextTick();
-    ({ doc, drafts, session } = reload(inventory));
+    const { doc, drafts, session } = reload(inventory);
     session.select("hall");
     // Opening again without an answer keeps it.
     await nextTick();
@@ -105,13 +105,13 @@ describe("a draft kept in this browser", () => {
 
   it("goes through the conflict when the screen was saved since it started", async () => {
     const { inventory, elsewhere, api } = addon(screen("hall"));
-    let { doc, drafts, session } = boot(inventory);
-    session.select("hall");
-    const started = doc.documentRevision;
+    const first = boot(inventory);
+    first.session.select("hall");
+    const started = first.doc.documentRevision;
     setTileName(lamp(), "Reading lamp");
     await nextTick();
     elsewhere("hall");
-    ({ doc, drafts, session } = reload(inventory));
+    const { doc, drafts, session } = reload(inventory);
     session.select("hall");
     expect(doc.documentRevision).not.toBe(started);
     drafts.restore();

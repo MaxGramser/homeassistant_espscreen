@@ -270,6 +270,24 @@ So a new control needs at most one line, by what it is:
   to (`permission_hash`) waits for their yes in the editor; the add-on refuses it without (`consent`). A release the
   index blocks leaves the next build of every screen that runs it (`drop_blocked`).
 
+## Where a plugin's code runs
+
+A plugin is two things. Its C++ runs on the screen, with full access to it (the plugins repository's docs/PUBLISHING.md,
+"What listing means"). Its ESPHome component's Python, `components/<id>/__init__.py` and what it imports, runs where
+the screen is built: in this app's container, when the app builds the screen, as the Python of every external
+component of ESPHome does. That build can read and write the Home Assistant config folder the app has
+(`homeassistant_config:rw`, where the ESPHome folder is) and reach the network. Two things hold it:
+
+- **The build gets none of the app's own standing.** `Firmware.build_env` hands a build the names and the families the
+  build tools read (`firmware.BUILD_ENV_NAMES`, `BUILD_ENV_PREFIXES`: ESPHome, ESP-IDF, PlatformIO, ccache, pip, git,
+  Python) and nothing else of the container's environment, never the Supervisor's token or any name that spells one
+  (`BUILD_ENV_NEVER`; `tests/test_build_env.py`).
+- **A listed plugin's Python does what a component needs.** The plugins repository's `tools/check.py` reads it as a
+  syntax tree at every release the index takes: imports of ESPHome and a little of the standard library, files beside
+  itself only, no process, environment, network or file of the computer it is built on. Tessera's own plugins keep to
+  the same rules. A plugin added with a link or from a folder passes only the app's manifest check: the editor's
+  warning names both halves, the screen and the build, before anyone adds one.
+
 ## Which plugin
 
 A plugin is known by its id: it lives in the firmware, in the layouts (`plugin:<id>.<tile>`) and in the secrets, so it

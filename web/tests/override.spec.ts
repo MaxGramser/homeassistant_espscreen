@@ -34,7 +34,7 @@ const push = async (now: Step) => { useInventoryStore().applyLive({ line: [check
 describe("checking an override", () => {
   it("follows ESPHome's check from the build line until it ends, and then asks no more", async () => {
     const clock = useFakeClock();
-    useUiStore().overrideProfile = "hall.yaml";
+    await useUiStore().openOverride("hall.yaml");
     const api = addOn({ state: "queued" });
     const view = mount(OverrideView);
     await flushPromises();
@@ -56,7 +56,7 @@ describe("checking an override", () => {
 
   it("asks nothing while the tab is hidden, and says the line of the check's own log that names the error", async () => {
     const clock = useFakeClock();
-    useUiStore().overrideProfile = "hall.yaml";
+    await useUiStore().openOverride("hall.yaml");
     const api = addOn({ state: "running" }, { state: "failed", logs: ["INFO Reading", "ERROR display: unknown model", "Failed config"] });
     const view = mount(OverrideView);
     await flushPromises();
@@ -78,7 +78,7 @@ describe("checking an override", () => {
 
 describe("the override's example and Clear", () => {
   it("ask before they replace what is typed, in the editor's own dialog, and keep it when told no", async () => {
-    useUiStore().overrideProfile = "hall.yaml";
+    await useUiStore().openOverride("hall.yaml");
     addOn({ state: "running" });
     const view = mount(OverrideView);
     await flushPromises();

@@ -92,7 +92,7 @@ onMounted(entities.loadOverview);
               <span class="device" :class="{ compact: view.compact }">
                 <TopbarSvg :items="view.items" :name-text="view.title" :home="view.home" :metrics="barMetricsFor(view.shape)" />
                 <span class="tiles">
-                  <TileCard v-for="entry in view.tiles" :key="entry.tile.id" :tile="entry.tile" :slot="entry.slot" :grid="view.grid" preview
+                  <TileCard v-for="entry in view.tiles" :key="entry.tile.id" :tile="entry.tile" :at="entry.slot" :grid="view.grid" preview
                     :keys="view.keys.filter((key) => key.in === entry.tile.entity)" />
                 </span>
               </span>

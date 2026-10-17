@@ -35,23 +35,54 @@ describe("the toast", () => {
 });
 
 describe("the view the address names", () => {
-  it("goes where it is sent, follows the address bar while started, and knows only its own views", () => {
+  it("goes where it is sent, reads the address as the router does, and knows only its own views", async () => {
     vi.stubGlobal("scrollTo", vi.fn());
     const ui = useUiStore();
-    const stop = ui.start();
-    ui.go("#settings");
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
-    expect([location.hash, ui.route]).toEqual(["#settings", "#settings"]);
-    history.replaceState(null, "", "#nowhere");
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
-    expect([ui.hash, ui.route]).toEqual(["#nowhere", ""]);
-    stop();
+    const { router } = await import("../../src/router");
+    await ui.go("#settings");
+    expect([router.currentRoute.value.path, location.hash, ui.route]).toEqual(["/settings", "#/settings", "#settings"]);
+    // An address the editor does not know is the overview.
+    await router.push("/nowhere");
+    expect([router.currentRoute.value.path, ui.route]).toEqual(["/", ""]);
+    // A hash from before the router (#alerts, a kept link) still opens its page: a router made on that address, as
+    // the page's is when it loads, reads it as /alerts.
     history.replaceState(null, "", "#alerts");
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
-    expect(ui.hash).toBe("#nowhere");
-    // Sent to the view the address already names, the store takes it at once (no hashchange comes).
-    ui.go("#nowhere" as any);
-    expect(ui.hash).toBe("#nowhere");
+    const { createRouter, createWebHashHistory } = await import("vue-router");
+    const kept = createRouter({ history: createWebHashHistory(), routes: router.options.routes });
+    await kept.push(kept.options.history.location);
+    expect(kept.currentRoute.value.path).toBe("/alerts");
+    // The main view, with no session to name the open screen, is the overview.
+    await ui.go("");
+    expect([router.currentRoute.value.path, ui.route]).toEqual(["/", ""]);
+    // A screen's Override YAML by its profile, which a reload keeps.
+    await ui.openOverride("hall.yaml");
+    expect([router.currentRoute.value.path, ui.route, ui.overrideProfile]).toEqual(["/override/hall.yaml", "#override", "hall.yaml"]);
+    await ui.openOverride(null);
+    expect([ui.route, ui.overrideProfile]).toEqual(["#override", null]);
+  });
+
+  it("comes back to the last address when the page starts without one, as it does in Home Assistant's frame", async () => {
+    const { router, restoreKeptRoute } = await import("../../src/router");
+    await router.replace("/");
+    await router.push("/screens/text.hall_tiles");
+    expect(sessionStorage.getItem("esp-screens.route")).toBe("/screens/text.hall_tiles");
+    // Home Assistant makes the frame anew at the bare address, which the router has read as the overview by the time the
+    // page restores: the kept one comes back.
+    await router.replace("/");
+    sessionStorage.setItem("esp-screens.route", "/screens/text.hall_tiles");
+    await restoreKeptRoute();
+    expect(router.currentRoute.value.fullPath).toBe("/screens/text.hall_tiles");
+    // A tab whose last address was the overview stays there.
+    await router.replace("/");
+    expect(sessionStorage.getItem("esp-screens.route")).toBe("/");
+    await restoreKeptRoute();
+    expect(router.currentRoute.value.fullPath).toBe("/");
+    // An address that is there wins over the kept one.
+    sessionStorage.setItem("esp-screens.route", "/plugins");
+    history.replaceState(null, "", "#/alerts");
+    await router.replace("/alerts");
+    await restoreKeptRoute();
+    expect(router.currentRoute.value.fullPath).toBe("/alerts");
   });
 });
 

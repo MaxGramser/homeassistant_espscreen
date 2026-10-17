@@ -29,7 +29,7 @@ import type { FavoritePlay, Tile } from "../types";
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
 // screen otherwise. `round`: a key of a bedside clock (app 0.4.12), the same card in its round form. `keys`: a clock's
 // keys where the card is drawn outside the editor's own layout (the overview).
-export type TileCardProps = { tile: Tile; slot: number; placeholder?: boolean; preview?: boolean; grid?: { columns: number; rows: number; slots: number };
+export type TileCardProps = { tile: Tile; /** The slot the card is drawn at (-1 for a key). */ at: number; placeholder?: boolean; preview?: boolean; grid?: { columns: number; rows: number; slots: number };
   round?: boolean; keys?: Tile[] };
 
 // What a favourite plays, by its kind, where the tile has no icon of its own.
@@ -78,8 +78,8 @@ export function useTileCard(props: TileCardProps) {
   const unit = computed(() => (ownWords(domain.value, current.value) ? undefined : current.value?.a?.unit_of_measurement as string | undefined));
   const value = computed(() => bigValue(domain.value, current.value, words.value));
   const watchFace = computed(() => {
-    if (display.value !== "watch" || isFull(props.tile) || foreign.value || props.round || goesTo.value || props.slot < 0) return null;
-    const s = doc.screenShape, g = grid.value, cell = props.slot % g.slots, pad = watchPadding(s, g.rows);
+    if (display.value !== "watch" || isFull(props.tile) || foreign.value || props.round || goesTo.value || props.at < 0) return null;
+    const s = doc.screenShape, g = grid.value, cell = props.at % g.slots, pad = watchPadding(s, g.rows);
     const width = cardContent(s, g.columns, shape.value.columns, cell % g.columns);
     const height = cardHeight(s, g.rows, shape.value.rows, Math.floor(cell / g.columns), canvas.pageBarShown) - 2 * (pad + 1);
     return { pad, ...watchCard(s, width, height, value.value, unit.value && !gone.value ? unit.value : "", pad) };

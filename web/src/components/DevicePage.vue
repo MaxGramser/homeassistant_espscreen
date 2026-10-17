@@ -162,7 +162,7 @@ async function onKey(e: KeyboardEvent) {
       </div>
       <div class="tiles">
         <template v-for="slot in cells" :key="slot">
-          <TileCard v-if="bySlot.get(slot)" :tile="preview ? bySlot.get(slot)!.tile : insp.previewed(bySlot.get(slot)!.tile)" :slot="slot" :placeholder="bySlot.get(slot)!.tile === moving" :preview="preview" @navigate="emit('navigate', { kind: 'tile', tileId: $event })" />
+          <TileCard v-if="bySlot.get(slot)" :tile="preview ? bySlot.get(slot)!.tile : insp.previewed(bySlot.get(slot)!.tile)" :at="slot" :placeholder="bySlot.get(slot)!.tile === moving" :preview="preview" @navigate="emit('navigate', { kind: 'tile', tileId: $event })" />
           <span v-else-if="preview" class="cell preview-empty" :style="cellStyle(slot)"></span>
           <button v-else type="button" class="cell" :style="cellStyle(slot)" :class="{ 'insert-here': insp.insertAt === slot || menuCell === slot }" :data-slot="slot"
             :title="t('editor.page.cell.title')"

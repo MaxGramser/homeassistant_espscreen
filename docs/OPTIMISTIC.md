@@ -178,10 +178,33 @@ Not optimistic on purpose:
 
 - a lock's and an alarm panel's end states: "locked" or "armed" is never shown before Home Assistant says so. Their
   attempt (`alarm_panel::Attempt`) shows that a command is under way instead;
-- a cover's, a vacuum's and a timer's commands, which have transitional states of their own (`opening`, `returning`);
-  a later round may show those words at once as wishes;
+- a vacuum's and a timer's commands, which have transitional states of their own (`returning`); a later round may
+  show those words at once as wishes. A cover's commands travel instead (below);
 - next and previous track, turning a player or thermostat on, a scene, script or button: nothing the screen could show
   is known before Home Assistant reports it.
+
+## A cover on its way
+
+A blind, a curtain or a garage door takes seconds to get where it was sent, and Home Assistant reports it on the way:
+`opening` with the position from before, sometimes a position now and then, the end state when it stops. Shown as it
+comes, a slider let go at 60 % jumps back to 20 % and only reaches 60 % when the cover does. So a cover's command (its
+slider, its open and close keys, its slats) starts a **travel** (`components/smart_display/cover_travel.h`, tests in
+`tests/test_cover_travel.cpp`) on every tile and the card of the cover:
+
+- From the moment of the tap the tile shows the target and says "Opening" or "Closing". The slider's fill stands faint
+  at the target, its handle is gone, and a soft band runs over it from where Home Assistant last had the cover towards
+  the target, about once a second, so the cover is seen to move, and which way, also where the cover itself is out of
+  sight.
+- Nothing is disabled and no busy sheet shows: a finger can send the cover elsewhere on its way. A press on the slider
+  brings the handle back, and its release starts a new travel; stop, open and close work as always. Stop ends the
+  travel, and Home Assistant's next report says where the cover stood still.
+- The travel ends when Home Assistant reports the cover at the target (within 2 %), reports it standing still after it
+  said it was moving (stopped short: a remote, an obstacle), reports it unavailable or refuses the action. A cover
+  that never says `opening` or `closing` but reports positions on its way, and the slats, which have no word for
+  moving, end once their position stood still for `SETTLE` (5 s). With no sign of moving at all the travel lets go
+  after `QUIET` (10 s); a cover on its way that goes silent after `SILENT` (60 s); none outlives `CAP` (3 min).
+
+The open and close keys of a cover without positions show only the way ("Opening"), never a position.
 
 ## Testing
 

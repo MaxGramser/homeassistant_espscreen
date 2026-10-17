@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "cover_travel.h"
 #include "screen_text.h"
 #include "ui_scale.h"
 #include "page_protocol.h"
@@ -572,6 +573,9 @@ struct Tile {
   // reported meanwhile, and when the last of those came.
   float slider_sent = NAN, slider_real = NAN;
   uint32_t slider_sent_at = 0, slider_state_at = 0;
+  // A cover on its way (cover_travel.h): the target and the way show from the command until Home Assistant reports the
+  // cover there or stopped, and its sliders take no finger meanwhile.
+  cover_travel::Travel travel;
   // A sensor's graph: 24 samples over `history_hours`, empty without one.
   unsigned history_hours = 24;
   std::vector<float> history;
@@ -679,6 +683,29 @@ struct Tile {
     if (moved) slider_state_at = std::max<uint32_t>(1, now);
     if (!slider_holding(now)) { slider_sent = NAN; return; }
     *field = slider_sent;
+  }
+  // A cover's command went out: `to` the position or tilt asked for (NAN for open or close without positions), `dir`
+  // +1 open, -1 close, 0 from the positions.
+  void travel_start(uint32_t now, float to, int dir, bool tilt = false) {
+    const float real = tilt ? extra().tilt : position;
+    if (cover_travel::start(travel, now, to, dir, real, state, tilt)) show_travel();
+  }
+  bool travelling() const { return travel.active(); }
+  void show_travel() {
+    if (!travel.tilt) { position = cover_travel::shown_position(travel); state = cover_travel::shown_state(travel); }
+    else if (extra_ptr()) edit_extra().tilt = cover_travel::shown_position(travel);
+  }
+  // A state came in with position, tilt and state already parsed: the travel stays in front, or ends on it.
+  void travel_reported(uint32_t now) {
+    if (travel.active() && cover_travel::reported(travel, now, travel.tilt ? extra().tilt : position, state)) show_travel();
+  }
+  // The travel ended without a report (the clock, a refusal, the stop key): what Home Assistant last said shows again.
+  void release_travel() {
+    if (!travel.active()) return;
+    cover_travel::end(travel);
+    if (travel.tilt) { if (extra_ptr()) edit_extra().tilt = travel.real; return; }
+    position = travel.real;
+    if (travel.real_state != cover_travel::State::OTHER) state = cover_travel::state_word(travel.real_state);
   }
   // The hold ran out without a report that ended it: what Home Assistant last said shows again.
   void release_slider() {

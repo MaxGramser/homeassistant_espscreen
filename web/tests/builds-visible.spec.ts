@@ -1,6 +1,7 @@
 // Builds seen everywhere (BuildIndicator, ui/ProgressRing, the sidebar's rows and the overview's cards): a ring per
 // screen that builds, one in the head while anything does, with each screen's step in its list.
 import { flushPromises, mount } from "@vue/test-utils";
+import { useUiStore } from "../src/stores/ui";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import BuildIndicator from "../src/components/BuildIndicator.vue";
 import BuildList from "../src/components/BuildList.vue";
@@ -59,7 +60,8 @@ describe("the builds in the head", () => {
     await flushPromises();
     expect(useScreenStore().selected).toBe("living");
     await list.find(".builds-log").trigger("click");
-    expect(location.hash).toBe("#firmware");
+    await flushPromises();
+    expect(useUiStore().route).toBe("#firmware");
     expect(list.emitted("done")).toHaveLength(2);
   });
 

@@ -1838,6 +1838,7 @@
         "on_screens": "Em {n} ecrã | Em {n} ecrãs",
         "fits_none": "Não é compatível com nenhum dos seus ecrãs",
         "failed": "A compilação falhou",
+        "not_running": "Não está a correr no ecrã",
         "queued": "Aguarda a sua vez"
       },
       "source": {
@@ -1910,7 +1911,7 @@
         "network_none": "Não faz ligações fora do Home Assistant",
         "read": "Lê estas entidades do Home Assistant"
       },
-      "warning": "Um plugin corre no seu ecrã com acesso total ao mesmo, incluindo à rede Wi-Fi e às ações que o ecrã pode executar no Home Assistant. Adicione apenas plugins de autores em quem confia, ou leia primeiro o código.",
+      "warning": "Um plugin corre no seu ecrã com acesso total ao mesmo, incluindo à rede Wi-Fi e às ações que o ecrã pode executar no Home Assistant, e a sua compilação corre nesta app, onde pode aceder à sua configuração do Home Assistant. Adicione apenas plugins de autores em quem confia, ou leia primeiro o código.",
       "room": {
         "title": "Espaço em {screen}",
         "small": "Mais {kb} KB: o firmware passa de {before} para {after} do seu espaço.",

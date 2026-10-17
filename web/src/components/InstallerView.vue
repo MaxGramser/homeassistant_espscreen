@@ -3,9 +3,9 @@
 // called and how it hangs (NameStep), and how it gets its firmware (WayStep). Then one page follows the installation in
 // the steps a person knows (Progress). The steps only show and hide; the form, what it sends and when, is the one it
 // always was (composables/useInstaller.ts).
-import { ref, watch } from "vue";
+import { provide, ref, watch } from "vue";
 import { t } from "../i18n";
-import { useInstaller } from "../composables/useInstaller";
+import { INSTALLER, useInstaller } from "../composables/useInstaller";
 import BoardStep from "./install/BoardStep.vue";
 import NameStep from "./install/NameStep.vue";
 import Progress from "./install/Progress.vue";
@@ -13,6 +13,7 @@ import WayStep from "./install/WayStep.vue";
 import Icon from "./ui/Icon.vue";
 
 const install = useInstaller();
+provide(INSTALLER, install);
 const nameStep = ref<InstanceType<typeof NameStep> | null>(null);
 // Step two asks nothing it can't check on the spot: Next goes on only when its fields are filled in as they must be.
 function next() {
@@ -42,9 +43,9 @@ watch(() => [install.step, install.installer.view], () => root.value?.scrollTo?.
     </header>
 
     <form v-if="install.installer.view === 'setup'" id="install-form" class="setup-body" novalidate @submit.prevent="install.submit">
-      <BoardStep v-show="install.step === 1 && install.mode === 'physical'" :install="install" @next="next" />
-      <NameStep v-show="install.step === 2" ref="nameStep" :install="install" />
-      <WayStep v-show="install.step === 3 && install.mode === 'physical'" :install="install" />
+      <BoardStep v-show="install.step === 1 && install.mode === 'physical'" @next="next" />
+      <NameStep v-show="install.step === 2" ref="nameStep" />
+      <WayStep v-show="install.step === 3 && install.mode === 'physical'" />
       <footer class="setup-foot">
         <button v-if="install.step > 1 && !(install.mode === 'virtual' && install.step === 2)" type="button" class="btn quiet" id="setup-back" @click="install.back">{{ t("editor.common.back") }}</button>
         <button v-else-if="install.mode === 'virtual'" type="button" class="btn quiet" @click="install.realScreen">{{ t("editor.common.back") }}</button>
@@ -56,6 +57,6 @@ watch(() => [install.step, install.installer.view], () => root.value?.scrollTo?.
     </form>
 
     <!-- The installation: the screen filling in, the steps it goes through, and ESPHome's own log behind Details. -->
-    <Progress v-else :install="install" />
+    <Progress v-else />
   </div>
 </template>

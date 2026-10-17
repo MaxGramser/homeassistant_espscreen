@@ -37,6 +37,9 @@ export const useInventoryStore = defineStore("inventory", () => {
   const inventory = ref<Inventory>({ screens: [], entities: [] } as Inventory);
   // Whether the add-on answered the last request for its inventory, and whether it is connected to Home Assistant.
   const reachable = ref(true);
+  // Whether the inventory has been read once (refresh): the live stream can bring screens before that answer, which also
+  // brings the token every write needs (api.ts setCsrf), so what opens a screen at the start waits for this.
+  const loaded = ref(false);
   const connected = computed(() => Boolean(inventory.value.connected));
   // The editor's features the add-on turns on (UI experiments, opt-in; saved documents and device support stay independent).
   const tallerTilesEnabled = computed(() => inventory.value.editor_features?.tall_tiles === true);
@@ -129,6 +132,7 @@ export const useInventoryStore = defineStore("inventory", () => {
       inventory.value.screens = [...inventory.value.screens.filter((screen) => !screen.virtual), ...virtual];
       if (data.csrf) setCsrf(data.csrf);
       reachable.value = true;
+      loaded.value = true;
       arrived();
     } catch {
       reachable.value = false;
@@ -224,7 +228,7 @@ export const useInventoryStore = defineStore("inventory", () => {
   }
 
   return {
-    inventory, reachable, connected, tallerTilesEnabled, pluginsEnabled,
+    inventory, reachable, loaded, connected, tallerTilesEnabled, pluginsEnabled,
     ...lookups({ entityOf }),
     persistVirtualScreens, createVirtualScreen, onArrival, refresh, applyLive, installClaudeSkill, start,
   };

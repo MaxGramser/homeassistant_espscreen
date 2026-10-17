@@ -26,7 +26,7 @@ export async function api(path: string, options: RequestInit = {}): Promise<Resp
     try {
       const error = (await response.json())?.error;
       if (typeof error === "string" && error.trim()) message = error;
-    } catch {}
+    } catch { /* not JSON (an error page of the proxy): the general message stands */ }
     throw new Error(message);
   }
   return response;

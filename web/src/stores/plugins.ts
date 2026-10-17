@@ -26,7 +26,7 @@ export type Plan = {
 // from the tile's data, its first rows; asked again once a minute while a page shows it.
 export type PreviewRow = { badge?: string; title?: string; value?: string; at?: number };
 // ---- One line of state: for one screen (its tab), or over all screens (the page) ----
-export type Status = { kind: "installed" | "update" | "building" | "test" | "misfit" | "failed" | ""; label: string };
+export type Status = { kind: "installed" | "update" | "building" | "test" | "misfit" | "failed" | "missing" | ""; label: string };
 // A screen's changes set aside together, one build (the tray): the plugins to add and the ones to take off.
 export type TrayGroup = { screen: Screen; plugins: Plugin[]; removes: Plugin[] };
 type Payload = {
@@ -286,6 +286,9 @@ export const usePluginsStore = defineStore("plugins", () => {
       return { kind: "building", label: t(builds.buildOf(screen)?.state === "queued" ? "editor.plugins.state.queued" : "editor.plugins.state.building") };
     const have = installedOn(screen, plugin.id);
     if (have?.state === "failed") return { kind: "failed", label: t("editor.plugins.state.failed") };
+    // Built into the screen, but its last hello does not name it: it crashed at boot, or the screen runs a firmware built
+    // without it (Installed.running). Said before an update, which would not mend it.
+    if (have?.state === "active" && have.running === false) return { kind: "missing", label: t("editor.plugins.state.not_running") };
     if (hasUpdate(screen, plugin)) return { kind: "update", label: t("editor.plugins.state.update", { version: plugin.version }) };
     if (isTest(have)) return { kind: "test", label: t(`editor.plugins.source.${have!.source}`) };
     if (have) return { kind: "installed", label: t("editor.plugins.state.installed") };

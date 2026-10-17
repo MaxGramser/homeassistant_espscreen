@@ -129,25 +129,71 @@ inline bool alarm_class(const std::string &device_class) {
     if (device_class == alarm) return true;
   return false;
 }
-// Home Assistant's colour for a weather condition (--state-weather-<condition>-color); a condition it has none for
-// takes its --state-active-color.
+// Home Assistant's weather conditions (weather/const.py ATTR_CONDITION_*), named once: every colour of a condition in the
+// firmware, the tile's and the card's, asks this table, so no two of them can disagree on what "snowy-rainy" is.
+enum class Weather : uint8_t { SUNNY, CLEAR_NIGHT, PARTLY_CLOUDY, CLOUDY, FOG, RAINY, POURING, SNOWY, SNOWY_RAINY, HAIL,
+                               LIGHTNING, LIGHTNING_RAINY, WINDY, EXCEPTIONAL, UNKNOWN };
+inline Weather weather_kind(const std::string &condition) {
+  if (condition == "sunny") return Weather::SUNNY;
+  if (condition == "clear-night") return Weather::CLEAR_NIGHT;
+  if (condition == "partlycloudy") return Weather::PARTLY_CLOUDY;
+  if (condition == "cloudy") return Weather::CLOUDY;
+  if (condition == "fog") return Weather::FOG;
+  if (condition == "rainy") return Weather::RAINY;
+  if (condition == "pouring") return Weather::POURING;
+  if (condition == "snowy") return Weather::SNOWY;
+  if (condition == "snowy-rainy") return Weather::SNOWY_RAINY;
+  if (condition == "hail") return Weather::HAIL;
+  if (condition == "lightning") return Weather::LIGHTNING;
+  if (condition == "lightning-rainy") return Weather::LIGHTNING_RAINY;
+  if (condition == "windy" || condition == "windy-variant") return Weather::WINDY;
+  if (condition == "exceptional") return Weather::EXCEPTIONAL;
+  return Weather::UNKNOWN;
+}
+// Home Assistant's colour for a weather condition (--state-weather-<condition>-color), the tile's state colour; a
+// condition it has none for takes its --state-active-color.
 inline uint32_t weather_color(const std::string &condition) {
   using namespace theme::ha;
-  if (condition == "sunny") return AMBER;
-  if (condition == "clear-night") return DEEP_PURPLE;
-  if (condition == "partlycloudy") return BLUE_GREY;
-  if (condition == "cloudy") return LIGHT_GREY;
-  if (condition == "fog") return GREY;
-  if (condition == "rainy") return BLUE;
-  if (condition == "pouring") return INDIGO;
-  if (condition == "snowy") return ICE;
-  if (condition == "snowy-rainy") return LIGHT_BLUE;
-  if (condition == "hail") return CYAN;
-  if (condition == "lightning") return YELLOW;
-  if (condition == "lightning-rainy") return LIME;
-  if (condition == "windy" || condition == "windy-variant") return GREEN;
-  if (condition == "exceptional") return RED;
+  switch (weather_kind(condition)) {
+    case Weather::SUNNY: return AMBER;
+    case Weather::CLEAR_NIGHT: return DEEP_PURPLE;
+    case Weather::PARTLY_CLOUDY: return BLUE_GREY;
+    case Weather::CLOUDY: return LIGHT_GREY;
+    case Weather::FOG: return GREY;
+    case Weather::RAINY: return BLUE;
+    case Weather::POURING: return INDIGO;
+    case Weather::SNOWY: return ICE;
+    case Weather::SNOWY_RAINY: return LIGHT_BLUE;
+    case Weather::HAIL: return CYAN;
+    case Weather::LIGHTNING: return YELLOW;
+    case Weather::LIGHTNING_RAINY: return LIME;
+    case Weather::WINDY: return GREEN;
+    case Weather::EXCEPTIONAL: return RED;
+    case Weather::UNKNOWN: return AMBER;
+  }
   return AMBER;
+}
+// The sky of a condition on the weather card and in its chart (theme::ha SUNNY, RAIN, ...): softer than the tile's
+// state colour, a few conditions to a colour, and the same on the card's icon as on the chart's marks beside it. What
+// falls (rain, snow, hail, a bolt) is drawn in this colour too.
+inline uint32_t weather_sky(const std::string &condition) {
+  namespace h = theme::ha;
+  switch (weather_kind(condition)) {
+    case Weather::SUNNY: return h::SUNNY;
+    case Weather::CLEAR_NIGHT: return h::NIGHT_SKY;
+    case Weather::PARTLY_CLOUDY: return h::PARTLY_CLOUDY;
+    case Weather::RAINY: case Weather::POURING: return h::RAIN;
+    case Weather::SNOWY: case Weather::SNOWY_RAINY: case Weather::HAIL: return h::SNOW;
+    case Weather::LIGHTNING: case Weather::LIGHTNING_RAINY: return h::LIGHTNING;
+    default: return h::CLOUDY;
+  }
+}
+inline bool weather_falls(const std::string &condition) {
+  switch (weather_kind(condition)) {
+    case Weather::RAINY: case Weather::POURING: case Weather::SNOWY: case Weather::SNOWY_RAINY: case Weather::HAIL:
+    case Weather::LIGHTNING: case Weather::LIGHTNING_RAINY: return true;
+    default: return false;
+  }
 }
 // LVGL's lv_color_hsv_to_rgb (lv_color.c, LVGL 9) step for step, free of LVGL so the tests can reach it: a lamp's
 // colour comes out the same on its tile and on its group's lamp page, to the last bit.

@@ -1,16 +1,19 @@
 // The page around the screens: the toast, the sheets and menus that are open, the search (⌘K), the phone's editor of
-// everyday changes, the view the address names (the hash), the library drawer's filters, the editor's clock and the
+// everyday changes, the view the address names (router.ts), the library drawer's filters, the editor's clock and the
 // top bar's fonts. Nothing of it is a screen's: it is how this page is shown in this browser now.
-import { syncRef, useEventListener, useTimeoutFn } from "@vueuse/core";
+import { syncRef, useTimeoutFn } from "@vueuse/core";
 import { defineStore } from "pinia";
 import { computed, effectScope, onScopeDispose, ref, shallowRef } from "vue";
+import type { RouteLocationRaw } from "vue-router";
 import { t } from "../i18n";
 import { whenBarFontsLoad } from "../model/topbar";
 import { flagSerializer, usePreference } from "../composables/usePreference";
 import { showText } from "../composables/useConfirm";
 import { atMost, useAtMost } from "../composables/useWidths";
+import { overrideRoute, router } from "../router";
 
-// ---- Routes: the hash keeps a view open across a reload (#settings did before) ----
+// ---- Routes: the pages of the app as the code names them, "" for the main view (the open screen, else the overview) ----
+// The address itself is the router's (router.ts: #/settings, #/screens/<id>, ...); these names stay for every caller.
 export const routes = ["", "#settings", "#new-screen", "#firmware", "#alerts", "#override", "#plugins"] as const;
 export type Route = (typeof routes)[number];
 export type Toast = { message: string; action?: { label: string; run: () => void } };
@@ -57,7 +60,7 @@ export const useUiStore = defineStore("ui", () => {
         spare.focus();
         spare.select();
       }
-      let copied = false;
+      let copied: boolean;
       try {
         copied = document.execCommand("copy");
       } catch {
@@ -111,18 +114,24 @@ export const useUiStore = defineStore("ui", () => {
     addSheet.value = false; pagesSheet.value = false; menuOpen.value = false;
   }
 
-  // ---- The view the address names ----
-  const hash = ref(location.hash);
-  const route = computed<Route>(() => (routes.includes(hash.value as Route) ? (hash.value as Route) : ""));
+  // ---- The view the address names (router.ts) ----
+  // The route's name as the pages know it: "" for the main view (a screen or the overview), "#settings" and the rest for
+  // the pages of the app. The address bar's Back and Forward change it as go() does.
+  const current = router.currentRoute;
+  const route = computed<Route>(() => {
+    const name = current.value.name;
+    return !name || name === "home" || name === "screen" ? "" : (`#${String(name)}` as Route);
+  });
+  // The main view is the open screen when there is one, else the overview: the session says which (setMainView), so
+  // this store needs no screen store (which needs this one).
+  let mainView: () => RouteLocationRaw = () => "/";
+  function setMainView(view: () => RouteLocationRaw) { mainView = view; }
   function go(target: Route) {
-    if (location.hash === target) { hash.value = target; return; }
-    location.hash = target;
+    return router.push(target === "" ? mainView() : `/${target.slice(1)}`);
   }
-  // The address bar's back and forward, and go() above: start() follows the hash.
-  function followHash() { hash.value = location.hash; window.scrollTo(0, 0); }
-  // The screen whose Override YAML is open (#override), by its profile and its name.
-  const overrideProfile = ref<string | null>(null);
-  const overrideFriendly = ref("");
+  // The screen whose Override YAML is open (#/override/<profile>): the profile is in the address, so a reload keeps it.
+  const overrideProfile = computed(() => current.value.name === "override" ? (String(current.value.params.profile || "") || null) : null);
+  function openOverride(profile: string | null) { return router.push(overrideRoute(profile)); }
 
   // ---- The library drawer along the bottom (app 0.4.32): open or folded, remembered in this browser, and its filters ----
   const libraryOpen = usePreference("esp-screens.library-open", true, { serializer: { read: (raw) => raw !== "0", write: (open) => (open ? "1" : "0") } });
@@ -151,8 +160,6 @@ export const useUiStore = defineStore("ui", () => {
     scope.run(() => {
       // The width of a phone, read when the page loads and followed from here on.
       syncRef(useAtMost("phone"), narrowPhone, { direction: "ltr" });
-      hash.value = location.hash;
-      useEventListener(window, "hashchange", followHash);
       let fonts = true;
       whenBarFontsLoad(() => { if (fonts) fontsVersion.value++; });
       onScopeDispose(() => { fonts = false; });
@@ -166,7 +173,7 @@ export const useUiStore = defineStore("ui", () => {
     notice, toast, dismissToast, copyText, openIntegrations,
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
-    hash, route, go, overrideProfile, overrideFriendly,
+    route, go, setMainView, overrideProfile, openOverride,
     libraryOpen, filter, search, room, hidePlaced, growTip, growTips,
     now, fontsVersion, start,
   };

@@ -12,7 +12,8 @@ import { stopScopes } from "./helpers/with-setup";
 config.global.plugins = [i18n];
 installBrowser();
 // A pinia of its own for every test: the active one, and the one a mounted component gets (tests/helpers/pinia.ts).
-beforeEach(() => { freshPinia(); });
+// jsdom has no scrolling: the router scrolls every new view to the top (router.ts), which would log "Not implemented".
+beforeEach(() => { freshPinia(); vi.stubGlobal("scrollTo", vi.fn()); });
 // Every test starts where the page starts, whatever ran before it (npm run test:shuffle runs them in another order each
 // time): no composable a test left running, real timers, nothing stubbed, an empty storage, page and address, no
 // question left open, the languages of the files in English, no drag in the air, and the stores of the test stopped
@@ -43,7 +44,7 @@ HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', 
 // one, so the tests see every choice as a button in a row, as the side-by-side form draws them.
 config.global.stubs = {
   ChoiceField: defineComponent({
-    props: ["choices", "value", "disabled"],
+    props: { choices: Array, value: { type: null }, disabled: Boolean },
     emits: ["pick"],
     setup(props: any, { emit }) {
       return () => h("div", { class: "seg" }, (props.choices as [unknown, string][]).map(([key, text]) => h("button", {

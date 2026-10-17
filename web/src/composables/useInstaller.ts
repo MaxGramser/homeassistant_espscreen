@@ -4,7 +4,7 @@
 // for another screen's build, and this browser's own writing when that is the way. The steps only show and hide; the
 // form, what it sends and when, is the one it always was. What it works out is model/installer.ts and
 // model/install-progress.ts; whether the screen arrived on the network is useArrival.
-import { computed, onBeforeUnmount, onMounted, proxyRefs, reactive, ref, watch } from "vue";
+import { computed, inject, type InjectionKey, onBeforeUnmount, onMounted, proxyRefs, reactive, ref, watch } from "vue";
 import { send } from "../api";
 import { t } from "../i18n";
 import { afterBrowserBuild, errorLine, firmwareImage, memoryText } from "../model/firmware-job";
@@ -274,3 +274,11 @@ export function useInstaller() {
   });
 }
 export type Installer = ReturnType<typeof useInstaller>;
+// The steps work on the one installer of the view that holds them: InstallerView.vue provides it, a step injects it. It
+// is no prop of a step, since a step changes the form as a person fills it in, and a prop is read, never written.
+export const INSTALLER: InjectionKey<Installer> = Symbol("installer");
+export function injectInstaller(): Installer {
+  const install = inject(INSTALLER);
+  if (!install) throw new Error("an installer step needs InstallerView around it");
+  return install;
+}

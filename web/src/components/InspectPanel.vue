@@ -16,8 +16,8 @@ const scr = useScreenStore();
 const inv = useInventoryStore();
 const doc = useDocumentStore();
 
-// One tile (an entity may be on several, firmware 0.16.0+): its entity, its slot and, for a key, its place.
-const props = defineProps<{ entity?: string; slot?: number; tileKey?: number }>();
+// One tile (an entity may be on several, firmware 0.16.0+): its entity, the slot it is at and, for a key, its place.
+const props = defineProps<{ entity?: string; at?: number; tileKey?: number }>();
 const summary = ref<any[] | null>(null);
 const raw = ref(t("editor.inspect.reading"));
 const error = ref("");
@@ -29,7 +29,7 @@ async function load() {
   try {
     const data = await getJson(`screens/${encodeURIComponent(scr.selected)}/inspect`);
     const tiles = props.entity ? data.tiles.filter((t: any) => t.entity === props.entity &&
-      (props.slot === undefined || t.slot === undefined || (t.slot === props.slot && (t.key ?? null) === (props.tileKey ?? null)))) : data.tiles;
+      (props.at === undefined || t.slot === undefined || (t.slot === props.at && (t.key ?? null) === (props.tileKey ?? null)))) : data.tiles;
     summary.value = tiles;
     raw.value = JSON.stringify(props.entity ? tiles[0] : data, null, 2);
   } catch (e: any) {
@@ -49,7 +49,7 @@ const optionsText = (entity: string, own?: Record<string, any>) => {
   });
 };
 onMounted(load);
-watch(() => [props.entity, props.slot, props.tileKey], load);
+watch(() => [props.entity, props.at, props.tileKey], load);
 </script>
 
 <template>

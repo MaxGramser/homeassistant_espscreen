@@ -4,13 +4,11 @@ This cache never restores a delivery session. Every connection still negotiates
 with the running firmware. Missing or corrupt cache data only restricts offline
 editing until the next handshake; it cannot affect the saved page document.
 """
-import json
 import re
 import logging
-import os
 from pathlib import Path
-import tempfile
 
+import atomic
 from core import STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES, STORE_MAX_TILES
 from page_delivery import ceiling_of, grids_of, memory_of
 
@@ -41,11 +39,8 @@ def identity(screen):
 class CapabilityCache:
     def __init__(self, path):
         self.path = Path(path)
-        try:
-            data = json.loads(self.path.read_text())
-            self.records = data['screens'] if data.get('version') == 1 and isinstance(data.get('screens'), dict) else {}
-        except (OSError, ValueError, AttributeError, TypeError):
-            self.records = {}
+        data = atomic.read_json(self.path, 1)
+        self.records = data['screens'] if data and isinstance(data.get('screens'), dict) else {}
 
     def restore(self, inbox, screen, sender):
         record = self.records.get(inbox)
@@ -86,16 +81,7 @@ class CapabilityCache:
         if self.records.pop(inbox, None) is not None: self._save()
 
     def _save(self):
-        temporary = None
         try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(mode='w', dir=self.path.parent, delete=False) as handle:
-                temporary = handle.name
-                json.dump({'version': 1, 'screens': self.records}, handle)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary, self.path)
+            atomic.write_json(self.path, {'version': 1, 'screens': self.records})
         except OSError as error:
             LOG.warning('Could not retain offline screen capabilities (%s)', type(error).__name__)
-        finally:
-            if temporary and os.path.exists(temporary): os.unlink(temporary)

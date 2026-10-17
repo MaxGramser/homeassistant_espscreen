@@ -16,17 +16,17 @@ from firmware import Firmware  # noqa: E402
 
 PROFILE = {'board': 'cyd', 'name': 'kitchen', 'friendly_name': 'Kitchen', 'wifi_ssid': 'ssid', 'wifi_password': 'password'}
 
-# Stands in for the ESPHome CLI: records every run with the compilers it was allowed, and the first FAKE_FAILS compiles
+# Stands in for the ESPHome CLI: records every run with the compilers it was allowed, and the first ESPHOME_FAKE_FAILS compiles
 # end as a compile on a machine without memory does, with GCC's line about the killed compiler.
 FAKE_CLI = '''#!{python}
 import json, os, sys
 from pathlib import Path
-data = Path(os.environ['FAKE_DATA'])
+data = Path(os.environ['ESPHOME_FAKE_DATA'])
 runs = data / 'runs.jsonl'
 before = len(runs.read_text().splitlines()) if runs.exists() else 0
 with open(runs, 'a') as out:
     out.write(json.dumps({{'stage': sys.argv[1], 'jobs': os.environ.get('ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT')}}) + '\\n')
-if sys.argv[1] == 'compile' and before < int(os.environ['FAKE_FAILS']):
+if sys.argv[1] == 'compile' and before < int(os.environ['ESPHOME_FAKE_FAILS']):
     print('[412/1702] Building CXX object esp-idf/src/CMakeFiles/__idf_src.dir/main.cpp.obj')
     print('xtensa-esp-elf-g++: fatal error: Killed signal terminated program cc1plus')
     print('ninja: build stopped: subcommand failed.')
@@ -43,7 +43,7 @@ def fake_cli(folder, data, fails, free_mb):
     cli.chmod(0o755)
     meminfo = Path(folder) / 'meminfo'
     meminfo.write_text(f'MemTotal:        4000000 kB\nMemFree:          200000 kB\nMemAvailable:    {free_mb * 1024} kB\n')
-    env = {'PATH': f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", 'FAKE_DATA': str(data), 'FAKE_FAILS': str(fails),
+    env = {'PATH': f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", 'ESPHOME_FAKE_DATA': str(data), 'ESPHOME_FAKE_FAILS': str(fails),
            'ESP_SCREENS_BUILD_CACHE': 'off'}
     return env, str(meminfo)
 

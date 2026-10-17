@@ -37,7 +37,7 @@ const open = computed(() => Boolean(insp.inspector && (insp.inspector.kind !== "
         :index="insp.inspector.kind === 'saver-item' ? insp.inspector.index : -1" :adding="insp.inspector.kind === 'saver-add'" />
       <SaverInspector v-else-if="insp.inspector.kind === 'saver'" :step="insp.inspector.step" />
       <PageInspector v-else-if="insp.inspector.kind === 'page'" :id="insp.inspector.id" />
-      <InspectPanel v-else-if="insp.inspector.kind === 'inspect'" :entity="insp.inspector.entity" :slot="insp.inspector.slot" :tile-key="insp.inspector.key" />
+      <InspectPanel v-else-if="insp.inspector.kind === 'inspect'" :entity="insp.inspector.entity" :at="insp.inspector.slot" :tile-key="insp.inspector.key" />
     </div>
   </aside>
   </Transition>

@@ -9,14 +9,12 @@ glass (camera_feed.encode_saver): a camera filling it, a cover filling it or bes
 for the words over it. Nothing on it takes a tap, so the first touch only wakes the screen.
 
 A board without pictures (the CYD and the other boards without PSRAM) shows the clock; its editor offers nothing else."""
-import json
 import logging
-import os
 import re
-import tempfile
 import time
 from datetime import datetime, timezone
 
+import atomic
 import core
 
 LOG = logging.getLogger(__name__)
@@ -298,11 +296,8 @@ class ScreenSavers:
     def __init__(self, path):
         self.path = path
         self.choices = {}
-        try:
-            data = json.loads(path.read_text())
-            saved = data.get('screens') if isinstance(data, dict) and data.get('version') == 1 else None
-        except (OSError, ValueError):
-            saved = None
+        data = atomic.read_json(path, 1)
+        saved = data.get('screens') if data else None
         for device, choice in (saved or {}).items():
             try:
                 self.choices[str(device)] = validate(choice)
@@ -328,17 +323,7 @@ class ScreenSavers:
             self._save()
 
     def _save(self):
-        temporary = None
         try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(mode='w', dir=self.path.parent, delete=False) as handle:
-                temporary = handle.name
-                json.dump({'version': 1, 'screens': self.choices}, handle, ensure_ascii=False)
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.replace(temporary, self.path)
+            atomic.write_json(self.path, {'version': 1, 'screens': self.choices})
         except OSError as error:
             LOG.warning('Could not keep the screensavers (%s)', type(error).__name__)
-        finally:
-            if temporary and os.path.exists(temporary):
-                os.unlink(temporary)

@@ -35,6 +35,7 @@ function ninjaCount(lines: readonly string[]): [number, number] | null {
   let total = 0, done = 0;
   for (const line of lines) {
     for (const part of line.split("\r")) {
+      // eslint-disable-next-line no-control-regex -- ESC starts the colour codes ninja puts before its count
       const found = /^\s*(?:\x1b\[[0-9;]*[A-Za-z])*\[(\d+)\/(\d+)\]/.exec(part);
       if (!found || Number(found[2]) <= 0) continue;
       if (Number(found[2]) >= total) { total = Number(found[2]); done = Number(found[1]); }

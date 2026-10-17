@@ -100,6 +100,9 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   scrolling stays out unless it is tested on real glass. Keep the touch filter and the event guard before actions;
   calibration works on filtered raw values, and the affine correction is applied once, never in both the driver and
   the UI. The default standby is at least 600 seconds.
+- **The editor's address is its router** (docs/PAGES.md, "The address"): what is open is a route of `web/src/router.ts`,
+  opened with `ui.go()`, `session.select()` or `ui.openOverride()` and read from `ui.route` and `scr.selected`; nothing
+  reads or writes `location.hash` or keeps a view open in a store of its own.
 - **The editor's controls are Reka UI** (docs/PAGES.md): menus, selects, pickers and popups come from the wrappers in
   `web/src/components/ui/`, a list of the user's own entities is a searchable, scrolling `UiPicker`, and a part Reka
   has is never built by hand.
@@ -120,8 +123,8 @@ release is checked fully, once a week. docs/TESTING.md says what each layer prov
 - **At a release** (and a hotfix) everything runs, on the commit that goes out: `tools/check.sh`, CI on that commit
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens
   draw, and the upgrade test on the bench (docs/TESTING.md, "6. The upgrade"). What fails there is fixed in the release.
-- `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, types and
-  build, the WASM preview tests and the layout audit of every card on every board shape.
+- `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, lint, types
+  and build, the WASM preview tests and the layout audit of every card on every board shape.
 - Its firmware builds: `tools/check.sh --firmware --affected` builds the boards a change reaches; a change that reaches
   every board builds `SAMPLE` in `tools/profiles.py` (four boards that differ in chip, flash and glass). On the
   packages' older `min_version` ESPHome the same `--affected` build is the CYD alone (`MIN_VERSION_SAMPLE`), plus a

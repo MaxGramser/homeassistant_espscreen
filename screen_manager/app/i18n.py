@@ -13,9 +13,9 @@ import contextvars
 import json
 import math
 import logging
-import os
 import re
 from pathlib import Path
+import atomic
 
 LOG = logging.getLogger('screen_manager')
 HERE = Path(__file__).resolve().parent
@@ -271,27 +271,16 @@ class Region:
         # Home Assistant's own language (get_config), once connected.
         self.ha_language = ha_language or (lambda: None)
         self.stored = self.path.exists()
-        if self.stored:
-            try:
-                raw = json.loads(self.path.read_text(encoding='utf-8'))
-            except (OSError, ValueError):
-                raw = {}
-            if raw.get('version') == 1:
-                self.setting = raw.get('language') if raw.get('language') == 'auto' or raw.get('language') in self.tr.data else 'auto'
-                self.clock = raw.get('clock') if raw.get('clock') in CLOCKS else 'auto'
-                self.numbers = raw.get('numbers') if raw.get('numbers') in NUMBERS else 'auto'
-                self.pinned = raw.get('pinned') is True
+        raw = atomic.read_json(self.path, 1)
+        if raw:
+            self.setting = raw.get('language') if raw.get('language') == 'auto' or raw.get('language') in self.tr.data else 'auto'
+            self.clock = raw.get('clock') if raw.get('clock') in CLOCKS else 'auto'
+            self.numbers = raw.get('numbers') if raw.get('numbers') in NUMBERS else 'auto'
+            self.pinned = raw.get('pinned') is True
 
     def save(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.path.with_suffix('.tmp')
-        with open(temporary, 'w', encoding='utf-8') as handle:
-            os.chmod(temporary, 0o600)
-            json.dump({'version': 1, 'language': self.setting, 'clock': self.clock, 'numbers': self.numbers,
-                       **({'pinned': True} if self.pinned else {})}, handle)
-            handle.flush()
-            os.fsync(handle.fileno())
-        temporary.replace(self.path)
+        atomic.write_json(self.path, {'version': 1, 'language': self.setting, 'clock': self.clock, 'numbers': self.numbers,
+                                      **({'pinned': True} if self.pinned else {})})
         self.stored = True
 
     def change(self, data):

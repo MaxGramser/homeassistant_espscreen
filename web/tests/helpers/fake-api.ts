@@ -9,6 +9,9 @@ export type ApiRequest = { method: string; path: string; params: Record<string, 
 /** What a route answers: a body (sent as JSON with 200), or a reply() with its own status. */
 export type Answer = unknown;
 export type Handler = (request: ApiRequest) => Answer | Promise<Answer>;
+/** A route's entry: its handler, or the answer itself, anything that is no function. Said apart from `unknown` so a
+ * handler written in place knows its request. */
+export type Routed = Handler | object | string | number | boolean | null | undefined;
 type Route = { key: string; method: string | null; pattern: RegExp; names: string[]; handler: Handler };
 
 const REPLY = Symbol("reply");
@@ -35,7 +38,7 @@ function respond(answer: Answer) {
   return new Response(body === undefined || status === 204 ? null : JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-export function fakeApi(routes: Record<string, Handler | Answer> = {}) {
+export function fakeApi(routes: Record<string, Routed> = {}) {
   const table: Route[] = [];
   const calls: ApiRequest[] = [];
   const parked = new Map<string, Promise<Answer>[]>();
@@ -67,7 +70,7 @@ export function fakeApi(routes: Record<string, Handler | Answer> = {}) {
     /** Every request so far, in order: its method, path (without api/), route parameters, query and body. */
     calls,
     /** Adds a route, or replaces the one with the same method and path. */
-    on(route: string, answer: Handler | Answer) {
+    on(route: string, answer: Routed) {
       const parsed = parse(route);
       const index = table.findIndex((other) => other.key === parsed.key);
       if (index >= 0) table.splice(index, 1);

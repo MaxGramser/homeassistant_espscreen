@@ -55,8 +55,12 @@ class StateColours(unittest.TestCase):
                          header_bar.AMBER)
 
     def test_every_weather_condition_has_its_colour(self):
-        body = function(CONTROLS, 'inline uint32_t weather_color(const std::string &condition) {')
+        # The one table of conditions (tile_controls::weather_kind): the tile's colour, the card's sky and the chart's
+        # marks all ask it, so a condition Home Assistant adds is added once.
+        body = function(CONTROLS, 'inline Weather weather_kind(const std::string &condition) {')
         self.assertEqual(set(re.findall(r'condition == "([\w-]+)"', body)), set(tile_icons.WEATHER))
+        for duplicate in ('c=="snowy-rainy"', 'c == "snowy-rainy"'):
+            self.assertNotIn(duplicate, TILES)
 
     def test_the_tile_greys_and_lights_up_by_home_assistants_rule(self):
         self.assertIn('uint32_t accent=tile_controls::accent(t);', TILES)

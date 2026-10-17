@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import zipfile
 
+import atomic
 from i18n import t
 import tile_icons
 from core import (ALERT_ACTION_FIELD, ALERT_ACTION2_FIELD, ALERT_CHOICE_ACTION, ALERT_CHOICE_FIELDS, ALERT_CHOICE_MIN_FIRMWARE, ALERT_CAMERA_FIELD, ALERT_SCREEN_FIELD, ALERT_ENDINGS, ALERT_EVENT, ALERT_FALLBACK_ICON, ALERT_FIELDS, ALERT_LIMITS, ALERT_MAX_TIMEOUT, BOARD_KEYS, SHAPES, limit_boards,
@@ -512,10 +513,8 @@ def install(directory):
     watches skills folders that existed when it started."""
     restart = not directory.parent.is_dir()
     try:
-        directory.mkdir(parents=True, exist_ok=True)
-        temp = directory / 'SKILL.md.tmp'
-        temp.write_text(text(), encoding='utf8')
-        temp.replace(directory / 'SKILL.md')
+        # Whole or not at all (atomic.write_text), readable by Claude Code as the zip's copy is.
+        atomic.write_text(directory / 'SKILL.md', text(), mode=0o644)
     except OSError as error:
         raise ValueError(t('addon.errors.skill_not_written', folder=directory, reason=error.strerror or type(error).__name__)) from error
     return {**status(directory), 'restart': restart}

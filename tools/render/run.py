@@ -392,10 +392,13 @@ class Run:
             await self.until(lambda l: 'edge swipe up: close everything' in l, 6, 'swipe up on a lite board never went home', start)
             return
         await self.until(lambda l: 'edge swipe up: dock' in l, 6, 'swipe up never opened the dock', start)
-        # Every page but the one left out (a large grid may hold fewer than eight pages of the demo's tiles).
+        # Every page the screen holds (a large grid may hold fewer than eight pages of the demo's tiles), but the one left
+        # out of the dock in its page settings when the run shows the dock full (--only dock, which sets showInDock off).
+        left_out = 1 if self.only == 'dock' else 0
         shows = next((re.search(r'shows (\d+) of (\d+) pages', l) for l in self.lines[start:] if re.search(r'shows \d+ of \d+ pages', l)), None)
-        if not shows or int(shows[1]) != int(shows[2]) - 1:
-            self.failures.append(f'dock: the page left out of it still counts ({shows[0] if shows else "no count logged"})')
+        if not shows or int(shows[1]) != int(shows[2]) - left_out:
+            why = 'the page left out of it still counts' if left_out else 'it does not show every page'
+            self.failures.append(f'dock: {why} ({shows[0] if shows else "no count logged"})')
         # The way in, as it moves: snapshots as fast as the host takes them, made into dock-open.gif.
         frames, clock = [], time.monotonic()
         while time.monotonic() - clock < 1.0:
@@ -424,6 +427,10 @@ class Run:
         await asyncio.sleep(0.5)
         if (await self.render('_dock-dragged', keep=False)).tobytes() != before.tobytes():
             self.failures.append('dock: page 1 looks different after the drawer was dragged away')
+        # One page (a large grid holds the whole demo): no page bar with dots to tap, and no page 2 to come home from.
+        if pages < 2:
+            self.warnings.append('dock: one page, so the page dots and the way home from page 2 were not tried')
+            return
         # A tap on the page dots in the middle of the page bar opens it too; a tap above it closes it again.
         start = len(self.lines)
         await self.finger([(width // 2, height - 12), (width // 2, height - 12)], rest=0.1)

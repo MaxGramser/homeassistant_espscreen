@@ -8,6 +8,7 @@
 #include <lvgl.h>
 
 #include "theme.h"
+#include "tile_controls.h"
 #include "ui_scale.h"
 #include "layout_memory.h"
 #include "weather_week.h"
@@ -213,19 +214,9 @@ inline const char *glyph(const std::string &c) {
   if (c == "windy" || c == "windy-variant") return "\U000F059D";
   return "\U000F05D6";
 }
-inline uint32_t hue(const std::string &c) {
-  namespace h = theme::ha;
-  if (c == "sunny") return h::SUNNY;
-  if (c == "clear-night") return h::NIGHT_SKY;
-  if (c == "partlycloudy") return h::PARTLY_CLOUDY;
-  if (c == "rainy" || c == "pouring") return h::RAIN;
-  if (c == "snowy" || c == "snowy-rainy" || c == "hail") return h::SNOW;
-  if (c == "lightning" || c == "lightning-rainy") return h::LIGHTNING;
-  return h::CLOUDY;
-}
-inline bool falls(const std::string &c) {
-  return c == "rainy" || c == "pouring" || c == "snowy" || c == "snowy-rainy" || c == "hail" || c == "lightning" || c == "lightning-rainy";
-}
+// The sky and what falls from it: the one weather table (tile_controls.h), shared with the card's icon.
+inline uint32_t hue(const std::string &c) { return tile_controls::weather_sky(c); }
+inline bool falls(const std::string &c) { return tile_controls::weather_falls(c); }
 inline const lv_font_t *mark_font(const Fonts &f, const lv_font_t *big) {
   const lv_font_t *best = nullptr;
   for (auto *m : f.marks)

@@ -1171,6 +1171,8 @@ std::string receive(const std::string &payload) {
     wish_reported(tile);
     // A held slider keeps its value in front of the fade (after the wish: an off light a slider turned on stays on).
     tile.slider_reported(esphome::millis());
+    // A cover on its way keeps its target in front of the reports from the way (cover_travel.h).
+    tile.travel_reported(esphome::millis());
     // Home Assistant reports the edited value: the -/+ pill follows its state again.
     if(tile_controls::climate_range(tile)){
       // A range: each end follows Home Assistant again once it reports what was sent.

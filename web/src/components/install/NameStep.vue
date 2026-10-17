@@ -7,14 +7,14 @@ import { ref } from "vue";
 import { boardDetail, boardTitle } from "../../model/boards";
 import { canStep } from "../../model/installer";
 import { customPreview } from "../../model/preview";
-import type { Installer } from "../../composables/useInstaller";
+import { injectInstaller } from "../../composables/useInstaller";
 import { t } from "../../i18n";
 import DeviceArt from "../DeviceArt.vue";
 import Icon from "../ui/Icon.vue";
 
-const props = defineProps<{ install: Installer }>();
+const install = injectInstaller();
 const gridAxes = ["columns", "rows"] as const;
-function stepGrid(axis: "columns" | "rows", by: number) { if (canStep(props.install.form.grid, props.install.range, axis, by)) props.install.form.grid[axis] += by; }
+function stepGrid(axis: "columns" | "rows", by: number) { if (canStep(install.form.grid, install.range, axis, by)) install.form.grid[axis] += by; }
 const root = ref<HTMLElement | null>(null);
 /** Whether its fields are filled in as they must be; the first that is not says why. */
 function check() {

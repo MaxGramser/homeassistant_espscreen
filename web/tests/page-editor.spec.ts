@@ -6,7 +6,6 @@ import PageWizard from "../src/components/PageWizard.vue";
 import LayoutView from "../src/components/LayoutView.vue";
 import NavigationPreview from '../src/components/NavigationPreview.vue';
 import PageInspector from '../src/components/PageInspector.vue';
-import TopbarInspector from '../src/components/TopbarInspector.vue';
 import { documentFixture, screenFixture } from "./helpers/fixtures";
 import { answerDialogs } from "./helpers/dialogs";
 import { setMedia } from "./helpers/browser";

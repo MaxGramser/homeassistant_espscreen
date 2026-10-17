@@ -1,4 +1,4 @@
-import { loadLayout, loadTiles, loadPages, loadTitles, appendTiles, screenFixture, documentFixture, current } from "./helpers/fixtures";
+import { loadLayout } from "./helpers/fixtures";
 // Language & region (app 0.2.90): one place for every screen's language, clock and numbers, the update it takes, and
 // the top bar that points there.
 import { flushPromises, mount } from "@vue/test-utils";

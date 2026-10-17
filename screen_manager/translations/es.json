@@ -1838,6 +1838,7 @@
         "on_screens": "En {n} pantalla | En {n} pantallas",
         "fits_none": "No es compatible con ninguna de tus pantallas",
         "failed": "Error al compilar",
+        "not_running": "No se ejecuta en la pantalla",
         "queued": "Espera su turno"
       },
       "source": {
@@ -1910,7 +1911,7 @@
         "network_none": "No se conecta a nada fuera de Home Assistant",
         "read": "Lee estas entidades de Home Assistant"
       },
-      "warning": "Un plugin se ejecuta en tu pantalla con acceso total a ella, incluidas su Wi-Fi y las acciones que puede realizar en Home Assistant. Añade solo plugins de autores en los que confíes, o lee antes el código.",
+      "warning": "Un plugin se ejecuta en tu pantalla con acceso total a ella, incluidas su Wi-Fi y las acciones que puede realizar en Home Assistant, y su compilación se ejecuta en esta app, donde puede acceder a tu configuración de Home Assistant. Añade solo plugins de autores en los que confíes, o lee antes el código.",
       "room": {
         "title": "Espacio en {screen}",
         "small": "{kb} KB más: el firmware pasa de {before} a {after} de su espacio.",

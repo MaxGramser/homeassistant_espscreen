@@ -6,7 +6,7 @@
 import { computed, onBeforeUnmount, ref } from "vue";
 import { t } from "../i18n";
 import { useSortableRows } from "../composables/useSortableRows";
-import { keepsPicks, listValue, optionsFit, picksOf, text, type Plugin, type PluginTileOption } from "../model/plugins";
+import { listValue, optionsFit, picksOf, text, type Plugin, type PluginTileOption } from "../model/plugins";
 import type { PluginPick, PluginValue } from "../types";
 import { usePluginsStore } from "../stores/plugins";
 import Icon from "./ui/Icon.vue";

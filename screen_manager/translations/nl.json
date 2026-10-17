@@ -3387,6 +3387,7 @@
         "on_screens": "Op {n} scherm | Op {n} schermen",
         "fits_none": "Past op geen van je schermen",
         "failed": "Bouwen mislukt",
+        "not_running": "Draait niet op het scherm",
         "queued": "Wacht op zijn beurt"
       },
       "source": {
@@ -3459,7 +3460,7 @@
         "network_none": "Maakt geen verbindingen buiten Home Assistant",
         "read": "Leest deze entiteiten uit Home Assistant"
       },
-      "warning": "Een plugin draait op je scherm met volledige toegang ertoe, ook tot de Wi-Fi en de acties die het scherm in Home Assistant mag uitvoeren. Voeg alleen plugins toe van makers die je vertrouwt, of lees eerst de code.",
+      "warning": "Een plugin draait op je scherm met volledige toegang ertoe, ook tot de Wi-Fi en de acties die het scherm in Home Assistant mag uitvoeren, en zijn build draait in deze app, waar hij bij je Home Assistant-configuratie kan. Voeg alleen plugins toe van makers die je vertrouwt, of lees eerst de code.",
       "room": {
         "title": "Ruimte op {screen}",
         "small": "{kb} KB extra: de firmware gaat van {before} naar {after} van zijn ruimte.",

@@ -150,15 +150,15 @@ export const useDocumentStore = defineStore("document", () => {
   const history = new DraftHistory<DraftSnapshot>();
   // The history is no reactive object (its steps are whole drafts): every change of it counts this up, and the counts follow.
   const historyVersion = shallowRef(0);
-  const counts = computed(() => { historyVersion.value; return history.counts(editorMode.value === "advanced"); });
+  const counts = computed(() => { void historyVersion.value; return history.counts(editorMode.value === "advanced"); });
   const undoCount = computed(() => counts.value.undo);
   const redoCount = computed(() => counts.value.redo);
   // What the next undo and redo do, in words in the editor's language ("Kitchen light moved to page 2"), for the buttons'
   // tooltips and the toast after them; empty when there is nothing to do.
   const said = (change: ChangeLabel | undefined) => change ? (change.count === undefined
     ? t(`editor.undo.what.${change.key}`, change.named || {}) : t(`editor.undo.what.${change.key}`, change.named || {}, change.count)) : "";
-  const undoWhat = computed(() => { historyVersion.value; return counts.value.undo ? said(history.peek("undo", editorMode.value === "advanced") || label("changed")) : ""; });
-  const redoWhat = computed(() => { historyVersion.value; return counts.value.redo ? said(history.peek("redo", editorMode.value === "advanced") || label("changed")) : ""; });
+  const undoWhat = computed(() => { void historyVersion.value; return counts.value.undo ? said(history.peek("undo", editorMode.value === "advanced") || label("changed")) : ""; });
+  const redoWhat = computed(() => { void historyVersion.value; return counts.value.redo ? said(history.peek("redo", editorMode.value === "advanced") || label("changed")) : ""; });
   // A removal toast, and the one after an undo or redo, only belong to the latest history entry. Once another edit, map
   // move, undo or screen selection changes history, retire it.
   function historyChanged() {

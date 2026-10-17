@@ -49,9 +49,7 @@ const others = computed(() => inv.inventory.screens.filter((s) => s.id !== scree
 function closeMenu() { ui.menuOpen = false; }
 function openOverride() {
   closeMenu();
-  ui.overrideProfile = screen.value.update?.profile || null;
-  ui.overrideFriendly = screen.value.name;
-  ui.go("#override");
+  ui.openOverride(screen.value.update?.profile || null);
 }
 function inspectAll() {
   closeMenu();

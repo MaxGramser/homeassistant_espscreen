@@ -111,7 +111,7 @@ export function pasteTiles(layout: PageLayout, grid: PageGrid, copied: CopiedTil
     if (next.children) next.children = next.children.map((child) => ({ ...child, id: instanceId() }));
     // A Go to page tile leads to a page of the screen it came from: here only when that page is here too.
     const leads = next.content.kind === "navigation" && next.content.target.kind === "page" ? next.content.target.pageId : null;
-    let entity = "";
+    let entity: string;
     try { if (leads && !draft.pages.some((item) => item.id === leads)) throw new Error(); entity = rules.entityOf(draft, next); }
     catch { skipped++; continue; }
     const cost = 1 + (next.children?.length || 0);

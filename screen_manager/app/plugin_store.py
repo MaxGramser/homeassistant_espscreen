@@ -11,41 +11,20 @@
 A file that is missing means no screen has plugins. Version 1 starts empty; a newer version this app does not know is
 left alone and read as empty, so a downgrade never rewrites it.
 """
-import json
-import os
-import tempfile
 import threading
 import time
 from pathlib import Path
+import atomic
 
 VERSION = 1
 
 
 def _write(path, data, mode=0o600):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=path.name + '.', suffix='.tmp')
-    try:
-        os.fchmod(fd, mode)
-        with os.fdopen(fd, 'w') as handle:
-            json.dump(data, handle, indent=1, sort_keys=True)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    except BaseException:
-        try:
-            os.unlink(temporary)
-        except OSError:
-            pass
-        raise
+    atomic.write_json(path, data, mode, indent=1, sort_keys=True)
 
 
 def _read(path):
-    try:
-        data = json.loads(Path(path).read_text())
-    except (OSError, ValueError):
-        return None
-    return data if isinstance(data, dict) and data.get('version') == VERSION else None
+    return atomic.read_json(path, VERSION)
 
 
 class PluginStore:

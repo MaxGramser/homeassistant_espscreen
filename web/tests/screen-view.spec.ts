@@ -29,14 +29,15 @@ type Head = { pickFile: () => void; phoneRename: () => Promise<void> };
 describe("a screen's head", () => {
   it("imports a chosen file, after asking when something is unsaved, and imports nothing when told no", async () => {
     const api = fakeApi({ "POST screens/:id/import": () => useInventoryStore().inventory.screens[0].page_document });
-    let chooser: HTMLInputElement | null = null;
-    vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(function (this: HTMLInputElement) { chooser = this; });
+    // The spy keeps what it was called on: the input the head clicked.
+    const click = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {});
     const view = mount(ScreenView, { attachTo: document.body });
     setTileOption(doc.layout!.tiles[0], "icon", "lightbulb");
     let yes = false;
     const asked = answerDialogs(() => yes);
     const choose = async () => {
       (view.vm as unknown as Head).pickFile();
+      const chooser = click.mock.contexts.at(-1) as HTMLInputElement | undefined;
       expect([chooser?.type, chooser?.accept, chooser?.multiple]).toEqual(["file", "application/json,.json", false]);
       // jsdom's File has no text(): the one a browser's chooser hands over does.
       const json = JSON.stringify({ esp_screens_layout: 2, sourceGrid: doc.documentGrid, layout: doc.document });

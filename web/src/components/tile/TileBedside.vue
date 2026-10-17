@@ -30,7 +30,7 @@ function markKey(key: number) {
     <span v-if="card.keyPlaces.length" class="keys">
       <span v-for="place in card.keyPlaces" :key="place.key" class="key-place" :data-key="card.preview || card.placeholder ? undefined : place.key" :data-holder="card.preview || card.placeholder ? undefined : card.tile.id"
         :class="{ 'insert-here': insp.insertKey?.holder === card.tile.id && insp.insertKey?.key === place.key, over: dragging.key?.holder === card.tile.id && dragging.key?.key === place.key }">
-        <TileCard v-if="place.tile" :tile="place.tile" :slot="-1" round :preview="card.preview" />
+        <TileCard v-if="place.tile" :tile="place.tile" :at="-1" round :preview="card.preview" />
         <button v-else type="button" class="key-empty" :title="t('editor.page.cell.title')" @click.stop="markKey(place.key)"><span>+</span></button>
       </span>
     </span>

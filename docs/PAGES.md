@@ -45,6 +45,23 @@ Reka has a part for what you need (Combobox, Popover, Tooltip, Dialog, Tabs, Sli
 Size and place, Controls, Icon and color) and a page's in three (Title, Navigation, Top bar). The icons of the
 editor's own controls are Material Design Icons, listed in `web/src/model/ui-icons.json`.
 
+### The address
+
+What is open is in the page's address, and nowhere else: the editor has one router (vue-router with a hash history,
+`web/src/router.ts`, since the page lives in Home Assistant's ingress iframe where only the hash is the page's own).
+`#/` is the overview, `#/screens/<inbox id>` a screen, `#/settings`, `#/new-screen`, `#/firmware`, `#/alerts` and
+`#/plugins` the pages of the app, and `#/override/<profile>` a screen's Override YAML. A reload opens the same again
+once the inventory has arrived (the session follows the address, `followAddress`), the browser's Back and Forward
+walk through what was open, a link to a screen can be kept, and the addresses from before the router (`#settings`)
+still work. Home Assistant's sidebar shows the editor in a frame whose address nobody sees, and makes it anew on a
+reload at the bare address: the route is mirrored into the hash of Home Assistant's own address
+(`/app/<slug>#/screens/...`, which can be copied), kept in the tab as well (`sessionStorage`), and a frame that starts
+at the overview goes back to what that hash or the tab says (`restoreKeptRoute`). Leaving a screen with unsaved changes by the address bar asks the same question as the sidebar does
+(`router.beforeEach` in the session store), and a no leaves the page and the address where they were. Code never reads
+or writes `location.hash`: a view is opened with `ui.go()` (the route names the pages know, `""` being the open screen
+or the overview), a screen with `session.select()`, an override with `ui.openOverride()`; what is open is read from
+`ui.route`, `scr.selected` and `ui.overrideProfile`.
+
 ### Menus
 
 Everything you do to a thing as a whole, as opposed to its settings, is in one menu, and that menu is the same in two

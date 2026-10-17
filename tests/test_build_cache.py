@@ -58,9 +58,9 @@ class Session:
         return Response(self.status, self.file, self.delay)
 
 
-def asset(board='cyd', stamp='2026-10-01T03:40:00Z', version='2026.9.0'):
+def asset(board='cyd', stamp='2026-10-01T03:40:00Z', version='2026.9.0', digest=None):
     return {'name': build_cache.asset_name(board, version), 'updated_at': stamp, 'size': 41_000_000,
-            'browser_download_url': FILE}
+            'browser_download_url': FILE, **({'digest': digest} if digest else {})}
 
 
 class Seed(unittest.IsolatedAsyncioTestCase):
@@ -93,6 +93,23 @@ class Seed(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((self.folder / 'a' / 'stats').read_text(), 'own')
         self.assertFalse((self.folder / 'ccache.conf').exists())
         self.assertEqual(list(self.folder.parent.glob('*.part')), [], 'the download is cleaned up')
+
+    async def test_the_download_has_to_match_the_digest_github_names(self):
+        """ccache trusts what is in its folder by its key, so what goes in has to be what GitHub built: the release
+        asset's sha256 (`digest`), when GitHub names one."""
+        import hashlib
+        files = archive({'./a/1R': b'x'})
+        good = 'sha256:' + hashlib.sha256(files).hexdigest()
+        self.assertIn('1 files', await self.seed(Session([asset(digest=good.upper())], files)))
+        self.assertEqual((self.folder / 'a' / '1R').read_bytes(), b'x')
+        other = archive({'./a/2R': b'y'})
+        with self.assertLogs('screen_manager', 'WARNING'):
+            outcome = await self.seed(Session([asset(stamp='2026-10-02T03:40:00Z', digest=good)], other))
+        self.assertEqual(outcome, 'digest mismatch')
+        self.assertFalse((self.folder / 'a' / '2R').exists(), 'nothing of the wrong download is unpacked')
+        self.assertEqual(list(self.folder.parent.glob('*.part')), [], 'and the download is gone')
+        # The marker still names the cache that was unpacked, so the next good one is fetched.
+        self.assertIn('1 files', await self.seed(Session([asset(stamp='2026-10-03T03:40:00Z')], other)))
 
     async def test_the_same_cache_is_fetched_once(self):
         await self.seed(Session([asset()], archive({'./a/1R': b'x'})))

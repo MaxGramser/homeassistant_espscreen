@@ -27,7 +27,7 @@ const props = defineProps<{ items: readonly HeaderItem[]; selected: string; over
 const emit = defineEmits<{ select: [value: string]; press: [event: PointerEvent, index: number]; remove: [index: number] }>();
 const wrap = computed(() => props.items.length > 6);
 // What a part shows: its glyph and, unless it is an icon alone, its words.
-function face(item: HeaderItem): StripFace {
+function faceOf(item: HeaderItem): StripFace {
   if (props.face) return props.face(item);
   const view = topbar.topbarView(item);
   const code = topbar.topbarGlyph(item);
@@ -53,11 +53,11 @@ const justAdded = (item: HeaderItem) => topbar.topbarAdded?.key === itemKey(item
       </TabsTrigger>
       <UiContextMenu v-for="(item, i) in items" :key="itemKey(item) + i" width="180px" :disabled="dragging >= 0">
         <TabsTrigger :value="String(i)" class="strip-slot strip-item" :data-index="i"
-          :class="{ 'is-hidden': !face(item).shown, 'is-overflow': overflow.has(i), 'just-added': justAdded(item), dragging: dragging === i, leaving: dragging === i && leaving }"
+          :class="{ 'is-hidden': !faceOf(item).shown, 'is-overflow': overflow.has(i), 'just-added': justAdded(item), dragging: dragging === i, leaving: dragging === i && leaving }"
           :title="topbar.topbarLabel(item)" :aria-label="t('editor.topbar.item_label', { name: topbar.topbarLabel(item), slot: i + 1 })"
           @pointerdown="press($event, i)">
-          <span v-if="face(item).glyph" class="mdi" :style="face(item).color ? { color: face(item).color } : undefined">{{ face(item).glyph }}</span>
-          <span v-if="face(item).text && face(item).shown" class="strip-text">{{ face(item).text }}</span>
+          <span v-if="faceOf(item).glyph" class="mdi" :style="faceOf(item).color ? { color: faceOf(item).color } : undefined">{{ faceOf(item).glyph }}</span>
+          <span v-if="faceOf(item).text && faceOf(item).shown" class="strip-text">{{ faceOf(item).text }}</span>
         </TabsTrigger>
         <template #menu>
           <UiMenuItem icon="delete-outline" danger @select="emit('remove', i)">{{ t("editor.common.remove") }}</UiMenuItem>

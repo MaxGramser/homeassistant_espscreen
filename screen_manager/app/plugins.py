@@ -8,8 +8,12 @@ Where plugins come from:
 - **a folder** in Home Assistant's config, `tessera-plugins/<id>/` beside the `esphome/` folder: a plugin someone is
   making. Every build takes what the folder holds now; the app shows it as a test and offers no updates.
 
-The app never runs a plugin's code. It reads the manifest (plugin_manifest.py), writes the screen's plugins file so
+The app itself runs no plugin code: it reads the manifest (plugin_manifest.py), writes the screen's plugins file so
 ESPHome builds the plugin into that screen, and carries out the plugin's fetches with its own rules (plugin_fetch.py).
+ESPHome does run a plugin's Python, its component's `__init__.py`, while it builds the screen, in this app's container
+(docs/PLUGINS.md, "Where a plugin's code runs"): the build gets the environment the build tools read and nothing of the
+app's own (firmware.build_environment), and the plugins repository holds a listed plugin's Python to what a component
+needs (its tools/check.py).
 """
 import asyncio
 import json
@@ -118,12 +122,36 @@ def build_reason(logs):
 
 # A compiler error in a file of an external component: `../src/esphome/components/tap_sound/tap_sound.h:19:8: error: ...`.
 COMPONENT_ERROR = re.compile(r'components/([a-z0-9_]+)/[^\s:]+:\d+(?::\d+)?:\s*(?:fatal\s+)?error:')
+# A plugin the core refused while ESPHome read the configuration, before any compiler ran (smart_display.register_plugin):
+# `Plugin tap_sound wants plugin API 0.11; this firmware offers 0.10.` or `Plugin tap_sound was written for plugin API ...`.
+API_REFUSAL = re.compile(r'Plugin ([a-z0-9_]+) (?:wants|was written for) plugin API')
 
 
 def failed_components(logs):
-    """The components a build's compiler errors lie in, Tessera's own left out."""
-    found = {match.group(1) for line in logs or [] for match in [COMPONENT_ERROR.search(str(line))] if match}
+    """The components a build's compiler errors lie in, and the plugins the core refused by their API, Tessera's own
+    components left out."""
+    lines = [str(line) for line in logs or []]
+    found = {match.group(1) for line in lines for match in [COMPONENT_ERROR.search(line)] if match}
+    found |= {match.group(1) for line in lines for match in [API_REFUSAL.search(line)] if match}
     return found - {'smart_display', 'flash_layout'}
+
+
+# After a build went on, the screen reboots and says hello again within this many seconds; until then whether it runs
+# the plugins just built is not known.
+SETTLING = 180
+
+
+def runs(inbox, record, running, now=None):
+    """Whether the screen of `inbox` runs the installed plugin `record` at its version, by the screen's last hello
+    (`running`, Plugins.running()): True or False, or None while it cannot be known: the screen has not said (offline,
+    or a firmware from before plugins), the record is not active (building, failed), or its build went on a moment ago
+    and the screen has not said hello since. False is a plugin that crashed at boot or a firmware built without it."""
+    reported = running.get(inbox)
+    if reported is None or record.get('state', 'active') != 'active':
+        return None
+    if (now if now is not None else time.time()) - (record.get('settled') or 0) < SETTLING:
+        return None
+    return any(item.get('id') == record['id'] and item.get('version') == record.get('version') for item in reported)
 
 
 def version_tuple(text):
@@ -878,6 +906,7 @@ class Plugins:
         self.scan_folders()
         listed = self.listed()
         installed = {}
+        running = self.running()
         for inbox, records in self.store.everywhere().items():
             installed[inbox] = []
             for record in records:
@@ -892,6 +921,8 @@ class Plugins:
                                          'parts': record.get('parts', []), 'values': record.get('values', {}),
                                          'consent': (record.get('consent') or {}).get('permissions'),
                                          'state': record.get('state', 'active'), 'reason': record.get('reason'),
+                                         # Whether the screen runs it (runs): the editor says so when it does not.
+                                         'running': runs(inbox, record, running),
                                          **({'failed_update': record['failed_update']} if record.get('failed_update') else {}),
                                          # Which of its secrets for this screen alone are set (never their values).
                                          'secrets': {item['id']: self.secrets.has(
@@ -925,7 +956,7 @@ class Plugins:
                 fit[screen['id']] = reasons
         return {'api': api_text(), 'plugins': [self.editor_plugin(entry, language) for entry in listed.values()],
                 'entities': entities,
-                'installed': installed, 'running': self.running(), 'secrets': secrets,
+                'installed': installed, 'running': running, 'secrets': secrets,
                 'features': features, 'fit': fit, 'likes': {'consented': self.liker.consented()},
                 'index': {'at': self.index_state['at'], 'error': self.index_state['error']},
                 'folders': {'path': str(self.folder_root()), 'errors': self.folder_errors},
@@ -1315,7 +1346,8 @@ class Plugins:
             if ok:
                 for key in ('previous', 'failed_update', 'reason'):
                     record.pop(key, None)
-                self.store.put(inbox, dict(record, state='active'))
+                # `settled`: when it went on, so the screen gets its reboot before its hello is held against it (runs).
+                self.store.put(inbox, dict(record, state='active', settled=int(time.time())))
             elif record.get('previous'):
                 back = dict(record['previous'], state='active',
                             failed_update={'version': record.get('version'), 'ref': record.get('ref'), 'reason': reason})

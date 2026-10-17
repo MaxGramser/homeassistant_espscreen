@@ -1,12 +1,12 @@
 <script setup lang="ts">
 // New screen's third step: how the firmware gets onto it. USB on the Home Assistant machine (each port found, or the one
 // to plug into), this computer, a file, or nothing yet, and what the chosen way does.
-import type { Installer } from "../../composables/useInstaller";
+import { injectInstaller } from "../../composables/useInstaller";
 import { t } from "../../i18n";
 import BrowserFlash from "../BrowserFlash.vue";
 import Icon from "../ui/Icon.vue";
 
-defineProps<{ install: Installer }>();
+const install = injectInstaller();
 </script>
 
 <template>

@@ -25,7 +25,8 @@ found automatically.
 lists what to fill in after `screen:` for each screen, for an alert with a camera picture on one screen.
 **Settings** in the sidebar has the nightly firmware updates (the Update badge of a screen lists what's new, a
 running update shows its progress) and **Claude**: install the Tessera skill for Claude Code in Home Assistant, or
-download it for claude.ai, and ask Claude for the alert automation.
+download it for claude.ai, and ask Claude for the alert automation. On the app's own Info page in Home Assistant, turn
+on **Watchdog**: Home Assistant then starts Tessera again if it ever stops or stops answering.
 
 Tap the bar at the top of any page in the mockup to set the **Top bar** of a screen: the name on the left, up
 to six items on the right (time, analog clock, date, or an entity with an icon, such as

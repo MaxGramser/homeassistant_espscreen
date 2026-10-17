@@ -306,7 +306,9 @@ function entityQuery() {
 function listen() {
   events?.close(); events = null;
   const query = entityQuery();
-  if (!module || disposed || !query || typeof EventSource === 'undefined') return;
+  // A still screen (the overview's thumbnails) takes the ten-second refresh instead of a stream of its own: a browser
+  // keeps six connections to one host over plain http, and an overview of six screens would hold them all.
+  if (!module || disposed || !query || props.still || typeof EventSource === 'undefined') return;
   const stream = new EventSource(`api/firmware-preview/events?${query}`);
   events = stream;
   stream.onmessage = () => { if (events === stream) refreshLiveState(); };

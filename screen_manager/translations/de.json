@@ -1838,6 +1838,7 @@
         "on_screens": "Auf {n} Bildschirm | Auf {n} Bildschirmen",
         "fits_none": "Passt auf keinen deiner Bildschirme",
         "failed": "Erstellen fehlgeschlagen",
+        "not_running": "Läuft nicht auf dem Bildschirm",
         "queued": "Wartet, bis es dran ist"
       },
       "source": {
@@ -1910,7 +1911,7 @@
         "network_none": "Baut keine Verbindungen außerhalb von Home Assistant auf",
         "read": "Liest diese Entitäten aus Home Assistant"
       },
-      "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
+      "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf, und sein Build läuft in dieser App, wo er an deine Home-Assistant-Konfiguration herankommt. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
       "room": {
         "title": "Platz auf {screen}",
         "small": "{kb} KB mehr: Die Firmware belegt dann {after} statt {before} ihres Speicherplatzes.",

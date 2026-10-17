@@ -73,7 +73,7 @@ describe("the editor", () => {
 
   it("draws the second line the tile panel chose on the mockup: nothing, own words or a value", () => {
     useEntitiesStore().liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
-    const card = (sub?: string) => mount(TileCard, { props: { tile: { ...doc.layout!.tiles[0], options: sub ? { sub } : {} }, slot: 0 } }).find(".st");
+    const card = (sub?: string) => mount(TileCard, { props: { tile: { ...doc.layout!.tiles[0], options: sub ? { sub } : {} }, at: 0 } }).find(".st");
     expect(card().text()).toBe("On");
     expect(card("none").exists()).toBe(false);
     expect(card("text:Sofa left").text()).toBe("Sofa left");
@@ -156,7 +156,7 @@ describe("the editor", () => {
   });
 
   it("draws an on/off or run card two rows tall as one big key from firmware 0.17.0, and keeps controls where chosen", () => {
-    const card = (tile: any) => mount(TileCard, { props: { tile: { ...doc.layout!.tiles[0], ...tile }, slot: 0 } });
+    const card = (tile: any) => mount(TileCard, { props: { tile: { ...doc.layout!.tiles[0], ...tile }, at: 0 } });
     const square = { entity: "light.a", options: { size: "square" } };
     // Firmware 0.4.0 keeps the switch.
     expect(card(square).classes()).not.toContain("big-key");

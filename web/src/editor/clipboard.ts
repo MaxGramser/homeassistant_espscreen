@@ -125,7 +125,7 @@ export async function pasteCopied(): Promise<boolean> {
     const title = suggestedPageTitle(page, inventory.inventory.entities);
     page.topbar.title = title ? { source: "text", text: title } : { source: "screen" };
   }
-  let done = false;
+  let done: boolean;
   try { done = doc.applyEdit(result.layout); }
   catch (error: any) { ui.toast(error.message); return false; }
   if (!done) return false;

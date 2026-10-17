@@ -24,7 +24,6 @@ import asyncio
 import contextlib
 import json
 import logging
-import os
 import random
 import re
 import secrets
@@ -32,6 +31,7 @@ import time
 from pathlib import Path
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
+import atomic
 
 LOG = logging.getLogger('screen_manager')
 
@@ -154,17 +154,14 @@ class Feedback:
         self.known_boards, self.known_at = None, 0.0
         # Said once after a deletion went through, so the page can confirm it; memory only.
         self.just_deleted = set()
-        if self.path.exists():
-            try:
-                raw = json.loads(self.path.read_text(encoding='utf-8'))
-            except (OSError, ValueError) as error:
-                LOG.warning('Feedback stays off: %s cannot be read (%s)', self.path.name, type(error).__name__)
-                self.readonly = True
-                return
-            if not isinstance(raw, dict) or raw.get('version') != STORAGE_VERSION:
-                LOG.warning('Feedback stays off: %s has an unknown storage version; it stays unchanged', self.path.name)
-                self.readonly = True
-                return
+        # One rule for a file the app cannot read (atomic.read_json): a file that is no JSON is set aside and feedback
+        # starts over; a file of another app's version stays as it is, and feedback stays off until that app runs again.
+        raw = atomic.read_json(self.path, STORAGE_VERSION)
+        if atomic.frozen(self.path):
+            LOG.warning('Feedback stays off: %s has an unknown storage version; it stays unchanged', self.path.name)
+            self.readonly = True
+            return
+        if raw is not None:
             self.boards = {key: value for key, value in (raw.get('boards') or {}).items()
                            if isinstance(key, str) and isinstance(value, dict)}
 
@@ -173,14 +170,7 @@ class Feedback:
     def save(self):
         if self.readonly:
             raise ValueError('feedback storage is read-only')
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        temp = self.path.with_suffix('.tmp')
-        with open(temp, 'w', encoding='utf8') as handle:
-            os.chmod(temp, 0o600)
-            json.dump({'version': STORAGE_VERSION, 'boards': self.boards}, handle, ensure_ascii=False)
-            handle.flush()
-            os.fsync(handle.fileno())
-        temp.replace(self.path)
+        atomic.write_json(self.path, {'version': STORAGE_VERSION, 'boards': self.boards})
 
     def record(self, device):
         return self.boards.setdefault(device, {'next_revision': 1})

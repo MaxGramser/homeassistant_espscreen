@@ -197,7 +197,8 @@ function ringLayout({ width: w, height: h, glass, valueText, name, history }: Me
     r *= 0.95;
   }
   const stroke = clamp(r / 7, 2, 16);
-  let size = sizeFor(2 * r), nameSize = fit(name, side, clamp(size * 0.62, 8, 16), 7);
+  let size = sizeFor(2 * r);
+  const nameSize = fit(name, side, clamp(size * 0.62, 8, 16), 7);
   size = fit(valueText, side, size, 8);
   const cy = stroke / 2 + r;
   // The value between the ring's ends while it fits there; wider (a narrow, standing card) it stands under them.
@@ -227,7 +228,7 @@ function tapeLayout({ width: w, height: h, glass, number, unit, name, ends }: Me
   const pointerOver = Math.max(2, long * 0.25);
   const rulerRoom = pointerOver + long;
   let endsRoom = ends ? endSize * LINE + 2 : 0;
-  let stacked = nameSize * LINE + size * LINE + rulerRoom + endsRoom + 6 <= h;
+  const stacked = nameSize * LINE + size * LINE + rulerRoom + endsRoom + 6 <= h;
   if (!stacked) {
     // One row of words over the ruler; the end numbers only while there is room for them.
     size = fit(number + (unit ? "MM" : "") + name, w, clamp(h * 0.4, 10, 40), 9);

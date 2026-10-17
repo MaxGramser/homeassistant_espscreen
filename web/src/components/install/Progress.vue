@@ -5,7 +5,7 @@
 import { ref } from "vue";
 import { ESPHOME_WEB } from "../../model/firmware-job";
 import { stepLabel } from "../../model/install-progress";
-import type { Installer } from "../../composables/useInstaller";
+import { injectInstaller } from "../../composables/useInstaller";
 import { useStickToBottom } from "../../composables/useStickToBottom";
 import { t } from "../../i18n";
 import { useUiStore } from "../../stores/ui";
@@ -14,10 +14,10 @@ import DeviceArt from "../DeviceArt.vue";
 import Icon from "../ui/Icon.vue";
 
 const ui = useUiStore();
-const props = defineProps<{ install: Installer }>();
+const install = injectInstaller();
 const keyBox = ref<HTMLElement | null>(null);
 const logBox = ref<HTMLElement | null>(null);
-useStickToBottom(logBox, () => props.install.logs.length, { near: 40 });
+useStickToBottom(logBox, () => install.logs.length, { near: 40 });
 </script>
 
 <template>

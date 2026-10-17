@@ -341,9 +341,9 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       <PropRow v-if="!key" :label="t('editor.tile.background.label')" icon="palette-outline" stack>
         <template #aside>{{ backgroundName }}</template>
         <div class="sw" @pointerleave="previewBackground(null)">
-          <button v-for="[key, choice] in backgrounds" :key="key" type="button" :aria-label="t('editor.tile.background.aria', { name: choice.label })" :title="choice.label"
-            :aria-pressed="(tile.options?.background || 'auto') === key ? 'true' : 'false'" @pointerenter="previewBackground(key)" @click="previewBackground(null); setTileOption(tile, 'background', key)">
-            <i :class="choice.color ? '' : key === 'none' ? 'none' : 'auto'" :style="choice.color ? { background: choice.color } : undefined"></i>
+          <button v-for="[background, choice] in backgrounds" :key="background" type="button" :aria-label="t('editor.tile.background.aria', { name: choice.label })" :title="choice.label"
+            :aria-pressed="(tile.options?.background || 'auto') === background ? 'true' : 'false'" @pointerenter="previewBackground(background)" @click="previewBackground(null); setTileOption(tile, 'background', background)">
+            <i :class="choice.color ? '' : background === 'none' ? 'none' : 'auto'" :style="choice.color ? { background: choice.color } : undefined"></i>
           </button>
         </div>
       </PropRow>

@@ -93,7 +93,7 @@ function inspector(tile: Tile) {
 
 function placed(tile: Tile) {
   appendTiles(tile);
-  return mount(TileCard, { props: { tile, slot: tile.slot } });
+  return mount(TileCard, { props: { tile, at: tile.slot } });
 }
 
 describe("TileCard", () => {
@@ -103,7 +103,7 @@ describe("TileCard", () => {
       { entity: "light.bedside", name: "Lamp", slot: -1, in: "screen.nightstand", key: 0 },
       { entity: "lock.front", name: "Front door", slot: -1, in: "screen.nightstand", key: 1 }] });
     const clock = doc.layout!.tiles[0];
-    const card = mount(TileCard, { props: { tile: clock, slot: 0 } });
+    const card = mount(TileCard, { props: { tile: clock, at: 0 } });
     expect(card.findAll(".round-tile")).toHaveLength(2);
     expect(card.findAll(".key-empty")).toHaveLength(1);
     await card.findAll(".round-tile .remove")[0].trigger("click");
@@ -136,7 +136,7 @@ describe("TileCard", () => {
     expect(current(tile)?.options?.controls ?? tile.options?.controls).toBe('position_tilt');
     await settings.find('.tilt-choice [role=switch]').trigger('click');
     expect(current(tile)?.options?.controls ?? tile.options?.controls).toBe('position');
-    const card = mount(TileCard, { props: { tile: { ...tile, options: { size: 'tall', controls: 'position_tilt' } }, slot: 0 } });
+    const card = mount(TileCard, { props: { tile: { ...tile, options: { size: 'tall', controls: 'position_tilt' } }, at: 0 } });
     expect(card.findComponent({ name: 'CoverTilePreview' }).exists()).toBe(true);
     // A card one row high lays its slats out by its room (firmware 0.57.0); where they do not fit (here: no room measured)
     // it keeps its position bar.
@@ -650,7 +650,7 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     const lamp = mount(TileInspector, { props: { tile: { entity: "light.a", name: "", slot: 1 } } });
     expect(choices(lamp, "Display")).not.toContain("Live picture");
     // The mockup draws the add-on's picture over the whole card, one cell high too.
-    const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
+    const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
     expect(card.find("img.camera-art").attributes("src")).toBe("api/camera-preview?entity=camera.front");
   });
   it("lets a live camera fill its tile, whole or cut, with its name or without, and keeps no defaults (app 0.3.8, every size 0.3.13)", async () => {
@@ -689,7 +689,7 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     setTileOption(current(tile), "size", "tall");
     // The mockup draws the add-on's picture over the whole card, cut as the tile asks.
     setTileOption(current(tile), "fit", "contain");
-    const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
+    const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
     const picture = card.find("img.camera-art");
     expect(picture.attributes("src")).toBe("api/camera-preview?entity=camera.garden");
     expect(picture.classes()).toContain("contain");
@@ -709,7 +709,7 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(hint(row(drawer, "Display")).text).toMatch(/icon's place/);
     expect(row(drawer, "Refresh")).toBeUndefined();
     expect(row(drawer, "Direct control on the tile")).toBeDefined();
-    const card = mount(TileCard, { props: { tile: current(tile), slot: 0 } });
+    const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
     expect(card.find(".ic").classes()).toContain("thumb");
     expect(card.find(".range").exists()).toBe(true);
     // A board without memory for pictures (a CYD) gets no such choice; a tile over the whole page keeps the card's big cover.

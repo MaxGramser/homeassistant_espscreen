@@ -41,7 +41,7 @@ export const vDrag: ObjectDirective<HTMLElement, DragSource | null> = {
       if (e.pointerType !== "touch") e.preventDefault();
       Object.assign(drag, { source, element, start: { x: e.clientX, y: e.clientY }, pointerId: e.pointerId });
       // A fast flick may leave the card before its first move event: keep the pointer until the drag begins.
-      try { element.setPointerCapture(e.pointerId); } catch {}
+      try { element.setPointerCapture(e.pointerId); } catch { /* the pointer is gone already: the drag goes on without it */ }
       clearTimeout(drag.timer);
       if (e.pointerType === "touch") drag.timer = window.setTimeout(() => beginDrag(e), HOLD_MS);
     });
@@ -97,8 +97,8 @@ function beginDrag(e: PointerEvent) {
   document.addEventListener("pointermove", moveDrag);
   document.addEventListener("pointerup", finishDrag);
   document.addEventListener("pointercancel", finishDrag);
-  try { drag.element.releasePointerCapture(drag.pointerId!); } catch {}
-  try { document.documentElement.setPointerCapture(drag.pointerId!); } catch {}
+  try { drag.element.releasePointerCapture(drag.pointerId!); } catch { /* no longer captured */ }
+  try { document.documentElement.setPointerCapture(drag.pointerId!); } catch { /* the pointer is gone already */ }
   document.addEventListener("touchmove", blockScroll, { passive: false });
   // Near the edges the pages scroll along, so every page can be reached.
   drag.scroller = window.setInterval(() => {
@@ -247,7 +247,7 @@ function endDrag(drop: boolean) {
   document.removeEventListener("pointerup", finishDrag);
   document.removeEventListener("pointercancel", finishDrag);
   document.removeEventListener("touchmove", blockScroll);
-  try { document.documentElement.releasePointerCapture(drag.pointerId!); } catch {}
+  try { document.documentElement.releasePointerCapture(drag.pointerId!); } catch { /* no longer captured */ }
   drag.ghost?.remove();
   drag.lastSlot = drag.target;
   Object.assign(drag, { ghost: null, suppressUntil: Date.now() + CLICK_AFTER_DRAG_MS, last: null, start: null, target: null, element: null, source: null });

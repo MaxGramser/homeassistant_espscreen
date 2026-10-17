@@ -9,6 +9,7 @@ import { t } from "../i18n";
 import { errorLine } from "../model/firmware-job";
 import { glyph } from "../model/topbar";
 import { useBuildsStore } from "../stores/builds";
+import { useInventoryStore } from "../stores/inventory";
 import { useUiStore } from "../stores/ui";
 
 const ui = useUiStore();
@@ -25,7 +26,10 @@ display:
   - id: !extend my_display
     model: ST7789V
 `;
+const inv = useInventoryStore();
 const profile = computed(() => ui.overrideProfile);
+// The screen whose profile this is, by the inventory: the address carries the profile alone (router.ts).
+const friendly = computed(() => inv.inventory.screens.find((s) => s.update?.profile === profile.value)?.name ?? "");
 const content = ref("");
 const file = ref("");
 const attached = ref(false);
@@ -140,7 +144,7 @@ onMounted(load);
     <div class="panel-head">
       <div class="tx">
         <span class="eyebrow">{{ t("editor.override.eyebrow") }}</span>
-        <h1 id="override-title">{{ ui.overrideFriendly ? t("editor.override.title_named", { name: ui.overrideFriendly }) : t("editor.override.title") }}</h1>
+        <h1 id="override-title">{{ friendly ? t("editor.override.title_named", { name: friendly }) : t("editor.override.title") }}</h1>
         <p>{{ t("editor.override.intro") }}</p>
       </div>
       <button type="button" class="btn quiet" id="close-override" @click="ui.go('')">{{ t("editor.common.back") }}</button>

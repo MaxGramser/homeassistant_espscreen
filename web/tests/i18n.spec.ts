@@ -1,4 +1,4 @@
-import { loadLayout, loadTiles, loadPages, loadTitles, appendTiles, screenFixture, documentFixture, current } from "./helpers/fixtures";
+import { loadLayout, appendTiles } from "./helpers/fixtures";
 // The editor's texts (app 0.2.90): English from en.json with the page, another language when it is needed, the plural
 // rules of the screens, and which language the page, the add-on's answers and the mockup speak.
 import { mount } from "@vue/test-utils";
@@ -207,7 +207,7 @@ describe("the mockup speaks the screens' language", () => {
     const card = (entity: string, slot: number, options?: Record<string, unknown>) => {
       const tile = { entity, name: "", slot, ...(options ? { options } : {}) };
       appendTiles(tile);
-      return mount(TileCard, { props: { tile, slot } });
+      return mount(TileCard, { props: { tile, at: slot } });
     };
     const gone = card("light.b", 0);
     expect(gone.find(".st").text()).toBe("Nicht verfügbar");

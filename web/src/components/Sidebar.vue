@@ -64,7 +64,6 @@ const isSelected = (screen: Screen) => screen.id === scr.selected && ui.route ==
 const explains = (screen: Screen) => explainsItself(screen, scr.updateState(screen)?.kind);
 // Folded to its icons the sidebar has no room for a screen's details: the row opens them again.
 const isOpen = (screen: Screen) => !sidebar.folded && (folded.value?.id === screen.id ? folded.value.open : isSelected(screen) && explains(screen));
-const chevronShown = (screen: Screen) => isSelected(screen) || isOpen(screen);
 function choose(screen: Screen) {
   if (!isSelected(screen)) folded.value = null;
   removeFor.value = null;

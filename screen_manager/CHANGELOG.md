@@ -1,6 +1,54 @@
 ## Unreleased
 
 - Add an experimental Seeed SenseCAP Indicator D1L GX profile for Wi-Fi, display and touch. Keep LoRa and RP2040 peripherals disabled, with the shared S3 PSRAM ceilings of 128 tiles, 24 pages and 12 top bar items.
+- **A cover shows that it is on its way.** A blind, curtain or garage door sent somewhere no longer jumps back to
+  where it was while it moves: from the tap on, its tile and card show where it goes and say Opening or Closing, the
+  slider's handle steps aside and a soft band runs over the slider in the direction it moves, until Home Assistant
+  reports it there or stopped. The slider still takes a finger, so a cover sent the wrong way can be turned around at
+  once, and the slats' tilt works the same way.
+- **A screen follows Home Assistant to another time zone.** Home Assistant's ESPHome integration tells a screen its
+  time zone only when it connects, so a screen kept the old hour after the time zone changed in Home Assistant (a
+  home on wheels crossing one) until Home Assistant restarted. The app now reloads each screen's integration when the
+  time zone changes, and the screens show the new hour within seconds.
+- **The editor remembers where you are.** The open screen, the page of the app and a screen's Override YAML are in the
+  page's address now: a reload opens the same screen again, the browser's Back and Forward go through what you had
+  open, and a link to a screen can be kept. Leaving a screen with unsaved changes by the address bar asks first, as the
+  sidebar does. Older links such as `#settings` still work.
+
+- **A plugin's README fits a phone.** A README with a table no longer made the plugin's details wider than the screen;
+  the text wraps to the width of the phone and a wide table or code block scrolls on its own.
+- **A tile added from Home Assistant no longer undoes a save made at the same moment.** An automation's tile event
+  waits on Home Assistant for the entity's capabilities; a save from the editor during that wait is kept now, and the
+  tile is placed on the new layout.
+- **The Plugins tab says when a screen does not run a plugin.** A plugin the app built into a screen that the screen
+  itself does not report, because it crashed at boot or the firmware on it was built without it, shows "Not running on
+  the screen" instead of "Installed".
+- **A plugin the firmware refuses by its API is named.** When a screen's update stops because a plugin was written for
+  another plugin API, the message names that plugin and offers its update, as it already did for a compiler error.
+- **The weather card and its chart agree on their colours.** A clear night, lightning with rain and snow with rain had
+  another colour on the card's icon than in the chart beside it; every weather colour comes from one table now.
+- **The overview opens fewer connections.** The small still screens on the overview take the normal refresh instead
+  of a live stream each, so a home with many screens keeps connections free for the editor itself.
+- **The compile cache is checked against GitHub's digest.** The prebuilt compile cache a build fetches is unpacked only
+  when its checksum matches the one GitHub names for it.
+
+- **Every file of the app is written whole or not at all.** The layouts, the settings, the plugins and now the Wi-Fi
+  secrets of your screens too are written to a temporary file first and swapped in one step, so a power cut or a stop
+  during a save never leaves half a file. A file the app cannot read is set aside beside the new one instead of being
+  started over, and a file written by a newer version of the app is left exactly as it is.
+
+- **A plugin's build no longer sees the app's own keys.** ESPHome runs a plugin's component while it builds a screen,
+  inside this app. That build now gets only the environment the compilers read, never the token the app holds for Home
+  Assistant or anything else of the app's own. The warning before you add a plugin now says where its code runs: on the
+  screen, and its build in this app. The plugins repository checks a listed plugin's Python at every release it takes:
+  ESPHome and a little of the standard library, files beside itself, nothing of the computer it is built on, and no
+  secret or include of the screen's in its YAML.
+- **The app comes back by itself, when you let it.** Turn on **Watchdog** on the app's Info page in Home Assistant:
+  Home Assistant then starts Tessera again when it stops unexpectedly, and from this version also when it stops
+  answering. A slip while the app adds new screens to Home Assistant or answers a picker on a screen is logged and the
+  app goes on, instead of ending. A request the app could not read says so in the log as well, with where it went
+  wrong, so a bug is not taken for bad input.
+
 - **New clock faces for the screensaver.** On screens with 8 MB of flash or more, the screensaver's clock can now be
   Glass (a dial that is the glass itself, with ticks along its edge), Classic (a round watch dial with the day, the
   date, the temperature and your entities beside or under it) or Bauhaus (the whole glass a grid of colourful shapes

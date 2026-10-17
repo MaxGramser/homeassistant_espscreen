@@ -1838,6 +1838,7 @@
         "on_screens": "{n} kijelzőn | {n} kijelzőn",
         "fits_none": "Egyik kijelződre sem jó",
         "failed": "A fordítás nem sikerült",
+        "not_running": "Nem fut a kijelzőn",
         "queued": "Sorára vár"
       },
       "source": {
@@ -1910,7 +1911,7 @@
         "network_none": "A Home Assistanton kívül semmihez nem csatlakozik",
         "read": "Ezeket az entitásokat olvassa a Home Assistantból"
       },
-      "warning": "A bővítmény teljes hozzáféréssel fut a kijelződön, beleértve a Wi-Fi-t és azokat a műveleteket, amelyeket a kijelző a Home Assistantban végrehajthat. Csak megbízható készítőktől adj hozzá bővítményt, vagy előbb olvasd el a kódot.",
+      "warning": "A bővítmény teljes hozzáféréssel fut a kijelződön, beleértve a Wi-Fi-t és azokat a műveleteket, amelyeket a kijelző a Home Assistantban végrehajthat, a fordítása pedig ebben az alkalmazásban fut, ahol hozzáfér a Home Assistant konfigurációdhoz. Csak megbízható készítőktől adj hozzá bővítményt, vagy előbb olvasd el a kódot.",
       "room": {
         "title": "Hely ezen: {screen}",
         "small": "{kb} KB-tal több: a firmware foglaltsága {before} helyett {after} lesz.",

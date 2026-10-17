@@ -3387,6 +3387,7 @@
         "on_screens": "On {n} screen | On {n} screens",
         "fits_none": "Fits none of your screens",
         "failed": "Build failed",
+        "not_running": "Not running on the screen",
         "queued": "Waits its turn"
       },
       "source": {
@@ -3459,7 +3460,7 @@
         "network_none": "Makes no connections outside Home Assistant",
         "read": "Reads these entities from Home Assistant"
       },
-      "warning": "A plugin runs on your screen with full access to it, including its Wi-Fi and the actions it may perform in Home Assistant. Only add plugins from makers you trust, or read the code first.",
+      "warning": "A plugin runs on your screen with full access to it, including its Wi-Fi and the actions it may perform in Home Assistant, and its build runs in this app, where it can reach your Home Assistant configuration. Only add plugins from makers you trust, or read the code first.",
       "room": {
         "title": "Room on {screen}",
         "small": "{kb} KB more: the firmware goes from {before} to {after} of its slot.",

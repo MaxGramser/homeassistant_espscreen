@@ -204,6 +204,28 @@ class Through(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(state, 2)
             self.assertEqual([t['entity'] for t in attributes['tiles']], ['vacuum.s8', 'light.reading'])
 
+    async def test_a_save_of_the_editors_during_the_wait_on_home_assistant_survives(self):
+        """check_supported waits on Home Assistant for an entity's capabilities. A save that lands meanwhile is a new
+        layout; the event starts over from it instead of laying its layout, made from the one before, over it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'screens.json'
+            m = Manager(with_screen_grid(fake_ha()), path)
+            asked = []
+
+            async def capabilities(entity):
+                asked.append(entity)
+                if len(asked) == 1:
+                    # The editor saves while Home Assistant is thinking: a vacuum on the first slot.
+                    m.save('text.d1_tiles', {'title': 'Living room', 'tiles': [tile('vacuum.s8', 0)]})
+                return None   # nothing to refuse
+            m.ha.capabilities = capabilities
+            await m.tile_event('esp_screens_add_tile', {'entity': 'light.reading', 'controls': 'brightness'})
+            saved = m.layouts['text.d1_tiles']
+            # The lamp with its brightness slider is wide, so it takes the next row after the editor's vacuum.
+            self.assertEqual([(t['entity'], t['slot']) for t in sorted(saved['tiles'], key=lambda t: t['slot'])],
+                             [('vacuum.s8', 0), ('light.reading', 2)])
+            self.assertEqual(asked, ['light.reading', 'light.reading'], 'the event was laid out again on the new layout')
+
     async def test_a_refused_event_changes_nothing_and_says_why(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'screens.json'

@@ -14,7 +14,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run check && rm -rf ../screen_manager/app/static/assets && vite build",
-    "check": "vue-tsc --noEmit && vue-tsc --noEmit -p tsconfig.tests.json",
+    "check": "npm run lint && vue-tsc --noEmit && vue-tsc --noEmit -p tsconfig.tests.json",
+    "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:shuffle": "vitest run --sequence.shuffle",
@@ -29,9 +30,11 @@
     "pinia": "^4.0.3",
     "reka-ui": "^2.10.5",
     "vue": "^3.5.18",
-    "vue-i18n": "^11.4.12"
+    "vue-i18n": "^11.4.12",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@intlify/unplugin-vue-i18n": "^11.2.5",
     "@pinia/testing": "^2.0.1",
     "@types/markdown-it": "^14.2.0",
@@ -39,8 +42,12 @@
     "@types/w3c-web-serial": "^1.0.8",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.5.1",
+    "eslint": "^10.13.0",
+    "eslint-plugin-vue": "^10.11.1",
+    "globals": "^17.13.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.2",
+    "typescript-eslint": "^8.71.2",
     "vite": "^7.1.5",
     "vitest": "^3.2.7",
     "vue-tsc": "^3.0.6"

@@ -4,16 +4,16 @@
 import { computed } from "vue";
 import { boardTitle } from "../../model/boards";
 import { boardArt, boardFamilies, boardsMatching, familyLines, familyStatus, sizeCount, SIZES, type BoardRow } from "../../model/installer";
-import type { Installer } from "../../composables/useInstaller";
+import { injectInstaller } from "../../composables/useInstaller";
 import { t } from "../../i18n";
 import DeviceArt from "../DeviceArt.vue";
 import Icon from "../ui/Icon.vue";
 
-const props = defineProps<{ install: Installer }>();
+const install = injectInstaller();
 const emit = defineEmits<{ next: [] }>();
-const shown = computed(() => boardsMatching(props.install.boardRows, props.install.query, props.install.size));
+const shown = computed(() => boardsMatching(install.boardRows, install.query, install.size));
 const families = computed(() => boardFamilies(shown.value));
-function pickFamily(family: BoardRow[]) { if (!family.some((board) => board.key === props.install.form.board)) props.install.form.board = family[0].key; }
+function pickFamily(family: BoardRow[]) { if (!family.some((board) => board.key === install.form.board)) install.form.board = family[0].key; }
 </script>
 
 <template>

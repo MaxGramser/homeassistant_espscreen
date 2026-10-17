@@ -4,7 +4,7 @@
 // reach up into it, so none of them needs another one that needs it back: the inventory does not know about the draft, the
 // builds or the settings, the session tells each of them.
 import { defineStore } from "pinia";
-import { onScopeDispose } from "vue";
+import { onScopeDispose, watch } from "vue";
 import { send } from "../api";
 import { t } from "../i18n";
 import { askConfirm } from "../composables/useConfirm";
@@ -12,6 +12,7 @@ import { followBuilds } from "../composables/useFirmwareJob";
 import { startDrag } from "../drag";
 import type { PreviewProfile } from "../model/preview";
 import type { Screen } from "../types";
+import { router, screenRoute } from "../router";
 import { useBuildsStore } from "./builds";
 import { useDocumentStore } from "./document";
 import { useDraftsStore } from "./drafts";
@@ -37,17 +38,47 @@ export const useSessionStore = defineStore("session", () => {
   const insp = useInspectorStore();
   const drafts = useDraftsStore();
 
+  // ---- The address (router.ts) ----
+  // The main view ui.go("") goes to: the open screen, else the overview.
+  ui.setMainView(() => (scr.selected ? screenRoute(scr.selected) : "/"));
+  // Back, Forward or a typed address that leaves a screen with unsaved changes asks first, as choosing a screen asks; a
+  // no keeps the page and the address where they were. Choosing a screen and going home close the document before they
+  // move, so nobody is asked twice.
+  const unguard = router.beforeEach(async (to) => {
+    const leaves = Boolean(scr.selected) && doc.dirty && (to.name === "home" || (to.name === "screen" && to.params.id !== scr.selected));
+    if (!leaves) return true;
+    const yes = await askConfirm(t(to.name === "home" ? "editor.confirm.leave_question" : "editor.screen_view.confirm.switch"),
+      { confirm: t(to.name === "home" ? "editor.confirm.discard_leave" : "editor.confirm.discard_open"), danger: true });
+    return yes;
+  });
+  onScopeDispose(unguard);
+  // What the address says is open, once the inventory has been read (inv.loaded: it can say whether the screen exists,
+  // and the token every write needs is there): a reload on a screen, a link to one, Back to the overview. A screen the
+  // inventory does not have sends the address home.
+  function followAddress() {
+    const { name, params } = router.currentRoute.value;
+    if (name === "screen") {
+      const id = String(params.id || "");
+      if (id === scr.selected || !inv.loaded) return;
+      if (inv.inventory.screens.some((s) => s.id === id)) open(id);
+      else void router.replace("/");
+    } else if (name === "home" && scr.selected) {
+      open(null);
+    }
+  }
+
   // ---- Opening a screen ----
   // Another screen, or none (the overview). With unsaved changes the editor asks first, and the switch waits for the answer
   // (the promise returned then); otherwise it happens at once. The open screen again, with unsaved changes, comes back to
   // its layout as it is.
-  function select(id: string | null): void | Promise<void> {
+  // Both hand back what is still on its way (the question, then the move of the address), so a caller can wait for it.
+  function select(id: string | null): void | Promise<unknown> {
     if (id === scr.selected && doc.document && doc.dirty) {
-      ui.tab = "layout"; ui.menuOpen = false; insp.closeInspector(); ui.go(""); return;
+      ui.tab = "layout"; ui.menuOpen = false; insp.closeInspector(); return ui.go("");
     }
     if (id !== scr.selected && doc.dirty) return askConfirm(t(id ? "editor.screen_view.confirm.switch" : "editor.confirm.leave_question"),
-      { confirm: t(id ? "editor.confirm.discard_open" : "editor.confirm.discard_leave"), danger: true }).then((yes) => { if (yes) open(id); });
-    open(id);
+      { confirm: t(id ? "editor.confirm.discard_open" : "editor.confirm.discard_leave"), danger: true }).then((yes) => (yes ? open(id) : undefined));
+    return open(id);
   }
   function open(id: string | null) {
     // What waits to go to the screen shown before goes out first, and its changes are no longer shown. Its unsaved changes
@@ -60,14 +91,14 @@ export const useSessionStore = defineStore("session", () => {
     const opened = doc.openDocument(inv.inventory.screens.find((item) => item.id === id));
     // Unsaved changes this browser kept of it are offered (stores/drafts.ts).
     drafts.opened();
-    if (opened) ui.go("");
+    return opened ? ui.go("") : undefined;
   }
   // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
-  function goHome(): void | Promise<void> {
-    const home = () => { if (!scr.selected) ui.go(""); };
+  function goHome(): void | Promise<unknown> {
+    const home = () => (scr.selected ? undefined : ui.go(""));
     const asking = scr.selected ? select(null) : undefined;
     if (asking) return asking.then(home);
-    home();
+    return home();
   }
   // The open screen, without the questions `select` asks: nothing of it is left to save or to send.
   function forgetOpenScreen() {
@@ -141,7 +172,10 @@ export const useSessionStore = defineStore("session", () => {
   function start() {
     if (running) return running;
     const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(),
-      inv.start({ busy: () => builds.anyBuilding }), doc.start(), drafts.start(), topbar.start(), followBuilds()];
+      inv.start({ busy: () => builds.anyBuilding }), doc.start(), drafts.start(), topbar.start(), followBuilds(),
+      // The screen the address names, as soon as the inventory can say it exists, and again on every change of either.
+      watch(() => [router.currentRoute.value.name, router.currentRoute.value.params.id, inv.loaded,
+        inv.inventory.screens.map((s) => s.id).join(" ")], followAddress, { immediate: true })];
     running = () => { running = null; for (const stop of stops.reverse()) stop(); };
     return running;
   }
