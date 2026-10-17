@@ -1,0 +1,235 @@
+#include "gt911_touchscreen.h"
+
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
+#include "esphome/core/gpio.h"
+
+namespace esphome::gt911_wavesharelcd4 {
+
+static const char *const TAG = "gt911.touchscreen";
+
+static const uint8_t PRIMARY_ADDRESS = 0x5D;    // default I2C address for GT911
+static const uint8_t SECONDARY_ADDRESS = 0x14;  // secondary I2C address for GT911
+static const uint8_t GET_TOUCH_STATE[2] = {0x81, 0x4E};
+static const uint8_t CLEAR_TOUCH_STATE[3] = {0x81, 0x4E, 0x00};
+static const uint8_t GET_TOUCHES[2] = {0x81, 0x4F};
+static const uint8_t GET_SWITCHES[2] = {0x80, 0x4D};
+static const uint8_t GET_MAX_VALUES[2] = {0x80, 0x48};
+static const size_t MAX_TOUCHES = 5;  // max number of possible touches reported
+static const size_t MAX_BUTTONS = 4;  // max number of buttons scanned
+static constexpr uint8_t GT911_INIT_ATTEMPTS = 3;
+
+static constexpr uint8_t REG_CONFIG[2] = {0x80, 0x47};   // config version register
+static constexpr uint8_t REG_PRODUCT[2] = {0x81, 0x40};  // product name register
+static constexpr uint8_t REG_FW_VER[2] = {0x81, 0x44};   // firmware version register
+static constexpr uint8_t REG_TP_RES[2] = {0x80, 0x48};   // touch resolution register
+
+#define ERROR_CHECK(err) \
+  if ((err) != i2c::ERROR_OK) { \
+    this->status_set_warning(LOG_STR(ESP_LOG_MSG_COMM_FAIL)); \
+    return; \
+  }
+
+void GT911Touchscreen::setup() {
+  for (uint8_t attempt = 1; attempt <= GT911_INIT_ATTEMPTS; attempt++) {
+    ESP_LOGI(TAG, "GT911 power cycle attempt %u/%u", attempt, GT911_INIT_ATTEMPTS);
+    if (!this->init_sequence_()) {
+      this->mark_failed(LOG_STR("Power/reset sequence failed"));
+      return;
+    }
+    uint8_t switches;
+    uint16_t x_res;
+    uint16_t y_res;
+    if (this->configuration_valid_(&switches, &x_res, &y_res)) {
+      this->setup_internal_(switches, x_res, y_res);
+      return;
+    }
+    ESP_LOGW(TAG, "Invalid GT911 configuration after power cycle %u", attempt);
+  }
+  this->mark_failed(LOG_STR("Invalid configuration after power-cycle retries"));
+}
+
+i2c::ErrorCode GT911Touchscreen::probe_address_(uint8_t address, uint8_t *switches) {
+  this->address_ = address;
+  i2c::ErrorCode err = this->write(GET_SWITCHES, sizeof(GET_SWITCHES));
+  if (err != i2c::ERROR_OK) {
+    ESP_LOGW(TAG, "Probe 0x%02X register write failed: I2C error %u", address, static_cast<unsigned>(err));
+    return err;
+  }
+
+  err = this->read(switches, 1);
+  if (err != i2c::ERROR_OK) {
+    ESP_LOGW(TAG, "Probe 0x%02X register read failed: I2C error %u", address, static_cast<unsigned>(err));
+    return err;
+  }
+
+  ESP_LOGI(TAG, "GT911 responded at 0x%02X, switches 0x%02X", address, *switches);
+  return i2c::ERROR_OK;
+}
+
+bool GT911Touchscreen::init_sequence_() {
+  if (this->interrupt_pin_ == nullptr || this->reset_pin_ == nullptr || this->power_pin_ == nullptr) {
+    ESP_LOGE(TAG, "Address-select, power and reset pins are required.");
+    return false;
+  }
+
+  this->interrupt_pin_->setup();
+  this->interrupt_pin_->pin_mode(gpio::FLAG_OUTPUT);
+  this->power_pin_->setup();
+  this->power_pin_->pin_mode(gpio::FLAG_OUTPUT);
+  this->reset_pin_->setup();
+  this->reset_pin_->pin_mode(gpio::FLAG_OUTPUT);
+
+  ESP_LOGI(TAG, "Holding address-select, system power and touch reset low for 200 ms");
+  this->interrupt_pin_->digital_write(false);
+  this->power_pin_->digital_write(false);
+  this->reset_pin_->digital_write(false);
+  delay(200);  // NOLINT
+
+  ESP_LOGI(TAG, "Enabling system power and releasing touch reset for 200 ms");
+  this->power_pin_->digital_write(true);
+  this->reset_pin_->digital_write(true);
+  delay(200);  // NOLINT
+
+  return true;
+}
+
+bool GT911Touchscreen::configuration_valid_(uint8_t *switches, uint16_t *x_res, uint16_t *y_res) {
+  uint8_t data[4];
+  i2c::ErrorCode err = this->probe_address_(PRIMARY_ADDRESS, switches);
+  if (err != i2c::ERROR_OK)
+    err = this->probe_address_(SECONDARY_ADDRESS, switches);
+  if (err != i2c::ERROR_OK)
+    return false;
+
+  err = this->write(GET_MAX_VALUES, sizeof(GET_MAX_VALUES));
+  if (err != i2c::ERROR_OK)
+    return false;
+  err = this->read(data, sizeof(data));
+  if (err != i2c::ERROR_OK)
+    return false;
+
+  *x_res = encode_uint16(data[1], data[0]);
+  *y_res = encode_uint16(data[3], data[2]);
+  ESP_LOGI(TAG, "GT911 geometry after power cycle: %u x %u at 0x%02X", *x_res, *y_res, this->address_);
+  return *x_res != 0 && *y_res != 0;
+}
+
+void GT911Touchscreen::setup_internal_(uint8_t switches, uint16_t x_res, uint16_t y_res) {
+  // switches & 1 == 1  =>  controller uses falling edge  =>  active-low
+  // switches & 1 == 0  =>  controller uses rising  edge  =>  active-high
+  bool active_high = !(switches & 1);
+
+  if (this->interrupt_pin_ != nullptr) {
+    ESP_LOGD(TAG, "Interrupt pin is not null!");
+    if (this->interrupt_pin_->is_internal()) {
+      // Direct MCU pin: attach a hardware interrupt, no polling needed.
+      this->attach_interrupt_(static_cast<InternalGPIOPin *>(this->interrupt_pin_),
+                              active_high ? gpio::INTERRUPT_RISING_EDGE : gpio::INTERRUPT_FALLING_EDGE);
+      ESP_LOGD(TAG, "Interrupt pin: hardware interrupt, active %s", active_high ? "HIGH" : "LOW");
+    } else {
+      // IO expander pin: leave as output for configuration only.
+      ESP_LOGD(TAG, "Interrupt pin: IO expander polling mode, active %s", active_high ? "HIGH" : "LOW");
+    }
+  }
+
+  if (this->x_raw_max_ == 0 || this->y_raw_max_ == 0) {
+    this->x_raw_max_ = x_res;
+    this->y_raw_max_ = y_res;
+    if (this->swap_x_y_)
+      std::swap(this->x_raw_max_, this->y_raw_max_);
+  }
+
+  this->setup_done_ = true;
+}
+
+void GT911Touchscreen::update_touches() {
+  this->skip_update_ = true;  // skip send touch events by default, set to false after successful error checks
+  if (!this->setup_done_) {
+    return;
+  }
+
+  i2c::ErrorCode err;
+  uint8_t touch_state = 0;
+  uint8_t data[MAX_TOUCHES + 1][8];  // 8 bytes each for each point, plus extra space for the key byte
+
+  err = this->write(GET_TOUCH_STATE, sizeof(GET_TOUCH_STATE));
+  ERROR_CHECK(err);
+  err = this->read(&touch_state, 1);
+  ERROR_CHECK(err);
+  this->write(CLEAR_TOUCH_STATE, sizeof(CLEAR_TOUCH_STATE));
+  uint8_t num_of_touches = touch_state & 0x07;
+
+  if ((touch_state & 0x80) == 0 || num_of_touches > MAX_TOUCHES) {
+    return;
+  }
+
+  err = this->write(GET_TOUCHES, sizeof(GET_TOUCHES));
+  ERROR_CHECK(err);
+  // num_of_touches is guaranteed to be 0..5. Also read the key data
+  err = this->read(data[0], sizeof(data[0]) * num_of_touches + 1);
+  ERROR_CHECK(err);
+
+  this->skip_update_ = false;  // All error checks passed, send touch events
+  for (uint8_t i = 0; i != num_of_touches; i++) {
+    uint16_t id = data[i][0];
+    uint16_t x = encode_uint16(data[i][2], data[i][1]);
+    uint16_t y = encode_uint16(data[i][4], data[i][3]);
+    this->add_raw_touch_position_(id, x, y);
+  }
+  auto keys = data[num_of_touches][0] & ((1 << MAX_BUTTONS) - 1);
+  if (keys != this->button_state_) {
+    this->button_state_ = keys;
+    for (size_t i = 0; i != MAX_BUTTONS; i++) {
+      for (auto *listener : this->button_listeners_)
+        listener->update_button(i, (keys & (1 << i)) != 0);
+    }
+  }
+}
+
+void GT911Touchscreen::read_device_info_() {
+  i2c::ErrorCode err;
+  uint8_t data[4];
+  // Read product name
+  err = this->write(REG_PRODUCT, sizeof(REG_PRODUCT));
+  ERROR_CHECK(err);
+  err = this->read(data, 4);
+  ERROR_CHECK(err);
+  ESP_LOGD(TAG, "product id: %c%c%c%c", data[0], data[1], data[2], data[3]);
+
+  // Read firmware version
+  memset(data, 0, sizeof(data));
+  err = this->write(REG_FW_VER, sizeof(REG_FW_VER));
+  ERROR_CHECK(err);
+  err = this->read(data, 2);
+  ERROR_CHECK(err);
+  ESP_LOGD(TAG, "firmware version: 0x%x%x", data[1], data[0]);
+
+  // Read config version
+  memset(data, 0, sizeof(data));
+  err = this->write(REG_CONFIG, sizeof(REG_CONFIG));
+  ERROR_CHECK(err);
+  err = this->read(data, 1);
+  ERROR_CHECK(err);
+  ESP_LOGD(TAG, "config version: 0x10%x", data[0]);
+
+  // Read touchpanel resolution
+  memset(data, 0, sizeof(data));
+  err = this->write(REG_TP_RES, sizeof(REG_TP_RES));
+  ERROR_CHECK(err);
+  err = this->read(data, 4);
+  ERROR_CHECK(err);
+  uint16_t x_res = data[0] | (data[1] << 8);
+  uint16_t y_res = data[2] | (data[3] << 8);
+  ESP_LOGD(TAG, "resolution: %u x %u", x_res, y_res);
+}
+
+void GT911Touchscreen::dump_config() {
+  ESP_LOGCONFIG(TAG, "GT911 Touchscreen:");
+  LOG_I2C_DEVICE(this);
+  LOG_PIN("  Interrupt Pin: ", this->interrupt_pin_);
+  LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  this->read_device_info_();
+}
+
+}  // namespace esphome::gt911_wavesharelcd4

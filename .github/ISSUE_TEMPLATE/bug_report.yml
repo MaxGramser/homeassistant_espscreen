@@ -40,6 +40,7 @@ body:
         - Guition (JC8048W550C_I)
         - Waveshare (ESP32-P4-86-Panel-ETH-2RO)
         - reTerminal D1001 (reTerminal D1001)
+        - Waveshare (ESP32-S3-Touch-LCD-4)
         - Guition (JC4880P443)
         - CrowPanel (Advanced 10.1 ESP32-P4)
         - Other / not listed here

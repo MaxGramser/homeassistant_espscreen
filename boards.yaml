@@ -158,6 +158,13 @@ reterminald1001:
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, wake_when_moved]
 
+wavesharelcd4:
+  file: waveshare-esp32s3-lcd-4.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-4
+  status: experimental
+  # The board without the "B": a CH32V003 I/O expander and different pins, so the 4B's file does not fit it.
+
 jc4880p443:
   file: guition-jc4880p443.yaml
   name: Guition

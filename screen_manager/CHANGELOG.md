@@ -510,6 +510,16 @@
   it on its screen and marks it), the tiles that show an entity on whichever screen they stand, the plugins (open one,
   add it to this screen), and identifies or updates a screen by its name; updating every screen asks first. What was
   chosen last comes first, the arrow keys walk the rows, and the row in focus says what Enter does.
+- **The Waveshare ESP32-S3-Touch-LCD-4 as a board of its own** ([docs/WAVESHARELCD4.md](../docs/WAVESHARELCD4.md)).
+  This is the 4-inch board without the "B": a CH32V003 I/O expander and other pins, so the 4B's profile never fitted
+  it. New screen offers it as Waveshare 4 inch, marked experimental. The glass is the 4B's, so the screen looks the
+  same: two columns of three tiles at 170 dpi, with a dimmable backlight, standby, night mode and camera pictures.
+  A screen built from it has started, drawn the interface, joined a network and answered touch; the rest of the
+  hardware acceptance is still open. Its experimental touch driver follows Waveshare's factory power sequence:
+  address-select, system power and touch reset stay low for 200 ms, then power and reset stay high for 200 ms while
+  address-select remains low before it probes the GT911 at either supported address. It accepts the startup only when
+  the controller reports nonzero panel geometry, and otherwise repeats the full sequence up to three times. It needs
+  ESPHome 2026.7.0 or later.
 
 ## 0.4.86 (firmware 0.54.0)
 

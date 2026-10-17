@@ -30,7 +30,7 @@ import profiles  # noqa: E402
 
 # Top-level blocks that are ESP32 hardware wherever they live (board file or hardware package).
 HARDWARE_BLOCKS = ('esp32', 'psram', 'spi', 'i2c', 'ch422g', 'pca9554', 'tca9554', 'waveshare_io_ch32v003', 'esp_ldo',
-                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout')
+                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout', 'power_supply')
 # RENDER_PORT_BASE moves every variant's port, so two checkouts can render at the same time without meeting.
 PORT_BASE = int(os.environ.get('RENDER_PORT_BASE', 6481))
 
