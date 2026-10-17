@@ -24,7 +24,7 @@ on the screen itself, and how updates work.
   holds; the editor shows how full it is ([TILE_MEMORY.md](docs/TILE_MEMORY.md)): six cells a page on a CYD, a 4-inch Guition or the
   [experimental Waveshare 4B](docs/WAVESHARE4B.md) and the [experimental Waveshare P4](docs/WAVESHAREP4.md) (48 tiles), nine on the
   [M5Stack Tab5](docs/TAB5.md), the Waveshare 4.3-inch, the [Waveshare 5-inch](docs/WAVESHARE5.md), the [experimental Guition 4.3-inch](docs/JC4880P443.md) and the [experimental Guition 5-inch](docs/JC8048W550.md), twenty-five on the 10.1-inch Guition and the [experimental CrowPanel 10.1-inch](docs/CROWPANEL101.md), sixteen on the
-  [experimental Waveshare 7-inch](docs/WAVESHARE7.md), the [experimental Waveshare 7B](docs/WAVESHARE7B.md) and the [experimental Sunton 7-inch](docs/SUNTON8048S070.md), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md) (32), lying down, where each starts (the Grid button gives
+  [experimental Waveshare 7-inch](docs/WAVESHARE7.md), the [experimental Waveshare 7B](docs/WAVESHARE7B.md) and the [experimental Sunton 7-inch](docs/SUNTON8048S070.md), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md), the [Guition 3.5-inch](docs/JC3248W535.md) and the [experimental WT32-SC01 Plus](docs/WT32SC01PLUS.md) (32), lying down, where each starts (the Grid button gives
   a screen another, below). A page need not be full: every screen has eight pages from firmware 0.18.0, where
   a bigger grid had fewer before (three on the 10.1-inch Guition, then five by four). Firmware 0.2.62+; twenty tiles before.
   Search by entity, device, or room, and drag to reorder. A whole page moves the same way: drag it by its
