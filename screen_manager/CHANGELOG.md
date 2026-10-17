@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Plugin screensaver options update on the glass while visible, including animation speed, without recreating the face.
+
 - **Smooth animation for plugin screensavers.** A screensaver can request animation callbacks at about 30 or 60
   frames per second through plugin API 0.15. Existing screensavers keep their once-per-second clock updates;
   animation stops when the screensaver leaves. Actual frame rates depend on the screen and what it draws.

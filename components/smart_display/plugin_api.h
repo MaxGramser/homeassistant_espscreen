@@ -295,10 +295,13 @@ class Saver : public InPsram {
   // entity, as a tile's on_state. Called after show(), and again whenever it changed (a wish of the finger shows here
   // at once, wish()). Fields only come to it; none is renamed or taken away within major 0.
   virtual void on_state(JsonObjectConst data) {}
+  // Updated editor options (0.15), only when they change after show(). Paint the existing parts in place.
+  // Valid during this call only. The host rechecks frame_interval_ms() afterwards.
+  virtual void on_options(JsonObjectConst options) {}
   // Once a second while it is on the glass, with the screen's clock (seconds since 1970, 0 until it is set). Paint what
   // changed, never the whole saver: the glass draws only the boxes that changed.
   virtual void on_tick(uint32_t epoch) {}
-  // Optional animation (0.15). Read once after show(), on_state() and the first on_tick(): 0 (the default) means no
+  // Optional animation (0.15). Read after initial callbacks and after options change: 0 (the default) means no
   // animation timer; 33 requests about 30 frames/s, 16 about 60. The host clamps nonzero intervals to at least 16 ms.
   virtual uint32_t frame_interval_ms() const { return 0; }
   // Monotonic milliseconds, NOT epoch seconds. Use elapsed time, not a frame count: drawing can delay a frame.

@@ -67,6 +67,7 @@ static lv_timer_t *lv_timer_create(void (*callback)(lv_timer_t *), uint32_t peri
   ++made;
   return active_timer = new lv_timer_t{callback, period};
 }
+static void lv_timer_set_period(lv_timer_t *timer, uint32_t period) { timer->period = period; }
 static void lv_timer_delete(lv_timer_t *timer) {
   assert(timer == active_timer);
   active_timer = nullptr;
@@ -167,6 +168,20 @@ int main() {
   }
 
   auto *probe = open(33);
+  saver_animate();
+  int created = made;
+  probe->period = 16;
+  saver_animate();
+  assert(active_timer->period == 16 && made == created);
+  probe->period = 0;
+  saver_animate();
+  assert(!active_timer);
+  probe->period = 33;
+  saver_animate();
+  assert(active_timer && active_timer->period == 33);
+  saver_hide();
+
+  probe = open(33);
   probe->close_in_frame = true;
   saver_animate();
   fire(10);

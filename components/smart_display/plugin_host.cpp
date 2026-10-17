@@ -1107,6 +1107,7 @@ struct OpenSaver : tessera::InPsram {
   std::string art_key;           // the picture its places want, "" for none
   roomy::Text data;              // the app's word for it ({"o", "x"}), as it came
   std::string mark, entity;      // the step's picture's mark (its `mark`), and the entity it belongs to (pictures)
+  roomy::Text options;           // last delivered options, compared independently of the step state
   size_t state = 0;              // the data it was last given (a hash)
   int minute = -1;
 };
@@ -1136,7 +1137,13 @@ static void saver_animate() {
   if (!open) return;
   uint32_t interval = 0;
   saver_call([&](tessera::Saver &s) { interval = s.frame_interval_ms(); });
-  if (saver_open != open || !interval) return;
+  if (saver_open != open) return;
+  if (!interval) {
+    if (open->frame_timer) { lv_timer_delete(open->frame_timer); open->frame_timer = nullptr; }
+    return;
+  }
+  interval = std::max<uint32_t>(16, interval);
+  if (open->frame_timer) { lv_timer_set_period(open->frame_timer, interval); return; }
   open->frame_timer = lv_timer_create([](lv_timer_t *) {
     saver_call([](tessera::Saver &s) { s.on_frame(esphome::millis()); });
   }, std::max<uint32_t>(16, interval), nullptr);
@@ -1168,6 +1175,16 @@ static void saver_feed(bool force) {
   if (!open) return;
   JsonDocument doc(&json_memory);
   if (open->data.empty() || deserializeJson(doc, open->data.data(), open->data.size())) doc.to<JsonObject>();
+  roomy::Text options;
+  serializeJson(doc["o"].as<JsonObjectConst>(), options);
+  if (force) open->options = options;  // show() already received these
+  else if (options != open->options) {
+    open->options = options;
+    saver_call([&](tessera::Saver &s) { s.on_options(doc["o"].as<JsonObjectConst>()); });
+    if (saver_open != open) return;
+    saver_animate();
+    if (saver_open != open) return;
+  }
   JsonObject x = doc["x"].is<JsonObject>() ? doc["x"].as<JsonObject>() : doc["x"].to<JsonObject>();
   if (open->step == tessera::SaverStep::MEDIA && rt::saver_now.kind == "media") {
     x["state"] = rt::saver_now.state;

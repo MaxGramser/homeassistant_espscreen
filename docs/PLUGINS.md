@@ -408,6 +408,10 @@ white on black whatever the screen's look. `on_tick` comes from `tick_cards`, so
 too. A new word for the same saver goes to `on_state` in place (`saver_state`); a finger's wish on the player is laid
 over `x` (`state`, `muted`) before the saver hears it.
 
+**Live options (0.15).** Override `on_options(JsonObjectConst options)` to repaint existing parts when the editor changes the saver options. The initial options arrive in `show()`; later changes arrive independently of the step state, even when that state is unchanged. Copy values you keep. The host rechecks `frame_interval_ms()` after each options change, stopping, starting or retiming its timer as needed.
+
+**Live options (0.15).** Override `on_options(JsonObjectConst options)` to repaint existing parts when the editor changes the saver options. Initial options arrive in `show()`; later changes arrive independently of the step state. Copy values you keep. The host rechecks `frame_interval_ms()` after each change, stopping, starting or retiming its timer as needed.
+
 **Animation (0.15).** A saver may override `frame_interval_ms() const` and `on_frame(uint32_t now_ms)` for motion
 between the one-second clock ticks. The default interval is 0, with no animation timer or frame callbacks. Return 33
 for about 30 frames per second (a good starting point for a sweeping clock hand), or 16 for about 60. Nonzero intervals
