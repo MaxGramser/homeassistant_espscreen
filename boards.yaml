@@ -173,3 +173,11 @@ crowpanel101:
   # member ran it on (GitHub #116).
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone]
+
+waveshare101:
+  file: waveshare101.yaml
+  name: Waveshare
+  model: ESP32-P4-WIFI6-Touch-LCD-10.1
+  status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings"): the 86 panel's audio.
+  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]

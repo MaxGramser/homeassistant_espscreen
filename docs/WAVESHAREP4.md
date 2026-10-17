@@ -14,7 +14,7 @@ See the manufacturer's [hardware comparison](https://docs.waveshare.com/ESP32-P4
 
 | Part | Configuration |
 | --- | --- |
-| Processor | ESP32-P4, pre-v3 silicon, 360 MHz (`packages/hardware/esp32p4-c6.yaml`, shared with the Guition P4 panels) |
+| Processor | ESP32-P4, pre-v3 silicon, 360 MHz (`packages/hardware/esp32p4-c6.yaml`, shared with the Guition P4 panels, through `packages/hardware/waveshare-esp32p4.yaml`, shared with the Waveshare 10.1-inch) |
 | Memory | 32 MB flash, 32 MB hex PSRAM at 200 MHz |
 | Display | ST7703, ESPHome `mipi_dsi` model `WAVESHARE-P4-86-PANEL`, reset GPIO27 |
 | Display supply | Internal LDO channel 3 at 2.5 V |

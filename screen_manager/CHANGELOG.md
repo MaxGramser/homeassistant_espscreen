@@ -1,3 +1,8 @@
+## Unreleased
+
+- **A new board: the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1** (experimental), 10.1 inch, 1280 × 800, five by five
+  tiles. It shares Waveshare's ESP32-P4 main board with the 86 panel, whose board file now takes its chip, flash and audio
+  from a shared hardware file without any change to its firmware.
 ## 0.4.89 (firmware 0.57.0)
 
 - **A thermostat's state line no longer runs into its card.** On screens with dense glass (the Waveshare P4 and
