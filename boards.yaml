@@ -164,6 +164,13 @@ jc4880p443:
   model: JC4880P443
   status: experimental
 
+sensecapd1l:
+  file: seeed-sensecap-indicator-d1l.yaml
+  name: SenseCAP Indicator
+  model: SenseCAP Indicator D1L (GX)
+  status: experimental
+  # GX/ST7701S panel only. Display, touch and Wi-Fi; no LoRa or RP2040 peripherals.
+
 crowpanel101:
   file: crowpanel101.yaml
   name: CrowPanel

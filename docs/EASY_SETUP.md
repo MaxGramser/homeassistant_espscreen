@@ -16,6 +16,7 @@ ESPHome Device Builder is optional:
 | CYD, 2.8 inch | ESP32-2432S028, 320×240, ILI9341 and XPT2046 |
 | CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
+| Seeed SenseCAP Indicator D1L, 3.95 inch (experimental) | GX/ST7701S RGB, 480×480 and FT6336U; display, touch and Wi-Fi only ([details](SENSECAP_D1L.md)) |
 | Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911 |
 | Waveshare, 5 inch (new) | ESP32-S3-Touch-LCD-5 (not the 5B), 800×480, RGB and GT911 ([details](WAVESHARE5.md)) |
 | Guition, 5 inch (experimental) | JC8048W550C_I (the capacitive variant only), 800×480, ST7262 RGB and GT911 ([details](JC8048W550.md)) |

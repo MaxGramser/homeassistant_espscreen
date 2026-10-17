@@ -1,0 +1,4 @@
+# Stable hardware IDs used by an owner's Override YAML.
+light:
+  - id: !extend back_light
+    default_transition_length: 200ms

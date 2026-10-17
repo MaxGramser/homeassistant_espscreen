@@ -1,0 +1,111 @@
+# Seeed SenseCAP Indicator D1L, GX/ST7701S display and FT6336U capacitive touch.
+# Display, touch and Wi-Fi only. The RP2040 firmware and peripherals are not configured.
+# Hardware reference and variant limits: docs/SENSECAP_D1L.md.
+packages:
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  BOARD_ID: "sensecapd1l"
+  DEVICE_NAME: "sensecap-indicator"
+  DEVICE_FRIENDLY_NAME: "My SenseCAP Indicator"
+  PANEL_W: "480"
+  PANEL_H: "480"
+  # Nominal 3.95-inch diagonal, sqrt(480^2 + 480^2) / 3.95.
+  DISPLAY_DPI: "171.85"
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  # Start with one eighth of a framebuffer, preserving internal RAM headroom.
+  LVGL_BUFFER_SIZE: "12%"
+  # S3 PSRAM ceilings; runtime memory budgeting still limits a layout.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  BACKLIGHT_FREQUENCY: "100Hz"
+  TOUCH_CONTROLLER: "FT6336U"
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
+  TOUCH_TEST_READY_LOG: "FT5x06 touch test ready; no tile actions"
+
+esp32:
+  flash_size: 8MB
+
+logger:
+  hardware_uart: UART0
+  baud_rate: 115200
+  tx_buffer_size: 2048
+
+i2c:
+  id: touch_bus
+  sda: GPIO39
+  scl: GPIO40
+  frequency: 100kHz
+  scan: true
+
+pca9554:
+  id: indicator_io
+  i2c_id: touch_bus
+  address: 0x20
+  pin_count: 16
+
+# Keep unused radio deselected and release touch reset, as in the working PoC.
+switch:
+  - platform: gpio
+    id: unused_radio_cs_high
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin:
+      pca9554: indicator_io
+      number: 0
+      mode: OUTPUT
+  - platform: gpio
+    id: touch_reset_released
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin:
+      pca9554: indicator_io
+      number: 7
+      mode: OUTPUT
+
+spi:
+  id: lcd_spi
+  clk_pin: GPIO41
+  mosi_pin: GPIO48
+
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+touchscreen:
+  - platform: ft5x06
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    address: 0x48
+    update_interval: 20ms
+    transform:
+      swap_xy: ${TOUCH_SWAP_XY}
+      mirror_x: ${TOUCH_MIRROR_X}
+      mirror_y: ${TOUCH_MIRROR_Y}
+
+display:
+  - platform: mipi_rgb
+    model: SEEED-INDICATOR-D1
+    id: my_display
+    spi_id: lcd_spi
+    cs_pin:
+      pca9554: indicator_io
+      number: 4
+    reset_pin:
+      pca9554: indicator_io
+      number: 5
+    pclk_frequency: 16MHz
+    update_interval: never
+    auto_clear_enabled: false

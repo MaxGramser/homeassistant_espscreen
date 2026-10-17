@@ -21,6 +21,7 @@
 ## Per board
 
 - [GUITION.md](GUITION.md): the Guition 4848S040, 4 inch, 480 × 480: hardware, mounting, touch and rotation.
+- [SENSECAP_D1L.md](SENSECAP_D1L.md): the Seeed SenseCAP Indicator D1L GX, 3.95 inch, 480 × 480; Wi-Fi, display and touch.
 - [GUITION_FACTORY_REFERENCE.md](GUITION_FACTORY_REFERENCE.md): the manufacturer's own demo on the 4848S040, as a
   reference for the panel's driving.
 - [CROWPANEL101.md](CROWPANEL101.md): the Elecrow CrowPanel Advanced, 10.1 inch, ESP32-P4.

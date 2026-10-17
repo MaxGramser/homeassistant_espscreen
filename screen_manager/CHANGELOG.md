@@ -1,5 +1,6 @@
 ## Unreleased
 
+- Add an experimental Seeed SenseCAP Indicator D1L GX profile for Wi-Fi, display and touch. Keep LoRa and RP2040 peripherals disabled, with the shared S3 PSRAM ceilings of 128 tiles, 24 pages and 12 top bar items.
 - **A cover shows that it is on its way.** A blind, curtain or garage door sent somewhere no longer jumps back to
   where it was while it moves: from the tap on, its tile and card show where it goes and say Opening or Closing, the
   slider's handle steps aside and a soft band runs over the slider in the direction it moves, until Home Assistant
