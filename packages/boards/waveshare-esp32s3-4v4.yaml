@@ -22,9 +22,9 @@ packages:
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
-  BOARD_ID: "waveshare4"
-  DEVICE_NAME: "waveshare4-new"
-  DEVICE_FRIENDLY_NAME: "My Waveshare 4"
+  BOARD_ID: "waveshare4v4"
+  DEVICE_NAME: "waveshare4-v4"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 4(v4)"
 
   # The glass: the panel's own pixels and its density, 679 diagonal pixels over 4.0 inches.
   PANEL_W: "480"
