@@ -8,6 +8,7 @@ import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 import PluginLink from "./PluginLink.vue";
 import PluginTray from "./PluginTray.vue";
+import PluginSetup from "./PluginSetup.vue";
 import BuildLog from "./BuildLog.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
@@ -28,6 +29,9 @@ const misfits = computed(() => plugins.index.filter((p) => !here.value.includes(
 const updates = computed(() => plugins.updatesOn(screen.value));
 const asking = computed(() => updates.value.filter((p) => plugins.needsConsent(screen.value, p)));
 const agreed = computed(() => asking.value.every((p) => plugins.consented[p.id]));
+const updatePlan = computed(() => updates.value.some((plugin) => plugin.requires.plugins?.length || plugin.requires.features?.length)
+  ? plugins.planOn(screen.value, updates.value.map((plugin) => plugin.id)) : null);
+const dependencies = computed(() => plugins.comesAlong(updatePlan.value, updates.value.map((plugin) => plugin.id)));
 const names = (list: Plugin[]) => list.map((p) => text(p.name)).join(", ");
 function agree(on: boolean) { for (const p of asking.value) plugins.consented[p.id] = on; }
 
@@ -58,6 +62,9 @@ watch(() => plugins.focus, (id) => {
 
       <!-- This screen's build, whoever asked for it, with its log; a failed one stays until the next build. -->
       <BuildLog :screen="screen" />
+      <p v-if="plugins.recovery[screen.id]" class="pd-misfit" data-plugin-recovery role="alert">
+        <code>{{ plugins.recovery[screen.id].file }}</code> · {{ plugins.recovery[screen.id].reason }}
+      </p>
 
       <div v-if="updates.length" class="sp-updates" id="screen-plugin-updates">
         <p><b>{{ t("editor.plugins.tab.updates", { n: updates.length }, updates.length) }}</b>{{ t("editor.plugins.tab.updates_note", { names: names(updates), screen: screen.name }) }}</p>
@@ -65,7 +72,16 @@ watch(() => plugins.focus, (id) => {
           <input type="checkbox" :checked="agreed" @change="agree(($event.target as HTMLInputElement).checked)" />
           <span><b>{{ t("editor.plugins.tab.updates_rights", { names: names(asking) }, asking.length) }}</b>{{ t("editor.plugins.consent.agree") }}</span>
         </label>
-        <button type="button" class="btn primary" id="screen-plugin-update-all" :disabled="!agreed" @click="plugins.updateAll(screen, updates)">{{ t("editor.plugins.tab.update_all") }}</button>
+        <PluginSetup v-for="row in dependencies" :key="row.plugin.id" :plugin="row.plugin" :screens="[screen]" />
+        <p v-if="updatePlan?.error" class="pd-misfit" role="alert">{{ updatePlan.error }}</p>
+        <label v-for="choice in updatePlan?.choose || []" :key="choice.feature" class="field pd-choose">
+          <span class="f-label">{{ t("editor.plugins.along.choose", { what: t(`editor.plugins.features.${choice.feature}`) }) }}</span>
+          <select :data-feature="choice.feature" @change="plugins.chooseProvider(screen, choice.feature, ($event.target as HTMLSelectElement).value)">
+            <option value="" selected disabled>{{ t("editor.plugin_tile.choose") }}</option>
+            <option v-for="id in choice.options" :key="id" :value="id">{{ text(plugins.index.find((entry) => entry.id === id)?.name || { en: id }) }}</option>
+          </select>
+        </label>
+        <button type="button" class="btn primary" id="screen-plugin-update-all" :disabled="!agreed || !plugins.changeReady(screen, updates)" @click="plugins.updateAll(screen, updates)">{{ t("editor.plugins.tab.update_all") }}</button>
       </div>
 
       <section class="sp-group">

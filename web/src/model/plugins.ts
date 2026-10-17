@@ -9,6 +9,23 @@ import type { PluginPick, PluginValue, Screen } from "../types";
 export type Texts = Record<string, string>;
 // An input of kind entity is an entity the plugin's ESPHome part reads itself, of one of `domains`.
 export type PluginInput = { id: string; kind: "secret" | "text" | "gpio" | "entity"; label: Texts; hint?: Texts; scope: "all" | "screen"; domains?: string[] };
+export type ModelSource = { id?: string } & ({ url: string; upload?: never } | { upload: string; url?: never });
+export type ResolvedModel = ModelSource & {
+  id: string; label: string; snapshot: string; model_bytes: number; feature_step_size: number;
+};
+export type ModelEntry = ModelSource & Partial<Omit<ResolvedModel, "id" | "url" | "upload">>;
+export type BuildValues = Record<string, ModelEntry[]>;
+export type PluginBuildSetting = {
+  id: string; kind: "micro_wake_word_models"; label: Texts; hint?: Texts; target: string; feature_step_size: number;
+  legacy_installed: string[]; catalogue: { id: string; label: Texts; url: string }[];
+};
+// Drafts keep resolved display metadata; requests carry only stable IDs and the URL or private upload token.
+export const modelKey = (model: ModelSource): string => model.upload !== undefined ? `upload:${model.upload}` : `url:${model.url}`;
+export const copyBuildValues = (values: BuildValues): BuildValues =>
+  Object.fromEntries(Object.entries(values).map(([key, models]) => [key, models.map((model) => ({ ...model }))]));
+export const modelSources = (values: BuildValues): Record<string, ModelSource[]> =>
+  Object.fromEntries(Object.entries(values).map(([key, models]) => [key, models.map(({ id, url, upload }) =>
+    ({ ...(id ? { id } : {}), ...(upload !== undefined ? { upload } : { url: url! }) }))]));
 // `features`: a part that uses a feature the screen may have (a voice answering out loud: a speaker), offered only then.
 export type PluginPart = { id: string; label: Texts; hint: Texts; flash_kb: number; default: boolean; features?: string[] };
 // A tile type of a plugin (docs: the plugins proposal, "Een plugin-tegel"): its sizes as the catalogue names them, its
@@ -100,6 +117,7 @@ export type Plugin = {
   changelog?: Texts;                  // its CHANGELOG.md: a `## <version>` heading per release, newest first
   languages: string[];                // the languages its own texts are complete in
   inputs?: PluginInput[];             // what a person fills in when adding it: a key, a pin, a name
+  build_settings?: PluginBuildSetting[];
   parts?: PluginPart[];               // optional parts, on or off per screen, each with its own room
   attributes: string[];               // cloud, commercial, ai-developed
   // From the add-on (plugins.py): where it comes from (the index, or a folder someone is making it in), its label, the
@@ -130,8 +148,10 @@ export type Installed = {
   // Whether the screen's last hello names it at this version (plugins.py runs): false is a plugin that crashed at boot
   // or a firmware built without it; null while that cannot be known (offline, building, just built).
   running?: boolean | null;
+  build_values?: BuildValues; build_revision?: string | null;
+  installed_build_values?: BuildValues; installed_build_revision?: string | null; build_confirmed?: boolean;
   // An update whose build failed: the screen went back to this record's version, and this is the one that did not build.
-  failed_update?: { version: string; ref?: string | null; reason?: string | null };
+  failed_update?: { version: string; ref?: string | null; origin?: string; reason?: string | null; build_values?: BuildValues; build_revision?: string | null };
   // Which of its secrets for this screen alone are set (never their values).
   secrets?: Record<string, boolean>;
   // The fingerprint of the rights the person agreed to when it went on (Plugin.permission_hash then).

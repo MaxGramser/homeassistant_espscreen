@@ -1,11 +1,17 @@
 """Download: ESP Screens builds a screen's firmware and the owner flashes the file from their own computer."""
 import importlib.util
+import asyncio
+import hashlib
+import io
+import json
 import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
+import zipfile
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager/app'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -28,6 +34,8 @@ import os, sys, time
 from pathlib import Path
 stage, profile = [arg for arg in sys.argv[1:] if arg != '--quiet'][:2]
 profile = Path(profile)
+# The real CLI reads esphome.name, not the private input root's basename.
+profile = Path(os.environ['ESPHOME_BUILD_PATH']).with_suffix('.yaml')
 print('INFO Reading configuration ' + profile.name, flush=True)
 time.sleep(float(os.environ.get('ESPHOME_FAKE_SLEEP', '0')))
 if os.environ.get('ESPHOME_FAKE_EXIT'):
@@ -111,6 +119,180 @@ class DownloadChecks(unittest.TestCase):
             self.assertEqual(f.factory_image(profile), images[1])
 
 
+
+class ManagedModelFiles(unittest.TestCase):
+    def setup_firmware(self, tmp):
+        firmware = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+        firmware.create(PROFILE)
+        return firmware
+
+    @staticmethod
+    def sidecar(models=None):
+        return yaml.safe_dump({'packages': {}, 'micro_wake_word': {
+            'id': 'va_wake', 'models': models or []}})
+
+    def test_sidecar_accepts_only_bounded_generated_models(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.setup_firmware(tmp)
+            model = {'id': 'ww_one', 'model': '.tessera-models/' + 'a' * 64 + '/manifest.json'}
+            self.assertEqual(f.preflight_plugins('kitchen.yaml', self.sidecar([model]))['micro_wake_word']['models'], [model])
+            bad_models = [
+                [model, model],
+                [{'id': 'ww_other', 'model': '../private/manifest.json'}],
+                [{'id': '!bad', 'model': model['model']}],
+                [{**model, 'extra': True}],
+                [{'id': f'ww_{i}', 'model': f'.tessera-models/{i:064x}/manifest.json'} for i in range(17)],
+            ]
+            before = f.profile('kitchen.yaml').read_bytes()
+            for models in bad_models:
+                with self.subTest(models=models), self.assertRaises(ValueError):
+                    f.save_plugins('kitchen.yaml', self.sidecar(models))
+            self.assertEqual(f.profile('kitchen.yaml').read_bytes(), before)
+            self.assertFalse((f.root / 'kitchen.plugins.yaml').exists())
+
+    def test_recursive_owner_conflicts_and_unknown_remote_fail_before_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.setup_firmware(tmp)
+            profile = f.profile('kitchen.yaml')
+            original = profile.read_text()
+            for content in ('micro_wake_word:\n  models: []\n',
+                            'micro_wake_word:\n  vad: {}\n',
+                            'micro_wake_word:\n  id: owner_wake\n',
+                            'packages:\n  inline:\n    micro_wake_word:\n      models: []\n'):
+                (f.root / 'nested.yaml').write_text(content + 'password: never-print-this\n')
+                (f.root / 'kitchen.local.yaml').write_text('packages:\n  nested: !include nested.yaml\n')
+                with self.assertRaises(ValueError) as error:
+                    f.save_plugins('kitchen.yaml', self.sidecar())
+                self.assertIn('nested.yaml', str(error.exception))
+                self.assertIn('micro_wake_word', str(error.exception))
+                self.assertNotIn('never-print-this', str(error.exception))
+                self.assertEqual(profile.read_text(), original)
+                self.assertFalse((f.root / 'kitchen.plugins.yaml').exists())
+            (f.root / 'kitchen.local.yaml').write_text('{}\n')
+            profile.write_text(original.replace('packages:\n', 'packages:\n  owner:\n    url: https://example.com/unknown\n', 1))
+            with self.assertRaisesRegex(ValueError, 'packages.owner'):
+                f.preflight_plugins('kitchen.yaml', self.sidecar())
+
+    def test_merged_owned_fields_in_profile_and_override_are_rejected_without_writes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.setup_firmware(tmp)
+            f.save_plugins('kitchen.yaml', self.sidecar())
+            profile = f.profile('kitchen.yaml')
+            override = f.root / 'kitchen.local.yaml'
+            sidecar = f.root / 'kitchen.plugins.yaml'
+            original_profile, original_override, original_sidecar = (
+                profile.read_bytes(), override.read_bytes(), sidecar.read_bytes())
+            for field, value in (('models', '[]'), ('vad', '{}'), ('id', 'owner_wake')):
+                mapping = f'{{{field}: {value}}}'
+                examples = [
+                    f'micro_wake_word:\n  <<: {mapping}\n',
+                    f'<<:\n  micro_wake_word: {mapping}\n',
+                    f'micro_wake_word:\n  <<: [{mapping}, {{stop_after_detection: false}}]\n',
+                    f'micro_wake_word:\n  <<: [&defaults {mapping}, {{<<: *defaults}}]\n',
+                ]
+                for content in examples:
+                    with self.subTest(field=field, content=content):
+                        profile.write_bytes(original_profile + content.encode())
+                        before = profile.read_bytes()
+                        with self.assertRaisesRegex(ValueError, 'micro_wake_word.' + field):
+                            f.save_plugins('kitchen.yaml', self.sidecar())
+                        self.assertEqual(profile.read_bytes(), before)
+                        self.assertEqual(sidecar.read_bytes(), original_sidecar)
+                        profile.write_bytes(original_profile)
+                        with self.assertRaisesRegex(ValueError, 'micro_wake_word.' + field):
+                            f.save_override('kitchen.yaml', content)
+                        self.assertEqual(override.read_bytes(), original_override)
+                        self.assertEqual(profile.read_bytes(), original_profile)
+                        self.assertEqual(sidecar.read_bytes(), original_sidecar)
+
+    def test_yaml_merge_precedence_and_alias_cycles_remain_bounded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.setup_firmware(tmp)
+            f.save_plugins('kitchen.yaml', self.sidecar())
+            # Explicit fields override merges, and the first mapping of a merge sequence wins.
+            f.save_override('kitchen.yaml', 'micro_wake_word:\n  <<: {id: owner_wake}\n  id: va_wake\n')
+            f.save_override('kitchen.yaml', 'micro_wake_word:\n  <<: [{id: va_wake}, {id: owner_wake}]\n')
+            before = (f.root / 'kitchen.local.yaml').read_bytes()
+            cycles = [
+                'micro_wake_word: &wake\n  <<: *wake\n',
+                'micro_wake_word:\n  <<: &merges [{<<: *merges}]\n',
+                'owner: &owner [*owner]\n',
+            ]
+            profile = f.profile('kitchen.yaml')
+            original = profile.read_bytes()
+            for content in cycles:
+                with self.subTest(content=content):
+                    profile.write_bytes(original + content.encode())
+                    with self.assertRaises(ValueError):
+                        f.preflight_plugins('kitchen.yaml', self.sidecar())
+                    profile.write_bytes(original)
+                    with self.assertRaises(ValueError):
+                        f.save_override('kitchen.yaml', content)
+                    self.assertEqual((f.root / 'kitchen.local.yaml').read_bytes(), before)
+
+    def test_include_cycle_symlink_and_override_rejection_preserve_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.setup_firmware(tmp)
+            override = f.root / 'kitchen.local.yaml'
+            override.write_text('packages:\n  cycle: !include kitchen.local.yaml\n')
+            with self.assertRaisesRegex(ValueError, 'cycle'):
+                f.preflight_plugins('kitchen.yaml', self.sidecar())
+            outside = Path(tmp) / 'private.yaml'
+            outside.write_text('micro_wake_word:\n  models: []\n')
+            (f.root / 'nested.yaml').symlink_to(outside)
+            override.write_text('packages:\n  nested: !include nested.yaml\n')
+            with self.assertRaises(ValueError):
+                f.preflight_plugins('kitchen.yaml', self.sidecar())
+            override.write_text('{}\n')
+            f.save_plugins('kitchen.yaml', self.sidecar())
+            before = override.read_bytes()
+            with self.assertRaisesRegex(ValueError, 'micro_wake_word.models'):
+                f.save_override('kitchen.yaml', 'micro_wake_word:\n  models: []\n')
+            self.assertEqual(override.read_bytes(), before)
+            f.save_override('kitchen.yaml', 'micro_wake_word:\n  id: va_wake\n  stop_after_detection: false\n')
+
+    def test_conflicting_managed_include_does_not_replace_sidecar(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.setup_firmware(tmp)
+            profile = f.profile('kitchen.yaml')
+            profile.write_text(profile.read_text().replace('packages:\n', 'packages:\n  tessera_plugins: !include owner.yaml\n', 1))
+            sidecar = f.root / 'kitchen.plugins.yaml'
+            sidecar.write_text('packages: {}\n')
+            with self.assertRaises(ValueError):
+                f.save_plugins('kitchen.yaml', self.sidecar())
+            self.assertEqual(sidecar.read_text(), 'packages: {}\n')
+
+    def test_zip_exports_only_referenced_verified_portable_snapshots(self):
+        from plugin_models import snapshot_files
+        from test_plugin_models import manifest
+        with tempfile.TemporaryDirectory() as tmp:
+            f = self.setup_firmware(tmp)
+            source = json.dumps(manifest(word='Test', model='https://example.com/model.tflite')).encode()
+            binary = b'\x08\x00\x00\x00TFL3' + b'\x00' * 16
+            digest = hashlib.sha256(len(source).to_bytes(8, 'big') + source
+                                    + len(binary).to_bytes(8, 'big') + binary).hexdigest()
+            directory = f.root / '.tessera-models' / digest
+            directory.mkdir(parents=True)
+            (directory / 'source.json').write_bytes(source)
+            runnable = json.loads(source)
+            runnable['model'] = 'model.tflite'
+            (directory / 'manifest.json').write_text(json.dumps(runnable, sort_keys=True, separators=(',', ':')) + '\n')
+            (directory / 'model.tflite').write_bytes(binary)
+            expected = snapshot_files(f.root, [{'snapshot': digest}])
+            (f.root / '.tessera-models' / 'unreferenced').mkdir()
+            (f.root / '.tessera-models' / 'unreferenced' / 'private').write_text('not exported')
+            f.save_plugins('kitchen.yaml', self.sidecar([{'id': 'ww_one', 'model': f'.tessera-models/{digest}/manifest.json'}]))
+            data, _ = f.files('kitchen.yaml')
+            with zipfile.ZipFile(io.BytesIO(data)) as bundle:
+                names = set(bundle.namelist())
+                self.assertFalse(any('unreferenced' in name for name in names))
+                for path, content in expected.items():
+                    self.assertEqual(bundle.read('kitchen/' + path), content)
+            (directory / 'model.tflite').unlink()
+            (directory / 'model.tflite').symlink_to(f.root / 'secrets.yaml')
+            with self.assertRaises(ValueError):
+                f.files('kitchen.yaml')
+
 class BoardChips(unittest.TestCase):
     def test_every_board_names_the_chip_its_firmware_is_built_for(self):
         # The browser flasher refuses a board of another chip; the P4 boards' Wi-Fi co-processor (an ESP32-C6 under
@@ -122,6 +304,53 @@ class BoardChips(unittest.TestCase):
 
 
 class DownloadJobs(unittest.IsolatedAsyncioTestCase):
+    async def test_cancel_before_the_first_instruction_also_removes_private_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp, patch('firmware.shutil.which', return_value='/bin/esphome'):
+            f = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+            f.create(PROFILE)
+            f.start({'file': 'kitchen.yaml', 'action': 'build'})
+            paths = list(f.root.glob('.tessera-*.plugins.yaml'))
+            self.assertTrue(paths)
+            f.task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await f.task
+            self.assertEqual(f.job['state'], 'interrupted')
+            self.assertTrue(all(not path.exists() for path in paths))
+
+    async def test_private_input_is_hidden_and_removed_for_direct_job_outcomes(self):
+        for outcome in ('success', 'failed', 'interrupted'):
+            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as tmp, patch('firmware.shutil.which', return_value='/bin/esphome'):
+                f = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+                f.create(PROFILE)
+                f.save_plugins('kitchen.yaml', ManagedModelFiles.sidecar())
+                f.retire_platformio = AsyncMock()
+                f.seed_cache = AsyncMock()
+                captured = []
+                async def cli(stage, cmd, env):
+                    path = Path(next(arg for arg in cmd if str(arg).endswith('.yaml')))
+                    captured.extend(f.root.glob('.tessera-*.plugins.yaml'))
+                    self.assertEqual(f.profiles(), [{'file': 'kitchen.yaml'}])
+                    self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+                    with self.assertRaises(ValueError):
+                        f.profile(path.name)
+                    node = yaml.compose(path.read_text())
+                    esphome = next(value for key, value in node.value if key.value == 'esphome')
+                    self.assertTrue(esphome.value, 'preserve the original device configuration')
+                    self.assertEqual(env['ESPHOME_BUILD_PATH'], str(f.data / 'build' / 'kitchen'))
+                    if outcome == 'interrupted':
+                        raise asyncio.CancelledError()
+                    return (int(outcome == 'failed'), False)
+                f.esphome = cli
+                f.start({'file': 'kitchen.yaml', 'action': 'build'})
+                if outcome == 'interrupted':
+                    with self.assertRaises(asyncio.CancelledError):
+                        await f.task
+                else:
+                    await f.task
+                self.assertEqual(f.job['state'], outcome)
+                self.assertEqual(len(captured), 2)
+                self.assertTrue(all(not path.exists() for path in captured))
+
     async def test_the_download_target_builds_and_offers_the_factory_image(self):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, fake_cli(tmp)):
             f = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')

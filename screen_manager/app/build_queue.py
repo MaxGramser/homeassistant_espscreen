@@ -66,6 +66,12 @@ class Build:
         # plugin build's outcome follows, also when an update's check afterwards fails.
         self.installed = False
         self.stepped = False  # whether it ran an ESPHome step: then the firmware's job and log are its own
+        # A multi-step update builds and installs the same immutable input, including across a bridge.
+        self.input_snapshots = {}
+        self.plugin_records = {}
+        self.plugin_revisions = {}
+        # Failure before capture may reject this request, but can never confirm it installed.
+        self.requested_plugin_records = {}
         self.logs, self.memory = [], None
         # Where its compile ran (build_server.py): 'server' or 'here' after a fallback (its reason in `fallback`), None for
         # a build that never asked the server.
@@ -178,6 +184,9 @@ class BuildQueue:
         for build in self.on_the_way():
             if build.screen == old:
                 build.screen = new
+            for captured in (build.plugin_records, build.plugin_revisions, build.requested_plugin_records):
+                if old in captured:
+                    captured[new] = captured.pop(old)
 
     async def step(self, data):
         """One ESPHome action of the build that runs, in the app's build slot. True when it succeeded; a refusal
@@ -247,6 +256,12 @@ class BuildQueue:
                 except Exception:   # one that breaks leaves the others and the line going
                     LOG.exception('After build %s of %s', build.id, build.file)
         finally:
+            for snapshot in build.input_snapshots.values():
+                try:
+                    self.firmware.release_inputs(snapshot)
+                except OSError:
+                    LOG.exception('Removing private inputs of build %s', build.id)
+            build.input_snapshots.clear()
             build.done.set()
             self._changed()
 

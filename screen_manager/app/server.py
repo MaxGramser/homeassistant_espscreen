@@ -53,8 +53,10 @@ from updates import Updater
 import core
 import entity_settings
 import plugins
+import plugin_models
 
-from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
+from aiohttp import BodyPartReader, ClientError, ClientSession, ClientTimeout, MultipartReader, WSMsgType, web
+from aiohttp.http_exceptions import HttpProcessingError
 from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_cover, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
 from core import ENERGY_TILE, MAP_TILE_MIN_FIRMWARE, WEATHER_WEEK, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
 from core import BAR_CARDS_FEATURE, BOARD_KEYS, has_battery, has_module, is_key, drawn_controls, FAVORITE_KINDS, SCREENSAVER_MIN_FIRMWARE, short, plugin_tile
@@ -1062,6 +1064,8 @@ class Manager:
             if self.layouts:
                 self.region.clock, self.region.pinned = '24', True
             self.region.save()
+        # Recover interrupted model changes from the persistent plugin records before any build can start.
+        self.plugins.reconcile()
 
     @property
     def layouts(self):
@@ -3835,6 +3839,81 @@ class Manager:
         except Exception as error:
             LOG.warning('%s on %s: %s failed (%s)', which, node, action, type(error).__name__)
 
+class _ModelUploadStream:
+    """Bound the multipart envelope as well as its two independently bounded files."""
+    LIMIT = plugin_models.MAX_MANIFEST_BYTES + plugin_models.MAX_MODEL_BYTES + 16 * 1024
+
+    def __init__(self, stream):
+        self.stream, self.total, self.headers = stream, 0, 0
+
+    def _count(self, raw):
+        self.total += len(raw)
+        if self.total > self.LIMIT:
+            raise plugin_models.ModelError('Wake model upload is too large')
+        return raw
+
+    async def read(self, size):
+        return self._count(await self.stream.read(min(size, 8192)))
+
+    async def readline(self, *, max_line_length=None):
+        raw = (await self.stream.readline() if max_line_length is None
+               else await self.stream.readline(max_line_length=min(max_line_length, 8192)))
+        self.headers += len(raw)
+        if len(raw) > 8192 or self.headers > 16 * 1024:
+            raise plugin_models.ModelError('Wake model multipart headers are too large')
+        return self._count(raw)
+
+    def unread_data(self, raw):
+        self.total -= len(raw)
+        self.stream.unread_data(raw)
+
+    def at_eof(self):
+        return self.stream.at_eof()
+
+
+class _ModelUploadReader(MultipartReader):
+    async def fetch_next_part(self):
+        part = await super().fetch_next_part()
+        # Reject before MultipartReader can consume its special _charset_ field.
+        if not isinstance(part, BodyPartReader) or part.name not in ('manifest', 'model'):
+            raise plugin_models.ModelError('Upload exactly one manifest and one model file')
+        return part
+
+
+async def _read_model_upload(request):
+    if request.content_type != 'multipart/form-data' or request.headers.get('Content-Encoding'):
+        raise plugin_models.ModelError('Upload a multipart JSON and TFLite file pair')
+    if request.content_length is not None and request.content_length > _ModelUploadStream.LIMIT:
+        raise plugin_models.ModelError('Wake model upload is too large')
+    limits = {'manifest': plugin_models.MAX_MANIFEST_BYTES, 'model': plugin_models.MAX_MODEL_BYTES}
+    files = {}
+    try:
+        async with asyncio.timeout(30):
+            stream = _ModelUploadStream(request.content)
+            reader = _ModelUploadReader(request.headers, stream)
+            while (part := await reader.next()) is not None:
+                if not isinstance(part, BodyPartReader) or part.name not in limits or part.name in files:
+                    raise plugin_models.ModelError('Upload exactly one manifest and one model file')
+                if (part.filename is None or part.headers.get('Content-Encoding')
+                        or part.headers.get('Content-Transfer-Encoding')):
+                    raise plugin_models.ModelError('Upload unencoded JSON and TFLite files')
+                raw = bytearray()
+                while chunk := await part.read_chunk(8192):
+                    if len(raw) + len(chunk) > limits[part.name]:
+                        raise plugin_models.ModelError(f'Wake model {part.name} exceeds {limits[part.name]} bytes')
+                    raw.extend(chunk)
+                files[part.name] = bytes(raw)
+            if set(files) != set(limits):
+                raise plugin_models.ModelError('Upload exactly one manifest and one model file')
+            while await stream.read(8192):
+                pass
+    except HttpProcessingError as error:
+        raise plugin_models.ModelError('Invalid or oversized wake model multipart headers') from error
+    except (AssertionError, TimeoutError) as error:
+        raise plugin_models.ModelError('Incomplete or timed-out wake model upload') from error
+    return files
+
+
 def create_app(manager, development=False):
     csrf = secrets.token_urlsafe(32)
     @web.middleware
@@ -4801,6 +4880,17 @@ def create_app(manager, development=False):
             manager.notify()
             return web.json_response(result)
 
+        async def plugins_model_import(request):
+            inbox, plugin, setting = (request.match_info[key] for key in ('inbox', 'plugin', 'setting'))
+            source = request.query.get('source')
+            manager.plugins.model_import_setting(inbox, plugin, setting, source)
+            try:
+                files = await _read_model_upload(request)
+            except plugin_models.ModelError as error:
+                raise ValueError(t('addon.errors.plugins.models_invalid', reason=str(error))) from error
+            result = manager.plugins.import_model(inbox, plugin, setting, source, files['manifest'], files['model'])
+            return web.json_response(result)
+
         async def plugins_file(request):
             return web.json_response(manager.plugins.file_for(request.match_info['inbox']))
 
@@ -4839,6 +4929,7 @@ def create_app(manager, development=False):
 
         app.router.add_get('/api/plugins', plugins_list)
         app.router.add_post('/api/screens/{inbox}/plugins', plugins_apply)
+        app.router.add_post('/api/screens/{inbox}/plugins/{plugin}/models/{setting}/import', plugins_model_import)
         app.router.add_get('/api/screens/{inbox}/plugins/file', plugins_file)
         app.router.add_put('/api/plugins/{plugin}/secrets/{input}', plugins_secret)
         app.router.add_post('/api/plugins/{plugin}/choices/{fetch}', plugins_choices)

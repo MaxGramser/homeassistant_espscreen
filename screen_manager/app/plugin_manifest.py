@@ -36,7 +36,7 @@ TEXT_KEY = re.compile(r'^[a-z][a-z0-9_]{0,47}$')
 
 TOP = {'id', 'version', 'api', 'icon', 'maintainer', 'license', 'stage', 'topics', 'requires', 'provides', 'boards',
        'flash_kb', 'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'answers', 'cards',
-       'tap_actions', 'bar_items', 'settings', 'savers'}
+       'tap_actions', 'bar_items', 'settings', 'savers', 'build_settings'}
 ATTRIBUTES = ('cloud', 'commercial', 'ai-developed')
 # How far along a plugin is, in the maker's word: ready for every day, still finding its feet, or there to show what a
 # plugin can do and to learn from. The editor shows a badge for the last two; a manifest without it is beta.
@@ -381,6 +381,76 @@ def _strings(value, where, most=32):
     if not all(isinstance(item, str) and item for item in items):
         raise ManifestError(where, 'must be a list of words')
     return items
+
+
+MODEL_HOST_LABEL = re.compile(r'^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$')
+
+
+def public_model_host(url):
+    """The same public HTTPS source policy for catalogue presets and submitted model URLs."""
+    if (not isinstance(url, str) or not url or len(url) > 2048
+            or any(ord(c) <= 32 or ord(c) == 127 for c in url) or '\\' in url):
+        raise ValueError('A wake model needs a public HTTPS JSON URL (at most 2048 characters)')
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or '').lower()
+        port = parts.port
+    except ValueError as error:
+        raise ValueError('Invalid wake model URL') from error
+    if (parts.scheme != 'https' or parts.username is not None or parts.password is not None
+            or '#' in url or port not in (None, 443)):
+        raise ValueError('Wake model URLs must use HTTPS without credentials, fragments or a non-443 port')
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        raise ValueError('Wake model URLs must name a public DNS host, not an IP address')
+    labels = host.split('.')
+    if (len(host) > 253 or len(labels) < 2 or any(not MODEL_HOST_LABEL.fullmatch(label) for label in labels)
+            or labels[-1].isdigit() or labels[-1] in {'local', 'localhost', 'internal', 'lan', 'home', 'test', 'invalid'}
+            or host == 'home.arpa' or host.endswith('.home.arpa')):
+        raise ValueError('Wake model URLs must name a public DNS host')
+    return host
+
+
+def _build_settings(value, keys):
+    """Build-time structured settings, separate from scalar inputs and live entity settings."""
+    settings = []
+    for i, item in enumerate(_list(value, 'build_settings', 1)):
+        where = f'build_settings[{i}]'
+        item = _object(item, where, {'id', 'kind', 'label', 'hint', 'target', 'feature_step_size',
+                                     'catalogue', 'legacy_installed'},
+                       ('id', 'kind', 'label', 'target', 'feature_step_size'))
+        if item['kind'] != 'micro_wake_word_models':
+            raise ManifestError(f'{where}.kind', 'must be micro_wake_word_models')
+        catalogue = []
+        urls = set()
+        for j, model in enumerate(_list(item.get('catalogue'), f'{where}.catalogue', 16)):
+            path = f'{where}.catalogue[{j}]'
+            model = _object(model, path, {'id', 'label', 'url'}, ('id', 'label', 'url'))
+            url = model['url']
+            try:
+                public_model_host(url)
+            except ValueError as error:
+                raise ManifestError(f'{path}.url', str(error)) from error
+            if url in urls:
+                raise ManifestError(f'{path}.url', 'this catalogue URL is used twice')
+            urls.add(url)
+            catalogue.append({'id': _id(model['id'], f'{path}.id'),
+                              'label': _text_key(model['label'], f'{path}.label', keys), 'url': url})
+        _unique(catalogue, f'{where}.catalogue')
+        legacy = _strings(item.get('legacy_installed'), f'{where}.legacy_installed', 16)
+        if len(set(legacy)) != len(legacy) or not set(legacy) <= {m['id'] for m in catalogue}:
+            raise ManifestError(f'{where}.legacy_installed', 'unique IDs from this setting’s catalogue')
+        settings.append({'id': _id(item['id'], f'{where}.id'), 'kind': item['kind'],
+                         'label': _text_key(item['label'], f'{where}.label', keys),
+                         'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None,
+                         'target': _id(item['target'], f'{where}.target'),
+                         'feature_step_size': _number(item['feature_step_size'], f'{where}.feature_step_size',
+                                                      1, 30, whole=True),
+                         'catalogue': catalogue, 'legacy_installed': legacy})
+    return settings
 
 
 def check_option(option, where, keys, fetch_ids):
@@ -789,6 +859,7 @@ def check(manifest, english=None, strict=True):
                        'hint': _text_key(item['hint'], f'{where}.hint', keys) if 'hint' in item else None})
     _unique(inputs, 'inputs')
     out['inputs'] = inputs
+    out['build_settings'] = _build_settings(manifest.get('build_settings'), keys)
 
     parts = []
     for i, item in enumerate(_list(manifest.get('parts'), 'parts', 4)):

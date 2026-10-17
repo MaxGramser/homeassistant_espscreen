@@ -12,7 +12,7 @@ export async function api(path: string, options: RequestInit = {}): Promise<Resp
   const response = await fetch(`api/${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       "X-Screen-CSRF": csrf,
       // The add-on writes its own texts, such as its labels and errors, in the editor's language (app 0.2.90).
       "X-ESP-Screens-Language": editorLanguage(),
@@ -34,7 +34,7 @@ export async function api(path: string, options: RequestInit = {}): Promise<Resp
 
 export const getJson = async <T = any>(path: string): Promise<T> => (await api(path)).json();
 export const send = async <T = any>(path: string, method: string, body?: unknown, extra: RequestInit = {}): Promise<T> => {
-  const response = await api(path, { method, body: body === undefined ? undefined : JSON.stringify(body), ...extra });
+  const response = await api(path, { method, body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body), ...extra });
   const text = await response.text();
   return (text ? JSON.parse(text) : null) as T;
 };

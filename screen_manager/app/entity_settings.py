@@ -57,8 +57,9 @@ def row(setting, found, states, label, hint, online):
     attrs = state.get('attributes') or {}
     kind = eid.split('.')[0] if eid else None
     value = state.get('state')
-    # A button's state is when it was last pressed: it is there when it is not unavailable.
-    available = bool(eid) and value not in (None, 'unavailable') and (kind == 'button' or value != 'unknown') and online
+    # Unknown is a valid unselected state for a select, not a reason to prevent a choice.
+    # A button similarly has no state until its first press.
+    available = bool(eid) and value not in (None, 'unavailable') and (kind in ('button', 'select') or value != 'unknown') and online
     out = {'key': setting['key'], 'entity': eid, 'kind': kind, 'label': label, 'hint': hint, 'available': bool(available)}
     if kind == 'media_player':
         # Its volume, as Home Assistant's more-info dialog sets it: 0 to 1, shown in percent.
@@ -75,7 +76,9 @@ def row(setting, found, states, label, hint, online):
         out.update(min=attrs.get('min'), max=attrs.get('max'), step=attrs.get('step') or 1,
                    unit=attrs.get('unit_of_measurement') or '')
     elif kind == 'select':
-        out.update(value=value, options=[o for o in attrs.get('options') or [] if isinstance(o, str)][:48])
+        options = [o for o in attrs.get('options') or [] if isinstance(o, str)][:48]
+        out.update(value=value if value in options else None, options=options,
+                   available=bool(available) and bool(options))
     elif kind == 'text':
         out.update(value=value if value not in (None, 'unknown', 'unavailable') else '',
                    min=attrs.get('min') or 0, max=min(int(attrs.get('max') or 255), 255),

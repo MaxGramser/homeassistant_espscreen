@@ -436,6 +436,33 @@ class FirmwareTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RuntimeError):
             await self.firmware.compile_on_server(self.firmware.profile('kitchen.yaml'), {})
 
+    async def test_a_job_whose_frozen_yaml_changed_builds_here(self):
+        # The server bundles the live YAML; a job that froze its inputs (Firmware.capture_inputs) builds there only
+        # while the screen's YAML and its plugins file still say what it froze, so it never builds an edit it did not take.
+        sidecar = self.profile.with_name('kitchen.plugins.yaml')
+        sidecar.write_text('packages: {}\n')
+        self.profile.write_text('esphome: {name: kitchen}\npackages:\n  tessera_plugins: !include kitchen.plugins.yaml\n')
+        profile = self.firmware.profile('kitchen.yaml')
+        calls = []
+        built = self.server.compile
+
+        async def compile(*args):
+            calls.append(args[0])
+            return await built(*args)
+        self.server.compile = compile
+        for edit in (lambda: self.profile.write_text(self.profile.read_text() + 'logger: {}\n'),
+                     lambda: sidecar.write_text('packages: {voice: {}}\n')):
+            inputs = self.firmware.capture_inputs(profile)
+            self.addCleanup(self.firmware.release_inputs, inputs)
+            self.assertTrue(await self.firmware.compile_on_server(profile, {}, inputs))
+            self.assertEqual(calls, [profile])
+            edit()
+            self.assertFalse(await self.firmware.compile_on_server(profile, {}, inputs))
+            self.assertEqual(calls, [profile], 'the server must not build what the job did not freeze')
+            self.assertEqual((self.firmware.job['where'], self.firmware.job['fallback']), ('here', 'changed'))
+            self.assertEqual(self.firmware.served_file(profile, 'install', 'host'), [])
+            calls.clear()
+
 
 if __name__ == '__main__':
     unittest.main()

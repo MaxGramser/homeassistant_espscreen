@@ -1,6 +1,6 @@
 // The add-on's answers: what a failed request says to the person using the page.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getJson, send } from "../src/api";
+import { getJson, send, setCsrf } from "../src/api";
 
 const answer = (status: number, body: string, type = "application/json") =>
   vi.stubGlobal("fetch", vi.fn(async () => new Response(body, { status, headers: { "Content-Type": type } })));
@@ -31,5 +31,26 @@ describe("api", () => {
     const call = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(call[0]).toBe("api/screens/x/identify");
     expect(call[1].headers).toHaveProperty("X-Screen-CSRF");
+  });
+  it("sends multipart files through ingress with CSRF without overriding the browser boundary", async () => {
+    answer(200, JSON.stringify({ id: "ww_local", upload: "opaque-token" }));
+    setCsrf("test-csrf");
+    const form = new FormData();
+    form.append("manifest", new File(["{}"], "manifest.json", { type: "application/json" }));
+    form.append("model", new File(["synthetic"], "model.tflite"));
+    try {
+      await send("screens/x/plugins/voice/models/wake_models/import?source=folder", "POST", form);
+      const call = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(call[0]).toBe("api/screens/x/plugins/voice/models/wake_models/import?source=folder");
+      expect(call[1].body).toBe(form);
+      expect(call[1].headers).toMatchObject({ "X-Screen-CSRF": "test-csrf", "X-ESP-Screens-Language": "en" });
+      expect(call[1].headers).not.toHaveProperty("Content-Type");
+      await send("screens/x/plugins", "POST", { add: [] });
+      const json = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[1][1];
+      expect(json.headers["Content-Type"]).toBe("application/json");
+      expect(json.body).toBe('{"add":[]}');
+    } finally {
+      setCsrf("");
+    }
   });
 });
