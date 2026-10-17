@@ -295,11 +295,18 @@ class ProbeSaver : public tessera::Saver {
     ESP_LOGI(TAG, "saver=%s tap at=%d,%d wish=%d", id_, at.x, at.y, (int) sent);
   }
   void on_hold() override { ESP_LOGI(TAG, "saver=%s hold", id_); }
+  // Only the clock face opts in, so the other probe savers still exercise the default without a frame timer.
+  uint32_t frame_interval_ms() const override { return std::string(id_) == "dial" ? 33 : 0; }
+  void on_frame(uint32_t now_ms) override {
+    if (framed_) return;
+    framed_ = true;
+    ESP_LOGI(TAG, "saver=%s frame ms=%u dark=%d", id_, (unsigned) now_ms, (int) theme::dark);
+  }
 
  private:
   const char *id_;
   std::string entity_;
-  bool playing_ = false, ticked_ = false;
+  bool playing_ = false, ticked_ = false, framed_ = false;
   lv_obj_t *words_{}, *cover_{}, *key_{};
 };
 

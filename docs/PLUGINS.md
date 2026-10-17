@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.14 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.15 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -407,6 +407,29 @@ saver draws in a stage over the glass, which the host moves a millimetre along a
 white on black whatever the screen's look. `on_tick` comes from `tick_cards`, so it ticks on boards without pictures
 too. A new word for the same saver goes to `on_state` in place (`saver_state`); a finger's wish on the player is laid
 over `x` (`state`, `muted`) before the saver hears it.
+
+**Animation (0.15).** A saver may override `frame_interval_ms() const` and `on_frame(uint32_t now_ms)` for motion
+between the one-second clock ticks. The default interval is 0, with no animation timer or frame callbacks. Return 33
+for about 30 frames per second (a good starting point for a sweeping clock hand), or 16 for about 60. Nonzero intervals
+are clamped to at least 16 ms. This is a request, not a guaranteed frame rate: the board's drawing and display transfer
+can delay callbacks. The host reads the interval once after `show`, the first `on_state` and the first `on_tick`, and
+owns an LVGL timer until the saver leaves. Each frame goes through `saver_call`, with the same dark look, picture
+ownership and deferred destruction as other saver calls. The timer stops before the saver is destroyed, including
+when it leaves during a callback. Existing savers keep their one-second ticks without an animation timer.
+
+```cpp
+uint32_t frame_interval_ms() const override { return 33; }
+void on_frame(uint32_t now_ms) override {
+  // Move existing parts using elapsed monotonic time, without rebuilding the saver.
+}
+```
+
+`now_ms` is monotonic milliseconds, not epoch seconds. Use unsigned subtraction for elapsed time across its wrap,
+and derive positions from time rather than counting frames, so a delayed frame does not slow the animation. A clock
+needs a fractional-second wall-clock reference as well; calling whole-second hand calculations faster still ticks.
+`on_tick(epoch)` remains once a second for clock synchronization and the date. Savers still create no timers, tasks
+or LVGL animations of their own. A plugin using these callbacks declares `api: "0.15"` in its manifest. No faster
+global maintenance interval or display YAML change is required.
 
 **Taps.** Only parts made with `ui::takes_taps` are clickable (`saver_touch`): a short tap goes to `on_tap` and a hold
 of `SAVER_MUTE_HOLD_MS` to `on_hold`, through the touch guard (`rt::allowed`, keys from `SAVER_TOUCH`), and the screen

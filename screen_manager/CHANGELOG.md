@@ -1,3 +1,9 @@
+## Unreleased
+
+- **Smooth animation for plugin screensavers.** A screensaver can request animation callbacks at about 30 or 60
+  frames per second through plugin API 0.15. Existing screensavers keep their once-per-second clock updates;
+  animation stops when the screensaver leaves. Actual frame rates depend on the screen and what it draws.
+
 ## 0.4.89 (firmware 0.57.0)
 
 - **A thermostat's state line no longer runs into its card.** On screens with dense glass (the Waveshare P4 and

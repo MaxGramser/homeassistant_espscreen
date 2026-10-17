@@ -1119,6 +1119,8 @@ class Run:
         assert 'dark=1' in shown, f'a saver is drawn in the dark look whatever the screen\'s: {shown}'
         await self.until(lambda l: probe(l, 'saver=dial state') and '21' in l, 10, 'the clock face hears the temperature', start)
         await self.until(lambda l: probe(l, 'saver=dial tick'), 10, 'the clock face ticks', start)
+        frame = await self.until(lambda l: probe(l, 'saver=dial frame'), 10, 'the clock face animates', start)
+        assert 'dark=1' in frame, f'a saver frame keeps the dark look: {frame}'
         await asyncio.sleep(0.6)
         await self.render('plugin-saver-dial')
         if pictured:
