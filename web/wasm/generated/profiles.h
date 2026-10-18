@@ -10,6 +10,9 @@ namespace standard_133 {
 namespace compact_143 {
 #include "compact_143/ui.h"
 }
+namespace standard_144 {
+#include "standard_144/ui.h"
+}
 namespace compact_146 {
 #include "compact_146/ui.h"
 }
@@ -47,6 +50,8 @@ if (dpi == 133) { using namespace standard_133; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 143) { using namespace compact_143; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "compact"}; }
+if (dpi == 144) { using namespace standard_144; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 146) { using namespace compact_146; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "compact"}; }
 if (dpi == 149) { using namespace standard_149; setup_firmware_ui(root);
