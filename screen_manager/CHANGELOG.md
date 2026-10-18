@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **A media player's tile says what it plays.** The line under the name now reads "Playing · " and the title, cut off
+  at the end where it is too long, as the editor's preview already showed it. Before, a tile without room for its
+  play and volume keys said only "Playing".
 - **A new screen swipes out of the box.** A screen set up with New screen now has Swipe between pages on from the
   start, so it swipes through its pages, opens its settings from the top edge and opens the Dock from the bottom edge
   without turning anything on first. Screens you already have keep the setting they have through the update. Turn it

@@ -8697,9 +8697,9 @@ inline void render_slot(size_t slot) {
   // Home Assistant's word where the screen has none of its own (firmware 0.2.58+): a cover says Open, a washer Rinsing.
   // A favourite says what it plays and where (firmware 0.24.0+), never the player's state.
   else if (t.favorite()) value = favorite_line(t);
+  // A player's state and what it plays after it, as the editor's mockup writes it (tile_controls::media_line).
+  else if (d == "media_player") value = tile_controls::media_line(t);
   else if (!t.extra().state_word.empty()) value = t.extra().state_word;
-  // A player's state in the screen's own words where Home Assistant sent none (firmware 0.2.64+).
-  else if (d == "media_player") value = tile_controls::media_state_text(t.state);
   // A measurement in the screen's number format ("21,5 °C" in Dutch), as Home Assistant writes a state with a unit; a
   // number without one (a code, a year) stays as it is, as there.
   else if (!t.unit.empty() && !watch) value = screen_text::with_unit(screen_text::localize(value), t.unit);

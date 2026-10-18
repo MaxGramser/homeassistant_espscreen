@@ -778,6 +778,10 @@ int main() {{
 # Home Assistant's own words for what these report (climate HVACMode and HVACAction, humidifier HumidifierAction,
 # binary_sensor BinarySensorDeviceClass), and one it does not have.
 HVAC_MODES = ('off', 'heat', 'cool', 'heat_cool', 'auto', 'dry', 'fan_only')
+# Home Assistant's media player states (MediaPlayerState), less buffering: the firmware has no word of its own for it
+# and says Loading (media_state_text, screen.media.loading) where the editor writes Home Assistant's Buffering, a gap
+# that only shows when the add-on sent no word for the state.
+MEDIA_STATES = ('off', 'on', 'idle', 'standby', 'playing', 'paused')
 HVAC_ACTIONS = (None, 'heating', 'cooling', 'idle', 'off', 'drying', 'fan', 'preheating', 'defrosting')
 HUMIDIFIER_ACTIONS = (None, 'humidifying', 'drying', 'idle', 'off')
 BINARY_CLASSES = ('', 'battery', 'battery_charging', 'carbon_monoxide', 'cold', 'connectivity', 'door', 'garage_door', 'gas', 'heat',
@@ -805,6 +809,10 @@ class TileText(unittest.TestCase):
         cls.humidifiers = [{'state': state, 'action': action, 'current': current} for state in ('on', 'off') for action in HUMIDIFIER_ACTIONS
                            for current in (None, 41.5, 45, 41.25)]
         cls.binaries = [{'device_class': dc, 'state': state} for dc in BINARY_CLASSES for state in ('on', 'off')]
+        # A player's line on a card without its panel (media_line): every state, with and without a title, and with
+        # Home Assistant's own word for the state where the add-on sent one.
+        cls.players = [{'state': state, 'title': title, 'word': word} for state in MEDIA_STATES
+                       for title in ('', 'A very long title of a track') for word in ('', 'Spielt')]
         with tempfile.TemporaryDirectory() as tmp:
             cls.ts = run_ts('''
 const words = { locale: "en", marks: { decimal: ".", group: ",", from: 4 } };
@@ -818,11 +826,14 @@ console.log(JSON.stringify({
   humidifiers: DATA.humidifiers.map((c: any) => stateText("humidifier.x", live(c.state, { ...(c.action ? { action: c.action } : {}),
     ...(c.current !== null ? { current_humidity: c.current } : {}) }), { controlled: true }, words)),
   binaries: DATA.binaries.map((b: any) => stateText("binary_sensor.x", live(b.state, { device_class: b.device_class }), {}, words)),
+  players: DATA.players.map((p: any) => stateText("media_player.x", { ...live(p.state, p.title ? { media_title: p.title } : {}),
+    ...(p.word ? { word: p.word } : {}) }, {}, words)),
 }));''', {'temperatures': TEMPERATURES, 'humidities': HUMIDITIES, 'climates': cls.climates, 'humidifiers': cls.humidifiers,
-                 'binaries': cls.binaries}, tmp)
+                 'binaries': cls.binaries, 'players': cls.players}, tmp)
             thermostats = ',\n'.join(f'  {{{json.dumps(domain)}, {json.dumps(c["state"])}, {json.dumps(c["action"] or "")}, {number(c["current"])}}}'
                                      for domain, cases in (('climate.x', cls.climates), ('humidifier.x', cls.humidifiers)) for c in cases)
             binaries = ',\n'.join(f'  {{{json.dumps(b["device_class"])}, {int(b["state"] == "on")}}}' for b in cls.binaries)
+            players = ',\n'.join(f'  {{{json.dumps(p["state"])}, {json.dumps(p["title"])}, {json.dumps(p["word"])}}}' for p in cls.players)
             cls.cpp = build_and_run(f'''#include "screen_text_en.h"
 #define THEME_TEST
 #include "components/smart_display/tile_controls.h"
@@ -834,6 +845,10 @@ static const Thermostat THERMOSTATS[] = {{
 struct Binary {{ const char *device_class; int on; }};
 static const Binary BINARIES[] = {{
 {binaries}
+}};
+struct Player {{ const char *state, *title, *word; }};
+static const Player PLAYERS[] = {{
+{players}
 }};
 static const float TEMPERATURES[] = {{{', '.join(number(v) for v in TEMPERATURES)}}};
 static const float HUMIDITIES[] = {{{', '.join(number(v) for v in HUMIDITIES)}}};
@@ -850,6 +865,11 @@ int main() {{
     std::printf("status %s\\n", tile_controls::status_text(t).c_str());
   }}
   for (const auto &b : BINARIES) std::printf("binary %s\\n", tile_controls::binary_state_text(b.device_class, b.on));
+  for (const auto &p : PLAYERS) {{
+    runtime_tiles::Tile t; t.entity = "media_player.x"; t.state = p.state; t.received = true;
+    t.edit_extra().media_title = p.title; t.edit_extra().state_word = p.word;
+    std::printf("player %s\\n", tile_controls::media_line(t).c_str());
+  }}
 }}
 ''', tmp)
 
@@ -876,6 +896,9 @@ int main() {{
 
     def test_a_binary_sensors_state(self):
         self.same(self.binaries, self.ts['binaries'], self.lines('binary'), 'stateText is not binary_state_text')
+
+    def test_a_players_line_on_a_card_without_its_panel(self):
+        self.same(self.players, self.ts['players'], self.lines('player'), 'stateText is not media_line')
 
 
 class CoverLayout(unittest.TestCase):

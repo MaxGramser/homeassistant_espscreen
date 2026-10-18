@@ -606,6 +606,14 @@ inline const char *binary_state_text(const std::string &device_class, bool on) {
     if (device_class == words.device_class) return screen_text::tr(on ? words.on : words.off);
   return screen_text::tr(on ? screen_text::txt::ha_on : screen_text::txt::ha_off);
 }
+// The line under a player's name on a card without its control panel: its state, in Home Assistant's word where the
+// add-on sent one and the screen's own otherwise (firmware 0.2.64+), and what it plays after it, as the editor's mockup
+// writes it (model/tile-text.ts stateText): "Playing · <title>", which the label cuts off at the end.
+inline std::string media_line(const Tile &t) {
+  std::string text = t.extra().state_word.empty() ? std::string(media_state_text(t.state)) : t.extra().state_word;
+  if (!t.extra().media_title.empty()) text += " · " + t.extra().media_title;
+  return text;
+}
 // Status line beside a control panel: what Home Assistant shows under the name.
 inline std::string status_text(const Tile &t) {
   auto d = t.domain();
