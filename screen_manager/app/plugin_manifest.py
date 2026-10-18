@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 14)
+PLUGIN_API = (0, 15)
 # Major 0 is the time before that promise: a minor may still change a name or a signature. The minors that did are
 # listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so a plugin written before one is told
 # so in one sentence instead of failing in the compiler. 0.4: Plugin::on_tick became on_interval.
@@ -66,7 +66,7 @@ FEATURES = {'speaker': ('speaker', 'ts_speaker'), 'microphone': ('microphone', '
             'camera_sensor': (None, 'CAMERA_I2C'), 'bluetooth': (None, 'esp32_hosted')}
 BOARD_ONLY = tuple(name for name, (domain, _) in FEATURES.items() if domain is None)
 INPUT_KINDS = ('secret', 'text', 'gpio', 'entity')
-OPTION_KINDS = ('text', 'choice', 'number', 'toggle')
+OPTION_KINDS = ('text', 'choice', 'number', 'toggle', 'entity')
 # `numbers` (0.5): every value the path reaches, as one list of numbers (a price per quarter of an hour, a forecast).
 FIELD_KINDS = ('text', 'number', 'epoch', 'numbers')
 UNITS = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
@@ -379,7 +379,8 @@ def _strings(value, where, most=32):
 
 def check_option(option, where, keys, fetch_ids):
     option = _object(option, where, {'id', 'kind', 'label', 'hint', 'default', 'choices', 'options_from', 'min',
-                                     'max', 'step', 'unit', 'multiple', 'search'}, ('id', 'kind', 'label'))
+                                     'max', 'step', 'unit', 'multiple', 'search', 'domains', 'attributes'},
+                     ('id', 'kind', 'label'))
     _id(option['id'], f'{where}.id')
     kind = option['kind']
     if kind not in OPTION_KINDS:
@@ -424,12 +425,19 @@ def check_option(option, where, keys, fetch_ids):
             if not isinstance(option['unit'], str) or len(option['unit']) > 8:
                 raise ManifestError(f'{where}.unit', 'a unit of at most 8 characters')
             out['unit'] = option['unit']
+    elif kind == 'entity':
+        out['domains'] = _strings(option.get('domains'), f'{where}.domains', 8)
+        if not out['domains'] or any(not ID.fullmatch(domain) for domain in out['domains']):
+            raise ManifestError(f'{where}.domains', '1 to 8 Home Assistant domains')
+        out['attributes'] = _strings(option.get('attributes', []), f'{where}.attributes', MAX_ATTRIBUTES)
+        if any(not ID.fullmatch(name) for name in out['attributes']):
+            raise ManifestError(f'{where}.attributes', f'up to {MAX_ATTRIBUTES} attribute names')
     # A list (0.12): several texts, or several picks of a choice, in the order the person put them.
     if 'multiple' in option:
         if kind not in ('text', 'choice'):
             raise ManifestError(f'{where}.multiple', 'only a text or a choice keeps several values')
         out['multiple'] = _number(option['multiple'], f'{where}.multiple', 2, MAX_MULTIPLE, whole=True)
-    for key in ('choices', 'options_from', 'min', 'max', 'step', 'unit', 'search'):
+    for key in ('choices', 'options_from', 'min', 'max', 'step', 'unit', 'search', 'domains', 'attributes'):
         if key in option and key not in out:
             raise ManifestError(f'{where}.{key}', f'does not belong to an option of kind {kind}')
     if out['id'] == SEARCH and out.get('search'):
@@ -491,6 +499,11 @@ def option_value(option, value, where='value'):
     if kind == 'number':
         _number(value, where, option['min'], option['max'])
         return value
+    if kind == 'entity' and value and isinstance(value, str):
+        if not re.fullmatch(r'[a-z][a-z0-9_]*\.[a-z0-9_]+', value):
+            raise ManifestError(where, 'must be a Home Assistant entity id')
+        if value.split('.', 1)[0] not in option['domains']:
+            raise ManifestError(where, 'must belong to one of the option domains')
     if not isinstance(value, str) or len(value) > MAX_TEXT:
         raise ManifestError(where, f'a text of at most {MAX_TEXT} characters')
     if kind == 'choice' and option.get('choices') and value and value not in [c['value'] for c in option['choices']]:

@@ -17,9 +17,10 @@ export type PluginPart = { id: string; label: Texts; hint: Texts; flash_kb: numb
 // Plugin API 0.12: `multiple` keeps a list of up to that many values (texts, or picks of a choice), and `search` finds the
 // choices of `options_from` by what the person types.
 export type PluginTileOption = {
-  id: string; kind: "text" | "choice" | "number" | "toggle"; label: Texts; hint?: Texts;
+  id: string; kind: "text" | "choice" | "number" | "toggle" | "entity"; label: Texts; hint?: Texts;
   default?: PluginValue; choices?: { value: string; label: Texts }[]; options_from?: string;
   min?: number; max?: number; step?: number; unit?: string; multiple?: number; search?: boolean;
+  domains?: string[]; attributes?: string[];
 };
 export type PluginTile = {
   id: string; name: Texts; icon?: string; min: string; max: string; memory: number;

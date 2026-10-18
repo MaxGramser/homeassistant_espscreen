@@ -2437,8 +2437,13 @@ class Manager:
         from core import cover_related, vacuum_related
         # A plugin tile that belongs to an entity (docs/PLUGINS.md) is sent again when that entity changes.
         if plugin_tile(tile['entity']):
-            entity = (tile.get('options') or {}).get('plugin_entity')
-            return (entity,) if entity else ()
+            plugin, tile_id = plugin_tile(tile['entity'])
+            entry = self.plugins.known(plugin)
+            kind = entry.tile(tile_id) if entry else None
+            options = tile.get('options') or {}
+            chosen = self.plugins.values_of(entry, kind, options.get('plugin')) if kind else {}
+            entity = options.get('plugin_entity')
+            return tuple(dict.fromkeys((([entity] if entity else []) + list(self.plugins.option_entities(kind, chosen)))))
         if tile['entity'].startswith('vacuum.'):
             device = self.device_entries(tile['entity'])
             return tuple(dict.fromkeys((*vacuum_related(tile['entity'], device, self.ha.states).values(),

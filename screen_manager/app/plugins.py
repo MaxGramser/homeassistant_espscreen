@@ -1484,21 +1484,20 @@ class Plugins:
             data['stale'] = True
         return trimmed(data)
 
-    def entity_part(self, kind, tile, budget=X_BUDGET):
+    def state_part(self, spec, entity, budget=X_BUDGET):
         """(entity, what the screen gets of it) for a tile that belongs to an entity: its state, its name, the
         attributes its manifest names and the `fields` it takes out of them, bounded as every tile's: a text at 48
         bytes, and the lists together within X_BUDGET, each shortened from the end to the same length only when they
         do not fit (96 prices of a quarter of an hour fit, twice). An attribute named ..._at, ..._time or ...date that
         holds a moment goes as seconds since 1970, so the screen says it in its words."""
-        entity = (tile.get('options') or {}).get('plugin_entity')
-        if not kind or not kind['domains'] or not entity:
+        if not spec or not spec.get('domains') or not entity:
             return None, None
-        if entity.split('.')[0] not in kind['domains']:
+        if entity.split('.')[0] not in spec['domains']:
             return entity, {'wait': 'wrong_entity'}
         state = self.manager.ha.states.get(entity) or {}
         attrs = state.get('attributes') or {}
         bounded = {}
-        for name in kind['attributes']:
+        for name in spec.get('attributes', ()):
             value = attrs.get(name)
             if name.endswith(('_at', '_time', 'date')) and isinstance(value, str):
                 moment = plugin_fetch.epoch_of(value, getattr(self.manager.ha, 'time_zone', None))
@@ -1515,16 +1514,31 @@ class Plugins:
                                  if isinstance(v, str) or (isinstance(v, (int, float)) and not isinstance(v, bool)
                                                            and math.isfinite(v))]
         zone = getattr(self.manager.ha, 'time_zone', None)
-        for name, field in (kind.get('fields') or {}).items():
+        for name, field in (spec.get('fields') or {}).items():
             bounded[name] = plugin_fetch.field_value(attrs, {**field, 'tz': field.get('tz') or zone})
         part = {'state': core.short(str(state.get('state', 'unavailable')), 160),
                 'name': core.short(attrs.get('friendly_name') or entity, 48), 'attributes': bounded}
+        updated = plugin_fetch.epoch_of(state.get('last_updated'), getattr(self.manager.ha, 'time_zone', None))
+        if updated is not None:
+            part['updated'] = updated
         for items in LIST_STEPS:
             shaped = {**part, 'attributes': {name: value if not isinstance(value, list) or items is None else value[:items]
                                              for name, value in bounded.items()}}
             if json_size(shaped) <= budget:
                 return entity, shaped
         return entity, {'wait': 'too_large'}
+
+    def entity_part(self, kind, tile, budget=X_BUDGET):
+        entity = (tile.get('options') or {}).get('plugin_entity')
+        return self.state_part(kind, entity, budget)
+
+    @staticmethod
+    def option_entities(kind, chosen):
+        """The selected Home Assistant entities of a plugin tile's entity options (plugin API 0.15)."""
+        if not kind:
+            return ()
+        return tuple(value for option in kind.get('options', ()) if option['kind'] == 'entity'
+                     for value in (chosen.get(option['id']),) if isinstance(value, str) and value)
 
     async def tile_message(self, index, tile, ask=True, inbox=None):
         """The state message of a plugin tile (core.state_message's shape): no entity behind it, its options, its data.
@@ -1556,8 +1570,16 @@ class Plugins:
                    'state': 'ok', 'a': {}, 'o': wire}
         if kind:
             data = await self.tile_data(entry, kind, chosen, ask, inbox)
-            if part or data:
-                message['x'] = trimmed({**(part or {}), **(data or {})}, room)
+            entities = {}
+            for option in kind.get('options', ()):
+                selected = chosen.get(option['id'])
+                if option['kind'] != 'entity' or not isinstance(selected, str) or not selected:
+                    continue
+                _, selected_part = self.state_part(option, selected, room)
+                if selected_part:
+                    entities[option['id']] = selected_part
+            if part or data or entities:
+                message['x'] = trimmed({**(part or {}), **(data or {}), **({'entities': entities} if entities else {})}, room)
         return message
 
     async def choices(self, plugin, fetch_id, values, inbox=None, search=''):

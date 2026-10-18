@@ -52,6 +52,17 @@ class Manifest(unittest.TestCase):
         self.assertEqual(out['fetch'][0]['every'], 60)
         self.assertEqual(out['fetch'][0]['placeholders'], ['stop'])
 
+    def test_entity_option_names_domains_and_attributes(self):
+        data = manifest()
+        data['tiles'][0]['options'].append({'id': 'power', 'kind': 'entity', 'label': 'key',
+                                             'domains': ['sensor'], 'attributes': ['unit_of_measurement']})
+        option = pm.check(data, ENGLISH)['tiles'][0]['options'][-1]
+        self.assertEqual(pm.option_value(option, 'sensor.grid_power'), 'sensor.grid_power')
+        self.assertEqual(pm.option_value(option, ''), '')
+        for wrong in ('switch.grid', 'not-an-entity', 12):
+            with self.subTest(wrong), self.assertRaises(pm.ManifestError):
+                pm.option_value(option, wrong)
+
     def test_the_real_plugins_pass(self):
         plugins = ROOT.parent / 'tessera-plugins'
         for folder in [*(plugins / 'plugins').glob('*'), plugins / 'template', *(ROOT / 'tests' / 'fixtures' / 'plugins').glob('*')]:
@@ -736,6 +747,28 @@ class EntityTile(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(part['attributes']['next_date'], int)   # a date as seconds, for the screen's own words
         _, wrong = service.entity_part(kind, {'options': {'plugin_entity': 'light.kitchen'}})
         self.assertEqual(wrong, {'wait': 'wrong_entity'})
+
+    async def test_selected_entity_options_are_sent_together(self):
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+
+        class FakeManager:
+            ha = type('HA', (), {'states': {
+                'sensor.grid': {'state': '120', 'attributes': {'friendly_name': 'Grid', 'unit_of_measurement': 'W'}},
+                'sensor.solar': {'state': '850', 'attributes': {'friendly_name': 'Solar', 'unit_of_measurement': 'W'}},
+            }, 'time_zone': 'Europe/Amsterdam', 'changed': asyncio.Event(), 'dirty': set()})()
+            page_senders = {}
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', Path(tmp.name) / 'esphome')
+        kind = {'id': 'flow', 'domains': [], 'attributes': [], 'options': [
+            {'id': 'grid', 'kind': 'entity', 'domains': ['sensor'], 'attributes': ['unit_of_measurement']},
+            {'id': 'solar', 'kind': 'entity', 'domains': ['sensor'], 'attributes': ['unit_of_measurement']},
+        ]}
+        chosen = {'grid': 'sensor.grid', 'solar': 'sensor.solar'}
+        self.assertEqual(service.option_entities(kind, chosen), ('sensor.grid', 'sensor.solar'))
+        _, grid = service.state_part(kind['options'][0], chosen['grid'])
+        self.assertEqual(grid['state'], '120')
+        self.assertEqual(grid['attributes'], {'unit_of_measurement': 'W'})
 
 
 class BlamedBuilds(unittest.TestCase):

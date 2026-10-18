@@ -7,6 +7,9 @@
 - **A plugin's screensaver follows its options at once.** Changing an option of a plugin's clock or screensaver
   face (a colour, seconds on or off) now shows on the screen right away, as Tessera's own clock does, instead of only
   after the screensaver was turned off and on again. On main since 2026-10-18 for screens that are built again.
+- **Plugin tiles can choose more than one Home Assistant entity.** A plugin may add searchable entity choices to its
+  tile options. Tessera follows every selected entity and sends its state and named attributes to the tile, so choices
+  made in the layout take effect without rebuilding the screen.
 
 ## 0.4.89 (firmware 0.57.0)
 

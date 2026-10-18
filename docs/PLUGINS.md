@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.14 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.15 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -40,7 +40,7 @@ adds is not listed, so a 0.10 plugin builds on 0.11. A test keeps the number equ
    the protocol and the layout check see it, that is `entity: "plugin:ov_departures.next"` with `options.plugin`.
    `core.entity_id()` is unchanged (commands and events use it); `core.plugin_tile()` is the second kind a layout takes.
 2. **The layout check** keeps only the shape of a plugin tile: its size, colour, icon, `tap` (auto or none) and at most
-   twelve options of its own, each a short text, a number, true/false, a pick or a list (0.12, "Values of JSON" below),
+   twelve options of its own, each a short text, a number, true/false, a pick, an entity or a list (0.12, "Values of JSON" below),
    together at most 1280 bytes of JSON (`core.plugin_options`, the editor's `pluginOptionsShape`). Whether a value fits
    its option is the manifest's (`plugin_manifest.option_value`, in `Plugins.values_of`). A saved layout never becomes
    unreadable because a plugin left a screen.
@@ -60,6 +60,9 @@ adds is not listed, so a 0.10 plugin builds on 0.11. A test keeps the number equ
    shortened, all to the same length from the end, only when together they do not fit. Two days of 96 prices fit
    whole. A list of objects never goes as it is: `fields` with `as: numbers` turns `raw_today[*].value` into one list
    of numbers.
+   An option of kind `entity` (0.15) adds its selected entity under `x.entities.<option id>` with the same bounded
+   state, name and manifest-named attributes. The add-on follows every selected entity and sends the tile again when
+   one changes.
 6. **On the screen** `page_receiver` keeps `o.plugin` and `x` as JSON in the tile's `Extra` (`plugin_options`,
    `plugin_state`). `render_slot` hands a plugin tile the card's extra layer (`plugin_host::render`): a new
    `tessera::Tile` when the card shows another tile, size or options, `on_state` when the data changed, `on_theme` when
