@@ -81,7 +81,8 @@ display:
     dimensions:
       width: 320
       height: 480
-    color_order: rgb
+    # This panel wires the ST7796 colour channels as BGR; RGB swaps red and blue (for example blue appears orange).
+    color_order: bgr
     # The FNK0104S panel inverts the ST7796's normal output: without this, the light and dark looks appear reversed.
     invert_colors: true
     dc_pin: GPIO46

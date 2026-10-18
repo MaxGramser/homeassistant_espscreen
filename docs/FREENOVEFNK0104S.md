@@ -29,7 +29,7 @@ backlight and display-control pins.
 
 An offline firmware image built from this board profile booted on an FNK0104S. The touch test recorded the center
 and all four physical corners in the expected 480 x 320 landscape coordinates. Physical testing also confirmed that
-the ST7796 needs inverted colours for its light and dark looks to render correctly. The board remains **experimental**:
+the ST7796 needs BGR channel order and inverted colours for its light and dark looks to render correctly. The board remains **experimental**:
 Home Assistant pairing, a real tile layout, dimming and standby, and portrait operation still need testing on glass.
 
 ## References
