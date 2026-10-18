@@ -105,8 +105,9 @@ class CameraBoxes(unittest.TestCase):
                     self.assertNotIn('camera', entry['orientations'][way], f'{board} {way}')
                 self.assertNotIn(board, camera_feed.BOXES, board)
                 continue
+            # The still is left out where the alert card has no room for one (test_alert_layout NO_ALERT_PICTURE).
             stated = {'full': [int(values['CAMERA_FULL_W']), int(values['CAMERA_FULL_H'])],
-                      'thumb': entry['orientations']['landscape']['camera']['thumb']}
+                      **{key: box for key, box in entry['orientations']['landscape']['camera'].items() if key == 'thumb'}}
             self.assertEqual(entry['camera'], stated, board)
             self.assertEqual(entry['orientations']['landscape']['camera'], stated, board)
             self.assertEqual(camera_feed.BOXES[board], {view: tuple(box) for view, box in stated.items()}, board)
@@ -130,6 +131,8 @@ class CameraBoxes(unittest.TestCase):
                 continue
             for way in core.ORIENTATIONS:
                 side = entry['orientations'][way]
+                if 'thumb' not in side['camera']:
+                    continue  # no room for a still in this glass's alert card (test_alert_layout NO_ALERT_PICTURE)
                 thumb_w, thumb_h = side['camera']['thumb']
                 self.assertGreater(thumb_w, 0, f'{board} {way}')
                 self.assertLessEqual(thumb_w, side['width'] - 2 * 14, f'{board} {way}: the still is wider than its card')

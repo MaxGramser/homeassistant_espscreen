@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **A new screen: the Waveshare ESP32-S3-Touch-AMOLED-2.41** (experimental). A 2.41-inch AMOLED, 600 × 450, with two
+  by two tiles lying down and one by four standing up, in the compact look that fits its small glass. It dims and goes
+  into standby through the panel's own brightness, and shows camera pictures. Choose it in New screen.
 - **The Dock fits small screens standing up.** On a small screen held upright, such as the Waveshare 3.5-inch, the
   Dock's two rows of pages reached past the top of the glass. Where two rows do not fit, it now shows one row and
   swipes sideways through the rest, and it always leaves room above it to tap it closed.

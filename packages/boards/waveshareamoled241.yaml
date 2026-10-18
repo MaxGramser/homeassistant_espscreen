@@ -1,0 +1,110 @@
+# ESP Screens - waveshareamoled241: the Waveshare ESP32-S3-Touch-AMOLED-2.41, a 2.41-inch 450 x 600 AMOLED panel
+# (RM690B0 over QSPI, ESPHome's qspi_dbi component) with FT6336 capacitive touch over I2C, an ESP32-S3 with 16MB flash
+# and 8MB of octal PSRAM at 80MHz. A TCA9554 I2C expander (Rev 2.0 of the board) drives the reset lines of the display (EXIO0)
+# and the touch panel (EXIO1). An AMOLED has no backlight: the panel's own brightness (DCS 0x51) stands in for it.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+  # Camera pictures: the PSRAM has the room for them (docs/CAMERA.md).
+  camera: !include ../features/camera.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshareamoled241"
+  DEVICE_NAME: "waveshareamoled241-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare"
+
+  # The glass: the panel's own pixels and its density, 750 diagonal pixels over 2.41 inches. At 37 x 49 mm it is smaller
+  # than the CYD's, so it takes the compact look.
+  PANEL_W: "450"
+  PANEL_H: "600"
+  DISPLAY_DPI: "311.200"
+  # The LVGL angle that lays this panel out lying down (600 x 450). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# One QSPI bus (display only), one I2C bus (touch + the reset expander).
+spi:
+  id: lcd
+  type: quad
+  clk_pin: GPIO10
+  data_pins: [GPIO11, GPIO12, GPIO13, GPIO14]
+
+i2c:
+  id: touch_bus
+  sda: GPIO47
+  scl: GPIO48
+  scan: true
+
+# TCA9554 GPIO expander, addr 0x20; pca9554 is ESPHome's compatible component for it.
+pca9554:
+  id: io_expander
+  address: 0x20
+  i2c_id: touch_bus
+
+# The panel's brightness in the place of a backlight's PWM: features/backlight.yaml puts the light, its fades and the
+# alert blinks on this output, and every level goes to the RM690B0 as its brightness command (qspi_dbi::set_brightness).
+# The panel shows nothing below about 20 of 255, so a lit screen starts there and 0 stays dark.
+output:
+  - platform: template
+    id: gpio_backlight_pwm
+    type: float
+    write_action:
+      - lambda: 'id(my_display)->set_brightness(state <= 0.0f ? 0 : 20 + (int) (state * 235.0f));'
+
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    address: 0x38
+    interrupt_pin: GPIO3
+    # Read as often as the other boards read theirs: LVGL counts a swipe from the movement between reads.
+    update_interval: 20ms
+    reset_pin:
+      pca9554: io_expander
+      number: 1
+      mode: OUTPUT
+    display: my_display
+
+display:
+  - platform: qspi_dbi
+    model: RM690B0
+    id: my_display
+    spi_id: lcd
+    # The RM690B0 has 480 columns and the glass shows 450 of them from column 16, as in Waveshare's own demo for this
+    # board; without the offset the picture stands 16 px off one edge and is cut off at the other.
+    dimensions: {width: 450, height: 600, offset_width: 16}
+    cs_pin: GPIO9
+    reset_pin:
+      pca9554: io_expander
+      number: 0
+      mode: OUTPUT
+    update_interval: never
+    auto_clear_enabled: false

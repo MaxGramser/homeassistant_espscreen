@@ -46,7 +46,10 @@ class Variant:
 
     @property
     def name(self):
-        return f'render-{self.key}'
+        # ESPHome takes a name of at most 31 characters; a long board key standing up is past that with the full prefix
+        # (render-waveshareamoled241-portrait), so it takes a short one.
+        name = f'render-{self.key}'
+        return name if len(name) <= 31 else f'r-{self.key}'
 
 
 def variants():

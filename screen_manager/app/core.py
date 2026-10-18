@@ -2749,9 +2749,18 @@ def alert_service(node, action='show_alert'):
 
 def limit_boards():
     """{look: the catalog's names of the boards with that look} (boards.json), so whatever shows the alert limits
-    says whose limit is whose without naming a board itself."""
-    return {look: list(dict.fromkeys(SHAPES[board].get('catalog', {}).get('name', board) for board in BOARD_KEYS
-                                     if SHAPES[board].get('look') == look)) for look in ALERT_LIMITS}
+    says whose limit is whose without naming a board itself. A maker with boards of both looks (the Waveshare AMOLED
+    2.41 among the standard Waveshares) is named by its model where it has fewer of them, so no name stands in both."""
+    def name(board):
+        return SHAPES[board].get('catalog', {}).get('name', board)
+    looks = {look: [board for board in BOARD_KEYS if SHAPES[board].get('look') == look] for look in ALERT_LIMITS}
+    def label(board, look):
+        maker = name(board)
+        ours = sum(name(b) == maker for b in looks[look])
+        if any(sum(name(b) == maker for b in boards) > ours for other, boards in looks.items() if other != look):
+            return f"{maker} {SHAPES[board].get('catalog', {}).get('model', board)}"
+        return maker
+    return {look: list(dict.fromkeys(label(board, look) for board in boards)) for look, boards in looks.items()}
 
 def alert_reference():
     """Everything the Alerts cheatsheet shows besides the screens themselves, in the editor's language (app 0.2.90)."""

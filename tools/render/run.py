@@ -168,14 +168,26 @@ class Pictures:
         return f'http://127.0.0.1:{self.server.server_address[1]}/{name}'
 
 
+def alert_screen(item):
+    """The screen an alert on this variant goes to, as the add-on sees it."""
+    import core
+    return {'board': item.board, 'orientation': 'portrait' if item.rotation else 'landscape',
+            'firmware_known': core.FIRMWARE_VERSION}
+
+
+def alert_has_room(item):
+    """Whether this variant's alert card has room for a picture: none where the glass is too small for one beside or
+    above the words (tests/test_alert_layout.py NO_ALERT_PICTURE), and then the add-on sends none."""
+    import camera_feed
+    return camera_feed.alert_box(alert_screen(item), None) is not None
+
+
 def alert_picture(item, camera):
     """(BMP bytes, box) of the camera picture an alert on this variant gets: sized by the add-on's own rule for the frame
     this screen's card makes for it (camera_feed.alert_box), encoded as the add-on encodes it."""
     import camera_feed
-    import core
     raw = porch(*camera)
-    screen = {'board': item.board, 'orientation': 'portrait' if item.rotation else 'landscape',
-              'firmware_known': core.FIRMWARE_VERSION}
+    screen = alert_screen(item)
     box = camera_feed.alert_box(screen, camera_feed.picture_size(raw))
     return camera_feed.encode(raw, box, exact=box != camera_feed.box(screen, 'thumb')), box
 
@@ -298,7 +310,11 @@ class Run:
         await self.until(lambda l: '[alert' in l and 'show "' in l, 10, f'{name}: the alert never showed', start)
         state = await self.state()
         self.failures += [f'{name}, as it opens: {fault}' for fault in alert_faults(state['boxes'])]
-        if name.startswith('alert-camera'):
+        if name.startswith('alert-camera') and not alert_has_room(self.item):
+            # No room for a picture in this glass's card: the card shows none and the add-on sends none.
+            if state['boxes']['frame'][2] >= state['boxes']['frame'][0]:
+                self.failures.append(f'{name}: a frame for a picture the card has no room for')
+        elif name.startswith('alert-camera'):
             if state['boxes']['frame'][2] < state['boxes']['frame'][0]:
                 self.failures.append(f'{name}: no frame for the picture while it loads')
             await self.render(f'{name}-waiting')

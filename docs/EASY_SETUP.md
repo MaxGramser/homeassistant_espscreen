@@ -24,6 +24,7 @@ ESPHome Device Builder is optional:
 | Sunton, 7 inch (experimental) | ESP32-8048S070, 800×480, RGB and GT911 ([details](SUNTON8048S070.md)) |
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
+| Waveshare, 2.41 inch AMOLED (experimental) | ESP32-S3-Touch-AMOLED-2.41, 600×450, RM690B0 QSPI and FT6336 ([details](WAVESHAREAMOLED241.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
 | Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
@@ -210,7 +211,7 @@ title of its own still shows that. It has domain filters with
 colored icons, a room filter, and **Hide placed**. You can add one tile for every cell of the screen's pages,
 48 on a CYD, a 4-inch Guition or the experimental Waveshare 4B and Waveshare P4 (firmware 0.2.62+; see below for older firmware).
 The screen preview shows their placement on the screen's own grid, lying down: two columns of three on a CYD, a 4-inch Guition,
-the Waveshare 4B, the Waveshare P4 or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch and 5-inch,
+the Waveshare 4B, the Waveshare P4 or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch, the 3.5-inch Guition and the Waveshare 2.41-inch AMOLED, three by three on the Waveshare 4.3-inch and 5-inch,
 four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md) and the 7-inch Guition, and five by five on the
 10.1-inch Guition, either way up (firmware 0.18.0; five by four before, and a saved layout moves on by itself); up to
 eight pages and 64 tiles, or more on a board with PSRAM ([TILE_MEMORY.md](TILE_MEMORY.md)). That grid is where a screen

@@ -2637,6 +2637,122 @@
   "wide_slots": false,
   "width": 1024
  },
+ "checkout/waveshareamoled241.yaml": {
+  "alert": {
+   "line": 35,
+   "title_line": 46
+  },
+  "battery": false,
+  "board": "waveshareamoled241",
+  "camera": {
+   "full": [
+    600,
+    450
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.4,
+   "model": "ESP32-S3-Touch-AMOLED-2.41",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 311,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 39,
+   "icon_home": 54,
+   "icon_mini": 39,
+   "label": 24,
+   "setpoint": 87,
+   "sublabel": 24,
+   "sublabel_big": 30,
+   "watch_icon": 26,
+   "watch_value": 48
+  },
+  "height": 450,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      600,
+      450
+     ]
+    },
+    "columns": 2,
+    "height": 450,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 600
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      450,
+      600
+     ],
+     "thumb": [
+      345,
+      194
+     ]
+    },
+    "columns": 1,
+    "height": 600,
+    "max": [
+     2,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 450
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 78,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 78,
+   "tile_pad": 17,
+   "top": 69
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 600
+ },
  "checkout/wavesharep4.yaml": {
   "alert": {
    "line": 36,
@@ -6942,6 +7058,122 @@
   "wide_slots": false,
   "width": 1024
  },
+ "packages/waveshareamoled241.yaml": {
+  "alert": {
+   "line": 35,
+   "title_line": 46
+  },
+  "battery": false,
+  "board": "waveshareamoled241",
+  "camera": {
+   "full": [
+    600,
+    450
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.4,
+   "model": "ESP32-S3-Touch-AMOLED-2.41",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 311,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 39,
+   "icon_home": 54,
+   "icon_mini": 39,
+   "label": 24,
+   "setpoint": 87,
+   "sublabel": 24,
+   "sublabel_big": 30,
+   "watch_icon": 26,
+   "watch_value": 48
+  },
+  "height": 450,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      600,
+      450
+     ]
+    },
+    "columns": 2,
+    "height": 450,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 600
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      450,
+      600
+     ],
+     "thumb": [
+      345,
+      194
+     ]
+    },
+    "columns": 1,
+    "height": 600,
+    "max": [
+     2,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 450
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 78,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 78,
+   "tile_pad": 17,
+   "top": 69
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 600
+ },
  "packages/wavesharep4.yaml": {
   "alert": {
    "line": 36,
@@ -8182,6 +8414,122 @@
   "tier": "full",
   "wide_slots": false,
   "width": 1024
+ },
+ "waveshareamoled241": {
+  "alert": {
+   "line": 35,
+   "title_line": 46
+  },
+  "battery": false,
+  "board": "waveshareamoled241",
+  "camera": {
+   "full": [
+    600,
+    450
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.4,
+   "model": "ESP32-S3-Touch-AMOLED-2.41",
+   "name": "Waveshare",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 311,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 39,
+   "icon_home": 54,
+   "icon_mini": 39,
+   "label": 24,
+   "setpoint": 87,
+   "sublabel": 24,
+   "sublabel_big": 30,
+   "watch_icon": 26,
+   "watch_value": 48
+  },
+  "height": 450,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      600,
+      450
+     ]
+    },
+    "columns": 2,
+    "height": 450,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 600
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      450,
+      600
+     ],
+     "thumb": [
+      345,
+      194
+     ]
+    },
+    "columns": 1,
+    "height": 600,
+    "max": [
+     2,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 450
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 78,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 78,
+   "tile_pad": 17,
+   "top": 69
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 600
  },
  "wavesharep4": {
   "alert": {

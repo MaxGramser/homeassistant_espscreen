@@ -65,7 +65,12 @@ class Rules(unittest.TestCase):
             for way in ('landscape', 'portrait'):
                 screen = {'board': board, 'orientation': way, 'firmware_known': '0.2.103'}
                 full = camera_feed.box(screen, 'full')
+                still = 'thumb' in shape['orientations'][way]['camera']
                 for picture in ((1920, 1080), (720, 720), (1080, 1440), (2560, 1080), (1080, 1920)):
+                    if not still:
+                        # An alert card with no room for a picture gets none (test_alert_layout NO_ALERT_PICTURE).
+                        self.assertIsNone(camera_feed.alert_box(screen, picture), (board, way, picture))
+                        continue
                     w, h = camera_feed.alert_box(screen, picture)
                     self.assertLessEqual(w * h, full[0] * full[1], (board, way, picture))
                     self.assertLessEqual(w, full[0], (board, way, picture))
@@ -82,6 +87,9 @@ class Rules(unittest.TestCase):
                 continue
             for way in ('landscape', 'portrait'):
                 for view in ('full', 'thumb'):
+                    if view not in shape['orientations'][way]['camera']:
+                        self.assertIsNone(camera_feed.box({'board': board, 'orientation': way}, view), (board, way, view))
+                        continue
                     w, h = camera_feed.box({'board': board, 'orientation': way}, view)
                     self.assertLessEqual(max(w, h), camera_feed.PICTURE_MAX_SIDE, (board, way, view))
                     self.assertLessEqual(w * h * 2, camera_feed.PICTURE_MAX_BYTES, (board, way, view))

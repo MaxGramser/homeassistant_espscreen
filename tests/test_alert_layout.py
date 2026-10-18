@@ -28,6 +28,10 @@ DPIS = (110, 133, 143, 149, 170, 190, 217, 294)
 SIDES = (170, 240, 272, 320, 480, 600, 800, 1024, 1280)
 # The proportions of a picture: none (no image), the default, 16:9, square, a standing doorbell (3:4), 21:9 and 9:16.
 SHAPES = ((0, 0), (392, 220), (16, 9), (1, 1), (3, 4), (21, 9), (9, 16))
+# A board with camera pictures and the way it hangs where its alert card has no room for one: the glass is too small
+# for the picture beside or above the card's words, so the card is the plain one and ESP Screens sends no still
+# (generate_board_shapes.camera_of leaves `thumb` out). Every other board and way with pictures must fit one.
+NO_ALERT_PICTURE = {('waveshareamoled241', 'landscape')}
 
 
 def title_line(look, dpi):
@@ -94,7 +98,9 @@ int main() {{
                 card = alert_layout.layout(side['width'], side['height'], title, sub, True,
                                            round(float(values['DISPLAY_DPI'])), values['LOOK'])
                 self.assertEqual(side['camera']['full'], [side['width'], side['height']], f'{board} {way}')
-                self.assertEqual(side['camera'].get('thumb'), [card.image_w, card.image_h], f'{board} {way}')
+                self.assertEqual(card.image_w == 0, (board, way) in NO_ALERT_PICTURE, f'{board} {way}')
+                self.assertEqual(side['camera'].get('thumb'), [card.image_w, card.image_h] if card.image_w else None,
+                                 f'{board} {way}')
                 # The picture fits the card it lands on, and the card the glass.
                 self.assertLessEqual(card.image_x + card.image_w, card.card_w, f'{board} {way}')
                 self.assertLessEqual(card.card_h, side['height'], f'{board} {way}')
@@ -139,6 +145,9 @@ int main() {{
                     card = alert_layout.layout(side['width'], side['height'], shape['alert']['title_line'],
                                                shape['alert']['line'], True, shape['dpi'], shape['look'], aw, ah)
                     self.assertEqual(card.button_x + card.button_w + card.button_inset, card.card_w, (board, way, aw, ah))
+                    if (board, way) in NO_ALERT_PICTURE:
+                        self.assertEqual(card.image_w, 0, (board, way, aw, ah))
+                        continue
                     self.assertGreater(card.image_w, 0, (board, way, aw, ah))
                     # The frame has the picture's own proportions, to within the rounding of a pixel.
                     self.assertAlmostEqual(card.image_w / card.image_h, aw / ah, delta=0.02 * aw / ah + 1 / card.image_h,
