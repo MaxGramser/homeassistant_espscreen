@@ -314,6 +314,100 @@
   "wide_slots": true,
   "width": 320
  },
+ "checkout/freenovefnk0104s.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 27
+  },
+  "battery": false,
+  "board": "freenovefnk0104s",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "FNK0104S",
+   "name": "Freenove",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 144,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 23,
+   "icon_home": 29,
+   "icon_mini": 22,
+   "label": 15,
+   "setpoint": 54,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 15,
+   "watch_value": 32
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     7
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 46,
+   "gap": 10,
+   "gap_y": 10,
+   "margin": 14,
+   "page_bar": 40,
+   "tile_pad": 10,
+   "top": 48
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "checkout/guition.yaml": {
   "alert": {
    "line": 25,
@@ -3087,6 +3181,100 @@
   "wide_slots": true,
   "width": 320
  },
+ "freenovefnk0104s": {
+  "alert": {
+   "line": 21,
+   "title_line": 27
+  },
+  "battery": false,
+  "board": "freenovefnk0104s",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "FNK0104S",
+   "name": "Freenove",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 144,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 23,
+   "icon_home": 29,
+   "icon_mini": 22,
+   "label": 15,
+   "setpoint": 54,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 15,
+   "watch_value": 32
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     7
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 46,
+   "gap": 10,
+   "gap_y": 10,
+   "margin": 14,
+   "page_bar": 40,
+   "tile_pad": 10,
+   "top": 48
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "guition": {
   "alert": {
    "line": 25,
@@ -4618,6 +4806,100 @@
   "tier": "lite",
   "wide_slots": true,
   "width": 320
+ },
+ "packages/freenovefnk0104s.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 27
+  },
+  "battery": false,
+  "board": "freenovefnk0104s",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "FNK0104S",
+   "name": "Freenove",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 144,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 23,
+   "icon_home": 29,
+   "icon_mini": 22,
+   "label": 15,
+   "setpoint": 54,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 15,
+   "watch_value": 32
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     7
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 46,
+   "gap": 10,
+   "gap_y": 10,
+   "margin": 14,
+   "page_bar": 40,
+   "tile_pad": 10,
+   "top": 48
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
  },
  "packages/guition.yaml": {
   "alert": {

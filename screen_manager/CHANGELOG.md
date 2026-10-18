@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **Experimental Freenove FNK0104S support.** Tessera can now build the 4-inch ESP32-S3 board with its ST7796 display
+  and capacitive touch.
+
 - **A new screen swipes out of the box.** A screen set up with New screen now has Swipe between pages on from the
   start, so it swipes through its pages, opens its settings from the top edge and opens the Dock from the bottom edge
   without turning anything on first. Screens you already have keep the setting they have through the update. Turn it

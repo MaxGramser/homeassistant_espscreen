@@ -1,0 +1,92 @@
+# ESP Screens - Freenove FNK0104S: a 4.0-inch 320 x 480 panel using
+# an ST7796 display controller and FT6336-compatible capacitive touch.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "freenovefnk0104s"
+  DEVICE_NAME: "freenovefnk0104s-new"
+  DEVICE_FRIENDLY_NAME: "My freenove fnk0104s"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 4.0 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "144.222"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+spi:
+  id: lcd
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+
+i2c:
+  id: touch_bus
+  sda: GPIO16
+  scl: GPIO15
+  scan: true
+
+output:
+  - platform: ledc
+    pin: GPIO45
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO17
+    reset_pin: GPIO18
+    update_interval: 20ms
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ST7796
+    spi_id: lcd
+    dimensions:
+      width: 320
+      height: 480
+    color_order: rgb
+    # The FNK0104S panel inverts the ST7796's normal output: without this, the light and dark looks appear reversed.
+    invert_colors: true
+    dc_pin: GPIO46
+    cs_pin: GPIO10
+    spi_mode: MODE0
+    data_rate: 10MHz
+    update_interval: never
+    auto_clear_enabled: false
