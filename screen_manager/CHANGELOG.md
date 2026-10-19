@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Existing speaker groups are selectable.** The media player's speaker menu now offers Google Cast and Music Assistant speaker entities as playback destinations, including groups from a different integration. These destinations are selected directly and are not sent through Home Assistant's dynamic join action.
+
 - **A new screen swipes out of the box.** A screen set up with New screen now has Swipe between pages on from the
   start, so it swipes through its pages, opens its settings from the top edge and opens the Dock from the bottom edge
   without turning anything on first. Screens you already have keep the setting they have through the update. Turn it
