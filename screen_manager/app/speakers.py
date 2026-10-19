@@ -46,6 +46,12 @@ def features(state):
     return value if isinstance(value, int) and not isinstance(value, bool) else 0
 
 
+def has_group_members(state):
+    """Whether Home Assistant reports this player as a pre-existing group."""
+    found = ((state or {}).get('attributes') or {}).get('group_members')
+    return isinstance(found, list) and any(isinstance(e, str) for e in found)
+
+
 def name_of(entity, states):
     """The name Home Assistant shows for a player."""
     state = states.get(entity) or {}
@@ -75,7 +81,7 @@ def group_mates(entity, states, platform_of):
         return []
     return [e for e, state in states.items()
             if isinstance(e, str) and e.startswith('media_player.') and e != entity and platform_of(e) == platform
-            and features(state) & GROUPING and (state or {}).get('state') not in GONE[:2]]
+            and features(state) & GROUPING and not has_group_members(state) and (state or {}).get('state') not in GONE[:2]]
 
 
 def holds_account(root_ids, entry_id):
@@ -141,6 +147,20 @@ def menu(entity, states, platform_of, holders=(), output=None):
                 continue
             on = other in now
             row(name_of(other, states), entity=other, on=on, groups=True, volume=volume_of(other, states) if on else -1)
+    # Existing speaker entities can also be playback destinations, even when they belong to another integration and
+    # cannot be joined dynamically. A non-empty group_members marks a pre-existing group; the HA media-player
+    # device_class identifies speaker entities such as Google Cast and Music Assistant players.
+    destinations = [e for e, item in states.items()
+                    if isinstance(e, str) and e.startswith('media_player.') and e != entity and e not in holders
+                    and (item or {}).get('state') not in GONE[:2]
+                    and (((item or {}).get('attributes') or {}).get('device_class') == 'speaker' or has_group_members(item))]
+    destinations.sort(key=lambda e: (not has_group_members(states.get(e)), name_of(e, states).lower()))
+    for other in destinations:
+        if any(r['entity'] == other for r in rows):
+            continue
+        on = bool(target and other in members(target, states))
+        row(name_of(other, states), entity=other, on=on, groups=False,
+            volume=volume_of(other, states) if on else -1, plays=True)
     # Speakers that play this player's library: the one it follows and those with it are ticked, and they group
     # among themselves. Before anything plays on one, every speaker that groups shows its plus all the same: the first
     # one starts the music there, the next ones join it.
@@ -150,7 +170,8 @@ def menu(entity, states, platform_of, holders=(), output=None):
         if other == entity or (states.get(other) or {}).get('state') in GONE[:2]:
             continue
         on = other in with_target
-        groups = (other == target or other in lead_mates) if target else bool(features(states.get(other)) & GROUPING)
+        groups = ((other == target or other in lead_mates) if target else
+                  bool(features(states.get(other)) & GROUPING) and not has_group_members(states.get(other)))
         row(name_of(other, states), entity=other, on=on, groups=groups, volume=volume_of(other, states) if on else -1, plays=True)
     rows = rows[:ROWS]
     if target:
