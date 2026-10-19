@@ -46,6 +46,12 @@ def features(state):
     return value if isinstance(value, int) and not isinstance(value, bool) else 0
 
 
+def has_group_members(state):
+    """Whether Home Assistant reports this player as a pre-existing group."""
+    found = ((state or {}).get('attributes') or {}).get('group_members')
+    return isinstance(found, list) and any(isinstance(e, str) for e in found)
+
+
 def name_of(entity, states):
     """The name Home Assistant shows for a player."""
     state = states.get(entity) or {}
@@ -113,17 +119,18 @@ def menu(entity, states, platform_of, holders=(), output=None):
     rows, inputs = [], []
     target = target_of(entity, states, output)
 
-    def row(name, source=None, entity=None, on=False, groups=False, volume=-1, plays=False):
+    def row(name, source=None, entity=None, on=False, groups=False, volume=-1, plays=False, pick_only=False):
         # One row per name: a Spotify Connect device that is also a speaker of its own is one speaker.
         found = next((r for r in rows if r['name'] == name), None)
         if found is None:
-            found = {'name': name, 'source': None, 'entity': None, 'on': False, 'groups': False, 'volume': -1, 'plays': False}
+            found = {'name': name, 'source': None, 'entity': None, 'on': False, 'groups': False, 'volume': -1, 'plays': False, 'pick_only': False}
             rows.append(found)
         found['plays'] = found['plays'] or plays
+        found['pick_only'] = found['pick_only'] or pick_only
         found['source'] = found['source'] or source
         found['entity'] = found['entity'] or entity
         found['on'] = found['on'] or on
-        found['groups'] = found['groups'] or groups
+        found['groups'] = (found['groups'] or groups) and not found['pick_only']
         found['volume'] = max(found['volume'], volume)
 
     if platform in SOURCE_SPEAKERS:
@@ -141,6 +148,22 @@ def menu(entity, states, platform_of, holders=(), output=None):
                 continue
             on = other in now
             row(name_of(other, states), entity=other, on=on, groups=True, volume=volume_of(other, states) if on else -1)
+    # Existing speaker entities can also be playback destinations, even when they belong to another integration and
+    # cannot be joined dynamically. A non-empty group_members marks a pre-existing group; the HA media-player
+    # device_class identifies speaker entities such as Google Cast and Music Assistant players.
+    destinations = [e for e, item in states.items()
+                    if isinstance(e, str) and e.startswith('media_player.') and e != entity and e not in holders
+                    and (item or {}).get('state') not in GONE[:2]
+                    and (((item or {}).get('attributes') or {}).get('device_class') == 'speaker' or has_group_members(item))]
+    destinations.sort(key=lambda e: (not has_group_members(states.get(e)), name_of(e, states).lower()))
+    for other in destinations:
+        on = bool(target and other in members(target, states))
+        pick_only = (platform_of(other) == 'cast' or
+                     (platform_of(other) == 'mass' and has_group_members(states.get(other))))
+        if any(r['entity'] == other for r in rows) and not pick_only:
+            continue
+        row(name_of(other, states), entity=other, on=on, groups=False,
+            volume=volume_of(other, states) if on else -1, plays=True, pick_only=True)
     # Speakers that play this player's library: the one it follows and those with it are ticked, and they group
     # among themselves. Before anything plays on one, every speaker that groups shows its plus all the same: the first
     # one starts the music there, the next ones join it.
@@ -150,7 +173,8 @@ def menu(entity, states, platform_of, holders=(), output=None):
         if other == entity or (states.get(other) or {}).get('state') in GONE[:2]:
             continue
         on = other in with_target
-        groups = (other == target or other in lead_mates) if target else bool(features(states.get(other)) & GROUPING)
+        groups = ((other == target or other in lead_mates) if target else
+                  bool(features(states.get(other)) & GROUPING) and not has_group_members(states.get(other)))
         row(name_of(other, states), entity=other, on=on, groups=groups, volume=volume_of(other, states) if on else -1, plays=True)
     rows = rows[:ROWS]
     if target:
@@ -198,7 +222,7 @@ def plan(entity, found, row, op, states, volume=None):
     lead = found['target'] or entity
     if op == 'volume' and other and isinstance(volume, int):
         return [('media_player', 'volume_set', {'entity_id': other, 'volume_level': max(0, min(100, volume)) / 100})], None
-    if op == 'leave' and other and row['on'] and row['groups']:
+    if op == 'leave' and other and row['on'] and row['groups'] and not row.get('pick_only'):
         # The last one left keeps playing: a group of one has nothing to leave.
         together = members(lead, states)
         if len(together) < 2:
@@ -207,9 +231,9 @@ def plan(entity, found, row, op, states, volume=None):
         if other == found['target']:
             follow = next((e for e in together if e != other), '')
         return [('media_player', 'unjoin', {'entity_id': other})], follow
-    if op in ('join', 'pick') and other and row['groups'] and not row['on'] and not (row['plays'] and not found['target']):
+    if op in ('join', 'pick') and other and row['groups'] and not row['on'] and not row.get('pick_only') and not (row['plays'] and not found['target']):
         return [('media_player', 'join', {'entity_id': lead, 'group_members': [other]})], None
-    if op == 'join' and row['plays'] and not found['target']:
+    if op == 'join' and row['plays'] and (not found['target'] or row.get('pick_only')):
         op = 'pick'   # the first speaker of a library: the music starts there, the next ones join it
     if op != 'pick' or row['on']:
         return [], None
