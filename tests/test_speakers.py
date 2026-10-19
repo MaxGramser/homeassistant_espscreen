@@ -142,6 +142,16 @@ class Groups(unittest.TestCase):
                                                                   'media_content_id': 'spotify:track:abc'}),
                                  ('media_player', 'media_pause', {'entity_id': 'media_player.spotify_account'})])
         self.assertEqual(follow, 'media_player.ma_group')
+        # A pre-existing group remains a direct target even when the card already follows another speaker.
+        paused = house(**{'media_player.cast_group': cast_group, 'media_player.ma_group': ma_group,
+                          'media_player.spotify_account': {'state': 'paused', 'attributes': {
+                              'friendly_name': 'Spotify', 'supported_features': 2048 | 512,
+                              'media_content_id': 'spotify:track:abc', 'media_content_type': 'music'}}})
+        followed = menu('media_player.spotify_account', paused, output='media_player.living_room')
+        ma = speakers.find(followed, 'Downstairs Music Assistant')
+        steps, follow = speakers.plan('media_player.spotify_account', followed, ma, 'join', paused)
+        self.assertEqual(steps, [])
+        self.assertEqual(follow, 'media_player.ma_group')
 
     def test_an_unavailable_speaker_is_not_listed(self):
         states = house(**{'media_player.bedroom': {'state': 'unavailable', 'attributes': {'friendly_name': 'Bedroom', 'supported_features': SONOS_FEATURES}}})
