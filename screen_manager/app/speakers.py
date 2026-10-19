@@ -81,7 +81,7 @@ def group_mates(entity, states, platform_of):
         return []
     return [e for e, state in states.items()
             if isinstance(e, str) and e.startswith('media_player.') and e != entity and platform_of(e) == platform
-            and features(state) & GROUPING and not has_group_members(state) and (state or {}).get('state') not in GONE[:2]]
+            and features(state) & GROUPING and (state or {}).get('state') not in GONE[:2]]
 
 
 def holds_account(root_ids, entry_id):
@@ -119,17 +119,18 @@ def menu(entity, states, platform_of, holders=(), output=None):
     rows, inputs = [], []
     target = target_of(entity, states, output)
 
-    def row(name, source=None, entity=None, on=False, groups=False, volume=-1, plays=False):
+    def row(name, source=None, entity=None, on=False, groups=False, volume=-1, plays=False, pick_only=False):
         # One row per name: a Spotify Connect device that is also a speaker of its own is one speaker.
         found = next((r for r in rows if r['name'] == name), None)
         if found is None:
-            found = {'name': name, 'source': None, 'entity': None, 'on': False, 'groups': False, 'volume': -1, 'plays': False}
+            found = {'name': name, 'source': None, 'entity': None, 'on': False, 'groups': False, 'volume': -1, 'plays': False, 'pick_only': False}
             rows.append(found)
         found['plays'] = found['plays'] or plays
+        found['pick_only'] = found['pick_only'] or pick_only
         found['source'] = found['source'] or source
         found['entity'] = found['entity'] or entity
         found['on'] = found['on'] or on
-        found['groups'] = found['groups'] or groups
+        found['groups'] = (found['groups'] or groups) and not found['pick_only']
         found['volume'] = max(found['volume'], volume)
 
     if platform in SOURCE_SPEAKERS:
@@ -156,11 +157,13 @@ def menu(entity, states, platform_of, holders=(), output=None):
                     and (((item or {}).get('attributes') or {}).get('device_class') == 'speaker' or has_group_members(item))]
     destinations.sort(key=lambda e: (not has_group_members(states.get(e)), name_of(e, states).lower()))
     for other in destinations:
-        if any(r['entity'] == other for r in rows):
-            continue
         on = bool(target and other in members(target, states))
+        pick_only = (platform_of(other) == 'cast' or
+                     (platform_of(other) == 'mass' and has_group_members(states.get(other))))
+        if any(r['entity'] == other for r in rows) and not pick_only:
+            continue
         row(name_of(other, states), entity=other, on=on, groups=False,
-            volume=volume_of(other, states) if on else -1, plays=True)
+            volume=volume_of(other, states) if on else -1, plays=True, pick_only=True)
     # Speakers that play this player's library: the one it follows and those with it are ticked, and they group
     # among themselves. Before anything plays on one, every speaker that groups shows its plus all the same: the first
     # one starts the music there, the next ones join it.
@@ -219,7 +222,7 @@ def plan(entity, found, row, op, states, volume=None):
     lead = found['target'] or entity
     if op == 'volume' and other and isinstance(volume, int):
         return [('media_player', 'volume_set', {'entity_id': other, 'volume_level': max(0, min(100, volume)) / 100})], None
-    if op == 'leave' and other and row['on'] and row['groups']:
+    if op == 'leave' and other and row['on'] and row['groups'] and not row.get('pick_only'):
         # The last one left keeps playing: a group of one has nothing to leave.
         together = members(lead, states)
         if len(together) < 2:
@@ -228,9 +231,9 @@ def plan(entity, found, row, op, states, volume=None):
         if other == found['target']:
             follow = next((e for e in together if e != other), '')
         return [('media_player', 'unjoin', {'entity_id': other})], follow
-    if op in ('join', 'pick') and other and row['groups'] and not row['on'] and not (row['plays'] and not found['target']):
+    if op in ('join', 'pick') and other and row['groups'] and not row['on'] and not row.get('pick_only') and not (row['plays'] and not found['target']):
         return [('media_player', 'join', {'entity_id': lead, 'group_members': [other]})], None
-    if op == 'join' and row['plays'] and not found['target']:
+    if op == 'join' and row['plays'] and (not found['target'] or row.get('pick_only')):
         op = 'pick'   # the first speaker of a library: the music starts there, the next ones join it
     if op != 'pick' or row['on']:
         return [], None
