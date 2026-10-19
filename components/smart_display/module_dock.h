@@ -1,7 +1,7 @@
 // The dock (module dock, tier full; docs/MODULES.md). Up from the bottom edge opens a drawer along
-// the bottom of the glass with every page as a small picture and its name under it, two rows of them; a tap on one
-// goes there, a tap above the drawer or a drag down closes it. A lite screen goes home on that swipe, as it always
-// did, and compiles none of this.
+// the bottom of the glass with every page as a small picture and its name under it, two rows of them (one on glass too
+// low for two); a tap on one goes there, a tap above the drawer or a drag down closes it. A lite screen goes home on
+// that swipe, as it always did, and compiles none of this.
 //
 // Each direction has one meaning: up and down open and close the drawer, sideways leafs through the pages when they
 // do not all fit, one drawer's width at a time with a dot for each. The pictures are as large as the glass allows:
@@ -328,22 +328,40 @@ inline bool build(bool finger) {
   // than that), each picture at most 32 mm, and so many that the drawer stays within half the glass.
   auto item_w_of = [&](int cols) { return (room_w - (cols - 1) * gap) / cols; };
   // A picture has the glass's proportions, whatever the drawer's width.
-  auto item_h_of = [&](int cols) { return inset + (item_w_of(cols) - 2 * inset) * H / glass + ui::mm(1) + line + inset; };
-  // One row when every page fits in it, two otherwise; the dots when they do not all fit in two.
-  auto rows_of = [&](int cols) { return pages > cols ? 2 : 1; };
+  auto item_h_for = [&](int item_w) { return inset + (item_w - 2 * inset) * H / glass + ui::mm(1) + line + inset; };
+  auto item_h_of = [&](int cols) { return item_h_for(item_w_of(cols)); };
+  // One row when every page fits in it, two otherwise (`most_rows`, below); the dots when they do not all fit in those.
+  int most_rows = 2;
+  auto rows_of = [&](int cols) { return pages > cols ? most_rows : 1; };
   auto drawer_of = [&](int cols) {
-    return grab + rows_of(cols) * item_h_of(cols) + (rows_of(cols) - 1) * gap + (pages > 2 * cols ? dots_h : 0) + pad;
+    const int dots = pages > most_rows * cols ? dots_h : 0;
+    return grab + rows_of(cols) * item_h_of(cols) + (rows_of(cols) - 1) * gap + dots + pad;
   };
   const int most = std::max(1, (room_w + gap) / (ui::mm(13) + gap));
   // No picture wider than 32 mm, so a few pages stand side by side in one row instead of two rows of large ones.
   const int fewest = (room_w + gap + ui::mm(32) + gap - 1) / (ui::mm(32) + gap);
   int cols = std::min(std::max({1, (pages + 1) / 2, fewest}), most);
   while (cols < most && drawer_of(cols) > H / 2) ++cols;
-  const int per_view = 2 * cols;
+  // Glass too low for two rows of pictures at their smallest (the Waveshare 3.5-inch standing up) takes one row, and
+  // the strip scrolls sideways through the rest; the drawer leaves a finger's height of the glass above it (below).
+  if (drawer_of(cols) > H - ui::touch_min()) most_rows = 1;
+  const int per_view = most_rows * cols;
   views = (pages + per_view - 1) / per_view;
-  const int item_w = item_w_of(cols), item_h = item_h_of(cols), pic_w = item_w - 2 * inset, pic_h = pic_w * H / glass;
-  const int rows = rows_of(cols), band = rows * item_h + (rows - 1) * gap;
-  drawer_h = drawer_of(cols);
+  int item_w = item_w_of(cols), item_h = item_h_of(cols), left = pad;
+  const int rows = rows_of(cols);
+  // The drawer leaves a finger's height of the glass above it for the tap that closes it, and takes at most three
+  // quarters of the glass, so a drag down past a quarter of it stays a short one. Where its pictures would reach higher
+  // (a single column on narrow glass standing up), they get smaller and their row stands in the middle.
+  const int frame = drawer_of(cols) - rows * item_h;
+  const int tallest = (std::min(H - ui::touch_min(), H * 3 / 4) - frame) / rows;
+  if (item_h > tallest) {
+    // What a page's picture may be once its name and its insets have their height (item_h_for of no picture).
+    item_w = std::min(item_w, std::max(1, tallest - item_h_for(2 * inset)) * glass / H + 2 * inset);
+    item_h = item_h_for(item_w);
+    left = (W - cols * item_w - (cols - 1) * gap) / 2;
+  }
+  const int pic_w = item_w - 2 * inset, pic_h = pic_w * H / glass, band = rows * item_h + (rows - 1) * gap;
+  drawer_h = frame + rows * item_h;
   // The drawer reaches below the glass by its corner and the overshoot's way, so the bottom never shows a gap.
   below = std::max(ui::mm(5), drawer_h / 8);
 
@@ -391,7 +409,7 @@ inline bool build(bool finger) {
       lv_obj_remove_style_all(item);
       lv_obj_remove_flag(item, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_add_flag(item, LV_OBJ_FLAG_EVENT_BUBBLE);
-      lv_obj_set_pos(item, pad + col * (item_w + gap), row * (item_h + gap));
+      lv_obj_set_pos(item, left + col * (item_w + gap), row * (item_h + gap));
       lv_obj_set_size(item, item_w, item_h);
       lv_obj_set_style_radius(item, ui::mm(3), 0);
       // Under a finger the page dims a little; the page on the glass has its ring and its name in the accent.

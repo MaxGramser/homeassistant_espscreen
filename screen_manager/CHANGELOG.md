@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **The Dock fits small screens standing up.** On a small screen held upright, such as the Waveshare 3.5-inch, the
+  Dock's two rows of pages reached past the top of the glass. Where two rows do not fit, it now shows one row and
+  swipes sideways through the rest, and it always leaves room above it to tap it closed.
 - **A new screen swipes out of the box.** A screen set up with New screen now has Swipe between pages on from the
   start, so it swipes through its pages, opens its settings from the top edge and opens the Dock from the bottom edge
   without turning anything on first. Screens you already have keep the setting they have through the update. Turn it
