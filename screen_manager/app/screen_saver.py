@@ -64,6 +64,10 @@ MEDIA_SOURCE = re.compile(r'^media-source://[^\s]{1,500}$')
 # entity that reports one, '' shows none, and a weather entity of your choice is that one.
 # `more` (app 0.4.54): the players the music step tries after `media`, in their order. The step shows the first of them
 # that plays with a cover: a speaker's own music first, say, and the poster of what the television under it plays next.
+# `play_on`: per player of the music step, the devices it counts on, by the names Home Assistant gives its `source` (the
+# Spotify Connect device Spotify plays on, a Sonos's TV input). A player with names counts only while its source is one
+# of them, so the living room's screen shows Spotify while it plays on the television and not on a phone. A player
+# without names counts wherever it plays.
 # `items` (app 0.4.81): entities the clock shows beside the temperature, in one centred row: the top bar's entity items,
 # each with its state or its icon alone (content `state` or `icon`, with the icon `auto`, `none` or a named one).
 # `face` (clock_faces): the clock's face, `digital` (every screen), `glass`, `classic` or `bauhaus`; `numerals` the numbers
@@ -76,8 +80,10 @@ NUMERALS = (0, 4, 12)
 # it belongs to (a step of a plugin of an entity), {key: {'options': {...}, 'entity': ''}}.
 DEFAULT = {'show': False, 'media': '', 'camera': '', 'order': list(KINDS), 'off': [], 'weather': 'auto', 'more': [],
            'items': [], 'face': 'digital', 'numerals': 4, 'seconds': True, 'look': 'dark', 'photos': dict(PHOTOS_DEFAULT),
-           'media_face': '', 'photos_face': '', 'plugins': {}}
+           'media_face': '', 'photos_face': '', 'plugins': {}, 'play_on': {}}
 ITEMS_MAX = 4
+PLAY_ON_NAMES = 8
+PLAY_ON_LENGTH = 100
 MORE_PLAYERS = 3
 ENTITY = re.compile(r'[a-z0-9_]+\.[a-z0-9_]+')
 DOMAINS = {'media': ('media_player',), 'camera': ('camera', 'image')}
@@ -92,7 +98,7 @@ def validate(value):
     if not isinstance(value, dict) or set(value) - set(DEFAULT):
         raise ValueError('screensaver fields')
     result = {**DEFAULT, 'order': list(DEFAULT['order']), 'off': [], 'more': [], 'items': [],
-              'photos': dict(PHOTOS_DEFAULT), 'plugins': {}}
+              'photos': dict(PHOTOS_DEFAULT), 'plugins': {}, 'play_on': {}}
     if 'show' in value:
         if not isinstance(value['show'], bool):
             raise ValueError('screensaver show')
@@ -110,6 +116,8 @@ def validate(value):
                 or entity.split('.')[0] not in DOMAINS['media'] or entity == result['media'] for entity in more):
             raise ValueError('screensaver more')
         result['more'] = list(more)
+    if 'play_on' in value:
+        result['play_on'] = valid_play_on(value['play_on'], players(result))
     if 'weather' in value:
         weather = value['weather']
         if not isinstance(weather, str) or (weather not in ('auto', '') and (
@@ -205,6 +213,21 @@ def valid_plugins(value):
     return result
 
 
+def valid_play_on(value, chosen):
+    """The devices each player counts on: a list of source names per player of the step. A player that left the step
+    takes its names along, and a player without names is left out, as it counts anywhere."""
+    if not isinstance(value, dict):
+        raise ValueError('screensaver play_on')
+    result = {}
+    for entity, names in value.items():
+        if not isinstance(names, list) or len(names) > PLAY_ON_NAMES or len(set(names)) != len(names) or any(
+                not isinstance(name, str) or not name.strip() or len(name) > PLAY_ON_LENGTH for name in names):
+            raise ValueError('screensaver play_on')
+        if entity in chosen and names:
+            result[entity] = list(names)
+    return result
+
+
 def valid_items(items):
     """The clock's entity items, checked as the top bar checks its own (core.validate_header): entity items only, shown
     always, with their state or their icon."""
@@ -253,6 +276,16 @@ def players(choice):
     return [entity for entity in (choice.get('media'), *(choice.get('more') or ())) if entity]
 
 
+def plays_here(entity, choice, states):
+    """Whether a player plays on a device the step counts it on (`play_on`): anywhere without names, else only while its
+    `source` is one of them."""
+    names = (choice.get('play_on') or {}).get(entity)
+    if not names:
+        return True
+    source = ((states.get(entity) or {}).get('attributes') or {}).get('source')
+    return isinstance(source, str) and source.strip() in {name.strip() for name in names}
+
+
 def _has_cover(state, words=PLAYING):
     attrs = (state or {}).get('attributes') or {}
     return (state or {}).get('state') in words and any(isinstance(attrs.get(name), str) and attrs.get(name)
@@ -274,10 +307,11 @@ def player(choice, states, keys=False, now=None, held='', broken=()):
     """The player the music step shows now, or '' for none: the first of its players that plays with a cover. On a
     screen with keys (KEYS_FEATURE) a player paused a short while ago counts after those, the first of them in the
     order, with the cover Home Assistant still has for it. `held` is the player the screen shows: paused just now, it
-    stays before every other (HELD_SECONDS). A player in `broken` has a cover that could not be fetched
+    stays before every other (HELD_SECONDS). A player that plays on a device the step does not count it on (`play_on`)
+    is passed over, paused or held alike. A player in `broken` has a cover that could not be fetched
     (picture_sources.Snapshots.cover_broken) and counts as one without a cover: the glass would stay black where it never comes."""
     now = time.time() if now is None else now
-    tried = [entity for entity in players(choice) if entity not in broken]
+    tried = [entity for entity in players(choice) if entity not in broken and plays_here(entity, choice, states)]
     if keys and held in tried and _has_cover(states.get(held), PAUSED) and _paused_lately(states.get(held), now, HELD_SECONDS):
         return held
     found = next((entity for entity in tried if _has_cover(states.get(entity))), '')
@@ -507,7 +541,8 @@ class ScreenSavers:
                 'more': list(choice.get('more') or ()), 'items': [dict(item) for item in choice.get('items') or ()],
                 'photos': dict(choice.get('photos') or PHOTOS_DEFAULT),
                 'plugins': {key: {'options': dict(value['options']), 'entity': value['entity']}
-                            for key, value in (choice.get('plugins') or {}).items()}}
+                            for key, value in (choice.get('plugins') or {}).items()},
+                'play_on': {entity: list(names) for entity, names in (choice.get('play_on') or {}).items()}}
 
     def set(self, device, value):
         choice = validate(value)

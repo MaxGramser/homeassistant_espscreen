@@ -126,12 +126,12 @@ export const useScreenStore = defineStore("screen", () => {
     const edit = ++saverEdits;
     try {
       const { show, media, camera, order, off, weather = "auto", more = [], items = [], face = "digital", numerals = 4, seconds = true, look = "dark",
-        media_face = "", photos_face = "", plugins = {} } = next;
+        media_face = "", photos_face = "", plugins = {}, play_on = {} } = next;
       // The photos step's choice (app 0.4.89); a screen listed by an older app has only its flag there.
       const photos = next.photos && typeof next.photos === "object" ? next.photos : { source: "", every: 60, order: "shuffle", fit: "auto" };
       const result = await send<{ screensaver: ScreensaverChoice }>(`screens/${encodeURIComponent(screen.id)}/screensaver`, "PUT",
         { screensaver: { show, media, camera, order, off, weather, more, items: items.map(({ id: _id, ...item }) => item), face, numerals, seconds, look,
-          photos, media_face, photos_face, plugins } });
+          photos, media_face, photos_face, plugins, play_on } });
       if (result?.screensaver && edit === saverEdits) screen.screensaver = { ...next, ...result.screensaver };
     } catch (e: any) {
       if (edit === saverEdits) screen.screensaver = { ...before };

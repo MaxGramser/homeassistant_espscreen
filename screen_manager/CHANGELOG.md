@@ -1,5 +1,10 @@
 ## Unreleased
 
+- **The screensaver's music only on the devices you choose (GitHub #182).** In the drawer of Music playing, **Only on
+  these devices** lists the devices each player plays on, as Home Assistant names its sources (Spotify Connect's
+  devices for Spotify). Choose some and the player shows on the screensaver only while it plays on one of them: the
+  living room's screen shows Spotify while it plays on the television, not on a laptop or a phone. With none chosen a
+  player shows wherever it plays, as before. No new firmware is needed.
 - **Pictures in one system (docs/PICTURES.md).** Every picture a screen shows now goes one way: the camera full
   screen, a camera's or a cover's tile, a map, the media card's cover, a player's library, a vacuum's map, the
   screensaver's cover, camera and photos, an alert's picture and a plugin's places. A screen asks for each as one

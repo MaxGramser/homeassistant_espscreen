@@ -163,12 +163,15 @@ export type SaverPhotos = { source: string; every: number; order: "shuffle" | "i
 export type SaverPluginSetting = { options: Record<string, PluginValue>; entity: string };
 // `weather` (app 0.4.52): the temperature under the clock, "auto" for Home Assistant's first weather entity, "" for none.
 // `more` (app 0.4.54): the players the music step tries after `media`, in their order.
+// `play_on` (GitHub #182): per player, the devices it counts on by Home Assistant's `source` of it (Spotify Connect's
+// device); a player without names counts wherever it plays.
 // `face` and the rest (module clock_faces): the clock's face, Glass's numerals, the seconds hand and the face's look;
 // `face` may also be a plugin's face of the clock, and `media_face`, `photos_face` a plugin's face of those steps ('' for
 // the screen's own). `plugins`: the options and entity of each plugin face or step, by its key.
 export type ScreensaverChoice = { show: boolean; media: string; camera: string; order: SaverStep[]; off: SaverStep[]; weather?: string; more?: string[]; items?: HeaderItem[];
   face?: "digital" | "glass" | "classic" | "bauhaus" | PluginSaverKey; numerals?: number; seconds?: boolean; look?: "dark" | "light" | "auto";
-  photos?: SaverPhotos; media_face?: "" | PluginSaverKey; photos_face?: "" | PluginSaverKey; plugins?: Record<string, SaverPluginSetting> };
+  photos?: SaverPhotos; media_face?: "" | PluginSaverKey; photos_face?: "" | PluginSaverKey; plugins?: Record<string, SaverPluginSetting>;
+  play_on?: Record<string, string[]> };
 // `faces`: the screen's board has the clock's faces (docs/MODULES.md). `photos_step`: the screen's firmware takes the photos step.
 export type ScreensaverView = ScreensaverChoice & { ready: boolean; pictures: boolean; standby: boolean; faces?: boolean; photos_step?: boolean };
 export type SettingsView = { owner: string; keys: string[]; values: Record<string, any>; unavailable: string[]; rotations?: number[]; switches?: string[]; calibrate?: boolean };

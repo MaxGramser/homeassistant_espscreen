@@ -4,7 +4,7 @@
 // an inspector of its own with its row of entities at the head (SaverClock.vue, app 0.4.89).
 // Since app 0.4.89 also the photos (their folder, pace, order and fit) and a plugin's step of its own (its entity and
 // options, and Remove); the music and the photos can show a plugin's face instead of the screen's own.
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { t } from "../i18n";
 import { useSortableRows } from "../composables/useSortableRows";
 import { text, type PluginTileOption } from "../model/plugins";
@@ -18,13 +18,16 @@ import InspectorHead from "./ui/InspectorHead.vue";
 import PropRow from "./ui/PropRow.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
+import UiChips from "./ui/UiChips.vue";
 import UiPicker from "./ui/UiPicker.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import { useEntitiesStore } from "../stores/entities";
 import { usePluginsStore } from "../stores/plugins";
 import { MAX_PLAYERS, PHOTO_EVERY, PHOTO_FITS, PHOTO_MOTIONS, PHOTO_ORDERS, isPluginKey, useScreensaverStore, type FaceStep } from "../stores/screensaver";
 import { useInspectorStore } from "../stores/inspector";
+import { useDocumentStore } from "../stores/document";
 
+const doc = useDocumentStore();
 const entities = useEntitiesStore();
 const plugins = usePluginsStore();
 const screensaver = useScreensaverStore();
@@ -73,6 +76,16 @@ const free = computed(() => screensaver.entitiesOf("media", screensaver.players)
 const freeItems = computed(() => free.value.map((e) => ({ id: e.id, name: e.name, hint: e.area })));
 const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", items: () => screensaver.players, commit: screensaver.setPlayers, skip: "button", grip: ".grip",
   enabled: () => screensaver.saverReady && screensaver.players.length > 1 });
+
+// ---- Where each player counts (GitHub #182): the devices Home Assistant lists as its sources (Spotify Connect's), and
+// those chosen before, also while they are offline. A player without sources has nothing to choose.
+watch(() => (props.step === "media" ? screensaver.players : []), (ids) => ids.length && entities.loadLibraryStates(ids, doc.stillSelected()), { immediate: true });
+function devicesOf(id: string) {
+  const listed = entities.liveOf(id)?.a.source_list;
+  const names = [...(Array.isArray(listed) ? listed.filter((name): name is string => typeof name === "string") : []), ...screensaver.playOnOf(id)];
+  return [...new Set(names)].map((name) => ({ value: name, label: name }));
+}
+const withDevices = computed(() => screensaver.players.map((id) => ({ id, devices: devicesOf(id) })).filter((row) => row.devices.length));
 </script>
 
 <template>
@@ -102,6 +115,14 @@ const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", ite
           </template>
         </UiPicker>
         <small class="help">{{ T("players_hint") }}</small>
+      </Section>
+      <Section v-if="withDevices.length" :title="T('play_on_title')">
+        <div v-for="row in withDevices" :key="row.id" class="saver-play-on">
+          <b>{{ entities.entityName(row.id) }}</b>
+          <UiChips :model-value="screensaver.playOnOf(row.id)" :chips="row.devices" :label="T('play_on_label', { name: entities.entityName(row.id) })"
+            @update:model-value="(names: string[]) => screensaver.setPlayOn(row.id, names)" />
+        </div>
+        <small class="help">{{ T("play_on_hint") }}</small>
       </Section>
       <p class="hint saver-foot-hint">{{ T("keys_hint") }}</p>
     </template>
@@ -176,6 +197,7 @@ const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", ite
 .saver-use { padding-top: 12px; }
 .saver-drawer .items { margin-bottom: 4px; }
 .saver-player { cursor: grab; }
+.saver-play-on { display: grid; gap: 6px; margin-bottom: 10px; }
 .saver-player.single { cursor: default; }
 .saver-player .grip { color: var(--muted); opacity: 0.6; font-size: 16px; touch-action: none; }
 .saver-rank { width: 18px; height: 18px; border-radius: 50%; background: var(--seg); color: var(--ink-2); font-size: 11px; font-weight: 600; display: grid; place-items: center; flex: none; }

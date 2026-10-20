@@ -22,6 +22,13 @@ that also plays the television's sound is the usual case: put the speaker first 
 While the speaker plays music you see its cover. While it plays the television's sound it has no cover, so you see the
 poster of what the television plays. The cross beside a player takes it out.
 
+**Only on some devices** (GitHub #182). A player that plays on more than one device, such as Spotify with its Spotify
+Connect devices, can count only while it plays on the ones near the screen. Under **Only on these devices** in the
+drawer of Music playing each such player lists the devices Home Assistant gives as its sources; choose the television
+for the living room's screen, and Spotify shows there while it plays on the television, but not while it plays on a
+laptop or a phone. The step then moves on to the next player, the camera or the clock. A player with no device chosen
+counts wherever it plays.
+
 For example, with the order Music playing, Camera, Clock:
 
 - music plays on that player and Home Assistant has a cover for it: the screen shows the cover with the title and the
@@ -183,7 +190,8 @@ has.
   the screen does.
 - **The pick.** The app follows the chosen players and camera like a tile's entities (`watched_entities`). After every
   pass of a screen it works out the first step that is on and available (`screen_saver.pick`): the first player of the
-  list (`media`, then `more`, `screen_saver.player`) whose state is `playing` with an `entity_picture`, a camera whose state is not `unavailable` or `unknown`, the clock always. A
+  list (`media`, then `more`, `screen_saver.player`) whose state is `playing` with an `entity_picture` (and, where
+  `play_on` names devices for it, whose `source` is one of them: `screen_saver.plays_here`), a camera whose state is not `unavailable` or `unknown`, the clock always. A
   board without pictures has only the clock. A player whose cover could not be fetched for its current picture
   (`picture_sources.Snapshots.cover_broken`) counts as one without a cover: a screen told there is no picture keeps a black glass until
   the next track, so the app answers that once and moves on to the next step at once. It fetches the cover again by

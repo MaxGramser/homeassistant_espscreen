@@ -201,9 +201,17 @@ export const useScreensaverStore = defineStore("screensaver", () => {
 
   // The players of the music step (app 0.4.54), the first that plays with a cover shows.
   const players = computed(() => [saver.value?.media, ...(saver.value?.more || [])].filter((id): id is string => Boolean(id)));
-  const setPlayers = (list: string[]) => changeSaver({ media: list[0] || "", more: list.slice(1) });
+  // A player that leaves the step takes the devices it counted on along (`play_on`).
+  const setPlayers = (list: string[]) => changeSaver({ media: list[0] || "", more: list.slice(1),
+    play_on: Object.fromEntries(Object.entries(saver.value?.play_on || {}).filter(([id]) => list.includes(id))) });
   const addPlayer = (id: string) => players.value.length < MAX_PLAYERS && !players.value.includes(id) && setPlayers([...players.value, id]);
   const removePlayer = (id: string) => setPlayers(players.value.filter((p) => p !== id));
+  // The devices a player counts on (GitHub #182), by the names of its `source`; none: wherever it plays.
+  const playOnOf = (id: string) => saver.value?.play_on?.[id] || [];
+  function setPlayOn(id: string, names: string[]) {
+    const { [id]: _old, ...rest } = saver.value?.play_on || {};
+    changeSaver({ play_on: names.length ? { ...rest, [id]: names } : rest });
+  }
 
   const entityPlace = (id: string) => inv.entityOf(id)?.area || "";
   // What one can choose for a step, by name and the area it is in.
@@ -262,7 +270,9 @@ export const useScreensaverStore = defineStore("screensaver", () => {
     }
     if (kind === "media") {
       if (!players.value.length) return { text: t(key("summary.media_none")), missing: true };
-      return { text: [faceName("media"), ...players.value.map((id) => entities.entityName(id))].filter(Boolean).join(", ") };
+      const named = (id: string) => (playOnOf(id).length ? t(key("play_on_summary"), { name: entities.entityName(id), devices: playOnOf(id).join(", ") })
+        : entities.entityName(id));
+      return { text: [faceName("media"), ...players.value.map(named)].filter(Boolean).join(", ") };
     }
     if (kind === "camera") {
       if (!saver.value?.camera) return { text: t(key("summary.camera_none")), missing: true };
@@ -328,8 +338,8 @@ export const useScreensaverStore = defineStore("screensaver", () => {
     facesHere, face, glassSize, faceDark, photosHere, photos, folderTitles, pluginSteps, addableSteps, canAddStep, clockPluginFace,
     // What the card and the drawers read as they draw (stores/lookup.ts).
     ...lookups({ isOn, stepsShown, stepPlace, entityPlace, entitiesOf, summary, stepLabel, stepIcon, pluginHere, pluginSetting, pluginValues,
-      facesFor, faceOf, faceName, folderTitle }),
-    changeSaver, toggleStep, moveStep, setOrder, setPlayers, addPlayer, removePlayer, setSaverItems, addPluginStep, removePluginStep,
+      facesFor, faceOf, faceName, folderTitle, playOnOf }),
+    changeSaver, toggleStep, moveStep, setOrder, setPlayers, addPlayer, removePlayer, setPlayOn, setSaverItems, addPluginStep, removePluginStep,
     setPluginOption, setPluginEntity, setFace, setPhotos, browseFolder,
     addSaverItem: saverList.add, updateSaverItem: saverList.update, moveSaverItem: saverList.move, removeSaverItem: saverList.remove,
   };
