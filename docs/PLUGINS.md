@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.14 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.15 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -435,3 +435,7 @@ tests/test_saver_plugins.py.
 
 A plugin's own messages beyond Home Assistant commands, Python modules of Tessera's own plugins in the add-on (the
 design's `module`), and plugin faces of the camera step.
+
+## Private media controller extension (0.15)
+
+`MediaScreenConfig`, `configure_media_screen`, `poll_media_screen` and `close_media_artwork` configure the existing detailed player with a selected entity, native Music Assistant library, confirmed starting-volume sequencing and an idle artwork overlay. This extension is local and has not shipped upstream. Disabled is the default; system alerts, settings, standby and updates retain ownership.

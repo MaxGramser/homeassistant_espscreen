@@ -211,6 +211,17 @@ int main() {
   assert(std::string(idle_text("off")) == "Off" && std::string(idle_text("idle")) == "Not playing" && std::string(idle_text("standby")) == "Standby");
   assert(playing("playing") && playing("buffering") && !playing("paused"));
   assert(has_track("paused") && !has_track("idle") && !has_track("off"));
+  // The dedicated 800x480 main page reserves a separate toolbar above its player.
+  // Both font sizes must keep the cover, playback and volume controls inside the remaining area.
+  for (bool large : {false, true}) {
+    Metrics m; m.large=large;
+    if(!large){m.title_h=21;m.artist_h=17;m.small_h=13;}
+    for(int width : {740, 780}) {
+      const Layout main=layout(m,width,290);
+      sound(main,width,290,true,m);
+      assert(main.sides);
+    }
+  }
   printf("test_media_card: ok\n");
   return 0;
 }

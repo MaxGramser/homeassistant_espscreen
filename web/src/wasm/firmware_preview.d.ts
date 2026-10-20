@@ -2,6 +2,8 @@ export type FirmwarePreviewModule = {
   _preview_init(width: number, height: number, dpi: number, columns: number, rows: number): number;
   // A board without pictures (firmware 0.46.0); a build from before has no such export.
   _preview_pictures?(on: number): void;
+  _preview_action_json?(id: number, message: number): void;
+  _preview_media_screen?(message: number): void;
   // The screen's Dark mode (app 0.4.86).
   _preview_dark?(on: number): void;
   _preview_settings?(message: number): void;

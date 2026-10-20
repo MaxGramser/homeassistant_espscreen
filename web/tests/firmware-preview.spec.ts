@@ -57,6 +57,18 @@ async function preview(width = 720, height = 720, extra: Record<string, unknown>
 }
 
 describe("Firmware preview transport", () => {
+  it('configures native media before layout and clears it when switching to a stock screen', async () => {
+    Object.assign(firmware, { _preview_media_screen: vi.fn() });
+    try {
+      const config = { media_screen: { entity: 'media_player.test', starting_volume: 0.3 } };
+      const editor = await preview(800, 480, { screen: { id: 'text.test', name: 'Test', preview: config } });
+      expect(firmware.ccall).toHaveBeenCalledWith('preview_media_screen', null, ['string'], [JSON.stringify(config)]);
+      const names = firmware.ccall.mock.calls.map(([name]) => name);
+      expect(names.indexOf('preview_media_screen')).toBeLessThan(names.indexOf('preview_receive'));
+      await editor.setProps({ screen: { id: 'text.stock', name: 'Stock' } as any });
+      expect(firmware.ccall).toHaveBeenCalledWith('preview_media_screen', null, ['string'], ['{}']);
+    } finally { delete (firmware as any)._preview_media_screen; }
+  });
   const screen = () => ({ id: 'text.test_panel', name: 'Test panel', online: true,
     settings: { owner: 'screen', keys: ['dark_mode', 'brightness'], values: { dark_mode: false, brightness: 80 }, unavailable: [] } });
   function settingsModule() {

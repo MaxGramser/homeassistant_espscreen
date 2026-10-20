@@ -1,0 +1,51 @@
+defaults:
+  MUSIC_PLAYER: ""
+  MUSIC_ENTRY: ""
+  MUSIC_FAVORITE_BUTTON: ""
+music_assistant_screen:
+  player: ${MUSIC_PLAYER}
+  library_entry: ${MUSIC_ENTRY}
+  favorite_button: ${MUSIC_FAVORITE_BUTTON}
+  enabled: music_assistant_screen_enabled
+  volume: music_assistant_screen_volume
+  artwork_timeout: music_assistant_screen_artwork
+switch:
+  - platform: template
+    id: music_assistant_screen_enabled
+    name: Music screen enabled
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+number:
+  - platform: template
+    id: music_assistant_screen_volume
+    name: Music starting volume
+    min_value: 0
+    max_value: 100
+    step: 1
+    initial_value: 30
+    restore_value: true
+    optimistic: true
+    unit_of_measurement: "%"
+  - platform: template
+    id: music_assistant_screen_artwork
+    name: Music artwork timeout
+    min_value: 0
+    max_value: 600
+    step: 15
+    initial_value: 60
+    restore_value: true
+    optimistic: true
+    unit_of_measurement: s
+lvgl:
+  top_layer:
+    widgets:
+      - obj:
+          id: music_assistant_screen_keyboard_support
+          hidden: true
+          widgets:
+            - textarea:
+                id: music_assistant_screen_text_support
+                one_line: true
+            - keyboard:
+                id: music_assistant_screen_key_support
+                textarea: music_assistant_screen_text_support

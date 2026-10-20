@@ -64,7 +64,7 @@ namespace tessera {
 // `backdrop: true`, the step's own picture (moving, for the photos) under the whole saver; and wish(), a
 // value a finger changed, shown at once and squared with Home Assistant as every control of the screen does; drift(),
 // the slow circle against burn-in, for a saver that moves only some of its parts.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 14;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 15;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -418,6 +418,18 @@ std::vector<BarItemType> &bar_items();
 std::vector<SaverType> &saver_types();
 
 // ---- What the core offers a plugin ----
+// Private API 0.15 extension; not yet part of upstream Tessera.
+// Configure the existing media detail experience without exposing core objects.
+struct MediaScreenConfig {
+  std::string entity, library_entry, favorite_button;
+  float starting_volume = 0.30f;
+  uint32_t artwork_after_ms = 60000;
+  bool enabled = true;
+};
+void configure_media_screen(const MediaScreenConfig &config);
+void poll_media_screen(uint32_t now_ms);
+void close_media_artwork();
+
 // The screen's clock: seconds since 1970, 0 until Home Assistant set it.
 uint32_t epoch();
 // A moment in the screen's own time zone (the one Home Assistant gave it).

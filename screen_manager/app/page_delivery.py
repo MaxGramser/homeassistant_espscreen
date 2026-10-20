@@ -267,6 +267,7 @@ class Sender:
         # The plugin API the firmware offers and the plugins built into it (docs/PLUGINS.md): None and [] for a firmware
         # without plugins, which refuses a plugin's tile.
         self.plugin_api, self.plugins = None, []
+        self.preview = {}
         # This screen's own ceilings and memory (firmware 0.34.0+): None while it has not said, and the last ones it said
         # for editing while it is offline (page_capabilities keeps them across restarts of the app).
         self.max_tiles = self.max_pages = self.max_bar_items = self.memory = None
@@ -287,6 +288,7 @@ class Sender:
         self.free_pages = False
         self.features = set()
         self.plugin_api, self.plugins = None, []
+        self.preview = {}
         self.max_tiles = self.max_pages = self.max_bar_items = self.memory = None
         self.grids = None
         self.structure, self.appearance = None, None
@@ -332,6 +334,7 @@ class Sender:
             self.max_pages = ceiling_of(answer.get("max_pages"), STORE_MAX_PAGES)
             self.max_bar_items = ceiling_of(answer.get("max_bar_items"), STORE_MAX_BAR_ITEMS)
             self.last_max_tiles, self.last_max_pages, self.last_max_bar_items = self.max_tiles, self.max_pages, self.max_bar_items
+            self.preview = {}  # A new handshake replaces the previous firmware capabilities.
             self.heard(answer)
             return PROTOCOL
         # This is an answer from the running old firmware, not cached registry metadata.
@@ -346,6 +349,13 @@ class Sender:
         firmware, so an answer without them means a firmware that keeps no budget or no choice of grid (a screen flashed
         back to an older release): the figures of the firmware before it go, as its ceilings do in the hello. While the
         screen is still measuring (no room yet, firmware 0.51.0) the last figures it measured stay the last ones."""
+        if isinstance(answer, dict) and 'preview' in answer:
+            preview = answer.get('preview') if isinstance(answer, dict) else None
+            media = preview.get('media_screen') if isinstance(preview, dict) else None
+            self.preview = {}
+            if isinstance(media, dict) and isinstance(media.get('entity'), str) and media['entity'].startswith('media_player.'):
+                self.preview = {'media_screen': {key: value for key, value in media.items()
+                    if key in ('entity', 'starting_volume', 'library_entry', 'favorite_button') and isinstance(value, (str, int, float))}}
         self.memory = memory_of(answer)
         if self.memory is None or self.memory["room"] is not None:
             self.last_memory = self.memory

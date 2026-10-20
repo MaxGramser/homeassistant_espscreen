@@ -4209,6 +4209,7 @@ def create_app(manager, development=False):
                                                            else 'addon.errors.pages.migration_unreadable')}
                                        if record and record['format'] == 'legacy-v1' else record)
             sender = manager.page_sender(screen['id'], screen)
+            screen['preview'] = getattr(sender, 'preview', {})
             source = manager.record_grid(screen['id'], record)
             screen['source_grid'] = {'columns': source.columns, 'rows': source.rows} if source else None
             # The grids it takes each way its glass hangs (firmware 0.53.0+): the editor offers them beside the mockup,
@@ -4808,6 +4809,28 @@ def create_app(manager, development=False):
                 not isinstance(k, str) or not re.fullmatch(r'[a-z0-9_]{1,64}', k) or
                 not isinstance(v, str) or len(v) > 4096 for k, v in fields.items()):
             raise ValueError('Invalid Home Assistant action data.')
+        if data.get('wants_response'):
+            screen = manager.screen(data.get('screen'))
+            sender = manager.page_senders.get(screen['id']) if screen else None
+            media = getattr(sender, 'preview', {}).get('media_screen', {})
+            allowed = {'music_assistant.get_library', 'music_assistant.search', 'music_assistant.get_queue'}
+            if service not in allowed or not media:
+                raise ValueError('This screen does not offer that library request.')
+            if service.endswith('get_queue'):
+                if fields.get('entity_id') not in manager.ha.states or set(fields) != {'entity_id'}:
+                    raise ValueError('Invalid queue request.')
+                actions = await manager.ha.entity_actions(fields['entity_id'])
+                if actions is None or service not in actions:
+                    raise ValueError('This player does not offer a queue.')
+            else:
+                if fields.get('config_entry_id') != media.get('library_entry'):
+                    raise ValueError('The library must belong to this screen.')
+                if set(fields) - {'config_entry_id', 'media_type', 'favorite', 'limit', 'order_by', 'name'}:
+                    raise ValueError('Invalid library request.')
+                fields['limit'] = min(48, max(1, int(fields.get('limit', 48))))
+                if 'favorite' in fields: fields['favorite'] = fields['favorite'] == 'true'
+            result = await asyncio.wait_for(manager.ha.call_answer(*service.split('.'), fields), timeout=10)
+            return web.json_response({'success': True, 'response': media_library.preview_items(service, result)})
         target = fields.get('entity_id')
         if not entity_id(target) or target not in manager.ha.states:
             raise ValueError('The command must target an existing Home Assistant entity.')

@@ -20,3 +20,6 @@
 #define LV_ASSERT_HANDLER_INCLUDE <stdlib.h>
 #define LV_ASSERT_HANDLER abort();
 #define LV_MEM_SIZE (16 * 1024 * 1024)
+
+// Native media artwork uses the same LVGL snapshot on device and host.
+#define LV_USE_SNAPSHOT 1

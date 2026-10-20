@@ -33,6 +33,43 @@ namespace rt = runtime_tiles;
 namespace plugin_host { extern tessera::Point tapped; }
 // ---- The register (plugin_api.h) ----
 namespace tessera {
+namespace { MediaScreenConfig media_screen_config; }
+void configure_media_screen(const MediaScreenConfig &config) {
+  media_screen_config=config;
+  rt::music_start_enabled=config.enabled;
+  rt::music_start_entity=config.entity;
+  rt::music_start_cap=std::max(0.0f,std::min(1.0f,config.starting_volume));
+  media_library::favorites_entry=config.enabled?config.library_entry:"";
+  media_library::favorite_button=config.favorite_button;
+  rt::music_artwork::touched=[](){if(rt::music_touched)rt::music_touched();};
+  media_library::artwork_open=[](){rt::music_artwork::open();};
+  if(!config.enabled)rt::music_artwork::close();
+}
+void close_media_artwork(){rt::music_artwork::close();}
+void poll_media_screen(uint32_t now_ms) {
+  const auto &c=media_screen_config;
+  if(!c.enabled)return;
+  int index=-1;
+  for(int i=0;i<rt::model.count;++i)if(rt::model.tiles[i].entity==c.entity){index=i;break;}
+  const bool blocked=rt::music_ui_blocked && rt::music_ui_blocked();
+  if(rt::music_artwork::visible()) {
+    if((rt::touch_input::swipe_blocked && rt::touch_input::swipe_blocked())||settings_screen::visible()||index<0||rt::model.tiles[index].state!="playing")rt::music_artwork::close();
+    else rt::music_artwork::update();
+    return;
+  }
+  if(index<0||blocked||!rt::enabled||!rt::model.ready()||!rt::fresh())return;
+  if(settings_screen::visible()||rt::colour_shown()||rt::camera_visible()||media_library::visible()||media_library::menu_visible())return;
+  rt::music_artwork::tile_index=index;
+  if(rt::detail_root&&!lv_obj_has_flag(rt::detail_root,LV_OBJ_FLAG_HIDDEN)) {
+    if(rt::detail_index!=static_cast<unsigned>(index))return;
+    if(c.artwork_after_ms && rt::music_idle_age && rt::music_idle_age()>=c.artwork_after_ms && rt::model.tiles[index].state=="playing")rt::music_artwork::open();
+    return;
+  }
+  // The expanded controls are native widgets on the main page, never an automatically reopened detail overlay.
+  if(rt::shown_page&&*rt::shown_page==rt::home_page()&&c.artwork_after_ms&&rt::music_idle_age&&
+      rt::music_idle_age()>=c.artwork_after_ms&&rt::model.tiles[index].state=="playing")rt::music_artwork::open();
+}
+
 
 std::vector<Plugin *> &plugins() {
   static std::vector<Plugin *> list;
@@ -1559,6 +1596,14 @@ void hello(JsonObject root) {
   char api[8];
   snprintf(api, sizeof api, "%u.%u", tessera::PLUGIN_API_MAJOR, tessera::PLUGIN_API_MINOR);
   root["plugin_api"] = std::string(api);
+  // Generic native media configuration, shared with the firmware preview. No credentials.
+  if (runtime_tiles::music_start_enabled) {
+    auto media = root["preview"]["media_screen"].to<JsonObject>();
+    media["entity"] = runtime_tiles::music_start_entity;
+    media["starting_volume"] = runtime_tiles::music_start_cap;
+    media["library_entry"] = media_library::favorites_entry;
+    media["favorite_button"] = media_library::favorite_button;
+  }
   auto list = root["plugins"].to<JsonArray>();
   for (auto *p : tessera::plugins()) {
     auto item = list.add<JsonObject>();

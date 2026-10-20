@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.preview/
+.esphome/
+*.bin
+*.elf
+secrets.yaml

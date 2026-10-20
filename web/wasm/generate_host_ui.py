@@ -76,7 +76,8 @@ def generate(dpi, look, profile):
     project = {
         'esphome': {'name': 'wasm-ui', 'build_path': str(WORK / 'build')},
         'host': {},
-        'display': [{'platform': 'sdl', 'id': 'host_display', 'dimensions': {'width': 720, 'height': 720}}],
+        # Code generation only: no SDL object is linked into the WASM renderer.
+        'display': [{'platform': 'sdl', 'id': 'host_display', 'sdl_options': '-lSDL2', 'dimensions': {'width': 720, 'height': 720}}],
         'font': fonts,
         'image': images,
         'lvgl': {'id': 'screen_lvgl', 'displays': ['host_display'], 'default_font': lvgl['default_font'],

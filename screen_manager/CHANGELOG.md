@@ -1,3 +1,10 @@
+## Unreleased
+
+- Native media preview: the layout editor and interactive preview use the expanded player from the device, with per-screen configuration and compact Music Assistant library responses.
+
+- Optional media-controller extension: expanded white main player with direct library and playback controls, without automatic detail-overlay navigation.
+- Keep the media Library button available when Home Assistant reports Browse media, even before the manager sends the player library extras.
+
 ## 0.4.89 (firmware 0.57.0)
 
 - **A thermostat's state line no longer runs into its card.** On screens with dense glass (the Waveshare P4 and

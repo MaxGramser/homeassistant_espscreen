@@ -3,6 +3,7 @@ import hashlib
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 import tarfile
@@ -29,7 +30,13 @@ def source(name, version, url):
 
 
 def run(args):
-    subprocess.run([str(arg) for arg in args], check=True)
+    args = [str(arg) for arg in args]
+    # Windows cannot launch a command containing hundreds of LVGL object paths.
+    if sum(map(len, args)) > 20000:
+        response = CACHE / 'preview-link.rsp.utf-8'
+        response.write_text(shlex.join(args[1:]), encoding='utf-8')
+        args = [args[0], '@' + str(response)]
+    subprocess.run(args, check=True)
 
 
 if not shutil.which('em++'):
@@ -37,7 +44,9 @@ if not shutil.which('em++'):
 lvgl = source('lvgl', '9.5.0', 'https://github.com/lvgl/lvgl/archive/refs/tags/v9.5.0.tar.gz')
 arduino = Path(os.environ['ARDUINO_JSON']) if 'ARDUINO_JSON' in os.environ else source(
     'ArduinoJson', '7.4.3', 'https://github.com/bblanchon/ArduinoJson/archive/refs/tags/v7.4.3.tar.gz')
-run([sys.executable, ROOT / 'web/wasm/generate_host_ui.py'])
+# Reuse only immediately after a successful generation with unchanged YAML/fonts.
+if '--reuse-ui' not in sys.argv:
+    run([sys.executable, ROOT / 'web/wasm/generate_host_ui.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_image_decoder.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_renderer_manifest.py', ROOT])
 # The most pages, tiles and top bar items any board takes (boards.json, as the add-on's core.PREVIEW_CEILINGS): the
@@ -46,7 +55,7 @@ import json
 shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text()).values()
 ceilings = {name: max([shape.get(key, low) for shape in shapes] + [low]) for name, key, low in
             (('PAGES', 'max_pages', 8), ('TILES', 'max_tiles', 64), ('BAR_ITEMS', 'max_bar_items', 6))}
-flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES', '-DGRID_COLS=8', '-DGRID_ROWS=8',
+flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES_JSON', '-DGRID_COLS=8', '-DGRID_ROWS=8',
          '-DLV_CONF_INCLUDE_SIMPLE', '-DLV_FONT_FMT_TXT_LARGE=1']
 for folder in (ROOT / 'web/wasm/host_include', ROOT / 'components/smart_display', ROOT / 'web/wasm',
                lvgl, lvgl / 'src', arduino / 'src', ROOT / 'components'):
@@ -58,7 +67,7 @@ objects.mkdir(exist_ok=True)
 
 
 def compile_c(path):
-    obj = objects / (str(path.relative_to(lvgl)).replace('/', '_') + '.o')
+    obj = objects / (path.relative_to(lvgl).as_posix().replace('/', '_') + '.o')
     if not obj.exists() or path.stat().st_mtime > obj.stat().st_mtime:
         run(['emcc', *flags, '-c', path, '-o', obj])
     return obj
@@ -79,11 +88,18 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
                           ('plugins', ROOT / 'components/smart_display/plugin_host.cpp'),
                           ('hooks', ROOT / 'components/smart_display/screen_hooks.cpp')]:
     obj = objects / f'{name}.o'
-    run(['em++', *flags, '-std=c++17', '-c', source_path, '-o', obj])
+    # Resume a failed build only while its input headers and source are unchanged.
+    headers = [* (ROOT / 'components/smart_display').rglob('*.h'), * (ROOT / 'web/wasm').rglob('*.h')]
+    newest = max([source_path.stat().st_mtime, *[p.stat().st_mtime for p in headers if p.name != 'firmware_renderer_manifest.h']])
+    resume = '--resume' in sys.argv and name != 'adapter' and obj.exists() and obj.stat().st_mtime >= newest
+    if '--link-only' in sys.argv and name != 'adapter':
+        if not obj.is_file(): raise RuntimeError(f'Missing object: {obj}')
+    elif not resume:
+        run(['em++', *flags, '-std=c++17', '-c', source_path, '-o', obj])
     compiled.append(obj)
 exports = ['init', 'receive', 'next_action', 'action_response', 'time', 'touch', 'cancel', 'render', 'frame', 'page', 'diagnostics', 'layout']
 exports += ['next_image', 'image_buffer', 'image_ready', 'pictures', 'card', 'card_builds', 'dark', 'language']
-exports += ['settings', 'extras', 'settings_controls', 'next_setting']
+exports += ['action_json', 'media_screen', 'settings', 'extras', 'settings_controls', 'next_setting']
 out = ROOT / 'web/src/wasm'
 out.mkdir(exist_ok=True)
 run(['em++', '-O2', *compiled, '-sWASM=1', '-sASSERTIONS=1', '-sSTACK_SIZE=1048576', '-sALLOW_MEMORY_GROWTH=1',

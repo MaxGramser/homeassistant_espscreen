@@ -2,13 +2,16 @@
 
 // One page of the screen as the mockup draws it: the top bar and the screen's own grid of cells.
 import { useEventListener } from "@vueuse/core";
-import { computed, nextTick, ref, shallowRef } from "vue";
+import { computed, nextTick, ref, shallowRef, watch } from "vue";
 import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
+import FirmwarePreview from './FirmwarePreview.vue';
+import { previewShapeOf } from '../model/preview';
+import { drawsPictures } from '../stores/screen';
 import TopbarSvg from "./TopbarSvg.vue";
 import PageNavigation from './PageNavigation.vue';
 import PageMenu from './PageMenu.vue';
@@ -53,6 +56,15 @@ function pageClick(event: MouseEvent) {
   if (target.closest(".tile, .cell, .bar-wrap, .home-chip, a, input, [role='menu'], [role='menuitem'], button:not(.grab)")) return;
   insp.openPage(owned.value.id);
 }
+// Draw the dedicated native player with the firmware itself. The editor's existing
+// transparent hit targets keep selection, context menus and resize handles intact.
+const nativeShape = computed(() => scr.currentScreen ? previewShapeOf({ shape: doc.screenShape }, doc.documentGrid) : null);
+const nativeLayout = computed(() => owned.value && doc.document ? { ...doc.document, homePageId: owned.value.id } : null);
+const nativeMedia = computed(() => !props.preview && !props.moving && !!nativeShape.value && !!owned.value?.tiles.some(tile =>
+  tile.content.kind === 'entity' && tile.content.entityId === scr.currentScreen?.preview?.media_screen?.entity));
+const nativeReady = ref(false);
+const nativeFailed = ref(false);
+watch(() => [nativeMedia.value, scr.currentScreen?.id], () => { nativeReady.value = false; nativeFailed.value = false; });
 const isHome = computed(() => owned.value?.id === doc.document?.homePageId);
 const backInHeader = computed(() => !settings.navigationSettings().pageButtons && Boolean(owned.value?.navigation.excludeFromPagination));
 const bySlot = computed(() => new Map(props.entries.map((e) => [e.slot, e])));
@@ -154,7 +166,12 @@ async function onKey(e: KeyboardEvent) {
         <PageMenu v-if="owned" :id="owned.id" />
       </span>
     </div>
-    <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames }">
+    <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames, 'native-editor-ready': nativeMedia && nativeReady && !nativeFailed }">
+      <div v-if="nativeMedia && nativeShape && !nativeFailed" class="native-editor-player"><FirmwarePreview
+        :width="nativeShape.width" :height="nativeShape.height" :dpi="nativeShape.dpi" :columns="nativeShape.columns" :rows="nativeShape.rows"
+        :screen="scr.currentScreen" :layout="nativeLayout" :pictures="drawsPictures(scr.currentScreen)"
+        :dark="scr.currentScreen?.settings?.values?.dark_mode === true" still :controls="false"
+        @ready="nativeReady = true" @failed="nativeFailed = true" /></div>
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
         @click="!preview && insp.openBar(0, page)" @keydown.enter.prevent="!preview && insp.openBar(0, page)">
         <TopbarSvg :items="topbar.topbarItems(page)" :name-text="pageTitleShown(page)" :home="topbar.homeKeyShown(page)" :back="backInHeader" />
@@ -202,4 +219,12 @@ async function onKey(e: KeyboardEvent) {
 .bar-wrap { position: relative; min-height: 0; }
 .preview-home { position: absolute; inset: 0 auto 0 0; width: 30px; border: 0; background: transparent; }
 .preview-empty { visibility: hidden; }
+.device { position: relative; }
+.native-editor-player { position: absolute; inset: 0; pointer-events: none; z-index: 0; border-radius: inherit; overflow: hidden; }
+.native-editor-player :deep(.firmware-preview) { width: 100%; height: 100%; }
+.native-editor-ready .bar-wrap, .native-editor-ready .tiles { position: relative; z-index: 1; }
+.native-editor-ready .bar-wrap :deep(svg), .native-editor-ready :deep(.tile > :not(.resize-handle):not(.remove)) { visibility: hidden; }
+.native-editor-ready :deep(.tile) { background: transparent !important; }
+.native-editor-ready :deep(.tile:not(.chosen)) { border-color: transparent; box-shadow: none; }
+.native-editor-ready :deep(.page-navigation) { opacity: 0; }
 </style>

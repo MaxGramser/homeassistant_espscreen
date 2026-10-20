@@ -61,13 +61,17 @@ struct HomeAssistantStateSubscription {};
 struct HomeassistantServiceMap { StringRef key, value; };
 struct StringList {
   std::vector<HomeassistantServiceMap> values;
+  auto begin() const { return values.begin(); }
+  auto end() const { return values.end(); }
   void init(size_t n) { values.clear(); values.reserve(n); }
   void push_back(const HomeassistantServiceMap &item) { values.push_back(item); }
 };
-struct HomeassistantActionRequest { StringRef service; uint32_t call_id = 0; bool is_event = false; StringList data, data_template; };
+struct HomeassistantActionRequest { StringRef service; uint32_t call_id = 0; bool is_event = false; bool wants_response = false; StringRef response_template; StringList data, data_template; };
 struct ActionResponse {
   bool success = false;
   StringRef error;
+  JsonObjectConst json;
+  JsonObjectConst get_json() const { return json; }
   bool is_success() const { return success; }
   StringRef get_error_message() const { return error; }
 };
@@ -83,6 +87,7 @@ struct HostApiServer {
     packet["service"] = std::string(request.service.c_str(), request.service.size());
     packet["call_id"] = request.call_id;
     packet["event"] = request.is_event;
+    packet["wants_response"] = request.wants_response;
     const auto copy = [&](const char *name, const StringList &items) {
       auto data = packet[name].to<JsonObject>();
       for (const auto &entry : items.values)
@@ -95,12 +100,12 @@ struct HostApiServer {
   void register_action_response_callback(uint32_t id, std::function<void(const ActionResponse &)> callback) {
     callbacks[id] = std::move(callback);
   }
-  void handle_action_response(uint32_t id, bool success, StringRef error) {
+  void handle_action_response(uint32_t id, bool success, StringRef error, JsonObjectConst json = {}) {
     auto entry = callbacks.find(id);
     if (entry == callbacks.end()) return;
     auto callback = std::move(entry->second);
     callbacks.erase(entry);
-    callback(ActionResponse{success, error});
+    callback(ActionResponse{success, error, json});
   }
 };
 inline HostApiServer host_api_server;

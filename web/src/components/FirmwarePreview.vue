@@ -69,6 +69,10 @@ const language = () => inv.inventory.language?.effective || "en";
 function speak() {
   if (module && !disposed && "_preview_language" in module) module.ccall("preview_language", "number", ["string"], [language()]);
 }
+function mediaScreen() {
+  if (module?._preview_media_screen && !disposed)
+    module.ccall('preview_media_screen', null, ['string'], [JSON.stringify(props.screen?.preview || {})]);
+}
 function shade() {
   if (module && !disposed) module._preview_dark?.(props.dark ? 1 : 0);
 }
@@ -228,9 +232,10 @@ async function sendActions() {
         continue;
       }
       let success = true, message = "";
+      let answer: { response?: Record<string, unknown> } | undefined;
       if (props.controls && !props.still) {
         try {
-          await send("firmware-preview/action", "POST", request);
+          answer = await send("firmware-preview/action", "POST", request.wants_response ? { ...request, screen: props.screen?.id } : request);
         } catch (e) {
           success = false;
           message = e instanceof Error ? e.message : String(e);
@@ -241,7 +246,9 @@ async function sendActions() {
       }
       if (disposed || !module) break;
       time();
-      module.ccall("preview_action_response", null, ["number", "number", "string"], [request.call_id, success ? 1 : 0, message]);
+      if (success && answer?.response && '_preview_action_json' in module) {
+        module.ccall('preview_action_json', null, ['number', 'string'], [request.call_id, JSON.stringify(answer.response)]);
+      } else module.ccall("preview_action_response", null, ["number", "number", "string"], [request.call_id, success ? 1 : 0, message]);
       actionError.value = success ? "" : t("editor.preview.action_error", { message });
       // Read HA's resulting state through the same packets as a physical device.
       // No browser code invents the result of a switch or thermostat command.
@@ -344,7 +351,7 @@ onMounted(async () => {
     }
     // A board that draws no pictures (the CYD) has no square for an album cover, as on its glass (firmware 0.46.0).
     module._preview_pictures?.(props.pictures === false ? 0 : 1);
-    speak(); shade();
+    speak(); shade(); mediaScreen();
     screenSettings(); settingsControls(); listenSettings();
     await receive();
     listen();
@@ -356,6 +363,7 @@ onMounted(async () => {
 watch(layout, () => layoutPause.start(), { deep: true });
 watch(language, speak);
 watch(() => props.dark, shade);
+watch(() => props.screen?.preview, mediaScreen, { deep: true });
 watch(entityQuery, listen);
 watch(() => [props.screen?.settings, props.screen?.online], screenSettings, { deep: true });
 watch(() => [props.controls, props.still, props.screen?.id], settingsControls);

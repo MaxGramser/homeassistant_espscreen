@@ -26,7 +26,9 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <functional>
 #include "picture_loader.h"
+#include "tile_catalogue.h"
 
 namespace media_library {
 
@@ -206,6 +208,17 @@ constexpr bool LIBRARY = true;
 constexpr bool LIBRARY = false;
 #endif
 inline bool available() { return LIBRARY; }
+// HA's own capability remains enough when a state arrives before the manager's extras.
+// The manager can also discover libraries on players that omit the bit while idle.
+inline bool can_browse(uint32_t supported, bool announced) {
+  return available() && (announced || (supported & tile_catalogue::media_player::BROWSE_MEDIA));
+}
+inline std::string favorites_entry, favorite_button;
+inline std::function<void()> artwork_open;
+void open_queue(const std::string &entity);
+void open_search(const std::string &entity);
+void open_tools(const std::string &entity);
+void open_favorites(const std::string &entity);
 void open(const std::string &entity);
 void close();
 bool visible();
