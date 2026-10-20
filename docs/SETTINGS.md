@@ -246,6 +246,7 @@ What the boards have today:
 |---|---|---|
 | reTerminal D1001 | Volume, Microphone, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
 | Waveshare ESP32-P4 86 panel, ESP32-P4-WIFI6-Touch-LCD-7B, -7 and -10.1 | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation (AEC transport) | `hardware/wavesharep4-audio/` and the shared audio player |
+| Waveshare ESP32-S3-Touch-LCD-4B | Volume, Microphone (initially off) | `features/audio.yaml`, with the initial microphone choice in the board file |
 | M5Stack Tab5 | Volume, Microphone, Echo cancellation (AEC transport) | `hardware/tab5-audio/` and the shared audio player |
 | CrowPanel Advanced 10.1 | Volume, Microphone | `features/audio.yaml` |
 | Guition JC8012P4A1 (and its V2 and V3), JC1060P470 (and its V2), JC4880P443 | Volume, Microphone | `hardware/guition-p4-audio.yaml` and `features/audio.yaml` |

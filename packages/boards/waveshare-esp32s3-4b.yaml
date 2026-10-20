@@ -5,8 +5,8 @@
 # docs/WAVESHARE4B.md.
 #
 # The glass is the size of the 4-inch Guition's, so every size is the Guition's: the same tiles in millimetres,
-# the same six cells. The battery charger (AXP2101), the audio chips, the motion sensor and the clock chip on this
-# board stay unused.
+# the same six cells. The ES7210 microphone receives the clocks driven by the ES8311 speaker's I2S bus.
+# The battery charger (AXP2101), the motion sensor and the clock chip stay unused.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
@@ -21,6 +21,9 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  audio: !include ../features/audio.yaml
+  # The speaker's clocks run in silence here (no AUDIO_HALF_DUPLEX), so the amplifier follows buffered sound alone.
+  audio_amplifier: !include ../features/audio-amplifier.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -45,9 +48,21 @@ substitutions:
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
   BACKLIGHT_FREQUENCY: "300000Hz"               # the backlight's PWM: an analog dim input behind a 160 Hz filter (below)
 
+  # Separate I2S ports capture and play together; the microphone follows the speaker's clocks (secondary, below).
+  # The ES8311 DAC register maps 0 to -95.5 dB and 255 to +32 dB.
+  AUDIO_SAMPLE_RATE: "16000"
+  AUDIO_DOUT_PIN: GPIO6
+  AUDIO_DIN_PIN: GPIO15
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+  AUDIO_AMPLIFIER: board_speaker_amp
+
 # ============================================================
 # No need to edit below this line.
 # ============================================================
+
+esphome:
+  min_version: 2026.9.0
 
 esp32:
   flash_size: 16MB
@@ -66,12 +81,68 @@ i2c:
   frequency: 400kHz
   scan: true
 
-# The IO expander: its first three lines carry the panel's setup (the SPI bus below), the fourth the speaker amplifier,
-# which stays off. The TCA9554 speaks the PCA9554's registers.
+# The IO expander: its first three lines carry the panel's setup (the SPI bus below), the fourth the speaker amplifier.
+# The TCA9554 speaks the PCA9554's registers.
 pca9554:
   - id: expander
     address: 0x20
     i2c_id: touch_bus
+
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: GPIO5
+    i2s_bclk_pin:
+      number: GPIO16
+      allow_other_uses: true
+    i2s_lrclk_pin:
+      number: GPIO7
+      allow_other_uses: true
+  - id: ts_mic_bus
+    i2s_bclk_pin:
+      number: GPIO16
+      allow_other_uses: true
+    i2s_lrclk_pin:
+      number: GPIO7
+      allow_other_uses: true
+
+audio_adc:
+  - platform: es7210
+    id: ts_audio_adc
+    i2c_id: touch_bus
+    address: 0x40
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    mic_gain: 24db
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+
+# The microphone's controller takes BCLK and LRCLK from the speaker's instead of driving them.
+microphone:
+  - id: !extend ts_microphone
+    i2s_mode: secondary
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    restore_mode: ALWAYS_OFF
+    pin:
+      pca9554: expander
+      number: 3
+      mode:
+        output: true
+      inverted: false
+  # Start muted without a saved choice; keep the shared entity and its mute/unmute actions.
+  - id: !extend ts_microphone_on
+    restore_mode: RESTORE_DEFAULT_OFF
 
 # The ST7701S takes its setup over three-wire SPI, and on this board those wires are expander lines, so the bus is
 # ESPHome's software SPI on them. It runs once, at boot; the picture itself goes over the RGB pins below.

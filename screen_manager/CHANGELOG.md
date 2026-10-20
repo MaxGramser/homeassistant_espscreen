@@ -199,6 +199,14 @@
   screen can be reinstalled from dev. Set `SCREEN_CHANNEL` to `main` to point the screens back at main
   (docs/DOCKER.md, "Testing dev").
 
+- **Waveshare ESP32-S3-Touch-LCD-4B: experimental microphone and speaker.** The board now includes its ES7210
+  microphone, ES8311 speaker output and amplifier in the shared mono, 16 kHz audio graph, with a Home Assistant Media
+  Player and Volume/Microphone in Extras. Capture and playback run at the same time on two I2S controllers sharing the
+  speaker's clocks, so the microphone keeps recording while a sound plays. Microphone starts off without a saved choice
+  and restores later choices; this is a software mute, not a physical disconnect. The profile requires ESPHome
+  2026.9.0 and provides the hardware the optional Voice assistant plugin needs, without installing it. Cold-start
+  power, sound, capture and end-to-end Assist still require testing on a real board.
+
 ## 0.4.89 (firmware 0.57.0)
 
 - **A thermostat's state line no longer runs into its card.** On screens with dense glass (the Waveshare P4 and
