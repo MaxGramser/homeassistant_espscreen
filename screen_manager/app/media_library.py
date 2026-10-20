@@ -526,3 +526,28 @@ def preview_jpeg(raw, side=256):
         out = io.BytesIO()
         image.save(out, 'JPEG', quality=85)
         return out.getvalue()
+
+
+def preview_items(service, result):
+    """The native screen's compact Music Assistant answer; never execute a supplied template."""
+    result = result if isinstance(result, dict) else {}
+    rows = []
+    if service.endswith('get_queue'):
+        for queue in result.values():
+            if not isinstance(queue, dict): continue
+            for key, label in (('current_item', 'Now: '), ('next_item', 'Next: ')):
+                item = queue.get(key)
+                if isinstance(item, dict): rows.append({'name': label + str(item.get('name', '')), 'uri': key, 'media_type': 'queue'})
+    elif service.endswith('search'):
+        for key in ('tracks', 'albums', 'artists', 'playlists', 'radio'):
+            if isinstance(result.get(key), list): rows.extend(result[key])
+    else:
+        rows = result.get('items', [])
+    items = []
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict): continue
+        name, uri = row.get('name'), row.get('uri')
+        if not isinstance(name, str) or not isinstance(uri, str) or not name or not uri: continue
+        items.append({'name': name[:160], 'uri': uri[:2048], 'kind': str(row.get('media_type', 'track'))[:32]})
+        if len(items) == 48: break
+    return {'items': items}

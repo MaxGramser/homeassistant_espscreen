@@ -47,7 +47,9 @@ function expectImage() {
   const images = diagnostics().images;
   assert.equal(images.length, 1, JSON.stringify(diagnostics()));
   const image = images[0], pointer = m._preview_frame();
-  const pixel = y => { const start = pointer + (y * width + image.x + Math.floor(image.width / 2)) * 4; return [...m.HEAPU8.subarray(start, start + 3)]; };
+  // A cover tile may draw its title over the middle of the picture. Sample its
+  // unobstructed right edge so a text glyph is not mistaken for a decode failure.
+  const pixel = y => { const start = pointer + (y * width + image.x + image.width - 2) * 4; return [...m.HEAPU8.subarray(start, start + 3)]; };
   assert.deepEqual(pixel(image.y + Math.floor(image.height / 4)), [255, 0, 0]);
   assert.deepEqual(pixel(image.y + Math.floor(image.height * 3 / 4)), [0, 255, 0]);
   return image;

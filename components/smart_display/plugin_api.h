@@ -78,7 +78,8 @@ namespace tessera {
 // 0.18: popups (show_popup, close_popup, popup_shown, Popup): the alert's card in the middle of the glass with what the
 // plugin draws in it, as high as that, over everything but an alert, for a voice assistant that listens, thinks and
 // answers; and ui::animate and ui::still, a part of it that pulses, spins or ripples while something goes on.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 18;
+// 0.19: optional native media-screen configuration and startup-volume handling.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 19;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -683,5 +684,15 @@ void still(lv_obj_t *part);
 // stream. Only on a tile's places; a card's and a saver's places show stills. Call it in create() or on_state.
 void live(lv_obj_t *place, bool on = true);
 }  // namespace ui
+
+struct MediaScreenConfig {
+  std::string entity, library_entry, favorite_button;
+  float starting_volume = 0.30f;
+  uint32_t artwork_after_ms = 60000;
+  bool enabled = true;
+};
+void configure_media_screen(const MediaScreenConfig &config);
+void poll_media_screen(uint32_t now_ms);
+void close_media_artwork();
 
 }  // namespace tessera

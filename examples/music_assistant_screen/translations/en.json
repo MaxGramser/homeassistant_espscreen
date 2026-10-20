@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "name": "English"
+  },
+  "app": {
+    "name": "Music Assistant Screen",
+    "summary": "A dedicated player with library browsing, favorites, search and a gentle starting volume.",
+    "player": "Default speaker",
+    "player_hint": "Use the Music Assistant media player shown on your home page.",
+    "entry": "Music Assistant connection ID",
+    "entry_hint": "The Home Assistant config entry ID of your Music Assistant integration.",
+    "favorite_button": "Favorite current song button",
+    "favorite_hint": "Music Assistant favorite-current-song button for this speaker.",
+    "enabled": "Dedicated music screen",
+    "volume": "Starting volume (%)",
+    "volume_hint": "Lowers volume only before starting from stopped or idle; pause resumes unchanged.",
+    "artwork": "Artwork timeout (seconds)",
+    "artwork_hint": "Show album artwork while playing after inactivity. Zero disables automatic artwork."
+  },
+  "screen": {
+    "enabled": "Dedicated music screen",
+    "volume": "Starting volume",
+    "artwork": "Artwork timeout"
+  }
+}

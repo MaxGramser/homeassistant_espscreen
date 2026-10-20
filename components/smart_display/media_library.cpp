@@ -15,6 +15,16 @@ static std::string entity;
 static std::vector<std::pair<uint32_t, std::string>> trail;  // the folders opened, the top first: number and title
 static Folder folder;
 static unsigned page = 0;
+static bool favorites_mode = false;
+static int native_mode = 0;
+static std::string search_query;
+static lv_obj_t *search_area = nullptr;
+static uint32_t favorite_call = 0, favorite_sequence = 0x60000000;
+static uint32_t favorite_since = 0;
+struct FavoriteMedia { std::string uri, kind; };
+static std::vector<FavoriteMedia> favorite_media;
+static constexpr const char *FAVORITE_KINDS[] = {"playlist","radio","album","artist","track","podcast","audiobook"};
+static constexpr const char *FAVORITE_LABELS[] = {"Playlists","Radio stations","Albums","Artists","Tracks","Podcasts","Audiobooks"};
 static uint32_t asked_at = 0;
 static uint8_t tries = 0;
 static uint32_t starting = 0, starting_at = 0;  // the item just tapped, until the player plays (STARTING_MS at most)
@@ -230,9 +240,73 @@ static bool steady() { return effects_page::steady(); }
 static void draw();
 static void remark();
 static void load(uint32_t token, const std::string &title);
+static void accept_native(Answer &&answer);
 
+static void ask_favorites() {
+  if (favorite_call) return;
+  Answer answer; answer.entity=entity; answer.folder=folder.token; answer.page=0; answer.pages=1;
+  if (!folder.token && native_mode==1) {
+    answer.title="Music Assistant Favorites";
+    for (unsigned i=0;i<7;++i) answer.items.push_back({i+1,FAVORITE_LABELS[i],CAN_EXPAND,0});
+    accept_native(std::move(answer)); return;
+  }
+  if (native_mode==1 && (folder.token<1 || folder.token>7)) return;
+#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES_JSON
+  const unsigned category=native_mode==1?folder.token-1:0;
+  const std::string kind=FAVORITE_KINDS[category], entry=favorites_entry;
+  const int mode=native_mode;
+  esphome::api::HomeassistantActionRequest request;
+  request.service=esphome::StringRef(mode==2?"music_assistant.get_queue":mode==3?"music_assistant.search":"music_assistant.get_library");
+  request.wants_response=true;
+  request.call_id=++favorite_sequence;
+  favorite_call=request.call_id; favorite_since=clock_ms();
+  // Keep the response small: the screen needs a name and playable URI, not provider metadata.
+  const std::string prefix="{% set r = response.response if response.response is defined else response %}{% set n = namespace(items=[]) %}";
+  const std::string suffix="{{ {'items':n.items} }}";
+  const std::string trim=prefix+(mode==2?
+    "{% for q in r.values() %}{% if q is mapping %}{% for k in ['current_item','next_item'] %}{% set i=q[k] %}{% if i %}{% set n.items=n.items+[{'name': ('Now: ' if k=='current_item' else 'Next: ')+i.name,'uri':k,'kind':'queue'}] %}{% endif %}{% endfor %}{% endif %}{% endfor %}":
+    mode==3?"{% for k in ['tracks','albums','artists','playlists','radio'] %}{% for i in r[k] %}{% set n.items=n.items+[{'name':i.name,'uri':i.uri,'kind':i.media_type}] %}{% endfor %}{% endfor %}":
+    "{% for i in r['items'] %}{% set n.items = n.items + [{'name':i.name,'uri':i.uri,'kind':i.media_type}] %}{% endfor %}")+suffix;
+  request.response_template=esphome::StringRef(trim);
+  const std::string limit=std::to_string(mode==3?8:LIMIT);
+  std::vector<std::pair<std::string,std::string>> fields;
+  if(mode==2){const auto *selected=tile();fields={{"entity_id",selected?rt::media_entity(*selected):entity}};}
+  else if(mode==3)fields={{"config_entry_id",entry},{"name",search_query},{"limit",limit}};
+  else fields={{"config_entry_id",entry},{"media_type",kind},{"favorite","true"},{"limit",limit},{"order_by","sort_name"}};
+  request.data.init(fields.size());
+  for(const auto &field:fields){esphome::api::HomeassistantServiceMap value;value.key=esphome::StringRef(field.first);value.value=esphome::StringRef(field.second);request.data.push_back(value);}
+  const auto call=favorite_call;
+  esphome::api::global_api_server->register_action_response_callback(call,[call,category,mode](const esphome::api::ActionResponse &response){
+    if(favorite_call!=call)return;
+    favorite_call=0;
+    if(!favorites_mode||!root||native_mode!=mode||(mode==1&&folder.token!=category+1))return;
+    Answer result;result.entity=entity;result.folder=folder.token;result.pages=1;result.title=mode==2?"Queue: now and next":mode==3?"Search results":std::string("Favorite ")+FAVORITE_LABELS[category];
+    result.failed=!response.is_success();
+    favorite_media.clear();
+    if(!result.failed){
+      JsonObjectConst data=response.get_json();
+      JsonArrayConst items=data["items"].as<JsonArrayConst>();
+      if(items.isNull())items=data["response"]["items"].as<JsonArrayConst>();
+      if(items.isNull())result.failed=true;
+      else for(JsonObjectConst item:items){
+        const std::string uri=item["uri"]|"", name=item["name"]|"";
+        if(uri.empty()||name.empty()||favorite_media.size()>=LIMIT)continue;
+        favorite_media.push_back({uri,item["kind"]|FAVORITE_KINDS[category]});
+        result.items.push_back({100+static_cast<uint32_t>(favorite_media.size()-1),name,
+          static_cast<uint8_t>(mode==2&&uri=="current_item"?0:CAN_PLAY),0});
+      }
+    }
+    if(result.failed)ESP_LOGW("library","Music Assistant favorites request failed");
+    accept_native(std::move(result));
+  });
+  esphome::api::global_api_server->send_homeassistant_action(request);
+#else
+  answer.failed=true;accept_native(std::move(answer));
+#endif
+}
 static void ask() {
   asked_at = clock_ms();
+  if(favorites_mode){ask_favorites();return;}
   rt::library_request(entity, folder.token, folder.next);
 }
 static void back_event(lv_event_t *) {
@@ -260,6 +334,16 @@ static void gesture_event(lv_event_t *) {
 }
 // What a tap on an item does: plays it on the speaker the player plays on, or asks for one first when it plays nowhere.
 static void play(const Item &item) {
+  if(favorites_mode){
+    const auto i=item.token>=100?item.token-100:LIMIT;
+    const Tile *t=tile();
+    if(!t||i>=favorite_media.size()||starting)return;
+    starting=item.token;starting_at=clock_ms();remark();
+    if(native_mode==2){rt::action("media_player.media_next_track",rt::media_entity(*t));return;}
+    rt::action("media_player.play_media",rt::media_entity(*t),"media_content_id",favorite_media[i].uri,
+               true,"media_content_type",favorite_media[i].kind);
+    return;
+  }
   const Tile *t = tile();
   const bool can_start = t && (!t->extra().media_source.empty() || (t->supported & tile_controls::feature::MEDIA_PLAY_MEDIA));
   if (!can_start && t && !t->extra().media_sources.empty()) { speakers(entity, item.token); return; }
@@ -429,12 +513,13 @@ static void load(uint32_t token, const std::string &title) {
 }
 
 // ---- the page ----
-void open(const std::string &id) {
+static void open_view(const std::string &id, int mode) {
   if (!LIBRARY) return;
   const Tile *t = player(id);
   if (!t) return;
   close();
   entity = id;
+  favorites_mode=mode!=0;native_mode=mode;
   root = effects_page::page_root();
   // A page of covers is a picture: it takes the glass, not a hand's width (overlay_card::picture).
   lv_obj_set_style_pad_left(root, 0, 0);
@@ -446,7 +531,61 @@ void open(const std::string &id) {
   ESP_LOGI("library", "Library of %s", id.c_str());
   load(0, std::string());
 }
+void open(const std::string &id) { open_view(id,0); }
+void open_favorites(const std::string &id) { open_view(id,1); }
+void open_queue(const std::string &id) { open_view(id,2); }
+void open_search(const std::string &id) {
+  close();entity=id;favorites_mode=true;native_mode=4;
+  root=effects_page::page_root();
+  detail_bar::make(root,"Search Music Assistant",{detail_bar::BACK,[](lv_event_t *){close();}});
+  const int width=overlay_card::screen_width(),height=overlay_card::screen_height();
+  search_area=lv_textarea_create(root);lv_obj_set_pos(search_area,ui::px(16),ui::px(64));
+  lv_obj_set_size(search_area,width-ui::px(32),ui::px(50));lv_textarea_set_one_line(search_area,true);
+  lv_obj_set_style_bg_color(search_area,theme::color(theme::CARD),0);
+  lv_obj_set_style_text_color(search_area,theme::color(theme::INK),0);
+  lv_obj_set_style_text_font(search_area,name_font(),0);
+  lv_textarea_set_max_length(search_area,100);lv_textarea_set_placeholder_text(search_area,"Artist, album, track or playlist");
+  auto *keyboard=lv_keyboard_create(root);lv_obj_set_size(keyboard,width,height-ui::px(130));
+  lv_obj_align(keyboard,LV_ALIGN_BOTTOM_MID,0,0);lv_keyboard_set_textarea(keyboard,search_area);
+  lv_obj_add_event_cb(keyboard,[](lv_event_t *e){
+    if(lv_event_get_code(e)==LV_EVENT_CANCEL){close();return;}
+    if(lv_event_get_code(e)!=LV_EVENT_READY||!search_area)return;
+    const std::string query=lv_textarea_get_text(search_area),who=entity;
+    if(query.empty())return;
+    search_query=query;open_view(who,3);
+  },LV_EVENT_ALL,nullptr);
+}
+void open_tools(const std::string &id) {
+  close();entity=id;favorites_mode=true;native_mode=5;
+  root=effects_page::page_root();
+  detail_bar::make(root,"Music tools",{detail_bar::BACK,[](lv_event_t *){close();}});
+  const char *names[]={"Search music","Favorite this song","Artwork view"};
+  const int width=overlay_card::screen_width();
+  for(int i=0;i<3;++i){
+    auto *button=plain(root,ui::px(30),ui::px(85+i*85),width-ui::px(60),ui::px(65));
+    lv_obj_add_flag(button,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_opa(button,LV_OPA_COVER,0);
+    lv_obj_set_style_bg_color(button,theme::color(theme::KEY),0);
+    lv_obj_set_style_bg_color(button,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
+    lv_obj_set_style_radius(button,ui::px(12),0);
+    auto *text=words(button,names[i],name_font(),theme::INK,LV_TEXT_ALIGN_CENTER,0,0,width-ui::px(60));lv_obj_center(text);
+    lv_obj_add_event_cb(button,[](lv_event_t *e){
+      const auto choice=reinterpret_cast<intptr_t>(lv_event_get_user_data(e));const auto who=entity;
+      if(choice==0){open_search(who);return;}
+      if(choice==1){
+        if(!rt::fresh()||favorite_button.empty())return;
+        rt::action("button.press",favorite_button);close();return;
+      }
+      close();if(artwork_open)artwork_open();
+    },LV_EVENT_SHORT_CLICKED,reinterpret_cast<void *>(static_cast<intptr_t>(i)));
+  }
+}
+
 void close() {
+#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES_JSON
+  if(favorite_call){const auto call=favorite_call;favorite_call=0;esphome::api::global_api_server->handle_action_response(call,false,esphome::StringRef("Cancelled"));}
+#endif
+  favorites_mode=false;native_mode=0;search_area=nullptr;favorite_media.clear();
   if (menu_root) { lv_obj_delete(menu_root); menu_root = nullptr; }
   row_objs.clear();
   menu_entity.clear();
@@ -465,7 +604,7 @@ void close() {
   // The player's card under it shows what changed meanwhile.
   if (rt::detail_root && !lv_obj_has_flag(rt::detail_root, LV_OBJ_FLAG_HIDDEN) && rt::detail_index < rt::model.count) rt::refresh_detail(rt::detail_index);
 }
-void received(Answer &&answer) {
+static void accept_native(Answer &&answer) {
   if (!LIBRARY || !root || answer.entity != entity) return;
   if (!folder.take(std::move(answer))) return;
   tries = 0;
@@ -473,6 +612,8 @@ void received(Answer &&answer) {
   ESP_LOGI("library", "Folder %u: %u items", (unsigned) folder.token, (unsigned) folder.items.size());
   draw();
 }
+
+void received(Answer &&answer) { if(!favorites_mode)accept_native(std::move(answer)); }
 
 // ---- the speaker menu ----
 // Two lists open here: the speakers (media_sources) and, from the input key, the inputs (media_inputs, firmware
@@ -785,12 +926,16 @@ void restyle() {
   if (menu_root) draw_menu();
 }
 void tick(uint32_t now) {
+#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES_JSON
+  if(favorite_call && now-favorite_since>=15000)
+    esphome::api::global_api_server->handle_action_response(favorite_call,false,esphome::StringRef("Timed out"));
+#endif
   if (!LIBRARY) {
     if (menu_root && menu_due && !finger_down()) draw_menu();
     return;
   }
   if (menu_root && menu_due && !finger_down()) draw_menu();
-  if (root && !folder.complete && now - asked_at >= ASK_AGAIN_MS) {
+  if (root && native_mode<4 && !folder.complete && now - asked_at >= ASK_AGAIN_MS) {
     if (++tries >= ASK_TRIES) { folder.failed = folder.complete = true; draw(); }
     else ask();
   }

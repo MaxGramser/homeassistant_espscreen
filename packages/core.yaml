@@ -253,6 +253,9 @@ esphome:
             x = px; y = py;
           };
           // A dimmed screen only wakes, a calibration and an alert own the glass: no edge swipe does anything then.
+          runtime_tiles::music_ui_blocked = [](){ return id(touch_down) || id(calibration_active) || id(alert_active) || id(display_dimmed); };
+          runtime_tiles::music_idle_age = [](){ return millis()-id(last_use_ms); };
+          runtime_tiles::music_touched = [](){ id(last_use_ms)=millis(); };
           runtime_tiles::touch_input::swipe_blocked = []() -> const char * {
             if (id(display_dimmed)) return "screen dimmed";
             if (id(calibration_active)) return "calibration";

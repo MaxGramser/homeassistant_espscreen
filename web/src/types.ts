@@ -222,6 +222,7 @@ export type PluginAsk = {
 };
 export type Screen = {
   // name: the editor's own name when one is set (app 0.4.2); ha_name: what Home Assistant calls the screen.
+  preview?: { media_screen?: { entity: string; starting_volume?: number; library_entry?: string; favorite_button?: string } };
   id: string; name: string; ha_name?: string; online: boolean; area?: string; firmware?: string; board?: string;
   virtual?: boolean;
   layout: Layout; update?: UpdateInfo; settings?: SettingsView; delivery?: string; status?: string;

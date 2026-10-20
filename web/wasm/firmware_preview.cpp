@@ -58,6 +58,21 @@ void nav(lv_event_t *event) {
 extern "C" {
 // Whether the previewed board draws pictures (firmware 0.46.0): a board without PSRAM, such as the CYD, has no camera
 // hooks, so its media card keeps no square for a cover; the preview drops them the same way after preview_init.
+void preview_media_screen(const char *message) {
+  JsonDocument doc;
+  deserializeJson(doc, message ? message : "{}");
+  auto media = doc["media_screen"];
+  const std::string entity = media["entity"] | "";
+  const bool enabled = entity.rfind("media_player.", 0) == 0;
+  const bool changed = runtime_tiles::music_start_enabled != enabled || runtime_tiles::music_start_entity != entity;
+  runtime_tiles::music_start_enabled = enabled;
+  runtime_tiles::music_start_entity = enabled ? entity : "";
+  runtime_tiles::music_start_cap = std::clamp(media["starting_volume"] | .30f, 0.0f, 1.0f);
+  media_library::favorites_entry = enabled ? (media["library_entry"] | "") : "";
+  media_library::favorite_button = enabled ? (media["favorite_button"] | "") : "";
+  if (changed && runtime_tiles::model.ready()) runtime_tiles::restyle();
+  dirty = true;
+}
 void preview_pictures(int on) {
   if (on) return;
   runtime_tiles::camera_full = {};
@@ -175,6 +190,12 @@ const char *preview_next_action() {
   if (queue.empty()) return "";
   outgoing_action = std::move(queue.front()); queue.pop_front();
   return outgoing_action.c_str();
+}
+void preview_action_json(unsigned call_id, const char *message) {
+  JsonDocument doc;
+  const bool valid = !deserializeJson(doc, message ? message : "{}");
+  esphome::api::host_api_server.handle_action_response(call_id, valid, esphome::StringRef(valid ? "" : "Invalid response"), doc.as<JsonObjectConst>());
+  dirty = true;
 }
 void preview_action_response(unsigned call_id, int success, const char *error) {
   esphome::api::host_api_server.handle_action_response(call_id, success != 0, esphome::StringRef(error ? error : ""));

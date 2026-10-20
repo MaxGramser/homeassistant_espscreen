@@ -1,0 +1,23 @@
+id: music_assistant_screen
+version: 0.1.1
+api: "0.19"
+icon: music
+maintainer: bptworld
+license: MIT
+stage: beta
+topics: [media]
+requires:
+  esphome: 2026.9.0
+boards: [waveshare7]
+flash_kb: 120
+inputs:
+  - {id: music_player, kind: entity, domains: [media_player], scope: screen, label: player, hint: player_hint}
+  - {id: music_entry, kind: text, scope: screen, label: entry, hint: entry_hint}
+  - {id: music_favorite_button, kind: entity, domains: [button], scope: screen, label: favorite_button, hint: favorite_hint}
+settings:
+  - {key: music_screen_enabled, label: enabled}
+  - {key: music_starting_volume, label: volume, hint: volume_hint}
+  - {key: music_artwork_timeout, label: artwork, hint: artwork_hint}
+permissions:
+  read_entities: [media_player.*, button.*]
+  home_assistant_actions: [media_player.media_play, media_player.media_pause, media_player.media_play_pause, media_player.media_next_track, media_player.media_previous_track, media_player.volume_set, media_player.volume_mute, media_player.play_media, media_player.shuffle_set, media_player.repeat_set, button.press, music_assistant.get_library, music_assistant.search, music_assistant.get_queue]

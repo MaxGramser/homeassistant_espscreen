@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.18 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.19 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -581,3 +581,9 @@ lights a screen in standby.
 
 A plugin's own messages beyond Home Assistant commands, Python modules of Tessera's own plugins in the add-on (the
 design's `module`), and plugin faces of the camera step.
+
+## Optional media controller (0.19)
+
+`MediaScreenConfig`, `configure_media_screen`, `poll_media_screen` and `close_media_artwork` configure the native full-size media tile with a selected entity, Music Assistant library, starting-volume sequencing and an idle artwork view. A plugin opts in; stock screens keep their normal player. Alerts, settings, standby and updates retain ownership. The example in `examples/music_assistant_screen` demonstrates the configuration.
+
+Starting volume is applied only to a new playback start from idle, stopped or off. It does not clamp volume during playback or change pause/resume. The device announces the optional configuration in its handshake so the editor and interactive preview can use the same native renderer. Routine heartbeats retain it; disconnect and fresh handshakes reset it.

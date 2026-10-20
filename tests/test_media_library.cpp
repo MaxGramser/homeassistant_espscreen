@@ -31,6 +31,10 @@ static void sound(const Shape &s, const Grid &g) {
 }
 
 int main() {
+  assert(can_browse(tile_catalogue::media_player::BROWSE_MEDIA, false) == available());
+  assert(can_browse(0, true) == available());
+  assert(!can_browse(0, false));
+  assert(!can_browse(tile_catalogue::media_player::VOLUME_SET, false));
   // The Guition (480x480): three covers a row, two rows; the top folder's eight cards two by four, on one page.
   {
     Shape s;

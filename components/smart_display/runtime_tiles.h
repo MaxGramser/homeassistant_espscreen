@@ -42,6 +42,7 @@
 #include "light_controls.h"
 #include "effects_page.h"
 #include "media_library.h"
+#include "startup_volume.h"
 #include "group_page.h"
 #include "tile_controls.h"
 #include "history_view.h"
@@ -938,6 +939,73 @@ inline bool send_action(esphome::api::HomeassistantActionRequest &request, const
   return watched;
 }
 // `key2` and `value2`: a second field, for a thermostat's range (both ends in one call, firmware 0.19.0).
+// A starting cap is applied once, before Play, and never while playing or resuming pause.
+inline float music_start_cap=0.30f;
+inline bool music_start_enabled=false;
+inline std::string music_start_entity;
+inline std::function<bool()> music_ui_blocked;
+inline std::function<uint32_t()> music_idle_age;
+inline std::function<void()> music_touched;
+inline uint32_t music_start_pending=0,music_start_since=0,music_start_sequence=0x50000000;
+struct OwnedMusicAction {
+  std::string service,entity;
+  bool event=false,watch=false,busy=false;
+  std::vector<std::pair<std::string,std::string>> data,templates;
+  OwnedMusicAction(const esphome::api::HomeassistantActionRequest &r,const std::string &who,bool w,bool b):
+      service(r.service.c_str(),r.service.size()),entity(who),event(r.is_event),watch(w),busy(b){
+    for(const auto &v:r.data)data.emplace_back(std::string(v.key.c_str(),v.key.size()),std::string(v.value.c_str(),v.value.size()));
+    for(const auto &v:r.data_template)templates.emplace_back(std::string(v.key.c_str(),v.key.size()),std::string(v.value.c_str(),v.value.size()));
+  }
+  void send() const {
+    esphome::api::HomeassistantActionRequest r;r.service=esphome::StringRef(service);r.is_event=event;
+    r.data.init(data.size());r.data_template.init(templates.size());
+    for(const auto &v:data){esphome::api::HomeassistantServiceMap p;p.key=esphome::StringRef(v.first);p.value=esphome::StringRef(v.second);r.data.push_back(p);}
+    for(const auto &v:templates){esphome::api::HomeassistantServiceMap p;p.key=esphome::StringRef(v.first);p.value=esphome::StringRef(v.second);r.data_template.push_back(p);}
+    send_action(r,entity,watch,busy);
+  }
+};
+inline bool cap_music_start(esphome::api::HomeassistantActionRequest &request,const std::string &who,bool watch,bool busy){
+#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
+  if(!music_start_enabled)return false;
+  bool selected=who==music_start_entity;
+  for(const auto &t:model.tiles)if(t.entity==music_start_entity && t.extra().media_target==who)selected=true;
+  if(!selected)return false;
+  if(music_start_pending)return true;
+  const Tile *player=nullptr;
+  for(const auto &t:model.tiles)if(t.entity==who||t.extra().media_target==who){player=&t;break;}
+  if(!player||!startup_volume::needs_cap(player->state,player->volume,music_start_cap))return false;
+  auto next=std::make_shared<OwnedMusicAction>(request,who,watch,busy);
+  esphome::api::HomeassistantActionRequest volume;volume.service=esphome::StringRef("media_player.volume_set");
+  const std::string level=std::to_string(music_start_cap);
+  const std::pair<const char *,std::string> values[]={{"entity_id",who},{"volume_level",level}};
+  volume.data.init(2);for(const auto &v:values){esphome::api::HomeassistantServiceMap p;p.key=esphome::StringRef(v.first);p.value=esphome::StringRef(v.second);volume.data.push_back(p);}
+  volume.call_id=music_start_pending=++music_start_sequence;music_start_since=esphome::millis();
+  const auto call=music_start_pending;
+  esphome::api::global_api_server->register_action_response_callback(call,[call,next](const esphome::api::ActionResponse &answer){
+    if(music_start_pending!=call)return;music_start_pending=0;
+    if(answer.is_success()){
+      // Do not launch a delayed play after disconnection, disabling or reconfiguration.
+      if(!fresh()||!music_start_enabled)return;
+      bool selected=next->entity==music_start_entity;
+      for(const auto &t:model.tiles)if(t.entity==music_start_entity&&t.extra().media_target==next->entity)selected=true;
+      if(selected)next->send();
+      return;
+    }
+    ESP_LOGW("music_start","Starting volume was not confirmed; playback was not sent");
+    if(hint_alert)hint_alert("Starting volume","Could not confirm the starting volume. Playback was not started.");
+  });
+  esphome::api::global_api_server->send_homeassistant_action(volume);
+  return true;
+#else
+  return false;
+#endif
+}
+inline void expire_music_start(){
+#ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
+  if(music_start_pending&&esphome::millis()-music_start_since>=8000)
+    esphome::api::global_api_server->handle_action_response(music_start_pending,false,esphome::StringRef("Timed out"));
+#endif
+}
 // The player a card's media keys act on (firmware 0.26.0+): the speaker it follows (the app's `ct`, a Spotify tile that
 // plays on a Sonos), or the tile's own.
 inline const std::string &media_entity(const Tile &t){return t.extra().media_target.empty()?t.entity:t.extra().media_target;}
@@ -955,6 +1023,8 @@ inline bool action(const std::string &service, const std::string &entity, const 
   request.data.push_back(entry);
   if(!key.empty()) {esphome::api::HomeassistantServiceMap param;param.key=esphome::StringRef(key);param.value=esphome::StringRef(value);request.data.push_back(param);}
   if(!key2.empty()) {esphome::api::HomeassistantServiceMap param;param.key=esphome::StringRef(key2);param.value=esphome::StringRef(value2);request.data.push_back(param);}
+  if((service=="media_player.media_play"||service=="media_player.media_play_pause"||service=="media_player.play_media")&&
+      cap_music_start(request,entity,watch,busy))return true;
   const bool watched = send_action(request, entity, watch, busy);
   ESP_LOGI("runtime_action","Sent service=%s entity=%s",service.c_str(),entity.c_str());
   return watched;
@@ -1084,6 +1154,9 @@ inline void library_event(const char *service, std::initializer_list<std::pair<c
     entry.key = esphome::StringRef(pair.first);
     entry.value = esphome::StringRef(pair.second);
     request.data.push_back(entry);
+  }
+  if(std::string(service)=="esphome.screen_play"){
+    for(const auto &v:data)if(v.first=="entity"&&cap_music_start(request,v.second,false,false))return;
   }
   esphome::api::global_api_server->send_homeassistant_action(request);
 }
@@ -1841,6 +1914,9 @@ inline void detail_command(int cmd){
   }
   auto &t=model.tiles[detail_index];
   // A player's library and its speakers (firmware 0.24.0+) open while a key of it is still on its way.
+  if(cmd==12000){media_library::open_favorites(t.entity);return;}
+  if(cmd==12001){media_library::open_queue(t.entity);return;}
+  if(cmd==12002){media_library::open_tools(t.entity);return;}
   if(cmd==27){media_library::open(t.entity);return;}
   if(cmd==28){media_library::speakers(t.entity);return;}
   if(cmd==29){media_library::inputs(t.entity);return;}
@@ -4865,6 +4941,7 @@ inline void media_action(Tile &t,int cmd){
   if(cmd==20){
     const auto a=tile_controls::media_play_action(t);
     const auto w=tile_controls::wanted(t,tile_controls::MEDIA_PLAY_PAUSE);
+    if(music_start_enabled&&a.valid()&&startup_volume::needs_cap(t.state,t.volume,music_start_cap)){action(a.service,media_entity(t));return;}
     if(a.valid()&&w.valid)wish(t,F::PLAYING,w.value,a.service,"","",media_entity(t));
     else action("media_player.media_play_pause",media_entity(t));
   }
@@ -4938,7 +5015,7 @@ inline lv_obj_t *media_picture_show(lv_obj_t *parent,lv_obj_t *existing,const me
   if(!src || !src->data)return existing;
   auto *p=existing;
   if(!p){p=lv_image_create(parent);lv_obj_remove_flag(p,LV_OBJ_FLAG_CLICKABLE);}
-  lv_image_set_src(p,src);lv_obj_set_pos(p,r.x,r.y);lv_obj_set_size(p,r.w,r.h);lv_obj_invalidate(p);
+  lv_image_set_src(p,src);lv_obj_set_align(p,LV_ALIGN_TOP_LEFT);lv_obj_set_pos(p,r.x,r.y);lv_obj_set_size(p,r.w,r.h);lv_obj_invalidate(p);
   return p;
 #else
   (void)parent;(void)r;(void)src;return existing;
@@ -4980,16 +5057,25 @@ inline void media_progress(const Tile &t,lv_obj_t *fill,lv_obj_t *elapsed,int ba
 // (theme::MEDIA_GROUND). One flat colour (firmware 0.52.0): the card ran from one colour at the top to another at the
 // bottom before, and the app has sent the same colour for both ends since GitHub #135.
 inline uint32_t media_ground(const Tile &t){
+  if(music_start_enabled)return theme::ROLES[theme::CARD].light;
   const auto &x=t.extra();
   return x.has_ground?x.ground:theme::hex(theme::MEDIA_GROUND);
 }
-inline uint32_t media_ink(){return theme::hex(theme::CAMERA_INK);}
+inline uint32_t media_ink(){return music_start_enabled?theme::ROLES[theme::INK].light:theme::hex(theme::CAMERA_INK);}
 // The second line, the times and what is faded: the ink, a quarter of the way into the ground.
 inline uint32_t media_soft(uint32_t ground){return theme::mix(media_ink(),ground,190);}
 // A key on the ground: a white key for the main one with the ground's own colour in it, a faint white circle for the
 // others, none at all for a bare one (mute, shuffle, repeat), white icons.
 inline void media_dark_key(lv_obj_t *key,bool primary,bool bare,uint32_t ground,uint32_t icon_color=0){
   if(!key)return;
+  if(music_start_enabled){
+    set_color(key,LV_STYLE_BG_COLOR,theme::rgb(theme::ROLES[primary?theme::ACCENT:theme::KEY].light));
+    set_color(key,LV_STYLE_BG_COLOR,theme::rgb(theme::ROLES[primary?theme::ACCENT:theme::KEY_PRESSED].light),LV_STATE_PRESSED);
+    set_number(key,LV_STYLE_BG_OPA,bare?LV_OPA_TRANSP:LV_OPA_COVER);
+    set_number(key,LV_STYLE_BG_OPA,bare?40:LV_OPA_COVER,LV_STATE_PRESSED);
+    if(auto *icon=lv_obj_get_child(key,0))set_color(icon,LV_STYLE_TEXT_COLOR,theme::rgb(icon_color?icon_color:theme::ROLES[primary?theme::ON_ACCENT:theme::INK].light));
+    return;
+  }
   set_color(key,LV_STYLE_BG_COLOR,theme::rgb(media_ink()));
   set_color(key,LV_STYLE_BG_COLOR,theme::rgb(primary?theme::mix(media_ink(),ground,200):media_ink()),LV_STATE_PRESSED);
   set_number(key,LV_STYLE_BG_OPA,primary?LV_OPA_COVER:bare?LV_OPA_TRANSP:40);
@@ -5176,6 +5262,16 @@ inline void media_top_bar(const Tile &t,lv_obj_t *back,lv_obj_t *heading){
     auto *key=media_key(detail_root,nullptr,{slot.x,slot.y,slot.w,slot.h},glyph::STANDBY,icons,false,false,true,cb,(void*)(intptr_t)cmd);
     media_dark_key(key,false,false,g);
   }
+  if (!media_library::favorites_entry.empty()) {
+    for(int command:{12000,12001,12002}){
+      const auto far=detail_bar::right_slot(detail_root,right++);
+      auto near=far;if(command!=12002)near=detail_bar::right_slot(detail_root,right++);
+      auto *key=media_key(detail_root,nullptr,{near.x,near.y,far.x+far.w-near.x,near.h},
+        command==12000?"Favorites":command==12001?"Queue":"More",control_font?control_font:detail_font,
+        false,false,usable,cb,(void*)(intptr_t)command);
+      media_dark_key(key,false,false,g);
+    }
+  }
   media_pill_obj=nullptr;
   // Two keys at the right: the name keeps clear of both.
   detail_bar::place_title(heading,detail_root,right);
@@ -5216,7 +5312,7 @@ inline bool media_usable(const Tile &t){return fresh()&&t.available();}
 inline bool media_track(const Tile &t){return media_usable(t)&&media_card::has_track(t.state);}
 inline bool media_at_rest(const Tile &t){
   const auto &x=t.extra();
-  return media_usable(t)&&!media_track(t)&&!media_off(t)&&x.media_library&&media_library::available()&&
+  return media_usable(t)&&!media_track(t)&&!media_off(t)&&media_library::can_browse(t.supported,x.media_library)&&
          !(t.supported&(tile_controls::feature::MEDIA_PLAY|tile_controls::feature::MEDIA_PAUSE));
 }
 // A stream (firmware 0.52.0): a track that plays without a length, a radio station. Home Assistant has no word for it:
@@ -5387,7 +5483,7 @@ inline uint32_t media_card_shape(const Tile &t){
   add(std::to_string(t.supported));add(std::to_string(x.media_features));
   // The times beside the bar take more room for a track of an hour or more.
   add(std::to_string(media_metrics(ui::large(),x.media_duration).times_w()));
-  add(std::to_string(x.media_library&&media_library::available()));add(std::to_string(x.media_inputs.size()));
+  add(std::to_string(media_library::can_browse(t.supported,x.media_library)));add(std::to_string(x.media_inputs.size()));
   add(x.media_source);add(std::to_string(x.media_sources.size()));add(std::to_string(x.assumed));
   // Whether shuffle, repeat and the volume row are there at all.
   f.write(x.media_shuffle>=0);f.write(!x.media_repeat.empty());f.write(std::isfinite(t.volume));
@@ -5402,7 +5498,7 @@ inline void render_media_detail(Tile &t,unsigned index,bool large,int width,int 
   const auto &x=t.extra();
   const Metrics m=media_metrics(large,x.media_duration);
   // The volume row ends with the keys of what the player has besides: its inputs, and its library outermost.
-  const bool library=x.media_library&&media_library::available(),inputs=!x.media_inputs.empty();
+  const bool library=media_library::can_browse(t.supported,x.media_library),inputs=!x.media_inputs.empty();
   const Layout l=layout(m,width,std::max(60,height-top-(ui::px(large?12:6))),library+inputs);
   auto at=[&](Rect r){r.y+=top;return r;};
   const bool usable=fresh()&&t.available();
@@ -5990,6 +6086,8 @@ inline void event(lv_event_t *event) {
              code == LV_EVENT_LONG_PRESSED ? "held" : "let go");
     return;
   }
+  // The expanded music tile is the actual main screen; background taps do not open a duplicate overlay.
+  if(music_start_enabled&&w.extra_mode=="media"&&model.tiles[w.index].entity==music_start_entity)return;
   // The built-in cards need nothing from Home Assistant: the settings card opens the screen's own page with
   // the link down too, as its card says (firmware 0.2.49+), and the clock card does nothing under a finger.
   if (model.tiles[w.index].builtin()) {
@@ -7858,14 +7956,57 @@ inline void media_tile_key_event(lv_event_t *e){
   static const int commands[]={21,20,22};
   media_action(t,n==1 && media_off(t)?24:commands[n]);
 }
+inline void music_main_seek_event(lv_event_t *e){
+  const size_t slot=(uintptr_t)lv_event_get_user_data(e);
+  if(slot>=widgets.size()||lv_event_get_code(e)!=LV_EVENT_RELEASED||!fresh())return;
+  auto &w=widgets[slot];if(w.index>=model.count||w.extra_mode!="media"||!w.parts[4])return;
+  auto &t=model.tiles[w.index];const auto &x=t.extra();
+  if(!t.available()||!media_card::has_track(t.state)||!x.media_duration)return;
+  lv_point_t point;lv_indev_get_point(lv_indev_active(),&point);
+  lv_area_t area;lv_obj_get_coords(w.parts[4],&area);
+  const uint32_t seconds=media_card::seek_seconds(point.x-area.x1,w.media_bar_w,x.media_duration);
+  action("media_player.media_seek",media_entity(t),"seek_position",std::to_string(seconds));
+}
+inline void music_main_option_event(lv_event_t *e){
+  const unsigned code=(uintptr_t)lv_event_get_user_data(e),slot=code/16,n=code%16;
+  if(slot>=widgets.size()||!enabled||!fresh())return;
+  auto &w=widgets[slot];
+  if(w.index>=model.count||w.extra_mode!="media"||lv_obj_has_state(lv_event_get_target_obj(e),LV_STATE_DISABLED))return;
+  auto &t=model.tiles[w.index];
+  if(!t.available()||!allowed(esphome::millis(),1500+slot*16+n,"music main option"))return;
+  if(n==0)media_library::open(t.entity);
+  else if(n==1)media_library::open_favorites(t.entity);
+  else if(n==2)media_library::open_queue(t.entity);
+  else if(n==3)media_library::speakers(t.entity);
+  else if(n==4)media_library::open_tools(t.entity);
+  else if(n==5)media_library::inputs(t.entity);
+  else if(n==6)media_action(t,media_off(t)?24:30);
+  else if(n==7)media_action(t,25);
+  else if(n==8)media_action(t,26);
+}
 inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,int content_h,int head_h){
   using namespace media_card;
   using namespace tile_controls;
   const auto &x=t.extra();
   const Metrics m=media_metrics(big,x.media_duration);
-  const int top=head_h+(ui::px(big?8:4));
+  const bool expanded=music_start_enabled&&t.entity==music_start_entity;
+  const int toolbar_h=expanded?ui::px(44):0;
+  const int top=head_h+(expanded?toolbar_h+ui::px(12):ui::px(big?8:4));
   const Layout l=layout(m,content_w,std::max(40,content_h-top-(ui::px(big?4:2))));
   begin_extra(w,"media",content_w,content_h);
+  if(expanded){
+    const char *names[]={"Library","Favorites","Queue","Speakers","More","Inputs","Power"};
+    const bool inputs=!x.media_inputs.empty(),power=(t.supported&(feature::MEDIA_TURN_ON|feature::MEDIA_TURN_OFF))!=0;
+    const int count=5+inputs+power,gap=ui::px(6),margin=ui::px(10),bw=(content_w-2*margin-gap*(count-1))/count;
+    int column=0;const size_t option_slot=&w-widgets.data();
+    for(unsigned n=0;n<7;++n){
+      const bool show=n<5||(n==5?inputs:power);
+      if(!show){if(w.parts[15+n])set_hidden(w.parts[15+n],true);continue;}
+      w.parts[15+n]=media_key(w.extra,w.parts[15+n],{margin+column++*(bw+gap),head_h+ui::px(4),bw,toolbar_h},names[n],
+        small_font?small_font:w.title_font,false,false,fresh()&&t.available(),music_main_option_event,(void*)(uintptr_t)(option_slot*16+n));
+      set_hidden(w.parts[15+n],false);
+    }
+  }else for(unsigned n=15;n<=21;++n)if(w.parts[n])set_hidden(w.parts[n],true);
   auto at=[&](Rect r){r.y+=top;return r;};
   const bool usable=fresh()&&t.available(),track=usable&&has_track(t.state),play=media_card::playing(t.state);
   const uint32_t f=t.supported;auto can=[&](uint32_t bit){return usable&&(!f||(f&bit));};
@@ -7932,6 +8073,15 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
     else text(6,small,l.elapsed,LV_TEXT_ALIGN_LEFT,clock_text(timed?elapsed_seconds(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration):0),theme::SUBTLE);
     text(7,small,l.total,LV_TEXT_ALIGN_RIGHT,live?std::string():clock_text(timed?x.media_duration:0),theme::SUBTLE);
   }else for(unsigned i:{6u,7u})if(w.parts[i])lv_obj_add_flag(w.parts[i],LV_OBJ_FLAG_HIDDEN);
+  const bool seeking=expanded&&timed&&can(feature::MEDIA_SEEK);
+  if(seeking){
+    const bool first=!w.parts[26];
+    w.parts[26]=media_box(w.extra,w.parts[26],at(l.seek),theme::hex(theme::CARD),0);
+    set_number(w.parts[26],LV_STYLE_BG_OPA,LV_OPA_TRANSP);
+    lv_obj_add_flag(w.parts[26],LV_OBJ_FLAG_CLICKABLE);
+    if(first)lv_obj_add_event_cb(w.parts[26],music_main_seek_event,LV_EVENT_RELEASED,(void*)(uintptr_t)slot);
+    set_hidden(w.parts[26],false);
+  }else if(w.parts[26])set_hidden(w.parts[26],true);
   // The keys and the volume row. Their events carry the slot: the tile in it may change with the page. An off player
   // shows one power key and no volume row.
   const lv_font_t *key_font=mini_icon_font?mini_icon_font:w.icon_font;
@@ -7948,6 +8098,18 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
     show(9,true);
   }
   show(8,!off);show(10,!off);
+  const uint32_t had=t.supported|x.media_features;
+  const bool shuffle=expanded&&!off&&l.sides&&x.media_shuffle>=0&&(had&feature::MEDIA_SHUFFLE);
+  const bool repeat=expanded&&!off&&l.sides&&!x.media_repeat.empty()&&(had&feature::MEDIA_REPEAT);
+  if(shuffle){
+    w.parts[24]=media_key(w.extra,w.parts[24],at(l.shuffle),"\U000F049F",key_font,false,true,usable,music_main_option_event,(void*)(uintptr_t)(slot*16+7));
+    if(auto *icon=lv_obj_get_child(w.parts[24],0))set_color(icon,LV_STYLE_TEXT_COLOR,theme::color(x.media_shuffle==1?theme::ACCENT:theme::MUTED));
+  }
+  if(repeat){
+    w.parts[25]=media_key(w.extra,w.parts[25],at(l.repeat),x.media_repeat=="one"?"\U000F0458":"\U000F0456",key_font,false,true,usable,music_main_option_event,(void*)(uintptr_t)(slot*16+8));
+    if(auto *icon=lv_obj_get_child(w.parts[25],0))set_color(icon,LV_STYLE_TEXT_COLOR,theme::color(x.media_repeat!="off"?theme::ACCENT:theme::MUTED));
+  }
+  show(24,shuffle);show(25,repeat);
   if(volume)media_volume_row(w.extra,&w.parts[11],at(l.minus),at(l.volume),at(l.plus),t,big,usable,(void*)(uintptr_t)w.index,false,key_font);
   show(11,volume);show(12,volume);show(13,volume);
 }
@@ -10643,6 +10805,7 @@ inline bool was_fresh=false;
 inline void saver_wish_tick(uint32_t now);
 inline void saver_motion_tick(uint32_t now);
 inline void tick() {
+  expire_music_start();
   // A finger's wish on the screensaver's player goes out, or comes back without a word (saver_wish).
   saver_wish_tick(esphome::millis());
   // A photo of the screensaver that moves takes its next pixel.
@@ -11357,6 +11520,8 @@ inline void tile_picture_place(Widgets &w, const Tile &t, int size, int x, int y
     const int left = lv_obj_get_style_space_left(w.tile, LV_PART_MAIN), top = lv_obj_get_style_space_top(w.tile, LV_PART_MAIN);
     const int width = background ? lv_obj_get_width(w.tile) : size, height = background ? lv_obj_get_height(w.tile) : size;
     const int pw = src->header.w, ph = src->header.h;
+    // Pictures use coordinates within their card, regardless of a reused image's alignment.
+    lv_obj_set_align(w.picture, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(w.picture, (background ? -left : x) + (width - pw) / 2, (background ? -top : y) + (height - ph) / 2);
     lv_obj_set_size(w.picture, pw, ph);
     if (background) {
@@ -13635,4 +13800,53 @@ inline void cancel_layout_input(bool invalidate_widgets) {
     if (layout_changed) layout_changed();
   }
 }
+// Dedicated artwork view, without changing this board's backlight or standby settings.
+namespace music_artwork {
+inline lv_obj_t *root=nullptr,*image=nullptr,*title=nullptr,*artist=nullptr;
+inline lv_draw_buf_t *snapshot=nullptr;
+inline std::string mark;
+inline int tile_index=0;
+inline std::function<void()> touched;
+inline bool visible(){return root!=nullptr;}
+inline void close(){
+  if(root)lv_obj_delete(root);
+  root=image=title=artist=nullptr;
+  if(snapshot)lv_draw_buf_destroy(snapshot);
+  snapshot=nullptr;mark.clear();
+}
+inline void update(){
+  if(!root||tile_index<0||tile_index>=model.count)return;
+  const auto &t=model.tiles[tile_index];const auto &x=t.extra();
+  label(title,x.media_title.empty()?t.name:x.media_title);
+  label(artist,x.media_artist);
+  lv_obj_t *picture=nullptr;
+  for(auto &w:widgets)if(w.index==static_cast<unsigned>(tile_index)&&w.extra_mode=="media")picture=w.parts[MEDIA_PICTURE];
+  if(!picture&&detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)&&detail_index==static_cast<unsigned>(tile_index))picture=media_detail_picture;
+  if(!picture||!lv_image_get_src(picture)||x.media_picture==mark)return;
+  auto *next=lv_snapshot_take(picture,LV_COLOR_FORMAT_RGB565);
+  if(!next)return;
+  lv_image_set_src(image,next);if(snapshot)lv_draw_buf_destroy(snapshot);snapshot=next;mark=x.media_picture;
+  const int room=std::max(1,std::min(overlay_card::screen_height()-ui::px(120),overlay_card::screen_width()-ui::px(40)));
+  const int size=std::max<int>(1,std::max(snapshot->header.w,snapshot->header.h));
+  const int scale=256*room/size;
+  lv_image_set_pivot(image,0,0);lv_image_set_scale(image,scale);
+  lv_obj_set_pos(image,(overlay_card::screen_width()-int(snapshot->header.w)*scale/256)/2,ui::px(20));
+}
+inline void open(){
+  if(root||model.count==0)return;
+  root=lv_obj_create(lv_layer_top());lv_obj_remove_style_all(root);
+  lv_obj_set_size(root,lv_pct(100),lv_pct(100));lv_obj_set_style_bg_color(root,theme::rgb(theme::ROLES[theme::CARD].light),0);
+  lv_obj_set_style_bg_opa(root,LV_OPA_COVER,0);lv_obj_add_flag(root,LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_remove_flag(root,LV_OBJ_FLAG_SCROLLABLE);
+  image=lv_image_create(root);lv_obj_remove_flag(image,LV_OBJ_FLAG_CLICKABLE);
+  title=lv_label_create(root);artist=lv_label_create(root);
+  for(auto *text:{title,artist}){lv_obj_set_width(text,overlay_card::screen_width()-ui::px(60));
+    lv_obj_set_style_text_align(text,LV_TEXT_ALIGN_CENTER,0);lv_label_set_long_mode(text,LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_color(text,theme::rgb(theme::ROLES[theme::INK].light),0);
+    lv_obj_set_style_text_font(text,control_font?control_font:detail_font,0);lv_obj_remove_flag(text,LV_OBJ_FLAG_CLICKABLE);}
+  lv_obj_align(title,LV_ALIGN_BOTTOM_MID,0,-ui::px(60));lv_obj_align(artist,LV_ALIGN_BOTTOM_MID,0,-ui::px(30));
+  lv_obj_add_event_cb(root,[](lv_event_t *){close();if(touched)touched();},LV_EVENT_SHORT_CLICKED,nullptr);
+  update();
+}
+}  // namespace music_artwork
 }  // namespace runtime_tiles

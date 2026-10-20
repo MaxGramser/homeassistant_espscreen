@@ -138,7 +138,8 @@ async def _p4(config):
 # The plugin API this core offers: plugin_api.h's PLUGIN_API_MAJOR/MINOR and the add-on's plugin_manifest.PLUGIN_API
 # (a test keeps the three equal). A plugin builds on the same major from its own minor up, unless a minor between its
 # own and this one changed a name while the major is 0 (PLUGIN_API_BREAKS, the same as plugin_manifest.py's).
-PLUGIN_API = (0, 18)
+PLUGIN_API = (0, 19)
+MEDIA_SCREEN_API = 1  # Optional native media-controller API capability.
 PLUGIN_API_BREAKS = {0: (4,)}
 PLUGIN_MANIFEST = "tessera-plugin.yaml"
 
@@ -216,6 +217,7 @@ async def register_plugin(var, component_file):
                          "Update the plugin, or the screen's firmware.")
     # The whole plugin API goes into this build only now that it has a plugin (plugin_host.cpp, USE_TESSERA_PLUGINS).
     cg.add_define("USE_TESSERA_PLUGINS")
+    cg.add_define("USE_API_HOMEASSISTANT_ACTION_RESPONSES_JSON")
     cg.add(var.set_identity(str(manifest["id"]), str(manifest["version"])))
     # A plugin that brings the screen's own camera (the feature `camera`, ts_camera): the core watches it by itself and
     # shows its dot while Home Assistant uses it (plugin API 0.17, docs/PICTURES.md "Capture"), whatever the plugin does.
